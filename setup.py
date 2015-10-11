@@ -34,17 +34,22 @@ import sys
 import numpy as np
 from numpy.distutils.core import setup
 
-# all information about QuTiP goes here-------
+# all information about QuTiP goes here
 MAJOR = 3
-MINOR = 1
+MINOR = 2
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
             'matplotlib (>=1.1)']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
-            'qutip/qip/algorithms', 'qutip/tests']
-PACKAGE_DATA = {'qutip/tests': ['bucky.npy', 'bucky_perm.npy']}
+            'qutip/qip/algorithms', 'qutip/control', 'qutip/tests']
+PACKAGE_DATA = {
+    'qutip': ['configspec.ini'],
+    'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
+    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
+    'qutip/control': ['*.pyx']
+}
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = []
 NAME = "qutip"
@@ -59,6 +64,14 @@ CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
 
+def write_f2py_f2cmap():
+    dirname = os.path.dirname(__file__)
+    with open(os.path.join(dirname, '.f2py_f2cmap'), 'w') as f:
+        f.write("dict(real=dict(sp='float', dp='double', wp='double'), " +
+                "complex=dict(sp='complex_float', dp='complex_double', " +
+                "wp='complex_double'))")
+
+
 def git_short_hash():
     try:
         return "-" + os.popen('git log -1 --format="%h"').read().strip()
@@ -68,8 +81,6 @@ def git_short_hash():
 FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.dev' + git_short_hash()
-
-os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
 
 
 def write_version_py(filename='qutip/version.py'):
@@ -101,6 +112,7 @@ write_version_py()
 if "--with-f90mc" in sys.argv:
     with_f90mc = True
     sys.argv.remove("--with-f90mc")
+    write_f2py_f2cmap()
 else:
     with_f90mc = False
 
@@ -109,7 +121,6 @@ if not with_f90mc:
     print("Installing without the fortran mcsolver.")
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
-
 
 # using numpy distutils to simplify install of data directory for testing
 def configuration(parent_package='', top_path=None):

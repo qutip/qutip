@@ -46,7 +46,7 @@ from scipy.special import sph_harm
 
 from qutip.qobj import Qobj, isket, isoper
 from qutip.states import ket2dm
-from qutip.parfor import parfor
+from qutip.parallel import parfor
 from qutip.utilities import clebsch
 from scipy.misc import factorial
 

@@ -37,7 +37,8 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'state_number_index', 'state_index_number', 'state_number_qobj',
            'phase_basis', 'zero_ket', 'spin_state', 'spin_coherent',
            'bell_state', 'singlet_state', 'triplet_states', 'w_state',
-           'ghz_state']
+           'ghz_state', 'enr_state_dictionaries', 'enr_fock',
+           'enr_thermal_dm']
 
 import numpy as np
 from scipy import arange, conj, prod
@@ -691,7 +692,7 @@ def bra(seq, dim=2):
 #
 # quantum state number helper functions
 #
-def state_number_enumerate(dims, state=None, idx=0):
+def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     """
     An iterator that enumerate all the state number arrays (quantum numbers on
     the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
@@ -699,7 +700,7 @@ def state_number_enumerate(dims, state=None, idx=0):
     Example:
 
         >>> for state in state_number_enumerate([2,2]):
-        >>>     print state
+        >>>     print(state)
         [ 0.  0.]
         [ 0.  1.]
         [ 1.  0.]
@@ -712,6 +713,10 @@ def state_number_enumerate(dims, state=None, idx=0):
 
     state : list
         Current state in the iteration. Used internally.
+
+    excitations : integer (None)
+        Restrict state space to states with excitation numbers below or
+        equal to this value.
 
     idx : integer
         Current index in the iteration. Used internally.
@@ -727,12 +732,17 @@ def state_number_enumerate(dims, state=None, idx=0):
     if state is None:
         state = np.zeros(len(dims))
 
-    if idx == len(dims):
-        yield np.array(state)
+    if excitations and sum(state[0:idx]) > excitations:
+        pass
+    elif idx == len(dims):
+        if excitations is None:
+            yield np.array(state)
+        else:
+            yield tuple(state)
     else:
         for n in range(dims[idx]):
             state[idx] = n
-            for s in state_number_enumerate(dims, state, idx + 1):
+            for s in state_number_enumerate(dims, excitations, state, idx + 1):
                 yield s
 
 
@@ -836,6 +846,129 @@ shape = [8, 1], type = ket
 
     """
     return tensor([fock(dims[i], s) for i, s in enumerate(state)])
+
+
+#
+# Excitation-number restricted (enr) states
+#
+def enr_state_dictionaries(dims, excitations):
+    """
+    Return the number of states, and lookup-dictionaries for translating
+    a state tuple to a state index, and vice versa, for a system with a given
+    number of components and maximum number of excitations.
+
+    Parameters
+    ----------
+    dims: list
+        A list with the number of states in each sub-system.
+
+    excitations : integer
+        The maximum numbers of dimension
+
+    Returns
+    -------
+    nstates, state2idx, idx2state: integer, dict, dict
+        The number of states `nstates`, a dictionary for looking up state
+        indices from a state tuple, and a dictionary for looking up state
+        state tuples from state indices.
+    """
+    nstates = 0
+    state2idx = {}
+    idx2state = {}
+
+    for state in state_number_enumerate(dims, excitations):
+        state2idx[state] = nstates
+        idx2state[nstates] = state
+        nstates += 1
+
+    return nstates, state2idx, idx2state
+
+
+def enr_fock(dims, excitations, state):
+    """
+    Generate the Fock state representation in a excitation-number restricted
+    state space. The `dims` argument is a list of integers that define the
+    number of quantums states of each component of a composite quantum system,
+    and the `excitations` specifies the maximum number of excitations for
+    the basis states that are to be included in the state space. The `state`
+    argument is a tuple of integers that specifies the state (in the number
+    basis representation) for which to generate the Fock state representation.
+
+    Parameters
+    ----------
+    dims : list
+        A list of the dimensions of each subsystem of a composite quantum
+        system.
+
+    excitations : integer
+        The maximum number of excitations that are to be included in the
+        state space.
+
+    state : list of integers
+        The state in the number basis representation.
+
+    Returns
+    -------
+    ket : Qobj
+        A Qobj instance that represent a Fock state in the exication-number-
+        restricted state space defined by `dims` and `exciations`.
+
+    """
+    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
+
+    data = sp.lil_matrix((nstates, 1), dtype=np.complex)
+
+    try:
+        data[state2idx[tuple(state)], 0] = 1
+    except:
+        raise ValueError("The state tuple %s is not in the restricted "
+                         "state space" % str(tuple(state)))
+
+    return Qobj(data, dims=[dims, 1])
+
+
+def enr_thermal_dm(dims, excitations, n):
+    """
+    Generate the density operator for a thermal state in the excitation-number-
+    restricted state space defined by the `dims` and `exciations` arguments.
+    See the documentation for enr_fock for a more detailed description of
+    these arguments. The temperature of each mode in dims is specified by
+    the average number of excitatons `n`.
+
+    Parameters
+    ----------
+    dims : list
+        A list of the dimensions of each subsystem of a composite quantum
+        system.
+
+    excitations : integer
+        The maximum number of excitations that are to be included in the
+        state space.
+
+    n : integer
+        The average number of exciations in the thermal state. `n` can be
+        a float (which then applies to each mode), or a list/array of the same
+        length as dims, in which each element corresponds specifies the
+        temperature of the corresponding mode.
+
+    Returns
+    -------
+    dm : Qobj
+        Thermal state density matrix.
+    """
+    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
+
+    if not isinstance(n, (list, np.ndarray)):
+        n = np.ones(len(dims)) * n
+    else:
+        n = np.asarray(n)
+
+    diags = [np.prod((n / (n + 1)) ** np.array(state))
+             for idx, state in idx2state.items()]
+    diags /= np.sum(diags)
+    data = sp.spdiags(diags, 0, nstates, nstates, format='csr')
+
+    return Qobj(data, dims=[dims, dims])
 
 
 def phase_basis(N, m, phi0=0):
@@ -1028,7 +1161,8 @@ def triplet_states():
     trip_states = []
     trip_states.append(tensor(basis(2, 1), basis(2, 1)))
     trip_states.append(
-        tensor(basis(2), basis(2, 1))+tensor(basis(2, 1), basis(2)))
+       (tensor(basis(2), basis(2, 1)) + tensor(basis(2, 1), basis(2))).unit()
+    )
     trip_states.append(tensor(basis(2), basis(2)))
     return trip_states
 

@@ -35,9 +35,9 @@ import itertools
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip.states import basis, ket2dm
-from qutip.operators import identity, sigmax
+from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
 from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
-                       sqrtswap, toffoli, fredkin, gate_expand_3toN)
+                       sqrtswap, toffoli, fredkin, gate_expand_3toN, qubit_clifford_group)
 from qutip.random_objects import rand_ket, rand_herm
 from qutip.tensor import tensor
 
@@ -65,6 +65,35 @@ class TestGates:
 
         psi_res = swap() * swap() * psi_in
         assert_((psi_in - psi_res).norm() < 1e-12)
+
+    def test_clifford_group_len(self):
+        assert_(len(list(qubit_clifford_group())) == 24)
+
+    def _prop_identity(self, U, tol=1e-6):
+        """
+        Returns True if and only if U is proportional to the
+        identity.
+        """
+        if U[0, 0] != 0:
+            norm_U = U / U[0, 0]
+            return (qeye(U.dims[0]) - norm_U).norm() <= tol
+        else:
+            return False
+
+    def case_is_clifford(self, U):
+        paulis = (identity(2), sigmax(), sigmay(), sigmaz())
+
+        for P in paulis:
+            U_P = U * P * U.dag()
+            
+            assert_(any(
+                self._prop_identity(U_P * Q)
+                for Q in paulis
+            ))
+
+    def test_are_cliffords(self):
+        for U in qubit_clifford_group():
+            yield self.case_is_clifford, U
 
     def testExpandGate1toN(self):
         """
@@ -173,7 +202,7 @@ class TestGates:
         """
         for _p in itertools.permutations([0, 1, 2]):
             controls, target = [_p[0], _p[1]], _p[2]
-            
+
             controls = [1, 2]
             target = 0
 
@@ -183,7 +212,7 @@ class TestGates:
             p[target] = 2
 
             U = toffoli(N=3, controls=controls, target=target)
-            
+
             ops = [basis(2, 0).dag(),  basis(2, 0).dag(), identity(2)]
             P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
             assert_(P * U * P.dag() == identity(2))

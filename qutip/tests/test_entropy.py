@@ -43,7 +43,7 @@ from qutip import (basis, ket2dm, cnot, entropy_vn, entropy_linear, rand_ket,
 
 
 def test_EntropyVN():
-    "von-Neumann entropy"
+    "Entropy: von-Neumann entropy"
     # verify that entropy_vn gives correct binary entropy
     a = np.linspace(0, 1, 20)
     for k in range(len(a)):
@@ -66,7 +66,7 @@ def test_EntropyVN():
 
 
 def test_EntropyLinear():
-    "Linear entropy"
+    "Entropy: Linear entropy"
     # test_ entropy_vn = 0 for pure state
     psi = rand_ket(10)
     assert_equal(abs(entropy_linear(psi)) <= 1e-13, True)
@@ -78,7 +78,7 @@ def test_EntropyLinear():
 
 
 def test_EntropyConcurrence():
-    "Concurrence"
+    "Entropy: Concurrence"
     # check concurrence = 1 for maximal entangled (Bell) state
     bell = ket2dm(
         (tensor(basis(2), basis(2)) + tensor(basis(2, 1), basis(2, 1))).unit())
@@ -91,7 +91,7 @@ def test_EntropyConcurrence():
 
 
 def test_EntropyMutual():
-    "Mutual information"
+    "Entropy: Mutual information"
     # verify mutual information = S(A)+S(B) for pure state
     rhos = [rand_dm(25, dims=[[5, 5], [5, 5]], pure=True) for k in range(10)]
 
@@ -110,7 +110,7 @@ def test_EntropyMutual():
 
 
 def test_EntropyConditional():
-    "Conditional entropy"
+    "Entropy: Conditional entropy"
     # test_ S(A,B|C,D)<=S(A|C)+S(B|D)
     rhos = [rand_dm(16, dims=[[2, 2, 2, 2], [2, 2, 2, 2]], pure=True)
             for k in range(20)]
@@ -132,7 +132,7 @@ def test_EntropyConditional():
 
 
 def test_EntanglingPower():
-    "Entangling power"
+    "Entropy: Entangling power"
     assert_(abs(entangling_power(cnot()) - 2/9) < 1e-12)
     assert_(abs(entangling_power(iswap()) - 2/9) < 1e-12)
     assert_(abs(entangling_power(berkeley()) - 2/9) < 1e-12)

@@ -30,10 +30,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import os
+import numpy as np
+_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
+_include_string = "'"+_cython_path+"/complex_math.pxi'"
 
 __all__ = ['Codegen']
-
-import numpy as np
 
 
 class Codegen():
@@ -133,28 +135,37 @@ class Codegen():
         ret = ''
         for name, value in self.args.items():
             if isinstance(value, np.ndarray):
-                ret += ", np.ndarray[np.%s_t, ndim=1] %s" % \
+                ret += ",\n        np.ndarray[np.%s_t, ndim=1] %s" % \
                     (value.dtype.name, name)
             else:
-                kind = type(value).__name__
-                ret += ", np." + kind + "_t " + name
+                if isinstance(value, (int, np.int32, np.int64)):
+                    kind = 'int'
+                elif isinstance(value, (float, np.float32, np.float64)):
+                    kind = 'float'
+                elif isinstance(value, (complex, np.complex128)):
+                    kind = 'complex'
+                #kind = type(value).__name__
+                ret += ",\n        " + kind + " " + name
         return ret
 
     def ODE_func_header(self):
         """Creates function header for time-dependent ODE RHS."""
         func_name = "def cy_td_ode_rhs("
         # strings for time and vector variables
-        input_vars = "double t, np.ndarray[CTYPE_t, ndim=1] vec"
+        input_vars = ("\n        double t" +
+                      ",\n        np.ndarray[CTYPE_t, ndim=1] vec")
         for k in self.h_terms:
-            input_vars += (", np.ndarray[CTYPE_t, ndim=1] data" + str(k) +
-                           ", np.ndarray[int, ndim=1] idx" + str(k) +
-                           ", np.ndarray[int, ndim=1] ptr" + str(k))
+            input_vars += (",\n        " +
+                           "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
+                           "np.ndarray[int, ndim=1] idx%d," % k +
+                           "np.ndarray[int, ndim=1] ptr%d" % k)
         if any(self.c_tdterms):
             for k in range(len(self.h_terms),
                            len(self.h_terms) + len(self.c_tdterms)):
-                input_vars += (", np.ndarray[CTYPE_t, ndim=1] data" + str(k) +
-                               ", np.ndarray[int, ndim=1] idx" + str(k) +
-                               ", np.ndarray[int, ndim=1] ptr" + str(k))
+                input_vars += (",\n        " +
+                               "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
+                               "np.ndarray[int, ndim=1] idx%d," % k +
+                               "np.ndarray[int, ndim=1] ptr%d" % k)
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
@@ -227,7 +238,7 @@ class Codegen():
                            "idx" + cstr + "," +
                            "ptr" + cstr + "," + "vec" + ")")
                 if ct in range(len(self.c_td_inds)):
-                    str_out += " * np.abs(" + tdterms[ct] + ")**2"
+                    str_out += " * abs(" + tdterms[ct] + ")**2"
                     cinds += 1
                 func_vars.append(str_out)
         return func_vars
@@ -263,7 +274,7 @@ class Codegen():
         ind = 0
         for k in self.c_td_inds:
             out_string.append("if which == " + str(k) + ":")
-            out_string.append("    out *= np.conj(" +
+            out_string.append("    out *= conj(" +
                               self.c_tdterms[ind] + ")")
             ind += 1
         return out_string
@@ -281,15 +292,16 @@ def cython_preamble():
     """
     return ["""\
 # This file is generated automatically by QuTiP.
-# (C) Paul D. Nation & J. R. Johansson
-
-from numpy import *
-cimport libc.math as cmath
+# (C) 2011 and later, P. D. Nation & J. R. Johansson
 
 import numpy as np
 cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs import spmv_csr, spmvpy
+
+cdef double pi = 3.14159265358979323
+
+include """+_include_string+"""
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
@@ -301,10 +313,8 @@ def cython_checks():
     List of strings that turn off Cython checks.
     """
     return ["""
-
 @cython.boundscheck(False)
-@cython.wraparound(False)
-"""]
+@cython.wraparound(False)"""]
 
 
 def cython_col_spmv():

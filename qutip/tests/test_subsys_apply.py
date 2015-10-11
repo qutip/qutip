@@ -42,7 +42,7 @@ from qutip.tensor import tensor
 from qutip.qobj import Qobj
 
 
-class TestSubsystemApply(object):
+class TestSubsysApply(object):
     """
     A test class for the QuTiP function for applying superoperators to
     subsystems.

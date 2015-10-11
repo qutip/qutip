@@ -35,13 +35,14 @@ This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
 """
 
-__all__ = ['fidelity', 'tracedist', 'average_gate_fidelity',
-           'process_fidelity']
+__all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
+           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity',
+           'unitarity']
 
 import numpy as np
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
-from qutip.superop_reps import to_kraus
+from qutip.superop_reps import to_kraus, _super_to_superpauli
 
 
 def fidelity(A, B):
@@ -70,15 +71,31 @@ def fidelity(A, B):
 
     """
     if A.isket or A.isbra:
-        A = ket2dm(A)
-    if B.isket or B.isbra:
-        B = ket2dm(B)
+        # Take advantage of the fact that the density operator for A
+        # is a projector to avoid a sqrtm call.
+        sqrtmA = ket2dm(A)
+        # Check whether we have to turn B into a density operator, too.
+        if B.isket or B.isbra:
+            B = ket2dm(B)
+    else:
+        if B.isket or B.isbra:
+            # Swap the order so that we can take a more numerically
+            # stable square root of B.
+            return fidelity(B, A)
+        # If we made it here, both A and B are operators, so
+        # we have to take the sqrtm of one of them.
+        sqrtmA = A.sqrtm()
 
-    if A.dims != B.dims:
+    if sqrtmA.dims != B.dims:
         raise TypeError('Density matrices do not have same dimensions.')
 
-    A = A.sqrtm()
-    return float(np.real((A * (B * A)).sqrtm().tr()))
+    # We don't actually need the whole matrix here, just the trace
+    # of its square root, so let's just get its eigenenergies instead.
+    # We also truncate negative eigenvalues to avoid nan propagation;
+    # even for positive semidefinite matrices, small negative eigenvalues
+    # can be reported.
+    eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
+    return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
 
 
 def process_fidelity(U1, U2, normalize=True):
@@ -91,7 +108,7 @@ def process_fidelity(U1, U2, normalize=True):
         return (U1 * U2).tr()
 
 
-def average_gate_fidelity(oper):
+def average_gate_fidelity(oper, target=None):
     """
     Given a Qobj representing the supermatrix form of a map, returns the
     average gate fidelity (pseudo-metric) of that map.
@@ -100,20 +117,28 @@ def average_gate_fidelity(oper):
     ----------
     A : Qobj
         Quantum object representing a superoperator.
+    target : Qobj
+        Quantum object representing the target unitary; the inverse
+        is applied before evaluating the fidelity.
 
     Returns
     -------
     fid : float
-        Fidelity pseudo-metric between A and the identity superoperator.
+        Fidelity pseudo-metric between A and the identity superoperator,
+        or between A and the target superunitary.
     """
     kraus_form = to_kraus(oper)
     d = kraus_form[0].shape[0]
 
     if kraus_form[0].shape[1] != d:
-        return TypeError("Average gate fielity only implemented for square "
+        return TypeError("Average gate fidelity only implemented for square "
                          "superoperators.")
 
-    return (d + np.sum([np.abs(A_k.tr())**2
+    if target is None:
+        return (d + np.sum([np.abs(A_k.tr())**2
+                        for A_k in kraus_form])) / (d**2 + d)
+    else:
+        return (d + np.sum([np.abs((A_k * target.dag()).tr())**2
                         for A_k in kraus_form])) / (d**2 + d)
 
 
@@ -123,7 +148,7 @@ def tracedist(A, B, sparse=False, tol=0):
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
 
     Parameters
-    ----------
+    ----------!=
     A : qobj
         Density matrix or state vector.
     B : qobj
@@ -176,6 +201,10 @@ def hilbert_dist(A, B):
     dist : float
         Hilbert-Schmidt distance between density matrices.
 
+    Notes
+    -----
+    See V. Vedral and M. B. Plenio, Phys. Rev. A 57, 1619 (1998).
+
     """
     if A.isket or A.isbra:
         A = ket2dm(A)
@@ -185,7 +214,7 @@ def hilbert_dist(A, B):
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
 
-    return (A - B).norm('fro')
+    return ((A - B)**2).tr()
 
 
 def bures_dist(A, B):
@@ -246,3 +275,22 @@ def bures_angle(A, B):
         raise TypeError('A and B do not have same dimensions.')
 
     return np.arccos(fidelity(A, B))
+
+def unitarity(oper):
+    """
+    Returns the unitarity of a quantum map, defined as the Frobenius norm
+    of the unital block of that map's superoperator representation.
+
+    Parameters
+    ----------
+    oper : Qobj
+        Quantum map under consideration.
+
+    Returns
+    -------
+    u : float
+        Unitarity of ``oper``.
+    """
+    Eu = _super_to_superpauli(oper).full()[1:, 1:]
+    #return np.real(np.trace(np.dot(Eu, Eu.conj().T))) / len(Eu)
+    return np.linalg.norm(Eu, 'fro')**2 / len(Eu)

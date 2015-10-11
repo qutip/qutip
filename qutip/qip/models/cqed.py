@@ -44,7 +44,7 @@ class DispersivecQED(CircuitProcessor):
     """
 
     def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None,
-                 epsmax=None, w0=None, eps=None, delta=None, g=None):
+                 epsmax=None, w0=None, wq=None, eps=None, delta=None, g=None):
         """
         Parameters
         ----------
@@ -59,6 +59,9 @@ class DispersivecQED(CircuitProcessor):
 
         wo: Integer
             The base frequency of the resonator.
+
+        wq: Integer/List
+            The frequency of the qubits.
 
         eps: Integer/List
             The epsilon for each of the qubits in the system.
@@ -117,6 +120,27 @@ class DispersivecQED(CircuitProcessor):
             self.g = np.array([g * 2 * np.pi] * N)
         else:
             self.g = np.array(g)
+
+        if wq is not None:
+            if not isinstance(wq, list):
+                self.wq = np.array([wq] * N)
+            else:
+                self.wq = np.array(wq)
+
+        if wq is None:
+            if eps is None:
+                self.eps = np.array([9.5 * 2 * np.pi] * N)
+            elif not isinstance(eps, list):
+                self.eps = np.array([eps] * N)
+            else:
+                self.eps = np.array(eps)
+
+            if delta is None:
+                self.delta = np.array([0.0 * 2 * np.pi] * N)
+            elif not isinstance(delta, list):
+                self.delta = np.array([delta] * N)
+            else:
+                self.delta = np.array(delta)
 
         # computed
         self.wq = np.sqrt(self.eps ** 2 + self.delta ** 2)

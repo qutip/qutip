@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2014 and later, Alexander J G Pitchford
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -31,27 +32,33 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+# @author: Alexander Pitchford
+# @email1: agp1@aber.ac.uk
+# @email2: alex.pitchford@gmail.com
+# @organization: Aberystwyth University
+# @supervisor: Daniel Burgarth
+
+"""
+Utility functions for symplectic matrices
+"""
+
 import numpy as np
-import time
-from numpy.testing import assert_, run_module_suite
-
-from qutip import parfor
 
 
-def _func(x):
-    time.sleep(np.random.rand() * 0.25)  # random delay
-    return x**2
+def calc_omega(n):
+    """
+    Calculate the 2n x 2n omega matrix
+    Used in calcualating the propagators in systems described by symplectic
+    matrices
+    returns omega
+    """
 
+    omg = np.zeros((2*n, 2*n))
+    for j in range(2*n):
+        for k in range(2*n):
+            if k == j+1:
+                omg[j, k] = (1 + (-1)**j)/2
+            if k == j-1:
+                omg[j, k] = -(1 - (-1)**j)/2
 
-def test_parfor1():
-    "parfor"
-
-    x = np.arange(10)
-    y1 = list(map(_func, x))
-    y2 = parfor(_func, x)
-
-    assert_((np.array(y1) == np.array(y2)).all())
-
-
-if __name__ == "__main__":
-    run_module_suite()
+    return omg

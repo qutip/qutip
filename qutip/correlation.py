@@ -44,19 +44,20 @@ import types
 import numpy as np
 import scipy.fftpack
 
-from qutip.superoperator import liouvillian, spre, mat2vec
-from qutip.expect import expect
-from qutip.tensor import tensor
-from qutip.operators import qeye
-from qutip.mesolve import mesolve
 from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
+from qutip.expect import expect
+from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
+from qutip.operators import qeye
+from qutip.qobj import Qobj, isket, issuper
+from qutip.rhs_generate import rhs_clear
+from qutip.settings import debug
+from qutip.solver import Options
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
-from qutip.solver import Options
-from qutip.settings import debug
-from qutip.qobj import Qobj, isket, issuper
+from qutip.superoperator import liouvillian, spre, mat2vec
+from qutip.tensor import tensor
 
 if debug:
     import inspect
@@ -1047,7 +1048,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
     """
 
-    warn("spectrum_ss() now legacy, please use spectrum()", FutureWarning)
+    warn("spectrum_pi() now legacy, please use spectrum()", FutureWarning)
 
     return spectrum(H, wlist, c_ops, a_op, b_op,
                     solver="pi", use_pinv=use_pinv)
@@ -1124,6 +1125,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H_shifted, _args = _transform_H_t_shift(H, args)
+    rhs_clear()
 
     for t_idx, rho in enumerate(rho_t):
         if not isinstance(H, Qobj):
@@ -1202,7 +1204,9 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
     corr_es = expect(a_op, es)
 
     # covariance
-    cov_es = corr_es - np.real(np.conjugate(a_op_ss) * b_op_ss)
+    cov_es = corr_es - a_op_ss * b_op_ss
+    # tidy up covariance (to combine, e.g., zero-frequency components that cancel)
+    cov_es.tidyup()
 
     # spectrum
     spectrum = esspec(cov_es, wlist)

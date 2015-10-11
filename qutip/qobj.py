@@ -62,6 +62,13 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 
+import sys
+if sys.version_info.major >= 3:
+    from itertools import zip_longest
+elif sys.version_info.major < 3:
+    from itertools import izip_longest
+    zip_longest = izip_longest
+
 
 class Qobj(object):
     """A class for representing quantum objects, such as quantum operators
@@ -178,14 +185,14 @@ class Qobj(object):
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
             self.dims = dims
             self._isherm = False
             return
 
         if fast == 'mc-dm':
             # fast Qobj construction for use in mcsolve with dm output
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
             self.dims = dims
             self._isherm = True
             return
@@ -194,7 +201,7 @@ class Qobj(object):
             # if input is already Qobj then return identical copy
 
             # make sure matrix is sparse (safety check)
-            self.data = sp.csr_matrix(inpt.data, dtype=complex)
+            self.data = sp.csr_matrix(inpt.data, dtype=complex, copy=True)
 
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
@@ -224,16 +231,15 @@ class Qobj(object):
 
         elif isinstance(inpt, list) or isinstance(inpt, tuple):
             # case where input is a list
-            if len(np.array(inpt).shape) == 1:
+            data = np.array(inpt)
+            if len(data.shape) == 1:
                 # if list has only one dimension (i.e [5,4])
-                inpt = np.array([inpt]).transpose()
-            else:  # if list has two dimensions (i.e [[5,4]])
-                inpt = np.array(inpt)
+                data = data.transpose()
 
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(data, dtype=complex)
 
             if not np.any(dims):
-                self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
+                self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
                 self.dims = dims
 
@@ -242,7 +248,7 @@ class Qobj(object):
             if inpt.ndim == 1:
                 inpt = inpt[:, np.newaxis]
 
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
 
             if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -263,7 +269,7 @@ class Qobj(object):
             warnings.warn("Initializing Qobj from unsupported type: %s" %
                           builtins.type(inpt))
             inpt = np.array([[0]])
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
         if type == 'super':
@@ -309,7 +315,9 @@ class Qobj(object):
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
             else:
-                out._isherm = out.isherm
+                # We use _isherm here to prevent recalculating on self and
+                # other, relying on that bool(None) == False.
+                out._isherm = True if self._isherm and other._isherm else out.isherm
 
             out.superrep = self.superrep
 
@@ -397,18 +405,29 @@ class Qobj(object):
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
+
                 if (not isinstance(dims[0][0], list) and
                         not isinstance(dims[1][0], list)):
-                    r = range(len(dims[0]))
-                    mask = [dims[0][n] == dims[1][n] == 1 for n in r]
-                    out.dims = [max([1], [dims[0][n]
-                                          for n in r if not mask[n]]),
-                                max([1], [dims[1][n]
-                                          for n in r if not mask[n]])]
+                    # If neither left or right is a superoperator,
+                    # we should implicitly partial trace over
+                    # matching dimensions of 1.
+                    # Using izip_longest allows for the left and right dims
+                    # to have uneven length (non-square Qobjs).
+                    # We use None as padding so that it doesn't match anything,
+                    # and will never cause a partial trace on the other side.
+                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1], fillvalue=None)]
+                    # To ensure that there are still any dimensions left, we
+                    # use max() to add a dimensions list of [1] if all matching dims
+                    # are traced out of that side.
+                    out.dims = [max([1], [dim
+                                          for dim, m in zip(dims[0], mask) if not m]),
+                                max([1], [dim
+                                          for dim, m in zip(dims[1], mask) if not m])]
+                    
                 else:
                     out.dims = dims
 
-                out._isherm = out.isherm
+                out._isherm = None
 
                 if self.superrep and other.superrep:
                     if self.superrep != other.superrep:
@@ -1054,7 +1073,7 @@ class Qobj(object):
         -------
         P : qobj
             Permuted quantum object.
-i
+
         """
         q = Qobj()
         q.data, q.dims = _permute(self, order)
@@ -1459,7 +1478,7 @@ i
                     if self.superrep in ('choi', 'chi')
                     else sr.to_choi(self)
                 ).eigenenergies()
-                return all(eigs >= 0)
+                return all(eigs >= -settings.atol)
             except:
                 return False
         else:
@@ -1519,7 +1538,6 @@ i
 
     @property
     def type(self):
-
         if not self._type:
             if self.isoper:
                 self._type = 'oper'
@@ -1540,7 +1558,10 @@ i
 
     @property
     def shape(self):
-        return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+        if self.data.shape == (1, 1):
+            return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+        else:
+            return list(self.data.shape)
 
     @property
     def isbra(self):

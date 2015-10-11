@@ -35,24 +35,16 @@
 #    Significant parts of this code were contributed by Denis Vasilyev.
 #
 ###############################################################################
-
 """
-This module contains experimental functions for solving stochastic schrodinger
-and master equations. The API should not be considered stable, and is subject
-to change when we work more on optimizing this module for performance and
-features.
-
-Todo:
-
- * parallelize
-
+This module contains functions for solving stochastic schrodinger and master
+equations. The API should not be considered stable, and is subject to change
+when we work more on optimizing this module for performance and features.
 """
 
 __all__ = ['ssesolve', 'ssepdpsolve', 'smesolve', 'smepdpsolve']
 
 import numpy as np
 import scipy.sparse as sp
-import scipy
 from scipy.linalg.blas import get_blas_funcs
 try:
     norm = get_blas_funcs("znrm2", dtype=np.float64)
@@ -70,13 +62,16 @@ from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
                                  cy_d2_rho_photocurrent)
+from qutip.parallel import serial_map
 from qutip.ui.progressbar import TextProgressBar
 from qutip.solver import Options
 from qutip.settings import debug
 
 
 if debug:
+    import qutip.logging
     import inspect
+    logger = qutip.logging.get_logger()
 
 
 class StochasticSolverOptions:
@@ -196,6 +191,12 @@ class StochasticSolverOptions:
     options : :class:`qutip.solver.Options`
         Generic solver options.
 
+    map_func: function
+        A map function or managing the calls to single-trajactory solvers.
+
+    map_kwargs: dictionary
+        Optional keyword arguments to the map_func function function.
+
     progress_bar : :class:`qutip.ui.BaseProgressBar`
         Optional progress bar class instance.
 
@@ -206,7 +207,8 @@ class StochasticSolverOptions:
                  generate_A_ops=None, generate_noise=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None, normalize=True,
-                 options=None, progress_bar=None):
+                 options=None, progress_bar=None, map_func=None,
+                 map_kwargs=None):
 
         if options is None:
             options = Options()
@@ -248,10 +250,17 @@ class StochasticSolverOptions:
         self.generate_noise = generate_noise
         self.generate_A_ops = generate_A_ops
 
+        if self.ntraj > 1 and map_func:
+            self.map_func = map_func
+        else:
+            self.map_func = serial_map
+
+        self.map_kwargs = map_kwargs if map_kwargs is not None else {}
+
 
 def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
     """
-    Solve stochastic Schrödinger equation. Dispatch to specific solvers
+    Solve the stochastic Schrödinger equation. Dispatch to specific solvers
     depending on the value of the `solver` keyword argument.
 
     Parameters
@@ -287,7 +296,7 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
         An instance of the class :class:`qutip.solver.SolverResult`.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -345,10 +354,10 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
         sso.homogeneous = False
 
     if sso.solver == 'euler-maruyama' or sso.solver is None:
-        sso.rhs_func = _rhs_psi_euler_maruyama
+        sso.rhs = _rhs_psi_euler_maruyama
 
     elif sso.solver == 'platen':
-        sso.rhs_func = _rhs_psi_platen
+        sso.rhs = _rhs_psi_platen
 
     else:
         raise Exception("Unrecognized solver '%s'." % sso.solver)
@@ -410,7 +419,7 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
     """
 
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isket(rho0):
         rho0 = ket2dm(rho0)
@@ -563,7 +572,7 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
 
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -626,7 +635,7 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
 
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -653,60 +662,55 @@ def _ssesolve_generic(sso, options, progress_bar):
     Internal function for carrying out a sse integration. Used by ssesolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
-    N_store = len(sso.times)
-    N_substeps = sso.nsubsteps
-    dt = (sso.times[1] - sso.times[0]) / N_substeps
-    NT = sso.ntraj
+    sso.N_store = len(sso.times)
+    sso.N_substeps = sso.nsubsteps
+    sso.dt = (sso.times[1] - sso.times[0]) / sso.N_substeps
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "ssesolve"
     data.times = sso.times
-    data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
-    data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
+    data.expect = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+    data.ss = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
     data.noise = []
     data.measurement = []
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
-    A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
+    sso.A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
 
-    progress_bar.start(sso.ntraj)
+    map_kwargs = {'progress_bar': progress_bar}
+    map_kwargs.update(sso.map_kwargs)
 
-    for n in range(sso.ntraj):
-        progress_bar.update(n)
+    task = _ssesolve_single_trajectory
+    task_args = (sso,)
+    task_kwargs = {}
 
-        psi_t = sso.state0.full().ravel()
+    results = sso.map_func(task, list(range(sso.ntraj)),
+                           task_args, task_kwargs, **map_kwargs)
 
-        noise = sso.noise[n] if sso.noise is not None else None
-
-        states_list, dW, m = _ssesolve_single_trajectory(
-            data, sso.H, dt, sso.times, N_store, N_substeps, psi_t,
-            sso.state0.dims, A_ops, sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1,
-            sso.d2, sso.d2_len, sso.dW_factors, sso.homogeneous,
-            sso.distribution, sso.args,
-            store_measurement=sso.store_measurement, noise=noise,
-            normalize=sso.normalize)
-
+    for result in results:
+        states_list, dW, m, expect, ss = result
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
-
-    progress_bar.finished()
+        data.expect += expect
+        data.ss += ss
 
     # average density matrices
     if options.average_states and np.any(data.states):
         data.states = [sum([ket2dm(data.states[mm][n])
-                            for mm in range(NT)]).unit()
+                            for mm in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
-    data.expect = data.expect / NT
+    data.expect = data.expect / nt
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
@@ -718,34 +722,49 @@ def _ssesolve_generic(sso, options, progress_bar):
     return data
 
 
-def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
-                                dims, A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
-                                dW_factors, homogeneous, distribution, args,
-                                store_measurement=False, noise=None,
-                                normalize=True):
+def _ssesolve_single_trajectory(n, sso):
     """
     Internal function. See ssesolve.
     """
+    dt = sso.dt
+    times = sso.times
+    d1, d2 = sso.d1, sso.d2
+    d2_len = sso.d2_len
+    e_ops = sso.e_ops
+    H_data = sso.H.data
+    A_ops = sso.A_ops
 
-    if noise is None:
-        if homogeneous:
-            if distribution == 'normal':
+    expect = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+    ss = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+
+    psi_t = sso.state0.full().ravel()
+    dims = sso.state0.dims
+
+    # reseed the random number generator so that forked
+    # processes do not get the same sequence of random numbers
+    np.random.seed((n+1) * np.random.randint(0, 4294967295 // (sso.ntraj+1)))
+
+    if sso.noise is None:
+        if sso.homogeneous:
+            if sso.distribution == 'normal':
                 dW = np.sqrt(dt) * \
-                    scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+                    np.random.randn(len(A_ops), sso.N_store, sso.N_substeps,
+                                    d2_len)
             else:
                 raise TypeError('Unsupported increment distribution for ' +
                                 'homogeneous process.')
         else:
-            if distribution != 'poisson':
+            if sso.distribution != 'poisson':
                 raise TypeError('Unsupported increment distribution for ' +
                                 'inhomogeneous process.')
 
-            dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
+            dW = np.zeros((len(A_ops), sso.N_store, sso.N_substeps, d2_len))
     else:
-        dW = noise
+        dW = sso.noise[n]
 
     states_list = []
-    measurements = np.zeros((len(times), len(m_ops), d2_len), dtype=complex)
+    measurements = np.zeros((len(times), len(sso.m_ops), d2_len),
+                            dtype=complex)
 
     for t_idx, t in enumerate(times):
 
@@ -754,14 +773,14 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                 s = cy_expect_psi_csr(e.data.data,
                                       e.data.indices,
                                       e.data.indptr, psi_t, 0)
-                data.expect[e_idx, t_idx] += s
-                data.ss[e_idx, t_idx] += s ** 2
+                expect[e_idx, t_idx] += s
+                ss[e_idx, t_idx] += s ** 2
         else:
             states_list.append(Qobj(psi_t, dims=dims))
 
-        for j in range(N_substeps):
+        for j in range(sso.N_substeps):
 
-            if noise is None and not homogeneous:
+            if sso.noise is None and not sso.homogeneous:
                 for a_idx, A in enumerate(A_ops):
                     # dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
                     dw_expect = cy_expect_psi_csr(A[3].data,
@@ -770,16 +789,16 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect,
                                                                d2_len)
 
-            psi_t = rhs(H.data, psi_t, t + dt * j,
-                        A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
+            psi_t = sso.rhs(H_data, psi_t, t + dt * j,
+                            A_ops, dt, dW[:, t_idx, j, :], d1, d2, sso.args)
 
             # optionally renormalize the wave function
-            if normalize:
+            if sso.normalize:
                 psi_t /= norm(psi_t)
 
-        if store_measurement:
-            for m_idx, m in enumerate(m_ops):
-                for dW_idx, dW_factor in enumerate(dW_factors):
+        if sso.store_measurement:
+            for m_idx, m in enumerate(sso.m_ops):
+                for dW_idx, dW_factor in enumerate(sso.dW_factors):
                     if m[dW_idx]:
                         m_data = m[dW_idx].data
                         m_expt = cy_expect_psi_csr(m_data.data,
@@ -790,13 +809,13 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                         m_expt = 0
                     mm = (m_expt + dW_factor *
                           dW[m_idx, t_idx, :, dW_idx].sum() /
-                          (dt * N_substeps))
+                          (dt * sso.N_substeps))
                     measurements[t_idx, m_idx, dW_idx] = mm
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
 
-    return states_list, dW, measurements
+    return states_list, dW, measurements, expect, ss
 
 
 # -----------------------------------------------------------------------------
@@ -807,79 +826,68 @@ def _smesolve_generic(sso, options, progress_bar):
     Internal function. See smesolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
-    N_store = len(sso.times)
-    N_substeps = sso.nsubsteps
-    dt = (sso.times[1] - sso.times[0]) / N_substeps
-    NT = sso.ntraj
+    sso.N_store = len(sso.times)
+    sso.N_substeps = sso.nsubsteps
+    sso.dt = (sso.times[1] - sso.times[0]) / sso.N_substeps
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "smesolve"
     data.times = sso.times
-    data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
-    data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
+    data.expect = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+    data.ss = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
     data.noise = []
     data.measurement = []
 
     # Liouvillian for the deterministic part.
     # needs to be modified for TD systems
-    L = liouvillian(sso.H, sso.c_ops)
+    sso.L = liouvillian(sso.H, sso.c_ops)
 
     # pre-compute suporoperator operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
-    A_ops = sso.generate_A_ops(sso.sc_ops, L.data, dt)
+    sso.A_ops = sso.generate_A_ops(sso.sc_ops, sso.L.data, sso.dt)
 
     # use .data instead of Qobj ?
-    s_e_ops = [spre(e) for e in sso.e_ops]
+    sso.s_e_ops = [spre(e) for e in sso.e_ops]
 
     if sso.m_ops:
-        s_m_ops = [[spre(m) if m else None for m in m_op]
-                   for m_op in sso.m_ops]
+        sso.s_m_ops = [[spre(m) if m else None for m in m_op]
+                       for m_op in sso.m_ops]
     else:
-        s_m_ops = [[spre(c) for _ in range(sso.d2_len)]
-                   for c in sso.sc_ops]
+        sso.s_m_ops = [[spre(c) for _ in range(sso.d2_len)]
+                       for c in sso.sc_ops]
 
-    progress_bar.start(sso.ntraj)
+    map_kwargs = {'progress_bar': progress_bar}
+    map_kwargs.update(sso.map_kwargs)
 
-    for n in range(sso.ntraj):
-        progress_bar.update(n)
+    task = _smesolve_single_trajectory
+    task_args = (sso,)
+    task_kwargs = {}
 
-        rho_t = mat2vec(sso.state0.full()).ravel()
+    results = sso.map_func(task, list(range(sso.ntraj)),
+                           task_args, task_kwargs, **map_kwargs)
 
-        # noise = sso.noise[n] if sso.noise else None
-        if sso.noise is not None:
-            noise = sso.noise[n]
-        elif sso.generate_noise:
-            noise = sso.generate_noise(len(A_ops), N_store, N_substeps,
-                                       sso.d2_len, dt)
-        else:
-            noise = None
-
-        states_list, dW, m = _smesolve_single_trajectory(
-            data, L, dt, sso.times, N_store, N_substeps, rho_t,
-            sso.state0.dims, A_ops, s_e_ops, s_m_ops, sso.rhs, sso.d1, sso.d2,
-            sso.d2_len, sso.dW_factors, sso.homogeneous, sso.distribution,
-            sso.args, store_measurement=sso.store_measurement,
-            store_states=sso.store_states, noise=noise)
-
+    for result in results:
+        states_list, dW, m, expect, ss = result
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
-
-    progress_bar.finished()
+        data.expect += expect
+        data.ss += ss
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[mm][n] for mm in range(NT)]).unit()
+        data.states = [sum([data.states[mm][n] for mm in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
-    data.expect = data.expect / NT
+    data.expect = data.expect / nt
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
@@ -891,50 +899,69 @@ def _smesolve_generic(sso, options, progress_bar):
     return data
 
 
-def _smesolve_single_trajectory(
-        data, L, dt, times, N_store, N_substeps, rho_t, dims, A_ops, e_ops,
-        m_ops, rhs, d1, d2, d2_len, dW_factors, homogeneous, distribution,
-        args, store_measurement=False, store_states=False, noise=None):
+def _smesolve_single_trajectory(n, sso):
     """
     Internal function. See smesolve.
     """
+    dt = sso.dt
+    times = sso.times
+    d1, d2 = sso.d1, sso.d2
+    d2_len = sso.d2_len
+    L_data = sso.L.data
+    N_substeps = sso.N_substeps
+    N_store = sso.N_store
+    A_ops = sso.A_ops
 
-    if noise is None:
-        if homogeneous:
-            if distribution == 'normal':
-                dW = np.sqrt(dt) * scipy.randn(len(A_ops),
-                                               N_store, N_substeps, d2_len)
+    rho_t = mat2vec(sso.state0.full()).ravel()
+    dims = sso.state0.dims
+
+    expect = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+    ss = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+
+    # reseed the random number generator so that forked
+    # processes do not get the same sequence of random numbers
+    np.random.seed((n+1) * np.random.randint(0, 4294967295 // (sso.ntraj+1)))
+
+    if sso.noise is None:
+        if sso.generate_noise:
+            dW = sso.generate_noise(len(A_ops), N_store, N_substeps,
+                                    sso.d2_len, dt)
+        elif sso.homogeneous:
+            if sso.distribution == 'normal':
+                dW = np.sqrt(dt) * np.random.randn(len(A_ops), N_store,
+                                                   N_substeps, d2_len)
             else:
                 raise TypeError('Unsupported increment distribution for ' +
                                 'homogeneous process.')
         else:
-            if distribution != 'poisson':
+            if sso.distribution != 'poisson':
                 raise TypeError('Unsupported increment distribution for ' +
                                 'inhomogeneous process.')
 
             dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
     else:
-        dW = noise
+        dW = sso.noise[n]
 
     states_list = []
-    measurements = np.zeros((len(times), len(m_ops), d2_len), dtype=complex)
+    measurements = np.zeros((len(times), len(sso.s_m_ops), d2_len),
+                            dtype=complex)
 
     for t_idx, t in enumerate(times):
 
-        if e_ops:
-            for e_idx, e in enumerate(e_ops):
+        if sso.s_e_ops:
+            for e_idx, e in enumerate(sso.s_e_ops):
                 s = cy_expect_rho_vec(e.data, rho_t, 0)
-                data.expect[e_idx, t_idx] += s
-                data.ss[e_idx, t_idx] += s ** 2
+                expect[e_idx, t_idx] += s
+                ss[e_idx, t_idx] += s ** 2
 
-        if store_states or not e_ops:
+        if sso.store_states or not sso.s_e_ops:
             states_list.append(Qobj(vec2mat(rho_t), dims=dims))
 
         rho_prev = np.copy(rho_t)
 
         for j in range(N_substeps):
 
-            if noise is None and not homogeneous:
+            if sso.noise is None and not sso.homogeneous:
                 for a_idx, A in enumerate(A_ops):
                     dw_expect = cy_expect_rho_vec(A[4], rho_t, 1) * dt
                     if dw_expect > 0:
@@ -943,12 +970,12 @@ def _smesolve_single_trajectory(
                     else:
                         dW[a_idx, t_idx, j, :] = np.zeros(d2_len)
 
-            rho_t = rhs(L.data, rho_t, t + dt * j,
-                        A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
+            rho_t = sso.rhs(L_data, rho_t, t + dt * j,
+                            A_ops, dt, dW[:, t_idx, j, :], d1, d2, sso.args)
 
-        if store_measurement:
-            for m_idx, m in enumerate(m_ops):
-                for dW_idx, dW_factor in enumerate(dW_factors):
+        if sso.store_measurement:
+            for m_idx, m in enumerate(sso.s_m_ops):
+                for dW_idx, dW_factor in enumerate(sso.dW_factors):
                     if m[dW_idx]:
                         m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev, 0)
                     else:
@@ -959,7 +986,7 @@ def _smesolve_single_trajectory(
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
 
-    return states_list, dW, measurements
+    return states_list, dW, measurements, expect, ss
 
 
 # -----------------------------------------------------------------------------
@@ -970,12 +997,12 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     For internal use. See ssepdpsolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
-    NT = sso.ntraj
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "sepdpsolve"
@@ -991,7 +1018,6 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
         Heff += -0.5j * c.dag() * c
 
     progress_bar.start(sso.ntraj)
-
     for n in range(sso.ntraj):
         progress_bar.update(n)
         psi_t = sso.state0.full().ravel()
@@ -1010,15 +1036,15 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
+        data.states = [sum([data.states[m][n] for m in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
-    data.expect = data.expect / NT
+    data.expect = data.expect / nt
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
@@ -1103,12 +1129,12 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     For internal use. See smepdpsolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
-    NT = sso.ntraj
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "smepdpsolve"
@@ -1141,15 +1167,15 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
+        data.states = [sum([data.states[m][n] for m in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
     data.expect = data.expect / sso.ntraj
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
@@ -1182,16 +1208,16 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
 
         for j in range(N_substeps):
 
-            if expect_rho_vec(d_op, sigma_t) < r_jump:
+            if sigma_t.norm() < r_jump:
                 # jump occurs
                 p = np.array([expect(c.dag() * c, rho_t) for c in c_ops])
                 p = np.cumsum(p / np.sum(p))
                 n = np.where(p >= r_op)[0][0]
 
                 # apply jump
-                rho_t = c_ops[n] * psi_t * c_ops[n].dag()
-                rho_t /= rho_expect(c.dag() * c, rho_t)
-                rho_t = np.copy(rho_t)
+                rho_t = c_ops[n] * rho_t * c_ops[n].dag()
+                rho_t /= expect(c_ops[n].dag() * c_ops[n], rho_t)
+                sigma_t = np.copy(rho_t)
 
                 # store info about jump
                 jump_times.append(times[t_idx] + dt * j)
@@ -1467,13 +1493,18 @@ def _generate_noise_Milstein(sc_len, N_store, N_substeps, d2_len, dt):
     """
     generate noise terms for the fast Milstein scheme
     """
-    dW_temp = np.sqrt(dt) * scipy.randn(sc_len, N_store, N_substeps, 1)
+    dW_temp = np.sqrt(dt) * np.random.randn(sc_len, N_store, N_substeps, 1)
     if sc_len == 1:
         noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt *
                           np.ones((sc_len, N_store, N_substeps, 1)))])
     else:
-        noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt * np.ones((sc_len, N_store, N_substeps, 1)))] +
-                          [[dW_temp[n] * dW_temp[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m]])
+        noise = np.vstack(
+            [dW_temp,
+             0.5 * (dW_temp * dW_temp -
+                    dt * np.ones((sc_len, N_store, N_substeps, 1)))] +
+            [[dW_temp[n] * dW_temp[m]
+              for (n, m) in np.ndindex(sc_len, sc_len) if n > m]])
+
     return noise
 
 
@@ -1753,15 +1784,17 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     drho_t += d1_vec * dt
     drho_t += np.sum([(d2_vec[n] - e1[n] * rho_t) * dW[n, 0]
                       for n in range(A_len)], axis=0)
-    drho_t += 0.5 * np.sum([(d2_vec2[n, n] - 2.0 * e1[n] * d2_vec[n] +
-                            (-e2[n, n] + 2.0 * e1[n] * e1[n]) * rho_t) * (dW[n, 0] * dW[n, 0] - dt)
-                            for n in range(A_len)], axis=0)
+    drho_t += 0.5 * np.sum(
+        [(d2_vec2[n, n] - 2.0 * e1[n] * d2_vec[n] +
+         (-e2[n, n] + 2.0 * e1[n] * e1[n]) * rho_t) * (dW[n, 0]*dW[n, 0] - dt)
+         for n in range(A_len)], axis=0)
 
     # This calculation is suboptimal. We need only values for m>n in case of
     # commuting jump operators.
-    drho_t += 0.5 * np.sum([(d2_vec2[n, m] - e1[m] * d2_vec[n] - e1[n] * d2_vec[m] +
-                             (-e2[n, m] + 2.0 * e1[n] * e1[m]) * rho_t) * (dW[n, 0] * dW[m, 0])
-                            for (n, m) in np.ndindex(A_len, A_len) if n != m], axis=0)
+    drho_t += 0.5 * np.sum(
+        [(d2_vec2[n, m] - e1[m] * d2_vec[n] - e1[n] * d2_vec[m] +
+         (-e2[n, m] + 2.0 * e1[n] * e1[m]) * rho_t) * (dW[n, 0] * dW[m, 0])
+         for (n, m) in np.ndindex(A_len, A_len) if n != m], axis=0)
 
     return rho_t + drho_t
 
@@ -1820,7 +1853,8 @@ def _rhs_rho_milstein_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     sc2_len = 2 * sc_len
 
     d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-    e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    e = np.real(d_vec[:-1].reshape(
+        -1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
     d_vec[sc2_len:-1] -= np.array(
         [e[m] * d_vec[n] + e[n] * d_vec[m]
          for (n, m) in np.ndindex(sc_len, sc_len) if n > m])

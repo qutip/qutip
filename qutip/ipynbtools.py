@@ -34,7 +34,7 @@
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
 
-__all__ = ['version_table', 'parfor', 'plot_animation']
+__all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
 
 from qutip.ui.progressbar import BaseProgressBar
 
@@ -43,6 +43,7 @@ from IPython.display import HTML, Javascript, display
 
 import matplotlib.pyplot as plt
 from matplotlib import animation
+from base64 import b64encode
 
 import datetime
 import uuid
@@ -78,18 +79,18 @@ def version_table(verbose=False):
     html = "<table>"
     html += "<tr><th>Software</th><th>Version</th></tr>"
 
-    packages = {"QuTiP": qutip.__version__,
-                "Numpy": numpy.__version__,
-                "SciPy": scipy.__version__,
-                "matplotlib": matplotlib.__version__,
-                "Cython": Cython.__version__,
-                "Python": sys.version,
-                "IPython": IPython.__version__,
-                "OS": "%s [%s]" % (os.name, sys.platform)
-                }
+    packages = [("QuTiP", qutip.__version__),
+                ("Numpy", numpy.__version__),
+                ("SciPy", scipy.__version__),
+                ("matplotlib", matplotlib.__version__),
+                ("Cython", Cython.__version__),
+                ("IPython", IPython.__version__),
+                ("Python", sys.version),
+                ("OS", "%s [%s]" % (os.name, sys.platform))
+                ]
 
-    for name in packages:
-        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
+    for name, version in packages:
+        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
 
     if verbose:
         html += "<tr><th colspan='2'>Additional information</th></tr>"
@@ -129,9 +130,9 @@ class HTMLProgressBar(BaseProgressBar):
         self.divid = str(uuid.uuid4())
         self.textid = str(uuid.uuid4())
         self.pb = HTML("""\
-<div style="border: 1px solid grey; width: 600px">
+<div style="border: 2px solid grey; width: 600px">
   <div id="%s" \
-style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
+style="background-color: rgba(121,195,106,0.75); width:0%%">&nbsp;</div>
 </div>
 <p id="%s"></p>
 """ % (self.divid, self.textid))
@@ -163,7 +164,7 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
 
 def _visualize_parfor_data(metadata):
     """
-    Visalizing the task scheduling meta data collected from AsyncResults.
+    Visualizing the task scheduling meta data collected from AsyncResults.
     """
     res = numpy.array(metadata)
     fig, ax = plt.subplots(figsize=(10, res.shape[1]))
@@ -237,10 +238,80 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         The result list contains the value of ``task(value, args)`` for each
         value in ``task_vec``, that is, it should be equivalent to
         ``[task(v, args) for v in task_vec]``.
-
     """
 
+    if show_progressbar:
+        progress_bar = HTMLProgressBar()
+    else:
+        progress_bar = None
+
+    return parallel_map(task, task_vec, task_args=args,
+                        client=client, view=view, progress_bar=progress_bar,
+                        show_scheduling=show_scheduling)
+
+
+def parallel_map(task, values, task_args=None, task_kwargs=None,
+                 client=None, view=None, progress_bar=None,
+                 show_scheduling=False, **kwargs):
+    """
+    Call the function ``task`` for each value in ``values`` using a cluster
+    of IPython engines. The function ``task`` should have the signature
+    ``task(value, *args, **kwargs)``.
+
+    The ``client`` and ``view`` are the IPython.parallel client and
+    load-balanced view that will be used in the parfor execution. If these
+    are ``None``, new instances will be created.
+
+    Parameters
+    ----------
+
+    task: a Python function
+        The function that is to be called for each value in ``task_vec``.
+
+    values: array / list
+        The list or array of values for which the ``task`` function is to be
+        evaluated.
+
+    task_args: list / dictionary
+        The optional additional argument to the ``task`` function.
+
+    task_kwargs: list / dictionary
+        The optional additional keyword argument to the ``task`` function.
+
+    client: IPython.parallel.Client
+        The IPython.parallel Client instance that will be used in the
+        parfor execution.
+
+    view: a IPython.parallel.Client view
+        The view that is to be used in scheduling the tasks on the IPython
+        cluster. Preferably a load-balanced view, which is obtained from the
+        IPython.parallel.Client instance client by calling,
+        view = client.load_balanced_view().
+
+    show_scheduling: bool {False, True}, default False
+        Display a graph showing how the tasks (the evaluation of ``task`` for
+        for the value in ``task_vec1``) was scheduled on the IPython engine
+        cluster.
+
+    show_progressbar: bool {False, True}, default False
+        Display a HTML-based progress bar during the execution of the parfor
+        loop.
+
+    Returns
+    --------
+    result : list
+        The result list contains the value of
+        ``task(value, task_args, task_kwargs)`` for each
+        value in ``values``.
+
+    """
     submitted = datetime.datetime.now()
+
+    if task_args is None:
+        task_args = tuple()
+
+    if task_kwargs is None:
+        task_kwargs = {}
 
     if client is None:
         client = Client()
@@ -253,23 +324,25 @@ def parfor(task, task_vec, args=None, client=None, view=None,
     if view is None:
         view = client.load_balanced_view()
 
-    if args is None:
-        ar_list = [view.apply_async(task, x) for x in task_vec]
-    else:
-        ar_list = [view.apply_async(task, x, args) for x in task_vec]
+    ar_list = [view.apply_async(task, value, *task_args, **task_kwargs)
+               for value in values]
 
-    if show_progressbar:
+    if progress_bar is None:
+        view.wait(ar_list)
+    else:
+        if progress_bar is True:
+            progress_bar = HTMLProgressBar()
+
         n = len(ar_list)
-        pbar = HTMLProgressBar(n)
+        progress_bar.start(n)
         while True:
             n_finished = sum([ar.progress for ar in ar_list])
-            pbar.update(n_finished)
+            progress_bar.update(n_finished)
 
             if view.wait(ar_list, timeout=0.5):
-                pbar.update(n)
+                progress_bar.update(n)
                 break
-    else:
-        view.wait(ar_list)
+        progress_bar.finished()
 
     if show_scheduling:
         metadata = [[ar.engine_id,
@@ -282,7 +355,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
 
 
 def plot_animation(plot_setup_func, plot_func, result, name="movie",
-                   verbose=False):
+                   writer="avconv", codec="libx264", verbose=False):
     """
     Create an animated plot of a Result object, as returned by one of
     the qutip evolution solvers.
@@ -298,7 +371,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
     anim = animation.FuncAnimation(
         fig, update, frames=len(result.times), blit=True)
 
-    anim.save(name + '.mp4', fps=10, writer="avconv", codec="libx264")
+    anim.save(name + '.mp4', fps=10, writer=writer, codec=codec)
 
     plt.close(fig)
 
@@ -306,7 +379,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
         print("Created %s.m4v" % name)
 
     video = open(name + '.mp4', "rb").read()
-    video_encoded = video.encode("base64")
+    video_encoded = b64encode(video).decode("ascii")
     video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
         video_encoded)
     return HTML(video_tag)

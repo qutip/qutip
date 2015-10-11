@@ -35,17 +35,19 @@ Functions for visualizing results of quantum dynamics simulations,
 visualizations of quantum states and processes.
 """
 
-__all__ = ['hinton', 'wigner_cmap', 'sphereplot', 'energy_level_diagram',
+__all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'plot_energy_levels', 'fock_distribution',
            'plot_fock_distribution', 'wigner_fock_distribution',
            'plot_wigner_fock_distribution', 'plot_wigner',
            'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
-           'complex_array_to_rgb']
+           'complex_array_to_rgb', 'matrix_histogram',
+           'matrix_histogram_complex', 'sphereplot']
 
 import warnings
+import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle
+from numpy import pi, array, sin, cos, angle, log2, sqrt
 
 try:
     import matplotlib.pyplot as plt
@@ -55,14 +57,20 @@ try:
 except:
     pass
 
-from qutip.qobj import Qobj, isket, isbra
+from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
 from qutip.wigner import wigner
 from qutip.tensor import tensor
+from qutip.matplotlib_utilities import complex_phase_cmap
+from qutip.superoperator import vector_to_operator
+from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
+from qutip.tensor import flatten
+
+from qutip import settings
 
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area):
+def _blob(x, y, w, w_max, area, cmap=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -72,22 +80,53 @@ def _blob(x, y, w, w_max, area):
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
     plt.fill(xcorners, ycorners,
-             color=cm.RdBu(int((w + w_max) * 256 / (2 * w_max))))
+             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+
+
+
+def _cb_labels(left_dims):
+    """Creates plot labels for matrix elements in the computational basis.
+
+    Parameters
+    ----------
+    left_dims : flat list of ints
+        Dimensions of the left index of a density operator. E. g.
+        [2, 3] for a qubit tensored with a qutrit.
+
+    Returns
+    -------
+    left_labels, right_labels : lists of strings
+        Labels for the left and right indices of a density operator
+        (kets and bras, respectively).
+    """
+    # FIXME: assumes dims, such that we only need left_dims == dims[0].
+    basis_labels = list(map(",".join, it.product(*[
+        map(str, range(dim))
+        for dim in left_dims
+    ])))
+    return [
+        map(fmt.format, basis_labels) for fmt in
+        (
+            r"$|{}\rangle$",
+            r"$\langle{}|$"
+        )
+    ]
 
 
 # Adopted from the SciPy Cookbook.
-def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
-    """Draws a Hinton diagram for visualizing a density matrix.
+def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
+           label_top=True):
+    """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
     ----------
     rho : qobj
-        Input density matrix.
+        Input density matrix or superoperator.
 
-    xlabels : list of strings
+    xlabels : list of strings or False
         list of x labels
 
-    ylabels : list of strings
+    ylabels : list of strings or False
         list of y labels
 
     title : string
@@ -95,6 +134,13 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
+
+    cmap : a matplotlib colormap instance
+        Color map to use when plotting.
+
+    label_top : bool
+        If True, x-axis labels will be placed on top, otherwise
+        they will appear below the plot.
 
     Returns
     -------
@@ -109,11 +155,49 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     """
 
-    if isinstance(rho, Qobj):
-        if isket(rho) or isbra(rho):
-            raise ValueError("argument must be a quantum operator")
+    # Apply default colormaps.
+    # TODO: abstract this away into something that makes default
+    #       colormaps.
+    cmap = (
+        (cm.Greys_r if settings.colorblind_safe else cm.RdBu)
+        if cmap is None else cmap
+    )
 
-        W = rho.full()
+    # Extract plotting data W from the input.
+    if isinstance(rho, Qobj):
+        if rho.isoper:
+            W = rho.full()
+
+            # Create default labels if none are given.
+            if xlabels is None or ylabels is None:
+                labels = _cb_labels(rho.dims[0])
+                xlabels = xlabels if xlabels is not None else list(labels[0])
+                ylabels = ylabels if ylabels is not None else list(labels[1])
+
+        elif rho.isoperket:
+            W = vector_to_operator(rho).full()
+        elif rho.isoperbra:
+            W = vector_to_operator(rho.dag()).full()
+        elif rho.issuper:
+            if not _isqubitdims(rho.dims):
+                raise ValueError("Hinton plots of superoperators are "
+                                 "currently only supported for qubits.")
+            # Convert to a superoperator in the Pauli basis,
+            # so that all the elements are real.
+            sqobj = _super_to_superpauli(rho)
+            nq = int(log2(sqobj.shape[0]) / 2)
+            W = sqobj.full().T
+            # Create default labels, too.
+            if (xlabels is None) or (ylabels is None):
+                labels = list(map("".join, it.product("IXYZ", repeat=nq)))
+                xlabels = xlabels if xlabels is not None else labels
+                ylabels = ylabels if ylabels is not None else labels
+
+        else:
+            raise ValueError(
+                "Input quantum object must be an operator or superoperator."
+            )
+
     else:
         W = rho
 
@@ -134,10 +218,31 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     if w_max <= 0.0:
         w_max = 1.0
 
+    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
+            color=cmap(128))
+    for x in range(width):
+        for y in range(height):
+            _x = x + 1
+            _y = y + 1
+            if np.real(W[x, y]) > 0.0:
+                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
+                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+            else:
+                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
+                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+
+    # color axis
+    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+    mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
+
     # x axis
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+
     if xlabels:
         ax.set_xticklabels(xlabels)
+        if label_top:
+            ax.xaxis.tick_top()
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
@@ -145,24 +250,6 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     if ylabels:
         ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
-
-    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
-            color=cm.RdBu(128))
-    for x in range(width):
-        for y in range(height):
-            _x = x + 1
-            _y = y + 1
-            if np.real(W[x, y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max))
-            else:
-                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max))
-
-    # color axis
-    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
-    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu)
 
     return fig, ax
 
@@ -210,8 +297,8 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     nrm = mpl.colors.Normalize(ph.min(), ph.max())
 
     # plot with facecolors set to cm.jet colormap normalized to nrm
-    surf = ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
-                           facecolors=cm.jet(nrm(ph)), linewidth=0)
+    ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
+                    facecolors=cm.jet(nrm(ph)), linewidth=0)
     # create new axes on plot for colorbar and shrink it a bit.
     # pad shifts location of bar with repsect to the main plot
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
@@ -320,39 +407,9 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     # color axis
     if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
-        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+        mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     return fig, ax
-
-
-def complex_phase_cmap():
-    """
-    Create a cyclic colormap for representing the phase of complex variables
-
-    Returns
-    -------
-    cmap :
-        A matplotlib linear segmented colormap.
-    """
-    cdict = {'blue': ((0.00, 0.0, 0.0),
-                      (0.25, 0.0, 0.0),
-                      (0.50, 1.0, 1.0),
-                      (0.75, 1.0, 1.0),
-                      (1.00, 0.0, 0.0)),
-             'green': ((0.00, 0.0, 0.0),
-                       (0.25, 1.0, 1.0),
-                       (0.50, 0.0, 0.0),
-                       (0.75, 1.0, 1.0),
-                       (1.00, 0.0, 0.0)),
-             'red': ((0.00, 1.0, 1.0),
-                     (0.25, 0.5, 0.5),
-                     (0.50, 0.0, 0.0),
-                     (0.75, 0.0, 0.0),
-                     (1.00, 1.0, 1.0))}
-
-    cmap = mpl.colors.LinearSegmentedColormap('phase_colormap', cdict, 256)
-
-    return cmap
 
 
 def matrix_histogram_complex(M, xlabels=None, ylabels=None,
@@ -584,72 +641,6 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
                               figsize=figsize, fig=fig, ax=ax)
 
 
-def wigner_cmap(W, levels=1024, shift=0, invert=False):
-    """A custom colormap that emphasizes negative values by creating a
-    nonlinear colormap.
-
-    Parameters
-    ----------
-    W : array
-        Wigner function array, or any array.
-
-    levels : int
-        Number of color levels to create.
-
-    shift : float
-        Shifts the value at which Wigner elements are emphasized.
-        This parameter should typically be negative and small (i.e -5e-3).
-
-    invert : bool
-        Invert the color scheme for negative values so that smaller negative
-        values have darker color.
-
-    Returns
-    -------
-    Returns a Matplotlib colormap instance for use in plotting.
-
-    Notes
-    -----
-    The 'shift' parameter allows you to vary where the colormap begins
-    to highlight negative colors. This is beneficial in cases where there
-    are small negative Wigner elements due to numerical round-off and/or
-    truncation.
-    """
-    max_color = np.array([0.020, 0.19, 0.38, 1.0])
-    mid_color = np.array([1, 1, 1, 1.0])
-    if invert:
-        min_color = np.array([1, 0.70, 0.87, 1])
-        neg_color = np.array([0.4, 0.0, 0.12, 1])
-    else:
-        min_color = np.array([0.4, 0.0, 0.12, 1])
-        neg_color = np.array([1, 0.70, 0.87, 1])
-    # get min and max values from Wigner function
-    bounds = [W.min(), W.max()]
-    # create empty array for RGBA colors
-    adjust_RGBA = np.hstack((np.zeros((levels, 3)), np.ones((levels, 1))))
-    zero_pos = np.round(levels * np.abs(shift - bounds[0])
-                        / (bounds[1] - bounds[0]))
-    num_pos = levels - zero_pos
-    num_neg = zero_pos - 1
-    # set zero values to mid_color
-    adjust_RGBA[zero_pos] = mid_color
-    # interpolate colors
-    for k in range(0, levels):
-        if k < zero_pos:
-            interp = k / (num_neg + 1.0)
-            adjust_RGBA[k][0:3] = (1.0 - interp) * \
-                min_color[0:3] + interp * neg_color[0:3]
-        elif k > zero_pos:
-            interp = (k - zero_pos) / (num_pos + 1.0)
-            adjust_RGBA[k][0:3] = (1.0 - interp) * \
-                mid_color[0:3] + interp * max_color[0:3]
-    # create colormap
-    wig_cmap = mpl.colors.LinearSegmentedColormap.from_list('wigner_cmap',
-                                                            adjust_RGBA,
-                                                            N=levels)
-    return wig_cmap
-
-
 def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
                            figsize=(8, 6), title=None, unit_y_range=True):
     """
@@ -798,7 +789,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
 
     if colorbar:
-        cb = fig.colorbar(cf, ax=ax)
+        fig.colorbar(cf, ax=ax)
 
     ax.set_title("Wigner function", fontsize=12)
 
@@ -1057,8 +1048,8 @@ def plot_spin_distribution_3d(P, THETA, PHI,
         cmap = cm.RdYlBu
         norm = mpl.colors.Normalize(P.min(), P.max())
 
-    surf = ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
-                           facecolors=cmap(norm(P)), linewidth=0)
+    ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
+                    facecolors=cmap(norm(P)), linewidth=0)
 
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
     cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
@@ -1070,7 +1061,6 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 #
 # Qubism and other qubistic visualizations
 #
-
 def complex_array_to_rgb(X, theme='light', rmax=None):
     """
     Makes an array of complex number and converts it to an array of [r, g, b],

@@ -43,7 +43,7 @@ from qutip.qip.gates import *
 class Gate(object):
     """
     Representation of a quantum gate, with its required parametrs, and target
-    and control qubits.  
+    and control qubits.
     """
 
     def __init__(self, name, targets=None, controls=None, arg_value=None,
@@ -267,14 +267,14 @@ class QubitCircuit(object):
                                gate.controls[1] + start], None, None)
             elif gate.name in ["FREDKIN"]:
                 self.add_gate(gate.name,
-                              [gate.targets[0] + start, 
+                              [gate.targets[0] + start,
                                gate.targets[1] + start],
                               gate.controls + start, None, None)
 
-    def remove_gate(self, index=None, name=None, remove="first"):
+    def remove_gate(self, index=None, end=None, name=None, remove="first"):
         """
-        Removes a gate with from a specific index or the first, last or all
-        instances of a particular gate.
+        Removes a gate from a specific index or between two indexes or the 
+        first, last or all instances of a particular gate.
 
         Parameters
         ----------
@@ -286,7 +286,13 @@ class QubitCircuit(object):
             If first or all gate are to be removed.
         """
         if index is not None and index <= self.N:
-            self.gates.pop(index)
+            if end is not None and end <= self.N:
+                for i in range(end - index):
+                    self.gates.pop(index + i)
+            elif end is not None and end > self.N:
+                raise ValueError("End target exceeds number of gates.")
+            else:            
+                self.gates.pop(index)
 
         elif name is not None and remove == "first":
             for gate in self.gates:
@@ -316,7 +322,7 @@ class QubitCircuit(object):
         ----------
         qc: QubitCircuit
             Returns QubitCircuit of resolved gates for the qubit circuit in the
-            desired basis.
+            reverse order.
         """
         temp = QubitCircuit(self.N, self.reverse_states)
 
@@ -622,7 +628,8 @@ class QubitCircuit(object):
                                               arg_value=np.pi / 4,
                                               arg_label=r"\pi/4"))
                     qc_temp.gates.append(Gate("ISWAP", [gate.controls[0],
-                                                        gate.targets[0]], None))
+                                                        gate.targets[0]],
+                                              None))
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
@@ -633,7 +640,8 @@ class QubitCircuit(object):
                                               arg_value=np.pi / 2,
                                               arg_label=r"\pi/2"))
                     qc_temp.gates.append(Gate("ISWAP", [gate.controls[0],
-                                                        gate.targets[0]], None))
+                                                        gate.targets[0]],
+                                              None))
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
@@ -653,7 +661,8 @@ class QubitCircuit(object):
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("ISWAP", [gate.targets[1],
-                                                        gate.targets[0]], None))
+                                                        gate.targets[0]],
+                                              None))
                     qc_temp.gates.append(Gate("RX", gate.targets[0], None,
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
@@ -767,8 +776,8 @@ class QubitCircuit(object):
         Returns
         ----------
         qc: QubitCircuit
-            Returns QubitCircuit of resolved gates for the qubit circuit in the
-            desired basis.
+            Returns QubitCircuit of the gates for the qubit circuit with the
+            resolved non-adjacent gates.
 
         """
         temp = QubitCircuit(self.N, self.reverse_states)
@@ -931,10 +940,12 @@ class QubitCircuit(object):
                              and n == min(gate.targets))):
                             col.append(r" \multigate{%d}{%s} " %
                                        (len(gate.targets) - 1,
-                                        _gate_label(gate.name, gate.arg_label)))
+                                        _gate_label(gate.name,
+                                                    gate.arg_label)))
                         else:
                             col.append(r" \ghost{%s} " %
-                                       (_gate_label(gate.name, gate.arg_label)))
+                                       (_gate_label(gate.name,
+                                                    gate.arg_label)))
 
                     elif gate.name == "CNOT":
                         col.append(r" \targ ")

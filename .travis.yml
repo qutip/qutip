@@ -1,20 +1,42 @@
+sudo: false
 language: python
 
 python:
-  - "2.7"
-  - "3.2"
-  - "3.3"
+    - 2.7
+    - 3.4
+matrix:
+    include:
+        - python: 3.4
+          env: CC=clang CXX=clang++
+
+addons:
+    apt:
+        packages:
+            - libatlas-dev
+            - libatlas-base-dev
+            - liblapack-dev
+            - gfortran
 
 before_install:
-  - uname -a
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
-  - pip install --upgrade pip setuptools 
-  - pip install --find-links http://wheels.astropy.org/ --find-links http://wheels2.astropy.org/ --use-wheel --use-mirrors nose numpy Cython scipy
+    - uname -a
+    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+    - chmod +x miniconda.sh
+    - ./miniconda.sh -b
+    - export PATH=/home/travis/miniconda/bin:$PATH
+    - conda update --yes conda
 
 # command to install dependencies
 install:
-  - "python setup.py install --with-f90mc"
+    - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose cython
+    - pip install coverage coveralls
+    - "python setup.py install --with-f90mc"
 
 # command to run tests
-script: nosetests qutip
+script: 
+    - nosetests --with-coverage --cover-package=qutip qutip
+
+after_success:
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]] && [[ $CC == 'gcc' ]]; then
+          coveralls;
+      fi
+

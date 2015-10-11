@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual',
+__all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
            'concurrence', 'entropy_conditional', 'entangling_power']
 
 from numpy import e, real, sort, sqrt
@@ -42,6 +42,7 @@ from qutip.tensor import tensor
 from qutip.operators import sigmay
 from qutip.sparse import sp_eigs
 from qutip.qip.gates import swap
+from qutip.partial_transpose import partial_transpose
 
 
 def entropy_vn(rho, base=e, sparse=False):
@@ -154,6 +155,33 @@ def concurrence(rho):
     return max(0, lsum)
 
 
+def negativity(rho, subsys, method='tracenorm', logarithmic=False):
+    """
+    Compute the negativity for a multipartite quantum system described
+    by the density matrix rho. The subsys argument is an index that
+    indicates which system to compute the negativity for.
+
+    .. note::
+
+        Experimental.
+    """
+    mask = [idx == subsys for idx, n in enumerate(rho.dims[0])]
+    rho_pt = partial_transpose(rho, mask)
+
+    if method == 'tracenorm':
+        N = ((rho_pt.dag() * rho_pt).sqrtm().tr().real - 1)/2.0
+    elif method == 'eigenvalues':
+        l = rho_pt.eigenenergies()
+        N = ((abs(l)-l)/2).sum()
+    else:
+        raise ValueError("Unknown method %s" % method)
+
+    if logarithmic:
+        return log2(2 * N + 1)
+    else:
+        return N
+
+
 def entropy_mutual(rho, selA, selB, base=e, sparse=False):
     """
     Calculates the mutual information S(A:B) between selection
@@ -198,10 +226,10 @@ def entropy_mutual(rho, selA, selB, base=e, sparse=False):
 
 def _entropy_relative(rho, sigma, base=e, sparse=False):
     """
-    ****NEEDS TO BE WORKED ON**** (after 2.0 release)
+    ****NEEDS TO BE WORKED ON****
 
     Calculates the relative entropy S(rho||sigma) between two density
-    matrices..
+    matrices.
 
     Parameters
     ----------
@@ -240,7 +268,7 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
 def entropy_conditional(rho, selB, base=e, sparse=False):
     """
     Calculates the conditional entropy :math:`S(A|B)=S(A,B)-S(B)`
-    of a slected density matrix component.
+    of a selected density matrix component.
 
     Parameters
     ----------

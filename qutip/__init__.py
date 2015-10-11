@@ -54,6 +54,14 @@ from qutip.version import version as __version__
 from qutip.utilities import _version2int
 
 # -----------------------------------------------------------------------------
+# Check if we're in IPython.
+try:
+    __IPYTHON__
+    qutip.settings.ipython = True
+except:
+    qutip.settings.ipython = False
+
+# -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
@@ -106,7 +114,7 @@ try:
                (Cython.__version__, _cython_requirement)))
 
     import pyximport
-    os.environ['CFLAGS'] = '-O3 -w -ffast-math -march=native -mfpmath=sse'
+    os.environ['CFLAGS'] = '-O3 -w -ffast-math -march=native'
     pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
 
 except Exception as e:
@@ -114,37 +122,53 @@ except Exception as e:
 else:
     del Cython, pyximport
 
-
-# -----------------------------------------------------------------------------
-# default configuration settings
-#
-
-import multiprocessing
-
-# load cpus
-from qutip.hardware_info import hardware_info
-info = hardware_info()
-if 'cpus' in info:
-    qutip.settings.num_cpus = info['cpus']
-else:
-    qutip.settings.num_cpus = multiprocessing.cpu_count()
-
-
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
 try:
-    qutip_rc_file = os.environ['HOME'] + "/.qutiprc"
+    if os.name == "nt":
+        qutip_rc_file = os.path.join(
+            os.getenv('APPDATA'), 'qutip', "qutiprc"
+        )
+    else:
+        qutip_rc_file = os.path.join(
+            # This should possibly be changed to ~/.config/qutiprc,
+            # to follow XDG specs. Also, OS X uses a different naming
+            # convention as well.
+            os.environ['HOME'], ".qutiprc"
+        )
     qutip.settings.load_rc_file(qutip_rc_file)
 
+except KeyError as e:
+    qutip.settings._logger.warning(
+        "The $HOME environment variable is not defind. No custom RC file loaded.")
+
 except Exception as e:
-    pass
+    try:
+        qutip.settings._logger.warning("Error loading RC file.", exc_info=1)
+    except:
+        pass
+
+# -----------------------------------------------------------------------------
+# cpu/process configuration
+#
+import multiprocessing
 
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
     qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
 else:
     os.environ['QUTIP_NUM_PROCESSES'] = str(qutip.settings.num_cpus)
+
+if qutip.settings.num_cpus == 0:
+    # if num_cpu is 0 set it to the available number of cores
+    from qutip.hardware_info import hardware_info
+    info = hardware_info()
+    if 'cpus' in info:
+        qutip.settings.num_cpus = info['cpus']
+    else:
+        qutip.settings.num_cpus = multiprocessing.cpu_count()
+
 
 # -----------------------------------------------------------------------------
 # Load configuration from environment variables: override defaults and
@@ -171,6 +195,7 @@ else:
 # Check that import modules are compatible with requested configuration
 #
 
+
 # Check for Matplotlib
 try:
     import matplotlib
@@ -192,16 +217,19 @@ del os, sys, numpy, scipy, multiprocessing
 from qutip.qobj import *
 from qutip.states import *
 from qutip.operators import *
-from qutip.superoperator import *
 from qutip.expect import *
 from qutip.tensor import *
-from qutip.parfor import *
+from qutip.superoperator import *
+from qutip.superop_reps import *
+from qutip.subsystem_apply import *
+from qutip.graph import *
 
 # graphics
 from qutip.bloch import *
 from qutip.visualization import *
 from qutip.orbital import *
 from qutip.bloch3d import *
+from qutip.matplotlib_utilities import *
 
 # library functions
 from qutip.tomography import *
@@ -214,6 +242,7 @@ from qutip.partial_transpose import *
 from qutip.permute import *
 from qutip.continuous_variables import *
 from qutip.distributions import *
+from qutip.three_level_atom import *
 
 # evolution
 from qutip.solver import *
@@ -224,19 +253,20 @@ from qutip.mcsolve import *
 from qutip.stochastic import *
 from qutip.essolve import *
 from qutip.eseries import *
-from qutip.steadystate import *
-from qutip.correlation import *
 from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
-from qutip.superop_reps import *
-from qutip.subsystem_apply import *
-from qutip.graph import *
+from qutip.steadystate import *
+from qutip.correlation import *
+from qutip.countstat import *
+from qutip.rcsolve import *
+from qutip.hsolve import *
 
 # quantum information
 from qutip.qip import *
 
 # utilities
+from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *

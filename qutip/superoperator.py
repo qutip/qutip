@@ -41,7 +41,7 @@ from qutip.qobj import Qobj
 from qutip.sparse import sp_reshape
 
 
-def liouvillian(H, c_ops=[], data_only=False):
+def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
@@ -61,6 +61,9 @@ def liouvillian(H, c_ops=[], data_only=False):
         Liouvillian superoperator.
 
     """
+
+    if chi and len(chi) != len(c_ops):
+        raise ValueError('chi must be a list with same length as c_ops')
 
     if H is not None:
         if H.isoper:
@@ -100,13 +103,17 @@ def liouvillian(H, c_ops=[], data_only=False):
     else:
         data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
 
-    for c_op in c_ops:
+    for idx, c_op in enumerate(c_ops):
         if c_op.issuper:
             data = data + c_op.data
         else:
             cd = c_op.data.T.conj()
             c = c_op.data
-            data = data + sp.kron(cd.T, c, format='csr')
+            if chi:
+                data = data + np.exp(1j * chi[idx]) * sp.kron(cd.T, c,
+                                                              format='csr')
+            else:
+                data = data + sp.kron(cd.T, c, format='csr')
             cdc = cd * c
             data = data - 0.5 * sp.kron(spI, cdc, format='csr')
             data = data - 0.5 * sp.kron(cdc.T, spI, format='csr')
@@ -192,7 +199,7 @@ def operator_to_vector(op):
     """
     q = Qobj()
     q.dims = [op.dims, [1]]
-    q.data = sp_reshape(op.data.T, q.shape)
+    q.data = sp_reshape(op.data.T, (np.prod(op.shape), 1))
     return q
 
 
@@ -203,7 +210,8 @@ def vector_to_operator(op):
     """
     q = Qobj()
     q.dims = op.dims[0]
-    q.data = sp_reshape(op.data.T, q.shape).T
+    n = int(np.sqrt(op.shape[0]))
+    q.data = sp_reshape(op.data.T, (n, n)).T
     return q
 
 
@@ -261,7 +269,7 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(A.data.T, sp.identity(np.prod(A.dims[0])), format='csr')
+    S.data = sp.kron(A.data.T, sp.identity(np.prod(A.shape[0])), format='csr')
     return S
 
 
@@ -286,7 +294,7 @@ def spre(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(sp.identity(np.prod(A.dims[1])), A.data, format='csr')
+    S.data = sp.kron(sp.identity(np.prod(A.shape[1])), A.data, format='csr')
     return S
 
 

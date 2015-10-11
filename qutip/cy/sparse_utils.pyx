@@ -34,6 +34,9 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+cdef inline int int_max(int x, int y):
+    return x ^ ((x ^ y) & -(x < y))
+
 include "parameters.pxi"
 
 @cython.boundscheck(False)
@@ -54,9 +57,9 @@ def _sparse_bandwidth(
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii + 1]):
             ldist = ii - idx[jj]
-            lb = max(lb, ldist)
-            ub = max(ub, -ldist)
-            mb = max(mb, ub + lb + 1)
+            lb = int_max(lb, ldist)
+            ub = int_max(ub, -ldist)
+            mb = int_max(mb, ub + lb + 1)
 
     return mb, lb, ub
 
@@ -72,7 +75,7 @@ def _sparse_profile(np.ndarray[ITYPE_t, ndim=1] idx,
         temp = 0
         for jj in range(ptr[ii], ptr[ii + 1]):
             ldist = idx[jj] - ii
-            temp = max(temp, ldist)
+            temp = int_max(temp, ldist)
         pro += temp
     return pro
 
@@ -220,3 +223,5 @@ def _sparse_reverse_permute(
                 new_idx[jj] = rperm[new_idx[jj]]
 
     return new_data, new_idx, new_ptr
+
+                    
