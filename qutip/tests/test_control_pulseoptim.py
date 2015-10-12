@@ -44,6 +44,7 @@ Tests for main control.pulseoptim methods
 """
 from __future__ import division
 
+import os
 import numpy as np
 from numpy.testing import (
     assert_, assert_almost_equal, run_module_suite, assert_equal)
@@ -52,7 +53,14 @@ from scipy.optimize import check_grad
 from qutip import Qobj, identity, sigmax, sigmay, sigmaz, tensor
 from qutip.qip import hadamard_transform
 from qutip.qip.algorithms import qft
-
+import qutip.control.optimconfig as optimconfig
+import qutip.control.dynamics as dynamics
+import qutip.control.termcond as termcond
+import qutip.control.optimizer as optimizer
+import qutip.control.stats as stats
+import qutip.control.pulsegen as pulsegen
+import qutip.control.errors as errors
+import qutip.control.loadparams as loadparams
 import qutip.control.pulseoptim as cpo
 import qutip.control.symplectic as sympl
 
@@ -343,6 +351,69 @@ class TestPulseOptim:
         Optimise pulse for Hadamard gate by loading config from file
         compare with result produced by pulseoptim method
         """
+        H_d = sigmaz()
+        H_c = sigmax()
+        
+        U_0 = identity(2)
+        U_targ = hadamard_transform(1)
+
+        cfg = optimconfig.OptimConfig()
+        cfg.param_fname = "Hadamard_params.ini"
+        cfg.param_fpath = os.path.join(os.path.dirname(__file__), 
+                                           cfg.param_fname)
+        cfg.pulse_type = "ZERO"
+        loadparams.load_parameters(cfg.param_fpath, config=cfg)
+
+        dyn = dynamics.DynamicsUnitary(cfg)
+        dyn.target = U_targ.full()
+        dyn.initial = U_0.full()
+        dyn.drift_dyn_gen = H_d.full()
+        dyn.ctrl_dyn_gen = list([H_c.full()])
+        loadparams.load_parameters(cfg.param_fpath, dynamics=dyn)
+        dyn.init_timeslots()      
+        n_ts = dyn.num_tslots
+        n_ctrls = dyn.get_num_ctrls()
+        
+        pgen = pulsegen.create_pulse_gen(pulse_type=cfg.pulse_type, dyn=dyn)
+        loadparams.load_parameters(cfg.param_fpath, pulsegen=pgen)
+        
+        tc = termcond.TerminationConditions()
+        loadparams.load_parameters(cfg.param_fpath, term_conds=tc)
+        
+        if cfg.optim_method == 'BFGS':
+            optim = optimizer.OptimizerBFGS(cfg, dyn)
+        elif cfg.optim_method == 'FMIN_L_BFGS_B':
+            optim = optimizer.OptimizerLBFGSB(cfg, dyn)
+        elif cfg.optim_method is None:
+            raise errors.UsageError("Optimisation algorithm must be specified "
+                                    "via 'optim_method' parameter")
+        else:
+            optim = optimizer.Optimizer(cfg, dyn)
+            optim.method = cfg.optim_method
+        loadparams.load_parameters(cfg.param_fpath, optim=optim)
+        
+        sts = stats.Stats()
+        dyn.stats = sts
+        optim.stats = sts
+        optim.config = cfg
+        optim.dynamics = dyn
+        optim.pulse_generator = pgen
+        optim.termination_conditions = tc
+        
+        init_amps = np.zeros([n_ts, n_ctrls])
+        for j in range(n_ctrls):
+            init_amps[:, j] = pgen.gen_pulse()
+        dyn.initialize_controls(init_amps)
+        result = optim.run_optimization()
+        
+        result2 = cpo.optimize_pulse_unitary(H_d, list([H_c]), U_0, U_targ, 
+                        6, 6, fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        amp_lbound=-1.0, amp_ubound=1.0,
+                        gen_stats=True)
+                        
+        assert_almost_equal(result.final_amps, result2.final_amps, decimal=5, 
+                            err_msg="Pulses do not match")
 
 if __name__ == "__main__":
     run_module_suite()
