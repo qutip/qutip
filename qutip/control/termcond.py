@@ -81,6 +81,7 @@ class TerminationConditions:
         scipy.optimize.fmin_l_bfgs_b factr argument.
         Only set for specific methods (fmin_l_bfgs_b) that uses this
         Otherwise the same thing is passed as method_option ftol
+        (although the scale is different)
         Hence it is not defined here, but may be set by the user
     """
     def __init__(self):

@@ -139,6 +139,10 @@ try:
         )
     qutip.settings.load_rc_file(qutip_rc_file)
 
+except KeyError as e:
+    qutip.settings._logger.warning(
+        "The $HOME environment variable is not defind. No custom RC file loaded.")
+
 except Exception as e:
     try:
         qutip.settings._logger.warning("Error loading RC file.", exc_info=1)
