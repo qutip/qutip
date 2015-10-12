@@ -63,7 +63,7 @@ import numpy as np
 # import scipy.linalg as la
 import timeit
 # QuTiP logging
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.errors as errors
