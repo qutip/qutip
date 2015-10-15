@@ -59,7 +59,7 @@ except:
 # QuTiP logging
 from qutip import Qobj
 
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 
 
