@@ -60,7 +60,7 @@ import os
 import numpy as np
 import scipy.linalg as la
 # QuTiP logging
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.errors as errors
@@ -96,7 +96,7 @@ class Dynamics:
     ----------
     log_level : integer
         level of messaging output from the logger.
-        Options are attributes of qutip.logging,
+        Options are attributes of qutip.logging_utils,
         in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
         Anything WARN or above is effectively 'quiet' execution,
