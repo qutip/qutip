@@ -46,8 +46,8 @@ import os
 import errno
 import numpy as np
 # QuTiP logging
-import qutip.logging
-logger = qutip.logging.get_logger()
+import qutip.logging_utils
+logger = qutip.logging_utils.get_logger()
 
 TEST_OUT_DIR = "test_out"
 

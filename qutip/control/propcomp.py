@@ -52,7 +52,7 @@ See Machnes et.al., arXiv.1011.4874
 import numpy as np
 import scipy.linalg as la
 # QuTiP logging
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 # QuTiP control modules
 from qutip.control import errors
