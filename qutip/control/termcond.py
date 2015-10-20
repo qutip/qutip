@@ -88,7 +88,7 @@ class TerminationConditions:
         self.reset()
 
     def reset(self):
-        self.fid_err_targ = None
+        self.fid_err_targ = 1e-5
         self.fid_goal = None
         self.max_wall_time = 60*60.0
         self.min_gradient_norm = 1e-5
