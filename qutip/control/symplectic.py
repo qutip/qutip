@@ -61,4 +61,4 @@ def calc_omega(n):
             if k == j-1:
                 omg[j, k] = -(1 - (-1)**j)/2
 
-    return omg
+    return Qobj(omg)

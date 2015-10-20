@@ -59,6 +59,8 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import scipy.linalg as la
+# QuTiP
+from qutip import Qobj
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -371,25 +373,25 @@ class Dynamics:
         # Create containers for control Hamiltonian etc
         shp = self.drift_dyn_gen.shape
         # set H to be just empty float arrays with the shape of H
-        self.dyn_gen = [np.empty(shp, dtype=complex)
+        self.dyn_gen = [Qobj(shape=shp)
                         for x in range(self.num_tslots)]
         # the exponetiation of H. Just empty float arrays with the shape of H
-        self.prop = [np.empty(shp, dtype=complex)
+        self.prop = [Qobj(shape=shp)
                      for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
             self.prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
-                                      dtype=np.ndarray)
+                                      dtype=ndarray)
         # Time evolution operator (forward propagation)
-        self.evo_init2t = [np.empty(shp, dtype=complex)
+        self.evo_init2t = [Qobj(shape=shp)
                            for x in range(self.num_tslots + 1)]
         self.evo_init2t[0] = self.initial
         if self.fid_computer.uses_evo_t2end:
             # Time evolution operator (onward propagation)
-            self.evo_t2end = [np.empty(shp, dtype=complex)
+            self.evo_t2end = [Qobj(shape=shp)
                               for x in range(self.num_tslots)]
         if self.fid_computer.uses_evo_t2targ:
             # Onward propagation overlap with inverse target
-            self.evo_t2targ = [np.empty(shp, dtype=complex)
+            self.evo_t2targ = [Qobj(shape=shp)
                                for x in range(self.num_tslots + 1)]
             self.evo_t2targ[-1] = self.get_owd_evo_target()
 
@@ -590,9 +592,9 @@ class Dynamics:
         Computes the dynamics generator for a given timeslot
         The is the combined Hamiltion for unitary systems
         """
-        dg = np.asarray(self.drift_dyn_gen)
+        dg = self.drift_dyn_gen
         for j in range(self.get_num_ctrls()):
-            dg = dg + self.ctrl_amps[k, j]*np.asarray(self.ctrl_dyn_gen[j])
+            dg = dg + self.ctrl_amps[k, j]*self.ctrl_dyn_gen[j]
         return dg
 
     def get_dyn_gen(self, k):
@@ -659,7 +661,7 @@ class DynamicsGenMat(Dynamics):
     """
     This sub class can be used for any system where no additional
     operator is applied to the dynamics generator before calculating
-    the propagator, e.g. classical dynamics, Limbladian
+    the propagator, e.g. classical dynamics, Lindbladian
     """
     def reset(self):
         Dynamics.reset(self)
@@ -781,7 +783,7 @@ class DynamicsUnitary(Dynamics):
         basis, and the 'factormatrix' used in calculating the propagator
         gradient
         """
-        H = self.H[k]
+        H = self.H[k].full()
         # assuming H is an nxn matrix, find n
         n = H.shape[0]
         # returns row vector of eigen values,
@@ -860,7 +862,7 @@ class DynamicsSymplectic(Dynamics):
     def get_omega(self):
         if self.omega is None:
             n = self.drift_dyn_gen.shape[0] // 2
-            self.omega = sympl.calc_omega(n)
+            self.omega = Qobj(sympl.calc_omega(n))
 
         return self.omega
 
