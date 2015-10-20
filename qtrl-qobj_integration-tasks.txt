@@ -1,0 +1,10 @@
+Done:
+-- Dynamics
+- Change dyn_gen, prop and time_evo types to qobj
+- 
+
+ToDo:
+- Eigen decomp lists
+- Evolution computation
+- eigen decomp using Qobj
+
