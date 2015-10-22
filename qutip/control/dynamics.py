@@ -59,9 +59,8 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import scipy.linalg as la
-from six import string_types
 # QuTiP logging
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.errors as errors
@@ -70,6 +69,20 @@ import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
 
+def _is_string(var):
+    try:
+        if isinstance(var, basestring):
+            return True
+    except NameError:
+        try:
+            if isinstance(var, str):
+                return True
+        except:
+            return False
+    except:
+        return False
+        
+    return False
 
 class Dynamics:
     """
@@ -83,7 +96,7 @@ class Dynamics:
     ----------
     log_level : integer
         level of messaging output from the logger.
-        Options are attributes of qutip.logging,
+        Options are attributes of qutip.logging_utils,
         in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
         Anything WARN or above is effectively 'quiet' execution,
@@ -238,8 +251,8 @@ class Dynamics:
         # Link to optimiser object if self is linked to one
         self.parent = None
         # Main functional attributes
-        self.evo_time = 0
-        self.num_tslots = 0
+        self.evo_time = 1
+        self.num_tslots = 10
         self.tau = None
         self.time = None
         self.initial = None
@@ -454,7 +467,7 @@ class Dynamics:
 
     def get_amp_times(self):
         return self.time[:self.num_tslots]
-
+        
     def save_amps(self, file_name=None, times=None, amps=None, verbose=False):
         """
         Save a file with the current control amplitudes in each timeslot
@@ -489,14 +502,14 @@ class Dynamics:
         if times is None:
             times = self.get_amp_times()
         else:
-            if isinstance(times, string_types):
+            if _is_string(times):
                 if times.lower() == 'exclude':
                     inctimes = False
                 else:
                     logger.warn("Unknown option for times '{}' "
                                 "when saving amplitudes".format(times))
                     times = self.get_amp_times()
-
+            
         try:
             if inctimes:
                 shp = amps.shape

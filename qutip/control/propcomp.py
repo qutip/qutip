@@ -72,7 +72,7 @@ class PropagatorComputer:
     ----------
     log_level : integer
         level of messaging output from the logger.
-        Options are attributes of qutip.logging,
+        Options are attributes of qutip_utils.logging,
         in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
         Anything WARN or above is effectively 'quiet' execution,
