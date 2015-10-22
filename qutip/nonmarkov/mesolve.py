@@ -43,10 +43,12 @@ def _mesolve_const_super(H, E0, tlist, c_op_list, e_ops, args, opt,
     #
     # construct liouvillian
     #
-    if opt.tidy:
-        H = H.tidyup(opt.atol)
+    #if opt.tidy:
+    #    H = H.tidyup(opt.atol)
 
     L = liouvillian(H, c_op_list)
+
+    L = H
 
     #
     # setup integrator
@@ -55,8 +57,8 @@ def _mesolve_const_super(H, E0, tlist, c_op_list, e_ops, args, opt,
     # r = scipy.integrate.ode(cy_ode_rhs)
     r = scipy.integrate.ode(_rhs)
     # r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
-    # not sure why I need to transpose L here:
-    r.set_f_params(scipy.transpose(L.data))
+    # not sure why I need to transpose here:
+    r.set_f_params(L.trans().data)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -71,4 +73,5 @@ def _mesolve_const_super(H, E0, tlist, c_op_list, e_ops, args, opt,
 
 def _rhs(t,y,data):
     ym = y.reshape(data.shape)
-    return (data*ym).flatten()
+    # not sure why I need to reverse order here (cf. transpose earlier)
+    return (ym*data).ravel()
