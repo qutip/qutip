@@ -41,7 +41,7 @@ class Simulation:
         self.Id.dims = self.sysdims
         self.Id = qt.sprepost(self.Id,self.Id)
 
-    def propagator(self,t,tau):
+    def propagator(self, t, tau, notrace=False):
         """
         Compute rho(t)
         """
@@ -54,9 +54,9 @@ class Simulation:
             G2 = qt.composite(self.Id,G2)
             E = _integrate(G2,E,s,tau,opt=self.options)
         E.dims = E0.dims
-        E = TensorQobj(E)
-        for l in range(k-1):
-            E = E.loop()
+        if not notrace:
+            E = _genptrace(E, k)
+        #return qt.Qobj(E)
         return qt.Qobj(E)
 
     def outfieldpropagator(self,blist,tlist,tau):
@@ -154,6 +154,13 @@ def _localop(op,l,k):
     for i in range(l+1,k+1):
         h = qt.tensor(I,h)
     return h
+
+
+def _genptrace(E, k):
+    E = TensorQobj(E)
+    for l in range(k-1):
+        E = E.loop()
+    return qt.Qobj(E)
 
 
 def _generator(k,H,L1,L2):
