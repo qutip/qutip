@@ -12,7 +12,6 @@ import qutip as qt
 
 
 from tensorqobj import TensorQobj
-import mesolve
 from qutip.ui.progressbar import BaseProgressBar
 
 
@@ -41,7 +40,7 @@ class Simulation:
         self.Id.dims = self.sysdims
         self.Id = qt.sprepost(self.Id,self.Id)
 
-    def propagator(self,t,tau):
+    def propagator(self, t, tau, notrace=False):
         """
         Compute rho(t)
         """
@@ -54,12 +53,11 @@ class Simulation:
             G2 = qt.composite(self.Id,G2)
             E = _integrate(G2,E,s,tau,opt=self.options)
         E.dims = E0.dims
-        E = TensorQobj(E)
-        for l in range(k-1):
-            E = E.loop()
+        if not notrace:
+            E = _genptrace(E, k)
         return qt.Qobj(E)
 
-    def outfieldpropagator(self,blist,tlist,tau):
+    def outfieldpropagator(self, blist, tlist, tau, notrace=False):
         """
         Compute <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
         O_i = I, b_out, b_out^\dagger, b_loop, b_loop^\dagger
@@ -112,9 +110,8 @@ class Simulation:
         E = _integrate(G1,E,slist[-1],tau,opt=self.options)
 
         E.dims = E0.dims
-        E = TensorQobj(E)
-        for l in range(kmax-1):
-            E = E.loop()
+        if not notrace:
+            E = _genptrace(E, kmax)
         return qt.Qobj(E)
 
     def rhot(self,rho0,t,tau):
@@ -154,6 +151,13 @@ def _localop(op,l,k):
     for i in range(l+1,k+1):
         h = qt.tensor(I,h)
     return h
+
+
+def _genptrace(E, k):
+    E = TensorQobj(E)
+    for l in range(k-1):
+        E = E.loop()
+    return qt.Qobj(E)
 
 
 def _generator(k,H,L1,L2):
@@ -209,8 +213,7 @@ def _integrate2(L,E0,ti,tf,opt=qt.Options()):
     """
     opt.store_final_state = True
     if tf > ti:
-        sol = mesolve._mesolve_const_super(L, E0, [ti,tf], [], [], {}, opt,
-                                       BaseProgressBar())
+        sol = qt.mesolve(L, E0, [ti,tf], [], [], {}, opt, BaseProgressBar())
         return sol.final_state
     else: 
         return E0

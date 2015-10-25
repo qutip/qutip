@@ -33,7 +33,8 @@ class TTMSolverOptions:
         self.store_states = options.store_states
 
 
-def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None, **kwargs):
+def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None, 
+             diff=None, **kwargs):
     """
     Parameters
     ----------
@@ -82,7 +83,7 @@ def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None, **kwarg
                             "list-like.")
 
     if tensors is None:
-        tensors,diff = _generatetensors(E, learningtimes, opt=opt)
+        tensors, diff = _generatetensors(E, learningtimes, opt=opt)
 
     K = len(tensors)
     states = [rho0]
@@ -93,7 +94,10 @@ def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None, **kwarg
                 states[-1] += tensors[n-k]*states[k]
     for i, r in enumerate(states):
         if opt.store_states or expt_callback:
-            states[i] = vector_to_operator(r)
+            if r.type == 'operator-ket':
+                states[i] = vector_to_operator(r)
+            else:
+                states[i] = r
             if expt_callback:
                 # use callback method
                 e_ops(times[i], states[i])
@@ -107,8 +111,7 @@ def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None, **kwarg
     output.solver = "ttmsolve"
     output.times = times
 
-    if diff:
-        output.ttmconvergence = diff
+    output.ttmconvergence = diff
 
     if opt.store_states:
         output.states = states
