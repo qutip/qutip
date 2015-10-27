@@ -62,6 +62,8 @@ import os
 import numpy as np
 # import scipy.linalg as la
 import timeit
+# QuTiP
+from qutip import Qobj
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -320,9 +322,9 @@ class FidCompUnitary(FidelityComputer):
         """
 
         """
-        if isinstance(A, np.ndarray):
+        if isinstance(A, Qobj):
             # input is an array (matrix), so
-            norm = np.trace(A)
+            norm = A.tr()
         else:
             # input is already scalar and hence assumed
             # to be the prenormalised scalar value, e.g. fidelity
@@ -342,9 +344,9 @@ class FidCompUnitary(FidelityComputer):
         """
 
         """
-        if isinstance(A, np.ndarray):
+        if isinstance(A, Qobj):
             # input is an array (matrix), so
-            norm = np.trace(A)
+            norm = A.tr()
         else:
             # input is already scalar and hence assumed
             # to be the prenormalised scalar value, e.g. fidelity
