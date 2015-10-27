@@ -8,16 +8,15 @@ Done:
 - time evo computation
 -- Fidelity computer
 - Fidelities and gradients
+-- Pulse optim
+- remove recast of target, drift, ctrls, initial
 
 ToDo:
 - Eigen decomp lists
 - eigen decomp using Qobj (inc prop comp)
 
-
 Testing:
 - Test augmented matrix prop_comp
 - compare optim times for old vs new
 - compare prop_comp diag with standard
-
-
 

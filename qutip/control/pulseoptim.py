@@ -1572,8 +1572,6 @@ def create_pulse_optimizer(
     # check parameters
     if not isinstance(drift, Qobj):
         raise TypeError("drift must be a Qobj")
-    else:
-        drift = drift.full()
 
     if not isinstance(ctrls, (list, tuple)):
         raise TypeError("ctrls should be a list of Qobj")
@@ -1582,19 +1580,12 @@ def create_pulse_optimizer(
         for ctrl in ctrls:
             if not isinstance(ctrl, Qobj):
                 raise TypeError("ctrls should be a list of Qobj")
-            else:
-                ctrls[j] = ctrl.full()
-                j += 1
 
     if not isinstance(initial, Qobj):
         raise TypeError("initial must be a Qobj")
-    else:
-        initial = initial.full()
 
     if not isinstance(target, Qobj):
         raise TypeError("target must be a Qobj")
-    else:
-        target = target.full()
         
     # Deprecated parameter management
     if not optim_alg is None:
