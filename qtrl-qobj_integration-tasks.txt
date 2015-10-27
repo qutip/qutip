@@ -4,12 +4,15 @@ Done:
 -- Propagator computer
 - change exponentiations to Qobj.expm() where possible
 - change augmentation to sparse
+-- Timeslot computer
+- time evo computation
+-- Fidelity computer
+- Fidelities and gradients
 
 ToDo:
-- Propagator computation
 - Eigen decomp lists
-- Evolution computation
 - eigen decomp using Qobj (inc prop comp)
+
 
 Testing:
 - Test augmented matrix prop_comp

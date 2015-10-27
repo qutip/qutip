@@ -380,7 +380,7 @@ class Dynamics:
                      for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
             self.prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
-                                      dtype=ndarray)
+                                      dtype=object)
         # Time evolution operator (forward propagation)
         self.evo_init2t = [Qobj(shape=shp)
                            for x in range(self.num_tslots + 1)]
@@ -774,7 +774,7 @@ class DynamicsUnitary(Dynamics):
         return Dynamics.get_num_ctrls(self)
 
     def get_owd_evo_target(self):
-        return self.target.conj().T
+        return self.target.dag()
 
     def spectral_decomp(self, k):
         """
