@@ -1,7 +1,9 @@
 Done:
 -- Dynamics
 - Change dyn_gen, prop and time_evo types to qobj
-- 
+-- Propagator computer
+- change exponentiations to Qobj.expm() where possible
+- change augmentation to sparse
 
 ToDo:
 - Propagator computation
@@ -13,4 +15,6 @@ Testing:
 - Test augmented matrix prop_comp
 - compare optim times for old vs new
 - compare prop_comp diag with standard
+
+
 
