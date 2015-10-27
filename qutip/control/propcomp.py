@@ -51,6 +51,9 @@ See Machnes et.al., arXiv.1011.4874
 # import os
 import numpy as np
 import scipy.linalg as la
+import scipy.sparse as sp
+# QuTiP
+from qutip import Qobj
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -180,7 +183,7 @@ class PropCompApproxGrad(PropagatorComputer):
         """
         dyn = self.parent
         dgt = dyn.get_dyn_gen(k)*dyn.tau[k]
-        prop = la.expm(dgt)
+        prop = dgt.expm()
         return prop
 
     def compute_diff_prop(self, k, j, epsilon):
@@ -191,9 +194,10 @@ class PropCompApproxGrad(PropagatorComputer):
         Returns the propagator
         """
         dyn = self.parent
-        dgt_eps = np.asarray(dyn.get_dyn_gen(k) +
-                             epsilon*dyn.get_ctrl_dyn_gen(j))
-        prop_eps = la.expm(dgt_eps*dyn.tau[k])
+        dgt_eps = (dyn.get_dyn_gen(k) +
+                             epsilon*dyn.get_ctrl_dyn_gen(j))*dyn.tau[k]
+                             
+        prop_eps = dgt_eps.expm()
         return prop_eps
 
 
@@ -223,7 +227,7 @@ class PropCompDiag(PropagatorComputer):
         eig_vec = dyn.dyn_gen_eigenvectors[k]
         prop_eig_diag = np.diagflat(dyn.prop_eigen[k])
         prop = eig_vec.dot(prop_eig_diag).dot(eig_vec.conj().T)
-        return prop
+        return Qobj(prop)
 
     def compute_prop_grad(self, k, j, compute_prop=True):
         """
@@ -253,7 +257,7 @@ class PropCompDiag(PropagatorComputer):
         # and hence * implies inner product i.e. dot
         dg_diag_fact = np.multiply(dg_diag, factors)
         # Return to canonical basis
-        prop_grad = eig_vec.dot(dg_diag_fact).dot(eig_vec_adj)
+        prop_grad = Qobj(eig_vec.dot(dg_diag_fact).dot(eig_vec_adj))
 
         if compute_prop:
             return prop, prop_grad
@@ -291,13 +295,14 @@ class PropCompAugMat(PropagatorComputer):
         returns this augmented matrix
         """
         dyn = self.parent
-        A = dyn.get_dyn_gen(k)*dyn.tau[k]
-        E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+        A = dyn.get_dyn_gen(k)*dyn.tau[k].data
+        E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k].data
+        Z = sp.csr_matrix()
 
-        l = np.concatenate((A, np.zeros(A.shape)))
-        r = np.concatenate((E, A))
-        aug = np.concatenate((l, r), 1)
-
+#        l = np.concatenate((A, np.zeros(A.shape)))
+#        r = np.concatenate((E, A))
+#        aug = np.concatenate((l, r), 1)
+        aug = sp.vstack(sp.hstack([A, Z]), sp.hstack([E, A]))
         return aug
 
     def compute_prop_grad(self, k, j, compute_prop=True):
@@ -313,10 +318,10 @@ class PropCompAugMat(PropagatorComputer):
         dyn = self.parent
         dyn_gen_shp = dyn.get_dyn_gen(k).shape
         aug = self.get_aug_mat(k, j)
-        aug_exp = la.expm(aug)
-        prop_grad = aug_exp[:dyn_gen_shp[0], dyn_gen_shp[1]:]
+        aug_exp = sp.expm(aug)
+        prop_grad = Qobj(aug_exp[:dyn_gen_shp[0], dyn_gen_shp[1]:])
         if compute_prop:
-            prop = aug_exp[:dyn_gen_shp[0], :dyn_gen_shp[1]]
+            prop = Qobj(aug_exp[:dyn_gen_shp[0], :dyn_gen_shp[1]])
             return prop, prop_grad
         else:
             return prop_grad
