@@ -314,7 +314,7 @@ class FidCompUnitary(FidelityComputer):
         dyn = self.parent
         self.dimensional_norm = 1.0
         self.dimensional_norm = \
-            self.fid_norm_func(dyn.target.conj().T.dot(dyn.target))
+            self.fid_norm_func(dyn.target.dag()*dyn.target)
 
     def normalize_SU(self, A):
         """
@@ -392,7 +392,7 @@ class FidCompUnitary(FidelityComputer):
             dyn = self.parent
             k = dyn.tslot_computer.get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
-            f = np.trace(dyn.evo_init2t[k].dot(dyn.evo_t2targ[k]))
+            f = (dyn.evo_init2t[k]*dyn.evo_t2targ[k]).tr()
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
@@ -461,7 +461,7 @@ class FidCompUnitary(FidelityComputer):
             for k in range(n_ts):
                 owd_evo = dyn.evo_t2targ[k+1]
                 fwd_evo = dyn.evo_init2t[k]
-                g = np.trace(owd_evo.dot(dyn.prop_grad[k, j]).dot(fwd_evo))
+                g = (owd_evo*dyn.prop_grad[k, j]*fwd_evo).tr()
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
@@ -533,7 +533,7 @@ class FidCompTraceDiff(FidelityComputer):
             # Note that the value should have not imagnary part, so using
             # np.real, just avoids the complex casting warning
             self.fid_err = self.scale_factor*np.real(
-                np.trace(evo_f_diff.conj().T.dot(evo_f_diff)))
+                    (evo_f_diff.dag()*evo_f_diff).tr())
 
             if np.isnan(self.fid_err):
                 self.fid_err = np.Inf
@@ -598,16 +598,16 @@ class FidCompTraceDiff(FidelityComputer):
         for j in range(n_ctrls):
             for k in range(n_ts):
                 fwd_evo = dyn.evo_init2t[k]
-                evo_grad = dyn.prop_grad[k, j].dot(fwd_evo)
+                evo_grad = dyn.prop_grad[k, j]*fwd_evo
 
                 if k+1 < n_ts:
                     owd_evo = dyn.evo_t2end[k+1]
-                    evo_grad = owd_evo.dot(evo_grad)
+                    evo_grad = owd_evo*evo_grad
 
                 # Note that the value should have not imagnary part, so using
                 # np.real, just avoids the complex casting warning
                 g = -2*self.scale_factor*np.real(
-                    np.trace(evo_f_diff.conj().T.dot(evo_grad)))
+                                (evo_f_diff.dag()*evo_grad).tr())
                 if np.isnan(g):
                     g = np.Inf
 
@@ -665,16 +665,16 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
             for k in range(n_ts):
                 fwd_evo = dyn.evo_init2t[k]
                 prop_eps = prop_comp.compute_diff_prop(k, j, self.epsilon)
-                evo_final_eps = fwd_evo.dot(prop_eps)
+                evo_final_eps = fwd_evo*prop_eps
                 if k+1 < n_ts:
                     owd_evo = dyn.evo_t2end[k+1]
-                    evo_final_eps = evo_final_eps.dot(owd_evo)
+                    evo_final_eps = evo_final_eps*owd_evo
 
                 evo_f_diff_eps = dyn.target - evo_final_eps
                 # Note that the value should have not imagnary part, so using
                 # np.real, just avoids the complex casting warning
                 fid_err_eps = self.scale_factor*np.real(
-                    np.trace(evo_f_diff_eps.T.dot(evo_f_diff_eps)))
+                    (evo_f_diff_eps.dag()*evo_f_diff_eps).tr())
                 g = (fid_err_eps - curr_fid_err)/self.epsilon
 
                 grad[k, j] = g
