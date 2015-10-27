@@ -351,8 +351,8 @@ class PropCompFrechet(PropagatorComputer):
             [prop], prop_grad
         """
         dyn = self.parent
-        A = dyn.get_dyn_gen(k)*dyn.tau[k]
-        E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+        A = dyn.get_dyn_gen(k)*dyn.tau[k].data
+        E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k].data
 
         if compute_prop:
             prop, propGrad = la.expm_frechet(A, E)

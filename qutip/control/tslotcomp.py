@@ -222,6 +222,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
             dyn.stats.wall_time_dyn_gen_compute += \
                 timeit.default_timer() - time_start
 
+        # calculate the propagators and the propagotor gradients
         if (dyn.config.test_out_prop or
                 dyn.config.test_out_prop_grad or
                 dyn.config.test_out_evo):
@@ -231,7 +232,6 @@ class TSlotCompUpdateAll(TimeslotComputer):
                                                 dyn.stats.num_tslot_recompute,
                                                 dyn.config.test_out_f_ext)
 
-        # calculate the propagators and the propagotor gradients
         if dyn.config.test_out_prop:
             fname = "prop" + f_ext
             fpath = os.path.join(dyn.config.test_out_dir, fname)
@@ -307,7 +307,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
         time_start = timeit.default_timer()
         R = range(1, n_ts+1)
         for k in R:
-            dyn.evo_init2t[k] = dyn.prop[k-1].dot(dyn.evo_init2t[k-1])
+            dyn.evo_init2t[k] = dyn.prop[k-1]*dyn.evo_init2t[k-1]
             if self._fwd_evo_tofh != 0:
                 self._fwd_evo_tofh.write("Evo start to k={}\n".format(k))
                 np.savetxt(self._fwd_evo_tofh, dyn.evo_init2t[k],
@@ -323,7 +323,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
             dyn.evo_t2end[n_ts - 1] = dyn.prop[n_ts - 1]
             R = range(n_ts-2, -1, -1)
             for k in R:
-                dyn.evo_t2end[k] = dyn.evo_t2end[k+1].dot(dyn.prop[k])
+                dyn.evo_t2end[k] = dyn.evo_t2end[k+1]*dyn.prop[k]
                 if self._fwd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to end:\n".format(k))
                     np.savetxt(self._owd_evo_tofh, dyn.evo_t2end[k],
@@ -332,7 +332,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
         if dyn.fid_computer.uses_evo_t2targ:
             R = range(n_ts-1, -1, -1)
             for k in R:
-                dyn.evo_t2targ[k] = dyn.evo_t2targ[k+1].dot(dyn.prop[k])
+                dyn.evo_t2targ[k] = dyn.evo_t2targ[k+1]*dyn.prop[k]
                 if self._fwd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to targ:\n".format(k))
                     np.savetxt(self._owd_evo_tofh, dyn.evo_t2targ[k],
