@@ -183,7 +183,7 @@ class TestPulseOptim:
         drift = L0_Ad
         ctrls = [LC_z, LC_x]
         n_ctrls = len(ctrls)
-        initial = identity(4)
+        initial = tensor(Si, Si)
         had_gate = hadamard_transform(1)
         target_DP = tensor(had_gate, had_gate)
 

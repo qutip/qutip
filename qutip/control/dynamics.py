@@ -566,7 +566,7 @@ class Dynamics:
         Returns the size of the matrix that defines the drift dynamics
         that is assuming the drift is NxN, then this returns N
         """
-        if not isinstance(self.drift_dyn_gen, np.ndarray):
+        if not isinstance(self.drift_dyn_gen, Qobj):
             raise TypeError("Cannot get drift dimension, "
                             "as drift not set (correctly).")
         return self.drift_dyn_gen.shape[0]
