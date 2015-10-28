@@ -352,8 +352,8 @@ class PropCompFrechet(PropagatorComputer):
             [prop], prop_grad
         """
         dyn = self.parent
-        A = dyn.get_dyn_gen(k)*dyn.tau[k].data
-        E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k].data
+        A = (dyn.get_dyn_gen(k)*dyn.tau[k]).full()
+        E = (dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]).full()
         dg_dims = dyn.get_dyn_gen(k).dims
 
         if compute_prop:
