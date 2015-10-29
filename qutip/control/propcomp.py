@@ -227,7 +227,7 @@ class PropCompDiag(PropagatorComputer):
         eig_vec = dyn.dyn_gen_eigenvectors[k]
         prop_eig_diag = np.diagflat(dyn.prop_eigen[k])
         prop = eig_vec.dot(prop_eig_diag).dot(eig_vec.conj().T)
-        return Qobj(prop)
+        return Qobj(prop, dims=dyn.get_dyn_gen(k).dims)
 
     def compute_prop_grad(self, k, j, compute_prop=True):
         """
@@ -248,8 +248,7 @@ class PropCompDiag(PropagatorComputer):
 
         # compute ctrl dyn gen in diagonalised basis
         # i.e. the basis of the full dyn gen for this timeslot
-        dg_diag = \
-            dyn.tau[k]*eig_vec_adj.dot(
+        dg_diag = dyn.tau[k]*eig_vec_adj.dot(
                         dyn.get_ctrl_dyn_gen(j).full()).dot(eig_vec)
 
         # multiply by factor matrix
@@ -258,7 +257,8 @@ class PropCompDiag(PropagatorComputer):
         # and hence * implies inner product i.e. dot
         dg_diag_fact = np.multiply(dg_diag, factors)
         # Return to canonical basis
-        prop_grad = Qobj(eig_vec.dot(dg_diag_fact).dot(eig_vec_adj))
+        prop_grad = Qobj(eig_vec.dot(dg_diag_fact).dot(eig_vec_adj), 
+                         dims=dyn.get_dyn_gen(k).dims)
 
         if compute_prop:
             return prop, prop_grad
@@ -296,9 +296,10 @@ class PropCompAugMat(PropagatorComputer):
         returns this augmented matrix
         """
         dyn = self.parent
-        A = dyn.get_dyn_gen(k)*dyn.tau[k].data
+        dg = dyn.get_dyn_gen(k)
+        A = dg*dyn.tau[k].data
         E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k].data
-        Z = sp.csr_matrix()
+        Z = sp.csr_matrix(dg.shape)
 
 #        l = np.concatenate((A, np.zeros(A.shape)))
 #        r = np.concatenate((E, A))
@@ -317,12 +318,14 @@ class PropCompAugMat(PropagatorComputer):
             [prop], prop_grad
         """
         dyn = self.parent
-        dyn_gen_shp = dyn.get_dyn_gen(k).shape
+        dg = dyn.get_dyn_gen(k)
         aug = self.get_aug_mat(k, j)
         aug_exp = sp.expm(aug)
-        prop_grad = Qobj(aug_exp[:dyn_gen_shp[0], dyn_gen_shp[1]:])
+        prop_grad = Qobj(aug_exp[:dg.shape[0], dg.shape[1]:], 
+                         dims=dg.dims)
         if compute_prop:
-            prop = Qobj(aug_exp[:dyn_gen_shp[0], :dyn_gen_shp[1]])
+            prop = Qobj(aug_exp[:dg.shape[0], :dg.shape[1]], 
+                        dims=dg.dims)
             return prop, prop_grad
         else:
             return prop_grad
