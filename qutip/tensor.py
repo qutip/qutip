@@ -359,7 +359,9 @@ def _tensor_contract_single(arr, i, j):
     idxs = np.arange(arr.shape[i])
     sl = tuple(slice(None, None, None)
                if idx not in (i, j) else idxs for idx in range(arr.ndim))
-    return np.sum(arr[sl], axis=0)
+    contract_at = i if j == i + 1 else 0
+    print contract_at
+    return np.sum(arr[sl], axis=contract_at)
 
 
 def _tensor_contract_dense(arr, *pairs):
