@@ -360,7 +360,6 @@ def _tensor_contract_single(arr, i, j):
     sl = tuple(slice(None, None, None)
                if idx not in (i, j) else idxs for idx in range(arr.ndim))
     contract_at = i if j == i + 1 else 0
-    print contract_at
     return np.sum(arr[sl], axis=contract_at)
 
 
