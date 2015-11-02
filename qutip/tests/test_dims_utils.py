@@ -35,50 +35,34 @@ import numpy as np
 
 from numpy.testing import assert_equal, assert_, run_module_suite
 
-from qutip.qobj import Qobj
-from qutip.operators import identity
-from qutip.superop_reps import to_super
-from qutip.tensor import (
-    tensor_contract
+from qutip.dims_utils import (
+    flatten, enumerate_flat, deep_remove, unflatten
 )
 
 
-def test_tensor_contract_ident():
-    qobj = identity([2, 3, 4])
-    ans = 3 * identity([2, 4])
+def test_flatten():
+    l = [[[0], 1], 2]
+    assert_equal(flatten(l), [0, 1, 2])
 
-    assert_(ans == tensor_contract(qobj, (1, 4)))
 
-    # Now try for superoperators.
-    # For now, we just ensure the dims are correct.
-    sqobj = to_super(qobj)
-    correct_dims = [[[2, 4], [2, 4]], [[2, 4], [2, 4]]]
-    assert_equal(correct_dims, tensor_contract(sqobj, (1, 4), (7, 10)).dims)
+def test_enumerate_flat():
+    l = [[[10], [20, 30]], 40]
+    labels = enumerate_flat(l)
+    assert_equal(labels, [[[0], [1, 2]], 3])
 
-def case_tensor_contract_other(left, right, i, j, expected_dims, expected_data):
-    dat = np.arange(np.product(left) * np.product(right)).reshape((np.product(left), np.product(right)))
-    
-    qobj = Qobj(dat, dims=[left, right])
-    cqobj = tensor_contract(qobj, (i, j))
 
-    assert_equal(cqobj.dims, expected_dims)
-    assert_equal(cqobj.data.toarray(), expected_data)
+def test_deep_remove():
+    l = [[[0], 1], 2]
+    l = deep_remove(l, 1)
+    assert_equal(l, [[[0]], 2])
 
-def test_tensor_contract_other():
-    yield (
-        case_tensor_contract_other, [2, 3], [3, 4], 1, 2, [[2], [4]],
-        np.einsum('abbc', np.arange(2 * 3 * 3 * 4).reshape((2, 3, 3, 4)))
-    )
+    # Harder case...
+    l = [[[[0, 1, 2]], [3, 4], [5], [6, 7]]]
+    l = deep_remove(l, 0, 5)
+    assert l == [[[[1, 2]], [3, 4], [], [6, 7]]]
 
-    yield (
-        case_tensor_contract_other, [2, 3], [4, 3], 1, 3, [[2], [4]],
-        np.einsum('abcb', np.arange(2 * 3 * 3 * 4).reshape((2, 3, 4, 3)))
-    )
 
-    yield (
-        case_tensor_contract_other, [2, 3], [4, 3], 1, 3, [[2], [4]],
-        np.einsum('abcb', np.arange(2 * 3 * 3 * 4).reshape((2, 3, 4, 3)))
-    )
-
-if __name__ == "__main__":
-    run_module_suite()
+def test_unflatten():
+    l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]
+    labels = enumerate_flat(l)
+    assert unflatten(flatten(l), labels) == l
