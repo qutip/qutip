@@ -47,7 +47,7 @@ See the class and gen_pulse function descriptions for details
 
 import numpy as np
 
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 
 import qutip.control.dynamics as dynamics
@@ -165,7 +165,7 @@ class PulseGen:
 
     log_level : integer
         level of messaging output from the logger.
-        Options are attributes of qutip.logging,
+        Options are attributes of qutip.logging_utils,
         in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
         Anything WARN or above is effectively 'quiet' execution,
@@ -215,14 +215,14 @@ class PulseGen:
         instantiation, or passed as a parameter
         This is called during the instantiation automatically.
         The key value pairs are the attribute name and value
-        """
+        """               
         if not params:
             params = self.params
         
         if isinstance(params, dict):
             self.params = params
-            for key, val in params.iteritems():
-                setattr(self, key, val)
+            for key in params:
+                setattr(self, key, params[key])
 
     def set_log_level(self, lvl):
         """
@@ -971,6 +971,10 @@ class PulseGenCrab(PulseGen):
         
     coeffs : float array[num_coeffs, num_basis_funcs]
         The basis coefficient values
+        
+    randomize_coeffs : bool
+        If True (default) then the coefficients are set to some random values
+        when initialised, otherwise they will all be equal to self.scaling
     """
     def __init__(self, dyn=None, num_coeffs=None, params=None):
         self.parent = dyn
@@ -994,6 +998,7 @@ class PulseGenCrab(PulseGen):
         self.num_basis_funcs = 2
         self.num_optim_vars = 0
         self.coeffs = None
+        self.randomize_coeffs = True
         self._num_coeffs_estimated = False
         self.guess_pulse_action = 'MODULATE'
         self.guess_pulse = None
@@ -1065,9 +1070,12 @@ class PulseGenCrab(PulseGen):
                         "to suppress this message.".format(
                             self.num_coeffs, self.NUM_COEFFS_WARN_LVL))
                             
-        # For now just use the scaling and offset attributes
-        r = np.random.random([self.num_coeffs, self.num_basis_funcs])
-        self.coeffs = (2*r - 1.0) * self.scaling
+        if self.randomize_coeffs:
+            r = np.random.random([self.num_coeffs, self.num_basis_funcs])
+            self.coeffs = (2*r - 1.0) * self.scaling
+        else:
+            self.coeffs = np.ones([self.num_coeffs, 
+                                   self.num_basis_funcs])*self.scaling
         
     def estimate_num_coeffs(self, dim):
         """
@@ -1159,7 +1167,7 @@ class PulseGenCrab(PulseGen):
             self._bound_scale = 0.5*(self.ubound - self.lbound)
             self._bound_scale_cond = self._BSC_ALL
             
-    def  get_guess_pulse_scale(self):
+    def get_guess_pulse_scale(self):
         scale = 0.0
         if self.guess_pulse is not None:
             scale = max(np.amax(self.guess_pulse) - np.amin(self.guess_pulse),
@@ -1195,6 +1203,8 @@ class PulseGenCrabFourier(PulseGenCrab):
     ----------
     freqs : float array[num_coeffs]
         Frequencies for the basis functions
+    randomize_freqs : bool
+        If True (default) the some random offset is applied to the frequencies
     """
 
     def reset(self):
@@ -1203,6 +1213,7 @@ class PulseGenCrabFourier(PulseGenCrab):
         """
         PulseGenCrab.reset(self)
         self.freqs = None
+        self.randomize_freqs = True
 
     def init_pulse(self, num_coeffs=None):
         """
@@ -1222,8 +1233,9 @@ class PulseGenCrabFourier(PulseGenCrab):
         ff = 2*np.pi / self.pulse_time
         for i in range(self.num_coeffs):
             self.freqs[i] = ff*(i + 1)
-            
-        self.freqs += np.random.random(self.num_coeffs) - 0.5
+        
+        if self.randomize_freqs:
+            self.freqs += np.random.random(self.num_coeffs) - 0.5
         
     def gen_pulse(self, coeffs=None):
         """

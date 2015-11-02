@@ -51,7 +51,7 @@ import numpy as np
 
 try:
     # Python 3
-    from configparser import SafeConfigParser
+    from configparser import ConfigParser
 except:
     # Python 2
     from ConfigParser import SafeConfigParser
@@ -59,7 +59,7 @@ except:
 # QuTiP logging
 from qutip import Qobj
 
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 
 
@@ -69,7 +69,11 @@ def load_parameters(file_name, config=None, term_conds=None,
     Import parameters for the optimisation objects
     Will throw a ValueError if file_name does not exist
     """
-    parser = SafeConfigParser()
+    try:
+        parser = ConfigParser()
+    except:
+        parser = SafeConfigParser()
+        
     readFiles = parser.read(file_name)
     if len(readFiles) == 0:
         raise ValueError("Parameter file '{}' not found".format(file_name))
@@ -140,6 +144,10 @@ def set_param(parser, section, option, obj, attrib_name):
     if hasattr(obj, attrib_name):
         a = getattr(obj, attrib_name)
         dtype = type(a)
+    else:
+        logger.warn("Unable to load parameter {}.{}\n"
+                    "Attribute does not exist".format(section, attrib_name))
+        return
         
     if isinstance(a, Qobj):
         try:
@@ -202,4 +210,12 @@ def set_param(parser, section, option, obj, attrib_name):
                                  val, section, option))
         setattr(obj, attrib_name, b)
     else:
+        try:
+            val = parser.getfloat(section, attrib_name)
+        except:
+            try:
+                val = parser.getboolean(section, attrib_name)
+            except:
+                pass
+            
         setattr(obj, attrib_name, val)
