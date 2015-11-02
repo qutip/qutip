@@ -37,6 +37,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.dims_utils import (
+    type_from_dims,
     flatten, enumerate_flat, deep_remove, unflatten,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape
 )
@@ -94,10 +95,32 @@ def test_dims_to_tensor_shape():
     # be flipped, then the whole thing flattened.
     shape = (5, 6, 3, 4, 0, 1, 2, 3)
     print dims_to_tensor_shape(dims)
-    
+
     assert_equal(
         dims_to_tensor_shape(dims),
         shape
     )
     # TODO: more cases (oper-ket, oper-bra, and preserves
     #       non-vectorized qobjs).
+
+
+def test_type_from_dims():
+    def case(dims, expected_type, enforce_square=True):
+        assert_equal(type_from_dims(dims, enforce_square=enforce_square), expected_type)
+
+    yield case, [[2], [2]], 'oper'
+    yield case, [[2, 3], [2, 3]], 'oper'
+    yield case, [[2], [3]], 'other'
+    yield case, [[2], [3]], 'oper', False
+
+    yield case, [[2], [1]], 'ket'
+    yield case, [[1], [2]], 'bra'
+
+    yield case, [[[2, 3], [2, 3]], [1]], 'operator-ket'
+    yield case, [[1], [[2, 3], [2, 3]]], 'operator-bra'
+
+    yield case, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]], 'super'
+    yield case, [[[3], [3]], [[2, 3], [2, 3]]], 'other'
+    yield case, [[[3], [3]], [[2, 3], [2, 3]]], 'super', False
+
+    yield case, [[[2], [3, 3]], [[3], [2, 3]]], 'other'
