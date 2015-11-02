@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -37,7 +38,7 @@ from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.dims_utils import (
     flatten, enumerate_flat, deep_remove, unflatten,
-    dims_idxs_to_tensor_idxs
+    dims_idxs_to_tensor_idxs, dims_to_tensor_shape
 )
 
 
@@ -76,6 +77,27 @@ def test_dims_idxs_to_tensor_idxs():
     assert_equal(
         dims_idxs_to_tensor_idxs(dims, list(range(len(flatten(dims))))),
         [2, 3, 0, 1, 6, 7, 4, 5]
+    )
+    # TODO: more cases (oper-ket, oper-bra, and preserves
+    #       non-vectorized qobjs).
+
+
+def test_dims_to_tensor_shape():
+    # Dims for a superoperator:
+    #     L(L(C⁰ × C¹, C² × C³), L(C³ × C⁴, C⁵ × C⁶)),
+    # where L(X, Y) is a linear operator from X to Y (dims [Y, X]).
+    in_dims  = [[2, 3], [0, 1]]
+    out_dims = [[3, 4], [5, 6]]
+    dims = [out_dims, in_dims]
+
+    # To make the expected shape, we want the left and right spaces to each
+    # be flipped, then the whole thing flattened.
+    shape = (5, 6, 3, 4, 0, 1, 2, 3)
+    print dims_to_tensor_shape(dims)
+    
+    assert_equal(
+        dims_to_tensor_shape(dims),
+        shape
     )
     # TODO: more cases (oper-ket, oper-bra, and preserves
     #       non-vectorized qobjs).

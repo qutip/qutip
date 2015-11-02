@@ -42,7 +42,7 @@ from operator import getitem
 from functools import partial
 
 
-def type_from_dims(dims):
+def type_from_dims(dims, enforce_square=True):
     if   (np.prod(dims[0]) == 1 and
           isinstance(dims[1], list) and
           isinstance(dims[1][0], (int, np.integer))):
@@ -61,12 +61,14 @@ def type_from_dims(dims):
             return 'operator-ket'
     elif (isinstance(dims[0], list) and
           isinstance(dims[0][0], (int, np.integer)) and
-          dims[0] == dims[1]):
+          (dims[0] == dims[1] or not enforce_square)):
             return 'oper'
     elif (isinstance(dims[0], list) and
           isinstance(dims[0][0], list) and
-          dims[0] == dims[1] and
-          dims[0][0] == dims[1][0]):
+          ((dims[0] == dims[1] and
+            dims[0][0] == dims[1][0])
+           or not enforce_square)
+          ):
             return 'super'
     else:
             return 'other'
@@ -181,6 +183,87 @@ def deep_map(fn, collection, over=(tuple, list)):
         return fn(collection)
 
 
+def dims_to_tensor_perm(dims):
+    """
+    Given the dims of a Qobj instance, returns a list representing
+    a permutation from the flattening of that dims specification to
+    the corresponding tensor indices.
+
+    Parameters
+    ----------
+
+    dims : list
+        Dimensions specification for a Qobj.
+
+    Returns
+    -------
+
+    perm : list
+        A list such that ``data[flatten(dims)[idx]]`` gives the
+        index of the tensor ``data`` corresponding to the ``idx``th
+        dimension of ``dims``.
+    """
+    # We figure out the type of the dims specification,
+    # relaxing the requirement that operators be square.
+    # This means that dims_type need not coincide with
+    # Qobj.type, but that works fine for our purposes here.
+    dims_type = type_from_dims(dims, enforce_square=False)
+    perm = enumerate_flat(dims)
+
+    # If type is oper, ket or bra, we don't need to do anything.
+    if dims_type in ('oper', 'ket', 'bra'):
+        return flatten(perm)
+
+    # If the type is other, we need to figure out if the
+    # dims is superlike on its outputs and inputs
+    # This is the case if the dims type for left or right
+    # are, respectively, oper-like.
+    if dims_type == 'other':
+        raise NotImplementedError("Not yet implemented for type='other'.")
+
+    # If we're still here, the story is more complicated. We'll
+    # follow the strategy of creating a permutation by using
+    # enumerate_flat then transforming the result to swap
+    # input and output indices of vectorized matrices, then flattening
+    # the result. We'll then rebuild indices using this permutation.
+
+
+    if dims_type in ('operator-ket', 'super'):
+        # Swap the input and output spaces of the right part of
+        # perm.
+        perm[1] = list(reversed(perm[1]))
+
+    if dims_type in ('operator-bra', 'super'):
+        # Ditto, but for the left indices.
+        perm[0] = list(reversed(perm[0]))
+
+    return flatten(perm)
+
+def dims_to_tensor_shape(dims):
+    """
+    Given the dims of a Qobj instance, returns the shape of the
+    corresponding tensor. This helps, for instance, resolve the
+    column-stacking convention for superoperators.
+
+    Parameters
+    ----------
+
+    dims : list
+        Dimensions specification for a Qobj.
+
+    Returns
+    -------
+
+    tensor_shape : tuple
+        NumPy shape of the corresponding tensor.
+    """
+
+    perm = dims_to_tensor_perm(dims)
+    dims = flatten(dims)
+
+    return tuple(map(partial(getitem, dims), perm))
+
+
 def dims_idxs_to_tensor_idxs(dims, indices):
     """
     Given the dims of a Qobj instance, and some indices into
@@ -208,35 +291,6 @@ def dims_idxs_to_tensor_idxs(dims, indices):
         Container of the same structure as indices containing
         the tensor indices for each element of indices.
     """
-    dims_type = type_from_dims(dims)
 
-    # If type is oper, ket or bra, we don't need to do anything.
-    if dims_type in ('oper', 'ket', 'bra'):
-        return indices
-
-    # If type is other, that will take more work. Raise an error
-    # for now, we'll get it working soon.
-    if dims_type == 'other':
-        raise NotImplementedError("Not yet implemented for type='other'.")
-
-    # If we're still here, the story is more complicated. We'll
-    # follow the strategy of creating a permutation by using
-    # enumerate_flat then transforming the result to swap
-    # input and output indices of vectorized matrices, then flattening
-    # the result. We'll then rebuild indices using this permutation.
-
-    perm = enumerate_flat(dims)
-
-    if dims_type in ('operator-ket', 'super'):
-        # Swap the input and output spaces of the right part of
-        # perm.
-        perm[1] = list(reversed(perm[1]))
-
-    if dims_type in ('operator-bra', 'super'):
-        # Ditto, but for the left indices.
-        perm[0] = list(reversed(perm[0]))
-
-    # Now flatten and permute.
-    perm = flatten(perm)
+    perm = dims_to_tensor_perm(dims)
     return deep_map(partial(getitem, perm), indices)
-

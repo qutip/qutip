@@ -42,6 +42,8 @@ from qutip.tensor import (
     tensor_contract
 )
 
+import warnings
+
 
 def test_tensor_contract_ident():
     qobj = identity([2, 3, 4])
@@ -55,30 +57,69 @@ def test_tensor_contract_ident():
     correct_dims = [[[2, 4], [2, 4]], [[2, 4], [2, 4]]]
     assert_equal(correct_dims, tensor_contract(sqobj, (1, 4), (7, 10)).dims)
 
-def case_tensor_contract_other(left, right, i, j, expected_dims, expected_data):
+def case_tensor_contract_other(left, right, pairs, expected_dims, expected_data=None):
     dat = np.arange(np.product(left) * np.product(right)).reshape((np.product(left), np.product(right)))
     
     qobj = Qobj(dat, dims=[left, right])
-    cqobj = tensor_contract(qobj, (i, j))
+    cqobj = tensor_contract(qobj, *pairs)
 
     assert_equal(cqobj.dims, expected_dims)
-    assert_equal(cqobj.data.toarray(), expected_data)
+    if expected_data is not None:
+        assert_equal(cqobj.data.toarray(), expected_data)
+    else:
+        warnings.warn("tensor_contract test case without checking returned data.")
 
 def test_tensor_contract_other():
     yield (
-        case_tensor_contract_other, [2, 3], [3, 4], 1, 2, [[2], [4]],
+        case_tensor_contract_other, [2, 3], [3, 4], [(1, 2)], [[2], [4]],
         np.einsum('abbc', np.arange(2 * 3 * 3 * 4).reshape((2, 3, 3, 4)))
     )
 
     yield (
-        case_tensor_contract_other, [2, 3], [4, 3], 1, 3, [[2], [4]],
+        case_tensor_contract_other, [2, 3], [4, 3], [(1, 3)], [[2], [4]],
         np.einsum('abcb', np.arange(2 * 3 * 3 * 4).reshape((2, 3, 4, 3)))
     )
 
     yield (
-        case_tensor_contract_other, [2, 3], [4, 3], 1, 3, [[2], [4]],
+        case_tensor_contract_other, [2, 3], [4, 3], [(1, 3)], [[2], [4]],
         np.einsum('abcb', np.arange(2 * 3 * 3 * 4).reshape((2, 3, 4, 3)))
     )
+
+    # Make non-rectangular outputs in a column-/row-symmetric fashion.
+    big_dat = np.arange(2 * 3 * 2 * 3 * 2 * 3 * 2 * 3).reshape((2, 3) * 4)
+
+    yield (
+        case_tensor_contract_other, [[2, 3], [2, 3]], [[2, 3], [2, 3]],
+        [(0, 2)], [[[3], [3]], [[2, 3], [2, 3]]],
+        np.einsum('ibidwxyz', big_dat).reshape((3 * 3, 3 * 2 * 3 * 2))
+    )
+
+    yield (
+        case_tensor_contract_other, [[2, 3], [2, 3]], [[2, 3], [2, 3]],
+        [(0, 2), (5, 7)], [[[3], [3]], [[2], [2]]],
+        # We separate einsum into two calls due to a bug internal to
+        # einsum.
+        np.einsum('ibidwy', np.einsum('abcdwjyj', big_dat)).reshape((3 * 3, 2 * 2))
+    )
+
+    # Now we try collapsing in a way that's sensitive to column- and row-
+    # stacking conventions.
+    big_dat = np.arange(2 * 2 * 3 * 3 * 2 * 3 * 2 * 3).reshape((3, 3, 2, 2, 2, 3, 2, 3))
+    # Note that the order of [2, 2] and [3, 3] is swapped on the left!
+    big_dims = [[[2, 2], [3, 3]], [[2, 3], [2, 3]]]
+
+    # Let's try a weird tensor contraction; this will likely never come up in practice,
+    # but it should serve as a good canary for more reasonable contractions.
+    yield (
+        case_tensor_contract_other, big_dims[0], big_dims[1],
+        [(0, 4)], [[[2], [3, 3]], [[3], [2, 3]]],
+        # We separate einsum into two calls due to a bug internal to
+        # einsum.
+        np.einsum('abidwxiz', big_dat).reshape((2 * 3 * 3, 3 * 2 * 3))
+    )
+
+
+
 
 if __name__ == "__main__":
     run_module_suite()
