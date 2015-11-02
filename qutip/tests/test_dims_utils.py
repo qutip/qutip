@@ -95,7 +95,6 @@ def test_dims_to_tensor_shape():
     # To make the expected shape, we want the left and right spaces to each
     # be flipped, then the whole thing flattened.
     shape = (5, 6, 3, 4, 0, 1, 2, 3)
-    print dims_to_tensor_shape(dims)
 
     assert_equal(
         dims_to_tensor_shape(dims),
