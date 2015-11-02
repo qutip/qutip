@@ -50,7 +50,7 @@ from qutip.states import fock_dm, basis
 from qutip.propagator import propagator
 from qutip.random_objects import (
     rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz,
-    rand_ket_haar, rand_dm_ginibre
+    rand_ket_haar, rand_dm_ginibre, rand_unitary_haar
 )
 from qutip.qobj import Qobj
 from qutip.superop_reps import to_super
@@ -231,6 +231,14 @@ def test_average_gate_fidelity():
         assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
     assert_(0 <= average_gate_fidelity(rand_super()) <= 1)
 
+def test_average_gate_fidelity_target():
+    """
+    Metrics: Tests that for random unitaries U, AGF(U, U) = 1.
+    """
+    for _ in range(10):
+        U = rand_unitary_haar(13)
+        SU = to_super(U)
+        assert_almost_equal(average_gate_fidelity(SU, target=U), 1)
 
 def test_hilbert_dist():
     """

@@ -48,7 +48,14 @@ defined for that object
 """
 
 import numpy as np
-from ConfigParser import SafeConfigParser
+
+try:
+    # Python 3
+    from configparser import SafeConfigParser
+except:
+    # Python 2
+    from ConfigParser import SafeConfigParser
+    
 # QuTiP logging
 from qutip import Qobj
 

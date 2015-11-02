@@ -113,8 +113,8 @@ class PropagatorComputer:
         
         if isinstance(params, dict):
             self.params = params
-            for key, val in params.iteritems():
-                setattr(self, key, val)
+            for key in params:
+                setattr(self, key, params[key])
 
     def set_log_level(self, lvl):
         """

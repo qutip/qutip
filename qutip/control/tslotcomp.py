@@ -121,8 +121,8 @@ class TimeslotComputer:
         
         if isinstance(params, dict):
             self.params = params
-            for key, val in params.iteritems():
-                setattr(self, key, val)
+            for key in params:
+                setattr(self, key, params[key])
 
     def flag_all_calc_now(self):
         pass
