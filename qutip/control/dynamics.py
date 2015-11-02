@@ -59,6 +59,7 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import scipy.linalg as la
+import scipy.sparse as sp
 # QuTiP
 from qutip import Qobj
 # QuTiP logging
@@ -264,12 +265,20 @@ class Dynamics:
         self.initial_ctrl_offset = 0.0
         self.drift_dyn_gen = None
         self.ctrl_dyn_gen = None
-        self.dyn_gen = None
-        self.prop = None
-        self.prop_grad = None
-        self.evo_init2t = None
-        self.evo_t2end = None
-        self.evo_t2targ = None
+        self.evo_full = None
+        # attributes used for processing evolution
+        self.oper_dtype = None
+        self._drift_dyn_gen = None
+        self._ctrl_dyn_gen = None
+        self._initial = None
+        self._target = None
+        self._onto_evo_target = None
+        self._dyn_gen = None
+        self._prop = None
+        self._prop_grad = None
+        self._evo_fwd = None
+        self._evo_onwd = None
+        self._evo_onto = None
         # Atrributes used in diagonalisation
         self.decomp_curr = None
         self.prop_eigen = None
@@ -363,37 +372,97 @@ class Dynamics:
         
         self._timeslots_initialized = True
         
-    def _init_lists(self):
+    def _choose_oper_dtype(self):
+        """
+        Attempt select most effecient internal operator data type
+        """
+        # Method taken from Qobj.expm()
+        # if method is not explicitly given, try to make a good choice
+        # between sparse and dense solvers by considering the size of the
+        # system and the number of non-zero elements.
+        dg = self.drift_dyn_gen
+        for c in self.ctrl_dyn_gen:
+           dg = dg + c
+           
+        N = dg.data.shape[0]
+        n = dg.data.nnz
+
+        if N ** 2 < 100 * n:
+            # large number of nonzero elements, revert to dense solver
+            self.oper_dtype = np.ndarray
+        elif N > 400:
+            # large system, and quite sparse -> qutips sparse method
+            self.oper_dtype = Qobj
+        else:
+            # small system, but quite sparse -> qutips sparse/dense method
+            self.oper_dtype = np.ndarray
+        
+    def _init_evo(self):
         """
         Create the container lists / arrays for the:
         dynamics generations, propagators, and evolutions etc
         Set the time slices and cumulative time
         """
-
-        # Create containers for control Hamiltonian etc
-        shp = self.drift_dyn_gen.shape
-        # set H to be just empty float arrays with the shape of H
-        self.dyn_gen = [Qobj(shape=shp)
-                        for x in range(self.num_tslots)]
-        # the exponetiation of H. Just empty float arrays with the shape of H
-        self.prop = [Qobj(shape=shp)
-                     for x in range(self.num_tslots)]
+        # check evolution operators
+        if not isinstance(self.drift_dyn_gen, Qobj):
+            raise TypeError("drift must be a Qobj")
+    
+        if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
+            raise TypeError("ctrls should be a list of Qobj")
+        else:
+            for ctrl in self.ctrl_dyn_gen:
+                if not isinstance(ctrl, Qobj):
+                    raise TypeError("ctrls should be a list of Qobj")
+    
+        if not isinstance(self.initial, Qobj):
+            raise TypeError("initial must be a Qobj")
+    
+        if not isinstance(self.target, Qobj):
+            raise TypeError("target must be a Qobj")
+            
+        if self.oper_dtype is None:
+            self._choose_oper_dtype()
+            logger.info("Internal operator data type choosen to be {}".format(
+                            self.oper_dtype))
+        else:
+            logger.info("Using operator data type {}".format(
+                            self.oper_dtype))
+                            
+        if self.oper_dtype == Qobj:
+            self._initial = self.initial
+            self._target = self.target
+            self._drift_dyn_gen = self.drift_dyn_gen
+            self._ctrl_dyn_gen = self.ctrl_dyn_gen
+        elif self.oper_dtype == np.ndarray:
+            self._initial = self.initial.full()
+            self._target = self.target.full()
+            self._drift_dyn_gen = self.drift_dyn_gen.full()
+            self._ctrl_dyn_gen = [ctrl.full() for ctrl in self.ctrl_dyn_gen]
+        elif self.oper_dtype == sp.csr_matrix:
+            self._initial = self.initial.data
+            self._target = self.target.data
+            self._drift_dyn_gen = self.drift_dyn_gen.data
+            self._ctrl_dyn_gen = [ctrl.data for ctrl in self.ctrl_dyn_gen]
+        else:
+            logger.warn("Unknown option '{}' for oper_dtype. "
+                "Assuming that internal drift, ctrls, initial and target "
+                "have been set correctly".format(self.oper_dtype))
+            
+        self._dyn_gen = [object for x in range(self.num_tslots)]
+        self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
-            self.prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
+            self._prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
                                       dtype=object)
         # Time evolution operator (forward propagation)
-        self.evo_init2t = [Qobj(shape=shp)
-                           for x in range(self.num_tslots + 1)]
-        self.evo_init2t[0] = self.initial
-        if self.fid_computer.uses_evo_t2end:
+        self._evo_fwd = [object for x in range(self.num_tslots + 1)]
+        self._evo_fwd[0] = self._initial
+        if self.fid_computer.uses_evo_onwd:
             # Time evolution operator (onward propagation)
-            self.evo_t2end = [Qobj(shape=shp)
-                              for x in range(self.num_tslots)]
-        if self.fid_computer.uses_evo_t2targ:
+            self._evo_onwd = [object for x in range(self.num_tslots)]
+        if self.fid_computer.uses_evo_onto:
             # Onward propagation overlap with inverse target
-            self.evo_t2targ = [Qobj(shape=shp)
-                               for x in range(self.num_tslots + 1)]
-            self.evo_t2targ[-1] = self.get_owd_evo_target()
+            self._evo_onto = [object for x in range(self.num_tslots + 1)]
+            self._evo_onto[-1] = self.get_onto_evo_target()
 
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
@@ -404,15 +473,11 @@ class Dynamics:
         used in calculating propagators and gradients
         Note: used with PropCompDiag propagator calcs
         """
-        shp = self.drift_dyn_gen.shape
         n_ts = self.num_tslots
         self.decomp_curr = [False for x in range(n_ts)]
-        self.prop_eigen = \
-            [np.empty(shp[0], dtype=complex) for x in range(n_ts)]
-        self.dyn_gen_eigenvectors = \
-            [np.empty(shp, dtype=complex) for x in range(n_ts)]
-        self.dyn_gen_factormatrix = \
-            [np.empty(shp, dtype=complex) for x in range(n_ts)]
+        self.prop_eigen = [object for x in range(n_ts)]
+        self.dyn_gen_eigenvectors = [object for x in range(n_ts)]
+        self.dyn_gen_factormatrix = [object for x in range(n_ts)]
 
     def _check_test_out_files(self):
         cfg = self.config
@@ -454,7 +519,7 @@ class Dynamics:
             init_tslots = True
         if init_tslots:
             self.init_timeslots()
-        self._init_lists()
+        self._init_evo()
         self.tslot_computer.init_comp()
         self.fid_computer.init_comp()
         self._ctrls_initialized = True
@@ -580,21 +645,33 @@ class Dynamics:
         self.num_ctrls = len(self.ctrl_dyn_gen)
         return self.num_ctrls
 
-    def get_owd_evo_target(self):
+    def get_onto_evo_target(self):
         """
         Get the inverse of the target.
         Used for calculating the 'backward' evolution
         """
-        return la.inv(self.target)
+        targ = la.inv(self.target.full())
+        if self.oper_dtype == Qobj:
+            self._onto_evo_target = Qobj(targ)
+        elif self.oper_dtype == np.ndarray:
+            self._onto_evo_target = targ
+        elif self.oper_dtype == np.ndarray:
+            self._onto_evo_target = sp.csr_matrix(targ)
+        else:
+            if self._onto_evo_target is None:
+                raise ValueError("_onto_evo_target must be set if using "
+                    "non-standard oper_dtype")
+        return self._onto_evo_target
+        
 
     def combine_dyn_gen(self, k):
         """
         Computes the dynamics generator for a given timeslot
         The is the combined Hamiltion for unitary systems
         """
-        dg = self.drift_dyn_gen
+        dg = self._drift_dyn_gen
         for j in range(self.get_num_ctrls()):
-            dg = dg + self.ctrl_amps[k, j]*self.ctrl_dyn_gen[j]
+            dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
         return dg
 
     def get_dyn_gen(self, k):
@@ -739,7 +816,7 @@ class DynamicsUnitary(Dynamics):
 
         self._map_dyn_gen_to_ham()
         Dynamics.initialize_controls(self, amplitudes, init_tslots=init_tslots)
-        self.H = self.dyn_gen
+        self.H = self._dyn_gen
 
     def _map_dyn_gen_to_ham(self):
         if self.drift_dyn_gen is None:
@@ -759,22 +836,30 @@ class DynamicsUnitary(Dynamics):
         Get the combined dynamics generator for the timeslot
         including the -i factor
         """
-        return -1j*self.dyn_gen[k]
+        return -1j*self._dyn_gen[k]
 
     def get_ctrl_dyn_gen(self, j):
         """
         Get the dynamics generator for the control
         including the -i factor
         """
-        return -1j*self.ctrl_dyn_gen[j]
+        return -1j*self._ctrl_dyn_gen[j]
 
     def get_num_ctrls(self):
         if not self._dyn_gen_mapped:
             self._map_dyn_gen_to_ham()
         return Dynamics.get_num_ctrls(self)
 
-    def get_owd_evo_target(self):
-        return self.target.dag()
+    def get_onto_evo_target(self):
+        """
+        Get the adjoint of the target.
+        Used for calculating the 'backward' evolution
+        """
+        if self.oper_dtype == Qobj:
+            self._onto_evo_target = self.target.dag()
+        else:
+            self._onto_evo_target = self._target.T.conj()
+        return self._onto_evo_target
 
     def spectral_decomp(self, k):
         """
@@ -783,7 +868,13 @@ class DynamicsUnitary(Dynamics):
         basis, and the 'factormatrix' used in calculating the propagator
         gradient
         """
-        H = self.H[k].full()
+        if self.oper_dtype == Qobj:
+            H = self._dyn_gen[k].full()
+        elif self.oper_dtype == np.ndarray:
+            H = self._dyn_gen[k]
+        else:
+            H = self._dyn_gen[k].toarray()
+            
         # assuming H is an nxn matrix, find n
         n = H.shape[0]
         # returns row vector of eigen values,
@@ -862,8 +953,14 @@ class DynamicsSymplectic(Dynamics):
     def get_omega(self):
         if self.omega is None:
             n = self.drift_dyn_gen.shape[0] // 2
-            self.omega = Qobj(sympl.calc_omega(n))
-
+            omg = sympl.calc_omega(n)
+            if self.oper_dtype == Qobj:
+                self.omega = Qobj(omg)
+            elif self.oper_dtype == sp.csr_matrix:
+                self.omega = sp.csr_matrix(omg)
+            else:
+                 self.omega = omg
+                 
         return self.omega
 
     def get_dyn_gen(self, k):
@@ -872,7 +969,12 @@ class DynamicsSymplectic(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return -self.dyn_gen[k].dot(o)
+        if self.oper_dtype == Qobj:
+            dg = -self.dyn_gen[k]*o
+        else:
+            dg = -self.dyn_gen[k].dot(o)
+        
+        return dg
 
     def get_ctrl_dyn_gen(self, j):
         """
@@ -880,4 +982,10 @@ class DynamicsSymplectic(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return -self.ctrl_dyn_gen[j].dot(o)
+        if self.oper_dtype == Qobj:
+            dg = -self.ctrl_dyn_gen[j]*o
+        else:
+            dg = -self.ctrl_dyn_gen[j].dot(o)
+        
+        return dg
+        

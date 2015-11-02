@@ -183,7 +183,10 @@ class PropCompApproxGrad(PropagatorComputer):
         """
         dyn = self.parent
         dgt = dyn.get_dyn_gen(k)*dyn.tau[k]
-        prop = dgt.expm()
+        if dyn.oper_dtype == Qobj:
+            prop = dgt.expm()
+        else:
+            prop = la.expm(dgt)
         return prop
 
     def compute_diff_prop(self, k, j, epsilon):
@@ -196,8 +199,12 @@ class PropCompApproxGrad(PropagatorComputer):
         dyn = self.parent
         dgt_eps = (dyn.get_dyn_gen(k) +
                              epsilon*dyn.get_ctrl_dyn_gen(j))*dyn.tau[k]
-                             
-        prop_eps = dgt_eps.expm()
+        
+        if dyn.oper_dtype == Qobj:
+            prop_eps = dgt_eps.expm()
+        else:
+            prop_eps = la.expm(dgt_eps)
+            
         return prop_eps
 
 
@@ -227,7 +234,10 @@ class PropCompDiag(PropagatorComputer):
         eig_vec = dyn.dyn_gen_eigenvectors[k]
         prop_eig_diag = np.diagflat(dyn.prop_eigen[k])
         prop = eig_vec.dot(prop_eig_diag).dot(eig_vec.conj().T)
-        return Qobj(prop, dims=dyn.get_dyn_gen(k).dims)
+        if dyn.oper_dtype == Qobj:
+            return Qobj(prop, dims=dyn._dyn_gen[k].dims)
+        else:
+            return prop
 
     def compute_prop_grad(self, k, j, compute_prop=True):
         """
@@ -248,8 +258,13 @@ class PropCompDiag(PropagatorComputer):
 
         # compute ctrl dyn gen in diagonalised basis
         # i.e. the basis of the full dyn gen for this timeslot
-        dg_diag = dyn.tau[k]*eig_vec_adj.dot(
-                        dyn.get_ctrl_dyn_gen(j).full()).dot(eig_vec)
+        if dyn.oper_dtype == Qobj:
+            cdg = dyn.get_ctrl_dyn_gen(j).full()
+        elif dyn.oper_dtype == np.ndarray:
+            cdg = dyn.get_ctrl_dyn_gen(j)
+        else:
+             cdg = dyn.get_ctrl_dyn_gen(j).toarray()
+        dg_diag = dyn.tau[k]*eig_vec_adj.dot(cdg).dot(eig_vec)
 
         # multiply by factor matrix
         factors = dyn.dyn_gen_factormatrix[k]
@@ -257,9 +272,11 @@ class PropCompDiag(PropagatorComputer):
         # and hence * implies inner product i.e. dot
         dg_diag_fact = np.multiply(dg_diag, factors)
         # Return to canonical basis
-        prop_grad = Qobj(eig_vec.dot(dg_diag_fact).dot(eig_vec_adj), 
-                         dims=dyn.get_dyn_gen(k).dims)
-
+        prop_grad = eig_vec.dot(dg_diag_fact).dot(eig_vec_adj)
+        if dyn.oper_dtype == Qobj:
+            prop_grad = Qobj(prop_grad, 
+                         dims=dyn._dyn_gen[k].dims)
+        
         if compute_prop:
             return prop, prop_grad
         else:
@@ -287,7 +304,7 @@ class PropCompAugMat(PropagatorComputer):
         self.grad_exact = True
         self.apply_params()
 
-    def get_aug_mat(self, k, j):
+    def _get_aug_mat(self, k, j):
         """
         Generate the matrix [[A, E], [0, A]] where
             A is the overall dynamics generator
@@ -297,14 +314,22 @@ class PropCompAugMat(PropagatorComputer):
         """
         dyn = self.parent
         dg = dyn.get_dyn_gen(k)
-        A = dg*dyn.tau[k].data
-        E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k].data
-        Z = sp.csr_matrix(dg.shape)
-
-#        l = np.concatenate((A, np.zeros(A.shape)))
-#        r = np.concatenate((E, A))
-#        aug = np.concatenate((l, r), 1)
-        aug = sp.vstack(sp.hstack([A, Z]), sp.hstack([E, A]))
+        
+        if dyn.oper_dtype == Qobj:
+            A = dg.data*dyn.tau[k]
+            E = dyn.get_ctrl_dyn_gen(j).data*dyn.tau[k]
+            Z = sp.csr_matrix(dg.shape)
+            aug = Qobj(sp.vstack([sp.hstack([A, Z]), sp.hstack([E, A])]))
+        elif dyn.oper_dtype == np.ndarray:
+            A = dg*dyn.tau[k]
+            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            Z = np.zeros(dg.shape)
+            aug = np.vstack([np.hstack([A, Z]), np.hstack([E, A])])
+        else:
+            A = dg*dyn.tau[k]
+            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            Z = dg*0.0
+            aug = sp.vstack([sp.hstack([A, Z]), sp.hstack([E, A])])
         return aug
 
     def compute_prop_grad(self, k, j, compute_prop=True):
@@ -319,13 +344,22 @@ class PropCompAugMat(PropagatorComputer):
         """
         dyn = self.parent
         dg = dyn.get_dyn_gen(k)
-        aug = self.get_aug_mat(k, j)
-        aug_exp = sp.expm(aug)
-        prop_grad = Qobj(aug_exp[:dg.shape[0], dg.shape[1]:], 
+        aug = self._get_aug_mat(k, j)
+        
+        if dyn.oper_dtype == Qobj:
+            aug_exp = aug.expm()
+            prop_grad = Qobj(aug_exp.data[:dg.shape[0], dg.shape[1]:], 
                          dims=dg.dims)
+            if compute_prop:
+                prop = Qobj(aug_exp.data[:dg.shape[0], :dg.shape[1]], 
+                            dims=dg.dims)
+        else:
+            aug_exp = la.expm(aug)
+            prop_grad = aug_exp[:dg.shape[0], dg.shape[1]:]
+            if compute_prop:
+                prop = aug_exp[:dg.shape[0], :dg.shape[1]]
+                            
         if compute_prop:
-            prop = Qobj(aug_exp[:dg.shape[0], :dg.shape[1]], 
-                        dims=dg.dims)
             return prop, prop_grad
         else:
             return prop_grad
@@ -355,16 +389,38 @@ class PropCompFrechet(PropagatorComputer):
             [prop], prop_grad
         """
         dyn = self.parent
-        A = (dyn.get_dyn_gen(k)*dyn.tau[k]).full()
-        E = (dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]).full()
-        dg_dims = dyn.get_dyn_gen(k).dims
-
+        
+        if dyn.oper_dtype == Qobj:
+            A = dyn.get_dyn_gen(k).full()*dyn.tau[k]
+            E = dyn.get_ctrl_dyn_gen(j).full()*dyn.tau[k]
+            dg_dims = dyn.get_dyn_gen(k).dims
+            if compute_prop:
+                prop_dense, prop_grad_dense = la.expm_frechet(A, E)
+                prop = Qobj(prop_dense, dims=dg_dims)
+                prop_grad = Qobj(prop_grad_dense, dims=dg_dims)
+            else:
+                prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
+                prop_grad = Qobj(prop_grad_dense, dims=dg_dims)
+        elif dyn.oper_dtype == np.ndarray:
+            A = dyn.get_dyn_gen(k)*dyn.tau[k]
+            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            if compute_prop:
+                prop, prop_grad = la.expm_frechet(A, E)
+            else:
+                prop_grad = la.expm_frechet(A, E, compute_expm=False)   
+        else:
+            # Assuming some sparse matrix
+            A = dyn.get_dyn_gen(k)*dyn.tau[k]
+            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            if compute_prop:
+                prop_dense, prop_grad_dense = la.expm_frechet(A, E)
+                prop = A.__class__(prop_dense)
+                prop_grad = A.__class__(prop_grad_dense)
+            else:
+                prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
+                prop_grad = A.__class__(prop_grad_dense)
+                
         if compute_prop:
-            prop_full, prop_grad_full = la.expm_frechet(A, E)
-            prop = Qobj(prop_full, dims=dg_dims)
-            prop_grad = Qobj(prop_grad_full, dims=dg_dims)
             return prop, prop_grad
         else:
-            prop_grad_full = la.expm_frechet(A, E, compute_expm=False)
-            prop_grad = Qobj(prop_grad_full, dims=dg_dims)
             return prop_grad

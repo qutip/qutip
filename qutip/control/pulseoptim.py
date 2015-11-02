@@ -1576,7 +1576,6 @@ def create_pulse_optimizer(
     if not isinstance(ctrls, (list, tuple)):
         raise TypeError("ctrls should be a list of Qobj")
     else:
-        j = 0
         for ctrl in ctrls:
             if not isinstance(ctrl, Qobj):
                 raise TypeError("ctrls should be a list of Qobj")

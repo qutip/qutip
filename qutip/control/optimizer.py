@@ -722,7 +722,11 @@ class Optimizer:
         result.fid_err = dyn.fid_computer.get_fid_err()
         result.grad_norm_final = dyn.fid_computer.grad_norm
         result.final_amps = dyn.ctrl_amps
-        result.evo_full_final = Qobj(dyn.evo_init2t[dyn.num_tslots])
+        final_evo = dyn._evo_fwd[dyn.num_tslots]
+        if isinstance(final_evo, Qobj):
+            result.evo_full_final = final_evo
+        else:
+            result.evo_full_final = Qobj(final_evo, dims=dyn.initial.dims)
         # *** update stats ***
         if self.stats is not None:
             self.stats.wall_time_optim_end = end_time
