@@ -750,7 +750,7 @@ class DynamicsGenMat(Dynamics):
         This base class method simply returns dyn_gen[k]
         other subclass methods will include some factor
         """
-        return self.dyn_gen[k]
+        return self._dyn_gen[k]
 
     def get_ctrl_dyn_gen(self, j):
         """
@@ -758,7 +758,7 @@ class DynamicsGenMat(Dynamics):
         This base class method simply returns ctrl_dyn_gen[j]
         other subclass methods will include some factor
         """
-        return self.ctrl_dyn_gen[j]
+        return self._ctrl_dyn_gen[j]
 
 
 class DynamicsUnitary(Dynamics):
@@ -970,9 +970,9 @@ class DynamicsSymplectic(Dynamics):
         """
         o = self.get_omega()
         if self.oper_dtype == Qobj:
-            dg = -self.dyn_gen[k]*o
+            dg = -self._dyn_gen[k]*o
         else:
-            dg = -self.dyn_gen[k].dot(o)
+            dg = -self._dyn_gen[k].dot(o)
         
         return dg
 
@@ -983,9 +983,9 @@ class DynamicsSymplectic(Dynamics):
         """
         o = self.get_omega()
         if self.oper_dtype == Qobj:
-            dg = -self.ctrl_dyn_gen[j]*o
+            dg = -self._ctrl_dyn_gen[j]*o
         else:
-            dg = -self.ctrl_dyn_gen[j].dot(o)
+            dg = -self._ctrl_dyn_gen[j].dot(o)
         
         return dg
         
