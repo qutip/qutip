@@ -42,6 +42,7 @@ import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.permute import reshuffle
 from qutip.superoperator import operator_to_vector
+from qutip.dims_utils import flatten, enumerate_flat, unflatten, deep_remove
 
 import qutip.settings
 import qutip.superop_reps  # Avoid circular dependency here.
@@ -248,108 +249,6 @@ def composite(*args):
         ))
 
 
-def flatten(l):
-    """Flattens a list of lists to the first level.
-
-    Given a list containing a mix of scalars and lists,
-    flattens down to a list of the scalars within the original
-    list.
-
-    Examples
-    --------
-
-    >>> print(flatten([[[0], 1], 2]))
-    [0, 1, 2]
-
-    """
-    if not isinstance(l, list):
-        return [l]
-    else:
-        return sum(map(flatten, l), [])
-
-
-def _enumerate_flat(l, idx=0):
-    if not isinstance(l, list):
-        # Found a scalar, so return and increment.
-        return idx, idx + 1
-    else:
-        # Found a list, so append all the scalars
-        # from it and recurse to keep the increment
-        # correct.
-        acc = []
-        for elem in l:
-            labels, idx = _enumerate_flat(elem, idx)
-            acc.append(labels)
-        return acc, idx
-
-
-def enumerate_flat(l):
-    """Labels the indices at which scalars occur in a flattened list.
-
-    Given a list containing a mix of scalars and lists,
-    returns a list of the same structure, where each scalar
-    has been replaced by an index into the flattened list.
-
-    Examples
-    --------
-
-    >>> print(enumerate_flat([[[10], [20, 30]], 40]))
-    [[[0], [1, 2]], 3]
-
-    """
-    return _enumerate_flat(l)[0]
-
-
-def deep_remove(l, *what):
-    """Removes scalars from all levels of a nested list.
-
-    Given a list containing a mix of scalars and lists,
-    returns a list of the same structure, but where one or
-    more scalars have been removed.
-
-    Examples
-    --------
-
-    >>> print(deep_remove([[[[0, 1, 2]], [3, 4], [5], [6, 7]]], 0, 5))
-    [[[[1, 2]], [3, 4], [], [6, 7]]]
-
-    """
-    if isinstance(l, list):
-        # Make a shallow copy at this level.
-        l = l[:]
-        for to_remove in what:
-            if to_remove in l:
-                l.remove(to_remove)
-            else:
-                l = list(map(lambda elem: deep_remove(elem, to_remove), l))
-    return l
-
-
-def unflatten(l, idxs):
-    """Unflattens a list by a given structure.
-
-    Given a list of scalars and a deep list of indices
-    as produced by `flatten`, returns an "unflattened"
-    form of the list. This perfectly inverts `flatten`.
-
-    Examples
-    --------
-
-    >>> l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]
-    >>> idxs = enumerate_flat(l)
-    >>> print(unflatten(flatten(l)), idxs) == l
-    True
-
-    """
-    acc = []
-    for idx in idxs:
-        if isinstance(idx, list):
-            acc.append(unflatten(l, idx))
-        else:
-            acc.append(l[idx])
-    return acc
-
-
 def _tensor_contract_single(arr, i, j):
     """
     Contracts a dense tensor along a single index pair.
@@ -376,7 +275,6 @@ def _tensor_contract_dense(arr, *pairs):
         arr = _tensor_contract_single(arr, *map(axis_idxs.index, pair))
         list(map(axis_idxs.remove, pair))
     return arr
-
 
 def tensor_contract(qobj, *pairs):
     """Contracts a qobj along one or more index pairs.
