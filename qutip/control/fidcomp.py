@@ -60,6 +60,7 @@ in the class descriptions.
 
 import os
 import numpy as np
+import scipy.sparse as sp
 # import scipy.linalg as la
 import timeit
 # QuTiP
@@ -71,6 +72,7 @@ logger = logging.get_logger()
 import qutip.control.errors as errors
 
 
+            
 class FidelityComputer:
     """
     Base class for all Fidelity Computers.
@@ -103,12 +105,12 @@ class FidelityComputer:
         Used to normalise the fidelity gradient
         See SU and PSU options for the unitary dynamics
 
-    uses_evo_t2end : boolean
-        flag to specify whether the evo_t2end evolution operator
+    uses_evo_onwd : boolean
+        flag to specify whether the evo_onwd evolution operator
         (see Dynamics) is used by the FidelityComputer
 
-    uses_evo_t2targ : boolean
-        flag to specify whether the evo_t2targ evolution operator
+    uses_evo_onto : boolean
+        flag to specify whether the evo_onto evolution operator
          (see Dynamics) is used by the FidelityComputer
 
     fid_err : float
@@ -148,8 +150,8 @@ class FidelityComputer:
         self.dimensional_norm = 1.0
         self.fid_norm_func = None
         self.grad_norm_func = None
-        self.uses_evo_t2end = False
-        self.uses_evo_t2targ = False
+        self.uses_evo_onwd = False
+        self.uses_evo_onto = False
         self.apply_params()
         self.clear()
 
@@ -224,7 +226,17 @@ class FidelityComputer:
         # Flag gradient as needing recalculating
         self.fid_err_grad_current = False
 
-
+    def _trace(self, A):
+        """wrapper for calculating the trace"""
+        # input is an operator (Qobj, array, sparse etc), so
+        if isinstance(A, Qobj):
+            return A.tr()
+        elif isinstance(A, np.ndarray):
+            return np.trace(A)
+        else:
+            #Assume A some sparse matrix
+            return np.sum(A.diagonal())
+            
 class FidCompUnitary(FidelityComputer):
     """
     Computes fidelity error and gradient assuming unitary dynamics, e.g.
@@ -251,7 +263,7 @@ class FidCompUnitary(FidelityComputer):
     def reset(self):
         FidelityComputer.reset(self)
         self.id_text = 'UNIT'
-        self.uses_evo_t2targ = True
+        self.uses_evo_onto = True
         self.phase_option = 'PSU'
         self.apply_params()
         self.set_phase_option()
@@ -300,6 +312,7 @@ class FidCompUnitary(FidelityComputer):
         FidelityComputer.flag_system_changed(self)
         # Flag the fidelity (prenormalisation) value as needing calculation
         self.fidelity_prenorm_current = False
+        
 
     def init_normalization(self):
         """
@@ -322,11 +335,14 @@ class FidCompUnitary(FidelityComputer):
         """
 
         """
-        if isinstance(A, Qobj):
-            # input is an array (matrix), so
-            norm = A.tr()
-        else:
-            # input is already scalar and hence assumed
+        try:
+            if A.shape[0] == A.shape[1]:
+               # input is an operator (Qobj, array, sparse etc), so
+                norm = self._trace(A)
+            else:
+                raise TypeError("Cannot compute trace (not square)")
+        except:
+            # assume input is already scalar and hence assumed
             # to be the prenormalised scalar value, e.g. fidelity
             norm = A
         return np.real(norm) / self.dimensional_norm
@@ -344,11 +360,14 @@ class FidCompUnitary(FidelityComputer):
         """
 
         """
-        if isinstance(A, Qobj):
-            # input is an array (matrix), so
-            norm = A.tr()
-        else:
-            # input is already scalar and hence assumed
+        try:
+            if A.shape[0] == A.shape[1]:
+               # input is an operator (Qobj, array, sparse etc), so
+                norm = self._trace(A)
+            else:
+                raise TypeError("Cannot compute trace (not square)")
+        except:
+            # assume input is already scalar and hence assumed
             # to be the prenormalised scalar value, e.g. fidelity
             norm = A
         return np.abs(norm) / self.dimensional_norm
@@ -394,7 +413,10 @@ class FidCompUnitary(FidelityComputer):
             dyn = self.parent
             k = dyn.tslot_computer.get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
-            f = (dyn.evo_init2t[k]*dyn.evo_t2targ[k]).tr()
+            if dyn.oper_dtype == Qobj:
+                f = (dyn._evo_fwd[k]*dyn._evo_onto[k]).tr()
+            else:
+                f = self._trace(dyn._evo_fwd[k].dot(dyn._evo_onto[k]))
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
@@ -461,9 +483,13 @@ class FidCompUnitary(FidelityComputer):
         time_st = timeit.default_timer()
         for j in range(n_ctrls):
             for k in range(n_ts):
-                owd_evo = dyn.evo_t2targ[k+1]
-                fwd_evo = dyn.evo_init2t[k]
-                g = (owd_evo*dyn.prop_grad[k, j]*fwd_evo).tr()
+                onto_evo = dyn._evo_onto[k+1]
+                fwd_evo = dyn._evo_fwd[k]
+                if dyn.oper_dtype == Qobj:
+                    g = (onto_evo*dyn._prop_grad[k, j]*fwd_evo).tr()
+                else:
+                    g = self._trace(onto_evo.dot(
+                                dyn._prop_grad[k, j]).dot(fwd_evo))
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
@@ -497,7 +523,7 @@ class FidCompTraceDiff(FidelityComputer):
         FidelityComputer.reset(self)
         self.id_text = 'TRACEDIFF'
         self.scale_factor = None
-        self.uses_evo_t2end = True
+        self.uses_evo_onwd = True
         if not self.parent.prop_computer.grad_exact:
             raise errors.UsageError(
                 "This FidelityComputer can only be"
@@ -523,19 +549,23 @@ class FidCompTraceDiff(FidelityComputer):
             dyn = self.parent
             dyn.compute_evolution()
             n_ts = dyn.num_tslots
-            evo_final = dyn.evo_init2t[n_ts]
-            evo_f_diff = dyn.target - evo_final
+            evo_final = dyn._evo_fwd[n_ts]
+            evo_f_diff = dyn._target - evo_final
             if self.log_level <= logging.DEBUG_VERBOSE:
                 logger.log(logging.DEBUG_VERBOSE, "Calculating TraceDiff "
                            "fidelity...\n Target:\n{}\n Evo final:\n{}\n"
-                           "Evo final diff:\n{}".format(dyn.target, evo_final,
+                           "Evo final diff:\n{}".format(dyn._target, evo_final,
                                                         evo_f_diff))
 
             # Calculate the fidelity error using the trace difference norm
             # Note that the value should have not imagnary part, so using
             # np.real, just avoids the complex casting warning
-            self.fid_err = self.scale_factor*np.real(
-                    (evo_f_diff.dag()*evo_f_diff).tr())
+            if dyn.oper_dtype == Qobj:
+                self.fid_err = self.scale_factor*np.real(
+                        (evo_f_diff.dag()*evo_f_diff).tr())
+            else:
+                self.fid_err = self.scale_factor*np.real(self._trace(
+                        evo_f_diff.conj().T.dot(evo_f_diff)))
 
             if np.isnan(self.fid_err):
                 self.fid_err = np.Inf
@@ -599,17 +629,21 @@ class FidCompTraceDiff(FidelityComputer):
 
         for j in range(n_ctrls):
             for k in range(n_ts):
-                fwd_evo = dyn.evo_init2t[k]
-                evo_grad = dyn.prop_grad[k, j]*fwd_evo
-
-                if k+1 < n_ts:
-                    owd_evo = dyn.evo_t2end[k+1]
-                    evo_grad = owd_evo*evo_grad
-
-                # Note that the value should have not imagnary part, so using
-                # np.real, just avoids the complex casting warning
-                g = -2*self.scale_factor*np.real(
-                                (evo_f_diff.dag()*evo_grad).tr())
+                fwd_evo = dyn._evo_fwd[k]
+                if dyn.oper_dtype == Qobj:
+                    evo_grad = dyn._prop_grad[k, j]*fwd_evo
+                    if k+1 < n_ts:
+                        evo_grad = dyn._evo_onwd[k+1]*evo_grad
+                    # Note that the value should have not imagnary part, so 
+                    # using np.real, just avoids the complex casting warning
+                    g = -2*self.scale_factor*np.real(
+                                    (evo_f_diff.dag()*evo_grad).tr())
+                else:
+                    evo_grad = dyn._prop_grad[k, j].dot(fwd_evo)
+                    if k+1 < n_ts:
+                        evo_grad = dyn._evo_onwd[k+1].dot(evo_grad)
+                    g = -2*self.scale_factor*np.real(self._trace(
+                                    evo_f_diff.conj().T.dot(evo_grad)))
                 if np.isnan(g):
                     g = np.Inf
 
@@ -634,7 +668,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
     def reset(self):
         FidelityComputer.reset(self)
         self.id_text = 'TDAPPROX'
-        self.uses_evo_t2end = True
+        self.uses_evo_onwd = True
         self.scale_factor = None
         self.epsilon = 0.001
         self.apply_params()
@@ -665,21 +699,31 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
 
         for j in range(n_ctrls):
             for k in range(n_ts):
-                fwd_evo = dyn.evo_init2t[k]
+                fwd_evo = dyn._evo_fwd[k]
                 prop_eps = prop_comp.compute_diff_prop(k, j, self.epsilon)
-                evo_final_eps = fwd_evo*prop_eps
-                if k+1 < n_ts:
-                    owd_evo = dyn.evo_t2end[k+1]
-                    evo_final_eps = evo_final_eps*owd_evo
-
-                evo_f_diff_eps = dyn.target - evo_final_eps
-                # Note that the value should have not imagnary part, so using
-                # np.real, just avoids the complex casting warning
-                fid_err_eps = self.scale_factor*np.real(
-                    (evo_f_diff_eps.dag()*evo_f_diff_eps).tr())
+                if dyn.oper_dtype == Qobj:
+                    evo_final_eps = fwd_evo*prop_eps
+                    if k+1 < n_ts:
+                        evo_final_eps = evo_final_eps*dyn._evo_onwd[k+1]
+                    evo_f_diff_eps = dyn._target - evo_final_eps
+                    # Note that the value should have not imagnary part, so 
+                    # using np.real, just avoids the complex casting warning
+                    fid_err_eps = self.scale_factor*np.real(
+                        (evo_f_diff_eps.dag()*evo_f_diff_eps).tr())
+                else:
+                    evo_final_eps = fwd_evo.dot(prop_eps)
+                    if k+1 < n_ts:
+                        evo_final_eps = evo_final_eps.dot(dyn._evo_onwd[k+1])
+                    evo_f_diff_eps = dyn._target - evo_final_eps
+                    fid_err_eps = self.scale_factor*np.real(self._trace(
+                        evo_f_diff_eps.conj().T.dot(evo_f_diff_eps)))
+                        
                 g = (fid_err_eps - curr_fid_err)/self.epsilon
+                if np.isnan(g):
+                    g = np.Inf
 
                 grad[k, j] = g
+                
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
                 timeit.default_timer() - time_st

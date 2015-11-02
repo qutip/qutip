@@ -68,6 +68,8 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import timeit
+# QuTiP
+from qutip import Qobj
 # QuTiP control modules
 import qutip.control.errors as errors
 # QuTiP logging
@@ -215,7 +217,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
         # calculate the Hamiltonians
         time_start = timeit.default_timer()
         for k in range(n_ts):
-            dyn.dyn_gen[k] = dyn.combine_dyn_gen(k)
+            dyn._dyn_gen[k] = dyn.combine_dyn_gen(k)
             if dyn.decomp_curr is not None:
                 dyn.decomp_curr[k] = False
         if dyn.stats is not None:
@@ -252,8 +254,8 @@ class TSlotCompUpdateAll(TimeslotComputer):
                 for j in range(n_ctrls):
                     if j == 0:
                         prop, prop_grad = prop_comp.compute_prop_grad(k, j)
-                        dyn.prop[k] = prop
-                        dyn.prop_grad[k, j] = prop_grad
+                        dyn._prop[k] = prop
+                        dyn._prop_grad[k, j] = prop_grad
                         if self.log_level <= logging.DEBUG_INTENSE:
                             logger.log(logging.DEBUG_INTENSE,
                                        "propagator {}:\n{:10.3g}".format(
@@ -266,7 +268,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
                     else:
                         prop_grad = prop_comp.compute_prop_grad(
                             k, j, compute_prop=False)
-                        dyn.prop_grad[k, j] = prop_grad
+                        dyn._prop_grad[k, j] = prop_grad
 
                     if self._prop_grad_tofh != 0:
                         self._prop_grad_tofh.write(
@@ -274,7 +276,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
                         np.savetxt(self._prop_grad_tofh, prop_grad,
                                    fmt='%10.3g')
             else:
-                dyn.prop[k] = prop_comp.compute_propagator(k)
+                dyn._prop[k] = prop_comp.compute_propagator(k)
                 if self._prop_tofh != 0:
                     self._prop_tofh.write(
                         "propagator k={}\n".format(k))
@@ -307,10 +309,14 @@ class TSlotCompUpdateAll(TimeslotComputer):
         time_start = timeit.default_timer()
         R = range(1, n_ts+1)
         for k in R:
-            dyn.evo_init2t[k] = dyn.prop[k-1]*dyn.evo_init2t[k-1]
+            if dyn.oper_dtype == Qobj:
+                dyn._evo_fwd[k] = dyn._prop[k-1]*dyn._evo_fwd[k-1]
+            else:
+                dyn._evo_fwd[k] = dyn._prop[k-1].dot(dyn._evo_fwd[k-1])
+                
             if self._fwd_evo_tofh != 0:
                 self._fwd_evo_tofh.write("Evo start to k={}\n".format(k))
-                np.savetxt(self._fwd_evo_tofh, dyn.evo_init2t[k],
+                np.savetxt(self._fwd_evo_tofh, dyn._evo_fwd[k],
                            fmt='%10.3g')
 
         if dyn.stats is not None:
@@ -319,20 +325,26 @@ class TSlotCompUpdateAll(TimeslotComputer):
 
         time_start = timeit.default_timer()
         # compute the onward propagation
-        if dyn.fid_computer.uses_evo_t2end:
+        if dyn.fid_computer.uses_evo_onwd:
             dyn.evo_t2end[n_ts - 1] = dyn.prop[n_ts - 1]
             R = range(n_ts-2, -1, -1)
             for k in R:
-                dyn.evo_t2end[k] = dyn.evo_t2end[k+1]*dyn.prop[k]
+                if dyn.oper_dtype == Qobj:
+                    dyn._evo_onwd[k] = dyn._evo_onwd[k+1]*dyn._prop[k]
+                else:
+                    dyn._evo_onwd[k] = dyn._evo_onwd[k+1].dot(dyn._prop[k])
                 if self._fwd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to end:\n".format(k))
-                    np.savetxt(self._owd_evo_tofh, dyn.evo_t2end[k],
+                    np.savetxt(self._owd_evo_tofh, dyn._evo_onwd[k],
                                fmt='%14.6g')
 
-        if dyn.fid_computer.uses_evo_t2targ:
+        if dyn.fid_computer.uses_evo_onto:
             R = range(n_ts-1, -1, -1)
             for k in R:
-                dyn.evo_t2targ[k] = dyn.evo_t2targ[k+1]*dyn.prop[k]
+                if dyn.oper_dtype == Qobj:
+                    dyn._evo_onto[k] = dyn._evo_onto[k+1]*dyn._prop[k]
+                else:
+                    dyn._evo_onto[k] = dyn._evo_onto[k+1].dot(dyn._prop[k])
                 if self._fwd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to targ:\n".format(k))
                     np.savetxt(self._owd_evo_tofh, dyn.evo_t2targ[k],
