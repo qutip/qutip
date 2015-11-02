@@ -326,7 +326,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
         time_start = timeit.default_timer()
         # compute the onward propagation
         if dyn.fid_computer.uses_evo_onwd:
-            dyn.evo_t2end[n_ts - 1] = dyn.prop[n_ts - 1]
+            dyn._evo_onwd[n_ts - 1] = dyn._prop[n_ts - 1]
             R = range(n_ts-2, -1, -1)
             for k in R:
                 if dyn.oper_dtype == Qobj:
