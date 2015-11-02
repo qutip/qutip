@@ -36,7 +36,8 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.dims_utils import (
-    flatten, enumerate_flat, deep_remove, unflatten
+    flatten, enumerate_flat, deep_remove, unflatten,
+    dims_idxs_to_tensor_idxs
 )
 
 
@@ -66,3 +67,15 @@ def test_unflatten():
     l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]
     labels = enumerate_flat(l)
     assert unflatten(flatten(l), labels) == l
+
+
+def test_dims_idxs_to_tensor_idxs():
+    # Dims for a superoperator acting on linear operators on C^2 x C^3.
+    dims = [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+    # Should swap the input and output subspaces of the left and right dims.
+    assert_equal(
+        dims_idxs_to_tensor_idxs(dims, list(range(len(flatten(dims))))),
+        [2, 3, 0, 1, 6, 7, 4, 5]
+    )
+    # TODO: more cases (oper-ket, oper-bra, and preserves
+    #       non-vectorized qobjs).
