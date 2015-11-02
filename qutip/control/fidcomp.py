@@ -624,9 +624,10 @@ class FidCompTraceDiff(FidelityComputer):
 
         # loop through all ctrl timeslots calculating gradients
         time_st = timeit.default_timer()
-        evo_final = dyn.evo_init2t[n_ts]
-        evo_f_diff = dyn.target - evo_final
-
+        
+        
+        evo_final = dyn._evo_fwd[n_ts]
+        evo_f_diff = dyn._target - evo_final
         for j in range(n_ctrls):
             for k in range(n_ts):
                 fwd_evo = dyn._evo_fwd[k]

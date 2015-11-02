@@ -318,18 +318,18 @@ class PropCompAugMat(PropagatorComputer):
         if dyn.oper_dtype == Qobj:
             A = dg.data*dyn.tau[k]
             E = dyn.get_ctrl_dyn_gen(j).data*dyn.tau[k]
-            Z = sp.csr_matrix(dg.shape)
-            aug = Qobj(sp.vstack([sp.hstack([A, Z]), sp.hstack([E, A])]))
+            Z = sp.csr_matrix(dg.data.shape)
+            aug = Qobj(sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])]))
         elif dyn.oper_dtype == np.ndarray:
             A = dg*dyn.tau[k]
             E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
             Z = np.zeros(dg.shape)
-            aug = np.vstack([np.hstack([A, Z]), np.hstack([E, A])])
+            aug = np.vstack([np.hstack([A, E]), np.hstack([Z, A])])
         else:
             A = dg*dyn.tau[k]
             E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
             Z = dg*0.0
-            aug = sp.vstack([sp.hstack([A, Z]), sp.hstack([E, A])])
+            aug = sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])])
         return aug
 
     def compute_prop_grad(self, k, j, compute_prop=True):
@@ -410,15 +410,16 @@ class PropCompFrechet(PropagatorComputer):
                 prop_grad = la.expm_frechet(A, E, compute_expm=False)   
         else:
             # Assuming some sparse matrix
-            A = dyn.get_dyn_gen(k)*dyn.tau[k]
-            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            spcls = dyn._dyn_gen[k].__class__
+            A = (dyn.get_dyn_gen(k)*dyn.tau[k]).toarray()
+            E = (dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]).toarray()
             if compute_prop:
                 prop_dense, prop_grad_dense = la.expm_frechet(A, E)
-                prop = A.__class__(prop_dense)
-                prop_grad = A.__class__(prop_grad_dense)
+                prop = spcls(prop_dense)
+                prop_grad = spcls(prop_grad_dense)
             else:
                 prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
-                prop_grad = A.__class__(prop_grad_dense)
+                prop_grad = spcls(prop_grad_dense)
                 
         if compute_prop:
             return prop, prop_grad
