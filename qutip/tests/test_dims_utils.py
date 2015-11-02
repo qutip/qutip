@@ -41,6 +41,7 @@ from qutip.dims_utils import (
     flatten, enumerate_flat, deep_remove, unflatten,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape
 )
+from qutip.qobj import Qobj
 
 
 def test_flatten():
@@ -105,22 +106,47 @@ def test_dims_to_tensor_shape():
 
 
 def test_type_from_dims():
-    def case(dims, expected_type, enforce_square=True):
+    def dims_case(dims, expected_type, enforce_square=True):
         assert_equal(type_from_dims(dims, enforce_square=enforce_square), expected_type)
 
-    yield case, [[2], [2]], 'oper'
-    yield case, [[2, 3], [2, 3]], 'oper'
-    yield case, [[2], [3]], 'other'
-    yield case, [[2], [3]], 'oper', False
+    def qobj_case(qobj):
+        assert_equal(type_from_dims(qobj.dims), qobj.type)
 
-    yield case, [[2], [1]], 'ket'
-    yield case, [[1], [2]], 'bra'
+    ## DIMS CASES ##
+    yield dims_case, [[2], [2]], 'oper'
+    yield dims_case, [[2, 3], [2, 3]], 'oper'
+    yield dims_case, [[2], [3]], 'other'
+    yield dims_case, [[2], [3]], 'oper', False
 
-    yield case, [[[2, 3], [2, 3]], [1]], 'operator-ket'
-    yield case, [[1], [[2, 3], [2, 3]]], 'operator-bra'
+    yield dims_case, [[2], [1]], 'ket'
+    yield dims_case, [[1], [2]], 'bra'
 
-    yield case, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]], 'super'
-    yield case, [[[3], [3]], [[2, 3], [2, 3]]], 'other'
-    yield case, [[[3], [3]], [[2, 3], [2, 3]]], 'super', False
+    yield dims_case, [[[2, 3], [2, 3]], [1]], 'operator-ket'
+    yield dims_case, [[1], [[2, 3], [2, 3]]], 'operator-bra'
 
-    yield case, [[[2], [3, 3]], [[3], [2, 3]]], 'other'
+    yield dims_case, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]], 'super'
+    yield dims_case, [[[3], [3]], [[2, 3], [2, 3]]], 'other'
+    yield dims_case, [[[3], [3]], [[2, 3], [2, 3]]], 'super', False
+
+    yield dims_case, [[[2], [3, 3]], [[3], [2, 3]]], 'other'
+
+    ## Qobj CASES ##
+
+    N = int(np.ceil(10.0 * np.random.random())) + 5
+
+    ket_data = np.random.random((N, 1))
+    ket_qobj = Qobj(ket_data)
+    yield qobj_case, ket_qobj
+
+    bra_data = np.random.random((1, N))
+    bra_qobj = Qobj(bra_data)
+    yield qobj_case, bra_qobj
+
+    oper_data = np.random.random((N, N))
+    oper_qobj = Qobj(oper_data)
+    yield qobj_case, oper_qobj
+
+    N = 9
+    super_data = np.random.random((N, N))
+    super_qobj = Qobj(super_data, dims=[[[3]], [[3]]])
+    yield qobj_case, super_qobj
