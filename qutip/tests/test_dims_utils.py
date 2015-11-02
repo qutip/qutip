@@ -107,7 +107,15 @@ def test_dims_to_tensor_shape():
 
 def test_type_from_dims():
     def dims_case(dims, expected_type, enforce_square=True):
-        assert_equal(type_from_dims(dims, enforce_square=enforce_square), expected_type)
+        actual_type = type_from_dims(dims, enforce_square=enforce_square)
+
+        assert_equal(
+            actual_type,
+            expected_type,
+            "Expected {} to be type='{}', but was type='{}'.".format(
+                dims, expected_type, actual_type
+            )
+        )
 
     def qobj_case(qobj):
         assert_equal(type_from_dims(qobj.dims), qobj.type)

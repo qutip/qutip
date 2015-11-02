@@ -61,6 +61,7 @@ from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
+from qutip.dims_utils import type_from_dims
 
 import sys
 if sys.version_info.major >= 3:
@@ -1539,20 +1540,7 @@ class Qobj(object):
     @property
     def type(self):
         if not self._type:
-            if self.isoper:
-                self._type = 'oper'
-            elif self.isket:
-                self._type = 'ket'
-            elif self.isbra:
-                self._type = 'bra'
-            elif self.issuper:
-                self._type = 'super'
-            elif self.isoperket:
-                self._type = 'operator-ket'
-            elif self.isoperbra:
-                self._type = 'operator-bra'
-            else:
-                self._type = 'other'
+            self._type = type_from_dims(self.dims)
 
         return self._type
 
@@ -1565,40 +1553,27 @@ class Qobj(object):
 
     @property
     def isbra(self):
-        return (np.prod(self.dims[0]) == 1 and
-                isinstance(self.dims[1], list) and
-                isinstance(self.dims[1][0], (int, np.integer)))
+        return self.type == 'bra'
 
     @property
     def isket(self):
-        return (np.prod(self.dims[1]) == 1 and
-                isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.integer)))
+        return self.type == 'ket'
 
     @property
     def isoperbra(self):
-        return (np.prod(self.dims[0]) == 1 and
-                isinstance(self.dims[1], list) and
-                isinstance(self.dims[1][0], list))
+        return self.type == 'operator-bra'
 
     @property
     def isoperket(self):
-        return (np.prod(self.dims[1]) == 1 and
-                isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], list))
+        return self.type == 'operator-ket'
 
     @property
     def isoper(self):
-        return (isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.integer)) and
-                self.dims[0] == self.dims[1])
+        return self.type == 'oper'
 
     @property
     def issuper(self):
-        return (isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], list) and
-                self.dims[0] == self.dims[1] and
-                self.dims[0][0] == self.dims[1][0])
+        return self.type == 'super'
 
     @staticmethod
     def evaluate(qobj_list, t, args):

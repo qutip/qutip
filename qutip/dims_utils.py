@@ -41,37 +41,56 @@ import numpy as np
 from operator import getitem
 from functools import partial
 
+def is_scalar(dims):
+    """
+    Returns True if a dims specification is effectively
+    a scalar (has dimension 1).
+    """
+    return np.prod(flatten(dims)) == 1
+
+def is_vector(dims):
+    return (
+        isinstance(dims, list) and
+        isinstance(dims[0], (int, np.integer))
+    )
+
+def is_vectorized_oper(dims):
+    return (
+        isinstance(dims, list) and
+        isinstance(dims[0], list)
+    )
+
 
 def type_from_dims(dims, enforce_square=True):
-    if   (np.prod(dims[0]) == 1 and
-          isinstance(dims[1], list) and
-          isinstance(dims[1][0], (int, np.integer))):
+    bra_like, ket_like = map(is_scalar, dims)
+
+    if bra_like:
+        if is_vector(dims[1]):
             return 'bra'
-    elif (np.prod(dims[1]) == 1 and
-          isinstance(dims[0], list) and
-          isinstance(dims[0][0], (int, np.integer))):
-            return 'ket'
-    elif (np.prod(dims[0]) == 1 and
-          isinstance(dims[1], list) and
-          isinstance(dims[1][0], list)):
+        elif is_vectorized_oper(dims[1]):
             return 'operator-bra'
-    elif (np.prod(dims[1]) == 1 and
-          isinstance(dims[0], list) and
-          isinstance(dims[0][0], list)):
+
+    if ket_like:
+        if is_vector(dims[0]):
+            return 'ket'
+        elif is_vectorized_oper(dims[0]):
             return 'operator-ket'
-    elif (isinstance(dims[0], list) and
-          isinstance(dims[0][0], (int, np.integer)) and
-          (dims[0] == dims[1] or not enforce_square)):
-            return 'oper'
-    elif (isinstance(dims[0], list) and
-          isinstance(dims[0][0], list) and
-          ((dims[0] == dims[1] and
-            dims[0][0] == dims[1][0])
-           or not enforce_square)
-          ):
-            return 'super'
-    else:
-            return 'other'
+
+    elif is_vector(dims[0]) and (dims[0] == dims[1] or not enforce_square):
+        return 'oper'
+
+    elif (
+            is_vectorized_oper(dims[0]) and
+            (
+                (
+                    dims[0] == dims[1] and
+                    dims[0][0] == dims[1][0]
+                ) or not enforce_square
+            )
+    ):
+        return 'super'
+
+    return 'other'
 
 
 def flatten(l):
