@@ -32,7 +32,6 @@ Operating System :: Microsoft :: Windows
 import os
 import sys
 import numpy as np
-import setuptools
 from numpy.distutils.core import setup
 
 # all information about QuTiP goes here
@@ -157,6 +156,5 @@ setup(
     platforms=PLATFORMS,
     requires=REQUIRES,
     package_data=PACKAGE_DATA,
-    configuration=configuration,
-    zip_safe=False
+    configuration=configuration
 )
