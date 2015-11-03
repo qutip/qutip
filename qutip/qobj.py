@@ -61,7 +61,7 @@ from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
-from qutip.dims_utils import type_from_dims
+from qutip.dimensions import type_from_dims
 
 import sys
 if sys.version_info.major >= 3:

@@ -42,7 +42,7 @@ import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.permute import reshuffle
 from qutip.superoperator import operator_to_vector
-from qutip.dims_utils import (
+from qutip.dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove,
     dims_to_tensor_shape, dims_idxs_to_tensor_idxs
 )

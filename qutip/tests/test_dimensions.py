@@ -36,7 +36,7 @@ import numpy as np
 
 from numpy.testing import assert_equal, assert_, run_module_suite
 
-from qutip.dims_utils import (
+from qutip.dimensions import (
     type_from_dims,
     flatten, enumerate_flat, deep_remove, unflatten,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape
