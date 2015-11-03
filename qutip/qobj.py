@@ -771,6 +771,7 @@ class Qobj(object):
         out.data = self.data.T.conj().tocsr()
         out.dims = [self.dims[1], self.dims[0]]
         out._isherm = self._isherm
+        out.superrep = self.superrep
         return out
 
     def conj(self):
