@@ -14,9 +14,25 @@ Done:
 
 ToDo:
 
+-- Dynamics
+.- Accessors
+  onto_evo_target 
+  dyn_gen 
+  prop 
+  prop_grad
+  evo_fwd 
+  evo_onwd
+  evo_onto
+	phased_dyn_gen
+	phased_ctrl_dyn_gen
+-- PropComp
+- change access level
+
 - Eigen decomp lists
 - eigen decomp using Qobj (inc prop comp)
 - update Dynamics attribute docs
+
+
 
 Testing:
 - test oper_dtype=csr_matrix

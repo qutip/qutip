@@ -213,11 +213,11 @@ class TSlotCompUpdateAll(TimeslotComputer):
                 logger.log(logging.DEBUG, "recomputing evolution {} "
                            "(UpdateAll)".format(
                                dyn.stats.num_tslot_recompute))
-
+        
         # calculate the Hamiltonians
         time_start = timeit.default_timer()
         for k in range(n_ts):
-            dyn._dyn_gen[k] = dyn.combine_dyn_gen(k)
+            dyn._combine_dyn_gen(k)
             if dyn.decomp_curr is not None:
                 dyn.decomp_curr[k] = False
         if dyn.stats is not None:

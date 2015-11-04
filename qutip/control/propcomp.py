@@ -182,7 +182,7 @@ class PropCompApproxGrad(PropagatorComputer):
         Return the propagator
         """
         dyn = self.parent
-        dgt = dyn.get_dyn_gen(k)*dyn.tau[k]
+        dgt = dyn._phased_dyn_gen[k]*dyn.tau[k]
         if dyn.oper_dtype == Qobj:
             prop = dgt.expm()
         else:
@@ -197,8 +197,8 @@ class PropCompApproxGrad(PropagatorComputer):
         Returns the propagator
         """
         dyn = self.parent
-        dgt_eps = (dyn.get_dyn_gen(k) +
-                             epsilon*dyn.get_ctrl_dyn_gen(j))*dyn.tau[k]
+        dgt_eps = (dyn._phased_dyn_gen[k] +
+                             epsilon*dyn._phased_ctrl_dyn_gen[j])*dyn.tau[k]
         
         if dyn.oper_dtype == Qobj:
             prop_eps = dgt_eps.expm()
@@ -229,7 +229,7 @@ class PropCompDiag(PropagatorComputer):
         is reused in the propagator gradient calculation
         """
         dyn = self.parent
-        dyn.ensure_decomp_curr(k)
+        dyn._ensure_decomp_curr(k)
 
         eig_vec = dyn.dyn_gen_eigenvectors[k]
         prop_eig_diag = np.diagflat(dyn.prop_eigen[k])
@@ -248,7 +248,7 @@ class PropCompDiag(PropagatorComputer):
             [prop], prop_grad
         """
         dyn = self.parent
-        dyn.ensure_decomp_curr(k)
+        dyn._ensure_decomp_curr(k)
 
         if compute_prop:
             prop = self.compute_propagator(k)
@@ -259,11 +259,11 @@ class PropCompDiag(PropagatorComputer):
         # compute ctrl dyn gen in diagonalised basis
         # i.e. the basis of the full dyn gen for this timeslot
         if dyn.oper_dtype == Qobj:
-            cdg = dyn.get_ctrl_dyn_gen(j).full()
+            cdg = dyn._phased_ctrl_dyn_gen[j].full()
         elif dyn.oper_dtype == np.ndarray:
-            cdg = dyn.get_ctrl_dyn_gen(j)
+            cdg = dyn._phased_ctrl_dyn_gen[j]
         else:
-             cdg = dyn.get_ctrl_dyn_gen(j).toarray()
+             cdg = dyn._phased_ctrl_dyn_gen[j].toarray()
         dg_diag = dyn.tau[k]*eig_vec_adj.dot(cdg).dot(eig_vec)
 
         # multiply by factor matrix
@@ -313,21 +313,21 @@ class PropCompAugMat(PropagatorComputer):
         returns this augmented matrix
         """
         dyn = self.parent
-        dg = dyn.get_dyn_gen(k)
+        dg = dyn._phased_dyn_gen[k]
         
         if dyn.oper_dtype == Qobj:
             A = dg.data*dyn.tau[k]
-            E = dyn.get_ctrl_dyn_gen(j).data*dyn.tau[k]
+            E = dyn._phased_ctrl_dyn_gen[j].data*dyn.tau[k]
             Z = sp.csr_matrix(dg.data.shape)
             aug = Qobj(sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])]))
         elif dyn.oper_dtype == np.ndarray:
             A = dg*dyn.tau[k]
-            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            E = dyn._phased_ctrl_dyn_gen[j]*dyn.tau[k]
             Z = np.zeros(dg.shape)
             aug = np.vstack([np.hstack([A, E]), np.hstack([Z, A])])
         else:
             A = dg*dyn.tau[k]
-            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            E = dyn._phased_ctrl_dyn_gen[j]*dyn.tau[k]
             Z = dg*0.0
             aug = sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])])
         return aug
@@ -343,7 +343,7 @@ class PropCompAugMat(PropagatorComputer):
             [prop], prop_grad
         """
         dyn = self.parent
-        dg = dyn.get_dyn_gen(k)
+        dg = dyn._phased_dyn_gen[k]
         aug = self._get_aug_mat(k, j)
         
         if dyn.oper_dtype == Qobj:
@@ -391,19 +391,18 @@ class PropCompFrechet(PropagatorComputer):
         dyn = self.parent
         
         if dyn.oper_dtype == Qobj:
-            A = dyn.get_dyn_gen(k).full()*dyn.tau[k]
-            E = dyn.get_ctrl_dyn_gen(j).full()*dyn.tau[k]
-            dg_dims = dyn.get_dyn_gen(k).dims
+            A = dyn._phased_dyn_gen[k].full()*dyn.tau[k]
+            E = dyn._phased_ctrl_dyn_gen[j].full()*dyn.tau[k]
             if compute_prop:
                 prop_dense, prop_grad_dense = la.expm_frechet(A, E)
-                prop = Qobj(prop_dense, dims=dg_dims)
-                prop_grad = Qobj(prop_grad_dense, dims=dg_dims)
+                prop = Qobj(prop_dense, dims=dyn.dyn_dims)
+                prop_grad = Qobj(prop_grad_dense, dims=dyn.dyn_dims)
             else:
                 prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
-                prop_grad = Qobj(prop_grad_dense, dims=dg_dims)
+                prop_grad = Qobj(prop_grad_dense, dims=dyn.dyn_dims)
         elif dyn.oper_dtype == np.ndarray:
-            A = dyn.get_dyn_gen(k)*dyn.tau[k]
-            E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
+            A = dyn._phased_dyn_gen[k]*dyn.tau[k]
+            E = dyn._phased_ctrl_dyn_gen[j]*dyn.tau[k]
             if compute_prop:
                 prop, prop_grad = la.expm_frechet(A, E)
             else:
@@ -411,8 +410,8 @@ class PropCompFrechet(PropagatorComputer):
         else:
             # Assuming some sparse matrix
             spcls = dyn._dyn_gen[k].__class__
-            A = (dyn.get_dyn_gen(k)*dyn.tau[k]).toarray()
-            E = (dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]).toarray()
+            A = (dyn._phased_dyn_gen[k]*dyn.tau[k]).toarray()
+            E = (dyn._phased_ctrl_dyn_gen[j]*dyn.tau[k]).toarray()
             if compute_prop:
                 prop_dense, prop_grad_dense = la.expm_frechet(A, E)
                 prop = spcls(prop_dense)
