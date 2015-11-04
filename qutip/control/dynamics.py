@@ -265,15 +265,24 @@ class Dynamics:
         self.initial_ctrl_offset = 0.0
         self.drift_dyn_gen = None
         self.ctrl_dyn_gen = None
-        self.evo_full = None
+        self.onto_evo_target = None
+        self.dyn_gen = None
+        self.prop = None
+        self.prop_grad = None
+        self.evo_fwd = None
+        self.evo_onwd = None
+        self.evo_onto = None
         # attributes used for processing evolution
         self.oper_dtype = None
+        self.dyn_dims = None
+        self.dyn_shape = None
         self._drift_dyn_gen = None
         self._ctrl_dyn_gen = None
+        self._phased_ctrl_dyn_gen = None
         self._initial = None
         self._target = None
         self._onto_evo_target = None
-        self._dyn_gen = None
+        self._phased_dyn_gen = None
         self._prop = None
         self._prop_grad = None
         self._evo_fwd = None
@@ -427,7 +436,9 @@ class Dynamics:
         else:
             logger.info("Using operator data type {}".format(
                             self.oper_dtype))
-                            
+        
+        self.dyn_dims = self.drift_dyn_gen.dims
+        self.dyn_shape = self.drift_dyn_gen.shape
         if self.oper_dtype == Qobj:
             self._initial = self.initial
             self._target = self.target
@@ -447,8 +458,10 @@ class Dynamics:
             logger.warn("Unknown option '{}' for oper_dtype. "
                 "Assuming that internal drift, ctrls, initial and target "
                 "have been set correctly".format(self.oper_dtype))
+        self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl) 
+                                        for ctrl in self._ctrl_dyn_gen]
             
-        self._dyn_gen = [object for x in range(self.num_tslots)]
+        self._phased_dyn_gen = [object for x in range(self.num_tslots)]
         self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
             self._prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
@@ -462,7 +475,7 @@ class Dynamics:
         if self.fid_computer.uses_evo_onto:
             # Onward propagation overlap with inverse target
             self._evo_onto = [object for x in range(self.num_tslots + 1)]
-            self._evo_onto[-1] = self.get_onto_evo_target()
+            self._evo_onto[-1] = self._get_onto_evo_target()
 
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
@@ -631,10 +644,7 @@ class Dynamics:
         Returns the size of the matrix that defines the drift dynamics
         that is assuming the drift is NxN, then this returns N
         """
-        if not isinstance(self.drift_dyn_gen, Qobj):
-            raise TypeError("Cannot get drift dimension, "
-                            "as drift not set (correctly).")
-        return self.drift_dyn_gen.shape[0]
+        return self.dyn_shape[0]
 
     def get_num_ctrls(self):
         """
@@ -645,7 +655,7 @@ class Dynamics:
         self.num_ctrls = len(self.ctrl_dyn_gen)
         return self.num_ctrls
 
-    def get_onto_evo_target(self):
+    def _get_onto_evo_target(self):
         """
         Get the inverse of the target.
         Used for calculating the 'backward' evolution
@@ -664,7 +674,7 @@ class Dynamics:
         return self._onto_evo_target
         
 
-    def combine_dyn_gen(self, k):
+    def _combine_dyn_gen(self, k):
         """
         Computes the dynamics generator for a given timeslot
         The is the combined Hamiltion for unitary systems
@@ -672,20 +682,12 @@ class Dynamics:
         dg = self._drift_dyn_gen
         for j in range(self.get_num_ctrls()):
             dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
-        return dg
+        
+        self._phased_dyn_gen[k] = self._apply_phase(dg)
 
-    def get_dyn_gen(self, k):
+    def _apply_phase(self, k):
         """
-        Get the combined dynamics generator for the timeslot
-        Not implemented in the base class. Choose a subclass
-        """
-        raise errors.UsageError("Not implemented in the baseclass."
-                                " Choose a subclass")
-
-    def get_ctrl_dyn_gen(self, j):
-        """
-        Get the dynamics generator for the control
-        Not implemented in the base class. Choose a subclass
+        Apply some phase factor or operator
         """
         raise errors.UsageError("Not implemented in the baseclass."
                                 " Choose a subclass")
@@ -701,6 +703,14 @@ class Dynamics:
 
         # Check if values are already current, otherwise calculate all values
         if not self.evo_current:
+            # Clear the public lists
+            # These are only set if (external) users access them
+            self.dyn_gen = None
+            self.prop = None
+            self.prop_grad = None
+            self.evo_fwd = None
+            self.evo_onwd = None
+            self.evo_onto = None
             if self.log_level <= logging.DEBUG_VERBOSE:
                 logger.log(logging.DEBUG_VERBOSE, "Computing evolution")
             self.tslot_computer.recompute_evolution()
@@ -709,7 +719,7 @@ class Dynamics:
         else:
             return False
 
-    def ensure_decomp_curr(self, k):
+    def _ensure_decomp_curr(self, k):
         """
         Checks to see if the diagonalisation has been completed since
         the last update of the dynamics generators
@@ -719,9 +729,9 @@ class Dynamics:
         if self.decomp_curr is None:
             raise errors.UsageError("Decomp lists have not been created")
         if not self.decomp_curr[k]:
-            self.spectral_decomp(k)
+            self._spectral_decomp(k)
 
-    def spectral_decomp(self, k):
+    def _spectral_decomp(self, k):
         """
         Calculate the diagonalization of the dynamics generator
         generating lists of eigenvectors, propagators in the diagonalised
@@ -744,22 +754,11 @@ class DynamicsGenMat(Dynamics):
         Dynamics.reset(self)
         self.id_text = 'GEN_MAT'
 
-    def get_dyn_gen(self, k):
+    def _apply_phase(self, dg):
         """
-        Get the combined dynamics generator for the timeslot
-        This base class method simply returns dyn_gen[k]
-        other subclass methods will include some factor
+        No phase in general
         """
-        return self._dyn_gen[k]
-
-    def get_ctrl_dyn_gen(self, j):
-        """
-        Get the dynamics generator for the control
-        This base class method simply returns ctrl_dyn_gen[j]
-        other subclass methods will include some factor
-        """
-        return self._ctrl_dyn_gen[j]
-
+        return dg
 
 class DynamicsUnitary(Dynamics):
     """
@@ -816,7 +815,7 @@ class DynamicsUnitary(Dynamics):
 
         self._map_dyn_gen_to_ham()
         Dynamics.initialize_controls(self, amplitudes, init_tslots=init_tslots)
-        self.H = self._dyn_gen
+        #self.H = self._dyn_gen
 
     def _map_dyn_gen_to_ham(self):
         if self.drift_dyn_gen is None:
@@ -831,26 +830,18 @@ class DynamicsUnitary(Dynamics):
 
         self._dyn_gen_mapped = True
 
-    def get_dyn_gen(self, k):
+    def _apply_phase(self, dg):
         """
-        Get the combined dynamics generator for the timeslot
-        including the -i factor
+        Apply the -i factor
         """
-        return -1j*self._dyn_gen[k]
-
-    def get_ctrl_dyn_gen(self, j):
-        """
-        Get the dynamics generator for the control
-        including the -i factor
-        """
-        return -1j*self._ctrl_dyn_gen[j]
+        return -1j*dg
 
     def get_num_ctrls(self):
         if not self._dyn_gen_mapped:
             self._map_dyn_gen_to_ham()
         return Dynamics.get_num_ctrls(self)
 
-    def get_onto_evo_target(self):
+    def _get_onto_evo_target(self):
         """
         Get the adjoint of the target.
         Used for calculating the 'backward' evolution
@@ -861,7 +852,7 @@ class DynamicsUnitary(Dynamics):
             self._onto_evo_target = self._target.T.conj()
         return self._onto_evo_target
 
-    def spectral_decomp(self, k):
+    def _spectral_decomp(self, k):
         """
         Calculates the diagonalization of the dynamics generator
         generating lists of eigenvectors, propagators in the diagonalised
@@ -869,11 +860,11 @@ class DynamicsUnitary(Dynamics):
         gradient
         """
         if self.oper_dtype == Qobj:
-            H = self._dyn_gen[k].full()
+            H = 1j*self._phased_dyn_gen[k].full()
         elif self.oper_dtype == np.ndarray:
-            H = self._dyn_gen[k]
+            H = 1j*self._phased_dyn_gen[k]
         else:
-            H = self._dyn_gen[k].toarray()
+            H = 1j*self._phased_dyn_gen[k].toarray()
             
         # assuming H is an nxn matrix, find n
         n = H.shape[0]
@@ -931,7 +922,8 @@ class DynamicsSymplectic(Dynamics):
     def reset(self):
         Dynamics.reset(self)
         self.id_text = 'SYMPL'
-        self.omega = None
+        self._omega = None
+        self._omega_qobj = None
         self.grad_exact = True
         self.apply_params()
 
@@ -950,42 +942,37 @@ class DynamicsSymplectic(Dynamics):
         self.prop_computer = propcomp.PropCompFrechet(self)
         self.fid_computer = fidcomp.FidCompTraceDiff(self)
 
-    def get_omega(self):
-        if self.omega is None:
+    @property
+    def omega(self):
+        if self._omega is None:
+            self._get_omega()
+        if self._omega_qobj is None:
+            self._omega_qobj = Qobj(self._omega, dims=self.dyn_dims)
+        return self._omega_qobj
+
+    def _get_omega(self):
+        if self._omega is None:
             n = self.drift_dyn_gen.shape[0] // 2
             omg = sympl.calc_omega(n)
             if self.oper_dtype == Qobj:
-                self.omega = Qobj(omg)
+                self._omega = Qobj(omg, dims=self.dyn_dims)
+                self._omega_qobj = self._omega
             elif self.oper_dtype == sp.csr_matrix:
-                self.omega = sp.csr_matrix(omg)
+                self._omega = sp.csr_matrix(omg)
             else:
-                 self.omega = omg
-                 
-        return self.omega
-
-    def get_dyn_gen(self, k):
+                 self._omega = omg
+        return self._omega
+        
+    def _apply_phase(self, dg):
         """
         Get the combined dynamics generator for the timeslot
         multiplied by omega
         """
-        o = self.get_omega()
+        o = self._get_omega()
         if self.oper_dtype == Qobj:
-            dg = -self._dyn_gen[k]*o
+            dg = -dg*o
         else:
-            dg = -self._dyn_gen[k].dot(o)
-        
-        return dg
-
-    def get_ctrl_dyn_gen(self, j):
-        """
-        Get the dynamics generator for the control
-        multiplied by omega
-        """
-        o = self.get_omega()
-        if self.oper_dtype == Qobj:
-            dg = -self._ctrl_dyn_gen[j]*o
-        else:
-            dg = -self._ctrl_dyn_gen[j].dot(o)
+            dg = -dg.dot(o)
         
         return dg
         
