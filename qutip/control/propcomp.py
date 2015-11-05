@@ -127,7 +127,7 @@ class PropagatorComputer:
         self.log_level = lvl
         logger.setLevel(lvl)
 
-    def compute_propagator(self, k):
+    def _compute_propagator(self, k):
         """
         calculate the progator between X(k) and X(k+1)
         Uses matrix expm of the dyn_gen at that point (in time)
@@ -138,7 +138,7 @@ class PropagatorComputer:
         raise errors.UsageError("Not implemented in the baseclass."
                                 " Choose a subclass")
 
-    def compute_diff_prop(self, k, j, epsilon):
+    def _compute_diff_prop(self, k, j, epsilon):
         """
         Calculate the propagator from the current point to a trial point
         a distance 'epsilon' (change in amplitude)
@@ -148,7 +148,7 @@ class PropagatorComputer:
         raise errors.UsageError("Not implemented in the baseclass."
                                 " Choose a subclass")
 
-    def compute_prop_grad(self, k, j, compute_prop=True):
+    def _compute_prop_grad(self, k, j, compute_prop=True):
         """
         Calculate the gradient of propagator wrt the control amplitude
         in the timeslot.
@@ -173,7 +173,7 @@ class PropCompApproxGrad(PropagatorComputer):
         self.grad_exact = False
         self.apply_params()
 
-    def compute_propagator(self, k):
+    def _compute_propagator(self, k):
         """
         calculate the progator between X(k) and X(k+1)
         Uses matrix expm of the dyn_gen at that point (in time)
@@ -189,7 +189,7 @@ class PropCompApproxGrad(PropagatorComputer):
             prop = la.expm(dgt)
         return prop
 
-    def compute_diff_prop(self, k, j, epsilon):
+    def _compute_diff_prop(self, k, j, epsilon):
         """
         Calculate the propagator from the current point to a trial point
         a distance 'epsilon' (change in amplitude)
@@ -222,7 +222,7 @@ class PropCompDiag(PropagatorComputer):
         self.grad_exact = True
         self.apply_params()
 
-    def compute_propagator(self, k):
+    def _compute_propagator(self, k):
         """
         Calculates the exponentiation of the dynamics generator (H)
         As part of the calc the the eigen decomposition is required, which
@@ -235,11 +235,11 @@ class PropCompDiag(PropagatorComputer):
         prop_eig_diag = np.diagflat(dyn.prop_eigen[k])
         prop = eig_vec.dot(prop_eig_diag).dot(eig_vec.conj().T)
         if dyn.oper_dtype == Qobj:
-            return Qobj(prop, dims=dyn._dyn_gen[k].dims)
+            return Qobj(prop, dims=dyn.dyn_dims)
         else:
             return prop
 
-    def compute_prop_grad(self, k, j, compute_prop=True):
+    def _compute_prop_grad(self, k, j, compute_prop=True):
         """
         Calculate the gradient of propagator wrt the control amplitude
         in the timeslot.
@@ -251,7 +251,7 @@ class PropCompDiag(PropagatorComputer):
         dyn._ensure_decomp_curr(k)
 
         if compute_prop:
-            prop = self.compute_propagator(k)
+            prop = self._compute_propagator(k)
 
         eig_vec = dyn.dyn_gen_eigenvectors[k]
         eig_vec_adj = eig_vec.conj().T
@@ -275,7 +275,7 @@ class PropCompDiag(PropagatorComputer):
         prop_grad = eig_vec.dot(dg_diag_fact).dot(eig_vec_adj)
         if dyn.oper_dtype == Qobj:
             prop_grad = Qobj(prop_grad, 
-                         dims=dyn._dyn_gen[k].dims)
+                         dims=dyn.dyn_dims)
         
         if compute_prop:
             return prop, prop_grad
@@ -332,7 +332,7 @@ class PropCompAugMat(PropagatorComputer):
             aug = sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])])
         return aug
 
-    def compute_prop_grad(self, k, j, compute_prop=True):
+    def _compute_prop_grad(self, k, j, compute_prop=True):
         """
         Calculate the gradient of propagator wrt the control amplitude
         in the timeslot using the exponentiation of the the augmented
@@ -379,7 +379,7 @@ class PropCompFrechet(PropagatorComputer):
         self.grad_exact = True
         self.apply_params()
 
-    def compute_prop_grad(self, k, j, compute_prop=True):
+    def _compute_prop_grad(self, k, j, compute_prop=True):
         """
         Calculate the gradient of propagator wrt the control amplitude
         in the timeslot using the expm_frechet method

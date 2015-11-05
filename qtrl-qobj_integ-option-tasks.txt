@@ -39,5 +39,6 @@ Testing:
 - Test augmented matrix prop_comp
 - compare optim times for old vs new
 - compare prop_comp diag with standard
-- test approx_grad
+- test approx_grad. Try Scalable Clock Hand
+- test state-to-state
 

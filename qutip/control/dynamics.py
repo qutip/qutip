@@ -276,12 +276,15 @@ class Dynamics:
         self.oper_dtype = None
         self.dyn_dims = None
         self.dyn_shape = None
+        self.sys_dims = None
+        self.sys_shape = None
         self._drift_dyn_gen = None
         self._ctrl_dyn_gen = None
         self._phased_ctrl_dyn_gen = None
         self._initial = None
         self._target = None
         self._onto_evo_target = None
+        self._onto_evo_target_qobj = None
         self._phased_dyn_gen = None
         self._prop = None
         self._prop_grad = None
@@ -439,6 +442,8 @@ class Dynamics:
         
         self.dyn_dims = self.drift_dyn_gen.dims
         self.dyn_shape = self.drift_dyn_gen.shape
+        self.sys_dims = self.initial.dims
+        self.sys_shape = self.initial.shape
         if self.oper_dtype == Qobj:
             self._initial = self.initial
             self._target = self.target
@@ -654,23 +659,52 @@ class Dynamics:
         """
         self.num_ctrls = len(self.ctrl_dyn_gen)
         return self.num_ctrls
+        
+    @property
+    def onto_evo_target(self):
+        if self._onto_evo_target_qobj is None:   
+            if isinstance(self.onto_evo_target, Qobj):
+                self._onto_evo_target_qobj = self._onto_evo_target
+            else:
+                rev_dims = [self.sys_dims[1], self.sys_dims[0]]
+                self._onto_evo_target_qobj = Qobj(self._onto_evo_target, 
+                                                  dims=rev_dims)
+        
+        return self._onto_evo_target_qobj
 
     def _get_onto_evo_target(self):
         """
         Get the inverse of the target.
-        Used for calculating the 'backward' evolution
+        Used for calculating the 'onto target' evolution
+        This is actually only relevant for unitary dynamics where
+        the target.dag() is what is required
+        However, for completeness, in general the inverse of the target 
+        operator is is required
+        For state-to-state, the bra corresponding to the is required ket 
         """
-        targ = la.inv(self.target.full())
-        if self.oper_dtype == Qobj:
-            self._onto_evo_target = Qobj(targ)
-        elif self.oper_dtype == np.ndarray:
-            self._onto_evo_target = targ
-        elif self.oper_dtype == np.ndarray:
-            self._onto_evo_target = sp.csr_matrix(targ)
+        if self.target.shape[0] == self.target.shape[1]:
+            #Target is operator
+            targ = la.inv(self.target.full())
+            if self.oper_dtype == Qobj:
+                self._onto_evo_target = Qobj(targ)
+            elif self.oper_dtype == np.ndarray:
+                self._onto_evo_target = targ
+            elif self.oper_dtype == sp.csr_matrix:
+                self._onto_evo_target = sp.csr_matrix(targ)
+            else:
+                targ_cls = self._target.__class__
+                self._onto_evo_target = targ_cls(targ)
         else:
-            if self._onto_evo_target is None:
-                raise ValueError("_onto_evo_target must be set if using "
-                    "non-standard oper_dtype")
+            if self.oper_dtype == Qobj:
+                self._onto_evo_target = self.target.dag()
+            elif self.oper_dtype == np.ndarray:
+                self._onto_evo_target = self.target.dag().full()
+            elif self.oper_dtype == sp.csr_matrix:
+                self._onto_evo_target = self.target.dag().data
+            else:
+                targ_cls = self._target.__class__
+                self._onto_evo_target = targ_cls(self.target.dag().full())
+                
         return self._onto_evo_target
         
 
