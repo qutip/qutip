@@ -253,7 +253,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
             if prop_comp.grad_exact:
                 for j in range(n_ctrls):
                     if j == 0:
-                        prop, prop_grad = prop_comp.compute_prop_grad(k, j)
+                        prop, prop_grad = prop_comp._compute_prop_grad(k, j)
                         dyn._prop[k] = prop
                         dyn._prop_grad[k, j] = prop_grad
                         if self.log_level <= logging.DEBUG_INTENSE:
@@ -266,7 +266,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
                             np.savetxt(self._prop_tofh, prop, fmt='%10.3g')
 
                     else:
-                        prop_grad = prop_comp.compute_prop_grad(
+                        prop_grad = prop_comp._compute_prop_grad(
                             k, j, compute_prop=False)
                         dyn._prop_grad[k, j] = prop_grad
 
@@ -276,7 +276,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
                         np.savetxt(self._prop_grad_tofh, prop_grad,
                                    fmt='%10.3g')
             else:
-                dyn._prop[k] = prop_comp.compute_propagator(k)
+                dyn._prop[k] = prop_comp._compute_propagator(k)
                 if self._prop_tofh != 0:
                     self._prop_tofh.write(
                         "propagator k={}\n".format(k))
@@ -552,7 +552,7 @@ class TSlotCompDynUpdate(TimeslotComputer):
                 if prop_recomp_now[k]:
                     # calculate exp(H) and other per H computations needed for
                     # the gradient function
-                    dyn.prop[k] = dyn.compute_propagator(k)
+                    dyn.prop[k] = dyn._compute_propagator(k)
                     self.prop_recalc[k] = False
             if dyn.stats is not None:
                 dyn.stats.num_prop_computes += prop_recomp_now.sum()

@@ -701,7 +701,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
         for j in range(n_ctrls):
             for k in range(n_ts):
                 fwd_evo = dyn._evo_fwd[k]
-                prop_eps = prop_comp.compute_diff_prop(k, j, self.epsilon)
+                prop_eps = prop_comp._compute_diff_prop(k, j, self.epsilon)
                 if dyn.oper_dtype == Qobj:
                     evo_final_eps = fwd_evo*prop_eps
                     if k+1 < n_ts:

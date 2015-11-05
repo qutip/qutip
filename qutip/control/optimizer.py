@@ -726,7 +726,7 @@ class Optimizer:
         if isinstance(final_evo, Qobj):
             result.evo_full_final = final_evo
         else:
-            result.evo_full_final = Qobj(final_evo, dims=dyn.initial.dims)
+            result.evo_full_final = Qobj(final_evo, dims=dyn.sys_dims)
         # *** update stats ***
         if self.stats is not None:
             self.stats.wall_time_optim_end = end_time
