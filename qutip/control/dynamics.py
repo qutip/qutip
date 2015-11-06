@@ -265,14 +265,8 @@ class Dynamics:
         self.initial_ctrl_offset = 0.0
         self.drift_dyn_gen = None
         self.ctrl_dyn_gen = None
-        self.onto_evo_target = None
-        self.dyn_gen = None
-        self.prop = None
-        self.prop_grad = None
-        self.evo_fwd = None
-        self.evo_onwd = None
-        self.evo_onto = None
         # attributes used for processing evolution
+        self.memory_optimization = 0
         self.oper_dtype = None
         self.dyn_dims = None
         self.dyn_shape = None
@@ -285,12 +279,19 @@ class Dynamics:
         self._target = None
         self._onto_evo_target = None
         self._onto_evo_target_qobj = None
+        self._dyn_gen = None
+        self._dyn_gen_qobj = None
         self._phased_dyn_gen = None
         self._prop = None
+        self._prop_qobj = None
         self._prop_grad = None
+        self._prop_grad_qobj = None
         self._evo_fwd = None
+        self._evo_fwd_qobj = None
         self._evo_onwd = None
+        self._evo_onwd_qobj = None
         self._evo_onto = None
+        self._evo_onto_qobj = None
         # Atrributes used in diagonalisation
         self.decomp_curr = None
         self.prop_eigen = None
@@ -388,26 +389,32 @@ class Dynamics:
         """
         Attempt select most effecient internal operator data type
         """
-        # Method taken from Qobj.expm()
-        # if method is not explicitly given, try to make a good choice
-        # between sparse and dense solvers by considering the size of the
-        # system and the number of non-zero elements.
-        dg = self.drift_dyn_gen
-        for c in self.ctrl_dyn_gen:
-           dg = dg + c
-           
-        N = dg.data.shape[0]
-        n = dg.data.nnz
-
-        if N ** 2 < 100 * n:
-            # large number of nonzero elements, revert to dense solver
-            self.oper_dtype = np.ndarray
-        elif N > 400:
-            # large system, and quite sparse -> qutips sparse method
+        
+        if self.memory_optimization > 0:
             self.oper_dtype = Qobj
         else:
-            # small system, but quite sparse -> qutips sparse/dense method
-            self.oper_dtype = np.ndarray
+            # Method taken from Qobj.expm()
+            # if method is not explicitly given, try to make a good choice
+            # between sparse and dense solvers by considering the size of the
+            # system and the number of non-zero elements.
+            dg = self.drift_dyn_gen
+            for c in self.ctrl_dyn_gen:
+               dg = dg + c
+               
+            N = dg.data.shape[0]
+            n = dg.data.nnz
+    
+            if N ** 2 < 100 * n:
+                # large number of nonzero elements, revert to dense solver
+                self.oper_dtype = np.ndarray
+            elif N > 400:
+                # large system, and quite sparse -> qutips sparse method
+                self.oper_dtype = Qobj
+            else:
+                # small system, but quite sparse -> qutips sparse/dense method
+                self.oper_dtype = np.ndarray
+            
+        return self.oper_dtype
         
     def _init_evo(self):
         """
@@ -463,10 +470,12 @@ class Dynamics:
             logger.warn("Unknown option '{}' for oper_dtype. "
                 "Assuming that internal drift, ctrls, initial and target "
                 "have been set correctly".format(self.oper_dtype))
-        self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl) 
-                                        for ctrl in self._ctrl_dyn_gen]
-            
-        self._phased_dyn_gen = [object for x in range(self.num_tslots)]
+        if self.memory_optimization == 0:
+            self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl) 
+                                            for ctrl in self._ctrl_dyn_gen]
+        self._dyn_gen = [object for x in range(self.num_tslots)]
+        if self.memory_optimization == 0:
+            self._phased_dyn_gen = [object for x in range(self.num_tslots)]
         self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
             self._prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
@@ -662,8 +671,11 @@ class Dynamics:
         
     @property
     def onto_evo_target(self):
+        if self._onto_evo_target is None:
+            self._get_onto_evo_target()
+            
         if self._onto_evo_target_qobj is None:   
-            if isinstance(self.onto_evo_target, Qobj):
+            if isinstance(self._onto_evo_target, Qobj):
                 self._onto_evo_target_qobj = self._onto_evo_target
             else:
                 rev_dims = [self.sys_dims[1], self.sys_dims[0]]
@@ -712,12 +724,15 @@ class Dynamics:
         """
         Computes the dynamics generator for a given timeslot
         The is the combined Hamiltion for unitary systems
+        Also applies the phase (if any required by the propagation)
         """
         dg = self._drift_dyn_gen
         for j in range(self.get_num_ctrls()):
             dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
         
-        self._phased_dyn_gen[k] = self._apply_phase(dg)
+        self._dyn_gen[k] = dg
+        if self.memory_optimization == 0:
+            self._phased_dyn_gen[k] = self._apply_phase(dg)
 
     def _apply_phase(self, k):
         """
@@ -725,7 +740,123 @@ class Dynamics:
         """
         raise errors.UsageError("Not implemented in the baseclass."
                                 " Choose a subclass")
-
+                                
+    def _get_phased_dyn_gen(self, k):
+        if self._phased_dyn_gen is not None:
+            return self._phased_dyn_gen[k]
+        else:
+            return self._apply_phase(self._dyn_gen[k])
+            
+    def _get_phased_ctrl_dyn_gen(self, j):
+        if self._phased_ctrl_dyn_gen is not None:
+            return self._phased_ctrl_dyn_gen[j]
+        else:
+            return self._apply_phase(self._ctrl_dyn_gen[j])
+            
+#    self.evo_fwd = None
+#    self.evo_onwd = None
+#    self.evo_onto = None
+        
+    @property
+    def dyn_gen(self):
+        """
+        List of combined dynamics generators (Qobj) for each timeslot
+        """
+        if self._dyn_gen is not None:           
+            if self._dyn_gen_qobj is None:   
+                if self.oper_dtype == Qobj:
+                    self._dyn_gen_qobj = self._dyn_gen
+                else:
+                    self._dyn_gen_qobj = [Qobj(dg, dims=self.dyn_dims) 
+                                            for dg in self._dyn_gen]
+        return self._dyn_gen_qobj
+        
+    @property
+    def prop(self):
+        """
+        List of propagators (Qobj) for each timeslot
+        """
+        if self._prop is not None:
+            if self._prop_qobj is None:   
+                if self.oper_dtype == Qobj:
+                    self._prop_qobj = self._prop
+                else:
+                    self._prop_qobj = [Qobj(dg, dims=self.dyn_dims) 
+                                            for dg in self._prop]
+        return self._prop_qobj
+        
+    @property
+    def prop_grad(self):
+        """
+        Array of propagator gradients (Qobj) for each timeslot, control
+        """
+        if self._prop_grad is not None:
+            if self._prop_grad_qobj is None:   
+                if self.oper_dtype == Qobj:
+                    self._prop_grad_qobj = self._prop_grad
+                else:
+                    self._prop_grad_qobj = np.empty(
+                                    [self.num_tslots, self.get_num_ctrls()],
+                                    dtype=object)
+                    for k in range(self.num_tslots):
+                        for j in range():
+                            self._prop_grad_qobj[k, j] = Qobj(
+                                                    self._prop_grad[k, j], 
+                                                    dims=self.dyn_dims) 
+        return self._prop_grad_qobj
+        
+    @property
+    def evo_fwd(self):
+        """
+        List of evolution operators (Qobj) from the initial to the given
+        timeslot
+        """
+        if self._evo_fwd is not None:
+            if self._evo_fwd_qobj is None:   
+                if self.oper_dtype == Qobj:
+                    self._evo_fwd_qobj = self._evo_fwd
+                else:
+                    self._evo_fwd_qobj = [self.initial]
+                    for k in range(1, self.num_tslots+1):
+                        self._evo_fwd_qobj.append(Qobj(self._evo_fwd[k], 
+                                                       dims=self.dyn_dims))
+        return self._evo_fwd_qobj
+        
+        
+    @property
+    def evo_onwd(self):
+        """
+        List of evolution operators (Qobj) from the initial to the given
+        timeslot
+        """
+        if self._evo_fwd is not None:
+            if self._evo_fwd_qobj is None:   
+                if self.oper_dtype == Qobj:
+                    self._evo_fwd_qobj = self._evo_fwd
+                else:
+                    self._evo_onwd_qobj = [Qobj(dg, dims=self.dyn_dims) 
+                                            for dg in self._evo_onwd]                                               
+        return self._evo_fwd_qobj
+        
+    @property
+    def evo_onto(self):
+        """
+        List of evolution operators (Qobj) from the initial to the given
+        timeslot
+        """
+        if self._evo_onto is not None:
+            if self._evo_onto_qobj is None:   
+                if self.oper_dtype == Qobj:
+                    self._evo_onto_qobj = self._evo_onto
+                else:
+                    self._evo_onto_qobj = []
+                    for k in range(0, self.num_tslots):
+                        self._evo_onto_qobj.append(Qobj(self._evo_onto[k], 
+                                                       dims=self.dyn_dims))
+                    self._evo_onto_qobj.append(self.onto_evo_target)
+                    
+        return self._evo_onto_qobj
+        
     def compute_evolution(self):
         """
         Recalculate the time evolution operators
@@ -739,12 +870,12 @@ class Dynamics:
         if not self.evo_current:
             # Clear the public lists
             # These are only set if (external) users access them
-            self.dyn_gen = None
-            self.prop = None
-            self.prop_grad = None
-            self.evo_fwd = None
-            self.evo_onwd = None
-            self.evo_onto = None
+            self._dyn_gen_qobj = None
+            self._prop_qobj = None
+            self._prop_grad_qobj = None
+            self._evo_fwd_qobj = None
+            self._evo_onwd_qobj = None
+            self._evo_onto_qobj = None
             if self.log_level <= logging.DEBUG_VERBOSE:
                 logger.log(logging.DEBUG_VERBOSE, "Computing evolution")
             self.tslot_computer.recompute_evolution()
@@ -894,11 +1025,11 @@ class DynamicsUnitary(Dynamics):
         gradient
         """
         if self.oper_dtype == Qobj:
-            H = 1j*self._phased_dyn_gen[k].full()
+            H = self._dyn_gen[k].full()
         elif self.oper_dtype == np.ndarray:
-            H = 1j*self._phased_dyn_gen[k]
+            H = self._dyn_gen[k]
         else:
-            H = 1j*self._phased_dyn_gen[k].toarray()
+            H = self._dyn_gen[k].toarray()
             
         # assuming H is an nxn matrix, find n
         n = H.shape[0]
