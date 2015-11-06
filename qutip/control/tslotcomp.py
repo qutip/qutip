@@ -253,34 +253,31 @@ class TSlotCompUpdateAll(TimeslotComputer):
             if prop_comp.grad_exact:
                 for j in range(n_ctrls):
                     if j == 0:
-                        prop, prop_grad = prop_comp._compute_prop_grad(k, j)
-                        dyn._prop[k] = prop
-                        dyn._prop_grad[k, j] = prop_grad
+                        prop_comp._compute_prop_grad(k, j)
                         if self.log_level <= logging.DEBUG_INTENSE:
                             logger.log(logging.DEBUG_INTENSE,
                                        "propagator {}:\n{:10.3g}".format(
-                                           k, prop))
+                                           k, self._prop[k]))
                         if self._prop_tofh != 0:
                             self._prop_tofh.write(
                                 "propagator k={}\n".format(k))
-                            np.savetxt(self._prop_tofh, prop, fmt='%10.3g')
+                            np.savetxt(self._prop_tofh, self._prop[k], 
+                                                       fmt='%10.3g')
 
                     else:
-                        prop_grad = prop_comp._compute_prop_grad(
-                            k, j, compute_prop=False)
-                        dyn._prop_grad[k, j] = prop_grad
-
+                        prop_comp._compute_prop_grad(k, j, compute_prop=False)
+                        
                     if self._prop_grad_tofh != 0:
                         self._prop_grad_tofh.write(
                             "prop grad k={}, j={}\n".format(k, j))
-                        np.savetxt(self._prop_grad_tofh, prop_grad,
+                        np.savetxt(self._prop_grad_tofh, self._prop_grad[k, j],
                                    fmt='%10.3g')
             else:
                 dyn._prop[k] = prop_comp._compute_propagator(k)
                 if self._prop_tofh != 0:
                     self._prop_tofh.write(
                         "propagator k={}\n".format(k))
-                    np.savetxt(self._prop_tofh, prop, fmt='%10.3g')
+                    np.savetxt(self._prop_tofh, self._prop[k], fmt='%10.3g')
 
         if dyn.stats is not None:
             dyn.stats.wall_time_prop_compute += \
