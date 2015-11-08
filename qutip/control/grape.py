@@ -49,8 +49,8 @@ from qutip.ui.progressbar import BaseProgressBar
 from qutip.control.cy_grape import cy_overlap, cy_grape_inner
 from qutip.qip.gates import gate_sequence_product
 
-import qutip.logging
-logger = qutip.logging.get_logger()
+import qutip.logging_utils
+logger = qutip.logging_utils.get_logger()
 
 
 class GRAPEResult:
