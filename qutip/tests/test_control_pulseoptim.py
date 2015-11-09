@@ -365,10 +365,10 @@ class TestPulseOptim:
         loadparams.load_parameters(cfg.param_fpath, config=cfg)
 
         dyn = dynamics.DynamicsUnitary(cfg)
-        dyn.target = U_targ.full()
-        dyn.initial = U_0.full()
-        dyn.drift_dyn_gen = H_d.full()
-        dyn.ctrl_dyn_gen = list([H_c.full()])
+        dyn.target = U_targ
+        dyn.initial = U_0
+        dyn.drift_dyn_gen = H_d
+        dyn.ctrl_dyn_gen = list([H_c])
         loadparams.load_parameters(cfg.param_fpath, dynamics=dyn)
         dyn.init_timeslots()      
         n_ts = dyn.num_tslots

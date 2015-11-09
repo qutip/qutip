@@ -62,6 +62,7 @@ import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
 from qutip import Qobj
+from qutip.sparse import sp_eigs, _dense_eigs
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -216,22 +217,22 @@ class Dynamics:
         operators is current. It is set to False when the amplitudes
         change
 
-    decomp_curr : List of boolean
+    _decomp_curr : List of boolean
         Indicates whether the diagonalisation for the timeslot is fresh,
         it is set to false when the dyn_gen for the timeslot is changed
         Only used when the PropagatorComputer uses diagonalisation
 
-    dyn_gen_eigenvectors : List of array[drift_dyn_gen.shape]
+    _dyn_gen_eigenvectors : List of array[drift_dyn_gen.shape]
         Eigenvectors of the dynamics generators
         Used for calculating the propagators and their gradients
         Only used when the PropagatorComputer uses diagonalisation
 
-    prop_eigen : List of array[drift_dyn_gen.shape]
+    _prop_eigen : List of array[drift_dyn_gen.shape]
         Propagator in diagonalised basis of the combined dynamics generator
         Used for calculating the propagators and their gradients
         Only used when the PropagatorComputer uses diagonalisation
 
-    dyn_gen_factormatrix : List of array[drift_dyn_gen.shape]
+    _dyn_gen_factormatrix : List of array[drift_dyn_gen.shape]
         Matrix of scaling factors calculated duing the decomposition
         Used for calculating the propagator gradients
         Only used when the PropagatorComputer uses diagonalisation
@@ -293,10 +294,11 @@ class Dynamics:
         self._evo_onto = None
         self._evo_onto_qobj = None
         # Atrributes used in diagonalisation
-        self.decomp_curr = None
-        self.prop_eigen = None
-        self.dyn_gen_eigenvectors = None
-        self.dyn_gen_factormatrix = None
+        self._decomp_curr = None
+        self._prop_eigen = None
+        self._dyn_gen_eigenvectors = None
+        self._dyn_gen_eigenvectors_adj = None
+        self._dyn_gen_factormatrix = None
         self.fact_mat_round_prec = 1e-10
 
         # Debug and information attribs
@@ -501,10 +503,12 @@ class Dynamics:
         Note: used with PropCompDiag propagator calcs
         """
         n_ts = self.num_tslots
-        self.decomp_curr = [False for x in range(n_ts)]
-        self.prop_eigen = [object for x in range(n_ts)]
-        self.dyn_gen_eigenvectors = [object for x in range(n_ts)]
-        self.dyn_gen_factormatrix = [object for x in range(n_ts)]
+        self._decomp_curr = [False for x in range(n_ts)]
+        self._prop_eigen = [object for x in range(n_ts)]
+        self._dyn_gen_eigenvectors = [object for x in range(n_ts)]
+        if self.memory_optimization == 0:
+            self._dyn_gen_eigenvectors_adj = [object for x in range(n_ts)]
+        self._dyn_gen_factormatrix = [object for x in range(n_ts)]
 
     def _check_test_out_files(self):
         cfg = self.config
@@ -658,6 +662,12 @@ class Dynamics:
         Returns the size of the matrix that defines the drift dynamics
         that is assuming the drift is NxN, then this returns N
         """
+        if self.dyn_shape is None:
+            if not isinstance(self.drift_dyn_gen, Qobj):
+                raise errors.UsageError("Unable to determine drift dimensions "
+                        "because drift_dyn_gen is not set as Qobj")
+            self.dyn_shape = self.drift_dyn_gen.shape
+            self.dyn_dims = self.drift_dyn_gen.dims
         return self.dyn_shape[0]
 
     def get_num_ctrls(self):
@@ -829,14 +839,14 @@ class Dynamics:
         List of evolution operators (Qobj) from the initial to the given
         timeslot
         """
-        if self._evo_fwd is not None:
-            if self._evo_fwd_qobj is None:   
+        if self._evo_onwd is not None:
+            if self._evo_onwd_qobj is None:
                 if self.oper_dtype == Qobj:
-                    self._evo_fwd_qobj = self._evo_fwd
+                    self._evo_onwd_qobj = self._evo_fwd
                 else:
                     self._evo_onwd_qobj = [Qobj(dg, dims=self.dyn_dims) 
                                             for dg in self._evo_onwd]                                               
-        return self._evo_fwd_qobj
+        return self._evo_onwd_qobj
         
     @property
     def evo_onto(self):
@@ -868,14 +878,6 @@ class Dynamics:
 
         # Check if values are already current, otherwise calculate all values
         if not self.evo_current:
-            # Clear the public lists
-            # These are only set if (external) users access them
-            self._dyn_gen_qobj = None
-            self._prop_qobj = None
-            self._prop_grad_qobj = None
-            self._evo_fwd_qobj = None
-            self._evo_onwd_qobj = None
-            self._evo_onto_qobj = None
             if self.log_level <= logging.DEBUG_VERBOSE:
                 logger.log(logging.DEBUG_VERBOSE, "Computing evolution")
             self.tslot_computer.recompute_evolution()
@@ -891,9 +893,9 @@ class Dynamics:
         (after the amplitude update)
         If not then the diagonlisation is completed
         """
-        if self.decomp_curr is None:
+        if self._decomp_curr is None:
             raise errors.UsageError("Decomp lists have not been created")
-        if not self.decomp_curr[k]:
+        if not self._decomp_curr[k]:
             self._spectral_decomp(k)
 
     def _spectral_decomp(self, k):
@@ -1017,7 +1019,7 @@ class DynamicsUnitary(Dynamics):
             self._onto_evo_target = self._target.T.conj()
         return self._onto_evo_target
 
-    def _spectral_decomp(self, k):
+    def _spectral_decomp_old(self, k):
         """
         Calculates the diagonalization of the dynamics generator
         generating lists of eigenvectors, propagators in the diagonalised
@@ -1065,12 +1067,103 @@ class DynamicsUnitary(Dynamics):
 
         # Store eigenvals and eigenvectors for use by other functions, e.g.
         # gradient_exact
-        self.decomp_curr[k] = True
-        self.prop_eigen[k] = prop_eig
-        self.dyn_gen_eigenvectors[k] = eig_vec
-        self.dyn_gen_factormatrix[k] = factors
+        self._decomp_curr[k] = True
+        self._prop_eigen[k] = prop_eig
+        self._dyn_gen_eigenvectors[k] = eig_vec
+        self._dyn_gen_factormatrix[k] = factors
+        
+    def _spectral_decomp(self, k):
+        """
+        Calculates the diagonalization of the dynamics generator
+        generating lists of eigenvectors, propagators in the diagonalised
+        basis, and the 'factormatrix' used in calculating the propagator
+        gradient
+        """
+        if self.memory_optimization >= 2:
+            sparse = True
+        else:
+            sparse = False
+        
+        if self.oper_dtype == Qobj:
+            H = self._dyn_gen[k]
+            # Returns eigenvalues as array (row)
+            # and eigenvectors as rows of an array
+            eig_val, eig_vec = sp_eigs(H.data, H.isherm, sparse=sparse)
+            eig_vec = eig_vec.T
+                            
+        elif self.oper_dtype == np.ndarray:
+            H = self._dyn_gen[k]
+            # returns row vector of eigenvals, columns with the eigenvecs
+            eig_val, eig_vec = np.linalg.eig(H)
+        else:
+            if sparse:
+                H = self._dyn_gen[k].toarray()
+            else:
+                H = self._dyn_gen[k]
+            # returns row vector of eigenvals, columns with the eigenvecs
+            eig_val, eig_vec = la.eigh(H)
+            
+        # assuming H is an nxn matrix, find n
+        n = self.get_drift_dim()
+        
+        # Calculate the propagator in the diagonalised basis
+        eig_val_tau = -1j*eig_val*self.tau[k]
+        prop_eig = np.exp(eig_val_tau)
 
+        # Generate the factor matrix through the differences
+        # between each of the eigenvectors and the exponentiations
+        # create nxn matrix where each eigen val is repeated n times
+        # down the columns
+        o = np.ones([n, n])
+        eig_val_cols = eig_val_tau*o
+        # calculate all the differences by subtracting it from its transpose
+        eig_val_diffs = eig_val_cols - eig_val_cols.T
+        # repeat for the propagator
+        prop_eig_cols = prop_eig*o
+        prop_eig_diffs = prop_eig_cols - prop_eig_cols.T
+        # the factor matrix is the elementwise quotient of the
+        # differeneces between the exponentiated eigen vals and the
+        # differences between the eigen vals
+        # need to avoid division by zero that would arise due to denegerate
+        # eigenvalues and the diagonals
+        degen_mask = np.abs(eig_val_diffs) < self.fact_mat_round_prec
+        eig_val_diffs[degen_mask] = 1
+        factors = prop_eig_diffs / eig_val_diffs
+        # for degenerate eigenvalues the factor is just the exponent
+        factors[degen_mask] = prop_eig_cols[degen_mask]
 
+        # Store eigenvectors, propagator and factor matric 
+        # for use in propagator computations
+        self._decomp_curr[k] = True
+        if isinstance(factors, np.ndarray):
+            self._dyn_gen_factormatrix[k] = factors
+        else:
+            self._dyn_gen_factormatrix[k] = np.array(factors)
+        
+        if self.oper_dtype == Qobj:
+            self._prop_eigen[k] = Qobj(np.diagflat(prop_eig), 
+                                                    dims=self.dyn_dims)
+            self._dyn_gen_eigenvectors[k] = Qobj(eig_vec, 
+                                                dims=self.dyn_dims)
+            if self._dyn_gen_eigenvectors_adj is not None:
+                self._dyn_gen_eigenvectors_adj[k] = \
+                            self._dyn_gen_eigenvectors[k].dag()
+        else:
+            self._prop_eigen[k] = np.diagflat(prop_eig)
+            self._dyn_gen_eigenvectors[k] = eig_vec
+            if self._dyn_gen_eigenvectors_adj is not None:
+                self._dyn_gen_eigenvectors_adj[k] = \
+                            self._dyn_gen_eigenvectors[k].conj().T
+
+    def _get_dyn_gen_eigenvectors_adj(self, k):
+        if self._dyn_gen_eigenvectors_adj is not None:
+            return self._dyn_gen_eigenvectors_adj[k]
+        else:
+            if self.oper_dtype == Qobj:
+                return self._dyn_gen_eigenvectors[k].dag()
+            else:
+                return self._dyn_gen_eigenvectors[k].conj().T
+        
 class DynamicsSymplectic(Dynamics):
     """
     Symplectic systems

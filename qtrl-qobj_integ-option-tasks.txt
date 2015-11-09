@@ -2,19 +2,8 @@ Done:
 -- Dynamics
 - Change dyn_gen, prop and time_evo types to object
 - choose oper_dtype
--- Propagator computer
-- change exponentiations to Qobj.expm() where possible
-- change augmentation to sparse
--- Timeslot computer
-- time evo computation
--- Fidelity computer
-- Fidelities and gradients
--- Optim result
-- convert final evo to Qobj
-
-ToDo:
-
--- Dynamics
+- Eigen decomp lists
+- eigen decomp using Qobj (inc prop comp)
 .- Accessors
   onto_evo_target 
   dyn_gen 
@@ -25,14 +14,23 @@ ToDo:
   evo_onto
 	phased_dyn_gen
 	phased_ctrl_dyn_gen
+-- Propagator computer
+- change exponentiations to Qobj.expm() where possible
+- change augmentation to sparse
 -- PropComp
 - change access level
+-- Timeslot computer
+- time evo computation
+-- Fidelity computer
+- Fidelities and gradients
+-- Optim result
+- convert final evo to Qobj
 
-- Eigen decomp lists
-- eigen decomp using Qobj (inc prop comp)
+ToDo:
+-- Dynamics
 - update Dynamics attribute docs
-
-
+-- Nose
+- add tests for Qobj internal data types
 
 Testing:
 - test oper_dtype=csr_matrix

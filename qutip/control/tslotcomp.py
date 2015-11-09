@@ -206,6 +206,15 @@ class TSlotCompUpdateAll(TimeslotComputer):
         prop_comp = dyn.prop_computer
         n_ts = dyn.num_tslots
         n_ctrls = dyn.get_num_ctrls()
+        
+        # Clear the public lists
+        # These are only set if (external) users access them
+        dyn._dyn_gen_qobj = None
+        dyn._prop_qobj = None
+        dyn._prop_grad_qobj = None
+        dyn._evo_fwd_qobj = None
+        dyn._evo_onwd_qobj = None
+        dyn._evo_onto_qobj = None
 
         if dyn.stats is not None:
             dyn.stats.num_tslot_recompute += 1
@@ -218,8 +227,8 @@ class TSlotCompUpdateAll(TimeslotComputer):
         time_start = timeit.default_timer()
         for k in range(n_ts):
             dyn._combine_dyn_gen(k)
-            if dyn.decomp_curr is not None:
-                dyn.decomp_curr[k] = False
+            if dyn._decomp_curr is not None:
+                dyn._decomp_curr[k] = False
         if dyn.stats is not None:
             dyn.stats.wall_time_dyn_gen_compute += \
                 timeit.default_timer() - time_start
