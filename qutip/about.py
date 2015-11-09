@@ -42,6 +42,7 @@ import numpy
 import scipy
 import inspect
 import qutip.settings
+from qutip.hardware_info import hardware_info
 
 
 def about():
@@ -72,6 +73,7 @@ def about():
     print("Fortran mcsolver:   %s" % str(qutip.settings.fortran))
     print("scikits.umfpack:    %s" % str(qutip.settings.umfpack))
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
+    print("Number of CPUs:     %s" % hardware_info()['cpus'])
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
