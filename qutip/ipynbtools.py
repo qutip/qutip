@@ -86,6 +86,7 @@ def version_table(verbose=False):
                 ("Cython", Cython.__version__),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
+                ("Number of CPUs", qutip.hardware_info.hardware_info()['cpus']),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
 
