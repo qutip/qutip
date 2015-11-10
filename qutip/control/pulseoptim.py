@@ -157,7 +157,7 @@ def optimize_pulse(
     Parameters
     ----------
 
-    drift : Qobj
+    drifts : Qobj
         the underlying dynamics generator of the system
 
     ctrls : List of Qobj
@@ -720,7 +720,12 @@ def optimize_pulse_unitary(
     # check parameters here, as names are different than in
     # create_pulse_optimizer, so TypeErrors would be confusing
     if not isinstance(H_d, (list, tuple)):
-        raise TypeError("H_d should be a list of Qobj")
+        if not isinstance(H_d, Qobj):
+            raise TypeError("drifts should be a Qobj or list of Qobj")
+    else:
+        for drift in H_d:
+            if not isinstance(drift, Qobj):
+                raise TypeError("drifts should be a Qobj or list of Qobj")
 
     if not isinstance(H_c, (list, tuple)):
         raise TypeError("H_c should be a list of Qobj")
@@ -780,7 +785,7 @@ def optimize_pulse_unitary(
         fid_params = {'phase_option':phase_option}
             
     return optimize_pulse(
-            drift=H_d, ctrls=H_c, initial=U_0, target=U_targ,
+            drifts=H_d, ctrls=H_c, initial=U_0, target=U_targ,
             num_tslots=num_tslots, evo_time=evo_time, tau=tau,
             amp_lbound=amp_lbound, amp_ubound=amp_ubound,
             fid_err_targ=fid_err_targ, min_grad=min_grad,
@@ -1572,12 +1577,14 @@ def create_pulse_optimizer(
 
     # check parameters
     if not isinstance(drifts, (list, tuple)):
-        raise TypeError("drifts should be a list of Qobj")
+        if not isinstance(drifts, Qobj):
+            raise TypeError("drifts should be a Qobj or list of Qobj")
+        drifts = list([drifts.full()])
     else:
         j = 0
         for drift in drifts:
             if not isinstance(drift, Qobj):
-                raise TypeError("drifts should be a list of Qobj")
+                raise TypeError("drifts should be a Qobj or a list of Qobj")
             else:
                 drifts[j] = drift.full()
                 j += 1

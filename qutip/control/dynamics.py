@@ -451,10 +451,11 @@ class Dynamics:
 
         if drift_amps is None:
             if self.get_num_drifts() > 1:
-                raise errors.UsageError("Multiple drifts were provdied, "
-                    "with no amplitudes.")
+                print(self.drift_dyn_gen)
+                raise errors.UsageError("No drift amplitudes were"
+                "provided. There are {} drifts".format(self.get_num_drifts()))
             # Backwards compatibilty constant drift
-            self.drift_amps = np.ones(self.num_tslots)
+            self.drift_amps = np.ones([self.num_tslots, self.get_num_drifts()])
         else:
             self.drift_amps = drift_amps
 
@@ -891,7 +892,7 @@ class DynamicsSymplectic(Dynamics):
 
     def get_omega(self):
         if self.omega is None:
-            n = self.drift_dyn_gen.shape[0] // 2
+            n = self.drift_dyn_gen[0].shape[0] // 2
             self.omega = sympl.calc_omega(n)
 
         return self.omega
