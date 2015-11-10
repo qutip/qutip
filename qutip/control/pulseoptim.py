@@ -513,6 +513,7 @@ def optimize_pulse_unitary(
         optim_method='DEF', method_params=None,
         optim_alg=None, max_metric_corr=None, accuracy_factor=None,
         phase_option='PSU', 
+        dyn_params=None, prop_params=None, fid_params=None,
         tslot_type='DEF', tslot_params=None,
         amp_update_mode=None,
         init_pulse_type='DEF', init_pulse_params=None,
@@ -637,6 +638,21 @@ def optimize_pulse_unitary(
             PSU - global phase ignored
             SU - global phase included
 
+    dyn_params : dict
+        Parameters for the Dynamics object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+
+    prop_params : dict
+        Parameters for the PropagatorComputer object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+
+    fid_params : dict
+        Parameters for the FidelityComputer object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+        
     tslot_type : string
         Method for computing the dynamics generators, propagators and 
         evolution in the timeslots.
@@ -776,7 +792,12 @@ def optimize_pulse_unitary(
     # phase_option is still valid for this method
     # pass it via the fid_params
     if not phase_option is None:
-        fid_params = {'phase_option':phase_option}
+        if fid_params is None:
+            fid_params = {'phase_option':phase_option}
+        else:
+            if not 'phase_option' in fid_params:
+                fid_params['phase_option'] = phase_option
+            
             
     return optimize_pulse(
             drift=H_d, ctrls=H_c, initial=U_0, target=U_targ,
@@ -786,7 +807,8 @@ def optimize_pulse_unitary(
             max_iter=max_iter, max_wall_time=max_wall_time,
             alg=alg, alg_params=alg_params,
             optim_method=optim_method, method_params=method_params,
-            dyn_type='UNIT', fid_params=fid_params,
+            dyn_type='UNIT', dyn_params=dyn_params,
+            prop_params=prop_params, fid_params=fid_params,
             init_pulse_type=init_pulse_type, init_pulse_params=init_pulse_params,
             pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
             ramping_pulse_type=ramping_pulse_type, 
@@ -1085,6 +1107,7 @@ def opt_pulse_crab_unitary(
         num_coeffs=None, init_coeff_scaling=1.0, 
         optim_method='fmin', method_params=None,
         phase_option='PSU', 
+        dyn_params=None, prop_params=None, fid_params=None,
         tslot_type='DEF', tslot_params=None,
         guess_pulse_type=None, guess_pulse_params=None,
         guess_pulse_scaling=1.0, guess_pulse_offset=0.0,
@@ -1200,6 +1223,21 @@ def opt_pulse_crab_unitary(
             PSU - global phase ignored
             SU - global phase included
 
+    dyn_params : dict
+        Parameters for the Dynamics object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+
+    prop_params : dict
+        Parameters for the PropagatorComputer object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+
+    fid_params : dict
+        Parameters for the FidelityComputer object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+        
     tslot_type : string
         Method for computing the dynamics generators, propagators and 
         evolution in the timeslots.
@@ -1323,6 +1361,7 @@ def opt_pulse_crab_unitary(
         alg='CRAB', alg_params=alg_params,
         optim_method=optim_method, method_params=method_params,
         phase_option=phase_option,
+        dyn_params=dyn_params, prop_params=prop_params, fid_params=fid_params,
         tslot_type=tslot_type, tslot_params=tslot_params,
         init_pulse_type=guess_pulse_type, 
         init_pulse_params=guess_pulse_params,

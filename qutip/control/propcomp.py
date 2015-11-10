@@ -221,25 +221,6 @@ class PropCompDiag(PropagatorComputer):
         self.id_text = 'DIAG'
         self.grad_exact = True
         self.apply_params()
-
-    def _compute_propagator_old(self, k):
-        """
-        Calculates the exponentiation of the dynamics generator (H)
-        As part of the calc the the eigen decomposition is required, which
-        is reused in the propagator gradient calculation
-        """
-        dyn = self.parent
-        dyn._ensure_decomp_curr(k)
-
-        eig_vec = dyn._dyn_gen_eigenvectors[k]
-        prop_eig_diag = np.diagflat(dyn._prop_eigen[k])
-        prop = eig_vec.dot(prop_eig_diag).dot(eig_vec.conj().T)
-        if dyn.oper_dtype == Qobj:
-            dyn._prop[k] = Qobj(prop, dims=dyn.dyn_dims)
-        else:
-            dyn._prop[k] = prop
-            
-        return dyn._prop[k]
         
     def _compute_propagator(self, k):
         """
@@ -260,51 +241,6 @@ class PropCompDiag(PropagatorComputer):
                                 dyn._get_dyn_gen_eigenvectors_adj(k))
             
         return dyn._prop[k]
-
-    def _compute_prop_grad_old(self, k, j, compute_prop=True):
-        """
-        Calculate the gradient of propagator wrt the control amplitude
-        in the timeslot.
-
-        Returns:
-            [prop], prop_grad
-        """
-        dyn = self.parent
-        dyn._ensure_decomp_curr(k)
-
-        if compute_prop:
-            self._compute_propagator(k)
-
-        eig_vec = dyn._dyn_gen_eigenvectors[k]
-        eig_vec_adj = eig_vec.conj().T
-
-        # compute ctrl dyn gen in diagonalised basis
-        # i.e. the basis of the full dyn gen for this timeslot
-        if dyn.oper_dtype == Qobj:
-            cdg = dyn._get_phased_ctrl_dyn_gen(j).full()
-        elif dyn.oper_dtype == np.ndarray:
-            cdg = dyn._get_phased_ctrl_dyn_gen(j)
-        else:
-            cdg = dyn._get_phased_ctrl_dyn_gen(j).toarray()
-        dg_diag = dyn.tau[k]*eig_vec_adj.dot(cdg).dot(eig_vec)
-
-        # multiply by factor matrix
-        factors = dyn._dyn_gen_factormatrix[k]
-        # note have to use multiply method as .dot returns matrix
-        # and hence * implies inner product i.e. dot
-        dg_diag_fact = np.multiply(dg_diag, factors)
-        # Return to canonical basis
-        prop_grad = eig_vec.dot(dg_diag_fact).dot(eig_vec_adj)
-        
-        if dyn.oper_dtype == Qobj:
-            dyn._prop_grad[k, j] = Qobj(prop_grad, 
-                         dims=dyn.dyn_dims)
-        else:
-            dyn._prop_grad[k, j] = prop_grad
-        if compute_prop:
-            return dyn._prop[k], dyn._prop_grad[k, j]
-        else:
-            return dyn._prop_grad[k, j]
             
     def _compute_prop_grad(self, k, j, compute_prop=True):
         """

@@ -244,22 +244,7 @@ class Optimizer:
         """
         self.log_level = lvl
         logger.setLevel(lvl)
-
-#    def run_optimization(self, term_conds=None):
-#        """
-#        Run the pulse optimisation algorithm
-#
-#        This class does not implement a method for running the optimisation
-#        A subclass should be used, e.g. OptimizerLBFGSB
-#
-#        If the parameter term_conds=None, then the termination_conditions
-#        attribute must already be set. It will be overwritten if the
-#        parameter is not None
-#        """
-#        raise errors.UsageError(
-#            "No method defined for running optimisation."
-#            " Suspect base class was used where sub class should have been")
-   
+  
     def _create_result(self):
         """
         create the result object

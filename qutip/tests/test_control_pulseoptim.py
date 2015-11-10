@@ -84,7 +84,7 @@ class TestPulseOptim:
         evo_time = 6
         
         # Run the optimisation
-        result = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
+        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-10, 
                         init_pulse_type='LIN', 
@@ -94,16 +94,26 @@ class TestPulseOptim:
                             err_msg="Hadamard infidelity too high")
                             
         #Try without stats
-        result = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
+        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-10, 
                         init_pulse_type='LIN', 
                         gen_stats=False)
         assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(no stats)") 
+                                            "(no stats)")
+                                            
+        #Try with Qobj propagation
+        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        dyn_params={'oper_dtype':Qobj},
+                        gen_stats=True)
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
+                                            "(Qobj propagation)")
         
         # Check same result is achieved using the create objects method
-        optim = cpo.create_pulse_optimizer(H_d, list(H_c), U_0, U_targ, 
+        optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-10, 
                         dyn_type='UNIT', 
@@ -139,7 +149,7 @@ class TestPulseOptim:
         U_0 = identity(4)
         # Target for the gate evolution - Quantum Fourier Transform gate
         U_targ = qft.qft(2)
-        result = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
+        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-9, 
                         init_pulse_type='LIN', 
@@ -150,7 +160,7 @@ class TestPulseOptim:
                             err_msg="QFT infidelity too high")
                             
         # check bounds
-        result2 = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
+        result2 = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-9, 
                         amp_lbound=-1.0, amp_ubound=1.0,
@@ -190,18 +200,28 @@ class TestPulseOptim:
         n_ts = 10
         evo_time = 5
         
-        result = cpo.optimize_pulse(drift, list(ctrls), initial, target_DP, 
+        result = cpo.optimize_pulse(drift, ctrls, initial, target_DP, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-3, 
                         max_iter=200,
                         init_pulse_type='LIN', 
                         gen_stats=True)
-       
         assert_(result.fid_err < 0.1, 
                 msg="Fidelity higher than expected")
                 
+        # Repeat with Qobj propagation
+        result = cpo.optimize_pulse(drift, ctrls, initial, target_DP, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-3, 
+                        max_iter=200,
+                        init_pulse_type='LIN', 
+                        dyn_params={'oper_dtype':Qobj},
+                        gen_stats=True)
+        assert_(result.fid_err < 0.1, 
+                msg="Fidelity higher than expected (Qobj propagation)")
+                
         # Check same result is achieved using the create objects method
-        optim = cpo.create_pulse_optimizer(drift, list(ctrls), 
+        optim = cpo.create_pulse_optimizer(drift, ctrls, 
                         initial, target_DP,
                         n_ts, evo_time, 
                         fid_err_targ=1e-3, 
@@ -228,7 +248,6 @@ class TestPulseOptim:
                             err_msg="Direct and indirect methods produce "
                                     "different results for ADC")
 
-    
     def test_symplectic(self):
         """
         Optimise pulse for coupled oscillators with Symplectic dynamics
@@ -269,7 +288,7 @@ class TestPulseOptim:
         n_ts = 20
         evo_time = 10
         
-        result = cpo.optimize_pulse(A0, list(A_c), initial, S_targ, 
+        result = cpo.optimize_pulse(A0, A_c, initial, S_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-3, 
                         max_iter=200,
@@ -279,7 +298,19 @@ class TestPulseOptim:
         assert_(result.goal_achieved, msg="Symplectic goal not achieved")
         assert_almost_equal(result.fid_err, 0.0, decimal=2, 
                             err_msg="Symplectic infidelity too high")
-                
+        
+        # Repeat with Qobj integration
+        resultq = cpo.optimize_pulse(A0, A_c, initial, S_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-3, 
+                        max_iter=200,
+                        dyn_type='SYMPL',
+                        init_pulse_type='ZERO', 
+                        dyn_params={'oper_dtype':Qobj},
+                        gen_stats=True)
+        assert_(result.goal_achieved, msg="Symplectic goal not achieved "
+                                        "(Qobj integration)")
+        
         # Check same result is achieved using the create objects method
         optim = cpo.create_pulse_optimizer(A0, list(A_c), 
                         initial, S_targ,
@@ -345,6 +376,23 @@ class TestPulseOptim:
                             err_msg="Hadamard infidelity too high")
         assert_almost_equal(result.final_amps[0, 0], 0.0, decimal=3, 
                             err_msg="lead in amplitude not zero")
+        # Repeat with Qobj integration
+        result = cpo.opt_pulse_crab_unitary(H_d, H_c, U_0, U_targ, 
+                n_ts, evo_time, 
+                fid_err_targ=1e-5, 
+                alg_params={'crab_pulse_params':{'randomize_coeffs':False, 
+                                                 'randomize_freqs':False}},
+                dyn_params={'oper_dtype':Qobj},
+                init_coeff_scaling=0.5,
+                guess_pulse_type='GAUSSIAN', 
+                guess_pulse_params={'variance':0.1*evo_time},
+                guess_pulse_scaling=1.0, guess_pulse_offset=1.0,
+                amp_lbound=None, amp_ubound=None,
+                ramping_pulse_type='GAUSSIAN_EDGE', 
+                ramping_pulse_params={'decay_time':evo_time/100.0},
+                gen_stats=True)
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved" 
+                                        "(Qobj integration)")
                             
     def test_load_params(self):
         """
@@ -368,7 +416,7 @@ class TestPulseOptim:
         dyn.target = U_targ
         dyn.initial = U_0
         dyn.drift_dyn_gen = H_d
-        dyn.ctrl_dyn_gen = list([H_c])
+        dyn.ctrl_dyn_gen = [H_c]
         loadparams.load_parameters(cfg.param_fpath, dynamics=dyn)
         dyn.init_timeslots()      
         n_ts = dyn.num_tslots
