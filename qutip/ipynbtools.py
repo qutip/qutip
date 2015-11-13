@@ -36,7 +36,6 @@ This module contains utility functions for using QuTiP with IPython notebooks.
 
 __all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
 
-import warnings
 from qutip.ui.progressbar import BaseProgressBar
 
 #Ipython parallel routines moved to ipyparallel in V4
