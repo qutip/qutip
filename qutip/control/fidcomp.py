@@ -59,6 +59,7 @@ in the class descriptions.
 """
 
 import os
+import warnings
 import numpy as np
 import scipy.sparse as sp
 # import scipy.linalg as la
@@ -71,8 +72,27 @@ logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.errors as errors
 
+warnings.simplefilter('always', DeprecationWarning) #turn off filter 
+def _attrib_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
-            
+def _trace(self, A):
+    """wrapper for calculating the trace"""
+    # input is an operator (Qobj, array, sparse etc), so
+    if isinstance(A, Qobj):
+        return A.tr()
+    elif isinstance(A, np.ndarray):
+        return np.trace(A)
+    else:
+        #Assume A some sparse matrix
+        return np.sum(A.diagonal())
+        
+
 class FidelityComputer:
     """
     Base class for all Fidelity Computers.
@@ -225,18 +245,31 @@ class FidelityComputer:
         self.fidelity_current = False
         # Flag gradient as needing recalculating
         self.fid_err_grad_current = False
+        
+    @property
+    def uses_evo_t2end(self):
+        _attrib_deprecation(
+                "'uses_evo_t2end' has been replaced by 'uses_evo_onwd'")
+        return self.uses_evo_onwd
+        
+    @uses_evo_t2end.setter
+    def uses_evo_t2end(self, value):
+        _attrib_deprecation(
+                "'uses_evo_t2end' has been replaced by 'uses_evo_onwd'")
+        self.uses_evo_onwd = value
+        
+    @property
+    def uses_evo_t2targ(self):
+        _attrib_deprecation(
+                "'uses_evo_t2targ' has been replaced by 'uses_evo_onto'")
+        return self.uses_evo_onto
 
-    def _trace(self, A):
-        """wrapper for calculating the trace"""
-        # input is an operator (Qobj, array, sparse etc), so
-        if isinstance(A, Qobj):
-            return A.tr()
-        elif isinstance(A, np.ndarray):
-            return np.trace(A)
-        else:
-            #Assume A some sparse matrix
-            return np.sum(A.diagonal())
-            
+    @uses_evo_t2targ.setter
+    def uses_evo_t2targ(self, value):
+        _attrib_deprecation(
+                "'uses_evo_t2targ' has been replaced by 'uses_evo_onto'")
+        self.uses_evo_onto = value
+        
 class FidCompUnitary(FidelityComputer):
     """
     Computes fidelity error and gradient assuming unitary dynamics, e.g.
@@ -338,7 +371,7 @@ class FidCompUnitary(FidelityComputer):
         try:
             if A.shape[0] == A.shape[1]:
                # input is an operator (Qobj, array, sparse etc), so
-                norm = self._trace(A)
+                norm = _trace(A)
             else:
                 raise TypeError("Cannot compute trace (not square)")
         except:
@@ -363,7 +396,7 @@ class FidCompUnitary(FidelityComputer):
         try:
             if A.shape[0] == A.shape[1]:
                # input is an operator (Qobj, array, sparse etc), so
-                norm = self._trace(A)
+                norm = _trace(A)
             else:
                 raise TypeError("Cannot compute trace (not square)")
         except:
@@ -416,7 +449,7 @@ class FidCompUnitary(FidelityComputer):
             if dyn.oper_dtype == Qobj:
                 f = (dyn._evo_fwd[k]*dyn._evo_onto[k]).tr()
             else:
-                f = self._trace(dyn._evo_fwd[k].dot(dyn._evo_onto[k]))
+                f = _trace(dyn._evo_fwd[k].dot(dyn._evo_onto[k]))
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
@@ -488,7 +521,7 @@ class FidCompUnitary(FidelityComputer):
                 if dyn.oper_dtype == Qobj:
                     g = (onto_evo*dyn._prop_grad[k, j]*fwd_evo).tr()
                 else:
-                    g = self._trace(onto_evo.dot(
+                    g = _trace(onto_evo.dot(
                                 dyn._prop_grad[k, j]).dot(fwd_evo))
                 grad[k, j] = g
         if dyn.stats is not None:
@@ -564,7 +597,7 @@ class FidCompTraceDiff(FidelityComputer):
                 self.fid_err = self.scale_factor*np.real(
                         (evo_f_diff.dag()*evo_f_diff).tr())
             else:
-                self.fid_err = self.scale_factor*np.real(self._trace(
+                self.fid_err = self.scale_factor*np.real(_trace(
                         evo_f_diff.conj().T.dot(evo_f_diff)))
 
             if np.isnan(self.fid_err):
@@ -643,7 +676,7 @@ class FidCompTraceDiff(FidelityComputer):
                     evo_grad = dyn._prop_grad[k, j].dot(fwd_evo)
                     if k+1 < n_ts:
                         evo_grad = dyn._evo_onwd[k+1].dot(evo_grad)
-                    g = -2*self.scale_factor*np.real(self._trace(
+                    g = -2*self.scale_factor*np.real(_trace(
                                     evo_f_diff.conj().T.dot(evo_grad)))
                 if np.isnan(g):
                     g = np.Inf
@@ -716,7 +749,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
                     if k+1 < n_ts:
                         evo_final_eps = evo_final_eps.dot(dyn._evo_onwd[k+1])
                     evo_f_diff_eps = dyn._target - evo_final_eps
-                    fid_err_eps = self.scale_factor*np.real(self._trace(
+                    fid_err_eps = self.scale_factor*np.real(_trace(
                         evo_f_diff_eps.conj().T.dot(evo_f_diff_eps)))
                         
                 g = (fid_err_eps - curr_fid_err)/self.epsilon

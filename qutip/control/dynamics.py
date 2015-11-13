@@ -57,6 +57,7 @@ DYNAMO - Dynamic Framework for Quantum Optimal Control
 See Machnes et.al., arXiv.1011.4874
 """
 import os
+import warnings
 import numpy as np
 import scipy.linalg as la
 import scipy.sparse as sp
@@ -87,7 +88,24 @@ def _is_string(var):
         return False
         
     return False
+			
+warnings.simplefilter('always', DeprecationWarning) #turn off filter 
+def _attrib_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
+def _func_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    
 class Dynamics:
     """
     This is a base class only. See subclass descriptions and choose an
@@ -708,6 +726,11 @@ class Dynamics:
                                                   dims=rev_dims)
         
         return self._onto_evo_target_qobj
+        
+    def get_owd_evo_target(self):
+        _func_deprecation("'get_owd_evo_target' has been replaced by "
+                         "'onto_evo_target' attribute")
+        return self.onto_evo_target
 
     def _get_onto_evo_target(self):
         """
@@ -824,12 +847,17 @@ class Dynamics:
                                     [self.num_tslots, self.get_num_ctrls()],
                                     dtype=object)
                     for k in range(self.num_tslots):
-                        for j in range():
+                        for j in range(self.get_num_ctrls()):
                             self._prop_grad_qobj[k, j] = Qobj(
                                                     self._prop_grad[k, j], 
                                                     dims=self.dyn_dims) 
         return self._prop_grad_qobj
         
+    @property
+    def evo_init2t(self):
+        _attrib_deprecation("'evo_init2t' has been replaced by 'evo_fwd'")
+        return self.evo_fwd
+	
     @property
     def evo_fwd(self):
         """
@@ -846,8 +874,12 @@ class Dynamics:
                         self._evo_fwd_qobj.append(Qobj(self._evo_fwd[k], 
                                                        dims=self.dyn_dims))
         return self._evo_fwd_qobj
-        
-        
+	
+    @property
+    def evo_t2end(self):
+        _attrib_deprecation("'evo_t2end' has been replaced by 'evo_onwd'")
+        return self.evo_onwd
+	
     @property
     def evo_onwd(self):
         """
@@ -863,6 +895,11 @@ class Dynamics:
                                             for dg in self._evo_onwd]                                               
         return self._evo_onwd_qobj
         
+    @property
+    def evo_t2targ(self):
+        _attrib_deprecation("'evo_t2targ' has been replaced by 'evo_onto'")
+        return self.evo_onto
+	
     @property
     def evo_onto(self):
         """
