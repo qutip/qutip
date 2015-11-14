@@ -124,7 +124,7 @@ def _upper_safe(s):
     return s
             
 def optimize_pulse(
-        drift, ctrls, initial, target,
+        drifts, ctrls, initial, target,
         num_tslots=None, evo_time=None, tau=None,
         amp_lbound=None, amp_ubound=None,
         fid_err_targ=1e-10, min_grad=1e-10,
@@ -157,7 +157,7 @@ def optimize_pulse(
     Parameters
     ----------
 
-    drift : Qobj
+    drifts : Qobj
         the underlying dynamics generator of the system
 
     ctrls : List of Qobj
@@ -433,7 +433,7 @@ def optimize_pulse(
             "Use 'tslot_type' instead")
 
     optim = create_pulse_optimizer(
-        drift, ctrls, initial, target,
+        drifts, ctrls, initial, target,
         num_tslots=num_tslots, evo_time=evo_time, tau=tau,
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
         fid_err_targ=fid_err_targ, min_grad=min_grad,
@@ -456,8 +456,9 @@ def optimize_pulse(
         dg_name = "dynamics generator"
         if dyn_type == 'UNIT':
             dg_name = "Hamiltonian"
-        msg += "Drift {}:\n".format(dg_name)
-        msg += str(dyn.drift_dyn_gen)
+        for j in range(dyn.num_drifts):
+            msg += "Drift {} {}:\n".format(j+1, dg_name)
+            msg += str(dyn.drift_dyn_gen[j])
         for j in range(dyn.num_ctrls):
             msg += "\nControl {} {}:\n".format(j+1, dg_name)
             msg += str(dyn.ctrl_dyn_gen[j])
@@ -470,6 +471,7 @@ def optimize_pulse(
     dyn.init_timeslots()
     # Generate initial pulses for each control
     init_amps = np.zeros([dyn.num_tslots, dyn.num_ctrls])
+    drift_amps = np.ones([dyn.num_tslots, dyn.num_drifts])
     
     if alg == 'CRAB':
         for j in range(dyn.num_ctrls):
@@ -482,7 +484,7 @@ def optimize_pulse(
             init_amps[:, j] = pgen.gen_pulse()
         
     # Initialise the starting amplitudes
-    dyn.initialize_controls(init_amps)
+    dyn.initialize_controls(init_amps, drift_amps=drift_amps)
 
     if out_file_ext is not None:
         # Save initial amplitudes to a text file
@@ -717,9 +719,13 @@ def optimize_pulse_unitary(
 
     # check parameters here, as names are different than in
     # create_pulse_optimizer, so TypeErrors would be confusing
-
-    if not isinstance(H_d, Qobj):
-        raise TypeError("H_d must be a Qobj")
+    if not isinstance(H_d, (list, tuple)):
+        if not isinstance(H_d, Qobj):
+            raise TypeError("drifts should be a Qobj or list of Qobj")
+    else:
+        for drift in H_d:
+            if not isinstance(drift, Qobj):
+                raise TypeError("drifts should be a Qobj or list of Qobj")
 
     if not isinstance(H_c, (list, tuple)):
         raise TypeError("H_c should be a list of Qobj")
@@ -779,7 +785,7 @@ def optimize_pulse_unitary(
         fid_params = {'phase_option':phase_option}
             
     return optimize_pulse(
-            drift=H_d, ctrls=H_c, initial=U_0, target=U_targ,
+            drifts=H_d, ctrls=H_c, initial=U_0, target=U_targ,
             num_tslots=num_tslots, evo_time=evo_time, tau=tau,
             amp_lbound=amp_lbound, amp_ubound=amp_ubound,
             fid_err_targ=fid_err_targ, min_grad=min_grad,
@@ -1331,7 +1337,7 @@ def opt_pulse_crab_unitary(
         log_level=log_level, out_file_ext=out_file_ext, gen_stats=gen_stats)
 
 def create_pulse_optimizer(
-        drift, ctrls, initial, target,
+        drifts, ctrls, initial, target,
         num_tslots=None, evo_time=None, tau=None,
         amp_lbound=None, amp_ubound=None,
         fid_err_targ=1e-10, min_grad=1e-10,
@@ -1570,10 +1576,18 @@ def create_pulse_optimizer(
     """
 
     # check parameters
-    if not isinstance(drift, Qobj):
-        raise TypeError("drift must be a Qobj")
+    if not isinstance(drifts, (list, tuple)):
+        if not isinstance(drifts, Qobj):
+            raise TypeError("drifts should be a Qobj or list of Qobj")
+        drifts = list([drifts.full()])
     else:
-        drift = drift.full()
+        j = 0
+        for drift in drifts:
+            if not isinstance(drift, Qobj):
+                raise TypeError("drifts should be a Qobj or a list of Qobj")
+            else:
+                drifts[j] = drift.full()
+                j += 1
 
     if not isinstance(ctrls, (list, tuple)):
         raise TypeError("ctrls should be a list of Qobj")
@@ -1798,7 +1812,7 @@ def create_pulse_optimizer(
         optim.stats = sts
 
     # Configure the dynamics
-    dyn.drift_dyn_gen = drift
+    dyn.drift_dyn_gen = drifts
     dyn.ctrl_dyn_gen = ctrls
     dyn.initial = initial
     dyn.target = target
@@ -1820,6 +1834,7 @@ def create_pulse_optimizer(
 
     # this function is called, so that the num_ctrls attribute will be set
     n_ctrls = dyn.get_num_ctrls()
+    n_drifts = dyn.get_num_drifts()
 
     ramping_pgen = None
     if ramping_pulse_type:

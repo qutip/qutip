@@ -268,6 +268,7 @@ class Optimizer:
         result = optimresult.OptimResult()
         result.initial_fid_err = self.dynamics.fid_computer.get_fid_err()
         result.initial_amps = self.dynamics.ctrl_amps.copy()
+        result.drift_amps = self.dynamics.drift_amps.copy()
         result.time = self.dynamics.time
         result.optimizer = self
         return result
@@ -284,6 +285,7 @@ class Optimizer:
 
         if term_conds is not None:
             self.termination_conditions = term_conds
+            logger.info("TERM CONDS")
         term_conds = self.termination_conditions
         
         if not isinstance(term_conds, termcond.TerminationConditions):

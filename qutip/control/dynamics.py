@@ -145,7 +145,7 @@ class Dynamics:
 
     drift_dyn_gen : Qobj
         Drift or system dynamics generator
-        Matrix defining the underlying dynamics of the system
+        List of matricies defining the underlying dynamics of the system
 
     ctrl_dyn_gen : List of Qobj
         Control dynamics generator: ctrl_dyn_gen ()
@@ -258,6 +258,7 @@ class Dynamics:
         self.initial = None
         self.target = None
         self.ctrl_amps = None
+        self.drift_amps = None
         self.initial_ctrl_scaling = 1.0
         self.initial_ctrl_offset = 0.0
         self.drift_dyn_gen = None
@@ -369,7 +370,7 @@ class Dynamics:
         """
 
         # Create containers for control Hamiltonian etc
-        shp = self.drift_dyn_gen.shape
+        shp = self.drift_dyn_gen[0].shape
         # set H to be just empty float arrays with the shape of H
         self.dyn_gen = [np.empty(shp, dtype=complex)
                         for x in range(self.num_tslots)]
@@ -402,7 +403,7 @@ class Dynamics:
         used in calculating propagators and gradients
         Note: used with PropCompDiag propagator calcs
         """
-        shp = self.drift_dyn_gen.shape
+        shp = self.drift_dyn_gen[0].shape
         n_ts = self.num_tslots
         self.decomp_curr = [False for x in range(n_ts)]
         self.prop_eigen = \
@@ -421,7 +422,7 @@ class Dynamics:
                                 " attribute is not set.")
                     cfg.clear_test_out_flags()
 
-    def initialize_controls(self, amps, init_tslots=True):
+    def initialize_controls(self, ctrl_amps, drift_amps=None, init_tslots=True):
         """
         Set the initial control amplitudes and time slices
         Note this must be called after the configuration is complete
@@ -448,6 +449,16 @@ class Dynamics:
         # Note this call is made just to initialise the num_ctrls attrib
         self.get_num_ctrls()
 
+        if drift_amps is None:
+            if self.get_num_drifts() > 1:
+                print(self.drift_dyn_gen)
+                raise errors.UsageError("No drift amplitudes were"
+                "provided. There are {} drifts".format(self.get_num_drifts()))
+            # Backwards compatibilty constant drift
+            self.drift_amps = np.ones([self.num_tslots, self.get_num_drifts()])
+        else:
+            self.drift_amps = drift_amps
+
         if not self._timeslots_initialized:
             init_tslots = True
         if init_tslots:
@@ -456,7 +467,8 @@ class Dynamics:
         self.tslot_computer.init_comp()
         self.fid_computer.init_comp()
         self._ctrls_initialized = True
-        self.update_ctrl_amps(amps)
+        self.update_ctrl_amps(ctrl_amps)
+
 
     def check_ctrls_initialized(self):
         if not self._ctrls_initialized:
@@ -564,10 +576,10 @@ class Dynamics:
         Returns the size of the matrix that defines the drift dynamics
         that is assuming the drift is NxN, then this returns N
         """
-        if not isinstance(self.drift_dyn_gen, np.ndarray):
+        if not isinstance(self.drift_dyn_gen[0], np.ndarray):
             raise TypeError("Cannot get drift dimension, "
                             "as drift not set (correctly).")
-        return self.drift_dyn_gen.shape[0]
+        return self.drift_dyn_gen[0].shape[0]
 
     def get_num_ctrls(self):
         """
@@ -576,7 +588,19 @@ class Dynamics:
         subsequently
         """
         self.num_ctrls = len(self.ctrl_dyn_gen)
+
         return self.num_ctrls
+
+    def get_num_drifts(self):
+        """
+        calculate the of drifts from the length of the drift list
+        sets the num_drifts property, which can be used alternatively
+        subsequently
+        """
+
+        self.num_drifts = len(self.drift_dyn_gen)
+
+        return self.num_drifts
 
     def get_owd_evo_target(self):
         """
@@ -590,10 +614,14 @@ class Dynamics:
         Computes the dynamics generator for a given timeslot
         The is the combined Hamiltion for unitary systems
         """
-        dg = np.asarray(self.drift_dyn_gen)
-        for j in range(self.get_num_ctrls()):
-            dg = dg + self.ctrl_amps[k, j]*np.asarray(self.ctrl_dyn_gen[j])
-        return dg
+
+        dg = np.sum(self.drift_amps[k, j]*np.asarray(self.drift_dyn_gen[j])
+            for j in range(self.get_num_drifts()))
+
+        cg = np.sum(self.ctrl_amps[k, j] * np.asarray(self.ctrl_dyn_gen[j])
+            for j in range(self.get_num_ctrls()))
+
+        return dg+cg
 
     def get_dyn_gen(self, k):
         """
@@ -693,7 +721,7 @@ class DynamicsUnitary(Dynamics):
     Attributes
     ----------
     drift_ham : Qobj
-        This is the drift Hamiltonian for unitary dynamics
+        These are the drift Hamiltonians for unitary dynamics
         It is mapped to drift_dyn_gen during initialize_controls
 
     ctrl_ham : List of Qobj
@@ -731,12 +759,12 @@ class DynamicsUnitary(Dynamics):
         # set the default propagator computer
         self.prop_computer = propcomp.PropCompDiag(self)
 
-    def initialize_controls(self, amplitudes, init_tslots=True):
+    def initialize_controls(self, amplitudes, drift_amps=None, init_tslots=True):
         # Either the _dyn_gen or _ham names can be used
         # This assumes that one or other has been set in the configuration
 
         self._map_dyn_gen_to_ham()
-        Dynamics.initialize_controls(self, amplitudes, init_tslots=init_tslots)
+        Dynamics.initialize_controls(self, amplitudes, drift_amps=drift_amps, init_tslots=init_tslots)
         self.H = self.dyn_gen
 
     def _map_dyn_gen_to_ham(self):
@@ -770,6 +798,11 @@ class DynamicsUnitary(Dynamics):
         if not self._dyn_gen_mapped:
             self._map_dyn_gen_to_ham()
         return Dynamics.get_num_ctrls(self)
+
+    def get_num_drifts(self):
+        if not self._dyn_gen_mapped:
+            self._map_dyn_gen_to_ham()
+        return Dynamics.get_num_drifts(self)
 
     def get_owd_evo_target(self):
         return self.target.conj().T
@@ -859,7 +892,7 @@ class DynamicsSymplectic(Dynamics):
 
     def get_omega(self):
         if self.omega is None:
-            n = self.drift_dyn_gen.shape[0] // 2
+            n = self.drift_dyn_gen[0].shape[0] // 2
             self.omega = sympl.calc_omega(n)
 
         return self.omega
