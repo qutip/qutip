@@ -209,6 +209,18 @@ class TestSuperopReps(object):
         assert_equal(A.dims, [[2, 3, 1], [2, 3]])
         assert_equal(B.dims, [[2, 3, 1], [2, 3]])
 
+    def test_chi_choi_roundtrip(self):
+        def case(qobj):
+            qobj = to_chi(qobj)
+            rt_qobj = to_chi(to_choi(qobj))
+
+            assert_almost_equal(rt_qobj.data.toarray(), qobj.data.toarray())
+            assert_equal(rt_qobj.type, qobj.type)
+            assert_equal(rt_qobj.dims, qobj.dims)
+
+        for N in (2, 4, 8):
+            yield case, rand_super_bcsz(N)
+
     def test_chi_known(self):
         """
         Superoperator: Chi-matrix for known cases is correct.

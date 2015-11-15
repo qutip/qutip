@@ -38,11 +38,11 @@ from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
-                                  rand_super)
+                                  rand_super, rand_super_bcsz)
 from qutip.states import basis, fock_dm, ket2dm
 from qutip.operators import create, destroy, num, sigmax, sigmay
 from qutip.superoperator import spre, spost, operator_to_vector
-from qutip.superop_reps import to_super
+from qutip.superop_reps import to_super, to_choi, to_chi
 from qutip.tensor import tensor, super_tensor, composite
 
 from operator import add, mul, truediv, sub
@@ -651,6 +651,24 @@ def test_SuperType():
     assert_equal(sop.isbra, False)
     assert_equal(sop.isoper, False)
     assert_equal(sop.issuper, True)
+
+
+def test_dag_preserves_superrep():
+    """
+    Checks that dag() preserves superrep.
+    """
+
+    def case(qobj):
+        orig_superrep = qobj.superrep
+        assert_equal(qobj.dag().superrep, orig_superrep)
+
+    for dim in (2, 4, 8):
+        qobj = rand_super_bcsz(dim)
+        yield case, to_super(qobj)
+        # These two shouldn't even do anything, since qobj
+        # is Hermicity-preserving.
+        yield case, to_choi(qobj)
+        yield case, to_chi(qobj)
 
 
 def test_arithmetic_preserves_superrep():
