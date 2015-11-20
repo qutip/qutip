@@ -45,7 +45,7 @@ Class containing the results of the pulse optimisation
 import numpy as np
 
 
-class OptimResult:
+class OptimResult(object):
     """
     Attributes give the result of the pulse optimisation attempt
 

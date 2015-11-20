@@ -52,7 +52,7 @@ logger = qutip.logging_utils.get_logger()
 TEST_OUT_DIR = "test_out"
 
 
-class OptimConfig:
+class OptimConfig(object):
     """
     Configuration parameters for control pulse optimisation
 

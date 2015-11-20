@@ -109,7 +109,7 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
         raise ValueError("No option for pulse_type '{}'".format(pulse_type))
 
 
-class PulseGen:
+class PulseGen(object):
     """
     Pulse generator
     Base class for all Pulse generators

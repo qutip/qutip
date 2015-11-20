@@ -86,10 +86,10 @@ def _is_string(var):
             return False
     except:
         return False
-        
+
     return False
-			
-warnings.simplefilter('always', DeprecationWarning) #turn off filter 
+
+warnings.simplefilter('always', DeprecationWarning) #turn off filter
 def _attrib_deprecation(message, stacklevel=3):
     """
     Issue deprecation warning
@@ -105,8 +105,8 @@ def _func_deprecation(message, stacklevel=3):
     calling with the deprecated parameter,
     """
     warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
-    
-class Dynamics:
+
+class Dynamics(object):
     """
     This is a base class only. See subclass descriptions and choose an
     appropriate one for the application.
@@ -114,7 +114,7 @@ class Dynamics:
     Note that initialize_controls must be called before most of the methods
     can be used. init_timeslots can be called sometimes earlier in order
     to access timeslot related attributes
-    
+
     This acts as a container for the operators that are used to calculate
     time evolution of the system under study. That is the dynamics generators
     (Hamiltonians, Lindbladians etc), the propagators from one timeslot to
@@ -151,16 +151,16 @@ class Dynamics:
     fid_computer : FidelityComputer (subclass instance)
         Used to computer the fidelity error and the fidelity error
         gradient.
-        
+
     memory_optimization : int
         Level of memory optimisation. Setting to 0 (default) means that
-        execution speed is prioritized over memory. 
+        execution speed is prioritized over memory.
         Setting to 1 means that some memory prioritisation steps will be
-        taken, for instance using Qobj (and hence sparse arrays) as the 
+        taken, for instance using Qobj (and hence sparse arrays) as the
         the internal operator data type.
-        Potentially further memory saving maybe made with 
+        Potentially further memory saving maybe made with
         memory_optimization > 1
-        
+
     oper_dtype : type
         Data type for internal dynamics generators, propagators and time
         evolution operators. This can be ndarray or Qobj, or (in theory) any
@@ -316,7 +316,7 @@ class Dynamics:
         self._evo_onwd = None
         self._evo_onto = None
         # The _qobj attribs are Qobj representations of the equivalent
-        # internal attribute. They are only set when the extenal accessors 
+        # internal attribute. They are only set when the extenal accessors
         # are used
         self._onto_evo_target_qobj = None
         self._dyn_gen_qobj = None
@@ -343,17 +343,17 @@ class Dynamics:
         self._dyn_gen_mapped = False
         self._timeslots_initialized = False
         self._ctrls_initialized = False
-        
+
         self.apply_params()
 
         # Create the computing objects
         self._create_computers()
 
         self.clear()
-        
+
     def apply_params(self, params=None):
         """
-        Set object attributes based on the dictionary (if any) passed in the 
+        Set object attributes based on the dictionary (if any) passed in the
         instantiation, or passed as a parameter
         This is called during the instantiation automatically.
         The key value pairs are the attribute name and value
@@ -362,12 +362,12 @@ class Dynamics:
         """
         if not params:
             params = self.params
-        
+
         if isinstance(params, dict):
             self.params = params
             for key in params:
                 setattr(self, key, params[key])
-                
+
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -417,14 +417,14 @@ class Dynamics:
         # set the cumulative time by summing the time intervals
         for t in range(self.num_tslots):
             self.time[t+1] = self.time[t] + self.tau[t]
-        
+
         self._timeslots_initialized = True
-        
+
     def _choose_oper_dtype(self):
         """
         Attempt select most efficient internal operator data type
         """
-        
+
         if self.memory_optimization > 0:
             self.oper_dtype = Qobj
         else:
@@ -435,10 +435,10 @@ class Dynamics:
             dg = self.drift_dyn_gen
             for c in self.ctrl_dyn_gen:
                dg = dg + c
-               
+
             N = dg.data.shape[0]
             n = dg.data.nnz
-    
+
             if N ** 2 < 100 * n:
                 # large number of nonzero elements, revert to dense solver
                 self.oper_dtype = np.ndarray
@@ -448,9 +448,9 @@ class Dynamics:
             else:
                 # small system, but quite sparse -> qutips sparse/dense method
                 self.oper_dtype = np.ndarray
-            
+
         return self.oper_dtype
-        
+
     def _init_evo(self):
         """
         Create the container lists / arrays for the:
@@ -460,20 +460,20 @@ class Dynamics:
         # check evolution operators
         if not isinstance(self.drift_dyn_gen, Qobj):
             raise TypeError("drift must be a Qobj")
-    
+
         if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
             raise TypeError("ctrls should be a list of Qobj")
         else:
             for ctrl in self.ctrl_dyn_gen:
                 if not isinstance(ctrl, Qobj):
                     raise TypeError("ctrls should be a list of Qobj")
-    
+
         if not isinstance(self.initial, Qobj):
             raise TypeError("initial must be a Qobj")
-    
+
         if not isinstance(self.target, Qobj):
             raise TypeError("target must be a Qobj")
-            
+
         if self.oper_dtype is None:
             self._choose_oper_dtype()
             logger.info("Internal operator data type choosen to be {}".format(
@@ -481,7 +481,7 @@ class Dynamics:
         else:
             logger.info("Using operator data type {}".format(
                             self.oper_dtype))
-        
+
         self.dyn_dims = self.drift_dyn_gen.dims
         self.dyn_shape = self.drift_dyn_gen.shape
         self.sys_dims = self.initial.dims
@@ -506,7 +506,7 @@ class Dynamics:
                 "Assuming that internal drift, ctrls, initial and target "
                 "have been set correctly".format(self.oper_dtype))
         if self.memory_optimization == 0:
-            self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl) 
+            self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
                                             for ctrl in self._ctrl_dyn_gen]
         self._dyn_gen = [object for x in range(self.num_tslots)]
         if self.memory_optimization == 0:
@@ -598,7 +598,7 @@ class Dynamics:
 
     def get_amp_times(self):
         return self.time[:self.num_tslots]
-        
+
     def save_amps(self, file_name=None, times=None, amps=None, verbose=False):
         """
         Save a file with the current control amplitudes in each timeslot
@@ -640,7 +640,7 @@ class Dynamics:
                     logger.warn("Unknown option for times '{}' "
                                 "when saving amplitudes".format(times))
                     times = self.get_amp_times()
-            
+
         try:
             if inctimes:
                 shp = amps.shape
@@ -711,22 +711,22 @@ class Dynamics:
         """
         self.num_ctrls = len(self.ctrl_dyn_gen)
         return self.num_ctrls
-        
+
     @property
     def onto_evo_target(self):
         if self._onto_evo_target is None:
             self._get_onto_evo_target()
-            
-        if self._onto_evo_target_qobj is None:   
+
+        if self._onto_evo_target_qobj is None:
             if isinstance(self._onto_evo_target, Qobj):
                 self._onto_evo_target_qobj = self._onto_evo_target
             else:
                 rev_dims = [self.sys_dims[1], self.sys_dims[0]]
-                self._onto_evo_target_qobj = Qobj(self._onto_evo_target, 
+                self._onto_evo_target_qobj = Qobj(self._onto_evo_target,
                                                   dims=rev_dims)
-        
+
         return self._onto_evo_target_qobj
-        
+
     def get_owd_evo_target(self):
         _func_deprecation("'get_owd_evo_target' has been replaced by "
                          "'onto_evo_target' attribute")
@@ -738,9 +738,9 @@ class Dynamics:
         Used for calculating the 'onto target' evolution
         This is actually only relevant for unitary dynamics where
         the target.dag() is what is required
-        However, for completeness, in general the inverse of the target 
+        However, for completeness, in general the inverse of the target
         operator is is required
-        For state-to-state, the bra corresponding to the is required ket 
+        For state-to-state, the bra corresponding to the is required ket
         """
         if self.target.shape[0] == self.target.shape[1]:
             #Target is operator
@@ -764,9 +764,9 @@ class Dynamics:
             else:
                 targ_cls = self._target.__class__
                 self._onto_evo_target = targ_cls(self.target.dag().full())
-                
+
         return self._onto_evo_target
-        
+
 
     def _combine_dyn_gen(self, k):
         """
@@ -777,7 +777,7 @@ class Dynamics:
         dg = self._drift_dyn_gen
         for j in range(self.get_num_ctrls()):
             dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
-        
+
         self._dyn_gen[k] = dg
         if self.memory_optimization == 0:
             self._phased_dyn_gen[k] = self._apply_phase(dg)
@@ -788,58 +788,58 @@ class Dynamics:
         """
         raise errors.UsageError("Not implemented in the baseclass."
                                 " Choose a subclass")
-                                
+
     def _get_phased_dyn_gen(self, k):
         if self._phased_dyn_gen is not None:
             return self._phased_dyn_gen[k]
         else:
             return self._apply_phase(self._dyn_gen[k])
-            
+
     def _get_phased_ctrl_dyn_gen(self, j):
         if self._phased_ctrl_dyn_gen is not None:
             return self._phased_ctrl_dyn_gen[j]
         else:
             return self._apply_phase(self._ctrl_dyn_gen[j])
-            
+
 #    self.evo_fwd = None
 #    self.evo_onwd = None
 #    self.evo_onto = None
-        
+
     @property
     def dyn_gen(self):
         """
         List of combined dynamics generators (Qobj) for each timeslot
         """
-        if self._dyn_gen is not None:           
-            if self._dyn_gen_qobj is None:   
+        if self._dyn_gen is not None:
+            if self._dyn_gen_qobj is None:
                 if self.oper_dtype == Qobj:
                     self._dyn_gen_qobj = self._dyn_gen
                 else:
-                    self._dyn_gen_qobj = [Qobj(dg, dims=self.dyn_dims) 
+                    self._dyn_gen_qobj = [Qobj(dg, dims=self.dyn_dims)
                                             for dg in self._dyn_gen]
         return self._dyn_gen_qobj
-        
+
     @property
     def prop(self):
         """
         List of propagators (Qobj) for each timeslot
         """
         if self._prop is not None:
-            if self._prop_qobj is None:   
+            if self._prop_qobj is None:
                 if self.oper_dtype == Qobj:
                     self._prop_qobj = self._prop
                 else:
-                    self._prop_qobj = [Qobj(dg, dims=self.dyn_dims) 
+                    self._prop_qobj = [Qobj(dg, dims=self.dyn_dims)
                                             for dg in self._prop]
         return self._prop_qobj
-        
+
     @property
     def prop_grad(self):
         """
         Array of propagator gradients (Qobj) for each timeslot, control
         """
         if self._prop_grad is not None:
-            if self._prop_grad_qobj is None:   
+            if self._prop_grad_qobj is None:
                 if self.oper_dtype == Qobj:
                     self._prop_grad_qobj = self._prop_grad
                 else:
@@ -849,15 +849,15 @@ class Dynamics:
                     for k in range(self.num_tslots):
                         for j in range(self.get_num_ctrls()):
                             self._prop_grad_qobj[k, j] = Qobj(
-                                                    self._prop_grad[k, j], 
-                                                    dims=self.dyn_dims) 
+                                                    self._prop_grad[k, j],
+                                                    dims=self.dyn_dims)
         return self._prop_grad_qobj
-        
+
     @property
     def evo_init2t(self):
         _attrib_deprecation("'evo_init2t' has been replaced by 'evo_fwd'")
         return self.evo_fwd
-	
+
     @property
     def evo_fwd(self):
         """
@@ -865,21 +865,21 @@ class Dynamics:
         timeslot
         """
         if self._evo_fwd is not None:
-            if self._evo_fwd_qobj is None:   
+            if self._evo_fwd_qobj is None:
                 if self.oper_dtype == Qobj:
                     self._evo_fwd_qobj = self._evo_fwd
                 else:
                     self._evo_fwd_qobj = [self.initial]
                     for k in range(1, self.num_tslots+1):
-                        self._evo_fwd_qobj.append(Qobj(self._evo_fwd[k], 
+                        self._evo_fwd_qobj.append(Qobj(self._evo_fwd[k],
                                                        dims=self.dyn_dims))
         return self._evo_fwd_qobj
-	
+
     @property
     def evo_t2end(self):
         _attrib_deprecation("'evo_t2end' has been replaced by 'evo_onwd'")
         return self.evo_onwd
-	
+
     @property
     def evo_onwd(self):
         """
@@ -891,15 +891,15 @@ class Dynamics:
                 if self.oper_dtype == Qobj:
                     self._evo_onwd_qobj = self._evo_fwd
                 else:
-                    self._evo_onwd_qobj = [Qobj(dg, dims=self.dyn_dims) 
-                                            for dg in self._evo_onwd]                                               
+                    self._evo_onwd_qobj = [Qobj(dg, dims=self.dyn_dims)
+                                            for dg in self._evo_onwd]
         return self._evo_onwd_qobj
-        
+
     @property
     def evo_t2targ(self):
         _attrib_deprecation("'evo_t2targ' has been replaced by 'evo_onto'")
         return self.evo_onto
-	
+
     @property
     def evo_onto(self):
         """
@@ -907,18 +907,18 @@ class Dynamics:
         timeslot
         """
         if self._evo_onto is not None:
-            if self._evo_onto_qobj is None:   
+            if self._evo_onto_qobj is None:
                 if self.oper_dtype == Qobj:
                     self._evo_onto_qobj = self._evo_onto
                 else:
                     self._evo_onto_qobj = []
                     for k in range(0, self.num_tslots):
-                        self._evo_onto_qobj.append(Qobj(self._evo_onto[k], 
+                        self._evo_onto_qobj.append(Qobj(self._evo_onto[k],
                                                        dims=self.dyn_dims))
                     self._evo_onto_qobj.append(self.onto_evo_target)
-                    
+
         return self._evo_onto_qobj
-        
+
     def compute_evolution(self):
         """
         Recalculate the time evolution operators
@@ -1070,7 +1070,7 @@ class DynamicsUnitary(Dynamics):
         else:
             self._onto_evo_target = self._target.T.conj()
         return self._onto_evo_target
-        
+
     def _spectral_decomp(self, k):
         """
         Calculates the diagonalization of the dynamics generator
@@ -1082,14 +1082,14 @@ class DynamicsUnitary(Dynamics):
             sparse = True
         else:
             sparse = False
-        
+
         if self.oper_dtype == Qobj:
             H = self._dyn_gen[k]
             # Returns eigenvalues as array (row)
             # and eigenvectors as rows of an array
             eig_val, eig_vec = sp_eigs(H.data, H.isherm, sparse=sparse)
             eig_vec = eig_vec.T
-                            
+
         elif self.oper_dtype == np.ndarray:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
@@ -1101,10 +1101,10 @@ class DynamicsUnitary(Dynamics):
                 H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
             eig_val, eig_vec = la.eigh(H)
-            
+
         # assuming H is an nxn matrix, find n
         n = self.get_drift_dim()
-        
+
         # Calculate the propagator in the diagonalised basis
         eig_val_tau = -1j*eig_val*self.tau[k]
         prop_eig = np.exp(eig_val_tau)
@@ -1131,18 +1131,18 @@ class DynamicsUnitary(Dynamics):
         # for degenerate eigenvalues the factor is just the exponent
         factors[degen_mask] = prop_eig_cols[degen_mask]
 
-        # Store eigenvectors, propagator and factor matric 
+        # Store eigenvectors, propagator and factor matric
         # for use in propagator computations
         self._decomp_curr[k] = True
         if isinstance(factors, np.ndarray):
             self._dyn_gen_factormatrix[k] = factors
         else:
             self._dyn_gen_factormatrix[k] = np.array(factors)
-        
+
         if self.oper_dtype == Qobj:
-            self._prop_eigen[k] = Qobj(np.diagflat(prop_eig), 
+            self._prop_eigen[k] = Qobj(np.diagflat(prop_eig),
                                                     dims=self.dyn_dims)
-            self._dyn_gen_eigenvectors[k] = Qobj(eig_vec, 
+            self._dyn_gen_eigenvectors[k] = Qobj(eig_vec,
                                                 dims=self.dyn_dims)
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
@@ -1162,7 +1162,7 @@ class DynamicsUnitary(Dynamics):
                 return self._dyn_gen_eigenvectors[k].dag()
             else:
                 return self._dyn_gen_eigenvectors[k].conj().T
-        
+
 class DynamicsSymplectic(Dynamics):
     """
     Symplectic systems
@@ -1219,7 +1219,7 @@ class DynamicsSymplectic(Dynamics):
             else:
                  self._omega = omg
         return self._omega
-        
+
     def _apply_phase(self, dg):
         """
         Get the combined dynamics generator for the timeslot
@@ -1230,6 +1230,5 @@ class DynamicsSymplectic(Dynamics):
             dg = -dg*o
         else:
             dg = -dg.dot(o)
-        
+
         return dg
-        

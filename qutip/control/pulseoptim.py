@@ -1772,6 +1772,11 @@ def create_pulse_optimizer(
     else:
         raise errors.UsageError("No option for fid_type: " + fid_type)
     dyn.fid_computer.apply_params(fid_params)
+    
+    # Currently the only working option for tslot computer is 
+    # TSlotCompUpdateAll.
+    # so just apply the parameters
+    dyn.tslot_computer.apply_params(tslot_params)    
 
     # Create the Optimiser instance
     optim_method_up = _upper_safe(optim_method)

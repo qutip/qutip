@@ -61,7 +61,7 @@ logger = logging.get_logger()
 from qutip.control import errors
 
 
-class PropagatorComputer:
+class PropagatorComputer(object):
     """
     Base for all  Propagator Computer classes
     that are used to calculate the propagators,

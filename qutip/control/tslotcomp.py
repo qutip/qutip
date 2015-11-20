@@ -77,7 +77,7 @@ import qutip.logging_utils as logging
 logger = logging.get_logger()
 
 
-class TimeslotComputer:
+class TimeslotComputer(object):
     """
     Base class for all Timeslot Computers
     Note: this must be instantiated with a Dynamics object, that is the

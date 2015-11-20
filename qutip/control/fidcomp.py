@@ -72,7 +72,7 @@ logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.errors as errors
 
-warnings.simplefilter('always', DeprecationWarning) #turn off filter 
+warnings.simplefilter('always', DeprecationWarning) #turn off filter
 def _attrib_deprecation(message, stacklevel=3):
     """
     Issue deprecation warning
@@ -81,7 +81,7 @@ def _attrib_deprecation(message, stacklevel=3):
     """
     warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
-def _trace(self, A):
+def _trace(A):
     """wrapper for calculating the trace"""
     # input is an operator (Qobj, array, sparse etc), so
     if isinstance(A, Qobj):
@@ -91,9 +91,9 @@ def _trace(self, A):
     else:
         #Assume A some sparse matrix
         return np.sum(A.diagonal())
-        
 
-class FidelityComputer:
+
+class FidelityComputer(object):
     """
     Base class for all Fidelity Computers.
     This cannot be used directly. See subclass descriptions and choose
@@ -189,7 +189,7 @@ class FidelityComputer:
 
     def apply_params(self, params=None):
         """
-        Set object attributes based on the dictionary (if any) passed in the 
+        Set object attributes based on the dictionary (if any) passed in the
         instantiation, or passed as a parameter
         This is called during the instantiation automatically.
         The key value pairs are the attribute name and value
@@ -198,12 +198,12 @@ class FidelityComputer:
         """
         if not params:
             params = self.params
-        
+
         if isinstance(params, dict):
             self.params = params
             for key in params:
                 setattr(self, key, params[key])
-                
+
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -245,19 +245,19 @@ class FidelityComputer:
         self.fidelity_current = False
         # Flag gradient as needing recalculating
         self.fid_err_grad_current = False
-        
+
     @property
     def uses_evo_t2end(self):
         _attrib_deprecation(
                 "'uses_evo_t2end' has been replaced by 'uses_evo_onwd'")
         return self.uses_evo_onwd
-        
+
     @uses_evo_t2end.setter
     def uses_evo_t2end(self, value):
         _attrib_deprecation(
                 "'uses_evo_t2end' has been replaced by 'uses_evo_onwd'")
         self.uses_evo_onwd = value
-        
+
     @property
     def uses_evo_t2targ(self):
         _attrib_deprecation(
@@ -269,7 +269,7 @@ class FidelityComputer:
         _attrib_deprecation(
                 "'uses_evo_t2targ' has been replaced by 'uses_evo_onto'")
         self.uses_evo_onto = value
-        
+
 class FidCompUnitary(FidelityComputer):
     """
     Computes fidelity error and gradient assuming unitary dynamics, e.g.
@@ -283,7 +283,7 @@ class FidCompUnitary(FidelityComputer):
         determines how global phase is treated in fidelity calculations:
             PSU - global phase ignored
             SU - global phase included
-            
+
     fidelity_prenorm : complex
         Last computed value of the fidelity before it is normalised
         It is stored to use in the gradient normalisation calculation
@@ -314,7 +314,7 @@ class FidCompUnitary(FidelityComputer):
         """
         if phase_option is None:
             phase_option = self.phase_option
-            
+
         if phase_option == 'PSU':
             self.fid_norm_func = self.normalize_PSU
             self.grad_norm_func = self.normalize_gradient_PSU
@@ -345,7 +345,7 @@ class FidCompUnitary(FidelityComputer):
         FidelityComputer.flag_system_changed(self)
         # Flag the fidelity (prenormalisation) value as needing calculation
         self.fidelity_prenorm_current = False
-        
+
 
     def init_normalization(self):
         """
@@ -562,7 +562,7 @@ class FidCompTraceDiff(FidelityComputer):
                 "This FidelityComputer can only be"
                 " used with an exact gradient PropagatorComputer.")
         self.apply_params()
-        
+
     def init_comp(self):
         """
         initialises the computer based on the configuration of the Dynamics
@@ -657,8 +657,8 @@ class FidCompTraceDiff(FidelityComputer):
 
         # loop through all ctrl timeslots calculating gradients
         time_st = timeit.default_timer()
-        
-        
+
+
         evo_final = dyn._evo_fwd[n_ts]
         evo_f_diff = dyn._target - evo_final
         for j in range(n_ctrls):
@@ -668,7 +668,7 @@ class FidCompTraceDiff(FidelityComputer):
                     evo_grad = dyn._prop_grad[k, j]*fwd_evo
                     if k+1 < n_ts:
                         evo_grad = dyn._evo_onwd[k+1]*evo_grad
-                    # Note that the value should have not imagnary part, so 
+                    # Note that the value should have not imagnary part, so
                     # using np.real, just avoids the complex casting warning
                     g = -2*self.scale_factor*np.real(
                                     (evo_f_diff.dag()*evo_grad).tr())
@@ -740,7 +740,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
                     if k+1 < n_ts:
                         evo_final_eps = evo_final_eps*dyn._evo_onwd[k+1]
                     evo_f_diff_eps = dyn._target - evo_final_eps
-                    # Note that the value should have not imagnary part, so 
+                    # Note that the value should have not imagnary part, so
                     # using np.real, just avoids the complex casting warning
                     fid_err_eps = self.scale_factor*np.real(
                         (evo_f_diff_eps.dag()*evo_f_diff_eps).tr())
@@ -751,13 +751,13 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
                     evo_f_diff_eps = dyn._target - evo_final_eps
                     fid_err_eps = self.scale_factor*np.real(_trace(
                         evo_f_diff_eps.conj().T.dot(evo_f_diff_eps)))
-                        
+
                 g = (fid_err_eps - curr_fid_err)/self.epsilon
                 if np.isnan(g):
                     g = np.Inf
 
                 grad[k, j] = g
-                
+
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
                 timeit.default_timer() - time_st

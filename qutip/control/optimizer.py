@@ -99,7 +99,7 @@ import qutip.control.errors as errors
 import qutip.control.dynamics as dynamics
 import qutip.control.pulsegen as pulsegen
 
-class Optimizer:
+class Optimizer(object):
     """
     Base class for all control pulse optimisers. This class should not be
     instantiated, use its subclasses
@@ -264,6 +264,8 @@ class Optimizer:
         This is called by run_optimization, but could called independently
         to check the configuration.
         """
+        
+        
 
         self._check_prepare_test_out_files()
 
