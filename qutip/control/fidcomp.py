@@ -503,7 +503,7 @@ class FidCompUnitary(FidelityComputer):
         These are returned as a (nTimeslots x n_ctrls) array
         """
         dyn = self.parent
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         n_ts = dyn.num_tslots
 
         # create n_ts x n_ctrls zero array for grad start point
@@ -646,7 +646,7 @@ class FidCompTraceDiff(FidelityComputer):
         These are returned as a (nTimeslots x n_ctrls) array
         """
         dyn = self.parent
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         n_ts = dyn.num_tslots
 
         # create n_ts x n_ctrls zero array for grad start point
@@ -716,7 +716,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
         """
         dyn = self.parent
         prop_comp = dyn.prop_computer
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         n_ts = dyn.num_tslots
 
         if self.log_level >= logging.DEBUG:

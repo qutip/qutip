@@ -1853,7 +1853,7 @@ def create_pulse_optimizer(
         dyn.tau = tau
 
     # this function is called, so that the num_ctrls attribute will be set
-    n_ctrls = dyn.get_num_ctrls()
+    n_ctrls = dyn.num_ctrls
 
     ramping_pgen = None
     if ramping_pulse_type:

@@ -205,7 +205,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
         dyn = self.parent
         prop_comp = dyn.prop_computer
         n_ts = dyn.num_tslots
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         
         # Clear the public lists
         # These are only set if (external) users access them

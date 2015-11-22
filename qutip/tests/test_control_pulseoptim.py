@@ -420,7 +420,7 @@ class TestPulseOptim:
         loadparams.load_parameters(cfg.param_fpath, dynamics=dyn)
         dyn.init_timeslots()      
         n_ts = dyn.num_tslots
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         
         pgen = pulsegen.create_pulse_gen(pulse_type=cfg.pulse_type, dyn=dyn)
         loadparams.load_parameters(cfg.param_fpath, pulsegen=pgen)

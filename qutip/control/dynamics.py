@@ -74,6 +74,9 @@ import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
 
+DEF_NUM_TSLOTS = 10
+DEF_EVO_TIME = 1.0
+
 def _is_string(var):
     try:
         if isinstance(var, basestring):
@@ -172,12 +175,12 @@ class Dynamics(object):
         See _choose_oper_dtype for how this is chosen when not specified
 
     num_tslots : integer
-        Number of timeslots, aka timeslices
+        Number of timeslots (aka timeslices)
 
     num_ctrls : integer
         Number of controls.
-        Note this is set when get_num_ctrls is called based on the
-        length of ctrl_dyn_gen
+        Note this is calculated as the length of ctrl_dyn_gen when first used.
+        And is recalculated during initialise_controls only.      
 
     evo_time : float
         Total time for the evolution
@@ -281,9 +284,6 @@ class Dynamics(object):
         # Link to optimiser object if self is linked to one
         self.parent = None
         # Main functional attributes
-        self.evo_time = 1
-        self.num_tslots = 10
-        self.tau = None
         self.time = None
         self.initial = None
         self.target = None
@@ -292,6 +292,10 @@ class Dynamics(object):
         self.initial_ctrl_offset = 0.0
         self.drift_dyn_gen = None
         self.ctrl_dyn_gen = None
+        self._tau = None
+        self._evo_time = None
+        self._num_ctrls = None
+        self._num_tslots = None
         # attributes used for processing evolution
         self.memory_optimization = 0
         self.oper_dtype = None
@@ -396,7 +400,44 @@ class Dynamics(object):
         self.evo_current = False
         if self.fid_computer is not None:
             self.fid_computer.clear()
-
+            
+    @property
+    def num_tslots(self):
+        if not self._timeslots_initialized:
+            self.init_timeslots()
+        return self._num_tslots
+        
+    @num_tslots.setter
+    def num_tslots(self, value):
+        self._num_tslots = value
+        if self._timeslots_initialized:
+            self._tau = None
+            self.init_timeslots()
+            
+    @property
+    def evo_time(self):
+        if not self._timeslots_initialized:
+            self.init_timeslots()
+        return self._evo_time
+        
+    @evo_time.setter
+    def evo_time(self, value):
+        self._evo_time = value
+        if self._timeslots_initialized:
+            self._tau = None
+            self.init_timeslots()
+            
+    @property
+    def tau(self):
+        if not self._timeslots_initialized:
+            self.init_timeslots()
+        return self._tau
+        
+    @tau.setter
+    def tau(self, value):
+        self._tau = value
+        self.init_timeslots()
+        
     def init_timeslots(self):
         """
         Generate the timeslot duration array 'tau' based on the evo_time
@@ -406,17 +447,22 @@ class Dynamics(object):
         """
         # set the time intervals to be equal timeslices of the total if
         # the have not been set already (as part of user config)
-        if self.tau is None:
-            self.tau = np.ones(self.num_tslots, dtype='f') * \
-                self.evo_time/self.num_tslots
+        if self._num_tslots is None:
+            self._num_tslots = DEF_NUM_TSLOTS
+        if self._evo_time is None:
+            self._evo_time = DEF_EVO_TIME
+            
+        if self._tau is None:
+            self._tau = np.ones(self._num_tslots, dtype='f') * \
+                self._evo_time/self._num_tslots
         else:
-            self.num_tslots = len(self.tau)
-            self.evo_time = np.sum(self.tau)
+            self._num_tslots = len(self._tau)
+            self._evo_time = np.sum(self.tau)
 
-        self.time = np.zeros(self.num_tslots+1, dtype=float)
+        self.time = np.zeros(self._num_tslots+1, dtype=float)
         # set the cumulative time by summing the time intervals
-        for t in range(self.num_tslots):
-            self.time[t+1] = self.time[t] + self.tau[t]
+        for t in range(self._num_tslots):
+            self.time[t+1] = self.time[t] + self._tau[t]
 
         self._timeslots_initialized = True
 
@@ -513,7 +559,7 @@ class Dynamics(object):
             self._phased_dyn_gen = [object for x in range(self.num_tslots)]
         self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
-            self._prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
+            self._prop_grad = np.empty([self.num_tslots, self._num_ctrls],
                                       dtype=object)
         # Time evolution operator (forward propagation)
         self._evo_fwd = [object for x in range(self.num_tslots + 1)]
@@ -576,8 +622,7 @@ class Dynamics(object):
                 " set. A default should be assigned by the Dynamics subclass")
 
         self.ctrl_amps = None
-        # Note this call is made just to initialise the num_ctrls attrib
-        self.get_num_ctrls()
+        self._num_ctrls = len(self.ctrl_dyn_gen)
 
         if not self._timeslots_initialized:
             init_tslots = True
@@ -685,7 +730,7 @@ class Dynamics(object):
 
     def flag_system_changed(self):
         """
-        Flag eveolution, fidelity and gradients as needing recalculation
+        Flag evolution, fidelity and gradients as needing recalculation
         """
         self.evo_current = False
         self.fid_computer.flag_system_changed()
@@ -709,8 +754,26 @@ class Dynamics(object):
         sets the num_ctrls property, which can be used alternatively
         subsequently
         """
-        self.num_ctrls = len(self.ctrl_dyn_gen)
+        _func_deprecation("'get_num_ctrls' has been replaced by "
+                         "'num_ctrls' property")
         return self.num_ctrls
+        
+    def _get_num_ctrls(self):
+        if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
+            raise errors.UsageError("Controls list not set")
+        self._num_ctrls = len(self.ctrl_dyn_gen)
+        return self._num_ctrls
+            
+    @property 
+    def num_ctrls(self):
+        """
+        calculate the of controls from the length of the control list
+        sets the num_ctrls property, which can be used alternatively
+        subsequently
+        """
+        if self._num_ctrls is None:
+            self._num_ctrls = self._get_num_ctrls()
+        return self._num_ctrls
 
     @property
     def onto_evo_target(self):
@@ -719,7 +782,7 @@ class Dynamics(object):
 
         if self._onto_evo_target_qobj is None:
             if isinstance(self._onto_evo_target, Qobj):
-                self._onto_evo_target_qobj = self._onto_evo_target
+                self._onto_evo_target_qobj = self._onto_attributeevo_target
             else:
                 rev_dims = [self.sys_dims[1], self.sys_dims[0]]
                 self._onto_evo_target_qobj = Qobj(self._onto_evo_target,
@@ -729,7 +792,7 @@ class Dynamics(object):
 
     def get_owd_evo_target(self):
         _func_deprecation("'get_owd_evo_target' has been replaced by "
-                         "'onto_evo_target' attribute")
+                         "'onto_evo_target' property")
         return self.onto_evo_target
 
     def _get_onto_evo_target(self):
@@ -767,7 +830,16 @@ class Dynamics(object):
 
         return self._onto_evo_target
 
-
+    def combine_dyn_gen(self, k):
+        """
+        Computes the dynamics generator for a given timeslot
+        The is the combined Hamiltion for unitary systems
+        """
+        _func_deprecation("'combine_dyn_gen' has been replaced by "
+                        "'_combine_dyn_gen'")
+        self._combine_dyn_gen(k)
+        return self._dyn_gen(k)
+        
     def _combine_dyn_gen(self, k):
         """
         Computes the dynamics generator for a given timeslot
@@ -775,7 +847,7 @@ class Dynamics(object):
         Also applies the phase (if any required by the propagation)
         """
         dg = self._drift_dyn_gen
-        for j in range(self.get_num_ctrls()):
+        for j in range(self._num_ctrls):
             dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
 
         self._dyn_gen[k] = dg
@@ -789,21 +861,35 @@ class Dynamics(object):
         raise errors.UsageError("Not implemented in the baseclass."
                                 " Choose a subclass")
 
+    def get_dyn_gen(self, k):
+        """
+        Get the combined dynamics generator for the timeslot
+        Not implemented in the base class. Choose a subclass
+        """
+        _func_deprecation("'get_dyn_gen' has been replaced by "
+                        "'_get_phased_dyn_gen'")
+        return self._get_phased_dyn_gen(k)
+
     def _get_phased_dyn_gen(self, k):
         if self._phased_dyn_gen is not None:
             return self._phased_dyn_gen[k]
         else:
             return self._apply_phase(self._dyn_gen[k])
 
+    def get_ctrl_dyn_gen(self, j):
+        """
+        Get the dynamics generator for the control
+        Not implemented in the base class. Choose a subclass
+        """
+        _func_deprecation("'get_ctrl_dyn_gen' has been replaced by "
+                        "'_get_phased_ctrl_dyn_gen'")
+        return self._get_phased_ctrl_dyn_gen(j)
+        
     def _get_phased_ctrl_dyn_gen(self, j):
         if self._phased_ctrl_dyn_gen is not None:
             return self._phased_ctrl_dyn_gen[j]
         else:
             return self._apply_phase(self._ctrl_dyn_gen[j])
-
-#    self.evo_fwd = None
-#    self.evo_onwd = None
-#    self.evo_onto = None
 
     @property
     def dyn_gen(self):
@@ -844,10 +930,10 @@ class Dynamics(object):
                     self._prop_grad_qobj = self._prop_grad
                 else:
                     self._prop_grad_qobj = np.empty(
-                                    [self.num_tslots, self.get_num_ctrls()],
+                                    [self.num_tslots, self.num_ctrls],
                                     dtype=object)
                     for k in range(self.num_tslots):
-                        for j in range(self.get_num_ctrls()):
+                        for j in range(self.num_ctrls):
                             self._prop_grad_qobj[k, j] = Qobj(
                                                     self._prop_grad[k, j],
                                                     dims=self.dyn_dims)
@@ -1055,10 +1141,13 @@ class DynamicsUnitary(Dynamics):
         """
         return -1j*dg
 
-    def get_num_ctrls(self):
+    @property
+    def num_ctrls(self):
         if not self._dyn_gen_mapped:
             self._map_dyn_gen_to_ham()
-        return Dynamics.get_num_ctrls(self)
+        if self._num_ctrls is None:
+            self._num_ctrls = self._get_num_ctrls()
+        return self._num_ctrls
 
     def _get_onto_evo_target(self):
         """

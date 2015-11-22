@@ -424,7 +424,7 @@ class Optimizer(object):
     def _build_bounds_list(self):
         cfg = self.config
         dyn = self.dynamics
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
@@ -1000,7 +1000,7 @@ class OptimizerCrab(Optimizer):
             pulse_gen_valid = False
             err_msg = "pulse_generator is not iterable"
         
-        elif len(self.pulse_generator) != dyn.get_num_ctrls():
+        elif len(self.pulse_generator) != dyn.num_ctrls:
             pulse_gen_valid = False
             err_msg = ("the number of pulse generators {} does not equal "
                         "the number of controls {}".format(
