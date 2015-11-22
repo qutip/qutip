@@ -221,6 +221,12 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     else:
         e_ops_dict = None
 
+    # check if rho0 is a superoperator, in which case e_ops argument should
+    # be empty, i.e., e_ops = []
+    if issuper(rho0) and not e_ops == []:
+        raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
+                " a superoperator.")
+
     # convert array based time-dependence to string format
     H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
@@ -246,7 +252,8 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
             isinstance(H[0], Qobj) and issuper(H[0]))):
 
         #
-        # we have collapse operators
+        # we have collapse operators, or rho0 is not a ket,
+        # or H is a Liouvillian
         #
 
         #
@@ -414,11 +421,17 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full()).ravel()
-    if opt.rhs_with_state:
-        r = scipy.integrate.ode(drho_list_td_with_state)
+    initial_vector = mat2vec(rho0.full()).ravel('F')
+    if issuper(rho0):
+        if opt.rhs_with_state:
+            r = scipy.integrate.ode(dsuper_list_td_with_state)
+        else:
+            r = scipy.integrate.ode(dsuper_list_td)
     else:
-        r = scipy.integrate.ode(drho_list_td)
+        if opt.rhs_with_state:
+            r = scipy.integrate.ode(drho_list_td_with_state)
+        else:
+            r = scipy.integrate.ode(drho_list_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -467,6 +480,39 @@ def drho_list_td_with_state(t, rho, L_list, args):
 
     return L * rho
 
+#
+# evaluate dE(t)/dt according to the master equation using the
+# [Qobj, function] style time dependence API, where E is a superoperator
+#
+def dsuper_list_td(t, y, L_list, args):
+
+    L = L_list[0][0] * L_list[0][1](t, args)
+    for n in range(1, len(L_list)):
+        #
+        # L_args[n][0] = the sparse data for a Qobj in super-operator form
+        # L_args[n][1] = function callback giving the coefficient
+        #
+        if L_list[n][2]:
+            L = L + L_list[n][0] * (L_list[n][1](t, args)) ** 2
+        else:
+            L = L + L_list[n][0] * L_list[n][1](t, args)
+
+    return _ode_super_func(t, y, L)
+
+def dsuper_list_td_with_state(t, y, L_list, args):
+
+    L = L_list[0][0] * L_list[0][1](t, y, args)
+    for n in range(1, len(L_list)):
+        #
+        # L_args[n][0] = the sparse data for a Qobj in super-operator form
+        # L_args[n][1] = function callback giving the coefficient
+        #
+        if L_list[n][2]:
+            L = L + L_list[n][0] * (L_list[n][1](t, y, args)) ** 2
+        else:
+            L = L + L_list[n][0] * L_list[n][1](t, y, args)
+
+    return _ode_super_func(t, y, L)
 
 # -----------------------------------------------------------------------------
 # A time-dependent dissipative master equation on the list-string format for
@@ -622,15 +668,20 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full()).ravel()
-    r = scipy.integrate.ode(config.tdfunc)
+    initial_vector = mat2vec(rho0.full()).ravel('F')
+    if issuper(rho0):
+        r = scipy.integrate.ode(_td_ode_rhs_super)
+        code = compile('r.set_f_params([' + parameter_string + '])',
+                       '<string>', 'exec')
+    else:
+        r = scipy.integrate.ode(config.tdfunc)
+        code = compile('r.set_f_params(' + parameter_string + ')',
+                       '<string>', 'exec')
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    code = compile('r.set_f_params(' + parameter_string + ')',
-                   '<string>', 'exec')
 
     exec(code, locals(), args)
 
@@ -639,6 +690,14 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     #
     return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
 
+def _td_ode_rhs_super(t, y, arglist):
+    N = int(np.sqrt(len(y)))
+    out = np.zeros(N, dtype=complex)
+    y2 = np.zeros(len(y), dtype=complex)
+    for i in range(N):
+       out = cy_td_ode_rhs(t, y[i*N:(i+1)*N], *arglist)
+       y2[i*N:(i+1)*N] = out
+    return y2
 
 # -----------------------------------------------------------------------------
 # Master equation solver
@@ -677,9 +736,15 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full()).ravel()
-    r = scipy.integrate.ode(cy_ode_rhs)
-    r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
+    initial_vector = mat2vec(rho0.full()).ravel('F')
+    if issuper(rho0):
+        r = scipy.integrate.ode(_ode_super_func)
+        r.set_f_params(L.data)
+    else:
+        r = scipy.integrate.ode(cy_ode_rhs)
+        r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
+        # r = scipy.integrate.ode(_ode_rho_test)
+        # r.set_f_params(L.data)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -699,6 +764,16 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
 def _ode_rho_func(t, rho, L):
     return L * rho
 
+#
+# Evaluate d E(t)/dt for E a super-operator, experimental
+#
+
+def _ode_rho_test(t, rho, data):
+    return data*(np.transpose(rho))
+
+def _ode_super_func(t, y, data):
+    ym = vec2mat(y)
+    return (data*ym).ravel('F')
 
 # -----------------------------------------------------------------------------
 # Master equation solver for python-function time-dependence.
@@ -767,11 +842,17 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full()).ravel()
-    if not opt.rhs_with_state:
-        r = scipy.integrate.ode(cy_ode_rho_func_td)
+    initial_vector = mat2vec(rho0.full()).ravel('F')
+    if issuper(rho0):
+        if opt.rhs_with_state:
+            r = scipy.integrate.ode(_ode_super_func_td)
+        else:
+            r = scipy.integrate.ode(_ode_super_func_td_with_state)
     else:
-        r = scipy.integrate.ode(_ode_rho_func_td_with_state)
+        if not opt.rhs_with_state:
+            r = scipy.integrate.ode(cy_ode_rho_func_td)
+        else:
+            r = scipy.integrate.ode(_ode_rho_func_td_with_state)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -799,6 +880,23 @@ def _ode_rho_func_td(t, rho, L0, L_func, args):
 def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
     L = L0 + L_func(t, rho, args)
     return L * rho
+
+#
+# evaluate dE(t)/dt according to the master equation, where E is a 
+# superoperator
+#
+def _ode_super_func_td(t, y, L0, L_func, args):
+    L = L0 + L_func(t, args)
+    return _ode_super_func(t, y, L)
+
+#
+# evaluate dE(t)/dt according to the master equation, where E is a 
+# superoperator
+#
+def _ode_super_func_td_with_state(t, y, L0, L_func, args):
+    L = L0 + L_func(t, y, args)
+    return _ode_super_func(t, y, L)
+
 
 
 # -----------------------------------------------------------------------------
