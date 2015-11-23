@@ -162,8 +162,8 @@ else:
 
 if qutip.settings.num_cpus == 0:
     # if num_cpu is 0 set it to the available number of cores
-    from qutip.hardware_info import hardware_info
-    info = hardware_info()
+    import qutip.hardware_info
+    info =  qutip.hardware_info.hardware_info()
     if 'cpus' in info:
         qutip.settings.num_cpus = info['cpus']
     else:
