@@ -709,7 +709,7 @@ class Optimizer(object):
         result.fid_err = dyn.fid_computer.get_fid_err()
         result.grad_norm_final = dyn.fid_computer.grad_norm
         result.final_amps = dyn.ctrl_amps
-        final_evo = dyn._evo_fwd[dyn.num_tslots]
+        final_evo = dyn.full_evo
         if isinstance(final_evo, Qobj):
             result.evo_full_final = final_evo
         else:

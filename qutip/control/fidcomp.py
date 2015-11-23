@@ -81,6 +81,14 @@ def _attrib_deprecation(message, stacklevel=3):
     """
     warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
+def _func_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    
 def _trace(A):
     """wrapper for calculating the trace"""
     # input is an operator (Qobj, array, sparse etc), so
@@ -297,9 +305,8 @@ class FidCompUnitary(FidelityComputer):
         FidelityComputer.reset(self)
         self.id_text = 'UNIT'
         self.uses_evo_onto = True
-        self.phase_option = 'PSU'
+        self._init_phase_option('PSU')
         self.apply_params()
-        self.set_phase_option()
 
     def clear(self):
         FidelityComputer.clear(self)
@@ -308,33 +315,49 @@ class FidCompUnitary(FidelityComputer):
 
     def set_phase_option(self, phase_option=None):
         """
+        Deprecated - use phase_option
+        Phase options are
+        SU - global phase important
+        PSU - global phase is not important
+        """
+        _func_deprecation("'set_phase_option' is deprecated. "
+                            "Use phase_option property")
+        self._init_phase_option(phase_option)
+        
+    @property
+    def phase_option(self):
+        return self._phase_option
+        
+    @phase_option.setter
+    def phase_option(self, value):
+        """
         # Phase options are
         #  SU - global phase important
         #  PSU - global phase is not important
         """
-        if phase_option is None:
-            phase_option = self.phase_option
+        self._init_phase_option(value)
 
-        if phase_option == 'PSU':
+    def _init_phase_option(self, value):
+        self._phase_option = value
+        if value == 'PSU':
             self.fid_norm_func = self.normalize_PSU
             self.grad_norm_func = self.normalize_gradient_PSU
-        elif phase_option == 'SU':
+        elif value == 'SU':
             self.fid_norm_func = self.normalize_SU
             self.grad_norm_func = self.normalize_gradient_SU
-        elif phase_option is None:
+        elif value is None:
             raise errors.UsageError("phase_option cannot be set to None"
                                     " for this FidelityComputer.")
         else:
-
-            raise errors.UsageError("No option for phase_option: "
-                                    + phase_option)
-
+            raise errors.UsageError(
+                    "No option for phase_option '{}'".format(value))
+                                                            
     def init_comp(self):
         """
         Check configuration and initialise the normalisation
         """
         if self.fid_norm_func is None or self.grad_norm_func is None:
-            raise errors.UsageError("The phase option must be be set"
+            raise errors.UsageError("The phase_option must be be set"
                                     "for this fidelity computer")
         self.init_normalization()
 
@@ -444,12 +467,12 @@ class FidCompUnitary(FidelityComputer):
         """
         if not self.fidelity_prenorm_current:
             dyn = self.parent
-            k = dyn.tslot_computer.get_timeslot_for_fidelity_calc()
+            k = dyn.tslot_computer._get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
             if dyn.oper_dtype == Qobj:
-                f = (dyn._evo_fwd[k]*dyn._evo_onto[k]).tr()
+                f = (dyn._get_onto_evo(k+1)*dyn._get_onto_evo(k)).tr()
             else:
-                f = _trace(dyn._evo_fwd[k].dot(dyn._evo_onto[k]))
+                f = _trace(dyn._get_onto_evo(k+1).dot(dyn._get_onto_evo(k)))
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
@@ -516,8 +539,8 @@ class FidCompUnitary(FidelityComputer):
         time_st = timeit.default_timer()
         for j in range(n_ctrls):
             for k in range(n_ts):
-                onto_evo = dyn._evo_onto[k+1]
-                fwd_evo = dyn._evo_fwd[k]
+                fwd_evo = dyn._get_fwd_evo(k-1)
+                onto_evo = dyn._get_onto_evo(k+1)
                 if dyn.oper_dtype == Qobj:
                     g = (onto_evo*dyn._prop_grad[k, j]*fwd_evo).tr()
                 else:

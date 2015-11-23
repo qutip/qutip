@@ -63,6 +63,9 @@ combine_dyn_gen: now _combine_dyn_gen, no longer returns a value
 get_dyn_gen: now _get_phased_dyn_gen
 get_ctrl_den_gen: now _get_phased_ctrl_dyn_gen
 
+TimeslotComputer
+get_timeslot_for_fidelity_calc: _get_timeslot_for_fidelity_calc
+
 Property name changes
 ---------------------
 Dynamics:-

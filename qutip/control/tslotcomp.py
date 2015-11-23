@@ -76,7 +76,14 @@ import qutip.control.errors as errors
 import qutip.logging_utils as logging
 logger = logging.get_logger()
 
-
+def _func_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    
 class TimeslotComputer(object):
     """
     Base class for all Timeslot Computers
@@ -299,7 +306,6 @@ class TSlotCompUpdateAll(TimeslotComputer):
             self._prop_grad_tofh.close()
             self._prop_grad_tofh = 0
 
-        # compute the forward propagation
         if dyn.config.test_out_evo:
             fname = "fwd_evo" + f_ext
             fpath = os.path.join(dyn.config.test_out_dir, fname)
@@ -313,12 +319,13 @@ class TSlotCompUpdateAll(TimeslotComputer):
             self._owd_evo_tofh = 0
 
         time_start = timeit.default_timer()
-        R = range(1, n_ts+1)
+        # compute the forward propagation
+        R = range(n_ts)
         for k in R:
             if dyn.oper_dtype == Qobj:
-                dyn._evo_fwd[k] = dyn._prop[k-1]*dyn._evo_fwd[k-1]
+                dyn._evo_fwd[k] = dyn._prop[k]*dyn._get_fwd_evo(k-1)
             else:
-                dyn._evo_fwd[k] = dyn._prop[k-1].dot(dyn._evo_fwd[k-1])
+                dyn._evo_fwd[k] = dyn._prop[k].dot(dyn._get_fwd_evo(k-1))
                 
             if self._fwd_evo_tofh != 0:
                 self._fwd_evo_tofh.write("Evo start to k={}\n".format(k))
@@ -336,24 +343,25 @@ class TSlotCompUpdateAll(TimeslotComputer):
             R = range(n_ts-2, -1, -1)
             for k in R:
                 if dyn.oper_dtype == Qobj:
-                    dyn._evo_onwd[k] = dyn._evo_onwd[k+1]*dyn._prop[k]
+                    dyn._evo_onwd[k] = dyn._get_onwd_evo(k+1)*dyn._prop[k]
                 else:
-                    dyn._evo_onwd[k] = dyn._evo_onwd[k+1].dot(dyn._prop[k])
-                if self._fwd_evo_tofh != 0:
+                    dyn._evo_onwd[k] = dyn._get_onwd_evo(k+1).dot(dyn._prop[k])
+                if self._owd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to end:\n".format(k))
                     np.savetxt(self._owd_evo_tofh, dyn._evo_onwd[k],
                                fmt='%14.6g')
 
         if dyn.fid_computer.uses_evo_onto:
+            #R = range(n_ts-1, -1, -1)
             R = range(n_ts-1, -1, -1)
             for k in R:
                 if dyn.oper_dtype == Qobj:
-                    dyn._evo_onto[k] = dyn._evo_onto[k+1]*dyn._prop[k]
+                    dyn._evo_onto[k] = dyn._get_onto_evo(k+1)*dyn._prop[k]
                 else:
-                    dyn._evo_onto[k] = dyn._evo_onto[k+1].dot(dyn._prop[k])
-                if self._fwd_evo_tofh != 0:
+                    dyn._evo_onto[k] = dyn._get_onto_evo(k+1).dot(dyn._prop[k])
+                if self._owd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to targ:\n".format(k))
-                    np.savetxt(self._owd_evo_tofh, dyn.evo_t2targ[k],
+                    np.savetxt(self._owd_evo_tofh, dyn._evo_onto[k],
                                fmt='%14.6g')
 
         if dyn.stats is not None:
@@ -368,6 +376,16 @@ class TSlotCompUpdateAll(TimeslotComputer):
             self._owd_evo_tofh = 0
 
     def get_timeslot_for_fidelity_calc(self):
+        """
+        Returns the timeslot index that will be used calculate current fidelity
+        value.
+        This (default) method simply returns the last timeslot
+        """
+        _func_deprecation("'get_timeslot_for_fidelity_calc' is deprecated. "
+                        "Use '_get_timeslot_for_fidelity_calc'")
+        return self._get_timeslot_for_fidelity_calc
+        
+    def _get_timeslot_for_fidelity_calc(self):
         """
         Returns the timeslot index that will be used calculate current fidelity
         value.
