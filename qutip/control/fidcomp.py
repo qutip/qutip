@@ -470,9 +470,9 @@ class FidCompUnitary(FidelityComputer):
             k = dyn.tslot_computer._get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
             if dyn.oper_dtype == Qobj:
-                f = (dyn._get_onto_evo(k+1)*dyn._get_onto_evo(k)).tr()
+                f = (dyn._evo_onto[k]*dyn._evo_fwd[k]).tr()
             else:
-                f = _trace(dyn._get_onto_evo(k+1).dot(dyn._get_onto_evo(k)))
+                f = _trace(dyn._evo_onto[k].dot(dyn._evo_fwd[k]))
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
@@ -539,8 +539,8 @@ class FidCompUnitary(FidelityComputer):
         time_st = timeit.default_timer()
         for j in range(n_ctrls):
             for k in range(n_ts):
-                fwd_evo = dyn._get_fwd_evo(k-1)
-                onto_evo = dyn._get_onto_evo(k+1)
+                fwd_evo = dyn._evo_fwd[k]   
+                onto_evo = dyn._evo_onto[k+1]
                 if dyn.oper_dtype == Qobj:
                     g = (onto_evo*dyn._prop_grad[k, j]*fwd_evo).tr()
                 else:

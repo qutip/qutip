@@ -323,9 +323,9 @@ class TSlotCompUpdateAll(TimeslotComputer):
         R = range(n_ts)
         for k in R:
             if dyn.oper_dtype == Qobj:
-                dyn._evo_fwd[k] = dyn._prop[k]*dyn._get_fwd_evo(k-1)
+                dyn._evo_fwd[k+1] = dyn._prop[k]*dyn._evo_fwd[k]
             else:
-                dyn._evo_fwd[k] = dyn._prop[k].dot(dyn._get_fwd_evo(k-1))
+                dyn._evo_fwd[k+1] = dyn._prop[k].dot(dyn._evo_fwd[k])
                 
             if self._fwd_evo_tofh != 0:
                 self._fwd_evo_tofh.write("Evo start to k={}\n".format(k))
@@ -339,13 +339,13 @@ class TSlotCompUpdateAll(TimeslotComputer):
         time_start = timeit.default_timer()
         # compute the onward propagation
         if dyn.fid_computer.uses_evo_onwd:
-            dyn._evo_onwd[n_ts - 1] = dyn._prop[n_ts - 1]
+            dyn._evo_onwd[n_ts-1] = dyn._prop[n_ts-1]
             R = range(n_ts-2, -1, -1)
             for k in R:
                 if dyn.oper_dtype == Qobj:
-                    dyn._evo_onwd[k] = dyn._get_onwd_evo(k+1)*dyn._prop[k]
+                    dyn._evo_onwd[k] = dyn._evo_onwd[k+1]*dyn._prop[k]
                 else:
-                    dyn._evo_onwd[k] = dyn._get_onwd_evo(k+1).dot(dyn._prop[k])
+                    dyn._evo_onwd[k] = dyn._evo_onwd[k+1].dot(dyn._prop[k])
                 if self._owd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to end:\n".format(k))
                     np.savetxt(self._owd_evo_tofh, dyn._evo_onwd[k],
@@ -356,9 +356,9 @@ class TSlotCompUpdateAll(TimeslotComputer):
             R = range(n_ts-1, -1, -1)
             for k in R:
                 if dyn.oper_dtype == Qobj:
-                    dyn._evo_onto[k] = dyn._get_onto_evo(k+1)*dyn._prop[k]
+                    dyn._evo_onto[k] = dyn._evo_onto[k+1]*dyn._prop[k]
                 else:
-                    dyn._evo_onto[k] = dyn._get_onto_evo(k+1).dot(dyn._prop[k])
+                    dyn._evo_onto[k] = dyn._evo_onto[k+1].dot(dyn._prop[k])
                 if self._owd_evo_tofh != 0:
                     self._owd_evo_tofh.write("Evo k={} to targ:\n".format(k))
                     np.savetxt(self._owd_evo_tofh, dyn._evo_onto[k],
@@ -391,7 +391,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
         value.
         This (default) method simply returns the last timeslot
         """
-        return self.parent.num_tslots - 1
+        return self.parent.num_tslots
 
 
 class TSlotCompDynUpdate(TimeslotComputer):

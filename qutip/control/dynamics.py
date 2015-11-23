@@ -562,7 +562,8 @@ class Dynamics(object):
             self._prop_grad = np.empty([self.num_tslots, self._num_ctrls],
                                       dtype=object)
         # Time evolution operator (forward propagation)
-        self._evo_fwd = [object for x in range(self.num_tslots)]
+        self._evo_fwd = [object for x in range(self.num_tslots+1)]
+        self._evo_fwd[0] = self._initial
         if self.fid_computer.uses_evo_onwd:
             # Time evolution operator (onward propagation)
             self._evo_onwd = [object for x in range(self.num_tslots)]
@@ -961,57 +962,57 @@ class Dynamics(object):
                                                        dims=self.dyn_dims))
         return self._evo_fwd_qobj
         
-    def _get_fwd_evo(self, k):     
-
-        if k == -1:
-            return self._initial
-        elif k >= 0 and k < self._num_tslots:
-            return self._evo_fwd[k]
-        else:
-            if k < -1:
-                errors.UsageError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Not defined for index below -1".format(k))
-            elif k >= self._num_tslots:
-                errors.UsageError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Beyond timeslot range {}".format(k, self._num_tslots - 1))
-            else:
-                errors.FunctionalError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Reason unknown!".format(k))
+#    def _get_fwd_evo(self, k):     
+#
+#        if k == -1:
+#            return self._initial
+#        elif k >= 0 and k < self._num_tslots:
+#            return self._evo_fwd[k]
+#        else:
+#            if k < -1:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Not defined for index below -1".format(k))
+#            elif k >= self._num_tslots:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Beyond timeslot range {}".format(k, self._num_tslots - 1))
+#            else:
+#                errors.FunctionalError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Reason unknown!".format(k))
                     
-    def get_fwd_evo(self, k):
-        """
-        Returns the forward evolution (Qobj) up to time slot k
-        0 being the first timeslot. -1 being the initial state / gate
-        """
-
-        if k == -1:
-            return self.initial
-        elif k >= 0 and k < self.num_tslots:
-            return self.evo_fwd[k]
-        else:
-            if k < -1:
-                errors.UsageError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Not defined for index below -1".format(k))
-            elif k >= self.num_tslots:
-                errors.UsageError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Beyond timeslot range {}".format(k, self.num_tslots - 1))
-            else:
-                errors.FunctionalError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Reason unknown!".format(k))
+#    def get_fwd_evo(self, k):
+#        """
+#        Returns the forward evolution (Qobj) up to time slot k
+#        0 being the first timeslot. -1 being the initial state / gate
+#        """
+#
+#        if k == -1:
+#            return self.initial
+#        elif k >= 0 and k < self.num_tslots:
+#            return self.evo_fwd[k]
+#        else:
+#            if k < -1:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Not defined for index below -1".format(k))
+#            elif k >= self.num_tslots:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Beyond timeslot range {}".format(k, self.num_tslots - 1))
+#            else:
+#                errors.FunctionalError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Reason unknown!".format(k))
     
     def _get_full_evo(self):
-        return self._get_fwd_evo(self.num_tslots-1)
+        return self._evo_fwd[self._num_tslots]
     
     @property                
     def full_evo(self):
         """Full evolution - time evolution at final time slot"""
-        return self.get_fwd_evo(self.num_tslots-1)
+        return self.evo_fwd[self.num_tslots]
                 
     @property
     def evo_t2end(self):
@@ -1034,43 +1035,43 @@ class Dynamics(object):
                                             for dg in self._evo_onwd]
         return self._evo_onwd_qobj
 
-    def _get_onwd_evo(self, k):     
-        if k >= 0 and k < self._num_tslots:
-            return self._evo_onwd[k]
-        else:
-            if k < 0:
-                errors.UsageError(
-                    "Invalid timeslot index {} for onward evolution. " 
-                    "Not defined for index below 0".format(k))
-            elif k >= self._num_tslots:
-                errors.UsageError(
-                    "Invalid timeslot index {} for onward evolution. " 
-                    "Beyond timeslot range {}".format(self._num_tslots - 1))
-            else:
-                errors.FunctionalError(
-                    "Invalid timeslot index {} for onward evolution. " 
-                    "Reason unknown!".format(k))
-                    
-    def get_onwd_evo(self, k):
-        """
-        Returns the onward evolution (Qobj) from time slot k to the last
-        0 being the first timeslot
-        """
-        if k >= 0 and k < self.num_tslots:
-            return self.evo_onwd[k]
-        else:
-            if k < 0:
-                errors.UsageError(
-                    "Invalid timeslot index {} for onward evolution. " 
-                    "Not defined for index below 0".format(k))
-            elif k >= self.num_tslots:
-                errors.UsageError(
-                    "Invalid timeslot index {} for onward evolution. " 
-                    "Beyond timeslot range {}".format(self.num_tslots - 1))
-            else:
-                errors.FunctionalError(
-                    "Invalid timeslot index {} for onward evolution. " 
-                    "Reason unknown!".format(k))
+#    def _get_onwd_evo(self, k):     
+#        if k >= 0 and k < self._num_tslots:
+#            return self._evo_onwd[k]
+#        else:
+#            if k < 0:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for onward evolution. " 
+#                    "Not defined for index below 0".format(k))
+#            elif k >= self._num_tslots:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for onward evolution. " 
+#                    "Beyond timeslot range {}".format(self._num_tslots - 1))
+#            else:
+#                errors.FunctionalError(
+#                    "Invalid timeslot index {} for onward evolution. " 
+#                    "Reason unknown!".format(k))
+#                    
+#    def get_onwd_evo(self, k):
+#        """
+#        Returns the onward evolution (Qobj) from time slot k to the last
+#        0 being the first timeslot
+#        """
+#        if k >= 0 and k < self.num_tslots:
+#            return self.evo_onwd[k]
+#        else:
+#            if k < 0:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for onward evolution. " 
+#                    "Not defined for index below 0".format(k))
+#            elif k >= self.num_tslots:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for onward evolution. " 
+#                    "Beyond timeslot range {}".format(self.num_tslots - 1))
+#            else:
+#                errors.FunctionalError(
+#                    "Invalid timeslot index {} for onward evolution. " 
+#                    "Reason unknown!".format(k))
     
     @property
     def evo_t2targ(self):
@@ -1097,49 +1098,49 @@ class Dynamics(object):
 
         return self._evo_onto_qobj
         
-    def _get_onto_evo(self, k):
-        if k == self._num_tslots:
-            return self._onto_evo_target
-        elif k >= 0 and k < self._num_tslots:
-            return self._evo_onto[k]
-        else:
-            if k < 0:
-                errors.UsageError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Not defined for index below -1".format(k))
-            elif k > self._num_tslots:
-                errors.UsageError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Beyond timeslot+1 range {}".format(k, self._num_tslots))
-            else:
-                errors.FunctionalError(
-                    "Invalid timeslot index {} for forward evolution. " 
-                    "Reason unknown!".format(k))
-                    
-    def get_onto_evo(self, k):
-        """
-        Returns the 'onto' evolution (Qobj) up to time slot k
-        This is the evoltion overlap with the inverse (adjoint) target
-        0 being the first timeslot. 
-        num_tslots being the inverse (adjoint) state / gate
-        """
-        if k == self.num_tslots:
-            return self.onto_evo_target
-        elif k >= 0 and k < self.num_tslots:
-            return self.evo_onto[k]
-        else:
-            if k < 0:
-                errors.UsageError(
-                    "Invalid timeslot index {} for 'onto' evolution. " 
-                    "Not defined for index below -1".format(k))
-            elif k > self._num_tslots:
-                errors.UsageError(
-                    "Invalid timeslot index {} for 'onto' evolution. " 
-                    "Beyond timeslot+1 range {}".format(k, self.num_tslots))
-            else:
-                errors.FunctionalError(
-                    "Invalid timeslot index {} for 'onto' evolution. " 
-                    "Reason unknown!".format(k))
+#    def _get_onto_evo(self, k):
+#        if k == self._num_tslots:
+#            return self._onto_evo_target
+#        elif k >= 0 and k < self._num_tslots:
+#            return self._evo_onto[k]
+#        else:
+#            if k < 0:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Not defined for index below -1".format(k))
+#            elif k > self._num_tslots:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Beyond timeslot+1 range {}".format(k, self._num_tslots))
+#            else:
+#                errors.FunctionalError(
+#                    "Invalid timeslot index {} for forward evolution. " 
+#                    "Reason unknown!".format(k))
+#                    
+#    def get_onto_evo(self, k):
+#        """
+#        Returns the 'onto' evolution (Qobj) up to time slot k
+#        This is the evoltion overlap with the inverse (adjoint) target
+#        0 being the first timeslot. 
+#        num_tslots being the inverse (adjoint) state / gate
+#        """
+#        if k == self.num_tslots:
+#            return self.onto_evo_target
+#        elif k >= 0 and k < self.num_tslots:
+#            return self.evo_onto[k]
+#        else:
+#            if k < 0:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for 'onto' evolution. " 
+#                    "Not defined for index below -1".format(k))
+#            elif k > self._num_tslots:
+#                errors.UsageError(
+#                    "Invalid timeslot index {} for 'onto' evolution. " 
+#                    "Beyond timeslot+1 range {}".format(k, self.num_tslots))
+#            else:
+#                errors.FunctionalError(
+#                    "Invalid timeslot index {} for 'onto' evolution. " 
+#                    "Reason unknown!".format(k))
 
     def compute_evolution(self):
         """
