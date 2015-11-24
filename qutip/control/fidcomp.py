@@ -120,7 +120,6 @@ class FidelityComputer(object):
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     dimensional_norm : float
         Normalisation constant
@@ -133,12 +132,12 @@ class FidelityComputer(object):
         Used to normalise the fidelity gradient
         See SU and PSU options for the unitary dynamics
 
-    uses_evo_onwd : boolean
-        flag to specify whether the evo_onwd evolution operator
+    uses_onwd_evo : boolean
+        flag to specify whether the onwd_evo evolution operator
         (see Dynamics) is used by the FidelityComputer
 
-    uses_evo_onto : boolean
-        flag to specify whether the evo_onto evolution operator
+    uses_onto_evo : boolean
+        flag to specify whether the onto_evo evolution operator
          (see Dynamics) is used by the FidelityComputer
 
     fid_err : float
@@ -173,13 +172,13 @@ class FidelityComputer(object):
         reset any configuration data and
         clear any temporarily held status data
         """
-        self.set_log_level(self.parent.log_level)
+        self.log_level = self.parent.log_level
         self.id_text = 'FID_COMP_BASE'
         self.dimensional_norm = 1.0
         self.fid_norm_func = None
         self.grad_norm_func = None
-        self.uses_evo_onwd = False
-        self.uses_evo_onto = False
+        self.uses_onwd_evo = False
+        self.uses_onto_evo = False
         self.apply_params()
         self.clear()
 
@@ -212,12 +211,16 @@ class FidelityComputer(object):
             for key in params:
                 setattr(self, key, params[key])
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
 
     def init_comp(self):
@@ -257,26 +260,26 @@ class FidelityComputer(object):
     @property
     def uses_evo_t2end(self):
         _attrib_deprecation(
-                "'uses_evo_t2end' has been replaced by 'uses_evo_onwd'")
-        return self.uses_evo_onwd
+                "'uses_evo_t2end' has been replaced by 'uses_onwd_evo'")
+        return self.uses_onwd_evo
 
     @uses_evo_t2end.setter
     def uses_evo_t2end(self, value):
         _attrib_deprecation(
-                "'uses_evo_t2end' has been replaced by 'uses_evo_onwd'")
-        self.uses_evo_onwd = value
+                "'uses_evo_t2end' has been replaced by 'uses_onwd_evo'")
+        self.uses_onwd_evo = value
 
     @property
     def uses_evo_t2targ(self):
         _attrib_deprecation(
-                "'uses_evo_t2targ' has been replaced by 'uses_evo_onto'")
-        return self.uses_evo_onto
+                "'uses_evo_t2targ' has been replaced by 'uses_onto_evo'")
+        return self.uses_onto_evo
 
     @uses_evo_t2targ.setter
     def uses_evo_t2targ(self, value):
         _attrib_deprecation(
-                "'uses_evo_t2targ' has been replaced by 'uses_evo_onto'")
-        self.uses_evo_onto = value
+                "'uses_evo_t2targ' has been replaced by 'uses_onto_evo'")
+        self.uses_onto_evo = value
 
 class FidCompUnitary(FidelityComputer):
     """
@@ -304,7 +307,7 @@ class FidCompUnitary(FidelityComputer):
     def reset(self):
         FidelityComputer.reset(self)
         self.id_text = 'UNIT'
-        self.uses_evo_onto = True
+        self.uses_onto_evo = True
         self._init_phase_option('PSU')
         self.apply_params()
 
@@ -470,9 +473,9 @@ class FidCompUnitary(FidelityComputer):
             k = dyn.tslot_computer._get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
             if dyn.oper_dtype == Qobj:
-                f = (dyn._evo_onto[k]*dyn._evo_fwd[k]).tr()
+                f = (dyn._onto_evo[k]*dyn._fwd_evo[k]).tr()
             else:
-                f = _trace(dyn._evo_onto[k].dot(dyn._evo_fwd[k]))
+                f = _trace(dyn._onto_evo[k].dot(dyn._fwd_evo[k]))
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
@@ -539,8 +542,8 @@ class FidCompUnitary(FidelityComputer):
         time_st = timeit.default_timer()
         for j in range(n_ctrls):
             for k in range(n_ts):
-                fwd_evo = dyn._evo_fwd[k]   
-                onto_evo = dyn._evo_onto[k+1]
+                fwd_evo = dyn._fwd_evo[k]   
+                onto_evo = dyn._onto_evo[k+1]
                 if dyn.oper_dtype == Qobj:
                     g = (onto_evo*dyn._prop_grad[k, j]*fwd_evo).tr()
                 else:
@@ -579,7 +582,7 @@ class FidCompTraceDiff(FidelityComputer):
         FidelityComputer.reset(self)
         self.id_text = 'TRACEDIFF'
         self.scale_factor = None
-        self.uses_evo_onwd = True
+        self.uses_onwd_evo = True
         if not self.parent.prop_computer.grad_exact:
             raise errors.UsageError(
                 "This FidelityComputer can only be"
@@ -605,7 +608,7 @@ class FidCompTraceDiff(FidelityComputer):
             dyn = self.parent
             dyn.compute_evolution()
             n_ts = dyn.num_tslots
-            evo_final = dyn._evo_fwd[n_ts]
+            evo_final = dyn._fwd_evo[n_ts]
             evo_f_diff = dyn._target - evo_final
             if self.log_level <= logging.DEBUG_VERBOSE:
                 logger.log(logging.DEBUG_VERBOSE, "Calculating TraceDiff "
@@ -682,15 +685,15 @@ class FidCompTraceDiff(FidelityComputer):
         time_st = timeit.default_timer()
 
 
-        evo_final = dyn._evo_fwd[n_ts]
+        evo_final = dyn._fwd_evo[n_ts]
         evo_f_diff = dyn._target - evo_final
         for j in range(n_ctrls):
             for k in range(n_ts):
-                fwd_evo = dyn._evo_fwd[k]
+                fwd_evo = dyn._fwd_evo[k]
                 if dyn.oper_dtype == Qobj:
                     evo_grad = dyn._prop_grad[k, j]*fwd_evo
                     if k+1 < n_ts:
-                        evo_grad = dyn._evo_onwd[k+1]*evo_grad
+                        evo_grad = dyn._onwd_evo[k+1]*evo_grad
                     # Note that the value should have not imagnary part, so
                     # using np.real, just avoids the complex casting warning
                     g = -2*self.scale_factor*np.real(
@@ -698,7 +701,7 @@ class FidCompTraceDiff(FidelityComputer):
                 else:
                     evo_grad = dyn._prop_grad[k, j].dot(fwd_evo)
                     if k+1 < n_ts:
-                        evo_grad = dyn._evo_onwd[k+1].dot(evo_grad)
+                        evo_grad = dyn._onwd_evo[k+1].dot(evo_grad)
                     g = -2*self.scale_factor*np.real(_trace(
                                     evo_f_diff.conj().T.dot(evo_grad)))
                 if np.isnan(g):
@@ -725,7 +728,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
     def reset(self):
         FidelityComputer.reset(self)
         self.id_text = 'TDAPPROX'
-        self.uses_evo_onwd = True
+        self.uses_onwd_evo = True
         self.scale_factor = None
         self.epsilon = 0.001
         self.apply_params()
@@ -756,12 +759,12 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
 
         for j in range(n_ctrls):
             for k in range(n_ts):
-                fwd_evo = dyn._evo_fwd[k]
+                fwd_evo = dyn._fwd_evo[k]
                 prop_eps = prop_comp._compute_diff_prop(k, j, self.epsilon)
                 if dyn.oper_dtype == Qobj:
                     evo_final_eps = fwd_evo*prop_eps
                     if k+1 < n_ts:
-                        evo_final_eps = evo_final_eps*dyn._evo_onwd[k+1]
+                        evo_final_eps = evo_final_eps*dyn._onwd_evo[k+1]
                     evo_f_diff_eps = dyn._target - evo_final_eps
                     # Note that the value should have not imagnary part, so
                     # using np.real, just avoids the complex casting warning
@@ -770,7 +773,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
                 else:
                     evo_final_eps = fwd_evo.dot(prop_eps)
                     if k+1 < n_ts:
-                        evo_final_eps = evo_final_eps.dot(dyn._evo_onwd[k+1])
+                        evo_final_eps = evo_final_eps.dot(dyn._onwd_evo[k+1])
                     evo_f_diff_eps = dyn._target - evo_final_eps
                     fid_err_eps = self.scale_factor*np.real(_trace(
                         evo_f_diff_eps.conj().T.dot(evo_f_diff_eps)))

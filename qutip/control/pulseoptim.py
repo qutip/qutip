@@ -1590,7 +1590,6 @@ def create_pulse_optimizer(
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     gen_stats : boolean
         if set to True then statistics for the optimisation

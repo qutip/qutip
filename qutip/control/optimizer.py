@@ -121,7 +121,6 @@ class Optimizer(object):
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     alg : string
         Algorithm to use in pulse optimisation.
@@ -202,7 +201,7 @@ class Optimizer(object):
         dyn.parent = self
 
     def reset(self):
-        self.set_log_level(self.config.log_level)
+        self.log_level = self.config.log_level
         self.id_text = 'OPTIM'
         self.termination_conditions = None
         self.pulse_generator = None
@@ -237,12 +236,16 @@ class Optimizer(object):
             if self.config.amp_ubound:
                 self.amp_ubound = self.config.amp_ubound
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
   
     def _create_result(self):

@@ -189,14 +189,13 @@ class PulseGen(object):
             self.scaling = dyn.initial_ctrl_scaling
             self.offset = dyn.initial_ctrl_offset
             self.tau = dyn.tau
-            self.set_log_level(dyn.log_level)
+            self.log_level = dyn.log_level
         else:
             self.num_tslots = 100
             self.pulse_time = 1.0
             self.scaling = 1.0
             self.tau = None
             self.offset = 0.0
-            self.log_level = logger.level
 
         self._uses_time = False
         self.time = None
@@ -224,12 +223,16 @@ class PulseGen(object):
             for key in params:
                 setattr(self, key, params[key])
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
         
     def gen_pulse(self):
