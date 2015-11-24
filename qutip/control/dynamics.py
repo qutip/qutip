@@ -179,7 +179,7 @@ class Dynamics(object):
     num_ctrls : integer
         Number of controls.
         Note this is calculated as the length of ctrl_dyn_gen when first used.
-        And is recalculated during initialise_controls only.      
+        And is recalculated during initialise_controls only.
 
     evo_time : float
         Total time for the evolution
@@ -373,8 +373,8 @@ class Dynamics(object):
 
     @property
     def log_level(self):
-        return logger.level        
-        
+        return logger.level
+
     @log_level.setter
     def log_level(self, lvl):
         """
@@ -403,44 +403,44 @@ class Dynamics(object):
         self.evo_current = False
         if self.fid_computer is not None:
             self.fid_computer.clear()
-            
+
     @property
     def num_tslots(self):
         if not self._timeslots_initialized:
             self.init_timeslots()
         return self._num_tslots
-        
+
     @num_tslots.setter
     def num_tslots(self, value):
         self._num_tslots = value
         if self._timeslots_initialized:
             self._tau = None
             self.init_timeslots()
-            
+
     @property
     def evo_time(self):
         if not self._timeslots_initialized:
             self.init_timeslots()
         return self._evo_time
-        
+
     @evo_time.setter
     def evo_time(self, value):
         self._evo_time = value
         if self._timeslots_initialized:
             self._tau = None
             self.init_timeslots()
-            
+
     @property
     def tau(self):
         if not self._timeslots_initialized:
             self.init_timeslots()
         return self._tau
-        
+
     @tau.setter
     def tau(self, value):
         self._tau = value
         self.init_timeslots()
-        
+
     def init_timeslots(self):
         """
         Generate the timeslot duration array 'tau' based on the evo_time
@@ -454,7 +454,7 @@ class Dynamics(object):
             self._num_tslots = DEF_NUM_TSLOTS
         if self._evo_time is None:
             self._evo_time = DEF_EVO_TIME
-            
+
         if self._tau is None:
             self._tau = np.ones(self._num_tslots, dtype='f') * \
                 self._evo_time/self._num_tslots
@@ -760,14 +760,14 @@ class Dynamics(object):
         _func_deprecation("'get_num_ctrls' has been replaced by "
                          "'num_ctrls' property")
         return self.num_ctrls
-        
+
     def _get_num_ctrls(self):
         if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
             raise errors.UsageError("Controls list not set")
         self._num_ctrls = len(self.ctrl_dyn_gen)
         return self._num_ctrls
-            
-    @property 
+
+    @property
     def num_ctrls(self):
         """
         calculate the of controls from the length of the control list
@@ -785,7 +785,7 @@ class Dynamics(object):
 
         if self._onto_evo_target_qobj is None:
             if isinstance(self._onto_evo_target, Qobj):
-                self._onto_evo_target_qobj = self._onto_attributeevo_target
+                self._onto_evo_target_qobj = self._onto_evo_target
             else:
                 rev_dims = [self.sys_dims[1], self.sys_dims[0]]
                 self._onto_evo_target_qobj = Qobj(self._onto_evo_target,
@@ -842,7 +842,7 @@ class Dynamics(object):
                         "'_combine_dyn_gen'")
         self._combine_dyn_gen(k)
         return self._dyn_gen(k)
-        
+
     def _combine_dyn_gen(self, k):
         """
         Computes the dynamics generator for a given timeslot
@@ -887,7 +887,7 @@ class Dynamics(object):
         _func_deprecation("'get_ctrl_dyn_gen' has been replaced by "
                         "'_get_phased_ctrl_dyn_gen'")
         return self._get_phased_ctrl_dyn_gen(j)
-        
+
     def _get_phased_ctrl_dyn_gen(self, j):
         if self._phased_ctrl_dyn_gen is not None:
             return self._phased_ctrl_dyn_gen[j]
@@ -964,15 +964,15 @@ class Dynamics(object):
                         self._fwd_evo_qobj.append(Qobj(self._fwd_evo[k],
                                                        dims=self.dyn_dims))
         return self._fwd_evo_qobj
-           
+
     def _get_full_evo(self):
         return self._fwd_evo[self._num_tslots]
-    
-    @property                
+
+    @property
     def full_evo(self):
         """Full evolution - time evolution at final time slot"""
         return self.fwd_evo[self.num_tslots]
-                
+
     @property
     def evo_t2end(self):
         _attrib_deprecation(
@@ -993,7 +993,7 @@ class Dynamics(object):
                     self._onwd_evo_qobj = [Qobj(dg, dims=self.dyn_dims)
                                             for dg in self._onwd_evo]
         return self._onwd_evo_qobj
-    
+
     @property
     def evo_t2targ(self):
         _attrib_deprecation(
@@ -1018,7 +1018,7 @@ class Dynamics(object):
                     self._onto_evo_qobj.append(self.onto_evo_target)
 
         return self._onto_evo_qobj
-        
+
     def compute_evolution(self):
         """
         Recalculate the time evolution operators
