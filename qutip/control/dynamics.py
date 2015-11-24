@@ -57,8 +57,13 @@ DYNAMO - Dynamic Framework for Quantum Optimal Control
 See Machnes et.al., arXiv.1011.4874
 """
 import os
+import warnings
 import numpy as np
 import scipy.linalg as la
+import scipy.sparse as sp
+# QuTiP
+from qutip import Qobj
+from qutip.sparse import sp_eigs, _dense_eigs
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -68,6 +73,9 @@ import qutip.control.tslotcomp as tslotcomp
 import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
+
+DEF_NUM_TSLOTS = 10
+DEF_EVO_TIME = 1.0
 
 def _is_string(var):
     try:
@@ -81,16 +89,42 @@ def _is_string(var):
             return False
     except:
         return False
-        
+
     return False
 
-class Dynamics:
+warnings.simplefilter('always', DeprecationWarning) #turn off filter
+def _attrib_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+
+def _func_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+
+class Dynamics(object):
     """
     This is a base class only. See subclass descriptions and choose an
     appropriate one for the application.
 
-    Note that initialize_controls must be called before any of the methods
-    can be used.
+    Note that initialize_controls must be called before most of the methods
+    can be used. init_timeslots can be called sometimes earlier in order
+    to access timeslot related attributes
+
+    This acts as a container for the operators that are used to calculate
+    time evolution of the system under study. That is the dynamics generators
+    (Hamiltonians, Lindbladians etc), the propagators from one timeslot to
+    the next, and the evolution operators. Due to the large number of matrix
+    additions and multiplications, for small systems at least, the optimisation
+    performance is much better using ndarrays to represent these operators.
+    However
 
     Attributes
     ----------
@@ -103,7 +137,6 @@ class Dynamics:
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     stats : Stats
         Attributes of which give performance stats for the optimisation
@@ -121,13 +154,32 @@ class Dynamics:
         Used to computer the fidelity error and the fidelity error
         gradient.
 
+    memory_optimization : int
+        Level of memory optimisation. Setting to 0 (default) means that
+        execution speed is prioritized over memory.
+        Setting to 1 means that some memory prioritisation steps will be
+        taken, for instance using Qobj (and hence sparse arrays) as the
+        the internal operator data type.
+        Potentially further memory saving maybe made with
+        memory_optimization > 1
+
+    oper_dtype : type
+        Data type for internal dynamics generators, propagators and time
+        evolution operators. This can be ndarray or Qobj, or (in theory) any
+        other representaion that supports typical matrix methods (e.g. dot)
+        ndarray performs best for smaller quantum systems.
+        Qobj may perform better for larger systems, and will also
+        perform better when (custom) fidelity measures use Qobj methods
+        such as partial trace.
+        See _choose_oper_dtype for how this is chosen when not specified
+
     num_tslots : integer
-        Number of timeslots, aka timeslices
+        Number of timeslots (aka timeslices)
 
     num_ctrls : integer
         Number of controls.
-        Note this is set when get_num_ctrls is called based on the
-        length of ctrl_dyn_gen
+        Note this is calculated as the length of ctrl_dyn_gen when first used.
+        And is recalculated during initialise_controls only.      
 
     evo_time : float
         Total time for the evolution
@@ -144,17 +196,17 @@ class Dynamics:
         of each time slice
 
     drift_dyn_gen : Qobj
-        Drift or system dynamics generator
+        Drift or system dynamics generator (Hamiltonian)
         Matrix defining the underlying dynamics of the system
 
     ctrl_dyn_gen : List of Qobj
-        Control dynamics generator: ctrl_dyn_gen ()
+        Control dynamics generator (Hamiltonians)
         List of matrices defining the control dynamics
 
     initial : Qobj
         Starting state / gate
         The matrix giving the initial state / gate, i.e. at time 0
-        Typically the identity
+        Typically the identity for gate evolution
 
     target : Qobj
         Target state / gate:
@@ -170,7 +222,7 @@ class Dynamics:
         This is used by the PulseGens rather than in any fucntions in
         this class
 
-    self.initial_ctrl_offset = 0.0
+    initial_ctrl_offset  : float
         Linear offset applied to be applied the control amplitudes
         when they are initialised
         This is used by the PulseGens rather than in any fucntions in
@@ -187,22 +239,22 @@ class Dynamics:
 
     prop_grad : array[num_tslots, num_ctrls] of Qobj
         Propagator gradient (exact gradients only)
-        Array  of matrices that give the gradient
+        Array  of Qobj that give the gradient
         with respect to the control amplitudes in a timeslot
         Note this attribute is only created when the selected
         PropagatorComputer is an exact gradient type.
 
-    evo_init2t : List of Qobj
+    fwd_evo : List of Qobj
         Forward evolution (or propagation)
         the time evolution operator from the initial state / gate to the
         specified timeslot as generated by the dyn_gen
 
-    evo_t2end : List of Qobj
+    onwd_evo : List of Qobj
         Onward evolution (or propagation)
         the time evolution operator from the specified timeslot to
         end of the evolution time as generated by the dyn_gen
 
-    evo_t2targ : List of Qobj
+    onto_evo : List of Qobj
         'Backward' List of Qobj propagation
         the overlap of the onward propagation with the inverse of the
         target.
@@ -212,26 +264,6 @@ class Dynamics:
         Used to flag that the dynamics used to calculate the evolution
         operators is current. It is set to False when the amplitudes
         change
-
-    decomp_curr : List of boolean
-        Indicates whether the diagonalisation for the timeslot is fresh,
-        it is set to false when the dyn_gen for the timeslot is changed
-        Only used when the PropagatorComputer uses diagonalisation
-
-    dyn_gen_eigenvectors : List of array[drift_dyn_gen.shape]
-        Eigenvectors of the dynamics generators
-        Used for calculating the propagators and their gradients
-        Only used when the PropagatorComputer uses diagonalisation
-
-    prop_eigen : List of array[drift_dyn_gen.shape]
-        Propagator in diagonalised basis of the combined dynamics generator
-        Used for calculating the propagators and their gradients
-        Only used when the PropagatorComputer uses diagonalisation
-
-    dyn_gen_factormatrix : List of array[drift_dyn_gen.shape]
-        Matrix of scaling factors calculated duing the decomposition
-        Used for calculating the propagator gradients
-        Only used when the PropagatorComputer uses diagonalisation
 
     fact_mat_round_prec : float
         Rounding precision used when calculating the factor matrix
@@ -251,9 +283,6 @@ class Dynamics:
         # Link to optimiser object if self is linked to one
         self.parent = None
         # Main functional attributes
-        self.evo_time = 1
-        self.num_tslots = 10
-        self.tau = None
         self.time = None
         self.initial = None
         self.target = None
@@ -262,39 +291,72 @@ class Dynamics:
         self.initial_ctrl_offset = 0.0
         self.drift_dyn_gen = None
         self.ctrl_dyn_gen = None
-        self.dyn_gen = None
-        self.prop = None
-        self.prop_grad = None
-        self.evo_init2t = None
-        self.evo_t2end = None
-        self.evo_t2targ = None
+        self._tau = None
+        self._evo_time = None
+        self._num_ctrls = None
+        self._num_tslots = None
+        # attributes used for processing evolution
+        self.memory_optimization = 0
+        self.oper_dtype = None
+        self.dyn_dims = None
+        self.dyn_shape = None
+        self.sys_dims = None
+        self.sys_shape = None
+        # These internal attributes will be of the internal operator data type
+        # used to compute the evolution
+        # Note this maybe ndarray, Qobj or some other depending on oper_dtype
+        self._drift_dyn_gen = None
+        self._ctrl_dyn_gen = None
+        self._phased_ctrl_dyn_gen = None
+        self._initial = None
+        self._target = None
+        self._onto_evo_target = None
+        self._dyn_gen = None
+        self._phased_dyn_gen = None
+        self._prop = None
+        self._prop_grad = None
+        self._fwd_evo = None
+        self._onwd_evo = None
+        self._onto_evo = None
+        # The _qobj attribs are Qobj representations of the equivalent
+        # internal attribute. They are only set when the extenal accessors
+        # are used
+        self._onto_evo_target_qobj = None
+        self._dyn_gen_qobj = None
+        self._prop_qobj = None
+        self._prop_grad_qobj = None
+        self._fwd_evo_qobj = None
+        self._onwd_evo_qobj = None
+        self._onto_evo_qobj = None
         # Atrributes used in diagonalisation
-        self.decomp_curr = None
-        self.prop_eigen = None
-        self.dyn_gen_eigenvectors = None
-        self.dyn_gen_factormatrix = None
+        # again in internal operator data type (see above)
+        self._decomp_curr = None
+        self._prop_eigen = None
+        self._dyn_gen_eigenvectors = None
+        self._dyn_gen_eigenvectors_adj = None
+        self._dyn_gen_factormatrix = None
         self.fact_mat_round_prec = 1e-10
 
         # Debug and information attribs
         self.stats = None
         self.id_text = 'DYN_BASE'
         self.def_amps_fname = "ctrl_amps.txt"
-        self.set_log_level(self.config.log_level)
+        self.log_level = self.config.log_level
         # Internal flags
         self._dyn_gen_mapped = False
         self._timeslots_initialized = False
         self._ctrls_initialized = False
-        
+
         self.apply_params()
 
         # Create the computing objects
         self._create_computers()
 
         self.clear()
-        
+
     def apply_params(self, params=None):
         """
-        Set object attributes based on the dictionary (if any) passed in the 
+        Set object attributes based on the dictionary (if any) passed in the
         instantiation, or passed as a parameter
         This is called during the instantiation automatically.
         The key value pairs are the attribute name and value
@@ -303,18 +365,22 @@ class Dynamics:
         """
         if not params:
             params = self.params
-        
+
         if isinstance(params, dict):
             self.params = params
             for key in params:
                 setattr(self, key, params[key])
-                
-    def set_log_level(self, lvl):
+
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
 
     def _create_computers(self):
@@ -337,7 +403,44 @@ class Dynamics:
         self.evo_current = False
         if self.fid_computer is not None:
             self.fid_computer.clear()
-
+            
+    @property
+    def num_tslots(self):
+        if not self._timeslots_initialized:
+            self.init_timeslots()
+        return self._num_tslots
+        
+    @num_tslots.setter
+    def num_tslots(self, value):
+        self._num_tslots = value
+        if self._timeslots_initialized:
+            self._tau = None
+            self.init_timeslots()
+            
+    @property
+    def evo_time(self):
+        if not self._timeslots_initialized:
+            self.init_timeslots()
+        return self._evo_time
+        
+    @evo_time.setter
+    def evo_time(self, value):
+        self._evo_time = value
+        if self._timeslots_initialized:
+            self._tau = None
+            self.init_timeslots()
+            
+    @property
+    def tau(self):
+        if not self._timeslots_initialized:
+            self.init_timeslots()
+        return self._tau
+        
+    @tau.setter
+    def tau(self, value):
+        self._tau = value
+        self.init_timeslots()
+        
     def init_timeslots(self):
         """
         Generate the timeslot duration array 'tau' based on the evo_time
@@ -347,51 +450,130 @@ class Dynamics:
         """
         # set the time intervals to be equal timeslices of the total if
         # the have not been set already (as part of user config)
-        if self.tau is None:
-            self.tau = np.ones(self.num_tslots, dtype='f') * \
-                self.evo_time/self.num_tslots
+        if self._num_tslots is None:
+            self._num_tslots = DEF_NUM_TSLOTS
+        if self._evo_time is None:
+            self._evo_time = DEF_EVO_TIME
+            
+        if self._tau is None:
+            self._tau = np.ones(self._num_tslots, dtype='f') * \
+                self._evo_time/self._num_tslots
         else:
-            self.num_tslots = len(self.tau)
-            self.evo_time = np.sum(self.tau)
+            self._num_tslots = len(self._tau)
+            self._evo_time = np.sum(self.tau)
 
-        self.time = np.zeros(self.num_tslots+1, dtype=float)
+        self.time = np.zeros(self._num_tslots+1, dtype=float)
         # set the cumulative time by summing the time intervals
-        for t in range(self.num_tslots):
-            self.time[t+1] = self.time[t] + self.tau[t]
-        
+        for t in range(self._num_tslots):
+            self.time[t+1] = self.time[t] + self._tau[t]
+
         self._timeslots_initialized = True
-        
-    def _init_lists(self):
+
+    def _choose_oper_dtype(self):
+        """
+        Attempt select most efficient internal operator data type
+        """
+
+        if self.memory_optimization > 0:
+            self.oper_dtype = Qobj
+        else:
+            # Method taken from Qobj.expm()
+            # if method is not explicitly given, try to make a good choice
+            # between sparse and dense solvers by considering the size of the
+            # system and the number of non-zero elements.
+            dg = self.drift_dyn_gen
+            for c in self.ctrl_dyn_gen:
+               dg = dg + c
+
+            N = dg.data.shape[0]
+            n = dg.data.nnz
+
+            if N ** 2 < 100 * n:
+                # large number of nonzero elements, revert to dense solver
+                self.oper_dtype = np.ndarray
+            elif N > 400:
+                # large system, and quite sparse -> qutips sparse method
+                self.oper_dtype = Qobj
+            else:
+                # small system, but quite sparse -> qutips sparse/dense method
+                self.oper_dtype = np.ndarray
+
+        return self.oper_dtype
+
+    def _init_evo(self):
         """
         Create the container lists / arrays for the:
         dynamics generations, propagators, and evolutions etc
         Set the time slices and cumulative time
         """
+        # check evolution operators
+        if not isinstance(self.drift_dyn_gen, Qobj):
+            raise TypeError("drift must be a Qobj")
 
-        # Create containers for control Hamiltonian etc
-        shp = self.drift_dyn_gen.shape
-        # set H to be just empty float arrays with the shape of H
-        self.dyn_gen = [np.empty(shp, dtype=complex)
-                        for x in range(self.num_tslots)]
-        # the exponetiation of H. Just empty float arrays with the shape of H
-        self.prop = [np.empty(shp, dtype=complex)
-                     for x in range(self.num_tslots)]
+        if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
+            raise TypeError("ctrls should be a list of Qobj")
+        else:
+            for ctrl in self.ctrl_dyn_gen:
+                if not isinstance(ctrl, Qobj):
+                    raise TypeError("ctrls should be a list of Qobj")
+
+        if not isinstance(self.initial, Qobj):
+            raise TypeError("initial must be a Qobj")
+
+        if not isinstance(self.target, Qobj):
+            raise TypeError("target must be a Qobj")
+
+        if self.oper_dtype is None:
+            self._choose_oper_dtype()
+            logger.info("Internal operator data type choosen to be {}".format(
+                            self.oper_dtype))
+        else:
+            logger.info("Using operator data type {}".format(
+                            self.oper_dtype))
+
+        self.dyn_dims = self.drift_dyn_gen.dims
+        self.dyn_shape = self.drift_dyn_gen.shape
+        self.sys_dims = self.initial.dims
+        self.sys_shape = self.initial.shape
+        if self.oper_dtype == Qobj:
+            self._initial = self.initial
+            self._target = self.target
+            self._drift_dyn_gen = self.drift_dyn_gen
+            self._ctrl_dyn_gen = self.ctrl_dyn_gen
+        elif self.oper_dtype == np.ndarray:
+            self._initial = self.initial.full()
+            self._target = self.target.full()
+            self._drift_dyn_gen = self.drift_dyn_gen.full()
+            self._ctrl_dyn_gen = [ctrl.full() for ctrl in self.ctrl_dyn_gen]
+        elif self.oper_dtype == sp.csr_matrix:
+            self._initial = self.initial.data
+            self._target = self.target.data
+            self._drift_dyn_gen = self.drift_dyn_gen.data
+            self._ctrl_dyn_gen = [ctrl.data for ctrl in self.ctrl_dyn_gen]
+        else:
+            logger.warn("Unknown option '{}' for oper_dtype. "
+                "Assuming that internal drift, ctrls, initial and target "
+                "have been set correctly".format(self.oper_dtype))
+        if self.memory_optimization == 0:
+            self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
+                                            for ctrl in self._ctrl_dyn_gen]
+        self._dyn_gen = [object for x in range(self.num_tslots)]
+        if self.memory_optimization == 0:
+            self._phased_dyn_gen = [object for x in range(self.num_tslots)]
+        self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
-            self.prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
-                                      dtype=np.ndarray)
+            self._prop_grad = np.empty([self.num_tslots, self._num_ctrls],
+                                      dtype=object)
         # Time evolution operator (forward propagation)
-        self.evo_init2t = [np.empty(shp, dtype=complex)
-                           for x in range(self.num_tslots + 1)]
-        self.evo_init2t[0] = self.initial
-        if self.fid_computer.uses_evo_t2end:
+        self._fwd_evo = [object for x in range(self.num_tslots+1)]
+        self._fwd_evo[0] = self._initial
+        if self.fid_computer.uses_onwd_evo:
             # Time evolution operator (onward propagation)
-            self.evo_t2end = [np.empty(shp, dtype=complex)
-                              for x in range(self.num_tslots)]
-        if self.fid_computer.uses_evo_t2targ:
+            self._onwd_evo = [object for x in range(self.num_tslots)]
+        if self.fid_computer.uses_onto_evo:
             # Onward propagation overlap with inverse target
-            self.evo_t2targ = [np.empty(shp, dtype=complex)
-                               for x in range(self.num_tslots + 1)]
-            self.evo_t2targ[-1] = self.get_owd_evo_target()
+            self._onto_evo = [object for x in range(self.num_tslots+1)]
+            self._onto_evo[self.num_tslots] = self._get_onto_evo_target()
 
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
@@ -402,15 +584,13 @@ class Dynamics:
         used in calculating propagators and gradients
         Note: used with PropCompDiag propagator calcs
         """
-        shp = self.drift_dyn_gen.shape
         n_ts = self.num_tslots
-        self.decomp_curr = [False for x in range(n_ts)]
-        self.prop_eigen = \
-            [np.empty(shp[0], dtype=complex) for x in range(n_ts)]
-        self.dyn_gen_eigenvectors = \
-            [np.empty(shp, dtype=complex) for x in range(n_ts)]
-        self.dyn_gen_factormatrix = \
-            [np.empty(shp, dtype=complex) for x in range(n_ts)]
+        self._decomp_curr = [False for x in range(n_ts)]
+        self._prop_eigen = [object for x in range(n_ts)]
+        self._dyn_gen_eigenvectors = [object for x in range(n_ts)]
+        if self.memory_optimization == 0:
+            self._dyn_gen_eigenvectors_adj = [object for x in range(n_ts)]
+        self._dyn_gen_factormatrix = [object for x in range(n_ts)]
 
     def _check_test_out_files(self):
         cfg = self.config
@@ -445,14 +625,13 @@ class Dynamics:
                 " set. A default should be assigned by the Dynamics subclass")
 
         self.ctrl_amps = None
-        # Note this call is made just to initialise the num_ctrls attrib
-        self.get_num_ctrls()
+        self._num_ctrls = len(self.ctrl_dyn_gen)
 
         if not self._timeslots_initialized:
             init_tslots = True
         if init_tslots:
             self.init_timeslots()
-        self._init_lists()
+        self._init_evo()
         self.tslot_computer.init_comp()
         self.fid_computer.init_comp()
         self._ctrls_initialized = True
@@ -467,7 +646,7 @@ class Dynamics:
 
     def get_amp_times(self):
         return self.time[:self.num_tslots]
-        
+
     def save_amps(self, file_name=None, times=None, amps=None, verbose=False):
         """
         Save a file with the current control amplitudes in each timeslot
@@ -509,7 +688,7 @@ class Dynamics:
                     logger.warn("Unknown option for times '{}' "
                                 "when saving amplitudes".format(times))
                     times = self.get_amp_times()
-            
+
         try:
             if inctimes:
                 shp = amps.shape
@@ -554,7 +733,7 @@ class Dynamics:
 
     def flag_system_changed(self):
         """
-        Flag eveolution, fidelity and gradients as needing recalculation
+        Flag evolution, fidelity and gradients as needing recalculation
         """
         self.evo_current = False
         self.fid_computer.flag_system_changed()
@@ -564,10 +743,13 @@ class Dynamics:
         Returns the size of the matrix that defines the drift dynamics
         that is assuming the drift is NxN, then this returns N
         """
-        if not isinstance(self.drift_dyn_gen, np.ndarray):
-            raise TypeError("Cannot get drift dimension, "
-                            "as drift not set (correctly).")
-        return self.drift_dyn_gen.shape[0]
+        if self.dyn_shape is None:
+            if not isinstance(self.drift_dyn_gen, Qobj):
+                raise errors.UsageError("Unable to determine drift dimensions "
+                        "because drift_dyn_gen is not set as Qobj")
+            self.dyn_shape = self.drift_dyn_gen.shape
+            self.dyn_dims = self.drift_dyn_gen.dims
+        return self.dyn_shape[0]
 
     def get_num_ctrls(self):
         """
@@ -575,42 +757,268 @@ class Dynamics:
         sets the num_ctrls property, which can be used alternatively
         subsequently
         """
-        self.num_ctrls = len(self.ctrl_dyn_gen)
+        _func_deprecation("'get_num_ctrls' has been replaced by "
+                         "'num_ctrls' property")
         return self.num_ctrls
+        
+    def _get_num_ctrls(self):
+        if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
+            raise errors.UsageError("Controls list not set")
+        self._num_ctrls = len(self.ctrl_dyn_gen)
+        return self._num_ctrls
+            
+    @property 
+    def num_ctrls(self):
+        """
+        calculate the of controls from the length of the control list
+        sets the num_ctrls property, which can be used alternatively
+        subsequently
+        """
+        if self._num_ctrls is None:
+            self._num_ctrls = self._get_num_ctrls()
+        return self._num_ctrls
+
+    @property
+    def onto_evo_target(self):
+        if self._onto_evo_target is None:
+            self._get_onto_evo_target()
+
+        if self._onto_evo_target_qobj is None:
+            if isinstance(self._onto_evo_target, Qobj):
+                self._onto_evo_target_qobj = self._onto_attributeevo_target
+            else:
+                rev_dims = [self.sys_dims[1], self.sys_dims[0]]
+                self._onto_evo_target_qobj = Qobj(self._onto_evo_target,
+                                                  dims=rev_dims)
+
+        return self._onto_evo_target_qobj
 
     def get_owd_evo_target(self):
+        _func_deprecation("'get_owd_evo_target' has been replaced by "
+                         "'onto_evo_target' property")
+        return self.onto_evo_target
+
+    def _get_onto_evo_target(self):
         """
         Get the inverse of the target.
-        Used for calculating the 'backward' evolution
+        Used for calculating the 'onto target' evolution
+        This is actually only relevant for unitary dynamics where
+        the target.dag() is what is required
+        However, for completeness, in general the inverse of the target
+        operator is is required
+        For state-to-state, the bra corresponding to the is required ket
         """
-        return la.inv(self.target)
+        if self.target.shape[0] == self.target.shape[1]:
+            #Target is operator
+            targ = la.inv(self.target.full())
+            if self.oper_dtype == Qobj:
+                self._onto_evo_target = Qobj(targ)
+            elif self.oper_dtype == np.ndarray:
+                self._onto_evo_target = targ
+            elif self.oper_dtype == sp.csr_matrix:
+                self._onto_evo_target = sp.csr_matrix(targ)
+            else:
+                targ_cls = self._target.__class__
+                self._onto_evo_target = targ_cls(targ)
+        else:
+            if self.oper_dtype == Qobj:
+                self._onto_evo_target = self.target.dag()
+            elif self.oper_dtype == np.ndarray:
+                self._onto_evo_target = self.target.dag().full()
+            elif self.oper_dtype == sp.csr_matrix:
+                self._onto_evo_target = self.target.dag().data
+            else:
+                targ_cls = self._target.__class__
+                self._onto_evo_target = targ_cls(self.target.dag().full())
+
+        return self._onto_evo_target
 
     def combine_dyn_gen(self, k):
         """
         Computes the dynamics generator for a given timeslot
         The is the combined Hamiltion for unitary systems
         """
-        dg = np.asarray(self.drift_dyn_gen)
-        for j in range(self.get_num_ctrls()):
-            dg = dg + self.ctrl_amps[k, j]*np.asarray(self.ctrl_dyn_gen[j])
-        return dg
+        _func_deprecation("'combine_dyn_gen' has been replaced by "
+                        "'_combine_dyn_gen'")
+        self._combine_dyn_gen(k)
+        return self._dyn_gen(k)
+        
+    def _combine_dyn_gen(self, k):
+        """
+        Computes the dynamics generator for a given timeslot
+        The is the combined Hamiltion for unitary systems
+        Also applies the phase (if any required by the propagation)
+        """
+        dg = self._drift_dyn_gen
+        for j in range(self._num_ctrls):
+            dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
+
+        self._dyn_gen[k] = dg
+        if self.memory_optimization == 0:
+            self._phased_dyn_gen[k] = self._apply_phase(dg)
+
+    def _apply_phase(self, k):
+        """
+        Apply some phase factor or operator
+        """
+        raise errors.UsageError("Not implemented in the baseclass."
+                                " Choose a subclass")
 
     def get_dyn_gen(self, k):
         """
         Get the combined dynamics generator for the timeslot
         Not implemented in the base class. Choose a subclass
         """
-        raise errors.UsageError("Not implemented in the baseclass."
-                                " Choose a subclass")
+        _func_deprecation("'get_dyn_gen' has been replaced by "
+                        "'_get_phased_dyn_gen'")
+        return self._get_phased_dyn_gen(k)
+
+    def _get_phased_dyn_gen(self, k):
+        if self._phased_dyn_gen is not None:
+            return self._phased_dyn_gen[k]
+        else:
+            return self._apply_phase(self._dyn_gen[k])
 
     def get_ctrl_dyn_gen(self, j):
         """
         Get the dynamics generator for the control
         Not implemented in the base class. Choose a subclass
         """
-        raise errors.UsageError("Not implemented in the baseclass."
-                                " Choose a subclass")
+        _func_deprecation("'get_ctrl_dyn_gen' has been replaced by "
+                        "'_get_phased_ctrl_dyn_gen'")
+        return self._get_phased_ctrl_dyn_gen(j)
+        
+    def _get_phased_ctrl_dyn_gen(self, j):
+        if self._phased_ctrl_dyn_gen is not None:
+            return self._phased_ctrl_dyn_gen[j]
+        else:
+            return self._apply_phase(self._ctrl_dyn_gen[j])
 
+    @property
+    def dyn_gen(self):
+        """
+        List of combined dynamics generators (Qobj) for each timeslot
+        """
+        if self._dyn_gen is not None:
+            if self._dyn_gen_qobj is None:
+                if self.oper_dtype == Qobj:
+                    self._dyn_gen_qobj = self._dyn_gen
+                else:
+                    self._dyn_gen_qobj = [Qobj(dg, dims=self.dyn_dims)
+                                            for dg in self._dyn_gen]
+        return self._dyn_gen_qobj
+
+    @property
+    def prop(self):
+        """
+        List of propagators (Qobj) for each timeslot
+        """
+        if self._prop is not None:
+            if self._prop_qobj is None:
+                if self.oper_dtype == Qobj:
+                    self._prop_qobj = self._prop
+                else:
+                    self._prop_qobj = [Qobj(dg, dims=self.dyn_dims)
+                                            for dg in self._prop]
+        return self._prop_qobj
+
+    @property
+    def prop_grad(self):
+        """
+        Array of propagator gradients (Qobj) for each timeslot, control
+        """
+        if self._prop_grad is not None:
+            if self._prop_grad_qobj is None:
+                if self.oper_dtype == Qobj:
+                    self._prop_grad_qobj = self._prop_grad
+                else:
+                    self._prop_grad_qobj = np.empty(
+                                    [self.num_tslots, self.num_ctrls],
+                                    dtype=object)
+                    for k in range(self.num_tslots):
+                        for j in range(self.num_ctrls):
+                            self._prop_grad_qobj[k, j] = Qobj(
+                                                    self._prop_grad[k, j],
+                                                    dims=self.dyn_dims)
+        return self._prop_grad_qobj
+
+    @property
+    def evo_init2t(self):
+        _attrib_deprecation(
+            "'evo_init2t' has been replaced by '_fwd_evo'")
+        return self._fwd_evo
+
+    @property
+    def fwd_evo(self):
+        """
+        List of evolution operators (Qobj) from the initial to the given
+        timeslot
+        """
+        if self._fwd_evo is not None:
+            if self._fwd_evo_qobj is None:
+                if self.oper_dtype == Qobj:
+                    self._fwd_evo_qobj = self._fwd_evo
+                else:
+                    self._fwd_evo_qobj = [self.initial]
+                    for k in range(1, self.num_tslots+1):
+                        self._fwd_evo_qobj.append(Qobj(self._fwd_evo[k],
+                                                       dims=self.dyn_dims))
+        return self._fwd_evo_qobj
+           
+    def _get_full_evo(self):
+        return self._fwd_evo[self._num_tslots]
+    
+    @property                
+    def full_evo(self):
+        """Full evolution - time evolution at final time slot"""
+        return self.fwd_evo[self.num_tslots]
+                
+    @property
+    def evo_t2end(self):
+        _attrib_deprecation(
+            "'evo_t2end' has been replaced by '_onwd_evo'")
+        return self._onwd_evo
+
+    @property
+    def onwd_evo(self):
+        """
+        List of evolution operators (Qobj) from the initial to the given
+        timeslot
+        """
+        if self._onwd_evo is not None:
+            if self._onwd_evo_qobj is None:
+                if self.oper_dtype == Qobj:
+                    self._onwd_evo_qobj = self._fwd_evo
+                else:
+                    self._onwd_evo_qobj = [Qobj(dg, dims=self.dyn_dims)
+                                            for dg in self._onwd_evo]
+        return self._onwd_evo_qobj
+    
+    @property
+    def evo_t2targ(self):
+        _attrib_deprecation(
+            "'evo_t2targ' has been replaced by '_onto_evo'")
+        return self._onto_evo
+
+    @property
+    def onto_evo(self):
+        """
+        List of evolution operators (Qobj) from the initial to the given
+        timeslot
+        """
+        if self._onto_evo is not None:
+            if self._onto_evo_qobj is None:
+                if self.oper_dtype == Qobj:
+                    self._onto_evo_qobj = self._onto_evo
+                else:
+                    self._onto_evo_qobj = []
+                    for k in range(0, self.num_tslots):
+                        self._onto_evo_qobj.append(Qobj(self._onto_evo[k],
+                                                       dims=self.dyn_dims))
+                    self._onto_evo_qobj.append(self.onto_evo_target)
+
+        return self._onto_evo_qobj
+        
     def compute_evolution(self):
         """
         Recalculate the time evolution operators
@@ -630,19 +1038,19 @@ class Dynamics:
         else:
             return False
 
-    def ensure_decomp_curr(self, k):
+    def _ensure_decomp_curr(self, k):
         """
         Checks to see if the diagonalisation has been completed since
         the last update of the dynamics generators
         (after the amplitude update)
         If not then the diagonlisation is completed
         """
-        if self.decomp_curr is None:
+        if self._decomp_curr is None:
             raise errors.UsageError("Decomp lists have not been created")
-        if not self.decomp_curr[k]:
-            self.spectral_decomp(k)
+        if not self._decomp_curr[k]:
+            self._spectral_decomp(k)
 
-    def spectral_decomp(self, k):
+    def _spectral_decomp(self, k):
         """
         Calculate the diagonalization of the dynamics generator
         generating lists of eigenvectors, propagators in the diagonalised
@@ -659,28 +1067,17 @@ class DynamicsGenMat(Dynamics):
     """
     This sub class can be used for any system where no additional
     operator is applied to the dynamics generator before calculating
-    the propagator, e.g. classical dynamics, Limbladian
+    the propagator, e.g. classical dynamics, Lindbladian
     """
     def reset(self):
         Dynamics.reset(self)
         self.id_text = 'GEN_MAT'
 
-    def get_dyn_gen(self, k):
+    def _apply_phase(self, dg):
         """
-        Get the combined dynamics generator for the timeslot
-        This base class method simply returns dyn_gen[k]
-        other subclass methods will include some factor
+        No phase in general
         """
-        return self.dyn_gen[k]
-
-    def get_ctrl_dyn_gen(self, j):
-        """
-        Get the dynamics generator for the control
-        This base class method simply returns ctrl_dyn_gen[j]
-        other subclass methods will include some factor
-        """
-        return self.ctrl_dyn_gen[j]
-
+        return dg
 
 class DynamicsUnitary(Dynamics):
     """
@@ -737,7 +1134,7 @@ class DynamicsUnitary(Dynamics):
 
         self._map_dyn_gen_to_ham()
         Dynamics.initialize_controls(self, amplitudes, init_tslots=init_tslots)
-        self.H = self.dyn_gen
+        #self.H = self._dyn_gen
 
     def _map_dyn_gen_to_ham(self):
         if self.drift_dyn_gen is None:
@@ -752,41 +1149,64 @@ class DynamicsUnitary(Dynamics):
 
         self._dyn_gen_mapped = True
 
-    def get_dyn_gen(self, k):
+    def _apply_phase(self, dg):
         """
-        Get the combined dynamics generator for the timeslot
-        including the -i factor
+        Apply the -i factor
         """
-        return -1j*self.dyn_gen[k]
+        return -1j*dg
 
-    def get_ctrl_dyn_gen(self, j):
-        """
-        Get the dynamics generator for the control
-        including the -i factor
-        """
-        return -1j*self.ctrl_dyn_gen[j]
-
-    def get_num_ctrls(self):
+    @property
+    def num_ctrls(self):
         if not self._dyn_gen_mapped:
             self._map_dyn_gen_to_ham()
-        return Dynamics.get_num_ctrls(self)
+        if self._num_ctrls is None:
+            self._num_ctrls = self._get_num_ctrls()
+        return self._num_ctrls
 
-    def get_owd_evo_target(self):
-        return self.target.conj().T
+    def _get_onto_evo_target(self):
+        """
+        Get the adjoint of the target.
+        Used for calculating the 'backward' evolution
+        """
+        if self.oper_dtype == Qobj:
+            self._onto_evo_target = self.target.dag()
+        else:
+            self._onto_evo_target = self._target.T.conj()
+        return self._onto_evo_target
 
-    def spectral_decomp(self, k):
+    def _spectral_decomp(self, k):
         """
         Calculates the diagonalization of the dynamics generator
         generating lists of eigenvectors, propagators in the diagonalised
         basis, and the 'factormatrix' used in calculating the propagator
         gradient
         """
-        H = self.H[k]
+        if self.memory_optimization >= 2:
+            sparse = True
+        else:
+            sparse = False
+
+        if self.oper_dtype == Qobj:
+            H = self._dyn_gen[k]
+            # Returns eigenvalues as array (row)
+            # and eigenvectors as rows of an array
+            eig_val, eig_vec = sp_eigs(H.data, H.isherm, sparse=sparse)
+            eig_vec = eig_vec.T
+
+        elif self.oper_dtype == np.ndarray:
+            H = self._dyn_gen[k]
+            # returns row vector of eigenvals, columns with the eigenvecs
+            eig_val, eig_vec = np.linalg.eig(H)
+        else:
+            if sparse:
+                H = self._dyn_gen[k].toarray()
+            else:
+                H = self._dyn_gen[k]
+            # returns row vector of eigenvals, columns with the eigenvecs
+            eig_val, eig_vec = la.eigh(H)
+
         # assuming H is an nxn matrix, find n
-        n = H.shape[0]
-        # returns row vector of eigen values,
-        # columns with the eigenvectors
-        eig_val, eig_vec = np.linalg.eig(H)
+        n = self.get_drift_dim()
 
         # Calculate the propagator in the diagonalised basis
         eig_val_tau = -1j*eig_val*self.tau[k]
@@ -814,13 +1234,37 @@ class DynamicsUnitary(Dynamics):
         # for degenerate eigenvalues the factor is just the exponent
         factors[degen_mask] = prop_eig_cols[degen_mask]
 
-        # Store eigenvals and eigenvectors for use by other functions, e.g.
-        # gradient_exact
-        self.decomp_curr[k] = True
-        self.prop_eigen[k] = prop_eig
-        self.dyn_gen_eigenvectors[k] = eig_vec
-        self.dyn_gen_factormatrix[k] = factors
+        # Store eigenvectors, propagator and factor matric
+        # for use in propagator computations
+        self._decomp_curr[k] = True
+        if isinstance(factors, np.ndarray):
+            self._dyn_gen_factormatrix[k] = factors
+        else:
+            self._dyn_gen_factormatrix[k] = np.array(factors)
 
+        if self.oper_dtype == Qobj:
+            self._prop_eigen[k] = Qobj(np.diagflat(prop_eig),
+                                                    dims=self.dyn_dims)
+            self._dyn_gen_eigenvectors[k] = Qobj(eig_vec,
+                                                dims=self.dyn_dims)
+            if self._dyn_gen_eigenvectors_adj is not None:
+                self._dyn_gen_eigenvectors_adj[k] = \
+                            self._dyn_gen_eigenvectors[k].dag()
+        else:
+            self._prop_eigen[k] = np.diagflat(prop_eig)
+            self._dyn_gen_eigenvectors[k] = eig_vec
+            if self._dyn_gen_eigenvectors_adj is not None:
+                self._dyn_gen_eigenvectors_adj[k] = \
+                            self._dyn_gen_eigenvectors[k].conj().T
+
+    def _get_dyn_gen_eigenvectors_adj(self, k):
+        if self._dyn_gen_eigenvectors_adj is not None:
+            return self._dyn_gen_eigenvectors_adj[k]
+        else:
+            if self.oper_dtype == Qobj:
+                return self._dyn_gen_eigenvectors[k].dag()
+            else:
+                return self._dyn_gen_eigenvectors[k].conj().T
 
 class DynamicsSymplectic(Dynamics):
     """
@@ -838,7 +1282,8 @@ class DynamicsSymplectic(Dynamics):
     def reset(self):
         Dynamics.reset(self)
         self.id_text = 'SYMPL'
-        self.omega = None
+        self._omega = None
+        self._omega_qobj = None
         self.grad_exact = True
         self.apply_params()
 
@@ -857,25 +1302,36 @@ class DynamicsSymplectic(Dynamics):
         self.prop_computer = propcomp.PropCompFrechet(self)
         self.fid_computer = fidcomp.FidCompTraceDiff(self)
 
-    def get_omega(self):
-        if self.omega is None:
+    @property
+    def omega(self):
+        if self._omega is None:
+            self._get_omega()
+        if self._omega_qobj is None:
+            self._omega_qobj = Qobj(self._omega, dims=self.dyn_dims)
+        return self._omega_qobj
+
+    def _get_omega(self):
+        if self._omega is None:
             n = self.drift_dyn_gen.shape[0] // 2
-            self.omega = sympl.calc_omega(n)
+            omg = sympl.calc_omega(n)
+            if self.oper_dtype == Qobj:
+                self._omega = Qobj(omg, dims=self.dyn_dims)
+                self._omega_qobj = self._omega
+            elif self.oper_dtype == sp.csr_matrix:
+                self._omega = sp.csr_matrix(omg)
+            else:
+                 self._omega = omg
+        return self._omega
 
-        return self.omega
-
-    def get_dyn_gen(self, k):
+    def _apply_phase(self, dg):
         """
         Get the combined dynamics generator for the timeslot
         multiplied by omega
         """
-        o = self.get_omega()
-        return -self.dyn_gen[k].dot(o)
+        o = self._get_omega()
+        if self.oper_dtype == Qobj:
+            dg = -dg*o
+        else:
+            dg = -dg.dot(o)
 
-    def get_ctrl_dyn_gen(self, j):
-        """
-        Get the dynamics generator for the control
-        multiplied by omega
-        """
-        o = self.get_omega()
-        return -self.ctrl_dyn_gen[j].dot(o)
+        return dg

@@ -52,7 +52,7 @@ logger = qutip.logging_utils.get_logger()
 TEST_OUT_DIR = "test_out"
 
 
-class OptimConfig:
+class OptimConfig(object):
     """
     Configuration parameters for control pulse optimisation
 
@@ -67,7 +67,6 @@ class OptimConfig:
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe
@@ -174,12 +173,16 @@ class OptimConfig:
         self.test_out_prop_grad = False
         self.test_out_evo = False
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
 
     def any_test_files(self):
