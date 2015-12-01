@@ -147,12 +147,13 @@ class OptimConfig(object):
         ######################
         # Note the following parameteres are for constrained optimisation
         # methods e.g. L-BFGS-B
-        # *** AJGP 2015-04-21: 
-        #           These have been moved to the OptimizerLBFGSB class
-#        self.amp_lbound = -np.Inf
-#        self.amp_ubound = np.Inf
-#        self.max_metric_corr = 10
-#        self.accuracy_factor = 1e7
+        # *** AJGP 2015-04-21:
+        #    These have been moved to the OptimizerLBFGSB class
+        #        self.amp_lbound = -np.Inf
+        #        self.amp_ubound = np.Inf
+        #        self.max_metric_corr = 10
+        #    These moved to termination conditions
+        #        self.accuracy_factor = 1e7
         # ***
         # ####################
         self.reset_test_out_files()
@@ -175,8 +176,8 @@ class OptimConfig(object):
 
     @property
     def log_level(self):
-        return logger.level        
-        
+        return logger.level
+
     @log_level.setter
     def log_level(self, lvl):
         """
