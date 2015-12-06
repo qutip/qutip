@@ -764,12 +764,12 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
 def _ode_rho_func(t, rho, L):
     return L * rho
 
-#
-# Evaluate d E(t)/dt for E a super-operator, experimental
-#
-
 def _ode_rho_test(t, rho, data):
+    # for performance comparison of cython code
     return data*(np.transpose(rho))
+#
+# Evaluate d E(t)/dt for E a super-operator
+#
 
 def _ode_super_func(t, y, data):
     ym = vec2mat(y)
@@ -803,7 +803,10 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
         L_data = liouvillian(None, c_op_list).data
     else:
         n, m = rho0.shape
-        L_data = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
+        if issuper(rho0):
+            L_data = sp.csr_matrix((n, m), dtype=complex)
+        else:
+            L_data = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
 
     if type(args) is dict:
         new_args = {}
@@ -844,7 +847,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
     #
     initial_vector = mat2vec(rho0.full()).ravel('F')
     if issuper(rho0):
-        if opt.rhs_with_state:
+        if not opt.rhs_with_state:
             r = scipy.integrate.ode(_ode_super_func_td)
         else:
             r = scipy.integrate.ode(_ode_super_func_td_with_state)

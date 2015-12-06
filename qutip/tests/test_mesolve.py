@@ -42,7 +42,8 @@ os.environ['QUTIP_GRAPHICS'] = "NO"
 
 from qutip import (sigmax, sigmay, sigmaz, sigmam, mesolve, tensor, destroy,
                    identity, steadystate, expect, basis, num, qeye, sprepost,
-                   operator_to_vector, vector_to_operator, fidelity) 
+                   operator_to_vector, vector_to_operator, fidelity, ket2dm,
+                   liouvillian) 
 
 
 class TestJCModelEvolution:
@@ -453,6 +454,28 @@ class TestMESolveTDDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < 100 * me_error)
 
+    def testMETDDecayAsFunc(self):
+        "mesolve: time-dependent Liouvillian as single function"
+
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        rho0 = ket2dm(basis(N, 9))  # initial state
+        kappa = 0.2  # coupling to oscillator
+
+        def Liouvillian_func(t, args):
+            c = np.sqrt(kappa * np.exp(-t))*a
+            return liouvillian(H,[c]).data
+
+        tlist = np.linspace(0, 10, 100)
+        args = {'kappa': kappa}
+        out1 = mesolve(Liouvillian_func, rho0, tlist, [], [], args=args)
+        expt = expect(a.dag()*a, out1.states)
+        actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < me_error)
+
+
 # average error for failure
 # me_error = 1e-6
 
@@ -614,6 +637,30 @@ class TestMESolveSuperInit:
         c_op_list = [[a, np.sqrt(kappa * np.exp(-tlist))]]
         out1 = mesolve(H, psi0, tlist, c_op_list, [])
         out2 = mesolve(H, E0, tlist, c_op_list, [])
+        fid = self.fidelitycheck(out1, out2, rho0vec)
+        assert_(max(abs(1.0-fid)) < me_error, True)
+
+    def testMETDDecayAsFunc(self):
+        "mesolve: time-dependence as function with super as init cond"
+
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        rho0 = ket2dm(basis(N, 9))  # initial state
+        rho0vec = operator_to_vector(rho0)
+        E0 = sprepost(qeye(N),qeye(N))
+        kappa = 0.2  # coupling to oscillator
+
+        def Liouvillian_func(t, args):
+            c = np.sqrt(kappa * np.exp(-t))*a
+            data = liouvillian(H,[c]).data
+            return data
+
+        tlist = np.linspace(0, 10, 100)
+        args = {'kappa': kappa}
+        out1 = mesolve(Liouvillian_func, rho0, tlist, [], [], args=args)
+        out2 = mesolve(Liouvillian_func, E0, tlist, [], [], args=args)
+
         fid = self.fidelitycheck(out1, out2, rho0vec)
         assert_(max(abs(1.0-fid)) < me_error, True)
 
