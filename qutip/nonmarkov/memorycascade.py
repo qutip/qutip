@@ -15,7 +15,7 @@ from tensorqobj import TensorQobj
 from qutip.ui.progressbar import BaseProgressBar
 
 
-class Simulation:
+class MemoryCascade:
     """Class of options for
 
     Attributes
@@ -42,7 +42,7 @@ class Simulation:
 
     def propagator(self, t, tau, notrace=False):
         """
-        Compute rho(t)
+        Compute propagator for time t
         """
         k= int(t/tau)+1
         s = t-(k-1)*tau
@@ -59,7 +59,8 @@ class Simulation:
 
     def outfieldpropagator(self, blist, tlist, tau, notrace=False):
         """
-        Compute <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
+        Compute propagator for computing field expectation values
+        <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
         O_i = I, b_out, b_out^\dagger, b_loop, b_loop^\dagger
         tlist: list of times t1,..,tn
         blist: corresponding list of operators:
@@ -68,7 +69,6 @@ class Simulation:
             2: b_out^\dagger
             3: b_loop
             4: b_loop^\dagger
-        tau: time-delay
         """
         klist = []
         slist = []
@@ -154,10 +154,11 @@ def _localop(op,l,k):
 
 
 def _genptrace(E, k):
-    E = TensorQobj(E)
     for l in range(k-1):
-        E = E.loop()
-    return qt.Qobj(E)
+    #E = TensorQobj(E)
+    #for l in range(k-1):
+    #    E = E.loop()
+    #return qt.Qobj(E)
 
 
 def _generator(k,H,L1,L2):
@@ -207,38 +208,13 @@ def _generator(k,H,L1,L2):
     return L,E0
 
 
-def _integrate2(L,E0,ti,tf,opt=qt.Options()):
+def _integrate(L,E0,ti,tf,opt=qt.Options()):
     """
     Basic ode integrator
     """
     opt.store_final_state = True
     if tf > ti:
-        sol = qt.mesolve(L, E0, [ti,tf], [], [], {}, opt, BaseProgressBar())
+        sol = qt.mesolve(L, E0, [ti,tf], options=opt)
         return sol.final_state
     else: 
         return E0
-
-def _integrate(L,E0,ti,tf,opt=qt.Options()):
-    """
-    Basic ode integrator
-    """
-    def _rhs(t,y,L):
-        ym = y.reshape(L.shape)
-        return (L*ym).flatten()
-
-    from qutip.superoperator import vec2mat
-    r = sp.integrate.ode(_rhs)
-    r.set_f_params(L.data)
-    initial_vector = E0.data.toarray().flatten()
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, ti)
-    r.integrate(tf)
-    if not r.successful():
-        raise Exception("ODE integration error: Try to increase "
-                        "the allowed number of substeps by increasing "
-                        "the nsteps parameter in the Options class.")
-
-    return qt.Qobj(vec2mat(r.y)).trans()
