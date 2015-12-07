@@ -695,8 +695,7 @@ def _td_ode_rhs_super(t, y, arglist):
     out = np.zeros(N, dtype=complex)
     y2 = np.zeros(len(y), dtype=complex)
     for i in range(N):
-        yvec = np.array(y[i*N:(i+1)*N]).ravel('F')
-        out = cy_td_ode_rhs(t, yvec, *arglist)
+        out = cy_td_ode_rhs(t, y[i*N:(i+1)*N], *arglist)
         y2[i*N:(i+1)*N] = out
     return y2
 
