@@ -1,3 +1,41 @@
+# -*- coding: utf-8 -*-
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2015 and later, Arne L. Grimsmo
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
+
+# @author: Arne L. Grimsmo
+# @email1: arne.grimsmo@gmail.com
+# @organization: University of Sherbrooke
+
 """
 This module contains an implementation of the non-Markovian transfer tensor
 method (TTM), introduced in [1].
@@ -8,50 +46,100 @@ method (TTM), introduced in [1].
 import numpy as np
 
 
-from qutip import Options, spre, vector_to_operator
+from qutip import Options, spre, vector_to_operator, ket2dm, isket
 from qutip.solver import Result
 from qutip.expect import expect_rho_vec
 
 
 class TTMSolverOptions:
-    """Class of options for
+    """Class of options for the Transfer Tensor Method solver.
 
     Attributes
     ----------
+    dynmaps : list of :class:`qutip.Qobj`
+        List of precomputed dynamical maps (superoperators),
+        or a callback function that returns the
+        superoperator at a given time.
+
+    times : *list* / *array* {[]}
+        List of times :math:`t_n` at which to calculate :math:`\\rho(t_n)`
+
+    learningtimes : *list* / *array* {[]}
+        List of times :math:`t_k` to use as learning times if argument
+        `dynmaps` is a callback function.
+
+    thres : float {0.0}
+        Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
+        treshold.
+
+    options : :class:`qutip.solver.Options`
+        Generic solver options.
     """
 
-    def __init__(self, E=None, times=[], learningtimes=[],
+    def __init__(self, dynmaps=None, times=[], learningtimes=[],
                  thres=0.0, options=None):
 
         if options is None:
             options = Options()
 
-        self.E = E
+        self.dynmaps = dynmaps
         self.times = times
         self.learningtimes = learningtimes
         self.thres = thres
         self.store_states = options.store_states
 
 
-def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None, 
-             diff=None, **kwargs):
+def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
+             **kwargs):
     """
+    Solve time-evolution using the Transfer Tensor Method, based on a set of
+    precomputed dynamical maps.
+
     Parameters
     ----------
+    dynmaps : list of :class:`qutip.Qobj`
+        List of precomputed dynamical maps (superoperators),
+        or a callback function that returns the
+        superoperator at a given time.
+
+    rho0 : :class:`qutip.Qobj`
+        Initial density matrix or state vector (ket).
 
     times : *list* / *array*
         list of times :math:`t_n` at which to compute :math:`\rho(t_n)`.
+        Must be uniformily spaced.
+
+    e_ops : list of :class:`qutip.Qobj` / callback function
+        single operator or list of operators for which to evaluate
+        expectation values.
 
     learningtimes : *list* / *array*
         list of times :math:`t_k` for which we have knowledge of the dynamical
         maps :math:`E(t_k)`.
 
+    tensors : *list* / *array*
+        optional list of precomputed tensors :math:`T_k`
+
+    kwargs : *dictionary*
+        Optional keyword arguments. See
+        :class:`qutip.nonmarkov.ttm.TTMSolverOptions`.
+
     Returns
     -------
+
+    output: :class:`qutip.solver.Result`
+
+        An instance of the class :class:`qutip.solver.Result`.
+
     """
 
-    opt = TTMSolverOptions(E=E, times=times, learningtimes=learningtimes,
-                           **kwargs)
+    opt = TTMSolverOptions(dynmaps=dynmaps, times=times,
+                           learningtimes=learningtimes, **kwargs)
+
+    diff = None
+
+    if isket(rho0):
+        rho0 = ket2dm(rho0)
 
     output = Result()
     e_sops_data = []
@@ -83,7 +171,7 @@ def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None,
                             "list-like.")
 
     if tensors is None:
-        tensors, diff = _generatetensors(E, learningtimes, opt=opt)
+        tensors, diff = _generatetensors(dynmaps, learningtimes, opt=opt)
 
     K = len(tensors)
     states = [rho0]
@@ -103,10 +191,9 @@ def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None,
                 e_ops(times[i], states[i])
         for m in range(n_expt_op):
             if output.expect[m].dtype == complex:
-                output.expect[m][i] = expect_rho_vec(e_sops_data[m],r, 0)
+                output.expect[m][i] = expect_rho_vec(e_sops_data[m], r, 0)
             else:
-                output.expect[m][i] = expect_rho_vec(e_sops_data[m],r, 1)
-
+                output.expect[m][i] = expect_rho_vec(e_sops_data[m], r, 1)
 
     output.solver = "ttmsolve"
     output.times = times
@@ -119,7 +206,7 @@ def ttmsolve(E, rho0, times, e_ops=[], learningtimes=None, tensors=None,
     return output
 
 
-def _generatetensors(E, learningtimes=None, **kwargs):
+def _generatetensors(dynmaps, learningtimes=None, **kwargs):
     """
     Generate the tensors :math:`T_1,\dots,T_K` from the dynamical maps
     :math:`E(t_k)`.
@@ -129,13 +216,13 @@ def _generatetensors(E, learningtimes=None, **kwargs):
     Parameters
     ----------
 
-    E : list of :class:`qutip.Qobj`
+    dynmaps : list of :class:`qutip.Qobj`
         List of precomputed dynamical maps (superoperators) at the times
         specified in `learningtimes`, or a callback function that returns the
         superoperator at a given time.
 
     learningtimes : *list* / *array*
-        list of times :math:`t_k` to use if argument `E` is a callback
+        list of times :math:`t_k` to use if argument `dynmaps` is a callback
         function.
 
     kwargs : *dictionary*
@@ -149,40 +236,42 @@ def _generatetensors(E, learningtimes=None, **kwargs):
         A list of transfer tensors :math:`T_1,\dots,T_K`
     """
 
-    # Determine if E is callable or list-like
-    if callable(E):
+    # Determine if dynmaps is callable or list-like
+    if callable(dynmaps):
         if learningtimes is None:
-            raise TypeError("Argument 'learnintimes' required when 'E' is a" +
-                            "callback function.")
+            raise TypeError("Argument 'learnintimes' required when 'dynmaps'" +
+                            "is a callback function.")
 
-        def Efunc(n): return E(learningtimes[n])
+        def dynmapfunc(n): return dynmaps(learningtimes[n])
         Kmax = len(learningtimes)
     else:
         try:
-            tmp = E[:]
+            tmp = dynmaps[:]
             del tmp
 
-            def Efunc(n): return E[n]
-            Kmax = len(E)
+            def dynampfunc(n): return dynmaps[n]
+            Kmax = len(dynmaps)
         except TypeError:
-            raise TypeError("Argument 'E' should be a callable or list-like.")
+            raise TypeError("Argument 'dynmaps' should be a callable or" +
+                            "list-like.")
 
     if "opt" not in kwargs:
-        opt = TTMSolverOptions(E=E, learningtimes=learningtimes, **kwargs)
+        opt = TTMSolverOptions(dynmaps=dynmaps, learningtimes=learningtimes,
+                               **kwargs)
     else:
         opt = kwargs['opt']
 
     Tlist = []
     diff = [0.0]
     for n in range(Kmax):
-        T = Efunc(n)
+        T = dynmapfunc(n)
         for m in range(1, n):
-            T -= Tlist[n-m]*Efunc(m)
+            T -= Tlist[n-m]*dynmapfunc(m)
         Tlist.append(T)
         if n > 1:
             diff.append((Tlist[-1]-Tlist[-2]).norm())
-            if diff[-1]  < opt.thres:
+            if diff[-1] < opt.thres:
                 # Below threshold for truncation
                 print('breaking', (Tlist[-1]-Tlist[-2]).norm(), n)
                 break
-    return Tlist,diff
+    return Tlist, diff
