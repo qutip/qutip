@@ -600,7 +600,6 @@ class TestMESolveSuperInit:
             out1 = mesolve(H, psi0, tlist, c_ops[idx], [])
             out2 = mesolve(H, E0, tlist, c_ops[idx], [])
             fid = self.fidelitycheck(out1, out2, rho0vec)
-            print max(abs(1.0-fid))
             assert_(max(abs(1.0-fid)) < me_error, True)
 
     def testMETDDecayAsStrList(self):
