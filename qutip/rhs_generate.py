@@ -375,7 +375,7 @@ def _td_wrap_array_str(H, c_ops, args, times):
             if isinstance(Hk, list) and isinstance(Hk[1], np.ndarray):
                 H_op, H_td = Hk
                 td_array_name = "_td_array_%d" % n
-                H_td_str = '(0 if (t > %f) else %s[round(%d * (t/%f))])' %\
+                H_td_str = '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' %\
                     (times[-1], td_array_name, len(times) - 1, times[-1])
                 args_new[td_array_name] = H_td
                 H_new.append([H_op, H_td_str])
@@ -390,7 +390,7 @@ def _td_wrap_array_str(H, c_ops, args, times):
             if isinstance(ck, list) and isinstance(ck[1], np.ndarray):
                 c_op, c_td = ck
                 td_array_name = "_td_array_%d" % n
-                c_td_str = '(0 if (t > %f) else %s[round(%d * (t/%f))])' %\
+                c_td_str = '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' %\
                     (times[-1], td_array_name, len(times) - 1, times[-1])
                 args_new[td_array_name] = c_td
                 c_ops_new.append([c_op, c_td_str])
