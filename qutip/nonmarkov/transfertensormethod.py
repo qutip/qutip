@@ -46,7 +46,8 @@ method (TTM), introduced in [1].
 import numpy as np
 
 
-from qutip import Options, spre, vector_to_operator, ket2dm, isket
+from qutip import (Options, spre, vector_to_operator, operator_to_vector, 
+                   ket2dm, isket)
 from qutip.solver import Result
 from qutip.expect import expect_rho_vec
 
@@ -173,8 +174,10 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
     if tensors is None:
         tensors, diff = _generatetensors(dynmaps, learningtimes, opt=opt)
 
+    rho0vec = operator_to_vector(rho0)
+
     K = len(tensors)
-    states = [rho0]
+    states = [rho0vec]
     for n in range(1, len(times)):
         states.append(None)
         for k in range(n):
@@ -249,7 +252,7 @@ def _generatetensors(dynmaps, learningtimes=None, **kwargs):
             tmp = dynmaps[:]
             del tmp
 
-            def dynampfunc(n): return dynmaps[n]
+            def dynmapfunc(n): return dynmaps[n]
             Kmax = len(dynmaps)
         except TypeError:
             raise TypeError("Argument 'dynmaps' should be a callable or" +
