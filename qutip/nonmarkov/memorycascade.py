@@ -36,12 +36,13 @@
 # @email1: arne.grimsmo@gmail.com
 # @organization: University of Sherbrooke
 
-
 """
-This module contains
+This module is an implementation of the method introduced in [1], for
+solving open quantum systems subject to coherent feedback with a single
+discrete time-delay. This method is referred to as the ``memory cascade''
+method in qutip.
 
--
-
+[1] Arne L. Grimsmo, Phys. Rev. Lett 115, 060402 (2015)
 """
 
 import numpy as np
@@ -50,13 +51,36 @@ import qutip as qt
 
 
 class MemoryCascade:
-    """Class of options for
+    """Class for running memory cascade simulations of open quantum systems
+    with time-delayed coherent feedback.
 
     Attributes
     ----------
+    H_S : :class:`qutip.Qobj`
+        System Hamiltonian (can also be a Liouvillian)
+
+    L1 : :class:`qutip.Qobj` / list of :class:`qutip.Qobj`
+        System operators coupling into the feedback loop. Can be a single
+        operator or a list of operators.
+
+    L2 : :class:`qutip.Qobj` / list of :class:`qutip.Qobj`
+        System operators coupling out of the feedback loop. Can be a single
+        operator or a list of operators. L2 must have the same length as L1.
+
+    S_matrix: *array*
+        S matrix describing which operators in L1 are coupled to which
+        operators in L2 by the feedback channel. Defaults to an n by n identity
+        matrix where n is the number of elements in L1/L2.
+
+    c_ops_markov : :class:`qutip.Qobj` / list of :class:`qutip.Qobj`
+        Decay operators describing conventional Markovian decay channels.
+        Can be a single operator or a list of operators.
+
+    options : :class:`qutip.solver.Options`
+        Generic solver options.
     """
 
-    def __init__(self, H_S, L1, L2, S_matrix=None, c_ops_markov=None, 
+    def __init__(self, H_S, L1, L2, S_matrix=None, c_ops_markov=None,
                  options=None):
 
         if options is None:
@@ -76,8 +100,11 @@ class MemoryCascade:
             self.L2 = L2
         if not len(self.L1) == len(self.L2):
             raise ValueError('L1 and L2 has to be of equal length.')
+        if isinstance(c_ops_markov, qt.Qobj):
+            self.c_ops_markov = [c_ops_markov]
+        else:
+            self.c_ops_markov = c_ops_markov
 
-        self.c_ops_markov = c_ops_markov
         if S_matrix is None:
             self.S_matrix = np.identity(len(self.L1))
         else:
@@ -90,7 +117,21 @@ class MemoryCascade:
 
     def propagator(self, t, tau, notrace=False):
         """
-        Compute propagator for time t
+        Compute propagator for time t and time-delay tau
+
+        Parameters
+        ----------
+        t : *float*
+            current time
+
+        tau : *float*
+            time-delay
+
+        notrace : *bool* {False}
+            If this optional is set to True, a propagator is returned for a
+            cascade of k systems, where :math:`(k-1) tau < t < k tau`.
+            If set to False (default), a generalized partial trace is performed
+            and a propagator for a single system is returned.
         """
         k = int(t/tau)+1
         s = t-(k-1)*tau
@@ -107,19 +148,46 @@ class MemoryCascade:
             E = _genptrace(E, k)
         return qt.Qobj(E)
 
-    def outfieldpropagator(self, blist, tlist, tau, c1=None, c2=None, 
+    def outfieldpropagator(self, blist, tlist, tau, c1=None, c2=None,
                            notrace=False):
         """
-        Compute propagator for computing field expectation values
+        Compute propagator for computing output field expectation values
         <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
         O_i = I, b_out, b_out^\dagger, b_loop, b_loop^\dagger
-        tlist: list of times t1,..,tn
-        blist: corresponding list of operators:
+
+        Parameters
+        ----------
+        blist : *list* / *array*
+            List of integers specifying the field operators:
             0: I (nothing)
             1: b_out
             2: b_out^\dagger
             3: b_loop
             4: b_loop^\dagger
+
+        tlist : *list* / *array*
+            list of corresponding times t1,..,tn at which to evaluate the field
+            operators
+
+        tau : *float*
+            time-delay
+
+        c1 : :class:`qutip.Qobj`
+            system collapse operator that couples to the in-loop field in
+            question (only needs to be specified if self.L1 has more than one
+            element)
+
+        c2 : :class:`qutip.Qobj`
+            system collapse operator that couples to the output field in
+            question (only needs to be specified if self.L2 has more than one
+            element)
+
+        notrace : *bool* {False}
+            If this optional is set to True, a propagator is returned for a
+            cascade of k systems, where :math:`(k-1) tau < t < k tau`.
+            If set to False (default), a generalized partial trace is performed
+            and a propagator for a single system is returned.
+
         """
         if c1 is None and len(self.L1) == 1:
             c1 = self.L1[0]
@@ -181,18 +249,61 @@ class MemoryCascade:
     def rhot(self, rho0, t, tau):
         """
         Compute rho(t)
+
+        Parameters
+        ----------
+        rho0 : :class:`qutip.Qobj`
+            initial density matrix or state vector (ket).
+
+        t : *float*
+            current time
+
+        tau : *float*
+            time-delay
         """
+        if qt.isket(rho0):
+            rho0 = qt.ket2dm(rho0)
+
         E = self.propagator(t, tau)
         rhovec = qt.operator_to_vector(rho0)
         return qt.vector_to_operator(E*rhovec)
 
-    def outfieldcorr(self, rho0, blist, tlist, tau):
+    def outfieldcorr(self, rho0, blist, tlist, tau, c1=None, c2=None):
         """
-        Compute <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
-        O_i = b or b^\dagger are output field annihilation/creation operators
-        times: list of times t1,..,tn
-        blist: corresponding list of 0 for "b" and 1 for "b^\dagger"
-        tau: time-delay
+        Compute output field expectation value
+        <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
+        O_i = I, b_out, b_out^\dagger, b_loop, b_loop^\dagger
+
+
+        Parameters
+        ----------
+        rho0 : :class:`qutip.Qobj`
+            initial density matrix or state vector (ket).
+
+        blist : *list* / *array*
+            List of integers specifying the field operators:
+            0: I (nothing)
+            1: b_out
+            2: b_out^\dagger
+            3: b_loop
+            4: b_loop^\dagger
+
+        tlist : *list* / *array*
+            list of corresponding times t1,..,tn at which to evaluate the field
+            operators
+
+        tau : *float*
+            time-delay
+
+        c1 : :class:`qutip.Qobj`
+            system collapse operator that couples to the in-loop field in
+            question (only needs to be specified if self.L1 has more than one
+            element)
+
+        c2 : :class:`qutip.Qobj`
+            system collapse operator that couples to the output field in
+            question (only needs to be specified if self.L2 has more than one
+            element)
         """
         E = self.outfieldpropagator(blist, tlist, tau)
         rhovec = qt.operator_to_vector(rho0)
@@ -218,7 +329,8 @@ def _localop(op, l, k):
 
 def _genptrace(E, k):
     """
-    Perform a gneralized partial trace, tracing out all subsystems but one.
+    Perform a gneralized partial trace on a superoperator E, tracing out all
+    subsystems but one.
     """
     for l in range(k-1):
         nsys = len(E.dims[0][0])
@@ -228,7 +340,7 @@ def _genptrace(E, k):
 
 def _generator(k, H, L1, L2, S=None, c_ops_markov=None):
     """
-    Create the generator for the cascaded chain of k system copies
+    Create a Liouvillian for a cascaded chain of k system copies
     """
     id = qt.qeye(H.dims[0][0])
     Id = qt.sprepost(id, id)
@@ -244,9 +356,9 @@ def _generator(k, H, L1, L2, S=None, c_ops_markov=None):
         E0 = qt.composite(E0, Id)
         # Bare Hamiltonian
         Hl = _localop(H, l, k)
-        L += qt.liouvillian(Hl,[])
+        L += qt.liouvillian(Hl, [])
         # Markovian Decay channels
-        if not c_ops_markov is None:
+        if c_ops_markov is not None:
             for c in c_ops_markov:
                 cl = _localop(c, l, k)
                 L += qt.liouvillian(None, [cl])
@@ -260,49 +372,10 @@ def _generator(k, H, L1, L2, S=None, c_ops_markov=None):
         L += qt.liouvillian(Hcasc, [c for c in Lvec])
     # last system
     L += qt.liouvillian(_localop(H, k, k), [_localop(c, k, k) for c in L1])
-    if not c_ops_markov is None:
+    if c_ops_markov is not None:
         for c in c_ops_markov:
             cl = _localop(c, k, k)
             L += qt.liouvillian(None, [cl])
-    E0.dims = L.dims
-    # return generator and identity superop E0
-    return L, E0
-
-
-def _generator_old(k, H, L1, L2, S=None, c_ops_markov=None):
-    """
-    Create the generator for the cascaded chain of k system copies
-    """
-    L1 = L1[0]
-    L2 = L2[0]
-    id = qt.qeye(H.dims[0][0])
-    Id = qt.sprepost(id, id)
-    # create Lindbladian
-    L = qt.Qobj()
-    # first system
-    H0 = 0.5*_localop(H, 1, k)
-    L0 = _localop(L2, 1, k)
-    L += qt.liouvillian(H0, [L0])
-    E0 = Id
-    # coupling systems 1 to k
-    for l in range(1, k):
-        E0 = qt.composite(E0, Id)
-        h1 = _localop(H, l, k)
-        h2 = _localop(H, l+1, k)
-        l1 = _localop(L1, l, k)
-        l2 = _localop(L2, l+1, k)
-        Hl = 0.5*(h1 + h2 + 1j*(l1.dag()*l2 - l2.dag()*l1))
-        Ll = l1 + l2
-        L += qt.liouvillian(Hl, [Ll])
-    # last system
-    Hk = 0.5*_localop(H, k, k)
-    Lk = _localop(L1, k, k)
-    L += qt.liouvillian(Hk, [Lk])
-    if not c_ops_markov is None:
-        for l in range(1, k+1):
-            for c in c_ops_markov:
-                cl = _localop(c, l, k)
-                L += qt.liouvillian(None, [cl])
     E0.dims = L.dims
     # return generator and identity superop E0
     return L, E0

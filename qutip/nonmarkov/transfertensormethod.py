@@ -46,7 +46,7 @@ method (TTM), introduced in [1].
 import numpy as np
 
 
-from qutip import (Options, spre, vector_to_operator, operator_to_vector, 
+from qutip import (Options, spre, vector_to_operator, operator_to_vector,
                    ket2dm, isket)
 from qutip.solver import Result
 from qutip.expect import expect_rho_vec
@@ -69,7 +69,7 @@ class TTMSolverOptions:
         List of times :math:`t_k` to use as learning times if argument
         `dynmaps` is a callback function.
 
-    thres : float {0.0}
+    thres : *float* {0.0}
         Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
         treshold.
 
