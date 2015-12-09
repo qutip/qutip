@@ -132,6 +132,10 @@ class MemoryCascade:
             cascade of k systems, where :math:`(k-1) tau < t < k tau`.
             If set to False (default), a generalized partial trace is performed
             and a propagator for a single system is returned.
+        Returns
+        -------
+        : :class:`qutip.Qobj`
+            time-propagator for reduced system dynamics
         """
         k = int(t/tau)+1
         s = t-(k-1)*tau
@@ -146,7 +150,7 @@ class MemoryCascade:
         E.dims = E0.dims
         if not notrace:
             E = _genptrace(E, k)
-        return qt.Qobj(E)
+        return E
 
     def outfieldpropagator(self, blist, tlist, tau, c1=None, c2=None,
                            notrace=False):
@@ -157,7 +161,7 @@ class MemoryCascade:
 
         Parameters
         ----------
-        blist : *list* / *array*
+        blist : array_like
             List of integers specifying the field operators:
             0: I (nothing)
             1: b_out
@@ -165,11 +169,11 @@ class MemoryCascade:
             3: b_loop
             4: b_loop^\dagger
 
-        tlist : *list* / *array*
+        tlist : array_like
             list of corresponding times t1,..,tn at which to evaluate the field
             operators
 
-        tau : *float*
+        tau : float
             time-delay
 
         c1 : :class:`qutip.Qobj`
@@ -182,12 +186,16 @@ class MemoryCascade:
             question (only needs to be specified if self.L2 has more than one
             element)
 
-        notrace : *bool* {False}
+        notrace : bool {False}
             If this optional is set to True, a propagator is returned for a
             cascade of k systems, where :math:`(k-1) tau < t < k tau`.
             If set to False (default), a generalized partial trace is performed
             and a propagator for a single system is returned.
 
+        Returns
+        -------
+        : :class:`qutip.Qobj`
+            time-propagator for computing field correlation function
         """
         if c1 is None and len(self.L1) == 1:
             c1 = self.L1[0]
@@ -244,22 +252,27 @@ class MemoryCascade:
         E.dims = E0.dims
         if not notrace:
             E = _genptrace(E, kmax)
-        return qt.Qobj(E)
+        return E
 
     def rhot(self, rho0, t, tau):
         """
-        Compute rho(t)
+        Compute the reduced system density matrix :math:`\\rho(t)`
 
         Parameters
         ----------
         rho0 : :class:`qutip.Qobj`
             initial density matrix or state vector (ket).
 
-        t : *float*
+        t : float
             current time
 
-        tau : *float*
+        tau : float
             time-delay
+
+        Returns
+        -------
+        : :class:`qutip.Qobj`
+            density matrix at time :math:`t`
         """
         if qt.isket(rho0):
             rho0 = qt.ket2dm(rho0)
@@ -280,7 +293,7 @@ class MemoryCascade:
         rho0 : :class:`qutip.Qobj`
             initial density matrix or state vector (ket).
 
-        blist : *list* / *array*
+        blist : array_like
             List of integers specifying the field operators:
             0: I (nothing)
             1: b_out
@@ -288,11 +301,11 @@ class MemoryCascade:
             3: b_loop
             4: b_loop^\dagger
 
-        tlist : *list* / *array*
+        tlist : array_like
             list of corresponding times t1,..,tn at which to evaluate the field
             operators
 
-        tau : *float*
+        tau : float
             time-delay
 
         c1 : :class:`qutip.Qobj`
@@ -304,6 +317,11 @@ class MemoryCascade:
             system collapse operator that couples to the output field in
             question (only needs to be specified if self.L2 has more than one
             element)
+
+        Returns
+        -------
+        : complex
+            expectation value of field correlation function
         """
         E = self.outfieldpropagator(blist, tlist, tau)
         rhovec = qt.operator_to_vector(rho0)

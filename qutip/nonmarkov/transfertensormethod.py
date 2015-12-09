@@ -62,14 +62,14 @@ class TTMSolverOptions:
         or a callback function that returns the
         superoperator at a given time.
 
-    times : *list* / *array* {[]}
+    times : array_like
         List of times :math:`t_n` at which to calculate :math:`\\rho(t_n)`
 
-    learningtimes : *list* / *array* {[]}
+    learningtimes : array_like
         List of times :math:`t_k` to use as learning times if argument
         `dynmaps` is a callback function.
 
-    thres : *float* {0.0}
+    thres : float
         Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
         treshold.
 
@@ -106,32 +106,29 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
     rho0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
 
-    times : *list* / *array*
-        list of times :math:`t_n` at which to compute :math:`\rho(t_n)`.
+    times : array_like
+        list of times :math:`t_n` at which to compute :math:`\\rho(t_n)`.
         Must be uniformily spaced.
 
     e_ops : list of :class:`qutip.Qobj` / callback function
         single operator or list of operators for which to evaluate
         expectation values.
 
-    learningtimes : *list* / *array*
+    learningtimes : array_like
         list of times :math:`t_k` for which we have knowledge of the dynamical
         maps :math:`E(t_k)`.
 
-    tensors : *list* / *array*
+    tensors : array_like
         optional list of precomputed tensors :math:`T_k`
 
-    kwargs : *dictionary*
+    kwargs : dictionary
         Optional keyword arguments. See
         :class:`qutip.nonmarkov.ttm.TTMSolverOptions`.
 
     Returns
     -------
-
     output: :class:`qutip.solver.Result`
-
         An instance of the class :class:`qutip.solver.Result`.
-
     """
 
     opt = TTMSolverOptions(dynmaps=dynmaps, times=times,
@@ -218,23 +215,21 @@ def _generatetensors(dynmaps, learningtimes=None, **kwargs):
 
     Parameters
     ----------
-
     dynmaps : list of :class:`qutip.Qobj`
         List of precomputed dynamical maps (superoperators) at the times
         specified in `learningtimes`, or a callback function that returns the
         superoperator at a given time.
 
-    learningtimes : *list* / *array*
+    learningtimes : array_like
         list of times :math:`t_k` to use if argument `dynmaps` is a callback
         function.
 
-    kwargs : *dictionary*
+    kwargs : dictionary
         Optional keyword arguments. See
         :class:`qutip.nonmarkov.ttm.TTMSolverOptions`.
 
     Returns
     -------
-
     Tlist: list of :class:`qutip.Qobj.`
         A list of transfer tensors :math:`T_1,\dots,T_K`
     """
