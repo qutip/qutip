@@ -169,6 +169,11 @@ class TestPulseOptim:
         assert_((result2.final_amps >= -1.0).all() and 
                     (result2.final_amps <= 1.0).all(), 
                     msg="Amplitude bounds exceeded for QFT")
+                    
+    def test_state_to_state(self):
+        """
+        
+        """
     
     def test_lindbladian(self):
         """

@@ -962,7 +962,7 @@ class Dynamics(object):
                     self._fwd_evo_qobj = [self.initial]
                     for k in range(1, self.num_tslots+1):
                         self._fwd_evo_qobj.append(Qobj(self._fwd_evo[k],
-                                                       dims=self.dyn_dims))
+                                                       dims=self.sys_dims))
         return self._fwd_evo_qobj
 
     def _get_full_evo(self):
@@ -990,7 +990,7 @@ class Dynamics(object):
                 if self.oper_dtype == Qobj:
                     self._onwd_evo_qobj = self._fwd_evo
                 else:
-                    self._onwd_evo_qobj = [Qobj(dg, dims=self.dyn_dims)
+                    self._onwd_evo_qobj = [Qobj(dg, dims=self.sys_dims)
                                             for dg in self._onwd_evo]
         return self._onwd_evo_qobj
 
@@ -1014,7 +1014,7 @@ class Dynamics(object):
                     self._onto_evo_qobj = []
                     for k in range(0, self.num_tslots):
                         self._onto_evo_qobj.append(Qobj(self._onto_evo[k],
-                                                       dims=self.dyn_dims))
+                                                       dims=self.sys_dims))
                     self._onto_evo_qobj.append(self.onto_evo_target)
 
         return self._onto_evo_qobj
