@@ -38,12 +38,13 @@ from numpy.testing import assert_, run_module_suite
 
 # disable the MC progress bar
 import os
-os.environ['QUTIP_GRAPHICS'] = "NO"
 
 from qutip import (sigmax, sigmay, sigmaz, sigmam, mesolve, tensor, destroy,
                    identity, steadystate, expect, basis, num, qeye, sprepost,
                    operator_to_vector, vector_to_operator, fidelity, ket2dm,
-                   liouvillian) 
+                   liouvillian)
+
+os.environ['QUTIP_GRAPHICS'] = "NO"
 
 
 class TestJCModelEvolution:
@@ -405,7 +406,7 @@ class TestMESolveTDDecay:
     def testMETDDecayAsPartFuncList(self):
         "mesolve: time-dependence as partial function list"
 
-        me_error=1e-5
+        me_error = 1e-5
         N = 10
         a = destroy(N)
         H = num(N)
@@ -465,7 +466,7 @@ class TestMESolveTDDecay:
 
         def Liouvillian_func(t, args):
             c = np.sqrt(kappa * np.exp(-t))*a
-            return liouvillian(H,[c]).data
+            return liouvillian(H, [c]).data
 
         tlist = np.linspace(0, 10, 100)
         args = {'kappa': kappa}
@@ -499,7 +500,7 @@ class TestMESolveSuperInit:
         sm = tensor(identity(N), destroy(2))
 
         # Identity super-operator
-        E0 = sprepost(tensor(qeye(N),qeye(2)),tensor(qeye(N),qeye(2)))
+        E0 = sprepost(tensor(qeye(N), qeye(2)), tensor(qeye(N), qeye(2)))
 
         if use_rwa:
             # use the rotating wave approxiation
@@ -568,7 +569,7 @@ class TestMESolveSuperInit:
         H = a.dag() * a
         psi0 = basis(N, 9)  # initial state
         rho0vec = operator_to_vector(psi0*psi0.dag())
-        E0 = sprepost(qeye(N),qeye(N))
+        E0 = sprepost(qeye(N), qeye(N))
         kappa = 0.2  # coupling to oscillator
 
         def sqrt_kappa(t, args):
@@ -582,7 +583,7 @@ class TestMESolveSuperInit:
         assert_(max(abs(1.0-fid)) < me_error, True)
 
     def testMETDDecayAsPartFuncList(self):
-        "mesolve: time-dependence as partial function list with super as init cond"
+        "mesolve: time-dep. as partial function list with super as init cond"
         me_error = 1e-5
 
         N = 10
@@ -590,7 +591,7 @@ class TestMESolveSuperInit:
         H = num(N)
         psi0 = basis(N, 9)
         rho0vec = operator_to_vector(psi0*psi0.dag())
-        E0 = sprepost(qeye(N),qeye(N))
+        E0 = sprepost(qeye(N), qeye(N))
         tlist = np.linspace(0, 10, 100)
         c_ops = [[[a, partial(lambda t, args, k:
                               np.sqrt(k * np.exp(-t)), k=kappa)]]
@@ -611,7 +612,7 @@ class TestMESolveSuperInit:
         H = a.dag() * a
         psi0 = basis(N, 9)  # initial state
         rho0vec = operator_to_vector(psi0*psi0.dag())
-        E0 = sprepost(qeye(N),qeye(N))
+        E0 = sprepost(qeye(N), qeye(N))
         kappa = 0.2  # coupling to oscillator
         c_op_list = [[a, 'sqrt(k*exp(-t))']]
         args = {'k': kappa}
@@ -630,7 +631,7 @@ class TestMESolveSuperInit:
         H = a.dag() * a
         psi0 = basis(N, 9)
         rho0vec = operator_to_vector(psi0*psi0.dag())
-        E0 = sprepost(qeye(N),qeye(N))
+        E0 = sprepost(qeye(N), qeye(N))
         kappa = 0.2
         tlist = np.linspace(0, 10, 1000)
         c_op_list = [[a, np.sqrt(kappa * np.exp(-tlist))]]
@@ -647,12 +648,12 @@ class TestMESolveSuperInit:
         H = a.dag() * a
         rho0 = ket2dm(basis(N, 9))  # initial state
         rho0vec = operator_to_vector(rho0)
-        E0 = sprepost(qeye(N),qeye(N))
+        E0 = sprepost(qeye(N), qeye(N))
         kappa = 0.2  # coupling to oscillator
 
         def Liouvillian_func(t, args):
             c = np.sqrt(kappa * np.exp(-t))*a
-            data = liouvillian(H,[c]).data
+            data = liouvillian(H, [c]).data
             return data
 
         tlist = np.linspace(0, 10, 100)
