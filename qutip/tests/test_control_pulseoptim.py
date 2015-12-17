@@ -89,7 +89,9 @@ class TestPulseOptim:
                         fid_err_targ=1e-10, 
                         init_pulse_type='LIN', 
                         gen_stats=True)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved")
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
         assert_almost_equal(result.fid_err, 0.0, decimal=10, 
                             err_msg="Hadamard infidelity too high")
                             
@@ -100,7 +102,9 @@ class TestPulseOptim:
                         init_pulse_type='LIN', 
                         gen_stats=False)
         assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(no stats)")
+                                            "(no stats). "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
                                             
         #Try with Qobj propagation
         result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
@@ -110,7 +114,9 @@ class TestPulseOptim:
                         dyn_params={'oper_dtype':Qobj},
                         gen_stats=True)
         assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(Qobj propagation)")
+                                            "(Qobj propagation). "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
         
         # Check same result is achieved using the create objects method
         optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ, 
@@ -155,7 +161,9 @@ class TestPulseOptim:
                         init_pulse_type='LIN', 
                         gen_stats=True)
                         
-        assert_(result.goal_achieved, msg="QFT goal not achieved")
+        assert_(result.goal_achieved, msg="QFT goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
         assert_almost_equal(result.fid_err, 0.0, decimal=7, 
                             err_msg="QFT infidelity too high")
                             
@@ -172,9 +180,54 @@ class TestPulseOptim:
                     
     def test_state_to_state(self):
         """
+        Optimise pulse for state-to-state transfer with linear initial pulse
+        assert that goal is achieved
+        """       
+        # 2 qubits with Ising interaction
+        # some arbitary coupling constants
+        alpha = [0.9, 0.7]
+        beta  = [0.8, 0.9]
+        Sx = sigmax()
+        Sz = sigmaz()
+        H_d = (alpha[0]*tensor(Sx,identity(2)) + 
+              alpha[1]*tensor(identity(2),Sx) +
+              beta[0]*tensor(Sz,identity(2)) +
+              beta[1]*tensor(identity(2),Sz))
+        H_c = [tensor(Sz,Sz)]
         
-        """
-    
+        q1_0 = q2_0 = Qobj([[1], [0]])
+        q1_T = q2_T = Qobj([[0], [1]])
+        
+        psi_0 = tensor(q1_0, q2_0)
+        psi_T = tensor(q1_T, q2_T)
+        
+        n_ts = 10
+        evo_time = 18
+        
+        # Run the optimisation
+        result = cpo.optimize_pulse_unitary(H_d, H_c, psi_0, psi_T, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+        assert_(result.goal_achieved, msg="State-to-state goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
+        assert_almost_equal(result.fid_err, 0.0, decimal=10, 
+                            err_msg="Hadamard infidelity too high")
+                            
+        #Try with Qobj propagation
+        result = cpo.optimize_pulse_unitary(H_d, H_c, psi_0, psi_T, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        dyn_params={'oper_dtype':Qobj},
+                        gen_stats=True)
+        assert_(result.goal_achieved, msg="State-to-state goal not achieved "
+                    "(Qobj propagation)"
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
+                                            
     def test_lindbladian(self):
         """
         Optimise pulse for amplitude damping channel with Lindbladian dyn
@@ -300,7 +353,9 @@ class TestPulseOptim:
                         dyn_type='SYMPL',
                         init_pulse_type='ZERO', 
                         gen_stats=True)
-        assert_(result.goal_achieved, msg="Symplectic goal not achieved")
+        assert_(result.goal_achieved, msg="Symplectic goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
         assert_almost_equal(result.fid_err, 0.0, decimal=2, 
                             err_msg="Symplectic infidelity too high")
         
@@ -313,9 +368,11 @@ class TestPulseOptim:
                         init_pulse_type='ZERO', 
                         dyn_params={'oper_dtype':Qobj},
                         gen_stats=True)
-        assert_(result.goal_achieved, msg="Symplectic goal not achieved "
-                                        "(Qobj integration)")
-        
+        assert_(resultq.goal_achieved, msg="Symplectic goal not achieved "
+                                        "(Qobj integration). "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    resultq.termination_reason, result.fid_err))
+                    
         # Check same result is achieved using the create objects method
         optim = cpo.create_pulse_optimizer(A0, list(A_c), 
                         initial, S_targ,
@@ -376,7 +433,9 @@ class TestPulseOptim:
                 ramping_pulse_type='GAUSSIAN_EDGE', 
                 ramping_pulse_params={'decay_time':evo_time/100.0},
                 gen_stats=True)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved")
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
         assert_almost_equal(result.fid_err, 0.0, decimal=3, 
                             err_msg="Hadamard infidelity too high")
         assert_almost_equal(result.final_amps[0, 0], 0.0, decimal=3, 
@@ -397,8 +456,10 @@ class TestPulseOptim:
                 ramping_pulse_params={'decay_time':evo_time/100.0},
                 gen_stats=True)
         assert_(result.goal_achieved, msg="Hadamard goal not achieved" 
-                                        "(Qobj integration)")
-                            
+                                        "(Qobj integration). "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
+                    
     def test_load_params(self):
         """
         Optimise pulse for Hadamard gate by loading config from file
