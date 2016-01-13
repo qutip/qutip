@@ -860,7 +860,7 @@ class PulseGenTriangle(PulseGenPeriodic):
         pulse = np.empty(self.num_tslots)
         t = 0.0
         for k in range(self.num_tslots):
-            phase = 2*np.pi*self.freq*t + self.start_phase
+            phase = 2*np.pi*self.freq*t + self.start_phase + np.pi/2.0
             x = phase/(2*np.pi)
             y = 2*np.abs(2*(x - np.floor(0.5 + x))) - 1
             pulse[k] = self.scaling*y

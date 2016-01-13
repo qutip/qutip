@@ -528,7 +528,69 @@ class TestPulseOptim:
                         
         assert_almost_equal(result.final_amps, result2.final_amps, decimal=5, 
                             err_msg="Pulses do not match")
-
+                            
+    
+    def test_init_pulse_params(self):
+        """
+        Test setting pulse_params using create_pulse_optimizer
+        """
+        
+        def count_waves(n_ts, evo_time, ptype, freq=None, num_waves=None):
+            
+            # Any dyn config will do 
+            #Hadamard
+            H_d = sigmaz()
+            H_c = [sigmax()]
+            U_0 = identity(2)
+            U_targ = hadamard_transform(1)
+            
+            pulse_params = {}
+            if freq is not None:
+                pulse_params['freq'] = freq
+            if num_waves is not None:
+                pulse_params['num_waves'] = num_waves
+            
+            optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ, 
+                                        n_ts, evo_time, 
+                                        dyn_type='UNIT', 
+                                        init_pulse_type=ptype,
+                                        init_pulse_params=pulse_params,
+                                        gen_stats=False)
+            pgen = optim.pulse_generator
+            pulse = pgen.gen_pulse()
+            
+            # count number of waves
+            zero_cross = pulse[0:-2]*pulse[1:-1] < 0
+            
+            return (sum(zero_cross) + 1) / 2
+        
+        n_ts = 1000
+        evo_time = 10
+        
+        ptypes = ['SINE', 'SQUARE', 'TRIANGLE', 'SAW']
+        numws = [1, 5, 10, 100]
+        freqs = [0.1, 1, 10, 20]
+        
+        for ptype in ptypes:
+            for freq in freqs:
+                exp_num_waves = evo_time*freq
+                fnd_num_waves = count_waves(n_ts, evo_time, ptype, freq=freq)
+#                print("Found {} waves for pulse type '{}', "
+#                    "freq {}".format(fnd_num_waves, ptype, freq))
+                assert_equal(exp_num_waves, fnd_num_waves, err_msg=
+                    "Number of waves incorrect for pulse type '{}', "
+                    "freq {}".format(ptype, freq))
+                    
+            for num_waves in numws:
+                exp_num_waves = num_waves
+                fnd_num_waves = count_waves(n_ts, evo_time, ptype, 
+                                            num_waves=num_waves)
+#                print("Found {} waves for pulse type '{}', "
+#                    "num_waves {}".format(fnd_num_waves, ptype, num_waves))
+                assert_equal(exp_num_waves, fnd_num_waves, err_msg=
+                    "Number of waves incorrect for pulse type '{}', "
+                    "num_waves {}".format(ptype, num_waves))
+        
 if __name__ == "__main__":
     run_module_suite()
     

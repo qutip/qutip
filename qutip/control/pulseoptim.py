@@ -1933,13 +1933,7 @@ def create_pulse_optimizer(
         pgen.offset = pulse_offset
         pgen.lbound = amp_lbound
         pgen.ubound = amp_ubound
-        if ramping_pgen:
-            crab_pgen.ramping_pulse = ramping_pgen.gen_pulse()
 
-        # If the pulse is a periodic type, then set the pulse to be one complete
-        # wave
-        if isinstance(pgen, pulsegen.PulseGenPeriodic):
-            pgen.num_waves = 1.0
         optim.pulse_generator = pgen
 
     if log_level <= logging.DEBUG:
