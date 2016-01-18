@@ -109,7 +109,7 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
         raise ValueError("No option for pulse_type '{}'".format(pulse_type))
 
 
-class PulseGen:
+class PulseGen(object):
     """
     Pulse generator
     Base class for all Pulse generators
@@ -189,14 +189,13 @@ class PulseGen:
             self.scaling = dyn.initial_ctrl_scaling
             self.offset = dyn.initial_ctrl_offset
             self.tau = dyn.tau
-            self.set_log_level(dyn.log_level)
+            self.log_level = dyn.log_level
         else:
             self.num_tslots = 100
             self.pulse_time = 1.0
             self.scaling = 1.0
             self.tau = None
             self.offset = 0.0
-            self.log_level = logger.level
 
         self._uses_time = False
         self.time = None
@@ -224,12 +223,16 @@ class PulseGen:
             for key in params:
                 setattr(self, key, params[key])
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
         
     def gen_pulse(self):
@@ -857,7 +860,7 @@ class PulseGenTriangle(PulseGenPeriodic):
         pulse = np.empty(self.num_tslots)
         t = 0.0
         for k in range(self.num_tslots):
-            phase = 2*np.pi*self.freq*t + self.start_phase
+            phase = 2*np.pi*self.freq*t + self.start_phase + np.pi/2.0
             x = phase/(2*np.pi)
             y = 2*np.abs(2*(x - np.floor(0.5 + x))) - 1
             pulse[k] = self.scaling*y

@@ -99,7 +99,7 @@ import qutip.control.errors as errors
 import qutip.control.dynamics as dynamics
 import qutip.control.pulsegen as pulsegen
 
-class Optimizer:
+class Optimizer(object):
     """
     Base class for all control pulse optimisers. This class should not be
     instantiated, use its subclasses
@@ -121,7 +121,6 @@ class Optimizer:
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     alg : string
         Algorithm to use in pulse optimisation.
@@ -202,7 +201,7 @@ class Optimizer:
         dyn.parent = self
 
     def reset(self):
-        self.set_log_level(self.config.log_level)
+        self.log_level = self.config.log_level
         self.id_text = 'OPTIM'
         self.termination_conditions = None
         self.pulse_generator = None
@@ -237,29 +236,18 @@ class Optimizer:
             if self.config.amp_ubound:
                 self.amp_ubound = self.config.amp_ubound
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
-
-#    def run_optimization(self, term_conds=None):
-#        """
-#        Run the pulse optimisation algorithm
-#
-#        This class does not implement a method for running the optimisation
-#        A subclass should be used, e.g. OptimizerLBFGSB
-#
-#        If the parameter term_conds=None, then the termination_conditions
-#        attribute must already be set. It will be overwritten if the
-#        parameter is not None
-#        """
-#        raise errors.UsageError(
-#            "No method defined for running optimisation."
-#            " Suspect base class was used where sub class should have been")
-   
+  
     def _create_result(self):
         """
         create the result object
@@ -279,6 +267,8 @@ class Optimizer:
         This is called by run_optimization, but could called independently
         to check the configuration.
         """
+        
+        
 
         self._check_prepare_test_out_files()
 
@@ -437,7 +427,7 @@ class Optimizer:
     def _build_bounds_list(self):
         cfg = self.config
         dyn = self.dynamics
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
@@ -722,7 +712,11 @@ class Optimizer:
         result.fid_err = dyn.fid_computer.get_fid_err()
         result.grad_norm_final = dyn.fid_computer.grad_norm
         result.final_amps = dyn.ctrl_amps
-        result.evo_full_final = Qobj(dyn.evo_init2t[dyn.num_tslots])
+        final_evo = dyn.full_evo
+        if isinstance(final_evo, Qobj):
+            result.evo_full_final = final_evo
+        else:
+            result.evo_full_final = Qobj(final_evo, dims=dyn.sys_dims)
         # *** update stats ***
         if self.stats is not None:
             self.stats.wall_time_optim_end = end_time
@@ -1009,7 +1003,7 @@ class OptimizerCrab(Optimizer):
             pulse_gen_valid = False
             err_msg = "pulse_generator is not iterable"
         
-        elif len(self.pulse_generator) != dyn.get_num_ctrls():
+        elif len(self.pulse_generator) != dyn.num_ctrls:
             pulse_gen_valid = False
             err_msg = ("the number of pulse generators {} does not equal "
                         "the number of controls {}".format(
