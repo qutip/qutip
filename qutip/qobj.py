@@ -1185,15 +1185,54 @@ class Qobj(object):
 
 
     def trunc_neg(self, method="clip"):
+        """Truncates negative eigenvalues and renormalizes.
+
+        Returns a new Qobj by removing the negative eigenvalues
+        of this instance, then renormalizing to obtain a valid density
+        operator.
+
+
+        Parameters
+        ----------
+        method : str
+            Algorithm to use to remove negative eigenvalues. "clip"
+            simply discards negative eigenvalues, then renormalizes.
+            "sgs" uses the SGS algorithm (doi:10/bb76) to find the
+            positive operator that is nearest in the Shatten 2-norm.
+
+        Returns
+        -------
+        oper : qobj
+            A valid density operator.
+        """
+        if not self.isherm:
+            raise ValueError("Must be a Hermitian operator to remove negative eigenvalues.")
+
         if method not in ('clip', 'sgs'):
             raise ValueError("Method {} not recognized.".format(method))
 
         eigvals, eigstates = self.eigenstates()
+        if all([eigval >= 0 for eigval in eigvals]):
+            # All positive, so just renormalize.
+            return self.unit()
 
         if method == 'clip':
             eigvals[eigvals < 0] = 0
         elif method == 'sgs':
-            raise NotImplementedError("Not yet implemented.")
+            eigvals = eigvals[::-1]    
+            eigstates = eigstates[::-1]
+            
+            acc = 0.0
+            dim = self.shape[0]
+            
+            for idx in reversed(range(dim)):
+                if eigvals[idx] + acc / (idx + 1) >= 0:
+                    break
+                else:
+                    acc += eigvals[idx]
+                    eigvals[idx] = 0.0
+                    
+            eigvals[:idx+1] += acc / (idx + 1)
 
         return sum([
                 val * qutip.states.ket2dm(state)
