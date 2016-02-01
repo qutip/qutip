@@ -170,6 +170,9 @@ class Qobj(object):
         Transpose of quantum object.
     transform(inpt, inverse=False)
         Performs a basis transformation defined by `inpt` matrix.
+    trunc_neg(method='clip')
+        Removes negative eigenvalues and returns a new Qobj that is
+        a valid density operator.
     unit(norm='tr', sparse=False, tol=0, maxiter=100000)
         Returns normalized quantum object.
     """
@@ -1179,6 +1182,25 @@ class Qobj(object):
         out.data = sp.csr_matrix(out.data, dtype=complex)
 
         return out
+
+
+    def trunc_neg(self, method="clip"):
+        if method not in ('clip', 'sgs'):
+            raise ValueError("Method {} not recognized.".format(method))
+
+        eigvals, eigstates = self.eigenstates()
+
+        if method == 'clip':
+            eigvals[eigvals < 0] = 0
+        elif method == 'sgs':
+            raise NotImplementedError("Not yet implemented.")
+
+        return sum([
+                val * ket2dm(state)
+                for val, state in zip(eigvals, eigstates)
+            ], Qobj(np.zeros(self.shape, dims=self.dims)))
+        ).unit()
+
 
     def matrix_element(self, bra, ket):
         """Calculates a matrix element.
