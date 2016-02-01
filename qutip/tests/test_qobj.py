@@ -34,7 +34,7 @@
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
-from numpy.testing import assert_equal, assert_, run_module_suite
+from numpy.testing import assert_equal, assert_, assert_almost_equal, run_module_suite
 
 from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
@@ -788,6 +788,32 @@ def test_composite_vec():
     assert_(composite(r3, r4) == super_tensor(r3, r4))
     assert_(composite(k1, r4) == super_tensor(r1, r4))
     assert_(composite(r3, k2) == super_tensor(r3, r2))
+
+
+def test_trunc_neg():
+    def case(qobj, method, expected=None):
+        pos_qobj = qobj.trunc_neg(method=method)
+        assert(all([energy > -1e-8 for energy in pos_qobj.eigenenergies()]))
+        assert_almost_equal(pos_qobj.tr(), 1)
+
+        if expected is not None:
+            assert_almost_equal(pos_qobj.data.todense(), expected.data.todense())
+
+    for method in ('clip', 'sgs'):
+        # Make sure that it works for operators that are already positive.
+        yield case, rand_dm(5), method
+        # Make sure that it works for a diagonal matrix.
+        yield case, Qobj(np.diag([1.1, -0.1])), method, Qobj(np.diag([1.0, 0.0]))
+        # Make sure that it works for a non-diagonal matrix.
+        U = rand_unitary(3)
+        yield case, \
+            U * Qobj(np.diag([1.1, 0, -0.1])) * U.dag(), \
+            method, \
+            U * Qobj(np.diag([1.0, 0.0, 0.0])) * U.dag()
+
+    # Check the test case in SGS.
+    yield case, Qobj(np.diag([3. / 5, 1. / 2, 7. / 20, 1. / 10, -11. / 20])), 'sgs', \
+        Qobj(np.diag([9. / 20, 7. / 20, 1. / 5, 0, 0]))
 
 if __name__ == "__main__":
     run_module_suite()
