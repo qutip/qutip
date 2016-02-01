@@ -1196,9 +1196,9 @@ class Qobj(object):
             raise NotImplementedError("Not yet implemented.")
 
         return sum([
-                val * ket2dm(state)
+                val * qutip.states.ket2dm(state)
                 for val, state in zip(eigvals, eigstates)
-            ], Qobj(np.zeros(self.shape, dims=self.dims)))
+            ], Qobj(np.zeros(self.shape), dims=self.dims)
         ).unit()
 
 
@@ -2006,3 +2006,4 @@ def isherm(Q):
 from qutip.eseries import eseries
 import qutip.superop_reps as sr
 import qutip.operators as ops
+import qutip.states
