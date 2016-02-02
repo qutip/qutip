@@ -42,7 +42,7 @@ The sparsity of the ouput Qobj's is controlled by varing the
 __all__ = [
     'rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm',
     'rand_unitary_haar', 'rand_ket_haar', 'rand_dm_ginibre',
-    'rand_dm_hs', 'rand_super_bcsz'
+    'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic'
 ]
 
 from scipy import arcsin, sqrt, pi
@@ -522,6 +522,63 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None):
     D.superrep = 'choi'
 
     return sr.to_super(D)
+
+
+def rand_stochastic(N, density=0.75, kind='left', dims=None):
+    """Generates a random stochastic matrix.
+    
+    Parameters
+    ----------
+    N : int
+        Dimension of matrix.
+    density : float
+        Density between [0,1] of output density matrix.
+    kind : str (Default = 'left')
+        Generate 'left' or 'right' stochastic matrix.
+    dims : list
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
+    
+    Returns
+    -------
+    oper : qobj
+        Quantum operator form of stochastic matrix.
+    """
+    if dims:
+        _check_dims(dims, N, N)
+    num_elems = np.int(np.ceil(N*(N+1)*density)/2)
+    data = np.random.rand(num_elems)
+    row_idx = np.random.choice(N, num_elems)
+    col_idx = np.random.choice(N, num_elems)
+    if kind=='left':
+        M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=float, shape=(N,N)).tocsc()
+    else:
+        M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=float, shape=(N,N)).tocsr()
+    M = 0.5*(M+M.conj().transpose())
+    if kind=='left':
+        num_cols = M.indptr.shape[0]-1
+        for col in range(num_cols):
+            col_start = M.indptr[col]
+            col_end = M.indptr[col+1]
+            col_sum = np.sum(M.data[col_start:col_end])
+            M.data[col_start:col_end] /= col_sum
+        M = M.tocsr()
+    else:
+        num_rows = M.indptr.shape[0]-1
+        for row in range(num_rows):
+            row_start = M.indptr[row]
+            row_end = M.indptr[row+1]
+            row_sum = np.sum(M.data[row_start:row_end])
+            M.data[row_start:row_end] /= row_sum
+    if dims:
+        return Qobj(M, dims=dims, shape=[N, N])
+    else:
+        return Qobj(M)
+
+
+
+
+
 
 def _check_ket_dims(dims, N1):
     if not isinstance(dims, list) or isinstance(dims[0], list):
