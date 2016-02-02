@@ -1215,6 +1215,9 @@ class Qobj(object):
         if all([eigval >= 0 for eigval in eigvals]):
             # All positive, so just renormalize.
             return self.unit()
+        idx_nonzero = eigvals != 0
+        eigvals = eigvals[idx_nonzero]
+        eigstates = eigstates[idx_nonzero]
 
         if method == 'clip':
             eigvals[eigvals < 0] = 0
