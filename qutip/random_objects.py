@@ -58,6 +58,38 @@ import qutip.superop_reps as sr
 
 UNITS = np.array([1, 1j])
 
+
+def rand_jacobi_rotation(A):
+    """Random Jacobi rotation of a sparse matrix.
+    
+    Parameters
+    ----------
+    A : spmatrix
+        Input sparse matrix.
+    
+    Returns
+    -------
+    spmatrix
+        Rotated sparse matrix.
+    """
+    if A.shape[0]!=A.shape[1]:
+        raise Exception('Input matrix must be square.')
+    n = A.shape[0]
+    angle = (2*np.random.random()-1)*np.pi
+    a = 1.0/np.sqrt(2)*np.exp(-1j*angle)
+    b = 1.0/np.sqrt(2)*np.exp(1j*angle)
+    i = np.int(np.floor(np.random.random()*n))
+    j = i
+    while (i==j):
+        j = np.int(np.floor(np.random.random()*n))
+    data = np.hstack(([a,-b,a,b],np.ones(n-2,dtype=int)))
+    diag = np.delete(np.arange(n),[i,j])
+    rows = np.hstack(([i,i,j,j],diag))
+    cols = np.hstack(([i,j,i,j],diag))
+    R = sp.coo_matrix((data,(rows,cols)),shape=[n,n]).tocsr()
+    A = R*A*R.conj().transpose()
+    return A
+
 def randnz(shape, norm=1 / np.sqrt(2)):
     # This function is intended for internal use.
     """
@@ -77,45 +109,65 @@ def randnz(shape, norm=1 / np.sqrt(2)):
     return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
 
 
-def rand_herm(N, density=0.75, dims=None):
+def rand_herm(N, density=0.75, dims=None, pos_def=False):
     """Creates a random NxN sparse Hermitian quantum object.
 
-    Uses :math:`H=X+X^{+}` where :math:`X` is
-    a randomly generated quantum operator with a given `density`.
+    If 'N' is an integer, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
+    a randomly generated quantum operator with a given `density`. Else uses
+    complex Jacobi rotations when 'N' is given by an array.
 
     Parameters
     ----------
-    N : int
-        Shape of output quantum operator.
+    N : int, list/ndarray
+        If int, then shape of output operator. If list/ndarray then eigenvalues
+        of generated operator.
     density : float
         Density between [0,1] of output Hermitian operator.
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    pos_def : bool (default=False)
+        Return a positive semi-definite matrix (by diagonal dominance).
 
     Returns
     -------
     oper : qobj
         NxN Hermitian quantum operator.
+    
+    Note
+    ----
+    If given a list/ndarray as input 'N', this function returns a 
+    random Hermitian object with eigenvalues given in the list/ndarray.
+    This is accomplished via complex Jacobi rotations.  While this method
+    is ~50% faster than the corresponding (real only) Matlab code, it should
+    not be repeatedly used for generating matrices larger than ~1000x1000.
 
     """
+    if isinstance(N,(np.ndarray,list)):
+        M = sp.diags(N,0, dtype=complex, format='csr')
+        N = len(N)
+        if dims:
+            _check_dims(dims, N, N)
+        nvals = N**2*density
+        while M.nnz < 0.95*nvals:
+            M = rand_jacobi_rotation(M)
+    elif isinstance(N,int):
+        if dims:
+            _check_dims(dims, N, N)
+        num_elems = np.int(np.ceil(N*(N+1)*density)/2)
+        data = (2*np.random.rand(num_elems)-1)+1j*(2*np.random.rand(num_elems)-1)
+        row_idx = np.random.choice(N, num_elems)
+        col_idx = np.random.choice(N, num_elems)
+        M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=complex, shape=(N,N)).tocsr()
+        M = 0.5*(M+M.conj().transpose())
+        if pos_def:
+            M = M.tocoo()
+            M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
+            M = M.tocsr()
     if dims:
-        _check_dims(dims, N, N)
-    # to get appropriate density of output
-    # Hermitian operator must convert via:
-    herm_density = 2.0 * arcsin(density) / pi
-
-    X = sp.rand(N, N, herm_density, format='csr')
-    X.data = X.data - 0.5
-    Y = X.copy()
-    Y.data = 1.0j * np.random.random(len(X.data)) - (0.5 + 0.5j)
-    X = X + Y
-    X.sort_indices()
-    X = Qobj(X)
-    if dims:
-        return Qobj((X + X.dag()) / 2.0, dims=dims, shape=[N, N])
+        return Qobj(M, dims=dims, shape=[N, N])
     else:
-        return Qobj((X + X.dag()) / 2.0)
+        return Qobj(M)
 
 
 def rand_unitary(N, density=0.75, dims=None):
@@ -268,14 +320,14 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
 
     Parameters
     ----------
-    N : int
-        Shape of output density matrix.
+    N : int, ndarray, list
+        If int, then shape of output operator. If list/ndarray then eigenvalues
+        of generated density matrix.
     density : float
         Density between [0,1] of output density matrix.
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
-
 
     Returns
     -------
@@ -288,29 +340,42 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
     as no diagonal elements will be generated such that :math:`Tr(\\rho)=1`.
 
     """
+    if isinstance(N,(np.ndarray,list)):
+        if np.abs(np.sum(N)-1.0) > 1e-15:
+            raise ValueError('Eigenvalues of a density matrix must sum to one.')
+        H = sp.diags(N,0, dtype=complex, format='csr')
+        N = len(N)
+        if dims:
+            _check_dims(dims, N, N)
+        nvals = N**2*density
+        while H.nnz < 0.95*nvals:
+            H = rand_jacobi_rotation(H)
+    elif isinstance(N,int):
+        if dims:
+            _check_dims(dims, N, N)
+        if pure:
+            dm_density = sqrt(density)
+            psi = rand_ket(N, dm_density)
+            H = psi * psi.dag()
+        else:
+            density = density ** 2
+            non_zero = 0
+            tries = 0
+            while non_zero == 0 and tries < 10:
+                H = rand_herm(N, density)
+                H = H.dag() * H
+                non_zero = sum([H.tr()])
+                tries += 1
+            if tries >= 10:
+                raise ValueError(
+                    "Requested density is too low to generate density matrix.")
+            H.data.sort_indices()
+            H = H / H.tr()
     if dims:
-        _check_dims(dims, N, N)
-    if pure:
-        dm_density = sqrt(density)
-        psi = rand_ket(N, dm_density)
-        H = psi * psi.dag()
+        return Qobj(H, dims=dims, shape=[N, N])
     else:
-        density = density ** 2
-        non_zero = 0
-        tries = 0
-        while non_zero == 0 and tries < 10:
-            H = rand_herm(N, density)
-            H = H.dag() * H
-            non_zero = sum([H.tr()])
-            tries += 1
-        if tries >= 10:
-            raise ValueError(
-                "Requested density is too low to generate density matrix.")
-    H.data.sort_indices()
-    if dims:
-        return Qobj(H / H.tr(), dims=dims, shape=[N, N])
-    else:
-        return Qobj(H / H.tr())
+        return Qobj(H)
+
 
 def rand_dm_ginibre(N=2, rank=None, dims=None):
     """
