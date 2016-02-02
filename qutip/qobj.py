@@ -1359,7 +1359,7 @@ class Qobj(object):
         return sp_eigs(self.data, self.isherm, vecs=False, sparse=sparse,
                        sort=sort, eigvals=eigvals, tol=tol, maxiter=maxiter)
 
-    def groundstate(self, sparse=False, tol=0, maxiter=100000):
+    def groundstate(self, sparse=False, tol=0, maxiter=100000, safe=True):
         """Ground state Eigenvalue and Eigenvector.
 
         Defined for quantum operators or superoperators only.
@@ -1368,13 +1368,13 @@ class Qobj(object):
         ----------
         sparse : bool
             Use sparse Eigensolver
-
         tol : float
             Tolerance used by sparse Eigensolver (0 = machine precision).
             The sparse solver may not converge if the tolerance is set too low.
-
         maxiter : int
             Maximum number of iterations performed by sparse solver (if used).
+        safe : bool (default=True)
+            Check for degenerate ground state
 
         Returns
         -------
@@ -1390,8 +1390,16 @@ class Qobj(object):
         Use sparse only if memory requirements demand it.
 
         """
+        if safe:
+            evals = 2
+        else:
+            evals = 1
         grndval, grndvec = sp_eigs(self.data, self.isherm, sparse=sparse,
-                                   eigvals=1, tol=tol, maxiter=maxiter)
+                                   eigvals=evals, tol=tol, maxiter=maxiter)
+        if safe:
+            if tol == 0: tol = 1e-15
+            if (grndval[1]-grndval[0]) <= 10*tol:
+                print('WARNING: Ground state may be degenerate. Use Q.eigenstates()')
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
         grndvec = Qobj(grndvec[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
