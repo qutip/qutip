@@ -180,9 +180,9 @@ class Qobj(object):
         """
         Qobj constructor.
         """
-        self._isherm = None
-        self._type = None
-        self.superrep = None
+        self._isherm = isherm
+        self._type = type
+        self.superrep = superrep
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
