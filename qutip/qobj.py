@@ -1114,7 +1114,7 @@ class Qobj(object):
         else:
             return self
 
-    def transform(self, inpt, inverse=False):
+    def transform(self, inpt, inverse=False, sparse=True):
         """Basis transform defined by input array.
 
         Input array can be a ``matrix`` defining the transformation,
@@ -1127,6 +1127,8 @@ class Qobj(object):
             A ``matrix`` or ``list`` of kets defining the transformation.
         inverse : bool
             Whether to return inverse transformation.
+        sparse : bool
+            Use sparse matrices when possible. Can be slower.
 
         Returns
         -------
@@ -1144,41 +1146,53 @@ class Qobj(object):
             if len(inpt) != max(self.shape):
                 raise TypeError(
                     'Invalid size of ket list for basis transformation')
-            S = np.matrix(np.hstack([psi.full() for psi in inpt])).H
-        elif isinstance(inpt, np.ndarray):
-            S = np.matrix(inpt)
+            if sparse:
+                S = sp.hstack([psi.data for psi in inpt],
+                            format='csr', dtype=complex).conj().T
+            else:
+                S = np.hstack([psi.full() for psi in inpt],dtype=complex).conj().T
         elif isinstance(inpt, Qobj) and inpt.isoper:
-            S = np.matrix(inpt.full())
-        else:
+            S = inpt.data
+        elif isinstance(inpt, np.ndarray):
+            S = inpt.conj()
+            sparse = False
+        else:    
             raise TypeError('Invalid operand for basis transformation')
 
-        # normalize S just in case the supplied basis states aren't normalized
-        # S = S/la.norm(S)
-
-        out = Qobj(dims=self.dims)
+        out = Qobj(dims=self.dims, shape=self.shape)
         out._isherm = self._isherm
         out.superrep = self.superrep
 
         # transform data
         if inverse:
             if self.isket:
-                out.data = S.H * self.data
+                  out.data = (S.conj().T) * self.data
             elif self.isbra:
-                out.data = self.data * S
+                out.data = self.data.dot(S)
             else:
-                out.data = S.H * self.data * S
+                if sparse:
+                    out.data = (S.conj().T) * self.data * S
+                else:
+                    out.data = (S.conj().T).dot(self.data.dot(S))
         else:
             if self.isket:
                 out.data = S * self.data
             elif self.isbra:
-                out.data = self.data * S.H
+                out.data = self.data.dot(S.conj().T)
             else:
-                out.data = S * self.data * S.H
+                if sparse:
+                    out.data = S * self.data * (S.conj().T)
+                else:
+                    out.data = S.dot(self.data.dot(S.conj().T))
 
         # force sparse
         out.data = sp.csr_matrix(out.data, dtype=complex)
 
-        return out
+        if settings.auto_tidyup:
+            return out.tidyup()
+        else:
+            return out
+    
 
     def matrix_element(self, bra, ket):
         """Calculates a matrix element.
