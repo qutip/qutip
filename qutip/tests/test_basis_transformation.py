@@ -34,8 +34,8 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 import scipy
-
-from qutip import sigmax, sigmay, sigmaz, Qobj, rand_ket, rand_dm, ket2dm
+from qutip import sigmax, sigmay, sigmaz, Qobj, rand_ket, rand_dm, ket2dm, rand_herm
+from qutip.sparse import sp_eigs
 
 
 def test_Transformation1():
