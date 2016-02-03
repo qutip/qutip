@@ -38,7 +38,12 @@ __all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
 
 from qutip.ui.progressbar import BaseProgressBar
 
-from IPython.parallel import Client
+#Ipython parallel routines moved to ipyparallel in V4
+try:
+    from ipyparallel import Client
+except:
+    from IPython.parallel import Client
+
 from IPython.display import HTML, Javascript, display
 
 import matplotlib.pyplot as plt
@@ -86,6 +91,7 @@ def version_table(verbose=False):
                 ("Cython", Cython.__version__),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
+                ("Number of CPUs", qutip.hardware_info.hardware_info()['cpus']),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
 

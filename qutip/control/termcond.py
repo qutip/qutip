@@ -45,7 +45,7 @@ will determine if the algorithm has completed its task / exceeded limits
 """
 
 
-class TerminationConditions:
+class TerminationConditions(object):
     """
     Base class for all termination conditions
     Used to determine when to stop the optimisation algorithm

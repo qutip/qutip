@@ -31,3 +31,5 @@ rhs*.pyx
 *.qo
 
 benchmark/benchmark_data.js
+*-tasks.txt
+

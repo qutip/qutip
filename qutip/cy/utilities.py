@@ -39,7 +39,10 @@ from qutip.solver import config
 
 def _cython_build_cleanup(tdname, build_dir=None):
     plat_and_py = get_platform()+'-'+get_python_version()+'/'
-    sys_so_var = sysconfig.get_config_var('SO')
+    sys_so_var = sysconfig.get_config_var('EXT_SUFFIX')
+    #for backward compatibility with Py <= 3.4
+    if sys_so_var is None:    
+        sys_so_var = sysconfig.get_config_var('SO')
     if build_dir is None:
         build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
     lib_dir = '/lib.' + plat_and_py
