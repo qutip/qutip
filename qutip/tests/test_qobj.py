@@ -46,6 +46,7 @@ from qutip.superop_reps import to_super, to_choi, to_chi
 from qutip.tensor import tensor, super_tensor, composite
 
 from operator import add, mul, truediv, sub
+from functools import partial
 
 def assert_hermicity(oper, hermicity, msg=""):
     # Check the cached isherm, if any exists.
@@ -789,8 +790,28 @@ def test_composite_vec():
     assert_(composite(k1, r4) == super_tensor(r1, r4))
     assert_(composite(r3, k2) == super_tensor(r3, r2))
 
+# TODO: move out to a more appropriate module.
+
+def has_description(case):
+    """
+    Decorates a test case such that it takes an argument describing
+    that case, such that failure logs are usefully formatted.
+    """
+    # See https://code.google.com/archive/p/python-nose/issues/244#c1
+    # for why this works.
+
+    def make_case(description):
+        partial_case = partial(case)
+        partial_case.description = description
+        return partial_case
+    return make_case
 
 def test_trunc_neg():
+    """
+    Test Qobj: Checks trunc_neg in several different cases.
+    """
+
+    @has_description
     def case(qobj, method, expected=None):
         pos_qobj = qobj.trunc_neg(method=method)
         assert(all([energy > -1e-8 for energy in pos_qobj.eigenenergies()]))
@@ -801,19 +822,24 @@ def test_trunc_neg():
 
     for method in ('clip', 'sgs'):
         # Make sure that it works for operators that are already positive.
-        yield case, rand_dm(5), method
+        yield case("Test Qobj: trunc_neg works for positive opers."), \
+            rand_dm(5), method
         # Make sure that it works for a diagonal matrix.
-        yield case, Qobj(np.diag([1.1, -0.1])), method, Qobj(np.diag([1.0, 0.0]))
+        yield case("Test Qobj: trunc_neg works for diagonal opers."), \
+            Qobj(np.diag([1.1, -0.1])), method, Qobj(np.diag([1.0, 0.0]))
         # Make sure that it works for a non-diagonal matrix.
         U = rand_unitary(3)
-        yield case, \
+        yield case("Test Qobj: trunc_neg works for non-diagonal opers."), \
             U * Qobj(np.diag([1.1, 0, -0.1])) * U.dag(), \
             method, \
             U * Qobj(np.diag([1.0, 0.0, 0.0])) * U.dag()
 
     # Check the test case in SGS.
-    yield case, Qobj(np.diag([3. / 5, 1. / 2, 7. / 20, 1. / 10, -11. / 20])), 'sgs', \
+    yield (
+        case("Test Qobj: trunc_neg works for SGS known-good test case."),
+        Qobj(np.diag([3. / 5, 1. / 2, 7. / 20, 1. / 10, -11. / 20])), 'sgs',
         Qobj(np.diag([9. / 20, 7. / 20, 1. / 5, 0, 0]))
+    )
 
 if __name__ == "__main__":
     run_module_suite()
