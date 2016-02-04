@@ -34,8 +34,8 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 import scipy
-
-from qutip import sigmax, sigmay, sigmaz, Qobj, rand_ket, rand_dm, ket2dm
+from qutip import sigmax, sigmay, sigmaz, Qobj, rand_ket, rand_dm, ket2dm, rand_herm
+from qutip.sparse import sp_eigs
 
 
 def test_Transformation1():
@@ -104,6 +104,60 @@ def test_Transformation6():
     evals, evecs = H.eigenstates()
     Heb = H.transform(evecs).tidyup()  # Heb should be diagonal
     assert_(abs(Heb.full() - np.diag(Heb.full().diagonal())).max() < 1e-6)
+
+
+def test_Transformation7():
+    "Check Qobj eigs and direct eig solver transformations match"
+
+    N = 10
+    H = rand_herm(N)
+
+    # generate a random basis
+    rand = rand_dm(N, density=1)
+    
+    evals, rand_basis = rand.eigenstates()
+    evals2, rand_basis2 = sp_eigs(rand.data, isherm=1)
+    H1 = H.transform(rand_basis)
+    H2 = H.transform(rand_basis2)
+    assert_((H1 - H2).norm() < 1e-6)
+    
+    ket = rand_ket(N)
+    K1 = ket.transform(rand_basis)
+    K2 = ket.transform(rand_basis2)
+    assert_((K1 - K2).norm() < 1e-6)
+    
+    bra = rand_ket(N).dag()
+    B1 = bra.transform(rand_basis)
+    B2 = bra.transform(rand_basis2)
+    assert_((B1 - B2).norm() < 1e-6)
+
+
+def test_Transformation8():
+    "Check Qobj eigs and direct eig solver reverse transformations match"
+
+    N = 10
+    H = rand_herm(N)
+
+    # generate a random basis
+    rand = rand_dm(N, density=1)
+    
+    evals, rand_basis = rand.eigenstates()
+    evals2, rand_basis2 = sp_eigs(rand.data, isherm=1)
+    
+    H1 = H.transform(rand_basis, True)
+    H2 = H.transform(rand_basis2, True)
+    assert_((H1 - H2).norm() < 1e-6)
+    
+    ket = rand_ket(N)
+    K1 = ket.transform(rand_basis,1)
+    K2 = ket.transform(rand_basis2,1)
+    assert_((K1 - K2).norm() < 1e-6)
+    
+    bra = rand_ket(N).dag()
+    B1 = bra.transform(rand_basis,1)
+    B2 = bra.transform(rand_basis2,1)
+    assert_((B1 - B2).norm() < 1e-6)
+
 
 
 if __name__ == "__main__":
