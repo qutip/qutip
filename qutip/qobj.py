@@ -170,6 +170,9 @@ class Qobj(object):
         Transpose of quantum object.
     transform(inpt, inverse=False)
         Performs a basis transformation defined by `inpt` matrix.
+    trunc_neg(method='clip')
+        Removes negative eigenvalues and returns a new Qobj that is
+        a valid density operator.
     unit(norm='tr', sparse=False, tol=0, maxiter=100000)
         Returns normalized quantum object.
     """
@@ -1194,6 +1197,67 @@ class Qobj(object):
             return out
     
 
+
+    def trunc_neg(self, method="clip"):
+        """Truncates negative eigenvalues and renormalizes.
+
+        Returns a new Qobj by removing the negative eigenvalues
+        of this instance, then renormalizing to obtain a valid density
+        operator.
+
+
+        Parameters
+        ----------
+        method : str
+            Algorithm to use to remove negative eigenvalues. "clip"
+            simply discards negative eigenvalues, then renormalizes.
+            "sgs" uses the SGS algorithm (doi:10/bb76) to find the
+            positive operator that is nearest in the Shatten 2-norm.
+
+        Returns
+        -------
+        oper : qobj
+            A valid density operator.
+        """
+        if not self.isherm:
+            raise ValueError("Must be a Hermitian operator to remove negative eigenvalues.")
+
+        if method not in ('clip', 'sgs'):
+            raise ValueError("Method {} not recognized.".format(method))
+
+        eigvals, eigstates = self.eigenstates()
+        if all([eigval >= 0 for eigval in eigvals]):
+            # All positive, so just renormalize.
+            return self.unit()
+        idx_nonzero = eigvals != 0
+        eigvals = eigvals[idx_nonzero]
+        eigstates = eigstates[idx_nonzero]
+
+        if method == 'clip':
+            eigvals[eigvals < 0] = 0
+        elif method == 'sgs':
+            eigvals = eigvals[::-1]    
+            eigstates = eigstates[::-1]
+            
+            acc = 0.0
+            dim = self.shape[0]
+            
+            for idx in reversed(range(dim)):
+                if eigvals[idx] + acc / (idx + 1) >= 0:
+                    break
+                else:
+                    acc += eigvals[idx]
+                    eigvals[idx] = 0.0
+                    
+            eigvals[:idx+1] += acc / (idx + 1)
+
+        return sum([
+                val * qutip.states.ket2dm(state)
+                for val, state in zip(eigvals, eigstates)
+            ], Qobj(np.zeros(self.shape), dims=self.dims)
+        ).unit()
+
+
     def matrix_element(self, bra, ket):
         """Calculates a matrix element.
 
@@ -2006,3 +2070,4 @@ def isherm(Q):
 from qutip.eseries import eseries
 import qutip.superop_reps as sr
 import qutip.operators as ops
+import qutip.states
