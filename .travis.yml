@@ -34,7 +34,7 @@ install:
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose cython
     - source activate test-environment
     - pip install coverage coveralls
-    - python setup.py install --with-f90mc
+    - python setup.py install
 
 # command to run tests
 script: 
