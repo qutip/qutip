@@ -35,7 +35,7 @@ __all__ = ['hardware_info']
 
 import os
 import sys
-
+import multiprocessing
 
 def _mac_hardware_info():
     info = dict()
@@ -82,7 +82,16 @@ def _linux_hardware_info():
 
 
 def _win_hardware_info():
-    return {'os': 'Windows'}
+    try:
+        from win32com.client import GetObject
+        winmgmts_root = GetObject("winmgmts:root\cimv2")
+        cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
+        ncpus = 0
+        for cpu in cpus:
+            ncpus += int(cpu.NumberOfCores)
+    except:
+        ncpus = int(multiprocessing.cpu_count())
+    return {'os': 'Windows', 'cpus': ncpus}
 
 
 def hardware_info():
