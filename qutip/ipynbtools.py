@@ -37,7 +37,7 @@ This module contains utility functions for using QuTiP with IPython notebooks.
 __all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
 
 from qutip.ui.progressbar import BaseProgressBar
-
+from qutip.utilities import _blas_info
 #Ipython parallel routines moved to ipyparallel in V4
 try:
     from ipyparallel import Client
@@ -89,9 +89,10 @@ def version_table(verbose=False):
                 ("SciPy", scipy.__version__),
                 ("matplotlib", matplotlib.__version__),
                 ("Cython", Cython.__version__),
+                ("Number of CPUs", qutip.hardware_info.hardware_info()['cpus']),
+                ("BLAS Info", _blas_info()),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
-                ("Number of CPUs", qutip.hardware_info.hardware_info()['cpus']),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
 
