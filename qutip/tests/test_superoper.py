@@ -181,7 +181,7 @@ class TestMatVec:
         L1 = liouvillian(H, c_ops)
         L2 = liouvillian_ref(H, c_ops)
 
-        assert_((L1 - L2).norm() < 1e-8)
+        assert_((L1 - L2).norm('max') < 1e-8)
 
 
 if __name__ == "__main__":
