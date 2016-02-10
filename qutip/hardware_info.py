@@ -83,12 +83,12 @@ def _linux_hardware_info():
 
 def _win_hardware_info():
     try:
-        from win32com.client import GetObject
-        winmgmts_root = GetObject("winmgmts:root\cimv2")
+        from comtypes.client import CoGetObject
+        winmgmts_root = CoGetObject("winmgmts:root\cimv2")
         cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
         ncpus = 0
         for cpu in cpus:
-            ncpus += int(cpu.NumberOfCores)
+            ncpus += int(cpu.Properties_['NumberOfCores'].Value)
     except:
         ncpus = int(multiprocessing.cpu_count())
     return {'os': 'Windows', 'cpus': ncpus}
