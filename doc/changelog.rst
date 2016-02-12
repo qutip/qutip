@@ -7,6 +7,59 @@
 Change Log
 **********
 
+Version 3.2.0 (Github only)
++++++++++++++++++++++++++++
+
+New Features
+------------
+- *Control modules*
+- **MAJOR FEATURE**: CRAB algorithm added
+  This is an alternative to the GRAPE algorithm, which allows for analytical control functions, which means that experimental constraints can more easily be added into optimisation.  
+  See tutorial notebook for full information.
+- The internal state / quantum operator data type can now be either Qobj or ndarray
+  Previous only ndarray was possible. This now opens up possibility of using Qobj methods in fidelity calculations
+  The attributes and functions that return these operators are now preceded by an underscore, to indicate that the data type could change depending on the configuration options. 
+  In most cases these functions were for internal processing only anyway, and should have been 'private'. 
+  Accessors to the properties that could be useful outside of the library have been added. These always return Qobj. If the internal operator data type is not Qobj, then there could be signicant overhead in the conversion, and so this should be avoided during pulse optimisation.
+  If custom sub-classes are developed that use Qobj properties and methods (e.g. partial trace), then it is very likely that it will be more efficient to set the internal data type to Qobj.
+  The internal operator data will be chosen automatically based on the size and sparsity of the dynamics generator. It can be forced by setting:
+    dynamics.oper_dtype = <type>
+  Note this can be done by passing: dyn_params={'oper_dtype':<type>} in any of the pulseoptim functions.
+  Some other properties and methods were renamed at the same time. A full list is given here.
+    All modules - 
+      function: set_log_level -> property: log_level
+
+    dynamics functions:
+      _init_lists -> _init_evo
+      get_num_ctrls -> property: num_ctrls
+      get_owd_evo_target -> property: onto_evo_target
+      combine_dyn_gen -> _combine_dyn_gen, no longer returns a value
+      get_dyn_gen -> _get_phased_dyn_gen
+      get_ctrl_den_gen -> _get_phased_ctrl_dyn_gen
+      ensure_decomp_curr -> _ensure_decomp_curr
+      spectral_decomp -> _spectral_decomp
+    
+    dynamics properties:
+      evo_init2t -> _fwd_evo (fwd_evo as Qobj)
+      evo_t2end -> _onwd_evo (onwd_evo as Qobj)
+      evo_t2targ -> _onto_evo (onto_evo as Qobj)
+
+    fidcomp properties:
+      uses_evo_t2end -> uses_onwd_evo
+      uses_evo_t2targ -> uses_onto_evo
+      set_phase_option function -> property: phase_option
+
+    propcomp properties:
+      grad_exact (now read only)
+    propcomp functions:
+      compute_propagator -> _compute_propagator
+      compute_diff_prop -> _compute_diff_prop
+      compute_prop_grad -> _compute_prop_grad
+
+    tslotcomp functions:
+      get_timeslot_for_fidelity_calc: _get_timeslot_for_fidelity_calc
+
+
 Version 3.1.0 (January 1, 2015):
 ++++++++++++++++++++++++++++++++
 
