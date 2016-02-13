@@ -33,6 +33,14 @@ For instructions on how to install QuTiP, see:
 
 [http://qutip.org/docs/3.1.0/installation.html](http://qutip.org/docs/3.1.0/installation.html)
 
+
+Demos
+-----
+A selection of demonstration notebooks is available here: [![Binder](http://img.shields.io/badge/launch-binder-ff69b4.svg?style=flat)](http://mybinder.org/repo/qutip/qutip-notebooks)
+
+or may be found at: [github.com/qutip/qutip-notebooks](http://github.com/qutip/qutip-notebooks).
+
+
 Documentation 
 -------------
 

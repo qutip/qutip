@@ -31,10 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-
+import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
-
-from qutip import rand_unitary, qeye, rand_herm, rand_dm, rand_ket
+from qutip import rand_unitary, qeye, rand_herm, rand_dm, rand_ket, rand_stochastic
 from qutip.sparse import sp_eigs
 
 
@@ -57,6 +56,21 @@ class TestRand:
         for h in H:
             assert_equal(h.isherm, True)
 
+    def testRandhermPosDef(self):
+        "Random: Hermitian - Positive semi-def"
+
+        H = [rand_herm(5,pos_def=1) for k in range(5)]
+        for h in H:
+            assert_(not any(sp_eigs(h.data, h.isherm, vecs=False)) < 0)
+    
+    def testRandhermEigs(self):
+        "Random: Hermitian - Eigs given"
+
+        H = [rand_herm([1,2,3,4,5],0.5) for k in range(5)]
+        for h in H:
+            eigs = sp_eigs(h.data, h.isherm, vecs=False)
+            assert_(np.abs(np.sum(eigs)-15.0) < 1e-12)
+    
     def testRanddm(self):
         "random density matrix"
 
@@ -68,11 +82,41 @@ class TestRand:
             # verify hermitian
             assert_(r.isherm)
 
+    def testRanddmEigs(self):
+        "Random: Density matrix - Eigs given"
+        R = []
+        for k in range(5):
+            eigs = np.random.random(5)
+            eigs /= np.sum(eigs)
+            R += [rand_dm(eigs)]
+        for r in R:
+            assert_(r.tr() - 1.0 < 1e-15)
+            # verify all eigvals are >=0
+            assert_(not any(sp_eigs(r.data, r.isherm, vecs=False)) < 0)
+            # verify hermitian
+            assert_(r.isherm)
+    
     def testRandket(self):
         "random ket"
         P = [rand_ket(5) for k in range(5)]
         for p in P:
             assert_equal(p.type == 'ket', True)
+            
+    def testRandStochasticLeft(self):
+        'Random: Stochastic - left'
+        Q = [rand_stochastic(10) for k in range(5)]
+        for i in range(5):
+            A = Q[i].data.tocsc()
+            for j in range(10):
+                assert_(np.abs(np.sum(A.getcol(j).todense().real)-1.0) < 1e-15)
+    
+    def testRandStochasticRight(self):
+        'Random: Stochastic - right'
+        Q = [rand_stochastic(10, kind='right') for k in range(5)]
+        for i in range(5):
+            A = Q[i].data
+            for j in range(10):
+                assert_(np.abs(np.sum(A.getrow(j).todense().real)-1.0) < 1e-15)
 
 if __name__ == "__main__":
     run_module_suite()
