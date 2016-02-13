@@ -32,6 +32,20 @@ Operating System :: Microsoft :: Windows
 import os
 import sys
 import numpy as np
+
+# The following is required to get unit tests up and running.
+# If the user doesn't have, then that's OK, we'll just skip unit tests.
+try:
+    import setuptools
+    TEST_SUITE = 'nose.collector'
+    TESTS_REQUIRE = ['nose']
+    TESTING_KWARGS = {
+        'test_suite': TEST_SUITE,
+        'tests_require': TESTS_REQUIRE
+    }
+except:
+    TESTING_KWARGS = {}
+
 from numpy.distutils.core import setup
 
 # all information about QuTiP goes here
@@ -157,5 +171,6 @@ setup(
     platforms=PLATFORMS,
     requires=REQUIRES,
     package_data=PACKAGE_DATA,
-    configuration=configuration
+    configuration=configuration,
+    **TESTING_KWARGS
 )
