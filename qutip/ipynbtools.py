@@ -35,6 +35,8 @@ This module contains utility functions for using QuTiP with IPython notebooks.
 """
 from qutip.ui.progressbar import BaseProgressBar
 from qutip.utilities import _blas_info
+#IPython parallel routines moved to ipyparallel in V4
+#IPython parallel routines not in Anaconda by default
 try:
     from ipyparallel import Client
 except:
