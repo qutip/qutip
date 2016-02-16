@@ -8,7 +8,7 @@ import os
 
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
 
-_compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native']
+_compiler_flags = ['-w', '-ffast-math', '-O3', '-mtune=native']
 
 def configuration(parent_package='', top_path=None):
     # compiles files during installation

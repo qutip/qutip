@@ -33,16 +33,18 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-
-__all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
-
 from qutip.ui.progressbar import BaseProgressBar
 from qutip.utilities import _blas_info
-#Ipython parallel routines moved to ipyparallel in V4
 try:
     from ipyparallel import Client
 except:
-    from IPython.parallel import Client
+    try:
+        from IPython.parallel import Client
+    except:
+        __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+else:
+    __all__ = ['version_table', 'parfor', 'plot_animation', 
+                'parallel_map', 'HTMLProgressBar']
 
 from IPython.display import HTML, Javascript, display
 
