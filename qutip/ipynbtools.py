@@ -33,9 +33,8 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-
 from qutip.ui.progressbar import BaseProgressBar
-
+from qutip.utilities import _blas_info
 #IPython parallel routines moved to ipyparallel in V4
 #IPython parallel routines not in Anaconda by default
 try:
@@ -94,9 +93,10 @@ def version_table(verbose=False):
                 ("SciPy", scipy.__version__),
                 ("matplotlib", matplotlib.__version__),
                 ("Cython", Cython.__version__),
+                ("Number of CPUs", qutip.hardware_info.hardware_info()['cpus']),
+                ("BLAS Info", _blas_info()),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
-                ("Number of CPUs", qutip.hardware_info.hardware_info()['cpus']),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
 

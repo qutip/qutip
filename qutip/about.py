@@ -41,6 +41,7 @@ import platform
 import numpy
 import scipy
 import inspect
+from qutip.utilities import _blas_info
 import qutip.settings
 from qutip.hardware_info import hardware_info
 
@@ -70,10 +71,10 @@ def about():
     except:
         matplotlib_ver = 'None'
     print("Matplotlib Version: %s" % matplotlib_ver)
-    print("Fortran mcsolver:   %s" % str(qutip.settings.fortran))
     print("scikits.umfpack:    %s" % str(qutip.settings.umfpack))
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
     print("Number of CPUs:     %s" % hardware_info()['cpus'])
+    print("BLAS Info:          %s" % _blas_info())
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
@@ -82,3 +83,5 @@ def about():
 
 if __name__ == "__main__":
     about()
+
+

@@ -396,3 +396,18 @@ def _version2int(version_string):
         "post")[0].split('.')
     return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
                 for n, d in enumerate(str_list[:3])])
+
+
+def _blas_info():
+    config = np.__config__
+    blas_info = config.blas_opt_info
+    blas = None
+    if any(config.mkl_info):
+        blas = 'INTEL MKL'
+    elif any(config.openblas_info):
+        blas = 'OPENBLAS'
+    elif 'extra_link_args' in blas_info.keys() and ('-Wl,Accelerate' in blas_info['extra_link_args']):
+        blas = 'Accelerate'
+    else:
+        blas = 'Generic'
+    return blas
