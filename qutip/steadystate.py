@@ -749,7 +749,7 @@ def _steadystate_power(L, ss_args):
             logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
-    _tol = np.max(ss_args['tol']/10,1e-15) # Should make this user accessible
+    _tol = max(ss_args['tol']/10, 1e-15) # Should make this user accessible
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
         
         if ss_args['method'] == 'power':

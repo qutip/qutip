@@ -754,7 +754,7 @@ def state_number_index(dims, state):
     Example:
 
         >>> state_number_index([2, 2, 2], [1, 1, 0])
-        6.0
+        6
 
     Parameters
     ----------
@@ -766,12 +766,13 @@ def state_number_index(dims, state):
 
     Returns
     -------
-    idx : list
+    idx : int
         The index of the state given by `state` in standard enumeration
         ordering.
 
     """
-    return sum([state[i] * prod(dims[i + 1:]) for i, d in enumerate(dims)])
+    return int(
+        sum([state[i] * prod(dims[i + 1:]) for i, d in enumerate(dims)]))
 
 
 def state_index_number(dims, index):
