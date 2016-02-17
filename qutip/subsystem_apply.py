@@ -219,7 +219,8 @@ def _top_apply_S(block, channel):
     # perform second block decomposition; block-size
     # matches Hilbert space of affected subsystem:
     # FIXME use state shape?
-    column = _block_col(block, *list(map(sqrt, channel.shape)))
+    sqrt_chnl_shp = map(int, map(sqrt, channel.shape))
+    column = _block_col(block, *sqrt_chnl_shp)
     chan_mat = channel.data.todense()
     temp_col = zeros(shape(column)).astype(complex)
     # print chan_mat.shape
@@ -228,7 +229,7 @@ def _top_apply_S(block, channel):
         # print [scal[0,0]*mat for (scal,mat) in zip(transpose(row),column)]
         temp_col[row_idx] = sum([s[0, 0] * mat
                                  for (s, mat) in zip(transpose(row), column)])
-    return _block_stack(temp_col, *list(map(sqrt, channel.shape)))
+    return _block_stack(temp_col, *sqrt_chnl_shp)
 
 
 def _block_split(mat_in, n_v, n_h):
