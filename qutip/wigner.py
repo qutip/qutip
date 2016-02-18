@@ -287,18 +287,18 @@ def _wigner_fft(psi, xvec):
     Evaluates the Fourier transformation of a given state vector.
     Returns the corresponding density matrix and range
     """
-    n = 2 * len(psi.T)
+    n = 2*len(psi.T)
     r1 = np.concatenate((np.array([[0]]),
                         np.fliplr(psi.conj()),
-                        np.zeros((1, n / 2 - 1))), axis=1)
+                        np.zeros((1, n//2 - 1))), axis=1)
     r2 = np.concatenate((np.array([[0]]), psi,
-                        np.zeros((1, n / 2 - 1))), axis=1)
-    w = la.toeplitz(np.zeros((n / 2, 1)), r1) * \
-        np.flipud(la.toeplitz(np.zeros((n / 2, 1)), r2))
-    w = np.concatenate((w[:, n / 2:n], w[:, 0:n / 2]), axis=1)
+                        np.zeros((1, n//2 - 1))), axis=1)
+    w = la.toeplitz(np.zeros((n//2, 1)), r1) * \
+        np.flipud(la.toeplitz(np.zeros((n//2, 1)), r2))
+    w = np.concatenate((w[:, n//2:n], w[:, 0:n//2]), axis=1)
     w = ft.fft(w)
-    w = np.real(np.concatenate((w[:, 3 * n / 4:n + 1], w[:, 0:n / 4]), axis=1))
-    p = np.arange(-n / 4, n / 4) * np.pi / (n * (xvec[1] - xvec[0]))
+    w = np.real(np.concatenate((w[:, 3*n//4:n+1], w[:, 0:n//4]), axis=1))
+    p = np.arange(-n/4, n/4)*np.pi / (n*(xvec[1] - xvec[0]))
     w = w / (p[1] - p[0]) / n
     return w, p
 
