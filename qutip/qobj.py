@@ -1241,8 +1241,9 @@ class Qobj(object):
             
             acc = 0.0
             dim = self.shape[0]
+            n_eigs = len(eigvals)
             
-            for idx in reversed(range(dim)):
+            for idx in reversed(range(n_eigs)):
                 if eigvals[idx] + acc / (idx + 1) >= 0:
                     break
                 else:

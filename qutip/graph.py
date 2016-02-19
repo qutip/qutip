@@ -270,6 +270,7 @@ def weighted_bipartite_matching(A, perm_type='row'):
     Matrix Anal. and Applics. 20, no. 4, 889 (1997).
 
     """
+   
     nrows = A.shape[0]
     if A.shape[0] != A.shape[1]:
         raise ValueError('weighted_bfs_matching requires a square matrix.')
@@ -283,8 +284,8 @@ def weighted_bipartite_matching(A, perm_type='row'):
         A = A.transpose().tocsc()
 
     perm = _weighted_bipartite_matching(
-        np.asarray(np.abs(A.data), dtype=float),
-        A.indices, A.indptr, nrows)
+                    np.asarray(np.abs(A.data), dtype=float), 
+                    A.indices, A.indptr, nrows)
 
     if np.any(perm == -1):
         raise Exception('Possibly singular input matrix.')
