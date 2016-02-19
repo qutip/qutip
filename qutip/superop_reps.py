@@ -285,6 +285,12 @@ def chi_to_choi(q_oper):
     # the input.
     B.dims = q_oper.dims
 
+    # We normally should not multiply objects of different
+    # superreps, so Qobj warns about that. Here, however, we're actively
+    # converting between, so the superrep of B is irrelevant.
+    # To suppress warnings, we pretend that B is also a chi.
+    B.superrep = 'chi'
+
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
     return Qobj((B * q_oper * B.dag()) / q_oper.shape[0], superrep='choi')
