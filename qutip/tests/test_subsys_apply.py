@@ -140,7 +140,7 @@ class TestSubsysApply(object):
         Superoperator: Efficient numerics and reference return same result,
         acting on non-composite system
         """
-        tol = 1e-12
+        tol = 1e-10
         rho_list = list(map(rand_dm, [2, 3, 2, 3, 2]))
         rho_input = tensor(rho_list)
         superop = kraus_to_super(rand_kraus_map(3))
