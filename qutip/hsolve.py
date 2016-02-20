@@ -53,7 +53,7 @@ from qutip import liouvillian, mat2vec, state_number_enumerate
 from qutip import enr_state_dictionaries
 
 
-def cot(x):
+def _cot(x):
     """
     Calculate cotangent.
     Parameters
@@ -113,7 +113,7 @@ def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
 
     # Ntot is the total number of ancillary elements in the hierarchy
     Ntot = int(round(factorial(Nc+N) / (factorial(Nc) * factorial(N))))
-    c0 = (lam0 * gam * (cot(gam * hbar / (2. * kb * w_th)) - (1j))) / hbar
+    c0 = (lam0 * gam * (_cot(gam * hbar / (2. * kb * w_th)) - (1j))) / hbar
     LD1 = (-2. * spre(Q) * spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q))
     pref = ((2. * lam0 * kb * w_th / (gam * hbar)) - 1j * lam0) / hbar
     gj = 2 * np.pi * kb * w_th / hbar
