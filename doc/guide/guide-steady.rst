@@ -52,22 +52,22 @@ Available Steady-State Methods:
      - Direct solution solving :math:`Ax=b` via sparse LU decomposition.
    * - Eigenvalue
      - 'eigen'
-     - Iteratively find the eigenvector corresponding to the zero eigenvalue of :math:`\mathcal{L}`.
+     - Iteratively find the zero eigenvalue of :math:`\mathcal{L}`.
    * - Inverse-Power
      - 'power'
-     - Iteratively solve for the steady-state solution using the inverse-power method.
+     - Solve using the inverse-power method.
    * - GMRES
      - 'iterative-gmres'
-     - Iteratively solve for the steady-state solution using the GMRES method and optional preconditioner.
+     - Solve using the GMRES method and optional preconditioner.
    * - LGMRES
      - 'iterative-lgmres'
-     - Iteratively solve for the steady-state solution using the LGMRES method and optional preconditioner.
+     - Solve using the LGMRES method and optional preconditioner.
    * - BICGSTAB
      - 'iterative-bicgstab'
-     - Iteratively solve for the steady-state solution using the BICGSTAB method and optional preconditioner.
+     - Solve using the BICGSTAB method and optional preconditioner.
    * - SVD
      - 'svd'
-     - Steady-state solution via the SVD of the Liouvillian represented by a **dense** matrix.
+     - Steady-state solution via the **dense** SVD of the Liouvillian.
 
 
 The function :func:`qutip.steadystate.steadystate` can take either a Hamiltonian and a list of collapse operators as input, generating internally the corresponding Liouvillian super operator in Lindblad form, or alternatively, an arbitrary Liouvillian passed by the user. When possible, we recommend passing the Hamiltonian and collapse operators to :func:`qutip.steadystate.steadystate`, and letting the function automatically build the Liouvillian for the system.
@@ -108,7 +108,7 @@ The following additional solver arguments are available for the steady-state sol
 .. cssclass:: table-striped
 
 .. list-table::
-   :widths: 10 30 50
+   :widths: 10 30 60
    :header-rows: 1
    
    * - Keyword

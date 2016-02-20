@@ -22,13 +22,13 @@ programming language.  The following packages are currently required:
 +================+==============+=====================================================+
 | **Python**     | 2.7+         | Version 3.3+ is highly recommended.                 |
 +----------------+--------------+-----------------------------------------------------+
-| **Numpy**      | 1.7+         | Not tested on lower versions.                       |
+| **Numpy**      | 1.8+         | Not tested on lower versions.                       |
 +----------------+--------------+-----------------------------------------------------+
 | **Scipy**      | 0.14+        | Lower versions have missing features.               |
 +----------------+--------------+-----------------------------------------------------+
 | **Matplotlib** | 1.2.0+       | Some plotting does not work on lower versions.      |
 +----------------+--------------+-----------------------------------------------------+
-| **Cython**     | 0.15+        | Needed for compiling some time-dependent            |
+| **Cython**     | 0.21+        | Needed for compiling some time-dependent            |
 |                |              | Hamiltonians.                                       |
 +----------------+--------------+-----------------------------------------------------+
 | **GCC**        | 4.2+         | Needed for compiling Cython files.                  |
@@ -49,7 +49,7 @@ programming language.  The following packages are currently required:
 +----------------+--------------+-----------------------------------------------------+
 | nose           | 1.1.2+       | Optional. For running tests.                        |
 +----------------+--------------+-----------------------------------------------------+
-| scikits.umfpack| 5.2.0+       | Optional. Faster (~2-5x) steady state calculations. |
+| scikits.umfpack| 5.1.0+       | Optional. Faster (~2-5x) steady state calculations. |
 +----------------+--------------+-----------------------------------------------------+
 
 
@@ -109,7 +109,7 @@ On Windows, omit ``sudo`` from the commands given above.
 
 .. _install-linux:
 
-Installation on Ubuntu Linux
+Installation on All Platforms
 ============================
 
 Using QuTiP's PPA

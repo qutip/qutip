@@ -26,7 +26,8 @@ that will load all of the user available functions. Often, we also need to impor
 .. ipython::
 
 	In [1]: import numpy as np
-            import matplotlib.pyplot as plt
+    
+    In [1]: import matplotlib.pyplot as plt
 
 Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt or a Python script.
 
@@ -66,7 +67,7 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
 	
 	In [5]: Qobj(r)
 
-Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on tensor products and partial traces.
+Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on :ref:`tensor products and partial traces <tensor>`.
 
 .. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj attributes.
 
@@ -106,21 +107,43 @@ and operators:
 +--------------------------+----------------------------+----------------------------------------+
 | Operators                | Command (# means optional) | Inputs                                 |
 +==========================+============================+========================================+
+| Charge operator          | ``charge(N,M=-N)``         | Diagonal operator with entries         |
+|                          |                            | from M..0..N.                          |
++--------------------------+----------------------------+----------------------------------------+
+| Commutator               | ``commutator(A, B, kind)`` | Kind = 'normal' or 'anti'.             |
++--------------------------+----------------------------+----------------------------------------+
+| Diagonals operator       | ``qdiags(N)``              | Quantum object created from arrays of  |
+|                          |                            | diagonals at given offsets.            |
++--------------------------+----------------------------+----------------------------------------+
+| Displacement operator    | ``displace(N,alpha)``      | N=number of levels in Hilbert space,   |
+| (Single-mode)            |                            | alpha = complex displacement amplitude.|
++--------------------------+----------------------------+----------------------------------------+
+| Higher spin operators    | ``jmat(j,#s)``             | j = integer or half-integer            |
+|                          |                            | representing spin, s = 'x', 'y', 'z',  |
+|                          |                            | '+', or '-'                            |
++--------------------------+----------------------------+----------------------------------------+
 | Identity                 | ``qeye(N)``                | N = number of levels in Hilbert space. |
 +--------------------------+----------------------------+----------------------------------------+
 | Lowering (destruction)   | ``destroy(N)``             | same as above                          |
 | operator                 |                            |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Raising (creation)       | ``create(N)``              | same as above                          |
-| operator                 |                            |                                        |
+| Momentum operator        | ``momentum(N)``            | same as above                          |
 +--------------------------+----------------------------+----------------------------------------+
 | Number operator          | ``num(N)``                 | same as above                          |
 +--------------------------+----------------------------+----------------------------------------+
-| Single-mode              | ``displace(N,alpha)``      | N=number of levels in Hilbert space,   |
-| displacement operator    |                            | alpha = complex displacement amplitude.|
+| Phase operator           | ``phase(N, phi0)``         | Single-mode Pegg-Barnett phase         |
+| (Single-mode)            |                            | operator with ref phase phi0.          |
 +--------------------------+----------------------------+----------------------------------------+
-| Single-mode              | ``squeeze(N,sp)``          | N=number of levels in Hilbert space,   |
-| squeezing operator       |                            | sp = squeezing parameter.              |
+| Position operator        | ``position(N)``            | same as above                          |
++--------------------------+----------------------------+----------------------------------------+
+| Raising (creation)       | ``create(N)``              | same as above                          |
+| operator                 |                            |                                        |
++--------------------------+----------------------------+----------------------------------------+
+| Squeezing operator       | ``squeeze(N, sp)``         | N=number of levels in Hilbert space,   |
+| (Single-mode)            |                            | sp = squeezing parameter.              |
++--------------------------+----------------------------+----------------------------------------+
+| Squeezing operator       | ``squeezing(q1, q2, sp)``  | q1,q2 = Quantum operators (Qobj)       |
+| (Generalized)            |                            | sp = squeezing parameter.              |
 +--------------------------+----------------------------+----------------------------------------+
 | Sigma-X                  | ``sigmax()``               |                                        |
 +--------------------------+----------------------------+----------------------------------------+
@@ -132,11 +155,9 @@ and operators:
 +--------------------------+----------------------------+----------------------------------------+
 | Sigma minus              | ``sigmam()``               |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Higher spin operators    | ``jmat(j,#s)``             | j = integer or half-integer            |
-|                          |                            | representing spin, s = 'x', 'y', 'z',  |
-|                          |                            | '+', or '-'                            |
+| Tunneling operator       | ``tunneling(N,m)``         | Tunneling operator with elements of the|
+|                          |                            | form :math:`|N><N+m| + |N+m><N|`.      |
 +--------------------------+----------------------------+----------------------------------------+
-
 
 As an example, we give the output for a few of these functions:
 
@@ -301,6 +322,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 |                 |                               | matrix or list of kets 'inpt' .        |
 +-----------------+-------------------------------+----------------------------------------+
 | Transpose       | ``Q.trans()``                 | Transpose of quantum object.           |
++-----------------+-------------------------------+----------------------------------------+
+| Truncate Neg    | ``Q.trunc_neg()``             | Truncates negative eigenvalues         |
 +-----------------+-------------------------------+----------------------------------------+
 | Unit            | ``Q.unit()``                  | Returns normalized (unit)              |
 |                 |                               | vector Q/Q.norm().                     |  

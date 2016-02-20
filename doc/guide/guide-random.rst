@@ -71,6 +71,31 @@ See the API documentation: :ref:`functions-rand` for details.
     When using the ``density`` keyword argument, setting the density too low may result in not enough diagonal elements to satisfy trace
     constraints.
 
+Random objects with a given eigen spectrum
+==========================================
+
+.. note::
+
+    New in QuTiP 3.2
+
+It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy matrices (``rand_dm``) with a given eigen spectrum.  This is done by passing an array of eigenvalues as the first argument to either function.  For example,
+
+
+.. ipython::
+    
+   In [7]: eigs = np.arange(5)    
+   
+   In [8]: H = rand_herm(eigs, density=0.5)
+   
+   In [9]: H
+   
+   In [10]: H.eigenenergies()
+
+
+In order to generate a random object with a given spectrum QuTiP applies a series of random complex Jacobi rotations.  This technique requires many steps to build the desired quantum object, and is thus suitable only for objects with Hilbert dimensionality :math:`\lesssim 1000`.
+
+
+
 Composite random objects
 ========================
 

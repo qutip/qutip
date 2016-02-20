@@ -20,8 +20,8 @@ QuTiP is designed to be a general framework for solving quantum mechanics proble
 
 .. _figure-qutip_org:
 
-.. figure:: qutip_org.png
+.. figure:: qutip_tree.pdf
    :align: center
    :figwidth: 100%
    
-   QuTiP tree-diagram of user accessible functions and classes.
+   Tree-diagram of the 306 user accessible functions and classes in QuTiP 3.2.

@@ -36,12 +36,12 @@
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "correlation_4op_1t",
+                    "name": "correlation_3op_1t",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "correlation_4op_2t",
+                    "name": "correlation_3op_2t",
                     "size": 1000
                 },
                 {
@@ -56,6 +56,16 @@
                 },
                 {
                     "color": "#0B5FA5",
+                    "name": "spectrum",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "spectrum_correlation_fft",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
                     "name": "correlation_ss",
                     "size": 1000
                 },
@@ -66,7 +76,12 @@
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "spectrum_correlation_fft",
+                    "name": "correlation_4op_1t",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "correlation_4op_2t",
                     "size": 1000
                 },
                 {
@@ -224,6 +239,23 @@
             "children": [
                 {
                     "color": "#0B5FA5",
+                    "name": "hsolve",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "hsolve"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "qutip_zvode",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
                     "name": "mcsolve",
                     "size": 1000
                 }
@@ -265,6 +297,18 @@
             "color": "#0B5FA5",
             "idx": 0,
             "name": "propagator"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "rcsolve",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "rcsolve"
         },
         {
             "children": [
@@ -327,6 +371,16 @@
                 {
                     "color": "#0B5FA5",
                     "name": "steady",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "build_preconditioner",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "pseudo_inverse",
                     "size": 1000
                 }
             ],
@@ -439,10 +493,34 @@
         {
             "children": [
                 {
-                    "color": "#043C6B",
-                    "name": "reset",
+                    "color": "#0B5FA5",
+                    "name": "MemoryCascade:",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "memorycascade"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "TTMSolverOptions:",
                     "size": 1000
                 },
+                {
+                    "color": "#0B5FA5",
+                    "name": "ttmsolve",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "transfertensor"
+        },
+        {
+            "children": [
                 {
                     "color": "#043C6B",
                     "name": "load_rc_file",
@@ -455,11 +533,6 @@
         },
         {
             "children": [
-                {
-                    "color": "#3F8FD2",
-                    "name": "Arrow3D",
-                    "size": 1000
-                },
                 {
                     "color": "#3F8FD2",
                     "name": "Bloch",
@@ -572,11 +645,6 @@
                 },
                 {
                     "color": "#3F8FD2",
-                    "name": "complex_phase_cmap",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
                     "name": "matrix_histogram_complex",
                     "size": 1000
                 },
@@ -588,11 +656,6 @@
                 {
                     "color": "#3F8FD2",
                     "name": "energy_level_diagram",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "wigner_cmap",
                     "size": 1000
                 },
                 {
@@ -816,7 +879,27 @@
                 },
                 {
                     "color": "#00AE68",
-                    "name": "zero_oper",
+                    "name": "qzero",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "enr_destroy",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "enr_identity",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "charge",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "tunneling",
                     "size": 1000
                 }
             ],
@@ -875,6 +958,11 @@
                 },
                 {
                     "color": "#00AE68",
+                    "name": "choi_to_stinespring",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
                     "name": "to_choi",
                     "size": 1000
                 },
@@ -891,6 +979,11 @@
                 {
                     "color": "#00AE68",
                     "name": "to_kraus",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "to_stinespring",
                     "size": 1000
                 }
             ],
@@ -954,6 +1047,11 @@
                     "color": "#00AE68",
                     "name": "spre",
                     "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "sprepost",
+                    "size": 1000
                 }
             ],
             "color": "#00AE68",
@@ -1001,6 +1099,16 @@
             "children": [
                 {
                     "color": "#007143",
+                    "name": "rand_jacobi_rotation",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "randnz",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
                     "name": "rand_herm",
                     "size": 1000
                 },
@@ -1011,12 +1119,32 @@
                 },
                 {
                     "color": "#007143",
+                    "name": "rand_unitary_haar",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
                     "name": "rand_ket",
                     "size": 1000
                 },
                 {
                     "color": "#007143",
+                    "name": "rand_ket_haar",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
                     "name": "rand_dm",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "rand_dm_ginibre",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "rand_dm_hs",
                     "size": 1000
                 },
                 {
@@ -1027,6 +1155,16 @@
                 {
                     "color": "#007143",
                     "name": "rand_super",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "rand_super_bcsz",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "rand_stochastic",
                     "size": 1000
                 }
             ],
@@ -1123,6 +1261,21 @@
                 },
                 {
                     "color": "#007143",
+                    "name": "enr_state_dictionaries",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "enr_fock",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "enr_thermal_dm",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
                     "name": "phase_basis",
                     "size": 1000
                 },
@@ -1192,6 +1345,23 @@
             "children": [
                 {
                     "color": "#FF4500",
+                    "name": "countstat_current",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "countstat_current_noise",
+                    "size": 1000
+                }
+            ],
+            "color": "#FF4500",
+            "idx": 6,
+            "name": "countstat"
+        },
+        {
+            "children": [
+                {
+                    "color": "#FF4500",
                     "name": "entropy_vn",
                     "size": 1000
                 },
@@ -1203,6 +1373,11 @@
                 {
                     "color": "#FF4500",
                     "name": "concurrence",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "negativity",
                     "size": 1000
                 },
                 {
@@ -1265,6 +1440,11 @@
                 {
                     "color": "#FF4500",
                     "name": "bures_angle",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "unitarity",
                     "size": 1000
                 }
             ],
@@ -1395,6 +1575,16 @@
                     "color": "#692102",
                     "name": "super_tensor",
                     "size": 1000
+                },
+                {
+                    "color": "#692102",
+                    "name": "composite",
+                    "size": 1000
+                },
+                {
+                    "color": "#692102",
+                    "name": "tensor_contract",
+                    "size": 1000
                 }
             ],
             "color": "#692102",
@@ -1454,6 +1644,11 @@
                 },
                 {
                     "color": "#BF5730",
+                    "name": "column_permutation",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
                     "name": "maximum_bipartite_matching",
                     "size": 1000
                 },
@@ -1498,6 +1693,11 @@
                 },
                 {
                     "color": "#BF5730",
+                    "name": "parallel_map",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
                     "name": "plot_animation",
                     "size": 1000
                 }
@@ -1512,11 +1712,21 @@
                     "color": "#BF5730",
                     "name": "parfor",
                     "size": 1000
+                },
+                {
+                    "color": "#BF5730",
+                    "name": "serial_map",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
+                    "name": "parallel_map",
+                    "size": 1000
                 }
             ],
             "color": "#BF5730",
             "idx": 8,
-            "name": "parfor"
+            "name": "parallel"
         },
         {
             "children": [
@@ -1529,18 +1739,6 @@
             "color": "#BF5730",
             "idx": 8,
             "name": "permute"
-        },
-        {
-            "children": [
-                {
-                    "color": "#BF5730",
-                    "name": "picloud",
-                    "size": 1000
-                }
-            ],
-            "color": "#BF5730",
-            "idx": 8,
-            "name": "picloud"
         },
         {
             "children": [
@@ -1615,23 +1813,16 @@
                     "color": "#BF5730",
                     "name": "sp_bandwidth",
                     "size": 1000
-                }
-            ],
-            "color": "#BF5730",
-            "idx": 8,
-            "name": "sparse"
-        },
-        {
-            "children": [
+                },
                 {
                     "color": "#BF5730",
-                    "name": "run",
+                    "name": "sp_profile",
                     "size": 1000
                 }
             ],
             "color": "#BF5730",
             "idx": 8,
-            "name": "testing"
+            "name": "sparse"
         },
         {
             "children": [

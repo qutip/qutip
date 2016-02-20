@@ -27,8 +27,8 @@ This document contains a user guide and automatically generated API documentatio
 :Address: iTHES Research Group, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
 
-:version: 3.1.0
-:status: Released (January 1, 2015)
+:version: 3.2.0
+:status: Released (April XX, 2016)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:
