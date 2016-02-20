@@ -48,13 +48,13 @@ from qutip.hardware_info import hardware_info
 
 def about():
     """
-    About box for qutip. Gives version numbers for
+    About box for QuTiP. Gives version numbers for
     QuTiP, NumPy, SciPy, Cython, and MatPlotLib.
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
     print("Copyright (c) 2011 and later.")
-    print("Paul D. Nation & Robert J. Johansson")
+    print("Alexander Pitchford, Chris Granade, Paul D. Nation & Robert J. Johansson")
     print("")
     print("QuTiP Version:      %s" % qutip.__version__)
     print("Numpy Version:      %s" % numpy.__version__)
