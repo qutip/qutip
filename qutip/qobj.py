@@ -1014,21 +1014,10 @@ class Qobj(object):
             raise TypeError('Invalid operand for matrix square root')
 
     
-    def cosm(self, sparse=False, tol=0, maxiter=100000):
+    def cosm(self):
         """Cosine of a quantum operator.
 
         Operator must be square.
-
-        Parameters
-        ----------
-        sparse : bool
-            Use sparse eigenvalue/vector solver for expm.
-
-        tol : float
-            Tolerance used by expm sparse solver (0 = machine precision).
-
-        maxiter : int
-            Maximum number of iterations used by expm sparse solver.
 
         Returns
         -------
@@ -1046,27 +1035,15 @@ class Qobj(object):
 
         """
         if self.dims[0][0] == self.dims[1][0]:
-             return 0.5*((1j * self).expm(sparse=False, tol=0, maxiter=100000) //
-                     +(-1j * self).expm(sparse=False, tol=0, maxiter=100000))
+             return 0.5 * ((1j * self).expm() + (-1j * self).expm())
         else:
             raise TypeError('Invalid operand for matrix square root')
     
     
-    def sinm(self, sparse=False, tol=0, maxiter=100000):
+    def sinm(self):
         """Sine of a quantum operator.
 
         Operator must be square.
-
-        Parameters
-        ----------
-        sparse : bool
-            Use sparse eigenvalue/vector solver for expm.
-
-        tol : float
-            Tolerance used by expm sparse solver (0 = machine precision).
-
-        maxiter : int
-            Maximum number of iterations used by expm sparse solver.
 
         Returns
         -------
@@ -1084,8 +1061,7 @@ class Qobj(object):
 
         """
         if self.dims[0][0] == self.dims[1][0]:
-             return -0.5j*((1j * self).expm(sparse=False, tol=0, maxiter=100000) //
-                     -(-1j * self).expm(sparse=False, tol=0, maxiter=100000))
+             return -0.5j * ((1j * self).expm() - (-1j * self).expm())
         else:
             raise TypeError('Invalid operand for matrix square root')
     
