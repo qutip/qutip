@@ -18,6 +18,7 @@ Users Guide
    guide-steady.rst
    guide-eseries.rst
    guide-correlation.rst
+   guide-control.rst
    guide-bloch.rst
    guide-visualization.rst
    guide-parfor.rst
