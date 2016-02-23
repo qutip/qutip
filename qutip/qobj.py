@@ -953,12 +953,12 @@ class Qobj(object):
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out
 
-    def checkherm(self):
+    def chec_kherm(self):
         """Check if the quantum object is hermitian.
 
         Returns
         -------
-        isherm: bool
+        isherm : bool
             Returns the new value of isherm property.
         """
         self._isherm = None
@@ -982,7 +982,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper: qobj
+        oper : qobj
             Matrix square root of operator.
 
         Raises
@@ -1013,6 +1013,60 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
+    
+    def cosm(self):
+        """Cosine of a quantum operator.
+
+        Operator must be square.
+
+        Returns
+        -------
+        oper : qobj
+            Matrix cosine of operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum object is not square.
+
+        Notes
+        -----
+        Uses the Q.expm() method.
+
+        """
+        if self.dims[0][0] == self.dims[1][0]:
+             return 0.5 * ((1j * self).expm() + (-1j * self).expm())
+        else:
+            raise TypeError('Invalid operand for matrix square root')
+    
+    
+    def sinm(self):
+        """Sine of a quantum operator.
+
+        Operator must be square.
+
+        Returns
+        -------
+        oper : qobj
+            Matrix sine of operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum object is not square.
+
+        Notes
+        -----
+        Uses the Q.expm() method.
+
+        """
+        if self.dims[0][0] == self.dims[1][0]:
+             return -0.5j * ((1j * self).expm() - (-1j * self).expm())
+        else:
+            raise TypeError('Invalid operand for matrix square root')
+    
+    
+    
     def unit(self, norm=None, sparse=False, tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
