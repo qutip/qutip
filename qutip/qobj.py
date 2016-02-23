@@ -953,7 +953,7 @@ class Qobj(object):
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out
 
-    def chec_kherm(self):
+    def check_herm(self):
         """Check if the quantum object is hermitian.
 
         Returns
