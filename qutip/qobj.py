@@ -458,7 +458,15 @@ class Qobj(object):
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        elif isinstance(other, (list, np.ndarray)):
+        elif isinstance(other, np.ndarray):
+            if other.dtype=='object':
+                return np.array([self * item for item in other],
+                                dtype=object)
+            else:
+                return self.data * other
+            
+        
+        elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
             return np.array([self * item for item in other],
                             dtype=object)
@@ -486,16 +494,22 @@ class Qobj(object):
         """
         MULTIPLICATION with Qobj on RIGHT [ ex. 4*Qobj ]
         """
-
-        if isinstance(other, (list, np.ndarray)):
+        if isinstance(other, np.ndarray):
+            if other.dtype=='object':
+                return np.array([item * self for item in other],
+                                            dtype=object)
+            else:
+                return other * self.data
+        
+        elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
             return np.array([item * self for item in other],
                             dtype=object)
 
-        if isinstance(other, eseries):
+        elif isinstance(other, eseries):
             return other.__mul__(self)
 
-        if isinstance(other, (int, float, complex,
+        elif isinstance(other, (int, float, complex,
                               np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = other * self.data
