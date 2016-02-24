@@ -421,6 +421,14 @@ def test_CheckMulType():
 
     assert_(opbra2.dag() == opket2)
 
+def test_Qobj_Spmv():
+    "Qobj mult ndarray right"
+    A = rand_herm(5)
+    b = rand_ket(5).full()
+    C = A*b
+    D = A.full().dot(b)
+    assert_(np.all((C-D)<1e-14))
+
 
 def test_QobjConjugate():
     "Qobj conjugate"
