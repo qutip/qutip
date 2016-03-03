@@ -508,6 +508,31 @@ be exponentiated to find the superoperator for that evolution.
      
     In [5]: S = (12 * L).expm()
 
+For qubits, a particularly useful way to visualize superoperators is to plot them in the Pauli basis,
+such that :math:`S_{\mu,\nu} = \langle\!\langle \sigma_{\mu} | S[\sigma_{\nu}] \rangle\!\rangle`. Because
+the Pauli basis is Hermitian, :math:`S_{\mu,\nu}` is a real number for all Hermitian-preserving superoperators
+:math:`S`,
+allowing us to plot the elements of :math:`S` as a `Hinton diagram <http://matplotlib.org/examples/specialty_plots/hinton_demo.html>`_. In such diagrams, positive elements are indicated by white squares, and negative elements
+by black squares. The size of each element is indicated by the size of the corresponding square. For instance,
+let :math:`S[\rho] = \sigma_x \rho \sigma_x^{\dagger}`. Then :math:`S[\sigma_{\mu}] = \sigma_{\mu} \cdot \begin{cases} +1 & \mu = 0, x \\ -1 & \mu = y, z \end{cases}`. We can quickly see this by noting that the :math:`Y` and :math:`Z` elements
+of the Hinton diagram for :math:`S` are negative:
+
+.. plot::
+
+    from qutip import *
+    settings.colorblind_safe = True
+
+    import matplotlib.pyplot as plt
+    plt.rcParams['savefig.transparent'] = True
+
+    X = sigmax()
+    S = spre(X) * spost(X.dag())
+
+    hinton(S)
+
+Superoperator Representations
+=============================
+
 Once a superoperator has been obtained, it can be converted between the
 supermatrix, Kraus and Choi formalisms by using the :func:`~qutip.superop_reps.to_super`,
 :func:`~qutip.superop_reps.to_kraus` and :func:`~qutip.superop_reps.to_choi` functions. The :attr:`~Qobj.superrep`
