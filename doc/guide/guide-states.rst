@@ -632,7 +632,7 @@ all operators :math:`X` acting on :math:`\mathcal{H}`,
 
 .. math::
 
-    \Lambda(X) = \Tr_2(A X B^\dagger),
+    \Lambda(X) = \operatorname{Tr}_2(A X B^\dagger),
 
 where the partial trace is over a new index that corresponds to the
 index in the Kraus summation. Conversion to Stinespring
@@ -680,7 +680,7 @@ function.
     In [1]: chi = to_chi(S)
        ...: print(chi)
 
-One convienent property of the :math:`\chi` matrix is that the average
+One convenient property of the :math:`\chi` matrix is that the average
 gate fidelity with the identity map can be read off directly from
 the :math:`\chi_{00}` element:
 
@@ -697,3 +697,75 @@ denoted by the :attr:`~Qobj.superrep`, such that :func:`~qutip.superop_reps.to_s
 :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_kraus`,
 :func:`~qutip.superop_reps.to_stinespring` and :func:`~qutip.superop_reps.to_chi`
 all convert from the :math:`\chi` representation appropriately.
+
+Properties of Quantum Maps
+==========================
+
+In addition to converting between the different representations of quantum maps,
+QuTiP also provides attributes to make it easy to check if a map is completely
+positive, trace preserving and/or hermicity preserving. Each of these attributes
+uses :attr:`~Qobj.superrep` to automatically perform any needed conversions.
+
+In particular, a quantum map is said to be positive (but not necessarily completely
+positive) if it maps all positive operators to positive operators. For instance, the
+transpose map :math:`\Lambda(\rho) = \rho^{\mathrm{T}}` is a positive map. We run into
+problems, however, if we tensor :math:`\Lambda` with the identity to get a partial
+transpose map.
+
+.. ipython::
+
+    In [1]: rho = ket2dm(bell_state())
+
+    In [2]: rho_out = partial_transpose(rho, [0, 1])
+       ...: print(rho_out.eigenenergies())
+
+Notice that even though we started with a positive map, we got an operator out
+with negative eigenvalues. Complete positivity addresses this by requiring that
+a map returns positive operators for all positive operators, and does so even
+under tensoring with another map. The Choi matrix is very useful here, as it
+can be shown that a map is completely positive if and only if its Choi matrix
+is positive [Wat13]_. QuTiP implements this check with the :attr:`~Qobj.iscp`
+attribute. As an example, notice that the snippet above already calculates
+the Choi matrix of the transpose map by acting it on half of an entangled
+pair. We simply need to manually set the ``dims`` and ``superrep`` attributes to reflect the
+structure of the underlying Hilbert space and the chosen representation.
+
+.. ipython::
+
+    In [1]: J = rho_out
+
+    In [2]: J.dims = [[[2], [2]], [[2], [2]]]
+       ...: J.superrep = 'choi'
+
+    In [3]: print(J.iscp)
+
+This confirms that the transpose map is not completely positive. On the other hand,
+the transpose map does satisfy a weaker condition, namely that it is hermicity preserving.
+That is, :math:`\Lambda(\rho) = (\Lambda(\rho))^\dagger` for all :math:`\rho` such that
+:math:`\rho = \rho^\dagger`. To see this, we note that :math:`(\rho^{\mathrm{T}})^\dagger
+= \rho^*`, the complex conjugate of :math:`\rho`. By assumption, :math:`\rho = \rho^\dagger
+= (\rho^*)^{\mathrm{T}}`, though, such that :math:`\Lambda(\rho) = \Lambda(\rho^\dagger) = \rho^*`.
+We can confirm this by checking the :attr:`~Qobj.ishp` attribute:
+
+.. ipython::
+
+    In [1]: print(J.ishp)
+
+Next, we note that the transpose map does preserve the trace of its inputs, such that
+:math:`\operatorname{Tr}(\Lambda[\rho]) = \operatorname{Tr}(\rho)` for all :math:`\rho`.
+This can be confirmed by the :attr:`~Qobj.istp` attribute:
+
+.. ipython::
+
+    In [1]: print(J.ishp)
+
+Finally, a map is called a quantum channel if it always maps valid states to valid
+states. Formally, a map is a channel if it is both completely positive and trace preserving.
+Thus, QuTiP provides a single attribute to quickly check that this is true.
+
+.. ipython::
+
+    In [1]: print(J.iscptp)
+
+    In [2]: print(to_super(qeye(2)).iscptp)
+
