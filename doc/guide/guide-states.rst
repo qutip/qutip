@@ -530,8 +530,8 @@ of the Hinton diagram for :math:`S` are negative:
 
     hinton(S)
 
-Choi, Kraus and :math:`\chi` Representations
-============================================
+Choi, Kraus, Stinespring and :math:`\chi` Representations
+=========================================================
 
 In addition to the superoperator representation of quantum maps, QuTiP
 supports several other useful representations. First, the Choi matrix
@@ -576,18 +576,124 @@ As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super
 
     In [2]: print(to_super(S))
 
-Once a superoperator has been obtained, it can be converted between the
-supermatrix, Kraus and Choi formalisms by using the :func:`~qutip.superop_reps.to_super`,
-:func:`~qutip.superop_reps.to_kraus` and :func:`~qutip.superop_reps.to_choi` functions. The :attr:`~Qobj.superrep`
-attribute keeps track of what representation is a :obj:`~qutip.Qobj` is currently using.
+We can quickly obtain another useful representation from the Choi matrix by taking its eigendecomposition.
+In particular, let :math:`\{A_i\}` be a set of operators such that
+:math:`J(\Lambda) = \sum_i |A_i\rangle\!\rangle \langle\!\langle A_i|`.
+We can write :math:`J(\Lambda)` in this way
+for any hermicity-preserving map; that is, for any map :math:`\Lambda` such that :math:`J(\Lambda) = J^\dagger(\Lambda)`.
+These operators then form the Kraus representation of :math:`\Lambda`. In particular, for any input :math:`\rho`,
+
+.. math::
+
+    \Lambda(\rho) = \sum_i A_i \rho A_i^\dagger.
+
+Notice using the column-stacking identity that :math:`(C^\mathrm{T} \otimes A) |B\rangle\!\rangle = |ABC\rangle\!\rangle`,
+we have that
+
+.. math::
+
+      \sum_i (𝟙 \otimes A_i) (𝟙 \otimes A_i)^\dagger |𝟙\rangle\!\rangle \langle\!\langle𝟙|
+    = \sum_i |A_i\rangle\!\rangle \langle\!\langle A_i| = J(\Lambda).
+
+The Kraus representation of a hermicity-preserving map can be found in QuTiP
+using the :func:`~qutip.superop_reps.to_kraus` function.
 
 .. ipython::
-    
-    In [1]: J = to_choi(S)
 
-    In [2]: J
+    In [1]: I, X, Y, Z = qeye(2), sigmax(), sigmay(), sigmaz()
 
-    In [3]: K = to_kraus(J)
-    
-    In [4]: K
+    In [2]: S = sum(sprepost(P, P) for P in (I, X, Y, Z)) / 4
+       ...: print(S)
 
+    In [3]: J = to_choi(S)
+       ...: print(J)
+
+    In [4]: print(J.eigenstates()[1])
+
+    In [5]: K = to_kraus(S)
+       ...: print(K)
+
+As with the other representation conversion functions, :func:`~qutip.superop_reps.to_kraus`
+checks the :attr:`~Qobj.superrep` attribute of its input, and chooses an appropriate
+conversion method. Thus, in the above example, we can also call :func:`~qutip.superop_reps.to_kraus`
+on ``J``.
+
+.. ipython::
+
+    In [1]: KJ = to_kraus(J)
+       ...: print(KJ)
+
+    In [2]: for A, AJ in zip(K, KJ):
+       ...:     print(A - AJ)
+
+The Stinespring representation is closely related to the Kraus representation,
+and consists of a pair of operators :math:`A` and :math:`B` such that for
+all operators :math:`X` acting on :math:`\mathcal{H}`,
+
+.. math::
+
+    \Lambda(X) = \Tr_2(A X B^\dagger),
+
+where the partial trace is over a new index that corresponds to the
+index in the Kraus summation. Conversion to Stinespring
+is handled by the :func:`~qutip.superop_reps.to_stinespring`
+function.
+
+.. ipython::
+
+    In [1]: a = create(2).dag()
+
+    In [2]: S_ad = sprepost(a * a.dag(), a * a.dag()) + sprepost(a, a.dag())
+       ...: S = 0.9 * sprepost(I, I) + 0.1 * S_ad
+       ...: print(S)
+
+    In [3]: A, B = to_stinespring(S)
+       ...: print(A)
+       ...: print(B)
+
+Notice that a new index has been added, such that :math:`A` and :math:`B`
+have dimensions ``[[2, 3], [2]]``, with the length-3 index representing the
+fact that the Choi matrix is rank-3 (alternatively, that the map has three
+Kraus operators).
+
+.. ipython::
+
+    In [1]: to_kraus(S)
+
+    In [2]: print(to_choi(S).eigenenergies())
+
+Finally, the last superoperator representation supported by QuTiP is
+the :math:`\chi`-matrix representation,
+
+.. math::
+
+    \Lambda(\rho) = \sum_{\alpha,\beta} \chi_{\alpha,\beta} B_{\alpha} \rho B_{\beta}^\dagger,
+
+where :math:`\{B_\alpha\}` is a basis for the space of matrices acting
+on :math:`\mathcal{H}`. In QuTiP, this basis is taken to be the Pauli
+basis :math:`B_\alpha = \sigma_\alpha / \sqrt{2}`. Conversion to the
+:math:`\chi` formalism is handled by the :func:`~qutip.superop_reps.to_chi`
+function.
+
+.. ipython::
+
+    In [1]: chi = to_chi(S)
+       ...: print(chi)
+
+One convienent property of the :math:`\chi` matrix is that the average
+gate fidelity with the identity map can be read off directly from
+the :math:`\chi_{00}` element:
+
+.. ipython::
+
+    In [1]: print(average_gate_fidelity(S))
+
+    In [2]: print(chi[0, 0] / 4)
+
+Here, the factor of 4 comes from the dimension of the underlying
+Hilbert space :math:`\mathcal{H}`. As with the superoperator
+and Choi representations, the :math:`\chi` representation is
+denoted by the :attr:`~Qobj.superrep`, such that :func:`~qutip.superop_reps.to_super`,
+:func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_kraus`,
+:func:`~qutip.superop_reps.to_stinespring` and :func:`~qutip.superop_reps.to_chi`
+all convert from the :math:`\chi` representation appropriately.
