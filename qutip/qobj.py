@@ -113,6 +113,9 @@ class Qobj(object):
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
+    ishp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        hermicity preserving (HP).
     istp : bool
         Indicates if the quantum object represents a map, and if that map is
         trace preserving (TP).
@@ -1623,18 +1626,37 @@ class Qobj(object):
         return self.extract_states(keep_indices, normalize=normalize)
 
     @property
+    def ishp(self):
+        # FIXME: this needs to be cached in the same ways as isherm.
+        if self.type in ["super", "oper"]:
+            try:
+                J = sr.to_choi(self)
+                return J.isherm
+            except:
+                return False
+        else:
+            return False
+
+    @property
     def iscp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
         if self.type in ["super", "oper"]:
             try:
-                eigs = (
+                J = (
                     self
                     # We can test with either Choi or chi, since the basis
                     # transformation between them is unitary and hence
                     # preserves the CP and TP conditions.
                     if self.superrep in ('choi', 'chi')
                     else sr.to_choi(self)
-                ).eigenenergies()
+                )
+                # If J isn't hermitian, then that could indicate either
+                # that J is not normal, or is normal, but has complex eigenvalues.
+                # In either case, it makes no sense to then demand that the
+                # eigenvalues be non-negative.
+                if not J.isherm:
+                    return False
+                eigs = J.eigenenergies()
                 return all(eigs >= -settings.atol)
             except:
                 return False
@@ -1643,7 +1665,6 @@ class Qobj(object):
 
     @property
     def istp(self):
-
         if self.type in ["super", "oper"]:
             try:
                 # We use the condition from John Watrous' lecture notes,
