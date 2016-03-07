@@ -456,7 +456,7 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
     In [4]: operator_to_vector(A)
 
 Since :math:`\mathcal{H} \otimes \mathcal{H}` is a vector space, linear maps
-on this space can be represented as matrices, often called *supermatrices*.
+on this space can be represented as matrices, often called *superoperators*.
 Using the :obj:`~qutip.Qobj`, the :obj:`~qutip.superoperator.spre` and :obj:`~qutip.superoperator.spost` functions, supermatrices
 corresponding to left- and right-multiplication respectively can be quickly
 constructed.
@@ -530,16 +530,59 @@ of the Hinton diagram for :math:`S` are negative:
 
     hinton(S)
 
-Superoperator Representations
-=============================
+Choi, Kraus and :math:`\chi` Representations
+============================================
+
+In addition to the superoperator representation of quantum maps, QuTiP
+supports several other useful representations. First, the Choi matrix
+:math:`J(\Lambda)` of a quantum map :math:`\Lambda` is useful for working with
+ancilla-assisted process tomography (AAPT), and for reasoning about properties
+of a map or channel. Up to normalization, the Choi matrix is defined by acting
+:math:`\Lambda` on half of an entangled pair. In the column-stacking
+convention,
+
+.. math::
+
+    J(\Lambda) = (𝟙 \otimes \Lambda) [|𝟙\rangle\!\rangle \langle\!\langle𝟙|].
+
+In QuTiP, :math:`J(\Lambda)` can be found by calling the :func:`~qutip.superop_reps.to_choi`
+function on a ``type="super"`` :ref:`Qobj`.
+
+.. ipython::
+    
+    In [1]: X = sigmax()
+    
+    In [2]: S = sprepost(X, X)
+
+    In [3]: J = to_choi(S)
+
+    In [4]: print(J)
+
+    In [5]: print(to_choi(spre(qeye(2))))
+
+If a :ref:`Qobj` instance is already in the Choi :attr:`~Qobj.superrep`, then calling :func:`~qutip.superop_reps.to_choi`
+does nothing:
+
+.. ipython::
+    
+    In [1]: print(to_choi(J))
+
+To get back to the superoperator representation, simply use the :func:`~qutip.superop_reps.to_super` function.
+As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super` is idempotent:
+
+.. ipython::
+    
+    In [1]: print(to_super(J) - S)
+
+    In [2]: print(to_super(S))
 
 Once a superoperator has been obtained, it can be converted between the
 supermatrix, Kraus and Choi formalisms by using the :func:`~qutip.superop_reps.to_super`,
 :func:`~qutip.superop_reps.to_kraus` and :func:`~qutip.superop_reps.to_choi` functions. The :attr:`~Qobj.superrep`
-attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently using.
+attribute keeps track of what representation is a :obj:`~qutip.Qobj` is currently using.
 
 .. ipython::
-
+    
     In [1]: J = to_choi(S)
 
     In [2]: J
@@ -547,5 +590,4 @@ attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently
     In [3]: K = to_kraus(J)
     
     In [4]: K
-
 
