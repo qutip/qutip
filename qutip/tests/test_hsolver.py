@@ -43,10 +43,12 @@ import numpy as np
 from numpy import pi, real, cos, tanh
 from numpy.testing import (
     assert_, assert_almost_equal, run_module_suite, assert_equal)
-from scipy.integrate import quad 
+from scipy.integrate import quad, IntegrationWarning
 from qutip import Qobj, sigmaz, basis, expect
 from qutip.nonmarkov.hsolver import HSolverDL
-from qutip.solver import Options, Stats
+from qutip.solver import Options
+import warnings
+warnings.simplefilter('ignore', IntegrationWarning)
     
 class TestHSolver:
     """
@@ -73,8 +75,7 @@ class TestHSolver:
         cut_freq = 0.05 
         coup_strength = 0.025
         temperature = 1.0/0.95
-        tlist = np.linspace(0, 10, 200)
-        
+        tlist = np.linspace(0, 10, 21)
         
         # Calculate the analytical results by numerical integration
         lam_c = coup_strength/pi

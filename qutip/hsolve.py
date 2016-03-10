@@ -44,7 +44,7 @@ __all__ = ['hsolve']
 
 import warnings
 from qutip.nonmarkov.hsolver import HSolverDL
-warnings.simplefilter('always', DeprecationWarning) #turn off filter 
+warnings.simplefilter('always', DeprecationWarning) #turn off filter
 
 def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
     """
@@ -82,13 +82,13 @@ def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
 
     warnings.warn("This function has been deprecated. "
         "You should switch to using the run method of "
-        "nonmarkov.hsolver.HSolverDL", 
+        "nonmarkov.hsolver.HSolverDL",
         DeprecationWarning)
-    
-    hsolver = HSolverDL(H, Q, lam0, w_th, Nc, N, gam, 
-                         renorm=True, bnd_cut_approx=True, 
+
+    hsolver = HSolverDL(H, Q, lam0, w_th, Nc, N, gam,
+                         renorm=True, bnd_cut_approx=True,
                          options=options, stats=True)
-                         
+
     output = hsolver.run(psi0, tlist)
-    
+
     return output
