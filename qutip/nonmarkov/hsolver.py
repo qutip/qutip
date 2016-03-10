@@ -64,9 +64,6 @@ class HierarchySolver(object):
     The method can compute open system dynamics without using any Markovian
     or rotating wave approximation (RWA) for systems where the bath 
     correlations can be approximated to a sum of complex eponentials.
-    These are referered to as Matsubura terms, and their complex coefficients
-    and frequecies are refered to as the Matsubura coefficients and frequecies
-    in the code.
     The method builds a matrix of linked differential equations, which are 
     then solved used the same ODE solvers as other qutip solvers (e.g. mesolve)
     
@@ -93,10 +90,11 @@ class HierarchySolver(object):
         Bath temperature, in units corresponding to planck
         
     N_c : int
-        Cutoff parameter.
+        Cutoff parameter for the bath
         
-    N_m : int
-        Number of matsubara terms.
+    N_exp : int
+        Number of exponential terms used to approximate the bath correlation
+        functions
         
     planck : float
         reduced Planck constant
@@ -142,20 +140,18 @@ class HierarchySolver(object):
         self.coup_strength = 0.0
         self.temperature = 1.0
         self.N_c = 10
-        self.N_m = 2
+        self.N_exp = 2
         self.N_he = 0
 
         self.options = None
         self.progress_bar = None
         self.stats = None
-        self.matsubura_ceoff = None
-        self.matsubura_freq = None
         
         self.ode = None
         self.configured = False
         
     def configure(self, H_sys, coup_op, coup_strength, temperature,
-                     N_c, N_m, planck=None, boltzmann=None,
+                     N_c, N_exp, planck=None, boltzmann=None,
                      renorm=None, bnd_cut_approx=None,
                      options=None, progress_bar=None, stats=None):
         """
@@ -187,7 +183,7 @@ class HierarchySolver(object):
         self.coup_strength = coup_strength
         self.temperature = temperature
         self.N_c = N_c
-        self.N_m = N_m
+        self.N_exp = N_exp
         if planck: self.planck = planck
         if boltzmann: self.boltzmann = boltzmann 
         if isinstance(options, Options): self.options = options
@@ -217,7 +213,13 @@ class HierarchySolver(object):
 
 class HSolverDL(HierarchySolver):
     """
-    Hierarchy solver based on the Drude-Lorentz model for spectral density
+    Hierarchy solver based on the Drude-Lorentz model for spectral density.
+    Drude-Lorentz bath the correlation functions can be exactly analytically 
+    expressed as an infinite sum of exponentials which depend on the 
+    temperature, these are called the Matsubara terms or Matsubara frequencies
+    
+    For practical computation purposes an approximation must be used based
+    on a small number of Matsubara terms (typically < 4).
     
     Attributes
     ----------
@@ -256,7 +258,8 @@ class HSolverDL(HierarchySolver):
         self.cut_freq = 1.0
         self.renorm = False
         self.bnd_cut_approx = False
-        
+        self.matsubara_ceoff = None
+        self.matsubara_freq = None  
         
     def configure(self, H_sys, coup_op, coup_strength, temperature,
                      N_c, N_m, cut_freq, planck=None, boltzmann=None,
@@ -288,7 +291,7 @@ class HSolverDL(HierarchySolver):
             if ss_conf is None:
                 ss_conf = stats.add_section('config')
                 
-        c, nu = self._calc_matsubura_params()
+        c, nu = self._calc_matsubara_params()
         
         if renorm:
             norm_plus, norm_minus = self._calc_renorm_factors()
@@ -354,7 +357,7 @@ class HSolverDL(HierarchySolver):
                 n_k = he_state[k]
                 if n_k >= 1:
                     # find the hierarchy element index of the neighbour before
-                    # this element, for this Matsubura term
+                    # this element, for this Matsubara term
                     he_state_neigh[k] = n_k - 1
                     he_idx_neigh = he2idx[tuple(he_state_neigh)]
                     
@@ -372,7 +375,7 @@ class HSolverDL(HierarchySolver):
                     
                 if n_excite <= N_c - 1:
                     # find the hierarchy element index of the neighbour after
-                    # this element, for this Matsubura term
+                    # this element, for this Matsubara term
                     he_state_neigh[k] = n_k + 1
                     he_idx_neigh = he2idx[tuple(he_state_neigh)]
                     
@@ -507,9 +510,9 @@ class HSolverDL(HierarchySolver):
         
         return output
     
-    def _calc_matsubura_params(self):
+    def _calc_matsubara_params(self):
         """
-        Calculate the Matsubura coefficents and frequencies
+        Calculate the Matsubara coefficents and frequencies
         
         Returns
         -------
@@ -522,9 +525,10 @@ class HSolverDL(HierarchySolver):
         gam = self.cut_freq
         hbar = self.planck
         beta = 1.0/(self.boltzmann*self.temperature)
+        N_m = self.N_exp
     
         g = 2*np.pi / (beta*hbar)
-        for k in range(self.N_m):
+        for k in range(N_m):
             if k == 0:
                 nu.append(gam)
                 c.append(lam0*gam*
@@ -534,8 +538,8 @@ class HSolverDL(HierarchySolver):
                 c.append(4*lam0*gam*nu[k] /
                       ((nu[k]**2 - gam**2)*beta*hbar**2))
                       
-        self.matsubura_ceoff = c
-        self.matsubura_freq = nu 
+        self.matsubara_ceoff = c
+        self.matsubara_freq = nu 
         return c, nu
         
     def _calc_renorm_factors(self):
@@ -546,8 +550,8 @@ class HSolverDL(HierarchySolver):
         -------
         norm_plus, norm_minus : array[N_c, N_m] of float
         """
-        c = self.matsubura_ceoff
-        N_m = self.N_m
+        c = self.matsubara_ceoff
+        N_m = self.N_exp
         N_c = self.N_c
         
         norm_plus = np.empty((N_c+1, N_m))
