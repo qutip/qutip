@@ -45,7 +45,7 @@ from numpy.testing import (
     assert_, assert_almost_equal, run_module_suite, assert_equal)
 from scipy.integrate import quad, IntegrationWarning
 from qutip import Qobj, sigmaz, basis, expect
-from qutip.nonmarkov.hsolver import HSolverDL
+from qutip.nonmarkov.heom import HSolverDL
 from qutip.solver import Options
 import warnings
 warnings.simplefilter('ignore', IntegrationWarning)
@@ -58,7 +58,7 @@ class TestHSolver:
     def test_pure_dephasing(self):
         """
         HSolverDL: Compare with pure-dephasing analytical
-        assert that the analytical result and hsolver method produce the 
+        assert that the analytical result and HEOM produce the 
         same time dephasing evoltion.
         """
         resid_tol = 1e-4

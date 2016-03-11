@@ -33,7 +33,7 @@
 ###############################################################################
 """
 This module provides exact solvers for a system-bath setup using the
-hierachical method.
+hierarchy equations of motion (HEOM).
 """
 
 # Authors: Neill Lambert, Anubhav Vardhan, Alexander Pitchford
@@ -53,9 +53,9 @@ from qutip.solver import Options, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
-class HierarchySolver(object):
+class HEOMSolver(object):
     """
-    This is superclass for all solvers that use the Hierarchy method for
+    This is superclass for all solvers that use the HEOM method for
     calculating the dynamics evolution. There are many references for this.
     A good introduction, and perhaps closest to the notation used here is:
     DOI:10.1103/PhysRevLett.104.250401
@@ -210,9 +210,9 @@ class HierarchySolver(object):
         stats.header = "Hierarchy Solver Stats"
         return stats
 
-class HSolverDL(HierarchySolver):
+class HSolverDL(HEOMSolver):
     """
-    Hierarchy solver based on the Drude-Lorentz model for spectral density.
+    HEOM solver based on the Drude-Lorentz model for spectral density.
     Drude-Lorentz bath the correlation functions can be exactly analytically
     expressed as an infinite sum of exponentials which depend on the
     temperature, these are called the Matsubara terms or Matsubara frequencies
@@ -261,7 +261,7 @@ class HSolverDL(HierarchySolver):
         """
         Reset any attributes to default values
         """
-        HierarchySolver.reset(self)
+        HEOMSolver.reset(self)
         self.cut_freq = 1.0
         self.renorm = False
         self.bnd_cut_approx = False
@@ -271,12 +271,12 @@ class HSolverDL(HierarchySolver):
                      renorm=None, bnd_cut_approx=None,
                      options=None, progress_bar=None, stats=None):
         """
-        Calls configure from :class:`HierarchySolver` and sets any attributes
+        Calls configure from :class:`HEOMSolver` and sets any attributes
         that are specific to this subclass
         """
         start_config = timeit.default_timer()
 
-        HierarchySolver.configure(self, H_sys, coup_op, coup_strength,
+        HEOMSolver.configure(self, H_sys, coup_op, coup_strength,
                     temperature, N_cut, N_exp,
                     planck=planck, boltzmann=boltzmann,
                     options=options, progress_bar=progress_bar, stats=stats)
@@ -446,7 +446,7 @@ class HSolverDL(HierarchySolver):
     def run(self, rho0, tlist):
         """
         Function to solve for an open quantum system using the
-        hierarchy model.
+        HEOM model.
 
         Parameters
         ----------
