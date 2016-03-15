@@ -67,10 +67,13 @@ colorblind_safe = False
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
 # configured, rather than through _logging.get_logger().
-import logging
-_logger = logging.getLogger(__name__)
-_logger.addHandler(logging.NullHandler())
-del logging  # Don't leak names!
+try:
+    import logging
+    _logger = logging.getLogger(__name__)
+    _logger.addHandler(logging.NullHandler())
+    del logging  # Don't leak names!
+except:
+    _logger = None
 
 
 def load_rc_file(rc_file):
@@ -91,7 +94,7 @@ def load_rc_file(rc_file):
     except ImportError:
         # Don't bother warning unless the rc_file exists.
         import os
-        if os.path.exists(rc_file):
+        if os.path.exists(rc_file) and _logger:
             _logger.warn("configobj missing, not loading rc_file.", exc_info=1)
         return
 
@@ -112,7 +115,7 @@ def load_rc_file(rc_file):
     # worked, and returns a dictionary of which keys fails otherwise.
     # This motivates a very un-Pythonic way of checking for results,
     # but it's the configobj idiom.
-    if result is not True:
+    if result is not True and _logger:
         # OK, find which keys are bad.
         bad_keys = {key for key, val in result.iteritems() if not val}
         _logger.warn('Invalid configuration options in {}: {}'.format(
@@ -127,7 +130,7 @@ def load_rc_file(rc_file):
         'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
         'num_cpus', 'debug', 'log_handler', 'colorblind_safe'
     ):
-        if config_key in config and config_key not in bad_keys:
+        if config_key in config and config_key not in bad_keys and _logger:
             _logger.debug(
                 "Applying configuration setting {} = {}.".format(
                     config_key, config[config_key]

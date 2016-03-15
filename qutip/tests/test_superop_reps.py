@@ -43,15 +43,17 @@ from numpy import abs, pi
 from numpy.linalg import norm
 from numpy.testing import assert_, assert_almost_equal, run_module_suite, assert_equal
 
+from unittest import expectedFailure
+
 from qutip.qobj import Qobj
 from qutip.states import basis
-from qutip.operators import identity, sigmax, qeye
+from qutip.operators import identity, sigmax, qeye, create
 from qutip.qip.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import super_tensor
 from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
                                 to_chi, to_stinespring)
-from qutip.superoperator import operator_to_vector, vector_to_operator
+from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
 
 tol = 1e-10
 
@@ -129,36 +131,75 @@ class TestSuperopReps(object):
     def test_random_iscptp(self):
         """
         Superoperator: Randomly generated superoperators are
-        correctly reported as cptp.
+        correctly reported as CPTP and HP.
         """
         superop = rand_super()
         assert_(superop.iscptp)
+        assert_(superop.ishp)
 
     def test_known_iscptp(self):
         """
-        Superoperator: iscp, istp and iscptp known cases.
+        Superoperator: ishp, iscp, istp and iscptp known cases.
         """
-        # Check that unitaries are CPTP.
-        assert_(identity(2).iscptp)
-        assert_(sigmax().iscptp)
+        def case(qobj, shouldhp, shouldcp, shouldtp):
+            hp = qobj.ishp
+            cp = qobj.iscp
+            tp = qobj.istp
+            cptp = qobj.iscptp
 
-        # The partial transpose map, whose Choi matrix is SWAP, is TP but not
-        # CP.
+            shouldcptp = shouldcp and shouldtp
+
+            if (
+                hp == shouldhp and
+                cp == shouldcp and
+                tp == shouldtp and
+                cptp == shouldcptp
+            ):
+                return
+
+            fails = []
+            if hp != shouldhp:
+                fails.append(("ishp", shouldhp, hp))
+            if tp != shouldtp:
+                fails.append(("istp", shouldtp, tp))
+            if cp != shouldcp:
+                fails.append(("iscp", shouldcp, cp))
+            if cptp != shouldcptp:
+                fails.append(("iscptp", shouldcptp, cptp))
+
+            raise AssertionError("Expected {}.".format(" and ".join([
+                "{} == {} (got {})".format(fail, expected, got)
+                for fail, expected, got in fails
+            ])))
+
+        # Conjugation by a creation operator should
+        # have be CP (and hence HP), but not TP.
+        a = create(2).dag()
+        S = sprepost(a, a.dag())
+        yield case, S, True, True, False
+
+        # A single off-diagonal element should not be CP,
+        # nor even HP.
+        S = sprepost(a, a)
+        yield case, S, False, False, False
+        
+        # Check that unitaries are CPTP and HP.
+        yield case, identity(2), True, True, True
+        yield case, sigmax(), True, True, True
+
+        # The partial transpose map, whose Choi matrix is SWAP, is TP
+        # and HP but not CP (one negative eigenvalue).
         W = Qobj(swap(), type='super', superrep='choi')
-        assert_(W.istp)
-        assert_(not W.iscp)
-        assert_(not W.iscptp)
+        yield case, W, True, False, True
 
         # Subnormalized maps (representing erasure channels, for instance)
         # can be CP but not TP.
         subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
-        assert_(subnorm_map.iscp)
-        assert_(not subnorm_map.istp)
-        assert_(not subnorm_map.iscptp)
+        yield case, subnorm_map, True, True, False
 
         # Check that things which aren't even operators aren't identified as
         # CPTP.
-        assert_(not (basis(2).iscptp))
+        yield case, basis(2), False, False, False
 
     def test_choi_tr(self):
         """
@@ -208,6 +249,18 @@ class TestSuperopReps(object):
         A, B = to_stinespring(chan)
         assert_equal(A.dims, [[2, 3, 1], [2, 3]])
         assert_equal(B.dims, [[2, 3, 1], [2, 3]])
+
+    def test_chi_choi_roundtrip(self):
+        def case(qobj):
+            qobj = to_chi(qobj)
+            rt_qobj = to_chi(to_choi(qobj))
+
+            assert_almost_equal(rt_qobj.data.toarray(), qobj.data.toarray())
+            assert_equal(rt_qobj.type, qobj.type)
+            assert_equal(rt_qobj.dims, qobj.dims)
+
+        for N in (2, 4, 8):
+            yield case, rand_super_bcsz(N)
 
     def test_chi_known(self):
         """

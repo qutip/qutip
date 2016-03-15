@@ -36,14 +36,19 @@ __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
            'sqrtiswap', 'fredkin', 'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
-           'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN']
+           'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
+           'qubit_clifford_group']
 
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
-from qutip.operators import identity
+from qutip.operators import identity, qeye, sigmax
 from qutip.tensor import tensor
 from qutip.states import fock_dm
+
+from itertools import product
+from functools import partial, reduce
+from operator import mul
 
 
 #
@@ -712,6 +717,71 @@ def gate_sequence_product(U_list, left_to_right=True):
 
     return U_overall
 
+def _powers(op, N):
+    """
+    Generator that yields powers of an operator `op`,
+    through to `N`.
+    """
+    acc = qeye(op.dims[0])
+    yield acc
+
+    for _ in range(N - 1):
+        acc *= op
+        yield acc
+
+def qubit_clifford_group(N=None, target=0):
+    """
+    Generates the Clifford group on a single qubit,
+    using the presentation of the group given by Ross and Selinger
+    (http://www.mathstat.dal.ca/~selinger/newsynth/).
+
+    Parameters
+    -----------
+
+    N : int or None
+        Number of qubits on which each operator is to be defined
+        (default: 1).
+    target : int
+        Index of the target qubit on which the single-qubit
+        Clifford operators are to act.
+
+    Yields
+    ------
+
+    op : Qobj
+        Clifford operators, represented as Qobj instances.
+    """
+
+    # The Ross-Selinger presentation of the single-qubit Clifford
+    # group expresses each element in the form C_{ijk} = E^i X^j S^k
+    # for gates E, X and S, and for i in range(3), j in range(2) and
+    # k in range(4).
+    #
+    # We start by defining these gates. E is defined in terms of H,
+    # \omega and S, so we define \omega and H first.
+    w = np.exp(1j * 2 * np.pi / 8)
+    H = snot()
+
+    X = sigmax()
+    S = phasegate(np.pi / 2)
+    E = H * (S ** 3) * w ** 3
+
+
+    for op in map(
+          # partial(reduce, mul) returns a function that takes products of its argument,
+          # by analogy to sum. Note that by analogy, sum can be written partial(reduce, add).
+          partial(reduce, mul),
+          # product(...) yields the Cartesian product of its arguments. Here, each element is
+          # a tuple (E**i, X**j, S**k) such that partial(reduce, mul) acting on the tuple
+          # yields E**i * X**j * S**k.
+          product(_powers(E, 3), _powers(X, 2), _powers(S, 4))
+        ):
+
+        # Finally, we optionally expand the gate.
+        if N is not None:
+            yield gate_expand_1toN(op, N, target)
+        else:
+            yield op
 
 #
 # Gate Expand

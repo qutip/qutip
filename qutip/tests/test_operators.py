@@ -34,7 +34,8 @@
 import numpy as np
 from numpy.testing import assert_equal, run_module_suite
 
-from qutip import (jmat, basis, destroy, create, displace, qeye, num, squeeze)
+from qutip import (jmat, basis, destroy, create, displace, qeye, 
+                    num, squeeze, charge, tunneling)
 
 
 def test_jmat_12():
@@ -173,6 +174,27 @@ def test_displace():
           0.90866411 + 0.j]])
 
     assert_equal(np.allclose(dp.full(), dpmatrix), True)
+
+
+def test_charge():
+    "Charge operator"
+    N = 5
+    M = - np.random.randint(N)
+    ch = charge(N,M)
+    ch_matrix = np.diag(np.arange(M,N+1))
+    assert_equal(np.allclose(ch.full(), ch_matrix), True)
+
+
+def test_tunneling():
+    "Tunneling operator"
+    N = 5
+    tn = tunneling(2*N+1)
+    tn_matrix = np.diag(np.ones(2*N),k=-1) + np.diag(np.ones(2*N),k=1)
+    assert_equal(np.allclose(tn.full(), tn_matrix), True) 
+    
+    tn = tunneling(2*N+1,2)
+    tn_matrix = np.diag(np.ones(2*N-1),k=-2) + np.diag(np.ones(2*N-1),k=2)
+    assert_equal(np.allclose(tn.full(), tn_matrix), True)
 
 
 if __name__ == "__main__":

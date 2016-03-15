@@ -39,8 +39,8 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'zero_oper', 'enr_destroy',
-           'enr_identity']
+           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
+           'enr_identity', 'charge', 'tunneling']
 
 import numpy as np
 import scipy
@@ -120,7 +120,7 @@ shape = [3, 3], type = oper, isHerm = True
     else:
         raise TypeError('Invalid type')
 
-    return Qobj(A.tocsr())
+    return Qobj(A.tocsr(), isherm=True)
 
 
 def _jplus(j):
@@ -367,7 +367,7 @@ shape = [4, 4], type = oper, isHerm = False
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     return Qobj(sp.spdiags(np.sqrt(range(offset, N+offset)),
-                           1, N, N, format='csr'))
+                           1, N, N, format='csr'), isherm=False)
 
 
 #
@@ -445,7 +445,7 @@ shape = [3, 3], type = oper, isHerm = True
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
-    return Qobj(sp.eye(N, N, dtype=complex, format='csr'))
+    return Qobj(sp.eye(N, N, dtype=complex, format='csr'), isherm=True)
 
 
 def identity(N):
@@ -765,7 +765,7 @@ def phase(N, phi0=0):
     return Qobj(np.sum(ops, axis=0))
 
 
-def zero_oper(N, dims=None):
+def qzero(N, dims=None):
     """
     Creates the zero operator with shape NxN and dimensions `dims`.
 
@@ -773,17 +773,17 @@ def zero_oper(N, dims=None):
     ----------
     N : int
         Hilbert space dimensionality
-    dims : list
-        Optional dimensions if operator corresponds to
+    dims : list (optional)
+        Dimensions if operator corresponds to
         a composite Hilbert space.
 
     Returns
     -------
-    zero_op : qobj
+    qzero : qobj
         Zero operator on given Hilbert space.
 
     """
-    return Qobj(sp.csr_matrix((N, N), dtype=complex), dims=dims)
+    return Qobj(sp.csr_matrix((N, N), dtype=complex), dims=dims, isherm=True)
 
 
 def enr_destroy(dims, excitations):
@@ -876,6 +876,73 @@ def enr_identity(dims, excitations):
     nstates, _, _ = enr_state_dictionaries(dims, excitations)
     data = sp.eye(nstates, nstates, dtype=np.complex)
     return Qobj(data, dims=[dims, dims])
+
+
+
+def charge(Nmax, Nmin=None, frac = 1):
+    """
+    Generate the diagonal charge operator over charge states
+    from Nmin to Nmax.
+    
+    Parameters
+    ---------
+    Nmax : int
+        Maximum charge state to consider.
+    
+    Nmin : int (default = -Nmax)
+        Lowest charge state to consider.
+    
+    frac : float (default = 1)
+        Specify fractional charge if needed.
+    
+    Returns
+    -------
+    C : Qobj
+        Charge operator over [Nmin,Nmax].
+    
+    Notes
+    -----
+    .. versionadded:: 3.2
+    
+    
+    """
+    if Nmin is None:
+        Nmin = -Nmax
+    diag = np.arange(Nmin, Nmax+1, dtype=float)
+    if frac != 1:
+        diag *= frac
+    C = sp.diags(diag, 0, format='csr', dtype=complex)
+    return Qobj(C, isherm=True)
+
+
+
+def tunneling(N, m=1):
+    """
+    Tunneling operator with elements of the form 
+    |N><N+m| + |N+m><N|.
+    
+    Parameters
+    ----------
+    N : int
+        Number of basis states in Hilbert space.
+    m : int (default = 1)
+        Number of excitations in tunneling event.
+    
+    Returns
+    -------
+    T : Qobj
+        Tunneling operator.
+    
+    Notes
+    -----
+    .. versionadded:: 3.2
+    
+    """
+    diags = [np.ones(N-m,dtype=int),np.ones(N-m,dtype=int)]
+    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
+    return Qobj(T, isherm=True)
+
+
 
 # Break circular dependencies by a trailing import.
 # Note that we use a relative import here to deal with that

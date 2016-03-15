@@ -159,7 +159,7 @@ def _one_subsystem_apply(state, channel, idx):
         # print subs_dim_ar[mul_idx]
         n_blks = n_blks * subs_dim_ar[mul_idx][0]
 
-    blk_sz = state.shape[0] / n_blks
+    blk_sz = state.shape[0] // n_blks
     # Apply channel to top subsystem of each block in matrix
     full_data_matrix = state.data.todense()
 
@@ -169,7 +169,6 @@ def _one_subsystem_apply(state, channel, idx):
     for blk_r in range(n_blks):
         for blk_c in range(n_blks):
             # Apply channel to high-level blocks of matrix:
-
             blk_rx = blk_r * blk_sz
             blk_cx = blk_c * blk_sz
 
@@ -219,7 +218,9 @@ def _top_apply_S(block, channel):
     # perform second block decomposition; block-size
     # matches Hilbert space of affected subsystem:
     # FIXME use state shape?
-    column = _block_col(block, *list(map(sqrt, channel.shape)))
+    n_v =  int(sqrt(channel.shape[0]))
+    n_h =  int(sqrt(channel.shape[1]))
+    column = _block_col(block, n_v, n_h)
     chan_mat = channel.data.todense()
     temp_col = zeros(shape(column)).astype(complex)
     # print chan_mat.shape
@@ -228,7 +229,7 @@ def _top_apply_S(block, channel):
         # print [scal[0,0]*mat for (scal,mat) in zip(transpose(row),column)]
         temp_col[row_idx] = sum([s[0, 0] * mat
                                  for (s, mat) in zip(transpose(row), column)])
-    return _block_stack(temp_col, *list(map(sqrt, channel.shape)))
+    return _block_stack(temp_col, n_v, n_h)
 
 
 def _block_split(mat_in, n_v, n_h):
@@ -251,7 +252,7 @@ def _block_col(mat_in, n_v, n_h):
     rows, cols = shape(mat_in)
     return reshape(
         array(_block_split(mat_in, n_v, n_h)).transpose(1, 0, 2, 3),
-        (n_v * n_h, rows / n_v, cols / n_h))
+        (n_v * n_h, rows // n_v, cols // n_h))
 
 
 def _block_stack(arr_in, n_v, n_h):

@@ -48,21 +48,47 @@ defined for that object
 """
 
 import numpy as np
-from ConfigParser import SafeConfigParser
+
+try:
+    # Python 3
+    from configparser import ConfigParser
+except:
+    # Python 2
+    from ConfigParser import SafeConfigParser
+
 # QuTiP logging
 from qutip import Qobj
 
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 
+def _is_string(var):
+    try:
+        if isinstance(var, basestring):
+            return True
+    except NameError:
+        try:
+            if isinstance(var, str):
+                return True
+        except:
+            return False
+    except:
+        return False
+
+    return False
 
 def load_parameters(file_name, config=None, term_conds=None,
-                    dynamics=None, optim=None, pulsegen=None):
+                    dynamics=None, optim=None, pulsegen=None,
+                    obj=None, section=None):
     """
     Import parameters for the optimisation objects
     Will throw a ValueError if file_name does not exist
     """
-    parser = SafeConfigParser()
+    try:
+        parser = ConfigParser()
+    except:
+        parser = SafeConfigParser()
+
     readFiles = parser.read(file_name)
     if len(readFiles) == 0:
         raise ValueError("Parameter file '{}' not found".format(file_name))
@@ -117,6 +143,18 @@ def load_parameters(file_name, config=None, term_conds=None,
             logger.warn("Unable to load {} parameters:({}) {}".format(
                 s, type(e).__name__, e))
 
+    if obj is not None:
+        if not _is_string(section):
+            raise ValueError("Section name must be given when loading "
+                "parameters of general object")
+        s = section
+        try:
+            attr_names = parser.options(s)
+            for a in attr_names:
+                set_param(parser, s, a, obj, a)
+        except Exception as e:
+            logger.warn("Unable to load {} parameters:({}) {}".format(
+                s, type(e).__name__, e))
 
 def set_param(parser, section, option, obj, attrib_name):
     """
@@ -133,7 +171,11 @@ def set_param(parser, section, option, obj, attrib_name):
     if hasattr(obj, attrib_name):
         a = getattr(obj, attrib_name)
         dtype = type(a)
-        
+    else:
+        logger.warn("Unable to load parameter {}.{}\n"
+                    "Attribute does not exist".format(section, attrib_name))
+        return
+
     if isinstance(a, Qobj):
         try:
             q = Qobj(eval(val))
@@ -195,4 +237,12 @@ def set_param(parser, section, option, obj, attrib_name):
                                  val, section, option))
         setattr(obj, attrib_name, b)
     else:
+        try:
+            val = parser.getfloat(section, attrib_name)
+        except:
+            try:
+                val = parser.getboolean(section, attrib_name)
+            except:
+                pass
+
         setattr(obj, attrib_name, val)

@@ -32,7 +32,20 @@ Operating System :: Microsoft :: Windows
 import os
 import sys
 import numpy as np
-import setuptools
+
+# The following is required to get unit tests up and running.
+# If the user doesn't have, then that's OK, we'll just skip unit tests.
+try:
+    import setuptools
+    TEST_SUITE = 'nose.collector'
+    TESTS_REQUIRE = ['nose']
+    TESTING_KWARGS = {
+        'test_suite': TEST_SUITE,
+        'tests_require': TESTS_REQUIRE
+    }
+except:
+    TESTING_KWARGS = {}
+
 from numpy.distutils.core import setup
 
 # all information about QuTiP goes here
@@ -44,7 +57,8 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
             'matplotlib (>=1.1)']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
-            'qutip/qip/algorithms', 'qutip/control', 'qutip/tests']
+            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
+            'qutip/tests']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
@@ -142,21 +156,22 @@ def configuration(parent_package='', top_path=None):
 
 # Setup commands go here
 setup(
-    name=NAME,
-    packages=PACKAGES,
-    include_dirs=INCLUDE_DIRS,
-    ext_modules=EXT_MODULES,
-    author=AUTHOR,
-    author_email=AUTHOR_EMAIL,
-    license=LICENSE,
-    description=DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
-    keywords=KEYWORDS,
-    url=URL,
-    classifiers=CLASSIFIERS,
-    platforms=PLATFORMS,
-    requires=REQUIRES,
-    package_data=PACKAGE_DATA,
-    configuration=configuration,
-    zip_safe=False
+    name = NAME,
+    packages = PACKAGES,
+    include_dirs = INCLUDE_DIRS,
+    ext_modules = EXT_MODULES,
+    author = AUTHOR,
+    author_email = AUTHOR_EMAIL,
+    license = LICENSE,
+    description = DESCRIPTION,
+    long_description = LONG_DESCRIPTION,
+    keywords = KEYWORDS,
+    url = URL,
+    classifiers = CLASSIFIERS,
+    platforms = PLATFORMS,
+    requires = REQUIRES,
+    package_data = PACKAGE_DATA,
+    configuration = configuration,
+    zip_safe = False,
+    **TESTING_KWARGS
 )

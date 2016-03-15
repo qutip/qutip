@@ -35,7 +35,7 @@ __all__ = ['hardware_info']
 
 import os
 import sys
-
+import multiprocessing
 
 def _mac_hardware_info():
     info = dict()
@@ -44,8 +44,9 @@ def _mac_hardware_info():
         info[l[0].strip(' "').replace(' ', '_').lower().strip('hw.')] = \
             l[1].strip('.\n ')
     results.update({'cpus': int(info['physicalcpu'])})
-    results.update({'cpu_freq': int(info['cpufrequency']) / (1000. ** 3)})
-    results.update({'memsize': int(info['memsize']) / (1024 ** 2)})
+    results.update({'cpu_freq': int(float(os.popen('sysctl -n machdep.cpu.brand_string')
+                                .readlines()[0].split('@')[1][:-4])*1000)})
+    results.update({'memsize': int(int(info['memsize']) / (1024 ** 2))})
     # add OS information
     results.update({'os': 'Mac OSX'})
     return results
@@ -81,7 +82,16 @@ def _linux_hardware_info():
 
 
 def _win_hardware_info():
-    return {'os': 'Windows'}
+    try:
+        from comtypes.client import CoGetObject
+        winmgmts_root = CoGetObject("winmgmts:root\cimv2")
+        cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
+        ncpus = 0
+        for cpu in cpus:
+            ncpus += int(cpu.Properties_['NumberOfCores'].Value)
+    except:
+        ncpus = int(multiprocessing.cpu_count())
+    return {'os': 'Windows', 'cpus': ncpus}
 
 
 def hardware_info():

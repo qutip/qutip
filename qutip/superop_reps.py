@@ -52,8 +52,10 @@ from numpy.core.multiarray import array, zeros
 from numpy.core.shape_base import hstack
 from numpy.matrixlib.defmatrix import matrix
 from numpy import sqrt, floor, log2
-from numpy import sqrt, dot
+from numpy import dot
 from scipy.linalg import eig, svd
+# Needed to avoid conflict with itertools.product.
+import numpy as np
 
 # Other QuTiP functions and classes
 from qutip.superoperator import vec2mat, spre, spost, operator_to_vector
@@ -245,6 +247,14 @@ def kraus_to_super(kraus_list):
     return choi_to_super(kraus_to_choi(kraus_list))
 
 
+def _nq(dims):
+    dim = np.product(dims[0][0])
+    nq = int(log2(dim))
+    if 2 ** nq != dim:
+        raise ValueError("{} is not an integer power of 2.".format(dim))
+    return nq
+
+
 def choi_to_chi(q_oper):
     """
     Converts a Choi matrix to a Chi matrix in the Pauli basis.
@@ -252,9 +262,13 @@ def choi_to_chi(q_oper):
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
     """
-    nq = len(q_oper.dims[0][0])
+    nq = _nq(q_oper.dims)
     B = _pauli_basis(nq)
+    # Force the basis change to match the dimensions of
+    # the input.
+    B.dims = q_oper.dims
     B.superrep = 'choi'
+
     return Qobj(B.dag() * q_oper * B, superrep='chi')
 
 
@@ -265,8 +279,17 @@ def chi_to_choi(q_oper):
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
     """
-    nq = len(q_oper.dims[0][0])
+    nq = _nq(q_oper.dims)
     B = _pauli_basis(nq)
+    # Force the basis change to match the dimensions of
+    # the input.
+    B.dims = q_oper.dims
+
+    # We normally should not multiply objects of different
+    # superreps, so Qobj warns about that. Here, however, we're actively
+    # converting between, so the superrep of B is irrelevant.
+    # To suppress warnings, we pretend that B is also a chi.
+    B.superrep = 'chi'
 
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.

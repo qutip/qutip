@@ -69,9 +69,9 @@ from qutip.settings import debug
 
 
 if debug:
-    import qutip.logging
+    import qutip.logging_utils
     import inspect
-    logger = qutip.logging.get_logger()
+    logger = qutip.logging_utils.get_logger()
 
 
 class StochasticSolverOptions:

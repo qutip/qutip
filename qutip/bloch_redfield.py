@@ -35,7 +35,7 @@ __all__ = ['brmesolve', 'bloch_redfield_solve', 'bloch_redfield_tensor']
 
 import numpy as np
 import scipy.integrate
-
+import scipy.sparse as sp
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
@@ -287,7 +287,15 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
 
     N = len(evals)
     K = len(a_ops)
-    A = np.zeros((K, N, N), dtype=complex)  # TODO: use sparse here
+    
+    #only Lindblad collapse terms
+    if K==0:
+        Heb = H.transform(ekets)
+        L = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
+        return L, ekets
+    
+    
+    A = np.array([a_ops[k].transform(ekets).full() for k in range(K)])
     Jw = np.zeros((K, N, N), dtype=complex)
 
     # pre-calculate matrix elements and spectral densities
@@ -295,14 +303,12 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
     W = np.real(evals[:,np.newaxis] - evals[np.newaxis,:])
 
     for k in range(K):
-        # A[k,n,m] = a_ops[k].matrix_element(ekets[n], ekets[m])
-        A[k, :, :] = a_ops[k].transform(ekets).full()
         # do explicit loops here in case spectra_cb[k] can not deal with array arguments
         for n in range(N):
             for m in range(N):
                 Jw[k, n, m] = spectra_cb[k](W[n, m])
 
-    dw_min = abs(W[W.nonzero()]).min()
+    dw_min = np.abs(W[W.nonzero()]).min()
 
     # pre-calculate mapping between global index I and system indices a,b
     Iabs = np.empty((N*N,3),dtype=int)
@@ -313,26 +319,37 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
 
     # unitary part + dissipation from c_ops (if given):
     Heb = H.transform(ekets)
-    R = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
-    R.data = R.data.tolil()
-
+    L = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
+    
     # dissipative part:
+    rows = []
+    cols = []
+    data = []
     for I, a, b in Iabs:
         # only check use_secular once per I
         if use_secular:
             # only loop over those indices J which actually contribute
-            Jcds = Iabs[np.where(abs(W[a, b] - W[Iabs[:,1], Iabs[:,2]]) < dw_min / 10.0)]
+            Jcds = Iabs[np.where(np.abs(W[a, b] - W[Iabs[:,1], Iabs[:,2]]) < dw_min / 10.0)]
         else:
             Jcds = Iabs
         for J, c, d in Jcds:
+            elem = 0+0j
             # summed over k, i.e., each operator coupling the system to the environment
-            R.data[I, J] += 0.5 * np.sum(A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))
+            elem += 0.5 * (A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))[0]
             if b==d:
                 #                  sum_{k,n} A[k, a, n] * A[k, n, c] * Jw[k, c, n])
-                R.data[I, J] -= 0.5 * np.sum(A[:, a, :] * A[:, :, c] * Jw[:, c, :])
+                elem -= 0.5 * np.sum(A[:, a, :] * A[:, :, c] * Jw[:, c, :])
             if a==c:
                 #                  sum_{k,n} A[k, d, n] * A[k, n, b] * Jw[k, d, n])
-                R.data[I, J] -= 0.5 * np.sum(A[:, d, :] * A[:, :, b] * Jw[:, d, :])
+                elem -= 0.5 * np.sum(A[:, d, :] * A[:, :, b] * Jw[:, d, :])
+            if elem != 0:
+                rows.append(I)
+                cols.append(J)
+                data.append(elem)
 
-    R.data = R.data.tocsr()
-    return R, ekets
+    R = sp.coo_matrix((np.array(data),(np.array(rows),np.array(cols))),
+            shape=(N**2,N**2),dtype=complex).tocsr()
+    
+    L.data = L.data + R
+    
+    return L, ekets

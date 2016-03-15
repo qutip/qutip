@@ -90,7 +90,7 @@ import copy
 import collections
 # QuTiP
 from qutip import Qobj
-import qutip.logging as logging
+import qutip.logging_utils as logging
 logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.optimresult as optimresult
@@ -99,7 +99,7 @@ import qutip.control.errors as errors
 import qutip.control.dynamics as dynamics
 import qutip.control.pulsegen as pulsegen
 
-class Optimizer:
+class Optimizer(object):
     """
     Base class for all control pulse optimisers. This class should not be
     instantiated, use its subclasses
@@ -114,14 +114,13 @@ class Optimizer:
     ----------
     log_level : integer
         level of messaging output from the logger.
-        Options are attributes of qutip.logging,
+        Options are attributes of qutip.logging_utils,
         in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
         Anything WARN or above is effectively 'quiet' execution,
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     alg : string
         Algorithm to use in pulse optimisation.
@@ -202,7 +201,7 @@ class Optimizer:
         dyn.parent = self
 
     def reset(self):
-        self.set_log_level(self.config.log_level)
+        self.log_level = self.config.log_level
         self.id_text = 'OPTIM'
         self.termination_conditions = None
         self.pulse_generator = None
@@ -237,29 +236,18 @@ class Optimizer:
             if self.config.amp_ubound:
                 self.amp_ubound = self.config.amp_ubound
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level        
+        
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
-
-#    def run_optimization(self, term_conds=None):
-#        """
-#        Run the pulse optimisation algorithm
-#
-#        This class does not implement a method for running the optimisation
-#        A subclass should be used, e.g. OptimizerLBFGSB
-#
-#        If the parameter term_conds=None, then the termination_conditions
-#        attribute must already be set. It will be overwritten if the
-#        parameter is not None
-#        """
-#        raise errors.UsageError(
-#            "No method defined for running optimisation."
-#            " Suspect base class was used where sub class should have been")
-   
+  
     def _create_result(self):
         """
         create the result object
@@ -269,6 +257,7 @@ class Optimizer:
         result.initial_fid_err = self.dynamics.fid_computer.get_fid_err()
         result.initial_amps = self.dynamics.ctrl_amps.copy()
         result.time = self.dynamics.time
+        result.optimizer = self
         return result
 
     def init_optim(self, term_conds):
@@ -278,6 +267,8 @@ class Optimizer:
         This is called by run_optimization, but could called independently
         to check the configuration.
         """
+        
+        
 
         self._check_prepare_test_out_files()
 
@@ -383,9 +374,13 @@ class Optimizer:
             self.method_options = {}
         mo = self.method_options
         
-        if hasattr(self, 'max_metric_corr') and not 'maxcor' in mo:
+        if 'max_metric_corr' in mo and not 'maxcor' in mo:
+            mo['maxcor'] = mo['max_metric_corr']
+        elif hasattr(self, 'max_metric_corr') and not 'maxcor' in mo:
             mo['maxcor'] = self.max_metric_corr
-        if hasattr(tc, 'accuracy_factor') and not 'ftol' in mo:
+        if 'accuracy_factor' in mo  and not 'ftol' in mo:
+            mo['ftol'] = mo['accuracy_factor']
+        elif hasattr(tc, 'accuracy_factor') and not 'ftol' in mo:
             mo['ftol'] = tc.accuracy_factor
         if tc.max_iterations > 0 and not 'maxiter' in mo:
             mo['maxiter'] = tc.max_iterations
@@ -413,7 +408,8 @@ class Optimizer:
         if isinstance(params, dict):
             self.method_params = params
             unused_params = {}
-            for key, val in params.iteritems():
+            for key in params:
+                val = params[key]
                 if hasattr(self, key):
                     setattr(self, key, val)
                 if hasattr(self.termination_conditions, key):
@@ -431,7 +427,7 @@ class Optimizer:
     def _build_bounds_list(self):
         cfg = self.config
         dyn = self.dynamics
-        n_ctrls = dyn.get_num_ctrls()
+        n_ctrls = dyn.num_ctrls
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
@@ -716,7 +712,11 @@ class Optimizer:
         result.fid_err = dyn.fid_computer.get_fid_err()
         result.grad_norm_final = dyn.fid_computer.grad_norm
         result.final_amps = dyn.ctrl_amps
-        result.evo_full_final = Qobj(dyn.evo_init2t[dyn.num_tslots])
+        final_evo = dyn.full_evo
+        if isinstance(final_evo, Qobj):
+            result.evo_full_final = final_evo
+        else:
+            result.evo_full_final = Qobj(final_evo, dims=dyn.sys_dims)
         # *** update stats ***
         if self.stats is not None:
             self.stats.wall_time_optim_end = end_time
@@ -906,19 +906,20 @@ class OptimizerLBFGSB(Optimizer):
         else:
             fprime = self.fid_err_grad_wrapper
             
-        if 'ftol' in self.method_options:
-            factr = self.method_options['ftol']
-        elif 'accuracy_factor' in self.method_options:
+
+        if 'accuracy_factor' in self.method_options:
             factr = self.method_options['accuracy_factor']
+        elif 'ftol' in self.method_options:
+            factr = self.method_options['ftol']
         elif hasattr(term_conds, 'accuracy_factor'):
             factr = term_conds.accuracy_factor
         else:
             factr = 1e7
             
-        if 'maxcor' in self.method_options:
-            m = self.method_options['maxcor']
-        elif 'max_metric_corr' in self.method_options:
+        if 'max_metric_corr' in self.method_options:
             m = self.method_options['max_metric_corr']
+        elif 'maxcor' in self.method_options:
+            m = self.method_options['maxcor']
         elif hasattr(self, 'max_metric_corr'):
             m = self.max_metric_corr
         else:
@@ -1002,7 +1003,7 @@ class OptimizerCrab(Optimizer):
             pulse_gen_valid = False
             err_msg = "pulse_generator is not iterable"
         
-        elif len(self.pulse_generator) != dyn.get_num_ctrls():
+        elif len(self.pulse_generator) != dyn.num_ctrls:
             pulse_gen_valid = False
             err_msg = ("the number of pulse generators {} does not equal "
                         "the number of controls {}".format(

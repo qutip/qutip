@@ -50,8 +50,8 @@ from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _sparse_reverse_permute, _sparse_bandwidth)
 from qutip.settings import debug
 
-import qutip.logging
-logger = qutip.logging.get_logger()
+import qutip.logging_utils
+logger = qutip.logging_utils.get_logger()
 
 if debug:
     import inspect

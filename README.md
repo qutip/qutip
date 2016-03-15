@@ -1,7 +1,7 @@
 QuTiP: Quantum Toolbox in Python
 ================================
 
-[P.D. Nation](http://github.com/nonhermitian) and [J.R. Johansson](http://github.com/jrjohansson)
+[A. Pitchford](http://github.com/ajgpitch), [C. Granade](http://github.com/cgranade), [P.D. Nation](http://github.com/nonhermitian), and [J.R. Johansson](http://github.com/jrjohansson)
 
 QuTiP is open-source software for simulating the dynamics of closed and open
 quantum systems. The QuTiP library uses the excellent Numpy, Scipy, and Cython packages as numerical backend, and graphical output is provided by Matplotlib. QuTiP aims to provide user-friendly and efficient numerical simulations of a wide
@@ -32,6 +32,14 @@ Installation
 For instructions on how to install QuTiP, see:
 
 [http://qutip.org/docs/3.1.0/installation.html](http://qutip.org/docs/3.1.0/installation.html)
+
+
+Demos
+-----
+A selection of demonstration notebooks is available here: [![Binder](http://img.shields.io/badge/launch-binder-ff69b4.svg?style=flat)](http://mybinder.org/repo/qutip/qutip-notebooks)
+
+or may be found at: [github.com/qutip/qutip-notebooks](http://github.com/qutip/qutip-notebooks).
+
 
 Documentation 
 -------------

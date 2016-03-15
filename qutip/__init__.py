@@ -139,6 +139,10 @@ try:
         )
     qutip.settings.load_rc_file(qutip_rc_file)
 
+except KeyError as e:
+    qutip.settings._logger.warning(
+        "The $HOME environment variable is not defind. No custom RC file loaded.")
+
 except Exception as e:
     try:
         qutip.settings._logger.warning("Error loading RC file.", exc_info=1)
@@ -158,8 +162,8 @@ else:
 
 if qutip.settings.num_cpus == 0:
     # if num_cpu is 0 set it to the available number of cores
-    from qutip.hardware_info import hardware_info
-    info = hardware_info()
+    import qutip.hardware_info
+    info =  qutip.hardware_info.hardware_info()
     if 'cpus' in info:
         qutip.settings.num_cpus = info['cpus']
     else:
@@ -256,7 +260,7 @@ from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.countstat import *
 from qutip.rcsolve import *
-from qutip.hsolve import *
+from qutip.nonmarkov import *
 
 # quantum information
 from qutip.qip import *

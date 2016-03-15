@@ -80,15 +80,31 @@ def fidelity(A, B):
 
     """
     if A.isket or A.isbra:
-        A = ket2dm(A)
-    if B.isket or B.isbra:
-        B = ket2dm(B)
+        # Take advantage of the fact that the density operator for A
+        # is a projector to avoid a sqrtm call.
+        sqrtmA = ket2dm(A)
+        # Check whether we have to turn B into a density operator, too.
+        if B.isket or B.isbra:
+            B = ket2dm(B)
+    else:
+        if B.isket or B.isbra:
+            # Swap the order so that we can take a more numerically
+            # stable square root of B.
+            return fidelity(B, A)
+        # If we made it here, both A and B are operators, so
+        # we have to take the sqrtm of one of them.
+        sqrtmA = A.sqrtm()
 
-    if A.dims != B.dims:
+    if sqrtmA.dims != B.dims:
         raise TypeError('Density matrices do not have same dimensions.')
 
-    A = A.sqrtm()
-    return float(np.real((A * (B * A)).sqrtm().tr()))
+    # We don't actually need the whole matrix here, just the trace
+    # of its square root, so let's just get its eigenenergies instead.
+    # We also truncate negative eigenvalues to avoid nan propagation;
+    # even for positive semidefinite matrices, small negative eigenvalues
+    # can be reported.
+    eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
+    return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
 
 
 def process_fidelity(U1, U2, normalize=True):
@@ -101,7 +117,7 @@ def process_fidelity(U1, U2, normalize=True):
         return (U1 * U2).tr()
 
 
-def average_gate_fidelity(oper):
+def average_gate_fidelity(oper, target=None):
     """
     Given a Qobj representing the supermatrix form of a map, returns the
     average gate fidelity (pseudo-metric) of that map.
@@ -110,20 +126,28 @@ def average_gate_fidelity(oper):
     ----------
     A : Qobj
         Quantum object representing a superoperator.
+    target : Qobj
+        Quantum object representing the target unitary; the inverse
+        is applied before evaluating the fidelity.
 
     Returns
     -------
     fid : float
-        Fidelity pseudo-metric between A and the identity superoperator.
+        Fidelity pseudo-metric between A and the identity superoperator,
+        or between A and the target superunitary.
     """
     kraus_form = to_kraus(oper)
     d = kraus_form[0].shape[0]
 
     if kraus_form[0].shape[1] != d:
-        return TypeError("Average gate fielity only implemented for square "
+        return TypeError("Average gate fidelity only implemented for square "
                          "superoperators.")
 
-    return (d + np.sum([np.abs(A_k.tr())**2
+    if target is None:
+        return (d + np.sum([np.abs(A_k.tr())**2
+                        for A_k in kraus_form])) / (d**2 + d)
+    else:
+        return (d + np.sum([np.abs((A_k * target.dag()).tr())**2
                         for A_k in kraus_form])) / (d**2 + d)
 
 

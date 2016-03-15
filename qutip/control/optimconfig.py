@@ -46,13 +46,13 @@ import os
 import errno
 import numpy as np
 # QuTiP logging
-import qutip.logging
-logger = qutip.logging.get_logger()
+import qutip.logging_utils
+logger = qutip.logging_utils.get_logger()
 
 TEST_OUT_DIR = "test_out"
 
 
-class OptimConfig:
+class OptimConfig(object):
     """
     Configuration parameters for control pulse optimisation
 
@@ -60,14 +60,13 @@ class OptimConfig:
     ----------
     log_level : integer
         level of messaging output from the logger.
-        Options are attributes of qutip.logging,
+        Options are attributes of qutip.logging_utils,
         in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
         Anything WARN or above is effectively 'quiet' execution,
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
 
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe
@@ -148,12 +147,13 @@ class OptimConfig:
         ######################
         # Note the following parameteres are for constrained optimisation
         # methods e.g. L-BFGS-B
-        # *** AJGP 2015-04-21: 
-        #           These have been moved to the OptimizerLBFGSB class
-#        self.amp_lbound = -np.Inf
-#        self.amp_ubound = np.Inf
-#        self.max_metric_corr = 10
-#        self.accuracy_factor = 1e7
+        # *** AJGP 2015-04-21:
+        #    These have been moved to the OptimizerLBFGSB class
+        #        self.amp_lbound = -np.Inf
+        #        self.amp_ubound = np.Inf
+        #        self.max_metric_corr = 10
+        #    These moved to termination conditions
+        #        self.accuracy_factor = 1e7
         # ***
         # ####################
         self.reset_test_out_files()
@@ -174,12 +174,16 @@ class OptimConfig:
         self.test_out_prop_grad = False
         self.test_out_evo = False
 
-    def set_log_level(self, lvl):
+    @property
+    def log_level(self):
+        return logger.level
+
+    @log_level.setter
+    def log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
         that is call logger.setLevel(lvl)
         """
-        self.log_level = lvl
         logger.setLevel(lvl)
 
     def any_test_files(self):

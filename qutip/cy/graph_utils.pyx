@@ -314,7 +314,6 @@ def _weighted_bipartite_matching(
     """
     Here we assume that the user already took the ABS value of the data.
     This keeps us from having to call abs over and over.
-
     """
 
     cdef np.ndarray[ITYPE_t] visited = np.zeros(n, dtype=ITYPE)
@@ -324,8 +323,8 @@ def _weighted_bipartite_matching(
     cdef np.ndarray[ITYPE_t] row_match = -1 * np.ones(n, dtype=ITYPE)
     cdef np.ndarray[DTYPE_t] weights = _max_row_weights(data, inds, ptrs, n)
     cdef np.ndarray[ITYPE_t] order = np.argsort(-weights[0:n]).astype(ITYPE)
-    cdef np.ndarray[ITYPE_t] row_order = np.zeros(weights[n], dtype=ITYPE)
-    cdef np.ndarray[DTYPE_t] temp_weights = np.zeros(weights[n], dtype=DTYPE)
+    cdef np.ndarray[ITYPE_t] row_order = np.zeros(int(weights[n]), dtype=ITYPE)
+    cdef np.ndarray[DTYPE_t] temp_weights = np.zeros(int(weights[n]), dtype=DTYPE)
     cdef int queue_ptr, queue_col, queue_size, next_num
     cdef int i, j, zz, ll, kk, row, col, temp, eptr, temp2
 

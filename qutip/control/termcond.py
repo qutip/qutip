@@ -45,7 +45,7 @@ will determine if the algorithm has completed its task / exceeded limits
 """
 
 
-class TerminationConditions:
+class TerminationConditions(object):
     """
     Base class for all termination conditions
     Used to determine when to stop the optimisation algorithm
@@ -81,13 +81,14 @@ class TerminationConditions:
         scipy.optimize.fmin_l_bfgs_b factr argument.
         Only set for specific methods (fmin_l_bfgs_b) that uses this
         Otherwise the same thing is passed as method_option ftol
+        (although the scale is different)
         Hence it is not defined here, but may be set by the user
     """
     def __init__(self):
         self.reset()
 
     def reset(self):
-        self.fid_err_targ = None
+        self.fid_err_targ = 1e-5
         self.fid_goal = None
         self.max_wall_time = 60*60.0
         self.min_gradient_norm = 1e-5

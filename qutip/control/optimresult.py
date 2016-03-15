@@ -45,7 +45,7 @@ Class containing the results of the pulse optimisation
 import numpy as np
 
 
-class OptimResult:
+class OptimResult(object):
     """
     Attributes give the result of the pulse optimisation attempt
 
@@ -104,6 +104,9 @@ class OptimResult:
 
     stats : Stats
         Object contaning the stats for the run (if any collected)
+        
+    optimizer : Optimizer
+        Instance of the Optimizer used to generate the result
     """
     def __init__(self):
         self.reset()
@@ -127,3 +130,4 @@ class OptimResult:
         self.final_amps = None
         self.evo_full_final = None
         self.stats = None
+        self.optimizer = None
