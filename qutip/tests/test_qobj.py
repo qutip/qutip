@@ -38,7 +38,7 @@ from numpy.testing import assert_equal, assert_, assert_almost_equal, run_module
 
 from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
-                                  rand_super, rand_super_bcsz)
+                                  rand_super, rand_super_bcsz, rand_dm_ginibre)
 from qutip.states import basis, fock_dm, ket2dm
 from qutip.operators import create, destroy, num, sigmax, sigmay
 from qutip.superoperator import spre, spost, operator_to_vector
@@ -874,6 +874,50 @@ def test_sinm():
     C = la.sinm(A.full())
 
     assert_(np.all((B-C)< 1e-14))
+
+
+
+def test_dual_channel():
+    """
+    Qobj: dual_chan() preserves inner products with arbitrary density ops.
+    """
+
+    def case(S, n_trials=50):        
+        S = to_super(S)
+        left_dims, right_dims = S.dims
+        
+        # Assume for the purposes of the test that S maps square operators to square operators.
+        in_dim = np.prod(right_dims[0])
+        out_dim = np.prod(left_dims[0])
+        
+        S_dual = to_super(S.dual_chan())
+        
+        primals = []
+        duals = []
+    
+        for idx_trial in range(n_trials):
+            X = rand_dm_ginibre(out_dim)
+            X.dims = left_dims
+            X = operator_to_vector(X)
+            Y = rand_dm_ginibre(in_dim)
+            Y.dims = right_dims
+            Y = operator_to_vector(Y)
+
+            primals.append((X.dag() * S * Y)[0, 0])
+            duals.append((X.dag() * S_dual.dag() * Y)[0, 0])
+    
+        np.testing.assert_array_almost_equal(primals, duals)
+
+    for subdims in [
+        [2],
+        [2, 2],
+        [2, 3],
+        [3, 5, 2]
+    ]:
+        dim = np.prod(subdims)
+        S = rand_super_bcsz(dim)
+        S.dims = [[subdims, subdims], [subdims, subdims]]
+        yield case, S
 
 
 if __name__ == "__main__":

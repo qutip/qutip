@@ -61,7 +61,7 @@ from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
-from qutip.dimensions import type_from_dims
+from qutip.dimensions import type_from_dims, enumerate_flat
 
 import sys
 if sys.version_info.major >= 3:
@@ -143,6 +143,8 @@ class Qobj(object):
         Conjugate of quantum object.
     dag()
         Adjoint (dagger) of quantum object.
+    dual_chan()
+        Dual channel of quantum object representing a CP map.
     eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
         Returns eigenenergies (eigenvalues) of a quantum object.
     eigenstates(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
@@ -794,6 +796,24 @@ class Qobj(object):
         out._isherm = self._isherm
         out.superrep = self.superrep
         return out
+
+    def dual_chan(self):
+        """Dual channel of quantum object representing a completely positive
+        map.
+        """
+        # Uses the technique of Johnston and Kribs (arXiv:1102.0948), which
+        # is only valid for completely positive maps.
+        if not self.iscp:
+            raise ValueError("Dual channels are only implemented for CP maps.")
+        J = sr.to_choi(self)
+        tensor_idxs = enumerate_flat(J.dims)
+        J_dual = tensor.tensor_swap(J, *(
+                list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
+                list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
+        )).trans()
+        J_dual.superrep = 'choi'
+        return J_dual
+
 
     def conj(self):
         """Conjugate operator of quantum object.
@@ -1625,8 +1645,24 @@ class Qobj(object):
 
         return self.extract_states(keep_indices, normalize=normalize)
 
-    def dnorm(self, picos_args=None):
-        return mts.dnorm(self, picos_args)
+    def dnorm(self, B=None):
+        """Calculates the diamond norm, or the diamond distance to another operator.
+
+        Parameters
+        ----------
+        B : Qobj or None
+            If B is not None, the diamond distance d(A, B) = dnorm(A - B) between
+            this operator and B is returned instead of the diamond norm.
+
+        Returns
+        -------
+
+        d : float
+            Either the diamond norm of this operator, or the diamond distance
+            from this operator to B.
+        """
+        return mts.dnorm(self, B)
+
     @property
     def ishp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
@@ -2161,6 +2197,7 @@ def isherm(Q):
 # We do a few imports here to avoid circular dependencies.
 from qutip.eseries import eseries
 import qutip.superop_reps as sr
+import qutip.tensor as tensor
 import qutip.operators as ops
 import qutip.metrics as mts
 import qutip.states

@@ -270,4 +270,3 @@ from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
-from qutip.picos_tools import *
