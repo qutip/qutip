@@ -701,10 +701,10 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
 
         >>> for state in state_number_enumerate([2,2]):
         >>>     print(state)
-        [ 0.  0.]
-        [ 0.  1.]
-        [ 1.  0.]
-        [ 1.  1.]
+        [ 0  0 ]
+        [ 0  1 ]
+        [ 1  0 ]
+        [ 1  1 ]
 
     Parameters
     ----------
@@ -730,7 +730,7 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     """
 
     if state is None:
-        state = np.zeros(len(dims))
+        state = np.zeros(len(dims), dtype=int)
 
     if excitations and sum(state[0:idx]) > excitations:
         pass

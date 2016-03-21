@@ -113,6 +113,9 @@ class Qobj(object):
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
+    ishp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        hermicity preserving (HP).
     istp : bool
         Indicates if the quantum object represents a map, and if that map is
         trace preserving (TP).
@@ -458,7 +461,15 @@ class Qobj(object):
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        elif isinstance(other, (list, np.ndarray)):
+        elif isinstance(other, np.ndarray):
+            if other.dtype=='object':
+                return np.array([self * item for item in other],
+                                dtype=object)
+            else:
+                return self.data * other
+            
+        
+        elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
             return np.array([self * item for item in other],
                             dtype=object)
@@ -486,16 +497,22 @@ class Qobj(object):
         """
         MULTIPLICATION with Qobj on RIGHT [ ex. 4*Qobj ]
         """
-
-        if isinstance(other, (list, np.ndarray)):
+        if isinstance(other, np.ndarray):
+            if other.dtype=='object':
+                return np.array([item * self for item in other],
+                                            dtype=object)
+            else:
+                return other * self.data
+        
+        elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
             return np.array([item * self for item in other],
                             dtype=object)
 
-        if isinstance(other, eseries):
+        elif isinstance(other, eseries):
             return other.__mul__(self)
 
-        if isinstance(other, (int, float, complex,
+        elif isinstance(other, (int, float, complex,
                               np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = other * self.data
@@ -953,12 +970,12 @@ class Qobj(object):
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out
 
-    def checkherm(self):
+    def check_herm(self):
         """Check if the quantum object is hermitian.
 
         Returns
         -------
-        isherm: bool
+        isherm : bool
             Returns the new value of isherm property.
         """
         self._isherm = None
@@ -982,7 +999,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper: qobj
+        oper : qobj
             Matrix square root of operator.
 
         Raises
@@ -1013,6 +1030,60 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
+    
+    def cosm(self):
+        """Cosine of a quantum operator.
+
+        Operator must be square.
+
+        Returns
+        -------
+        oper : qobj
+            Matrix cosine of operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum object is not square.
+
+        Notes
+        -----
+        Uses the Q.expm() method.
+
+        """
+        if self.dims[0][0] == self.dims[1][0]:
+             return 0.5 * ((1j * self).expm() + (-1j * self).expm())
+        else:
+            raise TypeError('Invalid operand for matrix square root')
+    
+    
+    def sinm(self):
+        """Sine of a quantum operator.
+
+        Operator must be square.
+
+        Returns
+        -------
+        oper : qobj
+            Matrix sine of operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum object is not square.
+
+        Notes
+        -----
+        Uses the Q.expm() method.
+
+        """
+        if self.dims[0][0] == self.dims[1][0]:
+             return -0.5j * ((1j * self).expm() - (-1j * self).expm())
+        else:
+            raise TypeError('Invalid operand for matrix square root')
+    
+    
+    
     def unit(self, norm=None, sparse=False, tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
@@ -1555,18 +1626,37 @@ class Qobj(object):
         return self.extract_states(keep_indices, normalize=normalize)
 
     @property
+    def ishp(self):
+        # FIXME: this needs to be cached in the same ways as isherm.
+        if self.type in ["super", "oper"]:
+            try:
+                J = sr.to_choi(self)
+                return J.isherm
+            except:
+                return False
+        else:
+            return False
+
+    @property
     def iscp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
         if self.type in ["super", "oper"]:
             try:
-                eigs = (
+                J = (
                     self
                     # We can test with either Choi or chi, since the basis
                     # transformation between them is unitary and hence
                     # preserves the CP and TP conditions.
                     if self.superrep in ('choi', 'chi')
                     else sr.to_choi(self)
-                ).eigenenergies()
+                )
+                # If J isn't hermitian, then that could indicate either
+                # that J is not normal, or is normal, but has complex eigenvalues.
+                # In either case, it makes no sense to then demand that the
+                # eigenvalues be non-negative.
+                if not J.isherm:
+                    return False
+                eigs = J.eigenenergies()
                 return all(eigs >= -settings.atol)
             except:
                 return False
@@ -1575,7 +1665,6 @@ class Qobj(object):
 
     @property
     def istp(self):
-
         if self.type in ["super", "oper"]:
             try:
                 # We use the condition from John Watrous' lecture notes,

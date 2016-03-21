@@ -36,7 +36,7 @@ from numpy.testing import assert_equal, run_module_suite
 from scipy.sparse import isspmatrix_csr
 from qutip import (commutator, position, momentum, create, destroy, displace,
                    jmat, num, phase, qdiags, qeye, identity, qutrit_ops,
-                   squeeze, squeezing, zero_oper)
+                   squeeze, squeezing, qzero, charge, tunneling)
 
 
 def test_commutator_type():
@@ -129,9 +129,20 @@ def test_squeezing_type():
 
 def test_zero_type():
     "Operator CSR Type: zero_oper"
-    op = zero_oper(5, [[5], [5]])
+    op = qzero(5, [[5], [5]])
     assert_equal(isspmatrix_csr(op.data), True)
 
+
+def test_charge_type():
+    "Operator CSR Type: charge"
+    op = charge(5)
+    assert_equal(isspmatrix_csr(op.data), True)
+
+
+def test_tunneling_type():
+    "Operator CSR Type: tunneling"
+    op = tunneling(5)
+    assert_equal(isspmatrix_csr(op.data), True)
 
 if __name__ == "__main__":
     run_module_suite()

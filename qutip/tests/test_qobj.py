@@ -421,6 +421,14 @@ def test_CheckMulType():
 
     assert_(opbra2.dag() == opket2)
 
+def test_Qobj_Spmv():
+    "Qobj mult ndarray right"
+    A = rand_herm(5)
+    b = rand_ket(5).full()
+    C = A*b
+    D = A.full().dot(b)
+    assert_(np.all((C-D)<1e-14))
+
 
 def test_QobjConjugate():
     "Qobj conjugate"
@@ -840,6 +848,33 @@ def test_trunc_neg():
         Qobj(np.diag([3. / 5, 1. / 2, 7. / 20, 1. / 10, -11. / 20])), 'sgs',
         Qobj(np.diag([9. / 20, 7. / 20, 1. / 5, 0, 0]))
     )
+    
+
+def test_cosm():
+    """
+    Test Qobj: cosm
+    """
+    A = rand_herm(5)
+
+    B = A.cosm().full()
+
+    C = la.cosm(A.full())
+
+    assert_(np.all((B-C)< 1e-14))
+
+
+def test_sinm():
+    """
+    Test Qobj: sinm
+    """
+    A = rand_herm(5)
+
+    B = A.sinm().full()
+
+    C = la.sinm(A.full())
+
+    assert_(np.all((B-C)< 1e-14))
+
 
 if __name__ == "__main__":
     run_module_suite()
