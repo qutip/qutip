@@ -16,6 +16,26 @@ Build requirements
 Build
 -----
 
-To build the documentation run:
+To build the documentation on Linux or OS X run:
 
-    $ make html pdflatex
+    $ make html latexpdf
+
+Building Documentation On Windows
+---------------------------------
+
+Building the HTML documentation requires Sphinx and numpydoc, both of which can be installed using Anaconda:
+
+    > conda install sphinx numpydoc
+
+If you installed QuTiP using another distribution of Python, these dependencies can also be installed using either ``easy_install`` or ``pip``:
+
+    > easy_install install sphinx numpydoc
+    > pip install sphinx numpydoc
+
+To build the HTML documentation on Windows using ``cmd.exe``, run:
+
+    > make html
+
+From PowerShell, run:
+
+    PS> .\make html

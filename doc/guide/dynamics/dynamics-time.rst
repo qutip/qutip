@@ -14,6 +14,8 @@ Solving Problems with Time-dependent Hamiltonians
    
    In [1]: from pylab import *
 
+   In [1]: from warnings import warn
+
 
 Methods for Writing Time-Dependent Operators
 ============================================
@@ -117,13 +119,13 @@ As an example, we will look at an example that has a time-dependent Hamiltonian 
 Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
 
 .. ipython::
-    
+
     In [1]: def H1_coeff(t, args):
        ...:     return 9 * np.exp(-(t / 5.) ** 2)
 
 In this case, the return value dependents only on time.  However, when specifying Python functions for coefficients, **the function must have (t,args) as the input variables, in that order**.  Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case :func:`qutip.mesolve`)
 
-.. ipython::
+.. ipython-posix::
 
     In [1]: H = [H0,[H1,H1_coeff]]
     
@@ -131,14 +133,14 @@ In this case, the return value dependents only on time.  However, when specifyin
 
 We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
 
-.. ipython::
+.. ipython-posix::
 
     In [1]: output = mcsolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
 
 The output from the master equation solver is identical to that shown in the examples, the Monte Carlo however will be noticeably off, suggesting we should increase the number of trajectories for this example.  In addition, we can also consider the decay of a simple Harmonic oscillator with time-varying decay rate
 
 .. ipython::
-    
+
     In [1]: kappa = 0.5
     
     In [1]: def col_coeff(t, args):  # coefficient function
@@ -177,16 +179,15 @@ or equivalently,
        ...:     sig = args['sigma']
        ...:     return A * np.exp(-(t / sig) ** 2)
 
-
 where args is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.  Of course, we can always hardcode the values in the dictionary as well ``args = {'A': 9, 'sigma': 5}``, but there is much more flexibility by using variables in ``args``.  To let the solvers know that we have a set of args to pass we append the ``args`` to the end of the solver input:
 
-.. ipython::
+.. ipython-posix::
 
    In [1]: output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args={'A': 9, 'sigma': 5})
 
 or to keep things looking pretty
 
-.. ipython::
+.. ipython-posix::
 
     In [1]: args = {'A': 9, 'sigma': 5}
     
@@ -255,25 +256,26 @@ Like the previous method, the string-based format uses a list pair format ``[Op,
    In [1]: H1 = (sigma_ue.dag() + sigma_ue)  # time-dependent term
 
 
-.. ipython::
-    
+.. ipython-posix::
+
    In [1]: H = [H0, [H1, '9 * exp(-(t / 5) ** 2)']]
 
 Notice that this is a valid Hamiltonian for the string-based format as ``exp`` is included in the above list of suitable functions. Calling the solvers is the same as before:
 
-.. ipython::
+.. ipython-posix::
     
    In [1]: output = mesolve(H, psi0, t, c_ops, [a.dag() * a])
 
 We can also use the ``args`` variable in the same manner as before, however we must rewrite our string term to read: ``'A * exp(-(t / sig) ** 2)'``
 
-.. ipython::
+.. ipython-posix::
 
     In [1]: H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
     
     In [1]: args = {'A': 9, 'sig': 5}
     
     In [1]: output = mesolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
+
 
 .. important:: Naming your ``args`` variables ``e``, ``j`` or ``pi`` will cause errors when using the string-based format.
 
@@ -287,7 +289,7 @@ Reusing Time-Dependent Hamiltonian Data
 
 When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.  To turn on the the reuse features, we must pass a :class:`qutip.Options` object with the ``rhs_reuse`` flag turned on.  Instructions on setting flags are found in :ref:`Options`.  For example, we can do
 
-.. ipython::
+.. ipython-posix::
 
     In [1]: H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
     
@@ -300,7 +302,6 @@ When repeatedly simulating a system where only the time-dependent variables, or 
     In [1]: args = {'A': 10, 'sig': 3}
     
     In [1]: output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args, options=opts)
-	
 
 The second call to :func:`qutip.mcsolve` does not reorganize the data, and in the case of the string format, does not recompile the Cython code.  For the small system here, the savings in computation time is quite small, however, if you need to call the solvers many times for different parameters, this savings will obviously start to add up.
 

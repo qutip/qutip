@@ -20,7 +20,7 @@ Often one is interested in the output of a given function as a single-parameter 
 To use the these functions we need to define a function of one or more variables, and the range over which one of these variables are to be evaluated. For example:
 
 
-.. ipython::
+.. ipython-posix::
 
    In [1]: def func1(x): return x, x**2, x**3
    
@@ -34,7 +34,7 @@ To use the these functions we need to define a function of one or more variables
    
 or
 
-.. ipython::
+.. ipython-posix::
 
    In [1]: result = parallel_map(func1, range(10))
    
@@ -50,7 +50,7 @@ or
 Note that the return values are arranged differently for the :func:`qutip.parallel.parallel_map` and the :func:`qutip.parallel.parfor` functions, as illustrated below. In particular, the return value of :func:`qutip.parallel.parallel_map` is not enforced to be NumPy arrays, which can avoid unnecessary copying if all that is needed is to iterate over the resulting list:
 
 
-.. ipython::
+.. ipython-posix::
 
    In [1]: result = parfor(func1, range(5))
    
@@ -62,7 +62,7 @@ Note that the return values are arranged differently for the :func:`qutip.parall
 
 The :func:`qutip.parallel.parallel_map` and :func:`qutip.parallel.parfor` functions are not limited to just numbers, but also works for a variety of outputs:
 
-.. ipython::
+.. ipython-posix::
 
    In [1]: def func2(x): return x, Qobj(x), 'a' * x
    
@@ -82,7 +82,7 @@ The :func:`qutip.parallel.parallel_map` and :func:`qutip.parallel.parfor` functi
 One can also define functions with **multiple** input arguments and even keyword arguments. Here the :func:`qutip.parallel.parallel_map` and :func:`qutip.parallel.parfor` functions behaves differently:
 While :func:`qutip.parallel.parallel_map` only iterate over the values `arguments`, the :func:`qutip.parallel.parfor` function simultaneously iterates over all arguments:
 
-.. ipython::
+.. ipython-posix::
     
     In [1]: def sum_diff(x, y, z=0): return x + y, x - y, z
     
@@ -94,7 +94,7 @@ Note that the keyword arguments can be anything you like, but the keyword values
 
 The :func:`qutip.parallel.parallel_map` function also supports progressbar, using the keyword argument `progress_bar` which can be set to `True` or to an instance of :class:`qutip.ui.progressbar.BaseProgressBar`. There is a function called :func:`qutip.parallel.serial_map` that works as a non-parallel drop-in replacement for :func:`qutip.parallel.parallel_map`, which allows easy switching between serial and parallel computation.
 
-.. ipython::
+.. ipython-posix::
 
    In [1]: import time
 
