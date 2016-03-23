@@ -36,14 +36,14 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.qobj import Qobj
-from qutip.operators import identity
-from qutip.superop_reps import to_super
+from qutip.operators import identity, sigmax, sigmay
+from qutip.superop_reps import to_super, to_choi
+from qutip.random_objects import rand_super_bcsz
 from qutip.tensor import (
-    tensor_contract
+    tensor_contract, tensor_swap
 )
 
 import warnings
-
 
 def test_tensor_contract_ident():
     qobj = identity([2, 3, 4])
@@ -119,6 +119,27 @@ def test_tensor_contract_other():
     )
 
 
+def case_tensor_swap(qobj, pairs, expected_dims, expected_data=None):
+    sqobj = tensor_swap(qobj, *pairs)
+
+    assert_equal(sqobj.dims, expected_dims)
+    if expected_data is not None:
+        assert_equal(sqobj.data.toarray(), expected_data.data.toarray())
+    else:
+        warnings.warn("tensor_contract test case without checking returned data.")
+
+
+def test_tensor_swap_other():
+    dims = (2, 3, 4, 5, 7)
+
+    for dim in dims:
+        S = to_super(rand_super_bcsz(dim))
+
+        # Swapping the inner indices on a superoperator should give a Choi matrix.
+        J = to_choi(S)
+        yield (case_tensor_swap,
+            S, [(1, 2)], [[[dim], [dim]], [[dim], [dim]]], J
+        )
 
 
 if __name__ == "__main__":
