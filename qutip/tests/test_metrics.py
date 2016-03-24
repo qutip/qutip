@@ -39,8 +39,11 @@ the qutip.metrics module.
 from __future__ import division
 
 import numpy as np
-from numpy import abs, sqrt
-from numpy.testing import assert_, assert_almost_equal, run_module_suite
+from numpy import abs, sqrt, ones, diag
+from numpy.testing import (
+    assert_, run_module_suite, assert_approx_equal,
+    assert_almost_equal
+)
 import scipy
 
 from qutip.operators import (
@@ -53,8 +56,16 @@ from qutip.random_objects import (
     rand_ket_haar, rand_dm_ginibre, rand_unitary_haar
 )
 from qutip.qobj import Qobj
-from qutip.superop_reps import to_super
+from qutip.superop_reps import to_super, to_choi
+from qutip.qip.gates import hadamard_transform, swap
 from qutip.metrics import *
+
+try:
+    import cvxpy
+except:
+    cvxpy = None
+
+import unittest
 
 """
 A test class for the metrics and pseudo-metrics included with QuTiP.
@@ -250,6 +261,7 @@ def test_hilbert_dist():
     r2 = qdiags(diag2, 0)
     assert_(abs(hilbert_dist(r1, r2)-1) <= 1e-6)
 
+
 def test_unitarity_known():
     """
     Metrics: Unitarity for known cases.
@@ -274,6 +286,178 @@ def test_unitarity_bounded(nq=3, n_cases=10):
 
     for _ in range(n_cases):
         yield case, rand_super_bcsz(2**nq)
+
+
+@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+def test_dnorm_bounded(n_cases=10):
+    """
+    Metrics: dnorm(A - B) in [0, 2] for random superops A, B.
+    """
+    def case(A, B, tol=1e-4):
+        # We allow for a generous tolerance so that we don't kill off SCS.
+        assert_(-tol <= dnorm(A, B) <= 2.0 + tol)
+
+    for _ in range(n_cases):
+        yield case, rand_super_bcsz(3), rand_super_bcsz(3)
+
+
+@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+def test_dnorm_qubit_known_cases():
+    """
+    Metrics: check agreement for known qubit channels.
+    """
+    def case(chan1, chan2, expected, significant=4):
+        # We again take a generous tolerance so that we don't kill off
+        # SCS solvers.
+        assert_approx_equal(
+            dnorm(chan1, chan2), expected,
+            significant=significant
+        )
+
+    id_chan = to_choi(qeye(2))
+    S_eye = to_super(id_chan)
+    X_chan = to_choi(sigmax())
+    depol = to_choi(Qobj(
+        diag(ones((4,))),
+        dims=[[[2], [2]], [[2], [2]]], superrep='chi'
+    ))
+    S_H = to_super(hadamard_transform())
+
+    W = swap()
+
+    # We need to restrict the number of iterations for things on the boundary,
+    # such as perfectly distinguishable channels.
+    yield case, id_chan, X_chan, 2
+    yield case, id_chan, depol, 1.5
+
+    # Next, we'll generate some test cases based on comparisons to pre-existing
+    # dnorm() implementations. In particular, the targets for the following
+    # test cases were generated using QuantumUtils for MATLAB (https://goo.gl/oWXhO9).
+
+    def overrotation(x):
+        return to_super((1j * np.pi * x * sigmax() / 2).expm())
+
+    for x, target in {
+        1.000000e-03: 3.141591e-03,
+        3.100000e-03: 9.738899e-03,
+        1.000000e-02: 3.141463e-02,
+        3.100000e-02: 9.735089e-02,
+        1.000000e-01: 3.128689e-01,
+        3.100000e-01: 9.358596e-01
+    }.items():
+        yield case, overrotation(x), id_chan, target
+
+    def had_mixture(x):
+        return (1 - x) * S_eye + x * S_H
+
+    for x, target in {
+        1.000000e-03: 2.000000e-03,
+        3.100000e-03: 6.200000e-03,
+        1.000000e-02: 2.000000e-02,
+        3.100000e-02: 6.200000e-02,
+        1.000000e-01: 2.000000e-01,
+        3.100000e-01: 6.200000e-01
+    }.items():
+        yield case, had_mixture(x), id_chan, target
+
+    def swap_map(x):
+        S = (1j * x * W).expm()
+        S._type = None
+        S.dims = [[[2], [2]], [[2], [2]]]
+        S.superrep = 'super'
+        return S
+
+    for x, target in {
+        1.000000e-03: 2.000000e-03,
+        3.100000e-03: 6.199997e-03,
+        1.000000e-02: 1.999992e-02,
+        3.100000e-02: 6.199752e-02,
+        1.000000e-01: 1.999162e-01,
+        3.100000e-01: 6.173918e-01
+    }.items():
+        yield case, swap_map(x), id_chan, target
+
+    # Finally, we add a known case from Johnston's QETLAB documentation,
+    # || Phi - I ||,_♢ where Phi(X) = UXU⁺ and U = [[1, 1], [-1, 1]] / sqrt(2).
+    yield case, Qobj([[1, 1], [-1, 1]]) / np.sqrt(2), qeye(2), np.sqrt(2)
+    
+
+@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+def test_dnorm_qubit_scalar():
+    """
+    Metrics: checks that dnorm(a * A) == a * dnorm(A) for scalar a, qobj A.
+    """
+    def case(a, A, B, significant=5):
+        assert_approx_equal(
+            dnorm(a * A, a * B), a * dnorm(A, B),
+            significant=significant
+        )
+
+    for dim in (2, 3):
+        for _ in range(10):
+            yield (
+                case, np.random.random(),
+                rand_super_bcsz(dim), rand_super_bcsz(dim)
+            )
+
+
+@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+def test_dnorm_qubit_triangle():
+    """
+    Metrics: checks that dnorm(A + B) ≤ dnorm(A) + dnorm(B).
+    """
+    def case(A, B, tol=1e-4):
+        assert (
+            dnorm(A + B) <= dnorm(A) + dnorm(B) + tol
+        )
+
+    for dim in (2, 3):
+        for _ in range(10):
+            yield (
+                case,
+                rand_super_bcsz(dim), rand_super_bcsz(dim)
+            )
+
+
+@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+def test_dnorm_force_solve():
+    """
+    Metrics: checks that special cases for dnorm agree with SDP solutions.
+    """
+    def case(A, B, significant=4):
+        assert_approx_equal(
+            dnorm(A, B, force_solve=False), dnorm(A, B, force_solve=True)
+        )
+
+    for dim in (2, 3):
+        for _ in range(10):
+            yield (
+                case,
+                rand_super_bcsz(dim), None
+            )
+        for _ in range(10):
+            yield (
+                case,
+                rand_unitary_haar(dim), rand_unitary_haar(dim)
+            )
+
+
+@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+def test_dnorm_cptp():
+    """
+    Metrics: checks that the diamond norm is one for CPTP maps.
+    """
+    # NB: It might be worth dropping test_dnorm_force_solve, and separating
+    #     into cases for each optimization path.
+    def case(A, significant=4):
+        for force_solve in (False, True):
+            assert_approx_equal(
+                dnorm(A, force_solve=force_solve), 1
+            )
+
+    for dim in (2, 3):
+        for _ in range(10):
+            yield case, rand_super_bcsz(dim)
 
 
 if __name__ == "__main__":
