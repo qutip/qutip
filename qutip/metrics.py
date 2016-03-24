@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -37,12 +38,26 @@ This module contains a collection of functions for calculating metrics
 
 __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hilbert_dist', 'average_gate_fidelity', 'process_fidelity',
-           'unitarity']
+           'unitarity', 'dnorm']
 
 import numpy as np
+from scipy import linalg as la
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
-from qutip.superop_reps import to_kraus, _super_to_superpauli
+from qutip.superop_reps import to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
+from qutip.superoperator import operator_to_vector, vector_to_operator
+from qutip.operators import qeye
+from qutip.semidefinite import dnorm_problem
+import qutip.settings as settings
+
+import qutip.logging_utils as logging
+logger = logging.get_logger()
+
+try:
+    import cvxpy
+except:
+    cvxpy = None
+    logger.warning("CVXPY not found, semidefinite solving is disabled.")
 
 
 def fidelity(A, B):
@@ -275,6 +290,128 @@ def bures_angle(A, B):
         raise TypeError('A and B do not have same dimensions.')
 
     return np.arccos(fidelity(A, B))
+
+
+def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
+    """
+    Calculates the diamond norm of the quantum map q_oper, using
+    the simplified semidefinite program of [Wat12]_.
+
+    The diamond norm SDP is solved by using CVXPY_.
+
+    Parameters
+    ----------
+    A : Qobj
+        Quantum map to take the diamond norm of.
+    B : Qobj or None
+        If provided, the diamond norm of :math:`A - B` is
+        taken instead.
+    solver : str
+        Solver to use with CVXPY. One of "CVXOPT" (default)
+        or "SCS". The latter tends to be significantly faster,
+        but somewhat less accurate.
+    verbose : bool
+        If True, prints additional information about the
+        solution.
+    force_solve : bool
+        If True, forces dnorm to solve the associated SDP, even if a special
+        case is known for the argument.
+
+    Returns
+    -------
+    dn : float
+        Diamond norm of q_oper.
+
+    .. _PICOS: http://picos.zib.de/
+    """
+    if cvxpy is None:  # pragma: no cover
+        raise ImportError("dnorm() requires CVXPY to be installed.")
+
+    # We follow the strategy of using Watrous' simpler semidefinite
+    # program in its primal form. This is the same strategy used,
+    # for instance, by both pyGSTi and SchattenNorms.jl. (By contrast,
+    # QETLAB uses the dual problem.)
+
+    # Check if A and B are both unitaries. If so, then we can without
+    # loss of generality choose B to be the identity by using the
+    # unitary invariance of the diamond norm,
+    #     || A - B ||_♢ = || A B⁺ - I ||_♢.
+    # Then, using the technique mentioned by each of Johnston and
+    # da Silva,
+    #     || A B⁺ - I ||_♢ = max_{i, j} | \lambda_i(A B⁺) - \lambda_j(A B⁺) |,
+    # where \lambda_i(U) is the ith eigenvalue of U.
+
+    if (
+        # There's a lot of conditions to check for this path.
+        not force_solve and B is not None and
+        # Only check if they aren't superoperators.
+        A.type == "oper" and B.type == "oper" and
+        # The difference of unitaries optimization is currently
+        # only implemented for d == 2. Much of the code below is more general,
+        # though, in anticipation of generalizing the optimization.
+        A.shape[0] == 2
+    ):
+        # Make an identity the same size as A and B to
+        # compare against.
+        I = qeye(A.dims[0])
+        # Compare to B first, so that an error is raised
+        # as soon as possible.
+        Bd = B.dag()
+        if (
+            (B * Bd - I).norm() < 1e-6 and
+            (A * A.dag() - I).norm() < 1e-6
+        ):
+            # Now we are on the fast path, so let's compute the
+            # eigenvalues, then find the diameter of the smallest circle
+            # containing all of them.
+            #
+            # For now, this is only implemented for dim = 2, such that
+            # generalizing here will allow for generalizing the optimization.
+            # A reasonable approach would probably be to use Welzl's algorithm
+            # (https://en.wikipedia.org/wiki/Smallest-circle_problem).
+            U = A * B.dag()
+            eigs = U.eigenenergies()
+            eig_distances = np.abs(eigs[:, None] - eigs[None, :])
+            return np.max(eig_distances)
+
+    # Force the input superoperator to be a Choi matrix.
+    J = to_choi(A)
+    
+    if B is not None:
+        J -= to_choi(B)
+
+    # Watrous 2012 also points out that the diamond norm of Lambda
+    # is the same as the completely-bounded operator-norm (∞-norm)
+    # of the dual map of Lambda. We can evaluate that norm much more
+    # easily if Lambda is completely positive, since then the largest
+    # eigenvalue is the same as the largest singular value.
+
+    if not force_solve and J.iscp:
+        S_dual = to_super(J.dual_chan())
+        vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
+        op = vector_to_operator(S_dual * vec_eye)
+        # The 2-norm was not implemented for sparse matrices as of the time
+        # of this writing. Thus, we must yet again go dense.
+        return la.norm(op.data.todense(), 2)
+
+    # If we're still here, we need to actually solve the problem.
+
+    # Assume square...
+    dim = np.prod(J.dims[0][0])
+    
+    # The constraints only depend on the dimension, so
+    # we can cache them efficiently.
+    problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
+    
+    # Load the parameters with the Choi matrix passed in.
+    J_dat = J.data
+    Jr.value, Ji.value = J_dat.real, J_dat.imag
+        
+    # Finally, set up and run the problem.
+    problem.solve(solver=solver, verbose=verbose)
+
+    return problem.value
+
 
 def unitarity(oper):
     """
