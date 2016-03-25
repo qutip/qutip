@@ -86,14 +86,14 @@ class TestGates:
         for P in paulis:
             U_P = U * P * U.dag()
             
-            assert_(any(
-                self._prop_identity(U_P * Q)
-                for Q in paulis
+            out = (np.any(
+                np.array([self._prop_identity(U_P * Q) for Q in paulis])
             ))
+        return out
 
     def test_are_cliffords(self):
         for U in qubit_clifford_group():
-            yield self.case_is_clifford, U
+            assert_(self.case_is_clifford(U))
 
     def testExpandGate1toN(self):
         """
