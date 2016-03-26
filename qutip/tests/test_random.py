@@ -53,7 +53,7 @@ def test_rand_unitary_haar_unitarity():
 
 def test_rand_dm_ginibre_rank():
     """
-    Random Qobjs: Tests that Ginibre-random density operators have correct rank.
+    Random Qobjs: Ginibre-random density ops have correct rank.
     """
     rho = rand_dm_ginibre(5, rank=3)
 
@@ -76,20 +76,20 @@ def check_func_dims(func, args, kwargs, dims):
 def test_rand_vector_dims():
     FUNCS = [rand_ket, rand_ket_haar]
     for func in FUNCS:
-        yield check_func_dims, func, (7, ), {}, [[7], [1]]
-        yield check_func_dims, func, (6, ), {'dims': [2, 3]}, [[2, 3], [1]]
+        check_func_dims( func, (7, ), {}, [[7], [1]])
+        check_func_dims( func, (6, ), {'dims': [2, 3]}, [[2, 3], [1]])
 
 def test_rand_oper_dims():
     FUNCS = [rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre, rand_dm_hs]
     for func in FUNCS:
-        yield check_func_dims, func, (7, ), {}, [[7], [7]]
-        yield check_func_dims, func, (6, ), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]]
+        check_func_dims( func, (7, ), {}, [[7], [7]])
+        check_func_dims( func, (6, ), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]])
 
 def test_rand_super_dims():
     FUNCS = [rand_super, rand_super_bcsz]
     for func in FUNCS:
-        yield check_func_dims, func, (7, ), {}, [[[7], [7]]] * 2
-        yield check_func_dims, func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+        check_func_dims(func, (7, ), {}, [[[7], [7]]] * 2)
+        check_func_dims(func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]])
 
 if __name__ == "__main__":
     run_module_suite()
