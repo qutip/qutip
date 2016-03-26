@@ -70,7 +70,7 @@ if debug:
 # low level correlation
 
 def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
-                       solver="me", reverse=False, args=None,
+                       solver="me", reverse=False, args={},
                        options=Options(ntraj=[20, 100])):
     """
     Calculate the two-operator two-time correlation function:
@@ -147,7 +147,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
 
 
 def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
-                       solver="me", reverse=False, args=None,
+                       solver="me", reverse=False, args={},
                        options=Options(ntraj=[20, 100])):
     """
     Calculate the two-operator two-time correlation function:
@@ -239,7 +239,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
 
 def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
-                       solver="me", args=None,
+                       solver="me", args={},
                        options=Options(ntraj=[20, 100])):
     """
     Calculate the three-operator two-time correlation function:
@@ -309,7 +309,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
 
 def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       solver="me", args=None,
+                       solver="me", args={},
                        options=Options(ntraj=[20, 100])):
     """
     Calculate the three-operator two-time correlation function:
@@ -395,7 +395,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 # high level correlation
 
-def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args=None,
+def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args={},
                           options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized first-order quantum coherence function:
@@ -456,7 +456,7 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args=None,
     return g1
 
 
-def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args=None,
+def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args={},
                           options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized second-order quantum coherence function:
@@ -631,7 +631,7 @@ def spectrum_correlation_fft(taulist, y):
 # low level correlation
 
 def correlation_ss(H, taulist, c_ops, a_op, b_op,
-                   solver="me", reverse=False, args=None,
+                   solver="me", reverse=False, args={},
                    options=Options(ntraj=[20, 100])):
     """
     Calculate the two-operator two-time correlation function:
@@ -703,7 +703,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
 
 
 def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
-                solver="me", reverse=False, args=None,
+                solver="me", reverse=False, args={},
                 options=Options(ntraj=[20, 100])):
     """
     Calculate the two-operator two-time correlation function:
@@ -784,7 +784,7 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
 
 def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
-                       solver="me", args=None,
+                       solver="me", args={},
                        options=Options(ntraj=[20, 100])):
     """
     Calculate the four-operator two-time correlation function:
@@ -863,7 +863,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
 
 
 def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
-                       a_op, b_op, c_op, d_op, solver="me", args=None,
+                       a_op, b_op, c_op, d_op, solver="me", args={},
                        options=Options(ntraj=[20, 100])):
     """
     Calculate the four-operator two-time correlation function:
@@ -1061,7 +1061,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 # master 2t correlation solver
 
 def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                    solver="me", args=None, options=Options()):
+                    solver="me", args={}, options=Options()):
     """
     Internal function for calling solvers in order to calculate the
     three-operator two-time correlation function:
@@ -1100,7 +1100,7 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 # master equation solvers
 
 def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       args=None, options=Options()):
+                       args={}, options=Options()):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -1217,7 +1217,7 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
 # Monte Carlo solvers
 
 def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       args=None, options=Options()):
+                       args={}, options=Options()):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -1348,7 +1348,7 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 # auxiliary
 
-def _transform_H_t_shift(H, args=None):
+def _transform_H_t_shift(H, args={}):
     """
     Time shift the Hamiltonian with private time-shift variable _t0
     """
