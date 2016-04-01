@@ -119,23 +119,21 @@ def test_type_from_dims():
     def qobj_case(qobj):
         assert_equal(type_from_dims(qobj.dims), qobj.type)
 
-    ## DIMS CASES ##
-    yield dims_case, [[2], [2]], 'oper'
-    yield dims_case, [[2, 3], [2, 3]], 'oper'
-    yield dims_case, [[2], [3]], 'other'
-    yield dims_case, [[2], [3]], 'oper', False
+    dims_case([[2], [2]], 'oper')
+    dims_case([[2, 3], [2, 3]], 'oper')
+    dims_case([[2], [3]], 'other')
+    dims_case([[2], [3]], 'oper', False)
 
-    yield dims_case, [[2], [1]], 'ket'
-    yield dims_case, [[1], [2]], 'bra'
+    dims_case([[2], [1]], 'ket')
+    dims_case([[1], [2]], 'bra')
 
-    yield dims_case, [[[2, 3], [2, 3]], [1]], 'operator-ket'
-    yield dims_case, [[1], [[2, 3], [2, 3]]], 'operator-bra'
+    dims_case([[[2, 3], [2, 3]], [1]], 'operator-ket')
+    dims_case([[1], [[2, 3], [2, 3]]], 'operator-bra')
 
-    yield dims_case, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]], 'super'
-    yield dims_case, [[[3], [3]], [[2, 3], [2, 3]]], 'other'
-    yield dims_case, [[[3], [3]], [[2, 3], [2, 3]]], 'super', False
+    dims_case([[[3], [3]], [[2, 3], [2, 3]]], 'other')
+    dims_case([[[3], [3]], [[2, 3], [2, 3]]], 'super', False)
 
-    yield dims_case, [[[2], [3, 3]], [[3], [2, 3]]], 'other'
+    dims_case([[[2], [3, 3]], [[3], [2, 3]]], 'other')
 
     ## Qobj CASES ##
 
@@ -143,17 +141,17 @@ def test_type_from_dims():
 
     ket_data = np.random.random((N, 1))
     ket_qobj = Qobj(ket_data)
-    yield qobj_case, ket_qobj
+    qobj_case(ket_qobj)
 
     bra_data = np.random.random((1, N))
     bra_qobj = Qobj(bra_data)
-    yield qobj_case, bra_qobj
+    qobj_case(bra_qobj)
 
     oper_data = np.random.random((N, N))
     oper_qobj = Qobj(oper_data)
-    yield qobj_case, oper_qobj
+    qobj_case(oper_qobj)
 
     N = 9
     super_data = np.random.random((N, N))
     super_qobj = Qobj(super_data, dims=[[[3]], [[3]]])
-    yield qobj_case, super_qobj
+    qobj_case(super_qobj)
