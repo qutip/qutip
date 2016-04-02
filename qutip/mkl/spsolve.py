@@ -33,106 +33,178 @@
 
 import numpy as np
 import scipy.sparse as sp
-import ctypes
 from ctypes import POINTER, c_int, c_char, c_double, byref
-mkl_lib = ctypes.cdll.LoadLibrary('/Users/paul/anaconda/lib/libmkl_rt.dylib')
 from numpy import ctypeslib
+import qutip.settings as qset
 
 # Load solver functions from mkl_lib
-dss_create = mkl_lib.dss_create
-dss_define_structure = mkl_lib.dss_define_structure
-dss_reorder = mkl_lib.dss_reorder
-dss_factor_complex = mkl_lib.dss_factor_complex
-dss_solve_complex = mkl_lib.dss_solve_complex
+dss_create = qset.mkl_lib.dss_create
+dss_define_structure = qset.mkl_lib.dss_define_structure
+dss_reorder = qset.mkl_lib.dss_reorder
+dss_factor_real = qset.mkl_lib.dss_factor_real
+dss_factor_complex = qset.mkl_lib.dss_factor_complex
+dss_solve_real = qset.mkl_lib.dss_solve_real
+dss_solve_complex = qset.mkl_lib.dss_solve_complex
+dss_statistics = qset.mkl_lib.dss_statistics
+dss_delete = qset.mkl_lib.dss_delete
 
 # Set solver constant parameters
-MKL_DSS_ZERO_BASED_INDEXING = 131072
-MKL_DSS_AUTO_REORDER = 268435520
-MKL_DSS_MY_ORDER = 268435584
-MKL_DSS_OPTION1_ORDER = 536871104
+# Create parameters
+MKL_DSS_DEFAULTS                    = 0
+MKL_DSS_ZERO_BASED_INDEXING         = 131072
 
-MKL_DSS_MSG_LVL_WARNING = -2147483644
-MKL_DSS_MSG_TERM_LVL_ERROR = 1073741864
+MKL_DSS_MSG_LVL_SUCCESS             = -2147483647
+MKL_DSS_MSG_LVL_DEBUG               = -2147483646
+MKL_DSS_MSG_LVL_INFO                = -2147483645
+MKL_DSS_MSG_LVL_WARNING             = -2147483644
+MKL_DSS_MSG_LVL_ERROR               = -2147483643
 
-MKL_DSS_SYMMETRIC = 536870976
-MKL_DSS_SYMMETRIC_STRUCTURE = 536871040
-MKL_DSS_NON_SYMMETRIC = 536871104
-MKL_DSS_SYMMETRIC_COMPLEX = 536871168
+MKL_DSS_TERM_LVL_SUCCESS            = 1073741832
+MKL_DSS_TERM_LVL_DEBUG              = 1073741840
+MKL_DSS_TERM_LVL_INFO               = 1073741848
+MKL_DSS_TERM_LVL_WARNING            = 1073741856
+MKL_DSS_TERM_LVL_ERROR              = 1073741864
+MKL_DSS_TERM_LVL_FATAL              = 1073741872
+
+# Structure parameters
+MKL_DSS_SYMMETRIC                   = 536870976
+MKL_DSS_SYMMETRIC_STRUCTURE         = 536871040
+MKL_DSS_NON_SYMMETRIC               = 536871104
+MKL_DSS_SYMMETRIC_COMPLEX           = 536871168
 MKL_DSS_SYMMETRIC_STRUCTURE_COMPLEX = 536871232
-MKL_DSS_NON_SYMMETRIC_COMPLEX = 536871296
+MKL_DSS_NON_SYMMETRIC_COMPLEX       = 536871296
 
-MKL_DSS_POSITVE_DEFINITE = 134217792
-MKL_DSS_INDEFINITE = 134217856
+# Reorder parameters
+MKL_DSS_AUTO_REORDER                = 268435520
+MKL_DSS_METIS_OPENMP_ORDER          = 268435840
+MKL_DSS_MY_ORDER                    = 268435584
+MKL_DSS_GET_ORDER                   = 268435712
+MKL_DSS_OPTION1_ORDER               = 536871104
+
+# Factor parameters
+MKL_DSS_POSITVE_DEFINITE            = 134217792
+MKL_DSS_INDEFINITE                  = 134217856
 MKL_DSS_HERMITIAN_POSITIVE_DEFINITE = 134217920
-MKL_DSS_HERMITIAN_INDEFINITE = 134217984
+MKL_DSS_HERMITIAN_INDEFINITE        = 134217984
+
+# Set error messages
+dss_error_msgs = {'0' : 'Success', '-1': 'Zero Pivot', '-2': 'Out of memory', '-3': 'Failure',
+                '-4' : 'Row error', '-5': 'Column error', '-6': 'Too few values',
+                '-7': 'Too many values', '-8': 'Not square matrix', '-9': 'State error',
+                '-10': 'Invalid option', '-11': 'Option conflict', '-12': 'MSG level error',
+                '-13': 'TERM level error', '-14': 'Structure error', '-15': 'Reorder error',
+                '-16': 'Values error', '-17': 'Statistics invalid matrix', 
+                '-18': 'Statistics invalid state', '-19': 'Statistics invalid string'}
 
 
-def mkl_spsolve(A, b):
+def _default_solver_args():
+    def_args = {'hermitian': False, 'symmetric': False, 'posdef': False}
+    return def_args
+
+
+
+def mkl_spsolve(A, b, perm=None, **kwargs):
+    solver_args = _default_solver_args()
+    for key in kwargs.keys():
+        if key in solver_args.keys():
+            solver_args[key] = kwargs[key]
+        else:
+            raise Exception(
+                "Invalid keyword argument '"+key+"' passed to mkl_spsolve.")
+    
     dim = A.shape[0]
+    if A.dtype == complex:
+        is_complex = 1
+        data_type = np.complex128
+        if b.dtype != complex:
+            b = b.astype(complex, copy=False)
+    else:
+        is_complex = 0
+        data_type = np.float64
+        if A.dtype != float:
+            A = sp.csr_matrix(A, dtype=float, copy=False)
+        if b.dtype != float:
+            b = b.astype(float, copy=False)
+    
     #Create working array and pointer to array
     pt = np.zeros(64, dtype=int, order='C')
     np_pt = pt.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     
     # Options for solver initialization
-    create_opts = MKL_DSS_MSG_LVL_WARNING + MKL_DSS_MSG_TERM_LVL_ERROR + \
-                MKL_DSS_NON_SYMMETRIC_COMPLEX + MKL_DSS_AUTO_REORDER + \
+    create_opts = MKL_DSS_MSG_LVL_WARNING + MKL_DSS_TERM_LVL_ERROR + \
                 MKL_DSS_ZERO_BASED_INDEXING
     
     # Init solver
     create_status = dss_create(np_pt, byref(c_int(create_opts)))
     if create_status != 0:
-        print(create_status)
+        raise Exception(dss_error_msgs[str(create_status)])
     
     # Create pointers to sparse matrix arrays
-    data = A.data.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C')) 
+    data = A.data.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C')) 
     indptr = A.indptr.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     indices = A.indices.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     nnz = A.nnz
     
     # Create solution array (x) and pointers to x and b
     x = np.zeros(dim, dtype=complex, order='C')
-    np_x = x.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C')) 
-    np_b = b.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C'))
-    
-    # Create perm array and pointer
-    perm = np.zeros(dim, dtype=int, order='C')
-    np_perm = perm.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
+    np_x = x.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C')) 
+    np_b = b.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C'))
        
     # Options for define structure
     structure_opts = MKL_DSS_NON_SYMMETRIC_COMPLEX
     
     # Define sparse structure
-    structure_status = dss_define_structure(np_pt, byref(c_int(structure_opts)),
+    status = dss_define_structure(np_pt, byref(c_int(structure_opts)),
                         indptr, byref(c_int(dim)), byref(c_int(dim)), indices,
                         byref(c_int(nnz)))
-    if structure_status != 0:
-        print(structure_status)
+    if status != 0:
+        raise Exception(dss_error_msgs[str(status)])
     
-    # Define reorder opts
-    reorder_opts = MKL_DSS_AUTO_REORDER
+    
+    # Create perm array and pointer
+    if perm is None:
+        perm = np.zeros(dim, dtype=int, order='C')
+        reorder_opts = MKL_DSS_METIS_OPENMP_ORDER
+    else:
+        reorder_opts = MKL_DSS_MY_ORDER
+    np_perm = perm.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
+    
     
     # Reorder sparse matrix
-    reorder_status = dss_reorder(np_pt, byref(c_int(reorder_opts)), np_perm)
-    if reorder_status != 0:
-        print(reorder_status)
+    status = dss_reorder(np_pt, byref(c_int(reorder_opts)), np_perm)
+    if status != 0:
+        raise Exception(dss_error_msgs[str(status)])
     
     #Define factoring opts
     factor_opts = MKL_DSS_INDEFINITE
     
     # Factor matrix
-    factor_status = dss_factor_complex(np_pt, byref(c_int(factor_opts)), data)
-    if factor_status != 0:
-        print(factor_status)
+    if is_complex:
+        status = dss_factor_complex(np_pt, byref(c_int(factor_opts)), data)
+    else:
+        status = dss_factor_real(np_pt, byref(c_int(factor_opts)), data)
+    if status != 0:
+        raise Exception(dss_error_msgs[str(status)])
 
     # Define soolving phase opts
     nrhs = 1
-    solve_opts = 0
+    solve_opts = MKL_DSS_DEFAULTS
     
     # Perform solve
-    solve_status = dss_solve_complex(np_pt, byref(c_int(solve_opts)), np_b,
+    if is_complex:
+        status = dss_solve_complex(np_pt, byref(c_int(solve_opts)), np_b,
                     byref(c_int(nrhs)), np_x)
-    if solve_status != 0:
-        print(solve_status)
+    else:
+        status = dss_solve_real(np_pt, byref(c_int(solve_opts)), np_b,
+                    byref(c_int(nrhs)), np_x)
+    if status != 0:
+        raise Exception(dss_error_msgs[str(status)])
+    
+    # Delete opts
+    delete_opts = MKL_DSS_MSG_LVL_WARNING + MKL_DSS_TERM_LVL_ERROR
+    status = dss_delete(np_pt, byref(c_int(delete_opts)))
+    if status != 0:
+        raise Exception(dss_error_msgs[str(status)])
     
     #Return solution vector
     return x
@@ -140,18 +212,39 @@ def mkl_spsolve(A, b):
 
 if __name__ == "__main__":
     from qutip import *
-    N = 30
-    Omega = 0.01 * 2 * np.pi
-    Gamma = 0.05
+    import time
+    import mkl
+    mkl.set_num_threads(2)
+    Nc=4						 #Number of cavity states
+    Nm=80					    #Number of mechanical states
+    kappa=0.3					 #Cavity damping rate
+    E=0.1				        #Coherent state amplitude				         
+    g0=1.35*kappa				#Coupling strength
+    Qm=1e4                       #Mech quality factor
+    gamma=1.0/Qm			     #Mech damping rate
+    n_th = 31                     #Mech bath temperature
+    delta=-1
 
-    a = destroy(N)
-    H = Omega * (a.dag() + a)
-    c_ops = [np.sqrt(Gamma) * a]
+    #operators
+    idc=qeye(Nc)
+    idm=qeye(Nm)
+    a=tensor(destroy(Nc),idm)
+    b=tensor(idc,destroy(Nm))
+    num_b=b.dag()*b
+    #Hamiltonian
+    H=-delta*(a.dag()*a)+g0*(b.dag()+b)*(a.dag()*a)+b.dag()*b+E*(a.dag()+a)
+    #collapse operators
+    cc=np.sqrt(kappa)*a
+    cm=np.sqrt(gamma*(1.0 + n_th))*b
+    cp=np.sqrt(gamma*n_th)*b.dag()
+    c_op_list=[cc,cm,cp]
 
-    rho_ss = steadystate(H, c_ops)
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
+    st=time.time()
+    rho_ss = steadystate(H, c_op_list)
+    print(time.time()-st)
 
-    L = liouvillian(H, c_ops)
+    st=time.time()
+    L = liouvillian(H, c_op_list)
     dims = L.dims[0]
     n = int(np.sqrt(L.shape[0]))
     L = L.data + sp.csr_matrix(
@@ -165,5 +258,5 @@ if __name__ == "__main__":
     data = vec2mat(x)
     data = 0.5 * (data + data.conj().T)
     rho_ss2 = Qobj(data, dims=dims, isherm=True)
-
+    print(time.time()-st)
     print(rho_ss-rho_ss2)

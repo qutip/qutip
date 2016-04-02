@@ -223,7 +223,7 @@ from qutip.superoperator import *
 from qutip.superop_reps import *
 from qutip.subsystem_apply import *
 from qutip.graph import *
-
+from qutip.mkl import *
 # graphics
 from qutip.bloch import *
 from qutip.visualization import *

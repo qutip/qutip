@@ -49,6 +49,8 @@ num_cpus = 0
 fortran = False
 # flag indicating if scikits.umfpack is installed
 umfpack = False
+# path to the MKL library
+mkl_lib = None
 # debug mode for development
 debug = False
 # are we in IPython? Note that this cannot be
