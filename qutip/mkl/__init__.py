@@ -1,10 +1,8 @@
 import qutip.settings as qset
-from qutip.mkl.utilities import _set_mkl
 
-_set_mkl()
-
-if qset.mkl_lib is None:
-    pass
-else:
+if qset.has_mkl:
+    from qutip.mkl.utilities import _set_mkl
     from qutip.mkl.spmv import mkl_spmv
     from qutip.mkl.spsolve import mkl_spsolve
+else:
+    from qutip.mkl.utilities import _set_mkl

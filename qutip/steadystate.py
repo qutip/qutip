@@ -57,9 +57,12 @@ from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
 import qutip.logging_utils
-
 logger = qutip.logging_utils.get_logger()
 logger.setLevel('DEBUG')
+
+# Load MKL spsolve if avaiable
+if settings.has_mkl:
+    from qutip.mkl.spsolve import mkl_spsolve
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')

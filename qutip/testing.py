@@ -30,12 +30,14 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+import qutip.settings as qset
 
 def run():
     """
     Run the nose test scripts for QuTiP.
     """
+    if qset.has_mkl:
+        print('Running tests with Intel MKL library extensions...')
     import nose
     # runs tests in qutip.tests module only
     nose.run(defaultTest="qutip.tests", argv=['nosetests', '-v'])

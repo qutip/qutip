@@ -170,6 +170,11 @@ if qutip.settings.num_cpus == 0:
         qutip.settings.num_cpus = multiprocessing.cpu_count()
 
 
+# Find MKL library if it exists
+from qutip.mkl.utilities import _set_mkl
+_set_mkl()
+
+
 # -----------------------------------------------------------------------------
 # Load configuration from environment variables: override defaults and
 # configuration file.
@@ -223,7 +228,7 @@ from qutip.superoperator import *
 from qutip.superop_reps import *
 from qutip.subsystem_apply import *
 from qutip.graph import *
-from qutip.mkl import *
+
 # graphics
 from qutip.bloch import *
 from qutip.visualization import *

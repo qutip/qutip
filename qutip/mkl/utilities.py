@@ -53,6 +53,7 @@ def _set_mkl():
         
         try:
             qset.mkl_lib = cdll.LoadLibrary(lib_dir+lib_name+ext)
+            qset.has_mkl = 1
         except:
             pass
     else:

@@ -51,6 +51,8 @@ fortran = False
 umfpack = False
 # path to the MKL library
 mkl_lib = None
+# Flag if mkl_lib is found
+has_mkl = 0
 # debug mode for development
 debug = False
 # are we in IPython? Note that this cannot be
