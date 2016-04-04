@@ -37,7 +37,7 @@ install:
     - pip install coverage coveralls
     # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
     - conda install -c https://conda.anaconda.org/omnia cvxopt
-    - conda install -c https://conda.anaconda.org/omnia scs
+    - pip install scs
     - pip install cvxpy
     # Finally, install ourselves.
     - python setup.py install
