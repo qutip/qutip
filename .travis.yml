@@ -31,8 +31,9 @@ install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
-    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose cython
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
+    - conda install numpy scipy nose cython
     - pip install coverage coveralls
     # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
     - conda install -c https://conda.anaconda.org/omnia cvxopt
