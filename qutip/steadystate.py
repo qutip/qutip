@@ -267,17 +267,25 @@ def _steadystate_setup(A, c_op_list):
                         'Liouvillian (super) operators')
 
 
-def _steadystate_LU_liouvillian(L, ss_args):
+def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
     """Creates modified Liouvillian for LU based SS methods.
     """
     perm = None
     perm2 = None
     rev_perm = None
     n = int(np.sqrt(L.shape[0]))
-    L = L.data.tocsc() + sp.csc_matrix(
-        (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
-         for nn in range(n)])),
-        shape=(n ** 2, n ** 2))
+    form = 'csr'
+    if has_mkl:
+        L = L.data + sp.csr_matrix(
+            (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
+             for nn in range(n)])),
+             shape=(n ** 2, n ** 2))
+    else:
+        form = 'csc'
+        L = L.data.tocsc() + sp.csc_matrix(
+            (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
+             for nn in range(n)])),
+             shape=(n ** 2, n ** 2))
 
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
@@ -292,7 +300,7 @@ def _steadystate_LU_liouvillian(L, ss_args):
         _wbm_start = time.time()
         perm = weighted_bipartite_matching(L)
         _wbm_end = time.time()
-        L = sp_permute(L, perm, [], 'csc')
+        L = sp_permute(L, perm, [], form)
         ss_args['info']['perm'].append('wbm')
         ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
         if settings.debug:
@@ -306,7 +314,7 @@ def _steadystate_LU_liouvillian(L, ss_args):
         perm2 = reverse_cuthill_mckee(L)
         _rcm_end = time.time()
         rev_perm = np.argsort(perm2)
-        L = sp_permute(L, perm2, perm2, 'csc')
+        L = sp_permute(L, perm2, perm2, form)
         ss_args['info']['perm'].append('rcm')
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         if settings.debug:
@@ -344,20 +352,21 @@ def _steadystate_direct_sparse(L, ss_args):
     b = np.zeros(n ** 2, dtype=complex)
     b[0] = ss_args['weight']
 
-    L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
+    if settings.has_mkl:
+        has_mkl = 1
+    L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args, has_mkl)
     if np.any(perm):
         b = b[np.ix_(perm,)]
     if np.any(perm2):
         b = b[np.ix_(perm2,)]
 
-    use_solver(assumeSortedIndices=True, useUmfpack=ss_args['use_umfpack'])
     ss_args['info']['permc_spec'] = ss_args['permc_spec']
     ss_args['info']['drop_tol'] = ss_args['drop_tol']
     ss_args['info']['diag_pivot_thresh'] = ss_args['diag_pivot_thresh']
     ss_args['info']['fill_factor'] = ss_args['fill_factor']
     ss_args['info']['ILU_MILU'] = ss_args['ILU_MILU']
 
-    if not ss_args['use_umfpack']:
+    if not has_mkl:
         # Use superLU solver
         orig_nnz = L.nnz
         _direct_start = time.time()
@@ -377,10 +386,9 @@ def _steadystate_direct_sparse(L, ss_args):
                 logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
                 logger.debug('Fill factor: %f' % ((L_nnz + U_nnz)/orig_nnz))
 
-    else:
-        # Use umfpack solver
+    else: # Use MKL solver
         _direct_start = time.time()
-        v = spsolve(L, b)
+        v = mkl_spsolve(L, b)
         _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end-_direct_start
 
@@ -959,27 +967,27 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', **pseudo_args):
     tr_op = tensor([identity(n) for n in L.dims[0][0]])
     tr_op_vec = operator_to_vector(tr_op)
 
-    P = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csc')
-    I = sp.eye(N*N, N*N, format='csc')
+    P = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csr')
+    I = sp.eye(N*N, N*N, format='csr')
     Q = I - P
 
     if pseudo_args['use_rcm']:
         perm = reverse_cuthill_mckee(L.data)
-        A = sp_permute(L.data, perm, perm, 'csc').tocsc()
-        Q = sp_permute(Q, perm, perm, 'csc')
+        A = sp_permute(L.data, perm, perm, 'csr')
+        Q = sp_permute(Q, perm, perm, 'csr')
     else:
-        A = L.data.tocsc()
+        if not settings.has_mkl:
+            A = L.data.tocsc()
         A.sort_indices()
-
-    if method == 'spsolve':
-        sp.linalg.use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
-        LIQ = sp.linalg.spsolve(A, Q)
-
-    elif method == 'splu':
-        lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
+    
+    if method == 'splu':
+        if settings.has_mkl:
+            LIQ = mkl_spsolve(A,Q.toarray())
+        else:
+            lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
                             diag_pivot_thresh=pseudo_args['diag_pivot_thresh'],
                             options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
-        LIQ = lu.solve(Q.toarray())
+            LIQ = lu.solve(Q.toarray())
 
     elif method == 'spilu':
         lu = sp.linalg.spilu(A, permc_spec=pseudo_args['permc_spec'],
@@ -990,11 +998,11 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', **pseudo_args):
     else:
         raise ValueError("unsupported method '%s'" % method)
 
-    R = sp.csc_matrix(Q * LIQ)
+    R = sp.csr_matrix(Q * LIQ)
 
     if pseudo_args['use_rcm']:
         rev_perm = np.argsort(perm)
-        R = sp_permute(R, rev_perm, rev_perm, 'csc')
+        R = sp_permute(R, rev_perm, rev_perm, 'csr')
 
     return Qobj(R, dims=L.dims)
 
