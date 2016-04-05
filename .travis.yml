@@ -8,7 +8,8 @@ matrix:
     include:
         - python: 3.5
           env: CC=clang CXX=clang++
-
+        - python: 3.5
+          env: NOMKL=true
 addons:
     apt:
         packages:
@@ -33,7 +34,11 @@ install:
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install numpy scipy nose cython
+    - if [[ "$NOMKL" ]]; then
+          conda install nomkl numpy scipy nose cython
+        else
+          conda install numpy scipy nose cython
+      fi
     - pip install coverage coveralls
     # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
     - pip install cvxopt
