@@ -35,9 +35,9 @@ install:
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - if [[ $NOMKL == "true"]]; then
-          conda install nomkl numpy scipy nose cython
+          conda install nomkl numpy scipy nose cython;
         else
-          conda install numpy scipy nose cython
+          conda install numpy scipy nose cython;
       fi
     - pip install coverage coveralls
     # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
