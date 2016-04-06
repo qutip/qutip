@@ -71,9 +71,9 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
-    method : string {'iterative', 'laguerre', 'fft'}
-        Select method 'iterative', 'laguerre', or 'fft', where 'iterative' uses
-        an iterative method to evaluate the Wigner functions for density
+    method : string {'iterative', 'clenshaw', 'laguerre', 'fft'}
+        Select method 'iterative', 'clenshaw', 'laguerre', or 'fft', where 'iterative' 
+        and 'clenshaw' use an iterative method to evaluate the Wigner functions for density
         matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
         in scipy for the same task. The 'fft' method evaluates the Fourier
         transform of the density matrix. The 'iterative' method is default, and
@@ -81,7 +81,7 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
         very sparse density matrices (e.g., superpositions of Fock states in a
         large Hilbert space). The 'fft' method is the preferred method for
         dealing with density matrices that have a large number of excitations
-        (>~50).
+        (>~50). 'clenshaw' is a fast and numerically stable method.
 
     parfor : bool {False, True}
         Flag for calculating the Laguerre polynomial based Wigner function
@@ -128,6 +128,9 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
 
     elif method == 'laguerre':
         return _wigner_laguerre(rho, xvec, yvec, g, parfor)
+        
+    elif method == 'clenshaw':
+        return _wigner_clenshaw(rho, xvec, yvec, g)
 
     else:
         raise TypeError(
@@ -321,6 +324,70 @@ def _osc_eigen(N, pnts):
                 np.sqrt((k - 1.0) / k) * A[k - 2, :]
         return A
 
+
+def _wigner_clenshaw(rho, xvec, yvec, g=2**0.5):
+    """
+    Using Clenshaw summation - numerically stable and efficient
+    iterative algorithm to evaluate polynomial series.
+    
+    The Wigner function is calculated as
+    :math:`W = e^(-0.5*x^2)/pi * \sum_{L} c_L (2x)^L / sqrt(L!)` where 
+    :math:`c_L = \sum_n \\rho_{n,L+n} LL_n^L` where
+    :math:`LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]`
+    
+    """
+
+    M = np.prod(rho.shape[0])
+    X,Y = np.meshgrid(xvec, yvec)
+    #A = 0.5 * g * (X + 1.0j * Y)
+    A2 = g * (X + 1.0j * Y) #this is A2 = 2*A
+    
+    rho = rho.full() * (2*np.ones((M,M)) - np.diag(np.ones(M)))
+    
+    B = np.abs(A2)
+    B *= B
+    
+    #calculation of \sum_{L} c_L (2x)^L / sqrt(L!)
+    #using Horner's method
+    w0 = rho[0,-1] + A2*0
+    L = M-1
+    
+    while L > 0:
+        L -= 1
+        #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+        w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
+        
+    return w0.real * np.exp(-B*0.5) * (g*g*0.5 / pi)
+
+
+def _wig_laguerre_val(L, x, c, tensor=True):
+    """
+    this is evaluation of polynomial series inspired by hermval from numpy.    
+    Returns polynomial series
+    \sum_n b_n LL_n^L,
+    where
+    LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]    
+    The evaluation uses Clenshaw recursion
+    """
+
+    if len(c) == 1:
+        y0 = c[0]
+        y1 = 0
+    elif len(c) == 2:
+        y0 = c[0]
+        y1 = c[1]
+    else:
+        k = len(c)
+        y0 = c[-2]
+        y1 = c[-1]
+        for i in range(3, len(c) + 1):
+            k -= 1
+            y0,    y1 = c[-i] - y1 * (float((k - 1)*(L + k - 1))/((L+k)*k))**0.5, \
+            y0 - y1 * ((L + 2*k -1) - x) * ((L+k)*k)**-0.5
+            
+    return y0 - y1 * ((L + 1) - x) * (L + 1)**-0.5
+    
+    
 
 # -----------------------------------------------------------------------------
 # Q FUNCTION
