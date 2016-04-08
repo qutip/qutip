@@ -225,3 +225,20 @@ def _sparse_reverse_permute(
     return new_data, new_idx, new_ptr
 
                     
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _isdiag(np.ndarray[ITYPE_t, ndim=1] idx,
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows):
+        
+    cdef int row, num_elems
+    for row in range(nrows):
+        num_elems = ptr[row+1] - ptr[row]
+        if num_elems > 1:
+            return 0
+        elif num_elems == 1:
+            if idx[ptr[row]] != row:
+                return 0
+    return 1
+
+
