@@ -36,7 +36,7 @@ __all__ = ['mcsolve']
 import os
 from types import FunctionType
 import numpy as np
-from numpy.random import RandomState, random_integers
+from numpy.random import RandomState, randint
 from scipy.integrate import ode
 import scipy.sparse as sp
 from scipy.integrate._ode import zvode
@@ -387,7 +387,7 @@ class _MC():
             # setup seeds array
             if self.config.options.seeds is None:
                 self.config.options.seeds = \
-                    random_integers(1e8, size=config.ntraj)
+                    randint(1, 100000000.0 + 1, size=config.ntraj)
             else:
                 # if ntraj was reduced but reusing seeds
                 seed_length = len(config.options.seeds)
@@ -396,8 +396,8 @@ class _MC():
                         config.options.seeds[0:config.ntraj]
                 # if ntraj was increased but reusing seeds
                 elif seed_length < config.ntraj:
-                    newseeds = random_integers(
-                        1e8, size=(config.ntraj - seed_length))
+                    newseeds = randint(1, 100000000.0 + 1, 
+                                size=(config.ntraj - seed_length))
                     self.config.options.seeds = np.hstack(
                         (config.options.seeds, newseeds))
 
