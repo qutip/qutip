@@ -40,14 +40,14 @@ from ctypes import cdll
 
 def _set_mkl():
     if _blas_info() == 'INTEL MKL':
-        lib_name = '/libmkl_rt'
+        plat = sys.platform
         python_dir = os.path.dirname(sys.executable)
-        python_dir = os.path.dirname(python_dir)
+        if plat in ['darwin','linux2', 'linux']:
+            python_dir = os.path.dirname(python_dir)
         if 'Anaconda' in sys.version:
             is_anaconda = 1
         else:
             is_anaconda = 0
-        plat = sys.platform
         if plat == 'darwin':
             lib = '/libmkl_rt.dylib'
         elif plat == 'win32':
