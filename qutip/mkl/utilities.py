@@ -32,7 +32,7 @@
 ###############################################################################
 
 import numpy as np
-import sys
+import os, sys
 from qutip.utilities import _blas_info
 import qutip.settings as qset
 from ctypes import cdll
@@ -41,20 +41,40 @@ from ctypes import cdll
 def _set_mkl():
     if _blas_info() == 'INTEL MKL':
         lib_name = '/libmkl_rt'
-        lib_dir = np.__config__.mkl_info['library_dirs'][0]
-        if sys.platform == 'darwin':
-            ext = '.dylib'
-        elif sys.platform == 'win32':
-            ext = ''
-        elif sys.platform in ['linux', 'linux2']:
-            ext = '.so'
+        python_dir = os.path.dirname(sys.executable)
+        python_dir = os.path.dirname(python_dir)
+        if 'Anaconda' in sys.version:
+            is_anaconda = 1
+        else:
+            is_anaconda = 0
+        plat = sys.platform
+        if plat == 'darwin':
+            lib = '/libmkl_rt.dylib'
+        elif plat == 'win32':
+            lib = '\\mkl_rt.dll'
+        elif plat in ['linux2', 'linux']:
+            lib = '/libmkl_rt.dylib'
         else:
             raise Exception('Unknown platfrom.')
-        
+        if is_anaconda:
+            if plat in ['darwin','linux2', 'linux']:
+                lib_dir = '/lib'
+            else:
+                lib_dir = '\Library\\bin'
+        else:
+            #Look for Intel Python distro location
+            if plat in ['darwin','linux2', 'linux']:
+                lib_dir = '/ext/lib'
+            else:
+                lib_dir = '\ext\\lib'
         try:
-            qset.mkl_lib = cdll.LoadLibrary(lib_dir+lib_name+ext)
-            qset.has_mkl = 1
+            qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
+            qset.has_mkl = True
         except:
             pass
     else:
         pass
+
+
+if __name__ == "__main__":
+    _set_mkl()
