@@ -103,7 +103,7 @@ def _default_solver_args():
 
 
 
-def mkl_spsolve(A, b, perm=None, verbose = False, **kwargs):
+def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     
     if not sp.isspmatrix_csr(A):
         raise TypeError('Input matrix must be in sparse CSR format.')
@@ -194,7 +194,7 @@ def mkl_spsolve(A, b, perm=None, verbose = False, **kwargs):
     
     # Create perm array and pointer
     if perm is None:
-        perm = np.zeros(dim, dtype=int, order='C')
+        perm = np.zeros(dim, dtype=np.int32, order='C')
         reorder_opts = MKL_DSS_METIS_OPENMP_ORDER
     else:
         reorder_opts = MKL_DSS_MY_ORDER
