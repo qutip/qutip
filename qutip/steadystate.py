@@ -354,6 +354,9 @@ def _steadystate_direct_sparse(L, ss_args):
 
     if settings.has_mkl:
         has_mkl = 1
+    else:
+        has_mkl = 0
+    
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args, has_mkl)
     if np.any(perm):
         b = b[np.ix_(perm,)]
