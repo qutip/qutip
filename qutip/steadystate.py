@@ -84,7 +84,7 @@ def _default_steadystate_args():
                 'M': None, 'x0': None, 'drop_tol': 1e-4, 'fill_factor': 100,
                 'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-12,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 'restart': 20,
-                'return_info': False, 'info': _empty_info_dict()}
+                'return_info': False, 'info': _empty_info_dict(), 'verbose': False}
 
     return def_args
 
@@ -387,8 +387,12 @@ def _steadystate_direct_sparse(L, ss_args):
                 logger.debug('Fill factor: %f' % ((L_nnz + U_nnz)/orig_nnz))
 
     else: # Use MKL solver
+        if len(ss_args['info']['perm']) !=0:
+            in_perm = np.arange(n**2, dtype=np.int32)
+        else:
+            in_perm = None
         _direct_start = time.time()
-        v = mkl_spsolve(L, b)
+        v = mkl_spsolve(L, b, perm = in_perm, verbose = ss_args['verbose'])
         _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end-_direct_start
 
