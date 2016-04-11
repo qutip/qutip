@@ -53,7 +53,7 @@ def _set_mkl():
         elif plat == 'win32':
             lib = '\\mkl_rt.dll'
         elif plat in ['linux2', 'linux']:
-            lib = '/libmkl_rt.dylib'
+            lib = '/libmkl_rt.so'
         else:
             raise Exception('Unknown platfrom.')
         if is_anaconda:
