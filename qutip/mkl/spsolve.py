@@ -102,41 +102,108 @@ def _default_solver_args():
     return def_args
 
 
-
-def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
+class mkl_lu():
+    def __init__(self, np_pt=None, dim=None, is_complex=None, 
+                perm=None, np_stats=None):
+        self.np_pt = np_pt
+        self.dim = dim
+        self.is_complex = is_complex
+        self.perm = perm
+        self.np_stats = np_stats
     
+    def solve(self, b, verbose = False):
+        ndim = b.ndim
+        if ndim == 2 and b.shape[0] == 1:
+            b = b.ravel()
+            ndim = 1
+        
+        if ndim == 2:
+            nrhs = b.shape[0]
+        else:
+            nrhs = 1
+
+        if self.is_complex:
+            data_type = np.complex128
+            if b.dtype != np.complex128:
+                b = b.astype(np.complex128, copy=False)
+        else:
+            data_type = np.float64
+            if b.dtype != np.float64:
+                b = b.astype(np.float64, copy=False)
+        
+        # Create solution array (x) and pointers to x and b
+        if self.is_complex:
+            x = np.zeros(b.shape, dtype=np.complex128, order='C')
+        else:
+            x = np.zeros(b.shape, dtype=np.float64, order='C')
+        
+        np_x = x.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=ndim, flags='C')) 
+        np_b = b.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=ndim, flags='C'))
+        
+        # Dont do any iterative refinement.
+        solve_opts = MKL_DSS_DEFAULTS
+    
+        # Perform solve
+        if self.is_complex:
+            status = dss_solve_complex(self.np_pt, byref(c_int(solve_opts)), np_b,
+                        byref(c_int(nrhs)), np_x)
+        else:
+            status = dss_solve_real(self.np_pt, byref(c_int(solve_opts)), np_b,
+                        byref(c_int(nrhs)), np_x)
+        if status != 0:
+            raise Exception(dss_error_msgs[str(status)])
+    
+        # Get all statistics
+        stat_opts = MKL_DSS_DEFAULTS
+        stat_string = c_char_p(bytes(b'ReorderTime,FactorTime,SolveTime,Peakmem,Factormem,Solvemem'))
+        status = dss_statistics(self.np_pt, byref(c_int(stat_opts)), stat_string, self.np_stats)
+        if status != 0:
+            raise Exception(dss_error_msgs[str(status)])
+        if verbose:
+            print('Solution Phase')
+            print('--------------')
+            print('Solve time:',stats[2])
+            print('Solve memory (Mb):',stats[5]/1024.)
+        
+        return x
+    
+    def delete(self):
+        # Delete opts
+        delete_opts = MKL_DSS_MSG_LVL_WARNING + MKL_DSS_TERM_LVL_ERROR
+        status = dss_delete(self.np_pt, byref(c_int(delete_opts)))
+        if status != 0:
+            raise Exception(dss_error_msgs[str(status)])
+        
+        
+        
+        
+
+
+
+
+def mkl_splu(A, perm=None, verbose=False, **kwargs):
     if not sp.isspmatrix_csr(A):
         raise TypeError('Input matrix must be in sparse CSR format.')
-    
-    ndim = b.ndim
-    if ndim == 2 and b.shape[0] == 1:
-        b = b.ravel()
-        ndim = 1
     
     if A.shape[0] != A.shape[1]:
         raise Exception('Input matrix must be square')
     
+    dim = A.shape[0]
     solver_args = _default_solver_args()
     for key in kwargs.keys():
         if key in solver_args.keys():
             solver_args[key] = kwargs[key]
         else:
             raise Exception(
-                "Invalid keyword argument '"+key+"' passed to mkl_spsolve.")
-    
-    dim = A.shape[0]
+                "Invalid keyword argument '"+key+"' passed to mkl_splu.")
     if A.dtype == np.complex128:
         is_complex = 1
         data_type = np.complex128
-        if b.dtype != np.complex128:
-            b = b.astype(np.complex128, copy=False)
     else:
         is_complex = 0
         data_type = np.float64
         if A.dtype != np.float64:
             A = sp.csr_matrix(A, dtype=float, copy=False)
-        if b.dtype != np.float64:
-            b = b.astype(np.float64, copy=False)
     
     #Create working array and pointer to array
     pt = np.zeros(64, dtype=int, order='C')
@@ -157,40 +224,31 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     indices = A.indices.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     nnz = A.nnz
     
-    # Create solution array (x) and pointers to x and b
-    if is_complex:
-        x = np.zeros(b.shape, dtype=np.complex128, order='C')
-    else:
-        x = np.zeros(b.shape, dtype=np.float64, order='C')
-    np_x = x.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=ndim, flags='C')) 
-    np_b = b.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=ndim, flags='C'))
-       
     #Define array for statistics
     stat_opts = MKL_DSS_DEFAULTS
     stats = np.zeros(6, dtype=np.float64, order='C')
     np_stats = stats.ctypes.data_as(ctypeslib.ndpointer(np.float64, ndim=1, flags='C'))
     
-    # Options for define structure
+    #Options for define structure
     if is_complex:
-        if solver_args['hermitian']:
-            structure_opts = MKL_DSS_SYMMETRIC_STRUCTURE_COMPLEX
-        elif solver_args['symmetric']:
-            structure_opts = MKL_DSS_SYMMETRIC_COMPLEX
-        else:
-            structure_opts = MKL_DSS_NON_SYMMETRIC_COMPLEX
+       if solver_args['hermitian']:
+           structure_opts = MKL_DSS_SYMMETRIC_STRUCTURE_COMPLEX
+       elif solver_args['symmetric']:
+           structure_opts = MKL_DSS_SYMMETRIC_COMPLEX
+       else:
+           structure_opts = MKL_DSS_NON_SYMMETRIC_COMPLEX
     else:
-        if solver_args['symmetric']:
-            structure_opts = MKL_DSS_SYMMETRIC
-        else:
-            structure_opts = MKL_DSS_NON_SYMMETRIC
-    
+       if solver_args['symmetric']:
+           structure_opts = MKL_DSS_SYMMETRIC
+       else:
+           structure_opts = MKL_DSS_NON_SYMMETRIC
+
     # Define sparse structure
     status = dss_define_structure(np_pt, byref(c_int(structure_opts)),
-                        indptr, byref(c_int(dim)), byref(c_int(dim)), indices,
-                        byref(c_int(nnz)))
+                       indptr, byref(c_int(dim)), byref(c_int(dim)), indices,
+                       byref(c_int(nnz)))
     if status != 0:
-        raise Exception(dss_error_msgs[str(status)])
-    
+       raise Exception(dss_error_msgs[str(status)])
     
     # Create perm array and pointer
     if perm is None:
@@ -253,44 +311,36 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         print('Flops:',stats[1])
         print('')
     
-    
-    # Define solving phase opts
-    if ndim == 2:
-        nrhs = b.shape[0]
-    else:
-        nrhs = 1
-    
-    # Dont do any iterative refinement.
-    solve_opts = MKL_DSS_DEFAULTS
-    
-    # Perform solve
-    if is_complex:
-        status = dss_solve_complex(np_pt, byref(c_int(solve_opts)), np_b,
-                    byref(c_int(nrhs)), np_x)
-    else:
-        status = dss_solve_real(np_pt, byref(c_int(solve_opts)), np_b,
-                    byref(c_int(nrhs)), np_x)
-    if status != 0:
-        raise Exception(dss_error_msgs[str(status)])
-    
-    # Get all statistics
-    stat_string = c_char_p(bytes(b'ReorderTime,FactorTime,SolveTime,Peakmem,Factormem,Solvemem'))
-    status = dss_statistics(np_pt, byref(c_int(stat_opts)), stat_string, np_stats)
-    if status != 0:
-        raise Exception(dss_error_msgs[str(status)])
-    if verbose:
-        print('Solution Phase')
-        print('--------------')
-        print('Solve time:',stats[2])
-        print('Solve memory (Mb):',stats[5]/1024.)
-    
-    
-    # Delete opts
-    delete_opts = MKL_DSS_MSG_LVL_WARNING + MKL_DSS_TERM_LVL_ERROR
-    status = dss_delete(np_pt, byref(c_int(delete_opts)))
-    if status != 0:
-        raise Exception(dss_error_msgs[str(status)])
-    
-    #Return solution vector
+    return mkl_lu(np_pt, dim, is_complex, perm, np_stats)
+
+
+def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
+    lu = mkl_splu(A, perm=None, **kwargs)
+    x = lu.solve(b)
+    lu.delete()
     return x
 
+
+
+if __name__ == "__main__":
+    from qutip import *
+    N = 30
+    Omega = 0.01 * 2 * np.pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [np.sqrt(Gamma) * a]
+    L = liouvillian(H,c_ops)
+    dims = L.dims[0]
+    n = int(np.sqrt(L.shape[0]))
+    b = np.zeros(n ** 2, dtype=complex)
+    b[0] = 1
+    
+    L = L.data + sp.csr_matrix(
+        (np.ones(n), (np.zeros(n), [nn * (n + 1)
+         for nn in range(n)])),
+         shape=(n ** 2, n ** 2))
+
+    x= mkl_spsolve(L,b)
+    print(x)
