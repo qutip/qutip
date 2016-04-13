@@ -387,7 +387,7 @@ def sp_expm(A, p=9, sparse=False):
     Expokit, ACM-Transactions on Mathematical Software, 24(1):130-156, 1998
     
     """
-    if _isdiag(A):
+    if _isdiag(A.indices, A.indptr, A.shape[0]):
         A.data = np.exp(A.data)
         return A
     N = A.shape[0]
