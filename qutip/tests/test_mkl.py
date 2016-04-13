@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -32,55 +32,40 @@
 ###############################################################################
 
 import numpy as np
-import os, sys
-from qutip.utilities import _blas_info
+import scipy.sparse as sp
+import scipy.linalg as la
+from numpy.testing import (assert_, run_module_suite, assert_array_almost_equal)
+import unittest
+from qutip import *
+from qutip.mkl.spsolve import mkl_spsolve
 import qutip.settings as qset
-from ctypes import cdll
 
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve1():
+    """
+    MKL spsolve : Single RHS vector (Real)
+    """
+    Adense = np.array([[0., 1., 1.],
+                    [1., 0., 1.],
+                    [0., 0., 1.]])
+    As = sp.csr_matrix(Adense)
+    np.random.seed(1234)
+    x = np.random.randn(3)
+    b = As * x
+    x2 = mkl_spsolve(As, b)
+    assert_array_almost_equal(x, x2)
 
-def _set_mkl():
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mklspsolve2():
     """
-    Finds the MKL runtime library for the 
-    Anaconda and Intel Python distributions.
-    
+    MKL spsolve : Single RHS vector (Complex)
     """
-    if _blas_info() == 'INTEL MKL':
-        plat = sys.platform
-        python_dir = os.path.dirname(sys.executable)
-        if plat in ['darwin','linux2', 'linux']:
-            python_dir = os.path.dirname(python_dir)
-        if 'Anaconda' in sys.version:
-            is_anaconda = 1
-        else:
-            is_anaconda = 0
-        if plat == 'darwin':
-            lib = '/libmkl_rt.dylib'
-        elif plat == 'win32':
-            lib = '\\mkl_rt.dll'
-        elif plat in ['linux2', 'linux']:
-            lib = '/libmkl_rt.so'
-        else:
-            raise Exception('Unknown platfrom.')
-        if is_anaconda:
-            if plat in ['darwin','linux2', 'linux']:
-                lib_dir = '/lib'
-            else:
-                lib_dir = '\Library\\bin'
-        else:
-            #Look for Intel Python distro location
-            if plat in ['darwin','linux2', 'linux']:
-                lib_dir = '/ext/lib'
-            else:
-                lib_dir = '\ext\\lib'
-        try:
-            qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-            qset.has_mkl = True
-        except:
-            pass
-    else:
-        pass
+    A = rand_herm(10)
+    x = rand_ket(10).full()
+    b = A * x
+    y = mkl_spsolve(A.data,b)
+    assert_array_almost_equal(x.ravel(), y)
 
 
 if __name__ == "__main__":
-    _set_mkl()
-    print(qset.has_mkl)
+    run_module_suite()
