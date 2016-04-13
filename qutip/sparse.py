@@ -436,10 +436,7 @@ def sp_expm(A, p=9, sparse=False):
     for k in range(int(nrm)):
         E = E.dot(E)
        
-    if sparse:
-        return E.tocsr()
-    else:
-        return E
+    return sp.csr_matrix(E)
     
 
 
