@@ -378,96 +378,69 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
     return (evals, evecs) if vecs else evals
 
 
-def sp_expm(data, sparse=True):
+def sp_expm(A, p=9, sparse=False):
     """
     Sparse matrix exponential.
+    
+    Reference
+    ---------
+    Expokit, ACM-Transactions on Mathematical Software, 24(1):130-156, 1998
+    
     """
-    A = data.tocsc()  # extract Qobj data (sparse matrix)
-    m_vals = np.array([3, 5, 7, 9, 13])
-    theta = np.array([0.01495585217958292, 0.2539398330063230,
-                      0.9504178996162932, 2.097847961257068,
-                      5.371920351148152], dtype=float)
-    normA = sp_one_norm(data)
-    if normA <= theta[-1]:
-        for ii in range(len(m_vals)):
-            if normA <= theta[ii]:
-                F = _pade(A, m_vals[ii], sparse)
-                break
+    N = A.shape[0]
+    c = np.zeros(p+1,dtype=float)
+    # Pade coefficients
+    c[0] = 1
+    for k in range(p):
+        c[k+1] = c[k]*((p-k)/((k+1.0)*(2.0*p-k)))
+    # Scaling
+    if sparse:
+        A = A.tocsc()
+        nrm = spla.norm(A, np.inf)
     else:
-        t, s = np.frexp(normA / theta[-1])
-        s = s - (t == 0.5)
-        A = A / 2.0 ** s
-        F = _pade(A, m_vals[-1], sparse)
-        for i in range(s):
-            F = F * F
-
-    return F
-
-
-def _pade(A, m, sparse):
-    n = np.shape(A)[0]
-    c = _padecoeff(m)
-
-    if m != 13:
-        apows = [[] for jj in range(int(np.ceil((m + 1) / 2)))]
-        apows[0] = sp.eye(n, n, format='csc')
-        apows[1] = A * A
-        for jj in range(2, int(np.ceil((m + 1) / 2))):
-            apows[jj] = apows[jj - 1] * apows[1]
-        U = sp.lil_matrix((n, n)).tocsc()
-        V = sp.lil_matrix((n, n)).tocsc()
-        for jj in range(m, 0, -2):
-            U = U + c[jj] * apows[jj // 2]
-        U = A * U
-        for jj in range(m - 1, -1, -2):
-            V = V + c[jj] * apows[(jj + 1) // 2]
-
-        if sparse:
-            F = spla.spsolve((-U + V), (U + V))
-            return F.tocsr()
+        A = A.toarray()
+        nrm = la.norm(A, np.inf)
+    if nrm > 0.5:
+        nrm = max(0, np.fix(np.log(nrm)/np.log(2))+2)
+        A = 2.0**(-nrm)*A
+    # Horner evaluation of the irreducible fraction
+    if sparse:
+        I = sp.identity(N, dtype=complex, format='csc')
+    else:
+        I = np.identity(N, dtype=complex)
+    A2 = A.dot(A)
+    Q = c[-1]*I
+    P = c[p]*I
+    odd = 1
+    for k in range(p-2,-1,-1):
+        if odd == 1:
+            Q = Q.dot(A2) +c[k]*I
         else:
-            F = la.solve((-U + V).todense(), (U + V).todense())
-            return sp.lil_matrix(F).tocsr()
-
-    elif m == 13:
-        A2 = A * A
-        A4 = A2 * A2
-        A6 = A2 * A4
-        U = A * (A6 * (c[13] * A6 + c[11] * A4 + c[9] * A2) +
-                 c[7] * A6 + c[5] * A4 + c[3] * A2 +
-                 c[1] * sp.eye(n, n).tocsc())
-        V = A6 * (c[12] * A6 + c[10] * A4 + c[8] * A2) + c[6] * A6 + c[4] * \
-            A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsc()
-
+            P = P.dot(A2) +c[k]*I
+        odd = 1-odd
+    if odd == 1:
+        Q = Q.dot(A)
+        Q = Q-P
         if sparse:
-            F = spla.spsolve((-U + V), (U + V))
-            return F.tocsr()
+            E = -(I+2.0*spla.spsolve(Q,P))
         else:
-            F = la.solve((-U + V).todense(), (U + V).todense())
-            return sp.csr_matrix(F)
-
-
-def _padecoeff(m):
-    """
-    Private function returning coefficients for Pade approximation.
-    """
-    if m == 3:
-        return np.array([120, 60, 12, 1])
-    elif m == 5:
-        return np.array([30240, 15120, 3360, 420, 30, 1])
-    elif m == 7:
-        return np.array([17297280, 8648640, 1995840, 277200,
-                         25200, 1512, 56, 1])
-    elif m == 9:
-        return np.array([17643225600, 8821612800, 2075673600,
-                         302702400, 30270240, 2162160, 110880,
-                         3960, 90, 1])
-    elif m == 13:
-        return np.array([64764752532480000, 32382376266240000,
-                         7771770303897600, 1187353796428800,
-                         129060195264000, 10559470521600, 670442572800,
-                         33522128640, 1323241920, 40840800,
-                         960960, 16380, 182, 1])
+            E = -(I+2.0*la.solve(Q,P))
+    else:
+        P = P.dot(A)
+        Q = Q-P
+        if sparse:
+            E = I+2.0*spla.spsolve(Q,P)
+        else:
+            E = I+2.0*la.solve(Q,P)
+    # Squaring
+    for k in range(int(nrm)):
+        E = E.dot(E)
+       
+    if sparse:
+        return E.tocsr()
+    else:
+        return E
+    
 
 
 def sp_permute(A, rperm=(), cperm=(), safe=True):
