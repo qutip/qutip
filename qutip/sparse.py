@@ -47,7 +47,8 @@ import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
 from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
-                                   _sparse_reverse_permute, _sparse_bandwidth)
+                                   _sparse_reverse_permute, _sparse_bandwidth,
+                                   _isdiag)
 from qutip.settings import debug
 
 import qutip.logging_utils
@@ -642,3 +643,22 @@ def sp_profile(A):
         raise TypeError('Input sparse matrix must be in CSR or CSC format.')
 
     return up+lp, lp, up
+
+
+def sp_isdiag(A):
+    """Determine if sparse CSR matrix is diagonal.
+    
+    Parameters
+    ----------
+    A : csr_matrix, csc_matrix
+        Input matrix
+        
+    Returns
+    -------
+    isdiag : int
+        True if matix is diagonal, False otherwise.
+    
+    """
+    if not sp.isspmatrix_csr(A):
+        raise TypeError('Input sparse matrix must be in CSR format.')
+    return _isdiag(A.indices, A.indptr, A.shape[0])
