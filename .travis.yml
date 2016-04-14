@@ -37,7 +37,7 @@ install:
     - if [[ "${NOMKL}" == "1" ]]; then
           conda install nomkl numpy scipy nose cython;
         else
-          conda install numpy scipy nose cython;
+          conda install mkl numpy scipy nose cython;
       fi
     - pip install coverage coveralls
     # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
