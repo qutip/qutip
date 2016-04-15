@@ -378,7 +378,7 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
     return (evals, evecs) if vecs else evals
 
 
-def sp_expm(A, p=9, sparse=False):
+def sp_expm(A, p=13, sparse=False):
     """
     Sparse matrix exponential.
     
