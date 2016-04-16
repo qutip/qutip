@@ -37,8 +37,10 @@ import scipy.linalg as la
 from numpy.testing import (assert_, run_module_suite, assert_array_almost_equal)
 import unittest
 from qutip import *
-from qutip.mkl.spsolve import mkl_spsolve
 import qutip.settings as qset
+if qset.has_mkl:
+    from qutip.mkl.spsolve import mkl_spsolve
+
 
 @unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve1():
