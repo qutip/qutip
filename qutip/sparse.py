@@ -378,67 +378,17 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
     return (evals, evecs) if vecs else evals
 
 
-def sp_expm(A, p=13, sparse=False):
+def sp_expm(A, sparse=False):
     """
-    Sparse matrix exponential.
-    
-    Reference
-    ---------
-    Expokit, ACM-Transactions on Mathematical Software, 24(1):130-156, 1998
-    
+    Sparse matrix exponential.    
     """
     if _isdiag(A.indices, A.indptr, A.shape[0]):
         A.data = np.exp(A.data)
         return A
-    N = A.shape[0]
-    c = np.zeros(p+1,dtype=float)
-    # Pade coefficients
-    c[0] = 1
-    for k in range(p):
-        c[k+1] = c[k]*((p-k)/((k+1.0)*(2.0*p-k)))
-    # Scaling
     if sparse:
-        A = A.tocsc()
-        nrm = spla.norm(A, np.inf)
+        E = spla.expm(A.tocsc())
     else:
-        A = A.toarray()
-        nrm = la.norm(A, np.inf)
-    if nrm > 0.5:
-        nrm = max(0, np.fix(np.log(nrm)/np.log(2))+2)
-        A = 2.0**(-nrm)*A
-    # Horner evaluation of the irreducible fraction
-    if sparse:
-        I = sp.identity(N, dtype=complex, format='csc')
-    else:
-        I = np.identity(N, dtype=complex)
-    A2 = A.dot(A)
-    Q = c[-1]*I
-    P = c[p]*I
-    odd = 1
-    for k in range(p-2,-1,-1):
-        if odd == 1:
-            Q = Q.dot(A2) +c[k]*I
-        else:
-            P = P.dot(A2) +c[k]*I
-        odd = 1-odd
-    if odd == 1:
-        Q = Q.dot(A)
-        Q = Q-P
-        if sparse:
-            E = -(I+2.0*spla.spsolve(Q,P))
-        else:
-            E = -(I+2.0*la.solve(Q,P))
-    else:
-        P = P.dot(A)
-        Q = Q-P
-        if sparse:
-            E = I+2.0*spla.spsolve(Q,P)
-        else:
-            E = I+2.0*la.solve(Q,P)
-    # Squaring
-    for k in range(int(nrm)):
-        E = E.dot(E)
-       
+        E = spla.expm(A.toarray())
     return sp.csr_matrix(E)
     
 
