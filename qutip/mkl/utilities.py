@@ -49,7 +49,7 @@ def _set_mkl():
         python_dir = os.path.dirname(sys.executable)
         if plat in ['darwin','linux2', 'linux']:
             python_dir = os.path.dirname(python_dir)
-        if 'Anaconda' in sys.version:
+        if 'Anaconda' in sys.version or 'Continuum Analytics' in sys.version:
             is_anaconda = 1
         else:
             is_anaconda = 0
