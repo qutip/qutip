@@ -171,8 +171,8 @@ if qutip.settings.num_cpus == 0:
 
 
 # Find MKL library if it exists
-from qutip.mkl.utilities import _set_mkl
-_set_mkl()
+import qutip.mkl
+
 
 
 # -----------------------------------------------------------------------------
@@ -188,14 +188,6 @@ except:
 else:
     qutip.settings.fortran = True
 
-# check for scikits.umfpack
-try:
-    import scikits.umfpack as umfpack
-except:
-    qutip.settings.umfpack = False
-else:
-    qutip.settings.umfpack = True
-    del umfpack
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
