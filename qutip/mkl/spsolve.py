@@ -136,6 +136,7 @@ class mkl_lu(object):
             b = b.ravel(order='F')
         
         else:
+            b = b.ravel()
             nrhs = 1
 
         if self.is_complex:

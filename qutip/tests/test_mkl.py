@@ -39,7 +39,7 @@ import unittest
 from qutip import *
 import qutip.settings as qset
 if qset.has_mkl:
-    from qutip.mkl.spsolve import mkl_spsolve
+    from qutip.mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 
 @unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
@@ -57,6 +57,7 @@ def test_mkl_spsolve1():
     x2 = mkl_spsolve(As, b)
     assert_array_almost_equal(x, x2)
 
+
 @unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mklspsolve2():
     """
@@ -67,6 +68,105 @@ def test_mklspsolve2():
     b = A * x
     y = mkl_spsolve(A.data,b)
     assert_array_almost_equal(x.ravel(), y)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve3():
+    """
+    MKL spsolve : Multi RHS vector (Real)
+    """
+    row = np.array([0,0,1,2,2,2])
+    col = np.array([0,2,2,0,1,2])
+    data = np.array([1,2,3,-4,5,6])
+    sM = sp.csr_matrix((data,(row,col)), shape=(3,3), dtype=float)
+    M = sM.toarray()
+    row = np.array([0,0,1,1,0,0])
+    col = np.array([0,2,1,1,0,0])
+    data = np.array([1,1,1,1,1,1])
+    sN = sp.csr_matrix((data, (row,col)), shape=(3,3), dtype=float)
+    N = sN.toarray()
+    sX = mkl_spsolve(sM, N)
+    X = la.solve(M, N)
+    assert_array_almost_equal(X, sX)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve4():
+    """
+    MKL spsolve : Multi RHS vector (Complex)
+    """
+    row = np.array([0,0,1,2,2,2])
+    col = np.array([0,2,2,0,1,2])
+    data = np.array([1,2,3,-4,5,6],dtype=complex)
+    sM = sp.csr_matrix((data,(row,col)), shape=(3,3), dtype=complex)
+    M = sM.toarray()
+    row = np.array([0,0,1,1,0,0])
+    col = np.array([0,2,1,1,0,0])
+    data = np.array([1,1,1,1,1,1],dtype=complex)
+    sN = sp.csr_matrix((data, (row,col)), shape=(3,3), dtype=complex)
+    N = sN.toarray()
+    sX = mkl_spsolve(sM, N)
+    X = la.solve(M, N)
+    assert_array_almost_equal(X, sX)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve5():
+    """
+    MKL splu : Repeated RHS solve (Real)
+    """
+    row = np.array([0,0,1,2,2,2])
+    col = np.array([0,2,2,0,1,2])
+    data = np.array([1,2,3,-4,5,6])
+    sM = sp.csr_matrix((data,(row,col)), shape=(3,3), dtype=float)
+    M = sM.toarray()
+
+    row = np.array([0,0,1,1,0,0])
+    col = np.array([0,2,1,1,0,0])
+    data = np.array([1,1,1,1,1,1])
+    sN = sp.csr_matrix((data, (row,col)), shape=(3,3), dtype=float)
+    N = sN.toarray()
+
+    sX = np.zeros((3,3),dtype=float)
+    lu = mkl_splu(sM)
+
+    for k in range(3):
+        sX[:,k] = lu.solve(N[:,k])
+    lu.delete()
+    
+    X = la.solve(M,N)
+    assert_array_almost_equal(X,sX)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve6():
+    """
+    MKL splu : Repeated RHS solve (Complex)
+    """
+    row = np.array([0,0,1,2,2,2])
+    col = np.array([0,2,2,0,1,2])
+    data = np.array([1,2,3,-4,5,6], dtype=complex)
+    sM = sp.csr_matrix((data,(row,col)), shape=(3,3), dtype=complex)
+    M = sM.toarray()
+
+    row = np.array([0,0,1,1,0,0])
+    col = np.array([0,2,1,1,0,0])
+    data = np.array([1,1,1,1,1,1], dtype=complex)
+    sN = sp.csr_matrix((data, (row,col)), shape=(3,3), dtype=complex)
+    N = sN.toarray()
+
+    sX = np.zeros((3,3),dtype=complex)
+    lu = mkl_splu(sM)
+
+    for k in range(3):
+        sX[:,k] = lu.solve(N[:,k])
+    lu.delete()
+    
+    X = la.solve(M,N)
+    assert_array_almost_equal(X,sX)
+
+
+
 
 
 if __name__ == "__main__":
