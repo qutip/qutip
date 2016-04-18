@@ -98,7 +98,7 @@ dss_error_msgs = {'0' : 'Success', '-1': 'Zero Pivot', '-2': 'Out of memory', '-
 
 
 def _default_solver_args():
-    def_args = {'hermitian': False, 'symmetric': False, 'posdef': False}
+    def_args = {'hermitian': False, 'symmetric': False, 'posdef': False, 'return_info': False}
     return def_args
 
 
@@ -113,17 +113,23 @@ class mkl_lu(object):
         Solve system of equations using given RHS vector 'b'.
         Returns solution ndarray with same shape as input.
     
+    statistics()
+        Returns the statistics of the factorization and 
+        solution in the lu.stats attribute.
+    
     delete()
         Deletes the factorized matrix from memory.
     
     """
     def __init__(self, np_pt=None, dim=None, is_complex=None, 
-                perm=None, np_stats=None):
+                perm=None, np_stats=None, _stats=None):
         self._np_pt = np_pt
         self.dim = dim
         self.is_complex = is_complex
         self.perm = perm
         self._np_stats = np_stats
+        self.stats = None
+        self._stats = _stats  
     
     def solve(self, b, verbose = None):
         b_shp = b.shape
@@ -169,7 +175,14 @@ class mkl_lu(object):
                         byref(c_int(nrhs)), np_x)
         if status != 0:
             raise Exception(dss_error_msgs[str(status)])
+        
+        # Return solution vector x
+        if nrhs==1:
+            return x
+        else:
+            return np.reshape(x, b_shp, order='F')
     
+    def statistics(self, verbose=False):
         # Get all statistics
         stat_opts = MKL_DSS_DEFAULTS
         stat_string = c_char_p(bytes(b'ReorderTime,FactorTime,SolveTime,Peakmem,Factormem,Solvemem'))
@@ -179,18 +192,15 @@ class mkl_lu(object):
         if verbose:
             print('Solution Phase')
             print('--------------')
-            print('Solve time:',stats[2])
-            print('Solve memory (Mb):',stats[5]/1024.)
-        
-        # Return solution vector x
-        if nrhs==1:
-            return x
-        else:
-            return np.reshape(x, b_shp, order='F')
+            print('Solve time:',self._stats[2])
+            print('Solve memory (Mb)',self._stats[5]/1024.)
+        self.stats = {'ReorderTime': self._stats[0], 'FactorTime': self._stats[1] ,
+                    'SolveTime': self._stats[2], 'Peakmem': self._stats[3]/1024.,
+                    'Factormem': self._stats[4]/1024., 'Solvemem': self._stats[5]/1024.}
     
     def delete(self):
         # Delete opts
-        delete_opts = MKL_DSS_MSG_LVL_WARNING + MKL_DSS_TERM_LVL_ERROR
+        delete_opts = MKL_DSS_DEFAULTS
         status = dss_delete(self._np_pt, byref(c_int(delete_opts)))
         if status != 0:
             raise Exception(dss_error_msgs[str(status)])
@@ -238,10 +248,10 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         is_complex = 0
         data_type = np.float64
         if A.dtype != np.float64:
-            A = sp.csr_matrix(A, dtype=float, copy=False)
+            A = sp.csr_matrix(A, dtype=np.float64, copy=False)
     
     #Create working array and pointer to array
-    pt = np.zeros(64, dtype=int, order='C')
+    pt = np.zeros(8, dtype=np.int32, order='C')
     np_pt = pt.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     
     # Options for solver initialization
@@ -349,7 +359,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         print('Flops:',stats[1])
         print('')
     
-    return mkl_lu(np_pt, dim, is_complex, perm, np_stats)
+    return mkl_lu(np_pt, dim, is_complex, perm, np_stats, stats)
 
 
 def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
@@ -372,7 +382,11 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         Solution vector with same dimension as input 'b'.
     """
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
-    x = lu.solve(b, verbose=verbose)
+    x = lu.solve(b)
+    lu.statistics(verbose=verbose)
     lu.delete()
-    return x
+    if 'return_info' in kwargs.keys() and kwargs['return_info'] == True:
+        return x, lu.stats
+    else:    
+        return x
 
