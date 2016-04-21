@@ -67,7 +67,7 @@ def test_mklspsolve2():
     x = rand_ket(10).full()
     b = A * x
     y = mkl_spsolve(A.data,b)
-    assert_array_almost_equal(x.ravel(), y)
+    assert_array_almost_equal(x, y)
 
 
 @unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
@@ -164,6 +164,25 @@ def test_mkl_spsolve6():
     
     X = la.solve(M,N)
     assert_array_almost_equal(X,sX)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve7():
+    """
+    MKL spsolve : Solution shape same as input RHS vec
+    """
+    row = np.array([0,0,1,2,2,2])
+    col = np.array([0,2,2,0,1,2])
+    data = np.array([1,2,3,-4,5,6], dtype=complex)
+    A = sp.csr_matrix((data,(row,col)), shape=(3,3), dtype=complex)
+
+    b = np.array([0,2,0],dtype=complex)
+    out = mkl_spsolve(A,b)
+    assert_(b.shape==out.shape)
+    
+    b = np.array([0,2,0],dtype=complex).reshape((3,1))
+    out = mkl_spsolve(A,b)
+    assert_(b.shape==out.shape)
 
 
 

@@ -66,6 +66,10 @@ MKL_DSS_TERM_LVL_WARNING            = 1073741856
 MKL_DSS_TERM_LVL_ERROR              = 1073741864
 MKL_DSS_TERM_LVL_FATAL              = 1073741872
 
+# Out-of-core level options
+MKL_DSS_OOC_VARIABLE                = 1024
+MKL_DSS_OOC_STRONG                  = 2048
+
 # Structure parameters
 MKL_DSS_SYMMETRIC                   = 536870976
 MKL_DSS_SYMMETRIC_STRUCTURE         = 536871040
@@ -86,6 +90,10 @@ MKL_DSS_POSITVE_DEFINITE            = 134217792
 MKL_DSS_INDEFINITE                  = 134217856
 MKL_DSS_HERMITIAN_POSITIVE_DEFINITE = 134217920
 MKL_DSS_HERMITIAN_INDEFINITE        = 134217984
+
+# Solution parameters
+MKL_DSS_REFINEMENT_OFF              = 4096
+MKL_DSS_REFINEMENT_ON               = 8192
 
 # Set error messages
 dss_error_msgs = {'0' : 'Success', '-1': 'Zero Pivot', '-2': 'Out of memory', '-3': 'Failure',
@@ -113,7 +121,7 @@ class mkl_lu(object):
         Solve system of equations using given RHS vector 'b'.
         Returns solution ndarray with same shape as input.
     
-    statistics()
+    info()
         Returns the statistics of the factorization and 
         solution in the lu.stats attribute.
     
@@ -122,14 +130,13 @@ class mkl_lu(object):
     
     """
     def __init__(self, np_pt=None, dim=None, is_complex=None, 
-                perm=None, np_stats=None, _stats=None):
+                perm=None, np_stats=None, stats=None):
         self._np_pt = np_pt
         self.dim = dim
         self.is_complex = is_complex
         self.perm = perm
         self._np_stats = np_stats
-        self.stats = None
-        self._stats = _stats  
+        self.stats = stats  
     
     def solve(self, b, verbose = None):
         b_shp = b.shape
@@ -163,8 +170,8 @@ class mkl_lu(object):
         np_x = x.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C')) 
         np_b = b.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C'))
         
-        # Dont do any iterative refinement.
-        solve_opts = MKL_DSS_DEFAULTS
+        # Do iterative refinement.
+        solve_opts = MKL_DSS_REFINEMENT_ON
     
         # Perform solve
         if self.is_complex:
@@ -178,25 +185,23 @@ class mkl_lu(object):
         
         # Return solution vector x
         if nrhs==1:
+            if x.shape != b_shp:
+                x = np.reshape(x, b_shp)
             return x
         else:
             return np.reshape(x, b_shp, order='F')
     
-    def statistics(self, verbose=False):
+    def info(self, verbose=False):
         # Get all statistics
         stat_opts = MKL_DSS_DEFAULTS
         stat_string = c_char_p(bytes(b'ReorderTime,FactorTime,SolveTime,Peakmem,Factormem,Solvemem'))
         status = dss_statistics(self._np_pt, byref(c_int(stat_opts)), stat_string, self._np_stats)
         if status != 0:
             raise Exception(dss_error_msgs[str(status)])
-        if verbose:
-            print('Solution Phase')
-            print('--------------')
-            print('Solve time:',self._stats[2])
-            print('Solve memory (Mb)',self._stats[5]/1024.)
-        self.stats = {'ReorderTime': self._stats[0], 'FactorTime': self._stats[1] ,
-                    'SolveTime': self._stats[2], 'Peakmem': self._stats[3]/1024.,
-                    'Factormem': self._stats[4]/1024., 'Solvemem': self._stats[5]/1024.}
+
+        return {'ReorderTime': self.stats[0], 'FactorTime': self.stats[1] ,
+                    'SolveTime': self.stats[2], 'Peakmem': self.stats[3]/1024.,
+                    'Factormem': self.stats[4]/1024., 'Solvemem': self.stats[5]/1024.}
     
     def delete(self):
         # Delete opts
@@ -250,9 +255,9 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         if A.dtype != np.float64:
             A = sp.csr_matrix(A, dtype=np.float64, copy=False)
     
-    #Create working array and pointer to array
-    pt = np.zeros(8, dtype=np.int32, order='C')
-    np_pt = pt.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
+    #Create pointer to internal memeory
+    pt = 0
+    np_pt = byref(c_int(pt))
     
     # Options for solver initialization
     create_opts = MKL_DSS_MSG_LVL_WARNING + MKL_DSS_TERM_LVL_ERROR + \
@@ -383,10 +388,15 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     """
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
     x = lu.solve(b)
-    lu.statistics(verbose=verbose)
+    info = lu.info()
+    if verbose:
+        print('Solution Phase')
+        print('--------------')
+        print('Solve time:',info['SolveTime'])
+        print('Solve memory (Mb)',info['Solvemem'])
     lu.delete()
     if 'return_info' in kwargs.keys() and kwargs['return_info'] == True:
-        return x, lu.stats
+        return x, info
     else:    
         return x
 
