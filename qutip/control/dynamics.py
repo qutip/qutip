@@ -346,6 +346,9 @@ class Dynamics(object):
         self._dyn_gen_mapped = False
         self._timeslots_initialized = False
         self._ctrls_initialized = False
+        # Unitary checking
+        self.check_unitarity = False
+        self.unitarity_tol = 1e-5
 
         self.apply_params()
 
@@ -577,6 +580,10 @@ class Dynamics(object):
 
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
+            
+        if (self.log_level <= logging.DEBUG
+            and isinstance(self, DynamicsUnitary)):
+                self.check_unitarity = True
 
     def _create_decomp_lists(self):
         """
@@ -1061,8 +1068,21 @@ class Dynamics(object):
         """
         raise errors.UsageError("Decomposition cannot be completed by "
                                 "this class. Try a(nother) subclass")
-
-
+    
+    def _is_unitary(self, A):
+        """
+        Checks whether operator A is unitary
+        A can be either Qobj or ndarray
+        """
+        if isinstance(A, Qobj):
+            unitary = np.allclose(np.eye(A.shape[0]), A*A.dag().full(), 
+                        atol=self.unitarity_tol)
+        else:
+            unitary = np.allclose(np.eye(len(A)), A.dot(A.T.conj()), 
+                        atol=self.unitarity_tol)
+            
+        return unitary
+        
 class DynamicsGenMat(Dynamics):
     """
     This sub class can be used for any system where no additional

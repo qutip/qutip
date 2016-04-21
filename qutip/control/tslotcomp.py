@@ -298,6 +298,11 @@ class TSlotCompUpdateAll(TimeslotComputer):
                     self._prop_tofh.write(
                         "propagator k={}\n".format(k))
                     np.savetxt(self._prop_tofh, self._prop[k], fmt='%10.3g')
+                    
+            if dyn.check_unitarity:
+                if not dyn._is_unitary(dyn._prop[k]):
+                    logger.warning(
+                        "Progator of timeslot {} is not unitary".format(k))
 
         if dyn.stats is not None:
             dyn.stats.wall_time_prop_compute += \
