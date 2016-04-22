@@ -298,12 +298,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
                     self._prop_tofh.write(
                         "propagator k={}\n".format(k))
                     np.savetxt(self._prop_tofh, self._prop[k], fmt='%10.3g')
-                    
-            if dyn.check_unitarity:
-                if not dyn._is_unitary(dyn._prop[k]):
-                    logger.warning(
-                        "Progator of timeslot {} is not unitary".format(k))
-
+                           
         if dyn.stats is not None:
             dyn.stats.wall_time_prop_compute += \
                 timeit.default_timer() - time_start
@@ -383,6 +378,9 @@ class TSlotCompUpdateAll(TimeslotComputer):
         if self._owd_evo_tofh != 0:
             self._owd_evo_tofh.close()
             self._owd_evo_tofh = 0
+            
+        if dyn.unitarity_check_level:
+            dyn.check_unitarity()
 
     def get_timeslot_for_fidelity_calc(self):
         """
