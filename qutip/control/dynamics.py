@@ -64,6 +64,7 @@ import scipy.sparse as sp
 # QuTiP
 from qutip import Qobj
 from qutip.sparse import sp_eigs, _dense_eigs
+import qutip.settings as settings
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -347,7 +348,7 @@ class Dynamics(object):
         self._timeslots_initialized = False
         self._ctrls_initialized = False
         # Unitary checking
-        self.check_unitarity = False
+        self.unitarity_check_level = 0
         self.unitarity_tol = 1e-5
 
         self.apply_params()
@@ -580,10 +581,10 @@ class Dynamics(object):
 
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
-            
+        
         if (self.log_level <= logging.DEBUG
             and isinstance(self, DynamicsUnitary)):
-                self.check_unitarity = True
+                self.unitarity_check_level = 1
 
     def _create_decomp_lists(self):
         """
@@ -1083,6 +1084,23 @@ class Dynamics(object):
             
         return unitary
         
+    def _calc_unitary_err(self, A):
+        if isinstance(A, Qobj):
+            err = np.sum(abs(np.eye(A.shape[0]) - A*A.dag().full()))
+        else:
+            err = np.sum(abs(np.eye(len(A)) - A.dot(A.T.conj())))
+            
+        return err
+        
+    def unitarity_check(self):
+        """
+        Checks whether all propagators are unitary
+        """
+        for k in range(self.num_tslots):
+            if not self._is_unitary(self._prop[k]):
+                logger.warning(
+                    "Progator of timeslot {} is not unitary".format(k))
+        
 class DynamicsGenMat(Dynamics):
     """
     This sub class can be used for any system where no additional
@@ -1286,6 +1304,56 @@ class DynamicsUnitary(Dynamics):
             else:
                 return self._dyn_gen_eigenvectors[k].conj().T
 
+    def check_unitarity(self):
+        """
+        Checks whether all propagators are unitary
+        For propagators found not to be unitary, the potential underlying
+        causes are investigated.
+        """
+        max_prop_unit_err = self.unitarity_tol
+        for k in range(self.num_tslots):
+            prop_unit = self._is_unitary(self._prop[k])
+            if not prop_unit:
+                logger.warning(
+                    "Progator of timeslot {} is not unitary".format(k))
+            if not prop_unit or self.unitarity_check_level > 1:
+                # Check Hamiltonian
+                H = self._dyn_gen[k]
+                if isinstance(H, Qobj):
+                    herm = H.isherm
+                else:
+                    diff = np.abs(H.T.conj() - H)
+                    herm = False if np.any(diff > settings.atol) else True
+                eigval_unit = self._is_unitary(self._prop_eigen[k])
+                eigvec_unit = self._is_unitary(self._dyn_gen_eigenvectors[k])
+                eigvecadj_unit = self._is_unitary(
+                self._dyn_gen_eigenvectors_adj[k])
+                msg = ("prop unit: {}; H herm: {}; "
+                        "eigval unit: {}; eigvec unit: {}; "
+                        "eigvecadj_unit: {}".format(
+                        prop_unit, herm, eigval_unit, eigvec_unit, 
+                            eigvecadj_unit))
+                logger.info(msg)
+
+                if self.oper_dtype == Qobj:
+        
+                    test_prop = (self._dyn_gen_eigenvectors[k]*self._prop_eigen[k]*
+                                        self._get_dyn_gen_eigenvectors_adj(k))
+                else:
+                    test_prop = self._dyn_gen_eigenvectors[k].dot(
+                                            self._prop_eigen[k]).dot(
+                                        self._get_dyn_gen_eigenvectors_adj(k))
+                                        
+                logger.info("Test prop unitary: {}".format(self._is_unitary(test_prop)))
+                
+                prop_unit_err = self._calc_unitary_err(self._prop[k])
+                if prop_unit_err > max_prop_unit_err:
+                    worst_k = k
+                    max_prop_unit_err = prop_unit_err
+        if max_prop_unit_err > self.unitarity_tol:
+            print("Worst propagator {} had unit err {} and was generated from H:\n{}\n".format(worst_k, max_prop_unit_err, self._dyn_gen[worst_k]))
+
+                    
 class DynamicsSymplectic(Dynamics):
     """
     Symplectic systems
