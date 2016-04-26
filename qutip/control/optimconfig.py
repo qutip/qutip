@@ -42,12 +42,11 @@
 Configuration parameters for control pulse optimisation
 """
 
-import os
-import errno
 import numpy as np
 # QuTiP logging
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
+import qutip.control.io as qtrlio
 
 TEST_OUT_DIR = "test_out"
 
@@ -235,39 +234,8 @@ class OptimConfig(object):
         msg : string
             Error msg if directory creation failed
         """
-
-        dir_ok = True
-        if '~' in output_dir:
-            output_dir = os.path.expanduser(output_dir)
-        elif not os.path.abspath(output_dir):
-            # Assume relative path from cwd given
-            output_dir = os.path.join(os.getcwd(), output_dir)
-
-        errmsg = "Failed to create {} directory:\n{}\n".format(desc,
-                                                            output_dir)
-
-        if os.path.exists(output_dir):
-            if os.path.isfile(output_dir):
-                dir_ok = False
-                errmsg += "A file already exists with the same name"
-        else:
-            try:
-                os.makedirs(output_dir)
-                logger.info("Test out files directory {} created "
-                            "(recursively)".format(output_dir))
-            except OSError as e:
-                if e.errno == errno.EEXIST:
-                    logger.info("Assume test out files directory {} created "
-                        "(recursively)  some other process".format(output_dir))
-                else:
-                    dir_ok = False
-                    errmsg += "Underling error (makedirs) :({}) {}".format(
-                        type(e).__name__, e)
-
-        if dir_ok:
-            return dir_ok, output_dir, "{} directory is ready".format(desc)
-        else:
-            return dir_ok, output_dir, errmsg
+        
+        return qtrlio.create_dir(output_dir, desc=desc)
 
 # create global instance
 optimconfig = OptimConfig()
