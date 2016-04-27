@@ -798,7 +798,7 @@ def _steadystate_power(L, ss_args):
             
         v = v / la.norm(v, np.inf)
         it += 1
-    if settings.has_mkl:
+    if ss_args['method'] == 'power' and settings.has_mkl:
         lu.delete()
     if it >= maxiter:
         raise Exception('Failed to find steady state after ' +
