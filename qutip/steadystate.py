@@ -736,8 +736,12 @@ def _steadystate_power(L, ss_args):
         rhoss.dims = [L.dims[0], 1]
     n = L.shape[0]
     # Build Liouvillian
+    if settings.has_mkl and ss_args['method'] == 'power':
+        has_mkl = 1
+    else:
+        has_mkl = 0
     L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, 
-                                                ss_args, settings.has_mkl)
+                                                ss_args, has_mkl)
     orig_nnz = L.nnz
     # start with all ones as RHS
     v = np.ones(n, dtype=complex)
