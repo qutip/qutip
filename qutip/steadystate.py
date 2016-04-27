@@ -62,7 +62,7 @@ logger.setLevel('DEBUG')
 
 # Load MKL spsolve if avaiable
 if settings.has_mkl:
-    from qutip.mkl.spsolve import mkl_spsolve
+    from qutip.mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
@@ -660,14 +660,19 @@ def _steadystate_svd_dense(L, ss_args):
         return rhoss / rhoss.tr()
 
 
-def _steadystate_power_liouvillian(L, ss_args):
+def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
     """Creates modified Liouvillian for power based SS methods.
     """
     perm = None
     perm2 = None
     rev_perm = None
     n = L.shape[0]
-    L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
+    if has_mkl:
+        L = L.data - (1e-15) * sp.eye(n, n, format='csr')
+        kind = 'csr'
+    else:
+        L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
+        kind = 'csc'
     orig_nnz = L.nnz
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
@@ -681,7 +686,7 @@ def _steadystate_power_liouvillian(L, ss_args):
         _wbm_start = time.time()
         perm = weighted_bipartite_matching(L)
         _wbm_end = time.time()
-        L = sp_permute(L, perm, [], 'csc')
+        L = sp_permute(L, perm, [], kind)
         ss_args['info']['perm'].append('wbm')
         ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
         if settings.debug:
@@ -699,7 +704,7 @@ def _steadystate_power_liouvillian(L, ss_args):
         _rcm_end = time.time()
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         rev_perm = np.argsort(perm2)
-        L = sp_permute(L, perm2, perm2, 'csc')
+        L = sp_permute(L, perm2, perm2, kind)
         if settings.debug:
             new_band = sp_bandwidth(L)[0]
             new_pro = sp_profile(L)[0]
@@ -731,7 +736,8 @@ def _steadystate_power(L, ss_args):
         rhoss.dims = [L.dims[0], 1]
     n = L.shape[0]
     # Build Liouvillian
-    L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, ss_args)
+    L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, 
+                                                ss_args, settings.has_mkl)
     orig_nnz = L.nnz
     # start with all ones as RHS
     v = np.ones(n, dtype=complex)
@@ -756,7 +762,10 @@ def _steadystate_power(L, ss_args):
     _power_start = time.time()
     # Get LU factors
     if ss_args['method'] == 'power':
-        lu = splu(L, permc_spec=ss_args['permc_spec'],
+        if settings.has_mkl:
+            lu = mkl_splu(L)
+        else: 
+            lu = splu(L, permc_spec=ss_args['permc_spec'],
               diag_pivot_thresh=ss_args['diag_pivot_thresh'],
               options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
@@ -789,10 +798,11 @@ def _steadystate_power(L, ss_args):
             
         v = v / la.norm(v, np.inf)
         it += 1
+    if settings.has_mkl:
+        lu.delete()
     if it >= maxiter:
         raise Exception('Failed to find steady state after ' +
                         str(maxiter) + ' iterations')
-
     _power_end = time.time()
     ss_args['info']['solution_time'] = _power_end-_power_start
     ss_args['info']['iterations'] = it
