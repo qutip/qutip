@@ -41,6 +41,7 @@ data dumping.
 """
 
 import os
+import numpy as np
 import copy
 # QuTiP logging
 import qutip.logging_utils
@@ -153,23 +154,154 @@ class EvoCompDumpItem(DumpItem):
         self.reset()
     
     def reset(self):
-         self.ctrl_amps = None
-         self.dyn_gen = None
-         self.prop = None
-         self.prop_grad = None
-         self.fwd_evo = None
-         self.onwd_evo = None
-         self.onto_evo = None
-         
+        self.idx = None
+#        self.num_ctrls = None
+#        self.num_tslots = None
+        self.ctrl_amps = None
+        self.dyn_gen = None
+        self.prop = None
+        self.prop_grad = None
+        self.fwd_evo = None
+        self.onwd_evo = None
+        self.onto_evo = None
+                
     def writeout(self, f=None):
         """ write all the objects out to files """
+        dump = self.parent
         fall = None
+        closefall = True
+        closef = False
+        # If specific file given then write everything to it
         if hasattr(f, 'write'):
             # write all to this stream
             fall = f
+            closefall = False
+            f.write("EVOLUTION COMPUTATION {}".format(self.idx))
         elif f:
             fall = open(f, 'w')
-        # otherwise files for each type will be created
+        else:   
+            # otherwise files for each type will be created
+            fname_base = "{}-evo{}".format(dump.fname_base, self.idx)
+        
+        #ctrl amps
+        if self.ctrl_amps:
+            if fall:
+                f = fall
+                f.write("Ctrl amps")
+            else:
+                fname = "{}-ctrl_amps.{}".format(fname_base, 
+                                                dump.dump_file_ext)
+                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                closef = True
+            np.savetxt(f, self.ctrl_amps)
+            if closef: f.close()
+                
+        # dynamics generators
+        if self.dyn_gen:
+            k = 0
+            if fall:
+                f = fall
+                f.write("Dynamics Generators")
+            else:
+                fname = "{}-dyn_gen.{}".format(fname_base, 
+                                                dump.dump_file_ext)
+                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                closef = True
+            for dg in self.dyn_gen:
+                f.write("dynamics generator for timeslot {}".format(k))
+                np.savetxt(f, self.dyn_gen[k])
+                k += 1
+            if closef: f.close()
+
+        # Propagators
+        if self.prop:
+            k = 0
+            if fall:
+                f = fall
+                f.write("Propagators")
+            else:
+                fname = "{}-prop.{}".format(fname_base, 
+                                                dump.dump_file_ext)
+                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                closef = True
+            for dg in self.dyn_gen:
+                f.write("Propagator for timeslot {}".format(k))
+                np.savetxt(f, self.prop[k])
+                k += 1
+            if closef: f.close()
+                
+        # Propagator gradient
+        if self.prop_grad:
+            k = 0
+            if fall:
+                f = fall
+                f.write("Propagator gradients")
+            else:
+                fname = "{}-prop_grad.{}".format(fname_base, 
+                                                dump.dump_file_ext)
+                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                closef = True
+            for k in range(self.prop_grad.shape[0]):
+                for j in range(self.prop_grad.shape[1]):
+                    f.write("Propagator gradient for timeslot {} "
+                            "control {}".format(k, j))
+                    np.savetxt(f, self.prop_grad[k, j])
+            if closef: f.close()
+
+        # forward evolution
+        if self.fwd_evo:
+            k = 0
+            if fall:
+                f = fall
+                f.write("Forward evolution")
+            else:
+                fname = "{}-fwd_evo.{}".format(fname_base, 
+                                                dump.dump_file_ext)
+                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                closef = True
+            for dg in self.dyn_gen:
+                f.write("Evolution from 0 to {}".format(k))
+                np.savetxt(f, self.fwd_evo[k])
+                k += 1
+            if closef: f.close()
+            
+        # onward evolution
+        if self.onwd_evo:
+            k = 0
+            if fall:
+                f = fall
+                f.write("Onward evolution")
+            else:
+                fname = "{}-onwd_evo.{}".format(fname_base, 
+                                                dump.dump_file_ext)
+                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                closef = True
+            for dg in self.dyn_gen:
+                f.write("Evolution from {} to end".format(k))
+                np.savetxt(f, self.fwd_evo[k])
+                k += 1
+            if closef: f.close()
+                
+        # onto evolution
+        if self.onto_evo:
+            k = 0
+            if fall:
+                f = fall
+                f.write("Onto evolution")
+            else:
+                fname = "{}-onto_evo.{}".format(fname_base, 
+                                                dump.dump_file_ext)
+                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                closef = True
+            for dg in self.dyn_gen:
+                f.write("Evolution from {} onto target".format(k))
+                np.savetxt(f, self.fwd_evo[k])
+                k += 1
+            if closef: f.close()
+            
+                
+        if closefall:
+            fall.close()
         
         
          
