@@ -163,7 +163,7 @@ def test_mkl_spsolve6():
     lu.delete()
     
     X = la.solve(M,N)
-    assert_array_almost_equal(X,sX)
+    assert_array_almost_equal(X, sX)
 
 
 @unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
@@ -185,7 +185,57 @@ def test_mkl_spsolve7():
     assert_(b.shape==out.shape)
 
 
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve8():
+    """
+    MKL spsolve : Sparse RHS matrix
+    """
+    A = sp.csr_matrix([
+                [1, 2, 0],
+                [0, 3, 0],
+                [0, 0, 5]])
+    b = sp.csr_matrix([
+        [0, 1],
+        [1, 0],
+        [0, 0]])
 
+    x = mkl_spsolve(A, b)
+    ans = np.array([[-0.66666667, 1],
+                    [0.33333333, 0],
+                    [0, 0]])
+    assert_array_almost_equal(x.toarray(), ans)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve9():
+    """
+    MKL spsolve : Hermitian (complex) solver
+    """
+    A = sp.csr_matrix(np.array([[-0.56119994+0j, 0, 0.46884364-0.09431012j],
+                       [ 0, 1, 0],
+                       [ 0.46884364+0.09431012j, 0, -0.71351053+0j]]))
+
+    b = np.array([-0.0923563-0.09431012j, 0, -0.2446669+0.09431012j])
+
+    x = mkl_spsolve(A, b, hermitian=1)
+    ans = np.array([1.00000003 -5.49230115e-09j, 0, 1.00000003])
+    assert_array_almost_equal(x, ans)
+    
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_mkl_spsolve10():
+    """
+    MKL spsolve : Hermitian (real) solver
+    """
+    A = sp.csr_matrix(np.array([[-0.56119994, 0, 0.46884364],
+                       [ 0, 1, 0],
+                       [ 0.46884364, 0, -0.71351053]]))
+
+    b = np.array([-0.0923563, 0, -0.2446669])
+
+    x = mkl_spsolve(A, b, hermitian=1)
+    ans = np.array([1.00000003, 0, 1.00000003])
+    assert_array_almost_equal(x, ans)
 
 
 if __name__ == "__main__":
