@@ -59,13 +59,16 @@ def test_wigner_coherent():
 
     # calculate the wigner function using qutip and analytic formula
     W_qutip = wigner(psi, xvec, yvec, g=2)
+    W_qutip_cl = wigner(psi, xvec, yvec, g=2, method='clenshaw')
     W_analytic = 2 / np.pi * np.exp(-2 * abs(a - beta) ** 2)
 
     # check difference
     assert_(np.sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
+    assert_(np.sum(abs(W_qutip_cl - W_analytic) ** 2) < 1e-4)
 
     # check normalization
     assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+    assert_(np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
     assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
@@ -90,14 +93,17 @@ def test_wigner_fock():
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip = wigner(psi, xvec, yvec, g=2)
+        W_qutip_cl = wigner(psi, xvec, yvec, g=2, method='clenshaw')
         W_analytic = 2 / np.pi * (-1) ** n * \
             np.exp(-2 * abs(a) ** 2) * np.polyval(laguerre(n), 4 * abs(a) ** 2)
 
         # check difference
         assert_(np.sum(abs(W_qutip - W_analytic)) < 1e-4)
+        assert_(np.sum(abs(W_qutip_cl - W_analytic)) < 1e-4)
 
         # check normalization
         assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
         assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
