@@ -51,7 +51,7 @@ from qutip.utilities import clebsch
 from scipy.misc import factorial
 
 
-def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
+def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
 
@@ -71,15 +71,15 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
-    method : string {'iterative', 'clenshaw', 'laguerre', 'fft'}
-        Select method 'iterative', 'clenshaw', 'laguerre', or 'fft', where 'iterative' 
-        and 'clenshaw' use an iterative method to evaluate the Wigner functions for density
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
+        Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw' 
+        and 'iterative' use an iterative method to evaluate the Wigner functions for density
         matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
         in scipy for the same task. The 'fft' method evaluates the Fourier
         transform of the density matrix. The 'iterative' method is default, and
         in general recommended, but the 'laguerre' method is more efficient for
         very sparse density matrices (e.g., superpositions of Fock states in a
-        large Hilbert space). The 'fft' method is the preferred method for
+        large Hilbert space). The 'clenshaw' method is the preferred method for
         dealing with density matrices that have a large number of excitations
         (>~50). 'clenshaw' is a fast and numerically stable method.
 
