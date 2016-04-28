@@ -101,7 +101,7 @@ class mkl_lu(object):
         solution in the lu.info attribute.
     
     delete()
-        Deletes the factorized matrix from memory.
+        Deletes the allocated solver memory.
     
     """
     def __init__(self, np_pt=None, dim=None, is_complex=None, 
@@ -348,15 +348,19 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     ----------
     A : csr_matrix
         Sparse matrix.
-    b : ndarray
-        RHS vector.
+    b : ndarray or sparse matrix
+        The vector or matrix representing the right hand side of the equation.
+        If a vector, b.shape must be (n,) or (n, 1).
     perm : ndarray (optional)
         User defined matrix factorization permutation.
     
     Returns
     -------
-    x : ndarray
-        Solution vector with same dimension as input 'b'.
+    x : ndarray or csr_matrix
+        The solution of the sparse linear equation.
+        If b is a vector, then x is a vector of size A.shape[1]
+        If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
+    
     """
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
     b_is_sparse = sp.isspmatrix(b)
