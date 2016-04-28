@@ -218,8 +218,8 @@ def test_mkl_spsolve9():
     b = np.array([-0.0923563-0.09431012j, 0, -0.2446669+0.09431012j])
 
     x = mkl_spsolve(A, b, hermitian=1)
-    ans = np.array([1.00000003 -5.49230115e-09j, 0, 1.00000003])
-    assert_array_almost_equal(x, ans)
+    y = la.solve(A.toarray(),b)
+    assert_array_almost_equal(x, y)
     
 
 @unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
@@ -234,8 +234,8 @@ def test_mkl_spsolve10():
     b = np.array([-0.0923563, 0, -0.2446669])
 
     x = mkl_spsolve(A, b, hermitian=1)
-    ans = np.array([1.00000003, 0, 1.00000003])
-    assert_array_almost_equal(x, ans)
+    y = la.solve(A.toarray(),b)
+    assert_array_almost_equal(x, y)
 
 
 if __name__ == "__main__":
