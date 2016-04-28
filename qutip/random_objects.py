@@ -276,7 +276,7 @@ def rand_ket(N, density=1, dims=None):
     X = sp.rand(N, 1, density, format='csr')
     X.data = X.data - 0.5
     Y = X.copy()
-    Y.data = 1.0j * np.random.random(len(X.data)) - (0.5 + 0.5j)
+    Y.data = 1.0j * (np.random.random(len(X.data)) - 0.5)
     X = X + Y
     X.sort_indices()
     X = Qobj(X)
