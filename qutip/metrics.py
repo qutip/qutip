@@ -57,7 +57,6 @@ try:
     import cvxpy
 except:
     cvxpy = None
-    logger.warning("CVXPY not found, semidefinite solving is disabled.")
 
 
 def fidelity(A, B):
