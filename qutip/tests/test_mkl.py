@@ -211,14 +211,10 @@ def test_mkl_spsolve9():
     """
     MKL spsolve : Hermitian (complex) solver
     """
-    A = sp.csr_matrix(np.array([[-0.56119994+0j, 0, 0.46884364-0.09431012j],
-                       [ 0, 1, 0],
-                       [ 0.46884364+0.09431012j, 0, -0.71351053+0j]]))
-
-    b = np.array([-0.0923563-0.09431012j, 0, -0.2446669+0.09431012j])
-
-    x = mkl_spsolve(A, b, hermitian=1)
-    y = la.solve(A.toarray(),b)
+    A = rand_herm(np.arange(1,11)).data
+    x = np.ones(10,dtype=complex)
+    b = A.dot(x)
+    y = mkl_spsolve(A, b, hermitian=1)
     assert_array_almost_equal(x, y)
     
 
@@ -227,14 +223,10 @@ def test_mkl_spsolve10():
     """
     MKL spsolve : Hermitian (real) solver
     """
-    A = sp.csr_matrix(np.array([[-0.56119994, 0, 0.46884364],
-                       [ 0, 1, 0],
-                       [ 0.46884364, 0, -0.71351053]]))
-
-    b = np.array([-0.0923563, 0, -0.2446669])
-
-    x = mkl_spsolve(A, b, hermitian=1)
-    y = la.solve(A.toarray(),b)
+    A = rand_herm(np.arange(1,11)).data.astype(float)
+    x = np.ones(10,dtype=float)
+    b = A.dot(x)
+    y = mkl_spsolve(A, b, hermitian=1)
     assert_array_almost_equal(x, y)
 
 
