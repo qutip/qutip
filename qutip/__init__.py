@@ -170,6 +170,11 @@ if qutip.settings.num_cpus == 0:
         qutip.settings.num_cpus = multiprocessing.cpu_count()
 
 
+# Find MKL library if it exists
+import qutip.mkl
+
+
+
 # -----------------------------------------------------------------------------
 # Load configuration from environment variables: override defaults and
 # configuration file.
@@ -183,14 +188,6 @@ except:
 else:
     qutip.settings.fortran = True
 
-# check for scikits.umfpack
-try:
-    import scikits.umfpack as umfpack
-except:
-    qutip.settings.umfpack = False
-else:
-    qutip.settings.umfpack = True
-    del umfpack
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #

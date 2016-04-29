@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, Paul D. Nation.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,57 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import qutip.settings as qset
 
-def run():
+import numpy as np
+import os, sys
+from qutip.utilities import _blas_info
+import qutip.settings as qset
+from ctypes import cdll
+
+
+def _set_mkl():
     """
-    Run the nose test scripts for QuTiP.
+    Finds the MKL runtime library for the 
+    Anaconda and Intel Python distributions.
+    
     """
-    if qset.has_mkl:
-        print('Running tests with Intel MKL library extensions...')
-    import nose
-    # runs tests in qutip.tests module only
-    nose.run(defaultTest="qutip.tests", argv=['nosetests', '-v'])
+    if _blas_info() == 'INTEL MKL':
+        plat = sys.platform
+        python_dir = os.path.dirname(sys.executable)
+        if plat in ['darwin','linux2', 'linux']:
+            python_dir = os.path.dirname(python_dir)
+        if 'Anaconda' in sys.version or 'Continuum' in sys.version:
+            is_anaconda = 1
+        else:
+            is_anaconda = 0
+        if plat == 'darwin':
+            lib = '/libmkl_rt.dylib'
+        elif plat == 'win32':
+            lib = '\\mkl_rt.dll'
+        elif plat in ['linux2', 'linux']:
+            lib = '/libmkl_rt.so'
+        else:
+            raise Exception('Unknown platfrom.')
+        if is_anaconda:
+            if plat in ['darwin','linux2', 'linux']:
+                lib_dir = '/lib'
+            else:
+                lib_dir = '\Library\\bin'
+        else:
+            #Look for Intel Python distro location
+            if plat in ['darwin','linux2', 'linux']:
+                lib_dir = '/ext/lib'
+            else:
+                lib_dir = '\ext\\lib'
+        try:
+            qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
+            qset.has_mkl = True
+        except:
+            pass
+    else:
+        pass
+
+
+if __name__ == "__main__":
+    _set_mkl()
+    print(qset.has_mkl)

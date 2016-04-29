@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, Paul D. Nation.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,35 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import numpy as np
+import scipy.sparse as sp
+import ctypes
+from ctypes import POINTER,c_int,c_char,c_double, byref
+from numpy import ctypeslib
 import qutip.settings as qset
+zcsrgemv = qset.mkl_lib.mkl_cspblas_zcsrgemv
 
-def run():
-    """
-    Run the nose test scripts for QuTiP.
-    """
-    if qset.has_mkl:
-        print('Running tests with Intel MKL library extensions...')
-    import nose
-    # runs tests in qutip.tests module only
-    nose.run(defaultTest="qutip.tests", argv=['nosetests', '-v'])
+def mkl_spmv(A, x):
+     """
+     sparse csr_spmv using MKL
+     """
+     (m,n) = A.shape
+
+     # Pointers to data of the matrix
+     data    = A.data.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C'))
+     indptr  = A.indptr.ctypes.data_as(POINTER(c_int))
+     indices = A.indices.ctypes.data_as(POINTER(c_int))
+
+     # Allocate output, using same conventions as input
+     if x.ndim is 1:
+        y = np.empty(m,dtype=np.complex,order='C')
+     elif x.ndim==2 and x.shape[1]==1:
+        y = np.empty((m,1),dtype=np.complex,order='C')
+     else:
+        raise Exception('Input vector must be 1D row or 2D column vector')
+     
+     np_x = x.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C'))
+     np_y = y.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C'))
+     # now call MKL. This returns the answer in np_y, which points to y
+     zcsrgemv(byref(c_char(bytes(b'N'))), byref(c_int(m)), data ,indptr, indices, np_x, np_y ) 
+     return y
