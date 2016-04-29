@@ -223,7 +223,7 @@ def test_mkl_spsolve10():
     """
     MKL spsolve : Hermitian (real) solver
     """
-    A = rand_herm(np.arange(1,11))
+    A = rand_herm(np.arange(1,11)).data
     A = sp.csr_matrix((np.real(A.data), A.indices, A.indptr), dtype=float)
     x = np.ones(10, dtype=float)
     b = A.dot(x)
