@@ -223,8 +223,9 @@ def test_mkl_spsolve10():
     """
     MKL spsolve : Hermitian (real) solver
     """
-    A = rand_herm(np.arange(1,11)).data.astype(float)
-    x = np.ones(10,dtype=float)
+    A = rand_herm(np.arange(1,11))
+    A = sp.csr_matrix((np.real(A.data), A.indices, A.indptr), dtype=float)
+    x = np.ones(10, dtype=float)
     b = A.dot(x)
     y = mkl_spsolve(A, b, hermitian=1)
     assert_array_almost_equal(x, y)
