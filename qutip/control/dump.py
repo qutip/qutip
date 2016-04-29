@@ -97,17 +97,15 @@ class DynamicsDump(Dump):
     def reset(self):
         dyn = self.parent
         self.evo_dumps = []
-        self.dump_amps = True
-        self.dump_dyn_gen = True
-        self.dump_prop = True
-        self.dump_prop_grad = True
-        self.dump_fwd_evo = True
-        self.dump_onwd_evo = dyn.fid_computer.uses_onwd_evo
-        self.dump_onto_evo = dyn.fid_computer.uses_onto_evo
-        
+        self.evo_summary = []
+        self.dump_amps = False
+        self.dump_dyn_gen = False
+        self.dump_prop = False
+        self.dump_prop_grad = False
+        self.dump_fwd_evo = False
+        self.dump_onwd_evo = False
+        self.dump_onto_evo = False
         self.fname_base = 'dyndump'
-        
-        
         
     def clear(self):
         self.evo_dumps.clear()
@@ -133,7 +131,29 @@ class DynamicsDump(Dump):
         if self.dump_onwd_evo:
             item.onwd_evo = copy.deepcopy(dyn._onwd_evo)
         if self.dump_onwd_evo:
-            item.onto_evo = copy.deepcopy(dyn._onto_evo)    
+            item.onto_evo = copy.deepcopy(dyn._onto_evo)
+        
+        return item
+            
+    def add_evo_comp_summary(self, dump_item_idx):
+        """add copy of current evo comp summary"""
+        dyn = self.parent
+        ecs = copy.copy(dyn.fid_computer.evo_comp_summary)
+        if ecs is None:
+            raise RuntimeError("Cannot add evo_comp_summary as not available")
+        
+        ecs.evo_dump_idx = dump_item_idx
+        if dyn.stats:
+            ecs.iter_num = dyn.stats.num_iter
+            ecs.fid_func_call_num = dyn.stats.num_fidelity_func_calls
+            ecs.grad_func_call_num = dyn.stats.num_grad_func_calls
+            
+#    def write_summary_header(self, f):
+#        """write header line to summary file"""
+#        dyn = self.parent        
+#        if dyn.stats:
+#            header = ("evo_comp_idx\tnum_evo_comp\tnum_iter\tnum_fid_calls\t"
+#                    "num_grad_calls\t
             
 class DumpItem(object):
     """
@@ -304,4 +324,3 @@ class EvoCompDumpItem(DumpItem):
             fall.close()
         
         
-         

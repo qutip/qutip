@@ -74,6 +74,7 @@ import qutip.control.tslotcomp as tslotcomp
 import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
+import qutip.control.dump as qtrldump
 
 DEF_NUM_TSLOTS = 10
 DEF_EVO_TIME = 1.0
@@ -273,7 +274,6 @@ class Dynamics(object):
 
     def_amps_fname : string
         Default name for the output used when save_amps is called
-
     """
     def __init__(self, optimconfig, params=None):
         self.config = optimconfig
@@ -727,6 +727,9 @@ class Dynamics(object):
                        "Current control amplitudes:\n" + str(self.ctrl_amps) +
                        "\n(potenially) new amplitudes:\n" + str(new_amps))
 
+        if self.tslot_computer.evo_comp_summary:
+            self.tslot_computer.evo_comp_summary.reset()
+            
         if not self.tslot_computer.compare_amps(new_amps):
             if self.config.test_out_amps:
                 fname = "amps_{}_{}_{}_call{}{}".format(
@@ -1100,6 +1103,46 @@ class Dynamics(object):
             if not self._is_unitary(self._prop[k]):
                 logger.warning(
                     "Progator of timeslot {} is not unitary".format(k))
+    
+    @property
+    def dumping(self):
+        # Move this stuff to the class
+        d = self.dump
+        if d is None:
+            return 'NONE'
+        elif d.dump_amps
+        
+        
+    @dumping.setter
+    def dumping(self, value):
+        if not _is_string(value):
+            raise TypeError("Value must be string value")
+        value = value.upper()
+        if value == 'FULL':
+            if not isinstance(self.dump, qtrldump):
+                self.dump = qtrldump.DynamicsDump(self)
+            self.dump.dump_amps = True
+            self.dump.dump_dyn_gen = True
+            self.dump.dump_prop = True
+            self.dump.dump_prop_grad = True
+            self.dump.dump_fwd_evo = True
+            self.dump.dump_onwd_evo = self.fid_computer.uses_onwd_evo
+            self.dump.dump_onto_evo = self.fid_computer.uses_onto_evo
+        elif value == 'SUMMARY':
+            if not isinstance(self.dump, qtrldump):
+                self.dump = qtrldump.DynamicsDump(self)
+            self.dump.dump_amps = False
+            self.dump.dump_dyn_gen = False
+            self.dump.dump_prop = False
+            self.dump.dump_prop_grad = False
+            self.dump.dump_fwd_evo = False
+            self.dump.dump_onwd_evo = False
+            self.dump.dump_onto_evo = False
+        elif value == 'NONE':
+            self.dump = None
+        else:
+            raise ValueError("No option for dummping '{}'".format(value))
+            
         
 class DynamicsGenMat(Dynamics):
     """
