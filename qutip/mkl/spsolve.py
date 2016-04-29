@@ -253,8 +253,8 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
             A = sp.csr_matrix(A, dtype=np.float64, copy=False)
         
     #Create pointer to internal memory
-    pt = np.zeros(64,dtype=np.int64)
-    np_pt = pt.ctypes.data_as(ctypeslib.ndpointer(np.int64, ndim=1, flags='C'))
+    pt = np.zeros(64,dtype=int)
+    np_pt = pt.ctypes.data_as(ctypeslib.ndpointer(int, ndim=1, flags='C'))
     
     # Create pointers to sparse matrix arrays
     data = A.data.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C')) 
