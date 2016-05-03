@@ -123,19 +123,23 @@ if os.path.exists('qutip/version.py'):
 
 write_version_py()
 
+# check for parallel option
+if "--with-parallel" in sys.argv:
+    sys.argv.remove("--with-parallel")
+    os.environ['QUTIP_PARALLEL'] = 'TRUE'
+    print("Installing parallel extensions.")
+else:
+    os.environ['QUTIP_PARALLEL'] = 'FALSE'
+
+
 # check for fortran option
 if "--with-f90mc" in sys.argv:
-    with_f90mc = True
+    os.environ['FORTRAN_LIBS'] = 'TRUE'
     sys.argv.remove("--with-f90mc")
     write_f2py_f2cmap()
+    print("Installing Fortran mcsolver.")
 else:
-    with_f90mc = False
-
-if not with_f90mc:
     os.environ['FORTRAN_LIBS'] = 'FALSE'
-    print("Installing without the fortran mcsolver.")
-else:
-    os.environ['FORTRAN_LIBS'] = 'TRUE'
 
 # using numpy distutils to simplify install of data directory for testing
 def configuration(parent_package='', top_path=None):
