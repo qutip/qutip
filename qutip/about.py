@@ -71,10 +71,10 @@ def about():
     except:
         matplotlib_ver = 'None'
     print("Matplotlib Version: %s" % matplotlib_ver)
-    print("scikits.umfpack:    %s" % str(qutip.settings.umfpack))
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
     print("Number of CPUs:     %s" % hardware_info()['cpus'])
     print("BLAS Info:          %s" % _blas_info())
+    print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
