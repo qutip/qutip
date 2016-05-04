@@ -52,6 +52,21 @@ import qutip.control.dynamics as dynamics
 
 DUMP_DIR = "qtrl_dump"
 
+def _is_string(var):
+    try:
+        if isinstance(var, basestring):
+            return True
+    except NameError:
+        try:
+            if isinstance(var, str):
+                return True
+        except:
+            return False
+    except:
+        return False
+
+    return False
+
 class Dump(object):
     """
     A container for dump items.
@@ -87,33 +102,109 @@ class DynamicsDump(Dump):
     A container for dumps of dynamics data.
     Mainly time evolution calculations
     """
-    def init(self, dyn):
+    def init(self, dyn, level='SUMMARY'):
         if not isinstance(dyn, dynamics.Dynamics):
             raise TypeError("Must instantiate with {} type".format(
                                         dynamics.Dynamics))
         self.parent = dyn
+        self._level = level
         self.reset()
         
     def reset(self):
         dyn = self.parent
+        self._apply_level()
         self.evo_dumps = []
         self.evo_summary = []
-        self.dump_amps = False
-        self.dump_dyn_gen = False
-        self.dump_prop = False
-        self.dump_prop_grad = False
-        self.dump_fwd_evo = False
-        self.dump_onwd_evo = False
-        self.dump_onto_evo = False
         self.fname_base = 'dyndump'
+    
+    @property
+    def dump_any(self):
+        """True if any of the calculation object are to be dumped"""
+        if (self.dump_amps or
+                self.dump_dyn_gen or
+                self.dump_prop or
+                self.dump_prop_grad or
+                self.dump_fwd_evo or
+                self.dump_onwd_evo or
+                self.dump_onto_evo):
+            return True
+        else:
+            return False
+            
+    @property
+    def dump_all(self):
+        """True if all of the calculation object are to be dumped"""
+        dyn = self.parent
+        if (self.dump_amps and
+                    self.dump_dyn_gen and
+                    self.dump_prop and
+                    self.dump_prop_grad and
+                    self.dump_fwd_evo and
+                    (self.dump_onwd_evo) or
+                    (self.dump_onwd_evo == dyn.fid_computer.uses_onwd_evo) and
+                    (self.dump_onto_evo or
+                    (self.dump_onto_evo == dyn.fid_computer.uses_onto_evo))):
+            return True
+        else:
+            return False
+            
+    @property
+    def level(self):
+        lvl = 'CUSTOM'
+        if (self.dump_summary and not self.dump_any):
+            lvl = 'SUMMARY'
+        elif (self.dump_summary and self.dump_all):
+            lvl = 'FULL'
         
+        return lvl
+            
+    @level.setter
+    def level(self, value):
+        self._level = value
+        self._apply_level()
+    
+    def _apply_level(self, level=None):
+        dyn = self.parent
+        if level is None:
+            level = self._level
+         
+        if not _is_string(level):
+            raise ValueError("Dump level must be a string")
+        level = level.upper()
+        if level == 'CUSTOM':
+            if self._level == 'CUSTOM':
+                # dumping level has not changed keep the same specific config
+                pass
+            else:
+                # Switching to custom, start from SUMMARY
+                level = 'SUMMARY'
+                
+        if level == 'SUMMARY':
+            self.dump_summary = True
+            self.dump_amps = False
+            self.dump_dyn_gen = False
+            self.dump_prop = False
+            self.dump_prop_grad = False
+            self.dump_fwd_evo = False
+            self.dump_onwd_evo = False
+            self.dump_onto_evo = False
+        elif level == 'FULL':
+            self.dump_summary = True
+            self.dump_amps = True
+            self.dump_dyn_gen = True
+            self.dump_prop = True
+            self.dump_prop_grad = True
+            self.dump_fwd_evo = True
+            self.dump_onwd_evo = dyn.fid_computer.uses_onwd_evo
+            self.dump_onto_evo = dyn.fid_computer.uses_onto_evo
+        else:
+            raise ValueError("No option for dumping level '{}'".format(level))
+            
     def clear(self):
         self.evo_dumps.clear()
         
     def add_evo_dump(self):
-        """
-        Add dump of current time evolution generating objects
-        """
+        """Add dump of current time evolution generating objects"""
         dyn = self.parent
         item = EvoCompDumpItem()
         item.idx = len(self.evo_dumps)
@@ -138,15 +229,17 @@ class DynamicsDump(Dump):
     def add_evo_comp_summary(self, dump_item_idx):
         """add copy of current evo comp summary"""
         dyn = self.parent
-        ecs = copy.copy(dyn.fid_computer.evo_comp_summary)
-        if ecs is None:
+        if dyn.fid_computer.evo_comp_summary is None:
             raise RuntimeError("Cannot add evo_comp_summary as not available")
-        
+        ecs = copy.copy(dyn.fid_computer.evo_comp_summary)
         ecs.evo_dump_idx = dump_item_idx
         if dyn.stats:
             ecs.iter_num = dyn.stats.num_iter
             ecs.fid_func_call_num = dyn.stats.num_fidelity_func_calls
             ecs.grad_func_call_num = dyn.stats.num_grad_func_calls
+            
+        self.evo_summary.append(ecs)
+        return ecs
             
 #    def write_summary_header(self, f):
 #        """write header line to summary file"""
