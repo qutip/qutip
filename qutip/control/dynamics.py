@@ -274,6 +274,20 @@ class Dynamics(object):
 
     def_amps_fname : string
         Default name for the output used when save_amps is called
+        
+    dump : :class:`DynamicsDump`
+        Store of historical calculation data.
+        Set to None (Default) for no storing of historical data
+        Used dumping property to set level of data dumping
+        
+    dumping : string
+        level of data dumping: NONE, SUMMARY, FULL or CUSTOM
+        See property docstring for details
+        
+    dump_to_file : bool
+        If set True then data will be dumped to file during the calculations
+        Note 'dumping' must be set also, or nothing will be dumped
+        Default is False
     """
     def __init__(self, optimconfig, params=None):
         self.config = optimconfig
@@ -350,6 +364,9 @@ class Dynamics(object):
         # Unitary checking
         self.unitarity_check_level = 0
         self.unitarity_tol = 1e-5
+        # Data dumping
+        self.dump = None
+        self.dump_to_file = False
 
         self.apply_params()
 
@@ -1106,44 +1123,36 @@ class Dynamics(object):
     
     @property
     def dumping(self):
-        # Move this stuff to the class
-        d = self.dump
-        if d is None:
-            return 'NONE'
-        elif d.dump_amps
-        
+        """
+        The level of data dumping that will occur during the time evolution
+        calculation.
+         - NONE : No processing data dumped (Default)
+         - SUMMARY : A summary of each time evolution will be recorded
+         - FULL : All operators used or created in the calculation dumped
+         - CUSTOM : Some customised level of dumping
+        When first set to CUSTOM this is equivalent to SUMMARY. It is then up
+        to the user to specify which operators are dumped
+        """
+        if self.dump is None:
+            lvl = 'NONE'
+        else:
+            lvl = self.dump.level
+            
+        return lvl
         
     @dumping.setter
     def dumping(self, value):
         if not _is_string(value):
             raise TypeError("Value must be string value")
-        value = value.upper()
-        if value == 'FULL':
-            if not isinstance(self.dump, qtrldump):
-                self.dump = qtrldump.DynamicsDump(self)
-            self.dump.dump_amps = True
-            self.dump.dump_dyn_gen = True
-            self.dump.dump_prop = True
-            self.dump.dump_prop_grad = True
-            self.dump.dump_fwd_evo = True
-            self.dump.dump_onwd_evo = self.fid_computer.uses_onwd_evo
-            self.dump.dump_onto_evo = self.fid_computer.uses_onto_evo
-        elif value == 'SUMMARY':
-            if not isinstance(self.dump, qtrldump):
-                self.dump = qtrldump.DynamicsDump(self)
-            self.dump.dump_amps = False
-            self.dump.dump_dyn_gen = False
-            self.dump.dump_prop = False
-            self.dump.dump_prop_grad = False
-            self.dump.dump_fwd_evo = False
-            self.dump.dump_onwd_evo = False
-            self.dump.dump_onto_evo = False
-        elif value == 'NONE':
+        lvl = value.upper()
+        if value == 'NONE':
             self.dump = None
         else:
-            raise ValueError("No option for dummping '{}'".format(value))
+            if not isinstance(self.dump, qtrldump):
+                self.dump = qtrldump.DynamicsDump(self, level=lvl)
+            else:
+                self.dump.level = lvl
             
-        
 class DynamicsGenMat(Dynamics):
     """
     This sub class can be used for any system where no additional

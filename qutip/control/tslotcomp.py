@@ -73,6 +73,7 @@ import timeit
 from qutip import Qobj
 # QuTiP control modules
 import qutip.control.errors as errors
+import qutip.control.dump as qtrldump
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -156,6 +157,16 @@ class TimeslotComputer(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
+        
+    def dump_current(self):
+        """Store a copy of the current time evolution"""
+        dyn = self.parent
+        dump = dyn.dump
+        if not isinstance(dump, qtrldump.DynamicsDump):
+            raise RuntimeError("Cannot dump current evolution, "
+                "as dynamics.dump is not set")
+        
+        *** START HERE ***
 
 
 class TSlotCompUpdateAll(TimeslotComputer):
@@ -409,6 +420,9 @@ class TSlotCompUpdateAll(TimeslotComputer):
                 
         if dyn.unitarity_check_level:
             dyn.check_unitarity()
+            
+        if dyn.dump:
+            self.dump_current()
 
     def get_timeslot_for_fidelity_calc(self):
         """
