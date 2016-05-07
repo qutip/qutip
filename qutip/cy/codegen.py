@@ -297,7 +297,7 @@ def cython_preamble():
 import numpy as np
 cimport numpy as np
 cimport cython
-from qutip.cy.spmatfuncs import spmv_csr, spmvpy
+from qutip.cy.spmatfuncs cimport spmv_csr, spmvpy
 
 cdef double pi = 3.14159265358979323
 

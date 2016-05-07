@@ -42,6 +42,16 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
     np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
     np.ndarray[CTYPE_t, ndim=1, mode="c"] vec)
 
+
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmvpy(
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec,
+        CTYPE_t a, 
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] out)
+
+
 cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
                             np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
                             np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
