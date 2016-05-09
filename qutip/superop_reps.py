@@ -217,10 +217,8 @@ def choi_to_kraus(q_oper):
     strict sub-class of Qobj.
     """
     vals, vecs = eig(q_oper.data.todense())
-    vecs = list(map(array, zip(*vecs)))
-    return list(map(lambda x: Qobj(inpt=x),
-                    [sqrt(vals[j]) * vec2mat(vecs[j])
-                     for j in range(len(vals))]))
+    vecs = [array(_) for _ in zip(*vecs)]
+    return [Qobj(inpt=sqrt(val)*vec2mat(vec)) for val, vec in zip(vals, vecs)]
 
 
 def kraus_to_choi(kraus_list):
