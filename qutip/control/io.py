@@ -35,7 +35,7 @@
 import os
 import errno
 
-def create_dir(self, dir_name, desc='output'):
+def create_dir(dir_name, desc='output'):
     """
     Checks if the given directory exists, if not it is created
     Returns
