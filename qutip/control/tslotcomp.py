@@ -110,6 +110,10 @@ class TimeslotComputer(object):
         Will be set to None if neither stats or dump are set
     """
     def __init__(self, dynamics, params=None):
+        from qutip.control.dynamics import Dynamics
+        if not isinstance(dynamics, Dynamics):
+            raise TypeError("Must instantiate with {} type".format(
+                                        Dynamics))
         self.parent = dynamics
         self.params = params
         self.reset()
@@ -166,8 +170,32 @@ class TimeslotComputer(object):
             raise RuntimeError("Cannot dump current evolution, "
                 "as dynamics.dump is not set")
         
-        *** START HERE ***
-
+        anything_dumped = False
+        item_idx = None
+        if dump.dump_any:
+            dump_item = dump.add_evo_dump()
+            item_idx = dump_item.idx
+            anything_dumped = True
+            if dump.write_to_file:
+                dump_item.writeout()
+        
+        if dump.dump_summary:
+            ecs = dump.add_evo_comp_summary(dump_item_idx=item_idx)
+            anything_dumped = True
+            if dump.write_to_file:
+                if ecs.idx == 0:
+                    fid = open(dump.summary_file, 'w')
+                    fid.write("{}\n{}\n".format(ecs.get_header_line(), 
+                              ecs.get_value_line()))
+                else:
+                    fid = open(dump.summary_file, 'a')
+                    fid.write("{}\n".format(ecs.get_value_line()))
+            
+                fid.close()
+                
+        if not anything_dumped:
+            logger.warning("Dump set, but nothing dumped, check dump config")
+            
 
 class TSlotCompUpdateAll(TimeslotComputer):
     """
@@ -705,12 +733,14 @@ class TSlotCompDynUpdate(TimeslotComputer):
 class EvoCompSummary(object):
     """A summary of the time evolution computation"""
     summary_property_names = (
-        "evo_dump_idx", "iter_num", "fid_func_call_num", "grad_func_call_num",
+        "idx", "evo_dump_idx", 
+        "iter_num", "fid_func_call_num", "grad_func_call_num",
         "num_amps_changed", "num_timeslots_changed",
         "wall_time_dyn_gen_compute", "wall_time_prop_compute",
         "wall_time_fwd_prop_compute", "wall_time_onwd_prop_compute")
     summary_property_fmts = (
-        'd', 'd', 'd', 'd',
+        'd', 'd',
+        'd', 'd', 'd',
         'd', 'd',
         '0.3g', '0.3g', 
         '0.3g', '0.3g'
@@ -725,6 +755,7 @@ class EvoCompSummary(object):
         self.reset()
         
     def reset(self):
+        self.idx = 0
         self.evo_dump_idx = None
         self.iter_num = None
         self.fid_func_call_num = None
@@ -736,10 +767,16 @@ class EvoCompSummary(object):
         self.wall_time_fwd_prop_compute = 0.0
         self.wall_time_onwd_prop_compute = 0.0
         
-    def get_value_line(self, sep):
+    def get_value_line(self, sep='\t'):
         line = ""
         for a in zip(self.summary_property_names, self.summary_property_fmts):
             if len(line) > 0:
                 line += "\t"
-            line += format(getattr(self, a[0]), a[1])
-    
+            v = getattr(self, a[0])
+            if v is not None:
+                line += format(v, a[1])
+            else:
+                line += 'None'
+            
+        return line
+        

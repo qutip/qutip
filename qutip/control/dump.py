@@ -46,11 +46,11 @@ import copy
 # QuTiP logging
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
-import qutip.control.io as qtrlio
 # QuTiP control modules
-import qutip.control.dynamics as dynamics
+import qutip.control.io as qtrlio
+from numpy.compat import asbytes
 
-DUMP_DIR = "qtrl_dump"
+DUMP_DIR = "~/qtrl_dump"
 
 def _is_string(var):
     try:
@@ -72,26 +72,55 @@ class Dump(object):
     A container for dump items.
     This lists for dump items is depends on the type
     """
-    def init(self):
+    def __init__(self):
         self.reset()
         
     def reset(self):
-        self.dump_dir = None
+        if self.parent:
+            self.log_level = self.parent.log_level
+            self.write_to_file = self.parent.dump_to_file
+        else:
+            self.write_to_file = False
+        self._dump_dir = None
         self.dump_file_ext = "txt"
-        self.dump_to_file = False
+        self.fname_base = 'dump'
+
+    @property
+    def log_level(self):
+        return logger.level
+
+    @log_level.setter
+    def log_level(self, lvl):
+        """
+        Set the log_level attribute and set the level of the logger
+        that is call logger.setLevel(lvl)
+        """
+        logger.setLevel(lvl)
+        
+    @property
+    def dump_dir(self):
+        if self._dump_dir is None:
+            self.create_dump_dir()
+        return self._dump_dir
+    
+    @dump_dir.setter
+    def dump_dir(self, value):
+        self._dump_dir = value
+        if not self.create_dump_dir():
+            self._dump_dir = None
         
     def create_dump_dir(self):
         """
         Checks test_out directory exists, creates it if not
         """
-        if self.dump_dir is None or len(self.dump_dir) == 0:
-            self.dump_dir = DUMP_DIR
+        if self._dump_dir is None or len(self._dump_dir) == 0:
+            self._dump_dir = DUMP_DIR
 
-        dir_ok, self.dump_dir, msg = qtrlio.create_dir(
-                    self.dump_dir, desc='dump')
+        dir_ok, self._dump_dir, msg = qtrlio.create_dir(
+                    self._dump_dir, desc='dump')
 
         if not dir_ok:
-            self.dump_to_file = False
+            self.write_to_file = False
             msg += "\ndump file output will be suppressed."
             logger.error(msg)
 
@@ -102,24 +131,45 @@ class DynamicsDump(Dump):
     A container for dumps of dynamics data.
     Mainly time evolution calculations
     """
-    def init(self, dyn, level='SUMMARY'):
-        if not isinstance(dyn, dynamics.Dynamics):
+    def __init__(self, dynamics, level='SUMMARY'):
+        from qutip.control.dynamics import Dynamics
+        if not isinstance(dynamics, Dynamics):
             raise TypeError("Must instantiate with {} type".format(
-                                        dynamics.Dynamics))
-        self.parent = dyn
+                                        Dynamics))
+        self.parent = dynamics
         self._level = level
         self.reset()
         
     def reset(self):
-        dyn = self.parent
+        Dump.reset(self)
         self._apply_level()
         self.evo_dumps = []
         self.evo_summary = []
         self.fname_base = 'dyndump'
+        self._summary_file_path = None
+        
+    @property
+    def summary_file(self):
+        if self._summary_file_path is None:
+            fname = "{}-summary.{}".format(self.fname_base, self.dump_file_ext)
+            self._summary_file_path = os.path.join(self.dump_dir, fname)
+        return self._summary_file_path
+        
+    @summary_file.setter
+    def summary_file(self, value):
+        if not _is_string(value):
+            raise ValueError("File path must be a string")
+        if os.path.abspath(value):
+            self._summary_file_path = value
+        elif '~' in value:
+            self._summary_file_path = os.path.expanduser(value)
+        else:
+            self._summary_file_path = os.path.join(self.dump_dir, value)
+            
     
     @property
     def dump_any(self):
-        """True if any of the calculation object are to be dumped"""
+        """True if any of the calculation objects are to be dumped"""
         if (self.dump_amps or
                 self.dump_dyn_gen or
                 self.dump_prop or
@@ -133,7 +183,7 @@ class DynamicsDump(Dump):
             
     @property
     def dump_all(self):
-        """True if all of the calculation object are to be dumped"""
+        """True if all of the calculation objects are to be dumped"""
         dyn = self.parent
         if (self.dump_amps and
                     self.dump_dyn_gen and
@@ -206,9 +256,9 @@ class DynamicsDump(Dump):
     def add_evo_dump(self):
         """Add dump of current time evolution generating objects"""
         dyn = self.parent
-        item = EvoCompDumpItem()
+        item = EvoCompDumpItem(self)
         item.idx = len(self.evo_dumps)
-        self.evo_dumps.append()
+        self.evo_dumps.append(item)
         if self.dump_amps:
             item.ctrl_amps = copy.deepcopy(dyn.ctrl_amps)
         if self.dump_dyn_gen:
@@ -221,32 +271,76 @@ class DynamicsDump(Dump):
             item.fwd_evo = copy.deepcopy(dyn._fwd_evo)
         if self.dump_onwd_evo:
             item.onwd_evo = copy.deepcopy(dyn._onwd_evo)
-        if self.dump_onwd_evo:
+        if self.dump_onto_evo:
             item.onto_evo = copy.deepcopy(dyn._onto_evo)
         
         return item
             
-    def add_evo_comp_summary(self, dump_item_idx):
+    def add_evo_comp_summary(self, dump_item_idx=None):
         """add copy of current evo comp summary"""
         dyn = self.parent
-        if dyn.fid_computer.evo_comp_summary is None:
+        if dyn.tslot_computer.evo_comp_summary is None:
             raise RuntimeError("Cannot add evo_comp_summary as not available")
-        ecs = copy.copy(dyn.fid_computer.evo_comp_summary)
+        ecs = copy.copy(dyn.tslot_computer.evo_comp_summary)
+        ecs.idx = len(self.evo_summary)
         ecs.evo_dump_idx = dump_item_idx
         if dyn.stats:
             ecs.iter_num = dyn.stats.num_iter
             ecs.fid_func_call_num = dyn.stats.num_fidelity_func_calls
             ecs.grad_func_call_num = dyn.stats.num_grad_func_calls
-            
+        
         self.evo_summary.append(ecs)
         return ecs
+        
+    def writeout(self, f=None):
+        """write all the dump items and the summary out to file(s)"""
+        fall = None
+        # If specific file given then write everything to it
+        if hasattr(f, 'write'):
+            if not 'b' in f.mode:
+                raise RuntimeError("File stream must be in binary mode")
+            # write all to this stream
+            fall = f
+            fs = f
+            closefall = False
+            closefs = False
+        elif f:
+            # Assume f is a filename
+            fall = open(f, 'wb')
+            fs = fall
+            closefs = False
+            closefall = True
+        else:
+            self.create_dump_dir()
+            closefall = False
+            if self.dump_summary:            
+                fs = open(self.summary_file, 'wb')
+                closefs = True
             
-#    def write_summary_header(self, f):
-#        """write header line to summary file"""
-#        dyn = self.parent        
-#        if dyn.stats:
-#            header = ("evo_comp_idx\tnum_evo_comp\tnum_iter\tnum_fid_calls\t"
-#                    "num_grad_calls\t
+        if self.dump_summary:
+            for ecs in self.evo_summary:
+                if ecs.idx == 0:
+                    fs.write(asbytes("{}\n{}\n".format(ecs.get_header_line(), 
+                              ecs.get_value_line())))
+                else:
+                    fs.write(asbytes("{}\n".format(ecs.get_value_line())))
+            
+            if closefs:
+                fs.close()
+                logger.info("Dynamics dump summary saved to {}".format(
+                                                    self.summary_file))
+            
+        for di in self.evo_dumps:
+            di.writeout(fall)
+            
+        if closefall:
+            fall.close()
+            logger.info("Dynamics dump saved to {}".format(f))
+        else:
+            if fall:
+                logger.info("Dynamics dump saved to specified stream")
+            else:
+                logger.info("Dynamics dump saved to {}".format(self.dump_dir))
             
 class DumpItem(object):
     """
@@ -259,7 +353,7 @@ class EvoCompDumpItem(DumpItem):
     """
     A copy of all objects generated to calculation one time evolution
     """
-    def init(self, dump):
+    def __init__(self, dump):
         if not isinstance(dump, DynamicsDump):
             raise TypeError("Must instantiate with {} type".format(
                                         DynamicsDump))
@@ -286,133 +380,135 @@ class EvoCompDumpItem(DumpItem):
         closef = False
         # If specific file given then write everything to it
         if hasattr(f, 'write'):
+            if not 'b' in f.mode:
+                raise RuntimeError("File stream must be in binary mode")
             # write all to this stream
             fall = f
             closefall = False
-            f.write("EVOLUTION COMPUTATION {}".format(self.idx))
+            f.write(asbytes("EVOLUTION COMPUTATION {}\n".format(self.idx)))
         elif f:
-            fall = open(f, 'w')
+            fall = open(f, 'wb')
         else:   
             # otherwise files for each type will be created
-            fname_base = "{}-evo{}".format(dump.fname_base, self.idx)
+            fnbase = "{}-evo{}".format(dump.fname_base, self.idx)
+            closefall = False
         
         #ctrl amps
-        if self.ctrl_amps:
+        if not self.ctrl_amps is None:
             if fall:
                 f = fall
-                f.write("Ctrl amps")
+                f.write(asbytes("Ctrl amps\n"))
             else:
-                fname = "{}-ctrl_amps.{}".format(fname_base, 
+                fname = "{}-ctrl_amps.{}".format(fnbase, 
                                                 dump.dump_file_ext)
-                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
-            np.savetxt(f, self.ctrl_amps)
+            np.savetxt(f, self.ctrl_amps, fmt='%14.6g')
             if closef: f.close()
                 
         # dynamics generators
-        if self.dyn_gen:
+        if not self.dyn_gen is None:
             k = 0
             if fall:
                 f = fall
-                f.write("Dynamics Generators")
+                f.write(asbytes("Dynamics Generators\n"))
             else:
-                fname = "{}-dyn_gen.{}".format(fname_base, 
+                fname = "{}-dyn_gen.{}".format(fnbase, 
                                                 dump.dump_file_ext)
-                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
-                f.write("dynamics generator for timeslot {}".format(k))
+                f.write(asbytes("dynamics generator for timeslot {}\n".format(k)))
                 np.savetxt(f, self.dyn_gen[k])
                 k += 1
             if closef: f.close()
 
         # Propagators
-        if self.prop:
+        if not self.prop is None:
             k = 0
             if fall:
                 f = fall
-                f.write("Propagators")
+                f.write(asbytes("Propagators\n"))
             else:
-                fname = "{}-prop.{}".format(fname_base, 
+                fname = "{}-prop.{}".format(fnbase, 
                                                 dump.dump_file_ext)
-                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
-                f.write("Propagator for timeslot {}".format(k))
+                f.write(asbytes("Propagator for timeslot {}\n".format(k)))
                 np.savetxt(f, self.prop[k])
                 k += 1
             if closef: f.close()
                 
         # Propagator gradient
-        if self.prop_grad:
+        if not self.prop_grad is None:
             k = 0
             if fall:
                 f = fall
-                f.write("Propagator gradients")
+                f.write(asbytes("Propagator gradients\n"))
             else:
-                fname = "{}-prop_grad.{}".format(fname_base, 
+                fname = "{}-prop_grad.{}".format(fnbase, 
                                                 dump.dump_file_ext)
-                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for k in range(self.prop_grad.shape[0]):
                 for j in range(self.prop_grad.shape[1]):
-                    f.write("Propagator gradient for timeslot {} "
-                            "control {}".format(k, j))
+                    f.write(asbytes("Propagator gradient for timeslot {} "
+                            "control {}\n".format(k, j)))
                     np.savetxt(f, self.prop_grad[k, j])
             if closef: f.close()
 
         # forward evolution
-        if self.fwd_evo:
+        if not self.fwd_evo is None:
             k = 0
             if fall:
                 f = fall
-                f.write("Forward evolution")
+                f.write(asbytes("Forward evolution\n"))
             else:
-                fname = "{}-fwd_evo.{}".format(fname_base, 
+                fname = "{}-fwd_evo.{}".format(fnbase, 
                                                 dump.dump_file_ext)
-                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
-                f.write("Evolution from 0 to {}".format(k))
+                f.write(asbytes("Evolution from 0 to {}\n".format(k)))
                 np.savetxt(f, self.fwd_evo[k])
                 k += 1
             if closef: f.close()
             
         # onward evolution
-        if self.onwd_evo:
+        if not self.onwd_evo is None:
             k = 0
             if fall:
                 f = fall
-                f.write("Onward evolution")
+                f.write(asbytes("Onward evolution\n"))
             else:
-                fname = "{}-onwd_evo.{}".format(fname_base, 
+                fname = "{}-onwd_evo.{}".format(fnbase, 
                                                 dump.dump_file_ext)
-                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
-                f.write("Evolution from {} to end".format(k))
+                f.write(asbytes("Evolution from {} to end\n".format(k)))
                 np.savetxt(f, self.fwd_evo[k])
                 k += 1
             if closef: f.close()
                 
         # onto evolution
-        if self.onto_evo:
+        if not self.onto_evo is None:
             k = 0
             if fall:
                 f = fall
-                f.write("Onto evolution")
+                f.write(asbytes("Onto evolution\n"))
             else:
-                fname = "{}-onto_evo.{}".format(fname_base, 
+                fname = "{}-onto_evo.{}".format(fnbase, 
                                                 dump.dump_file_ext)
-                f = open(os.path.join(dump.dump_dir, fname), 'w')
+                f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
-                f.write("Evolution from {} onto target".format(k))
+                f.write(asbytes("Evolution from {} onto target\n".format(k)))
                 np.savetxt(f, self.fwd_evo[k])
                 k += 1
             if closef: f.close()
             
-                
         if closefall:
             fall.close()
         

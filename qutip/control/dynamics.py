@@ -602,6 +602,12 @@ class Dynamics(object):
         if (self.log_level <= logging.DEBUG
             and isinstance(self, DynamicsUnitary)):
                 self.unitarity_check_level = 1
+                
+        if self.dump_to_file:
+            if self.dump is None:
+                self.dumping = 'SUMMARY'
+            self.dump.write_to_file = True
+            self.dump.create_dump_dir()
 
     def _create_decomp_lists(self):
         """
@@ -1148,7 +1154,7 @@ class Dynamics(object):
         if value == 'NONE':
             self.dump = None
         else:
-            if not isinstance(self.dump, qtrldump):
+            if not isinstance(self.dump, qtrldump.DynamicsDump):
                 self.dump = qtrldump.DynamicsDump(self, level=lvl)
             else:
                 self.dump.level = lvl
