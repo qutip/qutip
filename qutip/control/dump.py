@@ -84,6 +84,8 @@ class Dump(object):
         self._dump_dir = None
         self.dump_file_ext = "txt"
         self.fname_base = 'dump'
+        self.dump_summary = True
+        self._summary_file_path = None
 
     @property
     def log_level(self):
@@ -96,6 +98,31 @@ class Dump(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
+
+    @property
+    def level(self):
+        lvl = 'CUSTOM'
+        if (self.dump_summary and not self.dump_any):
+            lvl = 'SUMMARY'
+        elif (self.dump_summary and self.dump_all):
+            lvl = 'FULL'
+        
+        return lvl
+            
+    @level.setter
+    def level(self, value):
+        self._level = value
+        self._apply_level()
+        
+    @property
+    def dump_any(self):
+        raise NotImplemented("This is an abstract class, "
+                    "use subclass such as DynamicsDump or OptimDump")
+    
+    @property
+    def dump_all(self):
+        raise NotImplemented("This is an abstract class, "
+                    "use subclass such as DynamicsDump or OptimDump")
         
     @property
     def dump_dir(self):
@@ -126,6 +153,242 @@ class Dump(object):
 
         return dir_ok
         
+    @property
+    def summary_file(self):
+        if self._summary_file_path is None:
+            fname = "{}-summary.{}".format(self.fname_base, self.dump_file_ext)
+            self._summary_file_path = os.path.join(self.dump_dir, fname)
+        return self._summary_file_path
+        
+    @summary_file.setter
+    def summary_file(self, value):
+        if not _is_string(value):
+            raise ValueError("File path must be a string")
+        if os.path.abspath(value):
+            self._summary_file_path = value
+        elif '~' in value:
+            self._summary_file_path = os.path.expanduser(value)
+        else:
+            self._summary_file_path = os.path.join(self.dump_dir, value)
+        
+class OptimDump(Dump):
+    """
+    A container for dumps of optimisation data generated during the pulse
+    optimisation.
+    """
+    def __init__(self, optim, level='SUMMARY'):
+        from qutip.control.optimizer import Optimizer
+        if not isinstance(optim, Optimizer):
+            raise TypeError("Must instantiate with {} type".format(
+                                        Optimizer))
+        self.parent = optim
+        self._level = level
+        self.reset()
+        
+    def reset(self):
+        Dump.reset(self)
+        self._apply_level()
+        self.optim_iter_summary = []
+        self.fid_err_log = []
+        self.grad_norm_log = []
+        self.grad_log = []
+        self.fname_base = 'optimdump'      
+        self._fid_err_file = None
+        self._grad_norm_file = None
+
+    @property
+    def dump_any(self):
+        """True if anything other than the summary is to be dumped"""
+        if (self.dump_fid_err or self.dump_grad_norm or self.dump_grad):
+            return True
+        else:
+            return False
+            
+    @property
+    def dump_all(self):
+        """True if everything (ignoring the summary) is to be dumped"""
+        if (self.dump_fid_err and self.dump_grad_norm and self.dump_grad):
+            return True
+        else:
+            return False
+            
+    def _apply_level(self, level=None):
+        if level is None:
+            level = self._level
+         
+        if not _is_string(level):
+            raise ValueError("Dump level must be a string")
+        level = level.upper()
+        if level == 'CUSTOM':
+            if self._level == 'CUSTOM':
+                # dumping level has not changed keep the same specific config
+                pass
+            else:
+                # Switching to custom, start from SUMMARY
+                level = 'SUMMARY'
+                
+        if level == 'SUMMARY':
+            self.dump_summary = True
+            self.dump_fid_err = False
+            self.dump_grad_norm = False
+            self.dump_grad = False
+        elif level == 'FULL':
+            self.dump_summary = True
+            self.dump_fid_err = True
+            self.dump_grad_norm = True
+            self.dump_grad = True
+        else:
+            raise ValueError("No option for dumping level '{}'".format(level))
+            
+    def clear(self):
+        self.fid_err_log.clear()
+        self.grad_norm_log.clear()
+        
+    def add_iter_summary(self):
+        """add copy of current optimizer iteration summary"""
+        optim = self.parent
+        if optim.iter_summary is None:
+            raise RuntimeError("Cannot add iter_summary as not available")
+        ois = copy.copy(optim.iter_summary)
+        ois.idx = len(self.optim_iter_summary)        
+        self.optim_iter_summary.append(ois)
+        if self.write_to_file:
+            if ois.idx == 0:
+                f = open(self.summary_file, 'w')
+                f.write("{}\n{}\n".format(ois.get_header_line(), 
+                          ois.get_value_line()))
+            else:
+                f = open(self.summary_file, 'a')
+                f.write("{}\n".format(ois.get_value_line()))
+        
+            f.close()
+        return ois
+        
+    @property
+    def fid_err_file(self):
+        if self._fid_err_file is None:
+            fname = "{}-fid_err_log.{}".format(self.fname_base, 
+                                                    self.dump_file_ext)
+            self._fid_err_file = os.path.join(self.dump_dir, fname)
+        return self._fid_err_file
+    
+    def update_fid_err_log(self, fid_err):
+        """add an entry to the fid_err log"""
+        self.fid_err_log.append(fid_err)
+        if self.write_to_file:
+            if len(self.fid_err_log) == 1:
+                mode = 'w'
+            else:
+                mode = 'a'
+            f = open(self.fid_err_file, mode)
+            f.write("{}\n".format(fid_err))
+            f.close()
+            
+    @property
+    def grad_norm_file(self):
+        if self._fid_err_file is None:
+            fname = "{}-grad_norm_log.{}".format(self.fname_base, 
+                                                    self.dump_file_ext)
+            self._grad_norm_file = os.path.join(self.dump_dir, fname)
+        return self._grad_norm_file
+    
+    def update_grad_norm_log(self, grad_norm):
+        """add an entry to the grad_norm log"""
+        self.grad_norm_log.append(grad_norm)
+        if self.write_to_file:
+            if len(self.grad_norm_log) == 1:
+                mode = 'w'
+            else:
+                mode = 'a'
+            f = open(self.grad_norm_file, mode)
+            f.write("{}\n".format(grad_norm))
+            f.close()
+            
+    def update_grad_log(self, grad):
+        """add an entry to the grad log"""
+        self.grad_log.append(grad)
+        if self.write_to_file:
+            fname = "{}-fid_err_gradients{}.{}".format(self.fname_base, 
+                                                        len(self.grad_log),
+                                                        self.dump_file_ext)
+            fpath = os.path.join(self.dump_dir, fname)
+            np.savetxt(fpath, grad)
+            
+    def writeout(self, f=None):
+        """write all the logs and the summary out to file(s)"""
+        fall = None
+        # If specific file given then write everything to it
+        if hasattr(f, 'write'):
+            if not 'b' in f.mode:
+                raise RuntimeError("File stream must be in binary mode")
+            # write all to this stream
+            fall = f
+            fs = f
+            closefall = False
+            closefs = False
+        elif f:
+            # Assume f is a filename
+            fall = open(f, 'wb')
+            fs = fall
+            closefs = False
+            closefall = True
+        else:
+            self.create_dump_dir()
+            closefall = False
+            if self.dump_summary:            
+                fs = open(self.summary_file, 'wb')
+                closefs = True
+            
+        if self.dump_summary:
+            for ois in self.iter_summary:
+                if ois.idx == 0:
+                    fs.write(asbytes("{}\n{}\n".format(ois.get_header_line(), 
+                              ois.get_value_line())))
+                else:
+                    fs.write(asbytes("{}\n".format(ois.get_value_line())))
+            
+            if closefs:
+                fs.close()
+                logger.info("Dynamics dump summary saved to {}".format(
+                                                    self.summary_file))
+        
+        if self.dump_fid_err:
+            if fall:
+                fall.write(asbytes("Fidelity errors\n:"))
+                np.savetxt(fall, self.fid_err_log)
+            else:
+                np.savetxt(self.fid_err_file, self.fid_err_log)
+                
+        if self.dump_grad_norm:
+            if fall:
+                fall.write(asbytes("gradients norms\n:"))
+                np.savetxt(fall, self.grad_norm_log)
+            else:
+                np.savetxt(self.grad_norm_file, self.grad_norm_log)
+                
+        if self.dump_grad:
+            g_num = 0
+            for grad in self.grad_log:
+                g_num += 1
+                if fall:
+                    fall.write(asbytes("gradients (call {})\n:".format(g_num)))
+                    np.savetxt(fall, grad)
+                else:
+                    fname = "{}-fid_err_gradients{}.{}".format(self.fname_base, 
+                                                            g_num,
+                                                            self.dump_file_ext)
+                    fpath = os.path.join(self.dump_dir, fname)
+                    np.savetxt(fpath, grad)
+            
+        if closefall:
+            fall.close()
+            logger.info("Optim dump saved to {}".format(f))
+        else:
+            if fall:
+                logger.info("Optim dump saved to specified stream")
+            else:
+                logger.info("Optim dump saved to {}".format(self.dump_dir))
+        
 class DynamicsDump(Dump):
     """
     A container for dumps of dynamics data.
@@ -146,27 +409,7 @@ class DynamicsDump(Dump):
         self.evo_dumps = []
         self.evo_summary = []
         self.fname_base = 'dyndump'
-        self._summary_file_path = None
-        
-    @property
-    def summary_file(self):
-        if self._summary_file_path is None:
-            fname = "{}-summary.{}".format(self.fname_base, self.dump_file_ext)
-            self._summary_file_path = os.path.join(self.dump_dir, fname)
-        return self._summary_file_path
-        
-    @summary_file.setter
-    def summary_file(self, value):
-        if not _is_string(value):
-            raise ValueError("File path must be a string")
-        if os.path.abspath(value):
-            self._summary_file_path = value
-        elif '~' in value:
-            self._summary_file_path = os.path.expanduser(value)
-        else:
-            self._summary_file_path = os.path.join(self.dump_dir, value)
-            
-    
+
     @property
     def dump_any(self):
         """True if any of the calculation objects are to be dumped"""
@@ -198,21 +441,6 @@ class DynamicsDump(Dump):
         else:
             return False
             
-    @property
-    def level(self):
-        lvl = 'CUSTOM'
-        if (self.dump_summary and not self.dump_any):
-            lvl = 'SUMMARY'
-        elif (self.dump_summary and self.dump_all):
-            lvl = 'FULL'
-        
-        return lvl
-            
-    @level.setter
-    def level(self, value):
-        self._level = value
-        self._apply_level()
-    
     def _apply_level(self, level=None):
         dyn = self.parent
         if level is None:
@@ -252,6 +480,7 @@ class DynamicsDump(Dump):
             
     def clear(self):
         self.evo_dumps.clear()
+        self.evo_summary.clear()
         
     def add_evo_dump(self):
         """Add dump of current time evolution generating objects"""
@@ -274,6 +503,8 @@ class DynamicsDump(Dump):
         if self.dump_onto_evo:
             item.onto_evo = copy.deepcopy(dyn._onto_evo)
         
+        if self.write_to_file:
+            self.writeout()
         return item
             
     def add_evo_comp_summary(self, dump_item_idx=None):
@@ -290,6 +521,16 @@ class DynamicsDump(Dump):
             ecs.grad_func_call_num = dyn.stats.num_grad_func_calls
         
         self.evo_summary.append(ecs)
+        if self.write_to_file:
+            if ecs.idx == 0:
+                f = open(self.summary_file, 'w')
+                f.write("{}\n{}\n".format(ecs.get_header_line(), 
+                          ecs.get_value_line()))
+            else:
+                f = open(self.summary_file, 'a')
+                f.write("{}\n".format(ecs.get_value_line()))
+        
+            f.close()
         return ecs
         
     def writeout(self, f=None):
@@ -346,7 +587,7 @@ class DumpItem(object):
     """
     An item in a dump list
     """
-    def init(self):
+    def __init__(self):
         pass
 
 class EvoCompDumpItem(DumpItem):
