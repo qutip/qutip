@@ -98,6 +98,22 @@ import qutip.control.termcond as termcond
 import qutip.control.errors as errors
 import qutip.control.dynamics as dynamics
 import qutip.control.pulsegen as pulsegen
+import qutip.control.dump as qtrldump
+
+def _is_string(var):
+    try:
+        if isinstance(var, basestring):
+            return True
+    except NameError:
+        try:
+            if isinstance(var, str):
+                return True
+        except:
+            return False
+    except:
+        return False
+
+    return False
 
 class Optimizer(object):
     """
@@ -219,6 +235,7 @@ class Optimizer(object):
         self.bounds = None
         self.num_iter = 0
         self.num_fid_func_calls = 0
+        self.num_grad_func_calls = 0
         self.stats = None
         self.wall_time_optim_start = 0.0
 
@@ -226,6 +243,10 @@ class Optimizer(object):
         self._iter_fpath = None
         self._fid_err_fpath = None
         self._grad_norm_fpath = None
+        
+        self.dump_to_file = False
+        self.dump = None
+        self.iter_summary = None
 
         # AJGP 2015-04-21: 
         # These (copying from config) are here for backward compatibility
@@ -247,6 +268,37 @@ class Optimizer(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
+        
+    @property
+    def dumping(self):
+        """
+        The level of data dumping that will occur during the optimisation
+         - NONE : No processing data dumped (Default)
+         - SUMMARY : A summary at each iteration will be recorded
+         - FULL : All logs will be generated and dumped
+         - CUSTOM : Some customised level of dumping
+        When first set to CUSTOM this is equivalent to SUMMARY. It is then up
+        to the user to specify which logs are dumped
+        """
+        if self.dump is None:
+            lvl = 'NONE'
+        else:
+            lvl = self.dump.level
+            
+        return lvl
+        
+    @dumping.setter
+    def dumping(self, value):
+        if not _is_string(value):
+            raise TypeError("Value must be string value")
+        lvl = value.upper()
+        if value == 'NONE':
+            self.dump = None
+        else:
+            if not isinstance(self.dump, qtrldump.OptimDump):
+                self.dump = qtrldump.OptimDump(self, level=lvl)
+            else:
+                self.dump.level = lvl
   
     def _create_result(self):
         """
@@ -267,9 +319,6 @@ class Optimizer(object):
         This is called by run_optimization, but could called independently
         to check the configuration.
         """
-        
-        
-
         self._check_prepare_test_out_files()
 
         if term_conds is not None:
@@ -301,9 +350,21 @@ class Optimizer(object):
             
         if self.stats is not None:
             self.stats.clear()
+            
+        if self.dump_to_file:
+            if self.dump is None:
+                self.dumping = 'SUMMARY'
+            self.dump.write_to_file = True
+            self.dump.create_dump_dir()
+            
+        if self.dump:
+            self.iter_summary = OptimIterSummary()
+        else:
+            self.iter_summary = None
         
-        self.num_iter = 1
+        self.num_iter = 0
         self.num_fid_func_calls = 0
+        self.num_grad_func_calls = 0
         self.iteration_steps = None
 
     def _check_prepare_test_out_files(self):
@@ -423,7 +484,6 @@ class Optimizer(object):
                 else:
                     self.method_options.update(unused_params)
 
-        
     def _build_bounds_list(self):
         cfg = self.config
         dyn = self.dynamics
@@ -485,7 +545,7 @@ class Optimizer(object):
         if self.stats is not None:
             self.stats.wall_time_optim_start = st_time
             self.stats.wall_time_optim_end = 0.0
-            self.stats.num_iter = 1
+            self.stats.num_iter = 0
         
         if self.bounds is None:
             self._build_bounds_list()
@@ -586,7 +646,14 @@ class Optimizer(object):
 
         tc = self.termination_conditions
         err = self.dynamics.fid_computer.get_fid_err()
-
+        
+        if self.iter_summary:
+            self.iter_summary.fid_func_call_num = self.num_fid_func_calls
+            self.iter_summary.fid_err = err
+        
+        if self.dump and self.dump.dump_fid_err:
+            self.dump.update_fid_err_log(err)
+        
         if self._fid_err_fpath is not None:
             fh = open(self._fid_err_fpath, 'a')
             fh.write("{:<10n}{:14.6g}\n".format(
@@ -619,8 +686,9 @@ class Optimizer(object):
         condition
         """
         # *** update stats ***
+        self.num_grad_func_calls += 1
         if self.stats is not None:
-            self.stats.num_grad_func_calls += 1
+            self.stats.num_grad_func_calls = self.num_grad_func_calls
             if self.log_level <= logging.DEBUG:
                 logger.debug("gradient call {}".format(
                     self.stats.num_grad_func_calls))
@@ -630,6 +698,17 @@ class Optimizer(object):
         # gradient_norm_func is a pointer to the function set in the config
         # that returns the normalised gradients
         grad = fid_comp.get_fid_err_gradient()
+        
+        if self.iter_summary:
+            self.iter_summary.grad_func_call_num = self.num_grad_func_calls
+            self.iter_summary.grad_norm = fid_comp.grad_norm
+        
+        if self.dump:
+            if self.dump.dump_grad_norm:
+                self.dump.update_grad_norm_log(fid_comp.grad_norm)
+                    
+            if self.dump_grad:
+                self.dump.update_grad_log(grad)
 
         if self._grad_norm_fpath is not None:
             fh = open(self._grad_norm_fpath, 'a')
@@ -661,12 +740,21 @@ class Optimizer(object):
         Check the elapsed wall time for the optimisation run so far.
         Terminate if this has exceeded the maximum allowed time
         """
+        self.num_iter += 1
+        
         if self.log_level <= logging.DEBUG:
             logger.debug("Iteration callback {}".format(self.num_iter))
 
         wall_time = timeit.default_timer() - self.wall_time_optimize_start
+        
+        if self.iter_summary:
+            self.iter_summary.iter_num = self.num_iter
+            self.iter_summary.wall_time = wall_time
+            
+        if self.dump and self.dump.dump_summary:
+            self.dump.add_iter_summary()
+            
         if self._iter_fpath is not None:
-
             # write out: iter wall_time fid_err grad_norm
             fid_comp = self.dynamics.fid_computer
             fh = open(self._iter_fpath, 'a')
@@ -680,7 +768,6 @@ class Optimizer(object):
         if wall_time > tc.max_wall_time:
             raise errors.MaxWallTimeTerminate()
 
-        self.num_iter += 1
         # *** update stats ***
         if self.stats is not None:
             self.stats.num_iter = self.num_iter
@@ -1192,4 +1279,47 @@ class OptimizerCrabFmin(OptimizerCrab):
         self._add_common_result_attribs(result, st_time, end_time)
 
         return result
+
+class OptimIterSummary(object):
+    """A summary of the most recent iteration"""
+    # Note this is some duplication here, this exists solely to be copied
+    # into the summary dump
+    summary_property_names = (
+        "idx", "iter_num", "fid_func_call_num", "grad_func_call_num",
+        "fid_err", "grad_norm", "wall_time"
+        )
+    summary_property_fmts = (
+        'd', 'd', 'd', 'd',
+        '0.3g', '0.3g', '0.3g'
+        )
         
+    @classmethod
+    def get_header_line(cls, sep='\t'):
+        line = sep.join(cls.summary_property_names)
+        return line
+    
+    def __init__(self):
+        self.reset()
+        
+    def reset(self):
+        self.idx = 0
+        self.iter_num = None
+        self.fid_func_call_num = None
+        self.grad_func_call_num = None
+        self.fid_err = None
+        self.grad_norm = None
+        self.wall_time = 0.0
+
+        
+    def get_value_line(self, sep='\t'):
+        line = ""
+        for a in zip(self.summary_property_names, self.summary_property_fmts):
+            if len(line) > 0:
+                line += "\t"
+            v = getattr(self, a[0])
+            if v is not None:
+                line += format(v, a[1])
+            else:
+                line += 'None'
+            
+        return line

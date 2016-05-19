@@ -176,22 +176,10 @@ class TimeslotComputer(object):
             dump_item = dump.add_evo_dump()
             item_idx = dump_item.idx
             anything_dumped = True
-            if dump.write_to_file:
-                dump_item.writeout()
         
         if dump.dump_summary:
-            ecs = dump.add_evo_comp_summary(dump_item_idx=item_idx)
+            dump.add_evo_comp_summary(dump_item_idx=item_idx)
             anything_dumped = True
-            if dump.write_to_file:
-                if ecs.idx == 0:
-                    fid = open(dump.summary_file, 'w')
-                    fid.write("{}\n{}\n".format(ecs.get_header_line(), 
-                              ecs.get_value_line()))
-                else:
-                    fid = open(dump.summary_file, 'a')
-                    fid.write("{}\n".format(ecs.get_value_line()))
-            
-                fid.close()
                 
         if not anything_dumped:
             logger.warning("Dump set, but nothing dumped, check dump config")
@@ -751,7 +739,7 @@ class EvoCompSummary(object):
         line = sep.join(cls.summary_property_names)
         return line
     
-    def init(self):
+    def __init__(self):
         self.reset()
         
     def reset(self):
