@@ -138,6 +138,11 @@ class Optimizer(object):
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
 
+    params:  Dictionary
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        
     alg : string
         Algorithm to use in pulse optimisation.
         Options are:
@@ -210,9 +215,10 @@ class Optimizer(object):
         Note it is (usually) shared with the Dynamics instance
     """
 
-    def __init__(self, config, dyn):
+    def __init__(self, config, dyn, params=None):
         self.dynamics = dyn
         self.config = config
+        self.params = params
         self.reset()
         dyn.parent = self
 
@@ -256,6 +262,8 @@ class Optimizer(object):
         if hasattr(self.config, 'amp_ubound'):
             if self.config.amp_ubound:
                 self.amp_ubound = self.config.amp_ubound
+                
+        self.apply_params()
 
     @property
     def log_level(self):
@@ -268,7 +276,24 @@ class Optimizer(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
-        
+
+    def apply_params(self, params=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        """
+        if not params:
+            params = self.params
+
+        if isinstance(params, dict):
+            self.params = params
+            for key in params:
+                setattr(self, key, params[key])
+                
     @property
     def dumping(self):
         """
@@ -356,6 +381,8 @@ class Optimizer(object):
                 self.dumping = 'SUMMARY'
             self.dump.write_to_file = True
             self.dump.create_dump_dir()
+            logger.info("Optimiser dump will be written to:\n{}".format(
+                                        self.dump.dump_dir))
             
         if self.dump:
             self.iter_summary = OptimIterSummary()
@@ -707,7 +734,7 @@ class Optimizer(object):
             if self.dump.dump_grad_norm:
                 self.dump.update_grad_norm_log(fid_comp.grad_norm)
                     
-            if self.dump_grad:
+            if self.dump.dump_grad:
                 self.dump.update_grad_log(grad)
 
         if self._grad_norm_fpath is not None:
@@ -1280,29 +1307,31 @@ class OptimizerCrabFmin(OptimizerCrab):
 
         return result
 
-class OptimIterSummary(object):
+class OptimIterSummary(qtrldump.DumpSummaryItem):
     """A summary of the most recent iteration"""
     # Note this is some duplication here, this exists solely to be copied
     # into the summary dump
+    min_col_width = 11
     summary_property_names = (
         "idx", "iter_num", "fid_func_call_num", "grad_func_call_num",
         "fid_err", "grad_norm", "wall_time"
         )
-    summary_property_fmts = (
+        
+    summary_property_fmt_type = (
         'd', 'd', 'd', 'd',
-        '0.3g', '0.3g', '0.3g'
+        'g', 'g', 'g'
         )
         
-    @classmethod
-    def get_header_line(cls, sep='\t'):
-        line = sep.join(cls.summary_property_names)
-        return line
-    
+    summary_property_fmt_prec = (
+        0, 0, 0, 0,
+        4, 4, 2
+        )
+        
     def __init__(self):
         self.reset()
         
     def reset(self):
-        self.idx = 0
+        qtrldump.DumpSummaryItem.reset(self)
         self.iter_num = None
         self.fid_func_call_num = None
         self.grad_func_call_num = None
@@ -1311,15 +1340,3 @@ class OptimIterSummary(object):
         self.wall_time = 0.0
 
         
-    def get_value_line(self, sep='\t'):
-        line = ""
-        for a in zip(self.summary_property_names, self.summary_property_fmts):
-            if len(line) > 0:
-                line += "\t"
-            v = getattr(self, a[0])
-            if v is not None:
-                line += format(v, a[1])
-            else:
-                line += 'None'
-            
-        return line

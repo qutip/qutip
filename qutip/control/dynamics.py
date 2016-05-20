@@ -139,6 +139,11 @@ class Dynamics(object):
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
+        
+    params:  Dictionary
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
 
     stats : Stats
         Attributes of which give performance stats for the optimisation
@@ -608,6 +613,8 @@ class Dynamics(object):
                 self.dumping = 'SUMMARY'
             self.dump.write_to_file = True
             self.dump.create_dump_dir()
+            logger.info("Dynamics dump will be written to:\n{}".format(
+                            self.dump.dump_dir))
 
     def _create_decomp_lists(self):
         """
