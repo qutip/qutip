@@ -71,7 +71,7 @@ class Dump(object):
     """
     A container for dump items.
     This lists for dump items is depends on the type
-    """
+    """   
     def __init__(self):
         self.reset()
         
@@ -85,6 +85,7 @@ class Dump(object):
         self.dump_file_ext = "txt"
         self.fname_base = 'dump'
         self.dump_summary = True
+        self.summary_sep = ' '
         self._summary_file_path = None
 
     @property
@@ -188,7 +189,7 @@ class OptimDump(Dump):
     def reset(self):
         Dump.reset(self)
         self._apply_level()
-        self.optim_iter_summary = []
+        self.iter_summary = []
         self.fid_err_log = []
         self.grad_norm_log = []
         self.grad_log = []
@@ -250,16 +251,18 @@ class OptimDump(Dump):
         if optim.iter_summary is None:
             raise RuntimeError("Cannot add iter_summary as not available")
         ois = copy.copy(optim.iter_summary)
-        ois.idx = len(self.optim_iter_summary)        
-        self.optim_iter_summary.append(ois)
+        ois.idx = len(self.iter_summary)        
+        self.iter_summary.append(ois)
         if self.write_to_file:
             if ois.idx == 0:
                 f = open(self.summary_file, 'w')
-                f.write("{}\n{}\n".format(ois.get_header_line(), 
-                          ois.get_value_line()))
+                f.write("{}\n{}\n".format(
+                            ois.get_header_line(self.summary_sep), 
+                            ois.get_value_line(self.summary_sep)))
             else:
                 f = open(self.summary_file, 'a')
-                f.write("{}\n".format(ois.get_value_line()))
+                f.write("{}\n".format(
+                            ois.get_value_line(self.summary_sep)))
         
             f.close()
         return ois
@@ -286,7 +289,7 @@ class OptimDump(Dump):
             
     @property
     def grad_norm_file(self):
-        if self._fid_err_file is None:
+        if self._grad_norm_file is None:
             fname = "{}-grad_norm_log.{}".format(self.fname_base, 
                                                     self.dump_file_ext)
             self._grad_norm_file = os.path.join(self.dump_dir, fname)
@@ -342,26 +345,28 @@ class OptimDump(Dump):
         if self.dump_summary:
             for ois in self.iter_summary:
                 if ois.idx == 0:
-                    fs.write(asbytes("{}\n{}\n".format(ois.get_header_line(), 
-                              ois.get_value_line())))
+                    fs.write(asbytes("{}\n{}\n".format(
+                                ois.get_header_line(self.summary_sep), 
+                                ois.get_value_line(self.summary_sep))))
                 else:
-                    fs.write(asbytes("{}\n".format(ois.get_value_line())))
+                    fs.write(asbytes("{}\n".format(
+                                ois.get_value_line(self.summary_sep))))
             
             if closefs:
                 fs.close()
-                logger.info("Dynamics dump summary saved to {}".format(
+                logger.info("Optim dump summary saved to {}".format(
                                                     self.summary_file))
         
         if self.dump_fid_err:
             if fall:
-                fall.write(asbytes("Fidelity errors\n:"))
+                fall.write(asbytes("Fidelity errors:\n"))
                 np.savetxt(fall, self.fid_err_log)
             else:
                 np.savetxt(self.fid_err_file, self.fid_err_log)
                 
         if self.dump_grad_norm:
             if fall:
-                fall.write(asbytes("gradients norms\n:"))
+                fall.write(asbytes("gradients norms:\n"))
                 np.savetxt(fall, self.grad_norm_log)
             else:
                 np.savetxt(self.grad_norm_file, self.grad_norm_log)
@@ -371,7 +376,7 @@ class OptimDump(Dump):
             for grad in self.grad_log:
                 g_num += 1
                 if fall:
-                    fall.write(asbytes("gradients (call {})\n:".format(g_num)))
+                    fall.write(asbytes("gradients (call {}):\n".format(g_num)))
                     np.savetxt(fall, grad)
                 else:
                     fname = "{}-fid_err_gradients{}.{}".format(self.fname_base, 
@@ -504,7 +509,7 @@ class DynamicsDump(Dump):
             item.onto_evo = copy.deepcopy(dyn._onto_evo)
         
         if self.write_to_file:
-            self.writeout()
+            item.writeout()
         return item
             
     def add_evo_comp_summary(self, dump_item_idx=None):
@@ -524,11 +529,12 @@ class DynamicsDump(Dump):
         if self.write_to_file:
             if ecs.idx == 0:
                 f = open(self.summary_file, 'w')
-                f.write("{}\n{}\n".format(ecs.get_header_line(), 
-                          ecs.get_value_line()))
+                f.write("{}\n{}\n".format(
+                        ecs.get_header_line(self.summary_sep), 
+                        ecs.get_value_line(self.summary_sep)))
             else:
                 f = open(self.summary_file, 'a')
-                f.write("{}\n".format(ecs.get_value_line()))
+                f.write("{}\n".format(ecs.get_value_line(self.summary_sep)))
         
             f.close()
         return ecs
@@ -753,4 +759,59 @@ class EvoCompDumpItem(DumpItem):
         if closefall:
             fall.close()
         
+class DumpSummaryItem(object):
+    """A summary of the most recent iteration
+    Abstract class only    
+    """
+    min_col_width = 11
+    summary_property_names = ()
         
+    summary_property_fmt_type = ()
+        
+    summary_property_fmt_prec = ()
+        
+    @classmethod
+    def get_header_line(cls, sep='\t'):
+        if sep == ' ':
+            line = ''
+            i = 0
+            for a in cls.summary_property_names:
+                if i > 0:
+                    line += sep
+                i += 1
+                line += format(a, str(max(len(a), cls.min_col_width)) + 's')
+        else:
+            line = sep.join(cls.summary_property_names)
+        return line
+            
+    def reset(self):
+        self.idx = 0
+        
+    def get_value_line(self, sep='\t'):
+        line = ""
+        i = 0
+        for a in zip(self.summary_property_names, 
+                     self.summary_property_fmt_type,
+                     self.summary_property_fmt_prec):
+            if i > 0:
+                line += sep
+            i += 1
+            v = getattr(self, a[0])
+            w = max(len(a[0]), self.min_col_width)
+            if v is not None:
+                fmt = ''
+                if sep == ' ':
+                    fmt += str(w)
+                else:
+                    fmt += '0'
+                if a[2] > 0:
+                    fmt += '.' + str(a[2])
+                fmt += a[1]
+                line += format(v, fmt)
+            else:
+                if sep == ' ':
+                    line += format('None', str(w) + 's')
+                else:
+                    line += 'None'
+            
+        return line

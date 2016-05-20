@@ -718,32 +718,37 @@ class TSlotCompDynUpdate(TimeslotComputer):
         self.evo_t2targ_calc_now[kUse] = True
         return kUse
 
-class EvoCompSummary(object):
+class EvoCompSummary(qtrldump.DumpSummaryItem):
     """A summary of the time evolution computation"""
+    min_col_width = 11
     summary_property_names = (
         "idx", "evo_dump_idx", 
         "iter_num", "fid_func_call_num", "grad_func_call_num",
         "num_amps_changed", "num_timeslots_changed",
         "wall_time_dyn_gen_compute", "wall_time_prop_compute",
         "wall_time_fwd_prop_compute", "wall_time_onwd_prop_compute")
-    summary_property_fmts = (
+        
+    summary_property_fmt_type = (
         'd', 'd',
         'd', 'd', 'd',
         'd', 'd',
-        '0.3g', '0.3g', 
-        '0.3g', '0.3g'
+        'g', 'g', 
+        'g', 'g'
         )
         
-    @classmethod
-    def get_header_line(cls, sep='\t'):
-        line = sep.join(cls.summary_property_names)
-        return line
-    
+    summary_property_fmt_prec = (
+        0, 0, 
+        0, 0, 0,
+        0, 0, 
+        3, 3,
+        3, 3
+        )
+        
     def __init__(self):
         self.reset()
         
     def reset(self):
-        self.idx = 0
+        qtrldump.DumpSummaryItem.reset(self)
         self.evo_dump_idx = None
         self.iter_num = None
         self.fid_func_call_num = None
@@ -754,17 +759,4 @@ class EvoCompSummary(object):
         self.wall_time_prop_compute = 0.0
         self.wall_time_fwd_prop_compute = 0.0
         self.wall_time_onwd_prop_compute = 0.0
-        
-    def get_value_line(self, sep='\t'):
-        line = ""
-        for a in zip(self.summary_property_names, self.summary_property_fmts):
-            if len(line) > 0:
-                line += "\t"
-            v = getattr(self, a[0])
-            if v is not None:
-                line += format(v, a[1])
-            else:
-                line += 'None'
-            
-        return line
         
