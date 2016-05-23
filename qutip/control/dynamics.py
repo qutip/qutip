@@ -368,7 +368,7 @@ class Dynamics(object):
         self._ctrls_initialized = False
         # Unitary checking
         self.unitarity_check_level = 0
-        self.unitarity_tol = 1e-5
+        self.unitarity_tol = 1e-10
         # Data dumping
         self.dump = None
         self.dump_to_file = False
@@ -1350,17 +1350,23 @@ class DynamicsUnitary(Dynamics):
                                                     dims=self.dyn_dims)
             self._dyn_gen_eigenvectors[k] = Qobj(eig_vec,
                                                 dims=self.dyn_dims)
+            # The _dyn_gen_eigenvectors_adj list is not used in
+            # memory optimised modes
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].dag()
         else:
             self._prop_eigen[k] = np.diagflat(prop_eig)
             self._dyn_gen_eigenvectors[k] = eig_vec
+            # The _dyn_gen_eigenvectors_adj list is not used in
+            # memory optimised modes
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].conj().T
 
     def _get_dyn_gen_eigenvectors_adj(self, k):
+        # The _dyn_gen_eigenvectors_adj list is not used in
+        # memory optimised modes
         if self._dyn_gen_eigenvectors_adj is not None:
             return self._dyn_gen_eigenvectors_adj[k]
         else:
@@ -1375,7 +1381,6 @@ class DynamicsUnitary(Dynamics):
         For propagators found not to be unitary, the potential underlying
         causes are investigated.
         """
-        max_prop_unit_err = self.unitarity_tol
         for k in range(self.num_tslots):
             prop_unit = self._is_unitary(self._prop[k])
             if not prop_unit:
@@ -1391,8 +1396,11 @@ class DynamicsUnitary(Dynamics):
                     herm = False if np.any(diff > settings.atol) else True
                 eigval_unit = self._is_unitary(self._prop_eigen[k])
                 eigvec_unit = self._is_unitary(self._dyn_gen_eigenvectors[k])
-                eigvecadj_unit = self._is_unitary(
-                self._dyn_gen_eigenvectors_adj[k])
+                if self._dyn_gen_eigenvectors_adj is not None:
+                    eigvecadj_unit = self._is_unitary(
+                                    self._dyn_gen_eigenvectors_adj[k])
+                else:
+                    eigvecadj_unit = None
                 msg = ("prop unit: {}; H herm: {}; "
                         "eigval unit: {}; eigvec unit: {}; "
                         "eigvecadj_unit: {}".format(
@@ -1400,25 +1408,6 @@ class DynamicsUnitary(Dynamics):
                             eigvecadj_unit))
                 logger.info(msg)
 
-                if self.oper_dtype == Qobj:
-        
-                    test_prop = (self._dyn_gen_eigenvectors[k]*self._prop_eigen[k]*
-                                        self._get_dyn_gen_eigenvectors_adj(k))
-                else:
-                    test_prop = self._dyn_gen_eigenvectors[k].dot(
-                                            self._prop_eigen[k]).dot(
-                                        self._get_dyn_gen_eigenvectors_adj(k))
-                                        
-                logger.info("Test prop unitary: {}".format(self._is_unitary(test_prop)))
-                
-                prop_unit_err = self._calc_unitary_err(self._prop[k])
-                if prop_unit_err > max_prop_unit_err:
-                    worst_k = k
-                    max_prop_unit_err = prop_unit_err
-        if max_prop_unit_err > self.unitarity_tol:
-            print("Worst propagator {} had unit err {} and was generated from H:\n{}\n".format(worst_k, max_prop_unit_err, self._dyn_gen[worst_k]))
-
-                    
 class DynamicsSymplectic(Dynamics):
     """
     Symplectic systems
