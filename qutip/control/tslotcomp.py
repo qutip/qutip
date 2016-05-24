@@ -122,10 +122,6 @@ class TimeslotComputer(object):
         self.log_level = self.parent.log_level
         self.id_text = 'TS_COMP_BASE'
         self.evo_comp_summary = None
-        self._fwd_evo_tofh = 0
-        self._owd_evo_tofh = 0
-        self._prop_tofh = 0
-        self._prop_grad_tofh = 0
 
     def apply_params(self, params=None):
         """
@@ -205,8 +201,11 @@ class TSlotCompUpdateAll(TimeslotComputer):
         changed = False
         dyn = self.parent
         
-        if (dyn.stats or dyn.dump) and not self.evo_comp_summary:
-            ecs = self.evo_comp_summary = EvoCompSummary()
+        if (dyn.stats or dyn.dump):
+            if self.evo_comp_summary:
+                self.evo_comp_summary.reset()
+            else:
+                self.evo_comp_summary = EvoCompSummary()
         ecs = self.evo_comp_summary
         
         if dyn.ctrl_amps is None:
@@ -291,29 +290,6 @@ class TSlotCompUpdateAll(TimeslotComputer):
                 timeit.default_timer() - time_start
 
         # calculate the propagators and the propagotor gradients
-        if (dyn.config.test_out_prop or
-                dyn.config.test_out_prop_grad or
-                dyn.config.test_out_evo):
-            f_ext = "_{}_{}_{}_call{}{}".format(dyn.id_text,
-                                                dyn.prop_computer.id_text,
-                                                dyn.fid_computer.id_text,
-                                                dyn.stats.num_tslot_recompute,
-                                                dyn.config.test_out_f_ext)
-
-        if dyn.config.test_out_prop:
-            fname = "prop" + f_ext
-            fpath = os.path.join(dyn.config.test_out_dir, fname)
-            self._prop_tofh = open(fpath, 'w')
-        else:
-            self._prop_tofh = 0
-
-        if dyn.config.test_out_prop_grad:
-            fname = "prop_grad" + f_ext
-            fpath = os.path.join(dyn.config.test_out_dir, fname)
-            self._prop_grad_tofh = open(fpath, 'w')
-        else:
-            self._prop_grad_tofh = 0
-
         if ecs: time_start = timeit.default_timer()
         for k in range(n_ts):
             if prop_comp.grad_exact:
@@ -324,49 +300,14 @@ class TSlotCompUpdateAll(TimeslotComputer):
                             logger.log(logging.DEBUG_INTENSE,
                                        "propagator {}:\n{:10.3g}".format(
                                            k, self._prop[k]))
-                        if self._prop_tofh != 0:
-                            self._prop_tofh.write(
-                                "propagator k={}\n".format(k))
-                            np.savetxt(self._prop_tofh, self._prop[k],
-                                                       fmt='%10.3g')
-
                     else:
                         prop_comp._compute_prop_grad(k, j, compute_prop=False)
-
-                    if self._prop_grad_tofh != 0:
-                        self._prop_grad_tofh.write(
-                            "prop grad k={}, j={}\n".format(k, j))
-                        np.savetxt(self._prop_grad_tofh, self._prop_grad[k, j],
-                                   fmt='%10.3g')
             else:
                 dyn._prop[k] = prop_comp._compute_propagator(k)
-                if self._prop_tofh != 0:
-                    self._prop_tofh.write(
-                        "propagator k={}\n".format(k))
-                    np.savetxt(self._prop_tofh, self._prop[k], fmt='%10.3g')
         
         if ecs:
             ecs.wall_time_prop_compute = \
                 timeit.default_timer() - time_start
-
-        if self._prop_tofh != 0:
-            self._prop_tofh.close()
-            self._prop_tofh = 0
-        if self._prop_grad_tofh != 0:
-            self._prop_grad_tofh.close()
-            self._prop_grad_tofh = 0
-
-        if dyn.config.test_out_evo:
-            fname = "fwd_evo" + f_ext
-            fpath = os.path.join(dyn.config.test_out_dir, fname)
-            self._fwd_evo_tofh = open(fpath, 'w')
-
-            fname = "owd_evo" + f_ext
-            fpath = os.path.join(dyn.config.test_out_dir, fname)
-            self._owd_evo_tofh = open(fpath, 'w')
-        else:
-            self._fwd_evo_tofh = 0
-            self._owd_evo_tofh = 0
 
         if ecs: time_start = timeit.default_timer()
         # compute the forward propagation
@@ -376,11 +317,6 @@ class TSlotCompUpdateAll(TimeslotComputer):
                 dyn._fwd_evo[k+1] = dyn._prop[k]*dyn._fwd_evo[k]
             else:
                 dyn._fwd_evo[k+1] = dyn._prop[k].dot(dyn._fwd_evo[k])
-
-            if self._fwd_evo_tofh != 0:
-                self._fwd_evo_tofh.write("Evo start to k={}\n".format(k))
-                np.savetxt(self._fwd_evo_tofh, dyn._fwd_evo[k],
-                           fmt='%10.3g')
 
         if ecs:
             ecs.wall_time_fwd_prop_compute = \
@@ -395,10 +331,6 @@ class TSlotCompUpdateAll(TimeslotComputer):
                     dyn._onwd_evo[k] = dyn._onwd_evo[k+1]*dyn._prop[k]
                 else:
                     dyn._onwd_evo[k] = dyn._onwd_evo[k+1].dot(dyn._prop[k])
-                if self._owd_evo_tofh != 0:
-                    self._owd_evo_tofh.write("Evo k={} to end:\n".format(k))
-                    np.savetxt(self._owd_evo_tofh, dyn._onwd_evo[k],
-                               fmt='%14.6g')
 
         if dyn.fid_computer.uses_onto_evo:
             #R = range(n_ts-1, -1, -1)
@@ -408,21 +340,10 @@ class TSlotCompUpdateAll(TimeslotComputer):
                     dyn._onto_evo[k] = dyn._onto_evo[k+1]*dyn._prop[k]
                 else:
                     dyn._onto_evo[k] = dyn._onto_evo[k+1].dot(dyn._prop[k])
-                if self._owd_evo_tofh != 0:
-                    self._owd_evo_tofh.write("Evo k={} to targ:\n".format(k))
-                    np.savetxt(self._owd_evo_tofh, dyn._onto_evo[k],
-                               fmt='%14.6g')
 
         if ecs:
             ecs.wall_time_onwd_prop_compute = \
                             timeit.default_timer() - time_start
-
-        if self._fwd_evo_tofh != 0:
-            self._fwd_evo_tofh.close()
-            self._fwd_evo_tofh = 0
-        if self._owd_evo_tofh != 0:
-            self._owd_evo_tofh.close()
-            self._owd_evo_tofh = 0
             
         if dyn.stats:
             dyn.stats.wall_time_dyn_gen_compute += \
@@ -719,7 +640,55 @@ class TSlotCompDynUpdate(TimeslotComputer):
         return kUse
 
 class EvoCompSummary(qtrldump.DumpSummaryItem):
-    """A summary of the time evolution computation"""
+    """
+    A summary of the most recent time evolution computation
+    Used in stats calculations and for data dumping
+    
+    Attributes
+    ----------
+    evo_dump_idx : int
+        Index of the linked :class:`dump.EvoCompDumpItem`
+        None if no linked item
+        
+    iter_num : int
+        Iteration number of the pulse optimisation
+        None if evolution compute outside of a pulse optimisation
+        
+    fid_func_call_num : int
+        Fidelity function call number of the pulse optimisation
+        None if evolution compute outside of a pulse optimisation
+        
+    grad_func_call_num : int
+        Gradient function call number of the pulse optimisation
+        None if evolution compute outside of a pulse optimisation
+        
+    num_amps_changed : int
+        Number of control timeslot amplitudes changed since previous
+        evolution calculation
+        
+    num_timeslots_changed : int
+        Number of timeslots in which any amplitudes changed since previous
+        evolution calculation
+        
+    wall_time_dyn_gen_compute : float
+        Time spent computing dynamics generators
+        (in seconds of elapsed time)
+        
+    wall_time_prop_compute : float
+        Time spent computing propagators (including and propagator gradients)
+        (in seconds of elapsed time)
+        
+    wall_time_fwd_prop_compute : float
+        Time spent computing the forward evolution of the system
+        see :property:`dynamics.fwd_evo`  
+        (in seconds of elapsed time)
+        
+    wall_time_onwd_prop_compute : float
+        Time spent computing the 'backward' evolution of the system
+        see :property:`dynamics.onwd_evo` and :property:`dynamics.onto_evo`
+        (in seconds of elapsed time)
+    """
+    
     min_col_width = 11
     summary_property_names = (
         "idx", "evo_dump_idx", 

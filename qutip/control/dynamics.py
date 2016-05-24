@@ -280,10 +280,10 @@ class Dynamics(object):
     def_amps_fname : string
         Default name for the output used when save_amps is called
         
-    dump : :class:`DynamicsDump`
+    dump : :class:`dump.DynamicsDump`
         Store of historical calculation data.
         Set to None (Default) for no storing of historical data
-        Used dumping property to set level of data dumping
+        Use dumping property to set level of data dumping
         
     dumping : string
         level of data dumping: NONE, SUMMARY, FULL or CUSTOM
@@ -291,7 +291,8 @@ class Dynamics(object):
         
     dump_to_file : bool
         If set True then data will be dumped to file during the calculations
-        Note 'dumping' must be set also, or nothing will be dumped
+        dumping will be set to SUMMARY during init_evo if dump_to_file is True
+        and dumping not set.
         Default is False
     """
     def __init__(self, optimconfig, params=None):
@@ -630,23 +631,12 @@ class Dynamics(object):
             self._dyn_gen_eigenvectors_adj = [object for x in range(n_ts)]
         self._dyn_gen_factormatrix = [object for x in range(n_ts)]
 
-    def _check_test_out_files(self):
-        cfg = self.config
-        if cfg.any_test_files():
-            if cfg.check_create_test_out_dir():
-                if self.stats is None:
-                    logger.warn("Cannot output test files when stats"
-                                " attribute is not set.")
-                    cfg.clear_test_out_flags()
-
     def initialize_controls(self, amps, init_tslots=True):
         """
         Set the initial control amplitudes and time slices
         Note this must be called after the configuration is complete
         before any dynamics can be calculated
         """
-        self._check_test_out_files()
-
         if not isinstance(self.prop_computer, propcomp.PropagatorComputer):
             raise errors.UsageError(
                 "No prop_computer (propagator computer) "
@@ -756,21 +746,8 @@ class Dynamics(object):
             logger.log(logging.DEBUG_INTENSE, "Updating amplitudes...\n"
                        "Current control amplitudes:\n" + str(self.ctrl_amps) +
                        "\n(potenially) new amplitudes:\n" + str(new_amps))
-
-        if self.tslot_computer.evo_comp_summary:
-            self.tslot_computer.evo_comp_summary.reset()
-            
-        if not self.tslot_computer.compare_amps(new_amps):
-            if self.config.test_out_amps:
-                fname = "amps_{}_{}_{}_call{}{}".format(
-                    self.id_text,
-                    self.prop_computer.id_text,
-                    self.fid_computer.id_text,
-                    self.stats.num_ctrl_amp_updates,
-                    self.config.test_out_f_ext)
-
-                fpath = os.path.join(self.config.test_out_dir, fname)
-                self.save_amps(fpath, verbose=True)
+           
+        self.tslot_computer.compare_amps(new_amps)
 
     def flag_system_changed(self):
         """
@@ -1145,6 +1122,7 @@ class Dynamics(object):
          - CUSTOM : Some customised level of dumping
         When first set to CUSTOM this is equivalent to SUMMARY. It is then up
         to the user to specify which operators are dumped
+        WARNING: FULL could consume a lot of memory!
         """
         if self.dump is None:
             lvl = 'NONE'
