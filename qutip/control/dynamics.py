@@ -280,6 +280,17 @@ class Dynamics(object):
     def_amps_fname : string
         Default name for the output used when save_amps is called
         
+    unitarity_check_level : int
+        If > 0 then unitarity of the system evolution is checked at at
+        evolution recomputation. 
+        level 1 checks all propagators
+        level 2 checks eigen basis as well
+        Default is 0
+    
+    unitarity_tol :
+        Tolerance used in checking if operator is unitary
+        Default is 1e-10
+        
     dump : :class:`dump.DynamicsDump`
         Store of historical calculation data.
         Set to None (Default) for no storing of historical data
