@@ -69,11 +69,11 @@ def create_dir(dir_name, desc='output'):
     else:
         try:
             os.makedirs(dir_name)
-            msg += ("Test out files directory {} created "
+            msg += ("directory {} created "
                         "(recursively)".format(dir_name))
         except OSError as e:
             if e.errno == errno.EEXIST:
-                msg += ("Assume test out files directory {} created "
+                msg += ("Assume directory {} created "
                     "(recursively) by some other process. ".format(dir_name))
             else:
                 dir_ok = False

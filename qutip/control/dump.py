@@ -70,7 +70,57 @@ def _is_string(var):
 class Dump(object):
     """
     A container for dump items.
-    This lists for dump items is depends on the type
+    The lists for dump items is depends on the type
+    Note: abstract class
+    
+    Attributes
+    ----------
+    parent : some control object (Dynamics or Optimizer)
+        aka the host. Object that generates the data that is dumped and is
+        host to this dump object.
+        
+    dump_dir : str
+        directory where files (if any) will be written out
+        the path and be relative or absolute
+        use ~/ to specify user home directory
+        Note: files are only written when write_to_file is True
+        of writeout is called explicitly
+        Defaults to ~/qtrl_dump
+        
+    level : string
+        level of data dumping: SUMMARY, FULL or CUSTOM
+        See property docstring for details
+        Set automatically if dump is created by the setting host dumping attrib
+        
+    write_to_file : bool
+        When set True data and summaries (as configured) will be written
+        interactively to file during the processing
+        Set during instantiation by the host based on its dump_to_file attrib
+        
+    dump_file_ext : str
+        Default file extension for any file names that are auto generated
+        
+    fname_base : str
+        First part of any auto generated file names.
+        This is usually overridden in the subclass
+        
+    dump_summary : bool
+        If True a summary is recorded each time a new item is added to the
+        the dump.
+        Default is True
+        
+    summary_sep : str
+        delimiter for the summary file.
+        default is a space
+        
+    data_sep : str
+        delimiter for the data files (arrays saved to file).
+        default is a space
+        
+    summary_file : str
+        File path for summary file.
+        Automatically generated. Can be set specifically
+    
     """   
     def __init__(self):
         self.reset()
@@ -86,6 +136,7 @@ class Dump(object):
         self.fname_base = 'dump'
         self.dump_summary = True
         self.summary_sep = ' '
+        self.data_sep = ' '
         self._summary_file_path = None
 
     @property
@@ -102,6 +153,14 @@ class Dump(object):
 
     @property
     def level(self):
+        """
+        The level of data dumping that will occur
+         - SUMMARY : A summary will be recorded
+         - FULL : All possible dumping
+         - CUSTOM : Some customised level of dumping
+        When first set to CUSTOM this is equivalent to SUMMARY. It is then up
+        to the user to specify what specifically is dumped
+        """
         lvl = 'CUSTOM'
         if (self.dump_summary and not self.dump_any):
             lvl = 'SUMMARY'
@@ -139,7 +198,7 @@ class Dump(object):
         
     def create_dump_dir(self):
         """
-        Checks test_out directory exists, creates it if not
+        Checks dump directory exists, creates it if not
         """
         if self._dump_dir is None or len(self._dump_dir) == 0:
             self._dump_dir = DUMP_DIR
@@ -176,6 +235,33 @@ class OptimDump(Dump):
     """
     A container for dumps of optimisation data generated during the pulse
     optimisation.
+    
+    Attributes
+    ----------
+    dump_summary : bool
+        When True summary items are appended to the iter_summary
+        
+    iter_summary : list of :class:`optimizer.OptimIterSummary`
+        Summary at each iteration
+    
+    dump_fid_err : bool
+        When True values are appended to the fid_err_log
+        
+    fid_err_log : list of float
+        Fidelity error at each call of the fid_err_func
+        
+    dump_grad_norm : bool
+        When True values are appended to the fid_err_log
+        
+    grad_norm_log : list of float
+        Gradient norm at each call of the grad_norm_log
+        
+    dump_grad : bool
+        When True values are appended to the grad_log
+        
+    grad_log : list of ndarray
+        Gradients at each call of the fid_grad_func
+        
     """
     def __init__(self, optim, level='SUMMARY'):
         from qutip.control.optimizer import Optimizer
@@ -315,10 +401,20 @@ class OptimDump(Dump):
                                                         len(self.grad_log),
                                                         self.dump_file_ext)
             fpath = os.path.join(self.dump_dir, fname)
-            np.savetxt(fpath, grad)
+            np.savetxt(fpath, grad, delimiter=self.data_sep)
             
     def writeout(self, f=None):
-        """write all the logs and the summary out to file(s)"""
+        """write all the logs and the summary out to file(s)
+        
+        Parameters
+        ----------
+        f : filename or filehandle
+            If specified then all summary and  object data will go in one file.
+            If None is specified then type specific files will be generated
+            in the dump_dir
+            If a filehandle is specified then it must be a byte mode file
+            as numpy.savetxt is used, and requires this.
+        """
         fall = None
         # If specific file given then write everything to it
         if hasattr(f, 'write'):
@@ -383,7 +479,7 @@ class OptimDump(Dump):
                                                             g_num,
                                                             self.dump_file_ext)
                     fpath = os.path.join(self.dump_dir, fname)
-                    np.savetxt(fpath, grad)
+                    np.savetxt(fpath, grad, delimiter=self.data_sep)
             
         if closefall:
             fall.close()
@@ -398,6 +494,41 @@ class DynamicsDump(Dump):
     """
     A container for dumps of dynamics data.
     Mainly time evolution calculations
+    
+    Attributes
+    ----------
+    dump_summary : bool
+        If True a summary is recorded
+        
+    evo_summary : list of :class:`tslotcomp.EvoCompSummary'
+        Summary items are appended if dump_summary is True 
+        at each recomputation of the evolution.
+    
+    dump_amps : bool
+        If True control amplitudes are dumped
+        
+    dump_dyn_gen : bool
+        If True the dynamics generators (Hamiltonians) are dumped
+        
+    dump_prop : bool
+        If True propagators are dumped
+        
+    dump_prop_grad : bool
+        If True propagator gradients are dumped
+        
+    dump_fwd_evo : bool
+        If True forward evolution operators are dumped
+        
+    dump_onwd_evo : bool
+        If True onward evolution operators are dumped
+        
+    dump_onto_evo : bool
+        If True onto (or backward) evolution operators are dumped
+        
+    evo_dumps : list of :class:`EvoCompDumpItem`
+        A new dump item is appended at each recomputation of the evolution.
+        That is if any of the calculation objects are to be dumped.
+    
     """
     def __init__(self, dynamics, level='SUMMARY'):
         from qutip.control.dynamics import Dynamics
@@ -540,7 +671,16 @@ class DynamicsDump(Dump):
         return ecs
         
     def writeout(self, f=None):
-        """write all the dump items and the summary out to file(s)"""
+        """write all the dump items and the summary out to file(s)
+        Parameters
+        ----------
+        f : filename or filehandle
+            If specified then all summary and object data will go in one file.
+            If None is specified then type specific files will be generated
+            in the dump_dir
+            If a filehandle is specified then it must be a byte mode file
+            as numpy.savetxt is used, and requires this.
+        """
         fall = None
         # If specific file given then write everything to it
         if hasattr(f, 'write'):
@@ -567,10 +707,12 @@ class DynamicsDump(Dump):
         if self.dump_summary:
             for ecs in self.evo_summary:
                 if ecs.idx == 0:
-                    fs.write(asbytes("{}\n{}\n".format(ecs.get_header_line(), 
-                              ecs.get_value_line())))
+                    fs.write(asbytes("{}\n{}\n".format(
+                            ecs.get_header_line(self.summary_sep), 
+                            ecs.get_value_line(self.summary_sep))))
                 else:
-                    fs.write(asbytes("{}\n".format(ecs.get_value_line())))
+                    fs.write(asbytes("{}\n".format(
+                            ecs.get_value_line(self.summary_sep))))
             
             if closefs:
                 fs.close()
@@ -598,7 +740,9 @@ class DumpItem(object):
 
 class EvoCompDumpItem(DumpItem):
     """
-    A copy of all objects generated to calculation one time evolution
+    A copy of all objects generated to calculate one time evolution
+    Note the attributes are only set if the corresponding 
+    :class:`DynamicsDump` dump_ attribute is set.
     """
     def __init__(self, dump):
         if not isinstance(dump, DynamicsDump):
@@ -620,7 +764,17 @@ class EvoCompDumpItem(DumpItem):
         self.onto_evo = None
                 
     def writeout(self, f=None):
-        """ write all the objects out to files """
+        """ write all the objects out to files 
+        
+        Parameters
+        ----------
+        f : filename or filehandle
+            If specified then all object data will go in one file.
+            If None is specified then type specific files will be generated
+            in the dump_dir
+            If a filehandle is specified then it must be a byte mode file
+            as numpy.savetxt is used, and requires this.
+        """
         dump = self.parent
         fall = None
         closefall = True
@@ -650,7 +804,8 @@ class EvoCompDumpItem(DumpItem):
                                                 dump.dump_file_ext)
                 f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
-            np.savetxt(f, self.ctrl_amps, fmt='%14.6g')
+            np.savetxt(f, self.ctrl_amps, fmt='%14.6g', 
+                       delimiter=dump.data_sep)
             if closef: f.close()
                 
         # dynamics generators
@@ -665,8 +820,9 @@ class EvoCompDumpItem(DumpItem):
                 f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
-                f.write(asbytes("dynamics generator for timeslot {}\n".format(k)))
-                np.savetxt(f, self.dyn_gen[k])
+                f.write(asbytes(
+                        "dynamics generator for timeslot {}\n".format(k)))
+                np.savetxt(f, self.dyn_gen[k], delimiter=dump.data_sep)
                 k += 1
             if closef: f.close()
 
@@ -683,7 +839,7 @@ class EvoCompDumpItem(DumpItem):
                 closef = True
             for dg in self.dyn_gen:
                 f.write(asbytes("Propagator for timeslot {}\n".format(k)))
-                np.savetxt(f, self.prop[k])
+                np.savetxt(f, self.prop[k], delimiter=dump.data_sep)
                 k += 1
             if closef: f.close()
                 
@@ -702,7 +858,8 @@ class EvoCompDumpItem(DumpItem):
                 for j in range(self.prop_grad.shape[1]):
                     f.write(asbytes("Propagator gradient for timeslot {} "
                             "control {}\n".format(k, j)))
-                    np.savetxt(f, self.prop_grad[k, j])
+                    np.savetxt(f, self.prop_grad[k, j], 
+                               delimiter=dump.data_sep)
             if closef: f.close()
 
         # forward evolution
@@ -718,7 +875,7 @@ class EvoCompDumpItem(DumpItem):
                 closef = True
             for dg in self.dyn_gen:
                 f.write(asbytes("Evolution from 0 to {}\n".format(k)))
-                np.savetxt(f, self.fwd_evo[k])
+                np.savetxt(f, self.fwd_evo[k], delimiter=dump.data_sep)
                 k += 1
             if closef: f.close()
             
@@ -735,7 +892,7 @@ class EvoCompDumpItem(DumpItem):
                 closef = True
             for dg in self.dyn_gen:
                 f.write(asbytes("Evolution from {} to end\n".format(k)))
-                np.savetxt(f, self.fwd_evo[k])
+                np.savetxt(f, self.fwd_evo[k], delimiter=dump.data_sep)
                 k += 1
             if closef: f.close()
                 
@@ -752,7 +909,7 @@ class EvoCompDumpItem(DumpItem):
                 closef = True
             for dg in self.dyn_gen:
                 f.write(asbytes("Evolution from {} onto target\n".format(k)))
-                np.savetxt(f, self.fwd_evo[k])
+                np.savetxt(f, self.fwd_evo[k], delimiter=dump.data_sep)
                 k += 1
             if closef: f.close()
             
@@ -761,7 +918,11 @@ class EvoCompDumpItem(DumpItem):
         
 class DumpSummaryItem(object):
     """A summary of the most recent iteration
-    Abstract class only    
+    Abstract class only
+    
+    Attributes:
+    idx : int
+        Index in the summary list in which this is stored
     """
     min_col_width = 11
     summary_property_names = ()
@@ -771,7 +932,7 @@ class DumpSummaryItem(object):
     summary_property_fmt_prec = ()
         
     @classmethod
-    def get_header_line(cls, sep='\t'):
+    def get_header_line(cls, sep=' '):
         if sep == ' ':
             line = ''
             i = 0
@@ -787,7 +948,7 @@ class DumpSummaryItem(object):
     def reset(self):
         self.idx = 0
         
-    def get_value_line(self, sep='\t'):
+    def get_value_line(self, sep=' '):
         line = ""
         i = 0
         for a in zip(self.summary_property_names, 

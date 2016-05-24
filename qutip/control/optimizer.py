@@ -213,6 +213,26 @@ class Optimizer(object):
         attributes of which give performance stats for the optimisation
         set to None to reduce overhead of calculating stats.
         Note it is (usually) shared with the Dynamics instance
+        
+    dump : :class:`dump.OptimDump`
+        Container for data dumped during the optimisation. 
+        Can be set by specifying the dumping level or set directly.
+        Note this is mainly intended for user and a development debugging
+        but could be used for status information during a long optimisation.
+        
+    dumping : string
+        level of data dumping: NONE, SUMMARY, FULL or CUSTOM
+        See property docstring for details
+        
+    dump_to_file : bool
+        If set True then data will be dumped to file during the optimisation
+        dumping will be set to SUMMARY during init_optim
+        if dump_to_file is True and dumping not set.
+        Default is False
+        
+    iter_summary : :class:`OptimIterSummary`
+        Summary of the most recent iteration.
+        Note this is only set if dummping is on
     """
 
     def __init__(self, config, dyn, params=None):
@@ -244,11 +264,6 @@ class Optimizer(object):
         self.num_grad_func_calls = 0
         self.stats = None
         self.wall_time_optim_start = 0.0
-
-        # test out file paths
-        self._iter_fpath = None
-        self._fid_err_fpath = None
-        self._grad_norm_fpath = None
         
         self.dump_to_file = False
         self.dump = None
@@ -344,8 +359,6 @@ class Optimizer(object):
         This is called by run_optimization, but could called independently
         to check the configuration.
         """
-        self._check_prepare_test_out_files()
-
         if term_conds is not None:
             self.termination_conditions = term_conds
         term_conds = self.termination_conditions
@@ -393,61 +406,7 @@ class Optimizer(object):
         self.num_fid_func_calls = 0
         self.num_grad_func_calls = 0
         self.iteration_steps = None
-
-    def _check_prepare_test_out_files(self):
-        cfg = self.config
-        if cfg.any_test_files():
-            if cfg.check_create_test_out_dir():
-                if self.stats is None:
-                    logger.warn("Cannot output test files when stats"
-                                " attribute is not set.")
-                    cfg.clear_test_out_flags()
-
-        if cfg.any_test_files():
-            dyn = self.dynamics
-            f_ext = "_{}_{}_{}_{}{}".format(
-                self.id_text,
-                dyn.id_text,
-                dyn.prop_computer.id_text,
-                dyn.fid_computer.id_text,
-                cfg.test_out_f_ext)
-            # Prepare the files that will remain open throughout the run
-            if cfg.test_out_iter:
-                fname = "iteration_log" + f_ext
-                self._iter_fpath = os.path.join(cfg.test_out_dir, fname)
-                fh = open(self._iter_fpath, 'w')
-                fh.write("iter           wall_time       "
-                         "fid_err     grad_norm\n")
-                fh.close()
-                logger.info("Iteration log will be saved to:\n{}".format(
-                    self._iter_fpath))
-            else:
-                self._iter_fpath = None
-
-
-            if cfg.test_out_fid_err:
-                fname = "fid_err" + f_ext
-                self._fid_err_fpath = os.path.join(cfg.test_out_dir, fname)
-                fh = open(self._fid_err_fpath, 'w')
-                fh.write("call             fid_err\n")
-                fh.close()
-                logger.info("Fidelity error log will be saved to:\n{}".format(
-                    self._fid_err_fpath))
-            else:
-                self._fid_err_fpath = None
-
-            if cfg.test_out_grad_norm:
-                fname = "grad_norm" + f_ext
-                self._grad_norm_fpath = os.path.join(cfg.test_out_dir, fname)
-                fh = open(self._grad_norm_fpath, 'w')
-                fh.write("call           grad_norm\n")
-                fh.close()
-                logger.info("Gradient norm log will be saved to:\n{}".format(
-                    self._grad_norm_fpath))
-
-            else:
-                self._grad_norm_fpath = None
-                
+               
     def _build_method_options(self):
         """
         Creates the method_options dictionary for the scipy.optimize.minimize
@@ -680,12 +639,6 @@ class Optimizer(object):
         
         if self.dump and self.dump.dump_fid_err:
             self.dump.update_fid_err_log(err)
-        
-        if self._fid_err_fpath is not None:
-            fh = open(self._fid_err_fpath, 'a')
-            fh.write("{:<10n}{:14.6g}\n".format(
-                self.stats.num_fidelity_func_calls, err))
-            fh.close()
 
         if err <= tc.fid_err_targ:
             raise errors.GoalAchievedTerminate(err)
@@ -737,26 +690,6 @@ class Optimizer(object):
             if self.dump.dump_grad:
                 self.dump.update_grad_log(grad)
 
-        if self._grad_norm_fpath is not None:
-            fh = open(self._grad_norm_fpath, 'a')
-            fh.write("{:<10n}{:14.6g}\n".format(
-                self.stats.num_grad_func_calls, fid_comp.grad_norm))
-            fh.close()
-
-        if self.config.test_out_grad:
-            # save gradients to file
-            dyn = self.dynamics
-            fname = "grad_{}_{}_{}_{}_call{}{}".format(
-                self.id_text,
-                dyn.id_text,
-                dyn.prop_computer.id_text,
-                dyn.fid_computer.id_text,
-                self.stats.num_grad_func_calls,
-                self.config.test_out_f_ext)
-
-            fpath = os.path.join(self.config.test_out_dir, fname)
-            np.savetxt(fpath, grad, fmt='%11.4g')
-
         tc = self.termination_conditions
         if fid_comp.grad_norm < tc.min_gradient_norm:
             raise errors.GradMinReachedTerminate(fid_comp.grad_norm)
@@ -781,15 +714,6 @@ class Optimizer(object):
         if self.dump and self.dump.dump_summary:
             self.dump.add_iter_summary()
             
-        if self._iter_fpath is not None:
-            # write out: iter wall_time fid_err grad_norm
-            fid_comp = self.dynamics.fid_computer
-            fh = open(self._iter_fpath, 'a')
-            fh.write("{:<10n}{:14.6g}{:14.6g}{:14.6g}\n".format(
-                self.num_iter, wall_time,
-                fid_comp.fid_err, fid_comp.grad_norm))
-            fh.close()
-
         tc = self.termination_conditions
 
         if wall_time > tc.max_wall_time:
@@ -1199,13 +1123,16 @@ class OptimizerCrab(Optimizer):
         
 class OptimizerCrabFmin(OptimizerCrab):
     """
-    Optimises the pulse using the CRAB algorithm [1].
+    Optimises the pulse using the CRAB algorithm [1, 2].
     It uses the scipy.optimize.fmin function which is effectively a wrapper
     for the Nelder-mead method.
     It minimises the fidelity error function with respect to the CRAB
     basis function coefficients.
     This is the default Optimizer for CRAB.
-    AJGP ToDo: Add citation here
+
+    [1] P. Doria, T. Calarco & S. Montangero. Phys. Rev. Lett. 106, 
+        190501 (2011).
+    [2] T. Caneva, T. Calarco, & S. Montangero. Phys. Rev. A 84, 022326 (2011).
     """
     
     def reset(self):
@@ -1308,9 +1235,32 @@ class OptimizerCrabFmin(OptimizerCrab):
         return result
 
 class OptimIterSummary(qtrldump.DumpSummaryItem):
-    """A summary of the most recent iteration"""
-    # Note this is some duplication here, this exists solely to be copied
-    # into the summary dump
+    """A summary of the most recent iteration of the pulse optimisation
+    
+    Attributes
+    ----------
+    iter_num : int
+        Iteration number of the pulse optimisation
+        
+    fid_func_call_num : int
+        Fidelity function call number of the pulse optimisation
+        
+    grad_func_call_num : int
+        Gradient function call number of the pulse optimisation
+        
+    fid_err : float
+        Fidelity error
+        
+    grad_norm : float
+        fidelity gradient (wrt the control parameters) vector norm
+        that is the magnitude of the gradient
+        
+    wall_time : float
+        Time spent computing the pulse optimisation so far
+        (in seconds of elapsed time)
+    """
+    # Note there is some duplication here with Optimizer attributes
+    # this exists solely to be copied into the summary dump
     min_col_width = 11
     summary_property_names = (
         "idx", "iter_num", "fid_func_call_num", "grad_func_call_num",
@@ -1338,5 +1288,3 @@ class OptimIterSummary(qtrldump.DumpSummaryItem):
         self.fid_err = None
         self.grad_norm = None
         self.wall_time = 0.0
-
-        
