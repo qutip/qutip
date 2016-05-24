@@ -35,15 +35,6 @@ import os
 # Fix the multiprocessing issue with NumPy compiled against OPENBLAS
 if 'OPENBLAS_MAIN_FREE' not in os.environ:
     os.environ['OPENBLAS_MAIN_FREE'] = '1'
-# automatically set number of threads used by MKL and openblas to 1
-# prevents errors when running things in parallel.  Should be set
-# by user directly in a script or notebook if >1 is needed.
-# Must be set BEFORE importing NumPy
-if 'MKL_NUM_THREADS' not in os.environ:
-    os.environ['MKL_NUM_THREADS'] = '1'
-
-if 'OPENBLAS_NUM_THREADS' not in os.environ:
-    os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 import sys
 import warnings
@@ -66,7 +57,7 @@ except:
 # if the requirements aren't fulfilled
 #
 
-numpy_requirement = "1.6.0"
+numpy_requirement = "1.8.0"
 try:
     import numpy
     if _version2int(numpy.__version__) < _version2int(numpy_requirement):
@@ -76,7 +67,7 @@ try:
 except:
     warnings.warn("numpy not found.")
 
-scipy_requirement = "0.11.0"
+scipy_requirement = "0.14.0"
 try:
     import scipy
     if _version2int(scipy.__version__) < _version2int(scipy_requirement):
@@ -187,6 +178,22 @@ except:
     qutip.settings.fortran = False
 else:
     qutip.settings.fortran = True
+    
+    
+# -----------------------------------------------------------------------------
+# Check for parallel spmv functions
+
+# check for fortran mcsolver files
+try:
+    from qutip.cy.parallel.parfuncs import parallel_spmv_csr
+except:
+    qutip.settings.has_parallel = False
+else:
+    qutip.settings.has_parallel = True
+
+# Set environ flag to tell parallel spmv that we are in parallel mode and 
+# should be turned off unless set explicitly
+os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration

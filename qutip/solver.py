@@ -40,6 +40,7 @@ from collections import OrderedDict
 import os
 import warnings
 from qutip import __version__
+import qutip.settings as qset
 
 
 class Options():
@@ -120,7 +121,8 @@ class Options():
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False):
+                 steady_state_average=False, parallel_spmv=None,
+                 parallel_spmv_threads= None):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -172,6 +174,14 @@ class Options():
         self.store_states = store_states
         # average mcsolver density matricies assuming steady state evolution
         self.steady_state_average = steady_state_average
+        # use parallel spmv
+        self.parallel_spmv = parallel_spmv
+        # set the number of threads used by parallel spmv
+        if parallel_spmv_threads is not None:
+            self.parallel_spmv_threads = parallel_spmv_threads
+        else:
+            # set to number of cpus in settings if not given explicitly
+            self.parallel_spmv_threads = qset.num_cpus
 
     def __str__(self):
         if self.seeds is None:

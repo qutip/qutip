@@ -58,12 +58,13 @@ REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
             'matplotlib (>=1.1)']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
-            'qutip/mkl', 'qutip/tests']
+            'qutip/mkl', 'qutip/tests','qutip/cy/parallel']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
-    'qutip/control': ['*.pyx']
+    'qutip/control': ['*.pyx'],
+    'qutip/cy/parallel': ['*.pxi', '*.pxd', '*.pyx']
 }
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = []

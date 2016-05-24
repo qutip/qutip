@@ -6,7 +6,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os, sys
 
-exts = ['spmv']
+exts = ['parfuncs']
 
 _compiler_flags = ['-w','-fopenmp', '-ffast-math', '-O3', '-mtune=native']
 

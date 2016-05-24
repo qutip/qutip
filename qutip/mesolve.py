@@ -56,9 +56,13 @@ from qutip.rhs_generate import rhs_generate
 from qutip.states import ket2dm
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
-
+import qutip.settings as qset
 from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
                            _sesolve_list_td, _sesolve_func_td, _sesolve_const)
+
+from qutip.cy.parallel.utilities import find_parallel_components
+if qset.has_parallel:
+    from qutip.cy.parallel.parfuncs import parallel_ode_rhs
 
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -240,6 +244,23 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         # reset config collapse and time-dependence flags to default values
         config.reset()
 
+    # Setup parallel spmv
+    _force_spmv = False
+    if qset.has_parallel and options.parallel_spmv is None:
+        options.parallel_spmv = True
+    
+    elif options.parallel_spmv == True:
+        if not qset.has_parallel:
+            raise Exception('Parallel extension not loaded.')
+        else:
+            _force_spmv = True
+    
+    if options.parallel_spmv is None:
+        options.parallel_spmv = False
+        
+    if os.environ['QUTIP_IN_PARALLEL'] == 'TRUE' and not _force_spmv:
+        options.parallel_spmv = False
+    
     res = None
 
     #
@@ -656,8 +677,17 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
             config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
+        
+        #Configure parallel spmv terms
+        if opt.parallel_spmv:
+            parallel_components = find_parallel_components(Ldata)
+        else:
+            parallel_components = None
+        
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       config=config)
+                       config=config, parallel_spmv = opt.parallel_spmv,
+                       parallel_spmv_threads = opt.parallel_spmv_threads,
+                       parallel_components = parallel_components)
         cgen.generate(config.tdname + ".pyx")
 
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
@@ -741,8 +771,14 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         r = scipy.integrate.ode(_ode_super_func)
         r.set_f_params(L.data)
     else:
-        r = scipy.integrate.ode(cy_ode_rhs)
-        r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
+        if opt.parallel_spmv and len(L.data.data) >= qset.parallel_spmv_thresh:
+            r = scipy.integrate.ode(parallel_ode_rhs)
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+                        opt.parallel_spmv_threads)
+        else:
+            print('serial')
+            r = scipy.integrate.ode(cy_ode_rhs)
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
         # r = scipy.integrate.ode(_ode_rho_test)
         # r.set_f_params(L.data)
     r.set_integrator('zvode', method=opt.method, order=opt.order,

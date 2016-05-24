@@ -32,6 +32,7 @@
 ###############################################################################
 import os
 import numpy as np
+
 _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _include_string = "'"+_cython_path+"/complex_math.pxi'"
 
@@ -44,7 +45,9 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 type='me', config=None):
+                 type='me', config=None, parallel_spmv=False, 
+                 parallel_spmv_threads=None,
+                 parallel_components=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -68,6 +71,11 @@ class Codegen():
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
         self.config = config
+        
+        # Parallel configureation
+        self.parallel_spmv = parallel_spmv
+        self.parallel_spmv_threads = parallel_spmv_threads
+        self.parallel_components = parallel_components
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -79,7 +87,7 @@ class Codegen():
 
     def generate(self, filename="rhs.pyx"):
         """generate the file"""
-        for line in cython_preamble():
+        for line in cython_preamble(self.parallel_spmv):
             self.write(line)
 
         # write function for Hamiltonian terms (there is always at least one
@@ -217,10 +225,18 @@ class Codegen():
                 func_vars.append(str_out)
             else:
                 if self.h_tdterms[ht] == "1.0":
-                    str_out = "spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (
+                    if self.parallel_spmv and self.parallel_components[ht]:
+                        str_out = "parallel_spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out, %s)" % (
+                        ht, ht, ht, self.parallel_spmv_threads)
+                    else:
+                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (
                         ht, ht, ht)
                 else:
-                    str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                    if self.parallel_spmv and self.parallel_components[ht]:
+                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out, %s)" % (
+                        ht, ht, ht, self.h_tdterms[ht], self.parallel_spmv_threads)
+                    else:
+                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
                         ht, ht, ht, self.h_tdterms[ht])
                 func_vars.append(str_out)
 
@@ -286,10 +302,14 @@ class Codegen():
         return "return np.float64(np.real(out))"
 
 
-def cython_preamble():
+def cython_preamble(parallel=False):
     """
     Returns list of code segments for Cython preamble.
     """
+    if parallel:
+        par_str = 'from qutip.cy.parallel.parfuncs cimport parallel_spmv_csr, parallel_spmvpy'
+    else:
+        par_str = ''
     return ["""\
 # This file is generated automatically by QuTiP.
 # (C) 2011 and later, P. D. Nation & J. R. Johansson
@@ -298,7 +318,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs cimport spmv_csr, spmvpy
-
+"""+par_str+"""
 cdef double pi = 3.14159265358979323
 
 include """+_include_string+"""

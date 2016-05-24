@@ -30,59 +30,14 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Command line output of information on QuTiP and dependencies.
-"""
-__all__ = ['about']
+DTYPE = np.float64
+ctypedef np.float64_t DTYPE_t
 
-import sys
-import os
-import platform
-import numpy
-import scipy
-import inspect
-from qutip.utilities import _blas_info
-import qutip.settings
-from qutip.hardware_info import hardware_info
+ITYPE = np.int32
+ctypedef np.int32_t ITYPE_t
 
+CTYPE = np.complex128
+ctypedef np.complex128_t CTYPE_t
 
-def about():
-    """
-    About box for QuTiP. Gives version numbers for
-    QuTiP, NumPy, SciPy, Cython, and MatPlotLib.
-    """
-    print("")
-    print("QuTiP: Quantum Toolbox in Python")
-    print("Copyright (c) 2011 and later.")
-    print("Alexander Pitchford, Chris Granade, Paul D. Nation & Robert J. Johansson")
-    print("")
-    print("QuTiP Version:      %s" % qutip.__version__)
-    print("Numpy Version:      %s" % numpy.__version__)
-    print("Scipy Version:      %s" % scipy.__version__)
-    try:
-        import Cython
-        cython_ver = Cython.__version__
-    except:
-        cython_ver = 'None'
-    print("Cython Version:     %s" % cython_ver)
-    try:
-        import matplotlib
-        matplotlib_ver = matplotlib.__version__
-    except:
-        matplotlib_ver = 'None'
-    print("Matplotlib Version: %s" % matplotlib_ver)
-    print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
-    print("Number of CPUs:     %s" % hardware_info()['cpus'])
-    print("BLAS Info:          %s" % _blas_info())
-    print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
-    print("Parallel SpMv Ext:  %s" % str(qutip.settings.has_parallel))
-    print("Platform Info:      %s (%s)" % (platform.system(),
-                                           platform.machine()))
-    qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
-    print("Installation path:  %s" % qutip_install_path)
-    print("")
-
-if __name__ == "__main__":
-    about()
-
-
+CTYPE = np.int64
+ctypedef np.int64_t LTYPE_t

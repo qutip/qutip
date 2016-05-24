@@ -30,59 +30,52 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Command line output of information on QuTiP and dependencies.
-"""
-__all__ = ['about']
+import numpy as np
+cimport numpy as np
+cimport cython
 
-import sys
-import os
-import platform
-import numpy
-import scipy
-import inspect
-from qutip.utilities import _blas_info
-import qutip.settings
-from qutip.hardware_info import hardware_info
+include "parameters.pxi"
 
 
-def about():
-    """
-    About box for QuTiP. Gives version numbers for
-    QuTiP, NumPy, SciPy, Cython, and MatPlotLib.
-    """
-    print("")
-    print("QuTiP: Quantum Toolbox in Python")
-    print("Copyright (c) 2011 and later.")
-    print("Alexander Pitchford, Chris Granade, Paul D. Nation & Robert J. Johansson")
-    print("")
-    print("QuTiP Version:      %s" % qutip.__version__)
-    print("Numpy Version:      %s" % numpy.__version__)
-    print("Scipy Version:      %s" % scipy.__version__)
-    try:
-        import Cython
-        cython_ver = Cython.__version__
-    except:
-        cython_ver = 'None'
-    print("Cython Version:     %s" % cython_ver)
-    try:
-        import matplotlib
-        matplotlib_ver = matplotlib.__version__
-    except:
-        matplotlib_ver = 'None'
-    print("Matplotlib Version: %s" % matplotlib_ver)
-    print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
-    print("Number of CPUs:     %s" % hardware_info()['cpus'])
-    print("BLAS Info:          %s" % _blas_info())
-    print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
-    print("Parallel SpMv Ext:  %s" % str(qutip.settings.has_parallel))
-    print("Platform Info:      %s (%s)" % (platform.system(),
-                                           platform.machine()))
-    qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
-    print("Installation path:  %s" % qutip_install_path)
-    print("")
-
-if __name__ == "__main__":
-    about()
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] parallel_spmv_csr(
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec,
+        int num_threads)
 
 
+
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] parallel_spmvpy(
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec,
+        CTYPE_t a, 
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] out,
+        int num_threads)
+
+
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] parallel_ode_rhs(
+        double t, 
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec,
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        int num_threads)
+
+
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] parallel_ode_psi_func_td(
+        double t, 
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] psi, 
+        object H_func,
+        object args,
+        int num_threads)
+
+
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] parallel_ode_psi_func_td_with_state(
+        double t,
+        np.ndarray[CTYPE_t, ndim=1, mode="c"] psi,
+        object H_func,
+        object args,
+        int num_threads)

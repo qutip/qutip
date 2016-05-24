@@ -51,6 +51,10 @@ fortran = False
 mkl_lib = None
 # Flag if mkl_lib is found
 has_mkl = False
+#Installed with parallel option
+has_parallel = False
+# Sets the threshold (in terms of NNZ) for auto parallel spmv
+parallel_spmv_thresh = 100000
 # debug mode for development
 debug = False
 # are we in IPython? Note that this cannot be
