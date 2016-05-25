@@ -98,6 +98,7 @@ def parfor(func, *args, **kwargs):
         containing the output from `func`.
 
     """
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     kw = _default_kwargs()
     if 'num_cpus' in kwargs.keys():
         kw['num_cpus'] = kwargs['num_cpus']
@@ -130,9 +131,11 @@ def parfor(func, *args, **kwargs):
             return [array([elem[ii] for elem in par_return], dtype=dt[ii])
                     for ii in range(num_elems)]
         else:
+            os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
             return list(par_return)
 
     except KeyboardInterrupt:
+        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
         pool.terminate()
 
 
@@ -224,6 +227,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         value in ``values``.
 
     """
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     kw = _default_kwargs()
     if 'num_cpus' in kwargs:
         kw['num_cpus'] = kwargs['num_cpus']
@@ -259,10 +263,11 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     except KeyboardInterrupt as e:
         pool.terminate()
         pool.join()
+        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
         raise e
 
     progress_bar.finished()
-
+    os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
     return [ar.get() for ar in async_res]
 
 

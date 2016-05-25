@@ -54,7 +54,7 @@ has_mkl = False
 #Installed with parallel option
 has_parallel = False
 # Sets the threshold (in terms of NNZ) for auto parallel spmv
-parallel_spmv_thresh = 100000
+parallel_spmv_thresh = 10000
 # debug mode for development
 debug = False
 # are we in IPython? Note that this cannot be

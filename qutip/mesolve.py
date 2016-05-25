@@ -258,6 +258,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     if options.parallel_spmv is None:
         options.parallel_spmv = False
         
+    # Override parallel when in parfor or parallel_map
     if os.environ['QUTIP_IN_PARALLEL'] == 'TRUE' and not _force_spmv:
         options.parallel_spmv = False
     
@@ -776,11 +777,8 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
             r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
                         opt.parallel_spmv_threads)
         else:
-            print('serial')
             r = scipy.integrate.ode(cy_ode_rhs)
             r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
-        # r = scipy.integrate.ode(_ode_rho_test)
-        # r.set_f_params(L.data)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
