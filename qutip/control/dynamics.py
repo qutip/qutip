@@ -139,7 +139,7 @@ class Dynamics(object):
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
-        
+
     params:  Dictionary
         The key value pairs are the attribute name and value
         Note: attributes are created if they do not exist already,
@@ -279,33 +279,33 @@ class Dynamics(object):
 
     def_amps_fname : string
         Default name for the output used when save_amps is called
-        
+
     unitarity_check_level : int
         If > 0 then unitarity of the system evolution is checked at at
-        evolution recomputation. 
+        evolution recomputation.
         level 1 checks all propagators
         level 2 checks eigen basis as well
         Default is 0
-    
+
     unitarity_tol :
         Tolerance used in checking if operator is unitary
         Default is 1e-10
-        
+
     dump : :class:`dump.DynamicsDump`
         Store of historical calculation data.
         Set to None (Default) for no storing of historical data
         Use dumping property to set level of data dumping
-        
+
     dumping : string
         level of data dumping: NONE, SUMMARY, FULL or CUSTOM
         See property docstring for details
-        
+
     dump_to_file : bool
         If set True then data will be dumped to file during the calculations
         dumping will be set to SUMMARY during init_evo if dump_to_file is True
         and dumping not set.
         Default is False
-        
+
     dump_dir : string
         Basically a link to dump.dump_dir. Exists so that it can be set through
         dyn_params.
@@ -426,7 +426,7 @@ class Dynamics(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
-        
+
     @property
     def dumping(self):
         """
@@ -444,29 +444,32 @@ class Dynamics(object):
             lvl = 'NONE'
         else:
             lvl = self.dump.level
-            
+
         return lvl
-        
+
     @dumping.setter
     def dumping(self, value):
-        if not _is_string(value):
-            raise TypeError("Value must be string value")
-        lvl = value.upper()
-        if value == 'NONE':
+        if value is None:
             self.dump = None
         else:
-            if not isinstance(self.dump, qtrldump.DynamicsDump):
-                self.dump = qtrldump.DynamicsDump(self, level=lvl)
+            if not _is_string(value):
+                raise TypeError("Value must be string value")
+            lvl = value.upper()
+            if lvl == 'NONE':
+                self.dump = None
             else:
-                self.dump.level = lvl
-                
-    @property        
+                if not isinstance(self.dump, qtrldump.DynamicsDump):
+                    self.dump = qtrldump.DynamicsDump(self, level=lvl)
+                else:
+                    self.dump.level = lvl
+
+    @property
     def dump_dir(self):
         if self.dump:
             return self.dump.dump_dir
         else:
             return None
-    
+
     @dump_dir.setter
     def dump_dir(self, value):
         if not self.dump:
@@ -667,11 +670,11 @@ class Dynamics(object):
 
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
-        
+
         if (self.log_level <= logging.DEBUG
             and isinstance(self, DynamicsUnitary)):
                 self.unitarity_check_level = 1
-                
+
         if self.dump_to_file:
             if self.dump is None:
                 self.dumping = 'SUMMARY'
@@ -809,7 +812,7 @@ class Dynamics(object):
             logger.log(logging.DEBUG_INTENSE, "Updating amplitudes...\n"
                        "Current control amplitudes:\n" + str(self.ctrl_amps) +
                        "\n(potenially) new amplitudes:\n" + str(new_amps))
-           
+
         self.tslot_computer.compare_amps(new_amps)
 
     def flag_system_changed(self):
@@ -1142,29 +1145,29 @@ class Dynamics(object):
         """
         raise errors.UsageError("Decomposition cannot be completed by "
                                 "this class. Try a(nother) subclass")
-    
+
     def _is_unitary(self, A):
         """
         Checks whether operator A is unitary
         A can be either Qobj or ndarray
         """
         if isinstance(A, Qobj):
-            unitary = np.allclose(np.eye(A.shape[0]), A*A.dag().full(), 
+            unitary = np.allclose(np.eye(A.shape[0]), A*A.dag().full(),
                         atol=self.unitarity_tol)
         else:
-            unitary = np.allclose(np.eye(len(A)), A.dot(A.T.conj()), 
+            unitary = np.allclose(np.eye(len(A)), A.dot(A.T.conj()),
                         atol=self.unitarity_tol)
-            
+
         return unitary
-        
+
     def _calc_unitary_err(self, A):
         if isinstance(A, Qobj):
             err = np.sum(abs(np.eye(A.shape[0]) - A*A.dag().full()))
         else:
             err = np.sum(abs(np.eye(len(A)) - A.dot(A.T.conj())))
-            
+
         return err
-        
+
     def unitarity_check(self):
         """
         Checks whether all propagators are unitary
@@ -1173,8 +1176,8 @@ class Dynamics(object):
             if not self._is_unitary(self._prop[k]):
                 logger.warning(
                     "Progator of timeslot {} is not unitary".format(k))
-    
-            
+
+
 class DynamicsGenMat(Dynamics):
     """
     This sub class can be used for any system where no additional
@@ -1413,7 +1416,7 @@ class DynamicsUnitary(Dynamics):
                 msg = ("prop unit: {}; H herm: {}; "
                         "eigval unit: {}; eigvec unit: {}; "
                         "eigvecadj_unit: {}".format(
-                        prop_unit, herm, eigval_unit, eigvec_unit, 
+                        prop_unit, herm, eigval_unit, eigvec_unit,
                             eigvecadj_unit))
                 logger.info(msg)
 
