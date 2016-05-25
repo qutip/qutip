@@ -264,6 +264,10 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
 
         if isinstance(H, Qobj):
             # constant hamiltonian
+            if H.shape != rho0.shape:
+                raise TypeError("Hamiltonian (H) and initial state (rho0)" +
+                                "do not have the same shape. ")
+
             if n_func == 0 and n_str == 0:
                 # constant collapse operators
                 res = _mesolve_const(H, rho0, tlist, c_ops,
@@ -286,6 +290,12 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
                             types.BuiltinFunctionType, partial)):
             # function-callback style time-dependence: must have constant
             # collapse operators
+            trialH = H(0)
+            if trialH.shape != rho0.shape:
+                raise TypeError("Hamiltonian (H) and initial state (rho0)" +
+                                "do not have the same shape. ")
+
+
             if n_str > 0:  # or n_func > 0:
                 raise TypeError("Incorrect format: function-format " +
                                 "Hamiltonian cannot be mixed with " +
