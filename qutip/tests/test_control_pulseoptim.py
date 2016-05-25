@@ -41,6 +41,7 @@
 
 """
 Tests for main control.pulseoptim methods
+Some associated objects also tested.
 """
 from __future__ import division
 
@@ -90,7 +91,7 @@ class TestPulseOptim:
             
     def test_unitary(self):
         """
-        Optimise pulse for Hadamard and QFT gate with linear initial pulses
+        control.pulseoptim: Hadamard and QFT gate with linear initial pulses
         assert that goal is achieved and fidelity error is below threshold
         """
         # Hadamard
@@ -199,6 +200,7 @@ class TestPulseOptim:
                     
     def test_dumping_and_unitarity(self):
         """
+        control: data dumping and unitarity checking
         Dump out processing data and use to check unitary evolution
         """
         N_EXP_OPTIMDUMP_FILES = 10
@@ -280,7 +282,8 @@ class TestPulseOptim:
             
     def test_state_to_state(self):
         """
-        Optimise pulse for state-to-state transfer with linear initial pulse
+        control.pulseoptim: state-to-state transfer 
+        linear initial pulse used
         assert that goal is achieved
         """       
         # 2 qubits with Ising interaction
@@ -330,7 +333,8 @@ class TestPulseOptim:
                                             
     def test_lindbladian(self):
         """
-        Optimise pulse for amplitude damping channel with Lindbladian dyn
+        control.pulseoptim: amplitude damping channel
+        Lindbladian dynamics
         assert that fidelity error is below threshold
         """
 
@@ -408,7 +412,7 @@ class TestPulseOptim:
 
     def test_symplectic(self):
         """
-        Optimise pulse for coupled oscillators with Symplectic dynamics
+        control.pulseoptim: coupled oscillators (symplectic dynamics)
         assert that fidelity error is below threshold
         """
         g1 = 1.0
@@ -505,7 +509,7 @@ class TestPulseOptim:
                                     
     def test_crab(self):
         """
-        Optimise pulse for Hadamard gate using CRAB algorithm
+        control.pulseoptim: Hadamard gate using CRAB algorithm
         Apply guess and ramping pulse
         assert that goal is achieved and fidelity error is below threshold
         assert that starting amplitude is zero
@@ -562,7 +566,7 @@ class TestPulseOptim:
                     
     def test_load_params(self):
         """
-        Optimise pulse for Hadamard gate by loading config from file
+        control.pulseoptim: Hadamard gate (loading config from file)
         compare with result produced by pulseoptim method
         """
         H_d = sigmaz()
@@ -632,7 +636,7 @@ class TestPulseOptim:
     
     def test_init_pulse_params(self):
         """
-        Test setting pulse_params using create_pulse_optimizer
+        control.pulsegen: Check periodic control functions
         """
         
         def count_waves(n_ts, evo_time, ptype, freq=None, num_waves=None):
