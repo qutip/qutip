@@ -50,7 +50,7 @@ logger = qutip.logging_utils.get_logger()
 import qutip.control.io as qtrlio
 from numpy.compat import asbytes
 
-DUMP_DIR = "~/qtrl_dump"
+DUMP_DIR = "~/.qtrl_dump"
 
 def _is_string(var):
     try:
@@ -85,7 +85,7 @@ class Dump(object):
         use ~/ to specify user home directory
         Note: files are only written when write_to_file is True
         of writeout is called explicitly
-        Defaults to ~/qtrl_dump
+        Defaults to ~/.qtrl_dump
         
     level : string
         level of data dumping: SUMMARY, FULL or CUSTOM
