@@ -230,6 +230,12 @@ class Optimizer(object):
         if dump_to_file is True and dumping not set.
         Default is False
         
+    dump_dir : string
+        Basically a link to dump.dump_dir. Exists so that it can be set through
+        optim_params.
+        If dump is None then will return None or will set dumping to SUMMARY
+        when setting a path
+        
     iter_summary : :class:`OptimIterSummary`
         Summary of the most recent iteration.
         Note this is only set if dummping is on
@@ -339,6 +345,18 @@ class Optimizer(object):
                 self.dump = qtrldump.OptimDump(self, level=lvl)
             else:
                 self.dump.level = lvl
+    @property        
+    def dump_dir(self):
+        if self.dump:
+            return self.dump.dump_dir
+        else:
+            return None
+    
+    @dump_dir.setter
+    def dump_dir(self, value):
+        if not self.dump:
+            self.dumping = 'SUMMARY'
+        self.dump.dump_dir = value
   
     def _create_result(self):
         """

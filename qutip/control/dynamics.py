@@ -305,6 +305,12 @@ class Dynamics(object):
         dumping will be set to SUMMARY during init_evo if dump_to_file is True
         and dumping not set.
         Default is False
+        
+    dump_dir : string
+        Basically a link to dump.dump_dir. Exists so that it can be set through
+        dyn_params.
+        If dump is None then will return None or will set dumping to SUMMARY
+        when setting a path
     """
     def __init__(self, optimconfig, params=None):
         self.config = optimconfig
@@ -420,6 +426,52 @@ class Dynamics(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
+        
+    @property
+    def dumping(self):
+        """
+        The level of data dumping that will occur during the time evolution
+        calculation.
+         - NONE : No processing data dumped (Default)
+         - SUMMARY : A summary of each time evolution will be recorded
+         - FULL : All operators used or created in the calculation dumped
+         - CUSTOM : Some customised level of dumping
+        When first set to CUSTOM this is equivalent to SUMMARY. It is then up
+        to the user to specify which operators are dumped
+        WARNING: FULL could consume a lot of memory!
+        """
+        if self.dump is None:
+            lvl = 'NONE'
+        else:
+            lvl = self.dump.level
+            
+        return lvl
+        
+    @dumping.setter
+    def dumping(self, value):
+        if not _is_string(value):
+            raise TypeError("Value must be string value")
+        lvl = value.upper()
+        if value == 'NONE':
+            self.dump = None
+        else:
+            if not isinstance(self.dump, qtrldump.DynamicsDump):
+                self.dump = qtrldump.DynamicsDump(self, level=lvl)
+            else:
+                self.dump.level = lvl
+                
+    @property        
+    def dump_dir(self):
+        if self.dump:
+            return self.dump.dump_dir
+        else:
+            return None
+    
+    @dump_dir.setter
+    def dump_dir(self, value):
+        if not self.dump:
+            self.dumping = 'SUMMARY'
+        self.dump.dump_dir = value
 
     def _create_computers(self):
         """
@@ -1122,38 +1174,6 @@ class Dynamics(object):
                 logger.warning(
                     "Progator of timeslot {} is not unitary".format(k))
     
-    @property
-    def dumping(self):
-        """
-        The level of data dumping that will occur during the time evolution
-        calculation.
-         - NONE : No processing data dumped (Default)
-         - SUMMARY : A summary of each time evolution will be recorded
-         - FULL : All operators used or created in the calculation dumped
-         - CUSTOM : Some customised level of dumping
-        When first set to CUSTOM this is equivalent to SUMMARY. It is then up
-        to the user to specify which operators are dumped
-        WARNING: FULL could consume a lot of memory!
-        """
-        if self.dump is None:
-            lvl = 'NONE'
-        else:
-            lvl = self.dump.level
-            
-        return lvl
-        
-    @dumping.setter
-    def dumping(self, value):
-        if not _is_string(value):
-            raise TypeError("Value must be string value")
-        lvl = value.upper()
-        if value == 'NONE':
-            self.dump = None
-        else:
-            if not isinstance(self.dump, qtrldump.DynamicsDump):
-                self.dump = qtrldump.DynamicsDump(self, level=lvl)
-            else:
-                self.dump.level = lvl
             
 class DynamicsGenMat(Dynamics):
     """
