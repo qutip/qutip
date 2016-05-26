@@ -1196,7 +1196,7 @@ class DynamicsUnitary(Dynamics):
         elif self.oper_dtype == np.ndarray:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = np.linalg.eig(H)
+            eig_val, eig_vec = np.linalg.eigh(H)
         else:
             if sparse:
                 H = self._dyn_gen[k].toarray()
