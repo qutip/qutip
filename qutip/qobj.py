@@ -928,21 +928,18 @@ class Qobj(object):
         else:
             return np.real(out)
 
-    def expm(self, method=None):
+    def expm(self, method='dense'):
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
 
         Parameters
         ----------
-        method : str {'dense', 'sparse', 'scipy-dense', 'scipy-sparse'}
+        method : str {'dense', 'sparse'}
             Use set method to use to calculate the matrix exponentiation. The
-            available choices includes 'dense' and 'sparse' for using QuTiP's
-            implementation of expm using dense and sparse matrices,
-            respectively, and 'scipy-dense' and 'scipy-sparse' for using the
-            scipy.linalg.expm (dense) and scipy.sparse.linalg.expm (sparse).
-            If no method is explicitly given a heuristic will be used to try
-            and automatically select the most appropriate solver.
+            available choices includes 'dense' and 'sparse'.  Since the 
+            exponential of a matrix is nearly always dense, method='dense'
+            is set as default.s
 
         Returns
         -------
@@ -964,28 +961,8 @@ class Qobj(object):
         elif method == 'sparse':
             F = sp_expm(self.data, sparse=True)
 
-        elif method == 'scipy-dense':
-            F = la.expm(self.full())
-
-        elif method == 'scipy-sparse':
-            F = sp.linalg.expm(self.data.tocsc())
-
         else:
-            # if method is not explicitly given, try to make a good choice
-            # between sparse and dense solvers by considering the size of the
-            # system and the number of non-zero elements.
-            N = self.data.shape[0]
-            n = self.data.nnz
-
-            if N ** 2 < 100 * n:
-                # large number of nonzero elements, revert to dense solver
-                F = la.expm(self.full())
-            elif N > 400:
-                # large system, and quite sparse -> qutips sparse method
-                F = sp_expm(self.data, sparse=True)
-            else:
-                # small system, but quite sparse -> qutips sparse/dense method
-                F = sp_expm(self.data, sparse=False)
+            raise ValueError("method must be 'dense' or 'sparse'.")
 
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out

@@ -176,30 +176,30 @@ class TestSuperopReps(object):
         # have be CP (and hence HP), but not TP.
         a = create(2).dag()
         S = sprepost(a, a.dag())
-        yield case, S, True, True, False
+        case(S, True, True, False)
 
         # A single off-diagonal element should not be CP,
         # nor even HP.
         S = sprepost(a, a)
-        yield case, S, False, False, False
+        case(S, False, False, False)
         
         # Check that unitaries are CPTP and HP.
-        yield case, identity(2), True, True, True
-        yield case, sigmax(), True, True, True
+        case(identity(2), True, True, True)
+        case(sigmax(), True, True, True)
 
         # The partial transpose map, whose Choi matrix is SWAP, is TP
         # and HP but not CP (one negative eigenvalue).
         W = Qobj(swap(), type='super', superrep='choi')
-        yield case, W, True, False, True
+        case(W, True, False, True)
 
         # Subnormalized maps (representing erasure channels, for instance)
         # can be CP but not TP.
         subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
-        yield case, subnorm_map, True, True, False
+        case(subnorm_map, True, True, False)
 
         # Check that things which aren't even operators aren't identified as
         # CPTP.
-        yield case, basis(2), False, False, False
+        case(basis(2), False, False, False)
 
     def test_choi_tr(self):
         """
@@ -217,7 +217,7 @@ class TestSuperopReps(object):
             assert_(norm((A - B).data.todense()) < thresh)
 
         for idx in range(4):
-            yield case, rand_super_bcsz(7)
+            case(rand_super_bcsz(7))
 
     def test_stinespring_agrees(self, thresh=1e-10):
         """
@@ -237,7 +237,7 @@ class TestSuperopReps(object):
             assert_((q1 - q2).norm('tr') <= thresh)
 
         for idx in range(4):
-            yield case, rand_super_bcsz(2), rand_dm_ginibre(2)
+            case(rand_super_bcsz(2), rand_dm_ginibre(2))
 
     def test_stinespring_dims(self):
         """
@@ -260,7 +260,7 @@ class TestSuperopReps(object):
             assert_equal(rt_qobj.dims, qobj.dims)
 
         for N in (2, 4, 8):
-            yield case, rand_super_bcsz(N)
+            case(rand_super_bcsz(N))
 
     def test_chi_known(self):
         """
@@ -274,30 +274,30 @@ class TestSuperopReps(object):
                 print(chi_expected)
             assert_almost_equal((chi_actual - chiq).norm('tr'), 0)
 
-        yield case, sigmax(), [
+        case(sigmax(), [
             [0, 0, 0, 0],
             [0, 4, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
-        ]
-        yield case, to_super(sigmax()), [
+        ])
+        case(to_super(sigmax()), [
             [0, 0, 0, 0],
             [0, 4, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
-        ]
-        yield case, qeye(2), [
+        ])
+        case(qeye(2), [
             [4, 0, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
-        ]
-        yield case, (-1j * sigmax() * pi / 4).expm(), [
+        ])
+        case((-1j * sigmax() * pi / 4).expm(), [
             [2, 2j, 0, 0],
             [-2j, 2, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
-        ]
+        ])
 
 if __name__ == "__main__":
     run_module_suite()

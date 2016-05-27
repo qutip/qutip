@@ -402,9 +402,9 @@ def _blas_info():
     config = np.__config__
     blas_info = config.blas_opt_info
     blas = None
-    if any(config.mkl_info):
+    if hasattr(config,'mkl_info'):
         blas = 'INTEL MKL'
-    elif any(config.openblas_info):
+    elif hasattr(config,'openblas_info'):
         blas = 'OPENBLAS'
     elif 'extra_link_args' in blas_info.keys() and ('-Wl,Accelerate' in blas_info['extra_link_args']):
         blas = 'Accelerate'

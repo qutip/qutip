@@ -8,7 +8,8 @@ matrix:
     include:
         - python: 3.5
           env: CC=clang CXX=clang++
-
+        - python: 3.5
+          env: NOMKL=1
 addons:
     apt:
         packages:
@@ -31,19 +32,24 @@ install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
-    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose cython
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
+    - if [[ "${NOMKL}" == "1" ]]; then
+          conda install nomkl numpy scipy nose cython;
+        else
+          conda install mkl numpy scipy nose cython;
+      fi
     - pip install coverage coveralls
     # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
-    - conda install -c https://conda.anaconda.org/omnia cvxopt
-    - conda install -c https://conda.anaconda.org/omnia scs
+    - pip install cvxopt
+    - pip install scs
     - pip install cvxpy
     # Finally, install ourselves.
     - python setup.py install
 
 # command to run tests
 script: 
-    - nosetests --with-coverage --cover-package=qutip qutip
+    - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
 
 after_success:
     - if [[ $TRAVIS_PYTHON_VERSION == '3.5' ]] && [[ $CC == 'gcc' ]]; then

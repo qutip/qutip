@@ -47,8 +47,10 @@ auto_tidyup_atol = 1e-12
 num_cpus = 0
 # flag indicating if fortran module is installed
 fortran = False
-# flag indicating if scikits.umfpack is installed
-umfpack = False
+# path to the MKL library
+mkl_lib = None
+# Flag if mkl_lib is found
+has_mkl = False
 # debug mode for development
 debug = False
 # are we in IPython? Note that this cannot be
