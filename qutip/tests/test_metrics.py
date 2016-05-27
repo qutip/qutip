@@ -60,16 +60,27 @@ from qutip.superop_reps import to_super, to_choi
 from qutip.qip.gates import hadamard_transform, swap
 from qutip.metrics import *
 
+import qutip.settings
+
+
+import unittest
+
 try:
     import cvxpy
 except:
     cvxpy = None
 
-import unittest
+
+# Disable dnorm tests if MKL is present (see Issue #484).
+if qutip.settings.has_mkl:
+    dnorm_test = unittest.skipIf(True, "Known failure; CVXPY/MKL incompatibility.")
+else:
+    dnorm_test = unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
 
 """
 A test class for the metrics and pseudo-metrics included with QuTiP.
 """
+
 
 
 def test_fid_trdist_limits():
@@ -288,7 +299,7 @@ def test_unitarity_bounded(nq=3, n_cases=10):
         yield case, rand_super_bcsz(2**nq)
 
 
-@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+@dnorm_test
 def test_dnorm_bounded(n_cases=10):
     """
     Metrics: dnorm(A - B) in [0, 2] for random superops A, B.
@@ -301,7 +312,7 @@ def test_dnorm_bounded(n_cases=10):
         yield case, rand_super_bcsz(3), rand_super_bcsz(3)
 
 
-@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+@dnorm_test
 def test_dnorm_qubit_known_cases():
     """
     Metrics: check agreement for known qubit channels.
@@ -382,7 +393,7 @@ def test_dnorm_qubit_known_cases():
     yield case, Qobj([[1, 1], [-1, 1]]) / np.sqrt(2), qeye(2), np.sqrt(2)
     
 
-@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+@dnorm_test
 def test_dnorm_qubit_scalar():
     """
     Metrics: checks that dnorm(a * A) == a * dnorm(A) for scalar a, qobj A.
@@ -401,7 +412,7 @@ def test_dnorm_qubit_scalar():
             )
 
 
-@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+@dnorm_test
 def test_dnorm_qubit_triangle():
     """
     Metrics: checks that dnorm(A + B) ≤ dnorm(A) + dnorm(B).
@@ -419,7 +430,7 @@ def test_dnorm_qubit_triangle():
             )
 
 
-@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+@dnorm_test
 def test_dnorm_force_solve():
     """
     Metrics: checks that special cases for dnorm agree with SDP solutions.
@@ -442,7 +453,7 @@ def test_dnorm_force_solve():
             )
 
 
-@unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+@dnorm_test
 def test_dnorm_cptp():
     """
     Metrics: checks that the diamond norm is one for CPTP maps.
