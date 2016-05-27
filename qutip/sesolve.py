@@ -666,6 +666,6 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
             pass
 
     if opt.store_final_state:
-        output.final_state = Qobj(r.y)
+        output.final_state = Qobj(r.y, dims=dims)
 
     return output
