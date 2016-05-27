@@ -674,10 +674,12 @@ class Qobj(object):
         
         if self.type == "super":
             if other.type == "ket":
-                other = ket2dm(other)
+                other = qutip.states.ket2dm(other)
                 
             if other.type == "oper":
-                return vector_to_operator(self * operator_to_vector(other))
+                return qutip.superoperator.vector_to_operator(
+                    self * qutip.superoperator.operator_to_vector(other)
+                )
             else:
                 raise TypeError("Can only act super on oper or ket.")
             
@@ -2202,3 +2204,4 @@ import qutip.tensor as tensor
 import qutip.operators as ops
 import qutip.metrics as mts
 import qutip.states
+import qutip.superoperator
