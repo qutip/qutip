@@ -972,7 +972,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
             rho.data = vec2mat(r.y)
 
             if opt.store_states:
-                output.states.append(Qobj(rho))
+                output.states.append(Qobj(rho, isherm=True))
 
             if expt_callback:
                 # use callback method
@@ -996,7 +996,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 
     if opt.store_final_state:
         rho.data = vec2mat(r.y)
-        output.final_state = Qobj(rho)
+        output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
 
     return output
 
