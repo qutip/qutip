@@ -475,7 +475,9 @@ def to_super(q_oper):
     Parameters
     ----------
     q_oper : Qobj
-        Superoperator to be converted to supermatrix representation.
+        Superoperator to be converted to supermatrix representation. If
+        ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
+        such that ``to_super(A) == sprepost(A, A.dag())``.
 
     Returns
     -------
@@ -485,7 +487,8 @@ def to_super(q_oper):
 
     Raises
     ------
-    TypeError: if the given quantum object is not a map, or cannot be converted
+    TypeError
+        If the given quantum object is not a map, or cannot be converted
         to supermatrix representation.
     """
     if q_oper.type == 'super':
