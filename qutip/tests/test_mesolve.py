@@ -39,10 +39,7 @@ from numpy.testing import assert_, run_module_suite
 # disable the MC progress bar
 import os
 
-from qutip import (sigmax, sigmay, sigmaz, sigmam, mesolve, tensor, destroy,
-                   identity, steadystate, expect, basis, num, qeye, sprepost,
-                   operator_to_vector, vector_to_operator, fidelity, ket2dm,
-                   liouvillian)
+from qutip import *
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
@@ -663,6 +660,47 @@ class TestMESolveSuperInit:
 
         fid = self.fidelitycheck(out1, out2, rho0vec)
         assert_(max(abs(1.0-fid)) < me_error, True)
+
+
+class TestMESolverMisc:
+    """
+    A test class for the misc mesolve features.
+    """
+
+    def testMEFinalState(self):
+        "mesolve: final_state has correct dims"
+
+        N = 5
+        psi0 = tensor(basis(N+1,0), basis(N+1,0), basis(N+1,N))
+        a = tensor(destroy(N+1), qeye(N+1), qeye(N+1))
+        b = tensor(qeye(N+1), destroy(N+1), qeye(N+1))
+        c = tensor(qeye(N+1), qeye(N+1), destroy(N+1))
+        H = a*b*c.dag() * c.dag() - a.dag()*b.dag()*c * c
+
+        times = np.linspace(0.0, 2.0, 100.0)
+        opts = Options(store_states=False, store_final_state=True)
+        rho0 = ket2dm(psi0)
+        result = mesolve(H, rho0, times, [], [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
+        assert_(rho0.dims == result.final_state.dims)
+        
+    
+    def testSEFinalState(self):
+        "sesolve: final_state has correct dims"
+
+        N = 5
+        psi0 = tensor(basis(N+1,0), basis(N+1,0), basis(N+1,N))
+        a = tensor(destroy(N+1), qeye(N+1), qeye(N+1))
+        b = tensor(qeye(N+1), destroy(N+1), qeye(N+1))
+        c = tensor(qeye(N+1), qeye(N+1), destroy(N+1))
+        H = a*b*c.dag() * c.dag() - a.dag()*b.dag()*c * c
+
+        times = np.linspace(0.0, 2.0, 100.0)
+        opts = Options(store_states=False, store_final_state=True)
+        result = mesolve(H, psi0, times, [], [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
+        assert_(psi0.dims == result.final_state.dims)
+
+
+
 
 if __name__ == "__main__":
     run_module_suite()
