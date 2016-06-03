@@ -64,6 +64,7 @@ import scipy.sparse as sp
 # QuTiP
 from qutip import Qobj
 from qutip.sparse import sp_eigs, _dense_eigs
+import qutip.settings as settings
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
@@ -73,6 +74,7 @@ import qutip.control.tslotcomp as tslotcomp
 import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
+import qutip.control.dump as qtrldump
 
 DEF_NUM_TSLOTS = 10
 DEF_EVO_TIME = 1.0
@@ -137,6 +139,11 @@ class Dynamics(object):
         assuming everything runs as expected.
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
+
+    params:  Dictionary
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
 
     stats : Stats
         Attributes of which give performance stats for the optimisation
@@ -273,6 +280,37 @@ class Dynamics(object):
     def_amps_fname : string
         Default name for the output used when save_amps is called
 
+    unitarity_check_level : int
+        If > 0 then unitarity of the system evolution is checked at at
+        evolution recomputation.
+        level 1 checks all propagators
+        level 2 checks eigen basis as well
+        Default is 0
+
+    unitarity_tol :
+        Tolerance used in checking if operator is unitary
+        Default is 1e-10
+
+    dump : :class:`dump.DynamicsDump`
+        Store of historical calculation data.
+        Set to None (Default) for no storing of historical data
+        Use dumping property to set level of data dumping
+
+    dumping : string
+        level of data dumping: NONE, SUMMARY, FULL or CUSTOM
+        See property docstring for details
+
+    dump_to_file : bool
+        If set True then data will be dumped to file during the calculations
+        dumping will be set to SUMMARY during init_evo if dump_to_file is True
+        and dumping not set.
+        Default is False
+
+    dump_dir : string
+        Basically a link to dump.dump_dir. Exists so that it can be set through
+        dyn_params.
+        If dump is None then will return None or will set dumping to SUMMARY
+        when setting a path
     """
     def __init__(self, optimconfig, params=None):
         self.config = optimconfig
@@ -346,6 +384,12 @@ class Dynamics(object):
         self._dyn_gen_mapped = False
         self._timeslots_initialized = False
         self._ctrls_initialized = False
+        # Unitary checking
+        self.unitarity_check_level = 0
+        self.unitarity_tol = 1e-10
+        # Data dumping
+        self.dump = None
+        self.dump_to_file = False
 
         self.apply_params()
 
@@ -382,6 +426,55 @@ class Dynamics(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
+
+    @property
+    def dumping(self):
+        """
+        The level of data dumping that will occur during the time evolution
+        calculation.
+         - NONE : No processing data dumped (Default)
+         - SUMMARY : A summary of each time evolution will be recorded
+         - FULL : All operators used or created in the calculation dumped
+         - CUSTOM : Some customised level of dumping
+        When first set to CUSTOM this is equivalent to SUMMARY. It is then up
+        to the user to specify which operators are dumped
+        WARNING: FULL could consume a lot of memory!
+        """
+        if self.dump is None:
+            lvl = 'NONE'
+        else:
+            lvl = self.dump.level
+
+        return lvl
+
+    @dumping.setter
+    def dumping(self, value):
+        if value is None:
+            self.dump = None
+        else:
+            if not _is_string(value):
+                raise TypeError("Value must be string value")
+            lvl = value.upper()
+            if lvl == 'NONE':
+                self.dump = None
+            else:
+                if not isinstance(self.dump, qtrldump.DynamicsDump):
+                    self.dump = qtrldump.DynamicsDump(self, level=lvl)
+                else:
+                    self.dump.level = lvl
+
+    @property
+    def dump_dir(self):
+        if self.dump:
+            return self.dump.dump_dir
+        else:
+            return None
+
+    @dump_dir.setter
+    def dump_dir(self, value):
+        if not self.dump:
+            self.dumping = 'SUMMARY'
+        self.dump.dump_dir = value
 
     def _create_computers(self):
         """
@@ -578,6 +671,18 @@ class Dynamics(object):
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
 
+        if (self.log_level <= logging.DEBUG
+            and isinstance(self, DynamicsUnitary)):
+                self.unitarity_check_level = 1
+
+        if self.dump_to_file:
+            if self.dump is None:
+                self.dumping = 'SUMMARY'
+            self.dump.write_to_file = True
+            self.dump.create_dump_dir()
+            logger.info("Dynamics dump will be written to:\n{}".format(
+                            self.dump.dump_dir))
+
     def _create_decomp_lists(self):
         """
         Create lists that will hold the eigen decomposition
@@ -592,23 +697,12 @@ class Dynamics(object):
             self._dyn_gen_eigenvectors_adj = [object for x in range(n_ts)]
         self._dyn_gen_factormatrix = [object for x in range(n_ts)]
 
-    def _check_test_out_files(self):
-        cfg = self.config
-        if cfg.any_test_files():
-            if cfg.check_create_test_out_dir():
-                if self.stats is None:
-                    logger.warn("Cannot output test files when stats"
-                                " attribute is not set.")
-                    cfg.clear_test_out_flags()
-
     def initialize_controls(self, amps, init_tslots=True):
         """
         Set the initial control amplitudes and time slices
         Note this must be called after the configuration is complete
         before any dynamics can be calculated
         """
-        self._check_test_out_files()
-
         if not isinstance(self.prop_computer, propcomp.PropagatorComputer):
             raise errors.UsageError(
                 "No prop_computer (propagator computer) "
@@ -719,17 +813,7 @@ class Dynamics(object):
                        "Current control amplitudes:\n" + str(self.ctrl_amps) +
                        "\n(potenially) new amplitudes:\n" + str(new_amps))
 
-        if not self.tslot_computer.compare_amps(new_amps):
-            if self.config.test_out_amps:
-                fname = "amps_{}_{}_{}_call{}{}".format(
-                    self.id_text,
-                    self.prop_computer.id_text,
-                    self.fid_computer.id_text,
-                    self.stats.num_ctrl_amp_updates,
-                    self.config.test_out_f_ext)
-
-                fpath = os.path.join(self.config.test_out_dir, fname)
-                self.save_amps(fpath, verbose=True)
+        self.tslot_computer.compare_amps(new_amps)
 
     def flag_system_changed(self):
         """
@@ -1062,6 +1146,37 @@ class Dynamics(object):
         raise errors.UsageError("Decomposition cannot be completed by "
                                 "this class. Try a(nother) subclass")
 
+    def _is_unitary(self, A):
+        """
+        Checks whether operator A is unitary
+        A can be either Qobj or ndarray
+        """
+        if isinstance(A, Qobj):
+            unitary = np.allclose(np.eye(A.shape[0]), A*A.dag().full(),
+                        atol=self.unitarity_tol)
+        else:
+            unitary = np.allclose(np.eye(len(A)), A.dot(A.T.conj()),
+                        atol=self.unitarity_tol)
+
+        return unitary
+
+    def _calc_unitary_err(self, A):
+        if isinstance(A, Qobj):
+            err = np.sum(abs(np.eye(A.shape[0]) - A*A.dag().full()))
+        else:
+            err = np.sum(abs(np.eye(len(A)) - A.dot(A.T.conj())))
+
+        return err
+
+    def unitarity_check(self):
+        """
+        Checks whether all propagators are unitary
+        """
+        for k in range(self.num_tslots):
+            if not self._is_unitary(self._prop[k]):
+                logger.warning(
+                    "Progator of timeslot {} is not unitary".format(k))
+
 
 class DynamicsGenMat(Dynamics):
     """
@@ -1247,17 +1362,23 @@ class DynamicsUnitary(Dynamics):
                                                     dims=self.dyn_dims)
             self._dyn_gen_eigenvectors[k] = Qobj(eig_vec,
                                                 dims=self.dyn_dims)
+            # The _dyn_gen_eigenvectors_adj list is not used in
+            # memory optimised modes
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].dag()
         else:
             self._prop_eigen[k] = np.diagflat(prop_eig)
             self._dyn_gen_eigenvectors[k] = eig_vec
+            # The _dyn_gen_eigenvectors_adj list is not used in
+            # memory optimised modes
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].conj().T
 
     def _get_dyn_gen_eigenvectors_adj(self, k):
+        # The _dyn_gen_eigenvectors_adj list is not used in
+        # memory optimised modes
         if self._dyn_gen_eigenvectors_adj is not None:
             return self._dyn_gen_eigenvectors_adj[k]
         else:
@@ -1265,6 +1386,39 @@ class DynamicsUnitary(Dynamics):
                 return self._dyn_gen_eigenvectors[k].dag()
             else:
                 return self._dyn_gen_eigenvectors[k].conj().T
+
+    def check_unitarity(self):
+        """
+        Checks whether all propagators are unitary
+        For propagators found not to be unitary, the potential underlying
+        causes are investigated.
+        """
+        for k in range(self.num_tslots):
+            prop_unit = self._is_unitary(self._prop[k])
+            if not prop_unit:
+                logger.warning(
+                    "Progator of timeslot {} is not unitary".format(k))
+            if not prop_unit or self.unitarity_check_level > 1:
+                # Check Hamiltonian
+                H = self._dyn_gen[k]
+                if isinstance(H, Qobj):
+                    herm = H.isherm
+                else:
+                    diff = np.abs(H.T.conj() - H)
+                    herm = False if np.any(diff > settings.atol) else True
+                eigval_unit = self._is_unitary(self._prop_eigen[k])
+                eigvec_unit = self._is_unitary(self._dyn_gen_eigenvectors[k])
+                if self._dyn_gen_eigenvectors_adj is not None:
+                    eigvecadj_unit = self._is_unitary(
+                                    self._dyn_gen_eigenvectors_adj[k])
+                else:
+                    eigvecadj_unit = None
+                msg = ("prop unit: {}; H herm: {}; "
+                        "eigval unit: {}; eigvec unit: {}; "
+                        "eigvecadj_unit: {}".format(
+                        prop_unit, herm, eigval_unit, eigvec_unit,
+                            eigvecadj_unit))
+                logger.info(msg)
 
 class DynamicsSymplectic(Dynamics):
     """
