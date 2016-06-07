@@ -31,7 +31,6 @@ Operating System :: Microsoft :: Windows
 # import statements
 import os
 import sys
-import numpy as np
 
 # The following is required to get unit tests up and running.
 # If the user doesn't have, then that's OK, we'll just skip unit tests.
@@ -46,7 +45,21 @@ try:
 except:
     TESTING_KWARGS = {}
 
-from numpy.distutils.core import setup
+try:
+    import numpy as np
+    from numpy.distutils.core import setup
+except ImportError:
+    # Use a more basic implementation of setup
+    # from setuptools so that we can bootstrap install_requires.
+    # If setuptools is also missing, we'll import distutils and hope
+    # for the best.
+    # This is essential for downloading QuTiP from within another
+    # project's requirements.txt.
+    np = None
+    try:
+        from setuptools import setup
+    except ImportError:
+        from distutils.core import setup
 
 # all information about QuTiP goes here
 MAJOR = 3
@@ -65,7 +78,9 @@ PACKAGE_DATA = {
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
     'qutip/control': ['*.pyx']
 }
-INCLUDE_DIRS = [np.get_include()]
+# If we're missing numpy, exclude import directories until we can
+# figure them out properly.
+INCLUDE_DIRS = [np.get_include()] if np is not None else []
 EXT_MODULES = []
 NAME = "qutip"
 AUTHOR = "Paul D. Nation, Robert J. Johansson"
@@ -173,5 +188,6 @@ setup(
     package_data = PACKAGE_DATA,
     configuration = configuration,
     zip_safe = False,
+    install_requires=REQUIRES,
     **TESTING_KWARGS
 )
