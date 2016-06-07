@@ -55,6 +55,16 @@ except ImportError:
     # for the best.
     # This is essential for downloading QuTiP from within another
     # project's requirements.txt.
+
+    # As per scipy/scipy#453, we should only do this fallback
+    # when called with the commands '--help' and 'egg_info':
+    if not (
+        '--help' in sys.argv[1:] or
+        sys.argv[1] in ('--help-commands', 'egg_info', '--version')
+    ):
+        # Reraise.
+        raise
+
     np = None
     try:
         from setuptools import setup
