@@ -68,7 +68,8 @@ MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
-            'matplotlib (>=1.1)']
+            'matplotlib (>=1.1)'],
+INSTALL_REQUIRES = ['numpy>=1.6', 'scipy>=0.11', 'cython>=0.15', 'matplotlib>=1.1']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
             'qutip/tests']
@@ -188,6 +189,6 @@ setup(
     package_data = PACKAGE_DATA,
     configuration = configuration,
     zip_safe = False,
-    install_requires=REQUIRES,
+    install_requires=INSTALL_REQUIRES,
     **TESTING_KWARGS
 )
