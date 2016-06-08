@@ -484,7 +484,7 @@ def _tdRHStd(t, psi, config):
                  config.n_ops_ptr[j],
                  psi)
         for j in config.c_td_inds])
-    return (const_term - np.sum(h_func_term, 0)
+    return (const_term + np.sum(h_func_term, 0)
             - 0.5 * np.sum(col_func_terms, 0))
 
 
@@ -508,7 +508,7 @@ def _tdRHStd_with_state(t, psi, config):
                  config.n_ops_ptr[j], psi)
         for j in config.c_td_inds])
 
-    return (const_term - np.sum(h_func_term, 0)
+    return (const_term + np.sum(h_func_term, 0)
             - 0.5 * np.sum(col_func_terms, 0))
 
 
