@@ -95,7 +95,7 @@ def testPropHOSteady():
     assert_(np.abs((rho_prop-rho_ss).full()).max() < 1e-4)
 
 
-def testPropHOSteady():
+def testPropHOSteadyPar():
     "Propagator: steady state parallel"
     a = destroy(5)
     H = a.dag()*a
