@@ -40,7 +40,7 @@ from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_super_bcsz, rand_dm_ginibre)
 from qutip.states import basis, fock_dm, ket2dm
-from qutip.operators import create, destroy, num, sigmax, sigmay
+from qutip.operators import create, destroy, num, sigmax, sigmay, qeye
 from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super, to_choi, to_chi
 from qutip.tensor import tensor, super_tensor, composite
@@ -510,6 +510,13 @@ def test_QobjExpmExplicitlySparse():
     A = Qobj(data)
     B = A.expm(method='sparse')
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+
+
+def test_QobjExpmZeroOper():
+    "Qobj expm zero_oper (#493)"
+    A = Qobj(np.zeros((5,5), dtype=complex))
+    B = A.expm()
+    assert_(B == qeye(5))
 
 
 def test_Qobj_sqrtm():
