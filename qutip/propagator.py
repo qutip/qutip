@@ -46,12 +46,12 @@ from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
 from qutip.states import basis
 from qutip.solver import Options
-from qutip.parallel import parallel_map
+from qutip.parallel import parallel_map, _default_kwargs
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
 def propagator(H, t, c_op_list=[], args={}, options=None,
-               parallel=False, progress_bar=None):
+               parallel=False, progress_bar=None, **kwargs):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -93,7 +93,13 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Instance representing the propagator :math:`U(t)`.
 
     """
-
+    
+    kw = _default_kwargs()
+    if 'num_cpus' in kwargs:
+        num_cpus = kwargs['num_cpus']
+    else:
+        num_cpus = kw['num_cpus']
+    
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
@@ -131,7 +137,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         if parallel:
             output = parallel_map(_parallel_sesolve,range(N),
                     task_args=(N,H,tlist,args,options),
-                    progress_bar=progress_bar)
+                    progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = output[n].states[k].full().T 
@@ -164,7 +170,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         if parallel:
             output = parallel_map(_parallel_mesolve,range(N * N),
                     task_args=(sqrt_N,H,tlist,c_op_list,args,options),
-                    progress_bar=progress_bar)
+                    progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
@@ -191,7 +197,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         if parallel:
             output = parallel_map(_parallel_mesolve,range(N * N),
                     task_args=(N,H,tlist,c_op_list,args,options),
-                    progress_bar=progress_bar)
+                    progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
