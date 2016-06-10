@@ -34,9 +34,7 @@
 import numpy as np
 from numpy.testing import assert_equal, run_module_suite, assert_
 import unittest
-
-from qutip import (mcsolve, destroy, basis, qeye, Options, tensor, sigmam,
-                   expect, coherent, Qobj)
+from qutip import *
 from qutip import _version2int
 
 # find Cython if it exists
@@ -533,6 +531,27 @@ def test_mc_ntraj_list():
     tlist = np.linspace(0, 0.8, 100)
     mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a], ntraj)
     assert_equal(len(mc.expect), 4)
+
+def test_mc_functd_sum():
+    "Monte-carlo: Test for #490"
+    psi0 = (basis(2,0) + basis(2,1)).unit()   
+    H0 = sigmax()
+    H1 = sigmay()
+    H2 = sigmaz()
+    def H1_coeff(t,args):
+        return t-1
+
+    def H2_coeff(t,args):
+        return -t
+
+    h_t = [H0,[H1, H1_coeff],
+           [H2, H2_coeff]]
+    ntraj = 1
+
+    tlist = np.linspace(0, 3, 10)
+    medata = mesolve(h_t, psi0, tlist, [], [], args = {})
+    mcdata = mcsolve(h_t, psi0, tlist, [], [], ntraj = ntraj, args = {})
+    assert_(max([(medata.states[k]-mcdata.states[k]).norm() for k in range(10)]) < 1e-5)
 
 
 if __name__ == "__main__":
