@@ -79,6 +79,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
     options : :class:`qutip.Options`
         with options for the ODE solver.
 
+    parallel : bool {False, True}
+        Run the propagator in parallel mode.
+    
     progress_bar: BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation. By default no progress bar
