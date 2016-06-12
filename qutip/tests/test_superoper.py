@@ -32,7 +32,7 @@
 ###############################################################################
 
 import numpy as np
-from numpy.linalg import norm
+import scipy.linalg as la
 from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
 
@@ -107,7 +107,7 @@ class TestMatVec:
         M = scipy.rand(10, 10)
         V = mat2vec(M)
         M2 = vec2mat(V)
-        assert_(norm(M - M2) == 0.0)
+        assert_(la.norm(M - M2) == 0.0)
 
     def testVecMatVec(self):
         """
@@ -116,7 +116,7 @@ class TestMatVec:
         V = scipy.rand(100)     # a row vector
         M = vec2mat(V)
         V2 = mat2vec(M).T  # mat2vec returns a column vector
-        assert_(norm(V - V2) == 0.0)
+        assert_(la.norm(V - V2) == 0.0)
 
     def testVecMatIndexConversion(self):
         """
