@@ -38,16 +38,23 @@ try:
     import setuptools
     TEST_SUITE = 'nose.collector'
     TESTS_REQUIRE = ['nose']
-    TESTING_KWARGS = {
+    EXTRA_KWARGS = {
         'test_suite': TEST_SUITE,
         'tests_require': TESTS_REQUIRE
     }
 except:
-    TESTING_KWARGS = {}
+    EXTRA_KWARGS = {}
 
 try:
     import numpy as np
     from numpy.distutils.core import setup
+
+    # If we use NumPy's distutils, it will also
+    # try to import Cython due to the add_subpackage
+    # calls below. We want to fail early instead, so that
+    # we branch off to the setuptools/distutils fallbacks
+    # if Cython isn't present.
+    import Cython
 except ImportError:
     # Use a more basic implementation of setup
     # from setuptools so that we can bootstrap install_requires.
@@ -122,6 +129,13 @@ def git_short_hash():
 FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.dev' + git_short_hash()
+
+# NumPy's distutils reads in versions differently than
+# our fallback. To make sure that versions are added to
+# egg-info correctly, we need to add FULLVERSION to
+# EXTRA_KWARGS if NumPy wasn't imported correctly.
+if np is None:
+    EXTRA_KWARGS['version'] = FULLVERSION
 
 
 def write_version_py(filename='qutip/version.py'):
@@ -200,5 +214,5 @@ setup(
     configuration = configuration,
     zip_safe = False,
     install_requires=INSTALL_REQUIRES,
-    **TESTING_KWARGS
+    **EXTRA_KWARGS
 )
