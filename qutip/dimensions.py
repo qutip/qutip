@@ -177,6 +177,73 @@ def _enumerate_flat(l, idx=0):
             acc.append(labels)
         return acc, idx
 
+def _collapse_composite_index(dims):
+    """
+    Given the dimensions specification for a composite index
+    (e.g.: [2, 3] for the right index of a ket with dims [[1], [2, 3]]),
+    returns a dimensions specification for an index of the same shape,
+    but collapsed to a single "leg." In the previous example, [2, 3]
+    would collapse to [6].
+    """
+    return [np.prod(dims)]
+
+def _collapse_dims_to_level(dims, level=1):
+    """
+    Recursively collapses all indices in a dimensions specification
+    appearing at a given level, such that the returned dimensions
+    specification does not represent any composite systems.
+    """
+    if level == 0:
+        return _collapse_composite_index(dims)
+    else:
+        return [_collapse_dims_to_level(index, level=level - 1) for index in dims]
+    
+def collapse_dims_oper(dims):
+    """
+    Given the dimensions specifications for a ket-, bra- or oper-type
+    Qobj, returns a dimensions specification describing the same shape
+    by collapsing all composite systems. For instance, the bra-type
+    dimensions specification ``[[2, 3], [1]]`` collapses to
+    ``[[6], [1]]``.
+
+    Parameters
+    ----------
+
+    dims : list of lists of ints
+        Dimensions specifications to be collapsed.
+
+    Returns
+    -------
+
+    collapsed_dims : list of lists of ints
+        Collapsed dimensions specification describing the same shape
+        such that ``len(collapsed_dims[0]) == len(collapsed_dims[1]) == 1``.
+    """
+    return _collapse_dims_to_level(dims, 1)
+
+def collapse_dims_super(dims):
+    """
+    Given the dimensions specifications for an operator-ket-, operator-bra- or
+    super-type Qobj, returns a dimensions specification describing the same shape
+    by collapsing all composite systems. For instance, the super-type
+    dimensions specification ``[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]`` collapses to
+    ``[[[6], [6]], [[6], [6]]]``.
+
+    Parameters
+    ----------
+
+    dims : list of lists of ints
+        Dimensions specifications to be collapsed.
+
+    Returns
+    -------
+
+    collapsed_dims : list of lists of ints
+        Collapsed dimensions specification describing the same shape
+        such that ``len(collapsed_dims[i][j]) == 1`` for ``i`` and ``j``
+        in ``range(2)``.
+    """
+    return _collapse_dims_to_level(dims, 2)
 
 def enumerate_flat(l):
     """Labels the indices at which scalars occur in a flattened list.

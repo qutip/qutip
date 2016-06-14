@@ -39,7 +39,8 @@ from numpy.testing import assert_equal, assert_, run_module_suite
 from qutip.dimensions import (
     type_from_dims,
     flatten, enumerate_flat, deep_remove, unflatten,
-    dims_idxs_to_tensor_idxs, dims_to_tensor_shape
+    dims_idxs_to_tensor_idxs, dims_to_tensor_shape,
+    collapse_dims_oper, collapse_dims_super
 )
 from qutip.qobj import Qobj
 
@@ -155,3 +156,20 @@ def test_type_from_dims():
     super_data = np.random.random((N, N))
     super_qobj = Qobj(super_data, dims=[[[3]], [[3]]])
     qobj_case(super_qobj)
+
+def test_collapse():
+    # ket-type
+    # assert_equal(collapse_dims_oper([[1], [3]]), [[1], [3]], err_msg='ket-type, trivial')
+    # assert_equal(collapse_dims_oper([[1], [2, 3]]), [[1], [6]], err_msg='ket-type, bipartite')
+    # # bra-type
+    # assert_equal(collapse_dims_oper([[2], [1]]), [[2], [1]], err_msg='bra-type, trivial')
+    # assert_equal(collapse_dims_oper([[2, 3], [1]]), [[6], [1]], err_msg='bra-type, bipartite')
+    # # oper-type
+    # assert_equal(collapse_dims_oper([[2, 3], [2, 3]]), [[6], [6]], err_msg='oper-type, trivial')
+    # assert_equal(collapse_dims_oper([[2, 3], [4, 5]]), [[6], [20]], err_msg='oper-type, bipartite')
+    # # operator-ket-type
+    # assert_equal(collapse_dims_super([[[1]], [[2, 3], [2, 3]]]), [[[1]], [[6], [6]]])
+    # operator-bra-type
+    assert_equal(collapse_dims_super([[[2, 3], [2, 3]], [[1]]]), [[[6], [6]], [[1]]])
+    # super-type
+    assert_equal(collapse_dims_super([[[2, 3], [2, 3]], [[2, 3], [2, 3]]]), [[[6], [6]], [[6], [6]]])
