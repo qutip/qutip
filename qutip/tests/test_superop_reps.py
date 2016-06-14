@@ -47,10 +47,10 @@ from unittest import expectedFailure
 
 from qutip.qobj import Qobj
 from qutip.states import basis
-from qutip.operators import identity, sigmax, qeye, create
+from qutip.operators import identity, sigmax, sigmay, qeye, create
 from qutip.qip.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
-from qutip.tensor import super_tensor
+from qutip.tensor import tensor, super_tensor
 from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
                                 to_chi, to_stinespring)
 from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
@@ -187,6 +187,15 @@ class TestSuperopReps(object):
         case(identity(2), True, True, True)
         case(sigmax(), True, True, True)
 
+        # Check that unitaries on bipartite systems are CPTP and HP.
+        case(tensor(sigmax(), identity(2)), True, True, True)
+
+        # Check that a linear combination of bipartitie unitaries is CPTP and HP.
+        S = (
+            to_super(tensor(sigmax(), identity(2))) + to_super(tensor(identity(2), sigmay()))
+        ) / 2
+        case(S, True, True, True)
+
         # The partial transpose map, whose Choi matrix is SWAP, is TP
         # and HP but not CP (one negative eigenvalue).
         W = Qobj(swap(), type='super', superrep='choi')
@@ -301,3 +310,4 @@ class TestSuperopReps(object):
 
 if __name__ == "__main__":
     run_module_suite()
+
