@@ -66,7 +66,7 @@ def jmat(j, *args):
 
     Returns
     -------
-    jmat : qobj/list
+    jmat : qobj / ndarray
         ``qobj`` for requested spin operator(s).
 
 
@@ -105,7 +105,7 @@ shape = [3, 3], type = oper, isHerm = True
         a1 = Qobj(0.5 * (_jplus(j) + _jplus(j).conj().T))
         a2 = Qobj(0.5 * 1j * (_jplus(j) - _jplus(j).conj().T))
         a3 = Qobj(_jz(j))
-        return [a1, a2, a3]
+        return np.array([a1, a2, a3])
 
     if args[0] == '+':
         A = _jplus(j)
@@ -120,7 +120,7 @@ shape = [3, 3], type = oper, isHerm = True
     else:
         raise TypeError('Invalid type')
 
-    return Qobj(A.tocsr(), isherm=True)
+    return Qobj(A.tocsr())
 
 
 def _jplus(j):

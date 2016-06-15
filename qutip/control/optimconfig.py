@@ -42,15 +42,11 @@
 Configuration parameters for control pulse optimisation
 """
 
-import os
-import errno
 import numpy as np
 # QuTiP logging
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
-
-TEST_OUT_DIR = "test_out"
-
+import qutip.control.io as qtrlio
 
 class OptimConfig(object):
     """
@@ -86,44 +82,6 @@ class OptimConfig(object):
         DEF will use the default for the specific dyn_type
         (See FidelityComputer classes for details)
 
-    test_out_dir : string
-        Directory where test output files will be saved
-        By default this is a sub directory called 'test_out'
-        It will be created in the working directory if it does not exist
-
-    test_out_f_ext : string
-        File extension that will be applied to all test output file names
-
-    test_out_iter : Boolean
-        When True a file will be created that records the wall time,
-        fidelity error and gradient norm for each iteration of the algorithm
-
-    test_out_fid_err : Boolean
-        When True a file will be created that records the fidelity error
-        each time the Optimizer.fid_err_wrapper method is called
-
-    test_out_grad_norm : Boolean
-        When True a file will be created that records the gradient norm
-        each time the Optimizer.fid_err_grad_wrapper method is called
-
-    test_out_grad : Boolean
-        When True a file will be created each time the
-        Optimizer.fid_err_grad_wrapper method is called containing
-        the gradients with respect to each control in each timeslot
-
-    test_out_prop : Boolean
-        When True a file will be created each time the timeslot evolution
-        is recomputed recording propagators for each timeslot
-
-    test_out_prop_grad : Boolean
-        When True a file will be created each time the timeslot evolution
-        is recomputed recording the propagator gradient
-        wrt each control in each timeslot
-
-    test_out_evo : Boolean
-        When True a file will be created each time the timeslot evolution
-        is recomputed recording the operators (matrices) for the forward
-        and onward evolution in each timeslot
     """
 
     def __init__(self):
@@ -156,23 +114,6 @@ class OptimConfig(object):
         #        self.accuracy_factor = 1e7
         # ***
         # ####################
-        self.reset_test_out_files()
-
-    def reset_test_out_files(self):
-        # Test output file flags
-        self.test_out_dir = None
-        self.test_out_f_ext = ".txt"
-        self.clear_test_out_flags()
-
-    def clear_test_out_flags(self):
-        self.test_out_iter = False
-        self.test_out_fid_err = False
-        self.test_out_grad_norm = False
-        self.test_out_amps = False
-        self.test_out_grad = False
-        self.test_out_prop = False
-        self.test_out_prop_grad = False
-        self.test_out_evo = False
 
     @property
     def log_level(self):
@@ -185,40 +126,6 @@ class OptimConfig(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
-
-    def any_test_files(self):
-        """
-        Returns True if any test_out files are to be produced
-        That is debug files written to the test_out directory
-        """
-        if (self.test_out_iter or
-                self.test_out_fid_err or
-                self.test_out_grad_norm or
-                self.test_out_grad or
-                self.test_out_amps or
-                self.test_out_prop or
-                self.test_out_prop_grad or
-                self.test_out_evo):
-            return True
-        else:
-            return False
-
-    def check_create_test_out_dir(self):
-        """
-        Checks test_out directory exists, creates it if not
-        """
-        if self.test_out_dir is None or len(self.test_out_dir) == 0:
-            self.test_out_dir = TEST_OUT_DIR
-
-        dir_ok, self.test_out_dir, msg = self.check_create_output_dir(
-                    self.test_out_dir, desc='test_out')
-
-        if not dir_ok:
-            self.reset_test_out_files()
-            msg += "\ntest_out files will be suppressed."
-            logger.error(msg)
-
-        return dir_ok
 
     def check_create_output_dir(self, output_dir, desc='output'):
         """
@@ -235,39 +142,8 @@ class OptimConfig(object):
         msg : string
             Error msg if directory creation failed
         """
-
-        dir_ok = True
-        if '~' in output_dir:
-            output_dir = os.path.expanduser(output_dir)
-        elif not os.path.abspath(output_dir):
-            # Assume relative path from cwd given
-            output_dir = os.path.join(os.getcwd(), output_dir)
-
-        errmsg = "Failed to create {} directory:\n{}\n".format(desc,
-                                                            output_dir)
-
-        if os.path.exists(output_dir):
-            if os.path.isfile(output_dir):
-                dir_ok = False
-                errmsg += "A file already exists with the same name"
-        else:
-            try:
-                os.makedirs(output_dir)
-                logger.info("Test out files directory {} created "
-                            "(recursively)".format(output_dir))
-            except OSError as e:
-                if e.errno == errno.EEXIST:
-                    logger.info("Assume test out files directory {} created "
-                        "(recursively)  some other process".format(output_dir))
-                else:
-                    dir_ok = False
-                    errmsg += "Underling error (makedirs) :({}) {}".format(
-                        type(e).__name__, e)
-
-        if dir_ok:
-            return dir_ok, output_dir, "{} directory is ready".format(desc)
-        else:
-            return dir_ok, output_dir, errmsg
+        
+        return qtrlio.create_dir(output_dir, desc=desc)
 
 # create global instance
 optimconfig = OptimConfig()

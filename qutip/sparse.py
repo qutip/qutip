@@ -383,7 +383,8 @@ def sp_expm(A, sparse=False):
     Sparse matrix exponential.    
     """
     if _isdiag(A.indices, A.indptr, A.shape[0]):
-        A.data = np.exp(A.data)
+        A = sp.diags(np.exp(A.diagonal()), shape=A.shape, 
+                    format='csr', dtype=complex)
         return A
     if sparse:
         E = spla.expm(A.tocsc())

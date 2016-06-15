@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2016 and later, Alexander J G Pitchford
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -31,53 +32,56 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
-from numpy.testing import assert_, run_module_suite
-import scipy.linalg as la
+import os
+import errno
 
-from qutip import (spre, spost, qeye, sigmax, sigmay, sigmaz, qpt)
-from qutip.qip.gates import snot, cnot
+def create_dir(dir_name, desc='output'):
+    """
+    Checks if the given directory exists, if not it is created
+    Returns
+    -------
+    dir_ok : boolean
+        True if directory exists (previously or created)
+        False if failed to create the directory
 
+    dir_name : string
+        Path to the directory, which may be been made absolute
 
-def test_qpt_snot():
-    "quantum process tomography for snot gate"
+    msg : string
+        Error msg if directory creation failed
+    """
 
-    U_psi = snot()
-    U_rho = spre(U_psi) * spost(U_psi.dag())
-    N = 1
-    op_basis = [[qeye(2), sigmax(), 1j * sigmay(), sigmaz()] for i in range(N)]
-    # op_label = [["i", "x", "y", "z"] for i in range(N)]
-    chi1 = qpt(U_rho, op_basis)
+    dir_ok = True
+    if '~' in dir_name:
+        dir_name = os.path.expanduser(dir_name)
+    elif not os.path.abspath(dir_name):
+        # Assume relative path from cwd given
+        dir_name = os.path.join(os.getcwd(), dir_name)
 
-    chi2 = np.zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
-    chi2[1, 1] = chi2[1, 3] = chi2[3, 1] = chi2[3, 3] = 0.5
+    msg = "{} directory is ready".format(desc)
+    errmsg = "Failed to create {} directory:\n{}\n".format(desc,
+                                                        dir_name)
 
-    assert_(la.norm(chi2 - chi1) < 1e-8)
+    if os.path.exists(dir_name):
+        if os.path.isfile(dir_name):
+            dir_ok = False
+            errmsg += "A file already exists with the same name"
+    else:
+        try:
+            os.makedirs(dir_name)
+            msg += ("directory {} created "
+                        "(recursively)".format(dir_name))
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                msg += ("Assume directory {} created "
+                    "(recursively) by some other process. ".format(dir_name))
+            else:
+                dir_ok = False
+                errmsg += "Underling error (makedirs) :({}) {}".format(
+                    type(e).__name__, e)
 
-
-def test_qpt_cnot():
-    "quantum process tomography for cnot gate"
-
-    U_psi = cnot()
-    U_rho = spre(U_psi) * spost(U_psi.dag())
-    N = 2
-    op_basis = [[qeye(2), sigmax(), 1j * sigmay(), sigmaz()] for i in range(N)]
-    # op_label = [["i", "x", "y", "z"] for i in range(N)]
-    chi1 = qpt(U_rho, op_basis)
-
-    chi2 = np.zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
-    chi2[0, 0] = chi2[0, 1] = chi2[1, 0] = chi2[1, 1] = 0.25
-
-    chi2[12, 0] = chi2[12, 1] = 0.25
-    chi2[13, 0] = chi2[13, 1] = -0.25
-
-    chi2[0, 12] = chi2[1, 12] = 0.25
-    chi2[0, 13] = chi2[1, 13] = -0.25
-
-    chi2[12, 12] = chi2[13, 13] = 0.25
-    chi2[13, 12] = chi2[12, 13] = -0.25
-
-    assert_(la.norm(chi2 - chi1) < 1e-8)
-
-if __name__ == "__main__":
-    run_module_suite()
+    if dir_ok:
+        return dir_ok, dir_name, msg
+    else:
+        return dir_ok, dir_name, errmsg
+        

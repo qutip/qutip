@@ -130,7 +130,7 @@ def optimize_pulse(
         fid_err_targ=1e-10, min_grad=1e-10,
         max_iter=500, max_wall_time=180,
         alg='GRAPE', alg_params=None,
-        optim_method='DEF', method_params=None,
+        optim_params=None, optim_method='DEF', method_params=None,
         optim_alg=None, max_metric_corr=None, accuracy_factor=None,
         dyn_type='GEN_MAT', dyn_params=None,
         prop_type='DEF', prop_params=None,
@@ -219,6 +219,13 @@ def optimize_pulse(
 
     alg_params : Dictionary
         options that are specific to the algorithm see above
+        
+    optim_params : Dictionary
+        The key value pairs are the attribute name and value
+        used to set attribute values
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        Note: method_params are applied afterwards and so may override these
         
     optim_method : string
         a scipy.optimize.minimize method that will be used to optimise
@@ -438,7 +445,7 @@ def optimize_pulse(
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
         fid_err_targ=fid_err_targ, min_grad=min_grad,
         max_iter=max_iter, max_wall_time=max_wall_time,
-        alg=alg, alg_params=alg_params,
+        alg=alg, alg_params=alg_params, optim_params=optim_params,
         optim_method=optim_method, method_params=method_params,
         dyn_type=dyn_type, dyn_params=dyn_params, 
         prop_type=prop_type, prop_params=prop_params,
@@ -510,7 +517,7 @@ def optimize_pulse_unitary(
         fid_err_targ=1e-10, min_grad=1e-10,
         max_iter=500, max_wall_time=180,
         alg='GRAPE', alg_params=None,
-        optim_method='DEF', method_params=None,
+        optim_params=None, optim_method='DEF', method_params=None,
         optim_alg=None, max_metric_corr=None, accuracy_factor=None,
         phase_option='PSU', 
         dyn_params=None, prop_params=None, fid_params=None,
@@ -603,6 +610,13 @@ def optimize_pulse_unitary(
 
     alg_params : Dictionary
         options that are specific to the algorithm see above
+        
+    optim_params : Dictionary
+        The key value pairs are the attribute name and value
+        used to set attribute values
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        Note: method_params are applied afterwards and so may override these
         
     optim_method : string
         a scipy.optimize.minimize method that will be used to optimise
@@ -805,7 +819,7 @@ def optimize_pulse_unitary(
             amp_lbound=amp_lbound, amp_ubound=amp_ubound,
             fid_err_targ=fid_err_targ, min_grad=min_grad,
             max_iter=max_iter, max_wall_time=max_wall_time,
-            alg=alg, alg_params=alg_params,
+            alg=alg, alg_params=alg_params, optim_params=optim_params,
             optim_method=optim_method, method_params=method_params,
             dyn_type='UNIT', dyn_params=dyn_params,
             prop_params=prop_params, fid_params=fid_params,
@@ -824,7 +838,7 @@ def opt_pulse_crab(
         max_iter=500, max_wall_time=180,
         alg_params=None,
         num_coeffs=None, init_coeff_scaling=1.0, 
-        optim_method='fmin', method_params=None,
+        optim_params=None, optim_method='fmin', method_params=None,
         dyn_type='GEN_MAT', dyn_params=None,
         prop_type='DEF', prop_params=None,
         fid_type='DEF', fid_params=None,
@@ -901,6 +915,13 @@ def opt_pulse_crab(
 
     alg_params : Dictionary
         options that are specific to the algorithm see above
+        
+    optim_params : Dictionary
+        The key value pairs are the attribute name and value
+        used to set attribute values
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        Note: method_params are applied afterwards and so may override these
 
     coeff_scaling : float
         Linear scale factor for the random basis coefficients
@@ -1085,7 +1106,7 @@ def opt_pulse_crab(
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
         fid_err_targ=fid_err_targ, min_grad=0.0,
         max_iter=max_iter, max_wall_time=max_wall_time,
-        alg='CRAB', alg_params=alg_params,
+        alg='CRAB', alg_params=alg_params, optim_params=optim_params,
         optim_method=optim_method, method_params=method_params,
         dyn_type=dyn_type, dyn_params=dyn_params, 
         prop_type=prop_type, prop_params=prop_params,
@@ -1105,7 +1126,7 @@ def opt_pulse_crab_unitary(
         max_iter=500, max_wall_time=180,
         alg_params=None,
         num_coeffs=None, init_coeff_scaling=1.0, 
-        optim_method='fmin', method_params=None,
+        optim_params=None, optim_method='fmin', method_params=None,
         phase_option='PSU', 
         dyn_params=None, prop_params=None, fid_params=None,
         tslot_type='DEF', tslot_params=None,
@@ -1186,6 +1207,13 @@ def opt_pulse_crab_unitary(
 
     alg_params : Dictionary
         options that are specific to the algorithm see above
+        
+    optim_params : Dictionary
+        The key value pairs are the attribute name and value
+        used to set attribute values
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        Note: method_params are applied afterwards and so may override these
 
     coeff_scaling : float
         Linear scale factor for the random basis coefficients
@@ -1358,7 +1386,7 @@ def opt_pulse_crab_unitary(
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
         fid_err_targ=fid_err_targ, min_grad=0.0,
         max_iter=max_iter, max_wall_time=max_wall_time,
-        alg='CRAB', alg_params=alg_params,
+        alg='CRAB', alg_params=alg_params, optim_params=optim_params,
         optim_method=optim_method, method_params=method_params,
         phase_option=phase_option,
         dyn_params=dyn_params, prop_params=prop_params, fid_params=fid_params,
@@ -1376,7 +1404,7 @@ def create_pulse_optimizer(
         fid_err_targ=1e-10, min_grad=1e-10,
         max_iter=500, max_wall_time=180,
         alg='GRAPE', alg_params=None,
-        optim_method='DEF', method_params=None,
+        optim_params=None, optim_method='DEF', method_params=None,
         optim_alg=None, max_metric_corr=None, accuracy_factor=None,
         dyn_type='GEN_MAT', dyn_params=None,
         prop_type='DEF', prop_params=None,
@@ -1463,6 +1491,13 @@ def create_pulse_optimizer(
 
     alg_params : Dictionary
         options that are specific to the algorithm see above
+        
+    optim_params : Dictionary
+        The key value pairs are the attribute name and value
+        used to set attribute values
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        Note: method_params are applied afterwards and so may override these
         
     optim_method : string
         a scipy.optimize.minimize method that will be used to optimise
@@ -1806,6 +1841,7 @@ def create_pulse_optimizer(
     optim.method = optim_method
     optim.amp_lbound = amp_lbound
     optim.amp_ubound = amp_ubound
+    optim.apply_params(optim_params)
     
     # Create the TerminationConditions instance
     tc = termcond.TerminationConditions()
@@ -1814,6 +1850,7 @@ def create_pulse_optimizer(
     tc.max_iterations = max_iter
     tc.max_wall_time = max_wall_time
     optim.termination_conditions = tc
+    
     
     optim.apply_method_params(method_params)
 
