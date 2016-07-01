@@ -403,9 +403,10 @@ def _integrate(L, E0, ti, tf, opt=qt.Options()):
     """
     Basic ode integrator
     """
-    opt.store_final_state = True
+    # opt.store_final_state = True
     if tf > ti:
-        sol = qt.mesolve(L, E0, [ti, tf], [], [], options=opt)
-        return sol.final_state
+        # sol = qt.mesolve(L, E0, [ti, tf], [], [], options=opt)
+        # return sol.final_state
+        return qt.propagator(L, (tf-ti), [], [], options=opt)*E0
     else:
         return E0
