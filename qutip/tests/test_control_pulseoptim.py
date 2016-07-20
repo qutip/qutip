@@ -89,7 +89,7 @@ class TestPulseOptim:
             shutil.rmtree(d, ignore_errors=True)
             
             
-    def test_unitary(self):
+    def test_1_unitary(self):
         """
         control.pulseoptim: Hadamard and QFT gate with linear initial pulses
         assert that goal is achieved and fidelity error is below threshold
@@ -198,7 +198,7 @@ class TestPulseOptim:
                     (result2.final_amps <= 1.0).all(), 
                     msg="Amplitude bounds exceeded for QFT")
                     
-    def test_dumping_and_unitarity(self):
+    def test_2_dumping_and_unitarity(self):
         """
         control: data dumping and unitarity checking
         Dump out processing data and use to check unitary evolution
@@ -280,7 +280,7 @@ class TestPulseOptim:
                 msg="{} onto evo ops found to be non-unitary".format(
                                                                 nu_onto_evo))
             
-    def test_state_to_state(self):
+    def test_3_state_to_state(self):
         """
         control.pulseoptim: state-to-state transfer 
         linear initial pulse used
@@ -331,7 +331,7 @@ class TestPulseOptim:
                     "Terminated due to: {}, with infidelity: {}".format(
                     result.termination_reason, result.fid_err))
                                             
-    def test_lindbladian(self):
+    def test_4_lindbladian(self):
         """
         control.pulseoptim: amplitude damping channel
         Lindbladian dynamics
@@ -410,7 +410,7 @@ class TestPulseOptim:
                             err_msg="Direct and indirect methods produce "
                                     "different results for ADC")
 
-    def test_symplectic(self):
+    def test_5_symplectic(self):
         """
         control.pulseoptim: coupled oscillators (symplectic dynamics)
         assert that fidelity error is below threshold
@@ -507,7 +507,7 @@ class TestPulseOptim:
                             err_msg="Direct and indirect methods produce "
                                     "different results for Symplectic")
                                     
-    def test_crab(self):
+    def test_6_crab(self):
         """
         control.pulseoptim: Hadamard gate using CRAB algorithm
         Apply guess and ramping pulse
@@ -564,7 +564,7 @@ class TestPulseOptim:
                     "Terminated due to: {}, with infidelity: {}".format(
                     result.termination_reason, result.fid_err))
                     
-    def test_load_params(self):
+    def test_7_load_params(self):
         """
         control.pulseoptim: Hadamard gate (loading config from file)
         compare with result produced by pulseoptim method
@@ -634,7 +634,7 @@ class TestPulseOptim:
                             err_msg="Pulses do not match")
                             
     
-    def test_init_pulse_params(self):
+    def test_8_init_pulse_params(self):
         """
         control.pulsegen: Check periodic control functions
         """
@@ -694,7 +694,68 @@ class TestPulseOptim:
                 assert_equal(exp_num_waves, fnd_num_waves, err_msg=
                     "Number of waves incorrect for pulse type '{}', "
                     "num_waves {}".format(ptype, num_waves))
+                    
+    def test_9_time_dependent_drift(self):
+        """
+        control.pulseoptim: Hadamard gate with fixed and time varying drift
+        assert that goal is achieved for both and that different control
+        pulses are produced (only) when they should be
+        """
+        # Hadamard
+        H_0 = sigmaz()
+        H_c = [sigmax()]
+        U_0 = identity(2)
+        U_targ = hadamard_transform(1)
+
+        n_ts = 20
+        evo_time = 10
         
+        drift_amps_flat = np.ones([n_ts], dtype=float)
+        dript_amps_step = [np.round(float(k)/n_ts) for k in range(n_ts)]
+        
+        # Run the optimisations
+        result_fixed = cpo.optimize_pulse_unitary(H_0, H_c, U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+        assert_(result_fixed.goal_achieved, 
+                    msg="Fixed drift goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result_fixed.termination_reason, result_fixed.fid_err))
+                    
+        H_d = [drift_amps_flat[k]*H_0 for k in range(n_ts)]
+        result_flat = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+        assert_(result_flat.goal_achieved, msg="Flat drift goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result_flat.termination_reason, result_flat.fid_err))
+                    
+        # Check fixed and flat produced the same pulse
+        assert_almost_equal(result_fixed.final_amps, result_flat.final_amps, 
+                            decimal=9, 
+                            err_msg="Flat and fixed drift result in "
+                                    "different control pules")
+                            
+        H_d = [dript_amps_step[k]*H_0 for k in range(n_ts)]
+        result_step = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+        assert_(result_step.goal_achieved, msg="Step drift goal not achieved. "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result_step.termination_reason, result_step.fid_err))
+                    
+        # Check step and flat produced different results
+        assert_(np.any(
+            np.abs(result_flat.final_amps - result_step.final_amps) > 1e-3), 
+                            msg="Flat and step drift result in "
+                                    "the same control pules")
+                                    
 if __name__ == "__main__":
     run_module_suite()
     
