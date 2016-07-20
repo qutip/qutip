@@ -202,9 +202,11 @@ class Dynamics(object):
         Cumulative time for the evolution, that is the time at the start
         of each time slice
 
-    drift_dyn_gen : Qobj
+    drift_dyn_gen : Qobj or list of Qobj
         Drift or system dynamics generator (Hamiltonian)
         Matrix defining the underlying dynamics of the system
+        Can also be a list of Qobj (length num_tslots) for time varying
+        drift dynamics
 
     ctrl_dyn_gen : List of Qobj
         Control dynamics generator (Hamiltonians)
