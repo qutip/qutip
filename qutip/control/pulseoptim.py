@@ -157,8 +157,9 @@ def optimize_pulse(
     Parameters
     ----------
 
-    drift : Qobj
+    drift : Qobj or list of Qobj
         the underlying dynamics generator of the system
+        can provide list (of length num_tslots) for time dependent drift
 
     ctrls : List of Qobj
         a list of control dynamics generators. These are scaled by
@@ -457,22 +458,6 @@ def optimize_pulse(
         log_level=log_level, gen_stats=gen_stats)
 
     dyn = optim.dynamics
-    
-    if log_level <= logging.INFO:
-        msg = "System configuration:\n"
-        dg_name = "dynamics generator"
-        if dyn_type == 'UNIT':
-            dg_name = "Hamiltonian"
-        msg += "Drift {}:\n".format(dg_name)
-        msg += str(dyn.drift_dyn_gen)
-        for j in range(dyn.num_ctrls):
-            msg += "\nControl {} {}:\n".format(j+1, dg_name)
-            msg += str(dyn.ctrl_dyn_gen[j])
-        msg += "\nInitial state / operator:\n"
-        msg += str(dyn.initial)
-        msg += "\nTarget state / operator:\n"
-        msg += str(dyn.target)
-        logger.info(msg)
 
     dyn.init_timeslots()
     # Generate initial pulses for each control
@@ -490,6 +475,26 @@ def optimize_pulse(
         
     # Initialise the starting amplitudes
     dyn.initialize_controls(init_amps)
+    
+    if log_level <= logging.INFO:
+        msg = "System configuration:\n"
+        dg_name = "dynamics generator"
+        if dyn_type == 'UNIT':
+            dg_name = "Hamiltonian"
+        if dyn.time_depend_drift:
+            msg += "Initial drift {}:\n".format(dg_name)
+            msg += str(dyn.drift_dyn_gen[0])
+        else:
+            msg += "Drift {}:\n".format(dg_name)
+            msg += str(dyn.drift_dyn_gen)
+        for j in range(dyn.num_ctrls):
+            msg += "\nControl {} {}:\n".format(j+1, dg_name)
+            msg += str(dyn.ctrl_dyn_gen[j])
+        msg += "\nInitial state / operator:\n"
+        msg += str(dyn.initial)
+        msg += "\nTarget state / operator:\n"
+        msg += str(dyn.target)
+        logger.info(msg)
 
     if out_file_ext is not None:
         # Save initial amplitudes to a text file
@@ -548,9 +553,10 @@ def optimize_pulse_unitary(
     Parameters
     ----------
 
-    H_d : Qobj
+    H_d : Qobj or list of Qobj
         Drift (aka system) the underlying Hamiltonian of the system
-
+        can provide list (of length num_tslots) for time dependent drift
+        
     H_c : Qobj
         a list of control Hamiltonians. These are scaled by
         the amplitudes to alter the overall dynamics
@@ -749,7 +755,12 @@ def optimize_pulse_unitary(
     # create_pulse_optimizer, so TypeErrors would be confusing
 
     if not isinstance(H_d, Qobj):
-        raise TypeError("H_d must be a Qobj")
+        if not isinstance(H_d, (list, tuple)):
+            raise TypeError("H_d should be a Qobj or a list of Qobj")
+        else:
+            for H in H_d:
+                if not isinstance(H, Qobj):
+                    raise TypeError("H_d should be a Qobj or a list of Qobj")
 
     if not isinstance(H_c, (list, tuple)):
         raise TypeError("H_c should be a list of Qobj")
@@ -864,8 +875,9 @@ def opt_pulse_crab(
     Parameters
     ----------
 
-    drift : Qobj
+    drift : Qobj or list of Qobj
         the underlying dynamics generator of the system
+        can provide list (of length num_tslots) for time dependent drift
 
     ctrls : List of Qobj
         a list of control dynamics generators. These are scaled by
@@ -1156,8 +1168,9 @@ def opt_pulse_crab_unitary(
     Parameters
     ----------
 
-    H_d : Qobj
+    H_d : Qobj or list of Qobj
         Drift (aka system) the underlying Hamiltonian of the system
+        can provide list (of length num_tslots) for time dependent drift
 
     H_c : Qobj
         a list of control Hamiltonians. These are scaled by
@@ -1429,8 +1442,9 @@ def create_pulse_optimizer(
     Parameters
     ----------
 
-    drift : Qobj
+    drift : Qobj or list of Qobj
         the underlying dynamics generator of the system
+        can provide list (of length num_tslots) for time dependent drift
 
     ctrls : List of Qobj
         a list of control dynamics generators. These are scaled by
@@ -1644,7 +1658,12 @@ def create_pulse_optimizer(
 
     # check parameters
     if not isinstance(drift, Qobj):
-        raise TypeError("drift must be a Qobj")
+        if not isinstance(drift, (list, tuple)):
+            raise TypeError("drift should be a Qobj or a list of Qobj")
+        else:
+            for d in drift:
+                if not isinstance(d, Qobj):
+                    raise TypeError("drift should be a Qobj or a list of Qobj")
 
     if not isinstance(ctrls, (list, tuple)):
         raise TypeError("ctrls should be a list of Qobj")
