@@ -1139,6 +1139,8 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         if t_idx == 1:
             options.rhs_reuse = True
 
+    rhs_clear()
+
     return corr_mat
 
 
@@ -1244,6 +1246,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H_shifted, _args = _transform_H_t_shift(H, args)
+    rhs_clear()
 
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
     # averaging over both t and tau
@@ -1301,6 +1304,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     
         if t_idx == 1:
             options.rhs_reuse = True
+
+    rhs_clear()
 
     return corr_mat
 
