@@ -50,9 +50,9 @@ from qutip import (correlation, destroy, coherent_dm, correlation_2op_2t,
 try:
     import Cython
 except:
-    Cython_found = 0
+    Cython_OK = False
 else:
-    Cython_found = 1
+    Cython_OK = _version2int(Cython.__version__) >= _version2int('0.14')
 
 
 def test_compare_solvers_coherent_state_legacy():
@@ -260,8 +260,7 @@ def test_spectrum_espi():
     assert_(max(abs(spec1 - spec2)) < 1e-3)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_H_str_list_td_corr():
     """
     correlation: comparing TLS emission correlations, H td (str-list td format)
@@ -297,8 +296,7 @@ def test_H_str_list_td_corr():
     assert_(abs(g20-0.59) < 1e-2)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_H_np_list_td_corr():
     """
     correlation: comparing TLS emission correlations, H td (np-list td format)
@@ -414,8 +412,7 @@ def test_H_fn_td_corr():
     assert_(abs(g20-0.59) < 1e-2)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_c_ops_str_list_td_corr():
     """
     correlation: comparing 3LS emission correlations, c_ops td (str-list td format)
@@ -459,8 +456,7 @@ def test_c_ops_str_list_td_corr():
     assert_(abs(gab - 0.185) < 1e-2)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_np_str_list_td_corr():
     """
     correlation: comparing 3LS emission correlations, c_ops td (np-list td format)
@@ -549,8 +545,7 @@ def test_c_ops_fn_list_td_corr():
     assert_(abs(gab - 0.185) < 1e-2)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_str_list_td_corr():
     """
     correlation: comparing TLS emission correlations (str-list td format)
@@ -589,8 +584,7 @@ def test_str_list_td_corr():
     assert_(abs(g20 - 0.85) < 1e-2)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_np_list_td_corr():
     """
     correlation: comparing TLS emission correlations (np-list td format)
