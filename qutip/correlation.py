@@ -159,7 +159,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
@@ -178,7 +179,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         the element `0`.
 
     c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -324,8 +326,8 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian, or a callback function for time-dependent
-        Hamiltonians.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
@@ -344,7 +346,8 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         the element `0`.
 
     c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators. (does not accept time dependence)
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -715,7 +718,8 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
@@ -734,7 +738,8 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
         the element `0`.
 
     c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -878,8 +883,8 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian, or a callback function for time-dependent
-        Hamiltonians.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
@@ -898,7 +903,8 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
         the element `0`.
 
     c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators. (does not accept time dependence)
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
