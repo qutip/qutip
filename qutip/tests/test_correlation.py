@@ -37,6 +37,7 @@ import numpy as np
 from qutip import _version2int
 from numpy import trapz, linspace, pi
 from numpy.testing import run_module_suite, assert_
+from scipy.interpolate import interp1d
 import unittest
 import warnings
 
@@ -261,12 +262,12 @@ def test_spectrum_espi():
 
 @unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
                  Cython_found == 0, 'Cython not found or version too low.')
-def test_str_list_td_corr():
+def test_H_str_list_td_corr():
     """
-    correlation: comparing TLS emission correlations (str-list td format)
+    correlation: comparing TLS emission correlations, H td (str-list td format)
     """
 
-    # calculate emission zero-delay second order correlation, g2(0), for TLS
+    # calculate emission zero-delay second order correlation, g2[0], for TLS
     # with following parameters:
     #   gamma = 1, omega = 2, tp = 0.5
     # Then: g2(0)~0.57
@@ -296,12 +297,12 @@ def test_str_list_td_corr():
     assert_(abs(g20-0.57) < 1e-1)
 
 
-def test_fn_list_td_corr():
+def test_H_fn_list_td_corr():
     """
-    correlation: comparing TLS emission correlations (fn-list td format)
+    correlation: comparing TLS emission correlations, H td (fn-list td format)
     """
 
-    # calculate emission zero-delay second order correlation, g2(0), for TLS
+    # calculate emission zero-delay second order correlation, g2[0], for TLS
     # with following parameters:
     #   gamma = 1, omega = 2, tp = 0.5
     # Then: g2(0)~0.57
@@ -332,12 +333,12 @@ def test_fn_list_td_corr():
     assert_(abs(g20-0.57) < 1e-1)
 
 
-def test_fn_td_corr():
+def test_H_fn_td_corr():
     """
-    correlation: comparing TLS emission correlations (fn td format)
+    correlation: comparing TLS emission correlations, H td (fn td format)
     """
 
-    # calculate emission zero-delay second order correlation, g2(0), for TLS
+    # calculate emission zero-delay second order correlation, g2[0], for TLS
     # with following parameters:
     #   gamma = 1, omega = 2, tp = 0.5
     # Then: g2(0)~0.57
@@ -369,6 +370,96 @@ def test_fn_td_corr():
     )
 
     assert_(abs(g20-0.57) < 1e-1)
+
+
+@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
+                 Cython_found == 0, 'Cython not found or version too low.')
+def test_c_ops_str_list_td_corr():
+    """
+    correlation: comparing 3LS emission correlations, c_ops td (str-list td format)
+    """
+
+    # calculate zero-delay HOM cross-correlation, for incoherently pumped
+    # 3LS ladder system g2ab[0]
+    # with following parameters:
+    #   gamma = 1, 99% initialized, tp = 0.5
+    # Then: g2ab(0)~0.185
+    tlist = np.linspace(0, 6, 20)
+    ket0 = fock(3, 0)
+    ket1 = fock(3, 1)
+    ket2 = fock(3, 2)
+    sm01 = ket0 * ket1.dag()
+    sm12 = ket1 * ket2.dag()
+    psi0 = fock(3, 2)
+
+    tp = 1
+    # define "pi" pulse as when 99% of population has been transferred
+    Om = np.sqrt(-np.log(1e-2) / (tp * np.sqrt(np.pi)))
+    c_ops = [sm01,
+             [sm12 * Om, 'exp(-(t - t_off) ** 2 / (2 * tp ** 2))']]
+    args = {'tp': tp, 't_off': 2}
+    H = qeye(3) * 0
+    # HOM cross-correlation depends on coherences (g2[0]=0)
+    c1 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
+                            sm01.dag(), sm01, args=args)
+    c2 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
+                            sm01.dag(), sm01, args=args, reverse=True)
+    n = mesolve(
+        H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
+    ).expect[0]
+    n_f = interp1d(tlist, n, kind='cubic', fill_value=0, bounds_error=False)
+    corr_ab = - c1 * c2 + np.array(
+        [[n_f(t) * n_f(t + tau) for tau in tlist]
+         for t in tlist])
+    dt = tlist[1] - tlist[0]
+    gab = abs(np.trapz(np.trapz(corr_ab, axis=0))) * dt ** 2
+
+    assert_(abs(gab - 0.185) < 1e-2)
+
+
+def test_c_ops_fn_list_td_corr():
+    """
+    correlation: comparing 3LS emission correlations, c_ops td (fn-list td format)
+    """
+
+    # calculate zero-delay HOM cross-correlation, for incoherently pumped
+    # 3LS ladder system g2ab[0]
+    # with following parameters:
+    #   gamma = 1, 99% initialized, tp = 0.5
+    # Then: g2ab(0)~0.185
+    tlist = np.linspace(0, 6, 20)
+    ket0 = fock(3, 0)
+    ket1 = fock(3, 1)
+    ket2 = fock(3, 2)
+    sm01 = ket0 * ket1.dag()
+    sm12 = ket1 * ket2.dag()
+    psi0 = fock(3, 2)
+
+    tp = 1
+    # define "pi" pulse as when 99% of population has been transferred
+    Om = np.sqrt(-np.log(1e-2) / (tp * np.sqrt(np.pi)))
+    c_ops = [sm01,
+             [sm12 * Om,
+              lambda t, args:
+                    np.exp(-(t - args["t_off"]) ** 2 / (2 * args["tp"] ** 2))]]
+    args = {'tp': tp, 't_off': 2}
+    H = qeye(3) * 0
+    # HOM cross-correlation depends on coherences (g2[0]=0)
+    c1 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
+                            sm01.dag(), sm01, args=args)
+    c2 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
+                            sm01.dag(), sm01, args=args, reverse=True)
+    n = mesolve(
+        H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
+    ).expect[0]
+    n_f = interp1d(tlist, n, kind='cubic', fill_value=0, bounds_error=False)
+    corr_ab = - c1 * c2 + np.array(
+        [[n_f(t) * n_f(t + tau) for tau in tlist]
+         for t in tlist])
+    dt = tlist[1] - tlist[0]
+    gab = abs(np.trapz(np.trapz(corr_ab, axis=0))) * dt ** 2
+
+    assert_(abs(gab - 0.185) < 1e-2)
 
 
 if __name__ == "__main__":
