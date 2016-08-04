@@ -42,6 +42,7 @@ from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
 from qutip.superoperator import liouvillian, mat2vec, vec2mat
 from qutip.solver import Result
+from qutip.operators import qzero
 
 
 # -----------------------------------------------------------------------------
@@ -144,6 +145,11 @@ def ode2es(L, rho0):
             # Got a wave function as initial state: convert to density matrix.
             rho0 = rho0 * rho0.dag()
 
+        # check if state is below error threshold
+        if abs(rho0.full().sum()) < 1e-10 + 1e-24:
+            # enforce zero operator
+            return eseries(qzero(rho0.dims[0]))
+
         w, v = L.eigenstates()
         v = np.hstack([ket.full() for ket in v])
         # w[i]   = eigenvalue i
@@ -167,6 +173,13 @@ def ode2es(L, rho0):
         if not isket(rho0):
             raise TypeError('Second argument must be a ket if first' +
                             'is a Hamiltonian.')
+
+        # check if state is below error threshold
+        if abs(rho0.full().sum()) < 1e-5 + 1e-20:
+            # enforce zero operator
+            dims = rho0.dims
+            return eseries(Qobj(sp.csr_matrix((dims[0][0], dims[1][0]),
+                                              dtype=complex)))
 
         w, v = L.eigenstates()
         v = np.hstack([ket.full() for ket in v])
