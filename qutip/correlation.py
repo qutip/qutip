@@ -1124,7 +1124,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     rho_t = mesolve(H, rho0, tlist, c_ops, [],
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, _args = _transform_H_t_shift(H, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
     rhs_clear()
 
     for t_idx, rho in enumerate(rho_t):
@@ -1132,7 +1132,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             _args["_t0"] = tlist[t_idx]
 
         corr_mat[t_idx, :] = mesolve(
-            H_shifted, c_op * rho * a_op, taulist, c_ops,
+            H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
             [b_op], args=_args, options=options
         ).expect[0]
 
@@ -1245,7 +1245,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, _args = _transform_H_t_shift(H, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
     rhs_clear()
 
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
@@ -1263,7 +1263,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
-                        H_shifted, chi_0/chi_0.norm(), taulist, c_ops, [b_op],
+                        H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
+                        [b_op],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
@@ -1289,7 +1290,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 # evolve these states and calculate expectation value of B
                 c_tau = [
                     chi.norm()**2 * mcsolve(
-                        H_shifted, chi/chi.norm(), taulist, c_ops, [b_op],
+                        H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
+                        [b_op],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
@@ -1353,14 +1355,23 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 # auxiliary
 
-def _transform_H_t_shift(H, args={}):
+def _transform_L_t_shift(H, c_ops, args={}):
     """
     Time shift the Hamiltonian with private time-shift variable _t0
     """
 
+    # while this list doesn't seem exhaustive, mesolve has already been called
+    # and has hence called _td_format_check from qutip.rhs_generate. important
+    # to keep in mind is that mesolve already requires the types of
+    # time-dependence to be the same for the hamiltonian as for the collapse
+    # operators.
+
+    c_ops_shifted = c_ops
+
     if isinstance(H, Qobj):
         # constant hamiltonian
-        return H, args
+        H_shifted = H  # not shifted!
+        _args = args  # not shifted!
 
     if isinstance(H, types.FunctionType):
         # function-callback based time-dependence
@@ -1374,11 +1385,11 @@ def _transform_H_t_shift(H, args={}):
         else:
             raise TypeError("If using function-callback based Hamiltonian" +
                             "time-dependence, args must be a dictionary")
-        return H_shifted, _args
 
     if isinstance(H, list):
         # string/function-list based time-dependence
         H_shifted = []
+
         if args is None:
             _args = {"_t0": 0}
         elif isinstance(args, dict):
@@ -1387,32 +1398,35 @@ def _transform_H_t_shift(H, args={}):
         else:
             _args = {"_user_args": args, "_t0": 0}
 
-        for i in range(len(H)):
-            if isinstance(H[i], list):
-                # modify hamiltonian time dependence in accordance with the
-                # quantum regression theorem
-                if isinstance(args, dict) or args is None:
-                    if isinstance(H[i][1], types.FunctionType):
-                        # function-list based time-dependence
-                        fn = lambda t, args_i: \
-                            H[i][1](t+args_i["_t0"], args_i)
+        if isinstance(H, list):
+            # hamiltonian is time-dependent
+            for i in range(len(H)):
+                if isinstance(H[i], list):
+                    # modify Hamiltonian time dependence in accordance with the
+                    # quantum regression theorem
+                    if isinstance(args, dict) or args is None:
+                        if isinstance(H[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                H[i][1](t + args_i["_t0"], args_i)
+                        else:
+                            # string-list based time-dependence
+                            # Again, note: _td_format_check already raises
+                            # errors formixed td formatting
+                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                     "(t+_t0)", H[i][1])
                     else:
-                        # string-list based time-dependence
-                        # Note: other functions already raise errors for mixed
-                        # td formatting
-                        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                 "(t+_t0)", H[i][1])
+                        if isinstance(H[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                H[i][1](t + args_i["_t0"],
+                                        args_i["_user_args"])
+                        else:
+                            raise TypeError("If using string-list based" +
+                                            "Hamiltonian time-dependence, " +
+                                            "args must be a dictionary")
+                    H_shifted.append([H[i][0], fn])
                 else:
-                    if isinstance(H[i][1], types.FunctionType):
-                        # function-list based time-dependence
-                        fn = lambda t, args_i: \
-                            H[i][1](t+args_i["_t0"], args_i["_user_args"])
-                    else:
-                        raise TypeError("If using string-list based" +
-                                        "Hamiltonian time-dependence, args" +
-                                        "must be a dictionary")
-                H_shifted.append([H[i][0], fn])
-            else:
-                H_shifted.append(H[i])
+                    H_shifted.append(H[i])
 
-        return H_shifted, _args
+    return H_shifted, c_ops_shifted, _args
