@@ -1399,10 +1399,8 @@ def _transform_L_t_shift(H, c_ops, args={}):
             raise TypeError("If using function-callback based Hamiltonian" +
                             "time-dependence, args must be a dictionary")
 
-    if isinstance(H, list):
+    if isinstance(H, list) or c_ops_is_td:
         # string/function-list based time-dependence
-        H_shifted = []
-
         if args is None:
             _args = {"_t0": 0}
         elif isinstance(args, dict):
@@ -1413,6 +1411,8 @@ def _transform_L_t_shift(H, c_ops, args={}):
 
         if isinstance(H, list):
             # hamiltonian is time-dependent
+            H_shifted = []
+
             for i in range(len(H)):
                 if isinstance(H[i], list):
                     # modify Hamiltonian time dependence in accordance with the
@@ -1441,5 +1441,39 @@ def _transform_L_t_shift(H, c_ops, args={}):
                     H_shifted.append([H[i][0], fn])
                 else:
                     H_shifted.append(H[i])
+
+        if c_ops_is_td:
+            # collapse operators are time-dependent
+            c_ops_shifted = []
+
+            for i in range(len(c_ops)):
+                if isinstance(c_ops[i], list):
+                    # modify collapse operators time dependence in accordance
+                    # with the quantum regression theorem
+                    if isinstance(args, dict) or args is None:
+                        if isinstance(c_ops[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                c_ops[i][1](t + args_i["_t0"], args_i)
+                        else:
+                            # string-list based time-dependence
+                            # Again, note: _td_format_check already raises
+                            # errors formixed td formatting
+                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                     "(t+_t0)", c_ops[i][1])
+                    else:
+                        if isinstance(H[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                c_ops[i][1](t + args_i["_t0"],
+                                            args_i["_user_args"])
+                        else:
+                            raise TypeError("If using string-list based" +
+                                            "collapse operator" +
+                                            "time-dependence, " +
+                                            "args must be a dictionary")
+                    c_ops_shifted.append([c_ops[i][0], fn])
+                else:
+                    c_ops_shifted.append(c_ops[i])
 
     return H_shifted, c_ops_shifted, _args
