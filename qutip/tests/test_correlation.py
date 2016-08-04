@@ -294,7 +294,7 @@ def test_H_str_list_td_corr():
         sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
     )
 
-    assert_(abs(g20-0.57) < 1e-1)
+    assert_(abs(g20-0.59) < 1e-2)
 
 
 def test_H_fn_list_td_corr():
@@ -330,7 +330,7 @@ def test_H_fn_list_td_corr():
         sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
     )
 
-    assert_(abs(g20-0.57) < 1e-1)
+    assert_(abs(g20-0.59) < 1e-2)
 
 
 def test_H_fn_td_corr():
@@ -369,7 +369,7 @@ def test_H_fn_td_corr():
         sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
     )
 
-    assert_(abs(g20-0.57) < 1e-1)
+    assert_(abs(g20-0.59) < 1e-2)
 
 
 @unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
@@ -396,8 +396,8 @@ def test_c_ops_str_list_td_corr():
     # define "pi" pulse as when 99% of population has been transferred
     Om = np.sqrt(-np.log(1e-2) / (tp * np.sqrt(np.pi)))
     c_ops = [sm01,
-             [sm12 * Om, 'exp(-(t - t_off) ** 2 / (2 * tp ** 2))']]
-    args = {'tp': tp, 't_off': 2}
+             [sm12 * Om, "exp(-(t - t_off) ** 2 / (2 * tp ** 2))"]]
+    args = {"tp": tp, "t_off": 2}
     H = qeye(3) * 0
     # HOM cross-correlation depends on coherences (g2[0]=0)
     c1 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
@@ -407,7 +407,7 @@ def test_c_ops_str_list_td_corr():
     n = mesolve(
         H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
     ).expect[0]
-    n_f = interp1d(tlist, n, kind='cubic', fill_value=0, bounds_error=False)
+    n_f = interp1d(tlist, n, kind="cubic", fill_value=0, bounds_error=False)
     corr_ab = - c1 * c2 + np.array(
         [[n_f(t) * n_f(t + tau) for tau in tlist]
          for t in tlist])
@@ -442,7 +442,7 @@ def test_c_ops_fn_list_td_corr():
              [sm12 * Om,
               lambda t, args:
                     np.exp(-(t - args["t_off"]) ** 2 / (2 * args["tp"] ** 2))]]
-    args = {'tp': tp, 't_off': 2}
+    args = {"tp": tp, "t_off": 2}
     H = qeye(3) * 0
     # HOM cross-correlation depends on coherences (g2[0]=0)
     c1 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
@@ -452,7 +452,7 @@ def test_c_ops_fn_list_td_corr():
     n = mesolve(
         H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
     ).expect[0]
-    n_f = interp1d(tlist, n, kind='cubic', fill_value=0, bounds_error=False)
+    n_f = interp1d(tlist, n, kind="cubic", fill_value=0, bounds_error=False)
     corr_ab = - c1 * c2 + np.array(
         [[n_f(t) * n_f(t + tau) for tau in tlist]
          for t in tlist])
@@ -460,6 +460,88 @@ def test_c_ops_fn_list_td_corr():
     gab = abs(np.trapz(np.trapz(corr_ab, axis=0))) * dt ** 2
 
     assert_(abs(gab - 0.185) < 1e-2)
+
+
+@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
+                 Cython_found == 0, 'Cython not found or version too low.')
+def test_str_list_td_corr():
+    """
+    correlation: comparing TLS emission correlations (str-list td format)
+    """
+
+    # both H and c_ops are time-dependent
+
+    # calculate emission zero-delay second order correlation, g2[0], for TLS
+    # with following parameters:
+    #   gamma = 1, omega = 2, tp = 0.5
+    # Then: g2(0)~0.85
+    sm = destroy(2)
+    args = {"t_off": 1, "tp": 0.5}
+    tlist = np.linspace(0, 5, 50)
+    H = [[2 * (sm + sm.dag()), "exp(-(t-t_off)**2 / (2*tp**2))"]]
+    c_ops = [sm, [sm.dag() * sm * 2, "exp(-(t-t_off)**2 / (2*tp**2))"]]
+    corr = correlation_3op_2t(H, fock(2, 0), tlist, tlist, [sm],
+                              sm.dag(), sm.dag() * sm, sm, args=args)
+    # integrate w/ 2D trapezoidal rule
+    dt = (tlist[-1] - tlist[0]) / (np.shape(tlist)[0] - 1)
+    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
+    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
+         sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
+    s3 = sum(corr[1:-1, 1:-1])
+
+    exp_n_in = np.trapz(
+        mesolve(
+            H, fock(2, 0), tlist, c_ops, [sm.dag() * sm], args=args
+        ).expect[0], tlist
+    )
+    # factor of 2 from negative time correlations
+    g20 = abs(
+        sum(0.5 * dt ** 2 * (s1 + 2 * s2 + 4 * s3)) / exp_n_in ** 2
+    )
+
+    assert_(abs(g20 - 0.85) < 1e-2)
+
+
+def test_fn_list_td_corr():
+    """
+    correlation: comparing TLS emission correlations (fn-list td format)
+    """
+
+    # both H and c_ops are time-dependent
+
+    # calculate emission zero-delay second order correlation, g2[0], for TLS
+    # with following parameters:
+    #   gamma = 1, omega = 2, tp = 0.5
+    # Then: g2(0)~0.85
+    sm = destroy(2)
+    args = {"t_off": 1, "tp": 0.5}
+    H = [[2 * (sm + sm.dag()),
+          lambda t, args:
+                np.exp(-(t - args["t_off"]) ** 2 / (2 * args["tp"] ** 2))]]
+    c_ops = [sm, [sm.dag() * sm * 2,
+                  lambda t, args:
+                    np.exp(-(t - args["t_off"]) ** 2 / (2 * args["tp"] ** 2))]]
+    tlist = np.linspace(0, 5, 50)
+    corr = correlation_3op_2t(H, fock(2, 0), tlist, tlist, [sm],
+                              sm.dag(), sm.dag() * sm, sm, args=args)
+    # integrate w/ 2D trapezoidal rule
+    dt = (tlist[-1] - tlist[0]) / (np.shape(tlist)[0] - 1)
+    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
+    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
+         sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
+    s3 = sum(corr[1:-1, 1:-1])
+
+    exp_n_in = np.trapz(
+        mesolve(
+            H, fock(2, 0), tlist, c_ops, [sm.dag() * sm], args=args
+        ).expect[0], tlist
+    )
+    # factor of 2 from negative time correlations
+    g20 = abs(
+        sum(0.5 * dt ** 2 * (s1 + 2 * s2 + 4 * s3)) / exp_n_in ** 2
+    )
+
+    assert_(abs(g20 - 0.85) < 1e-2)
 
 
 if __name__ == "__main__":
