@@ -1366,11 +1366,24 @@ def _transform_L_t_shift(H, c_ops, args={}):
     # time-dependence to be the same for the hamiltonian as for the collapse
     # operators.
 
-    c_ops_shifted = c_ops
 
     if isinstance(H, Qobj):
         # constant hamiltonian
         H_shifted = H  # not shifted!
+
+    c_ops_is_td = False
+    if isinstance(c_ops, list):
+        for i in range(len(c_ops)):
+            # test is collapse operators are time-dependent
+            if isinstance(c_ops[i], list):
+                c_ops_is_td = True
+
+    if not c_ops_is_td:
+        # constant collapse operators
+        c_ops_shifted = c_ops  # not shifted!
+
+    if isinstance(H, Qobj) and not c_ops_is_td:
+        # constant hamiltonian and collapse operators
         _args = args  # not shifted!
 
     if isinstance(H, types.FunctionType):
