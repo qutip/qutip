@@ -51,7 +51,7 @@ from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
 from qutip.operators import qeye
 from qutip.qobj import Qobj, isket, issuper
-from qutip.rhs_generate import rhs_clear
+from qutip.rhs_generate import rhs_clear, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.solver import Options
 from qutip.steadystate import steadystate
@@ -1080,6 +1080,9 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         raise TypeError("tlist must be positive and contain the element 0.")
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
+
+    rhs_clear()
+    H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
     if solver == "me":
         return _correlation_me_2t(H, state0, tlist, taulist,
