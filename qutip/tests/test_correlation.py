@@ -44,7 +44,7 @@ import warnings
 from qutip import (correlation, destroy, coherent_dm, correlation_2op_2t,
                    fock, correlation_2op_1t, tensor, qeye, spectrum_ss,
                    spectrum_pi, correlation_ss, spectrum_correlation_fft,
-                   spectrum, correlation_3op_2t, mesolve)
+                   spectrum, correlation_3op_2t, mesolve, Options)
 
 # find Cython if it exists
 try:
@@ -93,36 +93,36 @@ def test_compare_solvers_coherent_state_mees():
     rho0 = coherent_dm(N, np.sqrt(4.0))
 
     taulist = np.linspace(0, 5.0, 100)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        corr1 = correlation_2op_2t(H, rho0, None, taulist, c_ops, a.dag(), a,
-                                   solver="me")
-        corr2 = correlation_2op_2t(H, rho0, None, taulist, c_ops, a.dag(), a,
-                                   solver="es")
+    corr1 = correlation_2op_2t(H, rho0, None, taulist, c_ops, a.dag(), a,
+                               solver="me")
+    corr2 = correlation_2op_2t(H, rho0, None, taulist, c_ops, a.dag(), a,
+                               solver="es")
 
     assert_(max(abs(corr1 - corr2)) < 1e-4)
 
 
 def test_compare_solvers_coherent_state_memc():
     """
-    correlation: comparing me and mc for driven oscillator in ground state
+    correlation: comparing me and mc for driven oscillator in fock state
     """
 
-    N = 20
+    N = 2
     a = destroy(N)
     H = a.dag() * a + a + a.dag()
     G1 = 0.75
     n_th = 2.00
     c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
-    psi0 = fock(N, 0)
+    psi0 = fock(N, 1)
 
-    taulist = np.linspace(0, 1.0, 5)
-    corr1 = correlation_2op_2t(H, psi0, [0], taulist, c_ops, a.dag(), a,
-                               solver="me")[0]
-    corr2 = correlation_2op_2t(H, psi0, [0], taulist, c_ops, a.dag(), a,
-                               solver="mc")[0]
+    taulist = np.linspace(0, 1.0, 3)
+    corr1 = correlation_2op_2t(H, psi0, [0, 0.5], taulist, c_ops, a.dag(), a,
+                               solver="me")
+    corr2 = correlation_2op_2t(H, psi0, [0, 0.5], taulist, c_ops, a.dag(), a,
+                               options=Options(ntraj=[125, 250]), solver="mc")
 
-    assert_(max(abs(corr1 - corr2)) < 5e-2)
+    # pretty lax criterion, but would otherwise require a quite long simulation
+    # time
+    assert_(abs(corr1 - corr2).max() < 0.15)
 
 
 def test_compare_solvers_steadystate_legacy():

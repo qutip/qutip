@@ -111,7 +111,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
 
     solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -173,8 +173,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \\rightarrow \\infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
@@ -196,7 +196,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -286,7 +286,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
     solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -342,8 +342,8 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \\rightarrow \\infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
@@ -364,7 +364,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -435,7 +435,7 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args={},
 
     solver : *str*
         choice of solver (`me` for master-equation and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -497,7 +497,7 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args={},
 
     solver : *str*
         choice of solver (`me` for master-equation and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -563,11 +563,11 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
 
     solver : *str*
         choice of solver (`es` for exponential series and
-        `pi` for psuedo-inverse)
+        `pi` for psuedo-inverse).
 
     use_pinv : *bool*
         For use with the `pi` solver: if `True` use numpy's pinv method,
-        otherwise use a generic solver
+        otherwise use a generic solver.
 
     Returns
     -------
@@ -677,7 +677,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
 
     solver : *str*
         choice of solver (`me` for master-equation and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -734,8 +734,8 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \\rightarrow \\infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
@@ -757,7 +757,7 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -839,7 +839,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -851,7 +851,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     -------
 
     corr_vec : *array*
-        An *array* of correlation values for the times specified by `taulist`
+        An *array* of correlation values for the times specified by `taulist`.
 
     References
     ----------
@@ -901,8 +901,8 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \\rightarrow \\infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
@@ -926,7 +926,7 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
 
     solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -999,7 +999,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
         operator B.
 
     use_pinv : *bool*
-        If `True` use numpy's `pinv` method, otherwise use a generic solver
+        If `True` use numpy's `pinv` method, otherwise use a generic solver.
 
     Returns
     -------
@@ -1049,7 +1049,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
         operator B.
 
     use_pinv : *bool*
-        If `True` use numpy's pinv method, otherwise use a generic solver
+        If `True` use numpy's pinv method, otherwise use a generic solver.
 
     Returns
     -------
@@ -1241,6 +1241,10 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     <A(t)B(t+tau)C(t)>
     using a Monte Carlo solver.
     """
+
+    if not c_ops:
+        raise TypeError("If no collapse operators are required, use the `me`" +
+                        "or `es` solvers")
 
     # the solvers only work for positive time differences and the correlators
     # require positive tau
