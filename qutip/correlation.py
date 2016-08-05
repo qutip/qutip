@@ -402,36 +402,44 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 # high level correlation
 
-def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args={},
-                          options=Options(ntraj=[20, 100])):
+def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
+                          args={}, options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized first-order quantum coherence function:
 
     .. math::
 
-        g^{(1)}(\\tau) = \lim_{t \\to \\infty}
-        \\frac{\\langle a^\\dagger(t+\\tau)a(t)\\rangle}
-        {\\langle a^\\dagger(t)a(t)\\rangle}
+        g^{(1)}(\\tau) =
+        \\frac{\\langle A^\\dagger(\\tau)A(0)\\rangle}
+        {\\sqrt{\\langle A^\\dagger(\\tau)A(\\tau)\\rangle
+                \\langle A^\\dagger(0)A(0)\\rangle}}
 
     using the quantum regression theorem and the evolution solver indicated by
-    the `solver` parameter. Note: g1 is only defined for stationary
-    statistics (uses steady state).
+    the `solver` parameter.
 
     Parameters
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
+
+    state0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
     c_ops : *list* of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
-        The annihilation operator of the mode.
+        operator A.
 
     solver : *str*
         choice of solver (`me` for master-equation and
@@ -446,54 +454,65 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args={},
     Returns
     -------
 
-    g1 : *array*
-        The normalized first-order coherence function.
+    g1, G1 : *tuple* of *array*
+        The normalized and unnormalized second-order coherence function.
 
     """
 
-    # first calculate the steady state photon number
-    rho0 = steadystate(H, c_ops)
-    n = np.array([expect(rho0, a_op.dag() * a_op)])
+    # first calculate the photon number
+    if state0 is None:
+        state0 = steadystate(H, c_ops)
+        n = np.array([expect(state0, a_op.dag() * a_op)])
+    else:
+        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op],
+                    options=options).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_2op_1t(H, None, taulist, c_ops, a_op.dag(), a_op,
-                            args=args, solver=solver, options=options)
-    g1 = G1 / n
+    G1 = correlation_2op_1t(H, state0, taulist, c_ops, a_op.dag(), a_op,
+                            solver=solver, args=args, options=options)
+    g1 = G1 / np.sqrt(n[0] * n)
 
-    return g1
+    return g1, G1
 
 
-def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args={},
+def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
                           options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized second-order quantum coherence function:
 
     .. math::
 
-        g^{(2)}(\\tau) = \lim_{t \\to \\infty}
-        \\frac{\\langle a^\\dagger(t)a^\\dagger(t+\\tau)
-        a(t+\\tau)a(t)\\rangle}
-        {\\langle a^\\dagger(t)a(t)\\rangle^2}
+         g^{(2)}(\\tau) =
+        \\frac{\\langle A^\\dagger(0)A^\\dagger(\\tau)A(\\tau)A(0)\\rangle}
+        {\\langle A^\\dagger(\\tau)A(\\tau)\\rangle
+         \\langle A^\\dagger(0)A(0)\\rangle}
 
     using the quantum regression theorem and the evolution solver indicated by
-    the `solver` parameter. Note: g2 is only defined for stationary
-    statistics (uses steady state rho0).
+    the `solver` parameter.
 
     Parameters
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
+
+    state0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
     c_ops : *list* of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
-        The annihilation operator of the mode.
+        operator A.
 
     solver : *str*
         choice of solver (`me` for master-equation and
@@ -508,22 +527,25 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args={},
     Returns
     -------
 
-    g2 : *array*
-        The normalized second-order coherence function.
+    g2, G2 : *tuple* of *array*
+        The normalized and unnormalized second-order coherence function.
 
     """
 
-    # first calculate the the steady state photon number
-    rho0 = steadystate(H, c_ops)
-    n = np.array([expect(rho0, a_op.dag() * a_op)])
+    # first calculate the photon number
+    if state0 is None:
+        state0 = steadystate(H, c_ops)
+        n = np.array([expect(state0, a_op.dag() * a_op)])
+    else:
+        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
-    G2 = correlation_3op_1t(H, None, taulist, c_ops,
-                            a_op.dag(), a_op.dag() * a_op, a_op,
+    G2 = correlation_3op_1t(H, state0, taulist, c_ops,
+                            a_op.dag(), a_op.dag()*a_op, a_op,
                             solver=solver, args=args, options=options)
-    g2 = G2 / n**2
+    g2 = G2 / (n[0] * n)
 
-    return g2
+    return g2, G2
 
 
 # spectrum
