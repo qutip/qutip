@@ -118,11 +118,11 @@ def test_compare_solvers_coherent_state_memc():
     corr1 = correlation_2op_2t(H, psi0, [0, 0.5], taulist, c_ops, a.dag(), a,
                                solver="me")
     corr2 = correlation_2op_2t(H, psi0, [0, 0.5], taulist, c_ops, a.dag(), a,
-                               options=Options(ntraj=[125, 250]), solver="mc")
+                               solver="mc")
 
     # pretty lax criterion, but would otherwise require a quite long simulation
     # time
-    assert_(abs(corr1 - corr2).max() < 0.15)
+    assert_(abs(corr1 - corr2).max() < 0.2)
 
 
 def test_compare_solvers_steadystate_legacy():

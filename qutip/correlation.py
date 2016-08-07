@@ -1340,9 +1340,11 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 ]
 
                 # final correlation vector computed by combining the averages
-                corr_mat_add = np.asarray(1/(4*options.ntraj[0]) * 
-                        (c_tau[0] - c_tau[2] - 1j*c_tau[1] + 1j*c_tau[3]),
-                         dtype=corr_mat.dtype)
+                corr_mat_add = np.asarray(
+                    1.0 / (4*options.ntraj[0]) *
+                    (c_tau[0] - c_tau[2] - 1j*c_tau[1] + 1j*c_tau[3]),
+                    dtype=corr_mat.dtype
+                )
                 corr_mat[t_idx, :] += corr_mat_add
                     
         if t_idx == 1:
