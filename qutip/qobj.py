@@ -61,7 +61,7 @@ from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
-from qutip.dimensions import type_from_dims, enumerate_flat
+from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
 
 import sys
 if sys.version_info.major >= 3:
@@ -1682,18 +1682,26 @@ class Qobj(object):
     def istp(self):
         if self.type in ["super", "oper"]:
             try:
+                # Normalize to a super of type choi or chi.
+                # We can test with either Choi or chi, since the basis
+                # transformation between them is unitary and hence
+                # preserves the CP and TP conditions.
+                if self.type == "super" and self.superrep in ('choi', 'chi'):
+                    qobj = self
+                else:
+                    qobj = sr.to_choi(self)
+
+                # Possibly collapse dims.
+                if any([len(index) > 1 for super_index in qobj.dims for index in super_index]):
+                    qobj = Qobj(qobj, dims=collapse_dims_super(qobj.dims))
+                else:
+                    qobj = qobj
+
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
-                tr_oper = ptrace((
-                    self
-                    # We can test with either Choi or chi, since the basis
-                    # transformation between them is unitary and hence
-                    # preserves the CP and TP conditions.
-                    if self.superrep in ('choi', 'chi')
-                    else sr.to_choi(self)
-                ), (0,))
+                tr_oper = ptrace((qobj), (0,))
                 ident = ops.identity(tr_oper.shape[0])
-                return isequal(tr_oper, ident)
+                return isequal(tr_oper, ident)                
             except:
                 return False
         else:

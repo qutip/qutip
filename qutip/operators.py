@@ -415,7 +415,8 @@ shape = [4, 4], type = oper, isHerm = False
 # a = qeye(N), N is integer & N>0
 #
 def qeye(N):
-    """Identity operator
+    """
+    Identity operator
 
     Parameters
     ----------
@@ -765,25 +766,30 @@ def phase(N, phi0=0):
     return Qobj(np.sum(ops, axis=0))
 
 
-def qzero(N, dims=None):
+def qzero(N):
     """
-    Creates the zero operator with shape NxN and dimensions `dims`.
+    Zero operator
 
     Parameters
     ----------
-    N : int
-        Hilbert space dimensionality
-    dims : list (optional)
-        Dimensions if operator corresponds to
-        a composite Hilbert space.
+    N : int or list of ints
+        Dimension of Hilbert space. If provided as a list of ints,
+        then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.
 
     Returns
     -------
     qzero : qobj
-        Zero operator on given Hilbert space.
+        Zero operator Qobj.
 
     """
-    return Qobj(sp.csr_matrix((N, N), dtype=complex), dims=dims, isherm=True)
+
+    if isinstance(N, list):
+        return tensor.tensor(*[qzero(n) for n in N])
+    N = int(N)
+    if (not isinstance(N, (int, np.integer))) or N < 0:
+        raise ValueError("N must be integer N>=0")
+    return Qobj(sp.csr_matrix((N, N), dtype=complex), isherm=True)
 
 
 def enr_destroy(dims, excitations):

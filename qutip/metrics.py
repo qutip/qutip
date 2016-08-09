@@ -321,7 +321,12 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     dn : float
         Diamond norm of q_oper.
 
-    .. _PICOS: http://picos.zib.de/
+    Raises
+    ------
+    ImportError
+        If CVXPY cannot be imported.
+
+    .. _cvxpy: http://www.cvxpy.org/en/latest/
     """
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")

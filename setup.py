@@ -31,7 +31,6 @@ Operating System :: Microsoft :: Windows
 # import statements
 import os
 import sys
-import numpy as np
 
 # The following is required to get unit tests up and running.
 # If the user doesn't have, then that's OK, we'll just skip unit tests.
@@ -39,14 +38,45 @@ try:
     import setuptools
     TEST_SUITE = 'nose.collector'
     TESTS_REQUIRE = ['nose']
-    TESTING_KWARGS = {
+    EXTRA_KWARGS = {
         'test_suite': TEST_SUITE,
         'tests_require': TESTS_REQUIRE
     }
 except:
-    TESTING_KWARGS = {}
+    EXTRA_KWARGS = {}
 
-from numpy.distutils.core import setup
+try:
+    import numpy as np
+    from numpy.distutils.core import setup
+
+    # If we use NumPy's distutils, it will also
+    # try to import Cython due to the add_subpackage
+    # calls below. We want to fail early instead, so that
+    # we branch off to the setuptools/distutils fallbacks
+    # if Cython isn't present.
+    import Cython
+except ImportError:
+    # Use a more basic implementation of setup
+    # from setuptools so that we can bootstrap install_requires.
+    # If setuptools is also missing, we'll import distutils and hope
+    # for the best.
+    # This is essential for downloading QuTiP from within another
+    # project's requirements.txt.
+
+    # As per scipy/scipy#453, we should only do this fallback
+    # when called with the commands '--help' and 'egg_info':
+    if not (
+        '--help' in sys.argv[1:] or
+        sys.argv[1] in ('--help-commands', 'egg_info', '--version')
+    ):
+        # Reraise.
+        raise
+
+    np = None
+    try:
+        from setuptools import setup
+    except ImportError:
+        from distutils.core import setup
 
 # all information about QuTiP goes here
 MAJOR = 3
@@ -56,6 +86,7 @@ ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
             'matplotlib (>=1.1)']
+INSTALL_REQUIRES = ['numpy>=1.6', 'scipy>=0.11', 'cython>=0.15', 'matplotlib>=1.1']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
             'qutip/mkl', 'qutip/tests']
@@ -65,7 +96,9 @@ PACKAGE_DATA = {
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
     'qutip/control': ['*.pyx']
 }
-INCLUDE_DIRS = [np.get_include()]
+# If we're missing numpy, exclude import directories until we can
+# figure them out properly.
+INCLUDE_DIRS = [np.get_include()] if np is not None else []
 EXT_MODULES = []
 NAME = "qutip"
 AUTHOR = "Paul D. Nation, Robert J. Johansson"
@@ -96,6 +129,13 @@ def git_short_hash():
 FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.dev' + git_short_hash()
+
+# NumPy's distutils reads in versions differently than
+# our fallback. To make sure that versions are added to
+# egg-info correctly, we need to add FULLVERSION to
+# EXTRA_KWARGS if NumPy wasn't imported correctly.
+if np is None:
+    EXTRA_KWARGS['version'] = FULLVERSION
 
 
 def write_version_py(filename='qutip/version.py'):
@@ -173,5 +213,6 @@ setup(
     package_data = PACKAGE_DATA,
     configuration = configuration,
     zip_safe = False,
-    **TESTING_KWARGS
+    install_requires=INSTALL_REQUIRES,
+    **EXTRA_KWARGS
 )

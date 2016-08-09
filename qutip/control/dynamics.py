@@ -202,9 +202,11 @@ class Dynamics(object):
         Cumulative time for the evolution, that is the time at the start
         of each time slice
 
-    drift_dyn_gen : Qobj
+    drift_dyn_gen : Qobj or list of Qobj
         Drift or system dynamics generator (Hamiltonian)
         Matrix defining the underlying dynamics of the system
+        Can also be a list of Qobj (length num_tslots) for time varying
+        drift dynamics
 
     ctrl_dyn_gen : List of Qobj
         Control dynamics generator (Hamiltonians)
@@ -340,6 +342,7 @@ class Dynamics(object):
         self.dyn_shape = None
         self.sys_dims = None
         self.sys_shape = None
+        self.time_depend_drift = False
         # These internal attributes will be of the internal operator data type
         # used to compute the evolution
         # Note this maybe ndarray, Qobj or some other depending on oper_dtype
@@ -574,7 +577,10 @@ class Dynamics(object):
             # if method is not explicitly given, try to make a good choice
             # between sparse and dense solvers by considering the size of the
             # system and the number of non-zero elements.
-            dg = self.drift_dyn_gen
+            if self.time_depend_drift:
+                dg = self.drift_dyn_gen[0]
+            else:
+                dg = self.drift_dyn_gen
             for c in self.ctrl_dyn_gen:
                dg = dg + c
 
@@ -601,7 +607,13 @@ class Dynamics(object):
         """
         # check evolution operators
         if not isinstance(self.drift_dyn_gen, Qobj):
-            raise TypeError("drift must be a Qobj")
+            if not isinstance(self.drift_dyn_gen, (list, tuple)):
+                raise TypeError("drift should be a Qobj or a list of Qobj")
+            else:
+                for d in self.drift_dyn_gen:
+                    if not isinstance(d, Qobj):
+                        raise TypeError(
+                            "drift should be a Qobj or a list of Qobj")
 
         if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
             raise TypeError("ctrls should be a list of Qobj")
@@ -616,6 +628,8 @@ class Dynamics(object):
         if not isinstance(self.target, Qobj):
             raise TypeError("target must be a Qobj")
 
+
+        self.refresh_drift_attribs()
         if self.oper_dtype is None:
             self._choose_oper_dtype()
             logger.info("Internal operator data type choosen to be {}".format(
@@ -624,8 +638,6 @@ class Dynamics(object):
             logger.info("Using operator data type {}".format(
                             self.oper_dtype))
 
-        self.dyn_dims = self.drift_dyn_gen.dims
-        self.dyn_shape = self.drift_dyn_gen.shape
         self.sys_dims = self.initial.dims
         self.sys_shape = self.initial.shape
         if self.oper_dtype == Qobj:
@@ -636,12 +648,18 @@ class Dynamics(object):
         elif self.oper_dtype == np.ndarray:
             self._initial = self.initial.full()
             self._target = self.target.full()
-            self._drift_dyn_gen = self.drift_dyn_gen.full()
+            if self.time_depend_drift:
+                self._drift_dyn_gen = [d.full() for d in self.drift_dyn_gen]
+            else:
+                self._drift_dyn_gen = self.drift_dyn_gen.full()
             self._ctrl_dyn_gen = [ctrl.full() for ctrl in self.ctrl_dyn_gen]
         elif self.oper_dtype == sp.csr_matrix:
             self._initial = self.initial.data
             self._target = self.target.data
-            self._drift_dyn_gen = self.drift_dyn_gen.data
+            if self.time_depend_drift:
+                self._drift_dyn_gen = [d.data for d in self.drift_dyn_gen]
+            else:
+                self._drift_dyn_gen = self.drift_dyn_gen.data
             self._ctrl_dyn_gen = [ctrl.data for ctrl in self.ctrl_dyn_gen]
         else:
             logger.warn("Unknown option '{}' for oper_dtype. "
@@ -828,13 +846,26 @@ class Dynamics(object):
         that is assuming the drift is NxN, then this returns N
         """
         if self.dyn_shape is None:
-            if not isinstance(self.drift_dyn_gen, Qobj):
-                raise errors.UsageError("Unable to determine drift dimensions "
-                        "because drift_dyn_gen is not set as Qobj")
-            self.dyn_shape = self.drift_dyn_gen.shape
-            self.dyn_dims = self.drift_dyn_gen.dims
+            self.refresh_drift_attribs()
         return self.dyn_shape[0]
+        
+    def refresh_drift_attribs(self):
+        """Reset the dyn_shape, dyn_dims and time_depend_drift attribs"""
+            
+        if isinstance(self.drift_dyn_gen, (list, tuple)):
+            d0 = self.drift_dyn_gen[0]
+            self.time_depend_drift = True
+        else:
+            d0 = self.drift_dyn_gen
+            self.time_depend_drift = False
 
+        if not isinstance(d0, Qobj):
+            raise TypeError("Unable to determine drift attributes, "
+                    "because drift_dyn_gen is not Qobj (nor list of)")
+                        
+        self.dyn_shape = d0.shape
+        self.dyn_dims = d0.dims
+            
     def get_num_ctrls(self):
         """
         calculate the of controls from the length of the control list
@@ -933,7 +964,10 @@ class Dynamics(object):
         The is the combined Hamiltion for unitary systems
         Also applies the phase (if any required by the propagation)
         """
-        dg = self._drift_dyn_gen
+        if self.time_depend_drift:
+            dg = self._drift_dyn_gen[k]
+        else:
+            dg = self._drift_dyn_gen
         for j in range(self._num_ctrls):
             dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
 
@@ -1466,7 +1500,7 @@ class DynamicsSymplectic(Dynamics):
 
     def _get_omega(self):
         if self._omega is None:
-            n = self.drift_dyn_gen.shape[0] // 2
+            n = self.get_drift_dim() // 2
             omg = sympl.calc_omega(n)
             if self.oper_dtype == Qobj:
                 self._omega = Qobj(omg, dims=self.dyn_dims)
