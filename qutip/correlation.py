@@ -51,7 +51,7 @@ from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
 from qutip.operators import qeye
 from qutip.qobj import Qobj, isket, issuper
-from qutip.rhs_generate import rhs_clear
+from qutip.rhs_generate import rhs_clear, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.solver import Options
 from qutip.steadystate import steadystate
@@ -74,7 +74,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
                        options=Options(ntraj=[20, 100])):
     """
     Calculate the two-operator two-time correlation function:
-    :math: `\left<A(t+\\tau)B(t)\\right>`
+    :math:`\left<A(t+\\tau)B(t)\\right>`
     along one time axis using the quantum regression theorem and the evolution
     solver indicated by the `solver` parameter.
 
@@ -82,7 +82,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
@@ -94,8 +95,9 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -103,13 +105,13 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
-    reverse : bool
+    reverse : *bool*
         If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -120,7 +122,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Returns
     -------
 
-    corr_vec: *array*
+    corr_vec : *array*
         An *array* of correlation values for the times specified by `tlist`.
 
     References
@@ -159,7 +161,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
@@ -170,15 +173,16 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -186,13 +190,13 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
-    reverse : bool
+    reverse : *bool*
         If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -203,7 +207,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     Returns
     -------
 
-    corr_mat: *array*
+    corr_mat : *array*
         An 2-dimensional *array* (matrix) of correlation values for the times
         specified by `tlist` (first index) and `taulist` (second index). If
         `tlist` is `None`, then a 1-dimensional *array* of correlation values
@@ -248,13 +252,14 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     evolution solver indicated by the `solver` parameter.
 
     Note: it is not possibly to calculate a physically meaningful correlation
-    of this form where :math: `\\tau<0`.
+    of this form where :math:`\\tau<0`.
 
     Parameters
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
@@ -266,8 +271,9 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -278,9 +284,9 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     c_op : :class:`qutip.qobj.Qobj`
         operator C.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -291,7 +297,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     Returns
     -------
 
-    corr_vec: *array*
+    corr_vec : *array*
         An *array* of correlation values for the times specified by `taulist`
 
     References
@@ -318,14 +324,14 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     evolution solver indicated by the `solver` parameter.
 
     Note: it is not possibly to calculate a physically meaningful correlation
-    of this form where :math: `\\tau<0`.
+    of this form where :math:`\\tau<0`.
 
     Parameters
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian, or a callback function for time-dependent
-        Hamiltonians.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
@@ -336,15 +342,16 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators. (does not accept time dependence)
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -355,9 +362,9 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     c_op : :class:`qutip.qobj.Qobj`
         operator C.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -368,7 +375,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     Returns
     -------
 
-    corr_mat: *array*
+    corr_mat : *array*
         An 2-dimensional *array* (matrix) of correlation values for the times
         specified by `tlist` (first index) and `taulist` (second index). If
         `tlist` is `None`, then a 1-dimensional *array* of correlation values
@@ -395,40 +402,48 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 # high level correlation
 
-def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args={},
-                          options=Options(ntraj=[20, 100])):
+def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
+                          args={}, options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized first-order quantum coherence function:
 
     .. math::
 
-        g^{(1)}(\\tau) = \lim_{t \to \infty}
-        \\frac{\\langle a^\\dagger(t+\\tau)a(t)\\rangle}
-        {\\langle a^\\dagger(t)a(t)\\rangle}
+        g^{(1)}(\\tau) =
+        \\frac{\\langle A^\\dagger(\\tau)A(0)\\rangle}
+        {\\sqrt{\\langle A^\\dagger(\\tau)A(\\tau)\\rangle
+                \\langle A^\\dagger(0)A(0)\\rangle}}
 
     using the quantum regression theorem and the evolution solver indicated by
-    the `solver` parameter. Note: g1 is only defined for stationary
-    statistics (uses steady state).
+    the `solver` parameter.
 
     Parameters
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
+
+    state0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
-        The annihilation operator of the mode.
+        operator A.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -439,58 +454,69 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args={},
     Returns
     -------
 
-    g1: *array*
-        The normalized first-order coherence function.
+    g1, G1 : *tuple* of *array*
+        The normalized and unnormalized second-order coherence function.
 
     """
 
-    # first calculate the steady state photon number
-    rho0 = steadystate(H, c_ops)
-    n = np.array([expect(rho0, a_op.dag() * a_op)])
+    # first calculate the photon number
+    if state0 is None:
+        state0 = steadystate(H, c_ops)
+        n = np.array([expect(state0, a_op.dag() * a_op)])
+    else:
+        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op],
+                    options=options).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_2op_1t(H, None, taulist, c_ops, a_op.dag(), a_op,
-                            args=args, solver=solver, options=options)
-    g1 = G1 / n
+    G1 = correlation_2op_1t(H, state0, taulist, c_ops, a_op.dag(), a_op,
+                            solver=solver, args=args, options=options)
+    g1 = G1 / np.sqrt(n[0] * n)
 
-    return g1
+    return g1, G1
 
 
-def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args={},
+def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
                           options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized second-order quantum coherence function:
 
     .. math::
 
-        g^{(2)}(\\tau) = \lim_{t \to \infty}
-        \\frac{\\langle a^\\dagger(t)a^\\dagger(t+\\tau)
-        a(t+\\tau)a(t)\\rangle}
-        {\\langle a^\\dagger(t)a(t)\\rangle^2}
+         g^{(2)}(\\tau) =
+        \\frac{\\langle A^\\dagger(0)A^\\dagger(\\tau)A(\\tau)A(0)\\rangle}
+        {\\langle A^\\dagger(\\tau)A(\\tau)\\rangle
+         \\langle A^\\dagger(0)A(0)\\rangle}
 
     using the quantum regression theorem and the evolution solver indicated by
-    the `solver` parameter. Note: g2 is only defined for stationary
-    statistics (uses steady state rho0).
+    the `solver` parameter.
 
     Parameters
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
+
+    state0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
-        The annihilation operator of the mode.
+        operator A.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -501,22 +527,25 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args={},
     Returns
     -------
 
-    g2: *array*
-        The normalized second-order coherence function.
+    g2, G2 : *tuple* of *array*
+        The normalized and unnormalized second-order coherence function.
 
     """
 
-    # first calculate the the steady state photon number
-    rho0 = steadystate(H, c_ops)
-    n = np.array([expect(rho0, a_op.dag() * a_op)])
+    # first calculate the photon number
+    if state0 is None:
+        state0 = steadystate(H, c_ops)
+        n = np.array([expect(state0, a_op.dag() * a_op)])
+    else:
+        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
-    G2 = correlation_3op_1t(H, None, taulist, c_ops,
-                            a_op.dag(), a_op.dag() * a_op, a_op,
+    G2 = correlation_3op_1t(H, state0, taulist, c_ops,
+                            a_op.dag(), a_op.dag()*a_op, a_op,
                             solver=solver, args=args, options=options)
-    g2 = G2 / n**2
+    g2 = G2 / (n[0] * n)
 
-    return g2
+    return g2, G2
 
 
 # spectrum
@@ -524,13 +553,13 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args={},
 def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
     """
     Calculate the spectrum of the correlation function
-    :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`,
+    :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`,
     i.e., the Fourier transform of the correlation function:
 
     .. math::
 
         S(\omega) = \int_{-\infty}^{\infty}
-        \lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>
+        \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
     using the solver indicated by the `solver` parameter. Note: this spectrum
@@ -545,7 +574,7 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
     wlist : *list* / *array*
         list of frequencies for :math:`\\omega`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : *list* of :class:`qutip.qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj`
@@ -554,18 +583,18 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
     b_op : :class:`qutip.qobj`
         operator B.
 
-    solver : str
+    solver : *str*
         choice of solver (`es` for exponential series and
-        `pi` for psuedo-inverse)
+        `pi` for psuedo-inverse).
 
-    use_pinv : bool
+    use_pinv : *bool*
         For use with the `pi` solver: if `True` use numpy's pinv method,
-        otherwise use a generic solver
+        otherwise use a generic solver.
 
     Returns
     -------
 
-    spectrum: *array*
+    spectrum : *array*
         An *array* with spectrum :math:`S(\omega)` for the frequencies
         specified in `wlist`.
 
@@ -638,7 +667,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
 
     .. math::
 
-        \lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>
+        \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
 
     along one time axis (given steady-state initial conditions) using the
     quantum regression theorem and the evolution solver indicated by the
@@ -654,7 +683,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj.Qobj`
@@ -663,14 +692,14 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
     b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
-    reverse : bool
+    reverse : *bool*
         If `True`, calculate
-        :math:`\lim_{t \to \infty} \left<A(t)B(t+\\tau)\\right>` instead of
-        :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`.
+        :math:`\lim_{t \\to \\infty} \left<A(t)B(t+\\tau)\\right>` instead of
+        :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -681,7 +710,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
     Returns
     -------
 
-    corr_vec: *array*
+    corr_vec : *array*
         An *array* of correlation values for the times specified by `tlist`.
 
     References
@@ -715,7 +744,8 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
@@ -726,15 +756,16 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -742,13 +773,13 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
-    reverse : bool
+    reverse : *bool*
         If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -759,7 +790,7 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     Returns
     -------
 
-    corr_mat: *array*
+    corr_mat : *array*
         An 2-dimensional *array* (matrix) of correlation values for the times
         specified by `tlist` (first index) and `taulist` (second index). If
         `tlist` is `None`, then a 1-dimensional *array* of correlation values
@@ -799,7 +830,8 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
@@ -811,8 +843,9 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -826,9 +859,9 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -839,8 +872,8 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     Returns
     -------
 
-    corr_vec: *array*
-        An *array* of correlation values for the times specified by `taulist`
+    corr_vec : *array*
+        An *array* of correlation values for the times specified by `taulist`.
 
     References
     ----------
@@ -878,8 +911,8 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian, or a callback function for time-dependent
-        Hamiltonians.
+        system Hamiltonian, may be time-dependent for solver choice of `me` or
+        `mc`.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
@@ -890,15 +923,16 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
-        automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
+        tlist is automatically set, ignoring user input.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators. (does not accept time dependence)
+    c_ops : *list* of :class:`qutip.qobj.Qobj`
+        list of collapse operators, may be time-dependent for solver choice of
+        `me` or `mc`.
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -912,9 +946,9 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
 
-    solver : str
+    solver : *str*
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series)
+        `es` for exponential series).
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
@@ -925,7 +959,7 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     Returns
     -------
 
-    corr_mat: *array*
+    corr_mat : *array*
         An 2-dimensional *array* (matrix) of correlation values for the times
         specified by `tlist` (first index) and `taulist` (second index). If
         `tlist` is `None`, then a 1-dimensional *array* of correlation values
@@ -956,13 +990,13 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
 def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     """
     Calculate the spectrum of the correlation function
-    :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`,
+    :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`,
     i.e., the Fourier transform of the correlation function:
 
     .. math::
 
         S(\omega) = \int_{-\infty}^{\infty}
-        \lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>
+        \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
     using an eseries based solver Note: this spectrum is only defined for
@@ -977,7 +1011,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     wlist : *list* / *array*
         list of frequencies for :math:`\\omega`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : *list* of :class:`qutip.qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj`
@@ -986,13 +1020,13 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     b_op : :class:`qutip.qobj`
         operator B.
 
-    use_pinv : bool
-        If `True` use numpy's `pinv` method, otherwise use a generic solver
+    use_pinv : *bool*
+        If `True` use numpy's `pinv` method, otherwise use a generic solver.
 
     Returns
     -------
 
-    spectrum: *array*
+    spectrum : *array*
         An *array* with spectrum :math:`S(\omega)` for the frequencies
         specified in `wlist`.
 
@@ -1006,13 +1040,13 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
 def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     """
     Calculate the spectrum of the correlation function
-    :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`,
+    :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`,
     i.e., the Fourier transform of the correlation function:
 
     .. math::
 
         S(\omega) = \int_{-\infty}^{\infty}
-        \lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>
+        \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
     using a psuedo-inverse method. Note: this spectrum is only defined for
@@ -1027,7 +1061,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     wlist : *list* / *array*
         list of frequencies for :math:`\\omega`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : *list* of :class:`qutip.qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj`
@@ -1036,13 +1070,13 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     b_op : :class:`qutip.qobj`
         operator B.
 
-    use_pinv : bool
-        If `True` use numpy's pinv method, otherwise use a generic solver
+    use_pinv : *bool*
+        If `True` use numpy's pinv method, otherwise use a generic solver.
 
     Returns
     -------
 
-    spectrum: *array*
+    spectrum : *array*
         An *array* with spectrum :math:`S(\omega)` for the frequencies
         specified in `wlist`.
 
@@ -1080,6 +1114,9 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         raise TypeError("tlist must be positive and contain the element 0.")
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
+
+    rhs_clear()
+    H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
     if solver == "me":
         return _correlation_me_2t(H, state0, tlist, taulist,
@@ -1124,7 +1161,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     rho_t = mesolve(H, rho0, tlist, c_ops, [],
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, _args = _transform_H_t_shift(H, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
     rhs_clear()
 
     for t_idx, rho in enumerate(rho_t):
@@ -1132,12 +1169,14 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             _args["_t0"] = tlist[t_idx]
 
         corr_mat[t_idx, :] = mesolve(
-            H_shifted, c_op * rho * a_op, taulist, c_ops,
+            H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
             [b_op], args=_args, options=options
         ).expect[0]
 
         if t_idx == 1:
             options.rhs_reuse = True
+
+    rhs_clear()
 
     return corr_mat
 
@@ -1225,6 +1264,10 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     using a Monte Carlo solver.
     """
 
+    if not c_ops:
+        raise TypeError("If no collapse operators are required, use the `me`" +
+                        "or `es` solvers")
+
     # the solvers only work for positive time differences and the correlators
     # require positive tau
     if state0 is None:
@@ -1243,7 +1286,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, _args = _transform_H_t_shift(H, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    rhs_clear()
 
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
     # averaging over both t and tau
@@ -1260,7 +1304,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
-                        H_shifted, chi_0/chi_0.norm(), taulist, c_ops, [b_op],
+                        H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
+                        [b_op],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
@@ -1286,7 +1331,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 # evolve these states and calculate expectation value of B
                 c_tau = [
                     chi.norm()**2 * mcsolve(
-                        H_shifted, chi/chi.norm(), taulist, c_ops, [b_op],
+                        H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
+                        [b_op],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
@@ -1294,13 +1340,17 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 ]
 
                 # final correlation vector computed by combining the averages
-                corr_mat_add = np.asarray(1/(4*options.ntraj[0]) * 
-                        (c_tau[0] - c_tau[2] - 1j*c_tau[1] + 1j*c_tau[3]),
-                         dtype=corr_mat.dtype)
+                corr_mat_add = np.asarray(
+                    1.0 / (4*options.ntraj[0]) *
+                    (c_tau[0] - c_tau[2] - 1j*c_tau[1] + 1j*c_tau[3]),
+                    dtype=corr_mat.dtype
+                )
                 corr_mat[t_idx, :] += corr_mat_add
                     
         if t_idx == 1:
             options.rhs_reuse = True
+
+    rhs_clear()
 
     return corr_mat
 
@@ -1348,14 +1398,36 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 # auxiliary
 
-def _transform_H_t_shift(H, args={}):
+def _transform_L_t_shift(H, c_ops, args={}):
     """
     Time shift the Hamiltonian with private time-shift variable _t0
     """
 
+    # while this list doesn't seem exhaustive, mesolve has already been called
+    # and has hence called _td_format_check from qutip.rhs_generate. important
+    # to keep in mind is that mesolve already requires the types of
+    # time-dependence to be the same for the hamiltonian as for the collapse
+    # operators.
+
+
     if isinstance(H, Qobj):
         # constant hamiltonian
-        return H, args
+        H_shifted = H  # not shifted!
+
+    c_ops_is_td = False
+    if isinstance(c_ops, list):
+        for i in range(len(c_ops)):
+            # test is collapse operators are time-dependent
+            if isinstance(c_ops[i], list):
+                c_ops_is_td = True
+
+    if not c_ops_is_td:
+        # constant collapse operators
+        c_ops_shifted = c_ops  # not shifted!
+
+    if isinstance(H, Qobj) and not c_ops_is_td:
+        # constant hamiltonian and collapse operators
+        _args = args  # not shifted!
 
     if isinstance(H, types.FunctionType):
         # function-callback based time-dependence
@@ -1369,11 +1441,9 @@ def _transform_H_t_shift(H, args={}):
         else:
             raise TypeError("If using function-callback based Hamiltonian" +
                             "time-dependence, args must be a dictionary")
-        return H_shifted, _args
 
-    if isinstance(H, list):
+    if isinstance(H, list) or c_ops_is_td:
         # string/function-list based time-dependence
-        H_shifted = []
         if args is None:
             _args = {"_t0": 0}
         elif isinstance(args, dict):
@@ -1382,32 +1452,71 @@ def _transform_H_t_shift(H, args={}):
         else:
             _args = {"_user_args": args, "_t0": 0}
 
-        for i in range(len(H)):
-            if isinstance(H[i], list):
-                # modify hamiltonian time dependence in accordance with the
-                # quantum regression theorem
-                if isinstance(args, dict) or args is None:
-                    if isinstance(H[i][1], types.FunctionType):
-                        # function-list based time-dependence
-                        fn = lambda t, args_i: \
-                            H[i][1](t+args_i["_t0"], args_i)
-                    else:
-                        # string-list based time-dependence
-                        # Note: other functions already raise errors for mixed
-                        # td formatting
-                        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                 "(t+_t0)", H[i][1])
-                else:
-                    if isinstance(H[i][1], types.FunctionType):
-                        # function-list based time-dependence
-                        fn = lambda t, args_i: \
-                            H[i][1](t+args_i["_t0"], args_i["_user_args"])
-                    else:
-                        raise TypeError("If using string-list based" +
-                                        "Hamiltonian time-dependence, args" +
-                                        "must be a dictionary")
-                H_shifted.append([H[i][0], fn])
-            else:
-                H_shifted.append(H[i])
+        if isinstance(H, list):
+            # hamiltonian is time-dependent
+            H_shifted = []
 
-        return H_shifted, _args
+            for i in range(len(H)):
+                if isinstance(H[i], list):
+                    # modify Hamiltonian time dependence in accordance with the
+                    # quantum regression theorem
+                    if isinstance(args, dict) or args is None:
+                        if isinstance(H[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                H[i][1](t + args_i["_t0"], args_i)
+                        else:
+                            # string-list based time-dependence
+                            # Again, note: _td_format_check already raises
+                            # errors formixed td formatting
+                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                     "(t+_t0)", H[i][1])
+                    else:
+                        if isinstance(H[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                H[i][1](t + args_i["_t0"],
+                                        args_i["_user_args"])
+                        else:
+                            raise TypeError("If using string-list based" +
+                                            "Hamiltonian time-dependence, " +
+                                            "args must be a dictionary")
+                    H_shifted.append([H[i][0], fn])
+                else:
+                    H_shifted.append(H[i])
+
+        if c_ops_is_td:
+            # collapse operators are time-dependent
+            c_ops_shifted = []
+
+            for i in range(len(c_ops)):
+                if isinstance(c_ops[i], list):
+                    # modify collapse operators time dependence in accordance
+                    # with the quantum regression theorem
+                    if isinstance(args, dict) or args is None:
+                        if isinstance(c_ops[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                c_ops[i][1](t + args_i["_t0"], args_i)
+                        else:
+                            # string-list based time-dependence
+                            # Again, note: _td_format_check already raises
+                            # errors formixed td formatting
+                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                     "(t+_t0)", c_ops[i][1])
+                    else:
+                        if isinstance(H[i][1], types.FunctionType):
+                            # function-list based time-dependence
+                            fn = lambda t, args_i: \
+                                c_ops[i][1](t + args_i["_t0"],
+                                            args_i["_user_args"])
+                        else:
+                            raise TypeError("If using string-list based" +
+                                            "collapse operator" +
+                                            "time-dependence, " +
+                                            "args must be a dictionary")
+                    c_ops_shifted.append([c_ops[i][0], fn])
+                else:
+                    c_ops_shifted.append(c_ops[i])
+
+    return H_shifted, c_ops_shifted, _args

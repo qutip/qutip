@@ -129,7 +129,7 @@ def test_squeezing_type():
 
 def test_zero_type():
     "Operator CSR Type: zero_oper"
-    op = qzero(5, [[5], [5]])
+    op = qzero(5)
     assert_equal(isspmatrix_csr(op.data), True)
 
 
