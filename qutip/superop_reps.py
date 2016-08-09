@@ -391,7 +391,9 @@ def to_choi(q_oper):
     Parameters
     ----------
     q_oper : Qobj
-        Superoperator to be converted to Choi representation.
+        Superoperator to be converted to Choi representation. If
+        ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
+        such that ``to_choi(A) == to_choi(sprepost(A, A.dag()))``.
 
     Returns
     -------
@@ -431,18 +433,20 @@ def to_chi(q_oper):
     Parameters
     ----------
     q_oper : Qobj
-        Superoperator to be converted to Choi representation.
+        Superoperator to be converted to Chi representation. If
+        ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
+        such that ``to_chi(A) == to_chi(sprepost(A, A.dag()))``.
 
     Returns
     -------
-    choi : Qobj
+    chi : Qobj
         A quantum object representing the same map as ``q_oper``, such that
-        ``choi.superrep == "choi"``.
+        ``chi.superrep == "chi"``.
 
     Raises
     ------
     TypeError: if the given quantum object is not a map, or cannot be converted
-        to Choi representation.
+        to Chi representation.
     """
     if q_oper.type == 'super':
         # Case 1: Already done.
@@ -473,7 +477,9 @@ def to_super(q_oper):
     Parameters
     ----------
     q_oper : Qobj
-        Superoperator to be converted to supermatrix representation.
+        Superoperator to be converted to supermatrix representation. If
+        ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
+        such that ``to_super(A) == sprepost(A, A.dag())``.
 
     Returns
     -------
@@ -483,7 +489,8 @@ def to_super(q_oper):
 
     Raises
     ------
-    TypeError: if the given quantum object is not a map, or cannot be converted
+    TypeError
+        If the given quantum object is not a map, or cannot be converted
         to supermatrix representation.
     """
     if q_oper.type == 'super':
@@ -518,7 +525,9 @@ def to_kraus(q_oper):
     Parameters
     ----------
     q_oper : Qobj
-        Superoperator to be converted to Kraus representation.
+        Superoperator to be converted to Kraus representation. If
+        ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
+        such that ``to_kraus(A) == to_kraus(sprepost(A, A.dag())) == [A]``.
 
     Returns
     -------
