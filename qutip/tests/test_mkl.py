@@ -39,7 +39,7 @@ import unittest
 from qutip import *
 import qutip.settings as qset
 if qset.has_mkl:
-    from qutip.mkl.spsolve import (mkl_splu, mkl_spsolve)
+    from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 
 @unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')

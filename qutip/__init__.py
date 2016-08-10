@@ -171,7 +171,7 @@ if qutip.settings.num_cpus == 0:
 
 
 # Find MKL library if it exists
-import qutip.mkl
+import qutip._mkl
 
 
 
