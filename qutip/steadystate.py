@@ -62,7 +62,7 @@ logger.setLevel('DEBUG')
 
 # Load MKL spsolve if avaiable
 if settings.has_mkl:
-    from qutip.mkl.spsolve import (mkl_splu, mkl_spsolve)
+    from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
