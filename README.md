@@ -67,7 +67,7 @@ Changelog
 ---------
 
 For release notes and a change log, see the
-[changelog](https://github.com/qutip/qutip-doc/blob/master/ChangeLog.ipynb)
+[changelog](http://github.com/qutip/qutip-doc/blob/master/changelog.rst)
 section in the documentation.
 
 License
