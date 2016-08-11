@@ -70,7 +70,7 @@ def parfor(func, *args, **kwargs):
 
     .. note::
 
-        From QuTiP 3.1.0, we recommend to use :func:`qutip.parallel_map`
+        From QuTiP 3.1, we recommend to use :func:`qutip.parallel_map`
         instead of this function.
 
     Parameters
@@ -89,7 +89,6 @@ def parfor(func, *args, **kwargs):
         Number of CPU's to use.  Default uses maximum number of CPU's.
         Performance degrades if num_cpus is larger than the physical CPU
         count of your machine.
-
 
     Returns
     -------
@@ -140,7 +139,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     """
     Serial mapping function with the same call signature as parallel_map, for
     easy switching between serial and parallel execution. This
-    is functionally equivalent to:
+    is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
@@ -148,21 +147,16 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 
     Parameters
     ----------
-
-    task: a Python function
+    task : a Python function
         The function that is to be called for each value in ``task_vec``.
-
-    values: array / list
+    values : array / list
         The list or array of values for which the ``task`` function is to be
         evaluated.
-
-    task_args: list / dictionary
+    task_args : list / dictionary
         The optional additional argument to the ``task`` function.
-
-    task_kwargs: list / dictionary
+    task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
-
-    progress_bar: ProgressBar
+    progress_bar : ProgressBar
         Progress bar class instance for showing progress.
 
     Returns
@@ -171,6 +165,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for each
         value in ``values``.
+    
     """
     try:
         progress_bar = kwargs['progress_bar']
@@ -193,35 +188,30 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
-    is functionally equivalent to:
+    is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
     Parameters
     ----------
-
-    task: a Python function
+    task : a Python function
         The function that is to be called for each value in ``task_vec``.
-
-    values: array / list
+    values : array / list
         The list or array of values for which the ``task`` function is to be
         evaluated.
-
-    task_args: list / dictionary
+    task_args : list / dictionary
         The optional additional argument to the ``task`` function.
-
-    task_kwargs: list / dictionary
+    task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
-
-    progress_bar: ProgressBar
+    progress_bar : ProgressBar
         Progress bar class instance for showing progress.
 
     Returns
     --------
     result : list
-        The result list contains the value of
-        ``task(value, *task_args, **task_kwargs)`` for each
-        value in ``values``.
+        The result list contains the value of 
+        ``task(value, *task_args, **task_kwargs)`` for 
+        each value in ``values``.
 
     """
     kw = _default_kwargs()

@@ -925,7 +925,7 @@ def charge(Nmax, Nmin=None, frac = 1):
 def tunneling(N, m=1):
     """
     Tunneling operator with elements of the form 
-    |N><N+m| + |N+m><N|.
+    :math:`\sum |N><N+m| + |N+m><N|`.
     
     Parameters
     ----------

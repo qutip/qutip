@@ -53,15 +53,15 @@ class Gate(object):
 
         Parameters
         ----------
-        name: String
+        name : String
             Gate name.
-        targets: List
+        targets : List
             Gate targets.
-        controls: List
+        controls : List
             Gate controls.
-        arg_value: Float
+        arg_value : Float
             Argument value(phi).
-        arg_label: String
+        arg_label : String
             Label for gate representation.
         """
         self.name = name
@@ -202,17 +202,17 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        name: String
+        name : String
             Gate name.
-        start: Integer
+        start : Integer
             Starting location of qubits.
-        end: Integer
+        end : Integer
             Last qubit for the gate.
-        qubits: List
+        qubits : List
             Specific qubits for applying gates.
-        arg_value: Float
+        arg_value : Float
             Argument value(phi).
-        arg_label: String
+        arg_label : String
             Label for gate representation.
         """
         if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
@@ -239,10 +239,11 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc : QubitCircuit
             The circuit block to be added to the main circuit.
-        start: Integer
+        start : Integer
             The qubit on which the first gate is applied.
+        
         """
 
         if self.N - start < len(qc.gates):
@@ -278,12 +279,13 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        index: Integer
+        index : Integer
             Location of gate to be removed.
-        name: String
+        name : String
             Gate name to be removed.
-        remove: String
+        remove : String
             If first or all gate are to be removed.
+        
         """
         if index is not None and index <= self.N:
             if end is not None and end <= self.N:
@@ -320,9 +322,10 @@ class QubitCircuit(object):
 
         Returns
         ----------
-        qc: QubitCircuit
+        qc : QubitCircuit
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             reverse order.
+        
         """
         temp = QubitCircuit(self.N, self.reverse_states)
 
@@ -339,14 +342,15 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        basis: list.
+        basis : list.
             Basis of the resolved circuit.
 
         Returns
         -------
-        qc: QubitCircuit
+        qc : QubitCircuit
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
+        
         """
         qc_temp = QubitCircuit(self.N, self.reverse_states)
         temp_resolved = []
@@ -775,7 +779,7 @@ class QubitCircuit(object):
 
         Returns
         ----------
-        qc: QubitCircuit
+        qc : QubitCircuit
             Returns QubitCircuit of the gates for the qubit circuit with the
             resolved non-adjacent gates.
 
@@ -856,7 +860,7 @@ class QubitCircuit(object):
 
         Returns
         -------
-        U_list: list
+        U_list : list
             Returns list of unitary matrices for the qubit circuit.
 
         """

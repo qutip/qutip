@@ -156,7 +156,6 @@ def optimize_pulse(
 
     Parameters
     ----------
-
     drift : Qobj or list of Qobj
         the underlying dynamics generator of the system
         can provide list (of length num_tslots) for time dependent drift
@@ -368,6 +367,7 @@ def optimize_pulse(
 
     Returns
     -------
+    opt : OptimResult     
         Returns instance of OptimResult, which has attributes giving the
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
@@ -553,7 +553,6 @@ def optimize_pulse_unitary(
 
     Parameters
     ----------
-
     H_d : Qobj or list of Qobj
         Drift (aka system) the underlying Hamiltonian of the system
         can provide list (of length num_tslots) for time dependent drift
@@ -747,6 +746,7 @@ def optimize_pulse_unitary(
 
     Returns
     -------
+    opt : OptimResult
         Returns instance of OptimResult, which has attributes giving the
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
@@ -876,7 +876,6 @@ def opt_pulse_crab(
 
     Parameters
     ----------
-
     drift : Qobj or list of Qobj
         the underlying dynamics generator of the system
         can provide list (of length num_tslots) for time dependent drift
@@ -1073,6 +1072,7 @@ def opt_pulse_crab(
 
     Returns
     -------
+    opt : OptimResult    
         Returns instance of OptimResult, which has attributes giving the
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
@@ -1355,9 +1355,11 @@ def opt_pulse_crab_unitary(
 
     Returns
     -------
+    opt : OptimResult    
         Returns instance of OptimResult, which has attributes giving the
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
+    
     """
 
     # The parameters are checked in create_pulse_optimizer
@@ -1444,7 +1446,6 @@ def create_pulse_optimizer(
 
     Parameters
     ----------
-
     drift : Qobj or list of Qobj
         the underlying dynamics generator of the system
         can provide list (of length num_tslots) for time dependent drift
@@ -1524,8 +1525,8 @@ def create_pulse_optimizer(
         Note the LBFGSB is equivalent to FMIN_L_BFGS_B for backwards 
         capatibility reasons.
         Supplying DEF will given alg dependent result:
-            GRAPE - Default optim_method is FMIN_L_BFGS_B
-            CRAB - Default optim_method is Nelder-Mead
+            - GRAPE - Default optim_method is FMIN_L_BFGS_B
+            - CRAB - Default optim_method is Nelder-Mead
         
     method_params : dict
         Parameters for the optim_method. 
@@ -1650,12 +1651,12 @@ def create_pulse_optimizer(
 
     Returns
     -------
+    opt : Optimizer    
         Instance of an Optimizer, through which the
         Config, Dynamics, PulseGen, and TerminationConditions objects
         can be accessed as attributes.
         The PropagatorComputer, FidelityComputer and TimeslotComputer objects
-        can be accessed as attributes of the Dynamics object, e.g.
-            optimizer.dynamics.fid_computer
+        can be accessed as attributes of the Dynamics object, e.g. optimizer.dynamics.fid_computer
         The optimisation can be run through the optimizer.run_optimization
     
     """
