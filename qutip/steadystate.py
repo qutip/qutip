@@ -79,12 +79,12 @@ def _empty_info_dict():
 
 def _default_steadystate_args():
     def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
-                'use_wbm': False, 'use_umfpack': False, 'weight': None,
-                'use_precond': False, 'all_states': False,
-                'M': None, 'x0': None, 'drop_tol': 1e-4, 'fill_factor': 100,
-                'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-12,
-                'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 'restart': 20,
-                'return_info': False, 'info': _empty_info_dict(), 'verbose': False}
+                'use_wbm': False, 'weight': None, 'use_precond': False, 
+                'all_states': False, 'M': None, 'x0': None, 'drop_tol': 1e-4, 
+                'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000, 
+                'tol': 1e-12, 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 
+                'restart': 20, 'return_info': False, 'info': _empty_info_dict(), 
+                'verbose': False}
 
     return def_args
 
@@ -773,11 +773,11 @@ def _steadystate_power(L, ss_args):
               diag_pivot_thresh=ss_args['diag_pivot_thresh'],
               options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-        if settings.debug and _scipy_check:
-            L_nnz = lu.L.nnz
-            U_nnz = lu.U.nnz
-            logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
-            logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
+            if settings.debug and _scipy_check:
+                L_nnz = lu.L.nnz
+                U_nnz = lu.U.nnz
+                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
+                logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
     _tol = max(ss_args['tol']/10, 1e-15) # Should make this user accessible
