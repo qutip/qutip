@@ -79,12 +79,12 @@ def _empty_info_dict():
 
 def _default_steadystate_args():
     def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
-                'use_wbm': False, 'use_umfpack': False, 'weight': None,
-                'use_precond': False, 'all_states': False,
-                'M': None, 'x0': None, 'drop_tol': 1e-4, 'fill_factor': 100,
-                'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-12,
-                'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 'restart': 20,
-                'return_info': False, 'info': _empty_info_dict(), 'verbose': False}
+                'use_wbm': False, 'weight': None, 'use_precond': False, 
+                'all_states': False, 'M': None, 'x0': None, 'drop_tol': 1e-4, 
+                'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000, 
+                'tol': 1e-12, 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 
+                'restart': 20, 'return_info': False, 'info': _empty_info_dict(), 
+                'verbose': False}
 
     return def_args
 
@@ -138,10 +138,6 @@ def steadystate(A, c_op_list=[], **kwargs):
         Sets the size of the elements used for adding the unity trace condition
         to the linear solvers.  This is set to the average abs value of the
         Liouvillian elements if not specified by the user.
-
-    use_umfpack : bool {False, True}
-        Use umfpack solver instead of SuperLU.  For SciPy 0.14+, this option
-        requires installing scikits.umfpack.
 
     x0 : ndarray, optional
         ITERATIVE ONLY. Initial guess for solution vector.
@@ -329,15 +325,14 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
     return L, perm, perm2, rev_perm, ss_args
 
 
-def steady(L, maxiter=10, tol=1e-12, itertol=1e-15, method='solve',
-           use_umfpack=False, use_precond=False):
+def steady(L, maxiter=10, tol=1e-12, itertol=1e-15, method='solve', 
+            use_precond=False):
     """
     Deprecated. See steadystate instead.
     """
     message = "steady has been deprecated, use steadystate instead"
     warnings.warn(message, DeprecationWarning)
-    return steadystate(L, [], maxiter=maxiter, tol=tol,
-                       use_umfpack=use_umfpack, use_precond=use_precond)
+    return steadystate(L, [], maxiter=maxiter, tol=tol, use_precond=use_precond)
 
 
 def _steadystate_direct_sparse(L, ss_args):
@@ -402,7 +397,7 @@ def _steadystate_direct_sparse(L, ss_args):
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = la.norm(b - L*v)
 
-    if (not ss_args['use_umfpack']) and ss_args['use_rcm']:
+    if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
     data = vec2mat(v)
@@ -563,7 +558,7 @@ def _steadystate_iterative(L, ss_args):
     if np.any(perm2):
         b = b[np.ix_(perm2,)]
 
-    use_solver(assumeSortedIndices=True, useUmfpack=ss_args['use_umfpack'])
+    use_solver(assumeSortedIndices=True)
 
     if ss_args['M'] is None and ss_args['use_precond']:
         ss_args['M'], ss_args = _iterative_precondition(L, n, ss_args)
@@ -773,11 +768,11 @@ def _steadystate_power(L, ss_args):
               diag_pivot_thresh=ss_args['diag_pivot_thresh'],
               options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-        if settings.debug and _scipy_check:
-            L_nnz = lu.L.nnz
-            U_nnz = lu.U.nnz
-            logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
-            logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
+            if settings.debug and _scipy_check:
+                L_nnz = lu.L.nnz
+                U_nnz = lu.U.nnz
+                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
+                logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
     _tol = max(ss_args['tol']/10, 1e-15) # Should make this user accessible
