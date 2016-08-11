@@ -256,7 +256,6 @@ texinfo_documents = [
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
 
-
 autodoc_member_order = 'alphabetical'
 
 ## EXTLINKS CONFIGURATION ######################################################
@@ -266,3 +265,39 @@ extlinks = {
     'doi': ('http://dx.doi.org/%s', 'doi:'),
 }
 
+## WORKAROUNDS #################################################################
+
+# To work around ipython/ipython#9339, we register a new "directive" that either
+# does exactly what IPythonDirective does, or does syntax highlighting only,
+# depending on the hosting OS.
+
+def setup(app):
+    import os
+    from IPython.sphinxext.ipython_directive import IPythonDirective
+
+    if os.name == "nt":
+        from sphinx.directives.code import CodeBlock
+        
+        class IPythonCodeBlock(CodeBlock):
+            required_arguments = 0
+
+            @property
+            def arguments(self):
+                return ['ipython']
+            @arguments.setter
+            def arguments(self, newval):
+                pass
+        app.add_directive('ipython-posix', IPythonCodeBlock)
+
+    else:
+        app.add_directive('ipython-posix', IPythonDirective)
+
+# The other workaround we need is that IPython's sphinxext depends on
+# pickeshare 0.5 (latest being 0.6), which in turn calls path.path
+# instead of path.Path. This results in an entire sea of DeprecationWarnings.
+# Since Sphinx overrides warnings filters during the parsing stage, we can't
+# disable in a safe or reasonable way; thus, we monkey-patch in backwards-
+# compatibility here so that we don't fill the screen with DeprecationWarnings.
+
+import path
+path.path = path.Path

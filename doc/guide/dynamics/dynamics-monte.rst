@@ -217,6 +217,7 @@ Fortran Based Monte Carlo Solver
 In performing time-independent Monte Carlo simulations with QuTiP, systems with small Hilbert spaces suffer from poor performance as the ODE solver must exit the ODE solver at each time step and check for the state vector norm.  To correct this, QuTiP now includes an optional Fortran based Monte Carlo solver that has enhanced performance for systems with small Hilbert space dimensionality.  Using the Fortran based solver is extremely simple; one just needs to replace ``mcsolve`` with ``mcsolve_f90``.  For example, from our previous demonstration
 
 .. ipython::
+    :okexcept:
 
     In [1]: data1 = mcsolve_f90(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 
