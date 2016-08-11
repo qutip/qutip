@@ -25,19 +25,19 @@ cdef extern from "complex.h":
 
 cdef inline double abs(double complex x):
     return cabs(x)
-cdef inline double complex acos(double complex x):
+cdef inline double complex arccos(double complex x):
     return cacos(x)
-cdef inline double complex acosh(double complex x):
+cdef inline double complex arccosh(double complex x):
     return cacosh(x)
 cdef inline double arg(double complex x):
     return carg(x)
-cdef inline double complex asin(double complex x):
+cdef inline double complex arcsin(double complex x):
     return casin(x)
-cdef inline double complex asinh(double complex x):
+cdef inline double complex arcsinh(double complex x):
     return casinh(x)
-cdef inline double complex atan(double complex x):
+cdef inline double complex arctan(double complex x):
     return catan(x)
-cdef inline double complex atanh(double complex x):
+cdef inline double complex arctanh(double complex x):
     return catanh(x)
 cdef inline double complex cos(double complex x):
     return ccos(x)
