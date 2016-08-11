@@ -1,6 +1,6 @@
 import numpy as np
-from qutip import *
 import pylab as plt
+from qutip import *
 
 N = 4                   # number of cavity fock states
 wc = wa = 1.0 * 2 * np.pi  # cavity and atom frequency
@@ -23,7 +23,7 @@ c_ops = [np.sqrt(kappa * (1 + n_th)) * a, np.sqrt(kappa * n_th) * a.dag(), np.sq
 # that the discrete Fourier transform (FFT) captures all the features in the
 # resulting spectrum.
 tlist = np.linspace(0, 100, 5000)
-corr = correlation_ss(H, tlist, c_ops, a.dag(), a)
+corr = correlation_2op_1t(H, None, tlist, c_ops, a.dag(), a)
 wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
 
 

@@ -12,14 +12,36 @@ Version 3.2.0 (still in development)
 
 New Features
 ------------
+*Core libraries*
+
+- **MAJOR FEATURE**: Non-Markovian solvers: Hierarchy (**Added by Neill Lambert**), Memory-Cascade, and Transfer-Tensor methods.
+- **MAJOR FEATURE**: Default steady state solver now up to 100x faster using the Intel Pardiso library under the Anaconda and Intel Python distributions.
+- The default Wigner function now uses a Clenshaw summation algorithm to evaluate a polynomial series that is applicable for any number of exciations (previous limitation was ~50 quanta), and is ~3x faster than before. (**Added by Denis Vasilyev**)
+- Can now define a given eigen spectrum for random Hermitian and density operators. 
+- The Qobj ``expm`` method now uses the equivilent SciPy routine, and performs a much faster ``exp`` operation if the matrix is diagonal.
+- One can now build zero operators using the ``qzero`` function.
+
 *Control modules*
 
 - **MAJOR FEATURE**: CRAB algorithm added
   This is an alternative to the GRAPE algorithm, which allows for analytical control functions, which means that experimental constraints can more easily be added into optimisation.  
   See tutorial notebook for full information.
-  
+
+
 Improvements
 ------------
+*Core libraries*
+
+- Two-time correlation functions can now be calculated for fully time-dependent Hamiltonians and collapse operators. (**Added by Kevin Fischer**)
+- The code for the inverse-power method for the steady state solver has been simplified.
+- Bloch-Redfield tensor creation is now up to an order of magnitude faster. (**Added by Johannes Feist**)
+- Q.transform now works properly for arrays directly from sp_eigs (or eig).
+- Q.groundstate now checks for degeneracy.
+- Added ``sinm`` and ``cosm`` methods to the Qobj class.
+- Added ``charge`` and ``tunneling`` operators.
+- Time-dependent Cython code is now easier to read and debug.
+
+
 *Control modules*
 
 - The internal state / quantum operator data type can now be either Qobj or ndarray
@@ -74,6 +96,39 @@ Improvements
     - ``get_timeslot_for_fidelity_calc`` now ``_get_timeslot_for_fidelity_calc``
 
 
+*Miscellaneous*
+
+- QuTiP Travis CI tests now use the Anaconda distribution.
+- The ``about`` box and ipynb ``version_table`` now display addition system information.
+- Updated Cython cleanup to remove depreciation warning in sysconfig.
+- Updated ipynb_parallel to look for ``ipyparallel`` module in V4 of the notebooks.
+
+
+Bug Fixes
+---------
+
+- Fixed Qobj division tests on 32-bit systems.
+- Removed extra call to Python in time-dependent Cython code.
+- Fixed issue with repeated Bloch sphere saving.
+- Fixed T_0 triplet state not normalized properly. (**Fixed by Eric Hontz**)
+- Simplified compiler flags (support for ARM systems).
+- Fixed a decoding error in ``qload``.
+- Fixed issue using complex.h math and np.kind_t variables.
+- Corrected output states mismatch for ``ntraj=1`` in the mcf90 solver.
+- Qobj data is now copied by default to avoid a bug in multiplication. (**Fixed by Richard Brierley**)
+- Fixed bug overwriting ``hardware_info`` in ``__init__``. (**Fixed by Johannes Feist**)
+- Restored ability to explicity set Q.isherm, Q.type, and Q.superrep.
+- Fixed integer depreciation warnings from NumPy.
+- Qobj * (dense vec) would result in a recursive loop.
+- Fixed args=None -> args={} in correlation functions to be compatible with mesolve.
+- Fixed depreciation warnings in mcsolve.
+- Fixed neagtive only real parts in ``rand_ket``.
+- Fixed a complicated list-cast-map-list antipattern in super operator reps. (**Fixed by Stefan Krastanov**)
+- Fixed incorrect ``isherm`` for ``sigmam`` spin operator.
+- Fixed the dims when using ``final_state_output`` in ``mesolve`` and ``sesolve``.
+
+
+
 Version 3.1.0 (January 1, 2015):
 ++++++++++++++++++++++++++++++++
 
@@ -123,8 +178,8 @@ Bug Fixes
   trajectories when using only 1 CPU.
 - Fix bug in parsing of time-dependent Hamiltonian/collapse operator arguments
   that occurred when the args argument is not a dictionary.
-- Fix bug in internal _version2int function that cause a failure when parsing
-  the version number of the Cython package.
+- Fix bug in internal _version2int function that cause a failure when parsingthe version number of the Cython package.
+- 
 
 
 Version 3.0.0 (July 17, 2014):

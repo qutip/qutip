@@ -19,16 +19,19 @@ This document contains a user guide and automatically generated API documentatio
 .. _QuTiP project web page: http://www.qutip.org
 
 
+:Author: Alexander Pitchford
+
+:Author: Chris Grenade
+
+:Author: Arne Grimsmo
+
 :Author: P.D. Nation
-:Address: Department of Physics, Korea University,
-          Seongbuk-gu Seoul, 136-713 South Korea
 
 :Author: J.R. Johansson
-:Address: iTHES Research Group, RIKEN,
-		  Wako-shi Saitama, 351-0198 Japan
+
 
 :version: 3.2.0
-:status: Released (April XX, 2016)
+:status: Released (XX YY, 2016)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:
@@ -90,9 +93,9 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 
 * QuTiP is based on the Python scripting language, providing easy to read, fast code generation without the need to compile after modification.
 
-* The numerics underlying QuTiP are time-tested algorithms that run at C-code speeds, thanks to the `Numpy <http://numpy.scipy.org/>`_ and `Scipy <http://www.scipy.org/ scipy>`_ libraries, and are based on many of the same algorithms used in propriety software.
+* The numerics underlying QuTiP are time-tested algorithms that run at C-code speeds, thanks to the `Numpy <http://numpy.scipy.org/>`_, `Scipy <http://www.scipy.org/scipylib>`_, and `Cython <http://cython.org>`_ libraries, and are based on many of the same algorithms used in propriety software.
 
-* QuTiP allows for solving the dynamics of Hamiltonians with arbitrary time-dependence, including collapse operators.
+* QuTiP allows for solving the dynamics of Hamiltonians with (almost) arbitrary time-dependence, including collapse operators.
 
 * Time-dependent problems can be automatically compiled into C-code at run-time for increased performance.
 

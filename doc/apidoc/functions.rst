@@ -14,14 +14,14 @@ Quantum States
 ----------------
 
 .. automodule:: qutip.states
-    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm, phase_basis, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, enr_state_dictionaries, enr_thermal_dm, enr_fock
+    :members: basis, bell_state, bra, coherent, coherent_dm, enr_state_dictionaries, enr_thermal_dm, enr_fock, fock, fock_dm, ghz_state, maximally_mixed_dm, ket, ket2dm, phase_basis, projection, qutrit_basis, singlet_state, spin_state, spin_coherent, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, thermal_dm, triplet_states. w_state, zero_ket
 
 
 Quantum Operators
 ---------------------
 
 .. automodule:: qutip.operators
-    :members: create, destroy, displace, jmat, num, qeye, identity, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeeze, squeezing, phase, enr_destroy, enr_identity
+    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
 
 
 .. _functions-rand:
@@ -69,7 +69,7 @@ Expectation Values
 --------------------
 
 .. automodule:: qutip.expect
-    :members: expect, variance, expect_rho_vec, expect_psi
+    :members: expect, variance
 
 Partial Transpose
 -----------------
@@ -190,7 +190,7 @@ Pseudoprobability Functions
 ----------------------------
 
 .. automodule:: qutip.wigner
-    :members: qfunc, wigner
+    :members: qfunc, spin_q_function, spin_wigner, wigner
 
 
 Graphs and Visualization

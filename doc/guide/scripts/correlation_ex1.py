@@ -1,17 +1,17 @@
+import numpy as np
+import pylab as plt
 from qutip import *
-from scipy import *
 
-times = linspace(0,10.0,200)
+times = np.linspace(0,10.0,200)
 a = destroy(10)
 x = a.dag() + a
 H = a.dag() * a
 
-corr1 = correlation_ss(H, times, [sqrt(0.5) * a], x, x)
-corr2 = correlation_ss(H, times, [sqrt(1.0) * a], x, x)
-corr3 = correlation_ss(H, times, [sqrt(2.0) * a], x, x)
+corr1 = correlation_2op_1t(H, None, times, [np.sqrt(0.5) * a], x, x)
+corr2 = correlation_2op_1t(H, None, times, [np.sqrt(1.0) * a], x, x)
+corr3 = correlation_2op_1t(H, None, times, [np.sqrt(2.0) * a], x, x)
 
-from pylab import *
-plot(times, real(corr1), times, real(corr2), times, real(corr3))
-xlabel(r'Time $t$')
-ylabel(r'Correlation $\left<x(t)x(0)\right>$')
-show()
+plt.plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
+plt.xlabel(r'Time $t$')
+plt.ylabel(r'Correlation $\left<x(t)x(0)\right>$')
+plt.show()

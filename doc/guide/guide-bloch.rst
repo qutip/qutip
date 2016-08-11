@@ -7,6 +7,9 @@
 Plotting on the Bloch Sphere
 ******************************
 
+.. important:: 
+	Updated in QuTiP version 3.0.
+
 .. ipython::
    :suppress:
 
@@ -15,9 +18,6 @@ Plotting on the Bloch Sphere
    In [2]: from scipy import *
 
 .. _bloch-intro:
-
-.. important:: 
-	Updated in QuTiP version 3.0.
 
 Introduction
 ============

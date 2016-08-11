@@ -7,14 +7,16 @@
 Solving for Steady-State Solutions
 *************************************
 
+.. important:: Updated in QuTiP 3.2.
+
 .. ipython::
    :suppress:
-
-   In [1]: from qutip import *
    
    In [1]: import numpy as np
    
    In [1]: from pylab import *
+   
+   In [1]: from qutip import *
 
 .. _steady-intro:
 
@@ -28,15 +30,10 @@ For time-independent open quantum systems with decay rates larger than the corre
 
 Although the requirement for time-independence seems quite resitrictive, one can often employ a transformation to the interaction picture that yields a time-independent Hamiltonian.  For many these systems, solving for the asymptotic density matrix :math:`\hat{\rho}_{ss}` can be achieved using direct or iterative solution methods faster than using master equation or Monte Carlo simulations.  Although the steady state equation has a simple mathematical form, the properties of the Liouvillian operator are such that the solutions to this equation are anything but straightforward to find.
 
-Steady State Solutions for Arbitrary Systems
-============================================
-
-
 Steady State solvers in QuTiP
 ============================= 
-In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is given by :func:`qutip.steadystate.steadystate`.  This function implements a number of different methods for finding the steady state, each with their own pros and cons, where the method used can be chosen using the ``method`` keyword argument. 
 
-Available Steady-State Methods:
+In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is given by :func:`qutip.steadystate.steadystate`.  This function implements a number of different methods for finding the steady state, each with their own pros and cons, where the method used can be chosen using the ``method`` keyword argument. 
 
 .. cssclass:: table-striped
 
@@ -70,7 +67,9 @@ Available Steady-State Methods:
      - Steady-state solution via the **dense** SVD of the Liouvillian.
 
 
-The function :func:`qutip.steadystate.steadystate` can take either a Hamiltonian and a list of collapse operators as input, generating internally the corresponding Liouvillian super operator in Lindblad form, or alternatively, an arbitrary Liouvillian passed by the user. When possible, we recommend passing the Hamiltonian and collapse operators to :func:`qutip.steadystate.steadystate`, and letting the function automatically build the Liouvillian for the system.
+The function :func:`qutip.steadystate.steadystate` can take either a Hamiltonian and a list of collapse operators as input, generating internally the corresponding Liouvillian super operator in Lindblad form, or alternatively, a Liouvillian passed by the user. When possible, we recommend passing the Hamiltonian and collapse operators to :func:`qutip.steadystate.steadystate`, and letting the function automatically build the Liouvillian (in Lindblad form) for the system.
+
+As of QuTiP 3.2, the ``direct`` and ``power`` methods can take advantage of the Intel Pardiso LU solver in the Intel Math Kernel library that comes with the Anacoda (2.5+) and Intel Python distributions.  This gives a substantial increase in performance compared with the standard SuperLU method used by SciPy.  To verify that QuTiP can find the necessary libraries, one can check for ``INTEL MKL Ext: True`` in the QuTiP about box (:func:`qutip.about`).
 
 
 .. _steady-usage:
@@ -82,11 +81,13 @@ Solving for the steady state solution to the Lindblad master equation for a gene
 
 >>> rho_ss = steadystate(H, c_ops)
 
-where ``H`` is a quantum object representing the system Hamiltonian, and ``c_ops`` is a list of quantum objects for the system collapse operators. The output, labeled as ``rho_ss``, is the steady-state solution for the systems.  If no other keywords are passed to the solver, the default 'direct' method is used, generating a solution that is exact to machine precision at the expense of a large memory requirement.  The large amount of memory need for the direct LU decomposition method stems from the large bandwidth of the system Liouvillian and the correspondingly large fill-in (extra nonzero elements) generated in the LU factors.  This fill-in can be reduced by using bandwidth minimization algorithms such as those discussed in :ref:`steady-args`.  Additional parameters may be used by calling the steady-state solver as::
+where ``H`` is a quantum object representing the system Hamiltonian, and ``c_ops`` is a list of quantum objects for the system collapse operators. The output, labeled as ``rho_ss``, is the steady-state solution for the systems.  If no other keywords are passed to the solver, the default 'direct' method is used, generating a solution that is exact to machine precision at the expense of a large memory requirement.  The large amount of memory need for the direct LU decomposition method stems from the large bandwidth of the system Liouvillian and the correspondingly large fill-in (extra nonzero elements) generated in the LU factors.  This fill-in can be reduced by using bandwidth minimization algorithms such as those discussed in :ref:`steady-args`.  However, in most cases, the default fill-in reducing algorithm is nearly optimal.  Additional parameters may be used by calling the steady-state solver as:
 
->>> rho_ss = steadystate(H, c_ops, method='power', use_rcm=True)
+.. code-block:: python
+   
+   rho_ss = steadystate(H, c_ops, method='power', use_rcm=True)
 
-where ``method='power'`` indicates that we are using the inverse-power solution method, and ``use_rcm=True`` turns on the bandwidth minimization routine.  
+where ``method='power'`` indicates that we are using the inverse-power solution method, and ``use_rcm=True`` turns on a bandwidth minimization routine.  
 
 
 Although it is not obvious, the ``'direct'``, ``eigen``, and ``'power'`` methods all use an LU decomposition internally and thus suffer from a large memory overhead.  In contrast, iterative methods such as the ``'iterative-gmres'``, ``'iterative-lgmres'``, and ``'iterative-bicgstab'`` methods do not factor the matrix and thus take less memory than these previous methods and allowing, in principle, for extremely large system sizes. The downside is that these methods can take much longer than the direct method as the condition number of the Liouvillian matrix is large, indicating that these iterative methods require a large number of iterations for convergence.  To overcome this, one can use a preconditioner :math:`M` that solves for an approximate inverse for the (modified) Liouvillian, thus better conditioning the problem, leading to faster convergence.  The use of a preconditioner can actually make these iterative methods faster than the other solution methods.  The problem with precondioning is that it is only well defined for Hermitian matrices.  Since the Liouvillian is non-Hermitian, the ability to find a good preconditioner is not guaranteed.  And moreover, if a preconditioner is found, it is not guaranteed to have a good condition number. QuTiP can make use of an incomplete LU preconditioner when using the iterative ``'gmres'``, ``'lgmres'``, and ``'bicgstab'`` solvers by setting ``use_precond=True``. The preconditioner optionally makes use of a combination of symmetric and anti-symmetric matrix permutations that attempt to improve the preconditioning process.  These features are discussed in the :ref:`steady-args` section.  Even with these state-of-the-art permutations, the generation of a successful preconditoner for non-symmetric matrices is currently a trial-and-error process due to the lack of mathematical work done in this area.  It is always recommended to begin with the direct solver with no additional arguments before selecting a different method.
@@ -129,9 +130,6 @@ The following additional solver arguments are available for the steady-state sol
    * - use_rcm
      - False, True
      - Use a Reverse Cuthill-Mckee reordering to minimize the bandwidth of the modified Liouvillian used in the LU decomposition.  If ``use_rcm=True`` then the column ordering is set to ``'Natural'`` automatically unless explicitly set.
-   * - use_umfpack
-     - False, True
-     - Use the umfpack solver rather than the default superLU.  on SciPy 0.14+, this option requires installing the scikits.umfpack extension.
    * - use_precond
      - False, True
      - Attempt to generate a preconditioner when using the ``'iterative-gmres'`` and ``'iterative-lgmres'`` methods.
@@ -162,6 +160,7 @@ The following additional solver arguments are available for the steady-state sol
 
 Further information can be found in the :func:`qutip.steadystate.steadystate` docstrings.
 
+
 .. _steady-example:
 
 Example: Harmonic Oscillator in Thermal Bath
@@ -169,58 +168,7 @@ Example: Harmonic Oscillator in Thermal Bath
 
 A simple example of a system that reaches a steady state is a harmonic oscillator coupled to a thermal environment.  Below we consider a harmonic oscillator, initially in the :math:`\left|10\right>` number state, and weakly coupled to a thermal environment characterized by an average particle expectation value of :math:`\left<n\right>=2`.  We calculate the evolution via master equation and Monte Carlo methods, and see that they converge to the steady-state solution.  Here we choose to perform only a few Monte Carlo trajectories so we can distinguish this evolution from the master-equation solution.
 
-.. ipython::
-
-   In [1]: N = 20  # number of basis states to consider
-   
-   In [1]: a = destroy(N)
-   
-   In [1]: H = a.dag() * a
-   
-   In [1]: psi0 = basis(N, 10)  # initial state
-   
-   In [1]: kappa = 0.1  # coupling to oscillator 
-   
-   In [1]: c_op_list = []
-   
-   In [1]: n_th_a = 2  # temperature with average of 2 excitations
-   
-   In [1]: rate = kappa * (1 + n_th_a)
-   
-   In [1]: c_op_list.append(sqrt(rate) * a)  # decay operators
-   
-   In [1]: rate = kappa * n_th_a
-   
-   In [1]: c_op_list.append(sqrt(rate) * a.dag())  # excitation operators
-   
-   In [1]: final_state = steadystate(H, c_op_list)
-   
-   In [1]: fexpt = expect(a.dag() * a, final_state)
-   
-   In [1]: tlist = linspace(0, 50, 100)
-   
-   In [1]: mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=100)
-   
-   In [1]: medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
-   
-   In [1]: figure()
-   
-   In [1]: plot(tlist, mcdata.expect[0], tlist, medata.expect[0], lw=2)
-   
-   In [1]: axhline(y=fexpt, color='r', lw=1.5) # ss expt. value as horiz line (= 2)
-   
-   In [1]: ylim([0, 10])
-   
-   In [1]: xlabel('Time', fontsize=14)
-   
-   In [1]: ylabel('Number of excitations', fontsize=14)
-   
-   In [1]: legend(('Monte-Carlo', 'Master Equation', 'Steady State'))
-   
-   In [1]: title('Decay of Fock state $\left|10\\rangle\\right.$' +
-      ...: ' in a thermal environment with $\langle n\\rangle=2$')
-   
-   @savefig guide-steady1.png width=5.0in align=center
-   In [1]: show()
+.. plot:: guide/scripts/ex_steady.py
+   :include-source:
 
 

@@ -1,6 +1,6 @@
 import numpy as np
-from qutip import *
 import pylab as plt
+from qutip import *
 
 N = 25
 taus = np.linspace(0, 25.0, 200)
@@ -25,7 +25,7 @@ for state in states:
 
     # calculate the correlation function G2 and normalize with n(0)n(t) to
     # obtain g2
-    G2 = correlation_4op_1t(H, rho0, taus, c_ops, a.dag(), a.dag(), a, a)
+    G2 = correlation_3op_1t(H, rho0, taus, c_ops, a.dag(), a.dag()*a, a)
     g2 = G2 / (n[0] * n)
 
     ax.plot(taus, np.real(g2), label=state['label'], lw=2)

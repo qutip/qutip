@@ -21,15 +21,15 @@ To load the qutip modules, we must first call the import statement:
 	In [1]: from qutip import *
 
 
-that will load all of the user available functions. Often, we also need to import the Numpy and Matplotlib libraries with:
+that will load all of the user available functions. Often, we also need to import the NumPy and Matplotlib libraries with:
 
 .. ipython::
 
-	In [1]: import numpy as np
+   In [1]: import numpy as np
     
-    In [1]: import matplotlib.pyplot as plt
+   In [2]: import matplotlib.pyplot as plt
 
-Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt or a Python script.
+Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt, Python script, or Jupyter notebook.
 
 .. _basics-qobj:
 
@@ -57,7 +57,7 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
 
 .. ipython::
 
-	In [1]: Qobj([[1],[2],[3],[4],[5]])
+    In [1]: Qobj([[1],[2],[3],[4],[5]])
 
 	In [2]: x = np.array([[1, 2, 3, 4, 5]])
 	
@@ -278,9 +278,13 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+-------------------------------+----------------------------------------+
 | Conjugate       | ``Q.conj()``                  | Conjugate of quantum object.           |
 +-----------------+-------------------------------+----------------------------------------+
+| Cosine          | ``Q.cosm()``                  | Cosine of quantum object.              |
++-----------------+-------------------------------+----------------------------------------+
 | Dagger (adjoint)| ``Q.dag()``                   | Returns adjoint (dagger) of object.    |
 +-----------------+-------------------------------+----------------------------------------+
 | Diagonal        | ``Q.diag()``                  | Returns the diagonal elements.         |
++-----------------+-------------------------------+----------------------------------------+
+| Diamond Norm    | ``Q.dnorm()``                 | Returns the diamond norm.              |
 +-----------------+-------------------------------+----------------------------------------+
 | Eigenenergies   | ``Q.eigenenergies()``         | Eigenenergies (values) of operator.    |
 +-----------------+-------------------------------+----------------------------------------+
@@ -311,6 +315,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+-------------------------------+----------------------------------------+
 | Permute         | ``Q.permute(order)``          | Permutes the tensor structure of a     | 
 |                 |                               | composite object in the given order.   |
++-----------------+-------------------------------+----------------------------------------+
+| Sine            | ``Q.sinm()``                  | Sine of quantum operator.              |
 +-----------------+-------------------------------+----------------------------------------+
 | Sqrt            | ``Q.sqrtm()``                 | Matrix sqrt of operator.               |
 +-----------------+-------------------------------+----------------------------------------+
