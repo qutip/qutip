@@ -456,7 +456,7 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
     In [4]: operator_to_vector(A)
 
 Since :math:`\mathcal{H} \otimes \mathcal{H}` is a vector space, linear maps
-on this space can be represented as matrices, often called *supermatrices*.
+on this space can be represented as matrices, often called *superoperators*.
 Using the :obj:`~qutip.Qobj`, the :obj:`~qutip.superoperator.spre` and :obj:`~qutip.superoperator.spost` functions, supermatrices
 corresponding to left- and right-multiplication respectively can be quickly
 constructed.
@@ -508,19 +508,264 @@ be exponentiated to find the superoperator for that evolution.
      
     In [5]: S = (12 * L).expm()
 
-Once a superoperator has been obtained, it can be converted between the
-supermatrix, Kraus and Choi formalisms by using the :func:`~qutip.superop_reps.to_super`,
-:func:`~qutip.superop_reps.to_kraus` and :func:`~qutip.superop_reps.to_choi` functions. The :attr:`~Qobj.superrep`
-attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently using.
+For qubits, a particularly useful way to visualize superoperators is to plot them in the Pauli basis,
+such that :math:`S_{\mu,\nu} = \langle\!\langle \sigma_{\mu} | S[\sigma_{\nu}] \rangle\!\rangle`. Because
+the Pauli basis is Hermitian, :math:`S_{\mu,\nu}` is a real number for all Hermitian-preserving superoperators
+:math:`S`,
+allowing us to plot the elements of :math:`S` as a `Hinton diagram <http://matplotlib.org/examples/specialty_plots/hinton_demo.html>`_. In such diagrams, positive elements are indicated by white squares, and negative elements
+by black squares. The size of each element is indicated by the size of the corresponding square. For instance,
+let :math:`S[\rho] = \sigma_x \rho \sigma_x^{\dagger}`. Then :math:`S[\sigma_{\mu}] = \sigma_{\mu} \cdot \begin{cases} +1 & \mu = 0, x \\ -1 & \mu = y, z \end{cases}`. We can quickly see this by noting that the :math:`Y` and :math:`Z` elements
+of the Hinton diagram for :math:`S` are negative:
+
+.. plot::
+
+    from qutip import *
+    settings.colorblind_safe = True
+
+    import matplotlib.pyplot as plt
+    plt.rcParams['savefig.transparent'] = True
+
+    X = sigmax()
+    S = spre(X) * spost(X.dag())
+
+    hinton(S)
+
+Choi, Kraus, Stinespring and :math:`\chi` Representations
+=========================================================
+
+In addition to the superoperator representation of quantum maps, QuTiP
+supports several other useful representations. First, the Choi matrix
+:math:`J(\Lambda)` of a quantum map :math:`\Lambda` is useful for working with
+ancilla-assisted process tomography (AAPT), and for reasoning about properties
+of a map or channel. Up to normalization, the Choi matrix is defined by acting
+:math:`\Lambda` on half of an entangled pair. In the column-stacking
+convention,
+
+.. math::
+
+    J(\Lambda) = (𝟙 \otimes \Lambda) [|𝟙\rangle\!\rangle \langle\!\langle𝟙|].
+
+In QuTiP, :math:`J(\Lambda)` can be found by calling the :func:`~qutip.superop_reps.to_choi`
+function on a ``type="super"`` :ref:`Qobj`.
+
+.. ipython::
+    
+    In [1]: X = sigmax()
+    
+    In [2]: S = sprepost(X, X)
+
+    In [3]: J = to_choi(S)
+
+    In [4]: print(J)
+
+    In [5]: print(to_choi(spre(qeye(2))))
+
+If a :ref:`Qobj` instance is already in the Choi :attr:`~Qobj.superrep`, then calling :func:`~qutip.superop_reps.to_choi`
+does nothing:
+
+.. ipython::
+    
+    In [1]: print(to_choi(J))
+
+To get back to the superoperator representation, simply use the :func:`~qutip.superop_reps.to_super` function.
+As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super` is idempotent:
+
+.. ipython::
+    
+    In [1]: print(to_super(J) - S)
+
+    In [2]: print(to_super(S))
+
+We can quickly obtain another useful representation from the Choi matrix by taking its eigendecomposition.
+In particular, let :math:`\{A_i\}` be a set of operators such that
+:math:`J(\Lambda) = \sum_i |A_i\rangle\!\rangle \langle\!\langle A_i|`.
+We can write :math:`J(\Lambda)` in this way
+for any hermicity-preserving map; that is, for any map :math:`\Lambda` such that :math:`J(\Lambda) = J^\dagger(\Lambda)`.
+These operators then form the Kraus representation of :math:`\Lambda`. In particular, for any input :math:`\rho`,
+
+.. math::
+
+    \Lambda(\rho) = \sum_i A_i \rho A_i^\dagger.
+
+Notice using the column-stacking identity that :math:`(C^\mathrm{T} \otimes A) |B\rangle\!\rangle = |ABC\rangle\!\rangle`,
+we have that
+
+.. math::
+
+      \sum_i (𝟙 \otimes A_i) (𝟙 \otimes A_i)^\dagger |𝟙\rangle\!\rangle \langle\!\langle𝟙|
+    = \sum_i |A_i\rangle\!\rangle \langle\!\langle A_i| = J(\Lambda).
+
+The Kraus representation of a hermicity-preserving map can be found in QuTiP
+using the :func:`~qutip.superop_reps.to_kraus` function.
 
 .. ipython::
 
-    In [1]: J = to_choi(S)
+    In [1]: I, X, Y, Z = qeye(2), sigmax(), sigmay(), sigmaz()
 
-    In [2]: J
+    In [2]: S = sum(sprepost(P, P) for P in (I, X, Y, Z)) / 4
+       ...: print(S)
 
-    In [3]: K = to_kraus(J)
-    
-    In [4]: K
+    In [3]: J = to_choi(S)
+       ...: print(J)
 
+    In [4]: print(J.eigenstates()[1])
+
+    In [5]: K = to_kraus(S)
+       ...: print(K)
+
+As with the other representation conversion functions, :func:`~qutip.superop_reps.to_kraus`
+checks the :attr:`~Qobj.superrep` attribute of its input, and chooses an appropriate
+conversion method. Thus, in the above example, we can also call :func:`~qutip.superop_reps.to_kraus`
+on ``J``.
+
+.. ipython::
+
+    In [1]: KJ = to_kraus(J)
+       ...: print(KJ)
+
+    In [2]: for A, AJ in zip(K, KJ):
+       ...:     print(A - AJ)
+
+The Stinespring representation is closely related to the Kraus representation,
+and consists of a pair of operators :math:`A` and :math:`B` such that for
+all operators :math:`X` acting on :math:`\mathcal{H}`,
+
+.. math::
+
+    \Lambda(X) = \operatorname{Tr}_2(A X B^\dagger),
+
+where the partial trace is over a new index that corresponds to the
+index in the Kraus summation. Conversion to Stinespring
+is handled by the :func:`~qutip.superop_reps.to_stinespring`
+function.
+
+.. ipython::
+
+    In [1]: a = create(2).dag()
+
+    In [2]: S_ad = sprepost(a * a.dag(), a * a.dag()) + sprepost(a, a.dag())
+       ...: S = 0.9 * sprepost(I, I) + 0.1 * S_ad
+       ...: print(S)
+
+    In [3]: A, B = to_stinespring(S)
+       ...: print(A)
+       ...: print(B)
+
+Notice that a new index has been added, such that :math:`A` and :math:`B`
+have dimensions ``[[2, 3], [2]]``, with the length-3 index representing the
+fact that the Choi matrix is rank-3 (alternatively, that the map has three
+Kraus operators).
+
+.. ipython::
+
+    In [1]: to_kraus(S)
+
+    In [2]: print(to_choi(S).eigenenergies())
+
+Finally, the last superoperator representation supported by QuTiP is
+the :math:`\chi`-matrix representation,
+
+.. math::
+
+    \Lambda(\rho) = \sum_{\alpha,\beta} \chi_{\alpha,\beta} B_{\alpha} \rho B_{\beta}^\dagger,
+
+where :math:`\{B_\alpha\}` is a basis for the space of matrices acting
+on :math:`\mathcal{H}`. In QuTiP, this basis is taken to be the Pauli
+basis :math:`B_\alpha = \sigma_\alpha / \sqrt{2}`. Conversion to the
+:math:`\chi` formalism is handled by the :func:`~qutip.superop_reps.to_chi`
+function.
+
+.. ipython::
+
+    In [1]: chi = to_chi(S)
+       ...: print(chi)
+
+One convenient property of the :math:`\chi` matrix is that the average
+gate fidelity with the identity map can be read off directly from
+the :math:`\chi_{00}` element:
+
+.. ipython::
+
+    In [1]: print(average_gate_fidelity(S))
+
+    In [2]: print(chi[0, 0] / 4)
+
+Here, the factor of 4 comes from the dimension of the underlying
+Hilbert space :math:`\mathcal{H}`. As with the superoperator
+and Choi representations, the :math:`\chi` representation is
+denoted by the :attr:`~Qobj.superrep`, such that :func:`~qutip.superop_reps.to_super`,
+:func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_kraus`,
+:func:`~qutip.superop_reps.to_stinespring` and :func:`~qutip.superop_reps.to_chi`
+all convert from the :math:`\chi` representation appropriately.
+
+Properties of Quantum Maps
+==========================
+
+In addition to converting between the different representations of quantum maps,
+QuTiP also provides attributes to make it easy to check if a map is completely
+positive, trace preserving and/or hermicity preserving. Each of these attributes
+uses :attr:`~Qobj.superrep` to automatically perform any needed conversions.
+
+In particular, a quantum map is said to be positive (but not necessarily completely
+positive) if it maps all positive operators to positive operators. For instance, the
+transpose map :math:`\Lambda(\rho) = \rho^{\mathrm{T}}` is a positive map. We run into
+problems, however, if we tensor :math:`\Lambda` with the identity to get a partial
+transpose map.
+
+.. ipython::
+
+    In [1]: rho = ket2dm(bell_state())
+
+    In [2]: rho_out = partial_transpose(rho, [0, 1])
+       ...: print(rho_out.eigenenergies())
+
+Notice that even though we started with a positive map, we got an operator out
+with negative eigenvalues. Complete positivity addresses this by requiring that
+a map returns positive operators for all positive operators, and does so even
+under tensoring with another map. The Choi matrix is very useful here, as it
+can be shown that a map is completely positive if and only if its Choi matrix
+is positive [Wat13]_. QuTiP implements this check with the :attr:`~Qobj.iscp`
+attribute. As an example, notice that the snippet above already calculates
+the Choi matrix of the transpose map by acting it on half of an entangled
+pair. We simply need to manually set the ``dims`` and ``superrep`` attributes to reflect the
+structure of the underlying Hilbert space and the chosen representation.
+
+.. ipython::
+
+    In [1]: J = rho_out
+
+    In [2]: J.dims = [[[2], [2]], [[2], [2]]]
+       ...: J.superrep = 'choi'
+
+    In [3]: print(J.iscp)
+
+This confirms that the transpose map is not completely positive. On the other hand,
+the transpose map does satisfy a weaker condition, namely that it is hermicity preserving.
+That is, :math:`\Lambda(\rho) = (\Lambda(\rho))^\dagger` for all :math:`\rho` such that
+:math:`\rho = \rho^\dagger`. To see this, we note that :math:`(\rho^{\mathrm{T}})^\dagger
+= \rho^*`, the complex conjugate of :math:`\rho`. By assumption, :math:`\rho = \rho^\dagger
+= (\rho^*)^{\mathrm{T}}`, though, such that :math:`\Lambda(\rho) = \Lambda(\rho^\dagger) = \rho^*`.
+We can confirm this by checking the :attr:`~Qobj.ishp` attribute:
+
+.. ipython::
+
+    In [1]: print(J.ishp)
+
+Next, we note that the transpose map does preserve the trace of its inputs, such that
+:math:`\operatorname{Tr}(\Lambda[\rho]) = \operatorname{Tr}(\rho)` for all :math:`\rho`.
+This can be confirmed by the :attr:`~Qobj.istp` attribute:
+
+.. ipython::
+
+    In [1]: print(J.ishp)
+
+Finally, a map is called a quantum channel if it always maps valid states to valid
+states. Formally, a map is a channel if it is both completely positive and trace preserving.
+Thus, QuTiP provides a single attribute to quickly check that this is true.
+
+.. ipython::
+
+    In [1]: print(J.iscptp)
+
+    In [2]: print(to_super(qeye(2)).iscptp)
 
