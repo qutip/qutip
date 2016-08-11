@@ -371,6 +371,7 @@ def optimize_pulse(
         Returns instance of OptimResult, which has attributes giving the
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
+    
     """
     if log_level == logging.NOTSET:
         log_level = logger.getEffectiveLevel()
@@ -749,6 +750,7 @@ def optimize_pulse_unitary(
         Returns instance of OptimResult, which has attributes giving the
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
+    
     """
 
     # check parameters here, as names are different than in
@@ -1074,6 +1076,7 @@ def opt_pulse_crab(
         Returns instance of OptimResult, which has attributes giving the
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
+    
     """
 
     # The parameters are checked in create_pulse_optimizer
@@ -1654,6 +1657,7 @@ def create_pulse_optimizer(
         can be accessed as attributes of the Dynamics object, e.g.
             optimizer.dynamics.fid_computer
         The optimisation can be run through the optimizer.run_optimization
+    
     """
 
     # check parameters

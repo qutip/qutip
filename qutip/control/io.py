@@ -49,6 +49,7 @@ def create_dir(dir_name, desc='output'):
 
     msg : string
         Error msg if directory creation failed
+    
     """
 
     dir_ok = True

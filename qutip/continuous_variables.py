@@ -55,19 +55,16 @@ def correlation_matrix(basis, rho=None):
 
     Parameters
     ----------
-
-    basis : list of :class:`qutip.qobj.Qobj`
+    basis : list
         List of operators that defines the basis for the correlation matrix.
-
-    rho : :class:`qutip.qobj.Qobj`
+    rho : Qobj
         Density matrix for which to calculate the correlation matrix. If
         `rho` is `None`, then a matrix of correlation matrix operators is
         returned instead of expectation values of those operators.
 
     Returns
     -------
-
-    corr_mat: *array*
+    corr_mat : ndarray
         A 2-dimensional *array* of correlation values or operators.
 
 
@@ -100,25 +97,20 @@ def covariance_matrix(basis, rho, symmetrized=True):
         V_{mn} = \\langle a_m a_n\\rangle -
         \\langle a_m \\rangle \\langle a_n\\rangle
 
-
     Parameters
     ----------
-
-    basis : list of :class:`qutip.qobj.Qobj`
+    basis : list
         List of operators that defines the basis for the covariance matrix.
-
-    rho : :class:`qutip.qobj.Qobj`
+    rho : Qobj
         Density matrix for which to calculate the covariance matrix.
-
-    symmetrized : *bool*
+    symmetrized : bool {True, False}
         Flag indicating whether the symmetrized (default) or non-symmetrized
         correlation matrix is to be calculated.
 
     Returns
     -------
-
-    corr_mat: *array*
-        A 2-dimensional *array* of covariance values.
+    corr_mat : ndarray
+        A 2-dimensional array of covariance values.
 
     """
     if symmetrized:
@@ -133,26 +125,23 @@ def covariance_matrix(basis, rho, symmetrized=True):
 
 def correlation_matrix_field(a1, a2, rho=None):
     """
-    Calculate the correlation matrix for given field operators :math:`a_1` and
+    Calculates the correlation matrix for given field operators :math:`a_1` and
     :math:`a_2`. If a density matrix is given the expectation values are
     calculated, otherwise a matrix with operators is returned.
 
     Parameters
     ----------
-
-    a1 : :class:`qutip.qobj.Qobj`
+    a1 : Qobj
         Field operator for mode 1.
-
-    a2 : :class:`qutip.qobj.Qobj`
+    a2 : Qobj
         Field operator for mode 2.
-
-    rho : :class:`qutip.qobj.Qobj`
+    rho : Qobj
         Density matrix for which to calculate the covariance matrix.
 
     Returns
     -------
-
-    cov_mat: *array* of complex numbers or :class:`qutip.qobj.Qobj`
+    cov_mat : ndarray 
+        Array of complex numbers or Qobj's
         A 2-dimensional *array* of covariance values, or, if rho=0, a matrix
         of operators.
     """
@@ -170,20 +159,17 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 
     Parameters
     ----------
-
-    a1 : :class:`qutip.qobj.Qobj`
+    a1 : Qobj
         Field operator for mode 1.
-
-    a2 : :class:`qutip.qobj.Qobj`
+    a2 : Qobj
         Field operator for mode 2.
-
-    rho : :class:`qutip.qobj.Qobj`
+    rho : Qobj
         Density matrix for which to calculate the covariance matrix.
 
     Returns
     -------
-
-    corr_mat: *array* of complex numbers or :class:`qutip.qobj.Qobj`
+    corr_mat : ndarray 
+        Array of complex numbers or Qobj's
         A 2-dimensional *array* of covariance values for the field quadratures,
         or, if rho=0, a matrix of operators.
 
@@ -200,7 +186,7 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 
 def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     """
-    Calculate the Wigner covariance matrix
+    Calculates the Wigner covariance matrix
     :math:`V_{ij} = \\frac{1}{2}(R_{ij} + R_{ji})`, given
     the quadrature correlation matrix
     :math:`R_{ij} = \\langle R_{i} R_{j}\\rangle -
@@ -216,23 +202,22 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     Parameters
     ----------
 
-    a1 : :class:`qutip.qobj.Qobj`
+    a1 : Qobj
         Field operator for mode 1.
 
-    a2 : :class:`qutip.qobj.Qobj`
+    a2 : Qobj
         Field operator for mode 2.
 
-    R : *array*
+    R : ndarray
         The quadrature correlation matrix.
 
-    rho : :class:`qutip.qobj.Qobj`
+    rho : Qobj
         Density matrix for which to calculate the covariance matrix.
 
     Returns
     -------
-
-    cov_mat: *array*
-        A 2-dimensional *array* of covariance values.
+    cov_mat : ndarray
+        A 2-dimensional array of covariance values.
 
     """
     if R is not None:
@@ -265,7 +250,7 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
 
 def logarithmic_negativity(V):
     """
-    Calculate the logarithmic negativity given the symmetrized covariance
+    Calculates the logarithmic negativity given a symmetrized covariance
     matrix, see :func:`qutip.continous_variables.covariance_matrix`. Note that
     the two-mode field state that is described by `V` must be Gaussian for this
     function to applicable.
@@ -279,8 +264,9 @@ def logarithmic_negativity(V):
     Returns
     -------
 
-    N: *float*, the logarithmic negativity for the two-mode Gaussian state
-    that is described by the the Wigner covariance matrix V.
+    N : float 
+        The logarithmic negativity for the two-mode Gaussian state
+        that is described by the the Wigner covariance matrix V.
 
     """
 
