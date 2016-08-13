@@ -891,7 +891,7 @@ def charge(Nmax, Nmin=None, frac = 1):
     from Nmin to Nmax.
     
     Parameters
-    ---------
+    ----------
     Nmax : int
         Maximum charge state to consider.
     
@@ -909,7 +909,6 @@ def charge(Nmax, Nmin=None, frac = 1):
     Notes
     -----
     .. versionadded:: 3.2
-    
     
     """
     if Nmin is None:

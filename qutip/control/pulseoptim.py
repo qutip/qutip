@@ -214,6 +214,7 @@ def optimize_pulse(
     alg : string
         Algorithm to use in pulse optimisation.
         Options are:
+            
             'GRAPE' (default) - GRadient Ascent Pulse Engineering
             'CRAB' - Chopped RAndom Basis
 
@@ -632,6 +633,7 @@ def optimize_pulse_unitary(
         Note the LBFGSB is equivalent to FMIN_L_BFGS_B for backwards 
         capatibility reasons.
         Supplying DEF will given alg dependent result:
+            
             GRAPE - Default optim_method is FMIN_L_BFGS_B
             CRAB - Default optim_method is FMIN
         
@@ -655,6 +657,7 @@ def optimize_pulse_unitary(
     phase_option : string
         determines how global phase is treated in fidelity
         calculations (fid_type='UNIT' only). Options:
+            
             PSU - global phase ignored
             SU - global phase included
 
@@ -692,8 +695,10 @@ def optimize_pulse_unitary(
         type / shape of pulse(s) used to initialise the
         the control amplitudes. 
         Options (GRAPE) include:
+            
             RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
-        DEF is RND
+            DEF is RND
+        
         (see PulseGen classes for details)
         For the CRAB the this the guess_pulse_type. 
 
@@ -1603,8 +1608,10 @@ def create_pulse_optimizer(
         type / shape of pulse(s) used to initialise the
         the control amplitudes. 
         Options (GRAPE) include:
+            
             RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
-        DEF is RND
+            DEF is RND
+        
         (see PulseGen classes for details)
         For the CRAB the this the guess_pulse_type. 
 
