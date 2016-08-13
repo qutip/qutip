@@ -46,6 +46,7 @@ method in qutip.
 """
 
 import numpy as np
+import warnings
 
 import qutip as qt
 
@@ -76,12 +77,20 @@ class MemoryCascade:
         Decay operators describing conventional Markovian decay channels.
         Can be a single operator or a list of operators.
 
+    integrator : str {'propagator', 'mesolve'}
+        Integrator method to use. Defaults to 'propagator' which tends to be 
+        faster for long times (i.e., large Hilbert space).
+
+    parallel : bool
+        Run integrator in parallel if True. Only implemented for 'propagator'
+        as the integrator method.
+
     options : :class:`qutip.solver.Options`
         Generic solver options.
     """
 
     def __init__(self, H_S, L1, L2, S_matrix=None, c_ops_markov=None,
-                 options=None):
+                 integrator='propagator', parallel=False, options=None):
 
         if options is None:
             self.options = qt.Options()
@@ -114,6 +123,8 @@ class MemoryCascade:
         self.Id.dims = self.sysdims
         self.Id = qt.sprepost(self.Id, self.Id)
         self.store_states = self.options.store_states
+        self.integrator = integrator
+        self.parallel = parallel
 
     def propagator(self, t, tau, notrace=False):
         """
@@ -141,12 +152,14 @@ class MemoryCascade:
         s = t-(k-1)*tau
         G1, E0 = _generator(k, self.H_S, self.L1, self.L2, self.S_matrix,
                             self.c_ops_markov)
-        E = _integrate(G1, E0, 0., s, opt=self.options)
+        E = _integrate(G1, E0, 0., s, integrator=self.integrator,
+                       parallel=self.parallel, opt=self.options)
         if k > 1:
             G2, null = _generator(k-1, self.H_S, self.L1, self.L2,
                                   self.S_matrix, self.c_ops_markov)
             G2 = qt.composite(G2, self.Id)
-            E = _integrate(G2, E, s, tau, opt=self.options)
+            E = _integrate(G2, E, s, tau, integrator=self.integrator, 
+                    parallel=self.parallel, opt=self.options)
         E.dims = E0.dims
         if not notrace:
             E = _genptrace(E, k)
@@ -225,7 +238,8 @@ class MemoryCascade:
         sprev = 0.
         E = E0
         for i, s in enumerate(slist):
-            E = _integrate(G1, E, sprev, s, opt=self.options)
+            E = _integrate(G1, E, sprev, s, integrator=self.integrator,
+                    parallel=self.parallel, opt=self.options)
             if klist[i] == 1:
                 l1 = 0.*qt.Qobj()
             else:
@@ -247,7 +261,8 @@ class MemoryCascade:
             superop.dims = E.dims
             E = superop*E
             sprev = s
-        E = _integrate(G1, E, slist[-1], tau, opt=self.options)
+        E = _integrate(G1, E, slist[-1], tau, integrator=self.integrator,
+                parallel=self.parallel, opt=self.options)
 
         E.dims = E0.dims
         if not notrace:
@@ -261,7 +276,7 @@ class MemoryCascade:
         Parameters
         ----------
         rho0 : :class:`qutip.Qobj`
-            initial density matrix or state vector (ket).
+            initial density matrix or state vector (ket)
 
         t : float
             current time
@@ -399,13 +414,23 @@ def _generator(k, H, L1, L2, S=None, c_ops_markov=None):
     return L, E0
 
 
-def _integrate(L, E0, ti, tf, opt=qt.Options()):
+def _integrate(L, E0, ti, tf, integrator='propagator', parallel=False,
+        opt=qt.Options()):
     """
     Basic ode integrator
     """
-    opt.store_final_state = True
     if tf > ti:
-        sol = qt.mesolve(L, E0, [ti, tf], [], [], options=opt)
-        return sol.final_state
+        if integrator == 'mesolve':
+            if parallel:
+                warnings.warn('parallelization not implemented for "mesolve"')
+            opt.store_final_state = True
+            sol = qt.mesolve(L, E0, [ti, tf], [], [], options=opt)
+            return sol.final_state
+        elif integrator == 'propagator':
+            return qt.propagator(L, (tf-ti), [], [], parallel=parallel,
+                                 options=opt)*E0
+        else:
+            raise ValueError('integrator keyword must be either "propagator"' +
+                              'or "mesolve"')
     else:
         return E0
