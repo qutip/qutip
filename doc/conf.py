@@ -38,6 +38,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.extlinks',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
+              'sphinx.ext.napoleon'
               ]
 
 
@@ -101,6 +102,10 @@ pygments_style = 'sphinx'
 #modindex_common_prefix = []
 todo_include_todos = True
 
+
+numpydoc_show_class_members = False
+napoleon_numpy_docstring = True
+napoleon_use_admonition_for_notes = True
 # -- Options for HTML output ---------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for

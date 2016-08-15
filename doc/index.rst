@@ -16,6 +16,9 @@ QuTiP: Quantum Toolbox in Python (3.2.0)
    installation.rst
    guide/guide.rst
    apidoc/apidoc.rst
+   
+   :maxdepth: 1
+   
    changelog.rst
    contributors.rst
    biblio.rst

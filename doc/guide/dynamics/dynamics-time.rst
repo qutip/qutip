@@ -9,10 +9,12 @@ Solving Problems with Time-dependent Hamiltonians
 
 .. ipython::
    :suppress:
-
+   
+   In [1]: import numpy as np
+   
    In [1]: from qutip import *
    
-   In [1]: from pylab import *
+   In [1]: import pylab as plt
 
    In [1]: from warnings import warn
 
@@ -23,7 +25,7 @@ Methods for Writing Time-Dependent Operators
 In the previous examples of quantum evolution, we assumed that the systems under consideration were described by time-independent Hamiltonians.  However, many systems have explicit time dependence in either the Hamiltonian, or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.  The two main evolution solvers in QuTiP, :func:`qutip.mesolve` and :func:`qutip.mcsolve`, discussed in :ref:`master` and :ref:`monte` respectively, are capable of handling time-dependent Hamiltonians and collapse terms.  There are, in general, three different ways to implement time-dependent problems in QuTiP:
 
 
-1. **Function based**: Hamiltonian / collapse operators expressed using [qobj, func] pairs, where the time-dependent coefficients of the Hamiltonian (or collapse operators) are expressed in the Python functions.
+1. **Function based**: Hamiltonian / collapse operators expressed using [qobj, func] pairs, where the time-dependent coefficients of the Hamiltonian (or collapse operators) are expressed using Python functions.
 
 2. **String (Cython) based**: The Hamiltonian and/or collapse operators are expressed as a list of [qobj, string] pairs, where the time-dependent coefficients are represented as strings.  The resulting Hamiltonian is then compiled into C code using Cython and executed.
 
@@ -32,7 +34,7 @@ In the previous examples of quantum evolution, we assumed that the systems under
 
 Give the multiple choices of input style, the first question that arrises is which option to choose?  In short, the function based method (option #1) is the most general, allowing for essentially arbitrary coefficients expressed via user defined functions.  However, by automatically compiling your system into C code, the second option (string based) tends to be more efficient and will run faster.  Of course, for small system sizes and evolution times, the difference will be minor.  Although this method does not support all time-dependent coefficients that one can think of, it does support essentially all problems that one would typically encounter.  Time-dependent coefficients using any of the following functions, or combinations thereof (including constants) can be compiled directly into C-code::
 
-   'abs', 'acos', 'acosh', 'arg', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'conj', 
+   'abs', 'arccos', 'arccosh', 'arg', 'arcsin', 'arcsinh', 'arctan', 'arctan2', 'arctanh', 'conj', 
    'cos', 'cosh','exp', 'imag', 'log', 'pow', 'proj, 'real', 'sin', 'sinh', 'sqrt',
    'tan', 'tanh'
 

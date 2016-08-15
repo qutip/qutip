@@ -70,8 +70,8 @@ QuTiP is designed to work best when using the `Anaconda <https://www.continuum.i
 
 .. code-block:: bash
     
-    conda config --add channels conda-forge 
-    conda install qutip
+   conda config --add channels conda-forge 
+   conda install qutip
 
 
 Installing via pip
@@ -81,13 +81,13 @@ For other types of installation, it is often easiest to use the Python package m
 
 .. code-block:: bash
 
-    pip install qutip
+   pip install qutip
 
 Or, optionally, to also include the Fortran-based Monte Carlo solver:
 
 .. code-block:: bash
 
-    pip install qutip --install-option=--with-f90mc
+   pip install qutip --install-option=--with-f90mc
 
 More detailed platform-dependent installation alternatives are given below.
 
@@ -111,13 +111,13 @@ Installing QuTiP from source requires that all the dependencies are satisfied.  
 
 .. code-block:: bash
 
-    sudo python setup.py install
+   sudo python setup.py install
 
 To also include the optional Fortran Monte Carlo solver, run:
 
 .. code-block:: bash
     
-    sudo python setup.py install --with-f90mc
+   sudo python setup.py install --with-f90mc
 
 On Windows, omit ``sudo`` from the commands given above.
 
@@ -130,8 +130,8 @@ Verifying the Installation
 QuTiP includes a collection of built-in test scripts to verify that an installation was successful. To run the suite of tests scripts you must have the nose testing library. After installing QuTiP, leave the installation directory, run Python (or iPython), and call:
 
 .. code-block:: python
-    import qutip.testing as qt
-    qt.run()
+   import qutip.testing as qt
+   qt.run()
 
 If successful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that you have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies. If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
 

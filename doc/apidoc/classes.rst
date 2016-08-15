@@ -34,8 +34,8 @@ Bloch sphere
 .. autoclass:: qutip.bloch3d.Bloch3d
     :members: 
 
-.. _classes-odeoptions:
 
+.. _classes-odeoptions:
 
 Solver Options and Results
 ---------------------------
@@ -48,6 +48,9 @@ Solver Options and Results
 
 .. autoclass:: qutip.stochastic.StochasticSolverOptions
     :members:
+
+
+.. _classes-distributions:
 
 Distribution functions
 ----------------------------
@@ -70,6 +73,7 @@ Distribution functions
 .. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
     :members:
 
+.. _classes-qip:
 
 Quantum information processing
 ------------------------------
@@ -95,6 +99,7 @@ Quantum information processing
 .. autoclass:: qutip.qip.models.cqed.DispersivecQED
     :members:
 
+.. _classes-control:
 
 Optimal control
 ---------------

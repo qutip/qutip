@@ -258,6 +258,7 @@ Optimal control
 Utilitiy Functions
 ==================
 
+.. _functions-graph:
 
 Graph Theory Routines
 ----------------------
