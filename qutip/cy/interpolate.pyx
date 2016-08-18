@@ -4,7 +4,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-cdef extern from "c_interpolate.h" nogil:
+cdef extern from "src/c_interpolate.h" nogil:
     double cinterpolate(double x, double a, double b, double *c, int lenc)
     void carray_interpolate(double *x, double a, double b, double *c, 
                             double *out, int lenx, int lenc)
