@@ -28,7 +28,7 @@ def configuration(parent_package='', top_path=None):
     config.add_extension(
         'interpolate', 
         sources = ['interpolate.pyx','src/c_interpolate.c'],
-        include_dirs=[np.get_include(), _cython_path+'/src'],
+        include_dirs=[np.get_include(), _cython_path],
         extra_compile_args=_compiler_flags,
         extra_link_args=[])
     
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # builds c-file from pyx for distribution
     setup(
         cmdclass={'build_ext': build_ext},
-        include_dirs=[np.get_include(), _cython_path+'/src'],
+        include_dirs=[np.get_include(), _cython_path],
         ext_modules=[Extension(
             ext, [ext + ".pyx"],
             extra_compile_args=_compiler_flags,
