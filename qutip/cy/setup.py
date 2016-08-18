@@ -5,7 +5,6 @@ from Cython.Build import cythonize
 
 import numpy as np
 import os
-_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")+'/src'
 
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
 
@@ -28,10 +27,9 @@ def configuration(parent_package='', top_path=None):
     config.add_extension(
         'interpolate', 
         sources = ['interpolate.pyx','src/c_interpolate.c'],
-        include_dirs=[np.get_include(), _cython_path],
+        depends= ['src/c_interpolate.h'],
+        include_dirs=[np.get_include(), 'src'],
         extra_compile_args=_compiler_flags,
-        libraries = ['c_interpolate'],
-        library_dirs = ['src'],
         extra_link_args=[])
     
     config.ext_modules = cythonize(config.ext_modules)
@@ -51,8 +49,8 @@ if __name__ == '__main__':
             [Extension(
             'interpolate',
             ['interpolate.pyx','src/c_interpolate.c'],
+            depends= ['src/c_interpolate.h'],
+            include_dirs=[np.get_include(), 'src'],
             extra_compile_args=_compiler_flags,
-            libraries = ['c_interpolate'],
-            library_dirs = ['src'],
             extra_link_args=[])]
             )
