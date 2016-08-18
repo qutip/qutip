@@ -724,6 +724,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
     epsilon : float
         control amplitude offset to use when approximating the gradient wrt
         a timeslot control amplitude
+    
     """
     def reset(self):
         FidelityComputer.reset(self)

@@ -141,8 +141,12 @@ class Qobj(object):
     -------
     conj()
         Conjugate of quantum object.
+    cosm()
+        Cosine of quantum object.
     dag()
         Adjoint (dagger) of quantum object.
+    dnorm()
+        Diamond norm of quantum operator.
     dual_chan()
         Dual channel of quantum object representing a CP map.
     eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
@@ -153,7 +157,7 @@ class Qobj(object):
         Matrix exponential of quantum object.
     full()
         Returns dense array of quantum object `data` attribute.
-    groundstate(sparse=False,tol=0,maxiter=100000)
+    groundstate(sparse=False, tol=0, maxiter=100000)
         Returns eigenvalue and eigenket for the groundstate of a quantum
         object.
     matrix_element(bra, ket)
@@ -165,6 +169,8 @@ class Qobj(object):
     ptrace(sel)
         Returns quantum object for selected dimensions after performing
         partial trace.
+    sinm()
+        Sine of quantum object.
     sqrtm()
         Matrix square root of quantum object.
     tidyup(atol=1e-12)
@@ -180,6 +186,7 @@ class Qobj(object):
         a valid density operator.
     unit(norm='tr', sparse=False, tol=0, maxiter=100000)
         Returns normalized quantum object.
+    
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
@@ -888,7 +895,7 @@ class Qobj(object):
 
         Returns
         -------
-        trace: float
+        trace : float
             Returns ``real`` if operator is Hermitian, returns ``complex``
             otherwise.
 
@@ -917,7 +924,7 @@ class Qobj(object):
 
         Returns
         -------
-        diags: array
+        diags : array
             Returns array of ``real`` values if operators is Hermitian,
             otherwise ``complex`` values are returned.
 
@@ -987,10 +994,8 @@ class Qobj(object):
         ----------
         sparse : bool
             Use sparse eigenvalue/vector solver.
-
         tol : float
             Tolerance used by sparse solver (0 = machine precision).
-
         maxiter : int
             Maximum number of iterations used by sparse solver.
 
@@ -1094,7 +1099,7 @@ class Qobj(object):
             Use sparse eigensolver for trace norm. Does not affect other norms.
         tol : float
             Tolerance used by sparse eigensolver.
-        maxiter: int
+        maxiter : int
             Number of maximum iterations performed by sparse eigensolver.
 
         Returns
@@ -1120,7 +1125,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper: qobj
+        oper : qobj
             Quantum object representing partial trace with selected components
             remaining.
 
@@ -1163,7 +1168,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper: qobj
+        oper : qobj
             Quantum object with small elements removed.
 
         """
@@ -1286,6 +1291,7 @@ class Qobj(object):
         -------
         oper : qobj
             A valid density operator.
+        
         """
         if not self.isherm:
             raise ValueError("Must be a Hermitian operator to remove negative eigenvalues.")
@@ -1386,6 +1392,7 @@ class Qobj(object):
         ------
         TypeError
             Can only calculate overlap between a bra and ket quantum objects.
+        
         """
 
         if isinstance(state, Qobj):
@@ -1464,23 +1471,19 @@ class Qobj(object):
         ----------
         sparse : bool
             Use sparse Eigensolver
-
         sort : str
             Sort eigenvalues 'low' to high, or 'high' to low.
-
         eigvals : int
             Number of requested eigenvalues. Default is all eigenvalues.
-
         tol : float
             Tolerance used by sparse Eigensolver (0=machine precision).
             The sparse solver may not converge if the tolerance is set too low.
-
         maxiter : int
             Maximum number of iterations performed by sparse solver (if used).
 
         Returns
         -------
-        eigvals: array
+        eigvals : array
             Array of eigenvalues for operator.
 
         Notes
@@ -1513,7 +1516,6 @@ class Qobj(object):
         -------
         eigval : float
             Eigenvalue for the ground state of quantum operator.
-
         eigvec : qobj
             Eigenket for the ground state of quantum operator.
 
@@ -1569,14 +1571,13 @@ class Qobj(object):
 
         Returns
         -------
-        q : :class:`qutip.Qobj`
-
+        q : Qobj
             A new instance of :class:`qutip.Qobj` that contains only the states
             corresponding to the indices in `state_inds`.
 
-        .. note::
-
-            Experimental.
+        Notes
+        -----
+        Experimental.
 
         """
         if self.isoper:
@@ -1608,14 +1609,14 @@ class Qobj(object):
 
         Returns
         -------
-        q : :class:`qutip.Qobj`
-
+        q : Qobj
             A new instance of :class:`qutip.Qobj` that contains only the states
             corresponding to indices that are **not** in `state_inds`.
 
-        .. note::
-
-            Experimental.
+        Notes
+        -----
+        Experimental.
+        
         """
         keep_indices = np.array([s not in states_inds
                                  for s in range(self.shape[0])]).nonzero()[0]
@@ -1633,10 +1634,10 @@ class Qobj(object):
 
         Returns
         -------
-
         d : float
             Either the diamond norm of this operator, or the diamond distance
             from this operator to B.
+        
         """
         return mts.dnorm(self, B)
 
@@ -1796,23 +1797,18 @@ class Qobj(object):
 
         Parameters
         ----------
-
         qobj_list : list
             A nested list of Qobj instances and corresponding time-dependent
             coefficients.
-
         t : float
             The time for which to evaluate the time-dependent Qobj instance.
-
         args : dictionary
             A dictionary with parameter values required to evaluate the
             time-dependent Qobj intance.
 
         Returns
         -------
-
         output : Qobj
-
             A Qobj instance that represents the value of qobj_list at time t.
 
         """
@@ -1882,6 +1878,7 @@ def dag(A):
     -----
     This function is for legacy compatibility only. It is recommended to use
     the ``dag()`` Qobj method.
+    
     """
     if not isinstance(A, Qobj):
         raise TypeError("Input is not a quantum object")
@@ -1901,7 +1898,7 @@ def ptrace(Q, sel):
 
     Returns
     -------
-    oper: qobj
+    oper : qobj
         Quantum object representing partial trace with selected components
         remaining.
 
@@ -1909,6 +1906,7 @@ def ptrace(Q, sel):
     -----
     This function is for legacy compatibility only. It is recommended to use
     the ``ptrace()`` Qobj method.
+    
     """
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
@@ -1933,6 +1931,7 @@ def dims(inpt):
     -----
     This function is for legacy compatibility only. Using the `Qobj.dims`
     attribute is recommended.
+    
     """
     if isinstance(inpt, Qobj):
         return inpt.dims
@@ -1957,6 +1956,7 @@ def shape(inpt):
     -----
     This function is for legacy compatibility only. Using the `Qobj.shape`
     attribute is recommended.
+    
     """
     if isinstance(inpt, Qobj):
         return Qobj.shape
@@ -1988,6 +1988,7 @@ def isket(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isket`
     attribute is recommended.
+    
     """
     return True if isinstance(Q, Qobj) and Q.isket else False
 
@@ -2015,6 +2016,7 @@ def isbra(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isbra`
     attribute is recommended.
+    
     """
     return True if isinstance(Q, Qobj) and Q.isbra else False
 
@@ -2037,6 +2039,7 @@ def isoperket(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isoperket`
     attribute is recommended.
+    
     """
     return True if isinstance(Q, Qobj) and Q.isoperket else False
 
@@ -2059,6 +2062,7 @@ def isoperbra(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isoperbra`
     attribute is recommended.
+    
     """
     return True if isinstance(Q, Qobj) and Q.isoperbra else False
 
@@ -2086,6 +2090,7 @@ def isoper(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isoper`
     attribute is recommended.
+    
     """
     return True if isinstance(Q, Qobj) and Q.isoper else False
 
@@ -2107,6 +2112,7 @@ def issuper(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.issuper`
     attribute is recommended.
+    
     """
     return True if isinstance(Q, Qobj) and Q.issuper else False
 
@@ -2132,6 +2138,7 @@ def isequal(A, B, tol=None):
     -----
     This function is for legacy compatibility only. Instead, it is recommended
     to use the equality operator of Qobj instances instead: A == B.
+    
     """
     if tol is None:
         tol = settings.atol
@@ -2174,6 +2181,7 @@ def isherm(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isherm`
     attribute is recommended.
+    
     """
     return True if isinstance(Q, Qobj) and Q.isherm else False
 

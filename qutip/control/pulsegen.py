@@ -59,22 +59,29 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
     The pulse generators each produce a different type of pulse,
     see the gen_pulse function description for details.
     These are the random pulse options:
+        
         RND - Independent random value in each timeslot
         RNDFOURIER - Fourier series with random coefficients
         RNDWAVES - Summation of random waves
         RNDWALK1 - Random change in amplitude each timeslot
         RNDWALK2 - Random change in amp gradient each timeslot
+    
     These are the other non-periodic options:
+        
         LIN - Linear, i.e. contant gradient over the time
         ZERO - special case of the LIN pulse, where the gradient is 0
+    
     These are the periodic options
+        
         SINE - Sine wave
         SQUARE - Square wave
         SAW - Saw tooth wave
         TRIANGLE - Triangular wave
+    
     If a Dynamics object is passed in then this is used in instantiate
     the PulseGen, meaning that some timeslot and amplitude properties
     are copied over.
+    
     """
 
     if pulse_type == 'RND':

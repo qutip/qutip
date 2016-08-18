@@ -458,11 +458,10 @@ shape = [3, 3], type = oper, isHerm = True
 # projection operator
 #
 def projection(N, n, m, offset=0):
-    """The projection operator that projects state |m> on state |n>: |n><m|.
+    """The projection operator that projects state :math:`|m>` on state :math:`|n>`.
 
     Parameters
     ----------
-
     N : int
         Number of basis states in Hilbert space.
 
@@ -477,6 +476,7 @@ def projection(N, n, m, offset=0):
     -------
     oper : qobj
          Requested projection operator.
+    
     """
     ket1 = basis(N, n, offset=offset)
     ket2 = basis(N, m, offset=offset)
