@@ -5,7 +5,7 @@ from Cython.Build import cythonize
 
 import numpy as np
 import os
-_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")+'\src'
+_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")+'/src'
 
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
 
