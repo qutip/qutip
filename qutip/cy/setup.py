@@ -22,6 +22,14 @@ def configuration(parent_package='', top_path=None):
             extra_compile_args=_compiler_flags,
             extra_link_args=[])
 
+    #add interpolation
+    config.add_extension(
+        'interpolate', 
+        sources = ['interpolate.pyx', 'src/c_interpolate.c'],
+        include_dirs=[np.get_include()],
+        extra_compile_args=_compiler_flags,
+        extra_link_args=[])
+    
     config.ext_modules = cythonize(config.ext_modules)
 
     return config
