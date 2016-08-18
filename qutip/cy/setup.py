@@ -30,6 +30,8 @@ def configuration(parent_package='', top_path=None):
         sources = ['interpolate.pyx','src/c_interpolate.c'],
         include_dirs=[np.get_include(), _cython_path],
         extra_compile_args=_compiler_flags,
+        libraries = ['c_interpolate'],
+        library_dirs = ['src'],
         extra_link_args=[])
     
     config.ext_modules = cythonize(config.ext_modules)
@@ -50,5 +52,7 @@ if __name__ == '__main__':
             'interpolate',
             ['interpolate.pyx','src/c_interpolate.c'],
             extra_compile_args=_compiler_flags,
+            libraries = ['c_interpolate'],
+            library_dirs = ['src'],
             extra_link_args=[])]
             )
