@@ -44,4 +44,10 @@ if __name__ == '__main__':
         ext_modules=[Extension(
             ext, [ext + ".pyx"],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[]) for ext in exts])
+            extra_link_args=[]) for ext in exts]+
+            [Extension(
+            'interpolate',
+            ['interpolate.pyx','src/c_interpolate.c'],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[])]
+            )
