@@ -6,6 +6,8 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
+_cy_folder_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
+
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
 
 _compiler_flags = ['-w', '-ffast-math', '-O3', '-mtune=native']
@@ -25,7 +27,7 @@ def configuration(parent_package='', top_path=None):
     #add interpolation
     config.add_extension(
         'interpolate', 
-        sources = ['interpolate.pyx', 'src/c_interpolate.c'],
+        sources = ['interpolate.pyx', _cy_folder_path+'/src/c_interpolate.c'],
         include_dirs=[np.get_include()],
         extra_compile_args=_compiler_flags,
         extra_link_args=[])
