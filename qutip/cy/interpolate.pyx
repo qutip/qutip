@@ -15,7 +15,6 @@ cdef inline double phi(double t):
     else:
         return 0
 
-
 cpdef double _interpolate(double x, double a, double b, double[::1] c):
     cdef int n = c.shape[0] - 3
     cdef double h = (b-a) / n
@@ -27,8 +26,7 @@ cpdef double _interpolate(double x, double a, double b, double[::1] c):
     
     for ii in range(l, m+1):
         s += c[ii-1] * phi(pos - ii)
-    return s;    
-
+    return s    
 
 def _array_interpolate(double[::1] x, double a, double b, double[::1] c):
     cdef int lenx = x.shape[0]
@@ -49,3 +47,4 @@ def _array_interpolate(double[::1] x, double a, double b, double[::1] c):
             out[jj] += c[ii-1] * phi(pos - ii)
     
     return out
+
