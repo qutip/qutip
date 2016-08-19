@@ -55,7 +55,6 @@ class Cubic_Spline(object):
         coeff[1] = 1/6. * (y[0] - (alpha * h**2)/6)
         coeff[n + 1] = 1/6. * (y[n] - (beta * h**2)/6)
 
-        # ab matrix here is just compressed banded matrix
         ab = np.ones((3, n - 1), dtype=float)
         ab[0, 0] = 0
         ab[1, :] = 4
@@ -71,13 +70,15 @@ class Cubic_Spline(object):
         coeff[0] = alpha * h**2/6. + 2 * coeff[1] - coeff[2]
         coeff[-1] = beta * h**2/6. + 2 * coeff[-2] - coeff[-3]
 
-        self.a = a
-        self.b = b
-        self.coeffs = coeff
+        self.a = a          # Lower-bound of domain
+        self.b = b          # Uppser-bound of domain
+        self.coeffs = coeff # Spline coefficients
         
     def __call__(self, pnts):
+        #If requesting a single return value
         if isinstance(pnts, (int, float)):
             return _interpolate(pnts, self.a, self.b, self.coeffs)
+        #If requesting multiple return values from array_like
         elif isinstance(pnts, (np.ndarray,list)):
             pnts = np.asarray(pnts)
             return _array_interpolate(pnts, self.a, self.b, self.coeffs)

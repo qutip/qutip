@@ -89,13 +89,12 @@ REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
 INSTALL_REQUIRES = ['numpy>=1.6', 'scipy>=0.11', 'cython>=0.15', 'matplotlib>=1.1']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
-            'qutip/_mkl', 'qutip/tests','qutip/cy/src']
+            'qutip/_mkl', 'qutip/tests']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
     'qutip/control': ['*.pyx'],
-    'qutip/cy/src': ['*.c', '*.h']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.

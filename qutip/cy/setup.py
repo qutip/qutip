@@ -6,7 +6,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
-exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
+exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate']
 
 _compiler_flags = ['-w', '-ffast-math', '-O3', '-mtune=native']
 
@@ -23,14 +23,6 @@ def configuration(parent_package='', top_path=None):
             extra_compile_args=_compiler_flags,
             extra_link_args=[])
 
-    #add interpolation
-    config.add_extension(
-        'interpolate', 
-        sources = ['interpolate.pyx','src/c_interpolate.c'],
-        include_dirs=[np.get_include()],
-        extra_compile_args=_compiler_flags,
-        extra_link_args=[])
-    
     config.ext_modules = cythonize(config.ext_modules)
 
     return config
@@ -44,10 +36,5 @@ if __name__ == '__main__':
         ext_modules=[Extension(
             ext, [ext + ".pyx"],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[]) for ext in exts]+
-            [Extension(
-            'interpolate',
-            ['interpolate.pyx','src/c_interpolate.c'],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=[])]
+            extra_link_args=[]) for ext in exts]
             )
