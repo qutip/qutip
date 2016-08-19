@@ -118,6 +118,7 @@ def column_permutation(A):
     -------
     perm : array
         Array of permuted row and column indices.
+    
     """
     if not sp.isspmatrix_csc(A):
         A = sp.csc_matrix(A)
@@ -161,6 +162,7 @@ def reverse_cuthill_mckee(A, sym=False):
     E. Cuthill and J. McKee, "Reducing the Bandwidth of Sparse Symmetric
     Matrices", ACM '69 Proceedings of the 1969 24th national conference,
     (1969).
+    
     """
     if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
         raise TypeError('Input must be CSC or CSR sparse matrix.')
@@ -203,10 +205,10 @@ def maximum_bipartite_matching(A, perm_type='row'):
 
     References
     ----------
-    .. [1] I. S. Duff, K. Kaya, and B. Ucar, "Design, Implementation, and
+    I. S. Duff, K. Kaya, and B. Ucar, "Design, Implementation, and
     Analysis of Maximum Transversal Algorithms", ACM Trans. Math. Softw.
     38, no. 2, (2011).
-
+    
     """
     nrows = A.shape[0]
     if A.shape[0] != A.shape[1]:
@@ -265,7 +267,7 @@ def weighted_bipartite_matching(A, perm_type='row'):
 
     References
     ----------
-    .. [1] I. S. Duff and J. Koster, "The design and use of algorithms for
+    I. S. Duff and J. Koster, "The design and use of algorithms for
     permuting large entries to the diagonal of sparse matrices", SIAM J.
     Matrix Anal. and Applics. 20, no. 4, 889 (1997).
 

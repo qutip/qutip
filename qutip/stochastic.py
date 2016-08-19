@@ -1515,7 +1515,7 @@ def sop_H(A, rho_vec):
     H[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger] rho
             -> (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec] rho_vec
 
-    Todo: cythonize, add A_L + Ad_R to precomputed operators
+    Need to cythonize, add A_L + Ad_R to precomputed operators
     """
     M = A[0] + A[3]
 
@@ -1530,7 +1530,7 @@ def sop_G(A, rho_vec):
     G[a] rho = a rho a^\dagger / Tr[a rho a^\dagger] - rho
             -> A_L Ad_R rho_vec / Tr[A_L Ad_R rho_vec] - rho_vec
 
-    Todo: cythonize, add A_L + Ad_R to precomputed operators
+    Need to cythonize, add A_L + Ad_R to precomputed operators
     """
 
     e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
@@ -1545,7 +1545,7 @@ def d1_rho_homodyne(t, rho_vec, A, args):
     """
     D1[a] rho = lindblad_dissipator(a) * rho
 
-    Todo: cythonize
+    Need to cythonize
     """
     return spmv(A[7], rho_vec)
 
@@ -1555,7 +1555,7 @@ def d2_rho_homodyne(t, rho_vec, A, args):
     D2[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger]
               = (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec]
 
-    Todo: cythonize, add A_L + Ad_R to precomputed operators
+    Need to cythonize, add A_L + Ad_R to precomputed operators
     """
     M = A[0] + A[3]
 
@@ -1565,14 +1565,14 @@ def d2_rho_homodyne(t, rho_vec, A, args):
 
 def d1_rho_heterodyne(t, rho_vec, A, args):
     """
-    todo: cythonize, docstrings
+    Need to cythonize, docstrings
     """
     return spmv(A[7], rho_vec)
 
 
 def d2_rho_heterodyne(t, rho_vec, A, args):
     """
-    todo: cythonize, docstrings
+    Need to cythonize, docstrings
     """
     M = A[0] + A[3]
     e1 = cy_expect_rho_vec(M, rho_vec, 0)
@@ -1585,7 +1585,7 @@ def d2_rho_heterodyne(t, rho_vec, A, args):
 
 def d1_rho_photocurrent(t, rho_vec, A, args):
     """
-    Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
+    Need to cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     n_sum = A[4] + A[5]
     e1 = cy_expect_rho_vec(n_sum, rho_vec, 0)
@@ -1594,7 +1594,7 @@ def d1_rho_photocurrent(t, rho_vec, A, args):
 
 def d2_rho_photocurrent(t, rho_vec, A, args):
     """
-    Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
+    Need to cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
     if e1.real > 1e-15:

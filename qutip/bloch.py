@@ -123,7 +123,6 @@ class Bloch():
     zlpos : list {[1.2,-1.2]}
         Positions of +z and -z labels respectively.
 
-
     """
     def __init__(self, fig=None, axes=None, view=None, figsize=None,
                  background=False):
@@ -206,15 +205,17 @@ class Bloch():
         ----------
         convention : string
             One of the following:
-            - "original"
-            - "xyz"
-            - "sx sy sz"
-            - "01"
-            - "polarization jones"
-            - "polarization jones letters"
-              see also: http://en.wikipedia.org/wiki/Jones_calculus
-            - "polarization stokes"
-              see also: http://en.wikipedia.org/wiki/Stokes_parameters
+            
+                - "original"
+                - "xyz"
+                - "sx sy sz"
+                - "01"
+                - "polarization jones"
+                - "polarization jones letters" 
+                  see also: http://en.wikipedia.org/wiki/Jones_calculus
+                - "polarization stokes"
+                  see also: http://en.wikipedia.org/wiki/Stokes_parameters
+        
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -369,7 +370,7 @@ class Bloch():
 
         Parameters
         ----------
-        vectors : array/list
+        vectors : array_like
             Array with vectors of unit length or smaller.
 
         """
@@ -399,6 +400,7 @@ class Bloch():
         **kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
+        
         """
         if isinstance(state_or_vector, Qobj):
             vec = [expect(sigmax(), state_or_vector),
