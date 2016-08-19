@@ -891,7 +891,7 @@ def charge(Nmax, Nmin=None, frac = 1):
     from Nmin to Nmax.
     
     Parameters
-    ---------
+    ----------
     Nmax : int
         Maximum charge state to consider.
     
@@ -910,7 +910,6 @@ def charge(Nmax, Nmin=None, frac = 1):
     -----
     .. versionadded:: 3.2
     
-    
     """
     if Nmin is None:
         Nmin = -Nmax
@@ -925,7 +924,7 @@ def charge(Nmax, Nmin=None, frac = 1):
 def tunneling(N, m=1):
     """
     Tunneling operator with elements of the form 
-    |N><N+m| + |N+m><N|.
+    :math:`\sum |N><N+m| + |N+m><N|`.
     
     Parameters
     ----------

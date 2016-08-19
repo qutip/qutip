@@ -112,9 +112,9 @@ def steadystate(A, c_op_list=[], **kwargs):
         'direct' (default), sparse eigenvalue problem 'eigen',
         iterative GMRES method 'iterative-gmres', iterative LGMRES method
         'iterative-lgmres', iterative BICGSTAB method 'iterative-bicgstab',
-         SVD 'svd' (dense), or inverse-power method 'power'. The iterative
-         power methods 'power-gmres', 'power-lgmres', 'power-bicgstab' use
-         the same solvers as their direct counterparts.
+        SVD 'svd' (dense), or inverse-power method 'power'. The iterative
+        power methods 'power-gmres', 'power-lgmres', 'power-bicgstab' use
+        the same solvers as their direct counterparts.
 
     return_info : bool, optional, default = False
         Return a dictionary of solver-specific infomation about the
@@ -192,14 +192,13 @@ def steadystate(A, c_op_list=[], **kwargs):
     -------
     dm : qobj
         Steady state density matrix.
-
     info : dict, optional
         Dictionary containing solver-specific information about the solution.
 
     Notes
     -----
     The SVD method works only for dense operators (i.e. small systems).
-
+    
     """
     ss_args = _default_steadystate_args()
     for key in kwargs.keys():

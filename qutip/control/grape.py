@@ -68,6 +68,7 @@ class GRAPEResult:
     U_f : Qobj
         The final unitary transformation that is realized by the evolution
         of the system with the GRAPE generated pulse sequences.
+    
     """
     def __init__(self, u=None, H_t=None, U_f=None):
 
@@ -95,6 +96,7 @@ def plot_grape_control_fields(times, u, labels, uniform_axes=False):
 
     uniform_axes : bool
         Whether or not to plot all pulse sequences using the same y-axis scale.
+    
     """
     import matplotlib.pyplot as plt
 
@@ -168,6 +170,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         Instance of GRAPEResult, which contains the control pulses calculated
         with GRAPE, a time-dependent Hamiltonian that is defined by the
         control pulses, as well as the resulting propagator.
+    
     """
 
     if eps is None:
@@ -314,6 +317,7 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         Instance of GRAPEResult, which contains the control pulses calculated
         with GRAPE, a time-dependent Hamiltonian that is defined by the
         control pulses, as well as the resulting propagator.
+    
     """
 
     if eps is None:
@@ -452,6 +456,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         Instance of GRAPEResult, which contains the control pulses calculated
         with GRAPE, a time-dependent Hamiltonian that is defined by the
         control pulses, as well as the resulting propagator.
+    
     """
 
     if eps is None:

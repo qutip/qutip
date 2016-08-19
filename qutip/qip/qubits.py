@@ -42,15 +42,16 @@ def qubit_states(N=1, states=[0]):
 
     Parameters
     ----------
-    N: Integer
+    N : Integer
         Number of qubits in the register.
-    states: List
+    states : List
         Initial state of each qubit.
 
     Returns
     ----------
-    qstates: Qobj
+    qstates : Qobj
         List of qubits.
+    
     """
     state_list = []
     for i in range(N):

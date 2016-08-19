@@ -1242,6 +1242,7 @@ def plot_qubism(ket, theme='light', how='pairs',
     Allows to see entanglement between first 2*k particles and the rest.
 
     More information:
+        
         J. Rodriguez-Laguna, P. Migdal,
         M. Ibanez Berganza, M. Lewenstein, G. Sierra,
         "Qubism: self-similar visualization of many-body wavefunctions",
@@ -1260,6 +1261,7 @@ def plot_qubism(ket, theme='light', how='pairs',
     how : 'pairs' (default), 'pairs_skewed' or 'before_after'
         Type of Qubism plotting.
         Options:
+            
             'pairs' - typical coordinates,
             'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
             'before_after' - related to Schmidt plot (see also: plot_schmidt).

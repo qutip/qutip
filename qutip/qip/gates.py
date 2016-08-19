@@ -473,6 +473,7 @@ shape = [4, 4], type = oper, isHerm = False
        0.70710678+0.j          0.00000000+0.j]
      [ 0.00000000+0.j   0.00000000+0.j   \
        0.00000000+0.j          1.00000000+0.j]]
+    
     """
     if targets != [0, 1] and N is None:
         N = 2
@@ -587,6 +588,7 @@ def rotation(op, phi, N=None, target=0):
     -------
     result : qobj
         Quantum object for operator describing the rotation.
+    
     """
     if N is not None:
         return gate_expand_1toN(rotation(op, phi), N, target)
@@ -620,6 +622,7 @@ def controlled_gate(U, N=2, control=0, target=1, control_value=1):
     -------
     result : qobj
         Quantum object representing the controlled-U gate.
+    
     """
 
     if [N, control, target] == [2, 0, 1]:
@@ -682,6 +685,7 @@ def hadamard_transform(N=1):
     -------
     q : qobj
         Quantum object representation of the N-qubit Hadamard gate.
+    
     """
     data = 2 ** (-N / 2) * np.array([[(-1) ** _hamming_distance(i & j)
                                       for i in range(2 ** N)]
@@ -699,12 +703,12 @@ def gate_sequence_product(U_list, left_to_right=True):
     U_list : list
         List of gates implementing the quantum circuit.
 
-    left_to_right: Boolean
+    left_to_right : Boolean
         Check if multiplication is to be done from left to right.
 
     Returns
     -------
-    U_overall: qobj
+    U_overall : qobj
         Overall unitary matrix of a given quantum circuit.
 
     """
@@ -750,6 +754,7 @@ def qubit_clifford_group(N=None, target=0):
 
     op : Qobj
         Clifford operators, represented as Qobj instances.
+    
     """
 
     # The Ross-Selinger presentation of the single-qubit Clifford
@@ -807,6 +812,7 @@ def gate_expand_1toN(U, N, target):
     -------
     gate : qobj
         Quantum object representation of N-qubit gate.
+    
     """
 
     if N < 1:
@@ -845,6 +851,7 @@ def gate_expand_2toN(U, N, control=None, target=None, targets=None):
     -------
     gate : qobj
         Quantum object representation of N-qubit gate.
+    
     """
 
     if targets is not None:
@@ -901,6 +908,7 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
     -------
     gate : qobj
         Quantum object representation of N-qubit gate.
+    
     """
 
     if N < 3:

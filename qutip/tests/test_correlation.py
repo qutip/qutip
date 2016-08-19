@@ -263,7 +263,7 @@ def test_spectrum_espi():
 @unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_H_str_list_td_corr():
     """
-    correlation: comparing TLS emission correlations, H td (str-list td format)
+    correlation: comparing TLS emission corr., H td (str-list td format)
     """
 
     # calculate emission zero-delay second order correlation, g2[0], for TLS
@@ -299,7 +299,7 @@ def test_H_str_list_td_corr():
 @unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_H_np_list_td_corr():
     """
-    correlation: comparing TLS emission correlations, H td (np-list td format)
+    correlation: comparing TLS emission corr., H td (np-list td format)
     """
 
     #from qutip.rhs_generate import rhs_clear
@@ -339,7 +339,7 @@ def test_H_np_list_td_corr():
 
 def test_H_fn_list_td_corr():
     """
-    correlation: comparing TLS emission correlations, H td (fn-list td format)
+    correlation: comparing TLS emission corr., H td (fn-list td format)
     """
 
     # calculate emission zero-delay second order correlation, g2[0], for TLS
@@ -375,7 +375,7 @@ def test_H_fn_list_td_corr():
 
 def test_H_fn_td_corr():
     """
-    correlation: comparing TLS emission correlations, H td (fn td format)
+    correlation: comparing TLS emission corr., H td (fn td format)
     """
 
     # calculate emission zero-delay second order correlation, g2[0], for TLS
@@ -415,7 +415,7 @@ def test_H_fn_td_corr():
 @unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_c_ops_str_list_td_corr():
     """
-    correlation: comparing 3LS emission correlations, c_ops td (str-list td format)
+    correlation: comparing 3LS emission corr., c_ops td (str-list td format)
     """
 
     # calculate zero-delay HOM cross-correlation, for incoherently pumped
@@ -459,7 +459,7 @@ def test_c_ops_str_list_td_corr():
 @unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_np_str_list_td_corr():
     """
-    correlation: comparing 3LS emission correlations, c_ops td (np-list td format)
+    correlation: comparing 3LS emission corr., c_ops td (np-list td format)
     """
 
     # calculate zero-delay HOM cross-correlation, for incoherently pumped
@@ -502,7 +502,7 @@ def test_np_str_list_td_corr():
 
 def test_c_ops_fn_list_td_corr():
     """
-    correlation: comparing 3LS emission correlations, c_ops td (fn-list td format)
+    correlation: comparing 3LS emission corr., c_ops td (fn-list td format)
     """
 
     # calculate zero-delay HOM cross-correlation, for incoherently pumped
@@ -548,7 +548,7 @@ def test_c_ops_fn_list_td_corr():
 @unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_str_list_td_corr():
     """
-    correlation: comparing TLS emission correlations (str-list td format)
+    correlation: comparing TLS emission corr. (str-list td format)
     """
 
     # both H and c_ops are time-dependent
@@ -587,7 +587,7 @@ def test_str_list_td_corr():
 @unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_np_list_td_corr():
     """
-    correlation: comparing TLS emission correlations (np-list td format)
+    correlation: comparing TLS emission corr. (np-list td format)
     """
 
     # both H and c_ops are time-dependent
@@ -626,7 +626,7 @@ def test_np_list_td_corr():
 
 def test_fn_list_td_corr():
     """
-    correlation: comparing TLS emission correlations (fn-list td format)
+    correlation: comparing TLS emission corr. (fn-list td format)
     """
 
     # both H and c_ops are time-dependent

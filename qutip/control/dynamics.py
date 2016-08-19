@@ -313,6 +313,7 @@ class Dynamics(object):
         dyn_params.
         If dump is None then will return None or will set dumping to SUMMARY
         when setting a path
+    
     """
     def __init__(self, optimconfig, params=None):
         self.config = optimconfig
@@ -1465,6 +1466,7 @@ class DynamicsSymplectic(Dynamics):
     omega : array[drift_dyn_gen.shape]
         matrix used in the calculation of propagators (time evolution)
         with symplectic systems.
+    
     """
 
     def reset(self):
