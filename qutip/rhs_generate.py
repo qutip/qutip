@@ -358,7 +358,7 @@ def _td_format_check(H, c_ops, solver='me'):
         return time_type, [h_const, h_func, h_str], [c_const, c_func, c_str]
 
 
-def _td_wrap_array_str(H, c_ops, args, times):
+def _td_wrap_array_str(H, c_ops, args, tlist):
     """
     Wrap numpy-array based time-dependence in the string-based time dependence
     format
@@ -375,8 +375,9 @@ def _td_wrap_array_str(H, c_ops, args, times):
             if isinstance(Hk, list) and isinstance(Hk[1], np.ndarray):
                 H_op, H_td = Hk
                 td_array_name = "_td_array_%d" % n
-                H_td_str = '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' %\
-                    (times[-1], td_array_name, len(times) - 1, times[-1])
+                H_td_str = '(0 if (t > %f) else ' % (tlist[-1]) + \
+                           '%s[np.abs(t-np.array(%s)).argmin()])' % \
+                           (td_array_name, list(tlist))
                 args_new[td_array_name] = H_td
                 H_new.append([H_op, H_td_str])
                 n += 1
@@ -390,8 +391,9 @@ def _td_wrap_array_str(H, c_ops, args, times):
             if isinstance(ck, list) and isinstance(ck[1], np.ndarray):
                 c_op, c_td = ck
                 td_array_name = "_td_array_%d" % n
-                c_td_str = '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' %\
-                    (times[-1], td_array_name, len(times) - 1, times[-1])
+                c_td_str = '(0 if (t > %f) else ' % (tlist[-1]) + \
+                           '%s[np.abs(t-np.array(%s)).argmin()])' % \
+                           (td_array_name, list(tlist))
                 args_new[td_array_name] = c_td
                 c_ops_new.append([c_op, c_td_str])
                 n += 1
