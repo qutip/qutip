@@ -369,8 +369,13 @@ def _td_wrap_array_str(H, c_ops, args, tlist):
     args_new = {}
 
     # check if tlist is linear for savings in solver computation time
-    tol = 1e-10
-    tlist_linear = np.all(abs(np.diff(tlist)-np.diff(tlist)[0]) < tol)
+    if len(tlist) > 1:
+        tol = 1e-10
+        tlist_nonlinear = not np.all(
+            abs(np.diff(tlist)-np.diff(tlist)[0]) < tol
+        )
+    else:
+        tlist_nonlinear = False
 
     if not isinstance(H, list):
         H_new = H
@@ -379,14 +384,14 @@ def _td_wrap_array_str(H, c_ops, args, tlist):
             if isinstance(Hk, list) and isinstance(Hk[1], np.ndarray):
                 H_op, H_td = Hk
                 td_array_name = "_td_array_%d" % n
-                if tlist_linear:
-                    H_td_str = \
-                        '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' % \
-                         (tlist[-1], td_array_name, len(tlist) - 1, tlist[-1])
-                else:
+                if tlist_nonlinear:
                     H_td_str = '(0 if (t > %f) else ' % (tlist[-1]) + \
                                '%s[np.abs(t-np.array(%s)).argmin()])' % \
                                (td_array_name, list(tlist))
+                else:
+                    H_td_str = \
+                        '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' % \
+                         (tlist[-1], td_array_name, len(tlist) - 1, tlist[-1])
                 args_new[td_array_name] = H_td
                 H_new.append([H_op, H_td_str])
                 n += 1
@@ -400,14 +405,14 @@ def _td_wrap_array_str(H, c_ops, args, tlist):
             if isinstance(ck, list) and isinstance(ck[1], np.ndarray):
                 c_op, c_td = ck
                 td_array_name = "_td_array_%d" % n
-                if tlist_linear:
-                    c_td_str = \
-                        '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' % \
-                         (tlist[-1], td_array_name, len(tlist) - 1, tlist[-1])
-                else:
+                if tlist_nonlinear:
                     c_td_str = '(0 if (t > %f) else ' % (tlist[-1]) + \
                                '%s[np.abs(t-np.array(%s)).argmin()])' % \
                                (td_array_name, list(tlist))
+                else:
+                    c_td_str = \
+                        '(0 if (t > %f) else %s[int(round(%d * (t/%f)))])' % \
+                         (tlist[-1], td_array_name, len(tlist) - 1, tlist[-1])
                 args_new[td_array_name] = c_td
                 c_ops_new.append([c_op, c_td_str])
                 n += 1
