@@ -29,7 +29,7 @@ Operating System :: Microsoft :: Windows
 """
 
 # import statements
-import os
+import os, subprocess
 import sys
 
 # The following is required to get unit tests up and running.
@@ -78,6 +78,7 @@ except ImportError:
     except ImportError:
         from distutils.core import setup
 
+qutip_root = os.path.dirname(os.path.abspath(__file__))
 # all information about QuTiP goes here
 MAJOR = 3
 MINOR = 2
@@ -120,15 +121,53 @@ def write_f2py_f2cmap():
                 "wp='complex_double'))")
 
 
-def git_short_hash():
+def get_version_from_git():
     try:
-        return "-" + os.popen('git log -1 --format="%h"').read().strip()
-    except:
-        return ""
+        p = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
+                             cwd=qutip_root,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except OSError:
+        return
+    if p.wait() != 0:
+        return
+    if not os.path.samefile(p.communicate()[0].decode().rstrip('\n'), qutip_root):
+        # The top-level directory of the current Git repository is not the same
+        # as the root directory of the source distribution: do not extract the
+        # version from Git.
+        return
 
-FULLVERSION = VERSION
-if not ISRELEASED:
-    FULLVERSION += '.dev' + git_short_hash()
+    # git describe --first-parent does not take into account tags from branches
+    # that were merged-in.
+    for opts in [['--first-parent'], []]:
+        try:
+            p = subprocess.Popen(['git', 'describe', '--long'] + opts,
+                                 cwd=qutip_root,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            return
+        if p.wait() == 0:
+            break
+    else:
+        return
+    description = p.communicate()[0].decode().strip('v').rstrip('\n')
+
+    release, dev, git = description.rsplit('-', 2)
+    version = [VERSION]
+    labels = []
+    if dev != "0":
+        version.append(".dev{}".format(dev))
+        labels.append(git)
+
+    try:
+        p = subprocess.Popen(['git', 'diff', '--quiet'], cwd=qutip_root)
+    except OSError:
+        labels.append('confused') # This should never happen.
+
+    if labels:
+        version.append('+')
+        version.append(".".join(labels))
+
+    return "".join(version)
 
 # NumPy's distutils reads in versions differently than
 # our fallback. To make sure that versions are added to
@@ -136,6 +175,12 @@ if not ISRELEASED:
 # EXTRA_KWARGS if NumPy wasn't imported correctly.
 if np is None:
     EXTRA_KWARGS['version'] = FULLVERSION
+
+
+if ISRELEASED:
+    FULLVERSION = VERSION
+else:
+    FULLVERSION = get_version_from_git()
 
 
 def write_version_py(filename='qutip/version.py'):
