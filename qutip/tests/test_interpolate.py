@@ -37,13 +37,40 @@ from qutip import *
 
     
 def testInterpolate1():
-    "Interpolation: Sine + noise"
+    "Interpolation: Sine + noise (array)"
     x = np.linspace(0,2*np.pi,200)
     y = np.sin(x)+np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
     assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-12)
 
+def testInterpolate2():
+    "Interpolation: Sine + noise (point)"
+    x = np.linspace(0,2*np.pi,200)
+    y = np.sin(x)+np.random.randn(x.shape[0])
+    S1 = Cubic_Spline(x[0],x[-1],y)
+    S2 = sint.interp1d(x,y,'cubic')
+    z = 2*np.pi*np.random.random()
+    assert_(np.abs(S2(z)-S1(z)) < 1e-12)
+
+def testInterpolate3():
+    "Interpolation: Complex sine + noise (array)"
+    x = np.linspace(0,2*np.pi,200)
+    y = np.sin(x)+np.random.randn(x.shape[0]) + \
+        1j*np.random.randn(x.shape[0])
+    S1 = Cubic_Spline(x[0],x[-1],y)
+    S2 = sint.interp1d(x,y,'cubic')
+    assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-12)
+
+def testInterpolate4():
+    "Interpolation: Complex sine + noise (point)"
+    x = np.linspace(0,2*np.pi,200)
+    y = np.sin(x)+np.random.randn(x.shape[0]) + \
+        1j*np.random.randn(x.shape[0])
+    S1 = Cubic_Spline(x[0],x[-1],y)
+    S2 = sint.interp1d(x,y,'cubic')
+    z = 2*np.pi*np.random.random()
+    assert_(np.abs(S2(z)-S1(z)) < 1e-12)
 
 
 if __name__ == "__main__":

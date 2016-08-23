@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.linalg as la
-from qutip.cy.interpolate import (_interpolate, _array_interpolate)
+from qutip.cy.interpolate import (_interpolate, _array_interpolate,
+                                 _interpolate_complex,
+                                 _array_interpolate_complex)
 
 __all__ = ['Cubic_Spline']
 
@@ -11,7 +13,7 @@ class Cubic_Spline(object):
     interpolation of a given data set.
     
     This function assumes that the data is sampled
-    uniformly over a given interval and is real.
+    uniformly over a given interval.
 
     Parameters
     ----------
@@ -20,7 +22,7 @@ class Cubic_Spline(object):
     b : float
         Upper bound of the interval.
     y : ndarray
-        Function values (real) at interval points.
+        Function values at interval points.
     alpha : float
         Second-order derivative at a. Default is 0.
     beta : float
@@ -46,12 +48,10 @@ class Cubic_Spline(object):
     
     def __init__(self, a, b, y, alpha=0, beta=0):
         y = np.asarray(y)
-        if y.dtype not in [np.int, np.float]:
-            raise TypeError('Input function data must be real.')
         n = y.shape[0] - 1
         h = (b - a)/n
 
-        coeff = np.zeros(n + 3, dtype=float)
+        coeff = np.zeros(n + 3, dtype=y.dtype)
         coeff[1] = 1/6. * (y[0] - (alpha * h**2)/6)
         coeff[n + 1] = 1/6. * (y[n] - (beta * h**2)/6)
 
@@ -73,14 +73,21 @@ class Cubic_Spline(object):
         self.a = a          # Lower-bound of domain
         self.b = b          # Uppser-bound of domain
         self.coeffs = coeff # Spline coefficients
+        self.is_complex = (y.dtype == complex)
         
     def __call__(self, pnts):
         #If requesting a single return value
-        if isinstance(pnts, (int, float)):
-            return _interpolate(pnts, self.a, self.b, self.coeffs)
+        if isinstance(pnts, (int, float, complex)):
+            if self.is_complex:
+                return _interpolate_complex(pnts, self.a, self.b, self.coeffs)
+            else:
+                return _interpolate(pnts, self.a, self.b, self.coeffs)
         #If requesting multiple return values from array_like
         elif isinstance(pnts, (np.ndarray,list)):
             pnts = np.asarray(pnts)
-            return _array_interpolate(pnts, self.a, self.b, self.coeffs)
+            if self.is_complex:
+                return _array_interpolate_complex(pnts, self.a, self.b, self.coeffs)
+            else:
+                return _array_interpolate(pnts, self.a, self.b, self.coeffs)
     
     
