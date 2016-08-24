@@ -42,7 +42,7 @@ def testInterpolate1():
     y = np.sin(x)+np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
-    assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-12)
+    assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
 
 def testInterpolate2():
     "Interpolation: Sine + noise (point)"
@@ -50,8 +50,9 @@ def testInterpolate2():
     y = np.sin(x)+np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
-    z = 2*np.pi*np.random.random()
-    assert_(np.abs(S2(z)-S1(z)) < 1e-12)
+    for k in range(100):
+        z = 2*np.pi*np.random.random()
+        assert_(np.abs(S2(z)-S1(z)) < 1e-9)
 
 def testInterpolate3():
     "Interpolation: Complex sine + noise (array)"
@@ -60,7 +61,7 @@ def testInterpolate3():
         1j*np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
-    assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-12)
+    assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
 
 def testInterpolate4():
     "Interpolation: Complex sine + noise (point)"
@@ -69,8 +70,9 @@ def testInterpolate4():
         1j*np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
-    z = 2*np.pi*np.random.random()
-    assert_(np.abs(S2(z)-S1(z)) < 1e-12)
+    for k in range(100):
+        z = 2*np.pi*np.random.random()
+        assert_(np.abs(S2(z)-S1(z)) < 1e-9)
 
 
 if __name__ == "__main__":
