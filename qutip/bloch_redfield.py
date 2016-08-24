@@ -115,10 +115,7 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
     #
     H_time_dependent = False
     c_ops_time_dependent = False
-    if isinstance(H, Qobj):
-        # no time-dependence
-        pass
-    elif isinstance(H, list):
+    if isinstance(H, list):
         for Hk in H:
             if isinstance(Hk, list):
                 # check time-dependence is list array format
@@ -128,7 +125,7 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
                     raise TypeError("Incorrect hamiltonian specification, " +
                                     "the Bloch Redfield solver requires " +
                                     "list array format")
-    elif isinstance(c_ops, list):
+    if isinstance(c_ops, list):
         for ck in c_ops:
             if isinstance(ck, list):
                 # check time-dependence is list array format
@@ -138,8 +135,6 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
                     raise TypeError("Incorrect collapse operator " +
                                     "specification, the Bloch Redfield " +
                                     "solver requires list array format")
-    else:
-        raise TypeError("Incorrect hamiltonian specification")
 
     #
     # Compute Bloch Redfield evolution
@@ -176,6 +171,7 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         for i in range(len(tlist) - 1):
             # re-compute Hamiltonian and c_ops for current time step
             if H_time_dependent:
+                # we can just add the Hamiltonian operators together
                 H_i = 0
                 for Hk in H:
                     if isinstance(Hk, list):
@@ -185,12 +181,13 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
             else:
                 H_i = H
             if c_ops_time_dependent:
-                c_ops_i = 0
+                # but c_ops needs to be in a list format
+                c_ops_i = []
                 for ck in c_ops:
                     if isinstance(ck, list):
-                        c_ops_i += ck[0]*ck[1][i]
+                        c_ops_i.append(ck[0]*ck[1][i])
                     else:
-                        c_ops_i += ck
+                        c_ops_i.append(ck)
             else:
                 c_ops_i = c_ops
 
