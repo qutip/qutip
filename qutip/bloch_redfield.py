@@ -161,8 +161,27 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         # step through tlist and compute a new Redfield tensor at each step,
         # using the final state of the previous step as the input to the next
         for i in range(len(tlist) - 1):
-            H_i = ...
-            c_ops_i = ...
+            # re-compute Hamiltonian and c_ops for current time step
+            if H_time_dependent:
+                H_i = 0
+                for Hk in H:
+                    if isinstance(Hk, list):
+                        H_i += Hk[0]*Hk[1][i]
+                    else:
+                        H_i += Hk
+            else:
+                H_i = H
+            if c_ops_time_dependent:
+                c_ops_i = 0
+                for ck in c_ops:
+                    if isinstance(ck, list):
+                        c_ops_i += ck[0]*ck[1][i]
+                    else:
+                        c_ops_i += ck
+            else:
+                c_ops_i = c_ops
+
+            # create Redfield tensor and evolve
             R, ekets = bloch_redfield_tensor(H_i, a_ops, spectra_cb,
                                              c_ops=c_ops_i, use_secular=False)
             rho = bloch_redfield_solve(
