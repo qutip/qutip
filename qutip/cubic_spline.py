@@ -42,7 +42,9 @@ class Cubic_Spline(object):
     This object can be called like a normal function with a
     single or array of input points at which to evaluate
     the interplating function.
-        
+    
+    Habermann & Kindermann, "Multidimensional Spline Interpolation: 
+    Theory and Applications", Comput Econ 30, 153 (2007).  
     
     '''
     
