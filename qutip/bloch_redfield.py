@@ -56,49 +56,57 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
     .. note::
 
         This solver only supports time-dependent Hamiltonians and collapse
-        operators using the *list array format*.
+        operators using the `list array format`.
 
     Parameters
     ----------
 
-    H : :class:`qutip.Qobj`
-        System Hamiltonian, may be time-dependent using the *list array
-        format*.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``numpy.array``]
+        pairs.
 
-    state0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
 
-    tlist : array_like
-        List of times for :math:`t`.
+    tlist : ``list`` or ``numpy.array``
+        ``list`` of times for :math:`t`.
 
-    a_ops : list of :class:`qutip.qobj`
-        List of system operators that couple to bath degrees of freedom.
+    a_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system operators that couple to bath degrees of
+        freedom.
 
-    e_ops : list of :class:`qutip.qobj` / callback function
-        List of operators for which to evaluate expectation values.
+    e_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of operators for which to evaluate expectation values.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of system collapse operators, may be time-dependent using the
-        *list array format*.
+    spectra_cb : ``list`` of callback functions
+        ``list`` of callback functions that evaluate the noise power
+        spectrum at a given frequency.
 
-    use_secular : bool
-        Flag (True of False) that indicates if the secular approximation should
-        be used.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``numpy.array``] pairs.
 
-    args : dictionary
-        Placeholder for future implementation, kept for API consistency.
+    use_secular : ``bool``
+        boolean flag that indicates if the secular approximation should be
+        used.
+
+    args : ``dict``
+        placeholder for future implementation, kept for API consistency.
 
     options : :class:`qutip.solver.Options`
-        Options for the solver.
+        options for the solver.
 
     Returns
     -------
 
-    result: :class:`qutip.solver.Result`
-        An instance of the class :class:`qutip.solver.Result`, which contains
-        either an array of expectation values, for operators given in e_ops,
-        or a list of states for the times specified by `tlist`.
+    result : :class:`qutip.solver.Result`
+        an instance of the class :class:`qutip.solver.Result`, which contains
+        either a ``list`` with ``numpy.array`` s of expectation
+        values for each operators given in `e_ops` or a ``list`` of states
+        for the times specified by `tlist`.
 
     """
 
@@ -217,31 +225,33 @@ def bloch_redfield_solve(R, ekets, state0, tlist, e_ops=[], options=None):
     Parameters
     ----------
 
-    R : :class:`qutip.qobj`
+    R : :class:`qutip.Qobj`
         Bloch-Redfield tensor.
 
-    ekets : array of :class:`qutip.qobj`
-        Array of kets that make up a basis tranformation for the eigenbasis.
+    ekets : ``list`` of :class:`qutip.Qobj`
+        ``list`` of kets that make up a basis tranformation for the
+        eigenbasis.
 
-    state0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
 
-    tlist : array_like
-        List of times for :math:`t`.
+    tlist : ``list`` or ``numpy.array``
+        ``list`` of times for :math:`t`.
 
-    e_ops : list of :class:`qutip.qobj` / callback function
-        List of operators for which to evaluate expectation values.
+    e_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of operators for which to evaluate expectation values.
 
-    options : :class:`qutip.Qdeoptions`
-        Options for the ODE solver.
+    options : :class:`qutip.solver.Options`
+        options for the solver.
 
     Returns
     -------
 
-    output: :class:`qutip.solver`
-        An instance of the class :class:`qutip.solver`, which contains either
-        an array of expectation values for the times specified by `tlist`.
+    output : ``list``
+        a ``list`` that contains ``numpy.array`` s of expectation
+        values for each operators given in `e_ops` or a ``list`` of states
+        for the times specified by `tlist`.
 
     """
 
@@ -319,7 +329,7 @@ def bloch_redfield_solve(R, ekets, state0, tlist, e_ops=[], options=None):
 # Functions for calculating the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb=[], c_ops=[], use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
@@ -327,34 +337,36 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
 
     .. note::
 
-        This tensor generation requires a time-independent Hamiltonian.
+        This tensor generation requires a time-independent Hamiltonian and
+        collapse operators.
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
-        System Hamiltonian.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
 
-    a_ops : list of :class:`qutip.qobj`
-        List of system operators that couple to the environment.
+    a_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system operators that couple to bath degrees of
+        freedom.
 
-    spectra_cb : list of callback functions
-        List of callback functions that evaluate the noise power spectrum
-        at a given frequency.
+    spectra_cb : ``list`` of callback functions
+        ``list`` of callback functions that evaluate the noise power
+        spectra at a given frequency.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of system collapse operators.
+    c_ops : ``list``
+        ``list`` of system collapse operators.
 
-    use_secular : bool
-        Flag (True of False) that indicates if the secular approximation should
-        be used.
+    use_secular : ``bool``
+        boolean flag that indicates if the secular approximation should be
+        used.
 
     Returns
     -------
 
-    R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
-        R is the Bloch-Redfield tensor and kets is a list eigenstates of the
-        Hamiltonian.
+    R, kets : :class:`qutip.Qobj`, ``list`` of :class:`qutip.Qobj`
+        `R` is the Bloch-Redfield tensor and `kets` is a ``list`` of the
+        eigenstates of the Hamiltonian.
 
     """
 
