@@ -81,53 +81,57 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    state0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
-        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    reverse : bool {False, True}
-        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
+    reverse : ``bool``
+        if `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str {'me', 'mc', 'es'}
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+    solver : ``str`` {'me', 'mc', 'es'}
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_vec : ndarray
-        An array of correlation values for the times specified by `tlist`.
+    corr_vec : ``numpy.array``
+        a ``numpy.array`` of correlation values for the times specified by
+        `tlist`.
 
     References
     ----------
@@ -164,62 +168,66 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    state0 : Qobj
-        Initial state density matrix :math:`\\rho_0` or state vector
-        :math:`\\psi_0`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : array_like
-        List of times for :math:`t`. tlist must be positive and contain the
-        element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
-        tlist is automatically set, ignoring user input.
+    tlist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+        positive and contain the element `0`. When taking steady-steady
+        correlations only one `tlist` value is necessary, i.e. when
+        :math:`t \\rightarrow \\infty`; here tlist is automatically set,
+        ignoring user input.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    reverse : bool {False, True}
-        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
+    reverse : ``bool``
+        if `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+    solver : ``str`` {'me', 'mc', 'es'}
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_mat : array
-        A 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index). If
-        `tlist` is `None`, then a 1-dimensional array of correlation values
-        is returned instead.
+    corr_mat : ``numpy.array``
+        a 2-dimensional ``numpy.array`` (matrix) of correlation values for the
+        times specified by `tlist` (first index) and `taulist` (second index).
+        If `tlist` is ``None``, then a 1-dimensional ``numpy.array`` of
+        correlation values is returned instead.
 
     References
     ----------
@@ -267,52 +275,56 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     Parameters
     ----------
 
-    H : Qobj
-        system Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    rho0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
-        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : array_like
-        list of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        list of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
+    a_op : :class:`qutip.Qobj`
         operator A.
 
-    b_op : Qobj
+    b_op : :class:`qutip.Qobj`
         operator B.
 
-    c_op : Qobj
+    c_op : :class:`qutip.Qobj`
         operator C.
 
-    solver : str
+    solver : ``str`` {'me', 'mc', 'es'}
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_vec : array
-        An array of correlation values for the times specified by `taulist`
+    corr_vec : ``numpy.array``
+        a ``numpy.array`` of correlation values for the times specified by
+        `taulist`.
 
     References
     ----------
@@ -345,61 +357,65 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    rho0 : Qobj
-        Initial state density matrix :math:`\\rho_0` or state vector
-        :math:`\\psi_0`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : array_like
-        List of times for :math:`t`. tlist must be positive and contain the
-        element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
-        tlist is automatically set, ignoring user input.
+    tlist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+        positive and contain the element `0`. When taking steady-steady
+        correlations only one `tlist` value is necessary, i.e. when
+        :math:`t \\rightarrow \\infty`; here tlist is automatically set,
+        ignoring user input.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    c_op : Qobj
-        Operator C.
+    c_op : :class:`qutip.Qobj`
+        operator C.
 
-    solver : str
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+    solver : ``str`` {'me', 'mc', 'es'}
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_mat : array
-        An 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index). If
-        `tlist` is `None`, then a 1-dimensional array of correlation values
-        is returned instead.
+    corr_mat : ``numpy.array``
+        a 2-dimensional ``numpy.array`` (matrix) of correlation values for the
+        times specified by `tlist` (first index) and `taulist` (second index).
+        If `tlist` is ``None``, then a 1-dimensional ``numpy.array`` of
+        correlation values is returned instead.
 
     References
     ----------
@@ -440,46 +456,49 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    state0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
-        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    solver : str
-        Choice of solver (`me` for master-equation and
+    solver : ``str`` {'me', 'mc', 'es'}
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    g1, G1 : tuple
-        The normalized and unnormalized second-order coherence function.
+    g1, G1 : ``tuple``
+        the normalized and unnormalized second-order coherence functions.
 
     """
 
@@ -517,46 +536,49 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    state0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
-        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    solver : str
-        Choice of solver (`me` for master-equation and
+    solver : ``str`` {'me', 'mc', 'es'}
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    g2, G2 : tuple
-        The normalized and unnormalized second-order coherence function.
+    g2, G2 : ``tuple``
+        the normalized and unnormalized second-order coherence functions.
 
     """
 
@@ -586,9 +608,8 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
 
     .. math::
 
-        S(\omega) = \int_{-\infty}^{\infty}
-        \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
-        e^{-i\omega\\tau} d\\tau.
+        S(\omega) = \lim_{t \\to \\infty} \int_{-\infty}^{\infty}
+        d\\tau \, e^{-i\omega\\tau} \left<A(t+\\tau)B(t)\\right>
 
     using the solver indicated by the `solver` parameter.
 
@@ -600,34 +621,34 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
-        System Hamiltonian.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
 
     wlist : array_like
         List of frequencies for :math:`\\omega`.
 
-    c_ops : list
-        List of collapse operators.
+    c_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system collapse operators.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    solver : str
-        Choice of solver (`es` for exponential series and
+    solver : ``str``
+        choice of solver (`es` for exponential series and
         `pi` for psuedo-inverse).
 
-    use_pinv : bool
-        For use with the `pi` solver: if `True` use numpy's pinv method,
+    use_pinv : ``bool``
+        for use with the `pi` solver: if `True` use numpy's pinv method,
         otherwise use a generic solver.
 
     Returns
     -------
 
-    spectrum : array
-        An array with spectrum :math:`S(\omega)` for the frequencies
+    spectrum : ``numpy.array``
+        a ``numpy.array`` with spectrum :math:`S(\omega)` for the frequencies
         specified in `wlist`.
 
     """
@@ -652,17 +673,19 @@ def spectrum_correlation_fft(taulist, y):
     Parameters
     ----------
 
-    tlist : array_like
-        List of times :math:`t` which the correlation function is given.
+    tlist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times :math:`t` for which the correlation
+        function is given.
 
-    y : array_like
-        List of correlations corresponding to time delays :math:`t`.
+    y : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of correlations corresponding to time
+        delays :math:`t`.
 
     Returns
     -------
 
     w, S : tuple
-        Returns an array of angular frequencies 'w' and the corresponding
+        a ``numpy.array`` of angular frequencies 'w' and the corresponding
         one-sided power spectrum 'S(w)'.
 
     """
@@ -708,46 +731,47 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators.
+    c_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system collapse operators.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    reverse : bool
-        If `True`, calculate
+    reverse : ``bool``
+        if `True`, calculate
         :math:`\lim_{t \\to \\infty} \left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str
-        Choice of solver (`me` for master-equation and
+    solver : ``str``
+        choice of solver (`me` for master-equation and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_vec : array
-        An array of correlation values for the times specified by `tlist`.
+    corr_vec : ``numpy.array``
+        a ``numpy.array`` of correlation values for the times specified by
+        `tlist`.
 
     References
     ----------
@@ -779,62 +803,66 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    state0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
-        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : array_like
-        List of times for :math:`t`. tlist must be positive and contain the
-        element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
-        tlist is automatically set, ignoring user input.
+    tlist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+        positive and contain the element `0`. When taking steady-steady
+        correlations only one `tlist` value is necessary, i.e. when
+        :math:`t \\rightarrow \\infty`; here tlist is automatically set,
+        ignoring user input.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    reverse : bool
-        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
+    reverse : ``bool``
+        if `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\left<A(t+\\tau)B(t)\\right>`.
 
-    solver : str
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+    solver : ``str``
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_mat : array
-        A 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index). If
-        `tlist` is `None`, then a 1-dimensional array of correlation values
-        is returned instead.
+    corr_mat : ``numpy.array``
+        a 2-dimensional ``numpy.array`` (matrix) of correlation values for the
+        times specified by `tlist` (first index) and `taulist` (second index).
+        If `tlist` is ``None``, then a 1-dimensional ``numpy.array`` of
+        correlation values is returned instead.
 
     References
     ----------
@@ -871,55 +899,59 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    rho0 : Qobj
-        Initial state density matrix :math:`\\rho(t_0)` or state vector
-        :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    c_op : Qobj
-        Operator C.
+    c_op : :class:`qutip.Qobj`
+        operator C.
 
-    d_op : Qobj
-        Operator D.
+    d_op : :class:`qutip.Qobj`
+        operator D.
 
-    solver : str
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+    solver : ``str``
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_vec : array
-        An array of correlation values for the times specified by `taulist`.
+    corr_vec : ``numpy.array``
+        a ``numpy.array`` of correlation values for the times specified by
+        `taulist`.
 
     References
     ----------
@@ -927,7 +959,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     See, Gardiner, Quantum Noise, Section 5.2.
                        
     .. note:: Deprecated in QuTiP 3.1
-              Use correlation_3op_1t() instead.
+              Use :func:`qutip.correlation_3op_1t` instead.
 
     """
 
@@ -961,64 +993,68 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     Parameters
     ----------
 
-    H : Qobj
-        System Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``time-dependent format``]
+        pairs. May be time-dependent for solver choice of `me` or `mc` only.
 
-    rho0 : Qobj
-        Initial state density matrix :math:`\\rho_0` or state vector
-        :math:`\\psi_0`. If 'state0' is 'None', then the steady state will
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`. If `state0` is ``None``, then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : array_like
-        List of times for :math:`t`. tlist must be positive and contain the
-        element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. when :math:`t \\rightarrow \\infty`; here
-        tlist is automatically set, ignoring user input.
+    tlist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+        positive and contain the element `0`. When taking steady-steady
+        correlations only one `tlist` value is necessary, i.e. when
+        :math:`t \\rightarrow \\infty`; here tlist is automatically set,
+        ignoring user input.
 
-    taulist : array_like
-        List of times for :math:`\\tau`. taulist must be positive and contain
-        the element `0`.
+    taulist : ``list`` or ``numpy.array``
+        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+        be positive and contain the element `0`.
 
-    c_ops : list
-        List of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``time-dependent format``] pairs. May be
+        time-dependent for solver choice of `me` or `mc` only.
 
-    a_op : Qobj
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : Qobj
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    c_op : Qobj
-        Operator C.
+    c_op : :class:`qutip.Qobj`
+        operator C.
 
-    d_op : Qobj
-        Operator D.
+    d_op : :class:`qutip.Qobj`
+        operator D.
 
-    solver : str
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+    solver : ``str``
+        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
-    args : dictionary
+    args : ``dict``
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : Options
-        Solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively; by default,
-        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
-        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    options : :class:`qutip.solver.Options`
+        options for the solver. `ntraj` is taken as a two-element ``list``
+        because the `mc` correlator calls :func:`qutip.mcsolve` recursively; by
+        default, `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero
+        errors in the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
 
-    corr_mat : array
-        A 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index). If
-        `tlist` is `None`, then a 1-dimensional array of correlation values
-        is returned instead.
+    corr_mat : ``numpy.array``
+        a 2-dimensional ``numpy.array`` (matrix) of correlation values for the
+        times specified by `tlist` (first index) and `taulist` (second index).
+        If `tlist` is ``None``, then a 1-dimensional ``numpy.array`` of
+        correlation values is returned instead.
 
     References
     ----------
@@ -1050,9 +1086,8 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
 
     .. math::
 
-        S(\omega) = \int_{-\infty}^{\infty}
-        \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
-        e^{-i\omega\\tau} d\\tau.
+        S(\omega) = \lim_{t \\to \\infty} \int_{-\infty}^{\infty}
+        d\\tau \, e^{-i\omega\\tau} \left<A(t+\\tau)B(t)\\right>
 
     using an eseries based solver.
 
@@ -1064,29 +1099,29 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
-        System Hamiltonian.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
 
     wlist : array_like
         List of frequencies for :math:`\\omega`.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of collapse operators.
+    c_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system collapse operators.
 
-    a_op : :class:`qutip.qobj`
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : :class:`qutip.qobj`
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    use_pinv : bool
-        If `True` use numpy's `pinv` method, otherwise use a generic solver.
+    use_pinv : ``bool``
+        if `True` use numpy's `pinv` method, otherwise use a generic solver.
 
     Returns
     -------
 
-    spectrum : array
-        An array with spectrum :math:`S(\omega)` for the frequencies
+    spectrum : ``numpy.array``
+        a ``numpy.array`` with spectrum :math:`S(\omega)` for the frequencies
         specified in `wlist`.
 
     """
@@ -1104,9 +1139,8 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
     .. math::
 
-        S(\omega) = \int_{-\infty}^{\infty}
-        \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
-        e^{-i\omega\\tau} d\\tau.
+        S(\omega) = \lim_{t \\to \\infty} \int_{-\infty}^{\infty}
+        d\\tau \, e^{-i\omega\\tau} \left<A(t+\\tau)B(t)\\right>
 
     using a psuedo-inverse method.
 
@@ -1118,29 +1152,29 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
-        System Hamiltonian.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
 
     wlist : array_like
         List of frequencies for :math:`\\omega`.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of collapse operators.
+    c_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system collapse operators.
 
-    a_op : :class:`qutip.qobj`
-        Operator A.
+    a_op : :class:`qutip.Qobj`
+        operator A.
 
-    b_op : :class:`qutip.qobj`
-        Operator B.
+    b_op : :class:`qutip.Qobj`
+        operator B.
 
-    use_pinv : bool
-        If `True` use numpy's pinv method, otherwise use a generic solver.
+    use_pinv : ``bool``
+        if `True` use numpy's pinv method, otherwise use a generic solver.
 
     Returns
     -------
 
-    spectrum : array
-        An array with spectrum :math:`S(\omega)` for the frequencies
+    spectrum : ``numpy.array``
+        a ``numpy.array`` with spectrum :math:`S(\omega)` for the frequencies
         specified in `wlist`.
 
     """

@@ -72,7 +72,7 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         :math:`\\psi(t_0)`.
 
     tlist : ``list`` or ``numpy.array``
-        ``list`` of times for :math:`t`.
+        ``list`` or ``numpy.array`` of times for :math:`t`.
 
     a_ops : ``list`` of :class:`qutip.Qobj`
         ``list`` of system operators that couple to bath degrees of
@@ -354,7 +354,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=[], c_ops=[], use_secular=True):
         ``list`` of callback functions that evaluate the noise power
         spectra at a given frequency.
 
-    c_ops : ``list``
+    c_ops : ``list`` of :class:`qutip.Qobj`
         ``list`` of system collapse operators.
 
     use_secular : ``bool``
