@@ -251,8 +251,10 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     along one time axis using the quantum regression theorem and the
     evolution solver indicated by the `solver` parameter.
 
-    Note: it is not possible to calculate a physically meaningful correlation
-    of this form where :math:`\\tau<0`.
+    .. note::
+
+        It is not possible to calculate a physically meaningful correlation of
+        this form where :math:`\\tau<0`.
 
     Parameters
     ----------
@@ -323,8 +325,10 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     along two time axes using the quantum regression theorem and the
     evolution solver indicated by the `solver` parameter.
 
-    Note: it is not possible to calculate a physically meaningful correlation
-    of this form where :math:`\\tau<0`.
+    .. note::
+
+        It is not possible to calculate a physically meaningful correlation of
+        this form where :math:`\\tau<0`.
 
     Parameters
     ----------
@@ -562,8 +566,12 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
         \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
-    using the solver indicated by the `solver` parameter. Note: this spectrum
-    is only defined for stationary statistics (uses steady state rho0)
+    using the solver indicated by the `solver` parameter.
+
+    .. note::
+
+        This spectrum is only defined for stationary statistics (uses steady
+        state rho0).
 
     Parameters
     ----------
@@ -823,8 +831,10 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     along one time axis using the quantum regression theorem and the
     evolution solver indicated by the `solver` parameter.
 
-    Note: it is not possible to calculate a physically meaningful correlation
-    of this form where :math:`\\tau<0`.
+    .. note::
+
+        It is not possible to calculate a physically meaningful correlation of
+        this form where :math:`\\tau<0`.
 
     Parameters
     ----------
@@ -907,8 +917,10 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     along two time axes using the quantum regression theorem and the
     evolution solver indicated by the `solver` parameter.
 
-    Note: it is not possible to calculate a physically meaningful correlation
-    of this form where :math:`\\tau<0`.
+    .. note::
+
+        It is not possible to calculate a physically meaningful correlation of
+        this form where :math:`\\tau<0`.
 
     Parameters
     ----------
@@ -1002,8 +1014,12 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
         \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
-    using an eseries based solver Note: this spectrum is only defined for
-    stationary statistics (uses steady state rho0).
+    using an eseries based solver.
+
+    .. note::
+
+        This spectrum is only defined for stationary statistics (uses steady
+        state rho0).
 
     Parameters
     ----------
@@ -1052,8 +1068,12 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
         \lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
-    using a psuedo-inverse method. Note: this spectrum is only defined for
-    stationary statistics (uses steady state rho0)
+    using a psuedo-inverse method.
+
+    .. note::
+
+        This spectrum is only defined for stationary statistics (uses steady
+        state rho0).
 
     Parameters
     ----------
