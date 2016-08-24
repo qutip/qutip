@@ -56,7 +56,9 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
     .. note::
 
         This solver only supports time-dependent Hamiltonians and collapse
-        operators using the `list array format`.
+        operators using the `list array format`. This is due to the
+        implementation of time-dependence with piece-wise constant
+        Liouvillians.
 
     Parameters
     ----------
