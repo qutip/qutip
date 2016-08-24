@@ -49,7 +49,7 @@ from qutip.superoperator import liouvillian
 # Solve the Bloch-Redfield master equation
 #
 def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
-              args={}, options=Options()):
+              use_secular=True, args={}, options=Options()):
     """
     Solve the dynamics for a system using the Bloch-Redfield master equation.
 
@@ -69,7 +69,7 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
 
-    tlist : *list* / *array*
+    tlist : array_like
         List of times for :math:`t`.
 
     a_ops : list of :class:`qutip.qobj`
@@ -82,7 +82,11 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         List of system collapse operators, may be time-dependent using the
         *list array format*.
 
-    args : *dictionary*
+    use_secular : bool
+        Flag (True of False) that indicates if the secular approximation should
+        be used.
+
+    args : dictionary
         Placeholder for future implementation, kept for API consistency.
 
     options : :class:`qutip.solver.Options`
@@ -101,10 +105,11 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
     #
     # check for time-dependence of Hamiltonian and c_ops
     #
+    H_time_dependent = False
+    c_ops_time_dependent = False
     if isinstance(H, Qobj):
         # no time-dependence
-        H_time_dependent = False
-        c_ops_time_dependent = False
+        pass
     elif isinstance(H, list):
         for Hk in H:
             if isinstance(Hk, list):
@@ -131,9 +136,6 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
     #
     # Compute Bloch Redfield evolution
     #
-    if not spectra_cb:
-        # default to infinite temperature white noise
-        spectra_cb = [lambda w: 1.0 for _ in a_ops]
 
     result = Result()
     result.solver = "brmesolve"
@@ -141,7 +143,8 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
 
     if (not H_time_dependent) and (not c_ops_time_dependent):
         # no time-dependence, so evolve normally
-        R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops)
+        R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops,
+                                         use_secular=use_secular)
         result_list = bloch_redfield_solve(R, ekets, state0, tlist, e_ops,
                                            options)
 
@@ -156,6 +159,8 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         if isket(state0):
             # Got a wave function as initial state: convert to density matrix.
             rho0 = state0 * state0.dag()
+        else:
+            rho0 = state0
 
         rho_list = [rho0]
         # step through tlist and compute a new Redfield tensor at each step,
@@ -183,7 +188,8 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
 
             # create Redfield tensor and evolve
             R, ekets = bloch_redfield_tensor(H_i, a_ops, spectra_cb,
-                                             c_ops=c_ops_i, use_secular=False)
+                                             c_ops=c_ops_i,
+                                             use_secular=use_secular)
             rho = bloch_redfield_solve(
                 R, ekets, rho_list[i], [tlist[i], tlist[i + 1]]
             )
@@ -221,7 +227,7 @@ def bloch_redfield_solve(R, ekets, state0, tlist, e_ops=[], options=None):
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
 
-    tlist : *list* / *array*
+    tlist : array_like
         List of times for :math:`t`.
 
     e_ops : list of :class:`qutip.qobj` / callback function
@@ -235,7 +241,7 @@ def bloch_redfield_solve(R, ekets, state0, tlist, e_ops=[], options=None):
 
     output: :class:`qutip.solver`
         An instance of the class :class:`qutip.solver`, which contains either
-        an *array* of expectation values for the times specified by `tlist`.
+        an array of expectation values for the times specified by `tlist`.
 
     """
 
@@ -251,6 +257,8 @@ def bloch_redfield_solve(R, ekets, state0, tlist, e_ops=[], options=None):
     if isket(state0):
         # Got a wave function as initial state: convert to density matrix.
         rho0 = state0 * state0.dag()
+    else:
+        rho0 = state0
 
     #
     # prepare output array
