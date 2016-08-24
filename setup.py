@@ -122,13 +122,13 @@ def write_f2py_f2cmap():
 
 def git_short_hash():
     try:
-        return "-" + os.popen('git log -1 --format="%h"').read().strip()
+        return "+" + os.popen('git log -1 --format="%h"').read().strip()
     except:
         return ""
 
 FULLVERSION = VERSION
 if not ISRELEASED:
-    FULLVERSION += '.dev' + git_short_hash()
+    FULLVERSION += '.dev'+str(MICRO)+git_short_hash()
 
 # NumPy's distutils reads in versions differently than
 # our fallback. To make sure that versions are added to
