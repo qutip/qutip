@@ -50,9 +50,8 @@ def testInterpolate2():
     y = np.sin(x)+0.1*np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
-    for k in range(100):
-        z = 2*np.pi*np.random.random()
-        assert_(np.abs(S2(z)-S1(z)) < 1e-9)
+    for k in range(x.shape[0]):
+        assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
 
 def testInterpolate3():
     "Interpolation: Complex sine + noise (array)"
@@ -70,9 +69,8 @@ def testInterpolate4():
         0.1j*np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
-    for k in range(100):
-        z = 2*np.pi*np.random.random()
-        assert_(np.abs(S2(z)-S1(z)) < 1e-9)
+    for k in range(x.shape[0]):
+        assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
 
 
 if __name__ == "__main__":

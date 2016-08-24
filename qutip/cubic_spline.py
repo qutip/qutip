@@ -52,15 +52,17 @@ class Cubic_Spline(object):
         h = (b - a)/n
 
         coeff = np.zeros(n + 3, dtype=y.dtype)
-        coeff[1] = 1/6. * (y[0] - (alpha * h**2)/6)
-        coeff[n + 1] = 1/6. * (y[n] - (beta * h**2)/6)
+        # Solutions to boundary coeffcients of spline
+        coeff[1] = 1/6. * (y[0] - (alpha * h**2)/6) #C2 in paper
+        coeff[n + 1] = 1/6. * (y[n] - (beta * h**2)/6) #cn+2 in paper
 
+        # Compressed tridiagonal matrix 
         ab = np.ones((3, n - 1), dtype=float)
-        ab[0, 0] = 0
+        ab[0,0] = 0 # Because top row is upper diag with one less elem
         ab[1, :] = 4
-        ab[-1, -1] = 0
-
-        B = y[1:-1].copy()
+        ab[-1,-1] = 0 # Because bottom row is lower diag with one less elem
+        
+        B = y[1:-1].copy() #grabs elements y[1] - > y[n-2]
         B[0] -= coeff[1]
         B[-1] -=  coeff[n + 1]
 
