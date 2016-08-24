@@ -113,6 +113,10 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
+
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
@@ -197,6 +201,10 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     solver : str
         Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
+
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
 
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
@@ -290,6 +298,10 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
+
     options : Options
         solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
@@ -370,6 +382,10 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
 
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
+
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
@@ -449,6 +465,10 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
         Choice of solver (`me` for master-equation and
         `es` for exponential series).
 
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
+
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
@@ -521,6 +541,10 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
     solver : str
         Choice of solver (`me` for master-equation and
         `es` for exponential series).
+
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
 
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
@@ -709,6 +733,10 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
         Choice of solver (`me` for master-equation and
         `es` for exponential series).
 
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
+
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
@@ -788,6 +816,10 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     solver : str
         Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
+
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
 
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
@@ -872,6 +904,10 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     solver : str
         Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
+
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
 
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
@@ -964,6 +1000,10 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     solver : str
         Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
+
+    args : dictionary
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
 
     options : Options
         Solver options class. `ntraj` is taken as a two-element list because
