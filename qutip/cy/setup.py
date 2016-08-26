@@ -6,7 +6,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
-exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
+exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate']
 
 _compiler_flags = ['-w', '-ffast-math', '-O3', '-mtune=native']
 
@@ -17,7 +17,8 @@ def configuration(parent_package='', top_path=None):
 
     for ext in exts:
         config.add_extension(
-            ext, sources=[ext + ".pyx"],
+            ext, 
+            sources=[ext + ".pyx"],
             include_dirs=[np.get_include()],
             extra_compile_args=_compiler_flags,
             extra_link_args=[])
@@ -35,4 +36,5 @@ if __name__ == '__main__':
         ext_modules=[Extension(
             ext, [ext + ".pyx"],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[]) for ext in exts])
+            extra_link_args=[]) for ext in exts]
+            )
