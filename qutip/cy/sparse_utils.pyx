@@ -32,6 +32,7 @@
 ###############################################################################
 import numpy as np
 cimport numpy as np
+from libc.math cimport abs
 cimport cython
 
 cdef inline int int_max(int x, int y):
@@ -242,3 +243,26 @@ def _isdiag(np.ndarray[ITYPE_t, ndim=1] idx,
     return 1
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef _csr_get_diag(complex[::1] data, int[::1] idx, int[::1] ptr, int k=0):
+    
+    cdef size_t row, jj
+    cdef num_rows = ptr.shape[0]-1
+    cdef int abs_k = abs(k)
+    cdef int start, stop
+    cdef np.ndarray[complex, ndim=1, mode='c'] out = np.zeros(num_rows-abs_k, dtype=complex)
+
+    if k >= 0:
+        start = 0
+        stop = num_rows-abs_k
+    else: #k < 0
+        start = abs_k
+        stop = num_rows
+
+    for row in range(start, stop):
+        for jj in range(ptr[row], ptr[row+1]):
+            if idx[jj]-k == row:
+                out[row-start] = data[jj]
+                break
+    return out

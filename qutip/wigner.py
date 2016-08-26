@@ -49,9 +49,11 @@ from qutip.states import ket2dm
 from qutip.parallel import parfor
 from qutip.utilities import clebsch
 from scipy.misc import factorial
+from qutip.cy.sparse_utils import _csr_get_diag
 
 
-def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), parfor=False):
+def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), 
+            sparse=False, parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
 
@@ -83,6 +85,11 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), parfor=False):
         dealing with density matrices that have a large number of excitations
         (>~50). 'clenshaw' is a fast and numerically stable method.
 
+    sparse : bool {False, True}
+        Tells the default solver whether or not to keep the input density
+        matrix in sparse format.  As the dimensions of the density matrix
+        grow, setthing this flag can result in increased performance.
+    
     parfor : bool {False, True}
         Flag for calculating the Laguerre polynomial based Wigner function
         method='laguerre' in parallel using the parfor function.
@@ -130,7 +137,7 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), parfor=False):
         return _wigner_laguerre(rho, xvec, yvec, g, parfor)
         
     elif method == 'clenshaw':
-        return _wigner_clenshaw(rho, xvec, yvec, g)
+        return _wigner_clenshaw(rho, xvec, yvec, g, sparse=sparse)
 
     else:
         raise TypeError(
@@ -325,7 +332,7 @@ def _osc_eigen(N, pnts):
         return A
 
 
-def _wigner_clenshaw(rho, xvec, yvec, g=2**0.5):
+def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
     """
     Using Clenshaw summation - numerically stable and efficient
     iterative algorithm to evaluate polynomial series.
@@ -342,25 +349,32 @@ def _wigner_clenshaw(rho, xvec, yvec, g=2**0.5):
     #A = 0.5 * g * (X + 1.0j * Y)
     A2 = g * (X + 1.0j * Y) #this is A2 = 2*A
     
-    rho = rho.full() * (2*np.ones((M,M)) - np.diag(np.ones(M)))
-    
     B = np.abs(A2)
     B *= B
-    
+    w0 = (2*rho.data[0,-1])*np.ones_like(A2)
+    L = M-1
     #calculation of \sum_{L} c_L (2x)^L / sqrt(L!)
     #using Horner's method
-    w0 = rho[0,-1] + A2*0
-    L = M-1
-    
-    while L > 0:
-        L -= 1
-        #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
-        w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
+    if not sparse:
+        rho = rho.full() * (2*np.ones((M,M)) - np.diag(np.ones(M)))
+        while L > 0:
+            L -= 1
+            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+            w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
+    else:
+        while L > 0:
+            L -= 1
+            diag = _csr_get_diag(rho.data.data,rho.data.indices,
+                                rho.data.indptr,L)
+            if L != 0:
+                diag *= 2
+            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+            w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
         
     return w0.real * np.exp(-B*0.5) * (g*g*0.5 / pi)
 
 
-def _wig_laguerre_val(L, x, c, tensor=True):
+def _wig_laguerre_val(L, x, c):
     """
     this is evaluation of polynomial series inspired by hermval from numpy.    
     Returns polynomial series
@@ -471,19 +485,15 @@ def spin_q_function(rho, theta, phi):
 
     Parameters
     ----------
-
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
-
     theta : array_like
         theta-coordinates at which to calculate the Q function.
-
     phi : array_like
         phi-coordinates at which to calculate the Q function.
 
     Returns
     -------
-
     Q, THETA, PHI : 2d-array
         Values representing the spin Q function at the values specified
         by THETA and PHI.
@@ -530,30 +540,26 @@ def _rho_kq(rho, j, k, q):
 
 
 def spin_wigner(rho, theta, phi):
-    """Wigner function for spins.
+    """Wigner function for spins on the Bloch sphere.
 
     Parameters
     ----------
-
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
-
     theta : array_like
         theta-coordinates at which to calculate the Q function.
-
     phi : array_like
         phi-coordinates at which to calculate the Q function.
 
     Returns
     -------
-
     W, THETA, PHI : 2d-array
         Values representing the spin Wigner function at the values specified
         by THETA and PHI.
 
-    .. note::
-
-        Experimental.
+    Notes
+    -----
+    Experimental.
 
     """
 
