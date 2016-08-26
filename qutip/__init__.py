@@ -258,6 +258,7 @@ from qutip.correlation import *
 from qutip.countstat import *
 from qutip.rcsolve import *
 from qutip.nonmarkov import *
+from qutip.cubic_spline import *
 
 # quantum information
 from qutip.qip import *

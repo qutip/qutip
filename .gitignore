@@ -24,8 +24,9 @@ qutip/version.py
 qutip/__config__.py
 rhs*.pyx
 
-*.c
-
+qutip/cy/*.c
+qutip/control/*.c
+qutip/cy/parallel/*.c
 *.dat
 
 *.qo
