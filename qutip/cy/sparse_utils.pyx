@@ -32,7 +32,7 @@
 ###############################################################################
 import numpy as np
 cimport numpy as np
-from libc.math cimport fabs
+from libc.math cimport abs
 cimport cython
 
 cdef inline int int_max(int x, int y):
@@ -245,29 +245,24 @@ def _isdiag(np.ndarray[ITYPE_t, ndim=1] idx,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef _csr_get_diag(complex[::1] data, int[::1] idx, int[::1] ptr, int k, int num_rows):
+cpdef _csr_get_diag(complex[::1] data, int[::1] idx, int[::1] ptr, int k=0):
+    
+    cdef size_t row, jj
+    cdef num_rows = ptr.shape[0]-1
+    cdef int abs_k = abs(k)
+    cdef int start, stop
+    cdef np.ndarray[complex, ndim=1, mode='c'] out = np.zeros(num_rows-abs_k, dtype=complex)
 
-    cdef diag_rows = num_rows-fabs(k)
-    cdef Py_ssize_t row, jj
-    cdef int row_start, row_end, start, stop, step, offset
-    cdef np.ndarray[CTYPE_t, ndim=1, mode='c'] out = np.zeros(diag_rows, dtype=complex)
-
-    if k >=0:
+    if k >= 0:
         start = 0
-        stop = diag_rows
-        step = 1
-        offset = 0
+        stop = num_rows-abs_k
     else: #k < 0
-        start = num_rows-1
-        stop = num_rows - diag_rows -1
-        step = -1
-        offset = k
+        start = abs_k
+        stop = num_rows
 
-    for row in range(start, stop, step):
-        row_start = ptr[row]
-        row_end = ptr[row+1]
-        for jj in range(row_start,row_end):
-            if idx[jj] == row+k:
-                out[row+offset] = data[jj]
+    for row in range(start, stop):
+        for jj in range(ptr[row], ptr[row+1]):
+            if idx[jj]-k == row:
+                out[row-start] = data[jj]
                 break
     return out
