@@ -37,14 +37,14 @@ import numpy as np
 from qutip import _version2int
 from numpy import trapz, linspace, pi
 from numpy.testing import run_module_suite, assert_
-from scipy.interpolate import interp1d
 import unittest
 import warnings
 
 from qutip import (correlation, destroy, coherent_dm, correlation_2op_2t,
                    fock, correlation_2op_1t, tensor, qeye, spectrum_ss,
                    spectrum_pi, correlation_ss, spectrum_correlation_fft,
-                   spectrum, correlation_3op_2t, mesolve, Options)
+                   spectrum, correlation_3op_2t, mesolve, Options,
+                   Cubic_Spline)
 
 # find Cython if it exists
 try:
@@ -446,7 +446,7 @@ def test_c_ops_str_list_td_corr():
     n = mesolve(
         H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
     ).expect[0]
-    n_f = interp1d(tlist, n, kind="cubic", fill_value=0, bounds_error=False)
+    n_f = Cubic_Spline(tlist[0], tlist[-1], n)
     corr_ab = - c1 * c2 + np.array(
         [[n_f(t) * n_f(t + tau) for tau in tlist]
          for t in tlist])
@@ -490,7 +490,7 @@ def test_np_str_list_td_corr():
     n = mesolve(
         H, psi0, tlist, c_ops, sm01.dag() * sm01
     ).expect[0]
-    n_f = interp1d(tlist, n, kind="cubic", fill_value=0, bounds_error=False)
+    n_f = Cubic_Spline(tlist[0], tlist[-1], n)
     corr_ab = - c1 * c2 + np.array(
         [[n_f(t) * n_f(t + tau) for tau in tlist]
          for t in tlist])
@@ -535,7 +535,7 @@ def test_c_ops_fn_list_td_corr():
     n = mesolve(
         H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
     ).expect[0]
-    n_f = interp1d(tlist, n, kind="cubic", fill_value=0, bounds_error=False)
+    n_f = Cubic_Spline(tlist[0], tlist[-1], n)
     corr_ab = - c1 * c2 + np.array(
         [[n_f(t) * n_f(t + tau) for tau in tlist]
          for t in tlist])
