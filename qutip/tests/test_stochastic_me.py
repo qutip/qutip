@@ -88,7 +88,7 @@ def test_smesolve_homodyne_methods():
                        nsubsteps=Nsub, method='homodyne', solver = n_method[0],
                        noise = sol.noise)
         err = 1/T * np.sum(np.abs(y_an - (sol.expect[1]-sol.expect[0]*sol.expect[0].conj())))*ddt
-        print n_method[0], ': deviation =', err, ', tol =', n_method[1]
+        print(n_method[0], ': deviation =', err, ', tol =', n_method[1])
         assert_(err < n_method[1])
         assert_(np.all(sol.noise == sol2.noise))# just to check that noise is not affected by smesolve
         assert_(np.all(sol.expect[0] == sol2.expect[0]))
