@@ -39,7 +39,7 @@ import scipy.sparse as sp
 import numpy as np
 from qutip.qobj import Qobj
 from qutip.sparse import sp_reshape
-
+from qutip.cy.sparse_utils import _csr_kron
 
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
@@ -92,12 +92,20 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
 
-    spI = sp.identity(op_shape[0], format='csr')
+    spI = sp.identity(op_shape[0], format='csr', dtype=complex)
 
     if H:
         if H.isoper:
-            data = -1j * (sp.kron(spI, H.data, format='csr')
-                          - sp.kron(H.data.T, spI, format='csr'))
+            Ht = H.data.T.tocsr()
+            data = -1j * _csr_kron(spI.data, spI.indices, spI.indptr, 
+                                   spI.shape[0] , spI.shape[1],
+                                   H.data.data, H.data.indices, H.data.indptr,
+                                   H.shape[0], H.shape[1])
+            
+            data += 1j * _csr_kron(Ht.data, Ht.indices, Ht.indptr, 
+                                   Ht.shape[0], Ht.shape[1],
+                                   spI.data, spI.indices, spI.indptr, 
+                                   spI.shape[0] , spI.shape[1])
         else:
             data = H.data
     else:
@@ -107,16 +115,30 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         if c_op.issuper:
             data = data + c_op.data
         else:
-            cd = c_op.data.T.conj()
+            cd = c_op.data.T.conj().tocsr()
             c = c_op.data
             if chi:
-                data = data + np.exp(1j * chi[idx]) * sp.kron(cd.T, c,
-                                                              format='csr')
+                data = data + np.exp(1j * chi[idx]) * \
+                                _csr_kron(c.data.conj(), c.indices, c.indptr,
+                                        c.shape[0], c.shape[1],
+                                        c.data, c.indices, c.indptr,
+                                        c.shape[0], c.shape[1])
             else:
-                data = data + sp.kron(cd.T, c, format='csr')
+                data = data + _csr_kron(c.data.conj(), c.indices, c.indptr,
+                                        c.shape[0], c.shape[1],
+                                        c.data, c.indices, c.indptr,
+                                        c.shape[0], c.shape[1])
             cdc = cd * c
-            data = data - 0.5 * sp.kron(spI, cdc, format='csr')
-            data = data - 0.5 * sp.kron(cdc.T, spI, format='csr')
+            cdct = cdc.T.tocsr()
+            data = data - 0.5 * _csr_kron(spI.data, spI.indices, spI.indptr,
+                                          spI.shape[0], spI.shape[1],
+                                          cdc.data, cdc.indices, cdc.indptr,
+                                          cdc.shape[0], cdc.shape[1])
+            
+            data = data - 0.5 * _csr_kron(cdct.data, cdct.indices, cdct.indptr,
+                                        cdct.shape[0], cdct.shape[1], 
+                                        spI.data, spI.indices, spI.indptr,
+                                        spI.shape[0], spI.shape[1])
 
     if data_only:
         return data
