@@ -207,12 +207,18 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
 
                 for j, Jj in enumerate(J_ops):
                     Qj = Q * Jj.data * rhoss_vec
-                    X_rho_vec_j = sp.linalg.splu(A, permc_spec
+                    try:
+                        X_rho_vec_j = sp.linalg.splu(A, permc_spec
                                                  ='COLAMD').solve(Qj)
+                    except:
+                        X_rho_vec_j=sp.linalg.lsqr(A,Qj)[0]
                     for i, Ji in enumerate(J_ops):
                         Qi = Q * Ji.data * rhoss_vec
-                        X_rho_vec_i = sp.linalg.splu(A, permc_spec
-                                                     ='COLAMD').solve(Qj)
+                        try:
+                            X_rho_vec_i = sp.linalg.splu(A, permc_spec
+                                                     ='COLAMD').solve(Qi)
+                        except:
+                             X_rho_vec_i=sp.linalg.lsqr(A,Qi)[0]
                         if i == j:
                             S[i, i, k] = I[i] = expect_rho_vec(Ji.data, 
                                                                rhoss_vec, 1)
