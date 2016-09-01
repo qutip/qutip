@@ -97,15 +97,8 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     if H:
         if H.isoper:
             Ht = H.data.T.tocsr()
-            data = -1j * _csr_kron(spI.data, spI.indices, spI.indptr, 
-                                   spI.shape[0] , spI.shape[1],
-                                   H.data.data, H.data.indices, H.data.indptr,
-                                   H.shape[0], H.shape[1])
-            
-            data += 1j * _csr_kron(Ht.data, Ht.indices, Ht.indptr, 
-                                   Ht.shape[0], Ht.shape[1],
-                                   spI.data, spI.indices, spI.indptr, 
-                                   spI.shape[0] , spI.shape[1])
+            data = -1j * zcsr_kron(spI, H.data)
+            data += 1j * zcsr_kron(Ht, spI)
         else:
             data = H.data
     else:
