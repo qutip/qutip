@@ -34,8 +34,64 @@
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 
-from qutip import (smesolve, mesolve, destroy, coherent, parallel_map)
+from qutip import (smesolve, mesolve, destroy, coherent, parallel_map, qeye, fock_dm)
 
+
+def test_smesolve_homodyne_methods():
+    "Stochastic: smesolve: homodyne methods with single jump operator"
+    
+    def arccoth(x):
+        return 0.5*np.log((1.+x)/(x-1.))
+    
+    th = 0.1 # Interaction parameter
+    alpha = np.cos(th)
+    beta = np.sin(th)
+    gamma = 1.
+    
+    N = 30                 # number of Fock states
+    Id = qeye(N)
+    a = destroy(N)
+    s = 0.5*((alpha+beta)*a + (alpha-beta)*a.dag())
+    x = (a + a.dag()) * 2**-0.5
+    H = Id
+    c_op = [gamma**0.5 * a]
+    sc_op = [s]
+    e_op = [x, x*x]
+    rho0 = fock_dm(N,0)      # initial vacuum state
+    
+    T = 6.                   # final time          
+    N_store = 200            # number of time steps for which we save the expectation values
+    Nsub = 5
+    tlist = np.linspace(0, T, N_store)
+    ddt = (tlist[1]-tlist[0])
+
+    #### Analytic solution
+    y0 = 0.5
+    A = (gamma**2 + alpha**2 * (beta**2 + 4*gamma) - 2*alpha*beta*gamma)**0.5
+    B = arccoth((-4*alpha**2*y0 + alpha*beta - gamma)/A)
+    y_an = (alpha*beta - gamma + A / np.tanh(0.5*A*tlist - B))/(4*alpha**2)
+    
+
+    list_methods_tol = [['euler-maruyama', 2e-2],
+                        ['fast-euler-maruyama', 2e-2],
+                        ['pc-euler', 2e-3],
+                        ['milstein', 1e-3],
+                        ['fast-milstein', 1e-3],
+                        ['milstein-imp', 1e-3],
+                        ['taylor15', 1e-4],
+                        ['taylor15-imp', 1e-4]
+                        ]
+    for n_method in list_methods_tol:
+        sol = smesolve(H, rho0, tlist, c_op, sc_op, e_op,
+                       nsubsteps=Nsub, method='homodyne', solver = n_method[0])
+        sol2 = smesolve(H, rho0, tlist, c_op, sc_op, e_op,
+                       nsubsteps=Nsub, method='homodyne', solver = n_method[0],
+                       noise = sol.noise)
+        err = 1/T * np.sum(np.abs(y_an - (sol.expect[1]-sol.expect[0]*sol.expect[0].conj())))*ddt
+        print(n_method[0], ': deviation =', err, ', tol =', n_method[1])
+        assert_(err < n_method[1])
+        assert_(np.all(sol.noise == sol2.noise))# just to check that noise is not affected by smesolve
+        assert_(np.all(sol.expect[0] == sol2.expect[0]))
 
 def test_ssesolve_photocurrent():
     "Stochastic: smesolve: photo-current"
