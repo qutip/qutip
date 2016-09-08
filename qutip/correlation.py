@@ -93,8 +93,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -180,15 +180,15 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+    tlist : ``array_like``
+        ``array_like`` of times for :math:`t`. `tlist` must be
         positive and contain the element `0`. When taking steady-steady
         correlations only one `tlist` value is necessary, i.e. when
         :math:`t \\rightarrow \\infty`; here tlist is automatically set,
         ignoring user input.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -287,8 +287,8 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -369,15 +369,15 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+    tlist : ``array_like``
+        ``array_like`` of times for :math:`t`. `tlist` must be
         positive and contain the element `0`. When taking steady-steady
         correlations only one `tlist` value is necessary, i.e. when
         :math:`t \\rightarrow \\infty`; here tlist is automatically set,
         ignoring user input.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -468,8 +468,8 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -548,8 +548,8 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -673,12 +673,12 @@ def spectrum_correlation_fft(taulist, y):
     Parameters
     ----------
 
-    tlist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times :math:`t` for which the correlation
+    tlist : ``array_like``
+        ``array_like`` of times :math:`t` for which the correlation
         function is given.
 
-    y : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of correlations corresponding to time
+    y : ``array_like``
+        ``array_like`` of correlations corresponding to time
         delays :math:`t`.
 
     Returns
@@ -734,8 +734,8 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
     H : :class:`qutip.Qobj`
         system Hamiltonian.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list`` of :class:`qutip.Qobj`
@@ -815,15 +815,15 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+    tlist : ``array_like``
+        ``array_like`` of times for :math:`t`. `tlist` must be
         positive and contain the element `0`. When taking steady-steady
         correlations only one `tlist` value is necessary, i.e. when
         :math:`t \\rightarrow \\infty`; here tlist is automatically set,
         ignoring user input.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -911,8 +911,8 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``
@@ -1005,15 +1005,15 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
         be used as the initial state. The 'steady-state' is only implemented
         for the `me` and `es` solvers.
 
-    tlist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`t`. `tlist` must be
+    tlist : ``array_like``
+        ``array_like`` of times for :math:`t`. `tlist` must be
         positive and contain the element `0`. When taking steady-steady
         correlations only one `tlist` value is necessary, i.e. when
         :math:`t \\rightarrow \\infty`; here tlist is automatically set,
         ignoring user input.
 
-    taulist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`\\tau`. `taulist` must
+    taulist : ``array_like``
+        ``array_like`` of times for :math:`\\tau`. `taulist` must
         be positive and contain the element `0`.
 
     c_ops : ``list``

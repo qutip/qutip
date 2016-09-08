@@ -73,8 +73,8 @@ def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
 
-    tlist : ``list`` or ``numpy.array``
-        ``list`` or ``numpy.array`` of times for :math:`t`.
+    tlist : ``array_like``
+        ``array_like`` of times for :math:`t`.
 
     a_ops : ``list`` of :class:`qutip.Qobj`
         ``list`` of system operators that couple to bath degrees of
@@ -235,7 +235,7 @@ def bloch_redfield_solve(R, ekets, state0, tlist, e_ops=[], options=None):
         initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
 
-    tlist : ``list`` or ``numpy.array``
+    tlist : ``array_like``
         ``list`` of times for :math:`t`.
 
     e_ops : ``list`` of :class:`qutip.Qobj`
