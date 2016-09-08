@@ -87,7 +87,7 @@ def _permute(Q, order):
         # of each sublist.
         # As another example,
         # permuting [[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]] by
-        # [[0, 3], [1, 4], [2, 6]] should give
+        # [[0, 3], [1, 4], [2, 5]] should give
         # [[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]].
         #
         # Get the breakout of the left index into dims.
