@@ -388,7 +388,7 @@ def _td_wrap_array_str(H, c_ops, args, tlist):
                 H_op, H_td = Hk
                 td_array_name = "_td_array_%d" % n
                 if tlist_nonlinear:
-                    H_td_str = "(0 if (t > %f) else ' % (tlist[-1])" + \
+                    H_td_str = "(0 if (t > %f) else " % (tlist[-1]) + \
                                "%s[np.abs(t-np.array(%s)).argmin()])" % \
                                (td_array_name, list(tlist))
                 else:

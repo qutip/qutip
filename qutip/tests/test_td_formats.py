@@ -31,9 +31,11 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import numpy as np
+
 from numpy.testing import assert_, run_module_suite
 
-from qutip import rand_herm, qeye
+from qutip import rand_herm, qeye, destroy, mesolve, fock
 from qutip.rhs_generate import _td_format_check
 
 
@@ -88,6 +90,35 @@ def test_setTDFormatCheckMC():
     # check func H and func C_ops
     time_type, h_stuff, c_stuff = _td_format_check(f_H, [f_c_op], 'mc')
     # assert_(time_type==22)
+
+
+def test_TDFormatCheckNonlinearTLIST():
+    "td_format_check: non-linear tlist in numpy-array time-dependent format"
+
+    gamma = 2.0
+    npts = 200
+
+    t_fwhm = 0.01
+    tp_energy = 1.0 / 2 * t_fwhm / np.sqrt(2 * np.log(2))
+    tp = np.sqrt(tp_energy ** 2 * 2)  # tp**2 = 2*tpe**2
+    tp_max = t_fwhm * 6
+    t_offset = tp_max / 2
+    tmax = tp_max + 1.5 * gamma
+    delta = tp_max / npts
+
+    tlist = np.concatenate((np.linspace(0, tp_max, npts),
+                            np.linspace(tp_max + delta, tmax, npts)))
+    sm = destroy(2)
+    ff = np.exp(-(tlist - t_offset) ** 2 / (2 * tp ** 2))
+
+    H = [[sm + sm.dag(), ff]]
+    c_ops = [sm * np.sqrt(gamma),
+             [sm.dag() * sm, ff]
+             ]
+
+    r = mesolve(H, fock(2, 0), tlist, c_ops, [sm.dag() * sm]).expect[0]
+
+    assert_(abs(np.trapz(r, tlist) * 1e4 - 1.12097539016) < 1e-5)
 
 
 if __name__ == "__main__":
