@@ -79,8 +79,8 @@ except ImportError:
         from distutils.core import setup
 
 # all information about QuTiP goes here
-MAJOR = 3
-MINOR = 2
+MAJOR = 4
+MINOR = 0
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
