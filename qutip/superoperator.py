@@ -221,7 +221,7 @@ def vector_to_operator(op):
     q = Qobj()
     q.dims = op.dims[0]
     n = int(np.sqrt(op.shape[0]))
-    q.data = sp_reshape(op.data.T, (n, n)).T
+    q.data = sp_reshape(op.data.T, (n, n)).T.tocsr()
     return q
 
 
