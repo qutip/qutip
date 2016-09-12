@@ -168,7 +168,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_psi_func_td(
         object H_func,
         object args):
 
-    H = H_func(t, args)
+    H = H_func(t, args).data
     return -1j * spmv_csr(H.data, H.indices, H.indptr, psi)
 
 
@@ -192,8 +192,8 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_rho_func_td(
         object L0,
         object L_func,
         object args):
-
-    L = L0 + L_func(t, args)
+    cdef object L
+    L = L0 + L_func(t, args).data
     return spmv_csr(L.data, L.indices, L.indptr, rho)
 
 
