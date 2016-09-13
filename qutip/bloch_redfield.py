@@ -48,77 +48,174 @@ from qutip.superoperator import liouvillian
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
-def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
-              args={}, options=Options()):
+def brmesolve(H, state0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
+              use_secular=True, args={}, options=Options()):
     """
     Solve the dynamics for a system using the Bloch-Redfield master equation.
 
     .. note::
 
-        This solver does not currently support time-dependent Hamiltonians.
+        This solver only supports time-dependent Hamiltonians and collapse
+        operators using the `list array format`. This is due to the
+        implementation of time-dependence with piece-wise constant
+        Liouvillians.
 
     Parameters
     ----------
 
-    H : :class:`qutip.Qobj`
-        System Hamiltonian.
+    H : :class:`qutip.Qobj` or ``list``
+        system Hamiltonian, either time-independent with a system operator
+        :class:`qutip.Qobj` or time-dependent with a ``list`` of
+        :class:`qutip.Qobj` or [:class:`qutip.Qobj`, ``numpy.array``]
+        pairs.
 
-    rho0 / psi0: :class:`qutip.Qobj`
-        Initial density matrix or state vector (ket).
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`.
 
-    tlist : *list* / *array*
-        List of times for :math:`t`.
+    tlist : ``array_like``
+        ``array_like`` of times for :math:`t`.
 
-    a_ops : list of :class:`qutip.qobj`
-        List of system operators that couple to bath degrees of freedom.
+    a_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system operators that couple to bath degrees of
+        freedom.
 
-    e_ops : list of :class:`qutip.qobj` / callback function
-        List of operators for which to evaluate expectation values.
+    e_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of operators for which to evaluate expectation values.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of system collapse operators.
+    spectra_cb : ``list`` of callback functions
+        ``list`` of callback functions that evaluate the noise power
+        spectrum at a given frequency.
 
-    args : *dictionary*
-        Placeholder for future implementation, kept for API consistency.
+    c_ops : ``list``
+        ``list`` of system collapse operators, either :class:`qutip.Qobj`
+        or [:class:`qutip.Qobj`, ``numpy.array``] pairs.
+
+    use_secular : ``bool``
+        boolean flag that indicates if the secular approximation should be
+        used.
+
+    args : ``dict``
+        placeholder for future implementation, kept for API consistency.
 
     options : :class:`qutip.solver.Options`
-        Options for the solver.
+        options for the solver.
 
     Returns
     -------
 
-    result: :class:`qutip.solver.Result`
+    result : :class:`qutip.solver.Result`
+        an instance of the class :class:`qutip.solver.Result`, which contains
+        either a ``list`` with ``numpy.array`` s of expectation
+        values for each operators given in `e_ops` or a ``list`` of states
+        for the times specified by `tlist`.
 
-        An instance of the class :class:`qutip.solver.Result`, which contains
-        either an array of expectation values, for operators given in e_ops,
-        or a list of states for the times specified by `tlist`.
     """
 
-    if not spectra_cb:
-        # default to infinite temperature white noise
-        spectra_cb = [lambda w: 1.0 for _ in a_ops]
+    #
+    # check for time-dependence of Hamiltonian and c_ops
+    #
+    H_time_dependent = False
+    c_ops_time_dependent = False
+    if isinstance(H, list):
+        for Hk in H:
+            if isinstance(Hk, list):
+                # check time-dependence is list array format
+                if isinstance(Hk[1], np.ndarray):
+                    H_time_dependent = True
+                else:
+                    raise TypeError("Incorrect hamiltonian specification, " +
+                                    "the Bloch Redfield solver requires " +
+                                    "list array format")
+    if isinstance(c_ops, list):
+        for ck in c_ops:
+            if isinstance(ck, list):
+                # check time-dependence is list array format
+                if isinstance(ck[1], np.ndarray):
+                    c_ops_time_dependent = True
+                else:
+                    raise TypeError("Incorrect collapse operator " +
+                                    "specification, the Bloch Redfield " +
+                                    "solver requires list array format")
 
-    R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops)
+    #
+    # Compute Bloch Redfield evolution
+    #
 
-    output = Result()
-    output.solver = "brmesolve"
-    output.times = tlist
+    result = Result()
+    result.solver = "brmesolve"
+    result.times = tlist
 
-    results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
+    if (not H_time_dependent) and (not c_ops_time_dependent):
+        # no time-dependence, so evolve normally
+        R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops,
+                                         use_secular=use_secular)
+        result_list = bloch_redfield_solve(R, ekets, state0, tlist, e_ops,
+                                           options)
 
-    if e_ops:
-        output.expect = results
+        # determine the final result form
+        if e_ops:
+            result.expect = result_list
+        else:
+            result.states = result_list
     else:
-        output.states = results
+        # time-dependent, so breakup steps one-by-one
 
-    return output
+        if isket(state0):
+            # Got a wave function as initial state: convert to density matrix.
+            rho0 = state0 * state0.dag()
+        else:
+            rho0 = state0
+
+        rho_list = [rho0]
+        # step through tlist and compute a new Redfield tensor at each step,
+        # using the final state of the previous step as the input to the next
+        for i in range(len(tlist) - 1):
+            # re-compute Hamiltonian and c_ops for current time step
+            if H_time_dependent:
+                # we can just add the Hamiltonian operators together
+                H_i = 0
+                for Hk in H:
+                    if isinstance(Hk, list):
+                        H_i += Hk[0]*Hk[1][i]
+                    else:
+                        H_i += Hk
+            else:
+                H_i = H
+            if c_ops_time_dependent:
+                # but c_ops needs to be in a list format
+                c_ops_i = []
+                for ck in c_ops:
+                    if isinstance(ck, list):
+                        c_ops_i.append(ck[0]*ck[1][i])
+                    else:
+                        c_ops_i.append(ck)
+            else:
+                c_ops_i = c_ops
+
+            # create Redfield tensor and evolve
+            R, ekets = bloch_redfield_tensor(H_i, a_ops, spectra_cb,
+                                             c_ops=c_ops_i,
+                                             use_secular=use_secular)
+            rho = bloch_redfield_solve(
+                R, ekets, rho_list[i], [tlist[i], tlist[i + 1]]
+            )
+            rho_list.append(rho[-1])
+
+        # determine the final result form
+        if e_ops:
+            result.expect = expect(e_ops, rho_list)
+        else:
+            result.states = rho_list
+
+    return result
 
 
 # -----------------------------------------------------------------------------
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 #
-def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
+def bloch_redfield_solve(R, ekets, state0, tlist, e_ops=[], options=None):
     """
     Evolve the ODEs defined by Bloch-Redfield master equation. The
     Bloch-Redfield tensor can be calculated by the function
@@ -127,31 +224,33 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     Parameters
     ----------
 
-    R : :class:`qutip.qobj`
+    R : :class:`qutip.Qobj`
         Bloch-Redfield tensor.
 
-    ekets : array of :class:`qutip.qobj`
-        Array of kets that make up a basis tranformation for the eigenbasis.
+    ekets : ``list`` of :class:`qutip.Qobj`
+        ``list`` of kets that make up a basis tranformation for the
+        eigenbasis.
 
-    rho0 : :class:`qutip.qobj`
-        Initial density matrix.
+    state0 : :class:`qutip.Qobj`
+        initial state density matrix :math:`\\rho(t_0)` or state vector
+        :math:`\\psi(t_0)`.
 
-    tlist : *list* / *array*
-        List of times for :math:`t`.
+    tlist : ``array_like``
+        ``list`` of times for :math:`t`.
 
-    e_ops : list of :class:`qutip.qobj` / callback function
-        List of operators for which to evaluate expectation values.
+    e_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of operators for which to evaluate expectation values.
 
-    options : :class:`qutip.Qdeoptions`
-        Options for the ODE solver.
+    options : :class:`qutip.solver.Options`
+        options for the solver.
 
     Returns
     -------
 
-    output: :class:`qutip.solver`
-
-        An instance of the class :class:`qutip.solver`, which contains either
-        an *array* of expectation values for the times specified by `tlist`.
+    output : ``list``
+        a ``list`` that contains ``numpy.array`` s of expectation
+        values for each operators given in `e_ops` or a ``list`` of states
+        for the times specified by `tlist`.
 
     """
 
@@ -164,9 +263,11 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     #
     # check initial state
     #
-    if isket(rho0):
+    if isket(state0):
         # Got a wave function as initial state: convert to density matrix.
-        rho0 = rho0 * rho0.dag()
+        rho0 = state0 * state0.dag()
+    else:
+        rho0 = state0
 
     #
     # prepare output array
@@ -227,7 +328,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 # Functions for calculating the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb=[], c_ops=[], use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
@@ -235,35 +336,36 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
 
     .. note::
 
-        This tensor generation requires a time-independent Hamiltonian.
+        This tensor generation requires a time-independent Hamiltonian and
+        collapse operators.
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
-        System Hamiltonian.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
 
-    a_ops : list of :class:`qutip.qobj`
-        List of system operators that couple to the environment.
+    a_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system operators that couple to bath degrees of
+        freedom.
 
-    spectra_cb : list of callback functions
-        List of callback functions that evaluate the noise power spectrum
-        at a given frequency.
+    spectra_cb : ``list`` of callback functions
+        ``list`` of callback functions that evaluate the noise power
+        spectra at a given frequency.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of system collapse operators.
+    c_ops : ``list`` of :class:`qutip.Qobj`
+        ``list`` of system collapse operators.
 
-    use_secular : bool
-        Flag (True of False) that indicates if the secular approximation should
-        be used.
+    use_secular : ``bool``
+        boolean flag that indicates if the secular approximation should be
+        used.
 
     Returns
     -------
 
-    R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
-
-        R is the Bloch-Redfield tensor and kets is a list eigenstates of the
-        Hamiltonian.
+    R, kets : :class:`qutip.Qobj`, ``list`` of :class:`qutip.Qobj`
+        `R` is the Bloch-Redfield tensor and `kets` is a ``list`` of the
+        eigenstates of the Hamiltonian.
 
     """
 

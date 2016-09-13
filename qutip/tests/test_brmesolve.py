@@ -35,7 +35,7 @@ import numpy as np
 from numpy.testing import assert_, run_module_suite
 
 from qutip import (sigmax, sigmay, sigmaz, sigmam, identity, basis,
-                   mesolve, brmesolve, destroy, ket2dm, expect, tensor)
+                   mesolve, brmesolve, destroy, ket2dm, expect, tensor, fock)
 
 
 def testTLS():
@@ -236,6 +236,95 @@ def testJCZeroTemperature():
     for idx, e in enumerate(e_ops):
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 5e-2)  # accept 5% error
+
+
+def testTDPhononInitialization():
+    """
+    brmesolve: TLS model finite temperature, phonon-assisted initialization
+    """
+
+    # this test models phonon-assisted initialization with a quantum dot, such
+    # as in P.-L. Ardelt, L. Hanschke, K. A. Fischer, et al.
+    # Phys. Rev. B Condens. Matter 90, 241404 (2014).
+
+    def pulse_shape(t):
+        # gaussian pulse shape, ~10ps pulse
+        return np.exp(-(t - 24) ** 2 / 105)
+
+    def phonon_spectrum(w):
+        # this spectrum is a displaced gaussian multiplied by w**3, which
+        # models coupling to LA phonons. The electron and hole interactions
+        # contribute constructively.
+        import numpy
+
+        # fitting parameters ae/ah
+        ah = 1.9e-9  # m
+        ae = 3.5e-9  # m
+        # GaAs material parameters
+        De = 7
+        Dh = -3.5
+        v = 5110  # m/s
+        rho_m = 5370  # kg/m^3
+        hbar = 1.05457173e-34  # Js
+        T = 4.2  # Kelvin, temperature
+
+        J = 1.6 * 1e-13 * w ** 3 / (
+            4 * numpy.pi ** 2 * rho_m * hbar * v ** 5) * \
+            (De * numpy.exp(-(w * 1e12 * ae / (2 * v)) ** 2) -
+             Dh * numpy.exp(-(w * 1e12 * ah / (2 * v)) ** 2)) ** 2
+
+        # results in peak at ~3THz angular frequency, w in THz
+        # correct temperature dependence - 'negative' frequency components
+        # correspond to absorption vs emission.
+        if w > 0:
+            JT_p = J * (1 + numpy.exp(-w * 0.6582119 / (T * 0.086173)) /
+                        (1 - numpy.exp(-w * 0.6582119 / (T * 0.086173))))
+            return JT_p
+        elif w < 0:
+            JT_m = -J * numpy.exp(w * 0.6582119 / (T * 0.086173)) / \
+                   (1 - numpy.exp(w * 0.6582119 / (T * 0.086173)))
+            return JT_m
+        else:
+            return 0
+
+    tlist = np.linspace(0, 50, 40)  # tmax a bit over 2x FWHM
+
+    # define system operators
+    sm = destroy(2)
+    H0 = -0.35 * sm.dag() * sm
+    HI = sm + sm.dag()
+    H = [H0, [HI, pulse_shape(tlist)]]
+
+    # the
+    a_ops = [sm.dag() * sm]
+    spectra_cb = [phonon_spectrum]
+
+    state0 = fock(2, 0)
+    e_ops = [sm.dag() * sm]
+
+    # test with constant and time-dependent c_ops (included for test purposes but
+    # doesn't have physical meaning to the system)
+    c_ops_0 = [0.1 * sm, [sm.dag() * sm, pulse_shape(tlist)]]
+    result_1 = brmesolve(H, state0, tlist, a_ops,
+                         e_ops=e_ops, c_ops=c_ops_0, spectra_cb=spectra_cb)
+
+    # test with time-dependent c_ops only (included for test purposes but
+    # doesn't have physical meaning to the system)
+    c_ops_1 = [[sm.dag() * sm, pulse_shape(tlist)]]
+    result_2 = brmesolve(H, state0, tlist, a_ops,
+                         e_ops=e_ops, c_ops=c_ops_1, spectra_cb=spectra_cb)
+
+    # test with no c_ops -> this is the model that has physical meaning
+    c_ops_2 = []
+    result_3 = brmesolve(H, state0, tlist, a_ops,
+                         e_ops=e_ops, c_ops=c_ops_2, spectra_cb=spectra_cb)
+    results = np.array([result_1.expect[0][-1], result_2.expect[0][-1],
+                        result_3.expect[0][-1]])
+
+    print(results)
+    expected_results = np.array([0.552, 0.633, 0.861])
+    max_diff = max(abs(results - expected_results))
+    assert_(max_diff < 1e-3)  # accept only a very small error
 
 
 if __name__ == "__main__":
