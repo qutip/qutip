@@ -53,7 +53,7 @@ from qutip.states import ket2dm
 from qutip.states import projection
 from qutip.solver import Options
 from qutip.propagator import propagator
-from qutip.solver import Result
+from qutip.solver import Result, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.expect import expect
 from qutip.utilities import n_thermal
@@ -890,8 +890,9 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
 # Solve the Floquet-Markov master equation
 #
 #
-def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
-              args={}, options=Options(), floquet_basis=True, kmax=5):
+def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
+              args={}, options=Options(), floquet_basis=True, kmax=5,
+              _safe_mode=True):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -954,7 +955,10 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
         An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
-
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops, e_ops, args)
+    
     if T is None:
         T = max(tlist)
 
