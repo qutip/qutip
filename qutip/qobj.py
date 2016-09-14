@@ -670,6 +670,32 @@ class Qobj(object):
         # so we simply return the informal __str__ representation instead.)
         return self.__str__()
 
+    def __call__(self, other):
+        """
+        Acts this Qobj on another Qobj either by left-multiplication,
+        or by vectorization and devectorization, as
+        appropriate.
+        """
+        if not isinstance(other, Qobj):
+            raise TypeError("Only defined for quantum objects.")
+        
+        if self.type == "super":
+            if other.type == "ket":
+                other = qutip.states.ket2dm(other)
+                
+            if other.type == "oper":
+                return qutip.superoperator.vector_to_operator(
+                    self * qutip.superoperator.operator_to_vector(other)
+                )
+            else:
+                raise TypeError("Can only act super on oper or ket.")
+            
+        elif self.type == "oper":
+            if other.type == "ket":
+                return self * other
+            else:
+                raise TypeError("Can only act oper on ket.")
+
     def __getstate__(self):
         # defines what happens when Qobj object gets pickled
         self.__dict__.update({'qutip_version': __version__[:5]})
@@ -2194,3 +2220,4 @@ import qutip.tensor as tensor
 import qutip.operators as ops
 import qutip.metrics as mts
 import qutip.states
+import qutip.superoperator
