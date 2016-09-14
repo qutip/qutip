@@ -833,11 +833,11 @@ def _structure_check(Hdims, Htype, state):
         # Input is Hamiltonian
         if Htype == 'oper':
             if Hdims[1] != state.dims[0]:
-                raise Exception('Input Hamiltonian and ket vector do not share composite structure.')
+                raise Exception('Input operator and ket do not share same structure.')
         # Input is super and state is ket
         elif Htype == 'super':
             if Hdims[1][1] != state.dims[0]:
-                raise Exception('Input super op. and ket vector do notshare composite structure.')
+                raise Exception('Input operator and ket do not share same structure.')
         else:
             raise Exception('Invalid input operator.')
     # Input state is a density matrix
@@ -845,11 +845,11 @@ def _structure_check(Hdims, Htype, state):
         # Input is Hamiltonian and state is density matrix
         if Htype == 'oper':
             if Hdims[1] != state.dims[0]:
-                raise Exception('Input Hamiltonian and density matrix do not share composite structure.')
+                raise Exception('Input operators do not share same structure.')
         # Input is super op. and state is density matrix
         elif Htype == 'super':
             if Hdims[1] != state.dims:
-                raise Exception('Input super op. and density matrix do not share composite structure.')
+                raise Exception('Input operators do not share same structure.')
 
 
        
