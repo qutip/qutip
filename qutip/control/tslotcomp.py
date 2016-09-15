@@ -292,7 +292,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
         # calculate the propagators and the propagotor gradients
         if ecs: time_start = timeit.default_timer()
         for k in range(n_ts):
-            if prop_comp.grad_exact:
+            if prop_comp.grad_exact and dyn.cache_prop_grad :
                 for j in range(n_ctrls):
                     if j == 0:
                         prop_comp._compute_prop_grad(k, j)
