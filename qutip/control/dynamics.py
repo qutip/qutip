@@ -719,7 +719,7 @@ class Dynamics(object):
         if self.cache_phased_dyn_gen:
             self._phased_dyn_gen = [object for x in range(self.num_tslots)]
         self._prop = [object for x in range(self.num_tslots)]
-        if self.prop_computer.grad_exact:
+        if self.prop_computer.grad_exact and self.cache_prop_grad:
             self._prop_grad = np.empty([self.num_tslots, self._num_ctrls],
                                       dtype=object)
         # Time evolution operator (forward propagation)
@@ -1109,11 +1109,11 @@ class Dynamics(object):
         
     def _get_prop_grad(self, k, j):
         if self.cache_prop_grad:
-            pg = self._prop_grad[k, j]
+            prop_grad = self._prop_grad[k, j]
         else:
-            pg = self.prop_computer._compute_prop_grad(k, j, 
+            prop_grad = self.prop_computer._compute_prop_grad(k, j, 
                                                        compute_prop = False)
-        return pg
+        return prop_grad
 
     @property
     def evo_init2t(self):
