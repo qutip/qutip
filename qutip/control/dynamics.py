@@ -335,6 +335,10 @@ class Dynamics(object):
         self._num_tslots = None
         # attributes used for processing evolution
         self.memory_optimization = 0
+        self.cache_phased_dyn_gen = None
+        self.cache_prop_grad = None
+        self.cache_dyn_gen_eigenvectors_adj = None
+        self.sparse_eigen_decomp = None
         self.oper_dtype = None
         self.dyn_dims = None
         self.dyn_shape = None
@@ -561,7 +565,57 @@ class Dynamics(object):
             self.time[t+1] = self.time[t] + self._tau[t]
 
         self._timeslots_initialized = True
-
+        
+    def _set_memory_optimizations(self):
+        """
+        Set various memory optimisation attributes based on the 
+        memory_optimization attribute
+        If they have been set already, e.g. in apply_params
+        then they will not be overidden here
+        """
+        logger.info("Setting memory optimisations for level {}".format(
+                    self.memory_optimization))
+                    
+        if self.oper_dtype is None:
+            self._choose_oper_dtype()
+            logger.info("Internal operator data type choosen to be {}".format(
+                            self.oper_dtype))
+        else:
+            logger.info("Using operator data type {}".format(
+                            self.oper_dtype))
+        
+        if self.cache_phased_dyn_gen is None:
+            if self.memory_optimization > 0:
+                self.cache_phased_dyn_gen = False
+            else:
+                self.cache_phased_dyn_gen = True
+        logger.info("phased dynamics generator caching {}".format(
+                            self.cache_phased_dyn_gen))
+        
+        if self.cache_prop_grad is None:
+            if self.memory_optimization > 0:
+                self.cache_prop_grad = False
+            else:
+                self.cache_prop_grad = True       
+        logger.info("propagator gradient caching {}".format(
+                            self.cache_prop_grad))
+                            
+        if self.cache_dyn_gen_eigenvectors_adj is None:
+            if self.memory_optimization > 0:
+                self.cache_dyn_gen_eigenvectors_adj = False
+            else:
+                self.cache_dyn_gen_eigenvectors_adj = True       
+        logger.info("eigenvector adjoint caching {}".format(
+                            self.cache_dyn_gen_eigenvectors_adj))
+                            
+        if self.sparse_eigen_decomp is None:
+            if self.memory_optimization > 1:
+                self.sparse_eigen_decomp = True
+            else:
+                self.sparse_eigen_decomp = False       
+        logger.info("use sparse eigen decomp {}".format(
+                            self.sparse_eigen_decomp))
+                            
     def _choose_oper_dtype(self):
         """
         Attempt select most efficient internal operator data type
@@ -616,13 +670,7 @@ class Dynamics(object):
         if not isinstance(self.target, Qobj):
             raise TypeError("target must be a Qobj")
 
-        if self.oper_dtype is None:
-            self._choose_oper_dtype()
-            logger.info("Internal operator data type choosen to be {}".format(
-                            self.oper_dtype))
-        else:
-            logger.info("Using operator data type {}".format(
-                            self.oper_dtype))
+        self._set_memory_optimizations()
 
         self.dyn_dims = self.drift_dyn_gen.dims
         self.dyn_shape = self.drift_dyn_gen.shape
@@ -647,11 +695,11 @@ class Dynamics(object):
             logger.warn("Unknown option '{}' for oper_dtype. "
                 "Assuming that internal drift, ctrls, initial and target "
                 "have been set correctly".format(self.oper_dtype))
-        if self.memory_optimization == 0:
+        if self.cache_phased_dyn_gen:
             self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
                                             for ctrl in self._ctrl_dyn_gen]
         self._dyn_gen = [object for x in range(self.num_tslots)]
-        if self.memory_optimization == 0:
+        if self.cache_phased_dyn_gen:
             self._phased_dyn_gen = [object for x in range(self.num_tslots)]
         self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
@@ -693,7 +741,7 @@ class Dynamics(object):
         self._decomp_curr = [False for x in range(n_ts)]
         self._prop_eigen = [object for x in range(n_ts)]
         self._dyn_gen_eigenvectors = [object for x in range(n_ts)]
-        if self.memory_optimization == 0:
+        if self.cache_dyn_gen_eigenvectors_adj:
             self._dyn_gen_eigenvectors_adj = [object for x in range(n_ts)]
         self._dyn_gen_factormatrix = [object for x in range(n_ts)]
 
@@ -938,7 +986,7 @@ class Dynamics(object):
             dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
 
         self._dyn_gen[k] = dg
-        if self.memory_optimization == 0:
+        if self.cache_phased_dyn_gen:
             self._phased_dyn_gen[k] = self._apply_phase(dg)
 
     def _apply_phase(self, k):
@@ -1025,6 +1073,14 @@ class Dynamics(object):
                                                     self._prop_grad[k, j],
                                                     dims=self.dyn_dims)
         return self._prop_grad_qobj
+        
+    def _get_prop_grad(self, k, j):
+        if self.cache_prop_grad:
+            pg = self._prop_grad[k, j]
+        else:
+            pg = self.prop_computer._compute_prop_grad(k, j, 
+                                                       compute_prop = False)
+        return pg
 
     @property
     def evo_init2t(self):
@@ -1296,16 +1352,13 @@ class DynamicsUnitary(Dynamics):
         basis, and the 'factormatrix' used in calculating the propagator
         gradient
         """
-        if self.memory_optimization >= 2:
-            sparse = True
-        else:
-            sparse = False
 
         if self.oper_dtype == Qobj:
             H = self._dyn_gen[k]
             # Returns eigenvalues as array (row)
             # and eigenvectors as rows of an array
-            eig_val, eig_vec = sp_eigs(H.data, H.isherm, sparse=sparse)
+            eig_val, eig_vec = sp_eigs(H.data, H.isherm, 
+                                       sparse=self.sparse_eigen_decomp)
             eig_vec = eig_vec.T
 
         elif self.oper_dtype == np.ndarray:

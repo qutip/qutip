@@ -145,7 +145,7 @@ class PropagatorComputer(object):
         _func_deprecation("'compute_propagator' has been replaced "
                         "by '_compute_propagator'")
         return self._compute_propagator(k)
-
+                               
     def _compute_propagator(self, k):
         """
         calculate the progator between X(k) and X(k+1)
@@ -154,8 +154,13 @@ class PropagatorComputer(object):
         i.e. drift and ctrls combined
         Return the propagator
         """
-        raise errors.UsageError("Not implemented in the baseclass."
-                                " Choose a subclass")
+        dyn = self.parent
+        dgt = dyn._get_phased_dyn_gen(k)*dyn.tau[k]
+        if dyn.oper_dtype == Qobj:
+            dyn._prop[k] = dgt.expm()
+        else:
+            dyn._prop[k] = la.expm(dgt)
+        return dyn._prop[k]
 
     def compute_diff_prop(self, k, j, epsilon):
         _func_deprecation("'compute_diff_prop' has been replaced "
@@ -201,22 +206,6 @@ class PropCompApproxGrad(PropagatorComputer):
         self.id_text = 'APPROX'
         self.grad_exact = False
         self.apply_params()
-
-    def _compute_propagator(self, k):
-        """
-        calculate the progator between X(k) and X(k+1)
-        Uses matrix expm of the dyn_gen at that point (in time)
-        Assumes that the dyn_gen have been been calculated,
-        i.e. drift and ctrls combined
-        Return the propagator
-        """
-        dyn = self.parent
-        dgt = dyn._get_phased_dyn_gen(k)*dyn.tau[k]
-        if dyn.oper_dtype == Qobj:
-            dyn._prop[k] = dgt.expm()
-        else:
-            dyn._prop[k] = la.expm(dgt)
-        return dyn._prop[k]
 
     def _compute_diff_prop(self, k, j, epsilon):
         """
