@@ -166,9 +166,12 @@ class Dynamics(object):
         execution speed is prioritized over memory.
         Setting to 1 means that some memory prioritisation steps will be
         taken, for instance using Qobj (and hence sparse arrays) as the
-        the internal operator data type.
+        the internal operator data type, and not caching some operators
         Potentially further memory saving maybe made with
-        memory_optimization > 1
+        memory_optimization > 1. 
+        The options are processed in _set_memory_optimizations, see
+        this for more information. Individual memory saving  options can be
+        switched by settting them directly (see below)
 
     oper_dtype : type
         Data type for internal dynamics generators, propagators and time
@@ -179,6 +182,28 @@ class Dynamics(object):
         perform better when (custom) fidelity measures use Qobj methods
         such as partial trace.
         See _choose_oper_dtype for how this is chosen when not specified
+        
+    cache_phased_dyn_gen : bool
+        If True then the dynamics generators will be saved with and 
+        without the propagation prefactor (if there is one)
+        Defaults to True when memory_optimization=0, otherwise False
+        
+    cache_prop_grad : bool
+        If the True then the propagator gradients (for exact gradients) will
+        be computed when the propagator are computed and cache until
+        the are used by the fidelity computer. If False then the 
+        fidelity computer will calculate them as needed.
+        Defaults to True when memory_optimization=0, otherwise False
+           
+    cache_dyn_gen_eigenvectors_adj: bool
+        If True then DynamicsUnitary will cached the adjoint of 
+        the Hamiltion eignvector matrix
+        Defaults to True when memory_optimization=0, otherwise False
+        
+    sparse_eigen_decomp: bool
+        If True then DynamicsUnitary will use the sparse eigenvalue 
+        decomposition.
+        Defaults to True when memory_optimization<=1, otherwise False
 
     num_tslots : integer
         Number of timeslots (aka timeslices)
@@ -335,11 +360,11 @@ class Dynamics(object):
         self._num_tslots = None
         # attributes used for processing evolution
         self.memory_optimization = 0
+        self.oper_dtype = None
         self.cache_phased_dyn_gen = None
         self.cache_prop_grad = None
         self.cache_dyn_gen_eigenvectors_adj = None
         self.sparse_eigen_decomp = None
-        self.oper_dtype = None
         self.dyn_dims = None
         self.dyn_shape = None
         self.sys_dims = None
@@ -350,6 +375,7 @@ class Dynamics(object):
         self._drift_dyn_gen = None
         self._ctrl_dyn_gen = None
         self._phased_ctrl_dyn_gen = None
+        self._dyn_gen_phase = None
         self._initial = None
         self._target = None
         self._onto_evo_target = None
@@ -695,7 +721,7 @@ class Dynamics(object):
             logger.warn("Unknown option '{}' for oper_dtype. "
                 "Assuming that internal drift, ctrls, initial and target "
                 "have been set correctly".format(self.oper_dtype))
-        if self.cache_phased_dyn_gen:
+        if self.cache_phased_dyn_gen and self.dyn_gen_phase:
             self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
                                             for ctrl in self._ctrl_dyn_gen]
         self._dyn_gen = [object for x in range(self.num_tslots)]
@@ -989,12 +1015,26 @@ class Dynamics(object):
         if self.cache_phased_dyn_gen:
             self._phased_dyn_gen[k] = self._apply_phase(dg)
 
-    def _apply_phase(self, k):
+    @property
+    def dyn_gen_phase(self):
+        """
+        Some preop that is applied to the dyn_gen before expontiating to
+        get the propagator
+        """
+        return self._dyn_gen_phase
+    
+    def _apply_phase(self, dg):
         """
         Apply some phase factor or operator
         """
-        raise errors.UsageError("Not implemented in the baseclass."
-                                " Choose a subclass")
+        if self.dyn_gen_phase is None:
+            phased_dg = dg
+        else:
+            if hasattr(self.dyn_gen_phase, 'dot'):
+                phased_dg = self.dyn_gen_phase.dot(dg)
+            else:
+                phased_dg = self.dyn_gen_phase*dg
+        return phased_dg
 
     def get_dyn_gen(self, k):
         """
@@ -1006,10 +1046,13 @@ class Dynamics(object):
         return self._get_phased_dyn_gen(k)
 
     def _get_phased_dyn_gen(self, k):
-        if self._phased_dyn_gen is not None:
-            return self._phased_dyn_gen[k]
+        if self.dyn_gen_phase is None:
+            return self._dyn_gen[k]
         else:
-            return self._apply_phase(self._dyn_gen[k])
+            if self._phased_dyn_gen is None:
+                return self._apply_phase(self._dyn_gen[k])
+            else:
+                return self._phased_dyn_gen[k]
 
     def get_ctrl_dyn_gen(self, j):
         """
@@ -1243,12 +1286,7 @@ class DynamicsGenMat(Dynamics):
     def reset(self):
         Dynamics.reset(self)
         self.id_text = 'GEN_MAT'
-
-    def _apply_phase(self, dg):
-        """
-        No phase in general
-        """
-        return dg
+        self.apply_params()
 
 class DynamicsUnitary(Dynamics):
     """
@@ -1280,6 +1318,7 @@ class DynamicsUnitary(Dynamics):
         self.drift_ham = None
         self.ctrl_ham = None
         self.H = None
+        self._dyn_gen_phase = -1j
         self.apply_params()
 
     def _create_computers(self):
@@ -1319,12 +1358,6 @@ class DynamicsUnitary(Dynamics):
             self.ctrl_ham = self.ctrl_dyn_gen
 
         self._dyn_gen_mapped = True
-
-    def _apply_phase(self, dg):
-        """
-        Apply the -i factor
-        """
-        return -1j*dg
 
     @property
     def num_ctrls(self):
@@ -1519,7 +1552,7 @@ class DynamicsSymplectic(Dynamics):
 
     def _get_omega(self):
         if self._omega is None:
-            n = self.drift_dyn_gen.shape[0] // 2
+            n = self.dyn_shape[0] // 2
             omg = sympl.calc_omega(n)
             if self.oper_dtype == Qobj:
                 self._omega = Qobj(omg, dims=self.dyn_dims)
@@ -1529,16 +1562,16 @@ class DynamicsSymplectic(Dynamics):
             else:
                  self._omega = omg
         return self._omega
-
-    def _apply_phase(self, dg):
+    
+    @property
+    def dyn_gen_phase(self):
         """
-        Get the combined dynamics generator for the timeslot
-        multiplied by omega
+        The prephasing operator for the symplectic group generators
+        usually refered to as \Omega
         """
-        o = self._get_omega()
-        if self.oper_dtype == Qobj:
-            dg = -dg*o
-        else:
-            dg = -dg.dot(o)
+        # Cannot be calculated until the dyn_shape is set
+        # that is after the drift Hamitonan has been set.
+        if self._dyn_gen_phase is None:
+            self._dyn_gen_phase = self.omega
+        return self._dyn_gen_phase
 
-        return dg
