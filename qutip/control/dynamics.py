@@ -738,7 +738,7 @@ class Dynamics(object):
             logger.warn("Unknown option '{}' for oper_dtype. "
                 "Assuming that internal drift, ctrls, initial and target "
                 "have been set correctly".format(self.oper_dtype))
-        if self.cache_phased_dyn_gen and self.dyn_gen_phase:
+        if self.cache_phased_dyn_gen and not self.dyn_gen_phase is None:
             self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
                                             for ctrl in self._ctrl_dyn_gen]
         self._dyn_gen = [object for x in range(self.num_tslots)]
@@ -1606,6 +1606,19 @@ class DynamicsSymplectic(Dynamics):
         # Cannot be calculated until the dyn_shape is set
         # that is after the drift Hamitonan has been set.
         if self._dyn_gen_phase is None:
-            self._dyn_gen_phase = self.omega
+            self._dyn_gen_phase = self._get_omega()
+
         return self._dyn_gen_phase
 
+    def _apply_phase(self, dg):
+        """
+        Apply some phase factor or operator
+        """
+        if self.dyn_gen_phase is None:
+            phased_dg = dg
+        else:
+            if hasattr(self.dyn_gen_phase, 'dot'):
+                phased_dg = -dg.dot(self.dyn_gen_phase)
+            else:
+                phased_dg = -dg*self.dyn_gen_phase
+        return phased_dg
