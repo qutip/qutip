@@ -43,7 +43,11 @@ from qutip.expect import expect_rho_vec
 from qutip.steadystate import pseudo_inverse, steadystate
 from qutip.superoperator import mat2vec, sprepost, spre
 from qutip import operator_to_vector, identity, tensor
-
+import qutip.settings as settings
+from qutip.qobj import Qobj, issuper, isoper
+# Load MKL spsolve if avaiable
+if settings.has_mkl:
+    from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 
 def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
@@ -99,7 +103,7 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
 
 
 def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None, 
-                            sparse=False, method='direct'):
+                            sparse=True, method='direct'):
     """
     Compute the cross-current noise spectrum for a list of collapse operators
     `c_ops` corresponding to monitored currents, given the system
@@ -174,10 +178,10 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     else:
         S = np.zeros((N, N,len(wlist)))
         
-    if sparse==False: 
+    if sparse == False: 
         rhoss_vec = mat2vec(rhoss.full()).ravel()
         for k,w in enumerate(wlist):
-            R = pseudo_inverse(L, rhoss, w, sparse = sparse, method=method)
+            R = pseudo_inverse(L, rhoss=rhoss, w= w, sparse = sparse, method=method)
             for i, Ji in enumerate(J_ops):
                 for j, Jj in enumerate(J_ops):
                     if i == j:
@@ -187,55 +191,70 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                                                 + Jj * R * Ji).data,
                                                 rhoss_vec, 1)
     else:
-        if method=="direct":
+        if method == "direct":
+            N = np.prod(L.dims[0][0])
+            
+            rhoss_vec = operator_to_vector(rhoss)
+            
+            tr_op = tensor([identity(n) for n in L.dims[0][0]])
+            tr_op_vec = operator_to_vector(tr_op)
+            
+            Pop = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csr')
+            Iop = sp.eye(N*N, N*N, format='csr')
+            Q = Iop - Pop
+            
             for k,w in enumerate(wlist):
-
-                N = np.prod(L.dims[0][0])
-
-                rhoss_vec = operator_to_vector(rhoss)
-
-                tr_op = tensor([identity(n) for n in L.dims[0][0]])
-                tr_op_vec = operator_to_vector(tr_op)
-
-                Pop = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csc')
-                Iop = sp.eye(N*N, N*N, format='csc')
-                Q = Iop - Pop
-                if abs(w)!=0.0:    
-                    L = -1.0j*w*spre(tr_op) + L
-                A = L.data.tocsc()
-                rhoss_vec = mat2vec(rhoss.full()).ravel()
-
+                
+                if w != 0.0:    
+                    L_temp = 1.0j*w*spre(tr_op) + L
+                else: #At zero frequency some solvers fail for small systems.
+                      #Adding a small finite frequency of order 1e-15
+                      #helps prevent the solvers from throwing an exception.
+                    L_temp =  1.0j*(1e-15)*spre(tr_op) + L
+                    
+                if not settings.has_mkl:
+                    A = L_temp.data.tocsc()
+                else:
+                    A = L_temp.data.tocsr()
+                    A.sort_indices()                      
+                      
+                rhoss_vec = mat2vec(rhoss.full()).ravel()               
+                
                 for j, Jj in enumerate(J_ops):
-                    Qj = Q * Jj.data * rhoss_vec
+                    Qj = Q.dot( Jj.data.dot( rhoss_vec))
                     try:
-                        X_rho_vec_j = sp.linalg.splu(A, permc_spec
+                        if settings.has_mkl:
+                            X_rho_vec_j = mkl_spsolve(A,Qj)                            
+                        else:
+                            X_rho_vec_j = sp.linalg.splu(A, permc_spec
                                                  ='COLAMD').solve(Qj)
                     except:
-                        X_rho_vec_j=sp.linalg.lsqr(A,Qj)[0]
+                        X_rho_vec_j = sp.linalg.lsqr(A,Qj)[0]
                     for i, Ji in enumerate(J_ops):
-                        Qi = Q * Ji.data * rhoss_vec
+                        Qi = Q.dot( Ji.data.dot(rhoss_vec))
                         try:
-                            X_rho_vec_i = sp.linalg.splu(A, permc_spec
+                            if settings.has_mkl:                              
+                                X_rho_vec_i = mkl_spsolve(A,Qi)  
+                            else:
+                                X_rho_vec_i = sp.linalg.splu(A, permc_spec
                                                      ='COLAMD').solve(Qi)
                         except:
-                             X_rho_vec_i=sp.linalg.lsqr(A,Qi)[0]
+                             X_rho_vec_i = sp.linalg.lsqr(A,Qi)[0]
                         if i == j:
-                            S[i, i, k] = I[i] = expect_rho_vec(Ji.data, 
-                                                               rhoss_vec, 1)
-                        S[i, j, k] -= (expect_rho_vec(Ji.data * Q, 
-                                        X_rho_vec_j, 1) 
-                                        + expect_rho_vec(Jj.data * Q, 
-                                        X_rho_vec_i, 1))
+                            I[i] = expect_rho_vec(Ji.data, 
+                                                 rhoss_vec, 1)
+                            S[j, i, k] = I[i]
+                        
+                        S[j, i, k] -= (expect_rho_vec(Jj.data * Q, 
+                                        X_rho_vec_i, 1) 
+                                        + expect_rho_vec(Ji.data * Q, 
+                                        X_rho_vec_j, 1))
 
-
-                
-            
-            
         else:
             rhoss_vec = mat2vec(rhoss.full()).ravel()
             for k,w in enumerate(wlist):
 
-                R = pseudo_inverse(L, rhoss, w, sparse = sparse, 
+                R = pseudo_inverse(L,rhoss=rhoss, w= w, sparse = sparse, 
                                    method=method)
                                    
                 for i, Ji in enumerate(J_ops):

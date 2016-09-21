@@ -951,7 +951,7 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
     if w is None:
         L = L
     else:
-        L = -1.0j*w*spre(tr_mat)+L
+        L = 1.0j*w*spre(tr_mat)+L
     
     if pseudo_args['method'] == 'direct':
         try:
@@ -998,9 +998,12 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     
   
     if w is None:
-        L =  L
+        L =  1.0j*(1e-15)*spre(tr_op) + L
     else:
-        L = -1.0j*w*spre(tr_op) + L
+        if w != 0.0:
+            L = 1.0j*w*spre(tr_op) + L
+        else:
+            L =  1.0j*(1e-15)*spre(tr_op) + L
         
         
     if pseudo_args['use_rcm']:
@@ -1008,16 +1011,23 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         A = sp_permute(L.data, perm, perm, 'csr')
         Q = sp_permute(Q, perm, perm, 'csr')
     else:
+        if not settings.has_mkl:
+            A = L.data.tocsc()
+            A.sort_indices()
         
-        A = L.data.tocsc()
-        A.sort_indices()
+        
     
     if pseudo_args['method'] == 'splu':
+        if settings.has_mkl:
+            A = L.data.tocsr()
+            A.sort_indices()
+            LIQ = mkl_spsolve(A,Q.toarray())
+        else:
        
-        lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
-                        diag_pivot_thresh=pseudo_args['diag_pivot_thresh'],
-                        options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
-        LIQ = lu.solve(Q.toarray())
+            lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
+                            diag_pivot_thresh=pseudo_args['diag_pivot_thresh'],
+                            options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
+            LIQ = lu.solve(Q.toarray())
          
             
     elif pseudo_args['method'] == 'spilu':
@@ -1108,7 +1118,7 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
         rhoss = steadystate(L, **pseudo_args)
 
     if sparse:
-        return _pseudo_inverse_sparse(L,rhoss, w,  **pseudo_args)
+        return _pseudo_inverse_sparse(L,rhoss, w=w,  **pseudo_args)
     else:
         pseudo_args['method'] = pseudo_args['method'] if pseudo_args['method'] != 'splu' else 'direct'
-        return _pseudo_inverse_dense(L, rhoss, w, **pseudo_args)
+        return _pseudo_inverse_dense(L, rhoss, w=w, **pseudo_args)
