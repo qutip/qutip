@@ -50,14 +50,14 @@ import scipy.linalg as la
 from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
                                  LinearOperator, gmres, lgmres, bicgstab)
 from qutip.qobj import Qobj, issuper, isoper
-<<<<<<< HEAD
+
 from qutip.superoperator import liouvillian, vec2mat, spre
 from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
-=======
+
 from qutip.superoperator import liouvillian, vec2mat
 from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape, 
                             sp_profile, zcsr_kron)
->>>>>>> refs/remotes/qutip/master
+
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
