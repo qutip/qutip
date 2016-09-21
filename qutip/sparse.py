@@ -38,7 +38,7 @@ throughout QuTiP.
 
 __all__ = ['sp_fro_norm', 'sp_inf_norm', 'sp_L2_norm', 'sp_max_norm',
            'sp_one_norm', 'sp_reshape', 'sp_eigs', 'sp_expm', 'sp_permute',
-           'sp_reverse_permute', 'sp_bandwidth', 'sp_profile']
+           'sp_reverse_permute', 'sp_bandwidth', 'sp_profile', 'zcsr_kron']
 
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
@@ -48,7 +48,7 @@ from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
 from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _sparse_reverse_permute, _sparse_bandwidth,
-                                   _isdiag)
+                                   _isdiag, _csr_kron)
 from qutip.settings import debug
 
 import qutip.logging_utils
@@ -586,3 +586,32 @@ def sp_isdiag(A):
     if not sp.isspmatrix_csr(A):
         raise TypeError('Input sparse matrix must be in CSR format.')
     return _isdiag(A.indices, A.indptr, A.shape[0])
+
+
+
+def zcsr_kron(A,B):
+    """Kronecker product between two CSR format sparse
+    matrices with dtype = complex.
+    
+    Parameters
+    ----------
+    A : csr_matrix
+        Input matrix
+    B : csr_matrix
+        Input matrix
+        
+    Returns
+    -------
+    C : csr_matrix
+        Kronecker product of A & B
+    
+    """
+    if (not sp.isspmatrix_csr(A)) or (not sp.isspmatrix_csr(B)):
+        raise TypeError('Both input sparse matrices must be in CSR format.')
+    
+    if (not A.dtype == complex) or (not B.dtype == complex):
+        raise TypeError('Both input sparse matrices must have dtype=complex.')
+    
+    C = _csr_kron(A.data, A.indices, A.indptr, A.shape[0], A.shape[1],
+                B.data, B.indices, B.indptr, B.shape[0], B.shape[1])
+    return C

@@ -265,7 +265,7 @@ def test_MCSimpleSingleCollapse():
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
-    c_op_list = np.sqrt(kappa) * a
+    c_op_list = [np.sqrt(kappa) * a]
     tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
@@ -283,7 +283,7 @@ def test_MCSimpleSingleExpect():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [np.sqrt(kappa) * a]
     tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a, ntraj=ntraj)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * np.exp(-kappa * tlist)
     avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)

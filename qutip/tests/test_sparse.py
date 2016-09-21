@@ -34,10 +34,12 @@ import numpy as np
 from numpy.testing import run_module_suite, assert_equal
 import scipy.sparse as sp
 
-from qutip.random_objects import rand_dm
+from qutip.random_objects import (rand_dm, rand_herm,
+                                  rand_ket)
 from qutip.states import coherent
 from qutip.sparse import (sp_bandwidth, sp_permute, sp_reverse_permute,
                           sp_profile)
+from qutip.cy.sparse_utils import _csr_kron
 
 
 def _permutateIndexes(array, row_perm, col_perm):
@@ -185,6 +187,56 @@ def test_sp_profile():
         B = A.toarray()
         ans = _dense_profile(B)
         assert_equal(pro, ans)
+        
+def test_csr_kron():
+    "Sparse: Test CSR Kron"
+    for kk in range(10):
+        ra = np.random.randint(2,100)
+        rb = np.random.randint(2,100)
+        A = rand_herm(ra,0.5).data
+        B = rand_herm(rb,0.5).data
+        C = sp.kron(A,B, format='csr')
+        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
+                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        assert_equal(C.data, D.data)
+        assert_equal(C.indices, D.indices)
+        assert_equal(C.indptr, D.indptr)
+        
+    for kk in range(10):
+        ra = np.random.randint(2,100)
+        rb = np.random.randint(2,100)
+        A = rand_ket(ra,0.5).data
+        B = rand_herm(rb,0.5).data
+        C = sp.kron(A,B, format='csr')
+        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
+                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        assert_equal(C.data, D.data)
+        assert_equal(C.indices, D.indices)
+        assert_equal(C.indptr, D.indptr)
+    
+    for kk in range(10):
+        ra = np.random.randint(2,100)
+        rb = np.random.randint(2,100)
+        A = rand_dm(ra,0.5).data
+        B = rand_herm(rb,0.5).data
+        C = sp.kron(A,B, format='csr')
+        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
+                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        assert_equal(C.data, D.data)
+        assert_equal(C.indices, D.indices)
+        assert_equal(C.indptr, D.indptr)
+        
+    for kk in range(10):
+        ra = np.random.randint(2,100)
+        rb = np.random.randint(2,100)
+        A = rand_ket(ra,0.5).data
+        B = rand_ket(rb,0.5).data
+        C = sp.kron(A,B, format='csr')
+        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
+                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        assert_equal(C.data, D.data)
+        assert_equal(C.indices, D.indices)
+        assert_equal(C.indptr, D.indptr)
 
 
 if __name__ == "__main__":

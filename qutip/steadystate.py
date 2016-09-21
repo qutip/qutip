@@ -50,8 +50,14 @@ import scipy.linalg as la
 from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
                                  LinearOperator, gmres, lgmres, bicgstab)
 from qutip.qobj import Qobj, issuper, isoper
+<<<<<<< HEAD
 from qutip.superoperator import liouvillian, vec2mat, spre
 from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
+=======
+from qutip.superoperator import liouvillian, vec2mat
+from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape, 
+                            sp_profile, zcsr_kron)
+>>>>>>> refs/remotes/qutip/master
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
@@ -992,7 +998,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     tr_op = tensor([identity(n) for n in L.dims[0][0]])
     tr_op_vec = operator_to_vector(tr_op)
 
-    P = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csr')
+    P = zcsr_kron(rhoss_vec.data, tr_op_vec.data.T.tocsr())
     I = sp.eye(N*N, N*N, format='csr')
     Q = I - P
     

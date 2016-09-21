@@ -38,8 +38,8 @@ __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
 import scipy.sparse as sp
 import numpy as np
 from qutip.qobj import Qobj
-from qutip.sparse import sp_reshape
-
+from qutip.sparse import sp_reshape, zcsr_kron
+from qutip.cy.sparse_utils import _csr_kron
 
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
@@ -92,12 +92,13 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
 
-    spI = sp.identity(op_shape[0], format='csr')
+    spI = sp.identity(op_shape[0], format='csr', dtype=complex)
 
     if H:
         if H.isoper:
-            data = -1j * (sp.kron(spI, H.data, format='csr')
-                          - sp.kron(H.data.T, spI, format='csr'))
+            Ht = H.data.T.tocsr()
+            data = -1j * zcsr_kron(spI, H.data)
+            data += 1j * zcsr_kron(Ht, spI)
         else:
             data = H.data
     else:
@@ -107,16 +108,25 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         if c_op.issuper:
             data = data + c_op.data
         else:
-            cd = c_op.data.T.conj()
+            cd = c_op.data.T.conj().tocsr()
             c = c_op.data
+            # Here we call _csr_kron directly as we can avoid creating
+            # another sparse matrix by passing c.data.conj()
             if chi:
-                data = data + np.exp(1j * chi[idx]) * sp.kron(cd.T, c,
-                                                              format='csr')
+                data = data + np.exp(1j * chi[idx]) * \
+                                _csr_kron(c.data.conj(), c.indices, c.indptr,
+                                        c.shape[0], c.shape[1],
+                                        c.data, c.indices, c.indptr,
+                                        c.shape[0], c.shape[1])
             else:
-                data = data + sp.kron(cd.T, c, format='csr')
+                data = data + _csr_kron(c.data.conj(), c.indices, c.indptr,
+                                        c.shape[0], c.shape[1],
+                                        c.data, c.indices, c.indptr,
+                                        c.shape[0], c.shape[1])
             cdc = cd * c
-            data = data - 0.5 * sp.kron(spI, cdc, format='csr')
-            data = data - 0.5 * sp.kron(cdc.T, spI, format='csr')
+            cdct = cdc.T.tocsr()
+            data = data - 0.5 * zcsr_kron(spI, cdc)
+            data = data - 0.5 * zcsr_kron(cdct, spI)
 
     if data_only:
         return data
@@ -211,7 +221,7 @@ def vector_to_operator(op):
     q = Qobj()
     q.dims = op.dims[0]
     n = int(np.sqrt(op.shape[0]))
-    q.data = sp_reshape(op.data.T, (n, n)).T
+    q.data = sp_reshape(op.data.T, (n, n)).T.tocsr()
     return q
 
 
@@ -269,7 +279,8 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(A.data.T, sp.identity(np.prod(A.shape[0])), format='csr')
+    S.data = zcsr_kron(A.data.T.tocsr(), 
+                sp.identity(np.prod(A.shape[0]),dtype=complex, format='csr'))
     return S
 
 
@@ -294,7 +305,7 @@ def spre(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(sp.identity(np.prod(A.shape[1])), A.data, format='csr')
+    S.data = zcsr_kron(sp.identity(np.prod(A.shape[1]), dtype=complex, format='csr'), A.data)
     return S
 
 
@@ -326,5 +337,5 @@ def sprepost(A, B):
 
     dims = [[_drop_projected_dims(A.dims[0]), _drop_projected_dims(B.dims[1])],
             [_drop_projected_dims(A.dims[1]), _drop_projected_dims(B.dims[0])]]
-    data = sp.kron(B.data.T, A.data, format='csr')
+    data = zcsr_kron(B.data.T.tocsr(), A.data)
     return Qobj(data, dims=dims, superrep='super')

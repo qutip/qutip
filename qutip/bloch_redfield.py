@@ -39,7 +39,7 @@ import scipy.sparse as sp
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
-from qutip.solver import Options
+from qutip.solver import Options, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Result
 from qutip.superoperator import liouvillian
@@ -49,7 +49,8 @@ from qutip.superoperator import liouvillian
 # Solve the Bloch-Redfield master equation
 #
 def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
-              args={}, options=Options()):
+              args={}, options=Options(),
+              _safe_mode=True):
     """
     Solve the dynamics for a system using the Bloch-Redfield master equation.
 
@@ -94,6 +95,9 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         or a list of states for the times specified by `tlist`.
     """
 
+    if _safe_mode:
+        _solver_safety_check(H, psi0, a_ops, e_ops, args)
+    
     if not spectra_cb:
         # default to infinite temperature white noise
         spectra_cb = [lambda w: 1.0 for _ in a_ops]

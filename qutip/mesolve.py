@@ -48,7 +48,7 @@ import warnings
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
-from qutip.solver import Options, Result, config
+from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
@@ -70,8 +70,8 @@ if debug:
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
-            progress_bar=None):
+def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
+            progress_bar=None, _safe_mode=True):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -201,7 +201,11 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         operators for which to calculate the expectation values.
 
     """
-
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops, e_ops, args)
+    
+    
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
@@ -814,9 +818,9 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
             if isinstance(args[key], Qobj):
                 if isoper(args[key]):
                     new_args[key] = (
-                        -1j * (spre(args[key]) - spost(args[key]))).data
+                        -1j * (spre(args[key]) - spost(args[key])))
                 else:
-                    new_args[key] = args[key].data
+                    new_args[key] = args[key]
             else:
                 new_args[key] = args[key]
 
@@ -836,9 +840,9 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
     else:
         if isinstance(args, Qobj):
             if isoper(args):
-                new_args = (-1j * (spre(args) - spost(args))).data
+                new_args = (-1j * (spre(args) - spost(args)))
             else:
-                new_args = args.data
+                new_args = args
         else:
             new_args = args
 
@@ -889,7 +893,7 @@ def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
 # superoperator
 #
 def _ode_super_func_td(t, y, L0, L_func, args):
-    L = L0 + L_func(t, args)
+    L = L0 + L_func(t, args).data
     return _ode_super_func(t, y, L)
 
 #
@@ -897,7 +901,7 @@ def _ode_super_func_td(t, y, L0, L_func, args):
 # superoperator
 #
 def _ode_super_func_td_with_state(t, y, L0, L_func, args):
-    L = L0 + L_func(t, y, args)
+    L = L0 + L_func(t, y, args).data
     return _ode_super_func(t, y, L)
 
 

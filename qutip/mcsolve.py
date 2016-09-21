@@ -46,7 +46,7 @@ from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
-from qutip.solver import Options, Result, config
+from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
@@ -79,9 +79,10 @@ class qutip_zvode(zvode):
         return r
 
 
-def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
+def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
             args={}, options=None, progress_bar=True,
-            map_func=None, map_kwargs=None):
+            map_func=None, map_kwargs=None,
+            _safe_mode=True):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -178,7 +179,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     if debug:
         print(inspect.stack()[0][3])
-
+    
+    if _safe_mode:
+        _solver_safety_check(H, psi0, c_ops, e_ops, args)
+    
     if options is None:
         options = Options()
 

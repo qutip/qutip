@@ -444,7 +444,7 @@ def test_c_ops_str_list_td_corr():
     c2 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
                             sm01.dag(), sm01, args=args, reverse=True)
     n = mesolve(
-        H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
+        H, psi0, tlist, c_ops, [sm01.dag() * sm01], args=args
     ).expect[0]
     n_f = Cubic_Spline(tlist[0], tlist[-1], n)
     corr_ab = - c1 * c2 + np.array(
@@ -488,7 +488,7 @@ def test_np_str_list_td_corr():
     c2 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
                             sm01.dag(), sm01, reverse=True)
     n = mesolve(
-        H, psi0, tlist, c_ops, sm01.dag() * sm01
+        H, psi0, tlist, c_ops, [sm01.dag() * sm01]
     ).expect[0]
     n_f = Cubic_Spline(tlist[0], tlist[-1], n)
     corr_ab = - c1 * c2 + np.array(
@@ -533,7 +533,7 @@ def test_c_ops_fn_list_td_corr():
     c2 = correlation_2op_2t(H, psi0, tlist, tlist, c_ops,
                             sm01.dag(), sm01, args=args, reverse=True)
     n = mesolve(
-        H, psi0, tlist, c_ops, sm01.dag() * sm01, args=args
+        H, psi0, tlist, c_ops, [sm01.dag() * sm01], args=args
     ).expect[0]
     n_f = Cubic_Spline(tlist[0], tlist[-1], n)
     corr_ab = - c1 * c2 + np.array(
