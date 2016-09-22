@@ -45,7 +45,7 @@ from qutip.superoperator import (vec2mat, mat2vec,
 from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
 from qutip.states import basis
-from qutip.solver import Options
+from qutip.solver import Options, _solver_safety_check
 from qutip.parallel import parallel_map, _default_kwargs
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -93,7 +93,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Instance representing the propagator :math:`U(t)`.
 
     """
-    
     kw = _default_kwargs()
     if 'num_cpus' in kwargs:
         num_cpus = kwargs['num_cpus']
@@ -146,7 +145,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             for n in range(0, N):
                 progress_bar.update(n)
                 psi0 = basis(N, n)
-                output = sesolve(H, psi0, tlist, [], args, options)
+                output = sesolve(H, psi0, tlist, [], args, 
+                                options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = output.states[k].full().T
             progress_bar.finished()
@@ -180,7 +180,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n,(sqrt_N,sqrt_N))
                 rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(sqrt_N,sqrt_N), dtype=complex))
-                output = mesolve(H, rho0, tlist, [], [], args, options)
+                output = mesolve(H, rho0, tlist, [], [], args, options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
@@ -207,7 +207,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n,(N,N))
                 rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(N,N), dtype=complex))
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
+                output = mesolve(H, rho0, tlist, c_op_list, [], args, options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
@@ -260,12 +260,12 @@ def propagator_steadystate(U):
 
 def _parallel_sesolve(n,N,H,tlist,args,options):
     psi0 = basis(N, n)
-    output = sesolve(H, psi0, tlist, [], args, options)
+    output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
     return output
 
 def _parallel_mesolve(n,N,H,tlist,c_op_list,args, options):
     col_idx, row_idx = np.unravel_index(n,(N,N))
     rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(N,N), dtype=complex))
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
+    output = mesolve(H, rho0, tlist, c_op_list, [], args, options, _safe_mode=False)
     return output
 

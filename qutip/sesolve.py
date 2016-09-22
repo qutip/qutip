@@ -45,7 +45,7 @@ from scipy.linalg import norm
 
 from qutip.qobj import Qobj, isket
 from qutip.rhs_generate import rhs_generate
-from qutip.solver import Result, Options, config
+from qutip.solver import Result, Options, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
@@ -59,8 +59,9 @@ if debug:
     import inspect
 
 
-def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
-            progress_bar=BaseProgressBar()):
+def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
+            progress_bar=BaseProgressBar(),
+            _safe_mode=True):
     """
     Schrodinger equation evolution of a state vector for a given Hamiltonian.
 
@@ -112,6 +113,9 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
 
     """
 
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
+    
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
