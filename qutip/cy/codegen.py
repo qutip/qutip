@@ -89,8 +89,6 @@ class Codegen():
         self.indent()
         for line in self.func_vars():
             self.write(line)
-        for line in self.func_for():
-            self.write(line)
         self.write(self.func_end())
         self.dedent()
 
@@ -207,13 +205,13 @@ class Codegen():
         for ht in self.h_terms:
             hstr = str(ht)
             if self.type == 'mc':
-                str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Hvec" + hstr +
-                           " = " + "spmv_csr(data" + hstr + "," +
-                           "idx" + hstr + "," + "ptr" + hstr +
-                           "," + "vec" + ")")
                 if ht in self.h_td_inds:
-                    str_out += " * (" + tdterms[hinds] + ")"
+                    td_str= tdterms[hinds]
                     hinds += 1
+                else:
+                    td_str = "1.0"
+                str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                        ht, ht, ht, td_str)
                 func_vars.append(str_out)
             else:
                 if self.h_tdterms[ht] == "1.0":
@@ -233,29 +231,11 @@ class Codegen():
             cinds = 0
             for ct in range(terms):
                 cstr = str(ct + hinds + 1)
-                str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Cvec" + str(ct) +
-                           " = " + "spmv_csr(data" + cstr + "," +
-                           "idx" + cstr + "," +
-                           "ptr" + cstr + "," + "vec" + ")")
-                if ct in range(len(self.c_td_inds)):
-                    str_out += " * abs(" + tdterms[ct] + ")**2"
-                    cinds += 1
+                str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                        cstr, cstr, cstr, " abs(" + tdterms[ct] + ")**2")
+                cinds += 1
                 func_vars.append(str_out)
         return func_vars
-
-    def func_for(self):
-        """Writes function for-loop"""
-        func_terms = []
-        if self.type == 'mc':
-            func_terms.append("for row in range(num_rows):")
-            sum_string = "    out[row] = Hvec0[row]"
-            for ht in range(1, len(self.h_terms)):
-                sum_string += " + Hvec" + str(ht) + "[row]"
-            if any(self.c_tdterms):
-                for ct in range(len(self.c_tdterms)):
-                    sum_string += " + Cvec" + str(ct) + "[row]"
-            func_terms.append(sum_string)
-        return func_terms
 
     def func_which(self):
         """Writes 'else-if' statements forcollapse operator eval function"""
@@ -297,7 +277,7 @@ def cython_preamble():
 import numpy as np
 cimport numpy as np
 cimport cython
-from qutip.cy.spmatfuncs cimport spmv_csr, spmvpy
+from qutip.cy.spmatfuncs cimport spmvpy
 
 cdef double pi = 3.14159265358979323
 
