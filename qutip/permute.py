@@ -59,7 +59,7 @@ def _permute(Q, order):
         return perm_matrix * Q.data, Q.dims
 
     elif Q.isbra:
-        dims, perm = _perm_inds(Q.dims[0], order)
+        dims, perm = _perm_inds(Q.dims[1], order)
         nzs = Q.data.nonzero()[1]
         wh = np.where(perm == nzs)[0]
         data = np.ones(len(wh), dtype=int)
