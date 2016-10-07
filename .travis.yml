@@ -31,9 +31,6 @@ install:
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
-    - conda info -a
-    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-    - source activate test-environment
     - if [[ "${NOMKL}" == "1" ]]; then
           conda install nomkl numpy scipy nose cython;
         else
