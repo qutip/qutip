@@ -86,5 +86,10 @@ def _set_mkl():
 
 
 if __name__ == "__main__":
+    plat = sys.platform
+    python_dir = os.path.dirname(sys.executable)
+    if plat in ['darwin','linux2', 'linux']:
+        python_dir = os.path.dirname(python_dir)
+    print(python_dir)
     _set_mkl()
     print(qset.has_mkl)
