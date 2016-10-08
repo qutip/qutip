@@ -49,34 +49,38 @@ def _set_mkl():
         python_dir = os.path.dirname(sys.executable)
         if plat in ['darwin','linux2', 'linux']:
             python_dir = os.path.dirname(python_dir)
-        
+        if 'Anaconda' in sys.version or 'Continuum' in sys.version:
+            is_anaconda = 1
+        else:
+            is_anaconda = 0
         if plat == 'darwin':
-            lib = 'libmkl_rt.dylib'
+            lib = '/libmkl_rt.dylib'
         elif plat == 'win32':
-            lib = 'mkl_rt.dll'
+            lib = '\\mkl_rt.dll'
         elif plat in ['linux2', 'linux']:
-            lib = 'libmkl_rt.so'
+            lib = '/libmkl_rt.so'
         else:
             raise Exception('Unknown platfrom.')
-        
-        for root, dirs, files in os.walk(python_dir):
-            if lib in files:
-                lib_dir = root
-                break
+        if is_anaconda:
+            if plat in ['darwin','linux2', 'linux']:
+                lib_dir = '/lib'
+            else:
+                lib_dir = '\Library\\bin'
+        else:
+            #Look for Intel Python distro location
+            if plat in ['darwin','linux2', 'linux']:
+                lib_dir = '/ext/lib'
+            else:
+                lib_dir = '\ext\\lib'
         try:
-            qset.mkl_lib = cdll.LoadLibrary(lib_dir+os.sep+lib)
+            qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
             qset.has_mkl = True
         except:
-            return 'MKL lib not found.'
-        else:
-            return lib_dir 
-        
+            pass
     else:
-        return None
+        pass
 
 
 if __name__ == "__main__":
-    lib_dir = _set_mkl()
-    print(lib_dir)
-                
-                
+    _set_mkl()
+    print(qset.has_mkl)
