@@ -47,7 +47,6 @@ install:
     # Finally, install ourselves.
     - python setup.py install
     - python -m qutip.about
-    - python -m qutip._mkl.utilities
 
 # command to run tests
 script: 
