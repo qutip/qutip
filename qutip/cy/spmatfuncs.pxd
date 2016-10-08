@@ -43,7 +43,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
     np.ndarray[CTYPE_t, ndim=1, mode="c"] vec)
 
 
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmvpy(
+cpdef void spmvpy(
         np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
