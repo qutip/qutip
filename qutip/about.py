@@ -82,6 +82,11 @@ def about():
     print("")
 
 if __name__ == "__main__":
+    import numpy as np
     about()
+    config = np.__config__
+    blas_info = config.blas_opt_info
+    print(blas_info)
+    print(dir(config))
 
 
