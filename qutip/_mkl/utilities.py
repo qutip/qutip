@@ -81,15 +81,15 @@ def _set_mkl():
                 qset.has_mkl = True
             except:
                 pass
+        return python_dir+lib_dir
     else:
-        pass
+        return None
 
 
 if __name__ == "__main__":
-    plat = sys.platform
-    python_dir = os.path.dirname(sys.executable)
-    if plat in ['darwin','linux2', 'linux']:
-        python_dir = os.path.dirname(python_dir)
-    print(python_dir)
-    _set_mkl()
-    print(qset.has_mkl)
+    from qutip import *
+    print('\n\n')
+    print('MKL Directory')
+    direc = _set_mkl()
+    print(direc)
+    print('\n\n')
