@@ -107,7 +107,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmvpy(
+cpdef void spmvpy(
         np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
@@ -131,7 +131,6 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmvpy(
             dot = dot + data[jj] * vec[idx[jj]]
         out[row] = out[row] + a * dot
 
-    return out
 
 
 @cython.boundscheck(False)
