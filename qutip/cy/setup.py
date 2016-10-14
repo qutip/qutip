@@ -6,6 +6,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate']
 
 _compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
@@ -23,7 +24,7 @@ def configuration(parent_package='', top_path=None):
         config.add_extension(
             ext, 
             sources=src,
-            include_dirs=[np.get_include()],
+            include_dirs=[np.get_include(), dir_path],
             extra_compile_args=_compiler_flags,
             extra_link_args=[])
 
@@ -34,9 +35,10 @@ def configuration(parent_package='', top_path=None):
 
 if __name__ == '__main__':
     # builds c-file from pyx for distribution
+    dir_path = os.path.dirname(os.path.realpath(__file__))
     setup(
         cmdclass={'build_ext': build_ext},
-        include_dirs=[np.get_include()],
+        include_dirs=[np.get_include(), dir_path],
         ext_modules=[Extension(
             ext, [ext + ".pyx"],
             extra_compile_args=_compiler_flags,
