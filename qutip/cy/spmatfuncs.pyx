@@ -35,11 +35,15 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
+cdef extern from "src/zspmv.h" nogil:
+    void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
+                double complex a, double complex *out, int nrows)
+
 include "complex_math.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv(
+cpdef np.ndarray[complex, ndim=1, mode="c"] spmv(
         object super_op,
         np.ndarray[CTYPE_t, ndim=1, mode="c"] vec):
     """
@@ -64,11 +68,8 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec):
+cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_csr(complex[::1] data,
+            int[::1] ind, int[::1] ptr, complex[::1] vec):
     """
     Sparse matrix, dense vector multiplication.  
     Here the vector is assumed to have one-dimension.
@@ -91,70 +92,37 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
         Returns dense array.
     
     """
-    cdef Py_ssize_t row
-    cdef int jj,row_start,row_end
-    cdef int num_rows = ptr.shape[0]-1
-    cdef CTYPE_t dot
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] out = np.zeros((num_rows), dtype=np.complex)
-    for row in range(num_rows):
-        dot=0.0
-        row_start = ptr[row]
-        row_end = ptr[row+1]
-        for jj in range(row_start,row_end):
-            dot+=data[jj]*vec[idx[jj]]
-        out[row]=dot
+    cdef int num_rows = ptr.shape[0] - 1
+    cdef np.ndarray[complex, ndim=1, mode="c"] out = np.zeros((num_rows), dtype=np.complex)
+    zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows)
     return out
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void spmvpy(
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec,
-        CTYPE_t a, 
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] out):
-    """
-    Sparse matrix time vector plus vector function:
-    out = out + a * (data, idx, ptr) * vec
-    """
-    cdef Py_ssize_t row
-    cdef int jj, row_start, row_end
-    cdef int num_rows = vec.shape[0]
-    cdef CTYPE_t dot
-
-    for row in range(num_rows):
-        dot = 0.0
-        row_start = ptr[row]
-        row_end = ptr[row+1]
-        for jj in range(row_start, row_end):
-            dot = dot + data[jj] * vec[idx[jj]]
-        out[row] = out[row] + a * dot
+cpdef inline void spmvpy(complex[::1] data,
+            int[::1] ind,
+            int[::1] ptr,
+            complex[::1] vec,
+            complex a,
+            complex[::1] out):
+    
+    zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], a, &out[0], vec.shape[0])
 
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_rhs(
+cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs(
         double t, 
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] rho,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr):
+        complex[::1] rho,
+        complex[::1] data,
+        int[::1] ind,
+        int[::1] ptr):
 
-    cdef int row, jj, row_start, row_end
     cdef int num_rows = rho.shape[0]
-    cdef CTYPE_t dot
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] out = \
-        np.zeros((num_rows), dtype=np.complex)
-
-    for row from 0 <= row < num_rows:
-        dot = 0.0
-        row_start = ptr[row]
-        row_end = ptr[row+1]
-        for jj from row_start <= jj < row_end:
-            dot = dot + data[jj] * rho[idx[jj]]
-        out[row] = dot
+    cdef np.ndarray[complex, ndim=1, mode="c"] out = \
+        np.zeros((num_rows), dtype=complex)
+    zspmvpy(&data[0], &ind[0], &ptr[0], &rho[0], 1.0, &out[0], num_rows)
 
     return out
 

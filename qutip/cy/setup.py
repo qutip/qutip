@@ -8,7 +8,7 @@ import os
 
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate']
 
-_compiler_flags = ['-w', '-ffast-math', '-O3', '-mtune=native']
+_compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
 
 def configuration(parent_package='', top_path=None):
     # compiles files during installation
@@ -16,9 +16,13 @@ def configuration(parent_package='', top_path=None):
     config = Configuration('cy', parent_package, top_path)
 
     for ext in exts:
+        if ext == 'spmatfuncs':
+            src = [ext + ".pyx", "src/zspmv.c"]
+        else:
+            src = [ext + ".pyx"]
         config.add_extension(
             ext, 
-            sources=[ext + ".pyx"],
+            sources=src,
             include_dirs=[np.get_include()],
             extra_compile_args=_compiler_flags,
             extra_link_args=[])
