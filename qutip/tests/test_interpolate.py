@@ -81,7 +81,7 @@ def testInterpolate5():
     S = Cubic_Spline(x[0],x[-1],y)
     x2 = np.linspace(0,8*np.pi,400)
     y2 = np.sin(r1*x2)+np.cos(r2*x2)
-    assert_(max(np.abs((S(x2)-y2)/y2)) < 0.05)
+    assert_(max(np.abs((S(x2)-y2)/y2)) < 0.1)
 
 def test_interpolate_evolve1():
     """
