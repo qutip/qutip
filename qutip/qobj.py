@@ -788,27 +788,31 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        elif M > 10 and N == 1:
-            # truncated column vector output
+        elif M > 10 and N <= 10:
+            # truncated vertically elongated matrix output
             for m in range(5):
-                s += _format_element(m, 0, self.data[m, 0])
+                for n in range(N):
+                    s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-            s += _format_element(m, 0, r'\vdots')
+            for n in range(N):
+                s += _format_element(m, n, r'\vdots')
             s += r'\\'
 
             for m in range(M - 5, M):
-                s += _format_element(m, 0, self.data[m, 0])
+                for n in range(N):
+                    s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        elif M == 1 and N > 10:
-            # truncated row vector output
-            for n in range(5):
-                s += _format_element(0, n, self.data[0, n])
-            s += r' & \cdots'
-            for n in range(N - 5, N):
-                s += _format_element(0, n, self.data[0, n])
-            s += r'\\'
+        elif M <= 10 and N > 10:
+            # truncated horizontally elongated matrix output
+            for m in range(M):
+                for n in range(5):
+                    s += _format_element(m, n, self.data[m, n])
+                s += r' & \cdots'
+                for n in range(N - 5, N):
+                    s += _format_element(m, n, self.data[m, n])
+                s += r'\\'
 
         else:
             # full output
