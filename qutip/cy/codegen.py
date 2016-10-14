@@ -32,6 +32,7 @@
 ###############################################################################
 import os
 import numpy as np
+from qutip.interpolate import Cubic_Spline
 _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _include_string = "'"+_cython_path+"/complex_math.pxi'"
 
@@ -164,6 +165,19 @@ class Codegen():
                                "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
                                "np.ndarray[int, ndim=1] idx%d," % k +
                                "np.ndarray[int, ndim=1] ptr%d" % k)
+        
+        #Add array for each Cubic_Spline term
+        spline = 0
+        for htd in self.h_tdterms:
+            if isinstance(htd, Cubic_Spline):
+                if not htd.is_complex:
+                    input_vars += (",\n        " +
+                                   "np.ndarray[DTYPE_t, ndim=1] spline%d" % spline)
+                else:
+                    input_vars += (",\n        " +
+                                   "np.ndarray[CTYPE_t, ndim=1] spline%d" % spline)
+                spline += 1
+        
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
@@ -202,11 +216,20 @@ class Codegen():
         func_vars.append(" ")
         tdterms = self.h_tdterms
         hinds = 0
+        spline = 0
         for ht in self.h_terms:
             hstr = str(ht)
             if self.type == 'mc':
                 if ht in self.h_td_inds:
-                    td_str= tdterms[hinds]
+                    if isinstance(tdterms[hinds], str):
+                        td_str= tdterms[hinds]
+                    elif isinstance(tdterms[hinds], Cubic_Spline):
+                        S = tdterms[hinds]
+                        if not S.is_complex:
+                            td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        else:
+                            td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        spline += 1
                     hinds += 1
                 else:
                     td_str = "1.0"
@@ -218,8 +241,18 @@ class Codegen():
                     str_out = "spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (
                         ht, ht, ht)
                 else:
-                    str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
-                        ht, ht, ht, self.h_tdterms[ht])
+                    if isinstance(self.h_tdterms[ht], str):
+                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                            ht, ht, ht, self.h_tdterms[ht])
+                    elif isinstance(self.h_tdterms[ht], Cubic_Spline):
+                        S = self.h_tdterms[ht]
+                        if not S.is_complex:
+                            interp_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        else:
+                            interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        spline += 1
+                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                            ht, ht, ht, interp_str)
                 func_vars.append(str_out)
 
         if len(self.c_tdterms) > 0:
@@ -278,7 +311,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs cimport spmvpy
-
+from qutip.cy.interpolate cimport interp, zinterp
 cdef double pi = 3.14159265358979323
 
 include """+_include_string+"""
