@@ -37,7 +37,7 @@ from qutip import *
 
     
 def testInterpolate1():
-    "Interpolation: Sine + noise (array)"
+    "Interpolate: Sine + noise (array)"
     x = np.linspace(0,2*np.pi,200)
     y = np.sin(x)+0.1*np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
@@ -45,7 +45,7 @@ def testInterpolate1():
     assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
 
 def testInterpolate2():
-    "Interpolation: Sine + noise (point)"
+    "Interpolate: Sine + noise (point)"
     x = np.linspace(0,2*np.pi,200)
     y = np.sin(x)+0.1*np.random.randn(x.shape[0])
     S1 = Cubic_Spline(x[0],x[-1],y)
@@ -54,7 +54,7 @@ def testInterpolate2():
         assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
 
 def testInterpolate3():
-    "Interpolation: Complex sine + noise (array)"
+    "Interpolate: Complex sine + noise (array)"
     x = np.linspace(0,2*np.pi,200)
     y = np.sin(x)+0.1*np.random.randn(x.shape[0]) + \
         0.1j*np.random.randn(x.shape[0])
@@ -63,7 +63,7 @@ def testInterpolate3():
     assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
 
 def testInterpolate4():
-    "Interpolation: Complex sine + noise (point)"
+    "Interpolate: Complex sine + noise (point)"
     x = np.linspace(0,2*np.pi,200)
     y = np.sin(x)+0.1*np.random.randn(x.shape[0]) + \
         0.1j*np.random.randn(x.shape[0])
@@ -71,6 +71,197 @@ def testInterpolate4():
     S2 = sint.interp1d(x,y,'cubic')
     for k in range(x.shape[0]):
         assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
+        
+def testInterpolate5():
+    "Interpolate: Random points in interval"
+    x = np.linspace(0,8*np.pi,200)
+    r1 = 2*np.random.random()
+    r2 = 2*np.random.random()
+    y = np.sin(r1*x)+np.cos(r2*x)
+    S = Cubic_Spline(x[0],x[-1],y)
+    x2 = np.linspace(0,8*np.pi,400)
+    y2 = np.sin(r1*x2)+np.cos(r2*x2)
+    assert_(max(np.abs((S(x2)-y2)/y2)) < 0.05)
+
+def test_interpolate_evolve1():
+    """
+    Interpolate: sesolve str-based (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
+    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
+    out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
+    out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve2():
+    """
+    Interpolate: mesolve str-based (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
+    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve3():
+    """
+    Interpolate: mcsolve str-based (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
+    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
+    out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
+    out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve4():
+    """
+    Interpolate: sesolve str + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
+    out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
+    out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve5():
+    """
+    Interpolate: sesolve func + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    func = lambda t, *args: 0.25*np.cos(t)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
+    out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
+    out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve6():
+    """
+    Interpolate: mesolve str + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock_dm(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve7():
+    """
+    Interpolate: mesolve func + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    func = lambda t, *args: 0.25*np.cos(t)
+    N = 10
+    psi0 = fock_dm(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve8():
+    """
+    Interpolate: mcsolve str + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
+    out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve9():
+    """
+    Interpolate: mcsolve func + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    func = lambda t, *args: 0.25*np.cos(t)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
+    out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve10():
+    """
+    Interpolate: mesolve str + interp (complex)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.1j*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock_dm(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.1j*sin(t)'], [a**2+a.dag()**2,'-0.1j*sin(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'-0.1j*sin(t)']]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_evolve11():
+    """
+    Interpolate: mesolve func + interp (complex)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.1j*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    func = lambda t, *args: -0.1j*np.sin(t)
+    N = 10
+    psi0 = fock_dm(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.1j*sin(t)'], [a**2+a.dag()**2,'-0.1j*sin(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
+    print(np.max(np.abs(out1-out2)) < 1e-4)
 
 
 if __name__ == "__main__":

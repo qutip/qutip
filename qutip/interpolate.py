@@ -31,9 +31,8 @@
 ###############################################################################
 import numpy as np
 import scipy.linalg as la
-from qutip.cy.interpolate import (_interpolate, _array_interpolate,
-                                 _interpolate_complex,
-                                 _array_interpolate_complex)
+from qutip.cy.interpolate import (interp, arr_interp,
+                                 zinterp, arr_zinterp)
 
 __all__ = ['Cubic_Spline']
 
@@ -110,21 +109,21 @@ class Cubic_Spline(object):
         self.coeffs = coeff # Spline coefficients
         self.is_complex = (y.dtype == complex) #Tells which dtype solver to use
         
-    def __call__(self, pnts):
+    def __call__(self, pnts, *args):
         #If requesting a single return value
         if isinstance(pnts, (int, float, complex)):
             if self.is_complex:
-                return _interpolate_complex(pnts, self.a, 
+                return zinterp(pnts, self.a, 
                                     self.b, self.coeffs)
             else:
-                return _interpolate(pnts, self.a, self.b, self.coeffs)
+                return interp(pnts, self.a, self.b, self.coeffs)
         #If requesting multiple return values from array_like
         elif isinstance(pnts, (np.ndarray,list)):
             pnts = np.asarray(pnts)
             if self.is_complex:
-                return _array_interpolate_complex(pnts, self.a, 
+                return arr_zinterp(pnts, self.a, 
                                                 self.b, self.coeffs)
             else:
-                return _array_interpolate(pnts, self.a, self.b, self.coeffs)
+                return arr_interp(pnts, self.a, self.b, self.coeffs)
     
     
