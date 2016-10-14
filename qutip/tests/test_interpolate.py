@@ -71,17 +71,6 @@ def testInterpolate4():
     S2 = sint.interp1d(x,y,'cubic')
     for k in range(x.shape[0]):
         assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
-        
-def testInterpolate5():
-    "Interpolate: Random points in interval"
-    x = np.linspace(0,8*np.pi,200)
-    r1 = 2*np.random.random()
-    r2 = 2*np.random.random()
-    y = np.sin(r1*x)+np.cos(r2*x)
-    S = Cubic_Spline(x[0],x[-1],y)
-    x2 = np.linspace(0,8*np.pi,400)
-    y2 = np.sin(r1*x2)+np.cos(r2*x2)
-    assert_(max(np.abs((S(x2)-y2)/y2)) < 0.1)
 
 def test_interpolate_evolve1():
     """
