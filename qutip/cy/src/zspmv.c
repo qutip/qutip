@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <complex.h>
 
-#if __SSE3__
+#ifdef __SSE3__
 #include <pmmintrin.h>
 void zspmvpy(const double complex *__restrict__ data, const int *__restrict__ ind, 
             const int *__restrict__ ptr,
