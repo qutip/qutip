@@ -18,7 +18,6 @@ matrix:
           env: COMPILER=clang++-3.6
         
         - python: 3.5
-            env: NOMKL=1
         - compiler: gcc
             addons:
               apt:
@@ -26,7 +25,7 @@ matrix:
                   - ubuntu-toolchain-r-test
                 packages:
                  - g++-4.9
-            env: COMPILER=g++-4.9
+            env: NOMKL=1 COMPILER=g++-4.9
         
         - python: 3.5
         - compiler: gcc
