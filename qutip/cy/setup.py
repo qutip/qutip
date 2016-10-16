@@ -25,7 +25,8 @@ def configuration(parent_package='', top_path=None):
             sources=src,
             include_dirs=[np.get_include(), 'src'],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[])
+            extra_link_args=[],
+            depends = ['src/zspmv.h'])
 
     config.ext_modules = cythonize(config.ext_modules)
 
@@ -33,12 +34,5 @@ def configuration(parent_package='', top_path=None):
 
 
 if __name__ == '__main__':
-    # builds c-file from pyx for distribution
-    setup(
-        cmdclass={'build_ext': build_ext},
-        include_dirs=[np.get_include(), 'src'],
-        ext_modules=[Extension(
-            ext, [ext + ".pyx"],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=[]) for ext in exts]
-            )
+    from numpy.distutils.core import setup
+    setup(**configuration(top_path='').todict())

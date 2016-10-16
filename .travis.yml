@@ -12,7 +12,11 @@ matrix:
           env: NOMKL=1
 addons:
     apt:
+        sources:
+            - ubuntu-toolchain-r-test
         packages:
+            - gcc-4.9
+            - g++-4.9
             - libatlas-dev
             - libatlas-base-dev
             - liblapack-dev
@@ -21,6 +25,7 @@ addons:
 
 # command to install dependencies
 install:
+    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
           wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
         else
