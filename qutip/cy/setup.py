@@ -17,7 +17,7 @@ def configuration(parent_package='', top_path=None):
 
     for ext in exts:
         if ext == 'spmatfuncs':
-            src = [ext + ".pyx", "src/zspmv.c"]
+            src = [ext + ".pyx", os.path.join('src','zspmv.c')]
         else:
             src = [ext + ".pyx"]
         config.add_extension(
@@ -26,7 +26,7 @@ def configuration(parent_package='', top_path=None):
             include_dirs=[np.get_include(), 'src'],
             extra_compile_args=_compiler_flags,
             extra_link_args=[],
-            depends = ['src/zspmv.h'])
+            depends = [os.path.join('src', 'zspmv.h')])
 
     config.ext_modules = cythonize(config.ext_modules)
 

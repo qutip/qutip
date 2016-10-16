@@ -7,16 +7,49 @@ python:
 matrix:
     include:
         - python: 3.5
-          env: CC=clang CXX=clang++
+        - compiler: clang
+          addons:
+            apt:
+              sources:
+                - ubuntu-toolchain-r-test
+                - llvm-toolchain-precise-3.6
+              packages:
+                - clang-3.6
+          env: COMPILER=clang++-3.6
+        
         - python: 3.5
-          env: NOMKL=1
+            env: NOMKL=1
+        - compiler: gcc
+            addons:
+              apt:
+                sources:
+                  - ubuntu-toolchain-r-test
+                packages:
+                 - g++-4.9
+            env: COMPILER=g++-4.9
+        
+        - python: 3.5
+        - compiler: gcc
+            addons:
+              apt:
+                sources:
+                  - ubuntu-toolchain-r-test
+                packages:
+                 - g++-4.9
+            env: COMPILER=g++-4.9
+        
+        - python: 2.7
+        - compiler: gcc
+            addons:
+              apt:
+                sources:
+                  - ubuntu-toolchain-r-test
+                packages:
+                 - g++-4.9
+            env: COMPILER=g++-4.9
 addons:
     apt:
-        sources:
-            - ubuntu-toolchain-r-test
         packages:
-            - gcc-4.9
-            - g++-4.9
             - libatlas-dev
             - libatlas-base-dev
             - liblapack-dev
@@ -25,7 +58,6 @@ addons:
 
 # command to install dependencies
 install:
-    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
           wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
         else
