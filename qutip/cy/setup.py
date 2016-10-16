@@ -27,8 +27,7 @@ def configuration(parent_package='', top_path=None):
             sources=src,
             include_dirs=[np.get_include(), dir_path],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[],
-            depends=[os.path.join(dir_path,'/src/zspmv.h')])
+            extra_link_args=[])
 
     config.ext_modules = cythonize(config.ext_modules)
 
