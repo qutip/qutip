@@ -25,9 +25,10 @@ def configuration(parent_package='', top_path=None):
         config.add_extension(
             ext, 
             sources=src,
-            include_dirs=[np.get_include(), os.path.join(dir_path, 'src')],
+            include_dirs=[np.get_include(), dir_path],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[])
+            extra_link_args=[],
+            sources=[os.join.path(dir_path,'/src/zspmv.h')])
 
     config.ext_modules = cythonize(config.ext_modules)
 
