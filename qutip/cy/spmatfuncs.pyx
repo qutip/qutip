@@ -30,12 +30,13 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import os
 import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math
-
-cdef extern from "src/zspmv.h" nogil:
+dir_path = os.path.dirname(os.path.realpath(__file__))
+cdef extern from os.path.join(dir_path, "src/zspmv.h") nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
                 double complex a, double complex *out, int nrows)
 
