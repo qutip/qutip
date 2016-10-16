@@ -35,7 +35,7 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
-cdef extern from "zspmv.h" nogil:
+cdef extern from "src/zspmv.h" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
                 double complex a, double complex *out, int nrows)
 
