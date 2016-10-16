@@ -1,4 +1,5 @@
 sudo: false
+dist: trusty
 language: python
 
 python:
@@ -7,45 +8,9 @@ python:
 matrix:
     include:
         - python: 3.5
-        - compiler: clang
-          addons:
-            apt:
-              sources:
-                - ubuntu-toolchain-r-test
-                - llvm-toolchain-precise-3.6
-              packages:
-                - clang-3.6
-          env: COMPILER=clang++-3.6
-        
+          env: CC=clang CXX=clang++
         - python: 3.5
-        - compiler: gcc
-            addons:
-              apt:
-                sources:
-                  - ubuntu-toolchain-r-test
-                packages:
-                 - g++-4.9
-            env: NOMKL=1 COMPILER=g++-4.9
-        
-        - python: 3.5
-        - compiler: gcc
-            addons:
-              apt:
-                sources:
-                  - ubuntu-toolchain-r-test
-                packages:
-                 - g++-4.9
-            env: COMPILER=g++-4.9
-        
-        - python: 2.7
-        - compiler: gcc
-            addons:
-              apt:
-                sources:
-                  - ubuntu-toolchain-r-test
-                packages:
-                 - g++-4.9
-            env: COMPILER=g++-4.9
+          env: NOMKL=1
 addons:
     apt:
         packages:
@@ -92,4 +57,3 @@ after_success:
     - if [[ $TRAVIS_PYTHON_VERSION == '3.5' ]] && [[ $CC == 'gcc' ]]; then
           coveralls;
       fi
-
