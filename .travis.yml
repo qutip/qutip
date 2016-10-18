@@ -20,6 +20,8 @@ addons:
             - gfortran
 
 
+before_install: cd qutip_build
+
 # command to install dependencies
 install:
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -47,10 +49,12 @@ install:
     - pip install cvxpy
     # Finally, install ourselves.
     - python setup.py install
-    - python -m qutip.about
+
+before_script: cd
 
 # command to run tests
 script: 
+    - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
 
 after_success:
