@@ -24,7 +24,7 @@ def configuration(parent_package='', top_path=None):
         config.add_extension(
             ext, 
             sources=src,
-            include_dirs=[np.get_include(), dir_path],
+            include_dirs=[np.get_include()],
             extra_compile_args=_compiler_flags,
             extra_link_args=[])
 
