@@ -20,8 +20,6 @@ addons:
             - gfortran
 
 
-before_install: cd qutip_build
-
 # command to install dependencies
 install:
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
