@@ -48,8 +48,6 @@ install:
     # Finally, install ourselves.
     - python setup.py install
 
-before_script: cd
-
 # command to run tests
 script: 
     - python -m qutip.about
