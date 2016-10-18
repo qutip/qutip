@@ -19,9 +19,6 @@ addons:
             - liblapack-dev
             - gfortran
 
-before_install:
-    - mkdir qutip_build
-    - cd qutip_build
 # command to install dependencies
 install:
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -50,8 +47,10 @@ install:
     # Finally, install ourselves.
     - python setup.py install
 
-# leave build dir
-before_script: cd
+# change dir
+before_script:
+    - mkdir qutip_build
+    - cd qutip_build
  
 # command to run tests
 script: 
