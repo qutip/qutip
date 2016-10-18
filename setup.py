@@ -93,8 +93,7 @@ PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
-    'qutip/control': ['*.pyx'],
-    'qutip/cy': ['src/*.h']
+    'qutip/control': ['*.pyx']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.

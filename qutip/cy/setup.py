@@ -7,6 +7,7 @@ import numpy as np
 import os
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
+
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate']
 
 _compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
@@ -15,7 +16,6 @@ def configuration(parent_package='', top_path=None):
     # compiles files during installation
     from numpy.distutils.misc_util import Configuration
     config = Configuration('cy', parent_package, top_path)
-
     for ext in exts:
         if ext == 'spmatfuncs':
             src = [ext + ".pyx", 'src/zspmv.c']
@@ -24,7 +24,7 @@ def configuration(parent_package='', top_path=None):
         config.add_extension(
             ext, 
             sources=src,
-            include_dirs=[np.get_include(), 'src'],
+            include_dirs=[np.get_include(), dir_path],
             extra_compile_args=_compiler_flags,
             extra_link_args=[])
 
