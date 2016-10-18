@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from numpy.testing import run_module_suite, assert_equal
+from numpy.testing import run_module_suite, assert_equal, assert_almost_equal
 import scipy.sparse as sp
 
 from qutip.random_objects import (rand_dm, rand_herm,
@@ -198,7 +198,7 @@ def test_csr_kron():
         C = sp.kron(A,B, format='csr')
         D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
                     B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
-        assert_equal(C.data, D.data)
+        assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
         
@@ -210,7 +210,7 @@ def test_csr_kron():
         C = sp.kron(A,B, format='csr')
         D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
                     B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
-        assert_equal(C.data, D.data)
+        assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
     
@@ -222,7 +222,7 @@ def test_csr_kron():
         C = sp.kron(A,B, format='csr')
         D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
                     B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
-        assert_equal(C.data, D.data)
+        assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
         
@@ -234,7 +234,7 @@ def test_csr_kron():
         C = sp.kron(A,B, format='csr')
         D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
                     B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
-        assert_equal(C.data, D.data)
+        assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
 

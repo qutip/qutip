@@ -36,20 +36,16 @@ cimport cython
 
 include "parameters.pxi"
 
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
-    np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-    np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-    np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-    np.ndarray[CTYPE_t, ndim=1, mode="c"] vec)
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(complex[::1] data,
+                int[::1] ind, int[::1] ptr, complex[::1] vec)
 
 
-cpdef void spmvpy(
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec,
-        CTYPE_t a, 
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] out)
+cpdef void spmvpy(complex[::1] data,
+                int[::1] ind,
+                int[::1] ptr,
+                complex[::1] vec,
+                complex a,
+                complex[::1] out)
 
 
 cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
