@@ -49,8 +49,8 @@ install:
 
 # change dir
 before_script:
-    - mkdir qutip_build
-    - cd qutip_build
+    - mkdir qutip_testing
+    - cd qutip_testing
  
 # command to run tests
 script: 
