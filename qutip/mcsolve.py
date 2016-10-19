@@ -48,6 +48,7 @@ from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
+from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
 import qutip.settings
@@ -1078,13 +1079,13 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
     if config.tflag == 0:
         # CONSTANT H & C_OPS CODE
         # -----------------------
-
         if config.cflag:
             config.c_const_inds = np.arange(len(c_ops))
+            # combine Hamiltonian and constant collapse terms into one
             for c_op in c_ops:
                 n_op = c_op.dag() * c_op
                 H -= 0.5j * \
-                    n_op  # combine Hamiltonian and collapse terms into one
+                    n_op 
         # construct Hamiltonian data structures
         if options.tidy:
             H = H.tidyup(options.atol)
@@ -1144,7 +1145,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             # find inds of constant terms
             H_const_inds = np.setdiff1d(H_inds, H_td_inds)
             # extract time-dependent coefficients (strings or functions)
-            H_tdterms = [H[k][1] for k in H_td_inds]
+            config.h_tdterms = [H[k][1] for k in H_td_inds]
             # combine time-INDEPENDENT terms into one.
             H = np.array([np.sum(H[k] for k in H_const_inds)] +
                          [H[k][0] for k in H_td_inds], dtype=object)
@@ -1227,6 +1228,12 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                               "], config.h_ptr[" + str(k) + "]")
             if k != data_range[-1]:
                 config.string += ","
+        
+        # Add objects to ode args string
+        for k in range(len(config.h_tdterms)):
+            if isinstance(config.h_tdterms[k], Cubic_Spline):
+                config.string += ", config.h_tdterms["+str(k)+"].coeffs"
+        
         # attach args to ode args string
         if len(config.c_args) > 0:
             for kk in range(len(config.c_args)):
@@ -1234,7 +1241,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
 
         name = "rhs" + str(os.getpid()) + str(config.cgen_num)
         config.tdname = name
-        cgen = Codegen(H_inds, H_tdterms, config.h_td_inds, args,
+        cgen = Codegen(H_inds, config.h_tdterms, config.h_td_inds, args,
                        C_inds, C_tdterms, config.c_td_inds, type='mc',
                        config=config)
         cgen.generate(name + ".pyx")

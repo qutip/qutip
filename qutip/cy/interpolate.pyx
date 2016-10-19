@@ -15,7 +15,7 @@ cdef inline double phi(double t):
     else:
         return 0
 
-cpdef double _interpolate(double x, double a, double b, double[::1] c):
+cpdef double interp(double x, double a, double b, double[::1] c):
     cdef int n = c.shape[0] - 3
     cdef double h = (b-a) / n
     cdef int l = <int>((x-a)/h) + 1
@@ -28,7 +28,7 @@ cpdef double _interpolate(double x, double a, double b, double[::1] c):
         s += c[ii-1] * phi(pos - ii)
     return s    
 
-cpdef complex _interpolate_complex(double x, double a, double b, complex[::1] c):
+cpdef complex zinterp(double x, double a, double b, complex[::1] c):
     cdef int n = c.shape[0] - 3
     cdef double h = (b-a) / n
     cdef int l = <int>((x-a)/h) + 1
@@ -42,7 +42,7 @@ cpdef complex _interpolate_complex(double x, double a, double b, complex[::1] c)
     return s  
 
 
-def _array_interpolate(double[::1] x, double a, double b, double[::1] c):
+def arr_interp(double[::1] x, double a, double b, double[::1] c):
     cdef int lenx = x.shape[0]
     cdef int lenc = c.shape[0] 
     cdef int n = lenc - 3
@@ -62,7 +62,7 @@ def _array_interpolate(double[::1] x, double a, double b, double[::1] c):
     
     return out
 
-def _array_interpolate_complex(double[::1] x, double a, double b, complex[::1] c):
+def arr_zinterp(double[::1] x, double a, double b, complex[::1] c):
     cdef int lenx = x.shape[0]
     cdef int lenc = c.shape[0] 
     cdef int n = lenc - 3

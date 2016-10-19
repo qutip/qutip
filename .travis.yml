@@ -1,4 +1,5 @@
-sudo: false
+sudo: required
+dist: trusty
 language: python
 
 python:
@@ -17,7 +18,6 @@ addons:
             - libatlas-base-dev
             - liblapack-dev
             - gfortran
-
 
 # command to install dependencies
 install:
@@ -46,14 +46,18 @@ install:
     - pip install cvxpy
     # Finally, install ourselves.
     - python setup.py install
-    - python -m qutip.about
 
+# change dir
+before_script:
+    - mkdir qutip_testing
+    - cd qutip_testing
+ 
 # command to run tests
 script: 
+    - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
 
 after_success:
     - if [[ $TRAVIS_PYTHON_VERSION == '3.5' ]] && [[ $CC == 'gcc' ]]; then
           coveralls;
       fi
-
