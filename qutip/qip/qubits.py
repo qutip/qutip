@@ -34,6 +34,8 @@
 __all__ = ['qubit_states']
 
 from qutip.tensor import tensor
+from numpy import sqrt
+from qutip import basis
 
 
 def qubit_states(N=1, states=[0]):
@@ -51,7 +53,7 @@ def qubit_states(N=1, states=[0]):
     ----------
     qstates : Qobj
         List of qubits.
-    
+
     """
     state_list = []
     for i in range(N):
@@ -60,5 +62,5 @@ def qubit_states(N=1, states=[0]):
         else:
             state_list.append(states[i])
 
-    return tensor(alpha * basis(2, 0) + sqrt(1 - alpha**2) * basis(2, 1)
-                  for alpha in state_list)
+    return tensor([alpha * basis(2, 0) + sqrt(1 - alpha**2) * basis(2, 1)
+                  for alpha in state_list])
