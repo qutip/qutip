@@ -35,7 +35,7 @@ __all__ = ['qubit_states']
 
 from qutip.tensor import tensor
 from numpy import sqrt
-from qutip import basis
+from qutip.states import basis
 
 
 def qubit_states(N=1, states=[0]):
