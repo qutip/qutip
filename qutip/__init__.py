@@ -188,6 +188,12 @@ except:
 else:
     qutip.settings.fortran = True
 
+# try to import the opencl mcsolver
+try:
+    from qutip.opencl import *
+except:
+    pass
+
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
