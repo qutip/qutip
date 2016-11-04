@@ -33,14 +33,58 @@
 ###############################################################################
 
 import numpy as np
-from qutip import *
+from unittest import skipUnless
 from numpy.testing import assert_equal, run_module_suite, assert_
+from qutip import (Qobj, destroy, basis, expect, tensor, Options, sigmam, qeye,
+                   mesolve, fock, sigmax, sigmay, sigmaz, coherent)
+
+# check if OpenCL is available
+opencl_64 = False
+opencl_32 = False
+opencl_reason = None
+try:
+    import pyopencl as cl
+except:
+    opencl_reason = "pyopencl is not available"
+else:
+    import os
+    from qutip import mcsolve_cl
+
+    p = 0
+    d = 0
+    try:
+        p = int(os.environ["PYOPENCL_CTX"].split(':')[0])
+        d = int(os.environ["PYOPENCL_CTX"].split(':')[1])
+    except:
+        pass
+
+    if not cl.get_platforms():
+        opencl_reason = "no opencl platform available"
+    elif p >= len(cl.get_platforms()):
+        opencl_reason = "selected opencl platform is not available"
+    else:
+        platform = cl.get_platforms()[p]
+        if not platform.get_devices():
+            opencl_64 = False
+            opencl_32 = False
+            opencl_reason = "no opencl device available"
+        elif d >= len(platform.get_devices()):
+            opencl_reason = "selected opencl device is not available"
+        else:
+            device = platform.get_devices()[d]
+            opencl_32 = True
+            if device.double_fp_config != 0:
+                opencl_64 = True
+            else:
+                opencl_reason = "selected opencl device does not support " \
+                                "double precision"
 
 # average error for failure
 mc_error = 5e-2  # 5%
 ntraj = 750
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_const_h():
     "mcsolve_cl: Constant H with no collapse ops (expect)"
     error = 1e-8
@@ -57,6 +101,7 @@ def test_mcsolve_cl_const_h():
     assert_equal(diff < error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_multiple_const_h():
     "mcsolve_cl: Two constant H with no collapse ops (expect)"
     tlist = np.linspace(0, 10, 100)
@@ -79,6 +124,7 @@ def test_mcsolve_cl_multiple_const_h():
     assert_equal(diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_time_dep_h():
     "mcsolve_cl: Time-dependent H with no collapse ops (expect)"
     tlist = np.linspace(0.0, 10.0, 200)
@@ -96,6 +142,7 @@ def test_mcsolve_cl_time_dep_h():
     assert_equal(diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_time_dep_h_complex():
     "mcsolve_cl: Complex valued time-dependent H with no collapse ops (expect)"
     tlist = np.linspace(0.0, 10.0, 200)
@@ -114,6 +161,7 @@ def test_mcsolve_cl_time_dep_h_complex():
     assert_equal(diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_output_states():
     "mcsolve_cl: Constant H with no collapse ops (states)"
     error = 1e-8
@@ -130,6 +178,7 @@ def test_mcsolve_cl_output_states():
     assert_equal(diff < error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_expect_and_states():
     "mcsolve_cl: Constant H with no collapse ops (expect and states)"
     error = 1e-8
@@ -151,6 +200,7 @@ def test_mcsolve_cl_expect_and_states():
     assert_equal(diff < error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_simple_collapse():
     "mcsolve_cl: Constant H with constant collapse (expect)"
     N = 10  # number of basis states to consider
@@ -167,6 +217,7 @@ def test_mcsolve_cl_simple_collapse():
     assert_equal(avg_diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_simple_collapse_states():
     "mcsolve_cl: Constant H with constant collapse (states)"
     N = 10  # number of basis states to consider
@@ -186,6 +237,7 @@ def test_mcsolve_cl_simple_collapse_states():
     assert_equal(avg_diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_simple_collapse_expect_and_states():
     "mcsolve_cl: Constant H with constant collapse (states)"
     N = 10  # number of basis states to consider
@@ -210,6 +262,7 @@ def test_mcsolve_cl_simple_collapse_expect_and_states():
     assert_equal(avg_diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_qobj_collaps():
     """mcsolve_cl: Constant H with single collapse operator (not as list)"""
     N = 10  # number of basis states to consider
@@ -226,6 +279,7 @@ def test_mcsolve_cl_qobj_collaps():
     assert_equal(avg_diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_qobj_expect():
     """mcsolve_cl: Constant H with single expect operator (not as list)"""
     N = 10  # number of basis states to consider
@@ -242,6 +296,7 @@ def test_mcsolve_cl_qobj_expect():
     assert_equal(avg_diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_time_dep_collaps():
     """mcsolve_cl: Constant H, single time-dependent collapse operator"""
     N = 10  # number of basis states to consider
@@ -261,6 +316,7 @@ def test_mcsolve_cl_time_dep_collaps():
     assert_equal(avg_diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_twin_peaks():
     """mcsolve_cl: Constant H, one time-dependent collapse operator"""
     N = 20
@@ -277,6 +333,25 @@ def test_mcsolve_cl_twin_peaks():
     assert_equal(np.mean(diff) < mc_error, True)
 
 
+@skipUnless(opencl_32, opencl_reason)
+def test_mcsolve_cl_twin_peaks_float():
+    """mcsolve_cl: Constant H, one time-dependent collapse operator,
+    single precision"""
+    N = 20
+    a = destroy(N)
+    H = a.dag() * a
+    args = {'kappa': 0.2, 'omega': 0.5}
+    psi0 = basis(N, 5)
+    c_op_list = [a.dag() * 0.1, [a, 'kappa*sin(omega*t)'], qeye(N)]
+    tlist = np.linspace(0, 10, 100)
+    mcdata = mcsolve_cl(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj,
+                        args=args, double_prec=False)
+    medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
+    diff = abs(medata.expect[0] - mcdata.expect[0]) / medata.expect[0]
+    assert_equal(np.mean(diff) < mc_error, True)
+
+
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_atol():
     """mcsolve_cl: Constant H, two collaps operators, fails with high atol."""
     N = 20  # number of basis states to consider
@@ -294,6 +369,7 @@ def test_mcsolve_cl_atol():
     assert_equal(avg_diff < mc_error, True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_dtypes1():
     "mcsolve_cl: check for correct dtypes (average_states=True)"
     # set system parameters
@@ -327,6 +403,7 @@ def test_mcsolve_cl_dtypes1():
     assert_equal(isinstance(data.expect[2][1], complex), True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_dtypes2():
     "mcsolve_cl: check for correct dtypes (average_states=False)"
     # set system parameters
@@ -360,6 +437,7 @@ def test_mcsolve_cl_dtypes2():
     assert_equal(isinstance(data.expect[0][2][1], complex), True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_seed_reuse():
     "mcsolve_cl: check reusing seeds"
     N0 = 6
@@ -396,6 +474,7 @@ def test_mcsolve_cl_seed_reuse():
     assert_equal(np.allclose(data1.expect, data2.expect), True)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_seed_noreuse():
     "mcsolve_cl: check not reusing seeds"
     N0 = 6
@@ -432,6 +511,7 @@ def test_mcsolve_cl_seed_noreuse():
     assert_equal(np.allclose(data1.expect, data2.expect), False)
 
 
+@skipUnless(opencl_64, opencl_reason)
 def test_mcsolve_cl_ntraj_list():
     "mcsolve_cl: list of trajectories"
     N = 5
