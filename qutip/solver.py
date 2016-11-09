@@ -121,7 +121,7 @@ class Options():
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False):
+                 steady_state_average=False, normalize_output=True):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -173,6 +173,8 @@ class Options():
         self.store_states = store_states
         # average mcsolver density matricies assuming steady state evolution
         self.steady_state_average = steady_state_average
+        # Normalize output of solvers (turned off for batch unitary propagator mode)
+        self.normalize_output = normalize_output
 
     def __str__(self):
         if self.seeds is None:
