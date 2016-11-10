@@ -125,8 +125,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         tlist = t
 
     td_type = _td_format_check(H, c_op_list, solver='me')
-    if td_type[2] > 0 and config.tdfunc is None:
-        rhs_generate(H, c_op_list, args=args, options=options)
         
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
