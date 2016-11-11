@@ -33,8 +33,11 @@
 import numpy as np
 import scipy.sparse as sp
 cimport numpy as np
-from libc.math cimport abs
+from libc.math cimport abs, sqrt
 cimport cython
+
+cdef extern from "complex.h":
+    double cabs(double complex x)
 
 cdef inline int int_max(int x, int y):
     return x ^ ((x ^ y) & -(x < y))
@@ -321,4 +324,19 @@ cpdef _csr_kron(np.ndarray[complex, ndim=1, mode="c"] dataA,
                 ptr_end += distB
     
     return sp.csr_matrix((out_data,out_inds,out_ptr), shape=(rows_out,cols_out))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def unit_row_norm(complex[::1] data, int[::1] ptr, int nrows):
+    cdef size_t row, ii
+    cdef double total
+    for row in range(nrows):
+        total = 0
+        for ii in range(ptr[row], ptr[row+1]):
+            total += cabs(data[ii])**2
+        total = sqrt(total)
+        for ii in range(ptr[row], ptr[row+1]):
+            data[ii] /= total
 
