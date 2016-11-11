@@ -114,7 +114,7 @@ try:
                (Cython.__version__, _cython_requirement)))
 
     import pyximport
-    os.environ['CFLAGS'] = '-O3 -w -ffast-math -march=native'
+    os.environ['CFLAGS'] = '-O2 -w -ffast-math'
     pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
 
 except Exception as e:
