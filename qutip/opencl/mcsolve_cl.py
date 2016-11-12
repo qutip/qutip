@@ -40,6 +40,8 @@ from qutip.solver import Options, Result
 from qutip.settings import debug
 import pyopencl as cl
 import logging
+import six
+
 
 if debug:
     import inspect
@@ -52,18 +54,18 @@ def mcsolve_cl(H, psi0, tlist, c_ops, e_ops, ntraj=None, options=None,
     for calculating expectation values. Options for the underlying ODE solver
     are given by the Options class.
 
-    In many cases this class can be used as a drop in replacement for mcsolve.
+    In many cases this function can be used as a drop in replacement for mcsolve.
     It supports time-dependent Hamiltonians using strings. The strings become
     part of the OpenCL program and are limited to the
-    `math functions available in OpenGL <https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/mathFunctions.html>`.
+    `math functions available in OpenCL <https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/mathFunctions.html>`.
 
-    Since OpenCL does not support complex numbers natively, the imaginary part
-    can be given as a third element and is assumed zero otherwise. For
-    instance:
+    Since OpenCL does not support complex numbers natively, complex 
+    coefficients can supplied as a tuple. For instance:
     ``mcsolve([H1, [H12, '2+3j*sin(omega*t)']], ...)``
     becomes
-    ``mcsolve_cl([H1, [H12, '2.0', '3*sin(omega*t)']], ...)``.
-    And likewise for collapse operators.
+    ``mcsolve_cl([H1, [H12, ('2.0', '3.0*sin(omega*t)')]], ...)``.
+    And likewise for collapse operators. If the imaginary part is zero, a
+    string can be used instead of a tuple.
 
     Parameters
     ----------
@@ -215,28 +217,22 @@ def mcsolve_cl(H, psi0, tlist, c_ops, e_ops, ntraj=None, options=None,
     H_const = 0
     time_dependent = False
     for i in range(len(H)):
+        _check_operator_format(H[i])
         # the Hamiltonians are premultiplied with -1j
         if isinstance(H[i], Qobj):
             H_const -= 1j * H[i]
         else:
             H[i] = list(H[i])
             H[i][0] = -1j * H[i][0]
-            if len(H[i]) == 2:
-                H[i] = [H[i][0], H[i][1], '0.0']
-            assert len(H[i]) == 3
-            assert isinstance(H[i][0], Qobj)
             time_dependent = True
     for i in range(len(c_ops)):
+        _check_operator_format(c_ops[i])
         if isinstance(c_ops[i], Qobj):
             # the constant collapse operators that become part of the
             # effective Hamiltonian are premultiplied with -0.5
             H_const -= 0.5 * c_ops[i].dag() * c_ops[i]
         else:
             c_ops[i] = list(c_ops[i])
-            if len(c_ops[i]) == 2:
-                c_ops[i] = [c_ops[i][0], c_ops[i][1], '0.0']
-            assert len(c_ops[i]) == 3
-            assert isinstance(c_ops[i][0], Qobj)
             time_dependent = True
 
     # Note: The summands of H_const have been pre-multiplied in such a way
@@ -542,15 +538,21 @@ void integrand(
 {
   spmv_csr(data,idx,ptr,vec,out);"""
 
-    # add non-constant H terms
+    # add time-dependent H terms
     for i, Hi in enumerate(H):
-        if not isinstance(Hi, Qobj):
-            cl_src += "\n  spmv_csr_add(data,idx,ptr+(len+1)*%d,vec,out,(ctype)(%s,%s));" % (i, Hi[1], Hi[2])
+        if isinstance(Hi, (list, tuple)):
+            if isinstance(Hi[1], six.string_types):
+                cl_src += "\n  spmv_csr_add(data,idx,ptr+(len+1)*%d,vec,out,(ctype)(%s,0.0));" % (i, Hi[1])
+            else:
+                cl_src += "\n  spmv_csr_add(data,idx,ptr+(len+1)*%d,vec,out,(ctype)(%s,%s));" % (i, Hi[1][0], Hi[1][1])
 
-    # add non-constant c_ops
+    # add time-dependent c_ops
     for i, c_op in enumerate(c_ops):
-        if not isinstance(c_op, Qobj):
-            cl_src += "\n  spmv_csr_add(data,idx,ptr+(len+1)*(H_len+%d),vec,out,-0.5*(sqr(%s)+sqr(%s)));" % (i, c_op[1], c_op[2])
+        if isinstance(c_op, (list, tuple)):
+            if isinstance(c_op[1], six.string_types):
+                cl_src += "\n  spmv_csr_add(data,idx,ptr+(len+1)*(H_len+%d),vec,out,-0.5*(sqr(%s)));" % (i, c_op[1])
+            else:
+                cl_src += "\n  spmv_csr_add(data,idx,ptr+(len+1)*(H_len+%d),vec,out,-0.5*(sqr(%s)+sqr(%s)));" % (i, c_op[1][0], c_op[1][1])
 
     cl_src += r"""
 }
@@ -608,7 +610,7 @@ kernel void mcsolve(
     uint2 seed = seeds[traj];
 
     /*
-     * These are temporary vectors used in te runge-kutta integration.
+     * These are temporary vectors used in the runge-kutta integration.
      * They should be allocated in private memory, but the author ran into
      * too many problems with various OpenCL implementations.
      * Since they do not fit in the private memory anyway, they are allocated
@@ -763,8 +765,11 @@ kernel void mcsolve(
                   stype value = cy_expect_psi_csr(data,ind,ptr2,y).s0;"""
 
     for i, c_op in enumerate(c_ops):
-        if not isinstance(c_op, Qobj):
-            cl_src += "\n                  if(j==%d){value *= sqr(%s)+sqr(%s);}" % (i, c_op[1], c_op[2])
+        if isinstance(c_op, (list, tuple)):
+            if isinstance(c_op[1], six.string_types):
+                cl_src += "\n                  if(j==%d){value *= sqr(%s);}" % (i, c_op[1])
+            else:
+                cl_src += "\n                  if(j==%d){value *= sqr(%s)+sqr(%s);}" % (i, c_op[1][0], c_op[1][1])
 
     cl_src += r"""
                   n_dp[j] = value;
@@ -783,8 +788,11 @@ kernel void mcsolve(
                 ctype factor = (ctype)(1.0, 0.0);"""
 
     for i, c_op in enumerate(c_ops):
-        if not isinstance(c_op, Qobj):
-            cl_src += "\nif(j==%d){factor = (ctype)(%s,%s);}" % (i, c_op[1], c_op[2])
+        if isinstance(c_op, (list, tuple)):
+            if isinstance(c_op[1], six.string_types):
+                cl_src += "\nif(j==%d){factor = (ctype)(%s,0.0);}" % (i, c_op[1])
+            else:
+                cl_src += "\nif(j==%d){factor = (ctype)(%s,%s);}" % (i, c_op[1][0], c_op[1][1])
 
     cl_src += r"""
                 spmv_csr_add(data,ind,ptr+(len+1)*(H_len+c_ops_len+j),y,ytmp,factor);
@@ -1048,6 +1056,30 @@ kernel void mcsolve(
                          for n, e in enumerate(e_ops_dict.keys())}
 
     return output
+
+
+def _check_operator_format(op):
+    """Verifies that the argument has one of the following forms:
+    * op
+    * [op, 'real']
+    * [op, ('real', 'imag')]
+    """
+    if isinstance(op, Qobj):
+        pass
+    else:
+        if not isinstance(op, (list, tuple)):
+            raise ValueError("invalid operator format, must be a Qobj or a list")
+        if len(op) != 2:
+            raise ValueError("invalid operator format, list must have two entries")
+        if not isinstance(op[0], Qobj):
+            raise ValueError("invalid operator format, first list item must be a Qobj")
+        if isinstance(op[1], (list, tuple)):
+            if len(op[1]) != 2:
+                raise ValueError("invalid operator format, time dependence tuple must have two entries")
+            if not isinstance(op[1][0], six.string_types) or not isinstance(op[1][1], six.string_types):
+                raise ValueError("invalid operator format, time dependence tuple must contain a string")
+        elif not isinstance(op[1], six.string_types):
+            raise ValueError("invalid operator format, second list item must be a string or a tuple")
 
 
 def _nptype2cl(nptype):

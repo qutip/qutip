@@ -151,7 +151,7 @@ def test_mcsolve_cl_time_dep_h_complex():
     H2 = sigmay()
     c_ops = []
     e_ops = [sigmaz()]
-    mcdata = mcsolve_cl([H1, [H2, '1', 'sin(omega*t)']], psi0, tlist, c_ops,
+    mcdata = mcsolve_cl([H1, [H2, ('1', 'sin(omega*t)')]], psi0, tlist, c_ops,
                         e_ops, args={'omega': 0.4})
     medata = mesolve([H1, [H2, '1+1j*sin(omega*t)']], psi0, tlist, c_ops,
                      e_ops, args={'omega': 0.4})
