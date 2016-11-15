@@ -37,7 +37,8 @@ from libc.math cimport abs, sqrt
 cimport cython
 
 cdef extern from "complex.h":
-    double cabs(double complex x)
+    double creal(double complex x)
+    double cimag(double complex x)
 
 cdef inline int int_max(int x, int y):
     return x ^ ((x ^ y) & -(x < y))
@@ -335,7 +336,7 @@ def unit_row_norm(complex[::1] data, int[::1] ptr, int nrows):
     for row in range(nrows):
         total = 0
         for ii in range(ptr[row], ptr[row+1]):
-            total += cabs(data[ii])**2
+            total += creal(data[ii]) * creal(data[ii]) + cimag(data[ii]) * cimag(data[ii])
         total = sqrt(total)
         for ii in range(ptr[row], ptr[row+1]):
             data[ii] /= total
