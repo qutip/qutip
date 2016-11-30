@@ -125,6 +125,18 @@ class TestPulseOptim:
                                             "(no stats). "
                     "Terminated due to: {}, with infidelity: {}".format(
                     result.termination_reason, result.fid_err))
+                    
+        #Try setting timeslots with tau array
+        tau = np.arange(1.0, 10.0, 1.0)
+        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
+                        tau=tau, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=False)
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
+                                            "(tau as timeslots). "
+                    "Terminated due to: {}, with infidelity: {}".format(
+                    result.termination_reason, result.fid_err))
                                             
         #Try with Qobj propagation
         result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 

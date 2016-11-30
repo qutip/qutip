@@ -37,14 +37,20 @@ from qutip import *
 
     
 def testPropHO():
-    "Propagator: HO"
+    "Propagator: HO ('single mode')"
+    a = destroy(5)
+    H = a.dag()*a
+    U = propagator(H,1, unitary_mode='single')
+    U2 = (-1j*H).expm()
+    assert_(np.abs((U-U2).full()).max() < 1e-4)
+
+def testPropHOB():
+    "Propagator: HO ('batch mode')"
     a = destroy(5)
     H = a.dag()*a
     U = propagator(H,1)
     U2 = (-1j*H).expm()
     assert_(np.abs((U-U2).full()).max() < 1e-4)
-
-
 
 def testPropHOPar():
     "Propagator: HO parallel"
@@ -60,9 +66,11 @@ def testPropHOStrTd():
     a = destroy(5)
     H = a.dag()*a
     H = [H,[H,'cos(t)']]
-    U = propagator(H,1)
+    U = propagator(H,1, unitary_mode='single')
     U2 = propagator(H,1, parallel=True)
+    U3 = propagator(H,1)
     assert_(np.abs((U-U2).full()).max() < 1e-4)
+    assert_(np.abs((U-U3).full()).max() < 1e-4)
 
 
 def func(t,*args):
@@ -73,9 +81,11 @@ def testPropHOFuncTd():
     a = destroy(5)
     H = a.dag()*a
     H = [H,[H,func]]
-    U = propagator(H,1)
+    U = propagator(H,1, unitary_mode='single')
     U2 = propagator(H,1, parallel=True)
+    U3 = propagator(H,1)
     assert_(np.abs((U-U2).full()).max() < 1e-4)
+    assert_(np.abs((U-U3).full()).max() < 1e-4)
 
 
 def testPropHOSteady():
