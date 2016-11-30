@@ -82,9 +82,9 @@ shape = [3, 3], type = oper, isHerm = True
      Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
-    [[ 0.+0.j          0.+0.70710678j  0.+0.j        ]
-     [ 0.-0.70710678j  0.+0.j          0.+0.70710678j]
-     [ 0.+0.j          0.-0.70710678j  0.+0.j        ]]
+    [[ 0.+0.j          0.-0.70710678j  0.+0.j        ]
+     [ 0.+0.70710678j  0.+0.j          0.-0.70710678j]
+     [ 0.+0.j          0.+0.70710678j  0.+0.j        ]]
      Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
