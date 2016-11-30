@@ -41,7 +41,7 @@ install:
       fi
     - pip install coverage coveralls
     # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
-    - pip install cvxopt
+    - conda install -c anaconda cvxopt=1.1.8
     - pip install scs
     - pip install cvxpy
     # Finally, install ourselves.
