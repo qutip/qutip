@@ -102,10 +102,7 @@ shape = [3, 3], type = oper, isHerm = True
         raise TypeError('j must be a non-negative integer or half-integer')
 
     if not args:
-        a1 = Qobj(0.5 * (_jplus(j) + _jplus(j).conj().T))
-        a2 = Qobj(0.5 * 1j * (_jplus(j) - _jplus(j).conj().T))
-        a3 = Qobj(_jz(j))
-        return np.array([a1, a2, a3])
+        return jmat(j, 'x'), jmat(j, 'y'), jmat(j, 'z')        
 
     if args[0] == '+':
         A = _jplus(j)
