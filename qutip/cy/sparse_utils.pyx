@@ -139,7 +139,7 @@ def _sparse_permute(
                 new_idx[jj] = perm_c[new_idx[jj]]
 
     elif flag == 1:  # CSC matrix
-        if cperm.shape[0] > 0:
+        if cperm.shape[0] != 0:
             inds = np.argsort(cperm).astype(ITYPE)
             perm_c = np.arange(cperm.shape[0], dtype=ITYPE)[inds]
 
@@ -188,7 +188,7 @@ def _sparse_reverse_permute(
     cdef np.ndarray[ITYPE_t, ndim=1] new_ptr = np.zeros_like(ptr)
 
     if flag == 0:  # CSR matrix
-        if rperm.shape[0] > 0:
+        if rperm.shape[0] != 0:
             for jj in range(nrows):
                 ii = rperm[jj]
                 new_ptr[ii + 1] = ptr[jj + 1] - ptr[jj]
