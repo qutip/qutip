@@ -14,22 +14,25 @@ class fast_csr_matrix(csr_matrix):
     
     Basic math operations on this class return 
     """
-    def __init__(self, args, shape=None, dtype=None, copy=False):
-        args = (np.asarray(args[0]),np.asarray(args[1]),np.asarray(args[2]))
-        if args[0].shape[0] and args[0].dtype != complex:
-            raise TypeError('fast_csr_matrix allows only complex data.')
-        if args[1].shape[0] and args[1].dtype != np.int32:
-            raise TypeError('fast_csr_matrix allows only int32 indices.')
-        if args[2].shape[0] and args[1].dtype != np.int32:
-            raise TypeError('fast_csr_matrix allows only int32 indptr.')
+    def __init__(self, args=None, shape=None, dtype=None, copy=False):
+        if args is None:
+            args=(np.array([]), np.array([]), np.array([]))
+        else:
+            args = (np.asarray(args[0]),np.asarray(args[1]),np.asarray(args[2]))
+            if args[0].shape[0] and args[0].dtype != complex:
+                raise TypeError('fast_csr_matrix allows only complex data.')
+            if args[1].shape[0] and args[1].dtype != np.int32:
+                raise TypeError('fast_csr_matrix allows only int32 indices.')
+            if args[2].shape[0] and args[1].dtype != np.int32:
+                raise TypeError('fast_csr_matrix allows only int32 indptr.')
         self.data = np.array(args[0], dtype=complex, copy=copy)
         self.indices = np.array(args[1], dtype=np.int32, copy=copy)
         self.indptr = np.array(args[2], dtype=np.int32, copy=copy)
         if shape is None:
             self._shape = tuple([len(self.indptr)-1]*2)
         else:
-            self._shape = shape
-        self.dtype = self.data.dtype
+            self._shape = tuple(shape)
+        self.dtype = complex
         self.has_sorted_indices = True
         self.maxprint = 50
         self.format = 'csr'
@@ -74,7 +77,7 @@ class fast_csr_matrix(csr_matrix):
             # too much waste, trim arrays
             indices = indices.copy()
             data = data.copy()
-        if isinstance(other, fast_csr_matrix):
+        if isinstance(other, fast_csr_matrix) and (not op in bool_ops):
             A = fast_csr_matrix((data, indices, indptr), dtype=data.dtype, shape=self.shape)
         else:
             A = csr_matrix((data, indices, indptr), dtype=data.dtype, shape=self.shape)
@@ -299,8 +302,13 @@ class fast_csr_matrix(csr_matrix):
         else:
             return fast_csr_matrix((data,self.indices,self.indptr),
                                    shape=self.shape,dtype=data.dtype)
-  
-            
+                                   
+
+
+
+
+
+
 def _all_true(shape):
     A = csr_matrix((np.ones(np.prod(shape), dtype=np.bool_),
                 np.tile(np.arange(shape[1],dtype=np.int32),shape[0]),

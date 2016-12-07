@@ -50,6 +50,7 @@ from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
+from qutip.cy.sparse_utils import dense2D_to_fastcsr_fmode
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.rhs_generate import rhs_generate
@@ -980,7 +981,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
                             "the nsteps parameter in the Options class.")
 
         if opt.store_states or expt_callback:
-            rho.data = vec2mat(r.y)
+            rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
 
             if opt.store_states:
                 output.states.append(Qobj(rho, isherm=True))
@@ -1006,7 +1007,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
         _cython_build_cleanup(config.tdname)
 
     if opt.store_final_state:
-        rho.data = vec2mat(r.y)
+        rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
         output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
 
     return output

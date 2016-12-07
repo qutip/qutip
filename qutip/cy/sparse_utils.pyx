@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
+from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
 from libc.math cimport abs, sqrt
 cimport cython
@@ -326,7 +326,7 @@ cpdef _csr_kron(np.ndarray[complex, ndim=1, mode="c"] dataA,
                 ptr_start += distB
                 ptr_end += distB
     
-    return sp.csr_matrix((out_data,out_inds,out_ptr), shape=(rows_out,cols_out))
+    return fast_csr_matrix((out_data,out_inds,out_ptr), shape=(rows_out,cols_out))
 
 
 @cython.boundscheck(False)
@@ -343,3 +343,48 @@ def unit_row_norm(complex[::1] data, int[::1] ptr, int nrows):
         for ii in range(ptr[row], ptr[row+1]):
             data[ii] /= total
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def dense2D_to_fastcsr_cmode(complex[:, ::1] mat, int nrows, int ncols):
+    cdef int nnz = 0
+    cdef size_t ii, jj
+    cdef np.ndarray[complex, ndim=1, mode='c'] data = np.zeros(nrows*ncols, dtype=complex)
+    cdef np.ndarray[int, ndim=1, mode='c'] ind = np.zeros(nrows*ncols, dtype=np.int32)
+    cdef np.ndarray[int, ndim=1, mode='c'] ptr = np.zeros(nrows+1, dtype=np.int32)
+
+    for ii in range(nrows):
+        for jj in range(ncols):
+            if mat[ii,jj] != 0:
+                ind[nnz] = jj
+                data[nnz] = mat[ii,jj]
+                nnz += 1
+        ptr[ii+1] = nnz
+
+    if nnz < (nrows*ncols):
+        return fast_csr_matrix((data[:nnz], ind[:nnz], ptr), shape=(nrows,ncols))
+    else:
+        return fast_csr_matrix((data, ind, ptr), shape=(nrows,ncols))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def dense2D_to_fastcsr_fmode(complex[::1, :] mat, int nrows, int ncols):
+    cdef int nnz = 0
+    cdef size_t ii, jj
+    cdef np.ndarray[complex, ndim=1, mode='c'] data = np.zeros(nrows*ncols, dtype=complex)
+    cdef np.ndarray[int, ndim=1, mode='c'] ind = np.zeros(nrows*ncols, dtype=np.int32)
+    cdef np.ndarray[int, ndim=1, mode='c'] ptr = np.zeros(nrows+1, dtype=np.int32)
+
+    for ii in range(nrows):
+        for jj in range(ncols):
+            if mat[ii,jj] != 0:
+                ind[nnz] = jj
+                data[nnz] = mat[ii,jj]
+                nnz += 1
+        ptr[ii+1] = nnz
+
+    if nnz < (nrows*ncols):
+        return fast_csr_matrix((data[:nnz], ind[:nnz], ptr), shape=(nrows,ncols))
+    else:
+        return fast_csr_matrix((data, ind, ptr), shape=(nrows,ncols))

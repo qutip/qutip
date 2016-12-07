@@ -57,6 +57,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
+from qutip.fastsparse import fast_csr_matrix
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
@@ -201,14 +202,14 @@ class Qobj(object):
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self.data = inpt
             self.dims = dims
             self._isherm = False
             return
 
         if fast == 'mc-dm':
             # fast Qobj construction for use in mcsolve with dm output
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self.data = inpt
             self.dims = dims
             self._isherm = True
             return
@@ -216,8 +217,8 @@ class Qobj(object):
         if isinstance(inpt, Qobj):
             # if input is already Qobj then return identical copy
 
-            # make sure matrix is sparse (safety check)
-            self.data = sp.csr_matrix(inpt.data, dtype=complex, copy=True)
+            self.data = fast_csr_matrix((inpt.data.data, inpt.data.indices, inpt.data.indptr),
+                         shape=inpt.shape, copy=True)
 
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
@@ -243,7 +244,7 @@ class Qobj(object):
                 N, M = 1, 1
                 self.dims = [[N], [M]]
 
-            self.data = sp.csr_matrix((N, M), dtype=complex)
+            self.data = fast_csr_matrix(shape=(N, M))
 
         elif isinstance(inpt, list) or isinstance(inpt, tuple):
             # case where input is a list
@@ -252,8 +253,9 @@ class Qobj(object):
                 # if list has only one dimension (i.e [5,4])
                 data = data.transpose()
 
-            self.data = sp.csr_matrix(data, dtype=complex)
-
+            _tmp = sp.csr_matrix(data, dtype=complex)
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape)
             if not np.any(dims):
                 self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
@@ -264,7 +266,9 @@ class Qobj(object):
             if inpt.ndim == 1:
                 inpt = inpt[:, np.newaxis]
 
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            _tmp = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape)
 
             if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -274,8 +278,9 @@ class Qobj(object):
         elif isinstance(inpt, (int, float, complex,
                                np.integer, np.floating, np.complexfloating)):
             # if input is int, float, or complex then convert to array
-            self.data = sp.csr_matrix([[inpt]], dtype=complex)
-
+            _tmp = sp.csr_matrix([[inpt]], dtype=complex)
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape)
             if not np.any(dims):
                 self.dims = [[1], [1]]
             else:
@@ -285,7 +290,9 @@ class Qobj(object):
             warnings.warn("Initializing Qobj from unsupported type: %s" %
                           builtins.type(inpt))
             inpt = np.array([[0]])
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            _tmp = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
         if type == 'super':
@@ -301,6 +308,10 @@ class Qobj(object):
 
         # clear type cache
         self._type = None
+        
+        # Check that data is fast_csr_matrix type
+        if not isinstance(self.data, fast_csr_matrix):
+            raise TypeError('Qobj data must be in fast_csr_matrix format.')
 
     def __add__(self, other):
         """
@@ -2182,7 +2193,7 @@ def isequal(A, B, tol=None):
     Adat = A.data
     Bdat = B.data
     elems = (Adat - Bdat).data
-    if np.any(abs(elems) > tol):
+    if np.any(np.abs(elems) > tol):
         return False
 
     return True
