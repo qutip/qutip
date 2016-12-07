@@ -38,8 +38,9 @@ __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
 import scipy.sparse as sp
 import numpy as np
 from qutip.qobj import Qobj
-from qutip.sparse import sp_reshape, zcsr_kron
-from qutip.cy.sparse_utils import _csr_kron
+from qutip.fastsparse import fast_csr_matrix
+from qutip.sparse import sp_reshape
+from qutip.cy.spmath import zcsr_kron
 
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
@@ -102,7 +103,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         else:
             data = H.data
     else:
-        data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
+        data = fast_csr_matrix(shape=(sop_shape[0], sop_shape[1]))
 
     for idx, c_op in enumerate(c_ops):
         if c_op.issuper:
@@ -110,19 +111,11 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         else:
             cd = c_op.data.T.conj().tocsr()
             c = c_op.data
-            # Here we call _csr_kron directly as we can avoid creating
-            # another sparse matrix by passing c.data.conj()
             if chi:
                 data = data + np.exp(1j * chi[idx]) * \
-                                _csr_kron(c.data.conj(), c.indices, c.indptr,
-                                        c.shape[0], c.shape[1],
-                                        c.data, c.indices, c.indptr,
-                                        c.shape[0], c.shape[1])
+                                zcsr_kron(c.conj(), c)
             else:
-                data = data + _csr_kron(c.data.conj(), c.indices, c.indptr,
-                                        c.shape[0], c.shape[1],
-                                        c.data, c.indices, c.indptr,
-                                        c.shape[0], c.shape[1])
+                data = data + zcsr_kron(c.conj(), c)
             cdc = cd * c
             cdct = cdc.T.tocsr()
             data = data - 0.5 * zcsr_kron(spI, cdc)

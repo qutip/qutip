@@ -277,60 +277,6 @@ cpdef np.ndarray[complex, ndim=1, mode='c'] _csr_get_diag(complex[::1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef _csr_kron(np.ndarray[complex, ndim=1, mode="c"] dataA, 
-           np.ndarray[ITYPE_t, ndim=1, mode="c"] indsA,
-           np.ndarray[ITYPE_t, ndim=1, mode="c"] indptrA,
-           int rowsA, int colsA,
-           np.ndarray[complex, ndim=1, mode="c"] dataB, 
-           np.ndarray[ITYPE_t, ndim=1, mode="c"] indsB,
-           np.ndarray[ITYPE_t, ndim=1, mode="c"] indptrB,
-           int rowsB, int colsB):
-    """
-    Computes the kronecker product between two complex
-    sparse matrices in CSR format.
-    """
-    cdef int out_nnz = dataA.shape[0] * dataB.shape[0]
-    cdef int rows_out = rowsA * rowsB
-    cdef int cols_out = colsA * colsB
-    cdef np.ndarray[ITYPE_t, ndim=1, mode="c"] out_ptr = np.zeros(rows_out+1, dtype=np.int32)
-    cdef np.ndarray[ITYPE_t, ndim=1, mode="c"] out_inds = np.zeros(out_nnz, dtype=np.int32)
-    cdef np.ndarray[complex, ndim=1, mode="c"] out_data = np.zeros(out_nnz, dtype = complex)
-    cdef size_t ii, jj, ptrA, ptr
-    cdef int row = 0
-    cdef int ptr_start, ptr_end
-    cdef int row_startA, row_endA, row_startB, row_endB, distA, distB, ptrB
-
-    for ii in range(rowsA):
-        row_startA = indptrA[ii]
-        row_endA = indptrA[ii+1]
-        distA = row_endA - row_startA
-
-        for jj in range(rowsB):
-            row_startB = indptrB[jj]
-            row_endB = indptrB[jj+1]
-            distB = row_endB - row_startB
-    
-            ptr_start = out_ptr[row]
-            ptr_end = ptr_start + distB
-    
-            out_ptr[row+1] = out_ptr[row] + distA * distB
-            row +=1
-    
-            for ptrA in range(row_startA, row_endA):
-                ptrB = row_startB
-                for ptr in range(ptr_start, ptr_end):
-                    out_inds[ptr] = indsA[ptrA] * colsB + indsB[ptrB]
-                    out_data[ptr] = dataA[ptrA] * dataB[ptrB]
-                    ptrB += 1
-        
-                ptr_start += distB
-                ptr_end += distB
-    
-    return fast_csr_matrix((out_data,out_inds,out_ptr), shape=(rows_out,cols_out))
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 @cython.cdivision(True)
 def unit_row_norm(complex[::1] data, int[::1] ptr, int nrows):
     cdef size_t row, ii
