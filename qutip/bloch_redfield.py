@@ -188,7 +188,10 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     e_eb_ops = [e.transform(ekets) for e in e_ops]
 
     for e_eb in e_eb_ops:
-        result_list.append(np.zeros(n_tsteps, dtype=complex))
+        if e_eb.isherm:
+            result_list.append(np.zeros(n_tsteps, dtype=float))
+        else:
+            result_list.append(np.zeros(n_tsteps, dtype=complex))
 
     #
     # setup integrator
@@ -340,7 +343,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
         for J, c, d in Jcds:
             elem = 0+0j
             # summed over k, i.e., each operator coupling the system to the environment
-            elem += 0.5 * (A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))[0]
+            elem += 0.5 * np.sum(A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))
             if b==d:
                 #                  sum_{k,n} A[k, a, n] * A[k, n, c] * Jw[k, c, n])
                 elem -= 0.5 * np.sum(A[:, a, :] * A[:, :, c] * Jw[:, c, :])
