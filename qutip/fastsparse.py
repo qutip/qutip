@@ -15,8 +15,14 @@ class fast_csr_matrix(csr_matrix):
     Basic math operations on this class return 
     """
     def __init__(self, args=None, shape=None, dtype=None, copy=False):
-        if args is None:
-            args=(np.array([]), np.array([]), np.array([]))
+        if args is None: #Build zero matrix
+            if shape is None:
+                raise Exception('Shape must be given when building zero matrix.')
+            self.data = np.array([], dtype=complex)
+            self.indices = np.array([], dtype=np.int32)
+            self.indptr = np.zeros(shape[0]+1, dtype=np.int32)
+            self._shape = tuple(shape)
+            
         else:
             args = (np.asarray(args[0]),np.asarray(args[1]),np.asarray(args[2]))
             if args[0].shape[0] and args[0].dtype != complex:
@@ -25,13 +31,13 @@ class fast_csr_matrix(csr_matrix):
                 raise TypeError('fast_csr_matrix allows only int32 indices.')
             if args[2].shape[0] and args[1].dtype != np.int32:
                 raise TypeError('fast_csr_matrix allows only int32 indptr.')
-        self.data = np.array(args[0], dtype=complex, copy=copy)
-        self.indices = np.array(args[1], dtype=np.int32, copy=copy)
-        self.indptr = np.array(args[2], dtype=np.int32, copy=copy)
-        if shape is None:
-            self._shape = tuple([len(self.indptr)-1]*2)
-        else:
-            self._shape = tuple(shape)
+            self.data = np.array(args[0], dtype=complex, copy=copy)
+            self.indices = np.array(args[1], dtype=np.int32, copy=copy)
+            self.indptr = np.array(args[2], dtype=np.int32, copy=copy)
+            if shape is None:
+                self._shape = tuple([len(self.indptr)-1]*2)
+            else:
+                self._shape = tuple(shape)
         self.dtype = complex
         self.has_sorted_indices = True
         self.maxprint = 50

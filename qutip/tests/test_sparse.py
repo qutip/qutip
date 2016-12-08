@@ -39,7 +39,7 @@ from qutip.random_objects import (rand_dm, rand_herm,
 from qutip.states import coherent
 from qutip.sparse import (sp_bandwidth, sp_permute, sp_reverse_permute,
                           sp_profile)
-from qutip.cy.sparse_utils import _csr_kron
+from qutip.cy.spmath import zcsr_kron
 
 
 def _permutateIndexes(array, row_perm, col_perm):
@@ -196,8 +196,7 @@ def test_csr_kron():
         A = rand_herm(ra,0.5).data
         B = rand_herm(rb,0.5).data
         C = sp.kron(A,B, format='csr')
-        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
-                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        D = zcsr_kron(A, B)
         assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
@@ -208,8 +207,7 @@ def test_csr_kron():
         A = rand_ket(ra,0.5).data
         B = rand_herm(rb,0.5).data
         C = sp.kron(A,B, format='csr')
-        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
-                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        D = zcsr_kron(A, B)
         assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
@@ -220,8 +218,7 @@ def test_csr_kron():
         A = rand_dm(ra,0.5).data
         B = rand_herm(rb,0.5).data
         C = sp.kron(A,B, format='csr')
-        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
-                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        D = zcsr_kron(A, B)
         assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
@@ -232,8 +229,7 @@ def test_csr_kron():
         A = rand_ket(ra,0.5).data
         B = rand_ket(rb,0.5).data
         C = sp.kron(A,B, format='csr')
-        D = _csr_kron(A.data,A.indices,A.indptr, A.shape[0], A.shape[1],
-                    B.data,B.indices,B.indptr, B.shape[0], B.shape[1])
+        D = zcsr_kron(A, B)
         assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
