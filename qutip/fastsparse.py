@@ -7,6 +7,8 @@ from scipy.sparse.sputils import (upcast, upcast_char, to_native, isdense, issha
 from scipy.sparse.base import spmatrix, isspmatrix, SparseEfficiencyWarning
 from warnings import warn
 
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
+
 class fast_csr_matrix(csr_matrix):
     """
     A subclass of scipy.sparse.csr_matrix that skips the data format
@@ -308,6 +310,12 @@ class fast_csr_matrix(csr_matrix):
         else:
             return fast_csr_matrix((data,self.indices,self.indptr),
                                    shape=self.shape,dtype=data.dtype)
+    
+    def transpose(self):
+        return zcsr_transpose(self)
+    
+    def getH(self):
+        return zcsr_adjoint(self)
                                    
 
 
