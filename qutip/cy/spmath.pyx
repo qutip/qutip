@@ -34,6 +34,9 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+cdef extern from "complex.h" nogil:
+    double complex conj(double complex x)
+
 include "sparse_struct.pxi"
 
 @cython.boundscheck(False)
@@ -266,7 +269,6 @@ cdef void _zcsr_mult_pass2(double complex * Adata, int * Aind, int * Aptr,
     PyDataMem_FREE(nxt)
 
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def zcsr_kron(object A, object B):
@@ -279,27 +281,27 @@ def zcsr_kron(object A, object B):
     cdef int[::1] indptrA = A.indptr
     cdef int rowsA = A.shape[0]
     cdef int colsA = A.shape[1]
-    
+
     cdef complex[::1] dataB = B.data
     cdef int[::1] indsB = B.indices
     cdef int[::1] indptrB = B.indptr
     cdef int rowsB = B.shape[0]
     cdef int colsB = B.shape[1]
-    
+
     cdef int out_nnz = dataA.shape[0] * dataB.shape[0]
     cdef int rows_out = rowsA * rowsB
     cdef int cols_out = colsA * colsB
-    
+
     cdef CSR_Matrix out
-    init_CSR(&out, out_nnz, rows_out, 0, init_zeros=1)
+    init_CSR(&out, out_nnz, rows_out, out_nnz, init_zeros=1)
     out.ncols = cols_out
-    
+
     _zcsr_kron_core(&dataA[0], &indsA[0], &indptrA[0], 
                     &dataB[0], &indsB[0], &indptrB[0],
                     &out, 
                     rowsA, rowsB, colsB)
     return CSR_to_scipy(&out)
-    
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -337,3 +339,108 @@ cdef void _zcsr_kron_core(double complex * dataA, int * indsA, int * indptrA,
 
                 ptr_start += distB
                 ptr_end += distB
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_transpose(object A):
+    """
+    Transpose of a sparse matrix in CSR format.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+
+    cdef CSR_Matrix out
+    init_CSR(&out, data.shape[0], ncols, 0, init_zeros=1)
+    out.ncols = nrows
+
+    _zcsr_trans_core(&data[0], &ind[0], &ptr[0], 
+                    &out, nrows, ncols)
+    return CSR_to_scipy(&out)
+    
+    
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _zcsr_trans_core(double complex * data, int * ind, int * ptr, 
+                     CSR_Matrix * out,       
+                     int nrows, int ncols) nogil:
+    
+    cdef int k, nxt
+    cdef size_t ii, jj
+    
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            k = ind[jj] + 1
+            out.indptr[k] += 1
+    
+    for ii in range(ncols):
+        out.indptr[ii+1] += out.indptr[ii]
+    
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            k = ind[jj]
+            nxt = out.indptr[k]
+            out.data[nxt] = data[jj]
+            out.indices[nxt] = ii
+            out.indptr[k] = nxt + 1
+    
+    for ii in range(ncols,0,-1):
+        out.indptr[ii] = out.indptr[ii-1]
+    
+    out.indptr[0] = 0
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_adjoint(object A):
+    """
+    Adjoint of a sparse matrix in CSR format.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+
+    cdef CSR_Matrix out
+    init_CSR(&out, data.shape[0], ncols, 0, init_zeros=1)
+    out.ncols = nrows
+
+    _zcsr_adjoint_core(&data[0], &ind[0], &ptr[0], 
+                        &out, nrows, ncols)
+    return CSR_to_scipy(&out)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _zcsr_adjoint_core(double complex * data, int * ind, int * ptr, 
+                     CSR_Matrix * out,       
+                     int nrows, int ncols) nogil:
+
+    cdef int k, nxt
+    cdef size_t ii, jj
+
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            k = ind[jj] + 1
+            out.indptr[k] += 1
+
+    for ii in range(ncols):
+        out.indptr[ii+1] += out.indptr[ii]
+
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            k = ind[jj]
+            nxt = out.indptr[k]
+            out.data[nxt] = conj(data[jj])
+            out.indices[nxt] = ii
+            out.indptr[k] = nxt + 1
+
+    for ii in range(ncols,0,-1):
+        out.indptr[ii] = out.indptr[ii-1]
+
+    out.indptr[0] = 0

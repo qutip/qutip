@@ -90,6 +90,9 @@ class Qobj(object):
         Dimensions of object used for tensor products.
     shape : list
         Shape of underlying data structure (matrix shape).
+    copy : bool
+        Flag specifying whether Qobj should get a copy of the 
+        input data, or use the original.
     fast : bool
         Flag for fast qobj creation when running ode solvers.
         This parameter is used internally only.
@@ -192,7 +195,8 @@ class Qobj(object):
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
-                 type=None, isherm=None, fast=False, superrep=None):
+                 type=None, isherm=None, copy=True,
+                 fast=False, superrep=None):
         """
         Qobj constructor.
         """
@@ -218,7 +222,7 @@ class Qobj(object):
             # if input is already Qobj then return identical copy
 
             self.data = fast_csr_matrix((inpt.data.data, inpt.data.indices, inpt.data.indptr),
-                         shape=inpt.shape, copy=True)
+                         shape=inpt.shape, copy=copy)
 
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
@@ -266,9 +270,14 @@ class Qobj(object):
             if inpt.ndim == 1:
                 inpt = inpt[:, np.newaxis]
 
-            _tmp = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            do_copy = copy
+            if not isinstance(inpt, fast_csr_matrix):
+                _tmp = sp.csr_matrix(inpt, dtype=complex, copy=do_copy)
+                do_copy = 0
+            else:
+                _tmp = inpt
             self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
-                                        shape = _tmp.shape)
+                                        shape = _tmp.shape, copy=do_copy)
 
             if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -290,7 +299,7 @@ class Qobj(object):
             warnings.warn("Initializing Qobj from unsupported type: %s" %
                           builtins.type(inpt))
             inpt = np.array([[0]])
-            _tmp = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            _tmp = sp.csr_matrix(inpt, dtype=complex, copy=copy)
             self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
                                         shape = _tmp.shape)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
