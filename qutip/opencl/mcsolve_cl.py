@@ -33,14 +33,16 @@
 
 __all__ = ['mcsolve_cl', 'list_opencl_platforms']
 
-import time
-import numpy as np
-from qutip.qobj import Qobj
-from qutip.solver import Options, Result
-from qutip.settings import debug
-import pyopencl as cl
 import logging
+import time
+
+from qutip.qobj import Qobj
+from qutip.settings import debug
+from qutip.solver import Options, Result
 import six
+
+import numpy as np
+import pyopencl as cl
 
 
 if debug:
@@ -122,6 +124,14 @@ def mcsolve_cl(H, psi0, tlist, c_ops, e_ops, ntraj=None, options=None,
         The following options have no effect for mcsolve_cl: rtol, method,
         order, rhs_with_state, rhs_reuse, rhs_filename, mc_corr_eps,
         num_cpus, norm_steps.
+
+    .. note::
+        The norm_tol is more relevant for this implementation than it is for
+        mcsolve, because mcsolve always does at least one refinement step (with
+        a nice estimation of the correct time point). This implementation,
+        however, does no refinement steps if the norm of the state is already
+        within the tolerance.
+
     """
 
     if debug:
@@ -214,7 +224,7 @@ def mcsolve_cl(H, psi0, tlist, c_ops, e_ops, ntraj=None, options=None,
     c_ops = list(c_ops)
 
     # combine constant H terms into one matrix
-    H_const = 0
+    H_const = 0 * psi0 * psi0.dag()
     time_dependent = False
     for i in range(len(H)):
         _check_operator_format(H[i])
@@ -264,7 +274,7 @@ def mcsolve_cl(H, psi0, tlist, c_ops, e_ops, ntraj=None, options=None,
         np_states_out = None
     np_expect_out = np.full(ntraj_int * len(e_ops) * num_times, np.nan, dtype=ctype) \
         if len(e_ops) > 0 else None
-    np_status_out = np.zeros(ntraj_int, dtype=np.int8)
+    np_status_out = np.full(ntraj_int, -1, dtype=np.int8)
     np_shared_mem = ntraj_int * 9 * dim * ctype().nbytes
 
     # The sparse matrices that describe the operators are stored as three
@@ -368,7 +378,10 @@ def mcsolve_cl(H, psi0, tlist, c_ops, e_ops, ntraj=None, options=None,
     if double_prec:
         for d in context.devices:
             if d.double_fp_config == 0:
-                raise Exception("The selected OpenCL platform does not support double precision. Please set double_prec=False or choose a different platform.")
+                raise Exception(
+                    "The selected OpenCL platform does not support double "
+                    "precision. Please set double_prec=False or choose a "
+                    "different platform.")
 
     # create device buffers
     mf = cl.mem_flags
@@ -382,7 +395,7 @@ def mcsolve_cl(H, psi0, tlist, c_ops, e_ops, ntraj=None, options=None,
         if options.store_states or options.store_final_state else None
     buf_expect_out = cl.Buffer(context, mf.WRITE_ONLY, np_expect_out.nbytes) \
         if len(e_ops) > 0 else None
-    buf_status_out = cl.Buffer(context, mf.WRITE_ONLY, np_status_out.nbytes)
+    buf_status_out = cl.Buffer(context, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=np_status_out)
     buf_shared_mem = cl.Buffer(context, mf.READ_WRITE, np_shared_mem)
 
     # configure program
@@ -606,7 +619,7 @@ kernel void mcsolve(
     global char* restrict status_out,
     global ctype* restrict shared_mem
 ){
-    const uint traj = get_global_id(0);
+    const uint traj = (get_global_id(2)*get_global_size(1)+get_global_id(1))*get_global_size(0)+get_global_id(0);
     uint2 seed = seeds[traj];
 
     /*
@@ -670,7 +683,7 @@ kernel void mcsolve(
     }"""
 
     cl_src += r"""
-    for(uint tidx=0;(tidx<num_times)&&(error==0);tidx++){
+    for(uint tidx=0;tidx<num_times;tidx++){
 
       int steps = 0;
       stype tend = tlist[tidx];
@@ -743,9 +756,9 @@ kernel void mcsolve(
             }
 
             // collaps
-            if(normsqr <= rand_vals_0){
+            if(normsqr <= rand_vals_0 + norm_rtol*rand_vals_0){
 
-              if(rand_vals_0 - normsqr < norm_rtol*rand_vals_0){
+              if(normsqr > rand_vals_0 - norm_rtol*rand_vals_0){
 
                 // advance time
                 t += h;
@@ -797,13 +810,12 @@ kernel void mcsolve(
     cl_src += r"""
                 spmv_csr_add(data,ind,ptr+(len+1)*(H_len+c_ops_len+j),y,ytmp,factor);
 
-                // compute psi_len_sqr again (after collaps op)
-                stype psi_len_sqr = rsqrt(norm_sqr(ytmp));
-
-                // norm vector
+                // normalize state after collapse
+                stype inv_len = rsqrt(norm_sqr(ytmp));
                 for(idxtype i=0;i<len;i++){
-                  y[i] = ytmp[i]*psi_len_sqr;
+                  y[i] = ytmp[i]*inv_len;
                 }
+                ylen2 = 1.0;
 
                 // generate new collaps time
                 rand_vals_0 = random(&seed);
@@ -814,7 +826,7 @@ kernel void mcsolve(
                 break;
               }
               else{
-                new_h = 0.5f * h;
+                new_h = 0.5 * h;
               }
 
             }
@@ -842,7 +854,9 @@ kernel void mcsolve(
           h = clamp(new_h, hmin, hmax );
           break;
         }
-      }"""
+      }
+      if(error!=0){break;}
+      """
 
     if len(e_ops) > 0:
         cl_src += r"""
@@ -948,18 +962,18 @@ kernel void mcsolve(
     # check status words
     fail = [0, 0, 0, 0]  # [success, nsteps, atol, norm_tol]
     for x in np_status_out:
-        try:
+        if x in [0, 1, 2, 3]:
             fail[x] += 1
-        except:
-            pass
     if sum(fail) < ntraj_int:
-        logger.error("%d trajectories did not finish (unknown problem)" % fail[0])
+        logger.error("%d trajectories did not finish (unknown problem)" % (ntraj_int - sum(fail)))
     if fail[1] > 0:
         logger.warning("%d trajectories reached the maximum number of iterations" % fail[1])
     if fail[2] > 0:
         logger.warning("atol could not be reached for %d trajectories" % fail[2])
     if fail[3] > 0:
         logger.warning("norm_tol could not be reached for %d trajectories" % fail[3])
+    if fail[0] == 0:
+        raise RuntimeError("no trajectory finished successfully")
 
     # reshape output arrays
     if options.store_states:
@@ -968,6 +982,21 @@ kernel void mcsolve(
         np_states_out.shape = (ntraj_int, dim, 1)
     if len(e_ops) > 0:
         np_expect_out.shape = (ntraj_int, len(e_ops), num_times)
+
+    # set the results of crashed trjectories to NaN
+    for traj in range(ntraj_int):
+        if np_status_out[traj] not in [0, 1, 2, 3]:
+            if options.store_states:
+                for tidx in range(num_times):
+                    for i in range(dim):
+                        np_states_out[traj][tidx][i][0] = np.nan
+            elif options.store_final_state:
+                for i in range(dim):
+                    np_states_out[traj][i][0] = np.nan
+            if len(e_ops) > 0:
+                for e_op in range(len(e_ops)):
+                    for tidx in range(num_times):
+                        np_expect_out[traj][e_op][tidx] = np.nan
 
     # Store results in the Result object
     output = Result()
@@ -1125,7 +1154,5 @@ def list_opencl_platforms():
             print("    name:", device.name)
             print("    compute units:", device.max_compute_units)
             print("    clock speed:", device.max_clock_frequency, "MHz")
-            print("    memory size:",
-                  device.global_mem_size // 1024 // 1024, "MB")
-            print("    supports double precision:",
-                  device.double_fp_config != 0)
+            print("    memory size:", device.global_mem_size // 1024 // 1024, "MB")
+            print("    supports double precision:", device.double_fp_config != 0)
