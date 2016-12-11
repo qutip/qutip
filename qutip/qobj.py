@@ -63,6 +63,7 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
 
 import sys
 if sys.version_info.major >= 3:
@@ -848,7 +849,7 @@ class Qobj(object):
         """Adjoint operator of quantum object.
         """
         out = Qobj()
-        out.data = self.data.T.conj().tocsr()
+        out.data = zcsr_adjoint(self.data)
         out.dims = [self.dims[1], self.dims[0]]
         out._isherm = self._isherm
         out.superrep = self.superrep
@@ -1600,7 +1601,7 @@ class Qobj(object):
 
         """
         out = Qobj()
-        out.data = self.data.T.tocsr()
+        out.data = zcsr_transpose(self.data)
         out.dims = [self.dims[1], self.dims[0]]
         return out
 
@@ -1690,7 +1691,8 @@ class Qobj(object):
         
         """
         return mts.dnorm(self, B)
-
+    
+    
     @property
     def ishp(self):
         # FIXME: this needs to be cached in the same ways as isherm.

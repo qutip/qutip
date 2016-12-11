@@ -90,7 +90,7 @@ def test_jmat_42():
 def test_jmat_52():
     "Spin 5/2 operators"
     spin52 = jmat(5 / 2., '+')
-    assert_equal(spin52.shape == [6, 6], True)
+    assert_equal(spin52.shape == (6, 6), True)
 
 
 def test_destroy():

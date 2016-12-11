@@ -187,52 +187,6 @@ def test_sp_profile():
         B = A.toarray()
         ans = _dense_profile(B)
         assert_equal(pro, ans)
-        
-def test_csr_kron():
-    "Sparse: Test CSR Kron"
-    for kk in range(10):
-        ra = np.random.randint(2,100)
-        rb = np.random.randint(2,100)
-        A = rand_herm(ra,0.5).data
-        B = rand_herm(rb,0.5).data
-        C = sp.kron(A,B, format='csr')
-        D = zcsr_kron(A, B)
-        assert_almost_equal(C.data, D.data)
-        assert_equal(C.indices, D.indices)
-        assert_equal(C.indptr, D.indptr)
-        
-    for kk in range(10):
-        ra = np.random.randint(2,100)
-        rb = np.random.randint(2,100)
-        A = rand_ket(ra,0.5).data
-        B = rand_herm(rb,0.5).data
-        C = sp.kron(A,B, format='csr')
-        D = zcsr_kron(A, B)
-        assert_almost_equal(C.data, D.data)
-        assert_equal(C.indices, D.indices)
-        assert_equal(C.indptr, D.indptr)
-    
-    for kk in range(10):
-        ra = np.random.randint(2,100)
-        rb = np.random.randint(2,100)
-        A = rand_dm(ra,0.5).data
-        B = rand_herm(rb,0.5).data
-        C = sp.kron(A,B, format='csr')
-        D = zcsr_kron(A, B)
-        assert_almost_equal(C.data, D.data)
-        assert_equal(C.indices, D.indices)
-        assert_equal(C.indptr, D.indptr)
-        
-    for kk in range(10):
-        ra = np.random.randint(2,100)
-        rb = np.random.randint(2,100)
-        A = rand_ket(ra,0.5).data
-        B = rand_ket(rb,0.5).data
-        C = sp.kron(A,B, format='csr')
-        D = zcsr_kron(A, B)
-        assert_almost_equal(C.data, D.data)
-        assert_equal(C.indices, D.indices)
-        assert_equal(C.indptr, D.indptr)
 
 
 if __name__ == "__main__":
