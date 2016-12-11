@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
+import operator
 from scipy.sparse import (_sparsetools, isspmatrix, isspmatrix_csr,
                           csr_matrix, coo_matrix, csc_matrix, dia_matrix)
 from scipy.sparse.sputils import (upcast, upcast_char, to_native, isdense, isshape,
@@ -43,8 +44,6 @@ class fast_csr_matrix(csr_matrix):
     """
     A subclass of scipy.sparse.csr_matrix that skips the data format
     checks that are run everytime a new csr_matrix is created.
-    
-    Basic math operations on this class return 
     """
     def __init__(self, args=None, shape=None, dtype=None, copy=False):
         if args is None: #Build zero matrix
@@ -333,6 +332,8 @@ class fast_csr_matrix(csr_matrix):
         but with different data.  By default the structure arrays
         (i.e. .indptr and .indices) are copied.
         """
+        # We need this just in case something like abs(data) gets called
+        # does nothing if data.dtype is complex.
         data = np.asarray(data, dtype=complex)
         if copy:
             return fast_csr_matrix((data,self.indices.copy(),self.indptr.copy()),
@@ -342,11 +343,22 @@ class fast_csr_matrix(csr_matrix):
                                    shape=self.shape,dtype=data.dtype)
                                    
     def trans(self):
+        """
+        Returns the transpose of the matrix, keeping
+        it in fast_csr format.
+        """
         return zcsr_transpose(self)
     
     def adjoint(self):
+        """
+        Returns the conjugate-transpose of the matrix, keeping
+        it in fast_csr format.
+        """
         return zcsr_adjoint(self)
     
+
+#Convenience funtions
+#--------------------
 def _all_true(shape):
     A = csr_matrix((np.ones(np.prod(shape), dtype=np.bool_),
                 np.tile(np.arange(shape[1],dtype=np.int32),shape[0]),
@@ -354,5 +366,7 @@ def _all_true(shape):
                 shape=shape)
     return A
 
+
 #Need to do some trailing imports here
+#-------------------------------------
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
