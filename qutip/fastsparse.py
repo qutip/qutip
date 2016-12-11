@@ -341,7 +341,10 @@ class fast_csr_matrix(csr_matrix):
             return fast_csr_matrix((data,self.indices,self.indptr),
                                    shape=self.shape,dtype=data.dtype)
                                    
-    def getH(self):
+    def trans(self):
+        return zcsr_transpose(self)
+    
+    def adjoint(self):
         return zcsr_adjoint(self)
     
 def _all_true(shape):

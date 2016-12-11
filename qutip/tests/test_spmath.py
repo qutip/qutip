@@ -31,7 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from numpy.testing import run_module_suite, assert_equal, assert_almost_equal
+from numpy.testing import (run_module_suite, assert_,
+                        assert_equal, assert_almost_equal)
 import scipy.sparse as sp
 
 from qutip.random_objects import (rand_dm, rand_herm,
@@ -92,7 +93,91 @@ def test_csr_kron():
         assert_almost_equal(C.data, D.data)
         assert_equal(C.indices, D.indices)
         assert_equal(C.indptr, D.indptr)
+  
+def test_zcsr_transpose():
+    "spmath: zcsr_transpose"
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_ket(ra,0.5).data
+        B = A.T.tocsr()
+        C = A.trans()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)
+    
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_herm(5,1.0/ra).data
+        B = A.T.tocsr()
+        C = A.trans()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)
         
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_dm(ra,1.0/ra).data
+        B = A.T.tocsr()
+        C = A.trans()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)
+        
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_unitary(ra,1.0/ra).data
+        B = A.T.tocsr()
+        C = A.trans()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)
+
+
+def test_zcsr_adjoint():
+    "spmath: zcsr_adjoint"
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_ket(ra,0.5).data
+        B = A.conj().T.tocsr()
+        C = A.adjoint()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)
+    
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_herm(5,1.0/ra).data
+        B = A.conj().T.tocsr()
+        C = A.adjoint()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)    
+        
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_dm(ra,1.0/ra).data
+        B = A.conj().T.tocsr()
+        C = A.adjoint()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)  
+        
+    for k in range(50):
+        ra = np.random.randint(2,100)
+        A = rand_unitary(ra,1.0/ra).data
+        B = A.conj().T.tocsr()
+        C = A.adjoint()
+        x = np.all(B.data == C.data)
+        y = np.all(B.indices == C.indices)
+        z = np.all(B.indptr == C.indptr)
+        assert_(x*y*z)
 
 if __name__ == "__main__":
     run_module_suite()
