@@ -116,7 +116,7 @@ cdef inline int int_max(int a, int b) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)        
-cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int max_length = 0, int init_zeros = 0):
+cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int max_length = 0, int init_zeros = 1):
     """
     Initialize CSR_Matrix struct. Matrix is assumed to be square with
     shape nrows x nrows.  Manually set mat.ncols otherwise

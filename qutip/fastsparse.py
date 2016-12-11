@@ -7,8 +7,6 @@ from scipy.sparse.sputils import (upcast, upcast_char, to_native, isdense, issha
 from scipy.sparse.base import spmatrix, isspmatrix, SparseEfficiencyWarning
 from warnings import warn
 
-from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
-
 class fast_csr_matrix(csr_matrix):
     """
     A subclass of scipy.sparse.csr_matrix that skips the data format
@@ -26,7 +24,6 @@ class fast_csr_matrix(csr_matrix):
             self._shape = tuple(shape)
             
         else:
-            args = (np.asarray(args[0]),np.asarray(args[1]),np.asarray(args[2]))
             if args[0].shape[0] and args[0].dtype != complex:
                 raise TypeError('fast_csr_matrix allows only complex data.')
             if args[1].shape[0] and args[1].dtype != np.int32:
@@ -304,6 +301,7 @@ class fast_csr_matrix(csr_matrix):
         but with different data.  By default the structure arrays
         (i.e. .indptr and .indices) are copied.
         """
+        data = np.asarray(data, dtype=complex)
         if copy:
             return fast_csr_matrix((data,self.indices.copy(),self.indptr.copy()),
                                    shape=self.shape,dtype=data.dtype)
@@ -311,21 +309,13 @@ class fast_csr_matrix(csr_matrix):
             return fast_csr_matrix((data,self.indices,self.indptr),
                                    shape=self.shape,dtype=data.dtype)
     
-    def transpose(self):
-        return zcsr_transpose(self)
     
-    def getH(self):
-        return zcsr_adjoint(self)
-                                   
-
-
-
-
-
-
 def _all_true(shape):
     A = csr_matrix((np.ones(np.prod(shape), dtype=np.bool_),
                 np.tile(np.arange(shape[1],dtype=np.int32),shape[0]),
                 np.arange(0,np.prod(shape)+1,shape[1],dtype=np.int32)),
                 shape=shape)
     return A
+
+#Need to do some trailing imports here
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)

@@ -1798,9 +1798,9 @@ class Qobj(object):
     @property
     def shape(self):
         if self.data.shape == (1, 1):
-            return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+            return tuple([np.prod(self.dims[0]), np.prod(self.dims[1])])
         else:
-            return list(self.data.shape)
+            return tuple(self.data.shape)
 
     @property
     def isbra(self):

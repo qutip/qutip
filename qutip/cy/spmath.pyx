@@ -293,7 +293,7 @@ def zcsr_kron(object A, object B):
     cdef int cols_out = colsA * colsB
 
     cdef CSR_Matrix out
-    init_CSR(&out, out_nnz, rows_out, out_nnz, init_zeros=1)
+    init_CSR(&out, out_nnz, rows_out)
     out.ncols = cols_out
 
     _zcsr_kron_core(&dataA[0], &indsA[0], &indptrA[0], 
@@ -354,7 +354,7 @@ def zcsr_transpose(object A):
     cdef int ncols = A.shape[1]
 
     cdef CSR_Matrix out
-    init_CSR(&out, data.shape[0], ncols, 0, init_zeros=1)
+    init_CSR(&out, data.shape[0], ncols)
     out.ncols = nrows
 
     _zcsr_trans_core(&data[0], &ind[0], &ptr[0], 
@@ -407,7 +407,7 @@ def zcsr_adjoint(object A):
     cdef int ncols = A.shape[1]
 
     cdef CSR_Matrix out
-    init_CSR(&out, data.shape[0], ncols, 0, init_zeros=1)
+    init_CSR(&out, data.shape[0], ncols)
     out.ncols = nrows
 
     _zcsr_adjoint_core(&data[0], &ind[0], &ptr[0], 
