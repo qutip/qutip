@@ -32,10 +32,8 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
-
-from qutip import (sigmax, sigmay, sigmaz, sigmam, identity, basis,
-                   mesolve, brmesolve, destroy, ket2dm, expect, tensor)
+from numpy.testing import assert_, run_module_suite, assert_allclose
+from qutip import *
 
 
 def testTLS():
@@ -237,6 +235,49 @@ def testJCZeroTemperature():
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 5e-2)  # accept 5% error
 
+
+def test_pull_572_error():
+    """
+    brmesolve: Check for #572 bug.
+    """
+    # Parameters
+    w1 = 1.
+    w2 = 2.
+    w3 = 3.
+    gamma2 = 0.1
+    gamma3 = 0.1
+
+    # Identity for a 2x2 system
+    id2 = Qobj(identity(2))
+
+    # Hamiltonian for three uncoupled qubits
+    H = w1/2. * tensor(sigmaz(),id2,id2)\
+            + w2/2. * tensor(id2,sigmaz(),id2)\
+            + w3/2. * tensor(id2,id2,sigmaz())
+
+    # White noise
+    def S2(w):
+        return gamma2
+
+    def S3(w):
+        return gamma3
+
+    # Bloch-Redfield tensor including dissipation for qubits 2 and 3 only
+    R, ekets = bloch_redfield_tensor(H,\
+            [tensor(id2,sigmax(),id2), tensor(id2,id2,sigmax())],
+            [S2, S3])
+    # Initial state : first qubit is excited
+    grnd2 = sigmam()*sigmap()    # 2x2 ground
+    exc2 = sigmap()*sigmam()     # 2x2 excited state
+    ini = tensor(exc2,grnd2,grnd2)  # Full system
+
+    # Projector on the excited state of qubit 1
+    proj_up1 = tensor(exc2, id2, id2)
+
+    # Solution of the master equation
+    times = np.linspace(0,10./gamma3,1000)
+    sol = bloch_redfield_solve(R, ekets, ini, times, [proj_up1])
+    assert_allclose(sol[0],np.ones_like(times))
 
 if __name__ == "__main__":
     run_module_suite()
