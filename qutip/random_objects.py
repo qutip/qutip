@@ -160,12 +160,14 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
         col_idx = np.random.choice(N, num_elems)
         M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=complex, shape=(N,N)).tocsr()
         M = 0.5*(M+M.conj().transpose())
+        M.sort_indices()
         if pos_def:
             M = M.tocoo()
             M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
             M = M.tocsr()
+            M.sort_indices()
     if dims:
-        return Qobj(M, dims=dims, shape=[N, N])
+        return Qobj(M, dims=dims)
     else:
         return Qobj(M)
 
@@ -350,6 +352,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
         nvals = N**2*density
         while H.nnz < 0.95*nvals:
             H = rand_jacobi_rotation(H)
+        H.sort_indices()
     elif isinstance(N,int):
         if dims:
             _check_dims(dims, N, N)
@@ -357,22 +360,22 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
             dm_density = sqrt(density)
             psi = rand_ket(N, dm_density)
             H = psi * psi.dag()
+            H.data.sort_indices()
         else:
-            density = density ** 2
             non_zero = 0
             tries = 0
             while non_zero == 0 and tries < 10:
                 H = rand_herm(N, density)
                 H = H.dag() * H
-                non_zero = sum([H.tr()])
+                non_zero = H.tr()
                 tries += 1
             if tries >= 10:
                 raise ValueError(
                     "Requested density is too low to generate density matrix.")
-            H.data.sort_indices()
             H = H / H.tr()
+            H.data.sort_indices()
     if dims:
-        return Qobj(H, dims=dims, shape=[N, N])
+        return Qobj(H, dims=dims)
     else:
         return Qobj(H)
 

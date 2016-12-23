@@ -46,6 +46,7 @@ from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
+from qutip.cy.sparse_utils import dense2D_to_fastcsr_cmode
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.interpolate import Cubic_Spline
@@ -946,9 +947,9 @@ def _mc_alg_evolve(nt, config, opt, seeds):
         # ----------------
         out_psi = ODE._y / dznrm2(ODE._y)
         if config.e_num == 0 or config.options.store_states:
-            out_psi_csr = sp.csr_matrix(np.reshape(out_psi,
+            out_psi_csr = dense2D_to_fastcsr_cmode(np.reshape(out_psi,
                                                    (out_psi.shape[0], 1)),
-                                        dtype=complex)
+                                                   out_psi.shape[0], 1)
             if (config.options.average_states and
                     not config.options.steady_state_average):
                 states_out[k] = Qobj(

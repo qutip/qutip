@@ -56,8 +56,8 @@ from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
 
 from qutip.superoperator import liouvillian, vec2mat
 from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape, 
-                            sp_profile, zcsr_kron)
-
+                            sp_profile)
+from qutip.cy.spmath import zcsr_kron
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
