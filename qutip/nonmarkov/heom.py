@@ -51,6 +51,7 @@ from qutip.superoperator import liouvillian, spre, spost
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.cy.heom import cy_pad_csr
 
 
 class HEOMSolver(object):
@@ -331,7 +332,7 @@ class HSolverDL(HEOMSolver):
             for k in range(N_m):
                 approx_factr -= (c[k] / nu[k])
             L_bnd = -approx_factr*op.data
-            L_helems = sp.kron(unit_helems, L_bnd)
+            L_helems = sp.kron(unit_helems, L_bnd, format='csr')
         else:
             L_helems = sp.csr_matrix((N_he*sup_dim, N_he*sup_dim),
                                      dtype=complex)
@@ -356,7 +357,7 @@ class HSolverDL(HEOMSolver):
                 sum_n_m_freq += he_state[k]*nu[k]
 
             op = -sum_n_m_freq*unit_sup
-            L_he = _pad_csr(op, N_he, N_he, he_idx, he_idx)
+            L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx)
             L_helems += L_he
 
             # Add the neighour interations
@@ -376,7 +377,7 @@ class HSolverDL(HEOMSolver):
                     else:
                         op = -1j*n_k*op
 
-                    L_he = _pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
+                    L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems += L_he
                     N_he_interact += 1
 
@@ -394,7 +395,7 @@ class HSolverDL(HEOMSolver):
                     else:
                         op = -1j*op
 
-                    L_he = _pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
+                    L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems += L_he
                     N_he_interact += 1
 

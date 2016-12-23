@@ -9,7 +9,11 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
+<<<<<<< HEAD
         'spmath']
+=======
+        'heom']
+>>>>>>> qutip/master
 
 _compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
 
