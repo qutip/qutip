@@ -69,7 +69,6 @@ class fast_csr_matrix(csr_matrix):
             else:
                 self._shape = tuple(shape)
         self.dtype = complex
-        self.has_sorted_indices = True
         self.maxprint = 50
         self.format = 'csr'
 
@@ -218,7 +217,7 @@ class fast_csr_matrix(csr_matrix):
            other.data,
            indptr, indices, data)
         if isinstance(other, fast_csr_matrix):
-            return fast_csr_matrix((data,indices,indptr),shape=(M,N))
+            return fast_csr_matrix((data,indices,indptr), shape=(M,N))
         else:
             return csr_matrix((data,indices,indptr),shape=(M,N))
 

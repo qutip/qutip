@@ -328,7 +328,7 @@ cdef void _zcsr_kron_core(double complex * dataA, int * indsA, int * indptrA,
             ptr_end = ptr_start + distB
 
             out.indptr[row+1] = out.indptr[row] + distA * distB
-            row +=1
+            row += 1
 
             for ptrA in range(row_startA, row_endA):
                 ptrB = row_startB
