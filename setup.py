@@ -84,8 +84,8 @@ MINOR = 0
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.13)', 'cython (>=0.21)']
-INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.13', 'cython>=0.21']
+REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
+INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
             'qutip/_mkl', 'qutip/tests']
@@ -99,8 +99,8 @@ PACKAGE_DATA = {
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
 EXT_MODULES = []
 NAME = "qutip"
-AUTHOR = "Paul D. Nation, Robert J. Johansson"
-AUTHOR_EMAIL = "pnation@korea.ac.kr, robert@riken.jp"
+AUTHOR = "Alex Pitchford, Paul D. Nation, Robert J. Johansson"
+AUTHOR_EMAIL = "alex.pitchford@gmail.com, nonhermitian@gmail.com, jrjohansson@gmail.com"
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
