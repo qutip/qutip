@@ -73,10 +73,9 @@ def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int inse
     
     elif insertrow > 0 and insertrow < row_scale - 1:
         temp = insertrow*nrowin
-        for kk in range(temp, temp+nnz):
+        for kk in range(temp, temp+nrowin):
             ptr_out[kk] = ptr_in[kk-temp]
-
-        temp = kk
+        temp = kk+1
         temp2 = ptr_in[nrowin]
         for kk in range(temp, nrowout+1):
             ptr_out[kk] = temp2     
