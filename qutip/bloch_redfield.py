@@ -41,6 +41,7 @@ from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
 from qutip.solver import Options, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
+from qutip.cy.sparse_utils import dense2D_to_fastcsr_fmode
 from qutip.solver import Result
 from qutip.superoperator import liouvillian
 
@@ -213,7 +214,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
         if not r.successful():
             break
 
-        rho_eb.data = vec2mat(r.y)
+        rho_eb.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho0.shape[0], rho0.shape[1])
 
         # calculate all the expectation values, or output rho_eb if no
         # expectation value operators are given

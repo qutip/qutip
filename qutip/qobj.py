@@ -57,11 +57,13 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
+from qutip.fastsparse import fast_csr_matrix
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
 
 import sys
 if sys.version_info.major >= 3:
@@ -89,6 +91,9 @@ class Qobj(object):
         Dimensions of object used for tensor products.
     shape : list
         Shape of underlying data structure (matrix shape).
+    copy : bool
+        Flag specifying whether Qobj should get a copy of the 
+        input data, or use the original.
     fast : bool
         Flag for fast qobj creation when running ode solvers.
         This parameter is used internally only.
@@ -191,7 +196,8 @@ class Qobj(object):
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
-                 type=None, isherm=None, fast=False, superrep=None):
+                 type=None, isherm=None, copy=True,
+                 fast=False, superrep=None):
         """
         Qobj constructor.
         """
@@ -201,14 +207,14 @@ class Qobj(object):
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self.data = inpt
             self.dims = dims
             self._isherm = False
             return
 
         if fast == 'mc-dm':
             # fast Qobj construction for use in mcsolve with dm output
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self.data = inpt
             self.dims = dims
             self._isherm = True
             return
@@ -216,8 +222,8 @@ class Qobj(object):
         if isinstance(inpt, Qobj):
             # if input is already Qobj then return identical copy
 
-            # make sure matrix is sparse (safety check)
-            self.data = sp.csr_matrix(inpt.data, dtype=complex, copy=True)
+            self.data = fast_csr_matrix((inpt.data.data, inpt.data.indices, inpt.data.indptr),
+                         shape=inpt.shape, copy=copy)
 
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
@@ -243,7 +249,7 @@ class Qobj(object):
                 N, M = 1, 1
                 self.dims = [[N], [M]]
 
-            self.data = sp.csr_matrix((N, M), dtype=complex)
+            self.data = fast_csr_matrix(shape=(N, M))
 
         elif isinstance(inpt, list) or isinstance(inpt, tuple):
             # case where input is a list
@@ -252,8 +258,9 @@ class Qobj(object):
                 # if list has only one dimension (i.e [5,4])
                 data = data.transpose()
 
-            self.data = sp.csr_matrix(data, dtype=complex)
-
+            _tmp = sp.csr_matrix(data, dtype=complex)
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape)
             if not np.any(dims):
                 self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
@@ -264,7 +271,14 @@ class Qobj(object):
             if inpt.ndim == 1:
                 inpt = inpt[:, np.newaxis]
 
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            do_copy = copy
+            if not isinstance(inpt, fast_csr_matrix):
+                _tmp = sp.csr_matrix(inpt, dtype=complex, copy=do_copy)
+                do_copy = 0
+            else:
+                _tmp = inpt
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape, copy=do_copy)
 
             if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -274,8 +288,9 @@ class Qobj(object):
         elif isinstance(inpt, (int, float, complex,
                                np.integer, np.floating, np.complexfloating)):
             # if input is int, float, or complex then convert to array
-            self.data = sp.csr_matrix([[inpt]], dtype=complex)
-
+            _tmp = sp.csr_matrix([[inpt]], dtype=complex)
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape)
             if not np.any(dims):
                 self.dims = [[1], [1]]
             else:
@@ -285,7 +300,9 @@ class Qobj(object):
             warnings.warn("Initializing Qobj from unsupported type: %s" %
                           builtins.type(inpt))
             inpt = np.array([[0]])
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            _tmp = sp.csr_matrix(inpt, dtype=complex, copy=copy)
+            self.data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr), 
+                                        shape = _tmp.shape)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
         if type == 'super':
@@ -301,6 +318,10 @@ class Qobj(object):
 
         # clear type cache
         self._type = None
+        
+        # Check that data is fast_csr_matrix type
+        if not isinstance(self.data, fast_csr_matrix):
+            raise TypeError('Qobj data must be in fast_csr_matrix format.')
 
     def __add__(self, other):
         """
@@ -828,7 +849,7 @@ class Qobj(object):
         """Adjoint operator of quantum object.
         """
         out = Qobj()
-        out.data = self.data.T.conj().tocsr()
+        out.data = zcsr_adjoint(self.data)
         out.dims = [self.dims[1], self.dims[0]]
         out._isherm = self._isherm
         out.superrep = self.superrep
@@ -1580,7 +1601,7 @@ class Qobj(object):
 
         """
         out = Qobj()
-        out.data = self.data.T.tocsr()
+        out.data = zcsr_transpose(self.data)
         out.dims = [self.dims[1], self.dims[0]]
         return out
 
@@ -1670,7 +1691,8 @@ class Qobj(object):
         
         """
         return mts.dnorm(self, B)
-
+    
+    
     @property
     def ishp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
@@ -1778,9 +1800,9 @@ class Qobj(object):
     @property
     def shape(self):
         if self.data.shape == (1, 1):
-            return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+            return tuple([np.prod(self.dims[0]), np.prod(self.dims[1])])
         else:
-            return list(self.data.shape)
+            return tuple(self.data.shape)
 
     @property
     def isbra(self):
@@ -2182,7 +2204,7 @@ def isequal(A, B, tol=None):
     Adat = A.data
     Bdat = B.data
     elems = (Adat - Bdat).data
-    if np.any(abs(elems) > tol):
+    if np.any(np.abs(elems) > tol):
         return False
 
     return True
