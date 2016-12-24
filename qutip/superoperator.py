@@ -31,7 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
+__all__ = ['liouvillian', 'ad_liouvillian',
+           'liouvillian_ref', 'ad_liouvillian_ref', 'lindblad_dissipator',
            'operator_to_vector', 'vector_to_operator', 'mat2vec', 'vec2mat',
            'vec2mat_index', 'mat2vec_index', 'spost', 'spre', 'sprepost']
 
@@ -132,6 +133,104 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         return L
 
 
+def ad_liouvillian(H, c_ops=[], data_only=False, chi=None):
+    """Assembles the adjoint Liouvillian superoperator from a Hamiltonian
+    and a ``list`` of collapse operators. Like adjoint liouvillian, but with an
+    experimental implementation which avoids creating extra Qobj instances,
+    which can be advantageous for large systems.
+
+    Parameters
+    ----------
+    H : qobj
+        System Hamiltonian.
+
+    c_ops : array_like
+        A ``list`` or ``array`` of collapse operators.
+
+    Returns
+    -------
+    L : qobj
+        Adjoint Liouvillian superoperator.
+
+    """
+
+    if chi and len(chi) != len(c_ops):
+        raise ValueError('chi must be a list with same length as c_ops')
+
+    if H is not None:
+        if H.isoper:
+            op_dims = H.dims
+            op_shape = H.shape
+        elif H.issuper:
+            op_dims = H.dims[0]
+            op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
+        else:
+            raise TypeError("Invalid type for Hamiltonian.")
+    else:
+        # no hamiltonian given, pick system size from a collapse operator
+        if isinstance(c_ops, list) and len(c_ops) > 0:
+            c = c_ops[0]
+            if c.isoper:
+                op_dims = c.dims
+                op_shape = c.shape
+            elif c.issuper:
+                op_dims = c.dims[0]
+                op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
+            else:
+                raise TypeError("Invalid type for collapse operator.")
+        else:
+            raise TypeError("Either H or c_ops must be given.")
+
+    sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
+    sop_shape = [np.prod(op_dims), np.prod(op_dims)]
+
+    spI = sp.identity(op_shape[0], format='csr', dtype=complex)
+
+    if H:
+        if H.isoper:
+            Ht = H.data.T.tocsr()
+            data = 1j * zcsr_kron(spI, H.data)
+            data -= 1j * zcsr_kron(Ht, spI)
+        else:
+            data = H.data
+    else:
+        data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
+
+    for idx, c_op in enumerate(c_ops):
+        if c_op.issuper:
+            data = data + c_op.data
+        else:
+            cd = c_op.data.T.conj().tocsr()           
+            c = c_op.data
+            # Here we call _csr_kron directly as we can avoid creating
+            # another sparse matrix by passing c.data.conj()
+            if chi:
+                data = data + np.exp(1j * chi[idx]) * \
+                                _csr_kron(cd.data.conj(), cd.indices, cd.indptr,
+                                        cd.shape[0], cd.shape[1],
+                                        cd.data, cd.indices, cd.indptr,
+                                        cd.shape[0], cd.shape[1])
+            else:
+                data = data + _csr_kron(cd.data.conj(), cd.indices, cd.indptr,
+                                        cd.shape[0], cd.shape[1],
+                                        cd.data, cd.indices, cd.indptr,
+                                        cd.shape[0], cd.shape[1])
+            cdc = cd * c
+            cdct = cdc.T.tocsr()
+            data = data - 0.5 * zcsr_kron(spI, cdc)
+            data = data - 0.5 * zcsr_kron(cdct, spI)
+
+    if data_only:
+        return data
+    else:
+        L = Qobj()
+        L.dims = sop_dims
+        L.data = data
+        L.isherm = False
+        L.superrep = 'super'
+        return L
+
+
 def liouvillian_ref(H, c_ops=[]):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
@@ -158,6 +257,36 @@ def liouvillian_ref(H, c_ops=[]):
         else:
             cdc = c.dag() * c
             L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+    return L
+
+
+def ad_liouvillian_ref(H, c_ops=[]):
+    """Assembles the adjoint Liouvillian superoperator from a Hamiltonian
+    and a ``list`` of collapse operators.
+
+    Parameters
+    ----------
+    H : qobj
+        System Hamiltonian.
+
+    c_ops : array_like
+        A ``list`` or ``array`` of collapse operators.
+
+    Returns
+    -------
+    L : qobj
+        Adjoint Liouvillian superoperator.
+    """
+
+    L = 1.0j * (spre(H) - spost(H)) if H else 0
+
+    for c in c_ops:
+        if c.issuper:
+            L += c
+        else:
+            cdc = c.dag() * c
+            L += spre(c.dag()) * spost(c) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
 
     return L
 
