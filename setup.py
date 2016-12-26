@@ -80,7 +80,7 @@ except ImportError:
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 0
+MINOR = 1
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
