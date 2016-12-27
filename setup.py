@@ -80,7 +80,7 @@ except ImportError:
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 0
+MINOR = 1
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -99,7 +99,7 @@ PACKAGE_DATA = {
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
 EXT_MODULES = []
 NAME = "qutip"
-AUTHOR = "Alex Pitchford, Paul D. Nation, Robert J. Johansson"
+AUTHOR = "Alexander J. G. Pitchford, Paul D. Nation, Robert J. Johansson"
 AUTHOR_EMAIL = "alex.pitchford@gmail.com, nonhermitian@gmail.com, jrjohansson@gmail.com"
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
