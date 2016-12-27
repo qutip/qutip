@@ -1,5 +1,4 @@
 # Include the license file
 include LICENSE.txt
 # Include the pyx files
-#recursive-include cy *.pyx
 recursive-include qutip *.pyx
