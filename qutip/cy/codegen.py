@@ -312,6 +312,7 @@ cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.interpolate cimport interp, zinterp
+from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 
 include """+_include_string+"""
