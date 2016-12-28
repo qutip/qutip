@@ -922,7 +922,8 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
         raise ValueError(
             "control and not target is None must be integer < integer N")
 
-    if (controls[0] == target or controls[1] == target or controls[0] == controls[1]):
+    if controls[0] == target or controls[1] == target \
+       or controls[0] == controls[1]:
         raise ValueError(
             "controls[0], controls[1], and target cannot be equal")
 
