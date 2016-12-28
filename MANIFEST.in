@@ -2,3 +2,6 @@
 include LICENSE.txt
 # Include the pyx files
 recursive-include qutip *.pyx
+# Include test data files
+recursive-include qutip/tests *.ini
+
