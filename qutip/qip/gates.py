@@ -182,7 +182,7 @@ shape = [2, 2], type = oper, isHerm = False
 
 def cphase(theta, N=2, control=0, target=1):
     """
-    Returns quantum object representing the phase shift gate.
+    Returns quantum object representing the controlled phase shift gate.
 
     Parameters
     ----------
