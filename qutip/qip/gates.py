@@ -773,17 +773,16 @@ def qubit_clifford_group(N=None, target=0):
     S = phasegate(np.pi / 2)
     E = H * (S ** 3) * w ** 3
 
-    for op in map(
+    for op in map(partial(reduce, mul), product(_powers(E, 3),
+                  _powers(X, 2), _powers(S, 4))):
+
         # partial(reduce, mul) returns a function that takes products
         # of its argument, by analogy to sum. Note that by analogy,
-        # sum can be written
-        # partial(reduce, add).
-        partial(reduce, mul),
+        # sum can be written as partial(reduce, add).
+
         # product(...) yields the Cartesian product of its arguments.
         # Here, each element is a tuple (E**i, X**j, S**k) such that
         # partial(reduce, mul) acting on the tuple yields E**i * X**j * S**k.
-        product(_powers(E, 3), _powers(X, 2), _powers(S, 4))
-    ):
 
         # Finally, we optionally expand the gate.
         if N is not None:
@@ -919,13 +918,15 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
         raise ValueError("integer N must be larger or equal to 3")
 
     if controls[0] >= N or controls[1] >= N or target >= N:
-        raise ValueError(
-            "control and not target is None must be integer < integer N")
+        raise ValueError("control and not target is None."
+                         " Must be integer < integer N")
 
-    if controls[0] == target or controls[1] == target \
-       or controls[0] == controls[1]:
-        raise ValueError(
-            "controls[0], controls[1], and target cannot be equal")
+    if (controls[0] == target or
+        controls[1] == target or
+        controls[0] == controls[1]):
+
+        raise ValueError("controls[0], controls[1], and target"
+                         " cannot be equal")
 
     p = list(range(N))
     p1 = list(range(N))
