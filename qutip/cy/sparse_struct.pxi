@@ -214,7 +214,7 @@ cdef void copy_CSR(CSR_Matrix * out, CSR_Matrix * mat):
     
 @cython.boundscheck(False)
 @cython.wraparound(False)        
-cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int max_length = 0, int init_zeros = 0):
+cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int max_length = 0, int init_zeros = 1):
     """
     Initialize COO_Matrix struct. Matrix is assumed to be square with
     shape nrows x nrows.  Manually set mat.ncols otherwise
