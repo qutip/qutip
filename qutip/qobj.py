@@ -57,7 +57,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
-from qutip.fastsparse import fast_csr_matrix
+from qutip.fastsparse import fast_csr_matrix, fast_identity
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
@@ -349,8 +349,8 @@ class Qobj(object):
             out = Qobj()
 
             if self.type in ['oper', 'super']:
-                out.data = self.data + dat * sp.identity(
-                    self.shape[0], dtype=complex, format='csr')
+                out.data = self.data + dat * fast_identity(
+                    self.shape[0])
             else:
                 out.data = self.data
                 out.data.data = out.data.data + dat
@@ -375,8 +375,7 @@ class Qobj(object):
 
             out = Qobj()
             if other.type in ['oper', 'super']:
-                out.data = dat * sp.identity(other.shape[0], dtype=complex,
-                                             format='csr') + other.data
+                out.data = dat * fast_identity(other.shape[0]) + other.data
             else:
                 out.data = other.data
                 out.data.data = out.data.data + dat
