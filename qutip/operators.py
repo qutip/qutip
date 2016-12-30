@@ -458,15 +458,7 @@ shape = [3, 3], type = oper, isHerm = True
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
-<<<<<<< HEAD
     return Qobj(fast_identity(N), isherm=True)
-=======
-    data = np.ones(N, dtype=complex)
-    ind = np.arange(N, dtype=np.int32)
-    ptr = np.arange(N+1,dtype=np.int32)
-    ptr[-1] = N
-    return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,N)), isherm=True)
->>>>>>> qutip/master
 
 
 def identity(N):
