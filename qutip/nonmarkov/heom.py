@@ -52,6 +52,7 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.cy.heom import cy_pad_csr
+from qutip.fastsparse import fast_identity
 
 
 class HEOMSolver(object):
@@ -321,7 +322,7 @@ class HSolverDL(HEOMSolver):
         # Turns out to be the same as nstates from state_number_enumerate
         N_he, he2idx, idx2he = enr_state_dictionaries([N_c + 1]*N_m , N_c)
 
-        unit_helems = sp.identity(N_he, format='csr')
+        unit_helems = fast_identity(N_he)
         if self.bnd_cut_approx:
             # the Tanimura boundary cut off operator
             if stats:
