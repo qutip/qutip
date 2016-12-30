@@ -48,7 +48,7 @@ import scipy.sparse as sp
 
 from qutip.qobj import Qobj
 
-
+from qutip.fastsparse import fast_identity
 #
 # Spin operators
 #
@@ -443,7 +443,7 @@ shape = [3, 3], type = oper, isHerm = True
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
-    return Qobj(sp.eye(N, N, dtype=complex, format='csr'), isherm=True)
+    return Qobj(fast_identity(N), isherm=True)
 
 
 def identity(N):

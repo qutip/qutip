@@ -38,7 +38,7 @@ __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
 import scipy.sparse as sp
 import numpy as np
 from qutip.qobj import Qobj
-from qutip.fastsparse import fast_csr_matrix
+from qutip.fastsparse import fast_csr_matrix, fast_identity
 from qutip.sparse import sp_reshape
 from qutip.cy.spmath import zcsr_kron
 
@@ -93,7 +93,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
 
-    spI = sp.identity(op_shape[0], format='csr', dtype=complex)
+    spI = fast_identity(op_shape[0])
 
     if H:
         if H.isoper:
@@ -273,7 +273,7 @@ def spost(A):
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
     S.data = zcsr_kron(A.data.T.tocsr(), 
-                sp.identity(np.prod(A.shape[0]),dtype=complex, format='csr'))
+                fast_identity(np.prod(A.shape[0])))
     return S
 
 
@@ -298,7 +298,7 @@ def spre(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = zcsr_kron(sp.identity(np.prod(A.shape[1]), dtype=complex, format='csr'), A.data)
+    S.data = zcsr_kron(fast_identity(np.prod(A.shape[1])), A.data)
     return S
 
 
