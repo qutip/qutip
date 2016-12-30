@@ -146,6 +146,7 @@ def _jz(j):
         ptr[-1] = N
     # Odd shaped matrix
     else:
+        j = int(j)
         ind = np.array(list(range(j))+list(range(j+1,N)), dtype=np.int32)
         ptr = np.array(list(range(j+1))+list(range(j,N)), dtype=np.int32)
         ptr[-1] = N-1
@@ -453,7 +454,7 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     if isinstance(N, list):
-        return tensor.tensor(*[identity(n) for n in N])
+        return tensor(*[identity(n) for n in N])
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
@@ -810,7 +811,7 @@ def qzero(N):
     """
 
     if isinstance(N, list):
-        return tensor.tensor(*[qzero(n) for n in N])
+        return tensor(*[qzero(n) for n in N])
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
