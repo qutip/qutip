@@ -46,13 +46,8 @@ import numpy as np
 import scipy
 import scipy.sparse as sp
 from qutip.qobj import Qobj
-<<<<<<< HEAD
+from qutip.fastsparse import fast_csr_matrix, fast_identity
 
-from qutip.fastsparse import fast_identity
-=======
-from qutip.fastsparse import fast_csr_matrix
-
->>>>>>> qutip/master
 #
 # Spin operators
 #
