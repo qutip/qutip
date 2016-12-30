@@ -32,13 +32,6 @@
 ###############################################################################
 from __future__ import division
 
-__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'cphase', 'cnot',
-           'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
-           'sqrtiswap', 'fredkin', 'toffoli', 'rotation', 'controlled_gate',
-           'globalphase', 'hadamard_transform', 'gate_sequence_product',
-           'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
-           'qubit_clifford_group']
-
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
@@ -50,10 +43,17 @@ from itertools import product
 from functools import partial, reduce
 from operator import mul
 
+__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'cphase', 'cnot',
+           'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
+           'sqrtiswap', 'fredkin', 'toffoli', 'rotation', 'controlled_gate',
+           'globalphase', 'hadamard_transform', 'gate_sequence_product',
+           'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
+           'qubit_clifford_group']
 
 #
 # Single Qubit Gates
 #
+
 
 def rx(phi, N=None, target=0):
     """Single-qubit rotation for operator sigmax with angle phi.
@@ -182,7 +182,7 @@ shape = [2, 2], type = oper, isHerm = False
 
 def cphase(theta, N=2, control=0, target=1):
     """
-    Returns quantum object representing the phase shift gate.
+    Returns quantum object representing the controlled phase shift gate.
 
     Parameters
     ----------
@@ -473,7 +473,7 @@ shape = [4, 4], type = oper, isHerm = False
        0.70710678+0.j          0.00000000+0.j]
      [ 0.00000000+0.j   0.00000000+0.j   \
        0.00000000+0.j          1.00000000+0.j]]
-    
+
     """
     if targets != [0, 1] and N is None:
         N = 2
@@ -588,7 +588,7 @@ def rotation(op, phi, N=None, target=0):
     -------
     result : qobj
         Quantum object for operator describing the rotation.
-    
+
     """
     if N is not None:
         return gate_expand_1toN(rotation(op, phi), N, target)
@@ -622,7 +622,7 @@ def controlled_gate(U, N=2, control=0, target=1, control_value=1):
     -------
     result : qobj
         Quantum object representing the controlled-U gate.
-    
+
     """
 
     if [N, control, target] == [2, 0, 1]:
@@ -657,8 +657,8 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
 
     """
-    data = (np.exp(1.0j * theta)
-            * sp.eye(2 ** N, 2 ** N, dtype=complex, format="csr"))
+    data = (np.exp(1.0j * theta) * sp.eye(2 ** N, 2 ** N,
+                                          dtype=complex, format="csr"))
     return Qobj(data, dims=[[2] * N, [2] * N])
 
 
@@ -685,7 +685,7 @@ def hadamard_transform(N=1):
     -------
     q : qobj
         Quantum object representation of the N-qubit Hadamard gate.
-    
+
     """
     data = 2 ** (-N / 2) * np.array([[(-1) ** _hamming_distance(i & j)
                                       for i in range(2 ** N)]
@@ -721,6 +721,7 @@ def gate_sequence_product(U_list, left_to_right=True):
 
     return U_overall
 
+
 def _powers(op, N):
     """
     Generator that yields powers of an operator `op`,
@@ -732,6 +733,7 @@ def _powers(op, N):
     for _ in range(N - 1):
         acc *= op
         yield acc
+
 
 def qubit_clifford_group(N=None, target=0):
     """
@@ -754,7 +756,7 @@ def qubit_clifford_group(N=None, target=0):
 
     op : Qobj
         Clifford operators, represented as Qobj instances.
-    
+
     """
 
     # The Ross-Selinger presentation of the single-qubit Clifford
@@ -771,16 +773,16 @@ def qubit_clifford_group(N=None, target=0):
     S = phasegate(np.pi / 2)
     E = H * (S ** 3) * w ** 3
 
+    for op in map(partial(reduce, mul), product(_powers(E, 3),
+                  _powers(X, 2), _powers(S, 4))):
 
-    for op in map(
-          # partial(reduce, mul) returns a function that takes products of its argument,
-          # by analogy to sum. Note that by analogy, sum can be written partial(reduce, add).
-          partial(reduce, mul),
-          # product(...) yields the Cartesian product of its arguments. Here, each element is
-          # a tuple (E**i, X**j, S**k) such that partial(reduce, mul) acting on the tuple
-          # yields E**i * X**j * S**k.
-          product(_powers(E, 3), _powers(X, 2), _powers(S, 4))
-        ):
+        # partial(reduce, mul) returns a function that takes products
+        # of its argument, by analogy to sum. Note that by analogy,
+        # sum can be written as partial(reduce, add).
+
+        # product(...) yields the Cartesian product of its arguments.
+        # Here, each element is a tuple (E**i, X**j, S**k) such that
+        # partial(reduce, mul) acting on the tuple yields E**i * X**j * S**k.
 
         # Finally, we optionally expand the gate.
         if N is not None:
@@ -791,6 +793,7 @@ def qubit_clifford_group(N=None, target=0):
 #
 # Gate Expand
 #
+
 
 def gate_expand_1toN(U, N, target):
     """
@@ -812,7 +815,7 @@ def gate_expand_1toN(U, N, target):
     -------
     gate : qobj
         Quantum object representation of N-qubit gate.
-    
+
     """
 
     if N < 1:
@@ -851,7 +854,7 @@ def gate_expand_2toN(U, N, control=None, target=None, targets=None):
     -------
     gate : qobj
         Quantum object representation of N-qubit gate.
-    
+
     """
 
     if targets is not None:
@@ -908,20 +911,22 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
     -------
     gate : qobj
         Quantum object representation of N-qubit gate.
-    
+
     """
 
     if N < 3:
         raise ValueError("integer N must be larger or equal to 3")
 
     if controls[0] >= N or controls[1] >= N or target >= N:
-        raise ValueError(
-            "control and not target is None must be integer < integer N")
+        raise ValueError("control and not target is None."
+                         " Must be integer < integer N")
 
-    if (controls[0] == target or controls[1] == target
-            or controls[0] == controls[1]):
-        raise ValueError(
-            "controls[0], controls[1], and target cannot be equal")
+    if (controls[0] == target or
+        controls[1] == target or
+        controls[0] == controls[1]):
+
+        raise ValueError("controls[0], controls[1], and target"
+                         " cannot be equal")
 
     p = list(range(N))
     p1 = list(range(N))
