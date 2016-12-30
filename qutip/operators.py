@@ -376,10 +376,10 @@ shape = [4, 4], type = oper, isHerm = False
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
-        ind = np.arange(1,N, dtype=np.int32)
-        ptr = np.arange(N+1, dtype=np.int32)
-        ptr[-1] = N-1
-        return Qobj(fast_csr_matrix((data,ind,ptr),shape=(N,N)), isherm=False)
+    ind = np.arange(1,N, dtype=np.int32)
+    ptr = np.arange(N+1, dtype=np.int32)
+    ptr[-1] = N-1
+    return Qobj(fast_csr_matrix((data,ind,ptr),shape=(N,N)), isherm=False)
 
 
 #
@@ -977,4 +977,4 @@ def tunneling(N, m=1):
 # Break circular dependencies by a trailing import.
 # Note that we use a relative import here to deal with that
 # qutip.tensor is the *function* tensor, not the module.
-from . import tensor
+from qutip.tensor import tensor
