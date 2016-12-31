@@ -356,7 +356,20 @@ class fast_csr_matrix(csr_matrix):
         return zcsr_adjoint(self)
     
 
-#Convenience funtions
+
+def fast_identity(N):
+    """Generates a sparse identity matrix in
+    fast_csr format.
+    """
+    data = np.ones(N, dtype=complex)
+    ind = np.arange(N, dtype=np.int32)
+    ptr = np.arange(N+1, dtype=np.int32)
+    ptr[-1] = N
+    return fast_csr_matrix((data,ind,ptr),shape=(N,N))
+
+
+
+#Convenience functions
 #--------------------
 def _all_true(shape):
     A = csr_matrix((np.ones(np.prod(shape), dtype=np.bool_),
@@ -364,6 +377,7 @@ def _all_true(shape):
                 np.arange(0,np.prod(shape)+1,shape[1],dtype=np.int32)),
                 shape=shape)
     return A
+
 
 
 #Need to do some trailing imports here
