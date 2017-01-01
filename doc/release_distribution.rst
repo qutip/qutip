@@ -11,22 +11,20 @@ Preamble
 ++++++++
 
 This document covers the process for managing updates to the current minor release and making new releases.
-The first section covers the git workflow for updating the current release, and making a new minor or major release.
-The second section describes how to build distributions, 
-and then how to push them on to the Python Package Index repository.
-The third section explains how the documentation is rebuilt.
-The forth section describes how to update the qutip website with the new distribution files and the links to them.
-Lastly the generation of conda-forge packages is covered.
 
 If just an update (bug fix) to the current minor release is required, 
-then just the first part of the first section is needed.
-To make a micro (patch) release all sections apart from documentation build will need to be followed.
-For a minor or major release (parts of) all sections will need to be followed.
+then just bugfix_ is needed.
+
+To make a micro (patch) release follow distbuild_, web_, cforge_, pypi_
+
+For a minor or major release follow newrelease_, distbuild_, docbuild_, web_, cforge_, pypi_
 
 .. _gitwf:
 
 Git workflow
 ++++++++++++
+
+.. _bugfix:
 
 Apply bug fix to latest release
 -------------------------------
@@ -67,6 +65,8 @@ push changes to your fork ::
     $ git push --set-upstream origin patch4.0-fix_bug123
 
 Make a Pull Request to the latest release branch
+
+.. _newrelease:
 
 Create a new minor or major release
 -----------------------------------
@@ -122,9 +122,6 @@ Otherwise ::
 
 The next steps are based instructions from https://packaging.python.org/distributing/
 
-You will need a PyPI account that is assigned as an owner on the project.
-(see https://packaging.python.org/distributing/#create-an-account)
-
 .. _sdist:
 
 Build the source code distribution
@@ -139,28 +136,6 @@ This is to avoid the egg-info being included in the gztar / zip, which otherwise
 
 Test the distribution that is now in the ``dist`` folder. Should try at least two environments, e.g. Windows and Linux / MacOS.
 
-**The next step cannot be undone**, it can only be superceded by another (micro) version
-
-Upload the source distribution, e.g ::
-
-    $ twine upload dist/qutip-4.0.1.tar.gz
-
-The MICRO version in setup.py qutip-4.0.X branch should now be bumped up one, 
-as no more changes can be made to this micro version.
-
-Create a new branch from this, e.g. ::
-
-    $ git checkout -b bump_to-4.0.2 qutip-4.0.X
-
-Edit the main setup.py for the project. Update the version ::
-
-    MICRO = 2
-
-push changes to your fork ::
-
-    $ git push --set-upstream origin bump_to-4.0.2
-
-Make a Pull Request to the release branch
 
 .. _docbuild:
 
@@ -190,6 +165,7 @@ will need to be moved (copied) to the 'Previous releases' section.
 - Edit the _includes/sidebar.html such that the 'Latest release' version and date are correct.
 
 The gztar link will need the micro release number updating in the traceEvent and file name.
+
 
 .. _cforge:
 
@@ -228,3 +204,33 @@ To test the packages, add the conda-forge channel with lowest priority ::
 
 This should mean that the prerequistes come from the default channel, but the qutip packages are found in conda-forge.
 
+.. _pypi:
+
+Upload source distribution to PyPI
+++++++++++++++++++++++++++++++++++
+
+You will need a PyPI account that is assigned as an owner on the project.
+(see https://packaging.python.org/distributing/#create-an-account)
+
+**The next step cannot be undone**, it can only be superceded by another (micro) version
+
+Upload the source distribution, e.g ::
+
+    $ twine upload dist/qutip-4.0.1.tar.gz
+
+The MICRO version in setup.py qutip-4.0.X branch should now be bumped up one, 
+as no more changes can be made to this micro version.
+
+Create a new branch from this, e.g. ::
+
+    $ git checkout -b bump_to-4.0.2 qutip-4.0.X
+
+Edit the main setup.py for the project. Update the version ::
+
+    MICRO = 2
+
+push changes to your fork ::
+
+    $ git push --set-upstream origin bump_to-4.0.2
+
+Make a Pull Request to the release branch
