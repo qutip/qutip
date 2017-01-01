@@ -114,66 +114,6 @@ class TestPulseOptim:
                     result.termination_reason, result.fid_err))
         assert_almost_equal(result.fid_err, 0.0, decimal=10, 
                             err_msg="Hadamard infidelity too high")
-                            
-        #Try without stats
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
-                        n_ts, evo_time, 
-                        fid_err_targ=1e-10, 
-                        init_pulse_type='LIN', 
-                        gen_stats=False)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(no stats). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-                    
-        #Try setting timeslots with tau array
-        tau = np.arange(1.0, 10.0, 1.0)
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
-                        tau=tau, 
-                        fid_err_targ=1e-10, 
-                        init_pulse_type='LIN', 
-                        gen_stats=False)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(tau as timeslots). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-                                            
-        #Try with Qobj propagation
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
-                        n_ts, evo_time, 
-                        fid_err_targ=1e-10, 
-                        init_pulse_type='LIN', 
-                        dyn_params={'oper_dtype':Qobj},
-                        gen_stats=True)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(Qobj propagation). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-        
-        # Check same result is achieved using the create objects method
-        optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ, 
-                        n_ts, evo_time, 
-                        fid_err_targ=1e-10, 
-                        dyn_type='UNIT', 
-                        init_pulse_type='LIN', 
-                        gen_stats=True)
-        dyn = optim.dynamics
-
-        init_amps = optim.pulse_generator.gen_pulse().reshape([-1, 1])
-        dyn.initialize_controls(init_amps)
-
-        # Check the exact gradient
-        func = optim.fid_err_func_wrapper
-        grad = optim.fid_err_grad_wrapper
-        x0 = dyn.ctrl_amps.flatten()
-        grad_diff = check_grad(func, grad, x0)
-        assert_almost_equal(grad_diff, 0.0, decimal=7,
-                            err_msg="Unitary gradient outside tolerance")
-
-        result2 = optim.run_optimization()
-        assert_almost_equal(result.fid_err, result2.fid_err, decimal=10, 
-                            err_msg="Direct and indirect methods produce "
-                                    "different results for Hadamard")
                                     
     def test_01_2_unitary_hadamard_no_stats(self):
         """
@@ -306,8 +246,7 @@ class TestPulseOptim:
         n_ts = 10
         evo_time = 10
         
-        # Run the optimisation
-        # Check same result is achieved using the create objects method
+        # Create the optim objects
         optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-10, 
@@ -324,7 +263,7 @@ class TestPulseOptim:
         grad = optim.fid_err_grad_wrapper
         x0 = dyn.ctrl_amps.flatten()
         grad_diff = check_grad(func, grad, x0)
-        assert_almost_equal(grad_diff, 0.0, decimal=7,
+        assert_almost_equal(grad_diff, 0.0, decimal=6,
                             err_msg="Unitary gradient outside tolerance")
 
     def test_02_1_qft(self):
