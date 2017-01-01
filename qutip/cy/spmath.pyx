@@ -66,8 +66,8 @@ def zcsr_add(complex[::1] dataA, int[::1] indsA, int[::1] indptrA,
                             shape=(nrows,ncols))
     # Out CSR_Matrix
     cdef CSR_Matrix out
-    init_CSR(&out, worse_fill, nrows, worse_fill)
-    out.ncols = ncols
+    init_CSR(&out, worse_fill, nrows, ncols, worse_fill)
+    
     nnz = _zcsr_add_core(&dataA[0], &indsA[0], &indptrA[0], 
                      &dataB[0], &indsB[0], &indptrB[0],
                      alpha,
@@ -187,7 +187,7 @@ def zcsr_mult(complex [::1] dataA, int[::1] indsA, int[::1] indptrA,
                      &dataB[0], &indsB[0], &indptrB[0],  
                      nrows, ncols)
     
-    init_CSR(&out, nnz, nrows, 0)
+    init_CSR(&out, nnz, nrows, ncols)
     _zcsr_mult_pass2(&dataA[0], &indsA[0], &indptrA[0], 
                      &dataB[0], &indsB[0], &indptrB[0],
                      &out,       
@@ -293,8 +293,7 @@ def zcsr_kron(object A, object B):
     cdef int cols_out = colsA * colsB
 
     cdef CSR_Matrix out
-    init_CSR(&out, out_nnz, rows_out)
-    out.ncols = cols_out
+    init_CSR(&out, out_nnz, rows_out, cols_out)
 
     _zcsr_kron_core(&dataA[0], &indsA[0], &indptrA[0], 
                     &dataB[0], &indsB[0], &indptrB[0],
@@ -354,8 +353,7 @@ def zcsr_transpose(object A):
     cdef int ncols = A.shape[1]
 
     cdef CSR_Matrix out
-    init_CSR(&out, data.shape[0], ncols)
-    out.ncols = nrows
+    init_CSR(&out, data.shape[0], ncols, nrows)
 
     _zcsr_trans_core(&data[0], &ind[0], &ptr[0], 
                     &out, nrows, ncols)
@@ -407,8 +405,7 @@ def zcsr_adjoint(object A):
     cdef int ncols = A.shape[1]
 
     cdef CSR_Matrix out
-    init_CSR(&out, data.shape[0], ncols)
-    out.ncols = nrows
+    init_CSR(&out, data.shape[0], ncols, nrows)
 
     _zcsr_adjoint_core(&data[0], &ind[0], &ptr[0], 
                         &out, nrows, ncols)

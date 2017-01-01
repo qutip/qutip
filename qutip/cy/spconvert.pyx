@@ -46,8 +46,7 @@ def coo2fast(object A):
     cdef int[::1] rows = A.rows
     cdef int[::1] cols = A.cols
     cdef CSR_Matrix out
-    init_CSR(&out, nnz, nrows)
-    out.ncols = ncols
+    init_CSR(&out, nnz, nrows, ncols)
     
     cdef int i, j, iad, j0
     cdef double complex val
@@ -83,8 +82,7 @@ def coo2fast(object A):
 def arr_coo2fast(complex[::1] data, int[::1] rows, int[::1] cols, int nrows, int ncols):
     cdef int nnz = data.shape[0]
     cdef CSR_Matrix out
-    init_CSR(&out, nnz, nrows)
-    out.ncols = ncols
+    init_CSR(&out, nnz, nrows, ncols)
 
     cdef int i, j, iad, j0
     cdef double complex val
