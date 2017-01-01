@@ -339,8 +339,9 @@ class fast_csr_matrix(csr_matrix):
         else:
             return fast_csr_matrix((data,self.indices,self.indptr),
                                    shape=self.shape,dtype=data.dtype)
-                                   
-    def trans(self):
+    
+    
+    def transpose(self):
         """
         Same as transpose.
         """
@@ -353,10 +354,22 @@ class fast_csr_matrix(csr_matrix):
         """
         return zcsr_transpose(self)
     
-    def adjoint(self):
+    def trans(self):
+        """
+        Same as transpose
+        """
+        return zcsr_transpose(self)
+    
+    def getH(self):
         """
         Returns the conjugate-transpose of the matrix, keeping
         it in fast_csr format.
+        """
+        return zcsr_adjoint(self)
+    
+    def adjoint(self):
+        """
+        Same as getH
         """
         return zcsr_adjoint(self)
     
