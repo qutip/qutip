@@ -109,7 +109,7 @@ def test_graph_rcm_boost():
     M[5, [6, 7]] = 1
     M[6, 7] = 1
     M = M+M.T
-    M = sp.csr_matrix(M)
+    M = sp.csr_matrix(M, dtype=complex)
     perm = reverse_cuthill_mckee(M, 1)
     ans_perm = np.array([9, 7, 6, 4, 1, 5, 0, 2, 3, 8])
     assert_equal((perm - ans_perm).all(), 0)

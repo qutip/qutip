@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
+from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
 cimport cython
 
@@ -111,3 +112,50 @@ def arr_coo2fast(complex[::1] data, int[::1] rows, int[::1] cols, int nrows, int
     out.indptr[0] = 0
 
     return CSR_to_scipy(&out)
+    
+    
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def dense2D_to_fastcsr_cmode(complex[:, ::1] mat, int nrows, int ncols):
+    cdef int nnz = 0
+    cdef size_t ii, jj
+    cdef np.ndarray[complex, ndim=1, mode='c'] data = np.zeros(nrows*ncols, dtype=complex)
+    cdef np.ndarray[int, ndim=1, mode='c'] ind = np.zeros(nrows*ncols, dtype=np.int32)
+    cdef np.ndarray[int, ndim=1, mode='c'] ptr = np.zeros(nrows+1, dtype=np.int32)
+
+    for ii in range(nrows):
+        for jj in range(ncols):
+            if mat[ii,jj] != 0:
+                ind[nnz] = jj
+                data[nnz] = mat[ii,jj]
+                nnz += 1
+        ptr[ii+1] = nnz
+
+    if nnz < (nrows*ncols):
+        return fast_csr_matrix((data[:nnz], ind[:nnz], ptr), shape=(nrows,ncols))
+    else:
+        return fast_csr_matrix((data, ind, ptr), shape=(nrows,ncols))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def dense2D_to_fastcsr_fmode(complex[::1, :] mat, int nrows, int ncols):
+    cdef int nnz = 0
+    cdef size_t ii, jj
+    cdef np.ndarray[complex, ndim=1, mode='c'] data = np.zeros(nrows*ncols, dtype=complex)
+    cdef np.ndarray[int, ndim=1, mode='c'] ind = np.zeros(nrows*ncols, dtype=np.int32)
+    cdef np.ndarray[int, ndim=1, mode='c'] ptr = np.zeros(nrows+1, dtype=np.int32)
+
+    for ii in range(nrows):
+        for jj in range(ncols):
+            if mat[ii,jj] != 0:
+                ind[nnz] = jj
+                data[nnz] = mat[ii,jj]
+                nnz += 1
+        ptr[ii+1] = nnz
+
+    if nnz < (nrows*ncols):
+        return fast_csr_matrix((data[:nnz], ind[:nnz], ptr), shape=(nrows,ncols))
+    else:
+        return fast_csr_matrix((data, ind, ptr), shape=(nrows,ncols))
+

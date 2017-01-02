@@ -49,6 +49,8 @@ _dznrm2 = get_blas_funcs("znrm2")
 from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _sparse_reverse_permute, _sparse_bandwidth,
                                    _isdiag)
+from qutip.fastsparse import fast_csr_matrix
+from qutip.cy.spconvert import arr_coo2fast
 from qutip.settings import debug
 
 import qutip.logging_utils
@@ -139,18 +141,19 @@ def sp_reshape(A, shape, format='csr'):
 
     flat_indices = ncols * C.row + C.col
     new_row, new_col = divmod(flat_indices, shape[1])
-    B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
 
     if format == 'csr':
-        return B.tocsr()
-    elif format == 'coo':
-        return B
-    elif format == 'csc':
-        return B.tocsc()
-    elif format == 'lil':
-        return B.tolil()
+        return arr_coo2fast(C.data, new_row, new_col, shape[0], shape[1])
     else:
-        raise ValueError('Return format not valid.')
+        B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
+        if format == 'coo':
+            return B
+        elif format == 'csc':
+            return B.tocsc()
+        elif format == 'lil':
+            return B.tolil()
+        else:
+            raise ValueError('Return format not valid.')
 
 
 def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
@@ -444,7 +447,7 @@ def sp_permute(A, rperm=(), cperm=(), safe=True):
     data, ind, ptr = _sparse_permute(A.data, A.indices, A.indptr,
                                      nrows, ncols, rperm, cperm, flag)
     if kind == 'csr':
-        return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
+        return fast_csr_matrix((data, ind, ptr), shape=shp)
     elif kind == 'csc':
         return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
@@ -500,7 +503,7 @@ def sp_reverse_permute(A, rperm=(), cperm=(), safe=True):
                                              nrows, ncols, rperm, cperm, flag)
 
     if kind == 'csr':
-        return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
+        return fast_csr_matrix((data, ind, ptr), shape=shp)
     elif kind == 'csc':
         return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
