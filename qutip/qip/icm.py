@@ -107,3 +107,55 @@ class Icm(QubitCircuit):
                                             arg_value=gate.arg_value,
                                             arg_label=gate.arg_label)
         return (decomposed_circuit)
+
+    def ancilla_cost(self):
+        """
+        Determines the number of ancilla qubits and additional gates required 
+        for ICM representation of a given quantum circuit decomposed into P, T, V
+        SNOT and Toffoli gates. The P, T, V gates are implemented using ancilla
+        qubits and gate teleportation requiring CNOT and measurement. Each T gate
+        requires 5 ancillae and 6 CNOT gates. The P and V gates each require
+        1 ancilla and 1 CNOT gate. Each Hadamard gate is implemented
+        using a sequence of P and V gates requiring 3 extra ancillae and gates. The
+        Toffoli gate requires 55 extra gates and 42 ancillae.
+
+        Returns
+        -------
+        ancilla_cost: dict
+            A dictionary which gives the ancilla count for each type of gate from
+            the set (P (P_dagger), T (T_dagger), V (V_dagger), SNOT, TOFFOLI)
+
+        References
+        ----------
+        .. [1] arXiv:1509.03962v1 [quant-ph]
+        """
+        decomposed_circuit = self.decompose_gates()
+        cost = dict({"P": 0, "T": 0, "V": 0,
+                             "SNOT": 0, "TOFFOLI": 0})
+
+        for gate in decomposed_circuit.gates:
+            if gate.name == "CNOT":
+                continue
+
+            elif gate.name == "SNOT":
+                cost["SNOT"] += 3
+
+            elif gate.name == "TOFFOLI":
+                cost["TOFFOLI"] += 42
+
+            elif ((_icm_gate_dict[(gate.name, gate.arg_label)] == "P")
+                or (_icm_gate_dict[(gate.name, gate.arg_label)] == "P_dagger")):
+                cost["P"] += 1
+
+            elif ((_icm_gate_dict[(gate.name, gate.arg_label)] == "T")
+                   or (_icm_gate_dict[(gate.name, gate.arg_label)] == "T_dagger")):
+                cost["T"] += 5
+
+            elif ((_icm_gate_dict[(gate.name, gate.arg_label)] == "V")
+                or (_icm_gate_dict[(gate.name, gate.arg_label)] == "V_dagger")):
+                cost["V"] += 1
+
+            else:
+                raise ValueError("Gate decomposition is not in correct ICM basis")
+
+        return (cost)
