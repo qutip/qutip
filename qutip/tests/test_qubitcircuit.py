@@ -33,7 +33,7 @@
 
 from numpy.testing import assert_, run_module_suite
 from qutip.qip.gates import gate_sequence_product
-from qutip.qip.circuit import QubitCircuit
+from qutip.qip.circuit import QubitCircuit, Gate
 
 
 class TestQubitCircuit:
@@ -138,6 +138,25 @@ class TestQubitCircuit:
         U2 = gate_sequence_product(qc2.propagators())
         assert_((U1 - U2).norm() < 1e-12)
 
+    def test_add_gate(self):
+        """
+        Addition of a gate object directly to a `QubitCircuit` 
+        """
+        qc = QubitCircuit(3)
+        qc.add_gate("CNOT", targets=[1], controls=[0])
+        test_gate = Gate("RZ", targets=[1], arg_value = 1.570796,
+                         arg_label="P")
+        qc.add_gate(test_gate)
+
+        # Test explicit gate addition
+        assert_(qc.gates[0].name == "CNOT")
+        assert_(qc.gates[0].targets == [1])
+        assert_(qc.gates[0].controls == [0])
+
+        # Test direct gate addition
+        assert_(qc.gates[1].name == test_gate.name)
+        assert_(qc.gates[1].targets == test_gate.targets)
+        assert_(qc.gates[1].controls == test_gate.controls)
 
 if __name__ == "__main__":
     run_module_suite()
