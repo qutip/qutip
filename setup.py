@@ -80,15 +80,10 @@ except ImportError:
 
 # all information about QuTiP goes here
 MAJOR = 4
-<<<<<<< HEAD
 MINOR = 0
-MICRO = 1
+MICRO = 2
 ISRELEASED = True
-=======
-MINOR = 1
-MICRO = 0
-ISRELEASED = False
->>>>>>> master
+
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
