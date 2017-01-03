@@ -180,7 +180,7 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        gate: String
+        gate: String or `Gate`
             Gate name. If gate is an instance of `Gate`, parameters are
             unpacked and added.
         targets: List
