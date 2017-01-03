@@ -172,15 +172,16 @@ class QubitCircuit(object):
         self.gates = []
         self.U_list = []
 
-    def add_gate(self, name, targets=None, controls=None, arg_value=None,
+    def add_gate(self, gate, targets=None, controls=None, arg_value=None,
                  arg_label=None):
         """
         Adds a gate with specified parameters to the circuit.
 
         Parameters
         ----------
-        name: String
-            Gate name.
+        gate: String
+            Gate name. If gate is an instance of `Gate`, parameters are
+            unpacked and added.
         targets: List
             Gate targets.
         controls: List
@@ -190,6 +191,15 @@ class QubitCircuit(object):
         arg_label: String
             Label for gate representation.
         """
+        if isinstance(gate, Gate):
+            name = gate.name
+            targets = gate.targets
+            controls = gate.controls
+            arg_value = gate.arg_value
+            arg_label = gate.arg_label
+
+        else:
+            name = gate
         self.gates.append(Gate(name, targets=targets, controls=controls,
                                arg_value=arg_value, arg_label=arg_label))
 
