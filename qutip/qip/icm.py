@@ -8,6 +8,12 @@ from qutip import QubitCircuit, Qobj
 from qutip.qip.circuit import Gate
 from qutip.qip.gates import rx, ry, rz, snot, phasegate, cnot, toffoli
 
+_icm_gate_dict = {("RZ", r"\pi/2"): "P",
+                  ("RZ", r"\pi/4"): "T",
+                  ("RX", r"\pi/2"): "V",
+                  ("RZ", r"-\pi/2"): "P_dagger",
+                  ("RZ", r"-\pi/4"): "T_dagger",
+                  ("RX", r"-\pi/2"): "V_dagger"}
 
 class Icm(QubitCircuit):
     """
@@ -50,11 +56,6 @@ class Icm(QubitCircuit):
         decomposed_circuit = QubitCircuit(resolved_circuit.N)
 
         # Check all gates and set argument label with necessary ICM gates
-
-        replace_dict = {("RZ", r"\pi/2"): "P", ("RZ", r"\pi/4"): "T",
-                        ("RX", r"\pi/2"): "V", ("RZ", r"-\pi/2"): "P_dagger",
-                        ("RZ", r"-\pi/4"): "T_dagger",
-                        ("RX", r"-\pi/2"): "V_dagger"}
 
         for gate in resolved_circuit.gates:
 
@@ -99,7 +100,7 @@ class Icm(QubitCircuit):
                                             arg_label=gate.arg_label)
 
             else:
-                icm_label = replace_dict[(gate.name, gate.arg_label)]
+                icm_label = _icm_gate_dict[(gate.name, gate.arg_label)]
                 decomposed_circuit.add_gate(icm_label,
                                             targets=gate.targets,
                                             controls=gate.controls,
