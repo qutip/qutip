@@ -35,8 +35,7 @@ import operator
 from scipy.sparse import (_sparsetools, isspmatrix, isspmatrix_csr,
                           csr_matrix, coo_matrix, csc_matrix, dia_matrix)
 from scipy.sparse.sputils import (upcast, upcast_char, to_native, isdense, isshape,
-                      getdtype, isscalarlike, IndexMixin, get_index_dtype,
-                      downcast_intp_index, get_sum_dtype)
+                      getdtype, isscalarlike, IndexMixin, get_index_dtype)
 from scipy.sparse.base import spmatrix, isspmatrix, SparseEfficiencyWarning
 from warnings import warn
 
@@ -340,23 +339,57 @@ class fast_csr_matrix(csr_matrix):
         else:
             return fast_csr_matrix((data,self.indices,self.indptr),
                                    shape=self.shape,dtype=data.dtype)
-                                   
-    def trans(self):
+    
+    def transpose(self):
         """
         Returns the transpose of the matrix, keeping
         it in fast_csr format.
         """
         return zcsr_transpose(self)
     
-    def adjoint(self):
+    def trans(self):
+        """
+        Same as transpose
+        """
+        return zcsr_transpose(self)
+    
+    def getH(self):
         """
         Returns the conjugate-transpose of the matrix, keeping
         it in fast_csr format.
         """
         return zcsr_adjoint(self)
     
+    def adjoint(self):
+        """
+        Same as getH
+        """
+        return zcsr_adjoint(self)
+    
 
-#Convenience funtions
+def csr2fast(A, copy=False):
+    if (not isinstance(A, fast_csr_matrix)) or copy:
+        # Do not need to do any type checking here
+        # since fast_csr_matrix does that.
+        return fast_csr_matrix((A.data,A.indices,A.indptr),
+                                shape=A.shape,copy=copy)
+    else:
+        return A
+
+
+def fast_identity(N):
+    """Generates a sparse identity matrix in
+    fast_csr format.
+    """
+    data = np.ones(N, dtype=complex)
+    ind = np.arange(N, dtype=np.int32)
+    ptr = np.arange(N+1, dtype=np.int32)
+    ptr[-1] = N
+    return fast_csr_matrix((data,ind,ptr),shape=(N,N))
+
+
+
+#Convenience functions
 #--------------------
 def _all_true(shape):
     A = csr_matrix((np.ones(np.prod(shape), dtype=np.bool_),
@@ -364,6 +397,7 @@ def _all_true(shape):
                 np.arange(0,np.prod(shape)+1,shape[1],dtype=np.int32)),
                 shape=shape)
     return A
+
 
 
 #Need to do some trailing imports here

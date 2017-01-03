@@ -148,7 +148,8 @@ cdef inline int int_max(int a, int b) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)        
-cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int max_length = 0, int init_zeros = 1):
+cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int ncols = 0,
+                int max_length = 0, int init_zeros = 1):
     """
     Initialize CSR_Matrix struct. Matrix is assumed to be square with
     shape nrows x nrows.  Manually set mat.ncols otherwise
@@ -162,6 +163,8 @@ cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int max_length = 0, int
     nrows : int
         Number of rows in matrix. Also gives length 
         of indptr array (nrows+1).
+    ncols : int (default = 0)
+        Number of cols in matrix. Default is ncols = nrows.
     max_length : int (default = 0)
         Maximum length of data and indices arrays.  Used for resizing.
         Default value of zero indicates no resizing.
@@ -184,7 +187,10 @@ cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int max_length = 0, int
         mat.indptr = <int *>PyDataMem_NEW((nrows+1) * sizeof(int))
     mat.nnz = nnz
     mat.nrows = nrows
-    mat.ncols = nrows
+    if ncols == 0:
+        mat.ncols = nrows
+    else:
+        mat.ncols = ncols
     mat.is_set = 1
     mat.max_length = max_length
     mat.numpy_lock = 0
@@ -201,8 +207,7 @@ cdef void copy_CSR(CSR_Matrix * out, CSR_Matrix * mat):
         raise_error_CSR(-3)
     elif out.is_set:
         raise_error_CSR(-2)
-    init_CSR(out, mat.nnz, mat.nrows, mat.max_length)
-    out.ncols = mat.ncols
+    init_CSR(out, mat.nnz, mat.nrows, mat.nrows, mat.max_length)
     # We cannot use memcpy here since there are issues with
     # doing so on Win with the GCC compiler
     for kk in range(mat.nnz):
@@ -214,7 +219,8 @@ cdef void copy_CSR(CSR_Matrix * out, CSR_Matrix * mat):
     
 @cython.boundscheck(False)
 @cython.wraparound(False)        
-cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int max_length = 0, int init_zeros = 0):
+cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int ncols = 0, 
+                int max_length = 0, int init_zeros = 1):
     """
     Initialize COO_Matrix struct. Matrix is assumed to be square with
     shape nrows x nrows.  Manually set mat.ncols otherwise
@@ -227,6 +233,8 @@ cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int max_length = 0, int
         Number of nonzero elements.
     nrows : int
         Number of rows in matrix.
+    nrows : int (default = 0)
+        Number of cols in matrix. Default is ncols = nrows.
     max_length : int (default = 0)
         Maximum length of arrays.  Used for resizing.
         Default value of zero indicates no resizing.
@@ -254,7 +262,10 @@ cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int max_length = 0, int
         mat.cols = <int *>PyDataMem_NEW(nnz * sizeof(int))
     mat.nnz = nnz
     mat.nrows = nrows
-    mat.ncols = nrows
+    if ncols == 0:
+        mat.ncols = nrows
+    else:
+        mat.ncols = ncols
     mat.is_set = 1
     mat.max_length = max_length
     mat.numpy_lock = 0
@@ -384,22 +395,21 @@ cdef void COO_to_CSR(CSR_Matrix * out, COO_Matrix * mat):
     Conversion from COO to CSR. Not in place,
     but result is sorted correctly.
     """
-    cdef int i, j, iad, j0, nnz = mat.nnz, nrows = mat.nrows
+    cdef int i, j, iad, j0
     cdef double complex val
     cdef size_t kk
-    init_CSR(out, nnz, nrows, max_length=0, init_zeros=1)
-    out.ncols = mat.ncols
+    init_CSR(out, mat.nnz, mat.nrows, mat.ncols, max_length=0, init_zeros=1)
     # Determine row lengths
-    for kk in range(nnz):
+    for kk in range(mat.nnz):
         out.indptr[mat.rows[kk]] = out.indptr[mat.rows[kk]] + 1
     # Starting position of rows
     j = 0
-    for kk in range(nrows):
+    for kk in range(mat.nrows):
         j0 = out.indptr[kk]
         out.indptr[kk] = j
         j += j0
     #Do the data
-    for kk in range(nnz):
+    for kk in range(mat.nnz):
         i = mat.rows[kk]
         j = mat.cols[kk]
         val = mat.data[kk]
@@ -408,7 +418,7 @@ cdef void COO_to_CSR(CSR_Matrix * out, COO_Matrix * mat):
         out.indices[iad] = j
         out.indptr[i] = iad+1
     # Shift back
-    for kk in range(nrows,0,-1):
+    for kk in range(mat.nrows,0,-1):
         out.indptr[kk] = out.indptr[kk-1]
     out.indptr[0] = 0
 
@@ -416,13 +426,13 @@ cdef void COO_to_CSR(CSR_Matrix * out, COO_Matrix * mat):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void CSR_to_COO(COO_Matrix * out, CSR_Matrix * mat):
-    cdef int k1, k2, nrows=mat.nrows, nnz=mat.nnz
+    cdef int k1, k2
     cdef size_t jj, kk
-    init_COO(out, nnz, nrows)
-    for kk in range(nnz):
+    init_COO(out, mat.nnz, mat.nrows, mat.ncols)
+    for kk in range(mat.nnz):
         out.data[kk] = mat.data[kk]
         out.cols[kk] = mat.indices[kk]
-    for kk in range(nrows,0,-1):
+    for kk in range(mat.nrows,0,-1):
         k1 = mat.indptr[kk+1]
         k2 = mat.indptr[kk]
         for jj in range(k1,k2,-1):

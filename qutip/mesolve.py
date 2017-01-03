@@ -50,7 +50,7 @@ from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
-from qutip.cy.sparse_utils import dense2D_to_fastcsr_fmode
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.rhs_generate import rhs_generate

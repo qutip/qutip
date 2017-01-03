@@ -41,9 +41,10 @@ from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
 from qutip.solver import Options, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.cy.sparse_utils import dense2D_to_fastcsr_fmode
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.solver import Result
 from qutip.superoperator import liouvillian
+from qutip.cy.spconvert import arr_coo2fast
 
 
 # -----------------------------------------------------------------------------
@@ -355,8 +356,9 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
                 cols.append(J)
                 data.append(elem)
 
-    R = sp.coo_matrix((np.array(data),(np.array(rows),np.array(cols))),
-            shape=(N**2,N**2),dtype=complex).tocsr()
+    R = arr_coo2fast(np.array(data, dtype=complex),
+                    np.array(rows, dtype=np.int32),
+                    np.array(cols, dtype=np.int32), N**2, N**2)
     
     L.data = L.data + R
     

@@ -85,11 +85,11 @@ def load_parameters(file_name, config=None, term_conds=None,
     Will throw a ValueError if file_name does not exist
     """
     try:
-        parser = ConfigParser()
-    except:
         parser = SafeConfigParser()
+    except:
+        parser = ConfigParser()
 
-    readFiles = parser.read(file_name)
+    readFiles = parser.read(str(file_name))
     if len(readFiles) == 0:
         raise ValueError("Parameter file '{}' not found".format(file_name))
 
