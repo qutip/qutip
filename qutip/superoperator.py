@@ -97,7 +97,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     if H:
         if H.isoper:
-            Ht = H.data.T.tocsr()
+            Ht = H.data.T
             data = -1j * zcsr_kron(spI, H.data)
             data += 1j * zcsr_kron(Ht, spI)
         else:
@@ -109,7 +109,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         if c_op.issuper:
             data = data + c_op.data
         else:
-            cd = c_op.data.T.conj().tocsr()
+            cd = c_op.data.H
             c = c_op.data
             if chi:
                 data = data + np.exp(1j * chi[idx]) * \
@@ -117,7 +117,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             else:
                 data = data + zcsr_kron(c.conj(), c)
             cdc = cd * c
-            cdct = cdc.T.tocsr()
+            cdct = cdc.T
             data = data - 0.5 * zcsr_kron(spI, cdc)
             data = data - 0.5 * zcsr_kron(cdct, spI)
 
@@ -214,7 +214,7 @@ def vector_to_operator(op):
     q = Qobj()
     q.dims = op.dims[0]
     n = int(np.sqrt(op.shape[0]))
-    q.data = sp_reshape(op.data.T, (n, n)).T.tocsr()
+    q.data = sp_reshape(op.data.T, (n, n)).T
     return q
 
 
@@ -272,7 +272,7 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = zcsr_kron(A.data.T.tocsr(), 
+    S.data = zcsr_kron(A.data.T, 
                 fast_identity(np.prod(A.shape[0])))
     return S
 
@@ -330,5 +330,5 @@ def sprepost(A, B):
 
     dims = [[_drop_projected_dims(A.dims[0]), _drop_projected_dims(B.dims[1])],
             [_drop_projected_dims(A.dims[1]), _drop_projected_dims(B.dims[0])]]
-    data = zcsr_kron(B.data.T.tocsr(), A.data)
+    data = zcsr_kron(B.data.T, A.data)
     return Qobj(data, dims=dims, superrep='super')

@@ -69,5 +69,24 @@ def test_fast_sparse_basic():
     Hmult = G*H
     assert_(not isinstance(Hmult, fast_csr_matrix))
 
+    
+def test_fast_sparse_trans():
+    "fastsparse: transpose operations"
+    H = rand_herm(5).data
+    assert_(isinstance(H, fast_csr_matrix))
+    assert_(isinstance(H.T, fast_csr_matrix))
+    assert_(isinstance(H.trans(), fast_csr_matrix))
+    assert_(isinstance(H.transpose(), fast_csr_matrix))
+
+    
+def test_fast_sparse_adjoint():
+    "fastsparse: adjoint operations"
+    H = rand_herm(5).data
+    assert_(isinstance(H, fast_csr_matrix))
+    assert_(isinstance(H.H, fast_csr_matrix))
+    assert_(isinstance(H.getH(), fast_csr_matrix))
+    assert_(isinstance(H.adjoint(), fast_csr_matrix))
+
+
 if __name__ == "__main__":
     run_module_suite()
