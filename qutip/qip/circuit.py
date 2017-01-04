@@ -781,39 +781,38 @@ class QubitCircuit(object):
         else:
             qc_temp.gates = temp_resolved
 
-        if len(basis_1q) == 2:
-            temp_resolved = qc_temp.gates
-            qc_temp.gates = []
-            for gate in temp_resolved:
-                if gate.name == "RX" and "RX" not in basis_1q:
-                    qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                              gate.arg_value, gate.arg_label))
-                    qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                              arg_value=np.pi / 2,
-                                              arg_label=r"\pi/2"))
-                elif gate.name == "RY" and "RY" not in basis_1q:
-                    qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("RX", gate.targets, None,
-                                              gate.arg_value, gate.arg_label))
-                    qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                              arg_value=np.pi / 2,
-                                              arg_label=r"\pi/2"))
-                elif gate.name == "RZ" and "RZ" not in basis_1q:
-                    qc_temp.gates.append(Gate("RX", gate.targets, None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                              gate.arg_value, gate.arg_label))
-                    qc_temp.gates.append(Gate("RX", gate.targets, None,
-                                              arg_value=np.pi / 2,
-                                              arg_label=r"\pi/2"))
-                else:
-                    qc_temp.gates.append(gate)
+        temp_resolved = qc_temp.gates
+        qc_temp.gates = []
+        for gate in temp_resolved:
+            if gate.name == "RX" and "RX" not in basis_1q:
+                qc_temp.gates.append(Gate("RY", gate.targets, None,
+                                          arg_value=-np.pi / 2,
+                                          arg_label=r"-\pi/2"))
+                qc_temp.gates.append(Gate("RZ", gate.targets, None,
+                                          gate.arg_value, gate.arg_label))
+                qc_temp.gates.append(Gate("RY", gate.targets, None,
+                                          arg_value=np.pi / 2,
+                                          arg_label=r"\pi/2"))
+            elif gate.name == "RY" and "RY" not in basis_1q:
+                qc_temp.gates.append(Gate("RZ", gate.targets, None,
+                                          arg_value=-np.pi / 2,
+                                          arg_label=r"-\pi/2"))
+                qc_temp.gates.append(Gate("RX", gate.targets, None,
+                                          gate.arg_value, gate.arg_label))
+                qc_temp.gates.append(Gate("RZ", gate.targets, None,
+                                          arg_value=np.pi / 2,
+                                          arg_label=r"\pi/2"))
+            elif gate.name == "RZ" and "RZ" not in basis_1q:
+                qc_temp.gates.append(Gate("RX", gate.targets, None,
+                                          arg_value=-np.pi / 2,
+                                          arg_label=r"-\pi/2"))
+                qc_temp.gates.append(Gate("RY", gate.targets, None,
+                                          gate.arg_value, gate.arg_label))
+                qc_temp.gates.append(Gate("RX", gate.targets, None,
+                                          arg_value=np.pi / 2,
+                                          arg_label=r"\pi/2"))
+            else:
+                qc_temp.gates.append(gate)
 
         return qc_temp
 
