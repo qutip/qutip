@@ -3,7 +3,8 @@ Tests for the ICM module.
 """
 
 import numpy as np
-from numpy.testing import assert_equal, assert_, run_module_suite
+from numpy.testing import (assert_equal, assert_, run_module_suite,
+                           assert_raises)
 
 from qutip.qip.circuit import Gate
 from qutip.qip.icm import Icm
@@ -49,6 +50,18 @@ def test_decomposition():
     for gate in decomposed_gates:
         assert_(gate in icm_gate_set)
 
+def test_non_icm_gates():
+    qc_non_icm = QubitCircuit(2)
+    qc_non_icm.add_gate("RY", targets=[1], arg_value=np.pi / 2,
+                         arg_label=r'\pi/2')
+    qc_non_icm.add_gate("SNOT", targets=[1])
+    qc_non_icm.add_gate("RZ", targets=[1], arg_value=np.pi / 2,
+                        arg_label=r'\pi/2')
+    qc_non_icm.add_gate("RX", targets=[0], arg_value=np.pi / 10,
+                         arg_label=r"\pi/10")
+    non_icm_model = Icm(qc_non_icm)
+    assert_raises(ValueError, non_icm_model.decompose_gates)
+
 
 def test_ancilla_cost():
     """
@@ -70,4 +83,5 @@ def test_ancilla_cost():
     assert_(ancilla["V"] == 2)
 
 if __name__ == "__main__":
-    run_module_suite()
+    # run_module_suite()
+    test_non_icm_gates()
