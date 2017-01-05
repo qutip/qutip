@@ -1,8 +1,10 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2017, Alexander J. G. Pitchford, Paul D. Nation & Robert J. Johansson
 
+.. This file was created using retext 6.1 https://github.com/retext-project/retext
+
 .. _release_distribution:
-  
+
 ************************
 Release and Distribution
 ************************
@@ -15,7 +17,7 @@ This document covers the process for managing updates to the current minor relea
 If just an update (bug fix) to the current minor release is required, 
 then just bugfix_ is needed.
 
-To make a micro (patch) release follow distbuild_, web_, cforge_, pypi_
+To make a micro (patch) release follow distbuild_, docbuild_, web_, cforge_, pypi_
 
 For a minor or major release follow newrelease_, distbuild_, docbuild_, web_, cforge_, pypi_
 
@@ -53,11 +55,11 @@ pick the commit(s) from the fix_bug123 branch to be applied to the release, e.g.
 This will take the last commit only ::
 
     $ git cherry-pick fix_bug123
-    
+
 This will take the last two commits only::
 
     $ git cherry-pick fix_bug123 fix_bug123~1
-    
+
 for further options see https://www.kernel.org/pub/software/scm/git/docs/git-cherry-pick.html
 
 push changes to your fork ::
@@ -113,7 +115,7 @@ If you have checked out this branch previously, then ::
 
     $ git checkout qutip-4.0.X
     $ git pull upstream qutip-4.0.X
-    
+
 Otherwise ::
 
     $ git fetch upstream
@@ -130,7 +132,7 @@ Build the source code distribution
 ::
 
     $ python setup.py egg_info --egg-base ~/tmp sdist --formats=gztar,zip
-    
+
 Note the ``egg_info --egg-base ~/tmp`` here will create the qutip.egg-info in a subfolder ``tmp`` in your home directory. 
 This is to avoid the egg-info being included in the gztar / zip, which otherwise causes issues, as it contains absolute paths to some sources.
 
@@ -141,6 +143,12 @@ Test the distribution that is now in the ``dist`` folder. Should try at least tw
 
 Documentation build
 +++++++++++++++++++
+Documentation should be rebuilt for a minor or major release. 
+If there have been any documentation updates as part of a micro release, 
+then it should also be built for this.
+
+Rebuilding of the QuTiP documentation is fully documented in:
+https://github.com/qutip/qutip-doc/README.md
 
 .. _web:
 
@@ -151,7 +159,7 @@ This assumes that qutip.github.io has already been forked and familiarity with t
 All released versions will be saved in a subfolder like ::
 
     downloads/<MAJOR>.<MINOR>.<MICRO>
-    
+
 Links will be kept to the highest micro release of the current and all legacy minor release.
 For a micro release the qutip.github.io will need to be updated as follows:
 
@@ -180,23 +188,24 @@ This is unless conda-forge have resolved the issue, for which you can check: htt
 
 At time of writing CircleCI was reporting 'Major outage'. However, this was circumvented by adding CircleCI to the fork.
 
-Checkout a new branch on your fork, e.g. :: 
+Checkout a new branch on your fork, e.g. ::
 
     $ git checkout -b version-4.0.2
 
 Generate a new sha256 code from the gztar for this version, e.g. ::
 
     $ openssl sha256 qutip-4.0.2.tar.gz
-     
+
 Edit the ``recipe/meta.yaml`` file.
-Change the version. Update the sha256 code.   
+Change the version. Update the sha256 code. 
 Check that the recipe package version requirements at least match those in the setup.py
 
 Push changes to your fork, e.g. ::
 
     $ git push --set-upstream origin version-4.0.2
 
-Make a Pull Request. This will trigger tests of the package. CircleCI tests the linux build and install. Likewise TravisCI does MacOS and AppVeyor does Windows.  
+Make a Pull Request. This will trigger tests of the package. CircleCI tests the linux build and install. Likewise TravisCI does MacOS and AppVeyor does Windows.
+
 If (when) the tests pass, the PR can be merged, which will trigger the upload of the packages to the conda-forge channel.
 To test the packages, add the conda-forge channel with lowest priority ::
 
