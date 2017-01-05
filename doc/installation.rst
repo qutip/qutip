@@ -1,5 +1,7 @@
 .. QuTiP 
-   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011 and later, Paul D. Nation, Robert J. Johansson & Alexander Pitchford
+
+.. This file can be edited using retext 6.1 https://github.com/retext-project/retext
 
 .. _install:
 
@@ -60,18 +62,84 @@ In addition, there are several optional packages that provide additional functio
 
 As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has some performance benefit over the Python-based solver when simulating small systems. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are tested only on the Linux and OS X platforms.
 
+We would not recommend installation into the system Python on Linux platforms, as it is likely that the required libraries will be difficult to update to sufficiently recent versions. The system Python on Linux is used for system things, changing its configuration could lead to highly undesirable results. We are recommending and supporting Anaconda / Miniconda Python environments for QuTiP on all platforms.
 
 .. _install-platform-independent:
 
 Platform-independent Installation
 =================================
 
-QuTiP is designed to work best when using the `Anaconda <https://www.continuum.io/downloads>`_ or `Intel <https://software.intel.com/en-us/python-distribution>`_ Python distributions that support the conda package management system.  Once installed, the QuTiP library can be obtained using the conda-forge repository:
+QuTiP is designed to work best when using the `Anaconda <https://www.continuum.io/downloads>`_ or `Intel <https://software.intel.com/en-us/python-distribution>`_ Python distributions that support the conda package management system.
+
+If you aleady have your conda environment set up, and have the ``conda-forge`` channel available, then you can install QuTiP using:
 
 .. code-block:: bash
-    
-   conda config --add channels conda-forge 
+
    conda install qutip
+
+Otherwise refer to building-conda-environment_
+
+If you are using MS Windows, then you will probably want to refer to installation-on-MS-Windows_
+
+.. _building-conda-environment:
+
+Building your Conda environment
+-------------------------------
+The default Anaconda environment has all the Python packages needed for running QuTiP. 
+You may however wish to install QuTiP in a Conda environment (env) other than the default Anaconda environment. 
+You may wish to this for many reasons:
+
+1. It is a good idea generally
+2. You are using MS Windows and want to use Python 3
+3. You are using `Miniconda <http://conda.pydata.org/miniconda.html>`_ because you do not have the disk space for full Anaconda.
+
+To create a Conda env for QuTiP called ``qutip``:-
+
+(note the ``python=3`` can be ommited if you want the default Python version, if you want to use Python 3 with MS Windows, then it must be ``python=3.4``)
+
+recommended:
+
+.. code-block:: bash
+
+   conda create -n qutip python=3 mkl numpy scipy cython matplotlib nose multiprocess jupyter notebook spyder
+
+minimum (recommended):
+
+.. code-block:: bash
+
+   conda create -n qutip numpy scipy cython nose matplotlib
+
+absolute mimimum:
+
+.. code-block:: bash
+
+   conda create -n qutip numpy scipy cython
+
+The ``jupyter`` and ``notebook`` packages are for working with `Jupyter <http://jupyter.org/>`_ notebooks (fka IPython notebooks). 
+`Spyder <https://pythonhosted.org/spyder/>`_ is an IDE for scientific development with Python.
+
+Adding the conda-forge channel
+------------------------------
+
+If you have conda 4.1.0 or later then, add the conda-forge channel with lowest priority using:
+
+.. code-block:: bash
+
+   conda config --append channels conda-forge
+
+Otherwise you should consider reinstalling Anaconda / Miniconda. In theory:
+
+.. code-block:: bash
+   conda update conda
+
+will update your conda to the latest version, but this can lead to breaking your default Ananconda enviroment.
+
+Alternatively, this will add conda-forge as the highest priority channel.
+
+$ conda config --add channels conda-forge
+
+It is almost certainly better to have ``defaults`` as the highest priority channel.
+You can edit your .condarc (user home folder) file manually, so that ``conda-forge`` is below ``defaults`` in the ``channels`` list.
 
 
 Installing via pip
@@ -90,7 +158,6 @@ Or, optionally, to also include the Fortran-based Monte Carlo solver:
    pip install qutip --install-option=--with-f90mc
 
 More detailed platform-dependent installation alternatives are given below.
-
 
 .. _install-get-it:
 
@@ -147,3 +214,29 @@ QuTiP includes an "about" function for viewing information about QuTiP and the i
    In [1]: from qutip import *
 
    In [2]: about()
+
+.. _installation-on-MS-Windows:
+
+Installation on MS Windows
+==========================
+We are recommending and supporting installation of QuTiP into a Conda environment. Other Scientific Python implementations such as Python-xy may also work.
+
+QuTiP uses dynamic compilation of C for some of its time-dependant dynamics solvers. For MS Windows users the additional challenge is the need for a ANSI C99 compliant C compiler. Unlike other platforms, no C compiler is provided with Windows by default. 
+It is possible to install a Windows SDK that includes a C compiler, but ANSI C99 compliance is not 100%. 
+The `mingw-w64 <https://mingw-w64.org>`_ looks to help overcome this, and to some extent it is successful. 
+The `conda-forge <https://conda-forge.github.io>`_ packages for QuTiP will also install the `Mingwpy <https://mingwpy.github.io>`_ package, which uses mingw-w64.
+
+Currently we are only able get QuTiP working with Python <= 3.4. Python >= 3.5 is compiled with a newer version of the MSVC compiler, and there are currently license restrictions.
+
+To specify the use of the mingw compiler you will need to create the following file: ::
+
+   <path to my Python env>/Lib/distutils/distutils.cfg
+
+with the following contents: ::
+
+   [build]
+   compiler=mingw32
+   [build_ext]
+   compiler=mingw32
+
+
