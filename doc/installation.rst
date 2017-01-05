@@ -130,16 +130,19 @@ If you have conda 4.1.0 or later then, add the conda-forge channel with lowest p
 Otherwise you should consider reinstalling Anaconda / Miniconda. In theory:
 
 .. code-block:: bash
+
    conda update conda
 
 will update your conda to the latest version, but this can lead to breaking your default Ananconda enviroment.
 
-Alternatively, this will add conda-forge as the highest priority channel.
+Alternatively, this will add ``conda-forge`` as the highest priority channel.
 
-$ conda config --add channels conda-forge
+.. code-block:: bash
+
+   conda config --add channels conda-forge
 
 It is almost certainly better to have ``defaults`` as the highest priority channel.
-You can edit your .condarc (user home folder) file manually, so that ``conda-forge`` is below ``defaults`` in the ``channels`` list.
+You can edit your ``.condarc`` (user home folder) file manually, so that ``conda-forge`` is below ``defaults`` in the ``channels`` list.
 
 
 Installing via pip
@@ -197,6 +200,7 @@ Verifying the Installation
 QuTiP includes a collection of built-in test scripts to verify that an installation was successful. To run the suite of tests scripts you must have the nose testing library. After installing QuTiP, leave the installation directory, run Python (or iPython), and call:
 
 .. code-block:: python
+
    import qutip.testing as qt
    qt.run()
 
@@ -223,7 +227,7 @@ We are recommending and supporting installation of QuTiP into a Conda environmen
 
 QuTiP uses dynamic compilation of C for some of its time-dependant dynamics solvers. For MS Windows users the additional challenge is the need for a ANSI C99 compliant C compiler. Unlike other platforms, no C compiler is provided with Windows by default. 
 It is possible to install a Windows SDK that includes a C compiler, but ANSI C99 compliance is not 100%. 
-The `mingw-w64 <https://mingw-w64.org>`_ looks to help overcome this, and to some extent it is successful. 
+The `mingw-w64 <https://mingw-w64.org>`_ project looks to help overcome this, and to some extent it is successful. 
 The `conda-forge <https://conda-forge.github.io>`_ packages for QuTiP will also install the `Mingwpy <https://mingwpy.github.io>`_ package, which uses mingw-w64.
 
 Currently we are only able get QuTiP working with Python <= 3.4. Python >= 3.5 is compiled with a newer version of the MSVC compiler, and there are currently license restrictions.
