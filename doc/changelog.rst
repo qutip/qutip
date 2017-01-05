@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2013, Paul D. Nation, Robert J. Johansson & Alexander Pitchford
 
 .. _changelog:
 
@@ -7,11 +7,60 @@
 Change Log
 **********
 
-Version 3.2.0 (still in development)
-++++++++++++++++++++++++++++++++++++
+Version 4.1.0 (in dev)
+++++++++++++++++++++++
+
+Improvements
+------------
+
+*Core libraries*
+
+- erf supported function in td strings
+
+*QIP*
+
+- Gate object can be used to instantiate another identical gate
+
+
+Version 4.0.2 (January 5, 2017)
++++++++++++++++++++++++++++++++
+
+Bug Fixes
+---------
+- td files no longer left behind by correlation tests
+- Various fast sparse fixes
+
+
+
+Version 4.0.0 (December 22, 2016)
++++++++++++++++++++++++++++++++++
+
+Improvements
+------------
+*Core libraries*
+
+- **MAJOR FEATURE**: Fast sparse: New subclass of csr_matrix added that overrides commonly used methods to avoid certain checks that incurr execution cost. All Qobj.data now fast_csr_matrix
+- HEOM performance enhancements
+- spmv now faster
+- mcsolve codegen further optimised
+
+*Control modules*
+
+- Time dependent drift (through list of pwc dynamics generators)
+- memory optimisation options provided for control.dynamics
+
+Bug Fixes
+---------
+
+- recompilation of pyx files on first import removed
+- tau array in control.pulseoptim funcs now works
+
+Version 3.2.0 (Never officially released)
++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ------------
+
 *Core libraries*
 
 - **MAJOR FEATURE**: Non-Markovian solvers: Hierarchy (**Added by Neill Lambert**), Memory-Cascade, and Transfer-Tensor methods.
@@ -106,7 +155,7 @@ Improvements
 
 Bug Fixes
 ---------
-
+- Fixes for countstat and psuedo-inverse functions
 - Fixed Qobj division tests on 32-bit systems.
 - Removed extra call to Python in time-dependent Cython code.
 - Fixed issue with repeated Bloch sphere saving.
