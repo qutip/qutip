@@ -213,7 +213,7 @@ Checking Version Information using the About Function
 
 QuTiP includes an "about" function for viewing information about QuTiP and the important dependencies installed on your system.  To view this information:
 
-.. ipython::
+.. code-block:: python
 
    In [1]: from qutip import *
 
@@ -223,7 +223,7 @@ QuTiP includes an "about" function for viewing information about QuTiP and the i
 
 Installation on MS Windows
 ==========================
-We are recommending and supporting installation of QuTiP into a Conda environment. Other Scientific Python implementations such as Python-xy may also work.
+We are recommending and supporting installation of QuTiP into a Conda environment. Other scientific Python implementations such as Python-xy may also work.
 
 QuTiP uses dynamic compilation of C for some of its time-dependant dynamics solvers. For MS Windows users the additional challenge is the need for a ANSI C99 compliant C compiler. Unlike other platforms, no C compiler is provided with Windows by default. 
 It is possible to install a Windows SDK that includes a C compiler, but ANSI C99 compliance is not 100%. 
