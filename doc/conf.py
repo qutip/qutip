@@ -186,6 +186,9 @@ html_show_copyright = True
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'QuTiPdoc'
 
+# Suggested during make
+latex_keep_old_macro_names=False 
+
 
 # -- Options for LaTeX output --------------------------------------------------
 
