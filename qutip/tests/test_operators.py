@@ -130,7 +130,7 @@ def test_qeye():
 
 
 def test_qeye_dims():
-    "Identity operator"
+    "Identity operator (array input)"
     eye24 = qeye([2, 3, 4])
     assert_equal(np.allclose(eye24.full(), np.eye(24, dtype=complex)), True)
     assert_equal(eye24.dims, [[2, 3, 4], [2, 3, 4]])

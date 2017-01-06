@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 4
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -81,8 +81,9 @@ except ImportError:
 # all information about QuTiP goes here
 MAJOR = 4
 MINOR = 0
-MICRO = 1
+MICRO = 2
 ISRELEASED = True
+
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
@@ -90,17 +91,21 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
             'qutip/_mkl', 'qutip/tests']
 PACKAGE_DATA = {
+    '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
-    'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
-    'qutip/cy': ['*.pxi', '*.pxd']
+    'qutip/tests': ['bucky.npy', 'bucky_perm.npy', '*.ini'],
+    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
 EXT_MODULES = []
 NAME = "qutip"
-AUTHOR = "Alexander J. G. Pitchford, Paul D. Nation, Robert J. Johansson"
-AUTHOR_EMAIL = "alex.pitchford@gmail.com, nonhermitian@gmail.com, jrjohansson@gmail.com"
+AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
+          "Chris Granade, Arne Grimsmo")
+AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, " 
+                "jrjohansson@gmail.com, cgranade@cgranade.com, "
+                "arne.grimsmo@gmail.com")
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])

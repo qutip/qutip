@@ -62,6 +62,8 @@ from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
+
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
 logger.setLevel('DEBUG')
@@ -405,8 +407,8 @@ def _steadystate_direct_sparse(L, ss_args):
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
-    data = vec2mat(v)
-    data = 0.5 * (data + data.conj().T)
+    data = dense2D_to_fastcsr_fmode(vec2mat(v), n, n)
+    data = 0.5 * (data + data.H)
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
     else:
@@ -476,9 +478,9 @@ def _steadystate_eigen(L, ss_args):
         ss_args['info']['residual_norm'] = la.norm(L*eigvec)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
-
-    data = vec2mat(eigvec)
-    data = 0.5 * (data + data.conj().T)
+    _temp = vec2mat(eigvec)
+    data = dense2D_to_fastcsr_fmode(_temp,_temp.shape[0], _temp.shape[1])
+    data = 0.5 * (data + data.H)
     out = Qobj(data, dims=dims, isherm=True)
     if ss_args['return_info']:
         return out/out.tr(), ss_args['info']
@@ -820,14 +822,13 @@ def _steadystate_power(L, ss_args):
 
     # normalise according to type of problem
     if sflag:
-        trow = sp.eye(rhoss.shape[0], rhoss.shape[0], format='coo')
-        trow = sp_reshape(trow, (1, n))
-        data = v / sum(trow.dot(v))
+        trow = v[::rhoss.shape[0]+1]
+        data = v / np.sum(trow)
     else:
         data = data / la.norm(v)
 
-    data = sp.csr_matrix(vec2mat(data))
-    rhoss.data = 0.5 * (data + data.conj().T)
+    data = dense2D_to_fastcsr_fmode(vec2mat(data), rhoss.shape[0], rhoss.shape[0])
+    rhoss.data = 0.5 * (data + data.H)
     rhoss.isherm = True
     if ss_args['return_info']:
         return rhoss, ss_args['info']
@@ -998,7 +999,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     tr_op = tensor([identity(n) for n in L.dims[0][0]])
     tr_op_vec = operator_to_vector(tr_op)
 
-    P = zcsr_kron(rhoss_vec.data, tr_op_vec.data.T.tocsr())
+    P = zcsr_kron(rhoss_vec.data, tr_op_vec.data.T)
     I = sp.eye(N*N, N*N, format='csr')
     Q = I - P
     
@@ -1014,8 +1015,8 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         
     if pseudo_args['use_rcm']:
         perm = reverse_cuthill_mckee(L.data)
-        A = sp_permute(L.data, perm, perm, 'csr')
-        Q = sp_permute(Q, perm, perm, 'csr')
+        A = sp_permute(L.data, perm, perm)
+        Q = sp_permute(Q, perm, perm)
     else:
         if not settings.has_mkl:
             A = L.data.tocsc()
