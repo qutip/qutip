@@ -86,10 +86,10 @@ Create a new branch from this, e.g. ::
     $ git checkout -b 4.1-release_ready qutip-4.1.X
 
 Edit the main setup.py for the project.
-Update the ``CLASSIFIERS`` to the correct major version and remove the ``Beta`` ::
+Update the ``CLASSIFIERS`` to the correct ``Development Status`` ::
 
     CLASSIFIERS = """\
-    Development Status :: 4
+    Development Status :: 5 - Production/Stable
 
 Update the version and ``ISRELEASED`` flag ::
 
