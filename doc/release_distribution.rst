@@ -147,6 +147,11 @@ Documentation should be rebuilt for a minor or major release.
 If there have been any documentation updates as part of a micro release, 
 then it should also be built for this.
 
+First:
+
+- The version should be changed in ``conf.py``. 
+- Update ``api_doc/classes.rst`` for any new / deleted classes.
+
 Rebuilding of the QuTiP documentation is fully documented in:
 https://github.com/qutip/qutip-doc/README.md
 

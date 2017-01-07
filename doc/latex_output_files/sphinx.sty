@@ -53,6 +53,10 @@
   \usepackage[pdftex]{graphicx}
 \fi
 
+\RequirePackage{kvoptions}
+\SetupKeyvalOptions{prefix=spx@opt@} % use \spx@opt@ prefix
+\DeclareBoolOption{dontkeepoldnames} % \ifspx@opt@dontkeepoldnames = \iffalse
+
 % for PDF output, use colors and maximal compression
 \newif\ifsphinxpdfoutput\sphinxpdfoutputfalse
 \ifx\pdfoutput\undefined\else\ifcase\pdfoutput
@@ -477,3 +481,23 @@
     \@gobble
 }
 \def\FN@sf@gobble@twobracket[#1]#2{}
+
+% by default, also define macros with the no-prefix names
+\ifspx@opt@dontkeepoldnames\else
+  \typeout{** (sphinx) defining (legacy) text style macros without \string\sphinx\space prefix}
+  \typeout{** if clashes with packages, set latex_keep_old_macro_names=False
+    in conf.py}
+  \@for\@tempa:=code,strong,bfcode,email,tablecontinued,titleref,%
+                menuselection,accelerator,crossref,termref,optional\do
+{% first, check if command with no prefix already exists
+  \expandafter\newcommand\csname\@tempa\endcsname{}%
+  % give it the meaning defined so far with \sphinx prefix
+  \expandafter\let\csname\@tempa\expandafter\endcsname
+                  \csname sphinx\@tempa\endcsname
+  % redefine the \sphinx prefixed macro to expand to non-prefixed one
+  \expandafter\def\csname sphinx\@tempa\expandafter\endcsname
+                  \expandafter{\csname\@tempa\endcsname}%
+}%
+\fi
+
+

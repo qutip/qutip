@@ -543,7 +543,7 @@ convention,
 
 .. math::
 
-    J(\Lambda) = (𝟙 \otimes \Lambda) [|𝟙\rangle\!\rangle \langle\!\langle𝟙|].
+    J(\Lambda) = (\mathbb{1} \otimes \Lambda) [|\mathbb{1}\rangle\!\rangle \langle\!\langle \mathbb{1}|].
 
 In QuTiP, :math:`J(\Lambda)` can be found by calling the :func:`~qutip.superop_reps.to_choi`
 function on a ``type="super"`` :ref:`Qobj`.
@@ -592,7 +592,7 @@ we have that
 
 .. math::
 
-      \sum_i (𝟙 \otimes A_i) (𝟙 \otimes A_i)^\dagger |𝟙\rangle\!\rangle \langle\!\langle𝟙|
+      \sum_i (\mathbb{1} \otimes A_i) (\mathbb{1} \otimes A_i)^\dagger |\mathbb{1}\rangle\!\rangle \langle\!\langle\mathbb{1}|
     = \sum_i |A_i\rangle\!\rangle \langle\!\langle A_i| = J(\Lambda).
 
 The Kraus representation of a hermicity-preserving map can be found in QuTiP
