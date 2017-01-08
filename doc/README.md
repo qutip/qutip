@@ -9,9 +9,12 @@ Build requirements
 ------------------
 
 * Sphinx: http://sphinx-doc.org/
+* sphinx_rtd_theme
 * LaTeX and pdflatex.
 * numpydoc
 * ipython
+
+2017-01-07: Successfully building using sphinx v1.5.1
 
 Build
 -----

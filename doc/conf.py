@@ -21,7 +21,7 @@ sys.path.append(os.path.abspath('_sphinxext'))
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.2'
+needs_sphinx = '1.5'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -313,5 +313,6 @@ def setup(app):
 # disable in a safe or reasonable way; thus, we monkey-patch in backwards-
 # compatibility here so that we don't fill the screen with DeprecationWarnings.
 
-import path
-path.path = path.Path
+# This no longer seems to be needed pickeshare 0.7.4
+# import path
+# path.path = path.Path
