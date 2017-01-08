@@ -192,8 +192,10 @@ latex_keep_old_macro_names=False
 
 # -- Options for LaTeX output --------------------------------------------------
 
-latex_header = open('latex_output_files/latex_preamble.tex', 'r+')
-PREAMBLE = latex_header.read();
+# AJGP 2017-01-8: Switching to manual, ditching the preamble
+
+# latex_header = open('latex_output_files/latex_preamble.tex', 'r+')
+# PREAMBLE = latex_header.read();
 
 
 latex_elements = {
@@ -201,14 +203,15 @@ latex_elements = {
                   'pointsize':'10pt',
                   'classoptions': '',
                   'babel': '\\usepackage[english]{babel}',
-                  'preamble': PREAMBLE
+#                  'preamble': PREAMBLE
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
+
 latex_documents = [
   ('index', 'qutip.tex', u'QuTiP: Quantum Toolbox in Python',
-   u'P.D. Nation, J.R. Johansson, Alexander Pitchford, and Chris Granade', 'memoir'),
+   u'P.D. Nation, J.R. Johansson, Alexander Pitchford, and Chris Granade', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
