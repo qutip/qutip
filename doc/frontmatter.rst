@@ -30,8 +30,8 @@ This document contains a user guide and automatically generated API documentatio
 :Author: J.R. Johansson
 
 
-:version: 3.2.0
-:status: Released (XX YY, 2016)
+:version: 4.0
+:status: Released (XX YY, 2017)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:

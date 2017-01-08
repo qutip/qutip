@@ -14,7 +14,11 @@ Build requirements
 * numpydoc
 * ipython
 
-2017-01-07: Successfully building using sphinx v1.5.1
+2017-01-07: Partially successful building using:
+
+* sphinx v1.5.1
+* numpydoc v0.6.0
+* ipython 5.1.0
 
 Build
 -----
