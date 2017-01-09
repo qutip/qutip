@@ -50,8 +50,8 @@ templates_path = ['_templates']
 
 # This is needed for ipython @savefig
 # Otherwise it just puts the png in the root dir
-savefig_dir = '_static'
-ipython_savefig_dir = '_static'
+savefig_dir = '_images'
+ipython_savefig_dir = '_images'
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -146,7 +146,6 @@ html_favicon = 'figures/favicon.ico'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
