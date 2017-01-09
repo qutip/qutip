@@ -339,21 +339,42 @@ class fast_csr_matrix(csr_matrix):
         else:
             return fast_csr_matrix((data,self.indices,self.indptr),
                                    shape=self.shape,dtype=data.dtype)
-                                   
-    def trans(self):
+    
+    def transpose(self):
         """
         Returns the transpose of the matrix, keeping
         it in fast_csr format.
         """
         return zcsr_transpose(self)
     
-    def adjoint(self):
+    def trans(self):
+        """
+        Same as transpose
+        """
+        return zcsr_transpose(self)
+    
+    def getH(self):
         """
         Returns the conjugate-transpose of the matrix, keeping
         it in fast_csr format.
         """
         return zcsr_adjoint(self)
     
+    def adjoint(self):
+        """
+        Same as getH
+        """
+        return zcsr_adjoint(self)
+    
+
+def csr2fast(A, copy=False):
+    if (not isinstance(A, fast_csr_matrix)) or copy:
+        # Do not need to do any type checking here
+        # since fast_csr_matrix does that.
+        return fast_csr_matrix((A.data,A.indices,A.indptr),
+                                shape=A.shape,copy=copy)
+    else:
+        return A
 
 
 def fast_identity(N):

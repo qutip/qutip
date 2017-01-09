@@ -52,7 +52,8 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.cy.heom import cy_pad_csr
-from qutip.fastsparse import fast_identity
+from qutip.cy.spmath import zcsr_kron
+from qutip.fastsparse import fast_csr_matrix, fast_identity
 
 
 class HEOMSolver(object):
@@ -333,10 +334,9 @@ class HSolverDL(HEOMSolver):
             for k in range(N_m):
                 approx_factr -= (c[k] / nu[k])
             L_bnd = -approx_factr*op.data
-            L_helems = sp.kron(unit_helems, L_bnd, format='csr')
+            L_helems = zcsr_kron(unit_helems, L_bnd)
         else:
-            L_helems = sp.csr_matrix((N_he*sup_dim, N_he*sup_dim),
-                                     dtype=complex)
+            L_helems = fast_csr_matrix(shape=(N_he*sup_dim, N_he*sup_dim))
 
         # Build the hierarchy element interaction matrix
         if stats: start_helem_constr = timeit.default_timer()
@@ -410,8 +410,10 @@ class HSolverDL(HEOMSolver):
             stats.add_count('Num he interactions', N_he_interact, ss_conf)
 
         # Setup Liouvillian
-        if stats: start_louvillian = timeit.default_timer()
-        H_he = sp.kron(unit_helems, liouvillian(H_sys).data)
+        if stats: 
+            start_louvillian = timeit.default_timer()
+        
+        H_he = zcsr_kron(unit_helems, liouvillian(H_sys).data)
 
         L_helems += H_he
 

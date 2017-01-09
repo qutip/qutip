@@ -31,13 +31,14 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['Gate', 'QubitCircuit']
-
 import numpy as np
 import warnings
 
 from qutip.qip.circuit_latex import _latex_compile
 from qutip.qip.gates import *
+
+
+__all__ = ['Gate', 'QubitCircuit']
 
 
 class Gate(object):
@@ -172,15 +173,16 @@ class QubitCircuit(object):
         self.gates = []
         self.U_list = []
 
-    def add_gate(self, name, targets=None, controls=None, arg_value=None,
+    def add_gate(self, gate, targets=None, controls=None, arg_value=None,
                  arg_label=None):
         """
         Adds a gate with specified parameters to the circuit.
 
         Parameters
         ----------
-        name: String
-            Gate name.
+        gate: String or `Gate`
+            Gate name. If gate is an instance of `Gate`, parameters are
+            unpacked and added.
         targets: List
             Gate targets.
         controls: List
@@ -190,6 +192,15 @@ class QubitCircuit(object):
         arg_label: String
             Label for gate representation.
         """
+        if isinstance(gate, Gate):
+            name = gate.name
+            targets = gate.targets
+            controls = gate.controls
+            arg_value = gate.arg_value
+            arg_label = gate.arg_label
+
+        else:
+            name = gate
         self.gates.append(Gate(name, targets=targets, controls=controls,
                                arg_value=arg_value, arg_label=arg_label))
 
@@ -243,7 +254,6 @@ class QubitCircuit(object):
             The circuit block to be added to the main circuit.
         start : Integer
             The qubit on which the first gate is applied.
-        
         """
 
         if self.N - start < len(qc.gates):
@@ -274,7 +284,7 @@ class QubitCircuit(object):
 
     def remove_gate(self, index=None, end=None, name=None, remove="first"):
         """
-        Removes a gate from a specific index or between two indexes or the 
+        Removes a gate from a specific index or between two indexes or the
         first, last or all instances of a particular gate.
 
         Parameters
@@ -285,7 +295,6 @@ class QubitCircuit(object):
             Gate name to be removed.
         remove : String
             If first or all gate are to be removed.
-        
         """
         if index is not None and index <= self.N:
             if end is not None and end <= self.N:
@@ -293,7 +302,7 @@ class QubitCircuit(object):
                     self.gates.pop(index + i)
             elif end is not None and end > self.N:
                 raise ValueError("End target exceeds number of gates.")
-            else:            
+            else:
                 self.gates.pop(index)
 
         elif name is not None and remove == "first":
@@ -325,7 +334,7 @@ class QubitCircuit(object):
         qc : QubitCircuit
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             reverse order.
-        
+
         """
         temp = QubitCircuit(self.N, self.reverse_states)
 
@@ -350,7 +359,6 @@ class QubitCircuit(object):
         qc : QubitCircuit
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
-        
         """
         qc_temp = QubitCircuit(self.N, self.reverse_states)
         temp_resolved = []
