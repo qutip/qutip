@@ -121,9 +121,10 @@ Monte Carlo Evolution
 
 .. automodule:: qutip.mcsolve
     :members: mcsolve
-    
-.. automodule:: qutip.fortran.mcsolve_f90
-    :members: mcsolve_f90
+
+.. ignore f90 stuff for now    
+    .. automodule:: qutip.fortran.mcsolve_f90
+        :members: mcsolve_f90
 
 
 Exponential Series
@@ -179,7 +180,7 @@ Propagators
 Time-dependent problems
 -----------------------
 
-.. automodule:: qutip
+.. automodule:: qutip.rhs_generate
     :members: rhs_generate, rhs_clear
 
 Visualization
@@ -200,7 +201,7 @@ Graphs and Visualization
     :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, wigner_cmap, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_spin_distribution_2d, plot_spin_distribution_3d
     :undoc-members:
 
-.. automodule:: qutip
+.. automodule:: qutip.orbital
     :members: orbital
 
 
@@ -236,24 +237,24 @@ Algorithms
 .. automodule:: qutip.qip.algorithms.qft
     :members: qft, qft_steps, qft_gate_sequence
 
+.. _functions-non_markov:
 
-.. _functions-metrics:
+non-Markovian Solvers
+=====================
+
+.. automodule:: qutip.nonmarkov.transfertensor
+    :members: ttmsolve
+
+.. _functions-control:
 
 Optimal control
 ===============
 
-.. automodule:: qutip.control.grape
-    :members: plot_grape_control_fields, grape_unitary, grape_unitary_adaptive
-
 .. automodule:: qutip.control.pulseoptim
-    :members: optimize_pulse, optimize_pulse_unitary, create_pulse_optimizer
+    :members: optimize_pulse, optimize_pulse_unitary, create_pulse_optimizer, opt_pulse_crab, opt_pulse_crab_unitary
 
 .. automodule:: qutip.control.pulsegen
     :members: create_pulse_gen
-
-.. automodule:: qutip.control.pulsegen
-    :members: initialize_controls
-
 
 Utilitiy Functions
 ==================

@@ -9,14 +9,31 @@ Build requirements
 ------------------
 
 * Sphinx: http://sphinx-doc.org/
+* sphinx_rtd_theme
 * LaTeX and pdflatex.
 * numpydoc
 * ipython
 
+2017-01-07: Partially successful building using:
+
+* sphinx v1.5.1
+* numpydoc v0.6.0
+* ipython 5.1.0
+
 Build
 -----
+2017-01-07: 
+Thanks to some bug in ipython/ipython#8733 to do with the `ipython_savefig_dir` conf option, 
+then note that this build directory structure must exist already:
+
+    _build/html/_images
+    _build/latex/_images
 
 To build the documentation on Linux or OS X run:
+
+    $ make html
+    
+2017-01-09: latexpdf build not currently working. If it can be fixed, then:
 
     $ make html latexpdf
 

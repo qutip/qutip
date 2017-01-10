@@ -1,3 +1,5 @@
+2017-01-10: These instructions would appear to be out of date and not necessary
+
 Contents
 -------------------------------------------
 latex_preamble.tex contains the formatting options for 

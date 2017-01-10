@@ -35,6 +35,23 @@ Bloch sphere
     :members: 
 
 
+.. _classes-non_markov:
+
+non-Markovian Solvers
+---------------------
+
+.. autoclass:: qutip.nonmarkov.heom.HEOMSolver
+    :members: 
+
+.. autoclass:: qutip.nonmarkov.heom.HSolverDL
+    :members:
+    
+.. autoclass:: qutip.nonmarkov.memorycascade.MemoryCascade
+    :members:
+    
+.. autoclass:: qutip.nonmarkov.transfertensor.TTMSolverOptions
+    :members:
+
 .. _classes-odeoptions:
 
 Solver Options and Results
@@ -45,10 +62,12 @@ Solver Options and Results
 
 .. autoclass:: qutip.solver.Result
     :members:
+    
+.. autoclass:: qutip.solver.Stats
+    :members:
 
 .. autoclass:: qutip.stochastic.StochasticSolverOptions
     :members:
-
 
 .. _classes-distributions:
 
@@ -104,19 +123,70 @@ Quantum information processing
 Optimal control
 ---------------
 
-.. autoclass:: qutip.control.grape.GRAPEResult
+.. autoclass:: qutip.control.optimizer.Optimizer
+    :members:
+    
+.. autoclass:: qutip.control.optimizer.OptimizerBFGS
+    :members:
+    
+.. autoclass:: qutip.control.optimizer.OptimizerLBFGSB
+    :members:
+    
+.. autoclass:: qutip.control.optimizer.OptimizerCrab
     :members:
 
-.. autoclass:: qutip.control.optimizer.GRAPEResult
+.. autoclass:: qutip.control.optimizer.OptimizerCrabFmin
+    :members:
+    
+.. autoclass:: qutip.control.optimizer.OptimIterSummary
+    :members:
+    
+.. autoclass:: qutip.control.termcond.TerminationConditions
+    :members:
+    
+.. autoclass:: qutip.control.optimresult.OptimResult
     :members:
 
 .. autoclass:: qutip.control.dynamics.Dynamics
+    :members:
+    
+.. autoclass:: qutip.control.dynamics.DynamicsGenMat
     :members:
 
 .. autoclass:: qutip.control.dynamics.DynamicsUnitary
     :members:
 
 .. autoclass:: qutip.control.dynamics.DynamicsSymplectic
+    :members:
+    
+.. autoclass:: qutip.control.propcomp.PropagatorComputer
+    :members:
+    
+.. autoclass:: qutip.control.propcomp.PropCompApproxGrad
+    :members:
+    
+.. autoclass:: qutip.control.propcomp.PropCompDiag
+    :members:
+    
+.. autoclass:: qutip.control.propcomp.PropCompFrechet
+    :members:
+    
+.. autoclass:: qutip.control.fidcomp.FidelityComputer
+    :members:
+
+.. autoclass:: qutip.control.fidcomp.FidCompUnitary
+    :members:
+    
+.. autoclass:: qutip.control.fidcomp.FidCompTraceDiff
+    :members:
+    
+.. autoclass:: qutip.control.fidcomp.FidCompTraceDiffApprox
+    :members:
+    
+.. autoclass:: qutip.control.tslotcomp.TimeslotComputer
+    :members:
+    
+.. autoclass:: qutip.control.tslotcomp.TSlotCompUpdateAll
     :members:
 
 .. autoclass:: qutip.control.pulsegen.PulseGen
@@ -126,9 +196,6 @@ Optimal control
     :members:
 
 .. autoclass:: qutip.control.pulsegen.PulseGenZero
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenLinear
     :members:
 
 .. autoclass:: qutip.control.pulsegen.PulseGenLinear
@@ -147,4 +214,37 @@ Optimal control
     :members:
 
 .. autoclass:: qutip.control.pulsegen.PulseGenTriangle
+    :members:
+    
+.. autoclass:: qutip.control.pulsegen.PulseGenGaussian
+    :members:
+    
+.. autoclass:: qutip.control.pulsegen.PulseGenGaussianEdge
+    :members:
+    
+.. autoclass:: qutip.control.pulsegen.PulseGenCrab
+    :members:
+    
+.. autoclass:: qutip.control.pulsegen.PulseGenCrabFourier
+    :members:
+    
+.. autoclass:: qutip.control.stats.Stats
+    :members:
+  
+.. autoclass:: qutip.control.dump.Dump
+    :members:
+    
+.. autoclass:: qutip.control.dump.OptimDump
+    :members:
+    
+.. autoclass:: qutip.control.dump.DynamicsDump
+    :members:
+
+.. autoclass:: qutip.control.dump.DumpItem
+    :members:
+    
+.. autoclass:: qutip.control.dump.EvoCompDumpItem
+    :members:
+    
+.. autoclass:: qutip.control.dump.DumpSummaryItem
     :members:

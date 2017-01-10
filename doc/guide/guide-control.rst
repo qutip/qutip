@@ -49,7 +49,7 @@ Note we use units where :math:`\hbar=1` throughout. The solutions to Schrödinge
 
 .. math::
 
-    \ket{\psi(t)} = U(t)\ket{\psi_0}
+    \newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{\psi(t)} = U(t)\ket{\psi_0}
 
 where :math:`\psi_0` is the state of the system at :math:`t=0` and :math:`U(t)` is a unitary operator on the Hilbert space containing the states. :math:`U(t)` is a solution to the *Schrödinger operator equation*
 
@@ -57,7 +57,7 @@ where :math:`\psi_0` is the state of the system at :math:`t=0` and :math:`U(t)` 
 
     \tfrac{d}{dt}U = -i H(t)U ,\quad U(0) = \mathbb{1}
 
-We can use optimal control algorithms to determine a set of :math:`u_j` that will drive our system from :math:`\ket{\psi_0}` to :math:`\ket{\psi_1}`, this is state-to-state transfer, or drive the system from some arbitary state to a given state :math:`\ket{\psi_1}`, which is state preparation, or effect some unitary transformation :math:`U_{target}`, called gate synthesis. The latter of these is most important in quantum computation.
+We can use optimal control algorithms to determine a set of :math:`u_j` that will drive our system from :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{\psi_0}` to :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{\psi_1}`, this is state-to-state transfer, or drive the system from some arbitary state to a given state :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{\psi_1}`, which is state preparation, or effect some unitary transformation :math:`U_{target}`, called gate synthesis. The latter of these is most important in quantum computation.
 
 
 The GRAPE algorithm
@@ -80,7 +80,7 @@ where :math:`\Delta t_k` is the duration of the timeslot. The evolution up to (a
 
     X(t_k):=X_k X_{k-1}\cdots X_1 X_0
 
-If the objective is state-to-state transfer then :math:`X_0=\ket{\psi_0}` and the target :math:`X_{targ}=\ket{\psi_1}`, for gate synthesis :math:`X_0 = U(0) = \mathbb{1}` and the target :math:`X_{targ}=U_{targ}`.
+If the objective is state-to-state transfer then :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} X_0=\ket{\psi_0}` and the target :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} X_{targ}=\ket{\psi_1}`, for gate synthesis :math:`X_0 = U(0) = \mathbb{1}` and the target :math:`X_{targ}=U_{targ}`.
 
 A *figure of merit* or *fidelity* is some measure of how close the evolution is to the target, based on the  control amplitudes in the timeslots. The typical figure of merit for unitary systems is the normalised overlap of the evolution and the target.
 
