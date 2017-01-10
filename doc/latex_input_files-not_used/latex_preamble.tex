@@ -1,0 +1,76 @@
+\usepackage{helvet}
+\usepackage{tikz}
+\makechapterstyle{box}{
+\renewcommand*{\printchaptername}{}
+\renewcommand*{\chapnumfont}{\normalfont\sffamily\huge\bfseries}
+ \renewcommand*{\printchapternum}{
+\flushright
+\begin{tikzpicture}
+\draw[fill,color=black] (0,0) rectangle (2cm,2cm);
+\draw[color=white] (1cm,1cm) node { \chapnumfont\thechapter };
+\end{tikzpicture}
+}
+\renewcommand*{\chaptitlefont}{\normalfont\sffamily\Huge\bfseries}
+\renewcommand*{\printchaptertitle}[1]{\flushright\chaptitlefont##1}
+}
+\chapterstyle{box}               
+\makeatletter
+\DeclareOldFontCommand{\rm}{\normalfont\rmfamily}{\mathrm}
+\DeclareOldFontCommand{\sf}{\normalfont\sffamily}{\mathsf}
+\DeclareOldFontCommand{\tt}{\normalfont\ttfamily}{\mathtt}
+\DeclareOldFontCommand{\bf}{\normalfont\bfseries}{\mathbf}
+\DeclareOldFontCommand{\it}{\normalfont\itshape}{\mathit}
+\DeclareOldFontCommand{\sl}{\normalfont\slshape}{\@nomath\sl}
+\DeclareOldFontCommand{\sc}{\normalfont\scshape}{\@nomath\sc}
+\makeatother
+
+\pagestyle{ruled}
+\makepagestyle{ruled}
+\makeevenfoot{ruled}{}{}{\thepage}
+\makeoddfoot{ruled}{}{}{\thepage}
+\pagenumbering{arabic}
+
+% Defines the color of the verbatim background
+\definecolor{VerbatimColor}{rgb}{0.95,0.95,0.95}
+
+\makeatletter
+\renewcommand{\maketitle}{%
+    \let\footnotesize\small
+    \let\footnoterule\relax
+    \rule{\textwidth}{1pt}%
+    \ifsphinxpdfoutput
+      \begingroup
+      % These \defs are required to deal with multi-line authors; it
+      % changes \\ to ', ' (comma-space), making it pass muster for
+      % generating document info in the PDF file.
+      \def\\{, }
+      \def\and{and }
+      \pdfinfo{
+        /Author (\@author)
+        /Title (\@title)
+      }
+      \endgroup
+    \fi
+    \begin{flushright}%
+      \sphinxlogo%
+      {\rm\Huge\py@HeaderFamily \@title \par}%
+      {\em\LARGE\py@HeaderFamily \py@release\releaseinfo \par}
+      \vfill
+      {\LARGE\py@HeaderFamily
+        \begin{tabular}[t]{c}
+          \@author
+        \end{tabular}
+        \par}
+      \vfill\vfill
+      {\large
+       \@date \par
+       \vfill
+       \py@authoraddress \par
+      }%
+    \end{flushright}%\par
+    \@thanks
+    \newpage
+   \let\thanks\relax\let\maketitle\relax
+  %\gdef\@thanks{}\gdef\@author{}\gdef\@title{}
+}
+\makeatother
