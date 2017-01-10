@@ -216,9 +216,11 @@ class fast_csr_matrix(csr_matrix):
            other.data,
            indptr, indices, data)
         if isinstance(other, fast_csr_matrix):
-            return fast_csr_matrix((data,indices,indptr), shape=(M,N))
+            A = fast_csr_matrix((data,indices,indptr), shape=(M,N))
+            A.sort_indices()
         else:
-            return csr_matrix((data,indices,indptr),shape=(M,N))
+            A = csr_matrix((data,indices,indptr),shape=(M,N))
+        return A
 
     def _scalar_binopt(self, other, op):
         """Scalar version of self._binopt, for cases in which no new nonzeros
