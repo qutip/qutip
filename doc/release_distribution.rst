@@ -143,14 +143,13 @@ Test the distribution that is now in the ``dist`` folder. Should try at least tw
 
 Documentation build
 +++++++++++++++++++
-Documentation should be rebuilt for a minor or major release. 
-If there have been any documentation updates as part of a micro release, 
-then it should also be built for this.
+Documentation should be rebuilt for a minor or major release. If there have been any documentation updates as part of a micro release, then it should also be built for this.
 
 First:
 
-- The version should be changed in ``conf.py``. 
+- The version should be changed in ``conf.py``.
 - Update ``api_doc/classes.rst`` for any new / deleted classes.
+- Update ``api_doc/functions.rst`` for any new / deleted functions.
 
 Rebuilding of the QuTiP documentation is fully documented in:
 https://github.com/qutip/qutip-doc/README.md
@@ -161,6 +160,11 @@ Website
 +++++++
 
 This assumes that qutip.github.io has already been forked and familiarity with the website updating workflow.
+The documentation may not be updated for every micro release.
+
+Copying new files
+-----------------
+
 All released versions will be saved in a subfolder like ::
 
     downloads/<MAJOR>.<MINOR>.<MICRO>
@@ -169,16 +173,33 @@ Links will be kept to the highest micro release of the current and all legacy mi
 For a micro release the qutip.github.io will need to be updated as follows:
 
 - copy the ``.tar.gz`` and ``.zip`` created using sdist_ into the downloads folder.
-- Edit ``download.html`` page such that the 'Latest release' version and date are correct.
+- alse copy the ``qutip-<version>.pdf`` into this folder.
 
-The gztar and zip links will need the micro release number updating in the tractEvent, file name and label.
-For a minor or major release links to the last micro release of the previous version 
-will need to be moved (copied) to the 'Previous releases' section.
+The html documentation will be in a subfolder like ::
 
-- Edit the _includes/sidebar.html such that the 'Latest release' version and date are correct.
+    docs/<MAJOR>.<MINOR>.<MICRO>
 
-The gztar link will need the micro release number updating in the traceEvent and file name.
+- copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in qutip-docs for this.
 
+
+HTML file updates
+-----------------
+
+- Edit ``download.html``
+
+    * The 'Latest release' version and date should be updated.
+    * The gztar and zip links will need the micro release number updating in the tractEvent, file name and label.
+    * For a minor or major release links to the last micro release of the previous version will need to be moved (copied) to the 'Previous releases' section.
+
+- Edit ``_includes/sidebar.html``
+
+    * The 'Latest release' version should be updated. The gztar link will need the micro release number updating in the traceEvent and file name.
+    * The link to the documentation folder and PDF file (if created) should be updated.
+
+- Edit ``documentation.html``
+
+    * The previous release tags should be moved (copied) to the 'Previous releases' section.
+    * The 'Current release' tags and links should be updated.
 
 .. _cforge:
 
