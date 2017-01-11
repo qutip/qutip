@@ -181,7 +181,6 @@ The html documentation will be in a subfolder like ::
 
 - copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in qutip-docs for this.
 
-
 HTML file updates
 -----------------
 
