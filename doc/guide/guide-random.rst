@@ -22,7 +22,7 @@ For example, a random Hermitian operator can be sampled by calling `rand_herm` f
 
 	In [2]: rand_herm(5)
 
-.. tabularcolumns:: | p{2cm} | p{3cm} |
+.. tabularcolumns:: | p{2cm} | p{3cm} | c |
 
 .. cssclass:: table-striped
 
