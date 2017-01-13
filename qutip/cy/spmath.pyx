@@ -31,11 +31,15 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
+import qutip.settings as qset
 cimport numpy as np
 cimport cython
+from libc.math cimport fabs
 
 cdef extern from "complex.h" nogil:
     double complex conj(double complex x)
+    double         creal(double complex)
+    double         cimag(double complex)
 
 include "sparse_struct.pxi"
 
@@ -441,3 +445,79 @@ cdef void _zcsr_adjoint_core(double complex * data, int * ind, int * ptr,
         out.indptr[ii] = out.indptr[ii-1]
 
     out.indptr[0] = 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_isherm(object A not None, double tol = qset.atol):
+    """
+    Determines if a given input sparse CSR matrix is Hermitian 
+    to within a specified floating-point tolerance.
+
+    Parameters
+    ----------
+    A : csr_matrix
+        Input sparse matrix.
+    tol : float (default is atol from settings)
+        Desired toelrance value.
+
+    Returns
+    -------
+    isherm : int
+        One if matrix is Hermitian, zero otherwise.
+
+    Notes
+    -----
+    This implimentation is esentially an adjoint calulation
+    where the data and indices are not stored, but checked
+    elementwise to see if they match those of the input matrix. 
+    Thus we do not need to build the actual adjoint.  Here we 
+    only need a temp array of output indptr.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+
+    cdef int k, nxt
+    cdef size_t ii, jj
+    cdef complex tmp, tmp2
+
+    if nrows != ncols:
+        return 0
+
+    cdef int * out_ptr = <int *>PyDataMem_NEW_ZEROED(ncols+1, sizeof(int))
+
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            k = ind[jj] + 1
+            out_ptr[k] += 1
+
+    for ii in range(ncols):
+        out_ptr[ii+1] += out_ptr[ii]
+
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            k = ind[jj]
+            nxt = out_ptr[k]
+            tmp = conj(data[jj])
+            tmp2 = data[nxt]
+            if fabs(creal(tmp)-creal(tmp2)) > tol:
+                PyDataMem_FREE(out_ptr)
+                return 0
+            if fabs(cimag(tmp)-cimag(tmp2)) > tol:
+                PyDataMem_FREE(out_ptr)
+                return 0
+            if ind[nxt] != ii:
+                PyDataMem_FREE(out_ptr)
+                return 0
+            out_ptr[k] = nxt + 1
+
+    for ii in range(ncols,0,-1):
+        if out_ptr[ii-1] != ptr[ii]:
+            PyDataMem_FREE(out_ptr)
+            return 0
+
+    PyDataMem_FREE(out_ptr)
+    return 1

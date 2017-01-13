@@ -63,7 +63,7 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
-from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm)
 
 import sys
 if sys.version_info.major >= 3:
@@ -1781,12 +1781,7 @@ class Qobj(object):
             # used previously computed value
             return self._isherm
 
-        if self.dims[0] != self.dims[1]:
-            self._isherm = False
-        else:
-            data = self.data
-            h = np.abs((data.transpose().conj() - data).data)
-            self._isherm = False if np.any(h > settings.atol) else True
+        self._isherm = bool(zcsr_isherm(self.data))
 
         return self._isherm
 
