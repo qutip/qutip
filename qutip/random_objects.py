@@ -283,7 +283,7 @@ def rand_ket(N, density=1, dims=None):
     X.sort_indices()
     X = Qobj(X)
     if dims:
-        return Qobj(X / X.norm(), dims=[dims, [1]], shape=[N, 1])
+        return Qobj(X / X.norm(), dims=dims)
     else:
         return Qobj(X / X.norm())
 
@@ -649,7 +649,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None):
 
 
 def _check_ket_dims(dims, N1):
-    if not isinstance(dims, list) or isinstance(dims[0], list):
+    if (not isinstance(dims, list)) or (not isinstance(dims[0], list)):
         raise TypeError("Left and right Qobj dimensions must be lists of ints. E.g.: [2, 3].")
     if np.prod(dims) != N1:
         raise ValueError("Qobj dimensions must match matrix shape.")
