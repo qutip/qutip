@@ -203,16 +203,6 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         operators for which to calculate the expectation values.
 
     """
-    
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
-    
-    if progress_bar is None:
-        progress_bar = BaseProgressBar()
-    elif progress_bar is True:
-        progress_bar = TextProgressBar()
-
     # check whether c_ops or e_ops is is a single operator
     # if so convert it to a list containing only that operator
     if isinstance(c_ops, Qobj):
@@ -226,6 +216,16 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
+    
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops, e_ops, args)
+    
+    
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
 
     # check if rho0 is a superoperator, in which case e_ops argument should
     # be empty, i.e., e_ops = []
