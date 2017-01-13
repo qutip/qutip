@@ -307,15 +307,15 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[], _safe_mode=True, **kwargs):
     if debug:
         logger.debug(inspect.stack()[0][3])
 
-    if _safe_mode:
-        _solver_safety_check(H, psi0, sc_ops, e_ops)
-    
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-
+    
+    if _safe_mode:
+        _solver_safety_check(H, psi0, sc_ops, e_ops)
+    
     sso = StochasticSolverOptions(H=H, state0=psi0, times=times,
                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
@@ -437,15 +437,14 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops+sc_ops, e_ops)
-    
-    
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops+sc_ops, e_ops)
 
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
