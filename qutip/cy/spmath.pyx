@@ -176,13 +176,24 @@ cdef int _zcsr_add_core(double complex * Adata, int * Aind, int * Aptr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def zcsr_mult(complex [::1] dataA, int[::1] indsA, int[::1] indptrA,
-             complex [::1] dataB, int[::1] indsB, int[::1] indptrB, 
-             int nrows, int ncols,
-             int Annz, int Bnnz):
+def zcsr_mult(object A, object B):
+    
+    cdef complex [::1] dataA = A.data
+    cdef int[::1] indsA = A.indices 
+    cdef int[::1] indptrA = A.indptr
+    cdef int Annz = A.nnz
+    
+    cdef complex [::1] dataB = B.data 
+    cdef int[::1] indsB = B.indices 
+    cdef int[::1] indptrB = B.indptr
+    cdef int Bnnz = B.nnz
+    
+    cdef int nrows = A.shape[0]
+    cdef int ncols = B.shape[1]
+    
     #Both matrices are zero mats
     if Annz == 0 or Bnnz == 0:
-        return fast_csr_matrix(([], [], []), shape=(nrows,ncols))
+        return fast_csr_matrix(shape=(nrows,ncols))
     
     cdef int nnz
     cdef CSR_Matrix out
@@ -190,6 +201,9 @@ def zcsr_mult(complex [::1] dataA, int[::1] indsA, int[::1] indptrA,
     nnz = _zcsr_mult_pass1(&dataA[0], &indsA[0], &indptrA[0], 
                      &dataB[0], &indsB[0], &indptrB[0],  
                      nrows, ncols)
+    
+    if nnz == 0:
+        return fast_csr_matrix(shape=(nrows,ncols))
     
     init_CSR(&out, nnz, nrows, ncols)
     _zcsr_mult_pass2(&dataA[0], &indsA[0], &indptrA[0], 
