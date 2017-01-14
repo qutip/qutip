@@ -58,7 +58,7 @@ import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
 from qutip.fastsparse import fast_csr_matrix, fast_identity
-from qutip.ptrace import _ptrace
+from qutip.cy.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)

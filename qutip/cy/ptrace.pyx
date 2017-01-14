@@ -62,7 +62,7 @@ def _ptrace(object rho, _sel):
         if (sel[mm] < 0) or (sel[mm] >= drho.shape[0]):
             raise TypeError("Invalid selection index in ptrace.")
 
-    cdef int[::1] rest = np.delete(np.arange(len(drho),dtype=np.int32),sel)
+    cdef int[::1] rest = np.delete(np.arange(drho.shape[0],dtype=np.int32),sel)
     cdef int N = np.prod(drho)
     cdef int M = np.prod(drho.take(sel))
     cdef int R = np.prod(drho.take(rest))
@@ -101,12 +101,11 @@ cpdef int[::1] _list2ind(int[:,::1] ilist, int[::1] dims):
     """!
     Private function returning indicies
     """
-    cdef size_t kk
-    cdef int[::1] fact = np.zeros(dims.shape[0],dtype=np.int32)
-    for kk in range(1,dims.shape[0]-1):
-        fact[kk-1] = dims[kk]*dims[kk+1]
-    fact[dims.shape[0]-2] = dims[dims.shape[0]-1]
-    fact[dims.shape[0]-1] = 1
+    cdef size_t kk, ll
+    cdef int[::1] fact = np.ones(dims.shape[0],dtype=np.int32)
+    for kk in range(dims.shape[0]):
+        for ll in range(kk+1,dims.shape[0]):
+            fact[kk] *= dims[ll]
     return np.sort(np.dot(ilist, fact), 0)
 
 
@@ -119,7 +118,7 @@ cpdef int[:,::1] _select(int[::1] sel, int[::1] dims, int M):
     """
     cdef size_t ii, jj, kk
     cdef int _sel, _prd
-    cdef np.ndarray[int, ndim=2, mode='c'] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
+    cdef int[:,::1] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
     for jj in range(sel.shape[0]):
         _sel =  sel[jj]
         _prd = 1
