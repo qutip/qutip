@@ -119,7 +119,7 @@ cpdef int[:,::1] _select(int[::1] sel, int[::1] dims, int M):
     """
     cdef size_t ii, jj, kk
     cdef int _sel, _prd
-    cdef int[:,::1] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
+    cdef np.ndarray[int, ndim=2, mode='c'] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
     for jj in range(sel.shape[0]):
         _sel =  sel[jj]
         _prd = 1

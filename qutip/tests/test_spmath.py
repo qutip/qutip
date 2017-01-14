@@ -179,5 +179,76 @@ def test_zcsr_adjoint():
         z = np.all(B.indptr == C.indptr)
         assert_(x*y*z)
 
+def test_zcsr_mult():
+    "spmath: zcsr_mult"
+    for k in range(50):
+        A = rand_ket(10,0.5).data
+        B = rand_herm(10,0.5).data
+        
+        C = A.tocsr(1)
+        D = B.tocsr(1)
+        
+        ans1 = B*A
+        ans2 = D*C
+        ans2.sort_indices()
+        x = np.all(ans1.data == ans2.data)
+        y = np.all(ans1.indices == ans2.indices)
+        z = np.all(ans1.indptr == ans2.indptr)
+        assert_(x*y*z)
+        
+    for k in range(50):
+        A = rand_ket(10,0.5).data
+        B = rand_ket(10,0.5).dag().data
+        
+        C = A.tocsr(1)
+        D = B.tocsr(1)
+        
+        ans1 = B*A
+        ans2 = D*C
+        ans2.sort_indices()
+        x = np.all(ans1.data == ans2.data)
+        y = np.all(ans1.indices == ans2.indices)
+        z = np.all(ans1.indptr == ans2.indptr)
+        assert_(x*y*z)
+        
+        ans1 = A*B
+        ans2 = C*D
+        ans2.sort_indices()
+        x = np.all(ans1.data == ans2.data)
+        y = np.all(ans1.indices == ans2.indices)
+        z = np.all(ans1.indptr == ans2.indptr)
+        assert_(x*y*z)
+        
+    for k in range(50):
+        A = rand_dm(10,0.5).data
+        B = rand_dm(10,0.5).data
+        
+        C = A.tocsr(1)
+        D = B.tocsr(1)
+        
+        ans1 = B*A
+        ans2 = D*C
+        ans2.sort_indices()
+        x = np.all(ans1.data == ans2.data)
+        y = np.all(ans1.indices == ans2.indices)
+        z = np.all(ans1.indptr == ans2.indptr)
+        assert_(x*y*z)
+        
+    for k in range(50):
+        A = rand_dm(10,0.5).data
+        B = rand_herm(10,0.5).data
+        
+        C = A.tocsr(1)
+        D = B.tocsr(1)
+        
+        ans1 = B*A
+        ans2 = D*C
+        ans2.sort_indices()
+        x = np.all(ans1.data == ans2.data)
+        y = np.all(ans1.indices == ans2.indices)
+        z = np.all(ans1.indptr == ans2.indptr)
+        assert_(x*y*z)
+        
+
 if __name__ == "__main__":
     run_module_suite()
