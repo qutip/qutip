@@ -1737,6 +1737,7 @@ class Qobj(object):
 
     @property
     def istp(self):
+        import qutip.superop_reps as sr
         if self.type in ["super", "oper"]:
             try:
                 # Normalize to a super of type choi or chi.
@@ -1756,7 +1757,7 @@ class Qobj(object):
 
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
-                tr_oper = ptrace((qobj), (0,))
+                tr_oper = qobj.ptrace([0])
                 ident = ops.identity(tr_oper.shape[0])
                 return isequal(tr_oper, ident)                
             except:

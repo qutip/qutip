@@ -49,7 +49,7 @@ def _ptrace(object rho, _sel):
     
     cdef size_t mm, ii
     cdef int _tmp
-    cdef np.ndarray[int, ndim=1, mode='c'] drho = np.asarray(rho.dims[0], dtype=np.int32)
+    cdef np.ndarray[int, ndim=1, mode='c'] drho = np.asarray(rho.dims[0], dtype=np.int32).ravel()
     
     if isinstance(_sel, int):
         _sel = np.array([_sel], dtype=np.int32)
@@ -106,6 +106,7 @@ cpdef int[::1] _list2ind(int[:,::1] ilist, int[::1] dims):
     for kk in range(dims.shape[0]):
         for ll in range(kk+1,dims.shape[0]):
             fact[kk] *= dims[ll]
+    # If we make ilist a csr_matrix, then this is just spmv then sort
     return np.sort(np.dot(ilist, fact), 0)
 
 
