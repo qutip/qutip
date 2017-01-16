@@ -97,7 +97,7 @@ def _ptrace(object rho, _sel):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cpdef int[::1] _list2ind(int[:,::1] ilist, int[::1] dims):
+cpdef np.ndarray[int, ndim=1, mode='c'] _list2ind(int[:,::1] ilist, int[::1] dims):
     """!
     Private function returning indicies
     """
@@ -113,13 +113,13 @@ cpdef int[::1] _list2ind(int[:,::1] ilist, int[::1] dims):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cpdef int[:,::1] _select(int[::1] sel, int[::1] dims, int M):
+cpdef np.ndarray[int, ndim=2, mode='c'] _select(int[::1] sel, int[::1] dims, int M):
     """
     Private function finding selected components
     """
     cdef size_t ii, jj, kk
     cdef int _sel, _prd
-    cdef int[:,::1] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
+    cdef np.ndarray[int, ndim=2, mode='c'] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
     for jj in range(sel.shape[0]):
         _sel =  sel[jj]
         _prd = 1
