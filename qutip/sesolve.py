@@ -113,10 +113,6 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         which to calculate the expectation values.
 
     """
-
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
-    
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
@@ -125,7 +121,10 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
+    
     # convert array based time-dependence to string format
     H, _, args = _td_wrap_array_str(H, [], args, tlist)
     # check for type (if any) of time-dependent inputs
