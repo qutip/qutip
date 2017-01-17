@@ -58,7 +58,7 @@ import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
 from qutip.fastsparse import fast_csr_matrix, fast_identity
-from qutip.ptrace import _ptrace
+from qutip.cy.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
@@ -1737,6 +1737,7 @@ class Qobj(object):
 
     @property
     def istp(self):
+        import qutip.superop_reps as sr
         if self.type in ["super", "oper"]:
             try:
                 # Normalize to a super of type choi or chi.
@@ -1756,7 +1757,7 @@ class Qobj(object):
 
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
-                tr_oper = ptrace((qobj), (0,))
+                tr_oper = qobj.ptrace([0])
                 ident = ops.identity(tr_oper.shape[0])
                 return isequal(tr_oper, ident)                
             except:

@@ -42,7 +42,7 @@ The sparsity of the ouput Qobj's is controlled by varing the
 __all__ = [
     'rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm',
     'rand_unitary_haar', 'rand_ket_haar', 'rand_dm_ginibre',
-    'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic'
+    'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic', 'rand_super'
 ]
 
 from scipy import arcsin, sqrt, pi

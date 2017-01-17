@@ -184,8 +184,12 @@ class fast_csr_matrix(csr_matrix):
         K2, N = other.shape
 
         major_axis = self._swap((M,N))[0]
-        if not isinstance(other, fast_csr_matrix):
-            other = csr_matrix(other)  # convert to this format
+        if isinstance(other, fast_csr_matrix):
+            A = zcsr_mult(self, other)
+            A.sort_indices()
+            return A
+        
+        other = csr_matrix(other)  # convert to this format
         idx_dtype = get_index_dtype((self.indptr, self.indices,
                                      other.indptr, other.indices),
                                     maxval=M*N)
@@ -215,11 +219,7 @@ class fast_csr_matrix(csr_matrix):
            np.asarray(other.indices, dtype=idx_dtype),
            other.data,
            indptr, indices, data)
-        if isinstance(other, fast_csr_matrix):
-            A = fast_csr_matrix((data,indices,indptr), shape=(M,N))
-            A.sort_indices()
-        else:
-            A = csr_matrix((data,indices,indptr),shape=(M,N))
+        A = csr_matrix((data,indices,indptr),shape=(M,N))
         return A
 
     def _scalar_binopt(self, other, op):
@@ -404,4 +404,4 @@ def _all_true(shape):
 
 #Need to do some trailing imports here
 #-------------------------------------
-from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_mult)
