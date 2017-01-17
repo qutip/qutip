@@ -311,9 +311,9 @@ def rand_ket_haar(N=2, dims=None):
     if dims:
         _check_ket_dims(dims, N)
     else:
-        dims = [N]
+        dims = [[N],[1]]
     psi = rand_unitary_haar(N) * basis(N, 0)
-    psi.dims = [dims, [1]]
+    psi.dims = dims
     return psi
 
 
