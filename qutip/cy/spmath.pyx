@@ -34,12 +34,12 @@ import numpy as np
 import qutip.settings as qset
 cimport numpy as np
 cimport cython
-from libc.math cimport fabs
 
 cdef extern from "complex.h" nogil:
     double complex conj(double complex x)
     double         creal(double complex)
     double         cimag(double complex)
+    double         cabs(double complex)
 
 include "sparse_struct.pxi"
 
@@ -517,10 +517,7 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
             nxt = out_ptr[k]
             tmp = conj(data[jj])
             tmp2 = data[nxt]
-            if fabs(creal(tmp)-creal(tmp2)) > tol:
-                PyDataMem_FREE(out_ptr)
-                return 0
-            if fabs(cimag(tmp)-cimag(tmp2)) > tol:
+            if cabs(tmp-tmp2) > tol:
                 PyDataMem_FREE(out_ptr)
                 return 0
             if ind[nxt] != ii:
