@@ -55,7 +55,7 @@ from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
                                 to_chi, to_stinespring)
 from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
 
-tol = 1e-10
+tol = 1e-9
 
 
 class TestSuperopReps(object):
