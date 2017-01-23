@@ -58,12 +58,12 @@ import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
 from qutip.fastsparse import fast_csr_matrix, fast_identity
-from qutip.ptrace import _ptrace
+from qutip.cy.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
-from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint)
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm)
 
 import sys
 if sys.version_info.major >= 3:
@@ -1737,6 +1737,7 @@ class Qobj(object):
 
     @property
     def istp(self):
+        import qutip.superop_reps as sr
         if self.type in ["super", "oper"]:
             try:
                 # Normalize to a super of type choi or chi.
@@ -1756,7 +1757,7 @@ class Qobj(object):
 
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
-                tr_oper = ptrace((qobj), (0,))
+                tr_oper = qobj.ptrace([0])
                 ident = ops.identity(tr_oper.shape[0])
                 return isequal(tr_oper, ident)                
             except:
@@ -1781,12 +1782,7 @@ class Qobj(object):
             # used previously computed value
             return self._isherm
 
-        if self.dims[0] != self.dims[1]:
-            self._isherm = False
-        else:
-            data = self.data
-            h = np.abs((data.transpose().conj() - data).data)
-            self._isherm = False if np.any(h > settings.atol) else True
+        self._isherm = bool(zcsr_isherm(self.data))
 
         return self._isherm
 

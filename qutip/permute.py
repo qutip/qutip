@@ -35,7 +35,7 @@ __all__ = ['reshuffle']
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.ptrace import _select
+from qutip.cy.ptrace import _select
 from qutip.cy.spconvert import arr_coo2fast
 
 
@@ -122,13 +122,13 @@ def _perm_inds(dims, order):
     """
     Private function giving permuted indices for permute function.
     """
-    dims = np.asarray(dims)
-    order = np.asarray(order)
+    dims = np.asarray(dims,dtype=np.int32)
+    order = np.asarray(order,dtype=np.int32)
     if not np.all(np.sort(order) == np.arange(len(dims))):
         raise ValueError(
             'Requested permutation does not match tensor structure.')
-    sel = _select(order, dims)
-    irev = np.fliplr(sel) - 1
+    sel = _select(order, dims,np.prod(dims))
+    irev = np.fliplr(sel)
     fact = np.append(np.array([1]), np.cumprod(np.flipud(dims)[:-1]))
     fact = fact.reshape(len(fact), 1)
     perm_inds = np.dot(irev, fact)

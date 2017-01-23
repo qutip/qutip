@@ -122,7 +122,7 @@ def test_compare_solvers_coherent_state_memc():
 
     # pretty lax criterion, but would otherwise require a quite long simulation
     # time
-    assert_(abs(corr1 - corr2).max() < 0.2)
+    assert_(abs(corr1 - corr2).max() < 0.25)
 
 
 def test_compare_solvers_steadystate_legacy():

@@ -42,7 +42,7 @@ The sparsity of the ouput Qobj's is controlled by varing the
 __all__ = [
     'rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm',
     'rand_unitary_haar', 'rand_ket_haar', 'rand_dm_ginibre',
-    'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic'
+    'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic', 'rand_super'
 ]
 
 from scipy import arcsin, sqrt, pi
@@ -283,7 +283,7 @@ def rand_ket(N, density=1, dims=None):
     X.sort_indices()
     X = Qobj(X)
     if dims:
-        return Qobj(X / X.norm(), dims=[dims, [1]], shape=[N, 1])
+        return Qobj(X / X.norm(), dims=dims)
     else:
         return Qobj(X / X.norm())
 
@@ -311,9 +311,9 @@ def rand_ket_haar(N=2, dims=None):
     if dims:
         _check_ket_dims(dims, N)
     else:
-        dims = [N]
+        dims = [[N],[1]]
     psi = rand_unitary_haar(N) * basis(N, 0)
-    psi.dims = [dims, [1]]
+    psi.dims = dims
     return psi
 
 
@@ -649,7 +649,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None):
 
 
 def _check_ket_dims(dims, N1):
-    if not isinstance(dims, list) or isinstance(dims[0], list):
+    if (not isinstance(dims, list)) or (not isinstance(dims[0], list)):
         raise TypeError("Left and right Qobj dimensions must be lists of ints. E.g.: [2, 3].")
     if np.prod(dims) != N1:
         raise ValueError("Qobj dimensions must match matrix shape.")
