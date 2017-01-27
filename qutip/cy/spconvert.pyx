@@ -39,78 +39,53 @@ include "sparse_struct.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def coo2fast(object A):
+def coo2fast(object A, int inplace = 0):
     cdef int nnz = A.nnz
     cdef int nrows = A.shape[0]
     cdef int ncols = A.shape[1]
     cdef complex[::1] data = A.data
-    cdef int[::1] rows = A.rows
-    cdef int[::1] cols = A.cols
+    cdef int[::1] rows = A.row
+    cdef int[::1] cols = A.col
+    cdef COO_Matrix mat
+    mat.data = &data[0]
+    mat.rows = &rows[0]
+    mat.cols = &cols[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.is_set = 1
+    mat.max_length = nnz
+    
     cdef CSR_Matrix out
-    init_CSR(&out, nnz, nrows, ncols)
-    
-    cdef int i, j, iad, j0
-    cdef double complex val
-    cdef size_t kk
-    # Determine row lengths
-    for kk in range(nnz):
-        out.indptr[rows[kk]] = out.indptr[rows[kk]] + 1
-    # Starting position of rows
-    j = 0
-    for kk in range(nrows):
-        j0 = out.indptr[kk]
-        out.indptr[kk] = j
-        j += j0
-    #Do the data
-    for kk in range(nnz):
-        i = rows[kk]
-        j = cols[kk]
-        val = data[kk]
-        iad = out.indptr[i]
-        out.data[iad] = val
-        out.indices[iad] = j
-        out.indptr[i] = iad+1
-    # Shift back
-    for kk in range(nrows,0,-1):
-        out.indptr[kk] = out.indptr[kk-1]
-    out.indptr[0] = 0
-    
+    if inplace:
+        COO_to_CSR_inplace(&out, &mat)
+        sort_indices(&out)
+    else:
+        COO_to_CSR(&out, &mat)
     return CSR_to_scipy(&out)
     
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def arr_coo2fast(complex[::1] data, int[::1] rows, int[::1] cols, int nrows, int ncols):
+def arr_coo2fast(complex[::1] data, int[::1] rows, int[::1] cols, int nrows, int ncols,
+                int inplace = 0):
     cdef int nnz = data.shape[0]
+    cdef COO_Matrix mat
+    mat.data = &data[0]
+    mat.rows = &rows[0]
+    mat.cols = &cols[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.is_set = 1
+    mat.max_length = nnz
+    
     cdef CSR_Matrix out
-    init_CSR(&out, nnz, nrows, ncols)
-
-    cdef int i, j, iad, j0
-    cdef double complex val
-    cdef size_t kk
-    # Determine row lengths
-    for kk in range(nnz):
-        out.indptr[rows[kk]] = out.indptr[rows[kk]] + 1
-    # Starting position of rows
-    j = 0
-    for kk in range(nrows):
-        j0 = out.indptr[kk]
-        out.indptr[kk] = j
-        j += j0
-    #Do the data
-    for kk in range(nnz):
-        i = rows[kk]
-        j = cols[kk]
-        val = data[kk]
-        iad = out.indptr[i]
-        out.data[iad] = val
-        out.indices[iad] = j
-        out.indptr[i] = iad+1
-    # Shift back
-    for kk in range(nrows,0,-1):
-        out.indptr[kk] = out.indptr[kk-1]
-    out.indptr[0] = 0
-
+    if inplace:
+        COO_to_CSR_inplace(&out, &mat)
+        sort_indices(&out)
+    else:
+        COO_to_CSR(&out, &mat)
     return CSR_to_scipy(&out)
     
     

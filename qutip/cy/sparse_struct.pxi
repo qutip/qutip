@@ -468,7 +468,7 @@ cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
     for kk in range(mat.nrows):
         work[kk+1] += work[kk]
 
-    if mat.nnz < mat.nrows+1:
+    if mat.nnz < (mat.nrows+1):
         _tmp_rows = <int *>PyDataMem_RENEW(mat.rows, (mat.nrows+1) * sizeof(int))
         mat.rows = _tmp_rows
     init = 0
@@ -500,7 +500,7 @@ cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
         mat.rows[kk+1] = work[kk]
     mat.rows[0] = 0
 
-    if mat.nnz > mat.nrows+1:
+    if mat.nnz > (mat.nrows+1):
         _tmp_rows = <int *>PyDataMem_RENEW(mat.rows, (mat.nrows+1) * sizeof(int))
         mat.rows = _tmp_rows
     #Free working array
@@ -511,6 +511,7 @@ cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
     out.indptr = mat.rows
     out.nrows = mat.nrows
     out.ncols = mat.ncols
+    out.nnz = mat.nnz
     out.max_length = mat.nnz
     out.is_set = 1
     out.numpy_lock = 0

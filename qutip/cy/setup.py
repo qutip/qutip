@@ -9,7 +9,7 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-        'spmath', 'heom', 'math', 'spconvert', 'ptrace']
+        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing']
 
 _compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
 
