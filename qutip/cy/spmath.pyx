@@ -176,7 +176,7 @@ cdef int _zcsr_add_core(double complex * Adata, int * Aind, int * Aptr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def zcsr_mult(object A, object B):
+def zcsr_mult(object A, object B, int sorted = 1):
     
     cdef complex [::1] dataA = A.data
     cdef int[::1] indsA = A.indices 
@@ -210,6 +210,9 @@ def zcsr_mult(object A, object B):
                      &dataB[0], &indsB[0], &indptrB[0],
                      &out,       
                      nrows, ncols)
+    
+    if sorted:
+        sort_indices(&out)
     return CSR_to_scipy(&out)
 
 

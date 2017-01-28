@@ -89,5 +89,6 @@ def _test_coo2csr_inplace_struct(object A, int sorted = 0):
     cdef CSR_Matrix out
 
     COO_to_CSR_inplace(&out, &mat)
-    sort_indices(&out)
+    if sorted:
+        sort_indices(&out)
     return CSR_to_scipy(&out)
