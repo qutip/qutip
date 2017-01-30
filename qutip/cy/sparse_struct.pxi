@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
+from scipy.sparse import coo_matrix
 from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
 cimport cython
@@ -399,6 +400,43 @@ cdef object CSR_to_scipy(CSR_Matrix * mat):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef object COO_to_scipy(COO_Matrix * mat):
+    """
+    Converts a COO_Matrix struct to a SciPy coo_matrix class object.
+    The NumPy arrays are generated from the pointers, and the lifetime
+    of the pointer memory is tied to that of the NumPy array 
+    (i.e. automatic garbage cleanup.)
+
+    Parameters
+    ----------
+    mat : COO_Matrix *
+        Pointer to COO_Matrix.
+    """
+    cdef np.npy_intp dat_len
+    cdef np.ndarray[complex, ndim=1] _data
+    cdef np.ndarray[int, ndim=1] _row, _col
+    if (not mat.numpy_lock) and mat.is_set:
+        dat_len = mat.nnz
+        _data = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_COMPLEX128, mat.data)
+        PyArray_ENABLEFLAGS(_data, np.NPY_OWNDATA)
+
+        _row = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_INT32, mat.rows)
+        PyArray_ENABLEFLAGS(_row, np.NPY_OWNDATA)
+
+        _col = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_INT32, mat.cols)
+        PyArray_ENABLEFLAGS(_col, np.NPY_OWNDATA)
+        mat.numpy_lock = 1
+        return coo_matrix((_data, (_row, _col)), shape=(mat.nrows,mat.ncols))
+    else:
+        if mat.numpy_lock:
+            raise_error_COO(-4)
+        elif not mat.is_set:
+            raise_error_COO(-3)
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef void COO_to_CSR(CSR_Matrix * out, COO_Matrix * mat):
     """
     Conversion from COO to CSR. Not in place,
@@ -549,3 +587,53 @@ cdef void sort_indices(CSR_Matrix * mat):
             mat.indices[row_start+jj] = pairs[jj].ind
         
     PyDataMem_FREE(pairs)
+    
+
+@cython.boundscheck(False)
+@cython.wraparound(False)  
+cdef CSR_Matrix CSR_from_scipy(object A):
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+    cdef int nnz = ptr[nrows]
+    
+    cdef CSR_Matrix mat
+    
+    mat.data = &data[0]
+    mat.indices = &ind[0]
+    mat.indptr = &ptr[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.max_length = nnz
+    mat.is_set = 1
+    mat.numpy_lock = 1
+    
+    return mat
+    
+
+@cython.boundscheck(False)
+@cython.wraparound(False)  
+cdef COO_Matrix COO_from_scipy(object A):
+    cdef complex[::1] data = A.data
+    cdef int[::1] rows = A.row
+    cdef int[::1] cols = A.col
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+    cdef int nnz = data.shape[0]
+    
+    cdef COO_Matrix mat
+    mat.data = &data[0]
+    mat.rows = &rows[0]
+    mat.cols = &cols[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.max_length = nnz
+    mat.is_set = 1
+    mat.numpy_lock = 1
+    
+    return mat
+     
