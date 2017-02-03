@@ -31,7 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip.sparse import sp_reshape
+from qutip.cy.spconvert import zcsr_reshape
+from qutip.cy.spmath import zcsr_mult
 from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
 cimport cython
@@ -86,8 +87,9 @@ def _ptrace(object rho, _sel):
     data = np.ones_like(ind,dtype=complex)
     ptr = np.arange(0,(M**2+1)*indrest.shape[0],indrest.shape[0], dtype=np.int32)
     perm = fast_csr_matrix((data,ind,ptr),shape=(M * M, N * N))
-    rhdata = perm * sp_reshape(rho.data, (np.prod(rho.shape), 1))
-    rho1_data = sp_reshape(rhdata, (M, M))
+    # No need to sort here, will be sorted in reshape
+    rhdata = zcsr_mult(perm, zcsr_reshape(rho.data, np.prod(rho.shape), 1), sorted=0)
+    rho1_data = zcsr_reshape(rhdata, M, M)
     dims_kept0 = np.asarray(rho.dims[0], dtype=np.int32).take(sel)
     rho1_dims = [dims_kept0.tolist(), dims_kept0.tolist()]
     rho1_shape = [np.prod(dims_kept0), np.prod(dims_kept0)]
