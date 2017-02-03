@@ -96,6 +96,7 @@ cdef struct _coo_mat:
     int max_length
     int numpy_lock
 
+#Struct used for CSR indices sorting
 cdef struct _data_ind_pair:
     double complex data
     int ind
@@ -247,11 +248,6 @@ cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int ncols = 0,
     max_length : int (default = 0)
         Maximum length of arrays.  Used for resizing.
         Default value of zero indicates no resizing.
-
-    Returns
-    -------
-    success : int
-        Was routine successful.
     """
     if max_length == 0:
         max_length = nnz
@@ -319,6 +315,9 @@ cdef void free_COO(COO_Matrix * mat):
 @cython.boundscheck(False)
 @cython.wraparound(False)       
 cdef void shorten_CSR(CSR_Matrix * mat, int N):
+    """
+    Shortends the length of CSR data and indices arrays.
+    """
     if (not mat.numpy_lock) and mat.is_set:
         mat.data = <double complex *>PyDataMem_RENEW(mat.data, N * sizeof(double complex))
         mat.indices = <int *>PyDataMem_RENEW(mat.indices, N * sizeof(int))
@@ -333,6 +332,10 @@ cdef void shorten_CSR(CSR_Matrix * mat, int N):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void expand_CSR(CSR_Matrix * mat, int init_zeros=0):
+    """
+    Expands the length of CSR data and indices arrays to accomodate
+    more nnz.  THIS IS CURRENTLY NOT USED
+    """
     cdef size_t ii
     cdef int new_size
     if mat.nnz == mat.max_length:
@@ -473,6 +476,9 @@ cdef void COO_to_CSR(CSR_Matrix * out, COO_Matrix * mat):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void CSR_to_COO(COO_Matrix * out, CSR_Matrix * mat):
+    """
+    Converts a CSR_Matrix to a COO_Matrix.
+    """
     cdef int k1, k2
     cdef size_t jj, kk
     init_COO(out, mat.nnz, mat.nrows, mat.ncols)
@@ -492,6 +498,8 @@ cdef void CSR_to_COO(COO_Matrix * out, CSR_Matrix * mat):
 cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
     """
     In place conversion from COO to CSR. In place, but not sorted.
+    The length of the COO (data,rows,cols) must be equal to the NNZ
+    in the final matrix (i.e. no padded zeros on ends of arrays).
     """
     cdef size_t kk
     cdef int i, j, init, inext, jnext, ipos
@@ -566,6 +574,9 @@ cdef int ind_sort(const void *x, const void *y):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void sort_indices(CSR_Matrix * mat):
+    """
+    Sorts the indices of a CSR_Matrix inplace.
+    """
     cdef size_t ii, jj
     cdef data_ind_pair * pairs = NULL
     cdef int row_start, row_end, length
@@ -592,6 +603,10 @@ cdef void sort_indices(CSR_Matrix * mat):
 @cython.boundscheck(False)
 @cython.wraparound(False)  
 cdef CSR_Matrix CSR_from_scipy(object A):
+    """
+    Converts a SciPy CSR sparse matrix to a
+    CSR_Matrix struct.
+    """
     cdef complex[::1] data = A.data
     cdef int[::1] ind = A.indices
     cdef int[::1] ptr = A.indptr
@@ -617,6 +632,10 @@ cdef CSR_Matrix CSR_from_scipy(object A):
 @cython.boundscheck(False)
 @cython.wraparound(False)  
 cdef COO_Matrix COO_from_scipy(object A):
+    """
+    Converts a SciPy COO sparse matrix to a
+    COO_Matrix struct.
+    """
     cdef complex[::1] data = A.data
     cdef int[::1] rows = A.row
     cdef int[::1] cols = A.col

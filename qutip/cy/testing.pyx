@@ -39,6 +39,13 @@ cimport cython
 include "sparse_struct.pxi"
 
 
+def _test_coo2csr_struct(object A):
+    cdef COO_Matrix mat = COO_from_scipy(A)
+    cdef CSR_Matrix out
+    COO_to_CSR(&out, &mat)
+    return CSR_to_scipy(&out)
+    
+
 def _test_sorting(object A):
     cdef complex[::1] data = A.data
     cdef int[::1] ind = A.indices
@@ -96,7 +103,11 @@ def _test_coo2csr_inplace_struct(object A, int sorted = 0):
 
 
 def _test_csr2coo_struct(object A):
-    pass
+    cdef CSR_Matrix mat = CSR_from_scipy(A)
+    cdef COO_Matrix out
+    CSR_to_COO(&out, &mat)
+    return COO_to_scipy(&out)
+    
     
     
     

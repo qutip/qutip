@@ -34,7 +34,8 @@ import numpy as np
 import scipy.sparse as sp
 from qutip import rand_dm
 from qutip.fastsparse import fast_csr_matrix
-from qutip.cy.testing import (_test_sorting, _test_coo2csr_inplace_struct)
+from qutip.cy.testing import (_test_sorting, _test_coo2csr_inplace_struct,
+                            _test_csr2coo_struct, _test_coo2csr_struct)
 from qutip.random_objects import rand_jacobi_rotation
 from numpy.testing import assert_equal, assert_, run_module_suite
 
@@ -49,6 +50,18 @@ def _unsorted_csr(N, density=0.5):
     return fast_csr_matrix((M.data,M.indices,M.indptr),
                             shape = M.shape)
 
+
+
+def test_coo2csr_struct():
+    "Cython structs : COO to CSR"
+    for k in range(20):
+        A = rand_dm(5,0.5).data
+        B = A.tocoo()
+        C = _test_coo2csr_struct(B)
+        assert_(not (A!=C).data.any())
+
+
+
 def test_indices_sort():
     "Cython structs : sort CSR indices inplace"
     for k in range(20):
@@ -57,8 +70,8 @@ def test_indices_sort():
         B.sort_indices()
         _test_sorting(A)
         assert_(np.all(A.data == B.data))
-        assert_(np.all(A.indices == B.indices))
-    
+        assert_(np.all(A.indices == B.indices))   
+
 
 def test_coo2csr_inplace_nosort():
     "Cython structs : COO to CSR inplace (no sort)"
@@ -68,6 +81,7 @@ def test_coo2csr_inplace_nosort():
         C = _test_coo2csr_inplace_struct(B, sorted = 0)
         assert_(not (A!=C).data.any())
         
+
 def test_coo2csr_inplace_sort():
     "Cython structs : COO to CSR inplace (sorted)"
     for k in range(20):
@@ -77,6 +91,15 @@ def test_coo2csr_inplace_sort():
         assert_(not (A!=C).data.any())
         
         
+def test_csr2coo():
+    "Cython structs : CSR to COO"
+    for k in range(20):
+        A = rand_dm(5,0.5).data
+        B = A.tocoo()
+        C = _test_csr2coo_struct(A)
+        assert_(not (B!=C).data.any())
+        
+         
 
 if __name__ == "__main__":
     run_module_suite()
