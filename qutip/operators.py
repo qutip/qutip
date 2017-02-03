@@ -45,9 +45,8 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
 import numpy as np
 import scipy
 import scipy.sparse as sp
-
 from qutip.qobj import Qobj
-
+from qutip.fastsparse import fast_csr_matrix, fast_identity
 
 #
 # Spin operators
@@ -82,9 +81,9 @@ shape = [3, 3], type = oper, isHerm = True
      Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
-    [[ 0.+0.j          0.+0.70710678j  0.+0.j        ]
-     [ 0.-0.70710678j  0.+0.j          0.+0.70710678j]
-     [ 0.+0.j          0.-0.70710678j  0.+0.j        ]]
+    [[ 0.+0.j          0.-0.70710678j  0.+0.j        ]
+     [ 0.+0.70710678j  0.+0.j          0.-0.70710678j]
+     [ 0.+0.j          0.+0.70710678j  0.+0.j        ]]
      Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
@@ -102,25 +101,22 @@ shape = [3, 3], type = oper, isHerm = True
         raise TypeError('j must be a non-negative integer or half-integer')
 
     if not args:
-        a1 = Qobj(0.5 * (_jplus(j) + _jplus(j).conj().T))
-        a2 = Qobj(0.5 * 1j * (_jplus(j) - _jplus(j).conj().T))
-        a3 = Qobj(_jz(j))
-        return np.array([a1, a2, a3])
+        return jmat(j, 'x'), jmat(j, 'y'), jmat(j, 'z') 
 
     if args[0] == '+':
         A = _jplus(j)
     elif args[0] == '-':
-        A = _jplus(j).conj().T
+        A = _jplus(j).getH()
     elif args[0] == 'x':
-        A = 0.5 * (_jplus(j) + _jplus(j).conj().T)
+        A = 0.5 * (_jplus(j) + _jplus(j).getH())
     elif args[0] == 'y':
-        A = -0.5 * 1j * (_jplus(j) - _jplus(j).conj().T)
+        A = -0.5 * 1j * (_jplus(j) - _jplus(j).getH())
     elif args[0] == 'z':
         A = _jz(j)
     else:
         raise TypeError('Invalid type')
 
-    return Qobj(A.tocsr())
+    return Qobj(A)
 
 
 def _jplus(j):
@@ -128,19 +124,33 @@ def _jplus(j):
     Internal functions for generating the data representing the J-plus
     operator.
     """
-    m = np.arange(j, -j - 1, -1)
-    N = len(m)
-    return sp.spdiags(np.sqrt(j * (j + 1.0) - (m + 1.0) * m),
-                      1, N, N, format='csr')
+    m = np.arange(j, -j - 1, -1, dtype=complex)
+    data = (np.sqrt(j * (j + 1.0) - (m + 1.0) * m))[1:]
+    N = m.shape[0]
+    ind = np.arange(1, N, dtype=np.int32)
+    ptr = np.array(list(range(N-1))+[N-1]*2, dtype=np.int32)
+    ptr[-1] = N-1
+    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
 
 
 def _jz(j):
     """
     Internal functions for generating the data representing the J-z operator.
     """
-    m = np.arange(j, -j - 1, -1)
-    N = len(m)
-    return sp.spdiags(m, 0, N, N, format='csr')
+    N = int(2*j+1)
+    data = np.array([j-k for k in range(N) if (j-k)!=0], dtype=complex)
+    # Even shaped matrix
+    if (N % 2 == 0):
+        ind = np.arange(N, dtype=np.int32)
+        ptr = np.arange(N+1,dtype=np.int32)
+        ptr[-1] = N
+    # Odd shaped matrix
+    else:
+        j = int(j)
+        ind = np.array(list(range(j))+list(range(j+1,N)), dtype=np.int32)
+        ptr = np.array(list(range(j+1))+list(range(j,N)), dtype=np.int32)
+        ptr[-1] = N-1
+    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
 
 
 #
@@ -366,8 +376,11 @@ shape = [4, 4], type = oper, isHerm = False
     '''
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    return Qobj(sp.spdiags(np.sqrt(range(offset, N+offset)),
-                           1, N, N, format='csr'), isherm=False)
+    data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
+    ind = np.arange(1,N, dtype=np.int32)
+    ptr = np.arange(N+1, dtype=np.int32)
+    ptr[-1] = N-1
+    return Qobj(fast_csr_matrix((data,ind,ptr),shape=(N,N)), isherm=False)
 
 
 #
@@ -406,8 +419,7 @@ shape = [4, 4], type = oper, isHerm = False
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     qo = destroy(N, offset=offset)  # create operator using destroy function
-    qo.data = qo.data.T.tocsr()  # transpose data in Qobj and convert to csr
-    return qo
+    return qo.dag()
 
 
 #
@@ -442,11 +454,11 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     if isinstance(N, list):
-        return tensor.tensor(*[identity(n) for n in N])
+        return tensor(*[identity(n) for n in N])
     N = int(N)
-    if (not isinstance(N, (int, np.integer))) or N < 0:
+    if N < 0:
         raise ValueError("N must be integer N>=0")
-    return Qobj(sp.eye(N, N, dtype=complex, format='csr'), isherm=True)
+    return Qobj(fast_identity(N), isherm=True)
 
 
 def identity(N):
@@ -540,8 +552,18 @@ shape = [4, 4], type = oper, isHerm = True
      [0 0 0 3]]
 
     """
-    data = sp.spdiags(np.arange(offset, offset + N), 0, N, N, format='csr')
-    return Qobj(data)
+    if offset == 0:
+        data = np.arange(1,N, dtype=complex)
+        ind = np.arange(1,N, dtype=np.int32)
+        ptr = np.array([0]+list(range(0,N)), dtype=np.int32)
+        ptr[-1] = N-1
+    else:
+        data = np.arange(offset, offset + N, dtype=complex)
+        ind = np.arange(N, dtype=np.int32)
+        ptr = np.arange(N+1,dtype=np.int32)
+        ptr[-1] = N
+    
+    return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,N)), isherm=True)
 
 
 def squeeze(N, z, offset=0):
@@ -785,7 +807,7 @@ def qzero(N):
     """
 
     if isinstance(N, list):
-        return tensor.tensor(*[qzero(n) for n in N])
+        return tensor(*[qzero(n) for n in N])
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
@@ -952,4 +974,4 @@ def tunneling(N, m=1):
 # Break circular dependencies by a trailing import.
 # Note that we use a relative import here to deal with that
 # qutip.tensor is the *function* tensor, not the module.
-from . import tensor
+from qutip.tensor import tensor

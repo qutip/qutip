@@ -113,14 +113,10 @@ try:
               ("(%s), requiring %s." %
                (Cython.__version__, _cython_requirement)))
 
-    import pyximport
-    os.environ['CFLAGS'] = '-O3 -w -ffast-math -march=native'
-    pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
-
 except Exception as e:
     print("QuTiP warning: Cython setup failed: " + str(e))
 else:
-    del Cython, pyximport
+    del Cython
 
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
@@ -202,11 +198,6 @@ else:
     del matplotlib
 
 # -----------------------------------------------------------------------------
-# Clean name space
-#
-del os, sys, numpy, scipy, multiprocessing
-
-# -----------------------------------------------------------------------------
 # Load modules
 #
 
@@ -258,7 +249,7 @@ from qutip.correlation import *
 from qutip.countstat import *
 from qutip.rcsolve import *
 from qutip.nonmarkov import *
-from qutip.cubic_spline import *
+from qutip.interpolate import *
 
 # quantum information
 from qutip.qip import *
@@ -268,3 +259,14 @@ from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
+
+# Setup pyximport 
+import pyximport
+os.environ['CFLAGS'] = '-O2 -w -ffast-math'
+pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+del pyximport
+
+# -----------------------------------------------------------------------------
+# Clean name space
+#
+del os, sys, numpy, scipy, multiprocessing

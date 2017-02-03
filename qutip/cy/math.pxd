@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, The QuTiP Project.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without 
@@ -31,35 +31,4 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-cimport numpy as np
-cimport cython
-
-include "parameters.pxi"
-
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(complex[::1] data,
-                int[::1] ind, int[::1] ptr, complex[::1] vec)
-
-
-cpdef void spmvpy(complex[::1] data,
-                int[::1] ind,
-                int[::1] ptr,
-                complex[::1] vec,
-                complex a,
-                complex[::1] out)
-
-
-cpdef cy_expect_rho_vec_csr(complex[::1] data,
-                            int[::1] idx,
-                            int[::1] ptr,
-                            complex[::1] rho_vec,
-                            int herm)
-
-cpdef cy_expect_psi(object op,
-                    complex[::1] state,
-                    int isherm)
-
-cpdef cy_expect_psi_csr(complex[::1] data,
-                        int[::1] idx,
-                        int[::1] ptr, 
-                        complex[::1] state,
-                        int isherm)
+cdef double erf(double x)

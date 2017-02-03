@@ -121,7 +121,7 @@ class Options():
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False):
+                 steady_state_average=False, normalize_output=True):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -173,6 +173,8 @@ class Options():
         self.store_states = store_states
         # average mcsolver density matricies assuming steady state evolution
         self.steady_state_average = steady_state_average
+        # Normalize output of solvers (turned off for batch unitary propagator mode)
+        self.normalize_output = normalize_output
 
     def __str__(self):
         if self.seeds is None:
@@ -321,6 +323,7 @@ class SolverConfiguration():
 
         # Hamiltonian stuff
         self.h_td_inds = []  # indicies of time-dependent Hamiltonian operators
+        self.h_tdterms = []  # List of td strs and funcs 
         self.h_data = None   # List of sparse matrix data
         self.h_ind = None    # List of sparse matrix indices
         self.h_ptr = None    # List of sparse matrix ptrs
@@ -814,7 +817,7 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             _temp_state = c_ops[ii][0]
         else:
             raise Exception('Invalid td-list element.')
-        _structure_check(Hdims,Htype,_temp_state)
+        _structure_check(Hdims, Htype, _temp_state)
     
     for ii in range(len(e_ops)):
             if isinstance(e_ops[ii], Qobj):

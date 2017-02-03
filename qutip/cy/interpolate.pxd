@@ -31,35 +31,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-cimport numpy as np
-cimport cython
+cpdef double interp(double x, double a, double b, double[::1] c)
 
-include "parameters.pxi"
-
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(complex[::1] data,
-                int[::1] ind, int[::1] ptr, complex[::1] vec)
-
-
-cpdef void spmvpy(complex[::1] data,
-                int[::1] ind,
-                int[::1] ptr,
-                complex[::1] vec,
-                complex a,
-                complex[::1] out)
-
-
-cpdef cy_expect_rho_vec_csr(complex[::1] data,
-                            int[::1] idx,
-                            int[::1] ptr,
-                            complex[::1] rho_vec,
-                            int herm)
-
-cpdef cy_expect_psi(object op,
-                    complex[::1] state,
-                    int isherm)
-
-cpdef cy_expect_psi_csr(complex[::1] data,
-                        int[::1] idx,
-                        int[::1] ptr, 
-                        complex[::1] state,
-                        int isherm)
+cpdef complex zinterp(double x, double a, double b, complex[::1] c)

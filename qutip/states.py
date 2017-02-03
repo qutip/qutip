@@ -48,6 +48,8 @@ from qutip.qobj import Qobj
 from qutip.operators import destroy, jmat
 from qutip.tensor import tensor
 
+from qutip.fastsparse import fast_csr_matrix
+
 
 def basis(N, n=0, offset=0):
     """Generates the vector representation of a Fock state.
@@ -102,11 +104,11 @@ def basis(N, n=0, offset=0):
     if n - offset > (N - 1):  # check if n is within bounds
         raise ValueError("basis vector index need to be in n <= N-1")
 
-    bas = sp.lil_matrix((N, 1))  # column vector of zeros
-    bas[n - offset, 0] = 1  # 1 located at position n
-    bas = bas.tocsr()
+    data = np.array([1], dtype=complex)
+    ind = np.array([0], dtype=np.int32)
+    ptr = np.array([0]*((n - offset)+1)+[1]*(N-(n-offset)),dtype=np.int32)
 
-    return Qobj(bas)
+    return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,1)), isherm=False)
 
 
 def qutrit_basis():

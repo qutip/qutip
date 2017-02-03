@@ -47,6 +47,7 @@ from qutip.qobj import Qobj, isket
 from qutip.rhs_generate import rhs_generate
 from qutip.solver import Result, Options, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
+from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
@@ -112,10 +113,6 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         which to calculate the expectation values.
 
     """
-
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
-    
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
@@ -124,10 +121,12 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
+    
     # convert array based time-dependence to string format
     H, _, args = _td_wrap_array_str(H, [], args, tlist)
-
     # check for type (if any) of time-dependent inputs
     n_const, n_func, n_str = _td_format_check(H, [])
 
@@ -227,7 +226,7 @@ def _sesolve_list_func_td(H_list, psi0, tlist, e_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, norm,
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
                               dims=psi0.dims)
 
 
@@ -299,7 +298,7 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     # call generic ODE code
     #
     return _generic_ode_solve(r, psi0, tlist, e_ops, opt,
-                              progress_bar, norm, dims=psi0.dims)
+                              progress_bar, dims=psi0.dims)
 
 
 #
@@ -335,6 +334,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     Linds = []
     Lptrs = []
     Lcoeff = []
+    Lobj = []
 
     # loop over all hamiltonian terms, convert to superoperator form and
     # add the data of sparse matrix representation to h_coeff
@@ -357,6 +357,8 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
         Ldata.append(L.data.data)
         Linds.append(L.data.indices)
         Lptrs.append(L.data.indptr)
+        if isinstance(h_coeff, Cubic_Spline):
+            Lobj.append(h_coeff.coeffs)
         Lcoeff.append(h_coeff)
 
     # the total number of liouvillian terms (hamiltonian terms +
@@ -370,6 +372,10 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     string_list = []
     for k in range(n_L_terms):
         string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
+    # Add object terms to end of ode args string
+    for k in range(len(Lobj)):
+        string_list.append("Lobj[%d]" % k)
+    
     for name, value in args.items():
         if isinstance(value, np.ndarray):
             string_list.append(name)
@@ -413,7 +419,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     # call generic ODE code
     #
     return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
-                              norm, dims=psi0.dims)
+                              dims=psi0.dims)
 
 
 # -----------------------------------------------------------------------------
@@ -501,8 +507,8 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
-                              norm, dims=psi0.dims)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar
+                            , dims=psi0.dims)
 
 
 # -----------------------------------------------------------------------------
@@ -567,7 +573,7 @@ def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, norm,
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
                               dims=psi0.dims)
 
 
@@ -588,12 +594,16 @@ def _ode_psi_func_td_with_state(t, psi, H_func, args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
-                       state_norm_func=None, dims=None):
+def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
     """
     Internal function for solving ODEs.
     """
-
+    if opt.normalize_output:
+        state_norm_func = norm
+    else:
+        state_norm_func = None
+        
+    
     #
     # prepare output array
     #

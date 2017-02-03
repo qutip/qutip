@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -30,62 +30,58 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
 import numpy as np
-import os, sys
-from qutip.utilities import _blas_info
-import qutip.settings as qset
-from ctypes import cdll
+cimport numpy as np
+cimport cython
 
-
-def _set_mkl():
-    """
-    Finds the MKL runtime library for the 
-    Anaconda and Intel Python distributions.
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int insertcol=0):
+    cdef int nrowin = A.shape[0]
+    cdef int ncolin = A.shape[1]
+    cdef int nnz = A.indptr[nrowin]
+    cdef int nrowout = nrowin*row_scale
+    cdef int ncolout = ncolin*col_scale
+    cdef size_t kk
+    cdef int temp, temp2
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr_in = A.indptr
+    cdef np.ndarray[int, ndim=1, mode='c'] ptr_out = np.zeros(nrowout+1,dtype=np.int32)
     
-    """
-    if _blas_info() == 'INTEL MKL':
-        plat = sys.platform
-        python_dir = os.path.dirname(sys.executable)
-        if plat in ['darwin','linux2', 'linux']:
-            python_dir = os.path.dirname(python_dir)
-
-        if plat == 'darwin':
-            lib = '/libmkl_rt.dylib'
-        elif plat == 'win32':
-            lib = '\\mkl_rt.dll'
-        elif plat in ['linux2', 'linux']:
-            lib = '/libmkl_rt.so'
-        else:
-            raise Exception('Unknown platfrom.')
-        
-        if plat in ['darwin','linux2', 'linux']:
-            lib_dir = '/lib'
-        else:
-            lib_dir = '\Library\\bin'
-        
-        # Try in default Anaconda location first
-        try:
-            qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-            qset.has_mkl = True
-        except:
-            pass
-        
-        # Look in Intel Python distro location
-        if not qset.has_mkl:
-            if plat in ['darwin','linux2', 'linux']:
-                lib_dir = '/ext/lib'
-            else:
-                lib_dir = '\ext\\lib'
-            try:
-                qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-                qset.has_mkl = True
-            except:
-                pass
-    else:
+    A._shape = (nrowout, ncolout)
+    if insertcol == 0:
         pass
+    elif insertcol > 0 and insertcol < col_scale:
+        temp = insertcol*ncolin
+        for kk in range(nnz):
+            ind[kk] += temp
+    else:
+        raise ValueError("insertcol must be >= 0 and < col_scale")
+        
+    
+    if insertrow == 0:
+        temp = ptr_in[nrowin]
+        for kk in range(nrowin):
+            ptr_out[kk] = ptr_in[kk]
+        for kk in range(nrowin, nrowout+1):
+            ptr_out[kk] = temp
 
+    elif insertrow == row_scale-1:
+        temp = (row_scale - 1) * nrowin
+        for kk in range(temp, nrowout+1):
+            ptr_out[kk] = ptr_in[kk-temp]
+    
+    elif insertrow > 0 and insertrow < row_scale - 1:
+        temp = insertrow*nrowin
+        for kk in range(temp, temp+nrowin):
+            ptr_out[kk] = ptr_in[kk-temp]
+        temp = kk+1
+        temp2 = ptr_in[nrowin]
+        for kk in range(temp, nrowout+1):
+            ptr_out[kk] = temp2     
+    else:
+        raise ValueError("insertrow must be >= 0 and < row_scale")
 
-if __name__ == "__main__":
-    _set_mkl()
-    print(qset.has_mkl)
+    A.indptr = ptr_out
+    
+    return A

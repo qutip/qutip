@@ -53,15 +53,15 @@ def test_dqd_current():
     tc = 0.6 * w0
     GammaR = 0.0075 * w0
     GammaL = 0.0075 * w0
-    nth = 0.00001
+    nth = 0.00
     eps_vec = np.linspace(-1.5*w0, 1.5*w0, 20)
 
     J_ops = [GammaR * sprepost(sR, sR.dag())]
 
-    c_ops = [np.sqrt(GammaR/(2) * (1 + nth)) * sR,
-             np.sqrt(GammaR/(2) * (nth)) * sR.dag(),
-             np.sqrt(GammaL/(2) * (nth)) * sL,
-             np.sqrt(GammaL/(2) * (1 + nth)) * sL.dag(),
+    c_ops = [np.sqrt(GammaR * (1 + nth)) * sR,
+             np.sqrt(GammaR * (nth)) * sR.dag(),
+             np.sqrt(GammaL * (nth)) * sL,
+             np.sqrt(GammaL * (1 + nth)) * sL.dag(),
              ]
 
     I = np.zeros(len(eps_vec))

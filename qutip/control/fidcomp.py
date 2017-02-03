@@ -545,10 +545,10 @@ class FidCompUnitary(FidelityComputer):
                 fwd_evo = dyn._fwd_evo[k]   
                 onto_evo = dyn._onto_evo[k+1]
                 if dyn.oper_dtype == Qobj:
-                    g = (onto_evo*dyn._prop_grad[k, j]*fwd_evo).tr()
+                    g = (onto_evo*dyn._get_prop_grad(k, j)*fwd_evo).tr()
                 else:
                     g = _trace(onto_evo.dot(
-                                dyn._prop_grad[k, j]).dot(fwd_evo))
+                                dyn._get_prop_grad(k, j)).dot(fwd_evo))
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
@@ -691,7 +691,7 @@ class FidCompTraceDiff(FidelityComputer):
             for k in range(n_ts):
                 fwd_evo = dyn._fwd_evo[k]
                 if dyn.oper_dtype == Qobj:
-                    evo_grad = dyn._prop_grad[k, j]*fwd_evo
+                    evo_grad = dyn._get_prop_grad(k, j)*fwd_evo
                     if k+1 < n_ts:
                         evo_grad = dyn._onwd_evo[k+1]*evo_grad
                     # Note that the value should have not imagnary part, so
@@ -699,7 +699,7 @@ class FidCompTraceDiff(FidelityComputer):
                     g = -2*self.scale_factor*np.real(
                                     (evo_f_diff.dag()*evo_grad).tr())
                 else:
-                    evo_grad = dyn._prop_grad[k, j].dot(fwd_evo)
+                    evo_grad = dyn._get_prop_grad(k, j).dot(fwd_evo)
                     if k+1 < n_ts:
                         evo_grad = dyn._onwd_evo[k+1].dot(evo_grad)
                     g = -2*self.scale_factor*np.real(_trace(

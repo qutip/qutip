@@ -592,6 +592,10 @@ def test_QobjPermute():
     psi = tensor(A, B, C)
     psi2 = psi.permute([2, 0, 1])
     assert_(psi2 == tensor(C, A, B))
+    
+    psi_bra = psi.dag()
+    psi2_bra = psi_bra.permute([2, 0, 1])
+    assert_(psi2_bra == tensor(C, A, B).dag())
 
     A = fock_dm(5, 0)
     B = fock_dm(5, 4)
@@ -607,6 +611,10 @@ def test_QobjPermute():
         psi = tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
         assert_(psi2 == tensor(B, A, C))
+        
+        psi_bra = psi.dag()
+        psi2_bra = psi_bra.permute([1, 0, 2])
+        assert_(psi2_bra == tensor(B, A, C).dag())
 
     for ii in range(3):
         A = rand_dm(5)

@@ -1,2 +1,0 @@
-# bzr-builder format 0.3 deb-version {debupstream}+{revno}-0~{revno:packaging}
-lp:qutip/qutip-3.0

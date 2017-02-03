@@ -73,10 +73,9 @@ def _ptrace(rho, sel):
          for m in range(M ** 2)])
     # perm.data = np.ones_like(perm.rows,dtype=int)
     perm.data = np.ones_like(perm.rows)
-    perm.tocsr()
-    rhdata = perm * sp_reshape(rho.data, [np.prod(rho.shape), 1])
-    rhdata = rhdata.tolil().reshape((M, M))
-    rho1_data = rhdata.tocsr()
+    perm = perm.tocsr()
+    rhdata = perm * sp_reshape(rho.data, (np.prod(rho.shape), 1))
+    rho1_data = sp_reshape(rhdata, (M, M))
     dims_kept0 = np.asarray(rho.dims[0]).take(sel)
     dims_kept1 = np.asarray(rho.dims[0]).take(sel)
     rho1_dims = [dims_kept0.tolist(), dims_kept1.tolist()]

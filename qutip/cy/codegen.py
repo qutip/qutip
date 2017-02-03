@@ -32,6 +32,7 @@
 ###############################################################################
 import os
 import numpy as np
+from qutip.interpolate import Cubic_Spline
 _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _include_string = "'"+_cython_path+"/complex_math.pxi'"
 
@@ -88,8 +89,6 @@ class Codegen():
             self.write(line)
         self.indent()
         for line in self.func_vars():
-            self.write(line)
-        for line in self.func_for():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
@@ -166,6 +165,19 @@ class Codegen():
                                "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
                                "np.ndarray[int, ndim=1] idx%d," % k +
                                "np.ndarray[int, ndim=1] ptr%d" % k)
+        
+        #Add array for each Cubic_Spline term
+        spline = 0
+        for htd in self.h_tdterms:
+            if isinstance(htd, Cubic_Spline):
+                if not htd.is_complex:
+                    input_vars += (",\n        " +
+                                   "np.ndarray[DTYPE_t, ndim=1] spline%d" % spline)
+                else:
+                    input_vars += (",\n        " +
+                                   "np.ndarray[CTYPE_t, ndim=1] spline%d" % spline)
+                spline += 1
+        
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
@@ -204,24 +216,43 @@ class Codegen():
         func_vars.append(" ")
         tdterms = self.h_tdterms
         hinds = 0
+        spline = 0
         for ht in self.h_terms:
             hstr = str(ht)
             if self.type == 'mc':
-                str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Hvec" + hstr +
-                           " = " + "spmv_csr(data" + hstr + "," +
-                           "idx" + hstr + "," + "ptr" + hstr +
-                           "," + "vec" + ")")
                 if ht in self.h_td_inds:
-                    str_out += " * (" + tdterms[hinds] + ")"
+                    if isinstance(tdterms[hinds], str):
+                        td_str= tdterms[hinds]
+                    elif isinstance(tdterms[hinds], Cubic_Spline):
+                        S = tdterms[hinds]
+                        if not S.is_complex:
+                            td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        else:
+                            td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        spline += 1
                     hinds += 1
+                else:
+                    td_str = "1.0"
+                str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                        ht, ht, ht, td_str)
                 func_vars.append(str_out)
             else:
                 if self.h_tdterms[ht] == "1.0":
                     str_out = "spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (
                         ht, ht, ht)
                 else:
-                    str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
-                        ht, ht, ht, self.h_tdterms[ht])
+                    if isinstance(self.h_tdterms[ht], str):
+                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                            ht, ht, ht, self.h_tdterms[ht])
+                    elif isinstance(self.h_tdterms[ht], Cubic_Spline):
+                        S = self.h_tdterms[ht]
+                        if not S.is_complex:
+                            interp_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        else:
+                            interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                        spline += 1
+                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                            ht, ht, ht, interp_str)
                 func_vars.append(str_out)
 
         if len(self.c_tdterms) > 0:
@@ -233,29 +264,11 @@ class Codegen():
             cinds = 0
             for ct in range(terms):
                 cstr = str(ct + hinds + 1)
-                str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Cvec" + str(ct) +
-                           " = " + "spmv_csr(data" + cstr + "," +
-                           "idx" + cstr + "," +
-                           "ptr" + cstr + "," + "vec" + ")")
-                if ct in range(len(self.c_td_inds)):
-                    str_out += " * abs(" + tdterms[ct] + ")**2"
-                    cinds += 1
+                str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                        cstr, cstr, cstr, " abs(" + tdterms[ct] + ")**2")
+                cinds += 1
                 func_vars.append(str_out)
         return func_vars
-
-    def func_for(self):
-        """Writes function for-loop"""
-        func_terms = []
-        if self.type == 'mc':
-            func_terms.append("for row in range(num_rows):")
-            sum_string = "    out[row] = Hvec0[row]"
-            for ht in range(1, len(self.h_terms)):
-                sum_string += " + Hvec" + str(ht) + "[row]"
-            if any(self.c_tdterms):
-                for ct in range(len(self.c_tdterms)):
-                    sum_string += " + Cvec" + str(ct) + "[row]"
-            func_terms.append(sum_string)
-        return func_terms
 
     def func_which(self):
         """Writes 'else-if' statements forcollapse operator eval function"""
@@ -297,8 +310,9 @@ def cython_preamble():
 import numpy as np
 cimport numpy as np
 cimport cython
-from qutip.cy.spmatfuncs cimport spmv_csr, spmvpy
-
+from qutip.cy.spmatfuncs cimport spmvpy
+from qutip.cy.interpolate cimport interp, zinterp
+from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 
 include """+_include_string+"""

@@ -42,6 +42,7 @@ from qutip.cy.codegen import Codegen
 from qutip.solver import Options, config
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost
+from qutip.interpolate import Cubic_Spline
 
 
 def rhs_clear():
@@ -111,6 +112,7 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     Linds = []
     Lptrs = []
     Lcoeff = []
+    Lobj = []
 
     # loop over all hamiltonian terms, convert to superoperator form and
     # add the data of sparse matrix represenation to
@@ -148,6 +150,8 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
             Lptrs.append(L.data.indptr)
+            if isinstance(h_coeff, Cubic_Spline):
+                Lobj.append(h_coeff.coeffs)
             Lcoeff.append(h_coeff)
 
         else:
@@ -230,6 +234,7 @@ def _td_format_check(H, c_ops, solver='me'):
     h_const = []
     h_func = []
     h_str = []
+    h_obj = []
     # check H for incorrect format
     if isinstance(H, Qobj):
         pass
@@ -248,6 +253,8 @@ def _td_format_check(H, c_ops, solver='me'):
                         h_func.append(k)
                     elif isinstance(H_k[1], str):
                         h_str.append(k)
+                    elif isinstance(H_k[1], Cubic_Spline):
+                        h_obj.append(k)
                     elif isinstance(H_k[1], np.ndarray):
                         h_str.append(k)
                     else:
@@ -259,6 +266,7 @@ def _td_format_check(H, c_ops, solver='me'):
     c_const = []
     c_func = []
     c_str = []
+    c_obj = []
     if isinstance(c_ops, list):
         for k in range(len(c_ops)):
             if isinstance(c_ops[k], Qobj):
@@ -273,6 +281,8 @@ def _td_format_check(H, c_ops, solver='me'):
                         c_func.append(k)
                     elif isinstance(c_ops[k][1], str):
                         c_str.append(k)
+                    elif isinstance(H_k[1], Cubic_Spline):
+                        c_obj.append(k)
                     elif isinstance(c_ops[k][1], np.ndarray):
                         c_str.append(k)
                     else:
@@ -298,14 +308,31 @@ def _td_format_check(H, c_ops, solver='me'):
             raise Exception(
                 "Unable to load Cython. Use Python function format.")
         else:
-            if Cython.__version__ < '0.14':
+            if Cython.__version__ < '0.21':
                 raise Exception("Cython version (%s) is too old. Upgrade to " +
-                                "version 0.14+" % Cython.__version__)
+                                "version 0.21+" % Cython.__version__)
+     
+    # If only time-dependence is in Objects, then prefer string based format
+    if (len(h_func) + len(c_func) + len(h_str) + len(c_str)) == 0:
+         h_str += h_obj #Does nothing if not objects
+    else:
+        # Combine Hamiltonian objects
+        if len(h_func) > 0:
+            h_func += h_obj
+        elif len(h_str) > 0:
+            h_str += h_obj
+        
+        #Combine collapse objects
+        if len(c_func) > 0:
+            c_func += c_obj
+        elif len(c_str) > 0:
+            c_str += c_obj
 
     if solver == 'me':
         return (len(h_const + c_const),
                 len(h_func) + len(c_func),
                 len(h_str) + len(c_str))
+    
     elif solver == 'mc':
 
         #   H      C_ops    #

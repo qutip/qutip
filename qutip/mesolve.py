@@ -50,11 +50,13 @@ from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.rhs_generate import rhs_generate
 from qutip.states import ket2dm
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
+from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 
 from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
@@ -201,16 +203,6 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         operators for which to calculate the expectation values.
 
     """
-    
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
-    
-    if progress_bar is None:
-        progress_bar = BaseProgressBar()
-    elif progress_bar is True:
-        progress_bar = TextProgressBar()
-
     # check whether c_ops or e_ops is is a single operator
     # if so convert it to a list containing only that operator
     if isinstance(c_ops, Qobj):
@@ -224,6 +216,16 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
+    
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops, e_ops, args)
+    
+    
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
 
     # check if rho0 is a superoperator, in which case e_ops argument should
     # be empty, i.e., e_ops = []
@@ -546,6 +548,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     Linds = []
     Lptrs = []
     Lcoeff = []
+    Lobj = []
 
     # loop over all hamiltonian terms, convert to superoperator form and
     # add the data of sparse matrix representation to
@@ -579,6 +582,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
             Lptrs.append(L.data.indptr)
+            if isinstance(h_coeff, Cubic_Spline):
+                Lobj.append(h_coeff.coeffs)
             Lcoeff.append(h_coeff)
 
         else:
@@ -645,6 +650,9 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     string_list = []
     for k in range(n_L_terms):
         string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
+    # Add object terms to end of ode args string
+    for k in range(len(Lobj)):
+        string_list.append("Lobj[%d]" % k)
     for name, value in args.items():
         if isinstance(value, np.ndarray):
             string_list.append(name)
@@ -973,7 +981,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
                             "the nsteps parameter in the Options class.")
 
         if opt.store_states or expt_callback:
-            rho.data = vec2mat(r.y)
+            rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
 
             if opt.store_states:
                 output.states.append(Qobj(rho, isherm=True))
@@ -995,11 +1003,11 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 
     progress_bar.finished()
 
-    if not opt.rhs_reuse and config.tdname is not None:
+    if (not opt.rhs_reuse) and (config.tdname is not None):
         _cython_build_cleanup(config.tdname)
 
     if opt.store_final_state:
-        rho.data = vec2mat(r.y)
+        rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
         output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
 
     return output

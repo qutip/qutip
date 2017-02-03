@@ -42,7 +42,7 @@ The sparsity of the ouput Qobj's is controlled by varing the
 __all__ = [
     'rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm',
     'rand_unitary_haar', 'rand_ket_haar', 'rand_dm_ginibre',
-    'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic'
+    'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic', 'rand_super'
 ]
 
 from scipy import arcsin, sqrt, pi
@@ -160,12 +160,14 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
         col_idx = np.random.choice(N, num_elems)
         M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=complex, shape=(N,N)).tocsr()
         M = 0.5*(M+M.conj().transpose())
+        M.sort_indices()
         if pos_def:
             M = M.tocoo()
             M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
             M = M.tocsr()
+            M.sort_indices()
     if dims:
-        return Qobj(M, dims=dims, shape=[N, N])
+        return Qobj(M, dims=dims)
     else:
         return Qobj(M)
 
@@ -281,7 +283,7 @@ def rand_ket(N, density=1, dims=None):
     X.sort_indices()
     X = Qobj(X)
     if dims:
-        return Qobj(X / X.norm(), dims=[dims, [1]], shape=[N, 1])
+        return Qobj(X / X.norm(), dims=dims)
     else:
         return Qobj(X / X.norm())
 
@@ -309,9 +311,9 @@ def rand_ket_haar(N=2, dims=None):
     if dims:
         _check_ket_dims(dims, N)
     else:
-        dims = [N]
+        dims = [[N],[1]]
     psi = rand_unitary_haar(N) * basis(N, 0)
-    psi.dims = [dims, [1]]
+    psi.dims = dims
     return psi
 
 
@@ -350,6 +352,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
         nvals = N**2*density
         while H.nnz < 0.95*nvals:
             H = rand_jacobi_rotation(H)
+        H.sort_indices()
     elif isinstance(N,int):
         if dims:
             _check_dims(dims, N, N)
@@ -357,22 +360,22 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
             dm_density = sqrt(density)
             psi = rand_ket(N, dm_density)
             H = psi * psi.dag()
+            H.data.sort_indices()
         else:
-            density = density ** 2
             non_zero = 0
             tries = 0
             while non_zero == 0 and tries < 10:
                 H = rand_herm(N, density)
                 H = H.dag() * H
-                non_zero = sum([H.tr()])
+                non_zero = H.tr()
                 tries += 1
             if tries >= 10:
                 raise ValueError(
                     "Requested density is too low to generate density matrix.")
-            H.data.sort_indices()
             H = H / H.tr()
+            H.data.sort_indices()
     if dims:
-        return Qobj(H, dims=dims, shape=[N, N])
+        return Qobj(H, dims=dims)
     else:
         return Qobj(H)
 
@@ -646,7 +649,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None):
 
 
 def _check_ket_dims(dims, N1):
-    if not isinstance(dims, list) or isinstance(dims[0], list):
+    if (not isinstance(dims, list)) or (not isinstance(dims[0], list)):
         raise TypeError("Left and right Qobj dimensions must be lists of ints. E.g.: [2, 3].")
     if np.prod(dims) != N1:
         raise ValueError("Qobj dimensions must match matrix shape.")
