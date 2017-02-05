@@ -43,7 +43,7 @@ def test_jmat_12():
     spinhalf = jmat(1 / 2.)
 
     paulix = np.array([[0.0 + 0.j, 0.5 + 0.j], [0.5 + 0.j, 0.0 + 0.j]])
-    pauliy = np.array([[0. + 0.j, 0. + 0.5j], [0. - 0.5j, 0. + 0.j]])
+    pauliy = np.array([[0. + 0.j, 0. - 0.5j], [0. + 0.5j, 0. + 0.j]])
     pauliz = np.array([[0.5 + 0.j, 0.0 + 0.j], [0.0 + 0.j, -0.5 + 0.j]])
     sigmap = np.array([[0. + 0.j, 1. + 0.j], [0. + 0.j, 0. + 0.j]])
     sigmam = np.array([[0. + 0.j, 0. + 0.j], [1. + 0.j, 0. + 0.j]])
@@ -66,10 +66,10 @@ def test_jmat_32():
          [0.0000000 + 0.j, 0.0000000 + 0.j, 0.8660254 + 0.j, 0.0000000 + 0.j]])
 
     pauliy32 = np.array(
-        [[0. + 0.j, 0. + 0.8660254j, 0. + 0.j, 0. + 0.j],
-         [0. - 0.8660254j, 0. + 0.j, 0. + 1.j, 0. + 0.j],
-         [0. + 0.j, 0. - 1.j, 0. + 0.j, 0. + 0.8660254j],
-         [0. + 0.j, 0. + 0.j, 0. - 0.8660254j, 0. + 0.j]])
+        [[0. + 0.j, 0. - 0.8660254j, 0. + 0.j, 0. + 0.j],
+         [0. + 0.8660254j, 0. + 0.j, 0. - 1.j, 0. + 0.j],
+         [0. + 0.j, 0. + 1.j, 0. + 0.j, 0. - 0.8660254j],
+         [0. + 0.j, 0. + 0.j, 0. + 0.8660254j, 0. + 0.j]])
 
     pauliz32 = np.array([[1.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
                          [0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
@@ -90,7 +90,7 @@ def test_jmat_42():
 def test_jmat_52():
     "Spin 5/2 operators"
     spin52 = jmat(5 / 2., '+')
-    assert_equal(spin52.shape == [6, 6], True)
+    assert_equal(spin52.shape == (6, 6), True)
 
 
 def test_destroy():
@@ -130,7 +130,7 @@ def test_qeye():
 
 
 def test_qeye_dims():
-    "Identity operator"
+    "Identity operator (array input)"
     eye24 = qeye([2, 3, 4])
     assert_equal(np.allclose(eye24.full(), np.eye(24, dtype=complex)), True)
     assert_equal(eye24.dims, [[2, 3, 4], [2, 3, 4]])

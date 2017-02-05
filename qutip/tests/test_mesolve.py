@@ -310,27 +310,12 @@ class TestMESolverConstDecay:
         kappa = 0.2  # coupling to oscillator
         c_op = np.sqrt(kappa) * a
         tlist = np.linspace(0, 10, 100)
-        medata = mesolve(H, psi0, tlist, c_op, [a.dag() * a])
+        medata = mesolve(H, psi0, tlist, [c_op], [a.dag() * a])
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-kappa * tlist)
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMEDecaySingleExpect(self):
-        "mesolve: simple constant decay"
-
-        N = 10  # number of basis states to consider
-        a = destroy(N)
-        H = a.dag() * a
-        psi0 = basis(N, 9)  # initial state
-        kappa = 0.2  # coupling to oscillator
-        c_op_list = [np.sqrt(kappa) * a]
-        tlist = np.linspace(0, 10, 100)
-        medata = mesolve(H, psi0, tlist, c_op_list, a.dag() * a)
-        expt = medata.expect[0]
-        actual_answer = 9.0 * np.exp(-kappa * tlist)
-        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-        assert_(avg_diff < me_error)
 
     def testMEDecayAsFuncList(self):
         "mesolve: constant decay as function list"
@@ -463,7 +448,7 @@ class TestMESolveTDDecay:
 
         def Liouvillian_func(t, args):
             c = np.sqrt(kappa * np.exp(-t))*a
-            return liouvillian(H, [c]).data
+            return liouvillian(H, [c])
 
         tlist = np.linspace(0, 10, 100)
         args = {'kappa': kappa}
@@ -650,7 +635,7 @@ class TestMESolveSuperInit:
 
         def Liouvillian_func(t, args):
             c = np.sqrt(kappa * np.exp(-t))*a
-            data = liouvillian(H, [c]).data
+            data = liouvillian(H, [c])
             return data
 
         tlist = np.linspace(0, 10, 100)

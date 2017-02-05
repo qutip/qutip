@@ -29,7 +29,7 @@ Operating System :: Microsoft :: Windows
 """
 
 # import statements
-import os, subprocess
+import os
 import sys
 
 # The following is required to get unit tests up and running.
@@ -78,32 +78,33 @@ except ImportError:
     except ImportError:
         from distutils.core import setup
 
-qutip_root = os.path.dirname(os.path.abspath(__file__))
 # all information about QuTiP goes here
-MAJOR = 3
-MINOR = 2
+MAJOR = 4
+MINOR = 1
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
-            'matplotlib (>=1.1)']
-INSTALL_REQUIRES = ['numpy>=1.6', 'scipy>=0.11', 'cython>=0.15', 'matplotlib>=1.1']
+REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
+INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
-            'qutip/_mkl', 'qutip/tests']
+            'qutip/_mkl', 'qutip/tests', 'qutip/legacy']
 PACKAGE_DATA = {
+    '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
-    'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
-    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
-    'qutip/control': ['*.pyx'],
+    'qutip/tests': ['bucky.npy', 'bucky_perm.npy', '*.ini'],
+    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
 EXT_MODULES = []
 NAME = "qutip"
-AUTHOR = "Paul D. Nation, Robert J. Johansson"
-AUTHOR_EMAIL = "pnation@korea.ac.kr, robert@riken.jp"
+AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
+          "Chris Granade, Arne Grimsmo")
+AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, " 
+                "jrjohansson@gmail.com, cgranade@cgranade.com, "
+                "arne.grimsmo@gmail.com")
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
@@ -121,53 +122,15 @@ def write_f2py_f2cmap():
                 "wp='complex_double'))")
 
 
-def get_version_from_git():
+def git_short_hash():
     try:
-        p = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
-                             cwd=qutip_root,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except OSError:
-        return
-    if p.wait() != 0:
-        return
-    if not os.path.samefile(p.communicate()[0].decode().rstrip('\n'), qutip_root):
-        # The top-level directory of the current Git repository is not the same
-        # as the root directory of the source distribution: do not extract the
-        # version from Git.
-        return
+        return "+" + os.popen('git log -1 --format="%h"').read().strip()
+    except:
+        return ""
 
-    # git describe --first-parent does not take into account tags from branches
-    # that were merged-in.
-    for opts in [['--first-parent'], []]:
-        try:
-            p = subprocess.Popen(['git', 'describe', '--long'] + opts,
-                                 cwd=qutip_root,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except OSError:
-            return
-        if p.wait() == 0:
-            break
-    else:
-        return
-    description = p.communicate()[0].decode().strip('v').rstrip('\n')
-
-    release, dev, git = description.rsplit('-', 2)
-    version = [VERSION]
-    labels = []
-    if dev != "0":
-        version.append(".dev{}".format(dev))
-        labels.append(git)
-
-    try:
-        p = subprocess.Popen(['git', 'diff', '--quiet'], cwd=qutip_root)
-    except OSError:
-        labels.append('confused') # This should never happen.
-
-    if labels:
-        version.append('+')
-        version.append(".".join(labels))
-
-    return "".join(version)
+FULLVERSION = VERSION
+if not ISRELEASED:
+    FULLVERSION += '.dev'+str(MICRO)+git_short_hash()
 
 # NumPy's distutils reads in versions differently than
 # our fallback. To make sure that versions are added to
@@ -175,12 +138,6 @@ def get_version_from_git():
 # EXTRA_KWARGS if NumPy wasn't imported correctly.
 if np is None:
     EXTRA_KWARGS['version'] = FULLVERSION
-
-
-if ISRELEASED:
-    FULLVERSION = VERSION
-else:
-    FULLVERSION = get_version_from_git()
 
 
 def write_version_py(filename='qutip/version.py'):

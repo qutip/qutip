@@ -50,25 +50,25 @@ def test_enr_destory_full():
 def test_enr_destory_single():
     "Excitation-number-restricted state space: single excitations"
     a1, a2 = enr_destroy([4, 4], 1)
-    assert_(a1.shape == [3, 3])
+    assert_(a1.shape == (3, 3))
 
     a1, a2, a3 = enr_destroy([4, 4, 4], 1)
-    assert_(a1.shape == [4, 4])
+    assert_(a1.shape == (4, 4))
 
     a1, a2, a3, a4 = enr_destroy([4, 4, 4, 4], 1)
-    assert_(a1.shape == [5, 5])
+    assert_(a1.shape == (5, 5))
 
 
 def test_enr_destory_double():
     "Excitation-number-restricted state space: two excitations"
     a1, a2 = enr_destroy([4, 4], 2)
-    assert_(a1.shape == [6, 6])
+    assert_(a1.shape == (6, 6))
 
     a1, a2, a3 = enr_destroy([4, 4, 4], 2)
-    assert_(a1.shape == [10, 10])
+    assert_(a1.shape == (10, 10))
 
     a1, a2, a3, a4 = enr_destroy([4, 4, 4, 4], 2)
-    assert_(a1.shape == [15, 15])
+    assert_(a1.shape == (15, 15))
 
 
 def test_enr_fock_state():

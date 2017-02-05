@@ -41,12 +41,42 @@ from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_super_bcsz, rand_dm_ginibre)
 from qutip.states import basis, fock_dm, ket2dm
 from qutip.operators import create, destroy, num, sigmax, sigmay, qeye
-from qutip.superoperator import spre, spost, operator_to_vector
+from qutip.superoperator import spre, spost, operator_to_vector, vector_to_operator
 from qutip.superop_reps import to_super, to_choi, to_chi
 from qutip.tensor import tensor, super_tensor, composite
 
 from operator import add, mul, truediv, sub
 from functools import partial
+from contextlib import contextmanager
+
+@contextmanager
+def expect_exception(ex_class):
+    """
+    Context manager that raises an AssertionError if its body
+    does not raise a particular class of exception.
+    """
+    ex_name = getattr(ex_class, '__name__', str(ex_class))
+
+    try:
+        yield
+    except ex_class:
+        pass
+    except Exception as other_ex:
+        raise AssertionError(
+            "Expected {}, but {} was raised.".format(
+                ex_name, getattr(type(other_ex), '__name__', str(type(other_ex)))
+            )
+        )
+    else:
+        raise AssertionError("Expected {}, but nothing was raised.".format(ex_name))
+
+def test_expect_exception():
+    with expect_exception(ValueError):
+        raise ValueError
+
+    with expect_exception(AssertionError):
+        with expect_exception(ValueError):
+            pass
 
 def assert_hermicity(oper, hermicity, msg=""):
     # Check the cached isherm, if any exists.
@@ -562,6 +592,10 @@ def test_QobjPermute():
     psi = tensor(A, B, C)
     psi2 = psi.permute([2, 0, 1])
     assert_(psi2 == tensor(C, A, B))
+    
+    psi_bra = psi.dag()
+    psi2_bra = psi_bra.permute([2, 0, 1])
+    assert_(psi2_bra == tensor(C, A, B).dag())
 
     A = fock_dm(5, 0)
     B = fock_dm(5, 4)
@@ -577,6 +611,10 @@ def test_QobjPermute():
         psi = tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
         assert_(psi2 == tensor(B, A, C))
+        
+        psi_bra = psi.dag()
+        psi2_bra = psi_bra.permute([1, 0, 2])
+        assert_(psi2_bra == tensor(B, A, C).dag())
 
     for ii in range(3):
         A = rand_dm(5)
@@ -912,6 +950,31 @@ def test_dual_channel():
         S = rand_super_bcsz(dim)
         S.dims = [[subdims, subdims], [subdims, subdims]]
         yield case, S
+
+
+def test_call():
+    # Make test objects.
+    psi = rand_ket(3)
+    rho = rand_dm_ginibre(3)
+    U = rand_unitary(3)
+    S = rand_super_bcsz(3)
+
+    # Case 0: oper(ket).
+    assert U(psi) == U * psi
+
+    # Case 1: oper(oper). Should raise TypeError.
+    with expect_exception(TypeError):
+        U(rho)
+
+    # Case 2: super(ket).
+    assert S(psi) == vector_to_operator(S * operator_to_vector(ket2dm(psi)))
+
+    # Case 3: super(oper).
+    assert S(rho) == vector_to_operator(S * operator_to_vector(rho))
+
+    # Case 4: super(super). Should raise TypeError.
+    with expect_exception(TypeError):
+        S(S)
 
 
 if __name__ == "__main__":

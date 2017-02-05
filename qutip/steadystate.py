@@ -50,12 +50,20 @@ import scipy.linalg as la
 from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
                                  LinearOperator, gmres, lgmres, bicgstab)
 from qutip.qobj import Qobj, issuper, isoper
-from qutip.superoperator import liouvillian, vec2mat
+
+from qutip.superoperator import liouvillian, vec2mat, spre
 from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
+
+from qutip.superoperator import liouvillian, vec2mat
+from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape, 
+                            sp_profile)
+from qutip.cy.spmath import zcsr_kron
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
+
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
 logger.setLevel('DEBUG')
@@ -399,8 +407,8 @@ def _steadystate_direct_sparse(L, ss_args):
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
-    data = vec2mat(v)
-    data = 0.5 * (data + data.conj().T)
+    data = dense2D_to_fastcsr_fmode(vec2mat(v), n, n)
+    data = 0.5 * (data + data.H)
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
     else:
@@ -470,9 +478,9 @@ def _steadystate_eigen(L, ss_args):
         ss_args['info']['residual_norm'] = la.norm(L*eigvec)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
-
-    data = vec2mat(eigvec)
-    data = 0.5 * (data + data.conj().T)
+    _temp = vec2mat(eigvec)
+    data = dense2D_to_fastcsr_fmode(_temp,_temp.shape[0], _temp.shape[1])
+    data = 0.5 * (data + data.H)
     out = Qobj(data, dims=dims, isherm=True)
     if ss_args['return_info']:
         return out/out.tr(), ss_args['info']
@@ -814,14 +822,13 @@ def _steadystate_power(L, ss_args):
 
     # normalise according to type of problem
     if sflag:
-        trow = sp.eye(rhoss.shape[0], rhoss.shape[0], format='coo')
-        trow = sp_reshape(trow, (1, n))
-        data = v / sum(trow.dot(v))
+        trow = v[::rhoss.shape[0]+1]
+        data = v / np.sum(trow)
     else:
         data = data / la.norm(v)
 
-    data = sp.csr_matrix(vec2mat(data))
-    rhoss.data = 0.5 * (data + data.conj().T)
+    data = dense2D_to_fastcsr_fmode(vec2mat(data), rhoss.shape[0], rhoss.shape[0])
+    rhoss.data = 0.5 * (data + data.H)
     rhoss.isherm = True
     if ss_args['return_info']:
         return rhoss, ss_args['info']
@@ -934,42 +941,52 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
     else:
         return M
 
-
-def _pseudo_inverse_dense(L, rhoss, method='direct', **pseudo_args):
+def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
     """
     Internal function for computing the pseudo inverse of an Liouvillian using
     dense matrix methods. See pseudo_inverse for details.
     """
-    if method == 'direct':
-        rho_vec = np.transpose(mat2vec(rhoss.full()))
+    rho_vec = np.transpose(mat2vec(rhoss.full()))
 
-        tr_mat = tensor([identity(n) for n in L.dims[0][0]])
-        tr_vec = np.transpose(mat2vec(tr_mat.full()))
-
-        N = np.prod(L.dims[0][0])
-        I = np.identity(N * N)
-        P = np.kron(np.transpose(rho_vec), tr_vec)
-        Q = I - P
-        LIQ = np.linalg.solve(L.full(), Q)
+    tr_mat = tensor([identity(n) for n in L.dims[0][0]])
+    tr_vec = np.transpose(mat2vec(tr_mat.full()))
+    N = np.prod(L.dims[0][0])
+    I = np.identity(N * N)
+    P = np.kron(np.transpose(rho_vec), tr_vec)
+    Q = I - P
+    
+    if w is None:
+        L = L
+    else:
+        L = 1.0j*w*spre(tr_mat)+L
+    
+    if pseudo_args['method'] == 'direct':
+        try:
+            LIQ = np.linalg.solve(L.full(), Q)
+        except:
+            LIQ = np.linalg.lstsq(L.full(), Q)[0]
+         
         R = np.dot(Q, LIQ)
-
+     
         return Qobj(R, dims=L.dims)
 
-    elif method == 'numpy':
-        return Qobj(np.linalg.pinv(L.full()), dims=L.dims)
+    elif pseudo_args['method'] == 'numpy':
+        return Qobj(np.dot(Q,np.dot(np.linalg.pinv(L.full()),Q)), dims=L.dims)
 
-    elif method == 'scipy':
-        return Qobj(la.pinv(L.full()), dims=L.dims)
+    elif pseudo_args['method'] == 'scipy':
+        #return Qobj(la.pinv(L.full()), dims=L.dims)
+        return Qobj(np.dot(Q,np.dot(la.pinv(L.full()),Q)), dims=L.dims)
 
-    elif method == 'scipy2':
-        return Qobj(la.pinv2(L.full()), dims=L.dims)
+    elif pseudo_args['method'] == 'scipy2':
+        #return Qobj(la.pinv2(L.full()), dims=L.dims)
+        return Qobj(np.dot(Q,np.dot(la.pinv2(L.full()),Q)), dims=L.dims)
 
     else:
         raise ValueError("Unsupported method '%s'. Use 'direct' or 'numpy'" %
                          method)
 
 
-def _pseudo_inverse_sparse(L, rhoss, method='splu', **pseudo_args):
+def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     """
     Internal function for computing the pseudo inverse of an Liouvillian using
     sparse matrix methods. See pseudo_inverse for details.
@@ -982,33 +999,51 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', **pseudo_args):
     tr_op = tensor([identity(n) for n in L.dims[0][0]])
     tr_op_vec = operator_to_vector(tr_op)
 
-    P = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csr')
+    P = zcsr_kron(rhoss_vec.data, tr_op_vec.data.T)
     I = sp.eye(N*N, N*N, format='csr')
     Q = I - P
-
+    
+  
+    if w is None:
+        L =  1.0j*(1e-15)*spre(tr_op) + L
+    else:
+        if w != 0.0:
+            L = 1.0j*w*spre(tr_op) + L
+        else:
+            L =  1.0j*(1e-15)*spre(tr_op) + L
+        
+        
     if pseudo_args['use_rcm']:
         perm = reverse_cuthill_mckee(L.data)
-        A = sp_permute(L.data, perm, perm, 'csr')
-        Q = sp_permute(Q, perm, perm, 'csr')
+        A = sp_permute(L.data, perm, perm)
+        Q = sp_permute(Q, perm, perm)
     else:
         if not settings.has_mkl:
             A = L.data.tocsc()
-        A.sort_indices()
+            A.sort_indices()
+        
+        
     
-    if method == 'splu':
+    if pseudo_args['method'] == 'splu':
         if settings.has_mkl:
+            A = L.data.tocsr()
+            A.sort_indices()
             LIQ = mkl_spsolve(A,Q.toarray())
         else:
+       
             lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
                             diag_pivot_thresh=pseudo_args['diag_pivot_thresh'],
                             options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
             LIQ = lu.solve(Q.toarray())
-
-    elif method == 'spilu':
+         
+            
+    elif pseudo_args['method'] == 'spilu':
+        
         lu = sp.linalg.spilu(A, permc_spec=pseudo_args['permc_spec'],
                              fill_factor=pseudo_args['fill_factor'], 
                              drop_tol=pseudo_args['drop_tol'])
         LIQ = lu.solve(Q.toarray())
+
 
     else:
         raise ValueError("unsupported method '%s'" % method)
@@ -1022,7 +1057,7 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', **pseudo_args):
     return Qobj(R, dims=L.dims)
 
 
-def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
+def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
     given its steady state density matrix (which will be computed if not given).
@@ -1031,10 +1066,15 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
     -------
     L : Qobj
         A Liouvillian superoperator for which to compute the pseudo inverse.
-
+    
+    
     rhoss : Qobj
         A steadystate density matrix as Qobj instance, for the Liouvillian
         superoperator L.
+        
+    w : double
+        frequency at which to evaluate pseudo-inverse.  Can be zero for dense systems
+        and large sparse systems. Small sparse systems can fail for zero frequencies.
 
     sparse : bool
         Flag that indicate whether to use sparse or dense matrix methods when
@@ -1058,7 +1098,13 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
     In general the inverse of a sparse matrix will be dense.  If you
     are applying the inverse to a density matrix then it is better to
     cast the problem as an Ax=b type problem where the explicit calculation
-    of the inverse is not required.
+    of the inverse is not required. See page 67 of "Electrons in nanostructures"
+    C. Flindt, PhD Thesis available online:
+    http://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/file_4732600/content
+    
+    Note also that the definition of the pseudo-inverse herein is different
+    from numpys pinv() alone, as it includes pre and post projection onto 
+    the subspace defined by the projector Q.
     
     """
     pseudo_args = _default_steadystate_args()
@@ -1068,7 +1114,9 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
         else:
             raise Exception(
                 "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
-
+    if 'method' not in kwargs.keys():
+        pseudo_args['method']='splu'
+        
     # Set column perm to NATURAL if using RCM and not specified by user
     if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         pseudo_args['permc_spec'] = 'NATURAL'
@@ -1077,7 +1125,7 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
         rhoss = steadystate(L, **pseudo_args)
 
     if sparse:
-        return _pseudo_inverse_sparse(L, rhoss, method=method, **pseudo_args)
+        return _pseudo_inverse_sparse(L,rhoss, w=w,  **pseudo_args)
     else:
-        method = method if method != 'splu' else 'direct'
-        return _pseudo_inverse_dense(L, rhoss, method=method, **pseudo_args)
+        pseudo_args['method'] = pseudo_args['method'] if pseudo_args['method'] != 'splu' else 'direct'
+        return _pseudo_inverse_dense(L, rhoss, w=w, **pseudo_args)

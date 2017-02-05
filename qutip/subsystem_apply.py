@@ -106,7 +106,7 @@ def subsystem_apply(state, channel, mask, reference=False):
     # as the affected subsystem. If it is on the Liouville space, it must
     # exist on a space as large as the square of the Hilbert dimension.
     if issuper(channel):
-        required_shape = list(map(lambda x: x ** 2, aff_subs_dim_ar[0]))
+        required_shape = tuple(map(lambda x: x ** 2, aff_subs_dim_ar[0]))
     else:
         required_shape = aff_subs_dim_ar[0]
 

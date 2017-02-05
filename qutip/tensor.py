@@ -40,7 +40,7 @@ __all__ = [
 
 import numpy as np
 import scipy.sparse as sp
-
+from qutip.cy.spmath import zcsr_kron
 from qutip.qobj import Qobj
 from qutip.permute import reshuffle
 from qutip.superoperator import operator_to_vector
@@ -113,7 +113,8 @@ shape = [4, 4], type = oper, isHerm = True
             out.data = q.data
             out.dims = q.dims
         else:
-            out.data = sp.kron(out.data, q.data, format='csr')
+            out.data  = zcsr_kron(out.data, q.data)
+            
             out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
 
         out.isherm = out.isherm and q.isherm

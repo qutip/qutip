@@ -39,17 +39,20 @@ import scipy.sparse as sp
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
-from qutip.solver import Options
+from qutip.solver import Options, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.solver import Result
 from qutip.superoperator import liouvillian
+from qutip.cy.spconvert import arr_coo2fast
 
 
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
 def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
-              args={}, options=Options()):
+              args={}, options=Options(),
+              _safe_mode=True):
     """
     Solve the dynamics for a system using the Bloch-Redfield master equation.
 
@@ -94,6 +97,9 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         or a list of states for the times specified by `tlist`.
     """
 
+    if _safe_mode:
+        _solver_safety_check(H, psi0, a_ops, e_ops, args)
+    
     if not spectra_cb:
         # default to infinite temperature white noise
         spectra_cb = [lambda w: 1.0 for _ in a_ops]
@@ -183,7 +189,10 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     e_eb_ops = [e.transform(ekets) for e in e_ops]
 
     for e_eb in e_eb_ops:
-        result_list.append(np.zeros(n_tsteps, dtype=complex))
+        if e_eb.isherm:
+            result_list.append(np.zeros(n_tsteps, dtype=float))
+        else:
+            result_list.append(np.zeros(n_tsteps, dtype=complex))
 
     #
     # setup integrator
@@ -206,7 +215,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
         if not r.successful():
             break
 
-        rho_eb.data = vec2mat(r.y)
+        rho_eb.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho0.shape[0], rho0.shape[1])
 
         # calculate all the expectation values, or output rho_eb if no
         # expectation value operators are given
@@ -335,7 +344,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
         for J, c, d in Jcds:
             elem = 0+0j
             # summed over k, i.e., each operator coupling the system to the environment
-            elem += 0.5 * (A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))[0]
+            elem += 0.5 * np.sum(A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))
             if b==d:
                 #                  sum_{k,n} A[k, a, n] * A[k, n, c] * Jw[k, c, n])
                 elem -= 0.5 * np.sum(A[:, a, :] * A[:, :, c] * Jw[:, c, :])
@@ -347,8 +356,9 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
                 cols.append(J)
                 data.append(elem)
 
-    R = sp.coo_matrix((np.array(data),(np.array(rows),np.array(cols))),
-            shape=(N**2,N**2),dtype=complex).tocsr()
+    R = arr_coo2fast(np.array(data, dtype=complex),
+                    np.array(rows, dtype=np.int32),
+                    np.array(cols, dtype=np.int32), N**2, N**2)
     
     L.data = L.data + R
     

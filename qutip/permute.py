@@ -35,7 +35,8 @@ __all__ = ['reshuffle']
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.ptrace import _select
+from qutip.cy.ptrace import _select
+from qutip.cy.spconvert import arr_coo2fast
 
 
 def _chunk_dims(dims, order):
@@ -51,31 +52,28 @@ def _permute(Q, order):
         dims, perm = _perm_inds(Q.dims[0], order)
         nzs = Q.data.nonzero()[0]
         wh = np.where(perm == nzs)[0]
-        data = np.ones(len(wh), dtype=int)
+        data = np.ones(len(wh), dtype=complex)
         cols = perm[wh].T[0]
-        perm_matrix = sp.coo_matrix((data, (wh, cols)),
-                                    shape=(Q.shape[0], Q.shape[0]), dtype=int)
-        perm_matrix = perm_matrix.tocsr()
+        perm_matrix = arr_coo2fast(data, wh.astype(np.int32), cols.astype(np.int32), 
+                                Q.shape[0], Q.shape[0])
         return perm_matrix * Q.data, Q.dims
 
     elif Q.isbra:
-        dims, perm = _perm_inds(Q.dims[0], order)
+        dims, perm = _perm_inds(Q.dims[1], order)
         nzs = Q.data.nonzero()[1]
         wh = np.where(perm == nzs)[0]
-        data = np.ones(len(wh), dtype=int)
+        data = np.ones(len(wh), dtype=complex)
         rows = perm[wh].T[0]
-        perm_matrix = sp.coo_matrix((data, (rows, wh)),
-                                    shape=(Q.shape[1], Q.shape[1]), dtype=int)
-        perm_matrix = perm_matrix.tocsr()
+        perm_matrix = arr_coo2fast(data, rows.astype(np.int32), wh.astype(np.int32),
+                                    Q.shape[1], Q.shape[1])
         return Q.data * perm_matrix, Q.dims
 
     elif Q.isoper:
         dims, perm = _perm_inds(Q.dims[0], order)
-        data = np.ones(Q.shape[0], dtype=int)
-        rows = np.arange(Q.shape[0], dtype=int)
-        perm_matrix = sp.coo_matrix((data, (rows, perm.T[0])),
-                                    shape=(Q.shape[1], Q.shape[1]), dtype=int)
-        perm_matrix = perm_matrix.tocsr()
+        data = np.ones(Q.shape[0], dtype=complex)
+        rows = np.arange(Q.shape[0], dtype=np.int32)
+        perm_matrix = arr_coo2fast(data, rows, (perm.T[0]).astype(np.int32),
+                                    Q.shape[1], Q.shape[1])
         dims_part = list(dims[order])
         dims = [dims_part, dims_part]
         return (perm_matrix * Q.data) * perm_matrix.T, dims
@@ -87,7 +85,7 @@ def _permute(Q, order):
         # of each sublist.
         # As another example,
         # permuting [[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]] by
-        # [[0, 3], [1, 4], [2, 6]] should give
+        # [[0, 3], [1, 4], [2, 5]] should give
         # [[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]].
         #
         # Get the breakout of the left index into dims.
@@ -99,13 +97,12 @@ def _permute(Q, order):
         dims, perm = _perm_inds(q_dims_left, flat_order)
         dims = dims.flatten()
 
-        data = np.ones(Q.shape[0], dtype=int)
-        rows = np.arange(Q.shape[0], dtype=int)
+        data = np.ones(Q.shape[0], dtype=complex)
+        rows = np.arange(Q.shape[0], dtype=np.int32)
 
-        perm_matrix = sp.coo_matrix((data, (rows, perm.T[0])),
-                                    shape=(Q.shape[0], Q.shape[0]), dtype=int)
+        perm_matrix = arr_coo2fast(data, rows, (perm.T[0]).astype(np.int32),
+                                    Q.shape[0], Q.shape[0])
 
-        perm_matrix = perm_matrix.tocsr()
         dims_part = list(dims[flat_order])
 
         # Finally, we need to restructure the now-decomposed left index
@@ -125,13 +122,13 @@ def _perm_inds(dims, order):
     """
     Private function giving permuted indices for permute function.
     """
-    dims = np.asarray(dims)
-    order = np.asarray(order)
+    dims = np.asarray(dims,dtype=np.int32)
+    order = np.asarray(order,dtype=np.int32)
     if not np.all(np.sort(order) == np.arange(len(dims))):
         raise ValueError(
             'Requested permutation does not match tensor structure.')
-    sel = _select(order, dims)
-    irev = np.fliplr(sel) - 1
+    sel = _select(order, dims,np.prod(dims))
+    irev = np.fliplr(sel)
     fact = np.append(np.array([1]), np.cumprod(np.flipud(dims)[:-1]))
     fact = fact.reshape(len(fact), 1)
     perm_inds = np.dot(irev, fact)
