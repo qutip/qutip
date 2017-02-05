@@ -56,7 +56,7 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
 def propagator(H, t, c_op_list=[], args={}, options=None,
-               unitary_mode='batch', parallel=False,
+               unitary_mode='batch', parallel=False, 
                progress_bar=None, **kwargs):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
@@ -86,13 +86,13 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         with options for the ODE solver.
 
     unitary_mode = str ('batch', 'single')
-        Solve all basis vectors simulaneously ('batch') or individually
+        Solve all basis vectors simulaneously ('batch') or individually 
         ('single').
-
+    
     parallel : bool {False, True}
-        Run the propagator in parallel mode. This will override the
+        Run the propagator in parallel mode. This will override the 
         unitary_mode settings if set to True.
-
+    
     progress_bar: BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation. By default no progress bar
@@ -109,7 +109,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         num_cpus = kwargs['num_cpus']
     else:
         num_cpus = kw['num_cpus']
-
+    
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
@@ -126,7 +126,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         tlist = t
 
     td_type = _td_format_check(H, c_op_list, solver='me')
-
+        
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
         H0 = H(0.0, args)
@@ -134,22 +134,22 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         H0 = H[0][0] if isinstance(H[0], list) else H[0]
     else:
         H0 = H
-
+    
     if len(c_op_list) == 0 and H0.isoper:
         # calculate propagator for the wave function
 
         N = H0.shape[0]
         dims = H0.dims
-
+        
         if parallel:
             unitary_mode = 'single'
             u = np.zeros([N, N, len(tlist)], dtype=complex)
-            output = parallel_map(_parallel_sesolve,range(N),
-                    task_args=(N,H, tlist,args,options),
-                    progress_bar=progress_bar, num_cpus=num_cpus)
+            output = parallel_map(_parallel_sesolve, range(N),
+                                  task_args=(N, H, tlist, args, options),
+                                  progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N):
                 for k, t in enumerate(tlist):
-                    u[:, n, k] = output[n].states[k].full().T
+                    u[:, n, k] = output[n].states[k].full().T 
         else:
             if unitary_mode == 'single':
                 u = np.zeros([N, N, len(tlist)], dtype=complex)
@@ -157,7 +157,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 for n in range(0, N):
                     progress_bar.update(n)
                     psi0 = basis(N, n)
-                    output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
+                    output = sesolve(H, psi0, tlist, [], args, options,
+                                     _safe_mode=False)
                     for k, t in enumerate(tlist):
                         u[:, n, k] = output.states[k].full().T
                     progress_bar.finished()
@@ -169,8 +170,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 u = np.zeros(len(tlist), dtype=object)
                 _rows = np.array([(N+1)*m for m in range(N)])
                 _cols = np.zeros_like(_rows)
-                _data = np.ones_like(_rows,dtype=complex)
-                psi0 = Qobj(sp.coo_matrix((_data,(_rows,_cols))).tocsr())
+                _data = np.ones_like(_rows, dtype=complex)
+                psi0 = Qobj(sp.coo_matrix((_data, (_rows, _cols))).tocsr())
                 if td_type[1] > 0 or td_type[2] > 0:
                     H2 = []
                     for k in range(len(H)):
@@ -192,7 +193,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     _cython_build_cleanup(config.tdname)
             else:
                 raise Exception('Invalid unitary mode.')
-
+                        
 
     elif len(c_op_list) == 0 and H0.issuper:
         # calculate the propagator for the vector representation of the
@@ -201,13 +202,15 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         N = H0.shape[0]
         sqrt_N = int(np.sqrt(N))
         dims = H0.dims
-
+        
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
         if parallel:
             output = parallel_map(_parallel_mesolve,range(N * N),
-                    task_args=(sqrt_N,H,tlist,c_op_list,args,options),
-                    progress_bar=progress_bar, num_cpus=num_cpus)
+                                  task_args=(
+                                      sqrt_N, H, tlist, c_op_list, args,
+                                      options),
+                                  progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
@@ -215,9 +218,12 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             progress_bar.start(N)
             for n in range(0, N):
                 progress_bar.update(n)
-                col_idx, row_idx = np.unravel_index(n,(sqrt_N,sqrt_N))
-                rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(sqrt_N,sqrt_N), dtype=complex))
-                output = mesolve(H, rho0, tlist, [], [], args, options, _safe_mode=False)
+                col_idx, row_idx = np.unravel_index(n, (sqrt_N, sqrt_N))
+                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
+                                          shape=(sqrt_N,sqrt_N), dtype=complex)
+                            )
+                output = mesolve(H, rho0, tlist, [], [], args, options,
+                                 _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
@@ -230,11 +236,12 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         dims = [H0.dims, H0.dims]
 
         u = np.zeros([N * N, N * N, len(tlist)], dtype=complex)
-
+        
         if parallel:
-            output = parallel_map(_parallel_mesolve,range(N * N),
-                    task_args=(N,H,tlist,c_op_list,args,options),
-                    progress_bar=progress_bar, num_cpus=num_cpus)
+            output = parallel_map(_parallel_mesolve, range(N * N),
+                                  task_args=(
+                                      N, H, tlist, c_op_list, args, options),
+                                  progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
@@ -242,9 +249,11 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             progress_bar.start(N * N)
             for n in range(N * N):
                 progress_bar.update(n)
-                col_idx, row_idx = np.unravel_index(n,(N,N))
-                rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(N,N), dtype=complex))
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options, _safe_mode=False)
+                col_idx, row_idx = np.unravel_index(n, (N, N))
+                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
+                                          shape=(N,N), dtype=complex))
+                output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
+                                 _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
@@ -256,9 +265,11 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             return Qobj(u[:, :, 1], dims=dims)
     else:
         if unitary_mode == 'batch':
-            return np.array([Qobj(u[k], dims=dims) for k in range(len(tlist))], dtype=object)
+            return np.array([Qobj(u[k], dims=dims)
+                             for k in range(len(tlist))], dtype=object)
         else:
-            return np.array([Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))], dtype=object)
+            return np.array([Qobj(u[:, :, k], dims=dims)
+                             for k in range(len(tlist))], dtype=object)
 
 
 def _get_min_and_index(lst):
@@ -289,7 +300,7 @@ def propagator_steadystate(U):
     """
 
     evals, evecs = la.eig(U.full())
-
+    
     shifted_vals = np.abs(evals - 1.0)
     ev_idx = np.argmin(shifted_vals)
     ev_min = shifted_vals[ev_idx]
@@ -301,17 +312,19 @@ def propagator_steadystate(U):
     return rho
 
 
-def _parallel_sesolve(n,N,H,tlist,args,options):
+def _parallel_sesolve(n, N, H, tlist, args, options):
     psi0 = basis(N, n)
     output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     return output
 
-def _parallel_mesolve(n,N,H,tlist,c_op_list,args, options):
-    col_idx, row_idx = np.unravel_index(n,(N,N))
-    rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(N,N), dtype=complex))
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options, _safe_mode=False)
+def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+    col_idx, row_idx = np.unravel_index(n, (N, N))
+    rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
+                              shape=(N,N), dtype=complex))
+    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
+                     _safe_mode=False)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     return output
