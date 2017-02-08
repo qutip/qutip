@@ -1,17 +1,23 @@
 #include <stddef.h>
 #include <complex.h>
+#include <omp.h>
 
 #ifdef __SSE3__
 #include <pmmintrin.h>
-void zspmvpy(const double complex *restrict data, const int *restrict ind, 
+
+void zspmvpy_openmp(const double complex *restrict data, const int *restrict ind, 
             const int *restrict ptr,
             const double complex *restrict vec, const double complex a, 
-            double complex *restrict out, const unsigned int nrows)
+            double complex *restrict out, const unsigned int nrows,
+            const unsigned int nthr)
 {
     size_t row, jj;
     unsigned int row_start, row_end;
     __m128d num1, num2, num3, num4; //Define 2x 64bit float registers
-    
+    #pragma omp parallel for \
+        private(row,num1,num2,num3,num4,row_start,row_end,jj) \
+        shared(data,ind,ptr,vec,out) schedule(static) \
+        num_threads(nthr)
     for (row=0; row < nrows; row++)
     {
         num4 = _mm_setzero_pd();
@@ -40,14 +46,19 @@ void zspmvpy(const double complex *restrict data, const int *restrict ind,
     }
 }
 #else
-void zspmvpy(const double complex *restrict data, const int *restrict ind, 
-            const int *restrict ptr,
-            const double complex *restrict vec, const double complex a, 
-            double complex *restrict out, const unsigned int nrows)
+void zspmvpy_openmp(const double complex *__restrict__ data, const int *__restrict__ ind, 
+            const int *__restrict__ ptr,
+            const double complex *__restrict__ vec, const double complex a, 
+            double complex *__restrict__ out, const unsigned int nrows, 
+            const unsigned int nthr)
 {
     size_t row, jj;
     unsigned int row_start, row_end;
     double complex dot;
+    #pragma omp parallel for \
+        private(row,row_start,row_end,jj,dot) \
+        shared(data,ind,ptr,vec,out) schedule(static) \
+        num_threads(nthr)
     for (row=0; row < nrows; row++)
     {
         dot = 0;

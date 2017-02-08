@@ -11,7 +11,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace']
 
-_compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
+_compiler_flags = ['-w', '-std=c99', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
 
 def configuration(parent_package='', top_path=None):
     # compiles files during installation
