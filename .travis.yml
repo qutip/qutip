@@ -4,12 +4,12 @@ language: python
 
 python:
     - 2.7
-    - 3.5
+    - 3.6
 matrix:
     include:
-        - python: 3.5
+        - python: 3.6
           env: CC=clang CXX=clang++
-        - python: 3.5
+        - python: 3.6
           env: NOMKL=1
 addons:
     apt:
@@ -58,6 +58,6 @@ script:
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
 
 after_success:
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.5' ]] && [[ $CC == 'gcc' ]]; then
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]] && [[ $CC == 'gcc' ]]; then
           coveralls;
       fi
