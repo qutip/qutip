@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
+from scipy.sparse import coo_matrix
 from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
 cimport cython
@@ -43,6 +44,9 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
 
+cdef extern from "stdlib.h":
+    void qsort(void *base, int nmemb, int size,
+            int(*compar)(const void *, const void *)) nogil
 
 """
 A struct representing a complex sparse CSR matrix.
@@ -92,9 +96,15 @@ cdef struct _coo_mat:
     int max_length
     int numpy_lock
 
+#Struct used for CSR indices sorting
+cdef struct _data_ind_pair:
+    double complex data
+    int ind
+
 
 ctypedef _csr_mat CSR_Matrix
 ctypedef _coo_mat COO_Matrix
+ctypedef _data_ind_pair data_ind_pair
 
 
 cdef void raise_error_CSR(int E, CSR_Matrix * C = NULL):
@@ -238,11 +248,6 @@ cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int ncols = 0,
     max_length : int (default = 0)
         Maximum length of arrays.  Used for resizing.
         Default value of zero indicates no resizing.
-
-    Returns
-    -------
-    success : int
-        Was routine successful.
     """
     if max_length == 0:
         max_length = nnz
@@ -310,6 +315,9 @@ cdef void free_COO(COO_Matrix * mat):
 @cython.boundscheck(False)
 @cython.wraparound(False)       
 cdef void shorten_CSR(CSR_Matrix * mat, int N):
+    """
+    Shortends the length of CSR data and indices arrays.
+    """
     if (not mat.numpy_lock) and mat.is_set:
         mat.data = <double complex *>PyDataMem_RENEW(mat.data, N * sizeof(double complex))
         mat.indices = <int *>PyDataMem_RENEW(mat.indices, N * sizeof(int))
@@ -324,6 +332,10 @@ cdef void shorten_CSR(CSR_Matrix * mat, int N):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void expand_CSR(CSR_Matrix * mat, int init_zeros=0):
+    """
+    Expands the length of CSR data and indices arrays to accomodate
+    more nnz.  THIS IS CURRENTLY NOT USED
+    """
     cdef size_t ii
     cdef int new_size
     if mat.nnz == mat.max_length:
@@ -350,7 +362,8 @@ cdef void expand_CSR(CSR_Matrix * mat, int init_zeros=0):
             raise_error_CSR(-4, mat)
         elif not mat.is_set:
             raise_error_CSR(-3, mat)
-    
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef object CSR_to_scipy(CSR_Matrix * mat):
@@ -386,6 +399,43 @@ cdef object CSR_to_scipy(CSR_Matrix * mat):
             raise_error_CSR(-4)
         elif not mat.is_set:
             raise_error_CSR(-3)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef object COO_to_scipy(COO_Matrix * mat):
+    """
+    Converts a COO_Matrix struct to a SciPy coo_matrix class object.
+    The NumPy arrays are generated from the pointers, and the lifetime
+    of the pointer memory is tied to that of the NumPy array 
+    (i.e. automatic garbage cleanup.)
+
+    Parameters
+    ----------
+    mat : COO_Matrix *
+        Pointer to COO_Matrix.
+    """
+    cdef np.npy_intp dat_len
+    cdef np.ndarray[complex, ndim=1] _data
+    cdef np.ndarray[int, ndim=1] _row, _col
+    if (not mat.numpy_lock) and mat.is_set:
+        dat_len = mat.nnz
+        _data = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_COMPLEX128, mat.data)
+        PyArray_ENABLEFLAGS(_data, np.NPY_OWNDATA)
+
+        _row = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_INT32, mat.rows)
+        PyArray_ENABLEFLAGS(_row, np.NPY_OWNDATA)
+
+        _col = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_INT32, mat.cols)
+        PyArray_ENABLEFLAGS(_col, np.NPY_OWNDATA)
+        mat.numpy_lock = 1
+        return coo_matrix((_data, (_row, _col)), shape=(mat.nrows,mat.ncols))
+    else:
+        if mat.numpy_lock:
+            raise_error_COO(-4)
+        elif not mat.is_set:
+            raise_error_COO(-3)
+
 
 
 @cython.boundscheck(False)
@@ -426,14 +476,183 @@ cdef void COO_to_CSR(CSR_Matrix * out, COO_Matrix * mat):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void CSR_to_COO(COO_Matrix * out, CSR_Matrix * mat):
+    """
+    Converts a CSR_Matrix to a COO_Matrix.
+    """
     cdef int k1, k2
     cdef size_t jj, kk
     init_COO(out, mat.nnz, mat.nrows, mat.ncols)
     for kk in range(mat.nnz):
         out.data[kk] = mat.data[kk]
         out.cols[kk] = mat.indices[kk]
-    for kk in range(mat.nrows,0,-1):
+    for kk in range(mat.nrows-1,0,-1):
         k1 = mat.indptr[kk+1]
         k2 = mat.indptr[kk]
-        for jj in range(k1,k2,-1):
+        for jj in range(k2, k1):
             out.rows[jj] = kk
+            
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
+    """
+    In place conversion from COO to CSR. In place, but not sorted.
+    The length of the COO (data,rows,cols) must be equal to the NNZ
+    in the final matrix (i.e. no padded zeros on ends of arrays).
+    """
+    cdef size_t kk
+    cdef int i, j, init, inext, jnext, ipos
+    cdef int * _tmp_rows
+    cdef complex val, val_next
+    cdef int * work = <int *>PyDataMem_NEW_ZEROED(mat.nrows+1, sizeof(int))
+    # Determine output indptr array
+    for kk in range(mat.nnz):
+        i = mat.rows[kk]
+        work[i+1] += 1
+    work[0] = 0
+    for kk in range(mat.nrows):
+        work[kk+1] += work[kk]
+
+    if mat.nnz < (mat.nrows+1):
+        _tmp_rows = <int *>PyDataMem_RENEW(mat.rows, (mat.nrows+1) * sizeof(int))
+        mat.rows = _tmp_rows
+    init = 0
+    while init < mat.nnz:
+        while (mat.rows[init] < 0):
+            init += 1
+        val = mat.data[init]
+        i = mat.rows[init]
+        j = mat.cols[init]
+        mat.rows[init] = -1
+        while 1:
+            ipos = work[i]
+            val_next = mat.data[ipos]
+            inext = mat.rows[ipos]
+            jnext = mat.cols[ipos]
+
+            mat.data[ipos] = val
+            mat.cols[ipos] = j
+            mat.rows[ipos] = -1
+            work[i] += 1
+            if inext < 0:
+                break
+            val = val_next
+            i = inext
+            j = jnext
+        init += 1
+
+    for kk in range(mat.nrows):
+        mat.rows[kk+1] = work[kk]
+    mat.rows[0] = 0
+
+    if mat.nnz > (mat.nrows+1):
+        _tmp_rows = <int *>PyDataMem_RENEW(mat.rows, (mat.nrows+1) * sizeof(int))
+        mat.rows = _tmp_rows
+    #Free working array
+    PyDataMem_FREE(work)
+    #Set CSR pointers to original COO data.
+    out.data = mat.data
+    out.indices = mat.cols
+    out.indptr = mat.rows
+    out.nrows = mat.nrows
+    out.ncols = mat.ncols
+    out.nnz = mat.nnz
+    out.max_length = mat.nnz
+    out.is_set = 1
+    out.numpy_lock = 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int ind_sort(const void *x, const void *y):
+    cdef int a = (<data_ind_pair *>x).ind
+    cdef int b = (<data_ind_pair *>y).ind
+    return a - b
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void sort_indices(CSR_Matrix * mat):
+    """
+    Sorts the indices of a CSR_Matrix inplace.
+    """
+    cdef size_t ii, jj
+    cdef data_ind_pair * pairs = NULL
+    cdef int row_start, row_end, length
+
+    for ii in range(mat.nrows):
+        row_start = mat.indptr[ii]
+        row_end = mat.indptr[ii+1]
+        length = row_end - row_start
+        pairs = <data_ind_pair *>PyDataMem_RENEW(pairs, length * sizeof(data_ind_pair))
+    
+        for jj in range(length):
+            pairs[jj].data = mat.data[row_start+jj]
+            pairs[jj].ind = mat.indices[row_start+jj]
+        
+        qsort(pairs, length, sizeof(data_ind_pair), ind_sort)
+    
+        for jj in range(length):
+            mat.data[row_start+jj] = pairs[jj].data
+            mat.indices[row_start+jj] = pairs[jj].ind
+        
+    PyDataMem_FREE(pairs)
+    
+
+@cython.boundscheck(False)
+@cython.wraparound(False)  
+cdef CSR_Matrix CSR_from_scipy(object A):
+    """
+    Converts a SciPy CSR sparse matrix to a
+    CSR_Matrix struct.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+    cdef int nnz = ptr[nrows]
+    
+    cdef CSR_Matrix mat
+    
+    mat.data = &data[0]
+    mat.indices = &ind[0]
+    mat.indptr = &ptr[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.max_length = nnz
+    mat.is_set = 1
+    mat.numpy_lock = 1
+    
+    return mat
+    
+
+@cython.boundscheck(False)
+@cython.wraparound(False)  
+cdef COO_Matrix COO_from_scipy(object A):
+    """
+    Converts a SciPy COO sparse matrix to a
+    COO_Matrix struct.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] rows = A.row
+    cdef int[::1] cols = A.col
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+    cdef int nnz = data.shape[0]
+    
+    cdef COO_Matrix mat
+    mat.data = &data[0]
+    mat.rows = &rows[0]
+    mat.cols = &cols[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.max_length = nnz
+    mat.is_set = 1
+    mat.numpy_lock = 1
+    
+    return mat
+     

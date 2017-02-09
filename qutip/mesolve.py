@@ -885,7 +885,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
 # evaluate drho(t)/dt according to the master equation
 #
 def _ode_rho_func_td(t, rho, L0, L_func, args):
-    L = L0 + L_func(t, args)
+    L = L0 + L_func(t, args).data
     return L * rho
 
 
@@ -893,7 +893,7 @@ def _ode_rho_func_td(t, rho, L0, L_func, args):
 # evaluate drho(t)/dt according to the master equation
 #
 def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
-    L = L0 + L_func(t, rho, args)
+    L = L0 + L_func(t, rho, args).data
     return L * rho
 
 #

@@ -75,18 +75,18 @@ def rand_jacobi_rotation(A):
     if A.shape[0]!=A.shape[1]:
         raise Exception('Input matrix must be square.')
     n = A.shape[0]
-    angle = (2*np.random.random()-1)*np.pi
+    angle = 2*np.random.random()*np.pi
     a = 1.0/np.sqrt(2)*np.exp(-1j*angle)
     b = 1.0/np.sqrt(2)*np.exp(1j*angle)
     i = np.int(np.floor(np.random.random()*n))
     j = i
     while (i==j):
         j = np.int(np.floor(np.random.random()*n))
-    data = np.hstack(([a,-b,a,b],np.ones(n-2,dtype=int)))
+    data = np.hstack((np.array([a,-b,a,b],dtype=complex),np.ones(n-2,dtype=complex)))
     diag = np.delete(np.arange(n),[i,j])
     rows = np.hstack(([i,i,j,j],diag))
     cols = np.hstack(([i,j,i,j],diag))
-    R = sp.coo_matrix((data,(rows,cols)),shape=[n,n]).tocsr()
+    R = sp.coo_matrix((data,(rows,cols)),shape=[n,n], dtype=complex).tocsr()
     A = R*A*R.conj().transpose()
     return A
 
@@ -160,12 +160,11 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
         col_idx = np.random.choice(N, num_elems)
         M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=complex, shape=(N,N)).tocsr()
         M = 0.5*(M+M.conj().transpose())
-        M.sort_indices()
         if pos_def:
             M = M.tocoo()
             M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
             M = M.tocsr()
-            M.sort_indices()
+    M.sort_indices()
     if dims:
         return Qobj(M, dims=dims)
     else:

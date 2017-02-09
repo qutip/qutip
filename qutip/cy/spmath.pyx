@@ -34,12 +34,12 @@ import numpy as np
 import qutip.settings as qset
 cimport numpy as np
 cimport cython
-from libc.math cimport fabs
 
 cdef extern from "complex.h" nogil:
     double complex conj(double complex x)
     double         creal(double complex)
     double         cimag(double complex)
+    double         cabs(double complex)
 
 include "sparse_struct.pxi"
 
@@ -176,7 +176,7 @@ cdef int _zcsr_add_core(double complex * Adata, int * Aind, int * Aptr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def zcsr_mult(object A, object B):
+def zcsr_mult(object A, object B, int sorted = 1):
     
     cdef complex [::1] dataA = A.data
     cdef int[::1] indsA = A.indices 
@@ -210,6 +210,9 @@ def zcsr_mult(object A, object B):
                      &dataB[0], &indsB[0], &indptrB[0],
                      &out,       
                      nrows, ncols)
+    
+    if sorted:
+        sort_indices(&out)
     return CSR_to_scipy(&out)
 
 
@@ -517,10 +520,7 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
             nxt = out_ptr[k]
             tmp = conj(data[jj])
             tmp2 = data[nxt]
-            if fabs(creal(tmp)-creal(tmp2)) > tol:
-                PyDataMem_FREE(out_ptr)
-                return 0
-            if fabs(cimag(tmp)-cimag(tmp2)) > tol:
+            if cabs(tmp-tmp2) > tol:
                 PyDataMem_FREE(out_ptr)
                 return 0
             if ind[nxt] != ii:
