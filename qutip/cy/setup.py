@@ -11,7 +11,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing']
 
-_compiler_flags = ['-w', '-std=c99', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
+_compiler_flags = ['-w', '-std=c++11', '-ffast-math', '-O3', '-march=native', '-funroll-loops']
 
 def configuration(parent_package='', top_path=None):
     # compiles files during installation
@@ -19,7 +19,7 @@ def configuration(parent_package='', top_path=None):
     config = Configuration('cy', parent_package, top_path)
     for ext in exts:
         if ext == 'spmatfuncs':
-            src = [ext + ".pyx", 'src/zspmv.c']
+            src = [ext + ".pyx", 'src/zspmv.cpp']
         else:
             src = [ext + ".pyx"]
         config.add_extension(
@@ -27,7 +27,8 @@ def configuration(parent_package='', top_path=None):
             sources=src,
             include_dirs=[np.get_include()],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[])
+            extra_link_args=[],
+            language='c++')
 
     config.ext_modules = cythonize(config.ext_modules)
 

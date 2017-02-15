@@ -35,7 +35,7 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
-cdef extern from "src/zspmv.h" nogil:
+cdef extern from "src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
                 double complex a, double complex *out, int nrows)
 
@@ -177,9 +177,9 @@ cpdef cy_expect_psi(object op,
         dot += conj(state[row]) * y[row]
 
     if isherm:
-        return float(dot.real)
+        return real(dot)
     else:
-        return complex(dot)
+        return dot
 
 
 @cython.boundscheck(False)
@@ -198,7 +198,7 @@ cpdef cy_expect_psi_csr(complex[::1] data,
         dot += conj(state[row])*y[row]
 
     if isherm:
-        return <double>dot
+        return real(dot)
     else:
         return dot
 
@@ -239,7 +239,7 @@ cpdef cy_expect_rho_vec_csr(complex[::1] data,
     if herm == 0:
         return dot
     else:
-        return <double>dot
+        return real(dot)
 
 
 
@@ -281,7 +281,7 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
     if herm == 0:
         return tr
     else:
-        return <double>tr
+        return real(tr)
 
 
 

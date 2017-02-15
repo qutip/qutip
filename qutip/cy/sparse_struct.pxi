@@ -35,6 +35,8 @@ from scipy.sparse import coo_matrix
 from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
 cimport cython
+from libcpp.algorithm cimport sort
+from libcpp.vector cimport vector
 np.import_array()
 
 cdef extern from "numpy/arrayobject.h" nogil:
@@ -43,10 +45,6 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_RENEW(void * ptr, size_t size)
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
-
-cdef extern from "stdlib.h":
-    void qsort(void *base, int nmemb, int size,
-            int(*compar)(const void *, const void *)) nogil
 
 """
 A struct representing a complex sparse CSR matrix.
@@ -565,10 +563,8 @@ cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int ind_sort(const void *x, const void *y):
-    cdef int a = (<data_ind_pair *>x).ind
-    cdef int b = (<data_ind_pair *>y).ind
-    return a - b
+cdef int ind_sort(const data_ind_pair x, const data_ind_pair y):
+    return x.ind < y.ind
 
 
 @cython.boundscheck(False)
@@ -578,26 +574,25 @@ cdef void sort_indices(CSR_Matrix * mat):
     Sorts the indices of a CSR_Matrix inplace.
     """
     cdef size_t ii, jj
-    cdef data_ind_pair * pairs = NULL
+    cdef vector[data_ind_pair] pairs
     cdef int row_start, row_end, length
 
     for ii in range(mat.nrows):
         row_start = mat.indptr[ii]
         row_end = mat.indptr[ii+1]
         length = row_end - row_start
-        pairs = <data_ind_pair *>PyDataMem_RENEW(pairs, length * sizeof(data_ind_pair))
+        pairs.resize(length)
     
         for jj in range(length):
             pairs[jj].data = mat.data[row_start+jj]
             pairs[jj].ind = mat.indices[row_start+jj]
         
-        qsort(pairs, length, sizeof(data_ind_pair), ind_sort)
+        sort(pairs.begin(), pairs.end(), &ind_sort)
     
         for jj in range(length):
             mat.data[row_start+jj] = pairs[jj].data
             mat.indices[row_start+jj] = pairs[jj].ind
         
-    PyDataMem_FREE(pairs)
     
 
 @cython.boundscheck(False)

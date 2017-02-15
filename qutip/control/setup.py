@@ -20,7 +20,8 @@ def configuration(parent_package='', top_path=None):
             ext, sources=[ext + ".pyx"],
             include_dirs=[np.get_include()],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[])
+            extra_link_args=[],
+            language='c++')
 
     config.ext_modules = cythonize(config.ext_modules)
 
