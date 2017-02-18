@@ -31,11 +31,10 @@ Operating System :: Microsoft :: Windows
 # import statements
 import os
 import sys
-
 # The following is required to get unit tests up and running.
 # If the user doesn't have, then that's OK, we'll just skip unit tests.
 try:
-    import setuptools
+    from setuptools import setup, Extension
     TEST_SUITE = 'nose.collector'
     TESTS_REQUIRE = ['nose']
     EXTRA_KWARGS = {
@@ -43,40 +42,17 @@ try:
         'tests_require': TESTS_REQUIRE
     }
 except:
+    from distutils.core import setup
+    from distutils.extension import Extension
     EXTRA_KWARGS = {}
 
 try:
     import numpy as np
-    from numpy.distutils.core import setup
-
-    # If we use NumPy's distutils, it will also
-    # try to import Cython due to the add_subpackage
-    # calls below. We want to fail early instead, so that
-    # we branch off to the setuptools/distutils fallbacks
-    # if Cython isn't present.
-    import Cython
-except ImportError:
-    # Use a more basic implementation of setup
-    # from setuptools so that we can bootstrap install_requires.
-    # If setuptools is also missing, we'll import distutils and hope
-    # for the best.
-    # This is essential for downloading QuTiP from within another
-    # project's requirements.txt.
-
-    # As per scipy/scipy#453, we should only do this fallback
-    # when called with the commands '--help' and 'egg_info':
-    if not (
-        '--help' in sys.argv[1:] or
-        sys.argv[1] in ('--help-commands', 'egg_info', '--version')
-    ):
-        # Reraise.
-        raise
-
+except:
     np = None
-    try:
-        from setuptools import setup
-    except ImportError:
-        from distutils.core import setup
+
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
@@ -98,7 +74,6 @@ PACKAGE_DATA = {
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
-EXT_MODULES = []
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
           "Chris Granade, Arne Grimsmo")
@@ -168,40 +143,55 @@ write_version_py()
 # check for fortran option
 if "--with-f90mc" in sys.argv:
     with_f90mc = True
+    PACKAGES.append('qutip/fortran')
     sys.argv.remove("--with-f90mc")
     write_f2py_f2cmap()
 else:
     with_f90mc = False
 
-if not with_f90mc:
-    os.environ['FORTRAN_LIBS'] = 'FALSE'
-    print("Installing without the fortran mcsolver.")
+
+# Add Cython extensions here
+cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
+        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing']
+
+# If on Win and Python version >= 3.5 (i.e. Visual studio compile)
+if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
+    _compiler_flags = ['/w', '/Ox']
+# Everything else
 else:
-    os.environ['FORTRAN_LIBS'] = 'TRUE'
+    _compiler_flags = ['-w', '-std=c++11', '-O3', 
+                       '-march=native', '-funroll-loops']
 
-# using numpy distutils to simplify install of data directory for testing
-def configuration(parent_package='', top_path=None):
-    from numpy.distutils.misc_util import Configuration
+EXT_MODULES =[]
+# Add Cython files from qutip/cy
+for ext in cy_exts:
+    _mod = Extension('qutip.cy.'+ext,
+            sources = ['qutip/cy/'+ext+'.pyx', 'qutip/cy/src/zspmv.cpp'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
 
-    config = Configuration(None, parent_package, top_path)
-    config.set_options(ignore_setup_xxx_py=True,
-                       assume_default_configuration=True,
-                       delegate_options_to_subpackages=True,
-                       quiet=True)
+# Add Cython files from qutip/control
+_mod = Extension('qutip.control.cy_grape',
+            sources = ['qutip/control/cy_grape.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+EXT_MODULES.append(_mod)
 
-    config.add_subpackage('qutip')
-    config.get_version('qutip/version.py')  # sets config.version
-    config.add_data_dir('qutip/tests')
-
-    return config
-
-
+# Add optional ext modules here
+    
 # Setup commands go here
 setup(
     name = NAME,
+    version = FULLVERSION,
     packages = PACKAGES,
     include_dirs = INCLUDE_DIRS,
-    ext_modules = EXT_MODULES,
+    ext_modules = cythonize(EXT_MODULES),
+    cmdclass = {'build_ext': build_ext},
     author = AUTHOR,
     author_email = AUTHOR_EMAIL,
     license = LICENSE,
@@ -213,7 +203,6 @@ setup(
     platforms = PLATFORMS,
     requires = REQUIRES,
     package_data = PACKAGE_DATA,
-    configuration = configuration,
     zip_safe = False,
     install_requires=INSTALL_REQUIRES,
     **EXTRA_KWARGS

@@ -1,6 +1,11 @@
 #include <complex>
 
-#ifdef __SSE3__
+#ifndef __GNUC__ // Not using GCC or CLANG (i.e. Visual Studio)
+#define __restrict__ __restrict
+#endif
+
+// Check if hase SSE3 (GCC/CLANG) or AVX (VS)
+#if defined(__SSE3__) || defined(__AVX__)
 #include <pmmintrin.h>
 void zspmvpy(const std::complex<double> * __restrict__ data, const int * __restrict__ ind,
             const int * __restrict__ ptr,
@@ -9,7 +14,7 @@ void zspmvpy(const std::complex<double> * __restrict__ data, const int * __restr
 {
     size_t row, jj;
     unsigned int row_start, row_end;
-    __m128d num1, num2, num3, num4; //Define 2x 64bit float registers
+    __m128d num1, num2, num3, num4;
     for (row=0; row < nrows; row++)
     {
         num4 = _mm_setzero_pd();
@@ -45,7 +50,7 @@ void zspmvpy(const std::complex<double> * __restrict__ data, const int * __restr
 {
     size_t row, jj;
     unsigned int row_start, row_end;
-    double complex dot;
+    std::complex<double> dot;
     for (row=0; row < nrows; row++)
     {
         dot = 0;
