@@ -563,7 +563,7 @@ cdef void COO_to_CSR_inplace(CSR_Matrix * out, COO_Matrix * mat):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int ind_sort(const data_ind_pair x, const data_ind_pair y):
+cdef int ind_sort(data_ind_pair x, data_ind_pair y):
     return x.ind < y.ind
 
 
@@ -587,7 +587,7 @@ cdef void sort_indices(CSR_Matrix * mat):
             pairs[jj].data = mat.data[row_start+jj]
             pairs[jj].ind = mat.indices[row_start+jj]
         
-        sort(pairs.begin(), pairs.end(), &ind_sort)
+        sort(pairs.begin(), pairs.end(), ind_sort)
     
         for jj in range(length):
             mat.data[row_start+jj] = pairs[jj].data
