@@ -40,7 +40,7 @@ def new_get_distutils_extension(modname, pyxfilename, language_level=None):
     extension_mod, setup_args = old_get_distutils_extension(modname, pyxfilename, language_level)
     extension_mod.language='c++'
     if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
-        extension_mod.extra_compile_args = ['/w', '/O1', '/wd9025']
+        extension_mod.extra_compile_args = ['/w', '/O1']
     else:
         extension_mod.extra_compile_args = ['-w', '-O1']
     return extension_mod,setup_args

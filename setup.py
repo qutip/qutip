@@ -99,9 +99,13 @@ def write_f2py_f2cmap():
 
 def git_short_hash():
     try:
-        return "+" + os.popen('git log -1 --format="%h"').read().strip()
+        git_str = "+" + os.popen('git log -1 --format="%h"').read().strip()
     except:
-        return ""
+        git_str = ""
+    else:
+        if git_str == '+': #fixes setuptools PEP issues with versioning
+            git_str = ''
+    return git_str
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -159,8 +163,7 @@ if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
-    _compiler_flags = ['-w', '-std=c++11', '-O3', 
-                       '-march=native', '-funroll-loops']
+    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops']
 
 EXT_MODULES =[]
 # Add Cython files from qutip/cy

@@ -58,7 +58,7 @@ void zspmvpy(const std::complex<double> * __restrict__ data, const int * __restr
         out[row] += a*dot;
     }
 }
-#elif defined(__AVX__) // Visual Studio with AVX
+#elif defined(_MSC_VER) && defined(__AVX__) // Visual Studio with AVX
 #include <pmmintrin.h>
 void zspmvpy(const std::complex<double> * __restrict data, const int * __restrict ind,
             const int * __restrict ptr,
@@ -95,11 +95,32 @@ void zspmvpy(const std::complex<double> * __restrict data, const int * __restric
         _mm_storeu_pd((double *)&out[row], num3);
     }
 }
-#else // Visual Studio no AVX
+#elif defined(_MSC_VER) // Visual Studio no AVX
 void zspmvpy(const std::complex<double> * __restrict data, const int * __restrict ind,
             const int * __restrict ptr,
             const std::complex<double> * __restrict vec, const std::complex<double> a,
             std::complex<double> * __restrict out, const unsigned int nrows)
+{
+    size_t row, jj;
+    unsigned int row_start, row_end;
+    std::complex<double> dot;
+    for (row=0; row < nrows; row++)
+    {
+        dot = 0;
+        row_start = ptr[row];
+        row_end = ptr[row+1];
+        for (jj=row_start; jj <row_end; jj++)
+        {
+            dot += data[jj]*vec[ind[jj]];
+        }
+        out[row] += a*dot;
+    }
+}
+#else // Everything else
+void zspmvpy(const std::complex<double> * data, const int * ind,
+            const int * ptr,
+            const std::complex<double> * vec, const std::complex<double> a,
+            std::complex<double> * out, const unsigned int nrows)
 {
     size_t row, jj;
     unsigned int row_start, row_end;
