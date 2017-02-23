@@ -277,6 +277,7 @@ class Qobj(object):
             do_copy = copy
             if not isinstance(inpt, fast_csr_matrix):
                 _tmp = sp.csr_matrix(inpt, dtype=complex, copy=do_copy)
+                _tmp.sort_indices() #Make sure indices are sorted.
                 do_copy = 0
             else:
                 _tmp = inpt

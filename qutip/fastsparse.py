@@ -185,8 +185,7 @@ class fast_csr_matrix(csr_matrix):
 
         major_axis = self._swap((M,N))[0]
         if isinstance(other, fast_csr_matrix):
-            A = zcsr_mult(self, other)
-            A.sort_indices()
+            A = zcsr_mult(self, other, sorted=1)
             return A
         
         other = csr_matrix(other)  # convert to this format

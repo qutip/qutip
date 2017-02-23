@@ -261,10 +261,10 @@ from qutip.fileio import *
 from qutip.about import *
 
 # Setup pyximport 
-import pyximport
-os.environ['CFLAGS'] = '-O2 -w -ffast-math'
-pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
-del pyximport
+import qutip.cy.pyxbuilder as pbldr
+os.environ['CFLAGS'] = '-O1 -w -ffast-math'
+pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
+del pbldr
 
 # -----------------------------------------------------------------------------
 # Clean name space

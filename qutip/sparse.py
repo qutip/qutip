@@ -50,7 +50,7 @@ from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _sparse_reverse_permute, _sparse_bandwidth,
                                    _isdiag)
 from qutip.fastsparse import fast_csr_matrix
-from qutip.cy.spconvert import arr_coo2fast
+from qutip.cy.spconvert import (arr_coo2fast, zcsr_reshape)
 from qutip.settings import debug
 
 import qutip.logging_utils
@@ -130,7 +130,10 @@ def sp_reshape(A, shape, format='csr'):
     """
     if not hasattr(shape, '__len__') or len(shape) != 2:
         raise ValueError('Shape must be a list of two integers')
-
+    
+    if format == 'csr':
+        return zcsr_reshape(A, shape[0], shape[1])
+    
     C = A.tocoo()
     nrows, ncols = C.shape
     size = nrows * ncols
@@ -142,18 +145,15 @@ def sp_reshape(A, shape, format='csr'):
     flat_indices = ncols * C.row + C.col
     new_row, new_col = divmod(flat_indices, shape[1])
 
-    if format == 'csr':
-        return arr_coo2fast(C.data, new_row, new_col, shape[0], shape[1])
+    B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
+    if format == 'coo':
+        return B
+    elif format == 'csc':
+        return B.tocsc()
+    elif format == 'lil':
+        return B.tolil()
     else:
-        B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
-        if format == 'coo':
-            return B
-        elif format == 'csc':
-            return B.tocsc()
-        elif format == 'lil':
-            return B.tolil()
-        else:
-            raise ValueError('Return format not valid.')
+        raise ValueError('Return format not valid.')
 
 
 def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):

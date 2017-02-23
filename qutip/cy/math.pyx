@@ -33,6 +33,7 @@
 cimport cython
 from libc.math cimport fabs, exp, copysign
 
+@cython.boundscheck(False)
 @cython.cdivision(True)
 cdef double erf(double x):
     """
