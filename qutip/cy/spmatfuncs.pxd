@@ -40,12 +40,13 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(complex[::1] data,
                 int[::1] ind, int[::1] ptr, complex[::1] vec)
 
 
-cpdef void spmvpy(complex[::1] data,
-                int[::1] ind,
-                int[::1] ptr,
-                complex[::1] vec,
+cdef void spmvpy(complex * data,
+                int * ind,
+                int *  ptr,
+                complex * vec,
                 complex a,
-                complex[::1] out)
+                complex * out,
+                unsigned int nrows)
 
 
 cpdef cy_expect_rho_vec_csr(complex[::1] data,
