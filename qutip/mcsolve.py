@@ -182,6 +182,18 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
     if debug:
         print(inspect.stack()[0][3])
     
+    if isinstance(c_ops, Qobj):
+        c_ops = [c_ops]
+
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+    
     if _safe_mode:
         _solver_safety_check(H, psi0, c_ops, e_ops, args)
     
@@ -196,18 +208,6 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
-
-    if isinstance(c_ops, Qobj):
-        c_ops = [c_ops]
-
-    if isinstance(e_ops, Qobj):
-        e_ops = [e_ops]
-
-    if isinstance(e_ops, dict):
-        e_ops_dict = e_ops
-        e_ops = [e for e in e_ops.values()]
-    else:
-        e_ops_dict = None
 
     config.options = options
 

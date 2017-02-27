@@ -705,14 +705,14 @@ def floquet_master_equation_tensor(Alist, f_energies):
         Alist = [Alist]
         N, M = np.shape(Alist[0])
 
-    Rdata_lil = scipy.sparse.lil_matrix((N * N, N * N))
+    Rdata_lil = scipy.sparse.lil_matrix((N * N, N * N), dtype=complex)
     for I in range(N * N):
         a, b = vec2mat_index(N, I)
         for J in range(N * N):
             c, d = vec2mat_index(N, J)
 
-            Rdata_lil[I, J] = -1.0j * (f_energies[a] - f_energies[b]) * \
-                (a == c) * (b == d)
+            R = -1.0j * (f_energies[a] - f_energies[b])*(a == c)*(b == d)
+            Rdata_lil[I, J] = R
 
             for A in Alist:
                 s1 = s2 = 0
@@ -833,7 +833,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
         if not r.successful():
             break
 
-        rho.data = vec2mat(r.y)
+        rho = Qobj(vec2mat(r.y), rho0.dims, rho0.shape)
 
         if expt_callback:
             # use callback method
