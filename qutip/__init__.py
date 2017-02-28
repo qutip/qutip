@@ -32,19 +32,6 @@
 ###############################################################################
 from __future__ import division, print_function, absolute_import
 import os
-# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
-if 'OPENBLAS_MAIN_FREE' not in os.environ:
-    os.environ['OPENBLAS_MAIN_FREE'] = '1'
-# automatically set number of threads used by MKL and openblas to 1
-# prevents errors when running things in parallel.  Should be set
-# by user directly in a script or notebook if >1 is needed.
-# Must be set BEFORE importing NumPy
-if 'MKL_NUM_THREADS' not in os.environ:
-    os.environ['MKL_NUM_THREADS'] = '1'
-
-if 'OPENBLAS_NUM_THREADS' not in os.environ:
-    os.environ['OPENBLAS_NUM_THREADS'] = '1'
-
 import sys
 import warnings
 
@@ -170,20 +157,6 @@ if qutip.settings.num_cpus == 0:
 import qutip._mkl
 
 
-
-# -----------------------------------------------------------------------------
-# Load configuration from environment variables: override defaults and
-# configuration file.
-#
-
-# check for fortran mcsolver files
-try:
-    from qutip.fortran import mcsolve_f90
-except:
-    qutip.settings.fortran = False
-else:
-    qutip.settings.fortran = True
-
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
@@ -262,7 +235,6 @@ from qutip.about import *
 
 # Setup pyximport 
 import qutip.cy.pyxbuilder as pbldr
-os.environ['CFLAGS'] = '-O1 -w -ffast-math'
 pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
 del pbldr
 
