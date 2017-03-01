@@ -42,7 +42,7 @@ def new_get_distutils_extension(modname, pyxfilename, language_level=None):
     if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
         extension_mod.extra_compile_args = ['/w', '/O1']
     else:
-        extension_mod.extra_compile_args = ['-w', '-O1']
+        extension_mod.extra_compile_args = ['-w', '-O1', '-Wno-strict-prototypes']
     return extension_mod,setup_args
 
 pyximport.pyximport.get_distutils_extension = new_get_distutils_extension
