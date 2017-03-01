@@ -136,11 +136,6 @@ if os.path.exists('qutip/version.py'):
 
 write_version_py()
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> qutip/master
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing']
@@ -173,7 +168,7 @@ _mod = Extension('qutip.control.cy_grape',
             language='c++')
 EXT_MODULES.append(_mod)
 
-<<<<<<< HEAD
+
 # Add optional ext modules here
 if "--with-openmp" in sys.argv:
     PACKAGES.append('qutip/cy/openmp')
@@ -185,13 +180,8 @@ if "--with-openmp" in sys.argv:
             extra_link_args=['-fopenmp'],
             language='c++')
     EXT_MODULES.append(_mod)
-=======
-# Add optional ext modules here (e.g. openmp)
 
 
-
->>>>>>> qutip/master
-    
 # Setup commands go here
 setup(
     name = NAME,
