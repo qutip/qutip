@@ -169,10 +169,9 @@ _mod = Extension('qutip.control.cy_grape',
 EXT_MODULES.append(_mod)
 
 # Add optional ext modules here (e.g. openmp)
-# check for openmp option
-if "--with-openmp" in sys.argv:
-    #PACKAGES.append('qutip/cy/openmp')
-    sys.argv.remove("--with-openmp")
+
+
+
     
 # Setup commands go here
 setup(
