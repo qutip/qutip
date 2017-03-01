@@ -145,8 +145,7 @@ if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
-    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops',
-                        '-Wno-strict-prototypes']
+    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops']
 
 EXT_MODULES =[]
 # Add Cython files from qutip/cy
