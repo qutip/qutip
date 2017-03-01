@@ -89,14 +89,6 @@ CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
 
-def write_f2py_f2cmap():
-    dirname = os.path.dirname(__file__)
-    with open(os.path.join(dirname, '.f2py_f2cmap'), 'w') as f:
-        f.write("dict(real=dict(sp='float', dp='double', wp='double'), " +
-                "complex=dict(sp='complex_float', dp='complex_double', " +
-                "wp='complex_double'))")
-
-
 def git_short_hash():
     try:
         git_str = "+" + os.popen('git log -1 --format="%h"').read().strip()
@@ -144,8 +136,11 @@ if os.path.exists('qutip/version.py'):
 
 write_version_py()
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> qutip/master
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing']
@@ -155,7 +150,8 @@ if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
-    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops']
+    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops',
+                        '-Wno-strict-prototypes']
 
 EXT_MODULES =[]
 # Add Cython files from qutip/cy
@@ -177,6 +173,7 @@ _mod = Extension('qutip.control.cy_grape',
             language='c++')
 EXT_MODULES.append(_mod)
 
+<<<<<<< HEAD
 # Add optional ext modules here
 if "--with-openmp" in sys.argv:
     PACKAGES.append('qutip/cy/openmp')
@@ -188,6 +185,12 @@ if "--with-openmp" in sys.argv:
             extra_link_args=['-fopenmp'],
             language='c++')
     EXT_MODULES.append(_mod)
+=======
+# Add optional ext modules here (e.g. openmp)
+
+
+
+>>>>>>> qutip/master
     
 # Setup commands go here
 setup(
