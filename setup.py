@@ -144,14 +144,6 @@ if os.path.exists('qutip/version.py'):
 
 write_version_py()
 
-# check for fortran option
-if "--with-f90mc" in sys.argv:
-    with_f90mc = True
-    PACKAGES.append('qutip/fortran')
-    sys.argv.remove("--with-f90mc")
-    write_f2py_f2cmap()
-else:
-    with_f90mc = False
 
 
 # Add Cython extensions here
@@ -186,6 +178,16 @@ _mod = Extension('qutip.control.cy_grape',
 EXT_MODULES.append(_mod)
 
 # Add optional ext modules here
+if "--with-openmp" in sys.argv:
+    PACKAGES.append('qutip/cy/openmp')
+    sys.argv.remove("--with-openmp")
+    _mod = Extension('qutip.cy.openmp.parfuncs',
+            sources = ['qutip/cy/openmp/parfuncs.pyx','qutip/cy/openmp/src/zspmv_openmp.cpp'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags+['-fopenmp'],
+            extra_link_args=['-fopenmp'],
+            language='c++')
+    EXT_MODULES.append(_mod)
     
 # Setup commands go here
 setup(
