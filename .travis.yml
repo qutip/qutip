@@ -11,13 +11,8 @@ matrix:
           env: CC=clang CXX=clang++
         - python: 3.6
           env: NOMKL=1
-addons:
-    apt:
-        packages:
-            - libatlas-dev
-            - libatlas-base-dev
-            - liblapack-dev
-            - gfortran
+        - python: 3.6
+          env: OPENMP=1
 
 # command to install dependencies
 install:
@@ -45,7 +40,11 @@ install:
     - pip install scs
     - pip install cvxpy
     # Finally, install ourselves.
-    - python setup.py install
+    - if [[ "${OPENMP}" == "1" ]]; then
+          python setup.py install --with-openmp;
+        else
+          python setup.py install;
+      fi
 
 # change dir
 before_script:
@@ -58,6 +57,6 @@ script:
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
 
 after_success:
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]] && [[ $CC == 'gcc' ]]; then
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]] && [[ $CC == 'gcc' ]] ! [[ "${OPENMP}" == "1" ]]; then
           coveralls;
       fi

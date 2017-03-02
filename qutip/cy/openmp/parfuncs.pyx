@@ -91,8 +91,8 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_csr_openmp(complex[::1] data,
         Returns dense array.
     
     """
-    cdef unsigned int num_rows = ptr.shape[0] - 1
-    cdef np.ndarray[complex, ndim=1, mode="c"] out = np.zeros((num_rows), dtype=np.complex)
+    cdef unsigned int num_rows = vec.shape[0]
+    cdef np.ndarray[complex, ndim=1, mode="c"] out = np.zeros(num_rows, dtype=complex)
     zspmvpy_openmp(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows, nthr)
     return out
 
