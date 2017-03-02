@@ -13,6 +13,12 @@ matrix:
           env: NOMKL=1
         - python: 3.6
           env: OPENMP=1
+addons:
+    apt:
+        packages:
+            - libatlas-dev
+            - libatlas-base-dev
+            - liblapack-dev
 
 # command to install dependencies
 install:
