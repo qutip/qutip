@@ -109,17 +109,8 @@ else:
 # Load user configuration if present: override defaults.
 #
 try:
-    if os.name == "nt":
-        qutip_rc_file = os.path.join(
-            os.getenv('APPDATA'), 'qutip', "qutiprc"
-        )
-    else:
-        qutip_rc_file = os.path.join(
-            # This should possibly be changed to ~/.config/qutiprc,
-            # to follow XDG specs. Also, OS X uses a different naming
-            # convention as well.
-            os.environ['HOME'], ".qutiprc"
-        )
+    qutip_rc_file = os.path.join(
+            os.path.expanduser("~"), '.qutip', "qutiprc")
     qutip.settings.load_rc_file(qutip_rc_file)
 
 except KeyError as e:

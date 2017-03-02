@@ -65,7 +65,11 @@ log_handler = 'default'
 # Allow for a colorblind mode that uses different colormaps
 # and plotting options by default.
 colorblind_safe = False
-
+# Sets the threshold for matrix NNZ where OPENMP
+# turns on. This is automatically calculated and 
+# put in the qutiprc file.  This value is here in case
+# that failts
+openmp_thresh = 10000
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
 # configured, rather than through _logging.get_logger().
@@ -80,11 +84,11 @@ except:
 
 def load_rc_file(rc_file):
     """
-    Load settings for the qutip RC file, by default .qutiprc in the user's home
+    Load settings for the qutip RC file, by default .qutip/qutiprc in the user's home
     directory.
     """
     global auto_tidyup, auto_herm, auto_tidyup_atol, num_cpus, debug, atol
-    global log_handler, colorblind_safe
+    global log_handler, colorblind_safe, openmp_thresh
 
     # Try to pull in configobj to do nicer handling of
     # config files instead of doing manual parsing.
@@ -130,7 +134,8 @@ def load_rc_file(rc_file):
     # file to the global settings.
     for config_key in (
         'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
-        'num_cpus', 'debug', 'log_handler', 'colorblind_safe'
+        'num_cpus', 'debug', 'log_handler', 'colorblind_safe',
+        'openmp_thresh'
     ):
         if config_key in config and config_key not in bad_keys and _logger:
             _logger.debug(
