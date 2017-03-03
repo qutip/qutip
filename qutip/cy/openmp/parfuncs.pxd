@@ -38,7 +38,7 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_csr_openmp(complex[::1] data,
                 int[::1] ind, int[::1] ptr, complex[::1] vec, unsigned int nthr)
 
 
-cdef inline void spmvpy_openmp(complex * data,
+cdef void spmvpy_openmp(complex * data,
                 int * ind,
                 int *  ptr,
                 complex * vec,
