@@ -172,11 +172,25 @@ EXT_MODULES.append(_mod)
 if "--with-openmp" in sys.argv:
     PACKAGES.append('qutip/cy/openmp')
     sys.argv.remove("--with-openmp")
+    if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
+        omp_flags = ['/openmp']
+        omp_args = []
+    else:
+        omp_flags = ['-fopenmp']
+        omp_args = omp_flags
     _mod = Extension('qutip.cy.openmp.parfuncs',
             sources = ['qutip/cy/openmp/parfuncs.pyx','qutip/cy/openmp/src/zspmv_openmp.cpp'],
             include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags+['-fopenmp'],
-            extra_link_args=['-fopenmp'],
+            extra_compile_args=_compiler_flags+omp_flags,
+            extra_link_args=omp_args,
+            language='c++')
+    EXT_MODULES.append(_mod)
+    # Add benchmark pyx
+    _mod = Extension('qutip.cy.openmp.benchmark',
+            sources = ['qutip/cy/openmp/benchmark.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
             language='c++')
     EXT_MODULES.append(_mod)
 

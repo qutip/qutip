@@ -1,8 +1,5 @@
 import numpy as np
-from qutip import *
-import qutip.settings as qset
-from qutip.cy.spmatfuncs import spmv_csr
-from qutip.cy.openmp.parfuncs import spmv_csr_openmp
+from qutip.cy.openmp.benchmark import _spmvpy, _spmvpy_openmp
 from timeit import default_timer as timer
 
 
@@ -17,12 +14,17 @@ def _min_timer(function, *args, **kwargs):
     
 
 def system_bench(func, dims):
+    from qutip.random_objects import rand_ket
+    ratio_old = 0
+    nnz_old = 0
     for N in dims:
         L = func(N).data
         vec = rand_ket(L.shape[0],0.25).full().ravel()
         nnz = L.nnz
-        ser = _min_timer(spmv_csr, L.data, L.indices, L.indptr, vec)
-        par = _min_timer(spmv_csr_openmp, L.data, L.indices, L.indptr, vec, 2)
+        out = np.zeros_like(vec)
+        ser = _min_timer(_spmvpy, L.data, L.indices, L.indptr, vec, 1, out)
+        out = np.zeros_like(vec)
+        par = _min_timer(_spmvpy_openmp, L.data, L.indices, L.indptr, vec, 1, out, 2)
         ratio = ser/par
         if ratio > 1:
             break
@@ -42,11 +44,14 @@ def calculate_openmp_thresh():
 
   spin_dims = np.arange(2,15,dtype=int)
   spin_result = system_bench(_spin_hamiltonian, spin_dims)
-  
-  return int((jc_result+opto_result+spin_result)/3.0)
+  # Double result to be conservative
+  return 2*int(np.max([jc_result,opto_result,spin_result]))
   
 
 def _jc_liouvillian(N):
+    from qutip.tensor import tensor
+    from qutip.operators import destroy, qeye
+    from qutip.superoperator import liouvillian
     wc = 1.0  * 2 * np.pi  # cavity frequency
     wa = 1.0  * 2 * np.pi  # atom frequency
     g  = 0.05 * 2 * np.pi  # coupling strength
@@ -80,6 +85,9 @@ def _jc_liouvillian(N):
     
     
 def _opto_liouvillian(N):
+    from qutip.tensor import tensor
+    from qutip.operators import destroy, qeye
+    from qutip.superoperator import liouvillian
     Nc = 5                      # Number of cavity states
     Nm = N                     # Number of mech states
     kappa = 0.3                 # Cavity damping rate
@@ -102,6 +110,8 @@ def _opto_liouvillian(N):
     return liouvillian(H, c_ops)
     
 def _spin_hamiltonian(N):
+    from qutip.tensor import tensor
+    from qutip.operators import qeye, sigmax, sigmay, sigmaz
     # array of spin energy splittings and coupling strengths. here we use
     # uniform parameters, but in general we don't have too
     h  = 1.0 * 2 * np.pi * np.ones(N) 

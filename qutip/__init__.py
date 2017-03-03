@@ -106,22 +106,16 @@ else:
     del Cython
 
 # -----------------------------------------------------------------------------
-# Load user configuration if present: override defaults.
+# Look to see if we are running with OPENMP
 #
 try:
-    qutip_rc_file = os.path.join(
-            os.path.expanduser("~"), '.qutip', "qutiprc")
-    qutip.settings.load_rc_file(qutip_rc_file)
+    from qutip.cy.openmp.parfuncs import spmv_csr_openmp
+except:
+    qutip.settings.has_openmp = False
+else:
+    qutip.settings.has_openmp = True
+    from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
 
-except KeyError as e:
-    qutip.settings._logger.warning(
-        "The $HOME environment variable is not defind. No custom RC file loaded.")
-
-except Exception as e:
-    try:
-        qutip.settings._logger.warning("Error loading RC file.", exc_info=1)
-    except:
-        pass
 
 # -----------------------------------------------------------------------------
 # cpu/process configuration
@@ -228,6 +222,26 @@ from qutip.about import *
 import qutip.cy.pyxbuilder as pbldr
 pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
 del pbldr
+
+# -----------------------------------------------------------------------------
+# Load user configuration if present: override defaults.
+#
+import qutip.configrc
+has_rc, rc_file = qutip.configrc.has_qutip_rc()
+
+# Make qutiprc and benchmark OPENMP if has_rc = False
+if qutip.settings.has_openmp and has_rc == False:
+    #bench OPENMP
+    print('Calibrating OPENMP threshold...')
+    thrsh = calculate_openmp_thresh()
+    qutip.configrc.generate_qutiprc()
+    has_rc, rc_file = qutip.configrc.has_qutip_rc()
+    if has_rc:
+        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+
+# Load the config file 
+if has_rc:
+    qutip.configrc.load_rc_config(rc_file)
 
 # -----------------------------------------------------------------------------
 # Clean name space
