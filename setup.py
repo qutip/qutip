@@ -69,7 +69,7 @@ PACKAGE_DATA = {
     '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy', '*.ini'],
-    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx']
+    'qutip/cy': ['*.pxi', '*.pxd']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
