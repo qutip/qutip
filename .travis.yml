@@ -66,6 +66,6 @@ script:
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
 
 after_success:
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]] && [[ $CC == 'gcc' ]] && [[ "${OPENMP}" == "0" ]]; then
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]] && [[ $CC == 'gcc' ]] && [[ "${OPENMP}" == "1" ]]; then
           coveralls;
       fi
