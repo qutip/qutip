@@ -15,6 +15,7 @@ def _min_timer(function, *args, **kwargs):
 
 def system_bench(func, dims):
     from qutip.random_objects import rand_ket
+    ratio = 0
     ratio_old = 0
     nnz_old = 0
     for N in dims:
@@ -30,6 +31,8 @@ def system_bench(func, dims):
             break
         nnz_old = nnz 
         ratio_old = ratio  
+    if ratio < 1:
+        raise Exception('Could not find OPENMP threshold.')
     
     rate = (ratio-ratio_old)/(nnz-nnz_old)
     return int((1.0-ratio_old)/rate+nnz_old)

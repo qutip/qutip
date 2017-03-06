@@ -172,6 +172,7 @@ EXT_MODULES.append(_mod)
 # Add optional ext modules here
 if "--with-openmp" in sys.argv:
     PACKAGES.append('qutip/cy/openmp')
+    PACKAGE_DATA['qutip/cy/openmp'] = ['*.pxd', '*.pyx']
     sys.argv.remove("--with-openmp")
     if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
         omp_flags = ['/openmp']

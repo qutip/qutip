@@ -42,7 +42,7 @@ from functools import partial
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm
-
+import qutip.settings as qset
 from qutip.qobj import Qobj, isket
 from qutip.rhs_generate import rhs_generate
 from qutip.solver import Result, Options, config, _solver_safety_check
@@ -55,6 +55,10 @@ from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
 from qutip.cy.codegen import Codegen
 
 from qutip.ui.progressbar import BaseProgressBar
+
+if qset.has_openmp:
+    from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
+    from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
 
 if debug:
     import inspect
@@ -136,6 +140,10 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config time-dependence flags to default values
         config.reset()
+    
+    #check if should use OPENMP
+    if qset.has_openmp:
+        check_use_openmp(options)
 
     if n_func > 0:
         res = _sesolve_list_func_td(H, rho0, tlist, e_ops, args, options,
@@ -284,9 +292,15 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     # setup integrator.
     #
     initial_vector = psi0.full().ravel()
-    r = scipy.integrate.ode(cy_ode_rhs)
     L = -1.0j * H
-    r.set_f_params(L.data.data, L.data.indices, L.data.indptr)  # cython RHS
+    
+    if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
+        r = scipy.integrate.ode(cy_ode_rhs_openmp)
+        r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+                        opt.openmp_threads)
+    else:
+        r = scipy.integrate.ode(cy_ode_rhs)
+        r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -364,6 +378,12 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
+    
+    # Check which components should use OPENMP
+    omp_components = None
+    if qset.has_openmp:
+        if opt.use_openmp:
+            omp_components = openmp_components(Lptrs)
 
     #
     # setup ode args string: we expand the list Ldata, Linds and Lptrs into
@@ -392,7 +412,9 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
         else:
             config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       config=config)
+                       config=config, use_openmp=opt.use_openmp,
+                       omp_components=omp_components,
+                       omp_threads=opt.openmp_threads)
         cgen.generate(config.tdname + ".pyx")
 
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',

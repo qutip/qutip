@@ -65,7 +65,7 @@ from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 if qset.has_openmp:
-    from qutip.cy.openmp.utilities import check_use_openmp
+    from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
     from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
 
 
@@ -650,6 +650,12 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
+    
+    # Check which components should use OPENMP
+    omp_components = None
+    if qset.has_openmp:
+        if opt.use_openmp:
+            omp_components = openmp_components(Lptrs)
 
     #
     # setup ode args string: we expand the list Ldata, Linds and Lptrs into
@@ -677,7 +683,9 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
         else:
             config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       config=config)
+                       config=config, use_openmp=opt.use_openmp,
+                       omp_components=omp_components,
+                       omp_threads=opt.openmp_threads)
         cgen.generate(config.tdname + ".pyx")
 
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',

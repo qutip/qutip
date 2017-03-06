@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
+import numpy as np
 import qutip.settings as qset
 
 
@@ -55,4 +56,6 @@ def check_use_openmp(options):
     if not force_omp and os.environ['QUTIP_IN_PARALLEL'] == 'TRUE':
         options.use_openmp = False
 
+def openmp_components(ptr_list):
+    return np.array([ptr[-1] >= qset.openmp_thresh for ptr in ptr_list], dtype=bool)
     
