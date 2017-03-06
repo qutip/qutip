@@ -106,7 +106,20 @@ def load_rc_config(rc_file):
                 raise Exception('Invalid config variable in qutiprc.')
     else:
         raise configparser.NoSectionError('qutip')
-        
+ 
+ 
+def has_rc_key(rc_file, key):
+    config = configparser.ConfigParser()
+    config.read(rc_file)
+    if config.has_section('qutip'):
+        opts = config.options('qutip')
+        if key in opts:
+            return True
+        else:
+            return False
+    else:
+        raise configparser.NoSectionError('qutip')
+       
         
 def write_rc_key(rc_file, key, value):
     """

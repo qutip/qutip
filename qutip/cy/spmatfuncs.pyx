@@ -120,7 +120,7 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs(
 
     cdef unsigned int nrows = rho.shape[0]
     cdef np.ndarray[complex, ndim=1, mode="c"] out = \
-        np.zeros((nrows), dtype=complex)
+        np.zeros(nrows, dtype=complex)
     zspmvpy(&data[0], &ind[0], &ptr[0], &rho[0], 1.0, &out[0], nrows)
 
     return out

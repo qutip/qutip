@@ -32,7 +32,7 @@ def system_bench(func, dims):
         ratio_old = ratio  
     
     rate = (ratio-ratio_old)/(nnz-nnz_old)
-    return int(rate*(nnz-nnz_old)/2.+nnz_old)
+    return int((1.0-ratio_old)/rate+nnz_old)
 
 
 def calculate_openmp_thresh():
@@ -45,7 +45,7 @@ def calculate_openmp_thresh():
   spin_dims = np.arange(2,15,dtype=int)
   spin_result = system_bench(_spin_hamiltonian, spin_dims)
   # Double result to be conservative
-  return 2*int(np.max([jc_result,opto_result,spin_result]))
+  return 2*int(max([jc_result,opto_result,spin_result]))
   
 
 def _jc_liouvillian(N):

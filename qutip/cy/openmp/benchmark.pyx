@@ -30,8 +30,6 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import numpy as np
-cimport numpy as cnp
 cimport cython
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.openmp.parfuncs cimport spmvpy_openmp

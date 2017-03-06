@@ -44,7 +44,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
 import warnings
-
+import qutip.settings as qset
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
@@ -63,6 +63,11 @@ from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
                            _sesolve_list_td, _sesolve_func_td, _sesolve_const)
 
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+
+if qset.has_openmp:
+    from qutip.cy.openmp.utilities import check_use_openmp
+    from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
+
 
 if debug:
     import inspect
@@ -217,10 +222,8 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     else:
         e_ops_dict = None
     
-    
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
     
     if progress_bar is None:
         progress_bar = BaseProgressBar()
@@ -245,7 +248,12 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config collapse and time-dependence flags to default values
         config.reset()
-
+    
+    #check if should use OPENMP
+    if qset.has_openmp:
+        check_use_openmp(options)
+    
+    
     res = None
 
     #
@@ -744,6 +752,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         H = H.tidyup(opt.atol)
 
     L = liouvillian(H, c_op_list)
+    
 
     #
     # setup integrator
@@ -753,8 +762,13 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         r = scipy.integrate.ode(_ode_super_func)
         r.set_f_params(L.data)
     else:
-        r = scipy.integrate.ode(cy_ode_rhs)
-        r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
+        if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
+            r = scipy.integrate.ode(cy_ode_rhs_openmp)
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+                            opt.openmp_threads)
+        else:
+            r = scipy.integrate.ode(cy_ode_rhs)
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
         # r = scipy.integrate.ode(_ode_rho_test)
         # r.set_f_params(L.data)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
