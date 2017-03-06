@@ -106,6 +106,16 @@ def load_rc_config(rc_file):
                 raise Exception('Invalid config variable in qutiprc.')
     else:
         raise configparser.NoSectionError('qutip')
+        
+    if config.has_section('compiler'):
+        _valid_keys = ['CC', 'CXX']
+        opts = config.options('compiler')
+        for op in opts:
+            up_op = op.upper()
+            if up_op in _valid_keys:
+                os.environ[up_op] = config.get('compiler', op)
+            else:
+                raise Exception('Invalid config variable in qutiprc.')
  
  
 def has_rc_key(rc_file, key):
