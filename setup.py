@@ -64,13 +64,14 @@ REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
-            'qutip/_mkl', 'qutip/tests', 'qutip/legacy']
+            'qutip/_mkl', 'qutip/tests', 'qutip/legacy', 'qutip/cy/openmp']
 PACKAGE_DATA = {
     '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy', '*.ini'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
-    'qutip/control': ['*.pyx']
+    'qutip/control': ['*.pyx'],
+    'qutip/cy/openmp': ['*.pxd', '*.pyx']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
@@ -171,8 +172,6 @@ EXT_MODULES.append(_mod)
 
 # Add optional ext modules here
 if "--with-openmp" in sys.argv:
-    PACKAGES.append('qutip/cy/openmp')
-    PACKAGE_DATA['qutip/cy/openmp'] = ['*.pxd', '*.pyx']
     sys.argv.remove("--with-openmp")
     if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
         omp_flags = ['/openmp']

@@ -64,8 +64,8 @@ from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
 
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
+from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 if qset.has_openmp:
-    from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
     from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
 
 
@@ -250,8 +250,7 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         config.reset()
     
     #check if should use OPENMP
-    if qset.has_openmp:
-        check_use_openmp(options)
+    check_use_openmp(options)
     
     
     res = None

@@ -55,9 +55,9 @@ from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
 from qutip.cy.codegen import Codegen
 
 from qutip.ui.progressbar import BaseProgressBar
+from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
 if qset.has_openmp:
-    from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
     from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
 
 if debug:
@@ -142,8 +142,7 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         config.reset()
     
     #check if should use OPENMP
-    if qset.has_openmp:
-        check_use_openmp(options)
+    check_use_openmp(options)
 
     if n_func > 0:
         res = _sesolve_list_func_td(H, rho0, tlist, e_ops, args, options,

@@ -47,7 +47,7 @@ def check_use_openmp(options):
         force_omp = True
     elif qset.has_openmp and options.use_openmp == False:
         force_omp = False
-    elif not qset.has_openmp and options.use_openmp == True:
+    elif qset.has_openmp == False and options.use_openmp == True:
         raise Exception('OPENMP not available.')
     else:
         options.use_openmp = False
@@ -55,6 +55,7 @@ def check_use_openmp(options):
     #Disable OPENMP in parallel mode unless explicitly set.    
     if not force_omp and os.environ['QUTIP_IN_PARALLEL'] == 'TRUE':
         options.use_openmp = False
+
 
 def openmp_components(ptr_list):
     return np.array([ptr[-1] >= qset.openmp_thresh for ptr in ptr_list], dtype=bool)

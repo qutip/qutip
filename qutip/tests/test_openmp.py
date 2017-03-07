@@ -95,6 +95,7 @@ def test_openmp_mesolve():
     assert_(np.allclose(out.expect[1],out_omp.expect[1]))
 
 
+@unittest.skipIf(qset.has_openmp == False, 'OPENMP not available.')
 def test_openmp_mesolve_td():
     "OPENMP : mesolve (td)"
     N = 100
