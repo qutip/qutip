@@ -64,13 +64,14 @@ REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
-            'qutip/_mkl', 'qutip/tests', 'qutip/legacy']
+            'qutip/_mkl', 'qutip/tests', 'qutip/legacy', 'qutip/cy/openmp']
 PACKAGE_DATA = {
     '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy', '*.ini'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
-    'qutip/control': ['*.pyx']
+    'qutip/control': ['*.pyx'],
+    'qutip/cy/openmp': ['*.pxd', '*.pyx']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
@@ -146,8 +147,7 @@ if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
-    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops',
-                        '-Wno-strict-prototypes']
+    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops']
 
 EXT_MODULES =[]
 # Add Cython files from qutip/cy
@@ -169,11 +169,33 @@ _mod = Extension('qutip.control.cy_grape',
             language='c++')
 EXT_MODULES.append(_mod)
 
-# Add optional ext modules here (e.g. openmp)
+
+# Add optional ext modules here
+if "--with-openmp" in sys.argv:
+    sys.argv.remove("--with-openmp")
+    if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
+        omp_flags = ['/openmp']
+        omp_args = []
+    else:
+        omp_flags = ['-fopenmp']
+        omp_args = omp_flags
+    _mod = Extension('qutip.cy.openmp.parfuncs',
+            sources = ['qutip/cy/openmp/parfuncs.pyx','qutip/cy/openmp/src/zspmv_openmp.cpp'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags+omp_flags,
+            extra_link_args=omp_args,
+            language='c++')
+    EXT_MODULES.append(_mod)
+    # Add benchmark pyx
+    _mod = Extension('qutip.cy.openmp.benchmark',
+            sources = ['qutip/cy/openmp/benchmark.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
 
 
-
-    
 # Setup commands go here
 setup(
     name = NAME,
