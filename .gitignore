@@ -27,6 +27,7 @@ rhs*.pyx
 qutip/cy/*.c
 qutip/cy/*.cpp
 qutip/control/*.cpp
+qutip/cy/openmp/*.cpp
 *.dat
 
 *.qo
