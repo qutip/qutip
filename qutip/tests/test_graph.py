@@ -89,15 +89,6 @@ def test_graph_rcm_simple():
     assert_equal((perm - ans).all(), 0)
 
 
-def test_graph_rcm_bucky():
-    "Graph: Reverse Cuthill-McKee Ordering (Bucky)"
-    B = np.load(pwd+'/bucky.npy')
-    B = sp.csr_matrix(B, dtype=float)
-    perm = reverse_cuthill_mckee(B)
-    ans = np.load(pwd+'/bucky_perm.npy')
-    assert_equal(perm, ans)
-
-
 def test_graph_rcm_boost():
     "Graph: Reverse Cuthill-McKee Ordering (boost)"
     M = np.zeros((10, 10))

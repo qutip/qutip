@@ -68,7 +68,7 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
 PACKAGE_DATA = {
     '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
-    'qutip/tests': ['bucky.npy', 'bucky_perm.npy', '*.ini'],
+    'qutip/tests': ['*.ini'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
     'qutip/control': ['*.pyx'],
     'qutip/cy/openmp': ['*.pxd', '*.pyx']

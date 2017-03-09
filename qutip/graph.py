@@ -65,7 +65,7 @@ def graph_degree(A):
     """
     if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
         raise TypeError('Input must be CSC or CSR sparse matrix.')
-    return _node_degrees(A.indices, A.indptr, A.shape[0])
+    return np.asarray(_node_degrees(A.indices, A.indptr, A.shape[0]))
 
 
 def breadth_first_search(A, start):
