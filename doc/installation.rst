@@ -101,7 +101,7 @@ recommended:
 
 .. code-block:: bash
 
-   conda create -n qutip python=3 mkl numpy scipy cython matplotlib nose multiprocess jupyter notebook spyder
+   conda create -n qutip python=3 mkl numpy scipy cython matplotlib nose jupyter notebook spyder
 
 minimum (recommended):
 
