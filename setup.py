@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 5 - Production/Stable
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -58,12 +58,12 @@ from Cython.Distutils import build_ext
 MAJOR = 4
 MINOR = 1
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
-            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
+            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy', 'qutip/cy/openmp']
 PACKAGE_DATA = {
     '.': ['README.md', 'LICENSE.txt'],
@@ -79,7 +79,7 @@ INCLUDE_DIRS = [np.get_include()] if np is not None else []
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
           "Chris Granade, Arne Grimsmo")
-AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, " 
+AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
                 "jrjohansson@gmail.com, cgranade@cgranade.com, "
                 "arne.grimsmo@gmail.com")
 LICENSE = "BSD"
