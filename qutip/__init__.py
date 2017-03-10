@@ -108,7 +108,7 @@ else:
 # -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
 #
-# Set environ variable to determin if running in parallel mode 
+# Set environ variable to determin if running in parallel mode
 # (i.e. in parfor or parallel_map)
 os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
@@ -118,7 +118,7 @@ except:
     qutip.settings.has_openmp = False
 else:
     qutip.settings.has_openmp = True
-    # See Pull #652 for why this is here.    
+    # See Pull #652 for why this is here.
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
@@ -223,7 +223,7 @@ from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
 
-# Setup pyximport 
+# Setup pyximport
 import qutip.cy.pyxbuilder as pbldr
 pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
 del pbldr
@@ -253,7 +253,7 @@ elif qutip.settings.has_openmp and has_rc:
         thrsh = calculate_openmp_thresh()
         qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
 
-# Load the config file 
+# Load the config file
 if has_rc:
     qutip.configrc.load_rc_config(rc_file)
 
