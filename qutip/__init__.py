@@ -53,7 +53,7 @@ except:
 # if the requirements aren't fulfilled
 #
 
-numpy_requirement = "1.6.0"
+numpy_requirement = "1.8.0"
 try:
     import numpy
     if _version2int(numpy.__version__) < _version2int(numpy_requirement):
@@ -63,7 +63,7 @@ try:
 except:
     warnings.warn("numpy not found.")
 
-scipy_requirement = "0.11.0"
+scipy_requirement = "0.15.0"
 try:
     import scipy
     if _version2int(scipy.__version__) < _version2int(scipy_requirement):
@@ -92,7 +92,7 @@ del top_path
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
-_cython_requirement = "0.15.0"
+_cython_requirement = "0.21.0"
 try:
     import Cython
     if _version2int(Cython.__version__) < _version2int(_cython_requirement):
