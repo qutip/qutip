@@ -53,6 +53,7 @@ from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
                                  cy_ode_psi_func_td_with_state)
 from qutip.cy.codegen import Codegen
+from qutip.cy.utilities import _cython_build_cleanup
 
 from qutip.ui.progressbar import BaseProgressBar
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
@@ -436,6 +437,11 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
 
     exec(code, locals(), args)
 
+    
+    # Remove RHS cython file if necessary
+    if not opt.rhs_reuse and config.tdname:
+        _cython_build_cleanup(config.tdname)
+    
     #
     # call generic ODE code
     #

@@ -46,7 +46,6 @@ from qutip.superoperator import (vec2mat, mat2vec,
                                  vector_to_operator, operator_to_vector)
 from qutip.sparse import sp_reshape
 from qutip.cy.sparse_utils import unit_row_norm
-from qutip.cy.utilities import _cython_build_cleanup
 from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
 from qutip.states import basis
@@ -163,8 +162,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                         u[:, n, k] = output.states[k].full().T
                     progress_bar.finished()
 
-                if config.tdname:
-                    _cython_build_cleanup(config.tdname)
 
             elif unitary_mode =='batch':
                 u = np.zeros(len(tlist), dtype=object)
@@ -189,8 +186,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
                     u[k] = u[k].T.tocsr()
 
-                if config.tdname:
-                    _cython_build_cleanup(config.tdname)
             else:
                 raise Exception('Invalid unitary mode.')
                         
@@ -315,8 +310,6 @@ def propagator_steadystate(U):
 def _parallel_sesolve(n, N, H, tlist, args, options):
     psi0 = basis(N, n)
     output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
-    if config.tdname:
-        _cython_build_cleanup(config.tdname)
     return output
 
 def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
@@ -325,7 +318,5 @@ def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
                               shape=(N,N), dtype=complex))
     output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                      _safe_mode=False)
-    if config.tdname:
-        _cython_build_cleanup(config.tdname)
     return output
 
