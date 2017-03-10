@@ -143,9 +143,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         if parallel:
             unitary_mode = 'single'
             u = np.zeros([N, N, len(tlist)], dtype=complex)
-            output = parallel_map(_parallel_sesolve,range(N),
-                    task_args=(N,H, tlist,args,options),
-                    progress_bar=progress_bar, num_cpus=num_cpus)
+            output = parallel_map(_parallel_sesolve, range(N),
+                                  task_args=(N, H, tlist, args, options),
+                                  progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = output[n].states[k].full().T 
@@ -156,17 +156,19 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 for n in range(0, N):
                     progress_bar.update(n)
                     psi0 = basis(N, n)
-                    output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False) 
+                    output = sesolve(H, psi0, tlist, [], args, options,
+                                     _safe_mode=False)
                     for k, t in enumerate(tlist):
                         u[:, n, k] = output.states[k].full().T
-                    progress_bar.finished() 
+                    progress_bar.finished()
+
 
             elif unitary_mode =='batch':
                 u = np.zeros(len(tlist), dtype=object)
                 _rows = np.array([(N+1)*m for m in range(N)])
                 _cols = np.zeros_like(_rows)
-                _data = np.ones_like(_rows,dtype=complex)
-                psi0 = Qobj(sp.coo_matrix((_data,(_rows,_cols))).tocsr())
+                _data = np.ones_like(_rows, dtype=complex)
+                psi0 = Qobj(sp.coo_matrix((_data, (_rows, _cols))).tocsr())
                 if td_type[1] > 0 or td_type[2] > 0:
                     H2 = []
                     for k in range(len(H)):
@@ -176,12 +178,14 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                             H2.append(tensor(qeye(N), H[k]))
                 else:
                     H2 = tensor(qeye(N), H)
-                output = sesolve(H2, psi0, tlist, [] , args = args, _safe_mode=False, 
-                             options=Options(normalize_output=False))
+                output = sesolve(H2, psi0, tlist, [],
+                                 args=args, _safe_mode=False,
+                                 options=Options(normalize_output=False))
                 for k, t in enumerate(tlist):
                     u[k] = sp_reshape(output.states[k].data, (N, N))
                     unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
                     u[k] = u[k].T.tocsr()
+
             else:
                 raise Exception('Invalid unitary mode.')
                         
@@ -198,8 +202,10 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
         if parallel:
             output = parallel_map(_parallel_mesolve,range(N * N),
-                    task_args=(sqrt_N,H,tlist,c_op_list,args,options),
-                    progress_bar=progress_bar, num_cpus=num_cpus)
+                                  task_args=(
+                                      sqrt_N, H, tlist, c_op_list, args,
+                                      options),
+                                  progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
@@ -207,9 +213,12 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             progress_bar.start(N)
             for n in range(0, N):
                 progress_bar.update(n)
-                col_idx, row_idx = np.unravel_index(n,(sqrt_N,sqrt_N))
-                rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(sqrt_N,sqrt_N), dtype=complex))
-                output = mesolve(H, rho0, tlist, [], [], args, options, _safe_mode=False)
+                col_idx, row_idx = np.unravel_index(n, (sqrt_N, sqrt_N))
+                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
+                                          shape=(sqrt_N,sqrt_N), dtype=complex)
+                            )
+                output = mesolve(H, rho0, tlist, [], [], args, options,
+                                 _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
@@ -224,9 +233,10 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         u = np.zeros([N * N, N * N, len(tlist)], dtype=complex)
         
         if parallel:
-            output = parallel_map(_parallel_mesolve,range(N * N),
-                    task_args=(N,H,tlist,c_op_list,args,options),
-                    progress_bar=progress_bar, num_cpus=num_cpus)
+            output = parallel_map(_parallel_mesolve, range(N * N),
+                                  task_args=(
+                                      N, H, tlist, c_op_list, args, options),
+                                  progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
@@ -234,9 +244,11 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             progress_bar.start(N * N)
             for n in range(N * N):
                 progress_bar.update(n)
-                col_idx, row_idx = np.unravel_index(n,(N,N))
-                rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(N,N), dtype=complex))
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options, _safe_mode=False)
+                col_idx, row_idx = np.unravel_index(n, (N, N))
+                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
+                                          shape=(N,N), dtype=complex))
+                output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
+                                 _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
@@ -248,9 +260,11 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             return Qobj(u[:, :, 1], dims=dims)
     else:
         if unitary_mode == 'batch':
-            return np.array([Qobj(u[k], dims=dims) for k in range(len(tlist))], dtype=object)
+            return np.array([Qobj(u[k], dims=dims)
+                             for k in range(len(tlist))], dtype=object)
         else:
-            return np.array([Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))], dtype=object)
+            return np.array([Qobj(u[:, :, k], dims=dims)
+                             for k in range(len(tlist))], dtype=object)
 
 
 def _get_min_and_index(lst):
@@ -293,14 +307,16 @@ def propagator_steadystate(U):
     return rho
 
 
-def _parallel_sesolve(n,N,H,tlist,args,options):
+def _parallel_sesolve(n, N, H, tlist, args, options):
     psi0 = basis(N, n)
     output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
     return output
 
-def _parallel_mesolve(n,N,H,tlist,c_op_list,args, options):
-    col_idx, row_idx = np.unravel_index(n,(N,N))
-    rho0 = Qobj(sp.csr_matrix(([1],([row_idx],[col_idx])), shape=(N,N), dtype=complex))
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options, _safe_mode=False)
+def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+    col_idx, row_idx = np.unravel_index(n, (N, N))
+    rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
+                              shape=(N,N), dtype=complex))
+    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
+                     _safe_mode=False)
     return output
 

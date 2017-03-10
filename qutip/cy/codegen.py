@@ -35,7 +35,6 @@ import numpy as np
 from qutip.interpolate import Cubic_Spline
 _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _include_string = "'"+_cython_path+"/complex_math.pxi'"
-
 __all__ = ['Codegen']
 
 
@@ -45,7 +44,8 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 type='me', config=None):
+                 type='me', config=None, use_openmp=False,
+                 omp_components=None, omp_threads=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -69,6 +69,11 @@ class Codegen():
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
         self.config = config
+        
+        #openmp settings
+        self.use_openmp = use_openmp
+        self.omp_components = omp_components
+        self.omp_threads = omp_threads
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -80,7 +85,7 @@ class Codegen():
 
     def generate(self, filename="rhs.pyx"):
         """generate the file"""
-        for line in cython_preamble():
+        for line in cython_preamble(self.use_openmp):
             self.write(line)
 
         # write function for Hamiltonian terms (there is always at least one
@@ -152,19 +157,19 @@ class Codegen():
         func_name = "def cy_td_ode_rhs("
         # strings for time and vector variables
         input_vars = ("\n        double t" +
-                      ",\n        np.ndarray[CTYPE_t, ndim=1] vec")
+                      ",\n        complex[::1] vec")
         for k in self.h_terms:
             input_vars += (",\n        " +
-                           "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
-                           "np.ndarray[int, ndim=1] idx%d," % k +
-                           "np.ndarray[int, ndim=1] ptr%d" % k)
+                           "complex[::1] data%d," % k +
+                           "int[::1] idx%d," % k +
+                           "int[::1] ptr%d" % k)
         if any(self.c_tdterms):
             for k in range(len(self.h_terms),
                            len(self.h_terms) + len(self.c_tdterms)):
                 input_vars += (",\n        " +
-                               "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
-                               "np.ndarray[int, ndim=1] idx%d," % k +
-                               "np.ndarray[int, ndim=1] ptr%d" % k)
+                               "complex[::1] data%d," % k +
+                               "int[::1] idx%d," % k +
+                               "int[::1] ptr%d" % k)
         
         #Add array for each Cubic_Spline term
         spline = 0
@@ -172,10 +177,10 @@ class Codegen():
             if isinstance(htd, Cubic_Spline):
                 if not htd.is_complex:
                     input_vars += (",\n        " +
-                                   "np.ndarray[DTYPE_t, ndim=1] spline%d" % spline)
+                                   "double[::1] spline%d" % spline)
                 else:
                     input_vars += (",\n        " +
-                                   "np.ndarray[CTYPE_t, ndim=1] spline%d" % spline)
+                                   "complex[::1] spline%d" % spline)
                 spline += 1
         
         input_vars += self._get_arg_str(self.args)
@@ -188,9 +193,9 @@ class Codegen():
         collapse operator terms.
         """
         func_name = "def col_spmv("
-        input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
-                      "data, np.ndarray[int] idx,np.ndarray[int] " +
-                      "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
+        input_vars = ("int which, double t, complex[::1] " +
+                      "data, int[::1] idx, int[::1] " +
+                      "ptr, complex[::1] vec")
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
@@ -201,17 +206,17 @@ class Codegen():
         collapse expectation values.
         """
         func_name = "def col_expect("
-        input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
-                      "data, np.ndarray[int] idx,np.ndarray[int] " +
-                      "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
+        input_vars = ("int which, double t, complex[::1] " +
+                      "data, int[::1] idx, int[::1] " +
+                      "ptr, complex[::1] vec")
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
 
     def func_vars(self):
         """Writes the variables and their types & spmv parts"""
-        func_vars = ["", 'cdef Py_ssize_t row', 'cdef int num_rows = len(vec)',
-                     'cdef np.ndarray[CTYPE_t, ndim=1] ' +
+        func_vars = ["", 'cdef size_t row', 'cdef unsigned int num_rows = vec.shape[0]',
+                     "cdef np.ndarray[complex, ndim=1, mode='c'] " +
                      'out = np.zeros((num_rows),dtype=np.complex)']
         func_vars.append(" ")
         tdterms = self.h_tdterms
@@ -219,6 +224,7 @@ class Codegen():
         spline = 0
         for ht in self.h_terms:
             hstr = str(ht)
+            # Monte-carlo evolution
             if self.type == 'mc':
                 if ht in self.h_td_inds:
                     if isinstance(tdterms[hinds], str):
@@ -233,17 +239,26 @@ class Codegen():
                     hinds += 1
                 else:
                     td_str = "1.0"
-                str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
                         ht, ht, ht, td_str)
                 func_vars.append(str_out)
+            # Master and Schrodinger evolution
             else:
                 if self.h_tdterms[ht] == "1.0":
-                    str_out = "spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (
-                        ht, ht, ht)
+                    if self.use_openmp and self.omp_components[ht]:
+                        str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, &out[0], num_rows, %s)" % (
+                            ht, ht, ht, self.omp_threads)
+                    else:    
+                        str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, &out[0], num_rows)" % (
+                                ht, ht, ht)
                 else:
                     if isinstance(self.h_tdterms[ht], str):
-                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
-                            ht, ht, ht, self.h_tdterms[ht])
+                        if self.use_openmp and self.omp_components[ht]:
+                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows, %s)" % (
+                                ht, ht, ht, self.h_tdterms[ht], self.omp_threads)
+                        else:
+                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
+                                    ht, ht, ht, self.h_tdterms[ht])
                     elif isinstance(self.h_tdterms[ht], Cubic_Spline):
                         S = self.h_tdterms[ht]
                         if not S.is_complex:
@@ -251,8 +266,12 @@ class Codegen():
                         else:
                             interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
                         spline += 1
-                        str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
-                            ht, ht, ht, interp_str)
+                        if self.use_openmp and self.omp_components[ht]:
+                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows, %s)" % (
+                                ht, ht, ht, interp_str, self.omp_threads)
+                        else:
+                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
+                                ht, ht, ht, interp_str)
                 func_vars.append(str_out)
 
         if len(self.c_tdterms) > 0:
@@ -264,7 +283,7 @@ class Codegen():
             cinds = 0
             for ct in range(terms):
                 cstr = str(ct + hinds + 1)
-                str_out = "spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (
+                str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
                         cstr, cstr, cstr, " abs(" + tdterms[ct] + ")**2")
                 cinds += 1
                 func_vars.append(str_out)
@@ -296,20 +315,28 @@ class Codegen():
         return "return out"
 
     def func_end_real(self):
-        return "return np.float64(np.real(out))"
+        return "return real(out)"
 
 
-def cython_preamble():
+def cython_preamble(use_openmp=False):
     """
     Returns list of code segments for Cython preamble.
     """
+    if use_openmp:
+        openmp_string='from qutip.cy.openmp.parfuncs cimport spmvpy_openmp'
+    else:
+        openmp_string=''
+    
     return ["""\
 # This file is generated automatically by QuTiP.
-# (C) 2011 and later, P. D. Nation & J. R. Johansson
+# (C) 2011 and later, QuSTaR
 
 import numpy as np
 cimport numpy as np
 cimport cython
+"""
++openmp_string+
+"""
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.interpolate cimport interp, zinterp
 from qutip.cy.math cimport erf
@@ -317,8 +344,6 @@ cdef double pi = 3.14159265358979323
 
 include """+_include_string+"""
 
-ctypedef np.complex128_t CTYPE_t
-ctypedef np.float64_t DTYPE_t
 """]
 
 
@@ -336,11 +361,11 @@ def cython_col_spmv():
     Writes col_SPMV vars.
     """
     return ["""\
-    cdef Py_ssize_t row
-    cdef int jj, row_start, row_end
-    cdef int num_rows = len(vec)
-    cdef CTYPE_t dot
-    cdef np.ndarray[CTYPE_t, ndim=1] out = np.zeros(num_rows, dtype=np.complex)
+    cdef size_t row
+    cdef unsigned int jj, row_start, row_end
+    cdef unsigned int num_rows = vec.shape[0]
+    cdef complex dot
+    cdef np.ndarray[complex, ndim=1, mode='c'] out = np.zeros(num_rows, dtype=np.complex)
 
     for row in range(num_rows):
         dot = 0.0
@@ -357,14 +382,13 @@ def cython_col_expect(args):
     Writes col_expect vars.
     """
     return ["""\
-    cdef Py_ssize_t row
-    cdef int num_rows=len(vec)
-    cdef CTYPE_t out = 0.0
-    cdef np.ndarray[CTYPE_t, ndim=1] vec_ct = vec.conj()
-    cdef np.ndarray[CTYPE_t, ndim=1] dot = col_spmv(which, t, data, idx, ptr,
+    cdef size_t row
+    cdef int num_rows = vec.shape[0]
+    cdef complex out = 0.0
+    cdef np.ndarray[complex, ndim=1, mode='c'] dot = col_spmv(which, t, data, idx, ptr,
                                                     vec%s)
 
     for row in range(num_rows):
-        out += vec_ct[row] * dot[row]
+        out += conj(vec[row]) * dot[row]
     """ % "".join(["," + str(td_const[0])
                    for td_const in args.items()]) if args else ""]

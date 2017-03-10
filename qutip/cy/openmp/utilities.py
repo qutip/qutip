@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, QuSTaR,
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -31,23 +31,32 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
+import numpy as np
+import qutip.settings as qset
 
-def _cython_build_cleanup(tdname, build_dir=None):
-    if build_dir is None:
-        build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
+
+def check_use_openmp(options):
+    """
+    Check to see if OPENMP should be used.
+    """
+    force_omp = False
+    if qset.has_openmp and options.use_openmp is None:
+        options.use_openmp = True
+        force_omp = False
+    elif qset.has_openmp and options.use_openmp == True:
+        force_omp = True
+    elif qset.has_openmp and options.use_openmp == False:
+        force_omp = False
+    elif qset.has_openmp == False and options.use_openmp == True:
+        raise Exception('OPENMP not available.')
+    else:
+        options.use_openmp = False
+        force_omp = False
+    #Disable OPENMP in parallel mode unless explicitly set.    
+    if not force_omp and os.environ['QUTIP_IN_PARALLEL'] == 'TRUE':
+        options.use_openmp = False
+
+
+def openmp_components(ptr_list):
+    return np.array([ptr[-1] >= qset.openmp_thresh for ptr in ptr_list], dtype=bool)
     
-    # Remove tdname.pyx
-    pyx_file = tdname + ".pyx"
-    try:
-        os.remove(pyx_file)
-    except:
-        pass
-    
-    # Remove temp build files
-    for dirpath, subdirs, files in os.walk(build_dir):
-        for f in files:
-            if f.startswith(tdname):
-                try:
-                    os.remove(os.path.join(dirpath,f))
-                except:
-                    pass

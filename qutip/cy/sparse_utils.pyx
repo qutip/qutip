@@ -35,10 +35,20 @@ from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
 from libc.math cimport abs, sqrt
 cimport cython
+np.import_array()
 
-cdef extern from "complex.h":
-    double creal(double complex x)
-    double cimag(double complex x)
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+    void PyDataMem_FREE(void * ptr)
+    void PyDataMem_RENEW(void * ptr, size_t size)
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyDataMem_NEW(size_t size)
+
+
+cdef extern from "<complex>" namespace "std" nogil:
+    double abs(double complex x)
+    double real(double complex x)
+    double imag(double complex x)
 
 cdef inline int int_max(int x, int y):
     return x ^ ((x ^ y) & -(x < y))
@@ -284,7 +294,47 @@ def unit_row_norm(complex[::1] data, int[::1] ptr, int nrows):
     for row in range(nrows):
         total = 0
         for ii in range(ptr[row], ptr[row+1]):
-            total += creal(data[ii]) * creal(data[ii]) + cimag(data[ii]) * cimag(data[ii])
+            total += real(data[ii]) * real(data[ii]) + imag(data[ii]) * imag(data[ii])
         total = sqrt(total)
         for ii in range(ptr[row], ptr[row+1]):
             data[ii] /= total
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef double zcsr_one_norm(complex[::1] data, int[::1] ind, int[::1] ptr,       
+                     int nrows, int ncols):
+
+    cdef int k
+    cdef size_t ii, jj
+    cdef double * col_sum = <double *>PyDataMem_NEW_ZEROED(ncols, sizeof(double))
+    cdef double max_col = 0
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            k = ind[jj]
+            col_sum[k] += abs(data[jj])
+    for ii in range(ncols):
+        if col_sum[ii] > max_col:
+            max_col = col_sum[ii]        
+    PyDataMem_FREE(col_sum)
+    return max_col
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,       
+                     int nrows, int ncols):
+
+    cdef int k
+    cdef size_t ii, jj
+    cdef double * row_sum = <double *>PyDataMem_NEW_ZEROED(nrows, sizeof(double))
+    cdef double max_row = 0
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            row_sum[ii] += abs(data[jj])
+    for ii in range(nrows):
+        if row_sum[ii] > max_row:
+            max_row = row_sum[ii]        
+    PyDataMem_FREE(row_sum)
+    return max_row

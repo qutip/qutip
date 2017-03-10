@@ -86,7 +86,7 @@ def test_interpolate_evolve1():
     H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
     out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve2():
     """
@@ -102,7 +102,7 @@ def test_interpolate_evolve2():
     H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve3():
     """
@@ -118,7 +118,7 @@ def test_interpolate_evolve3():
     H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
     out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve4():
     """
@@ -134,7 +134,7 @@ def test_interpolate_evolve4():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
     out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve5():
     """
@@ -151,7 +151,7 @@ def test_interpolate_evolve5():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve6():
     """
@@ -167,7 +167,7 @@ def test_interpolate_evolve6():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve7():
     """
@@ -184,7 +184,7 @@ def test_interpolate_evolve7():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve8():
     """
@@ -200,7 +200,7 @@ def test_interpolate_evolve8():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
     out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve9():
     """
@@ -217,7 +217,7 @@ def test_interpolate_evolve9():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve10():
     """
@@ -233,7 +233,7 @@ def test_interpolate_evolve10():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'-0.1j*sin(t)']]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve11():
     """
@@ -250,7 +250,7 @@ def test_interpolate_evolve11():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 
 if __name__ == "__main__":

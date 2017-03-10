@@ -30,37 +30,30 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
-cimport numpy as np
 cimport cython
-
-include "parameters.pxi"
-
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(complex[::1] data,
-                int[::1] ind, int[::1] ptr, complex[::1] vec)
+from qutip.cy.spmatfuncs cimport spmvpy
+from qutip.cy.openmp.parfuncs cimport spmvpy_openmp
 
 
-cdef void spmvpy(complex * data,
-                int * ind,
-                int *  ptr,
-                complex * vec,
-                complex a,
-                complex * out,
-                unsigned int nrows)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _spmvpy(complex[::1] data,
+            int[::1] ind,
+            int[::1] ptr,
+            complex[::1] vec,
+            complex a,
+            complex[::1] out):
+    spmvpy(&data[0], &ind[0], &ptr[0], &vec[0], a, &out[0], vec.shape[0])
 
 
-cpdef cy_expect_rho_vec_csr(complex[::1] data,
-                            int[::1] idx,
-                            int[::1] ptr,
-                            complex[::1] rho_vec,
-                            int herm)
 
-cpdef cy_expect_psi(object op,
-                    complex[::1] state,
-                    int isherm)
-
-cpdef cy_expect_psi_csr(complex[::1] data,
-                        int[::1] idx,
-                        int[::1] ptr, 
-                        complex[::1] state,
-                        int isherm)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _spmvpy_openmp(complex[::1] data,
+            int[::1] ind,
+            int[::1] ptr,
+            complex[::1] vec,
+            complex a,
+            complex[::1] out,
+            unsigned int num_threads):
+    spmvpy_openmp(&data[0], &ind[0], &ptr[0], &vec[0], a, &out[0], vec.shape[0], num_threads)

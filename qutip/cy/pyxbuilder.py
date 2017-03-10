@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, The QuTiP Project
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -30,24 +30,19 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import os
+import sys
+import pyximport
+from pyximport import install
 
-def _cython_build_cleanup(tdname, build_dir=None):
-    if build_dir is None:
-        build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
-    
-    # Remove tdname.pyx
-    pyx_file = tdname + ".pyx"
-    try:
-        os.remove(pyx_file)
-    except:
-        pass
-    
-    # Remove temp build files
-    for dirpath, subdirs, files in os.walk(build_dir):
-        for f in files:
-            if f.startswith(tdname):
-                try:
-                    os.remove(os.path.join(dirpath,f))
-                except:
-                    pass
+old_get_distutils_extension = pyximport.pyximport.get_distutils_extension
+
+def new_get_distutils_extension(modname, pyxfilename, language_level=None):
+    extension_mod, setup_args = old_get_distutils_extension(modname, pyxfilename, language_level)
+    extension_mod.language='c++'
+    if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
+        extension_mod.extra_compile_args = ['/w', '/O1']
+    else:
+        extension_mod.extra_compile_args = ['-w', '-O1']
+    return extension_mod,setup_args
+
+pyximport.pyximport.get_distutils_extension = new_get_distutils_extension
