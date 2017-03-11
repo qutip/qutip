@@ -22,18 +22,18 @@ programming language.  The following packages are currently required:
 +----------------+--------------+-----------------------------------------------------+
 | Package        | Version      | Details                                             |
 +================+==============+=====================================================+
-| **Python**     | 2.7+         | Version 3.4+ is highly recommended.                 |
+| **Python**     | 2.7+         | Version 3.5+ is highly recommended.                 |
 +----------------+--------------+-----------------------------------------------------+
-| **Numpy**      | 1.8+         | Not tested on lower versions.                       |
+| **NumPy**      | 1.8+         | Not tested on lower versions.                       |
 +----------------+--------------+-----------------------------------------------------+
-| **Scipy**      | 0.15+        | Lower versions have missing features.               |
+| **SciPy**      | 0.15+        | Lower versions have missing features.               |
 +----------------+--------------+-----------------------------------------------------+
 | **Matplotlib** | 1.2.1+       | Some plotting does not work on lower versions.      |
 +----------------+--------------+-----------------------------------------------------+
 | **Cython**     | 0.21+        | Needed for compiling some time-dependent            |
 |                |              | Hamiltonians.                                       |
 +----------------+--------------+-----------------------------------------------------+
-| **GCC**        | 4.2+         | Needed for compiling Cython files.                  |
+| **GCC**        | 4.7+         | Needed for compiling Cython files.                  |
 | **Compiler**   |              |                                                     |
 +----------------+--------------+-----------------------------------------------------+
 | **Python**     | 2.7+         | Linux only. Needed for compiling Cython files.      |
@@ -46,21 +46,11 @@ In addition, there are several optional packages that provide additional functio
 +----------------+--------------+-----------------------------------------------------+
 | Package        | Version      | Details                                             |
 +================+==============+=====================================================+
-| gfortran       | 4.2+         | Needed for compiling the optional Fortran-based     |
-|                |              | Monte Carlo solver.                                 |
-+----------------+--------------+-----------------------------------------------------+
-| BLAS           | 1.2+         | Optional, Linux & Mac only.                         |
-| library        |              | Needed for installing Fortran Monte Carlo solver.   |
-+----------------+--------------+-----------------------------------------------------+
-| Mayavi         | 4.1+         | Needed for using the Bloch3d class.                 |
-+----------------+--------------+-----------------------------------------------------+
 | LaTeX          | TexLive 2009+| Needed if using LaTeX in matplotlib figures.        |    
 +----------------+--------------+-----------------------------------------------------+
 | nose           | 1.1.2+       | For running the test suite.                         |
 +----------------+--------------+-----------------------------------------------------+
 
-
-As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has some performance benefit over the Python-based solver when simulating small systems. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are tested only on the Linux and OS X platforms.
 
 We would not recommend installation into the system Python on Linux platforms, as it is likely that the required libraries will be difficult to update to sufficiently recent versions. The system Python on Linux is used for system things, changing its configuration could lead to highly undesirable results. We are recommending and supporting Anaconda / Miniconda Python environments for QuTiP on all platforms.
 
@@ -89,13 +79,12 @@ The default Anaconda environment has all the Python packages needed for running 
 You may however wish to install QuTiP in a Conda environment (env) other than the default Anaconda environment. 
 You may wish to this for many reasons:
 
-1. It is a good idea generally
-2. You are using MS Windows and want to use Python 3
-3. You are using `Miniconda <http://conda.pydata.org/miniconda.html>`_ because you do not have the disk space for full Anaconda.
+1. It is a good idea generally.
+2. You are using `Miniconda <http://conda.pydata.org/miniconda.html>`_ because you do not have the disk space for full Anaconda.
 
 To create a Conda env for QuTiP called ``qutip``:-
 
-(note the ``python=3`` can be ommited if you want the default Python version, if you want to use Python 3 with MS Windows, then it must be ``python=3.4``)
+(note the ``python=3`` can be ommited if you want the default Python version)
 
 recommended:
 
@@ -154,12 +143,6 @@ For other types of installation, it is often easiest to use the Python package m
 
    pip install qutip
 
-Or, optionally, to also include the Fortran-based Monte Carlo solver:
-
-.. code-block:: bash
-
-   pip install qutip --install-option=--with-f90mc
-
 More detailed platform-dependent installation alternatives are given below.
 
 .. _install-get-it:
@@ -182,14 +165,26 @@ Installing QuTiP from source requires that all the dependencies are satisfied.  
 .. code-block:: bash
 
    sudo python setup.py install
+   
+To install OPENMP support, if available, run:
 
-To also include the optional Fortran Monte Carlo solver, run:
 
 .. code-block:: bash
-    
-   sudo python setup.py install --with-f90mc
+
+   sudo python setup.py install --with-openmp
+
 
 On Windows, omit ``sudo`` from the commands given above.
+
+
+.. _installation-on-MS-Windows:
+
+Installation on MS Windows
+==========================
+
+.. important:: Installation on Windows has changed substantially as of QuTiP 4.1.  The only supported installation configuration is using the Conda environment with Python 3.5+ and Visual Studio 2015. 
+
+We are recommending and supporting installation of QuTiP into a Conda environment. Other scientific Python implementations such as Python-xy may also work, but are not supported.  As of QuTiP 4.1, installation on Windows requires Python 3.5+, as well as Visual Studio 2015.  With this configuration, one can install QuTiP using the above mentioned receipes.
 
 
 .. _install-verify:
@@ -218,29 +213,4 @@ QuTiP includes an "about" function for viewing information about QuTiP and the i
    In [1]: from qutip import *
 
    In [2]: about()
-
-.. _installation-on-MS-Windows:
-
-Installation on MS Windows
-==========================
-We are recommending and supporting installation of QuTiP into a Conda environment. Other scientific Python implementations such as Python-xy may also work.
-
-QuTiP uses dynamic compilation of C for some of its time-dependant dynamics solvers. For MS Windows users the additional challenge is the need for a ANSI C99 compliant C compiler. Unlike other platforms, no C compiler is provided with Windows by default. 
-It is possible to install a Windows SDK that includes a C compiler, but ANSI C99 compliance is not 100%. 
-The `mingw-w64 <https://mingw-w64.org>`_ project looks to help overcome this, and to some extent it is successful. 
-The `conda-forge <https://conda-forge.github.io>`_ packages for QuTiP will also install the `Mingwpy <https://mingwpy.github.io>`_ package, which uses mingw-w64.
-
-Currently we are only able get QuTiP working with Python <= 3.4. Python >= 3.5 is compiled with a newer version of the MSVC compiler, and there are currently license restrictions.
-
-To specify the use of the mingw compiler you will need to create the following file: ::
-
-   <path to my Python env>/Lib/distutils/distutils.cfg
-
-with the following contents: ::
-
-   [build]
-   compiler=mingw32
-   [build_ext]
-   compiler=mingw32
-
 
