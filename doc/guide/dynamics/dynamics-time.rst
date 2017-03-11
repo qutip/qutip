@@ -284,6 +284,66 @@ We can also use the ``args`` variable in the same manner as before, however we m
 Collapse operators are handled in the exact same way.
 
 
+.. _time-interp:
+
+Modeling Non-Analytic and/or Experimental Time-Dependent Parameters using Interpolating Functions
+=================================================================================================
+
+.. note:: New in QuTiP 4.1
+
+Sometimes it is necessary to model a system where the time-dependent parameters are non-analytic functions, or are derived from experimental data (i.e. a collection of data points).  In these situations, one can use interpolating functions as an approximate functional form for input into a time-dependent solver.  QuTiP includes it own custom cubic spline interpolation class :class:`qutip.interpolate.Cubic_Spline` to provide this functionality.  To see how this works, lets first generate some noisy data:
+
+.. ipython::
+    
+    In [1]: t = np.linspace(-15, 15, 100)
+    
+    In [1]: func = lambda t: 9*np.exp(-(t / 5)** 2)
+    
+    In [1]: noisy_func = lambda t: func(t)+(0.05*func(t))*np.random.randn(t.shape[0])
+    
+    In [1]: noisy_data = noisy_func(t)
+    
+    In [1]: plt.plot(t, func(t))
+    
+    In [1]: plt.plot(t, noisy_data, 'o')
+    
+	@savefig guide-td_noisy.png width=5.0in align=center
+    In [1]: plt.show()
+
+
+To turn these data points into a function we call the QuTiP :class:`qutip.interpolate.Cubic_Spline` class using the first and last domain time points, ``t[0]`` and ``t[-1]``, respectively, as well as the entire array of data points: 
+
+
+.. ipython::
+    
+    In [1]: S = Cubic_Spline(t[0], t[-1], noisy_data)
+    
+    In [1]: plt.plot(t, func(t))
+    
+    In [1]: plt.plot(t, noisy_data, 'o')
+    
+    In [1]: plt.plot(t, S(t), lw=2)
+    
+	@savefig guide-td_noisy2.png width=5.0in align=center
+    In [1]: plt.show()
+
+
+This cubic spline class ``S`` can now be pasted to any of the ``mesolve``, ``mcsolve``, or ``sesolve`` functions where one would normally input a time-dependent function or string-representation.  Taking the problem from the previous section as an example.  We would make the replacement:
+
+.. code-block:: python
+
+    H = [H0, [H1, '9 * exp(-(t / 5) ** 2)']]
+    
+to
+
+.. code-block:: python
+
+    H = [H0, [H1, S]]
+
+
+When combining interpolating functions with other Python functions or strings, the interpolating class will automatically pick the appropriate method for calling the class.  That is to say that, if for example, you have other time-dependent terms that are given in the string-format, then the cubic spline representation will also be passed in a string-compatible format.  In the string-format, the interpolation function is compiled into c-code, and thus is quite fast.  This is the default method if no other time-dependent terms are present.    
+
+
 Reusing Time-Dependent Hamiltonian Data
 =======================================
 

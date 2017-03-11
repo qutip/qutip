@@ -31,13 +31,17 @@ Bloch sphere
 .. autoclass:: qutip.bloch.Bloch
     :members: 
 
-.. autoclass:: qutip.bloch3d.Bloch3d
+
+Bloch sphere
+---------------
+
+.. autoclass:: qutip.interpolate.Cubic_Spline
     :members: 
 
 
 .. _classes-non_markov:
 
-non-Markovian Solvers
+Non-Markovian Solvers
 ---------------------
 
 .. autoclass:: qutip.nonmarkov.heom.HEOMSolver
