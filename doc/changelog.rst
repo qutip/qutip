@@ -29,6 +29,8 @@ Improvements
 
 - Hermitian verification now up to 100x+ faster.
 
+- Internal Qobj objects now created up to 60x faster.
+
 - Inplace conversion from COO -> CSR sparse formats (e.g. Memory efficiency improvement.)
 
 - Faster reverse Cuthill-Mckee and sparse one and inf norms.
