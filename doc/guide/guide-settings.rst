@@ -34,6 +34,8 @@ In this section we show how to modify a few of the internal parameters used by Q
 +-------------------------------+-------------------------------------------+-----------------------------+
 | `debug`                       | Show debug printouts.                     | True / False                |
 +-------------------------------+-------------------------------------------+-----------------------------+
+| `openmp_thresh`               | NNZ matrix must have for OPENMP.          | Int                         |
++-------------------------------+-------------------------------------------+-----------------------------+
 
 .. _settings-usage:
 
@@ -51,19 +53,19 @@ These settings will be used for the current QuTiP session only and will need to 
 Persistent Settings
 ===================
 
-When QuTiP is imported, it looks for the file ``.qutiprc`` in the user's home directory. If this file is found, it will be loaded and overwrite the QuTiP default settings, which allows for persistent changes in the QuTiP settings to be made. A sample ``.qutiprc`` file is show below. The syntax is a simple key-value format, where the keys and possible values are described in the table above::
+When QuTiP is imported, it looks for a file named ``qutiprc`` in a folder called ``.qutip`` user's home directory. If this file is found, it will be loaded and overwrite the QuTiP default settings, which allows for persistent changes in the QuTiP settings to be made. A sample ``qutiprc`` file is show below. The syntax is a simple key-value format, where the keys and possible values are described in the table above::
 
-    # QuTiP Graphics
-    qutip_graphics="YES"
-    # use auto tidyup
+    [qutip]
     auto_tidyup=True
-    # detect hermiticity
     auto_herm=True
-    # use auto tidyup absolute tolerance 
     auto_tidyup_atol=1e-12
-    # number of cpus
     num_cpus=4
-    # debug
     debug=False
+
+Note that the ``openmp_thresh`` value is automatically generatd by QuTiP.  It is also possible to set a specific compiler for QuTiP to use when generating runtime Cython code for time-dependent problems.  For example, the following section in the ``qutiprc`` file will set the compiler to be ``clang-3.9``::
+
+    [compiler]
+    cc = clang-3.9
+    cxx = clang-3.9
 
 

@@ -32,7 +32,7 @@ Bloch sphere
     :members: 
 
 
-Bloch sphere
+Cubic Spline
 ---------------
 
 .. autoclass:: qutip.interpolate.Cubic_Spline
