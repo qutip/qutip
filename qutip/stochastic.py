@@ -1488,7 +1488,7 @@ _idx_Ad_R = 3
 _idx_AdA_L = 4
 _idx_AdA_R = 5
 _idx_A_LxAd_R = 6
-_idx_LD = 7
+_idx_LD = "lindblad_dissipator"
 
 
 def _generate_rho_A_ops(sc, L, dt):
