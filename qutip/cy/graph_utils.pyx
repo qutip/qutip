@@ -62,18 +62,17 @@ cdef int int_sort(int_pair x, int_pair y):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int * int_argsort(int * x, int nrows):
-    cdef int_pair * pairs = <int_pair *>PyDataMem_NEW(nrows*sizeof(int_pair))
+    cdef vector[int_pair] pairs
     cdef size_t kk
-    
+    pairs.resize(nrows)
     for kk in range(nrows):
         pairs[kk].data = x[kk]
         pairs[kk].idx = kk
     
-    sort(pairs,pairs+nrows,int_sort)
+    sort(pairs.begin(),pairs.end(),int_sort)
     cdef int * out = <int *>PyDataMem_NEW(nrows *sizeof(int))
     for kk in range(nrows):
         out[kk] = pairs[kk].idx
-    PyDataMem_FREE(pairs)
     return out
 
 
