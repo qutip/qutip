@@ -103,6 +103,7 @@ cdef struct _data_ind_pair:
 ctypedef _csr_mat CSR_Matrix
 ctypedef _coo_mat COO_Matrix
 ctypedef _data_ind_pair data_ind_pair
+ctypedef int (*cfptr)(data_ind_pair, data_ind_pair)
 
 
 cdef void raise_error_CSR(int E, CSR_Matrix * C = NULL):
@@ -575,6 +576,7 @@ cdef void sort_indices(CSR_Matrix * mat):
     """
     cdef size_t ii, jj
     cdef vector[data_ind_pair] pairs
+    cdef cfptr cfptr_ = &ind_sort
     cdef int row_start, row_end, length
 
     for ii in range(mat.nrows):
@@ -587,7 +589,7 @@ cdef void sort_indices(CSR_Matrix * mat):
             pairs[jj].data = mat.data[row_start+jj]
             pairs[jj].ind = mat.indices[row_start+jj]
         
-        sort(pairs.begin(), pairs.end(), ind_sort)
+        sort(pairs.begin(),pairs.end(),cfptr_)
     
         for jj in range(length):
             mat.data[row_start+jj] = pairs[jj].data
