@@ -52,6 +52,7 @@ cdef struct _int_pair:
     int idx
 
 ctypedef _int_pair int_pair
+ctypedef int (*cfptr)(int_pair, int_pair)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -63,13 +64,14 @@ cdef int int_sort(int_pair x, int_pair y):
 @cython.wraparound(False)
 cdef int * int_argsort(int * x, int nrows):
     cdef vector[int_pair] pairs
+    cdef cfptr cfptr_ = &int_sort
     cdef size_t kk
     pairs.resize(nrows)
     for kk in range(nrows):
         pairs[kk].data = x[kk]
         pairs[kk].idx = kk
     
-    sort(pairs.begin(),pairs.end(),int_sort)
+    sort(pairs.begin(),pairs.end(),cfptr_)
     cdef int * out = <int *>PyDataMem_NEW(nrows *sizeof(int))
     for kk in range(nrows):
         out[kk] = pairs[kk].idx
