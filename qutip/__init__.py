@@ -32,19 +32,6 @@
 ###############################################################################
 from __future__ import division, print_function, absolute_import
 import os
-# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
-if 'OPENBLAS_MAIN_FREE' not in os.environ:
-    os.environ['OPENBLAS_MAIN_FREE'] = '1'
-# automatically set number of threads used by MKL and openblas to 1
-# prevents errors when running things in parallel.  Should be set
-# by user directly in a script or notebook if >1 is needed.
-# Must be set BEFORE importing NumPy
-if 'MKL_NUM_THREADS' not in os.environ:
-    os.environ['MKL_NUM_THREADS'] = '1'
-
-if 'OPENBLAS_NUM_THREADS' not in os.environ:
-    os.environ['OPENBLAS_NUM_THREADS'] = '1'
-
 import sys
 import warnings
 
@@ -66,7 +53,7 @@ except:
 # if the requirements aren't fulfilled
 #
 
-numpy_requirement = "1.6.0"
+numpy_requirement = "1.8.0"
 try:
     import numpy
     if _version2int(numpy.__version__) < _version2int(numpy_requirement):
@@ -76,7 +63,7 @@ try:
 except:
     warnings.warn("numpy not found.")
 
-scipy_requirement = "0.11.0"
+scipy_requirement = "0.15.0"
 try:
     import scipy
     if _version2int(scipy.__version__) < _version2int(scipy_requirement):
@@ -105,7 +92,7 @@ del top_path
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
-_cython_requirement = "0.15.0"
+_cython_requirement = "0.21.0"
 try:
     import Cython
     if _version2int(Cython.__version__) < _version2int(_cython_requirement):
@@ -119,31 +106,21 @@ else:
     del Cython
 
 # -----------------------------------------------------------------------------
-# Load user configuration if present: override defaults.
+# Look to see if we are running with OPENMP
 #
+# Set environ variable to determin if running in parallel mode
+# (i.e. in parfor or parallel_map)
+os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
+
 try:
-    if os.name == "nt":
-        qutip_rc_file = os.path.join(
-            os.getenv('APPDATA'), 'qutip', "qutiprc"
-        )
-    else:
-        qutip_rc_file = os.path.join(
-            # This should possibly be changed to ~/.config/qutiprc,
-            # to follow XDG specs. Also, OS X uses a different naming
-            # convention as well.
-            os.environ['HOME'], ".qutiprc"
-        )
-    qutip.settings.load_rc_file(qutip_rc_file)
+    from qutip.cy.openmp.parfuncs import spmv_csr_openmp
+except:
+    qutip.settings.has_openmp = False
+else:
+    qutip.settings.has_openmp = True
+    # See Pull #652 for why this is here.
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-except KeyError as e:
-    qutip.settings._logger.warning(
-        "The $HOME environment variable is not defind. No custom RC file loaded.")
-
-except Exception as e:
-    try:
-        qutip.settings._logger.warning("Error loading RC file.", exc_info=1)
-    except:
-        pass
 
 # -----------------------------------------------------------------------------
 # cpu/process configuration
@@ -170,24 +147,9 @@ if qutip.settings.num_cpus == 0:
 import qutip._mkl
 
 
-
-# -----------------------------------------------------------------------------
-# Load configuration from environment variables: override defaults and
-# configuration file.
-#
-
-# check for fortran mcsolver files
-try:
-    from qutip.fortran import mcsolve_f90
-except:
-    qutip.settings.fortran = False
-else:
-    qutip.settings.fortran = True
-
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
-
 
 # Check for Matplotlib
 try:
@@ -196,6 +158,7 @@ except:
     warnings.warn("matplotlib not found: Graphics will not work.")
 else:
     del matplotlib
+
 
 # -----------------------------------------------------------------------------
 # Load modules
@@ -260,11 +223,39 @@ from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
 
-# Setup pyximport 
+# Setup pyximport
 import qutip.cy.pyxbuilder as pbldr
-os.environ['CFLAGS'] = '-O1 -w -ffast-math'
 pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
 del pbldr
+
+# -----------------------------------------------------------------------------
+# Load user configuration if present: override defaults.
+#
+import qutip.configrc
+has_rc, rc_file = qutip.configrc.has_qutip_rc()
+
+# Make qutiprc and benchmark OPENMP if has_rc = False
+if qutip.settings.has_openmp and (not has_rc):
+    from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
+    #bench OPENMP
+    print('Calibrating OPENMP threshold...')
+    thrsh = calculate_openmp_thresh()
+    qutip.configrc.generate_qutiprc()
+    has_rc, rc_file = qutip.configrc.has_qutip_rc()
+    if has_rc:
+        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+# Make OPENMP if has_rc but 'openmp_thresh' not in keys
+elif qutip.settings.has_openmp and has_rc:
+    from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
+    has_omp_key = qutip.configrc.has_rc_key(rc_file, 'openmp_thresh')
+    if not has_omp_key:
+        print('Calibrating OPENMP threshold...')
+        thrsh = calculate_openmp_thresh()
+        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+
+# Load the config file
+if has_rc:
+    qutip.configrc.load_rc_config(rc_file)
 
 # -----------------------------------------------------------------------------
 # Clean name space

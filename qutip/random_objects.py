@@ -151,7 +151,7 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
         nvals = N**2*density
         while M.nnz < 0.95*nvals:
             M = rand_jacobi_rotation(M)
-    elif isinstance(N,int):
+    elif isinstance(N, (int, np.int32, np.int64)):
         if dims:
             _check_dims(dims, N, N)
         num_elems = np.int(np.ceil(N*(N+1)*density)/2)
@@ -164,6 +164,8 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
             M = M.tocoo()
             M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
             M = M.tocsr()
+    else:
+        raise TypeError('Input N must be an integer or array_like.')
     M.sort_indices()
     if dims:
         return Qobj(M, dims=dims)
@@ -352,7 +354,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
         while H.nnz < 0.95*nvals:
             H = rand_jacobi_rotation(H)
         H.sort_indices()
-    elif isinstance(N,int):
+    elif isinstance(N, (int, np.int32, np.int64)):
         if dims:
             _check_dims(dims, N, N)
         if pure:
@@ -373,6 +375,8 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
                     "Requested density is too low to generate density matrix.")
             H = H / H.tr()
             H.data.sort_indices()
+    else:
+        raise TypeError('Input N must be an integer or array_like.')
     if dims:
         return Qobj(H, dims=dims)
     else:

@@ -56,28 +56,38 @@ from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 1
+MINOR = 2
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
-            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
-            'qutip/_mkl', 'qutip/tests', 'qutip/legacy']
+PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
+            'qutip/qip', 'qutip/qip/models',
+            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
+            'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
+            'qutip/cy/openmp', 'qutip/cy/openmp/src']
 PACKAGE_DATA = {
     '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
-    'qutip/tests': ['bucky.npy', 'bucky_perm.npy', '*.ini'],
-    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx']
+    'qutip/tests': ['*.ini'],
+    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
+    'qutip/cy/src': ['*.cpp', '*.hpp'],
+    'qutip/control': ['*.pyx'],
+    'qutip/cy/openmp': ['*.pxd', '*.pyx'],
+    'qutip/cy/openmp/src': ['*.cpp', '*.hpp']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
+# ajgpitch Mar 2017:
+# This HEADERS did not work, but I will leave it in anyway, as it is supposed to.
+# I had to do the nasty thing with PACKAGES and PACKAGE_DATA above.
+HEADERS = ['qutip/cy/src/zspmv.hpp', 'qutip/cy/openmp/src/zspmv_openmp.hpp']
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
           "Chris Granade, Arne Grimsmo")
-AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, " 
+AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
                 "jrjohansson@gmail.com, cgranade@cgranade.com, "
                 "arne.grimsmo@gmail.com")
 LICENSE = "BSD"
@@ -87,14 +97,6 @@ KEYWORDS = "quantum physics dynamics"
 URL = "http://qutip.org"
 CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
-
-
-def write_f2py_f2cmap():
-    dirname = os.path.dirname(__file__)
-    with open(os.path.join(dirname, '.f2py_f2cmap'), 'w') as f:
-        f.write("dict(real=dict(sp='float', dp='double', wp='double'), " +
-                "complex=dict(sp='complex_float', dp='complex_double', " +
-                "wp='complex_double'))")
 
 
 def git_short_hash():
@@ -144,16 +146,6 @@ if os.path.exists('qutip/version.py'):
 
 write_version_py()
 
-# check for fortran option
-if "--with-f90mc" in sys.argv:
-    with_f90mc = True
-    PACKAGES.append('qutip/fortran')
-    sys.argv.remove("--with-f90mc")
-    write_f2py_f2cmap()
-else:
-    with_f90mc = False
-
-
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing']
@@ -185,14 +177,42 @@ _mod = Extension('qutip.control.cy_grape',
             language='c++')
 EXT_MODULES.append(_mod)
 
+
 # Add optional ext modules here
-    
+if "--with-openmp" in sys.argv:
+    sys.argv.remove("--with-openmp")
+    if (sys.platform == 'win32'
+            and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35):
+        omp_flags = ['/openmp']
+        omp_args = []
+    else:
+        omp_flags = ['-fopenmp']
+        omp_args = omp_flags
+    _mod = Extension('qutip.cy.openmp.parfuncs',
+            sources = ['qutip/cy/openmp/parfuncs.pyx',
+                       'qutip/cy/openmp/src/zspmv_openmp.cpp'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags+omp_flags,
+            extra_link_args=omp_args,
+            language='c++')
+    EXT_MODULES.append(_mod)
+    # Add benchmark pyx
+    _mod = Extension('qutip.cy.openmp.benchmark',
+            sources = ['qutip/cy/openmp/benchmark.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
+
+
 # Setup commands go here
 setup(
     name = NAME,
     version = FULLVERSION,
     packages = PACKAGES,
     include_dirs = INCLUDE_DIRS,
+    headers = HEADERS,
     ext_modules = cythonize(EXT_MODULES),
     cmdclass = {'build_ext': build_ext},
     author = AUTHOR,

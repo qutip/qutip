@@ -35,7 +35,6 @@ import numpy as np
 from qutip.interpolate import Cubic_Spline
 _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _include_string = "'"+_cython_path+"/complex_math.pxi'"
-
 __all__ = ['Codegen']
 
 
@@ -45,7 +44,8 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 type='me', config=None):
+                 type='me', config=None, use_openmp=False,
+                 omp_components=None, omp_threads=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -69,6 +69,11 @@ class Codegen():
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
         self.config = config
+        
+        #openmp settings
+        self.use_openmp = use_openmp
+        self.omp_components = omp_components
+        self.omp_threads = omp_threads
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -80,7 +85,7 @@ class Codegen():
 
     def generate(self, filename="rhs.pyx"):
         """generate the file"""
-        for line in cython_preamble():
+        for line in cython_preamble(self.use_openmp):
             self.write(line)
 
         # write function for Hamiltonian terms (there is always at least one
@@ -219,6 +224,7 @@ class Codegen():
         spline = 0
         for ht in self.h_terms:
             hstr = str(ht)
+            # Monte-carlo evolution
             if self.type == 'mc':
                 if ht in self.h_td_inds:
                     if isinstance(tdterms[hinds], str):
@@ -236,14 +242,23 @@ class Codegen():
                 str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
                         ht, ht, ht, td_str)
                 func_vars.append(str_out)
+            # Master and Schrodinger evolution
             else:
                 if self.h_tdterms[ht] == "1.0":
-                    str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, &out[0], num_rows)" % (
-                        ht, ht, ht)
+                    if self.use_openmp and self.omp_components[ht]:
+                        str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, &out[0], num_rows, %s)" % (
+                            ht, ht, ht, self.omp_threads)
+                    else:    
+                        str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, &out[0], num_rows)" % (
+                                ht, ht, ht)
                 else:
                     if isinstance(self.h_tdterms[ht], str):
-                        str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
-                            ht, ht, ht, self.h_tdterms[ht])
+                        if self.use_openmp and self.omp_components[ht]:
+                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows, %s)" % (
+                                ht, ht, ht, self.h_tdterms[ht], self.omp_threads)
+                        else:
+                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
+                                    ht, ht, ht, self.h_tdterms[ht])
                     elif isinstance(self.h_tdterms[ht], Cubic_Spline):
                         S = self.h_tdterms[ht]
                         if not S.is_complex:
@@ -251,8 +266,12 @@ class Codegen():
                         else:
                             interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
                         spline += 1
-                        str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
-                            ht, ht, ht, interp_str)
+                        if self.use_openmp and self.omp_components[ht]:
+                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows, %s)" % (
+                                ht, ht, ht, interp_str, self.omp_threads)
+                        else:
+                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
+                                ht, ht, ht, interp_str)
                 func_vars.append(str_out)
 
         if len(self.c_tdterms) > 0:
@@ -299,17 +318,25 @@ class Codegen():
         return "return real(out)"
 
 
-def cython_preamble():
+def cython_preamble(use_openmp=False):
     """
     Returns list of code segments for Cython preamble.
     """
+    if use_openmp:
+        openmp_string='from qutip.cy.openmp.parfuncs cimport spmvpy_openmp'
+    else:
+        openmp_string=''
+    
     return ["""\
 # This file is generated automatically by QuTiP.
-# (C) 2011 and later, P. D. Nation & J. R. Johansson
+# (C) 2011 and later, QuSTaR
 
 import numpy as np
 cimport numpy as np
 cimport cython
+"""
++openmp_string+
+"""
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.interpolate cimport interp, zinterp
 from qutip.cy.math cimport erf
