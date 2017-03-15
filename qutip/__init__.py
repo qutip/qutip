@@ -125,7 +125,7 @@ else:
 # -----------------------------------------------------------------------------
 # cpu/process configuration
 #
-
+import multiprocessing
 
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
@@ -141,9 +141,7 @@ if qutip.settings.num_cpus == 0:
         qutip.settings.num_cpus = info['cpus']
     else:
         try:
-            import multiprocessing
             qutip.settings.num_cpus = multiprocessing.cpu_count()
-            del multiprocessing
         except:
             qutip.settings.num_cpus = 1
 
@@ -265,4 +263,4 @@ if has_rc:
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy
+del os, sys, numpy, scipy, multiprocessing
