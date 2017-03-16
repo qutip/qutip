@@ -140,7 +140,10 @@ if qutip.settings.num_cpus == 0:
     if 'cpus' in info:
         qutip.settings.num_cpus = info['cpus']
     else:
-        qutip.settings.num_cpus = multiprocessing.cpu_count()
+        try:
+            qutip.settings.num_cpus = multiprocessing.cpu_count()
+        except:
+            qutip.settings.num_cpus = 1
 
 
 # Find MKL library if it exists
