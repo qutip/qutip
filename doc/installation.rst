@@ -183,6 +183,8 @@ If you are wishing to contribute to the QuTiP project, then you will want to cre
 
 ``import qutip`` in this Python env will then load the code from your local fork, enabling you to test changes interactively.
 
+The ``sudo`` pre-command is typically not needed when installing into Anaconda type environments, as Anaconda is usually installed in the users home directory. ``sudo`` will be needed (on Linux and OSX) for installing into Python environments where the user does not have write access.
+
 .. _installation-on-MS-Windows:
 
 Installation on MS Windows
@@ -199,11 +201,7 @@ The 'Community' edition of Visual Studio 2015 is free to download use, however i
 Windows and Python 2.7
 ----------------------
 
-.. important:: Running QuTiP under Python 2.7 on Windows is not recommended or supported. However, it is currently possible.
-
-.. important:: There are no working conda-forge packages for Python 2.7 on Windows. You will have to install via pip or from source in Python 2.7 on Windows.
-
-.. important:: The MS Visual C for Python 2.7 compiler will not work with QuTiP. You will have to use the g++ compiler in mingw32
+.. important:: Running QuTiP under Python 2.7 on Windows is not recommended or supported. However, it is currently possible. There are no working conda-forge packages for Python 2.7 on Windows. You will have to install via pip or from source in Python 2.7 on Windows. The 'MS Visual C for Python 2.7' compiler will not work with QuTiP. You will have to use the g++ compiler in mingw32.
 
 If you need to create a Python 2.7 conda environment see building-conda-environment_, including adding-conda-forge_
 
