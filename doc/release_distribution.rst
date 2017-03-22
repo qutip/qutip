@@ -152,7 +152,7 @@ First:
 - Update ``api_doc/functions.rst`` for any new / deleted functions.
 
 Rebuilding of the QuTiP documentation is fully documented in:
-https://github.com/qutip/qutip-doc/README.md
+https://github.com/qutip/qutip-doc/blob/master/README.md
 
 .. _web:
 
