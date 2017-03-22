@@ -135,6 +135,7 @@ Alternatively, this will add ``conda-forge`` as the highest priority channel.
 It is almost certainly better to have ``defaults`` as the highest priority channel.
 You can edit your ``.condarc`` (user home folder) file manually, so that ``conda-forge`` is below ``defaults`` in the ``channels`` list.
 
+.. _install-via_pip:
 
 Installing via pip
 ==================
@@ -166,25 +167,21 @@ Installing QuTiP from source requires that all the dependencies are satisfied.  
 
 .. code-block:: bash
 
-   sudo python setup.py install
+   python setup.py install
    
 To install OPENMP support, if available, run:
 
-
 .. code-block:: bash
 
-   sudo python setup.py install --with-openmp
+   python setup.py install --with-openmp
    
 If you are wishing to contribute to the QuTiP project, then you will want to create your own fork of qutip, clone this to a local folder, and 'install' it into your Python env using:
 
 .. code-block:: bash
 
-   sudo python setup.py develop --with-openmp
+   python setup.py develop --with-openmp
 
-`import qutip` in this Python env will then load the code from your local fork, enabling you to test changes interactively.
-
-On Windows, omit ``sudo`` from the commands given above.
-
+``import qutip`` in this Python env will then load the code from your local fork, enabling you to test changes interactively.
 
 .. _installation-on-MS-Windows:
 
@@ -202,11 +199,13 @@ The 'Community' edition of Visual Studio 2015 is free to download use, however i
 Windows and Python 2.7
 ----------------------
 
-.. important:: There are no working conda-forge packages for Python 2.7 on Windows. You will have to install via pip on from source in Python 2.7 on Windows.
+.. important:: Running QuTiP under Python 2.7 on Windows is not recommended or supported. However, it is currently possible.
+
+.. important:: There are no working conda-forge packages for Python 2.7 on Windows. You will have to install via pip or from source in Python 2.7 on Windows.
 
 .. important:: The MS Visual C for Python 2.7 compiler will not work with QuTiP. You will have to use the g++ compiler in mingw32
 
-First create Python 2.7 conda environment - see building-conda-environment_, including adding-conda-forge_
+If you need to create a Python 2.7 conda environment see building-conda-environment_, including adding-conda-forge_
 
 Then run:
 
@@ -214,7 +213,20 @@ Then run:
 
    conda install mingwpy
 
-Then 
+To specify the use of the mingw compiler you will need to create the following file: ::
+
+   <path to my Python env>/Lib/distutils/distutils.cfg
+
+with the following contents: ::
+
+   [build]
+   compiler=mingw32
+   [build_ext]
+   compiler=mingw32
+   
+``<path to my Python env>`` will be something like ``C:\Ananconda2\`` or ``C:\Ananconda2\envs\qutip-env\`` depending on where you installed Anaconda or Miniconda, and whether you created a specific environment.
+
+You can then install QuTiP using either the install-via_pip_ or install-get-it_ method.
 
 .. _install-verify:
 
