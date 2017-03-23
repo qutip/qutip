@@ -206,6 +206,13 @@ if "--with-openmp" in sys.argv:
     EXT_MODULES.append(_mod)
 
 
+# Remove -Wstrict-prototypes from cflags
+import distutils.sysconfig
+cfg_vars = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in cfg_vars:
+    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+
+
 # Setup commands go here
 setup(
     name = NAME,

@@ -226,6 +226,13 @@ from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
 
+
+# Remove -Wstrict-prototypes from cflags
+import distutils.sysconfig
+cfg_vars = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in cfg_vars:
+    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+
 # Setup pyximport
 import qutip.cy.pyxbuilder as pbldr
 pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
@@ -263,4 +270,4 @@ if has_rc:
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy, multiprocessing
+del os, sys, numpy, scipy, multiprocessing, distutils
