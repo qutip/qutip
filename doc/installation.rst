@@ -33,7 +33,7 @@ programming language.  The following packages are currently required:
 | **Cython**     | 0.21+        | Needed for compiling some time-dependent            |
 |                |              | Hamiltonians.                                       |
 +----------------+--------------+-----------------------------------------------------+
-| **C++**        | GCC 4.7+     | Needed for compiling Cython files.                  |
+| **C++**        | GCC 4.7+,    | Needed for compiling Cython files.                  |
 | **Compiler**   | MS VS 2015   |                                                     |
 +----------------+--------------+-----------------------------------------------------+
 | **Python**     | 2.7+         | Linux only. Needed for compiling Cython files.      |
@@ -61,7 +61,6 @@ Platform-independent Installation
 
 QuTiP is designed to work best when using the `Anaconda <https://www.continuum.io/downloads>`_ or `Intel <https://software.intel.com/en-us/python-distribution>`_ Python distributions that support the conda package management system.
 
-.. important:: There are no working conda-forge packages for Python 2.7 on Windows. On Windows you should create a Python 3.5+ environment.
 
 If you aleady have your conda environment set up, and have the ``conda-forge`` channel available, then you can install QuTiP using:
 
@@ -77,35 +76,40 @@ If you are using MS Windows, then you will probably want to refer to installatio
 
 Building your Conda environment
 -------------------------------
-The default Anaconda environment has all the Python packages needed for running QuTiP. You may however wish to install QuTiP in a Conda environment (env) other than the default Anaconda environment. You may wish to this for many reasons:
 
-1. It is a good idea generally.
-2. You are using `Miniconda <http://conda.pydata.org/miniconda.html>`_ because you do not have the disk space for full Anaconda.
+.. important:: There are no working conda-forge packages for Python 2.7 on Windows. On Windows you should create a Python 3.5+ environment.
 
-To create a Conda env for QuTiP called ``qutip-env``:-
+The default Anaconda environment has all the Python packages needed for running QuTiP. You may however wish to install QuTiP in a Conda environment (env) other than the default Anaconda environment. You may wish to install `Miniconda <http://conda.pydata.org/miniconda.html>`_ instead if you need to be economical with disk space. However, if you are not familiar with conda environments and only plan to use if for QuTiP, then you should probably work with a default Anaconda / Miniconda environment.
 
-(note the ``python=3`` can be ommited if you want the default Python version)
+To create a Conda env for QuTiP called ``qutip-env``:
+
+.. code-block:: bash
+
+   conda create -n qutip-env python=3
+
+Note the ``python=3`` can be ommited if you want the default Python version for the Anaconda / Miniconda install.
+
+If you have created a specific conda environment, or you have installed Miniconda, then you will need to install the required packages for QuTiP.
 
 recommended:
 
 .. code-block:: bash
 
-   conda create -n qutip-env python=3 numpy scipy cython matplotlib nose jupyter notebook spyder
+   conda install numpy scipy cython matplotlib nose jupyter notebook spyder
 
 minimum (recommended):
 
 .. code-block:: bash
 
-   conda create -n qutip-env numpy scipy cython nose matplotlib
+   conda install numpy scipy cython nose matplotlib
 
 absolute mimimum:
 
 .. code-block:: bash
 
-   conda create -n qutip-dev numpy scipy cython
+   conda install numpy scipy cython
 
-The ``jupyter`` and ``notebook`` packages are for working with `Jupyter <http://jupyter.org/>`_ notebooks (fka IPython notebooks). 
-`Spyder <https://pythonhosted.org/spyder/>`_ is an IDE for scientific development with Python.
+The ``jupyter`` and ``notebook`` packages are for working with `Jupyter <http://jupyter.org/>`_ notebooks (fka IPython notebooks). `Spyder <https://pythonhosted.org/spyder/>`_ is an IDE for scientific development with Python.
 
 .. _adding-conda-forge:
 

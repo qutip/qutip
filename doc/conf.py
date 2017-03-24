@@ -50,8 +50,8 @@ templates_path = ['templates']
 
 # This is needed for ipython @savefig
 # Otherwise it just puts the png in the root dir
-savefig_dir = 'images'
-ipython_savefig_dir = 'images'
+savefig_dir = '_images'
+ipython_savefig_dir = '_images'
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
