@@ -31,7 +31,7 @@ Installation
 
 For instructions on how to install QuTiP, see:
 
-[http://qutip.org/docs/4.1.0/installation.html](http://qutip.org/docs/4.1.0/installation.html)
+[http://qutip.org/docs/4.1/installation.html](http://qutip.org/docs/4.1/installation.html)
 
 
 Demos
