@@ -152,7 +152,7 @@ First:
 - Update ``api_doc/functions.rst`` for any new / deleted functions.
 
 Rebuilding of the QuTiP documentation is fully documented in:
-https://github.com/qutip/qutip-doc/README.md
+https://github.com/qutip/qutip-doc/blob/master/README.md
 
 .. _web:
 
@@ -173,13 +173,14 @@ Links will be kept to the highest micro release of the current and all legacy mi
 For a micro release the qutip.github.io will need to be updated as follows:
 
 - copy the ``.tar.gz`` and ``.zip`` created using sdist_ into the downloads folder.
-- alse copy the ``qutip-<version>.pdf`` into this folder.
+- alse copy the ``qutip-doc-<version>.pdf`` into this folder.
 
 The html documentation will be in a subfolder like ::
 
-    docs/<MAJOR>.<MINOR>.<MICRO>
+    docs/<MAJOR>.<MINOR>
 
-- copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in qutip-docs for this.
+- copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this.
+
 
 HTML file updates
 -----------------
@@ -192,7 +193,7 @@ HTML file updates
 
 - Edit ``_includes/sidebar.html``
 
-    * The 'Latest release' version should be updated. The gztar link will need the micro release number updating in the traceEvent and file name.
+    * The 'Latest release' version should be updated. The gztar and zip file links will need the micro release number updating in the traceEvent and file name.
     * The link to the documentation folder and PDF file (if created) should be updated.
 
 - Edit ``documentation.html``
@@ -259,9 +260,10 @@ Create a new branch from this, e.g. ::
 
     $ git checkout -b bump_to-4.0.2 qutip-4.0.X
 
-Edit the main setup.py for the project. Update the version ::
+Edit the main setup.py for the project. Update the version and release status e.g. ::
 
     MICRO = 2
+    ISRELEASED = False
 
 push changes to your fork ::
 
