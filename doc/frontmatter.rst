@@ -19,19 +19,19 @@ This document contains a user guide and automatically generated API documentatio
 .. _QuTiP project web page: http://www.qutip.org
 
 
-:Author: Alexander Pitchford
+:Author: P.D. Nation
 
-:Author: Chris Grenade
+:Author: Alexander Pitchford
 
 :Author: Arne Grimsmo
 
-:Author: P.D. Nation
-
 :Author: J.R. Johansson
 
+:Author: Chris Grenade
 
-:version: 4.0
-:status: Released (XX YY, 2017)
+
+:version: 4.1
+:status: Released (March 10, 2017)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:

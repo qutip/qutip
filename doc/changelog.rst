@@ -7,19 +7,41 @@
 Change Log
 **********
 
-Version 4.1.0 (in dev)
-++++++++++++++++++++++
+Version 4.1.0 (March 10, 2017)
+++++++++++++++++++++++++++++++
 
 Improvements
 ------------
 
 *Core libraries*
 
-- erf supported function in td strings
+- **MAJOR FEATURE**: QuTiP now works for Python 3.5+ on Windows using Visual Studio 2015.
 
-*QIP*
+- **MAJOR FEATURE**: Cython and other low level code switched to C++ for MS Windows compatibility.
 
-- Gate object can be used to instantiate another identical gate
+- **MAJOR FEATURE**: Can now use interpolating cubic splines as time-dependent coefficients.
+
+- **MAJOR FEATURE**: Sparse matrix - vector multiplication now parallel using OPENMP.
+
+- Automatic tuning of OPENMP threading threashold.
+
+- Partial trace function is now up to 100x+ faster.
+
+- Hermitian verification now up to 100x+ faster.
+
+- Internal Qobj objects now created up to 60x faster.
+
+- Inplace conversion from COO -> CSR sparse formats (e.g. Memory efficiency improvement.)
+
+- Faster reverse Cuthill-Mckee and sparse one and inf norms.
+
+
+
+Bug Fixes
+---------
+
+- Cleanup of temp. Cython files now more robust and working under Windows.
+
 
 
 Version 4.0.2 (January 5, 2017)
