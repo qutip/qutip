@@ -50,8 +50,8 @@ templates_path = ['templates']
 
 # This is needed for ipython @savefig
 # Otherwise it just puts the png in the root dir
-savefig_dir = 'images'
-ipython_savefig_dir = 'images'
+savefig_dir = '_images'
+ipython_savefig_dir = '_images'
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -220,8 +220,9 @@ latex_documents = [
 # the title page.
 latex_logo = 'figures/logo.png'
 
-# Suggested during make
-latex_keep_old_macro_names=False 
+# Sometimes make might suggest setting this to False.
+# It screws a few things up if you do - don't be tempted.
+latex_keep_old_macro_names=True 
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
