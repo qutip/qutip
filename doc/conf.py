@@ -220,8 +220,9 @@ latex_documents = [
 # the title page.
 latex_logo = 'figures/logo.png'
 
-# Suggested during make
-latex_keep_old_macro_names=False 
+# Sometimes make might suggest setting this to False.
+# It screws a few things up if you do - don't be tempted.
+latex_keep_old_macro_names=True 
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
