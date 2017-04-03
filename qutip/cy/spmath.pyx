@@ -41,7 +41,7 @@ cdef extern from "<complex>" namespace "std" nogil:
     double         imag(double complex)
     double         abs(double complex)
 
-include "sparse_struct.pxi"
+include "sparse_routines.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -81,6 +81,28 @@ def zcsr_add(complex[::1] dataA, int[::1] indsA, int[::1] indptrA,
     if out.nnz > nnz:
         shorten_CSR(&out, nnz)
     return CSR_to_scipy(&out)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _zcsr_add(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C, double complex alpha):
+    """
+    Adds two sparse CSR matries. Like SciPy, we assume the worse case
+    for the fill A.nnz + B.nnz.
+    """
+    cdef int worse_fill = A.nnz + B.nnz
+    cdef int nrows = A.nrows
+    cdef int ncols = A.ncols
+    cdef int nnz
+    init_CSR(C, worse_fill, nrows, ncols, worse_fill)
+
+    nnz = _zcsr_add_core(A.data, A.indices, A.indptr, 
+                     B.data, B.indices, B.indptr,
+                     alpha, C, nrows, ncols)
+    #Shorten data and indices if needed
+    if C.nnz > nnz:
+        shorten_CSR(C, nnz)
+
 
 
 @cython.boundscheck(False)
@@ -321,6 +343,26 @@ def zcsr_kron(object A, object B):
                     &out, 
                     rowsA, rowsB, colsB)
     return CSR_to_scipy(&out)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C):
+    """
+    Computes the kronecker product between two complex
+    sparse matrices in CSR format.
+    """
+
+    cdef int out_nnz = A.nnz * B.nnz
+    cdef int rows_out = A.nrows * B.nrows
+    cdef int cols_out = A.ncols * B.ncols
+
+    init_CSR(C, out_nnz, rows_out, cols_out)
+
+    _zcsr_kron_core(A.data, A.indices, A.indptr,
+                    B.data, B.indices, B.indptr, 
+                    C, 
+                    A.nrows, B.nrows, B.ncols)
 
 
 @cython.boundscheck(False)
