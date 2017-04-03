@@ -54,7 +54,9 @@ def about():
     print("")
     print("QuTiP: Quantum Toolbox in Python")
     print("Copyright (c) 2011 and later.")
-    print("Alexander Pitchford, Chris Granade, Paul D. Nation & Robert J. Johansson")
+    print(("A. J. Pitchford, P. D. Nation, "
+            "R. J. Johansson, A. Grimsmo, "
+            "and C. Granade"))
     print("")
     print("QuTiP Version:      %s" % qutip.__version__)
     print("Numpy Version:      %s" % numpy.__version__)

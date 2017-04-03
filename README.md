@@ -31,7 +31,7 @@ Installation
 
 For instructions on how to install QuTiP, see:
 
-[http://qutip.org/docs/3.1.0/installation.html](http://qutip.org/docs/3.1.0/installation.html)
+[http://qutip.org/docs/4.1/installation.html](http://qutip.org/docs/4.1/installation.html)
 
 
 Demos
@@ -62,6 +62,8 @@ questions, or your proposed changes to our
 All contributions are acknowledged in the 
 [contributors](http://github.com/qutip/qutip-doc/blob/master/contributors.rst)
 section in the documentation.
+
+Note that all contributions must adhere to the [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
 Changelog
 ---------
