@@ -33,19 +33,5 @@
 
 from qutip.cy.sparse_structs cimport CSR_Matrix
 
-cdef void _zcsr_add(CSR_Matrix * A, CSR_Matrix * B, 
-                    CSR_Matrix * C, double complex alpha)
-
-cdef void _zcsr_mult(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
-
-
-cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
-
-cdef void _zcsr_kron_core(double complex * dataA, int * indsA, int * indptrA, 
-                     double complex * dataB, int * indsB, int * indptrB,
-                     CSR_Matrix * out,       
-                     int rowsA, int rowsB, int colsB) nogil
-                     
-cdef void _zcsr_transpose(CSR_Matrix * A, CSR_Matrix * B)
-                                  
-cdef void _zcsr_adjoint(CSR_Matrix * A, CSR_Matrix * B)
+cdef void dense2D_to_CSR(complex[:, ::1] mat, CSR_Matrix * out, 
+                                unsigned int nrows, unsigned int ncols)

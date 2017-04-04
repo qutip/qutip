@@ -33,7 +33,13 @@
 include "sparse_routines.pxi"
 from scipy.linalg.cython_lapack cimport zheev
 from scipy.linalg.cython_blas cimport zgemm
+from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron, 
+                    _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
+                    _zcsr_mult)
+from qutip.cy.spconvert cimport dense2D_to_CSR
 
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex conj(double complex x)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -100,7 +106,8 @@ def liou_from_diag_ham(double[::1] diags):
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void liou_diag_ham_mult(double * diags, double complex * vec, double complex * out, unsigned int nrows):
+cdef void liou_diag_ham_mult(double * diags, double complex * vec, 
+                        double complex * out, unsigned int nrows) nogil:
     """
     Multiplies a Liouvillian constructed from a diagonal Hamiltonian 
     onto a vectorized density matrix.
@@ -159,40 +166,33 @@ cdef double complex * ZGEMM(double complex * A, double complex * B,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=2, mode='c'] dense_to_eigbasis(complex[:, ::1] A, complex[:,::1] evecs):
+cpdef complex[:,::1] dense_to_eigbasis(complex[:, ::1] A, complex[:,::1] evecs):
     cdef int Arows = A.shape[0]
     cdef int Acols = A.shape[1]
     cdef int Brows = evecs.shape[0]
     cdef int Bcols = evecs.shape[1]
     cdef double complex * temp1 = ZGEMM(&A[0,0], &evecs[0,0], 
                                        Arows, Acols, Brows, Bcols, 0, 0)
-    cdef double complex * fock_mat = ZGEMM(&evecs[0,0], temp1,
+    cdef double complex * eig_mat = ZGEMM(&evecs[0,0], temp1,
                                        Arows, Acols, Brows, Bcols, 2, 0)
     PyDataMem_FREE(temp1)
-    cdef np.ndarray[complex, ndim=2, mode='c'] mat
-    cdef np.npy_intp dims[2] 
-    dims[:] = [Acols, Brows]
-    mat = np.PyArray_SimpleNewFromData(2, <np.npy_intp *>dims, np.NPY_COMPLEX128, fock_mat)
-    PyArray_ENABLEFLAGS(mat, np.NPY_OWNDATA)
+    cdef complex[:,::1] mat = <complex[:Acols, :Brows]> eig_mat
     return mat
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=2, mode='c'] dense_to_fockbasis(complex[:, ::1] A, complex[:,::1] evecs):
+cpdef complex[:,::1] dense_to_fockbasis(complex[:, ::1] A, complex[:,::1] evecs):
     cdef int Arows = A.shape[0]
     cdef int Acols = A.shape[1]
     cdef int Brows = evecs.shape[0]
     cdef int Bcols = evecs.shape[1]
     cdef double complex * temp1 = ZGEMM(&A[0,0], &evecs[0,0], 
                                        Arows, Acols, Brows, Bcols, 0, 2)
-    cdef double complex * eig_mat = ZGEMM(&evecs[0,0], temp1,
+    cdef double complex * fock_mat = ZGEMM(&evecs[0,0], temp1,
                                        Arows, Acols, Brows, Bcols, 0, 0)
     PyDataMem_FREE(temp1)
-    cdef np.ndarray[complex, ndim=2, mode='c'] mat
-    cdef np.npy_intp dims[2] 
-    dims[:] = [Acols, Brows]
-    mat = np.PyArray_SimpleNewFromData(2, <np.npy_intp *>dims, np.NPY_COMPLEX128, eig_mat)
-    PyArray_ENABLEFLAGS(mat, np.NPY_OWNDATA)
+    cdef complex[:,::1] mat = <complex[:Acols, :Brows]> fock_mat
     return mat
 
 
@@ -212,4 +212,73 @@ cpdef void ham_add_mult(complex[:, ::1] A,
     for ii in range(nrows):
         for jj in range(nrows):
             A[ii,jj] += alpha*B[ii,jj]
+            
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cop_super_term(complex[:,::1] cop, complex[:, ::1] evecs, 
+                     complex alpha, unsigned int nrows):
+    cdef size_t kk
+    cdef complex[:,::1] cop_eig = dense_to_eigbasis(cop, evecs)
+
+    cdef CSR_Matrix mat1, mat2, mat3, mat4, mat5
+
+    dense2D_to_CSR(cop_eig, &mat1, nrows, nrows)
+    #Multiply by alpha for time-dependence
+    for kk in range(mat1.nnz):
+        mat1.data[kk] *= alpha
+
+    #Free data associated with cop_eig as it is no longer needed.
+    PyDataMem_FREE(&cop_eig[0,0])
+    
+    #create temp array of conj data for cop_eig_sparse
+    cdef complex * conj_data = <complex *>PyDataMem_NEW(mat1.nnz * sizeof(complex))
+    for kk in range(mat1.nnz):
+        conj_data[kk] = conj(mat1.data[kk])
+
+    
+    #mat2 holds data for kron(cop.dag(), c)
+    init_CSR(&mat2, mat1.nnz**2, mat1.nrows**2, mat1.ncols**2)
+    _zcsr_kron_core(conj_data, mat1.indices, mat1.indptr,
+                   mat1.data, mat1.indices, mat1.indptr,
+                   &mat2,
+                   mat1.nrows, mat1.nrows, mat1.ncols)            
+    
+    #Free temp conj_data array
+    PyDataMem_FREE(conj_data)
+    #Create identity in mat3
+    identity_CSR(&mat3, nrows)
+    #Take adjoint cop.H -> mat4
+    _zcsr_adjoint(&mat1, &mat4)
+    #multiply cop.dag() * c -> mat5
+    _zcsr_mult(&mat4, &mat1, &mat5)
+    #Free mat1 and mat 4 as we will reuse
+    free_CSR(&mat1)
+    free_CSR(&mat4)
+    # kron(eye, cdc) -> mat1
+    _zcsr_kron(&mat3, &mat5, &mat1)
+    # Add data from mat2 - 0.5 * cop_sparse -> mat4
+    _zcsr_add(&mat2, &mat1, &mat4, -0.5)
+    #Free mat1 and mat2 now
+    free_CSR(&mat1)
+    free_CSR(&mat2)
+    #Take traspose of cdc -> mat1
+    _zcsr_transpose(&mat5, &mat1)
+    free_CSR(&mat5)
+    # kron(cdct, eye) -> mat2
+    _zcsr_kron(&mat1, &mat3, &mat2)
+    free_CSR(&mat3)
+    # Add data from mat4 - 0.5 * mat2 -> mat1
+    _zcsr_add(&mat4, &mat2, &mat1, -0.5)
+    free_CSR(&mat4)
+    free_CSR(&mat2)
+    return CSR_to_scipy(&mat1)
+    
+    
+    
+                       
+    
+    
+    
+    
             

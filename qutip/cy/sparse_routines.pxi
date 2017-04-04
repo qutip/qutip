@@ -604,3 +604,14 @@ cdef COO_Matrix COO_from_scipy(object A):
     
     return mat
      
+     
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void identity_CSR(CSR_Matrix * mat, unsigned int nrows):
+    cdef size_t kk
+    init_CSR(mat, nrows, nrows, nrows, 0, 0)
+    for kk in range(nrows):
+        mat.data[kk] = 1
+        mat.indices[kk] = kk
+        mat.indptr[kk] = kk
+    mat.indptr[nrows] = nrows
