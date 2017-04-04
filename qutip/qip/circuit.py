@@ -165,7 +165,8 @@ class QubitCircuit(object):
     of gates.
     """
 
-    def __init__(self, N, input_states=None, output_states=None, reverse_states=True):
+    def __init__(self, N, input_states=None, output_states=None,
+                 reverse_states=True):
         # number of qubits in the register
         self.N = N
         self.reverse_states = reverse_states
@@ -176,20 +177,21 @@ class QubitCircuit(object):
 
     def add_state(self, state, targets=None, state_type="input"):
         """
-        Add an input or ouput state to the circuit. By default all the input and 
-        output states will be initialized to `None`. A particular state can be added
-        by specifying the state and the qubit where it has to be added along with the
-        type as input or output.
+        Add an input or ouput state to the circuit. By default all the input
+        and output states will be initialized to `None`. A particular state can
+        be added by specifying the state and the qubit where it has to be added
+        along with the type as input or output.
 
         Parameters
         ----------
         state: str
-            The state that has to be added. It can be any string such as `0`, '+', "A", "Y"
+            The state that has to be added. It can be any string such as `0`,
+            '+', "A", "Y"
         targets: list
             A list of qubit positions where the given state has to be added.
         state_type: str
-            One of either "input" or "output". This specifies whether the state to be added
-            is an input or output.
+            One of either "input" or "output". This specifies whether the state
+            to be added is an input or output.
             default: "input"
 
         """
@@ -1019,7 +1021,8 @@ class QubitCircuit(object):
             col.append(r" \qw ")
             rows.append(col)
 
-        input_states = ["\lstick{\ket{"+ x + "}}" if x is not None else "" for x in self.input_states]
+        input_states = ["\lstick{\ket{" + x + "}}" if x is not None
+                        else "" for x in self.input_states]
 
         code = ""
         n_iter = (reversed(range(self.N)) if self.reverse_states
