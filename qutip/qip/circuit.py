@@ -1019,10 +1019,13 @@ class QubitCircuit(object):
             col.append(r" \qw ")
             rows.append(col)
 
+        input_states = ["\lstick{\ket{"+ x + "}}" if x is not None else "" for x in self.input_states]
+
         code = ""
         n_iter = (reversed(range(self.N)) if self.reverse_states
                   else range(self.N))
         for n in n_iter:
+            code += r" & %s" % input_states[n]
             for m in range(len(gates)):
                 code += r" & %s" % rows[m][n]
             code += r" & \qw \\ " + "\n"
