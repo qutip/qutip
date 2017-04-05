@@ -158,5 +158,43 @@ class TestQubitCircuit:
         assert_(qc.gates[1].targets == test_gate.targets)
         assert_(qc.gates[1].controls == test_gate.controls)
 
+    def test_add_state(self):
+        """
+        Addition of input and output states to a circuit.
+        """
+        qc = QubitCircuit(3)
+
+        qc.add_state("0", targets=[0])
+        qc.add_state("+", targets=[1], state_type="output")
+        qc.add_state("-", targets=[1])
+
+        assert_(qc.input_states[0] == "0")
+        assert_(qc.input_states[2] == None)
+        assert_(qc.output_states[1] == "+")
+        assert_(qc.output_states[1] == "+")
+        assert_(qc.output_states[2] == None)
+
+        qc1 = QubitCircuit(10)
+
+        qc1.add_state("0", targets=[2, 3, 5, 6])
+        qc1.add_state("+", targets=[1,4,9])
+        qc1.add_state("A", targets=[1,4,9], state_type="output")
+        qc1.add_state("A", targets=[1,4,9], state_type="output")
+        qc1.add_state("beta", targets=[0], state_type="output")
+        assert_(qc1.input_states[0] == None)
+        
+        assert_(qc1.input_states[2] == "0")
+        assert_(qc1.input_states[3] == "0")
+        assert_(qc1.input_states[6] == "0")
+        assert_(qc1.input_states[1] == "+")
+        assert_(qc1.input_states[4] == "+")
+
+        assert_(qc1.output_states[2] == None)        
+        assert_(qc1.output_states[1] == "A")
+        assert_(qc1.output_states[4] == "A")
+        assert_(qc1.output_states[9] == "A")
+
+        assert_(qc1.output_states[0] == "beta")
+
 if __name__ == "__main__":
     run_module_suite()
