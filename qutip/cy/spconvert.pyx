@@ -108,7 +108,7 @@ def dense2D_to_fastcsr_cmode(complex[:, ::1] mat, int nrows, int ncols):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void dense2D_to_CSR(complex[:, ::1] mat, CSR_Matrix * out, 
+cdef void fdense2D_to_CSR(complex[::1, :] mat, CSR_Matrix * out, 
                                 unsigned int nrows, unsigned int ncols):
     """
     Converts a dense complex ndarray to a CSR matrix struct.

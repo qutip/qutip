@@ -31,7 +31,16 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip.cy.sparse_structs cimport CSR_Matrix
+cpdef void ham_add_mult(complex[:, ::1] A, complex[:, ::1] B, 
+                  double complex alpha) nogil
 
-cdef void fdense2D_to_CSR(complex[::1, :] mat, CSR_Matrix * out, 
-                                unsigned int nrows, unsigned int ncols)
+cdef void ZHEEVR(complex[::1,:] H, double * eigvals, 
+                complex[::1,:] Z, int nrows)
+
+cdef complex[::1,:] dense_to_eigbasis(complex[:, ::1] A, complex[::1,:] evecs)
+
+cdef complex[::1,:] dense_to_fockbasis(complex[:, ::1] A, complex[::1,:] evecs)
+
+cdef void diag_liou_mult(double * diags, double complex * vec, 
+                        double complex * out, unsigned int nrows) nogil
+

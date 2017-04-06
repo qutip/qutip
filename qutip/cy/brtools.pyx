@@ -31,22 +31,24 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 include "sparse_routines.pxi"
-from scipy.linalg.cython_lapack cimport zheev
+from scipy.linalg.cython_lapack cimport zheevr
 from scipy.linalg.cython_blas cimport zgemm
 from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron, 
                     _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
                     _zcsr_mult)
-from qutip.cy.spconvert cimport dense2D_to_CSR
+from qutip.cy.spconvert cimport fdense2D_to_CSR
+from qutip.cy.spmatfuncs cimport spmvpy
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void eigsh(complex[:,::1] H, double[::1] eigvals, int nrows):
+cdef void ZHEEVR(complex[::1,:] H, double * eigvals, 
+                    complex[::1,:] Z, int nrows):
     """
     Computes the eigenvalues and vectors of a dense Hermitian matrix.
-    Eigenvectors are returned as the rows of H.
+    Eigenvectors are returned in Z.
     
     Parameters
     ----------
@@ -54,20 +56,32 @@ cpdef void eigsh(complex[:,::1] H, double[::1] eigvals, int nrows):
         Input Hermitian matrix.
     eigvals : array_like
         Input array to store eigen values.
+    Z : array_like
+        Output array of eigenvectors.
     nrows : int
         Number of rows in matrix.
     """
     cdef char jobz = b'V'
+    cdef char rnge = b'A'
     cdef char uplo = b'L'
-    cdef int lda = nrows
+    cdef double vl=1, vu=1, abstol=0 
+    cdef int il=1, iu=1
     cdef int lwork = 18 * nrows
-    cdef complex * work = <complex *>PyDataMem_NEW(lwork * sizeof(complex))
-    cdef double * rwork = <double *>PyDataMem_NEW((3*nrows-2) * sizeof(double))
+    cdef int lrwork = 24*nrows, liwork = 10*nrows
     cdef int info
+    #These nee to be freed at end
+    cdef int * isuppz = <int *>PyDataMem_NEW((2*nrows) * sizeof(int))
+    cdef complex * work = <complex *>PyDataMem_NEW(lwork * sizeof(complex))
+    cdef double * rwork = <double *>PyDataMem_NEW((24*nrows) * sizeof(double))
+    cdef int * iwork = <int *>PyDataMem_NEW((10*nrows) * sizeof(int))
     
-    zheev(&jobz, &uplo, &nrows, &H[0,0], &lda, &eigvals[0], work, &lwork, rwork, &info)
+    zheevr(&jobz, &rnge, &uplo, &nrows, &H[0,0], &nrows, &vl, &vu, &il, &iu, &abstol,
+           &nrows, eigvals, &Z[0,0], &nrows, isuppz, work, &lwork,
+          rwork, &lrwork, iwork, &liwork, &info)
     PyDataMem_FREE(work)
     PyDataMem_FREE(rwork)
+    PyDataMem_FREE(isuppz)
+    PyDataMem_FREE(iwork)
     if info != 0:
         if info < 0:
             raise Exception("Error in parameter : %s" & abs(info))
@@ -106,7 +120,7 @@ def liou_from_diag_ham(double[::1] diags):
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void liou_diag_ham_mult(double * diags, double complex * vec, 
+cdef void diag_liou_mult(double * diags, double complex * vec, 
                         double complex * out, unsigned int nrows) nogil:
     """
     Multiplies a Liouvillian constructed from a diagonal Hamiltonian 
@@ -166,23 +180,25 @@ cdef double complex * ZGEMM(double complex * A, double complex * B,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef complex[:,::1] dense_to_eigbasis(complex[:, ::1] A, complex[:,::1] evecs):
+cdef complex[::1,:] dense_to_eigbasis(complex[:, ::1] A, complex[::1,:] evecs):
     cdef int Arows = A.shape[0]
     cdef int Acols = A.shape[1]
     cdef int Brows = evecs.shape[0]
     cdef int Bcols = evecs.shape[1]
     cdef double complex * temp1 = ZGEMM(&A[0,0], &evecs[0,0], 
-                                       Arows, Acols, Brows, Bcols, 0, 0)
+                                       Arows, Acols, Brows, Bcols, 1, 0)
     cdef double complex * eig_mat = ZGEMM(&evecs[0,0], temp1,
                                        Arows, Acols, Brows, Bcols, 2, 0)
     PyDataMem_FREE(temp1)
-    cdef complex[:,::1] mat = <complex[:Acols, :Brows]> eig_mat
-    return mat
+    cdef complex[:,::1] out = <complex[:Acols, :Brows]> eig_mat
+    #This just gets the correct view on the data
+    cdef complex[::1,:] out_f = out.T
+    return out_f
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef complex[:,::1] dense_to_fockbasis(complex[:, ::1] A, complex[:,::1] evecs):
+cdef complex[::1,:] dense_to_fockbasis(complex[:, ::1] A, complex[::1,:] evecs):
     cdef int Arows = A.shape[0]
     cdef int Acols = A.shape[1]
     cdef int Brows = evecs.shape[0]
@@ -192,15 +208,17 @@ cpdef complex[:,::1] dense_to_fockbasis(complex[:, ::1] A, complex[:,::1] evecs)
     cdef double complex * fock_mat = ZGEMM(&evecs[0,0], temp1,
                                        Arows, Acols, Brows, Bcols, 0, 0)
     PyDataMem_FREE(temp1)
-    cdef complex[:,::1] mat = <complex[:Acols, :Brows]> fock_mat
-    return mat
+    cdef complex[:,::1] out = <complex[:Acols, :Brows]> fock_mat
+    #This just gets the correct view on the data
+    cdef complex[::1,:] out_f = out.T
+    return out_f
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef void ham_add_mult(complex[:, ::1] A, 
                   complex[:, ::1] B, 
-                  double complex alpha = 1):
+                  double complex alpha) nogil:
     """
     Performs the dense matrix multiplication
     A = A + (alpha*B)
@@ -216,14 +234,14 @@ cpdef void ham_add_mult(complex[:, ::1] A,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cop_super_term(complex[:,::1] cop, complex[:, ::1] evecs, 
-                     complex alpha, unsigned int nrows):
+def cop_super_term(complex[:,::1] cop, complex[::1,:] evecs, 
+                     double complex alpha, unsigned int nrows):
     cdef size_t kk
-    cdef complex[:,::1] cop_eig = dense_to_eigbasis(cop, evecs)
-
     cdef CSR_Matrix mat1, mat2, mat3, mat4, mat5
+    
+    cdef complex[::1,:] cop_eig = dense_to_eigbasis(cop, evecs)
 
-    dense2D_to_CSR(cop_eig, &mat1, nrows, nrows)
+    fdense2D_to_CSR(cop_eig, &mat1, nrows, nrows)
     #Multiply by alpha for time-dependence
     for kk in range(mat1.nnz):
         mat1.data[kk] *= alpha
@@ -276,9 +294,88 @@ def cop_super_term(complex[:,::1] cop, complex[:, ::1] evecs,
     
     
     
-                       
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cop_super_mult(complex[:,::1] cop, complex[::1,:] evecs, 
+                     complex[::1] vec,
+                     double complex alpha, 
+                     complex[::1] out, 
+                     unsigned int nrows):
+    cdef size_t kk
+    cdef CSR_Matrix mat1, mat2, mat3, mat4
+
+    cdef complex[::1,:] cop_eig = dense_to_eigbasis(cop, evecs)
+
+    #Mat1 holds cop_eig in CSR format
+    fdense2D_to_CSR(cop_eig, &mat1, nrows, nrows)
     
+    #Multiply by alpha for time-dependence
+    for kk in range(mat1.nnz):
+        mat1.data[kk] *= alpha
+
+    #Free data associated with cop_eig as it is no longer needed.
+    PyDataMem_FREE(&cop_eig[0,0])
+
+    #create temp array of conj data for cop_eig_sparse
+    cdef complex * conj_data = <complex *>PyDataMem_NEW(mat1.nnz * sizeof(complex))
+    for kk in range(mat1.nnz):
+        conj_data[kk] = conj(mat1.data[kk])
+
+    #mat2 holds data for kron(cop.dag(), c)
+    init_CSR(&mat2, mat1.nnz**2, mat1.nrows**2, mat1.ncols**2)
+    _zcsr_kron_core(conj_data, mat1.indices, mat1.indptr,
+                   mat1.data, mat1.indices, mat1.indptr,
+                   &mat2,
+                   mat1.nrows, mat1.nrows, mat1.ncols)            
     
+    #Do spmv with kron(cop.dag(), c)
+    spmvpy(mat2.data,mat2.indices,mat2.indptr,
+        &vec[0], 1, &out[0], nrows**2)
     
+    #Free temp conj_data array
+    PyDataMem_FREE(conj_data)
+    #Free mat2
+    free_CSR(&mat2)
+    
+    #Create identity in mat3
+    identity_CSR(&mat3, nrows)
+    
+    #Take adjoint of cop (mat1) -> mat2
+    _zcsr_adjoint(&mat1, &mat2)
+    
+    #multiply cop.dag() * c (cdc) -> mat4
+    _zcsr_mult(&mat2, &mat1, &mat4)
+    
+    #Free mat1 and mat2
+    free_CSR(&mat1)
+    free_CSR(&mat2)
+    
+    # kron(eye, cdc) -> mat1
+    _zcsr_kron(&mat3, &mat4, &mat1)
+    
+    #Do spmv with -0.5*kron(eye, cdc)
+    spmvpy(mat1.data,mat1.indices,mat1.indptr,
+        &vec[0], -0.5, &out[0], nrows**2)
+    
+    #Free mat1 (mat1 and mat2 are currently free)
+    free_CSR(&mat1)
+    
+    #Take traspose of cdc (mat4) -> mat1
+    _zcsr_transpose(&mat4, &mat1)
+    
+    #Free mat4 (mat2 and mat4 currently free)
+    free_CSR(&mat4)
+    
+    # kron(cdct, eye) -> mat2
+    _zcsr_kron(&mat1, &mat3, &mat2)
+    
+    #Do spmv with -0.5*kron(cdct, eye)
+    spmvpy(mat2.data,mat2.indices,mat2.indptr,
+        &vec[0], -0.5, &out[0], nrows**2)
+    
+    #Free mat1, mat2, and mat3
+    free_CSR(&mat1)
+    free_CSR(&mat2)
+    free_CSR(&mat3)
     
             
