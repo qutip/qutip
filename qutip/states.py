@@ -182,16 +182,16 @@ def coherent(N, alpha, offset=0, method='operator'):
 
     elif method == "analytic" or offset > 0:
 
-        data = np.zeros([N, 1], dtype=complex)
+        sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
+        sqrtn[0] = 1 # Get rid of divide by zero warning
+        data = alpha/sqrtn
         if offset == 0:
             data[0] = np.exp(-abs(alpha)**2 / 2.0)
         else:
             s = np.prod(np.sqrt(np.arange(1, offset + 1))) # sqrt factorial
             data[0] = np.exp(-abs(alpha)**2 / 2.0) * alpha**(offset) / s
-        for n in range(N-1):
-            data[n+1] = data[n]*alpha/np.sqrt(offset + n + 1)
-
-        return Qobj(data)
+        np.cumprod(data, out=sqrtn) # Reuse sqrtn array
+        return Qobj(sqrtn)
 
     else:
         raise TypeError(
