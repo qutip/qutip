@@ -127,7 +127,6 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         L = Qobj()
         L.dims = sop_dims
         L.data = data
-        L.isherm = False
         L.superrep = 'super'
         return L
 
