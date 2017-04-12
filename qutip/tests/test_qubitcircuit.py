@@ -171,8 +171,6 @@ class TestQubitCircuit:
         assert_(qc.input_states[0] == "0")
         assert_(qc.input_states[2] == None)
         assert_(qc.output_states[1] == "+")
-        assert_(qc.output_states[1] == "+")
-        assert_(qc.output_states[2] == None)
 
         qc1 = QubitCircuit(10)
 
@@ -195,6 +193,32 @@ class TestQubitCircuit:
         assert_(qc1.output_states[9] == "A")
 
         assert_(qc1.output_states[0] == "beta")
+
+    def test_reverse(self):
+        """
+        Reverse a quantum circuit
+        """
+        qc = QubitCircuit(3)
+
+        qc.add_gate("RX", targets=[0], arg_value=3.141,
+                    arg_label=r"\pi/2")
+        qc.add_gate("CNOT", targets=[1], controls=[0])
+        qc.add_gate("SNOT", targets=[2])
+        # Keep input output same
+
+        qc.add_state("0", targets=[0])
+        qc.add_state("+", targets=[1], state_type="output")
+        qc.add_state("-", targets=[1])
+
+        qc.reverse_circuit()
+
+        assert_(qc.gates[2].name == "SNOT")
+        assert_(qc.gates[1].name == "CNOT")
+        assert_(qc.gates[0].name == "RX")
+
+        assert_(qc.input_states[0] == "0")
+        assert_(qc.input_states[2] == None)
+        assert_(qc.output_states[1] == "+")
 
 if __name__ == "__main__":
     run_module_suite()
