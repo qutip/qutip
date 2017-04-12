@@ -38,7 +38,8 @@ from qutip import *
 import qutip.settings as qset
 from qutip.cy.brtools_testing import (_test_zheevr, _test_diag_liou_mult,
                     _test_dense_to_eigbasis, _test_vec_to_eigbasis,
-                    _test_eigvec_to_fockbasis, _test_vector_roundtrip)
+                    _test_eigvec_to_fockbasis, _test_vector_roundtrip,
+                    _cop_super_mult)
 
 def test_br_zheevr():
     "BR Tools : zheevr"
@@ -123,6 +124,31 @@ def test_diag_liou_mult():
         ans = L.data.dot(y)
         _test_diag_liou_mult(evals,y,out,H.shape[0])
         assert_(np.allclose(ans,out))
+
+
+def test_cop_super_mult():
+    "BR Tools : cop_super_mult"
+    N = 10
+    for kk in range(50):
+        H = rand_herm(N,0.5)
+        R = rand_dm(N,0.5)
+        a = destroy(N)
+        A = a.transform(H.eigenstates()[1])
+        vec = np.ones(N**2,dtype=complex)
+        L = liouvillian(None,[A])
+        ans = L.data.dot(vec)
+        eigvals = np.zeros(N,dtype=float)
+        Z = _test_zheevr(H.full('F'),eigvals,qset.atol)
+        out = np.zeros_like(vec)
+        _cop_super_mult(a.full('F'), Z, vec, 1, out, N)
+        assert_(np.allclose(ans,out))
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

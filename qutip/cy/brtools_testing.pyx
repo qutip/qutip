@@ -35,7 +35,8 @@ cimport numpy as np
 cimport cython
 import qutip.settings as qset
 from qutip.cy.brtools cimport (ZHEEVR, diag_liou_mult, dense_to_eigbasis, 
-                            vec_to_eigbasis, vec_to_fockbasis)
+                            vec_to_eigbasis, vec_to_fockbasis,
+                            cop_super_mult)
 
 include "sparse_routines.pxi"
 
@@ -45,12 +46,14 @@ def _test_zheevr(complex[::1,:] H, double[::1] evals, double atol):
     ZHEEVR(H, &evals[0], Z, H.shape[0], atol)
     return Z
 
+
 @cython.boundscheck(False)
 def _test_diag_liou_mult(double[::1] evals, complex[::1] vec, 
                             complex[::1] out, int nrows):
     diag_liou_mult(&evals[0], &vec[0], &out[0], nrows)
 
 
+@cython.boundscheck(False)
 def _test_dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs):
     cdef complex[::1,:] out = dense_to_eigbasis(A, evecs) 
     cdef np.ndarray[complex, ndim=2] mat
@@ -60,8 +63,9 @@ def _test_dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs):
     mat = np.PyArray_SimpleNewFromData(2, <np.npy_intp *>dims, np.NPY_COMPLEX128, &out[0,0])
     PyArray_ENABLEFLAGS(mat, np.NPY_OWNDATA)
     return mat.T
-    
 
+    
+@cython.boundscheck(False)
 def _test_vec_to_eigbasis(complex[::1,:] H, complex[::1] vec):
     cdef np.ndarray[complex, ndim=2, mode='fortran'] Z = np.zeros((H.shape[0],H.shape[0]),
                                                                   dtype=complex, order='f')
@@ -76,12 +80,14 @@ def _test_vec_to_eigbasis(complex[::1,:] H, complex[::1] vec):
     return out
 
 
+@cython.boundscheck(False)
 def _test_eigvec_to_fockbasis(complex[::1] eig_vec, complex[::1,:] evecs, int nrows):
     cdef np.ndarray[complex, ndim=1, mode='c'] out 
     out = vec_to_fockbasis(&eig_vec[0], evecs, nrows)
     return out
 
 
+@cython.boundscheck(False)
 def _test_vector_roundtrip(complex[::1,:] H, complex[::1] vec):
     cdef np.ndarray[complex, ndim=2, mode='fortran'] Z = np.zeros((H.shape[0],H.shape[0]),
                                                                   dtype=complex, order='f')
@@ -93,4 +99,9 @@ def _test_vector_roundtrip(complex[::1,:] H, complex[::1] vec):
     PyDataMem_FREE(eig_vec)
     return out
     
-        
+@cython.boundscheck(False)
+def _cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, complex[::1] vec, 
+                    double complex alpha, 
+                    complex[::1] out, 
+                    unsigned int nrows):
+    cop_super_mult(cop, evecs, &vec[0], alpha, out, nrows) 

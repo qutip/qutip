@@ -49,3 +49,8 @@ cdef double complex * vec_to_eigbasis(complex[::1] vec, complex[::1,:] evecs,
 cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig_vec, 
                                                 complex[::1,:] evecs, 
                                                 unsigned int nrows)
+                                                
+cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,  double complex * vec, 
+                    double complex alpha, 
+                    complex[::1] out, 
+                    unsigned int nrows)

@@ -280,7 +280,7 @@ cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cop_super_term(complex[::1,:] cop, complex[::1,:] evecs, 
+cpdef cop_super_term(complex[::1,:] cop, complex[::1,:] evecs, 
                      double complex alpha, unsigned int nrows):
     cdef size_t kk
     cdef CSR_Matrix mat1, mat2, mat3, mat4, mat5
@@ -342,8 +342,8 @@ def cop_super_term(complex[::1,:] cop, complex[::1,:] evecs,
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, 
-                     complex[::1] vec,
+cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, 
+                     double complex * vec,
                      double complex alpha, 
                      complex[::1] out, 
                      unsigned int nrows):
@@ -401,7 +401,7 @@ def cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
     
     #Do spmv with -0.5*kron(eye, cdc)
     spmvpy(mat1.data,mat1.indices,mat1.indptr,
-        &vec[0], -0.5, &out[0], nrows**2)
+        vec, -0.5, &out[0], nrows**2)
     
     #Free mat1 (mat1 and mat2 are currently free)
     free_CSR(&mat1)
@@ -417,7 +417,7 @@ def cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
     
     #Do spmv with -0.5*kron(cdct, eye)
     spmvpy(mat2.data,mat2.indices,mat2.indptr,
-        &vec[0], -0.5, &out[0], nrows**2)
+        vec, -0.5, &out[0], nrows**2)
     
     #Free mat1, mat2, and mat3
     free_CSR(&mat1)
