@@ -35,7 +35,10 @@ import scipy.linalg as la
 from numpy.testing import assert_equal, assert_, run_module_suite
 import unittest
 from qutip import *
-from qutip.cy.brtools_testing import _test_zheevr, _test_diag_liou_mult
+import qutip.settings as qset
+from qutip.cy.brtools_testing import (_test_zheevr, _test_diag_liou_mult,
+                    _test_dense_to_eigbasis, _test_vec_to_eigbasis,
+                    _test_eigvec_to_fockbasis)
 
 def test_br_zheevr():
     "BR Tools : zheevr"
@@ -43,11 +46,58 @@ def test_br_zheevr():
         H = rand_herm(kk, 1/kk)
         H2 =np.asfortranarray(H.full())
         eigvals = np.zeros(kk,dtype=float)
-        Z = _test_zheevr(H2, eigvals)
+        Z = _test_zheevr(H2, eigvals, qset.atol)
         ans_vals, ans_vecs = la.eigh(H.full())
         assert_(np.allclose(ans_vals,eigvals))
         assert_(np.allclose(Z,ans_vecs))
-        
+
+      
+def test_br_dense_to_eigbasis():
+    "BR Tools : dense operator to eigenbasis"
+    N = 10
+    for kk in range(50):
+        H = rand_herm(N,0.5)
+        a = rand_herm(N,0.5)
+        evals, evecs = H.eigenstates()
+        A = a.transform(evecs).full()
+        H2 = H.full('F')
+        eigvals = np.zeros(N,dtype=float)
+        Z = _test_zheevr(H2, eigvals, qset.atol)
+        a2 = a.full('F')
+        assert_(np.allclose(A,_test_dense_to_eigbasis(a2,Z)))
+        b = destroy(N)
+        B = b.transform(evecs).full()
+        b2 = b.full('F')
+        assert_(np.allclose(B,_test_dense_to_eigbasis(b2,Z)))
+
+
+def test_vec_to_eigbasis():
+    "BR Tools : vector to eigenbasis"
+    N = 10
+    for kk in range(50):
+        H = rand_herm(N,0.5)
+        h = H.full('F')
+        R = rand_dm(N,0.5)
+        r = R.full().ravel()
+        ans = R.transform(H.eigenstates()[1]).full().ravel()
+        out = _test_vec_to_eigbasis(h, r)
+        assert_(np.allclose(ans,out))
+
+
+def test_eigvec_to_fockbasis():
+    "BR Tools : eigvector to fockbasis"
+    N = 10
+    for kk in range(50):
+        H = rand_herm(N,0.5)
+        h = H.full('F')
+        R = rand_dm(N,0.5)
+        r = R.full().ravel()
+        eigvals = np.zeros(N,dtype=float)
+        Z = _test_zheevr(H.full('F'), eigvals, qset.atol)
+        eig_vec = R.transform(H.eigenstates()[1]).full().ravel()
+        out = _test_eigvec_to_fockbasis(eig_vec, Z, N)
+        assert_(np.allclose(r,out))
+
 
 def test_diag_liou_mult():
     "BR Tools : Diagonal liouvillian mult"

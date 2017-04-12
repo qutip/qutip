@@ -41,11 +41,40 @@ from qutip.cy.spmatfuncs cimport spmvpy
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
+    double cabs   "abs" (double complex x)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef void ham_add_mult(complex[::1,:] A, 
+                  complex[::1,:] B, 
+                  double complex alpha) nogil:
+    """
+    Performs the dense matrix multiplication A = A + (alpha*B)
+    where A and B are complex 2D square matrices,
+    and alpha is a complex coefficient.
+    
+    Parameters
+    ----------
+    A : ndarray
+        Complex matrix in f-order that is to be overwritten
+    B : ndarray
+        Complex matrix in f-order.
+    alpha : complex
+        Coefficient in front of B.
+    
+    """
+    cdef unsigned int nrows = A.shape[0]
+    cdef size_t ii, jj
+    for jj in range(nrows):
+        for ii in range(nrows):
+            A[ii,jj] += alpha*B[ii,jj]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void ZHEEVR(complex[::1,:] H, double * eigvals, 
-                    complex[::1,:] Z, int nrows):
+                    complex[::1,:] Z, int nrows, double atol):
     """
     Computes the eigenvalues and vectors of a dense Hermitian matrix.
     Eigenvectors are returned in Z.
@@ -60,6 +89,8 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
         Output array of eigenvectors.
     nrows : int
         Number of rows in matrix.
+    atol : double
+        Tolerance for setting small values to zero
     """
     cdef char jobz = b'V'
     cdef char rnge = b'A'
@@ -87,6 +118,11 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
             raise Exception("Error in parameter : %s" & abs(info))
         else:
             raise Exception("Algorithm failed to converge")
+    # Find all small elements and set to zero
+    for jj in range(nrows):
+        for ii in range(nrows):
+            if cabs(Z[ii,jj]) < atol:
+                Z[ii,jj] = 0
 
             
 @cython.boundscheck(False)
@@ -180,61 +216,71 @@ cdef double complex * ZGEMM(double complex * A, double complex * B,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef complex[::1,:] dense_to_eigbasis(complex[:, ::1] A, complex[::1,:] evecs):
+cdef complex[::1,:] dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs):
     cdef int Arows = A.shape[0]
     cdef int Acols = A.shape[1]
     cdef int Brows = evecs.shape[0]
     cdef int Bcols = evecs.shape[1]
+    cdef int kk
     cdef double complex * temp1 = ZGEMM(&A[0,0], &evecs[0,0], 
-                                       Arows, Acols, Brows, Bcols, 1, 0)
+                                       Arows, Acols, Brows, Bcols, 0, 0)
     cdef double complex * eig_mat = ZGEMM(&evecs[0,0], temp1,
                                        Arows, Acols, Brows, Bcols, 2, 0)
     PyDataMem_FREE(temp1)
+    #Get view on ouput
     cdef complex[:,::1] out = <complex[:Acols, :Brows]> eig_mat
-    #This just gets the correct view on the data
+    #This just gets the correct f-ordered view on the data
     cdef complex[::1,:] out_f = out.T
     return out_f
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef complex[::1,:] dense_to_fockbasis(complex[:, ::1] A, complex[::1,:] evecs):
-    cdef int Arows = A.shape[0]
-    cdef int Acols = A.shape[1]
-    cdef int Brows = evecs.shape[0]
-    cdef int Bcols = evecs.shape[1]
-    cdef double complex * temp1 = ZGEMM(&A[0,0], &evecs[0,0], 
-                                       Arows, Acols, Brows, Bcols, 0, 2)
-    cdef double complex * fock_mat = ZGEMM(&evecs[0,0], temp1,
-                                       Arows, Acols, Brows, Bcols, 0, 0)
+cdef double complex * vec_to_eigbasis(complex[::1] vec, complex[::1,:] evecs, 
+                                    unsigned int nrows):
+    
+    cdef size_t ii, jj 
+    cdef double complex * temp1 = ZGEMM(&vec[0], &evecs[0,0], 
+                                       nrows, nrows, nrows, nrows, 1, 0)
+    cdef double complex * eig_vec = ZGEMM(&evecs[0,0], temp1,
+                                       nrows, nrows, nrows, nrows, 2, 0)
     PyDataMem_FREE(temp1)
-    cdef complex[:,::1] out = <complex[:Acols, :Brows]> fock_mat
-    #This just gets the correct view on the data
-    cdef complex[::1,:] out_f = out.T
-    return out_f
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef void ham_add_mult(complex[:, ::1] A, 
-                  complex[:, ::1] B, 
-                  double complex alpha) nogil:
-    """
-    Performs the dense matrix multiplication
-    A = A + (alpha*B)
-    where A and B are complex 2D square matrices,
-    and alpha is a complex coefficient.
-    """
-    cdef unsigned int nrows = A.shape[0]
-    cdef size_t ii, jj
+    cdef double complex * c_eig_vec = <double complex *>PyDataMem_NEW((nrows**2) * sizeof(complex))
     for ii in range(nrows):
         for jj in range(nrows):
-            A[ii,jj] += alpha*B[ii,jj]
+            c_eig_vec[jj+nrows*ii] = eig_vec[ii+nrows*jj]
+    PyDataMem_FREE(eig_vec)
+    return c_eig_vec
+ 
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig_vec, 
+                                                complex[::1,:] evecs, 
+                                                unsigned int nrows):
+
+    cdef size_t ii, jj 
+    cdef np.npy_intp nrows2 = nrows**2
+    cdef double complex * temp1 = ZGEMM(&eig_vec[0], &evecs[0,0], 
+                                       nrows, nrows, nrows, nrows, 1, 2)
+    cdef double complex * fock_vec = ZGEMM(&evecs[0,0], temp1,
+                                       nrows, nrows, nrows, nrows, 0, 0)
+    PyDataMem_FREE(temp1)
+    cdef double complex * c_vec = <double complex *>PyDataMem_NEW((nrows**2) * sizeof(complex))
+    for ii in range(nrows):
+        for jj in range(nrows):
+            c_vec[jj+nrows*ii] = fock_vec[ii+nrows*jj]
+    PyDataMem_FREE(fock_vec)
+    cdef np.ndarray[complex, ndim=1, mode='c'] out = \
+                np.PyArray_SimpleNewFromData(1, &nrows2, np.NPY_COMPLEX128, c_vec)
+    PyArray_ENABLEFLAGS(out, np.NPY_OWNDATA)
+    return out
+ 
             
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cop_super_term(complex[:,::1] cop, complex[::1,:] evecs, 
+def cop_super_term(complex[::1,:] cop, complex[::1,:] evecs, 
                      double complex alpha, unsigned int nrows):
     cdef size_t kk
     cdef CSR_Matrix mat1, mat2, mat3, mat4, mat5
@@ -296,7 +342,7 @@ def cop_super_term(complex[:,::1] cop, complex[::1,:] evecs,
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cop_super_mult(complex[:,::1] cop, complex[::1,:] evecs, 
+def cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, 
                      complex[::1] vec,
                      double complex alpha, 
                      complex[::1] out, 

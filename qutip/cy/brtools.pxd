@@ -30,17 +30,22 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+cimport numpy as np
 
-cpdef void ham_add_mult(complex[:, ::1] A, complex[:, ::1] B, 
+cpdef void ham_add_mult(complex[::1,:] A, complex[::1,:] B, 
                   double complex alpha) nogil
 
 cdef void ZHEEVR(complex[::1,:] H, double * eigvals, 
-                complex[::1,:] Z, int nrows)
+                complex[::1,:] Z, int nrows, double atol)
 
-cdef complex[::1,:] dense_to_eigbasis(complex[:, ::1] A, complex[::1,:] evecs)
-
-cdef complex[::1,:] dense_to_fockbasis(complex[:, ::1] A, complex[::1,:] evecs)
+cdef complex[::1,:] dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs)
 
 cdef void diag_liou_mult(double * diags, double complex * vec, 
                         double complex * out, unsigned int nrows) nogil
 
+cdef double complex * vec_to_eigbasis(complex[::1] vec, complex[::1,:] evecs, 
+                                    unsigned int nrows)
+                                    
+cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig_vec, 
+                                                complex[::1,:] evecs, 
+                                                unsigned int nrows)
