@@ -81,5 +81,16 @@ def _test_eigvec_to_fockbasis(complex[::1] eig_vec, complex[::1,:] evecs, int nr
     out = vec_to_fockbasis(&eig_vec[0], evecs, nrows)
     return out
 
+
+def _test_vector_roundtrip(complex[::1,:] H, complex[::1] vec):
+    cdef np.ndarray[complex, ndim=2, mode='fortran'] Z = np.zeros((H.shape[0],H.shape[0]),
+                                                                  dtype=complex, order='f')
+    cdef double[::1] evals = np.zeros(H.shape[0],dtype=float)
+    ZHEEVR(H, &evals[0], Z, H.shape[0], qset.atol)
+    cdef double complex * eig_vec = vec_to_eigbasis(vec, Z, H.shape[0])
+    cdef np.ndarray[complex, ndim=1, mode='c'] out 
+    out = vec_to_fockbasis(eig_vec, Z, H.shape[0])
+    PyDataMem_FREE(eig_vec)
+    return out
     
         

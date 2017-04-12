@@ -38,7 +38,7 @@ from qutip import *
 import qutip.settings as qset
 from qutip.cy.brtools_testing import (_test_zheevr, _test_diag_liou_mult,
                     _test_dense_to_eigbasis, _test_vec_to_eigbasis,
-                    _test_eigvec_to_fockbasis)
+                    _test_eigvec_to_fockbasis, _test_vector_roundtrip)
 
 def test_br_zheevr():
     "BR Tools : zheevr"
@@ -96,6 +96,18 @@ def test_eigvec_to_fockbasis():
         Z = _test_zheevr(H.full('F'), eigvals, qset.atol)
         eig_vec = R.transform(H.eigenstates()[1]).full().ravel()
         out = _test_eigvec_to_fockbasis(eig_vec, Z, N)
+        assert_(np.allclose(r,out))
+
+
+def test_vector_roundtrip():
+    "BR Tools : vector roundtrip transform"
+    N = 10
+    for kk in range(50):
+        H = rand_herm(N,0.5)
+        h = H.full('F')
+        R = rand_dm(N,0.5)
+        r = R.full().ravel()
+        out = _test_vector_roundtrip(h,r)
         assert_(np.allclose(r,out))
 
 
