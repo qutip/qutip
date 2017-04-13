@@ -99,7 +99,7 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
     cdef int il=1, iu=1
     cdef int lwork = 18 * nrows
     cdef int lrwork = 24*nrows, liwork = 10*nrows
-    cdef int info
+    cdef int info=0, M=0
     #These nee to be freed at end
     cdef int * isuppz = <int *>PyDataMem_NEW((2*nrows) * sizeof(int))
     cdef complex * work = <complex *>PyDataMem_NEW(lwork * sizeof(complex))
@@ -107,7 +107,7 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
     cdef int * iwork = <int *>PyDataMem_NEW((10*nrows) * sizeof(int))
     
     zheevr(&jobz, &rnge, &uplo, &nrows, &H[0,0], &nrows, &vl, &vu, &il, &iu, &abstol,
-           &nrows, eigvals, &Z[0,0], &nrows, isuppz, work, &lwork,
+           &M, eigvals, &Z[0,0], &nrows, isuppz, work, &lwork,
           rwork, &lrwork, iwork, &liwork, &info)
     PyDataMem_FREE(work)
     PyDataMem_FREE(rwork)
