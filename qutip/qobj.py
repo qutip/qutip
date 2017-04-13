@@ -64,7 +64,7 @@ from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm)
-
+from qutip.cy.sparse_utils import cy_tidyup
 import sys
 if sys.version_info.major >= 3:
     from itertools import zip_longest
@@ -1244,15 +1244,7 @@ class Qobj(object):
             atol = settings.auto_tidyup_atol
 
         if self.data.nnz:
-
-            data_real = self.data.data.real
-            data_real[np.abs(data_real) < atol] = 0
-
-            data_imag = self.data.data.imag
-            data_imag[np.abs(data_imag) < atol] = 0
-
-            self.data.data = data_real + 1j * data_imag
-
+            cy_tidyup(self.data.data,atol,self.data.nnz)
             self.data.eliminate_zeros()
             return self
         else:
