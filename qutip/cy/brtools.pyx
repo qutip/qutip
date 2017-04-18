@@ -483,6 +483,10 @@ cdef double[:,::1] skew_and_dwmin(double * evals, double dw_min,
     return skew
     
     
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
                 complex[::1] vec, double complex * out,
@@ -517,7 +521,7 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                         bd_elem += A[a,kk]*A[kk,c] * spectral(skew[c,kk],t)
                     elem -= bd_elem / 2.0
                     
-                if elem !=0:
+                if elem != 0:
                     coo_rows.push_back(I)
                     coo_cols.push_back(J)
                     coo_data.push_back(elem)
