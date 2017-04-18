@@ -41,9 +41,9 @@ from qutip.cy.brtools cimport (ZHEEVR, diag_liou_mult, dense_to_eigbasis,
 include "sparse_routines.pxi"
 
 @cython.boundscheck(False)
-def _test_zheevr(complex[::1,:] H, double[::1] evals, double atol):
+def _test_zheevr(complex[::1,:] H, double[::1] evals):
     cdef np.ndarray[complex, ndim=2, mode='fortran'] Z = np.zeros((H.shape[0],H.shape[0]),dtype=complex, order='f')
-    ZHEEVR(H, &evals[0], Z, H.shape[0], atol)
+    ZHEEVR(H, &evals[0], Z, H.shape[0])
     return Z
 
 
@@ -54,8 +54,9 @@ def _test_diag_liou_mult(double[::1] evals, complex[::1] vec,
 
 
 @cython.boundscheck(False)
-def _test_dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs):
-    cdef complex[::1,:] out = dense_to_eigbasis(A, evecs) 
+def _test_dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs, 
+                        unsigned int nrows, double atol):
+    cdef complex[::1,:] out = dense_to_eigbasis(A, evecs, nrows, atol) 
     cdef np.ndarray[complex, ndim=2] mat
     cdef np.npy_intp dims[2] 
     dims[:] = [A.shape[0], A.shape[1]]
@@ -70,7 +71,7 @@ def _test_vec_to_eigbasis(complex[::1,:] H, complex[::1] vec):
     cdef np.ndarray[complex, ndim=2, mode='fortran'] Z = np.zeros((H.shape[0],H.shape[0]),
                                                                   dtype=complex, order='f')
     cdef double[::1] evals = np.zeros(H.shape[0],dtype=float)
-    ZHEEVR(H, &evals[0], Z, H.shape[0], qset.atol)
+    ZHEEVR(H, &evals[0], Z, H.shape[0])
 
     cdef double complex * eig_vec = vec_to_eigbasis(vec,Z, H.shape[0])
     cdef np.npy_intp dim = H.shape[0]**2
@@ -92,7 +93,7 @@ def _test_vector_roundtrip(complex[::1,:] H, complex[::1] vec):
     cdef np.ndarray[complex, ndim=2, mode='fortran'] Z = np.zeros((H.shape[0],H.shape[0]),
                                                                   dtype=complex, order='f')
     cdef double[::1] evals = np.zeros(H.shape[0],dtype=float)
-    ZHEEVR(H, &evals[0], Z, H.shape[0], qset.atol)
+    ZHEEVR(H, &evals[0], Z, H.shape[0])
     cdef double complex * eig_vec = vec_to_eigbasis(vec, Z, H.shape[0])
     cdef np.ndarray[complex, ndim=1, mode='c'] out 
     out = vec_to_fockbasis(eig_vec, Z, H.shape[0])
@@ -103,5 +104,6 @@ def _test_vector_roundtrip(complex[::1,:] H, complex[::1] vec):
 def _cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, complex[::1] vec, 
                     double complex alpha, 
                     complex[::1] out, 
-                    unsigned int nrows):
-    cop_super_mult(cop, evecs, &vec[0], alpha, out, nrows) 
+                    unsigned int nrows,
+                    double atol):
+    cop_super_mult(cop, evecs, &vec[0], alpha, out, nrows, atol) 

@@ -47,7 +47,7 @@ def test_br_zheevr():
         H = rand_herm(kk, 1/kk)
         H2 =np.asfortranarray(H.full())
         eigvals = np.zeros(kk,dtype=float)
-        Z = _test_zheevr(H2, eigvals, qset.atol)
+        Z = _test_zheevr(H2, eigvals)
         ans_vals, ans_vecs = la.eigh(H.full())
         assert_(np.allclose(ans_vals,eigvals))
         assert_(np.allclose(Z,ans_vecs))
@@ -63,13 +63,13 @@ def test_br_dense_to_eigbasis():
         A = a.transform(evecs).full()
         H2 = H.full('F')
         eigvals = np.zeros(N,dtype=float)
-        Z = _test_zheevr(H2, eigvals, qset.atol)
+        Z = _test_zheevr(H2, eigvals)
         a2 = a.full('F')
-        assert_(np.allclose(A,_test_dense_to_eigbasis(a2,Z)))
+        assert_(np.allclose(A,_test_dense_to_eigbasis(a2,Z,N,qset.atol)))
         b = destroy(N)
         B = b.transform(evecs).full()
         b2 = b.full('F')
-        assert_(np.allclose(B,_test_dense_to_eigbasis(b2,Z)))
+        assert_(np.allclose(B,_test_dense_to_eigbasis(b2,Z,N,qset.atol)))
 
 
 def test_vec_to_eigbasis():
@@ -94,7 +94,7 @@ def test_eigvec_to_fockbasis():
         R = rand_dm(N,0.5)
         r = R.full().ravel()
         eigvals = np.zeros(N,dtype=float)
-        Z = _test_zheevr(H.full('F'), eigvals, qset.atol)
+        Z = _test_zheevr(H.full('F'), eigvals)
         eig_vec = R.transform(H.eigenstates()[1]).full().ravel()
         out = _test_eigvec_to_fockbasis(eig_vec, Z, N)
         assert_(np.allclose(r,out))
@@ -138,9 +138,9 @@ def test_cop_super_mult():
         L = liouvillian(None,[A])
         ans = L.data.dot(vec)
         eigvals = np.zeros(N,dtype=float)
-        Z = _test_zheevr(H.full('F'),eigvals,qset.atol)
+        Z = _test_zheevr(H.full('F'),eigvals)
         out = np.zeros_like(vec)
-        _cop_super_mult(a.full('F'), Z, vec, 1, out, N)
+        _cop_super_mult(a.full('F'), Z, vec, 1, out, N, qset.atol)
         assert_(np.allclose(ans,out))
 
 

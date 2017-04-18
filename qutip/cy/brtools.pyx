@@ -38,10 +38,34 @@ from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron,
                     _zcsr_mult)
 from qutip.cy.spconvert cimport fdense2D_to_CSR
 from qutip.cy.spmatfuncs cimport spmvpy
+from qutip.cy.brtools cimport spec_func
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
     double cabs   "abs" (double complex x)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef complex[::1,:] fherm_alloc(int nrows):
+    """
+    Allocate a complex zero array in fortran-order for a 
+    square matrix.
+    
+    Parameters
+    ----------
+    nrows : int
+        Number of rows and columns in the matrix.
+        
+    Returns
+    -------
+    fview : memview
+        A zeroed memoryview in fortran-order.
+    """
+    cdef double complex * temp = <double complex *>PyDataMem_NEW_ZEROED(nrows*nrows,sizeof(complex))
+    cdef complex[:,::1] cview = <double complex[:nrows, :nrows]> temp
+    cdef complex[::1,:] fview = cview.T
+    return fview
 
 
 @cython.boundscheck(False)
@@ -74,7 +98,7 @@ cpdef void ham_add_mult(complex[::1,:] A,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void ZHEEVR(complex[::1,:] H, double * eigvals, 
-                    complex[::1,:] Z, int nrows, double atol):
+                    complex[::1,:] Z, int nrows):
     """
     Computes the eigenvalues and vectors of a dense Hermitian matrix.
     Eigenvectors are returned in Z.
@@ -118,11 +142,6 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
             raise Exception("Error in parameter : %s" & abs(info))
         else:
             raise Exception("Algorithm failed to converge")
-    # Find all small elements and set to zero
-    for jj in range(nrows):
-        for ii in range(nrows):
-            if cabs(Z[ii,jj]) < atol:
-                Z[ii,jj] = 0
 
             
 @cython.boundscheck(False)
@@ -216,19 +235,21 @@ cdef double complex * ZGEMM(double complex * A, double complex * B,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef complex[::1,:] dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs):
-    cdef int Arows = A.shape[0]
-    cdef int Acols = A.shape[1]
-    cdef int Brows = evecs.shape[0]
-    cdef int Bcols = evecs.shape[1]
+cdef complex[::1,:] dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs,
+                                    unsigned int nrows,
+                                    double atol):
     cdef int kk
     cdef double complex * temp1 = ZGEMM(&A[0,0], &evecs[0,0], 
-                                       Arows, Acols, Brows, Bcols, 0, 0)
+                                       nrows, nrows, nrows, nrows, 0, 0)
     cdef double complex * eig_mat = ZGEMM(&evecs[0,0], temp1,
-                                       Arows, Acols, Brows, Bcols, 2, 0)
+                                       nrows, nrows, nrows, nrows, 2, 0)
     PyDataMem_FREE(temp1)
     #Get view on ouput
-    cdef complex[:,::1] out = <complex[:Acols, :Brows]> eig_mat
+    # Find all small elements and set to zero
+    for kk in range(nrows**2):
+        if cabs(eig_mat[kk]) < atol:
+            eig_mat[kk] = 0
+    cdef complex[:,::1] out = <complex[:nrows, :nrows]> eig_mat
     #This just gets the correct f-ordered view on the data
     cdef complex[::1,:] out_f = out.T
     return out_f
@@ -281,11 +302,12 @@ cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cop_super_term(complex[::1,:] cop, complex[::1,:] evecs, 
-                     double complex alpha, unsigned int nrows):
+                     double complex alpha, unsigned int nrows,
+                     double atol):
     cdef size_t kk
     cdef CSR_Matrix mat1, mat2, mat3, mat4, mat5
     
-    cdef complex[::1,:] cop_eig = dense_to_eigbasis(cop, evecs)
+    cdef complex[::1,:] cop_eig = dense_to_eigbasis(cop, evecs, nrows, atol)
 
     fdense2D_to_CSR(cop_eig, &mat1, nrows, nrows)
     #Multiply by alpha for time-dependence
@@ -346,11 +368,12 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
                      double complex * vec,
                      double complex alpha, 
                      complex[::1] out, 
-                     unsigned int nrows):
+                     unsigned int nrows,
+                     double atol):
     cdef size_t kk
     cdef CSR_Matrix mat1, mat2, mat3, mat4
 
-    cdef complex[::1,:] cop_eig = dense_to_eigbasis(cop, evecs)
+    cdef complex[::1,:] cop_eig = dense_to_eigbasis(cop, evecs, nrows, atol)
 
     #Mat1 holds cop_eig in CSR format
     fdense2D_to_CSR(cop_eig, &mat1, nrows, nrows)
