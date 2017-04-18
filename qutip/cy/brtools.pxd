@@ -33,7 +33,7 @@
 cimport numpy as np
 
 #Spectral function with signature (w,t)
-ctypedef double (*spec_func)(double,double)
+ctypedef double (*spec_func)(double, double)
 
 cpdef void ham_add_mult(complex[::1,:] A, complex[::1,:] B, 
                   double complex alpha) nogil

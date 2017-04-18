@@ -30,7 +30,6 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-include "sparse_routines.pxi"
 from scipy.linalg.cython_lapack cimport zheevr
 from scipy.linalg.cython_blas cimport zgemm
 from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron, 
@@ -39,6 +38,12 @@ from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron,
 from qutip.cy.spconvert cimport fdense2D_to_CSR
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.brtools cimport spec_func
+from libc.math cimport fabs, fmin
+from libc.float cimport DBL_MAX
+from libcpp.vector cimport vector
+from qutip.cy.sparse_structs cimport (CSR_Matrix, COO_Matrix)
+
+include "sparse_routines.pxi"
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -447,4 +452,90 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
     free_CSR(&mat2)
     free_CSR(&mat3)
     
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void vec2mat_index(int nrows, int index,
+                        unsigned int x, unsigned int y):
+                        
+    y = index / nrows
+    x = index - nrows * y 
+    
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef double[:,::1] skew_and_dwmin(double * evals, double dw_min, 
+                                unsigned int nrows):
+    cdef double * _temp = <double *>PyDataMem_NEW((nrows**2) * sizeof(double))
+    cdef double[:,::1] skew = <double[:nrows,:nrows]> _temp
+    cdef double diff
+    dw_min = DBL_MAX
+    cdef size_t ii, jj
+    for ii in range(nrows):
+        for jj in range(nrows):
+            diff = evals[ii] - evals[jj]
+            skew[ii,jj] = diff
+            if diff != 0:
+                dw_min = fmin(fabs(diff), dw_min)
+    return skew
+    
+    
+cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
+                double[:,::1] skew, double dw_min, spec_func spectral,
+                complex[::1] vec, double complex * out,
+                unsigned int nrows, int use_secular, double atol):
+                
+    cdef size_t kk
+    cdef size_t I, J # vector index variables
+    cdef unsigned int a=0, b=0, c=0, d=0 #matrix indexing variables
+    cdef complex[::1,:] A_eig = dense_to_eigbasis(A, evecs, nrows, atol)
+    cdef complex elem, ac_elem, bd_elem
+    cdef vector[int] coo_rows, coo_cols
+    cdef vector[complex] coo_data
+    
+    for I in range(nrows**2):
+        vec2mat_index(nrows, I, a, b)
+        for J in range(nrows**2):
+            vec2mat_index(nrows, J, c, d)
             
+            if (not use_secular) or (fabs(skew[a,b]-skew[c,d]) < (dw_min / 10.0)):
+                elem = (A[a,c]*A[d,b]) / 2.0
+                elem *= (spectral(skew[c,a],t)+spectral(skew[d,b],t))
+            
+                if (a==c):
+                    ac_elem = 0
+                    for kk in range(nrows):
+                        ac_elem += A[d,kk]*A[kk,b] * spectral(skew[d,kk],t)
+                    elem -= ac_elem / 2.0
+                    
+                if (b==d):
+                    bd_elem = 0
+                    for kk in range(nrows):
+                        bd_elem += A[a,kk]*A[kk,c] * spectral(skew[c,kk],t)
+                    elem -= bd_elem / 2.0
+                    
+                if elem !=0:
+                    coo_rows.push_back(I)
+                    coo_cols.push_back(J)
+                    coo_data.push_back(elem)
+    
+    PyDataMem_FREE(&A_eig[0,0])
+    #Number of elements in BR tensor
+    cdef unsigned int nnz = coo_rows.size()
+    cdef COO_Matrix coo
+    coo.nnz = nnz
+    coo.rows = coo_rows.data()
+    coo.cols = coo_cols.data()
+    coo.data = coo_data.data()
+    coo.nrows = nrows
+    coo.ncols = nrows
+    coo.is_set = 1 
+    coo.max_length = nnz
+    cdef CSR_Matrix csr
+    COO_to_CSR_inplace(&csr, &coo)
+    sort_indices(&csr)
+    spmvpy(csr.data, csr.indices, csr.indptr, &vec[0], 1, out, nrows**2)
+    
