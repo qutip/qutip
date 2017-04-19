@@ -59,3 +59,13 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,  double compl
                     complex[::1] out, 
                     unsigned int nrows,
                     double atol)
+                    
+                    
+cdef double skew_and_dwmin(double * evals, double[:,::1] skew, 
+                                unsigned int nrows)
+                                
+
+cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
+                double[:,::1] skew, double dw_min, spec_func spectral,
+                complex[::1] vec, double complex * out,
+                unsigned int nrows, int use_secular, double atol)

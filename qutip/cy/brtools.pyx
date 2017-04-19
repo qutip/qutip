@@ -455,20 +455,16 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void vec2mat_index(int nrows, int index,
-                        unsigned int x, unsigned int y):
-                        
-    y = index / nrows
-    x = index - nrows * y 
+cdef inline void vec2mat_index(int nrows, int index, int[2] out):                       
+    out[1] = index // nrows
+    out[0] = index - nrows * out[1] 
     
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef double[:,::1] skew_and_dwmin(double * evals, double dw_min, 
+cdef double skew_and_dwmin(double * evals, double[:,::1] skew, 
                                 unsigned int nrows):
-    cdef double * _temp = <double *>PyDataMem_NEW((nrows**2) * sizeof(double))
-    cdef double[:,::1] skew = <double[:nrows,:nrows]> _temp
     cdef double diff
     dw_min = DBL_MAX
     cdef size_t ii, jj
@@ -478,8 +474,7 @@ cdef double[:,::1] skew_and_dwmin(double * evals, double dw_min,
             skew[ii,jj] = diff
             if diff != 0:
                 dw_min = fmin(fabs(diff), dw_min)
-    return skew
-    
+    return dw_min
     
 
 @cython.boundscheck(False)
@@ -492,31 +487,31 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                 
     cdef size_t kk
     cdef size_t I, J # vector index variables
-    cdef unsigned int a=0, b=0, c=0, d=0 #matrix indexing variables
+    cdef int[2] ab, cd #matrix indexing variables
     cdef complex[::1,:] A_eig = dense_to_eigbasis(A, evecs, nrows, atol)
     cdef complex elem, ac_elem, bd_elem
     cdef vector[int] coo_rows, coo_cols
     cdef vector[complex] coo_data
     
     for I in range(nrows**2):
-        vec2mat_index(nrows, I, a, b)
+        vec2mat_index(nrows, I, ab)
         for J in range(nrows**2):
-            vec2mat_index(nrows, J, c, d)
+            vec2mat_index(nrows, J, cd)
             
-            if (not use_secular) or (fabs(skew[a,b]-skew[c,d]) < (dw_min / 10.0)):
-                elem = (A[a,c]*A[d,b]) / 2.0
-                elem *= (spectral(skew[c,a],t)+spectral(skew[d,b],t))
+            if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min / 10.0)):
+                elem = (A[ab[0],cd[0]]*A[cd[1],ab[1]]) / 2.0
+                elem *= (spectral(skew[cd[0],ab[0]],t)+spectral(skew[cd[1],ab[1]],t))
             
-                if (a==c):
+                if (ab[0]==cd[0]):
                     ac_elem = 0
                     for kk in range(nrows):
-                        ac_elem += A[d,kk]*A[kk,b] * spectral(skew[d,kk],t)
+                        ac_elem += A[cd[1],kk]*A[kk,ab[1]] * spectral(skew[cd[1],kk],t)
                     elem -= ac_elem / 2.0
                     
-                if (b==d):
+                if (ab[1]==cd[1]):
                     bd_elem = 0
                     for kk in range(nrows):
-                        bd_elem += A[a,kk]*A[kk,c] * spectral(skew[c,kk],t)
+                        bd_elem += A[ab[0],kk]*A[kk,cd[0]] * spectral(skew[cd[0],kk],t)
                     elem -= bd_elem / 2.0
                     
                 if cabs(elem) >= atol:
@@ -532,8 +527,8 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
     coo.rows = coo_rows.data()
     coo.cols = coo_cols.data()
     coo.data = coo_data.data()
-    coo.nrows = nrows
-    coo.ncols = nrows
+    coo.nrows = nrows**2
+    coo.ncols = nrows**2
     coo.is_set = 1 
     coo.max_length = nnz
     cdef CSR_Matrix csr
