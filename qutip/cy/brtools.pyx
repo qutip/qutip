@@ -532,8 +532,7 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
     coo.is_set = 1 
     coo.max_length = nnz
     cdef CSR_Matrix csr
-    COO_to_CSR_inplace(&csr, &coo)
-    sort_indices(&csr)
+    COO_to_CSR(&csr, &coo)
     spmvpy(csr.data, csr.indices, csr.indptr, &vec[0], 1, out, nrows**2)
     free_CSR(&csr)
     
