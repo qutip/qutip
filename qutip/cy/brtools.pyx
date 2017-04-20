@@ -499,19 +499,19 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
             vec2mat_index(nrows, J, cd)
             
             if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min / 10.0)):
-                elem = (A[ab[0],cd[0]]*A[cd[1],ab[1]]) / 2.0
+                elem = (A_eig[ab[0],cd[0]]*A_eig[cd[1],ab[1]]) / 2.0
                 elem *= (spectral(skew[cd[0],ab[0]],t)+spectral(skew[cd[1],ab[1]],t))
             
                 if (ab[0]==cd[0]):
                     ac_elem = 0
                     for kk in range(nrows):
-                        ac_elem += A[cd[1],kk]*A[kk,ab[1]] * spectral(skew[cd[1],kk],t)
+                        ac_elem += A_eig[cd[1],kk]*A_eig[kk,ab[1]] * spectral(skew[cd[1],kk],t)
                     elem -= ac_elem / 2.0
                     
                 if (ab[1]==cd[1]):
                     bd_elem = 0
                     for kk in range(nrows):
-                        bd_elem += A[ab[0],kk]*A[kk,cd[0]] * spectral(skew[cd[0],kk],t)
+                        bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk],t)
                     elem -= bd_elem / 2.0
                     
                 if cabs(elem) >= atol:

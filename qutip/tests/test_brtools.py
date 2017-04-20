@@ -39,7 +39,7 @@ import qutip.settings as qset
 from qutip.cy.brtools_testing import (_test_zheevr, _test_diag_liou_mult,
                     _test_dense_to_eigbasis, _test_vec_to_eigbasis,
                     _test_eigvec_to_fockbasis, _test_vector_roundtrip,
-                    _cop_super_mult)
+                    _cop_super_mult, _test_br_term_mult)
 
 def test_br_zheevr():
     "BR Tools : zheevr"
@@ -145,9 +145,51 @@ def test_cop_super_mult():
 
 
 
-
-
-
+def test_br_term_mult():
+    "BR Tools : br_term_mult"
+    #secular tests
+    for kk in range(10):
+        N = 10
+        H = rand_herm(N, 0.5)
+        Hf = H.full('f')
+        t = 1.0
+        a = rand_herm(N,0.5)
+        A = a.full('f')
+        vec = np.ones(N**2,dtype=complex)
+        out = np.zeros(N**2,dtype=complex)
+        use_secular = 1
+        atol = 1e-12
+        spec = lambda w: 1.0
+        H_diag = H.transform(H.eigenstates()[1])
+        L_diag = liouvillian(H_diag)
+        R = (bloch_redfield_tensor(H, [a], [spec], c_ops=[], use_secular=use_secular)[0] - L_diag)
+        ans = R.data.dot(vec)
+        evals = np.zeros(N,dtype=float)
+        evecs = _test_zheevr(Hf, evals)
+        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, atol)
+        assert_(np.allclose(ans,out))
+    
+    #non-secular tests
+    for kk in range(10):
+        N = 10
+        H = rand_herm(N, 0.5)
+        Hf = H.full('f')
+        t = 1.0
+        a = rand_herm(N,0.5)
+        A = a.full('f')
+        vec = np.ones(N**2,dtype=complex)
+        out = np.zeros(N**2,dtype=complex)
+        use_secular = 0
+        atol = 1e-12
+        spec = lambda w: 1.0
+        H_diag = H.transform(H.eigenstates()[1])
+        L_diag = liouvillian(H_diag)
+        R = (bloch_redfield_tensor(H, [a], [spec], c_ops=[], use_secular=use_secular)[0] - L_diag)
+        ans = R.data.dot(vec)
+        evals = np.zeros(N,dtype=float)
+        evecs = _test_zheevr(Hf, evals)
+        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, atol)
+        assert_(np.allclose(ans,out))
 
 
 
