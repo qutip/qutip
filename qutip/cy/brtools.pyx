@@ -535,4 +535,88 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
     COO_to_CSR(&csr, &coo)
     spmvpy(csr.data, csr.indices, csr.indptr, &vec[0], 1, out, nrows**2)
     free_CSR(&csr)
+ 
+ 
+ 
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void sparse_ZHEEVR(complex[::1,:] H, double * eigvals, 
+                    CSR_Matrix * evecs, int nrows, double atol):
+    """
+    Computes the eigenvalues and vectors of a dense Hermitian matrix.
+    Eigenvectors are returned in Z.
+
+    Parameters
+    ----------
+    H : array_like
+        Input Hermitian matrix.
+    eigvals : array_like
+        Input array to store eigen values.
+    evecs : CSR_Matrix
+        Output csr matrix of eigenvectors.
+    nrows : int
+        Number of rows in matrix.
+    """
+    cdef size_t jj, ii
+    cdef char jobz = b'V'
+    cdef char rnge = b'A'
+    cdef char uplo = b'L'
+    cdef double vl=1, vu=1, abstol=0 
+    cdef int il=1, iu=1
+    cdef int lwork = 18 * nrows
+    cdef int lrwork = 24*nrows, liwork = 10*nrows
+    cdef int info=0, M=0
+    #These nee to be freed at end
+    cdef int * isuppz = <int *>PyDataMem_NEW((2*nrows) * sizeof(int))
+    cdef complex * work = <complex *>PyDataMem_NEW(lwork * sizeof(complex))
+    cdef double * rwork = <double *>PyDataMem_NEW((24*nrows) * sizeof(double))
+    cdef int * iwork = <int *>PyDataMem_NEW((10*nrows) * sizeof(int))
+    cdef complex[:,::1] cZ = <complex[:nrows, :nrows]><complex *>PyDataMem_NEW(nrows**2 * sizeof(complex))
+    cdef complex[::1,:] Z = cZ.T
     
+    zheevr(&jobz, &rnge, &uplo, &nrows, &H[0,0], &nrows, &vl, &vu, &il, &iu, &abstol,
+           &M, eigvals, &Z[0,0], &nrows, isuppz, work, &lwork,
+          rwork, &lrwork, iwork, &liwork, &info)
+    PyDataMem_FREE(work)
+    PyDataMem_FREE(rwork)
+    PyDataMem_FREE(isuppz)
+    PyDataMem_FREE(iwork)
+    if info != 0:
+        if info < 0:
+            raise Exception("Error in parameter : %s" & abs(info))
+        else:
+            raise Exception("Algorithm failed to converge")
+    for jj in range(nrows):
+        for ii in range(nrows):
+            if cabs(Z[ii,jj]) < atol:
+                Z[ii,jj] = 0
+    fdense2D_to_CSR(Z, evecs, nrows, nrows)
+    PyDataMem_FREE(&Z[0,0])
+    
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef CSR_Matrix sparse_to_eigbasis(complex[::1] Adata, int[::1] Aind, int[::1] Aptr,
+                                CSR_Matrix * evecs, unsigned int nrows):
+    cdef CSR_Matrix A, B, C, A_eig
+    A.data = &Adata[0]
+    A.indices = &Aind[0]
+    A.indptr = &Aptr[0]
+    A.nnz = A.indptr[nrows]
+    A.nrows = nrows
+    A.ncols = nrows
+    A.max_length = A.nnz
+    A.numpy_lock = 1
+    A.is_set = 1
+    
+    _zcsr_mult(&A, evecs, &B)
+    _zcsr_adjoint(evecs, &C)
+    _zcsr_mult(&C, &B, &A_eig)
+    sort_indices(&A_eig)
+    free_CSR(&B)
+    free_CSR(&C)
+    return A_eig
+     
+ 
+   
