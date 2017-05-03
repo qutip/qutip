@@ -106,7 +106,7 @@ def _cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, complex[::1] vec,
                     complex[::1] out, 
                     unsigned int nrows,
                     double atol):
-    cop_super_mult(cop, evecs, &vec[0], alpha, out, nrows, atol) 
+    cop_super_mult(cop, evecs, &vec[0], alpha, &out[0], nrows, atol) 
     
  
 #Test spectral function
@@ -120,7 +120,7 @@ def _test_br_term_mult(double t, complex[::1,:] A, complex[::1, :] evecs,
     cdef double * _temp = <double *>PyDataMem_NEW((nrows**2) * sizeof(double))
     cdef double[:,::1] skew = <double[:nrows,:nrows]> _temp
     cdef double dw_min = skew_and_dwmin(&evals[0], skew, nrows)
-    br_term_mult(t, A, evecs, skew, dw_min, spectral, vec, &out[0],
+    br_term_mult(t, A, evecs, skew, dw_min, spectral, &vec[0], &out[0],
                 nrows, use_secular, atol)
     PyDataMem_FREE(&skew[0,0])
     

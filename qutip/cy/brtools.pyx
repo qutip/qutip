@@ -52,7 +52,7 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef complex[::1,:] fherm_alloc(int nrows):
+cdef complex[::1,:] farray_alloc(int nrows):
     """
     Allocate a complex zero array in fortran-order for a 
     square matrix.
@@ -370,7 +370,7 @@ cpdef cop_super_term(complex[::1,:] cop, complex[::1,:] evecs,
 cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, 
                      double complex * vec,
                      double complex alpha, 
-                     complex[::1] out, 
+                     double complex * out, 
                      unsigned int nrows,
                      double atol):
     cdef size_t kk
@@ -402,7 +402,7 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
     
     #Do spmv with kron(cop.dag(), c)
     spmvpy(mat2.data,mat2.indices,mat2.indptr,
-        &vec[0], 1, &out[0], nrows**2)
+        &vec[0], 1, out, nrows**2)
     
     #Free temp conj_data array
     PyDataMem_FREE(conj_data)
@@ -482,7 +482,7 @@ cdef double skew_and_dwmin(double * evals, double[:,::1] skew,
 @cython.cdivision(True)
 cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
-                complex[::1] vec, double complex * out,
+                double complex * vec, double complex * out,
                 unsigned int nrows, int use_secular, double atol):
                 
     cdef size_t kk
@@ -533,7 +533,7 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
     coo.max_length = nnz
     cdef CSR_Matrix csr
     COO_to_CSR(&csr, &coo)
-    spmvpy(csr.data, csr.indices, csr.indptr, &vec[0], 1, out, nrows**2)
+    spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
     free_CSR(&csr)
  
  

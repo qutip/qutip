@@ -35,6 +35,8 @@ cimport numpy as np
 #Spectral function with signature (w,t)
 ctypedef double (*spec_func)(double, double)
 
+cdef complex[::1,:] farray_alloc(int nrows)
+
 cpdef void ham_add_mult(complex[::1,:] A, complex[::1,:] B, 
                   double complex alpha) nogil
 
@@ -56,7 +58,7 @@ cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig
                                                 
 cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,  double complex * vec, 
                     double complex alpha, 
-                    complex[::1] out, 
+                    double complex * out, 
                     unsigned int nrows,
                     double atol)
                     
@@ -67,5 +69,5 @@ cdef double skew_and_dwmin(double * evals, double[:,::1] skew,
 
 cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
-                complex[::1] vec, double complex * out,
+                double complex * vec, double complex * out,
                 unsigned int nrows, int use_secular, double atol)
