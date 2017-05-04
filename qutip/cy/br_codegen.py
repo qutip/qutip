@@ -215,6 +215,7 @@ class BR_Codegen(object):
         end_str += ["PyDataMem_FREE(&evecs[0,0])"]
         end_str += ["PyDataMem_FREE(&skew[0,0])"]
         end_str += ["PyDataMem_FREE(eigvals)"]
+        end_str += ["PyDataMem_FREE(eig_vec)"]
         end_str += ["PyDataMem_FREE(out)"]
         end_str += ["return arr_out"]
         return end_str
