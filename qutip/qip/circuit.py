@@ -285,7 +285,7 @@ class QubitCircuit(object):
             The qubit on which the first gate is applied.
         """
 
-        if self.N - start < len(qc.gates):
+        if self.N - start < qc.N:
             raise NotImplementedError("Targets exceed number of qubits.")
 
         for gate in qc.gates:
