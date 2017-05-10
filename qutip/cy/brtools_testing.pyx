@@ -110,7 +110,7 @@ def _cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs, complex[::1] vec,
     
  
 #Test spectral function
-cdef double spectral(double w, double t): return 1.0     
+cdef complex spectral(double w, double t): return 1.0     
 
 def _test_br_term_mult(double t, complex[::1,:] A, complex[::1, :] evecs,
             double[::1] evals, complex[::1] vec, complex[::1] out, 

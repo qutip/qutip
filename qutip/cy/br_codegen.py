@@ -129,12 +129,14 @@ class BR_Codegen(object):
         for k in range(self.h_terms):
             input_vars += (",\n        " +
                            "complex[::1,:] H%d" % k)
-        for k in range(self.c_terms):
-            input_vars += (",\n        " +
-                           "complex[::1,:] C%d" % k)
+        
         for k in range(self.a_terms):
             input_vars += (",\n        " +
                            "complex[::1,:] A%d" % k)
+        
+        for k in range(self.c_terms):
+            input_vars += (",\n        " +
+                           "complex[::1,:] C%d" % k)
         #Add array for each Cubic_Spline term
         spline = 0
         for htd in self.h_td_terms:
@@ -167,7 +169,7 @@ class BR_Codegen(object):
     def aop_td_funcs(self):
         aop_func_str=[]
         for kk in range(self.a_terms):
-            aop_func_str += ["cdef double spectral{0}(double w, double t): return {1}".format(kk, self.a_td_terms[kk])]
+            aop_func_str += ["cdef complex spectral{0}(double w, double t): return {1}".format(kk, self.a_td_terms[kk])]
         return aop_func_str
     
     def ham_add_and_eigsolve(self):

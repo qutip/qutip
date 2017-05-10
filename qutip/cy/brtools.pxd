@@ -33,7 +33,7 @@
 cimport numpy as np
 
 #Spectral function with signature (w,t)
-ctypedef double (*spec_func)(double, double)
+ctypedef complex (*spec_func)(double, double)
 
 cdef complex[::1,:] farray_alloc(int nrows)
 

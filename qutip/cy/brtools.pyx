@@ -514,7 +514,7 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                         bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk],t)
                     elem -= bd_elem / 2.0
                     
-                if cabs(elem) >= atol:
+                if elem != 0:
                     coo_rows.push_back(I)
                     coo_cols.push_back(J)
                     coo_data.push_back(elem)
