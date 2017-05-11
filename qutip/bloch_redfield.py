@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, QuSTaR
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -34,25 +34,37 @@
 __all__ = ['brmesolve', 'bloch_redfield_solve', 'bloch_redfield_tensor']
 
 import numpy as np
+import os
+import types
+import warnings
+from functools import partial
 import scipy.integrate
 import scipy.sparse as sp
 from qutip.qobj import Qobj, isket
+from qutip.states import ket2dm
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
-from qutip.solver import Options, _solver_safety_check
+from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.solver import Result
 from qutip.superoperator import liouvillian
 from qutip.cy.spconvert import arr_coo2fast
+from qutip.cy.br_codegen import BR_Codegen
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.cy.utilities import _cython_build_cleanup
+from qutip.expect import expect_rho_vec
+from qutip.rhs_generate import _td_format_check
+import qutip.settings as qset
 
 
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
-def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
-              args={}, options=Options(),
-              _safe_mode=True):
+def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
+              args={}, use_secular=True, tol=qset.atol,
+              spectra_cb=None, options=None,
+              progress_bar=None, _safe_mode=True):
     """
     Solve the dynamics for a system using the Bloch-Redfield master equation.
 
@@ -96,35 +108,75 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by `tlist`.
     """
+    if isinstance(c_ops, Qobj):
+        c_ops = [c_ops]
+
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+    
+    if not (spectra_cb is None):
+        warnings.warn("The use of spectra_cb is depreciated.", DeprecationWarning)
+        _a_ops = []
+        for kk, a in enumerate(a_ops):
+            _a_ops.append([a,spectra_cb[kk]])
+        a_ops = _a_ops
 
     if _safe_mode:
-        _solver_safety_check(H, psi0, a_ops, e_ops, args)
+        _solver_safety_check(H, psi0, a_ops+c_ops, e_ops, args)
     
-    if not spectra_cb:
-        # default to infinite temperature white noise
-        spectra_cb = [lambda w: 1.0 for _ in a_ops]
+    # check for type (if any) of time-dependent inputs
+    _, n_func, n_str = _td_format_check(H, a_ops+c_ops)
+    
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
+        
+    if options is None:
+        options = Options()
+    
+    if n_str == 0:
+    
+        R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=c_ops)
 
-    R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops)
+        output = Result()
+        output.solver = "brmesolve"
+        output.times = tlist
 
-    output = Result()
-    output.solver = "brmesolve"
-    output.times = tlist
+        results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options,
+                    progress_bar=progress_bar)
 
-    results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
+        if e_ops:
+            output.expect = results
+        else:
+            output.states = results
 
-    if e_ops:
-        output.expect = results
+        return output
+        
+    elif n_str != 0 and n_func == 0:
+        output = _td_brmesolve(H, psi0, tlist, a_ops=a_ops, e_ops=e_ops, 
+                        c_ops=c_ops, use_secular=use_secular, 
+                        tol=tol, options=options, 
+                         progress_bar=progress_bar,
+                         _safe_mode=_safe_mode)
+                         
+        return output
+        
     else:
-        output.states = results
-
-    return output
+        raise Exception('Cannot mix func and str formats.')
 
 
 # -----------------------------------------------------------------------------
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 #
-def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
+def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress_bar=None):
     """
     Evolve the ODEs defined by Bloch-Redfield master equation. The
     Bloch-Redfield tensor can be calculated by the function
@@ -167,6 +219,11 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     if options.tidy:
         R.tidyup()
 
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
+    
     #
     # check initial state
     #
@@ -210,8 +267,9 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     # start evolution
     #
     dt = np.diff(tlist)
+    progress_bar.start(n_tsteps)
     for t_idx, _ in enumerate(tlist):
-
+        progress_bar.update(t_idx)
         if not r.successful():
             break
 
@@ -228,7 +286,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
-
+    progress_bar.finished()
     return result_list
 
 
@@ -236,7 +294,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 # Functions for calculating the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
@@ -275,18 +333,21 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
         Hamiltonian.
 
     """
-
+    
+    if not (spectra_cb is None):
+        warnings.warn("The use of spectra_cb is depreciated.", DeprecationWarning)
+        _a_ops = []
+        for kk, a in enumerate(a_ops):
+            _a_ops.append([a,spectra_cb[kk]])
+        a_ops = _a_ops
+    
     # Sanity checks for input parameters
     if not isinstance(H, Qobj):
         raise TypeError("H must be an instance of Qobj")
 
     for a in a_ops:
-        if not isinstance(a, Qobj) or not a.isherm:
+        if not isinstance(a[0], Qobj) or not a[0].isherm:
             raise TypeError("Operators in a_ops must be Hermitian Qobj.")
-
-    # default spectrum
-    if not spectra_cb:
-        spectra_cb = [lambda w: 1.0 for _ in a_ops]
 
     if c_ops is None:
         c_ops = []
@@ -304,7 +365,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
         return L, ekets
     
     
-    A = np.array([a_ops[k].transform(ekets).full() for k in range(K)])
+    A = np.array([a_ops[k][0].transform(ekets).full() for k in range(K)])
     Jw = np.zeros((K, N, N), dtype=complex)
 
     # pre-calculate matrix elements and spectral densities
@@ -315,7 +376,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
         # do explicit loops here in case spectra_cb[k] can not deal with array arguments
         for n in range(N):
             for m in range(N):
-                Jw[k, n, m] = spectra_cb[k](W[n, m])
+                Jw[k, n, m] = a_ops[k][1](W[n, m])
 
     dw_min = np.abs(W[W.nonzero()]).min()
 
@@ -363,3 +424,191 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
     L.data = L.data + R
     
     return L, ekets
+
+
+
+
+def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
+                 use_secular=True, tol=qset.atol, options=None, 
+                 progress_bar=None,_safe_mode=True):
+
+    if (not options.rhs_reuse) or (not config.tdfunc):
+        # reset config collapse and time-dependence flags to default values
+        config.reset()
+        
+    if isket(psi0):
+        rho0 = ket2dm(psi0)
+    else:
+        rho0 = psi0
+    nrows = rho0.shape[0]
+    
+    H_terms = []
+    H_td_terms = []
+    A_terms = []
+    A_td_terms = []
+    C_terms = []
+    C_td_terms = []
+    
+    if isinstance(H, Qobj):
+        H_terms.append(H.full('f'))
+        H_td_terms.append('1')
+    else: 
+        for kk, h in enumerate(H):
+            if isinstance(h, Qobj):
+                H_terms.append(h.full('f'))
+                H_td_terms.append('1')
+            elif isinstance(h, list):
+                H_terms.append(h[0].full('f'))
+                H_td_terms.append(h[1])
+            else:
+                raise Exception('Invalid Hamiltonian specifiction.')
+     
+    for kk, a in enumerate(a_ops):
+        if isinstance(a, list):
+            A_terms.append(a[0].full('f'))
+            A_td_terms.append(a[1])
+        else:
+            raise Exception('Invalid bath-coupling specifiction.')
+            
+    for kk, c in enumerate(c_ops):
+        if isinstance(c, Qobj):
+            C_terms.append(c.full('f'))
+            C_td_terms.append('1')
+        elif isinstance(c, list):
+            C_terms.append(c[0].full('f'))
+            C_td_terms.append(c[1])
+        else:
+            raise Exception('Invalid collape operator specifiction.')
+            
+    string_list = []
+    for kk,_ in enumerate(H_td_terms):
+        string_list.append("H_terms[{0}]".format(kk))
+    for kk,_ in enumerate(A_td_terms):
+        string_list.append("A_terms[{0}]".format(kk))
+    for kk,_ in enumerate(C_td_terms):
+        string_list.append("C_terms[{0}]".format(kk))
+    #Add nrows to parameters
+    string_list.append('nrows')
+    parameter_string = ",".join(string_list)
+    
+    #
+    # generate and compile new cython code if necessary
+    #
+    if not options.rhs_reuse or config.tdfunc is None:
+        if options.rhs_filename is None:
+            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
+        else:
+            config.tdname = opt.rhs_filename
+        cgen = BR_Codegen(h_terms=len(H_terms), h_td_terms=H_td_terms,
+                c_terms=len(C_terms), c_td_terms=C_td_terms,
+                a_terms=len(A_terms), a_td_terms=A_td_terms,
+                config=config, sparse=False,
+                use_secular = use_secular,
+                use_openmp=False, omp_threads=None, 
+                atol=tol)
+        cgen.generate(config.tdname + ".pyx")
+
+        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
+                       '<string>', 'exec')
+        exec(code, globals())
+        config.tdfunc = cy_td_ode_rhs
+    
+    initial_vector = mat2vec(rho0.full()).ravel()
+    
+    _ode = scipy.integrate.ode(config.tdfunc)
+    code = compile('_ode.set_f_params(' + parameter_string + ')',
+                    '<string>', 'exec')
+    _ode.set_integrator('zvode', method=options.method, 
+                    order=options.order, atol=options.atol, 
+                    rtol=options.rtol, nsteps=options.nsteps,
+                    first_step=options.first_step, 
+                    min_step=options.min_step,
+                    max_step=options.max_step)
+    _ode.set_initial_value(initial_vector, tlist[0])
+    exec(code, locals())
+    
+    #
+    # prepare output array
+    #
+    n_tsteps = len(tlist)
+    e_sops_data = []
+
+    output = Result()
+    output.solver = "brmesolve"
+    output.times = tlist
+
+    if options.store_states:
+        output.states = []
+
+    if isinstance(e_ops, types.FunctionType):
+        n_expt_op = 0
+        expt_callback = True
+
+    elif isinstance(e_ops, list):
+        n_expt_op = len(e_ops)
+        expt_callback = False
+
+        if n_expt_op == 0:
+            # fall back on storing states
+            output.states = []
+            options.store_states = True
+        else:
+            output.expect = []
+            output.num_expect = n_expt_op
+            for op in e_ops:
+                e_sops_data.append(spre(op).data)
+                if op.isherm:
+                    output.expect.append(np.zeros(n_tsteps))
+                else:
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+
+    else:
+        raise TypeError("Expectation parameter must be a list or a function")
+
+    #
+    # start evolution
+    #
+    progress_bar.start(n_tsteps)
+
+    rho = Qobj(rho0)
+
+    dt = np.diff(tlist)
+    for t_idx, t in enumerate(tlist):
+        progress_bar.update(t_idx)
+
+        if not _ode.successful():
+            raise Exception("ODE integration error: Try to increase "
+                            "the allowed number of substeps by increasing "
+                            "the nsteps parameter in the Options class.")
+
+        if options.store_states or expt_callback:
+            rho.data = dense2D_to_fastcsr_fmode(vec2mat(_ode.y), rho.shape[0], rho.shape[1])
+
+            if options.store_states:
+                output.states.append(Qobj(rho, isherm=True))
+
+            if expt_callback:
+                # use callback method
+                e_ops(t, rho)
+
+        for m in range(n_expt_op):
+            if output.expect[m].dtype == complex:
+                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m],
+                                                         _ode.y, 0)
+            else:
+                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m],
+                                                         _ode.y, 1)
+
+        if t_idx < n_tsteps - 1:
+            _ode.integrate(_ode.t + dt[t_idx])
+
+    progress_bar.finished()
+
+    if (not options.rhs_reuse) and (config.tdname is not None):
+        _cython_build_cleanup(config.tdname)
+    
+    if options.store_final_state:
+        rho.data = dense2D_to_fastcsr_fmode(vec2mat(_ode.y), rho.shape[0], rho.shape[1])
+        output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
+
+    return output

@@ -162,7 +162,7 @@ def test_br_term_mult():
         spec = lambda w: 1.0
         H_diag = H.transform(H.eigenstates()[1])
         L_diag = liouvillian(H_diag)
-        R = (bloch_redfield_tensor(H, [a], [spec], c_ops=[], use_secular=use_secular)[0] - L_diag)
+        R = (bloch_redfield_tensor(H, [[a,spec]], c_ops=[], use_secular=use_secular)[0] - L_diag)
         ans = R.data.dot(vec)
         evals = np.zeros(N,dtype=float)
         evecs = _test_zheevr(Hf, evals)
@@ -184,7 +184,7 @@ def test_br_term_mult():
         spec = lambda w: 1.0
         H_diag = H.transform(H.eigenstates()[1])
         L_diag = liouvillian(H_diag)
-        R = (bloch_redfield_tensor(H, [a], [spec], c_ops=[], use_secular=use_secular)[0] - L_diag)
+        R = (bloch_redfield_tensor(H, [[a,spec]], c_ops=[], use_secular=use_secular)[0] - L_diag)
         ans = R.data.dot(vec)
         evals = np.zeros(N,dtype=float)
         evecs = _test_zheevr(Hf, evals)
