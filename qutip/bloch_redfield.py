@@ -49,6 +49,7 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.solver import Result
 from qutip.superoperator import liouvillian
+from qutip.interpolate import Cubic_Spline
 from qutip.cy.spconvert import arr_coo2fast
 from qutip.cy.br_codegen import BR_Codegen
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
@@ -444,10 +445,12 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     
     H_terms = []
     H_td_terms = []
+    H_obj = []
     A_terms = []
     A_td_terms = []
     C_terms = []
     C_td_terms = []
+    C_obj = []
     
     if isinstance(H, Qobj):
         H_terms.append(H.full('f'))
@@ -459,6 +462,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 H_td_terms.append('1')
             elif isinstance(h, list):
                 H_terms.append(h[0].full('f'))
+                if isinstance(h[1], Cubic_Spline):
+                    H_obj.append(h[1].coeffs)
                 H_td_terms.append(h[1])
             else:
                 raise Exception('Invalid Hamiltonian specifiction.')
@@ -476,6 +481,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             C_td_terms.append('1')
         elif isinstance(c, list):
             C_terms.append(c[0].full('f'))
+            if isinstance(c[1], Cubic_Spline):
+                C_obj.append(c[1].coeffs)
             C_td_terms.append(c[1])
         else:
             raise Exception('Invalid collape operator specifiction.')
@@ -483,10 +490,14 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     string_list = []
     for kk,_ in enumerate(H_td_terms):
         string_list.append("H_terms[{0}]".format(kk))
+    for kk,_ in enumerate(H_obj):
+        string_list.append("H_obj[{0}]".format(kk))
     for kk,_ in enumerate(A_td_terms):
         string_list.append("A_terms[{0}]".format(kk))
     for kk,_ in enumerate(C_td_terms):
         string_list.append("C_terms[{0}]".format(kk))
+    for kk,_ in enumerate(C_obj):
+        string_list.append("C_obj[{0}]".format(kk))
     #Add nrows to parameters
     string_list.append('nrows')
     parameter_string = ",".join(string_list)
@@ -499,15 +510,17 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
-        cgen = BR_Codegen(h_terms=len(H_terms), h_td_terms=H_td_terms,
-                c_terms=len(C_terms), c_td_terms=C_td_terms,
-                a_terms=len(A_terms), a_td_terms=A_td_terms,
-                config=config, sparse=False,
-                use_secular = use_secular,
-                use_openmp=False, omp_threads=None, 
-                atol=tol)
+        cgen = BR_Codegen(h_terms=len(H_terms), 
+                    h_td_terms=H_td_terms, h_obj=H_obj,
+                    c_terms=len(C_terms), 
+                    c_td_terms=C_td_terms, c_obj=C_obj,
+                    a_terms=len(A_terms), a_td_terms=A_td_terms,
+                    config=config, sparse=False,
+                    use_secular = use_secular,
+                    use_openmp=False, omp_threads=None, 
+                    atol=tol)
+        
         cgen.generate(config.tdname + ".pyx")
-
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())

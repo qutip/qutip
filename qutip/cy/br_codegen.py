@@ -44,8 +44,8 @@ class BR_Codegen(object):
     Class for generating Bloch-Redfield time-dependent code
     at runtime.
     """
-    def __init__(self, h_terms=None, h_td_terms=None,
-                c_terms=None, c_td_terms=None,
+    def __init__(self, h_terms=None, h_td_terms=None, h_obj=None,
+                c_terms=None, c_td_terms=None, c_obj=None,
                 a_terms=None, a_td_terms=None,
                 config=None, sparse=False,
                 use_secular = True,
@@ -58,15 +58,17 @@ class BR_Codegen(object):
         # Hamiltonian time-depdendent pieces
         self.h_terms = h_terms  # number of H pieces
         self.h_td_terms = h_td_terms
+        self.h_obj = h_obj
         # Collapse operator time-depdendent pieces
         self.c_terms = c_terms  # number of C pieces
         self.c_td_terms = c_td_terms
+        self.c_obj = c_obj
         # BR operator time-depdendent pieces
         self.a_terms = a_terms  # number of A pieces
         self.a_td_terms = a_td_terms
         self.use_secular = use_secular
         self.sparse = sparse
-        
+        self.spline = 0
         # Code generator properties
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
@@ -96,6 +98,8 @@ class BR_Codegen(object):
         for line in cython_checks() + self.ODE_func_header():
             self.write(line)
         self.indent()
+        #Reset spline count
+        self.spline = 0
         for line in self.func_vars()+self.ham_add_and_eigsolve()+ \
                 self.br_matvec_terms()+["\n"]:
             self.write(line)
@@ -130,6 +134,17 @@ class BR_Codegen(object):
             input_vars += (",\n        " +
                            "complex[::1,:] H%d" % k)
         
+        #Add array for each Cubic_Spline H term
+        for htd in self.h_td_terms:
+            if isinstance(htd, Cubic_Spline):
+                if not htd.is_complex:
+                    input_vars += (",\n        " +
+                                   "double[::1] spline%d" % self.spline)
+                else:
+                    input_vars += (",\n        " +
+                                   "complex[::1] spline%d" % self.spline)
+                self.spline += 1
+        
         for k in range(self.a_terms):
             input_vars += (",\n        " +
                            "complex[::1,:] A%d" % k)
@@ -137,17 +152,17 @@ class BR_Codegen(object):
         for k in range(self.c_terms):
             input_vars += (",\n        " +
                            "complex[::1,:] C%d" % k)
-        #Add array for each Cubic_Spline term
-        spline = 0
-        for htd in self.h_td_terms:
-            if isinstance(htd, Cubic_Spline):
-                if not htd.is_complex:
+        
+        #Add array for each Cubic_Spline c_op term
+        for ctd in self.c_td_terms:
+            if isinstance(ctd, Cubic_Spline):
+                if not ctd.is_complex:
                     input_vars += (",\n        " +
-                                   "double[::1] spline%d" % spline)
+                                   "double[::1] spline%d" % self.spline)
                 else:
                     input_vars += (",\n        " +
-                                   "complex[::1] spline%d" % spline)
-                spline += 1
+                                   "complex[::1] spline%d" % self.spline)
+                self.spline += 1
         
         
         input_vars += (",\n        unsigned int nrows")
@@ -160,9 +175,6 @@ class BR_Codegen(object):
         func_vars = ["", "cdef double complex * " +
                      'out = <complex *>PyDataMem_NEW_ZEROED(nrows**2,sizeof(complex))']
         func_vars.append(" ")
-        tdterms = self.h_td_terms
-        hinds = 0
-        spline = 0
         return func_vars
     
     
@@ -180,7 +192,16 @@ class BR_Codegen(object):
         #allocate double array for eigenvalues
         ham_str += ['cdef double * eigvals = <double *>PyDataMem_NEW_ZEROED(nrows,sizeof(double))']
         for kk in range(self.h_terms):
-            ham_str += ["ham_add_mult(H, H{0}, {1})".format(kk,self.h_td_terms[kk])]
+            if isinstance(self.h_td_terms[kk], Cubic_Spline):
+                S = self.h_td_terms[kk]
+                if not S.is_complex:
+                    td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
+                else:
+                    td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
+                ham_str += ["ham_add_mult(H, H{0}, {1})".format(kk,td_str)]
+                self.spline += 1
+            else:
+                ham_str += ["ham_add_mult(H, H{0}, {1})".format(kk,self.h_td_terms[kk])]
         #Do the eigensolving
         ham_str += ["ZHEEVR(H, eigvals, evecs, nrows)"]
         #Free H as it is no longer needed
@@ -196,7 +217,16 @@ class BR_Codegen(object):
         br_str += ["diag_liou_mult(eigvals, eig_vec, out, nrows)"]
         # Do the cop_term matvec for each c_term
         for kk in range(self.c_terms):
-            br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk],self.atol)]
+            if isinstance(self.c_td_terms[kk], Cubic_Spline):
+                S = self.c_td_terms[kk]
+                if not S.is_complex:
+                    td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
+                else:
+                    td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
+                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, td_str, self.atol)]
+                self.spline += 1
+            else:
+                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
         
         #Calculate skew and dw_min terms
         br_str += ["cdef double[:,::1] skew = <double[:nrows,:nrows]><double *>PyDataMem_NEW_ZEROED(nrows**2,sizeof(double))"]
