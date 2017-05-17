@@ -545,7 +545,7 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
                          "%s (use es or pi)." % solver)
 
 
-def spectrum_correlation_fft(taulist, y):
+def spectrum_correlation_fft(tlist, y):
     """
     Calculate the power spectrum corresponding to a two-time correlation
     function using FFT.
@@ -567,12 +567,13 @@ def spectrum_correlation_fft(taulist, y):
 
     if debug:
         print(inspect.stack()[0][3])
-
-    N = len(taulist)
-    dt = taulist[1] - taulist[0]
-
+    tlist = np.asarray(tlist)
+    N = tlist.shape[0]
+    dt = tlist[1] - tlist[0]
+    if not np.allclose(np.diff(tlist), dt*np.ones(N-1,dtype=float)):
+        raise Exception('tlist must be equally spaced for FFT.')
+    
     F = scipy.fftpack.fft(y)
-
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(N, dt)
 
