@@ -32,13 +32,26 @@
 ###############################################################################
 
 from numpy.testing import assert_, run_module_suite
-from qutip import coherent_dm, thermal_dm, fock_dm, triplet_states
+from qutip import (expect, destroy, coherent, coherent_dm, thermal_dm,
+                    fock_dm, triplet_states)
 
 
 class TestStates:
     """
     A test class for the QuTiP functions for generating quantum states
     """
+
+    def testCoherentState(self):
+        """
+        states: coherent state
+        """
+        N = 10
+        alpha = 0.5
+        c1 = coherent(N, alpha) # displacement method
+        c2 = coherent(7, alpha, offset=3) # analytic method
+        assert_(abs(expect(destroy(N), c1) - alpha) < 1e-10)
+        assert_((c1[3:]-c2).norm() < 1e-7)
+
 
     def testCoherentDensityMatrix(self):
         """
