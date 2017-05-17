@@ -51,7 +51,8 @@ from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
-                                 cy_ode_psi_func_td_with_state)
+                                 cy_ode_psi_func_td_with_state,
+                                 spmvpy_csr)
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
 
@@ -247,15 +248,20 @@ def psi_list_td(t, psi, H_list_and_args):
     H_list = H_list_and_args[0]
     args = H_list_and_args[1]
 
-    H = H_list[0][0] * H_list[0][1](t, args)
+    H = H_list[0][0]
+    H_td = H_list[0][1]
+    out = np.zeros(psi.shape[0],dtype=complex)
+    spmvpy_csr(H.data, H.indices, H.indptr, psi, H_td(t, args), out)
     for n in range(1, len(H_list)):
         #
         # args[n][0] = the sparse data for a Qobj in operator form
         # args[n][1] = function callback giving the coefficient
         #
-        H = H + H_list[n][0] * H_list[n][1](t, args)
+        H = H_list[n][0]
+        H_td = H_list[n][1]
+        spmvpy_csr(H.data, H.indices, H.indptr, psi, H_td(t, args), out)
 
-    return H * psi
+    return out
 
 
 def psi_list_td_with_state(t, psi, H_list_and_args):
@@ -263,15 +269,21 @@ def psi_list_td_with_state(t, psi, H_list_and_args):
     H_list = H_list_and_args[0]
     args = H_list_and_args[1]
 
-    H = H_list[0][0] * H_list[0][1](t, psi, args)
+    H = H_list[0][0]
+    H_td = H_list[0][1]
+    out = np.zeros(psi.shape[0],dtype=complex)
+    spmvpy_csr(H.data, H.indices, H.indptr,
+                psi, H_td(t, args), out)
     for n in range(1, len(H_list)):
         #
         # args[n][0] = the sparse data for a Qobj in operator form
         # args[n][1] = function callback giving the coefficient
         #
-        H = H + H_list[n][0] * H_list[n][1](t, psi, args)
+        H = H_list[n][0]
+        H_td = H_list[n][1]
+        spmvpy_csr(H.data, H.indices, H.indptr, psi, H_td(t, args), out)
 
-    return H * psi
+    return out
 
 
 # -----------------------------------------------------------------------------
