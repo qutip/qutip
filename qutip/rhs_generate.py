@@ -281,7 +281,7 @@ def _td_format_check(H, c_ops, solver='me'):
                         c_func.append(k)
                     elif isinstance(c_ops[k][1], str):
                         c_str.append(k)
-                    elif isinstance(H_k[1], Cubic_Spline):
+                    elif isinstance(c_ops[k][1], Cubic_Spline):
                         c_obj.append(k)
                     elif isinstance(c_ops[k][1], np.ndarray):
                         c_str.append(k)
@@ -315,6 +315,7 @@ def _td_format_check(H, c_ops, solver='me'):
     # If only time-dependence is in Objects, then prefer string based format
     if (len(h_func) + len(c_func) + len(h_str) + len(c_str)) == 0:
          h_str += h_obj #Does nothing if not objects
+         c_str += c_obj
     else:
         # Combine Hamiltonian objects
         if len(h_func) > 0:
