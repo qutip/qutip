@@ -67,42 +67,77 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
               spectra_cb=None, options=None,
               progress_bar=None, _safe_mode=True):
     """
-    Solve the dynamics for a system using the Bloch-Redfield master equation.
+    Solves for the dynamics of a system using the Bloch-Redfield master equation,
+    given an input Hamiltonian, Hermitian bath-coupling terms and their associated 
+    spectrum functions, as well as possible Lindblad collapse operators.
+              
+    For time-independent systems, the Hamiltonian must be given as a Qobj,
+    whereas the bath-coupling terms (a_ops), must be written as a nested list
+    of operator - spectrum function pairs, where the frequency is specified by
+    the `w` variable.
+              
+    *Example*
 
-    .. note::
+        a_ops = [[a+a.dag(),lambda w: 0.2*(w>=0)]] 
+              
+    For time-dependent systems, the Hamiltonian, a_ops, and Lindblad collapse
+    operators (c_ops), can be specified in the QuTiP string-based time-dependent
+    format.  For the a_op spectra, the frequency variable must be `w`, and the 
+    string cannot contain any other variables other than the possibility of having
+    a time-dependence through the time variable `t`:
+              
+              
+    *Example*
 
-        This solver does not currently support time-dependent Hamiltonians.
+        a_ops = [[a+a.dag(), '0.2*exp(-t)*(w>=0)']]
 
+    
     Parameters
     ----------
+    H : Qobj / list
+        System Hamiltonian given as a Qobj or
+        nested list in string-based format.
 
-    H : :class:`qutip.Qobj`
-        System Hamiltonian.
-
-    rho0 / psi0: :class:`qutip.Qobj`
+    psi0: Qobj
         Initial density matrix or state vector (ket).
 
-    tlist : *list* / *array*
-        List of times for :math:`t`.
+    tlist : array_like
+        List of times for evaluating evolution
 
-    a_ops : list of :class:`qutip.qobj`
-        List of system operators that couple to bath degrees of freedom.
+    a_ops : list
+        Nested list of Hermitian system operators that couple to 
+        the bath degrees of freedom, along with their associated
+        spectra.
 
-    e_ops : list of :class:`qutip.qobj` / callback function
+    e_ops : list
         List of operators for which to evaluate expectation values.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of system collapse operators.
+    c_ops : list
+        List of system collapse operators, or nested list in
+        string-based format.
 
-    args : *dictionary*
+    args : dict (not implimented)
         Placeholder for future implementation, kept for API consistency.
 
+    use_secular : bool {True}
+        Use secular approximation when evaluating bath-coupling terms.
+    
+    tol : float {qutip.setttings.atol}
+        Tolerance used for removing small values after 
+        basis transformation.
+              
+    spectra_cb : list
+        DEPRECIATED. Do not use.
+    
     options : :class:`qutip.solver.Options`
         Options for the solver.
+              
+    progress_bar : BaseProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation.
 
     Returns
     -------
-
     result: :class:`qutip.solver.Result`
 
         An instance of the class :class:`qutip.solver.Result`, which contains

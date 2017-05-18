@@ -196,6 +196,23 @@ def test_td_brmesolve_basic():
         assert_(diff < 5e-2)  # accept 5% error
 
 
+def test_td_brmesolve_aop():
+    """
+    td_brmesolve: time-dependent a_ops
+    """
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    a_ops = [[a+a.dag(), '{kappa}*exp(-t)*(w>=0)'.format(kappa=kappa)]]
+    tlist = np.linspace(0, 10, 100)
+    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a])
+    expt = medata.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_(avg_diff < 1e-6)
+
 
 if __name__ == "__main__":
     run_module_suite()

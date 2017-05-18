@@ -162,7 +162,7 @@ class Qobj(object):
         Returns eigenenergies and eigenstates of quantum object.
     expm()
         Matrix exponential of quantum object.
-    full()
+    full(order='C')
         Returns dense array of quantum object `data` attribute.
     groundstate(sparse=False, tol=0, maxiter=100000)
         Returns eigenvalue and eigenket for the groundstate of a quantum
