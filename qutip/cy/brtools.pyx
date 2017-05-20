@@ -479,7 +479,6 @@ cdef double skew_and_dwmin(double * evals, double[:,::1] skew,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
 cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
                 double complex * vec, double complex * out,
@@ -498,21 +497,21 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
         for J in range(nrows**2):
             vec2mat_index(nrows, J, cd)
             
-            if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min / 10.0)):
-                elem = (A_eig[ab[0],cd[0]]*A_eig[cd[1],ab[1]]) / 2.0
+            if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min * 0.1)):
+                elem = (A_eig[ab[0],cd[0]]*A_eig[cd[1],ab[1]]) * 0.5
                 elem *= (spectral(skew[cd[0],ab[0]],t)+spectral(skew[cd[1],ab[1]],t))
             
                 if (ab[0]==cd[0]):
                     ac_elem = 0
                     for kk in range(nrows):
                         ac_elem += A_eig[cd[1],kk]*A_eig[kk,ab[1]] * spectral(skew[cd[1],kk],t)
-                    elem -= ac_elem / 2.0
+                    elem -= 0.5*ac_elem
                     
                 if (ab[1]==cd[1]):
                     bd_elem = 0
                     for kk in range(nrows):
                         bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk],t)
-                    elem -= bd_elem / 2.0
+                    elem -= 0.5*bd_elem
                     
                 if elem != 0:
                     coo_rows.push_back(I)
