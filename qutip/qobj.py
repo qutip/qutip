@@ -162,7 +162,7 @@ class Qobj(object):
         Returns eigenenergies and eigenstates of quantum object.
     expm()
         Matrix exponential of quantum object.
-    full()
+    full(order='C')
         Returns dense array of quantum object `data` attribute.
     groundstate(sparse=False, tol=0, maxiter=100000)
         Returns eigenvalue and eigenket for the groundstate of a quantum
@@ -973,19 +973,25 @@ class Qobj(object):
         else:
             return complex(np.sum(self.data.diagonal()))
 
-    def full(self, squeeze=False):
+    def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
 
+        Parameters
+        ----------
+        order : str {'C', 'F'}
+            Return array in C (default) or Fortran ordering.
+        squeeze : bool {False, True}
+            Squeeze output array.
+        
         Returns
         -------
         data : array
             Array of complex data from quantum objects `data` attribute.
-
         """
         if squeeze:
-            return self.data.toarray().squeeze()
+            return self.data.toarray(order=order).squeeze()
         else:
-            return self.data.toarray()
+            return self.data.toarray(order=order)
 
     def diag(self):
         """Diagonal elements of quantum object.

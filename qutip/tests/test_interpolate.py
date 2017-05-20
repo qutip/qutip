@@ -253,5 +253,60 @@ def test_interpolate_evolve11():
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 
+def test_interpolate_brevolve1():
+    """
+    Interpolate: brmesolve str + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
+    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
+
+
+def test_interpolate_brevolve2():
+    """
+    Interpolate: brmesolve str + interp (complex)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.1j*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock_dm(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.1j*sin(t)'], [a**2+a.dag()**2,'-0.1j*sin(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'-0.1j*sin(t)']]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_brevolve3():
+    """
+    Interpolate: brmesolve c_op as interp (str)
+    """
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    tlist = np.linspace(0, 10, 100)
+
+    f = lambda t: np.sqrt(kappa*np.exp(-t))
+
+    S = Cubic_Spline(tlist[0],tlist[-1],f(tlist))
+    c_ops = [[a, S]]
+    brdata = brmesolve(H, psi0, tlist, a_ops=[], e_ops=[a.dag() * a], c_ops=c_ops)
+    expt = brdata.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_(avg_diff < 1e-4)
+
+
 if __name__ == "__main__":
     run_module_suite()
