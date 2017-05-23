@@ -41,7 +41,7 @@ cdef extern from "stdlib.h":
         int quot
         int rem
 
-include "sparse_struct.pxi"    
+include "sparse_routines.pxi"    
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -104,6 +104,43 @@ def dense2D_to_fastcsr_cmode(complex[:, ::1] mat, int nrows, int ncols):
         return fast_csr_matrix((data[:nnz], ind[:nnz], ptr), shape=(nrows,ncols))
     else:
         return fast_csr_matrix((data, ind, ptr), shape=(nrows,ncols))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void fdense2D_to_CSR(complex[::1, :] mat, CSR_Matrix * out, 
+                                unsigned int nrows, unsigned int ncols):
+    """
+    Converts a dense complex ndarray to a CSR matrix struct.
+
+    Parameters
+    ----------
+    mat : ndarray
+        Input complex ndarray
+    nrows : int
+        Number of rows in matrix.
+    ncols : int
+        Number of cols in matrix.
+
+    Returns
+    -------
+    out : CSR_Matrix
+        Output matrix as CSR struct.
+    """
+    cdef int nnz = 0
+    cdef size_t ii, jj
+    init_CSR(out, nrows*ncols, nrows, ncols, nrows*ncols)
+
+    for ii in range(nrows):
+        for jj in range(ncols):
+            if mat[ii,jj] != 0:
+                out.indices[nnz] = jj
+                out.data[nnz] = mat[ii,jj]
+                nnz += 1
+        out.indptr[ii+1] = nnz
+
+    if nnz < (nrows*ncols):
+        shorten_CSR(out, nnz)
 
 
 @cython.boundscheck(False)

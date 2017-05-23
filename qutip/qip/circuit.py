@@ -284,8 +284,7 @@ class QubitCircuit(object):
         start : Integer
             The qubit on which the first gate is applied.
         """
-
-        if self.N - start < len(qc.gates):
+        if self.N - start < qc.N:
             raise NotImplementedError("Targets exceed number of qubits.")
 
         for gate in qc.gates:
@@ -367,8 +366,8 @@ class QubitCircuit(object):
         """
         temp = QubitCircuit(self.N, self.reverse_states)
 
-        for i in range(self.N):
-            temp.append(self.gates[self.N - i - 1])
+        for gate in reversed(self.gates):
+            temp.add_gate(gate)
 
         return temp
 
