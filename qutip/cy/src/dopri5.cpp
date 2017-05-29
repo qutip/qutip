@@ -69,21 +69,21 @@ public:
 	};
 
 	void run(double t_in, double t_final, cplx *psi_in, cplx * psi_out);
-	int step(double, cplx *, cplx *);
-	double integrate(double, double, double, cplx *);
+	int step(double &, cplx *, cplx *);
+	double integrate(double, double, double, cplx *, double*);
 	void dopri5(const double &, cplx *, cplx *);
 };
 
 void ode::run(double t_in, double t_final, cplx *psi_in, cplx * psi_out){
-	double dt = t_final-t_in;
-	dopri5(dt, psi_in, psi_out);
+	double dtt = t_final-t_in;
+	dopri5(dtt, psi_in, psi_out);
 }
 
 //Do a dopri step while correcting for the error.
 //dt is the approximation of a good step size.
-//dtt is the desired step size.
+//dtt is the desired/max step size.
 //Need to check boost/zvode/scipy for their methods
-int ode::step(double dtt, cplx *psi_in, cplx *psi_out){
+int ode::step(double &dtt, cplx *psi_in, cplx *psi_out){
 	int count=0;
 	double ratio = dtt/dt;
 	dopri5(dtt, psi_in, psi_out);
@@ -93,37 +93,62 @@ int ode::step(double dtt, cplx *psi_in, cplx *psi_out){
 		count++;
 	}
 	if (count==2) return 0;
-	if (ratio > 0.5){
+	/*if (ratio > 0.5){
 		dt = dtt*std::pow(2*err[2],-0.2);
 		if(dt>max_step) dt = max_step;
-	}
+	}*/
 	return 1;
 }
 
-double ode::integrate(double t_in, double t_target, double rand, cplx *psi){
+double ode::integrate(double t_in, double t_target, double rand, cplx *psi, double *debug){
 	double t = t_in;
 	double dtt = dt, dt_guess;
 	double norm_b, norm_a,norm_guess;
 	bool success;
 	cplx *psi_out =  new cplx[l];
+	int steps =0;
 	
 	if( dtt > t_target - t ) dtt = t_target - t;
 	norm_b = norm2(psi,l);
 
-	while(t<t_target){
+	debug[0] = t_in;
+	debug[1] = t_target;
+	debug[2] = dtt;
+	debug[4] = rand;
+	debug[5] = norm_b;
+	debug[7] = 0.;
+
+	while(t<t_target && steps<100){
 		success = step(dtt, psi, psi_out);
-		if(!success){return -1;}
+				debug[8] = err[2];
+				debug[9] = err[0];
+				debug[10] = err[1];
+		if(!success){
+			delete[] psi_out;
+			return -1;
+		}
 		norm_a = norm2(psi_out,l);
+
+		debug[3] = dtt;
+		debug[6] = norm_a;
 		if( norm_a <= rand){ //found a collapse
 			int ii=norm_step;
 			while(ii--){
 				dt_guess = std::log(norm_b/rand)/std::log(norm_b/norm_a)*dtt;
+				debug[7] = dt_guess;
 				dopri5(dt_guess, psi, psi_out);
-				if(err[2]>1.){ return -2; }
+				debug[8] = err[2];
+				debug[9] = err[0];
+				debug[10] = err[1];
+				if(err[2]>1.){ 
+					delete[] psi_out;
+					return -2; 
+				}
 				norm_guess = norm2(psi_out,l);
 				if(std::abs( rand - norm_guess ) < norm_tol*rand ){
 					t += dt_guess;
 					for(int i=0;i<l;++i) psi[i]=psi_out[i];
+					norm_b=norm_guess;
 					break;
 				}else if(norm_guess<rand){
 					norm_a = norm_guess;
@@ -135,6 +160,7 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi){
 					for(int i=0;i<l;++i) psi[i]=psi_out[i];
 				}
 			}
+			delete[] psi_out;
 			if(ii==0){return -3;}
 			return t;
 		} else {
@@ -143,7 +169,10 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi){
 			norm_b = norm_a;
 			for(int i=0;i<l;++i) psi[i]=psi_out[i];
 		}
+		steps++;
 	}
+	delete[] psi_out;
+	if(steps==100)return -4;
 	return t;
 }
 
@@ -252,12 +281,12 @@ void ode::dopri5(const double &dt, cplx *in, cplx *out){
 		if(err[2]<temp) err[2] = temp;
 	}
 
-	delete _dxdt0;
-	delete _dxdt1;
-	delete _dxdt2;
-	delete _dxdt3;
-	delete _dxdt4;
-	delete _dxdt5;
-	delete _dxdt6;
-	delete _errout;
+	delete[] _dxdt0;
+	delete[] _dxdt1;
+	delete[] _dxdt2;
+	delete[] _dxdt3;
+	delete[] _dxdt4;
+	delete[] _dxdt5;
+	delete[] _dxdt6;
+	delete[] _errout;
 }

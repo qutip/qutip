@@ -8,7 +8,7 @@ cdef extern from "src/dopri5.cpp":
         ode(int*, double*, int*, int*, complex*)
         void run(double, double, complex*, complex*)
         int step(double, complex*, complex*)
-        double integrate(double, double, double, complex*)
+        double integrate(double, double, double, complex*, double*)
         
 cdef class ode_dopri:
     cdef ode* cobj
@@ -36,8 +36,9 @@ cdef class ode_dopri:
     def __del__(self):
         del self.cobj
         
-    cpdef double integrate(self,double _t_in, double _t_target, double rand, np.ndarray[complex, ndim=1] _psi ):
+    cpdef double integrate(self, double _t_in, double _t_target, double rand, \
+            np.ndarray[complex, ndim=1] _psi, np.ndarray[double, ndim=1] _err  ):
         #cdef np.ndarray[complex, ndim=1] y
         #t_out = self.cobj.integrate(t_in,_t_target,rand,<complex*>_psi.data)
-        return self.cobj.integrate(_t_in,_t_target,rand,<complex*>_psi.data)
+        return self.cobj.integrate(_t_in,_t_target,rand,<complex*>_psi.data, <double*>_err.data)
         

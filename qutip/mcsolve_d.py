@@ -363,7 +363,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
                         options, config)
 
         # compile and load cython functions if necessary
-        _mc_func_load(config)
+        #_mc_func_load(config)
 
     else:
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
@@ -634,7 +634,7 @@ def _build_integration_func(config):
             ODE = ode(_pyRHSc)
         ODE.set_f_params(config)
     else:
-        ODE = ode(_cy_rhs_func)
+        ODE = ode(cy_ode_rhs)
         ODE.set_f_params(config.h_data, config.h_ind,
                          config.h_ptr)
 
@@ -687,8 +687,7 @@ def _evolve_no_collapse_psi_out(config):
 
     opt = config.options
         
-    f, compiled_ops = _build_integration_func(config)
-    ODE = ode(f)
+    ODE, compiled_ops = _build_integration_func(config)
 
     # initialize ODE solver for RHS
     ODE.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -746,12 +745,11 @@ def _evolve_no_collapse_expect_out(config):
 
     opt = config.options
 
-    f, compiled_ops = _build_integration_func(config)
-    ODE = ode(f)
+    ODE, compiled_ops = _build_integration_func(config)
+
     if config.tflag in [1, 10, 11]:
-        (_cy_col_spmv_func, _cy_col_expect_func, 
-            _cy_col_spmv_call_func, _cy_col_expect_call_func) = compiled_ops
-        
+        (_cy_col_spmv_call_func, _cy_col_expect_call_func) = compiled_ops
+
     ODE.set_integrator('zvode', method=opt.method, order=opt.order,
                        atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                        first_step=opt.first_step, min_step=opt.min_step,
@@ -800,6 +798,7 @@ def _mc_alg_evolve(nt, config, opt, seeds):
         if config.tflag in [1, 10, 11]:
             (_cy_col_spmv_call_func, _cy_col_expect_call_func) = compiled_ops
 
+        tlist = config.tlist
         # set initial conditions
         ODE.set_initial_value(config.psi0, tlist[0])
 

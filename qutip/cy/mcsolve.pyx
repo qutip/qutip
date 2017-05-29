@@ -249,6 +249,7 @@ def cy_mc_run_cte_ode(config, prng):
     cdef np.ndarray states_out
 
     cdef np.ndarray[complex, ndim=1] psi
+    cdef np.ndarray[double, ndim=1] err = np.zeros(11)
     
     if config.options.steady_state_average:
         states_out = np.zeros((1), dtype=object)
@@ -310,8 +311,12 @@ def cy_mc_run_cte_ode(config, prng):
     for k in range(1, num_times):
         while t < tlist[k]:
             # integrate up to tlist[k], one step at a time.
-            tt = ODE.integrate(t,tlist[k],rand_vals[0],psi)
-            if(tt<tlist[k]):
+            tt = ODE.integrate(t,tlist[k],rand_vals[0],psi,err)
+            if(tt<0):
+                print(k)
+                print(tt,err)
+            t=tt
+            if(t<tlist[k]):
                 collapse_times.append(tt)
 
                 # all constant collapse operators.
@@ -334,6 +339,8 @@ def cy_mc_run_cte_ode(config, prng):
                 state = state / dznrm2(state)
                 psi = state
                 rand_vals = prng.rand(2)
+
+
 
 
         # after while loop
