@@ -17,7 +17,7 @@ cdef double dznrm2(np.ndarray[complex, ndim=1] psi):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cy_mc_run_ode(ODE, config, prng, _cy_col_expect_call_func, _cy_col_spmv_call_func):
+def cy_mc_run_ode(ODE, config, prng, compiled_ops):
     cdef int i,ii,j,jj,k
     cdef double norm2_psi, norm2_prev, norm2_guess, t_prev, t_final, t_guess
     cdef np.ndarray[ double, ndim=1] rand_vals
@@ -74,6 +74,10 @@ def cy_mc_run_ode(ODE, config, prng, _cy_col_expect_call_func, _cy_col_spmv_call
     collapse_times = []
     which_oper = []
 
+    if config.tflag in [1, 10, 11]:
+        (_cy_col_spmv_call_func, _cy_col_expect_call_func,
+            _cy_col_spmv_func,_cy_col_expect_func) = compiled_ops
+
     # first rand is collapse norm, second is which operator
     rand_vals = prng.rand(2)
     
@@ -90,7 +94,11 @@ def cy_mc_run_ode(ODE, config, prng, _cy_col_expect_call_func, _cy_col_spmv_call
         while t_prev < tlist[k]:
             # integrate up to tlist[k], one step at a time.
             ODE.integrate(tlist[k], step=1)
+            #if prng.rand(2)[0] < 0.0001:
+            #    print(ODE._integrator.call_args)
             if not ODE.successful():
+                print(ODE.t,t_prev,tlist[k])
+                print(ODE._integrator.call_args)
                 raise Exception("ZVODE failed!")
             norm2_psi = dznrm2(ODE._y) ** 2
             if norm2_psi <= rand_vals[0]:
@@ -195,8 +203,9 @@ def cy_mc_run_ode(ODE, config, prng, _cy_col_expect_call_func, _cy_col_spmv_call
                                      config.c_ops_ind[j],
                                      config.c_ops_ptr[j], ODE._y)
                 state = state / dznrm2(state)
-                ODE._y = state
-                ODE._integrator.call_args[3] = 1
+                #ODE._y = state
+                #ODE._integrator.call_args[3] = 1
+                ODE.set_initial_value(state, t_prev)
                 rand_vals = prng.rand(2)
             else:
                 norm2_prev = norm2_psi

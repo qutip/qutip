@@ -68,7 +68,11 @@ if debug:
 # Internal, global variables for storing references to dynamically loaded
 # cython functions
 #
-
+_cy_col_spmv_func = None
+_cy_col_expect_func = None
+_cy_col_spmv_call_func = None
+_cy_col_expect_call_func = None
+_cy_rhs_func = None
 
 class qutip_zvode(zvode):
     def step(self, *args):
@@ -363,7 +367,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
                         options, config)
 
         # compile and load cython functions if necessary
-        #_mc_func_load(config)
+        _mc_func_load(config)
 
     else:
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
@@ -473,6 +477,7 @@ class _MC():
 # -----------------------------------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
 # -----------------------------------------------------------------------------
+
 def _build_integration_func(config):
 
     """
@@ -483,134 +488,16 @@ def _build_integration_func(config):
     #import numba
 
     #global _cy_rhs_func
-    #global _cy_col_spmv_func, _cy_col_expect_func
-    #global _cy_col_spmv_call_func, _cy_col_expect_call_func
+    
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
     if debug:
         print(inspect.stack()[0][3] + " in " + str(os.getpid()))
 
-    compiled_ops = ()
-    
-    if config.tflag in [1, 10, 11]:
-        # compile time-depdendent RHS code
-        if config.tflag in [1, 11]:
-            code = compile('from ' + config.tdname +
-                           ' import cy_td_ode_rhs, col_spmv, col_expect',
-                           '<string>', 'exec')
-            exec(code, globals())
-            _cy_rhs_func = cy_td_ode_rhs
-            _cy_col_spmv_func = col_spmv
-            _cy_col_expect_func = col_expect
-        else:
-            code = compile('from ' + config.tdname +
-                           ' import cy_td_ode_rhs', '<string>', 'exec')
-            exec(code, globals())
-            _cy_rhs_func = cy_td_ode_rhs
-
-        # compile wrapper functions for calling cython spmv and expect
-        if config.col_spmv_code:
-            _cy_col_spmv_call_func = compile(
-                config.col_spmv_code, '<string>', 'exec')
-
-        if config.col_expect_code:
-            _cy_col_expect_call_func = compile(
-                config.col_expect_code, '<string>', 'exec')
-        compiled_ops = (_cy_col_spmv_call_func, _cy_col_expect_call_func)
-    
-    
-    # RHS of ODE for time-dependent systems with no collapse operators
-    # Never actually used?
-    #   def _tdRHS(t, psi):
-    #       h_data = config.h_func(t, config.h_func_args).data
-    #       return spmv(h_data, psi)
-
-
-    # RHS of ODE for constant Hamiltonian and at least one function based
-    # collapse operator
-    #@numba.jit()
-    def _cRHStd(t, psi, config):    #config.tflag == 2
-        sys = cy_ode_rhs(t, psi, config.h_data,
-                         config.h_ind, config.h_ptr)
-        col = np.array([np.abs(config.c_funcs[j](t, config.c_func_args)) ** 2 *
-                        spmv_csr(config.n_ops_data[j],
-                                 config.n_ops_ind[j],
-                                 config.n_ops_ptr[j], psi)
-                        for j in config.c_td_inds])
-        return sys - 0.5 * np.sum(col, 0)
-
-
-    # RHS of ODE for list-function based Hamiltonian
-    #@numba.jit()
-    def _tdRHStd(t, psi, config): #config.tflag == [20, 22]
-        const_term = spmv_csr(config.h_data,
-                              config.h_ind,
-                              config.h_ptr, psi)
-        h_func_term = np.array([config.h_funcs[j](t, config.h_func_args) *
-                                spmv_csr(config.h_td_data[j],
-                                         config.h_td_ind[j],
-                                         config.h_td_ptr[j], psi)
-                                for j in config.h_td_inds])
-        col_func_terms = np.array([np.abs(
-            config.c_funcs[j](t, config.c_func_args)) ** 2 *
-            spmv_csr(config.n_ops_data[j],
-                     config.n_ops_ind[j],
-                     config.n_ops_ptr[j],
-                     psi)
-            for j in config.c_td_inds])
-        return (const_term + np.sum(h_func_term, 0)
-                - 0.5 * np.sum(col_func_terms, 0))
-
-    #@numba.jit()
-    def _tdRHStd_with_state(t, psi, config): #config.tflag == [20, 22]
-
-        const_term = spmv_csr(config.h_data,
-                              config.h_ind,
-                              config.h_ptr, psi)
-
-        h_func_term = np.array([
-            config.h_funcs[j](t, psi, config.h_func_args) *
-            spmv_csr(config.h_td_data[j],
-                     config.h_td_ind[j],
-                     config.h_td_ptr[j], psi)
-            for j in config.h_td_inds])
-
-        col_func_terms = np.array([
-            np.abs(config.c_funcs[j](t, config.c_func_args)) ** 2 *
-            spmv_csr(config.n_ops_data[j],
-                     config.n_ops_ind[j],
-                     config.n_ops_ptr[j], psi)
-            for j in config.c_td_inds])
-
-        return (const_term + np.sum(h_func_term, 0)
-                - 0.5 * np.sum(col_func_terms, 0))
-
-
-    # RHS of ODE for python function Hamiltonian
-    #@numba.jit()
-    def _pyRHSc(t, psi, config):     #config.tflag == 3
-        h_func_data = - 1.0j * config.h_funcs(t, config.h_func_args)
-        h_func_term = spmv(h_func_data, psi)
-        const_col_term = 0
-        if len(config.c_const_inds) > 0:
-            const_col_term = spmv_csr(config.h_data, config.h_ind,
-                                      config.h_ptr, psi)
-
-        return h_func_term + const_col_term
-
-    #@numba.jit()
-    def _pyRHSc_with_state(t, psi, config):   #config.tflag == 3
-        h_func_data = - 1.0j * config.h_funcs(t, psi, config.h_func_args)
-        h_func_term = spmv(h_func_data, psi)
-        const_col_term = 0
-        if len(config.c_const_inds) > 0:
-            const_col_term = spmv_csr(config.h_data, config.h_ind,
-                                      config.h_ptr, psi)
-
-        return h_func_term + const_col_term
-
-    #@numba.jit()
-    #def _cy_ode_rhs(t, psi):   #config.tflag == 0
-    #    return cy_ode_rhs(t, psi, config.h_data, config.h_ind, config.h_ptr)
+    if not _cy_rhs_func:
+        _mc_func_load(config)
 
     # CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
     if config.tflag in [1, 10, 11]:
@@ -651,7 +538,100 @@ def _build_integration_func(config):
         ODE._y = np.array([0.0], complex)
     ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
 
-    return ODE, compiled_ops
+    return ODE
+
+
+
+# -----------------------------------------------------------------------------
+# CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
+# -----------------------------------------------------------------------------
+
+# RHS of ODE for time-dependent systems with no collapse operators
+def _tdRHS(t, psi, config):
+    h_data = config.h_func(t, config.h_func_args).data
+    return spmv(h_data, psi)
+
+
+# RHS of ODE for constant Hamiltonian and at least one function based
+# collapse operator
+def _cRHStd(t, psi, config):
+    sys = cy_ode_rhs(t, psi, config.h_data,
+                     config.h_ind, config.h_ptr)
+    col = np.array([np.abs(config.c_funcs[j](t, config.c_func_args)) ** 2 *
+                    spmv_csr(config.n_ops_data[j],
+                             config.n_ops_ind[j],
+                             config.n_ops_ptr[j], psi)
+                    for j in config.c_td_inds])
+    return sys - 0.5 * np.sum(col, 0)
+
+
+# RHS of ODE for list-function based Hamiltonian
+def _tdRHStd(t, psi, config):
+    const_term = spmv_csr(config.h_data,
+                          config.h_ind,
+                          config.h_ptr, psi)
+    h_func_term = np.array([config.h_funcs[j](t, config.h_func_args) *
+                            spmv_csr(config.h_td_data[j],
+                                     config.h_td_ind[j],
+                                     config.h_td_ptr[j], psi)
+                            for j in config.h_td_inds])
+    col_func_terms = np.array([np.abs(
+        config.c_funcs[j](t, config.c_func_args)) ** 2 *
+        spmv_csr(config.n_ops_data[j],
+                 config.n_ops_ind[j],
+                 config.n_ops_ptr[j],
+                 psi)
+        for j in config.c_td_inds])
+    return (const_term + np.sum(h_func_term, 0)
+            - 0.5 * np.sum(col_func_terms, 0))
+
+
+def _tdRHStd_with_state(t, psi, config):
+
+    const_term = spmv_csr(config.h_data,
+                          config.h_ind,
+                          config.h_ptr, psi)
+
+    h_func_term = np.array([
+        config.h_funcs[j](t, psi, config.h_func_args) *
+        spmv_csr(config.h_td_data[j],
+                 config.h_td_ind[j],
+                 config.h_td_ptr[j], psi)
+        for j in config.h_td_inds])
+
+    col_func_terms = np.array([
+        np.abs(config.c_funcs[j](t, config.c_func_args)) ** 2 *
+        spmv_csr(config.n_ops_data[j],
+                 config.n_ops_ind[j],
+                 config.n_ops_ptr[j], psi)
+        for j in config.c_td_inds])
+
+    return (const_term + np.sum(h_func_term, 0)
+            - 0.5 * np.sum(col_func_terms, 0))
+
+
+# RHS of ODE for python function Hamiltonian
+def _pyRHSc(t, psi, config):
+    h_func_data = - 1.0j * config.h_funcs(t, config.h_func_args)
+    h_func_term = spmv(h_func_data, psi)
+    const_col_term = 0
+    if len(config.c_const_inds) > 0:
+        const_col_term = spmv_csr(config.h_data, config.h_ind,
+                                  config.h_ptr, psi)
+
+    return h_func_term + const_col_term
+
+
+def _pyRHSc_with_state(t, psi, config):
+    h_func_data = - 1.0j * config.h_funcs(t, psi, config.h_func_args)
+    h_func_term = spmv(h_func_data, psi)
+    const_col_term = 0
+    if len(config.c_const_inds) > 0:
+        const_col_term = spmv_csr(config.h_data, config.h_ind,
+                                  config.h_ptr, psi)
+
+    return h_func_term + const_col_term
+
 
 
 # -----------------------------------------------------------------------------
@@ -662,6 +642,10 @@ def _evolve_no_collapse_psi_out(config):
     Calculates state vectors at times tlist if no collapse AND no
     expectation values are given.
     """
+
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
     num_times = len(config.tlist)
     psi_out = np.array([None] * num_times)
@@ -686,8 +670,11 @@ def _evolve_no_collapse_psi_out(config):
         print(inspect.stack()[0][3])
 
     opt = config.options
-        
-    ODE, compiled_ops = _build_integration_func(config)
+    
+    ODE = _build_integration_func(config)
+    if config.tflag in [1, 10, 11]:
+        (_cy_col_spmv_call_func, _cy_col_expect_call_func,
+                _cy_col_spmv_func,_cy_col_expect_func) = compiled_ops
 
     # initialize ODE solver for RHS
     ODE.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -723,6 +710,10 @@ def _evolve_no_collapse_expect_out(config):
     Calculates expect.values at times tlist if no collapse ops. given
     """
 
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
     if debug:
         print(inspect.stack()[0][3])
 
@@ -745,10 +736,7 @@ def _evolve_no_collapse_expect_out(config):
 
     opt = config.options
 
-    ODE, compiled_ops = _build_integration_func(config)
-
-    if config.tflag in [1, 10, 11]:
-        (_cy_col_spmv_call_func, _cy_col_expect_call_func) = compiled_ops
+    ODE = _build_integration_func(config)
 
     ODE.set_integrator('zvode', method=opt.method, order=opt.order,
                        atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -784,6 +772,9 @@ def _mc_alg_evolve(nt, config, opt, seeds):
     Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
     """
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
     # SEED AND RNG AND GENERATE
     prng = RandomState(seeds[nt])
@@ -791,19 +782,22 @@ def _mc_alg_evolve(nt, config, opt, seeds):
         states_out, expect_out, collapse_times, which_oper = cy_mc_run_cte_ode(
             config,prng)
     else:
-        ODE, compiled_ops = _build_integration_func(config)
+        ODE = _build_integration_func(config)
 
-        _cy_col_spmv_call_func = None
-        _cy_col_expect_call_func = None
-        if config.tflag in [1, 10, 11]:
-            (_cy_col_spmv_call_func, _cy_col_expect_call_func) = compiled_ops
+        #if config.tflag in [1, 10, 11]:
+        #    (_cy_col_spmv_call_func, _cy_col_expect_call_func,
+        #        _cy_col_spmv_func,_cy_col_expect_func) = compiled_ops
 
         tlist = config.tlist
         # set initial conditions
         ODE.set_initial_value(config.psi0, tlist[0])
+        compiled_ops = None
+        if config.tflag in [1, 10, 11]:
+            compiled_ops = (_cy_col_spmv_call_func, _cy_col_expect_call_func,
+                _cy_col_spmv_func,_cy_col_expect_func)
 
         states_out, expect_out, collapse_times, which_oper = cy_mc_run_ode(ODE,
-                 config,prng,_cy_col_expect_call_func,_cy_col_spmv_call_func)
+                 config, prng, compiled_ops)
 
     # Run at end of mc_alg function
     # -----------------------------
@@ -819,8 +813,46 @@ def _mc_alg_evolve(nt, config, opt, seeds):
             np.array(collapse_times, dtype=float),
             np.array(which_oper, dtype=int))
 
+def _mc_func_load(config):
+    """Load cython functions"""
 
-def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, config):
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
+    if debug:
+        print(inspect.stack()[0][3] + " in " + str(os.getpid()))
+
+    if config.tflag in [1, 10, 11]:
+        # compile time-depdendent RHS code
+        if config.tflag in [1, 11]:
+            code = compile('from ' + config.tdname +
+                           ' import cy_td_ode_rhs, col_spmv, col_expect',
+                           '<string>', 'exec')
+            exec(code, globals())
+            _cy_rhs_func = cy_td_ode_rhs
+            _cy_col_spmv_func = col_spmv
+            _cy_col_expect_func = col_expect
+        else:
+            code = compile('from ' + config.tdname +
+                           ' import cy_td_ode_rhs', '<string>', 'exec')
+            exec(code, globals())
+            _cy_rhs_func = cy_td_ode_rhs
+
+        # compile wrapper functions for calling cython spmv and expect
+        if config.col_spmv_code:
+            _cy_col_spmv_call_func = compile(
+                config.col_spmv_code, '<string>', 'exec')
+
+        if config.col_expect_code:
+            _cy_col_expect_call_func = compile(
+                config.col_expect_code, '<string>', 'exec')
+
+    elif config.tflag == 0:
+        _cy_rhs_func = cy_ode_rhs
+
+def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
+                    options, config):
     """Creates the appropriate data structures for the monte carlo solver
     based on the given time-dependent, or indepdendent, format.
     """
@@ -1034,12 +1066,26 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, conf
 
         name = "rhs" + str(os.getpid()) + str(config.cgen_num)
         config.tdname = name
+
         cgen = Codegen(H_inds, config.h_tdterms, config.h_td_inds, args,
                        C_inds, C_tdterms, config.c_td_inds, type='mc',
                        config=config)
         cgen.generate(name + ".pyx")
 
     elif config.tflag in [2, 20, 22]:
+        try:
+            from numba import autojit
+        except:
+            #dummy jit
+            def autojit(f):
+                return f
+
+        def try_jit(f):
+            try:
+                return autojit(f)
+            except:
+                return f
+
         # PYTHON LIST-FUNCTION BASED TIME-DEPENDENCE
         # ------------------------------------------
 
@@ -1055,7 +1101,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, conf
             H_inds = np.arange(len(H))
             H_td_inds = np.array(h_stuff[1])
             H_const_inds = np.setdiff1d(H_inds, H_td_inds)
-            config.h_funcs = np.array([H[k][1] for k in H_td_inds])
+            config.h_funcs = np.array([try_jit(H[k][1]) for k in H_td_inds])
             config.h_func_args = args
             Htd = np.array([H[k][0] for k in H_td_inds], dtype=object)
             config.h_td_inds = np.arange(len(Htd))
@@ -1073,7 +1119,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, conf
         config.c_td_inds = C_td_inds
         config.c_funcs = np.zeros(config.c_num, dtype=FunctionType)
         for k in config.c_td_inds:
-            config.c_funcs[k] = c_ops[k][1]
+            config.c_funcs[k] = try_jit(c_ops[k][1])
         config.c_func_args = args
 
         # combine constant collapse terms with constant H and construct data
