@@ -48,35 +48,18 @@ def _chunk_dims(dims, order):
 
 
 def _permute(Q, order):
-    if Q.isket:
-        dims, perm = _perm_inds(Q.dims[0], order)
-        nzs = Q.data.nonzero()[0]
-        wh = np.where(perm == nzs)[0]
-        data = np.ones(len(wh), dtype=complex)
-        cols = perm[wh].T[0]
-        perm_matrix = arr_coo2fast(data, wh.astype(np.int32), cols.astype(np.int32), 
-                                Q.shape[0], Q.shape[0])
-        return perm_matrix * Q.data, Q.dims
+    if Q.isket or Q.isbra or Q.isoper:
+    	Qcoo = Q.data.tocoo()
+    	ridx, cidx = Qcoo.row, Qcoo.col
+    	r_multi_indx = np.unravel_index(ridx, Q.dims[0])
+    	c_multi_indx = np.unravel_index(cidx, Q.dims[1])
+    	r_multi_indx = tuple(r_multi_indx[i] for i in order)
+    	c_multi_indx = tuple(c_multi_indx[i] for i in order)
+    	new_dims = [[Q.dims[0][i] for i in order], [Q.dims[1][i] for i in order]]
+    	ridx = np.asarray(np.ravel_multi_index(r_multi_indx, new_dims[0]), dtype=np.int32)
+    	cidx = np.asarray(np.ravel_multi_index(c_multi_indx, new_dims[1]), dtype=np.int32)
+    	return arr_coo2fast(Qcoo.data, ridx, cidx, Qcoo.shape[0], Qcoo.shape[1]), new_dims
 
-    elif Q.isbra:
-        dims, perm = _perm_inds(Q.dims[1], order)
-        nzs = Q.data.nonzero()[1]
-        wh = np.where(perm == nzs)[0]
-        data = np.ones(len(wh), dtype=complex)
-        rows = perm[wh].T[0]
-        perm_matrix = arr_coo2fast(data, rows.astype(np.int32), wh.astype(np.int32),
-                                    Q.shape[1], Q.shape[1])
-        return Q.data * perm_matrix, Q.dims
-
-    elif Q.isoper:
-        dims, perm = _perm_inds(Q.dims[0], order)
-        data = np.ones(Q.shape[0], dtype=complex)
-        rows = np.arange(Q.shape[0], dtype=np.int32)
-        perm_matrix = arr_coo2fast(data, rows, (perm.T[0]).astype(np.int32),
-                                    Q.shape[1], Q.shape[1])
-        dims_part = list(dims[order])
-        dims = [dims_part, dims_part]
-        return (perm_matrix * Q.data) * perm_matrix.T, dims
 
     elif Q.issuper or Q.isoperket:
         # For superoperators, we expect order to be something like
