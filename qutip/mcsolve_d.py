@@ -1101,7 +1101,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             H_inds = np.arange(len(H))
             H_td_inds = np.array(h_stuff[1])
             H_const_inds = np.setdiff1d(H_inds, H_td_inds)
-            config.h_funcs = np.array([try_jit(H[k][1]) for k in H_td_inds])
+            config.h_funcs = np.array([H[k][1] for k in H_td_inds])
             config.h_func_args = args
             Htd = np.array([H[k][0] for k in H_td_inds], dtype=object)
             config.h_td_inds = np.arange(len(Htd))
@@ -1119,7 +1119,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         config.c_td_inds = C_td_inds
         config.c_funcs = np.zeros(config.c_num, dtype=FunctionType)
         for k in config.c_td_inds:
-            config.c_funcs[k] = try_jit(c_ops[k][1])
+            config.c_funcs[k] = c_ops[k][1]
         config.c_func_args = args
 
         # combine constant collapse terms with constant H and construct data

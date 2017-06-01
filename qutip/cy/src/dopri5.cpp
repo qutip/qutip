@@ -27,9 +27,6 @@ void dxdt(cplx *in, cplx *out, const spmat &H){
 	H.v_mult(in, out);
 }
 
-
-
-
 double norm2(const cplx *in, const int l){
 	double result = 0.0;
 	double *dptr=(double*) in;
@@ -47,6 +44,8 @@ private:
 	double atol, rtol, min_step, max_step, norm_tol;
 
 	double dt;
+	cplx *derr_in;
+	cplx *derr_out;
 
 public:
 	ode(){std::cout << "Ode vide\n";};
@@ -66,6 +65,14 @@ public:
 		H.data=_h_data;
 		dt = min_step;
 		if(min_step ==0.) dt = std::pow(atol,0.2);
+
+		derr_in = new cplx[l];
+		derr_out = new cplx[l];
+
+	};
+	~ode(){
+		delete[] derr_in;
+		delete[] derr_out;
 	};
 
 	void run(double t_in, double t_final, cplx *psi_in, cplx * psi_out);
@@ -76,6 +83,7 @@ public:
 
 void ode::run(double t_in, double t_final, cplx *psi_in, cplx * psi_out){
 	double dtt = t_final-t_in;
+	dxdt(psi_in, derr_in, H);
 	dopri5(dtt, psi_in, psi_out);
 }
 
@@ -114,29 +122,32 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi, doub
 	debug[0] = t_in;
 	debug[1] = t_target;
 	debug[2] = dtt;
-	debug[4] = rand;
+	debug[4] = 0.;
 	debug[5] = norm_b;
-	debug[7] = 0.;
+	debug[7] = rand;
 
 	while(t<t_target && steps<100){
+		dxdt(psi, derr_in, H);
 		success = step(dtt, psi, psi_out);
-				debug[8] = err[2];
-				debug[9] = err[0];
-				debug[10] = err[1];
+		debug[3] = dtt;
+		debug[8] = err[2];
+		debug[9] = err[0];
+		debug[10] = err[1];
+
 		if(!success){
 			delete[] psi_out;
 			return -1;
 		}
 		norm_a = norm2(psi_out,l);
-
-		debug[3] = dtt;
 		debug[6] = norm_a;
-		if( norm_a <= rand){ //found a collapse
+
+		if( norm_a <= rand ){ //found a collapse
 			int ii=norm_step;
 			while(ii--){
 				dt_guess = std::log(norm_b/rand)/std::log(norm_b/norm_a)*dtt;
-				debug[7] = dt_guess;
 				dopri5(dt_guess, psi, psi_out);
+
+				debug[4] = dt_guess;
 				debug[8] = err[2];
 				debug[9] = err[0];
 				debug[10] = err[1];
@@ -144,6 +155,7 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi, doub
 					delete[] psi_out;
 					return -2; 
 				}
+
 				norm_guess = norm2(psi_out,l);
 				if(std::abs( rand - norm_guess ) < norm_tol*rand ){
 					t += dt_guess;
@@ -158,16 +170,20 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi, doub
 					t += dt_guess;
 					dtt -= dt_guess;
 					for(int i=0;i<l;++i) psi[i]=psi_out[i];
+					std::swap(derr_in,derr_out);
 				}
 			}
+
 			delete[] psi_out;
 			if(ii==0){return -3;}
 			return t;
+
 		} else {
 			t += dtt;
-			if( dtt > t_target - t ) dtt = t_target - t;
 			norm_b = norm_a;
+			if( dtt > t_target - t ) dtt = t_target - t;
 			for(int i=0;i<l;++i) psi[i]=psi_out[i];
+			std::swap(derr_in,derr_out);
 		}
 		steps++;
 	}
@@ -177,13 +193,13 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi, doub
 }
 
 void ode::dopri5(const double &dt, cplx *in, cplx *out){
-	cplx *_dxdt0 = new cplx[l];
+	cplx *_dxdt0 = derr_in;
 	cplx *_dxdt1 = new cplx[l];
 	cplx *_dxdt2 = new cplx[l];
 	cplx *_dxdt3 = new cplx[l];
 	cplx *_dxdt4 = new cplx[l];
 	cplx *_dxdt5 = new cplx[l];
-	cplx *_dxdt6 = new cplx[l];
+	cplx *_dxdt6 = derr_out;
 	cplx *_errout = new cplx[l];
 
 	//static const double c[6]  = {(double)1./5.,(double)3./10.,(double)4./5.,(double)8./9., 1., 1.};
@@ -199,7 +215,7 @@ void ode::dopri5(const double &dt, cplx *in, cplx *out){
 	static const double b[7]  = {(double)5179./57600., 0.,(double)7571./16695.,(double)393./640.,
 					      (double)-92097./339200., (double) 187./2100., (double) 1./40.};
 
-	dxdt(in, _dxdt0, H);
+	//dxdt(in, _dxdt0, H);
 
 	for(int i=0;i<l;++i){
 		out[i] = in[i];
@@ -244,7 +260,7 @@ void ode::dopri5(const double &dt, cplx *in, cplx *out){
 	for(int i=0;i<l;++i){
 		out[i] = in[i];
 		out[i] += _dxdt0[i]*a6[0]*dt;
-		out[i] += _dxdt1[i]*a6[1]*dt;
+		//out[i] += _dxdt1[i]*a6[1]*dt;
 		out[i] += _dxdt2[i]*a6[2]*dt;
 		out[i] += _dxdt3[i]*a6[3]*dt;
 		out[i] += _dxdt4[i]*a6[4]*dt;
@@ -255,7 +271,7 @@ void ode::dopri5(const double &dt, cplx *in, cplx *out){
 	for(int i=0;i<l;++i){
 		_errout[i] = in[i];
 		_errout[i] += _dxdt0[i]*b[0]*dt;
-		_errout[i] += _dxdt1[i]*b[1]*dt;
+		//_errout[i] += _dxdt1[i]*b[1]*dt;
 		_errout[i] += _dxdt2[i]*b[2]*dt;
 		_errout[i] += _dxdt3[i]*b[3]*dt;
 		_errout[i] += _dxdt4[i]*b[4]*dt;
@@ -281,12 +297,18 @@ void ode::dopri5(const double &dt, cplx *in, cplx *out){
 		if(err[2]<temp) err[2] = temp;
 	}
 
-	delete[] _dxdt0;
+	//delete[] _dxdt0;
 	delete[] _dxdt1;
 	delete[] _dxdt2;
 	delete[] _dxdt3;
 	delete[] _dxdt4;
 	delete[] _dxdt5;
-	delete[] _dxdt6;
+	//delete[] _dxdt6;
 	delete[] _errout;
 }
+
+
+
+
+
+
