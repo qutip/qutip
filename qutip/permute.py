@@ -36,7 +36,7 @@ __all__ = ['reshuffle']
 import numpy as np
 import scipy.sparse as sp
 from qutip.cy.ptrace import _select
-from qutip.cy.spconvert import arr_coo2fast
+from qutip.cy.spconvert import arr_coo2fast, cy_index_permute
 
 
 def _chunk_dims(dims, order):
@@ -48,21 +48,34 @@ def _chunk_dims(dims, order):
 
 
 def _permute(Q, order):
-    if Q.isket or Q.isbra or Q.isoper:
-    	Qcoo = Q.data.tocoo()
-    	ridx, cidx = Qcoo.row, Qcoo.col
-    	r_multi_indx = np.unravel_index(ridx, Q.dims[0])
-    	c_multi_indx = np.unravel_index(cidx, Q.dims[1])
-    	r_multi_indx = tuple(r_multi_indx[i] for i in order)
-    	c_multi_indx = tuple(c_multi_indx[i] for i in order)
-    	new_dims = [[Q.dims[0][i] for i in order], [Q.dims[1][i] for i in order]]
-    	ridx = np.asarray(np.ravel_multi_index(r_multi_indx, new_dims[0]), dtype=np.int32)
-    	cidx = np.asarray(np.ravel_multi_index(c_multi_indx, new_dims[1]), dtype=np.int32)
-    	return arr_coo2fast(Qcoo.data, ridx, cidx, Qcoo.shape[0], Qcoo.shape[1]), new_dims
+    Qcoo = Q.data.tocoo()
+    
+    if Q.isket:
+        cy_index_permute(Qcoo.row,
+                         np.array(Q.dims[0], dtype=np.int32),
+                         np.array(order, dtype=np.int32))
+        
+        new_dims = [[Q.dims[0][i] for i in order], Q.dims[1]]
 
+    elif Q.isbra:
+        cy_index_permute(Qcoo.col,
+                         np.array(Q.dims[1], dtype=np.int32),
+                         np.array(order, dtype=np.int32))
+        
+        new_dims = [Q.dims[0], [Q.dims[1][i] for i in order]]
 
-    elif Q.issuper or Q.isoperket:
-        # For superoperators, we expect order to be something like
+    elif Q.isoper:
+        cy_index_permute(Qcoo.row,
+                         np.array(Q.dims[0], dtype=np.int32),
+                         np.array(order, dtype=np.int32))
+        cy_index_permute(Qcoo.col,
+                         np.array(Q.dims[1], dtype=np.int32),
+                         np.array(order, dtype=np.int32))
+        
+        new_dims = [[Q.dims[0][i] for i in order], [Q.dims[1][i] for i in order]]
+    
+    elif Q.isoperket:
+    	# For superoperators, we expect order to be something like
         # [[0, 2], [1, 3]], which tells us to permute according to
         # [0, 2, 1 ,3], and then group indices according to the length
         # of each sublist.
@@ -75,30 +88,45 @@ def _permute(Q, order):
         # Since this is a super, the left index itself breaks into left
         # and right indices, each of which breaks down further.
         # The best way to deal with that here is to flatten dims.
-        flat_order = sum(order, [])
-        q_dims_left = sum(Q.dims[0], [])
-        dims, perm = _perm_inds(q_dims_left, flat_order)
-        dims = dims.flatten()
-
-        data = np.ones(Q.shape[0], dtype=complex)
-        rows = np.arange(Q.shape[0], dtype=np.int32)
-
-        perm_matrix = arr_coo2fast(data, rows, (perm.T[0]).astype(np.int32),
-                                    Q.shape[0], Q.shape[0])
-
-        dims_part = list(dims[flat_order])
-
+        
+        flat_order = np.array(sum(order, []), dtype=np.int32)
+        q_dims = np.array(sum(Q.dims[0], []), dtype=np.int32)
+        
+        cy_index_permute(Qcoo.row, q_dims, flat_order)
+        
         # Finally, we need to restructure the now-decomposed left index
         # into left and right subindices, so that the overall dims we return
         # are of the form specified by order.
-        dims_part = list(_chunk_dims(dims_part, order))
-        perm_left = (perm_matrix * Q.data)
-        if Q.type == 'operator-ket':
-            return perm_left, [dims_part, [1]]
-        elif Q.type == 'super':
-            return perm_left * perm_matrix.T, [dims_part, dims_part]
+        
+        new_dims = [q_dims[i] for i in flat_order]
+        new_dims = list(_chunk_dims(new_dims, order))
+        new_dims = [new_dims, [1]]
+    
+    elif Q.isoperbra:
+        flat_order = np.array(sum(order, []), dtype=np.int32)
+        q_dims = np.array(sum(Q.dims[1], []), dtype=np.int32)
+        
+        cy_index_permute(Qcoo.col, q_dims, flat_order)
+        
+        new_dims = [q_dims[i] for i in flat_order]
+        new_dims = list(_chunk_dims(new_dims, order))
+        new_dims = [[1], new_dims]
+    
+    elif Q.issuper:
+        flat_order = np.array(sum(order, []), dtype=np.int32)
+        q_dims = np.array(sum(Q.dims[0], []), dtype=np.int32)
+        
+        cy_index_permute(Qcoo.row, q_dims, flat_order)
+        cy_index_permute(Qcoo.col, q_dims, flat_order)
+        
+        new_dims = [q_dims[i] for i in flat_order]
+        new_dims = list(_chunk_dims(new_dims, order))
+        new_dims = [new_dims, new_dims]
+        
     else:
         raise TypeError('Invalid quantum object for permutation.')
+    
+    return arr_coo2fast(Qcoo.data, Qcoo.row, Qcoo.col, Qcoo.shape[0], Qcoo.shape[1]), new_dims
 
 
 def _perm_inds(dims, order):
