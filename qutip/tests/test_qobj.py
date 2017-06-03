@@ -623,6 +623,22 @@ def test_QobjPermute():
         rho = tensor(A, B, C)
         rho2 = rho.permute([1, 0, 2])
         assert_(rho2 == tensor(B, A, C))
+        
+        rho_vec = operator_to_vector(rho)
+        rho2_vec = rho_vec.permute([[1, 0, 2],[4,3,5]])
+        assert_(rho2_vec == operator_to_vector(tensor(B, A, C)))
+        
+        rho_vec_bra = operator_to_vector(rho).dag()
+        rho2_vec_bra = rho_vec_bra.permute([[1, 0, 2],[4,3,5]])
+        assert_(rho2_vec_bra == operator_to_vector(tensor(B, A, C)).dag())
+        
+    for ii in range(3):
+        super_dims = [3, 5, 4]
+        U = rand_unitary(np.prod(super_dims), density=0.02, dims=[super_dims, super_dims])
+        Unew = U.permute([2,1,0])
+        S_tens = to_super(U)
+        S_tens_new = to_super(Unew)
+        assert_(S_tens_new == S_tens.permute([[2,1,0],[5,4,3]]))
 
 
 def test_KetType():
