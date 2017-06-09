@@ -64,7 +64,7 @@ public:
 		H.ptr=_h_ptr;
 		H.data=_h_data;
 		dt = min_step;
-		if(min_step ==0.) dt = std::pow(atol,0.2);
+		if(min_step ==0.) dt = std::pow(atol,0.25);
 
 		derr_in = new cplx[l];
 		derr_out = new cplx[l];
@@ -93,18 +93,24 @@ void ode::run(double t_in, double t_final, cplx *psi_in, cplx * psi_out){
 //Need to check boost/zvode/scipy for their methods
 int ode::step(double &dtt, cplx *psi_in, cplx *psi_out){
 	int count=0;
-	double ratio = dtt/dt;
+
+	double ratio = dtt/dt; // Check if the time-step is too big
+	if (ratio >2) {
+		dtt = dt;
+	}
+
 	dopri5(dtt, psi_in, psi_out);
 	while(err[2]>=1. && count<2){
-		dtt *= std::pow(2*err[2],-0.2);
+		dtt *= std::pow(2*err[2],-0.25);
 		dopri5(dtt, psi_in, psi_out);
 		count++;
 	}
 	if (count==2) return 0;
-	/*if (ratio > 0.5){
-		dt = dtt*std::pow(2*err[2],-0.2);
+
+	if (ratio > 0.5){ // New dt if ddt meaningful
+		dt = dtt*std::pow(2*err[2],-0.25);
 		if(dt>max_step) dt = max_step;
-	}*/
+	}
 	return 1;
 }
 
