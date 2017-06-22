@@ -54,7 +54,8 @@ def wigner_cmap(W, levels=1024, shift=0, max_color='#09224F',
                 mid_color='#FFFFFF', min_color='#530017',
                 neg_color='#FF97D4', invert=False):
     """A custom colormap that emphasizes negative values by creating a
-    nonlinear colormap.
+
+nonlinear colormap.
 
     Parameters
     ----------
@@ -108,6 +109,7 @@ def wigner_cmap(W, levels=1024, shift=0, max_color='#09224F',
     adjust_RGBA = np.hstack((np.zeros((levels, 3)), np.ones((levels, 1))))
     zero_pos = np.round(levels * np.abs(shift - bounds[0])
                         / (bounds[1] - bounds[0]))
+    zero_pos = int(zero_pos) # solve the IndexError
     num_pos = levels - zero_pos
     num_neg = zero_pos - 1
     # set zero values to mid_color
