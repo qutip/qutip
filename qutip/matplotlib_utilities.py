@@ -54,8 +54,7 @@ def wigner_cmap(W, levels=1024, shift=0, max_color='#09224F',
                 mid_color='#FFFFFF', min_color='#530017',
                 neg_color='#FF97D4', invert=False):
     """A custom colormap that emphasizes negative values by creating a
-
-nonlinear colormap.
+    nonlinear colormap.
 
     Parameters
     ----------
