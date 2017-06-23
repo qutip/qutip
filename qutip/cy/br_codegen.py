@@ -49,7 +49,9 @@ class BR_Codegen(object):
                 a_terms=None, a_td_terms=None,
                 config=None, sparse=False,
                 use_secular = True,
-                use_openmp=False, omp_threads=None, 
+                use_openmp=False, 
+                omp_thresh=None,
+                omp_threads=None, 
                 atol=None):
         import sys
         import os
@@ -78,7 +80,9 @@ class BR_Codegen(object):
         else:
             self.atol = atol
         
-        
+        self.use_openmp = use_openmp
+        self.omp_thresh = omp_thresh
+        self.omp_threads = omp_threads
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -90,7 +94,7 @@ class BR_Codegen(object):
 
     def generate(self, filename="rhs.pyx"):
         """generate the file"""
-        for line in cython_preamble()+self.aop_td_funcs():
+        for line in cython_preamble(self.use_openmp)+self.aop_td_funcs():
             self.write(line)
         
         # write function for Hamiltonian terms (there is always 
@@ -223,10 +227,18 @@ class BR_Codegen(object):
                     td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
                 else:
                     td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
-                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, td_str, self.atol)]
+                if self.use_openmp:
+                    br_str += ["cop_super_mult_openmp(C{0}, evecs, eig_vec, {1}, out, nrows, {2}, {3}, {4})".format(kk, 
+                                            td_str, self.omp_thresh, self.omp_threads, self.atol)]
+                else:
+                    br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, td_str, self.atol)]
                 self.spline += 1
             else:
-                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
+                if self.use_openmp:
+                    br_str += ["cop_super_mult_openmp(C{0}, evecs, eig_vec, {1}, out, nrows, {2}, {3}, {4})".format(kk, 
+                                            self.c_td_terms[kk], self.omp_thresh, self.omp_threads, self.atol)]
+                else:
+                    br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
         
         #Calculate skew and dw_min terms
         br_str += ["cdef double[:,::1] skew = <double[:nrows,:nrows]><double *>PyDataMem_NEW_ZEROED(nrows**2,sizeof(double))"]
@@ -234,7 +246,11 @@ class BR_Codegen(object):
         
         #Compute BR term matvec
         for kk in range(self.a_terms):
-            br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2})".format(kk, self.use_secular, self.atol)]
+            if self.use_openmp:
+                br_str += ["br_term_mult_openmp(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4})".format(kk, 
+                                    self.use_secular, self.omp_thresh, self.omp_threads, self.atol)]
+            else:
+                br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2})".format(kk, self.use_secular, self.atol)]
         
         return br_str
 
@@ -253,7 +269,12 @@ class BR_Codegen(object):
         return end_str
 
 
-def cython_preamble():
+def cython_preamble(use_omp=False):
+    if use_omp:
+        call_str = "from qutip.cy.openmp.br_omp cimport (cop_super_mult_openmp, br_term_mult_openmp)"
+    else:
+        call_str = "from qutip.cy.brtools cimport (cop_super_mult, br_term_mult)"
+    
     """
     Returns list of code segments for Cython preamble.
     """
@@ -269,15 +290,15 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
     void PyDataMem_FREE(void * ptr)
-from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.interpolate cimport interp, zinterp
 from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 from qutip.cy.brtools cimport (ham_add_mult, ZHEEVR, dense_to_eigbasis,
         vec_to_eigbasis, vec_to_fockbasis, skew_and_dwmin,
-        diag_liou_mult, cop_super_mult, br_term_mult,
-        spec_func, farray_alloc)
-
+        diag_liou_mult, spec_func, farray_alloc)
+"""
++call_str+
+"""
 include """+_include_string+"""
 
 """]
