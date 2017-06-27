@@ -47,9 +47,12 @@ class BR_Codegen(object):
     def __init__(self, h_terms=None, h_td_terms=None, h_obj=None,
                 c_terms=None, c_td_terms=None, c_obj=None,
                 a_terms=None, a_td_terms=None,
+                spline_count=[0,0],
                 config=None, sparse=False,
                 use_secular = True,
-                use_openmp=False, omp_threads=None, 
+                use_openmp=False, 
+                omp_thresh=None,
+                omp_threads=None, 
                 atol=None):
         import sys
         import os
@@ -66,6 +69,7 @@ class BR_Codegen(object):
         # BR operator time-depdendent pieces
         self.a_terms = a_terms  # number of A pieces
         self.a_td_terms = a_td_terms
+        self.spline_count = spline_count
         self.use_secular = use_secular
         self.sparse = sparse
         self.spline = 0
@@ -77,6 +81,10 @@ class BR_Codegen(object):
             self.atol = qset.atol
         else:
             self.atol = atol
+        
+        self.use_openmp = use_openmp
+        self.omp_thresh = omp_thresh
+        self.omp_threads = omp_threads
         
         
 
@@ -90,7 +98,7 @@ class BR_Codegen(object):
 
     def generate(self, filename="rhs.pyx"):
         """generate the file"""
-        for line in cython_preamble()+self.aop_td_funcs():
+        for line in cython_preamble(self.use_openmp)+self.aop_td_funcs():
             self.write(line)
         
         # write function for Hamiltonian terms (there is always 
@@ -145,9 +153,6 @@ class BR_Codegen(object):
                                    "complex[::1] spline%d" % self.spline)
                 self.spline += 1
         
-        for k in range(self.a_terms):
-            input_vars += (",\n        " +
-                           "complex[::1,:] A%d" % k)
         
         for k in range(self.c_terms):
             input_vars += (",\n        " +
@@ -165,6 +170,13 @@ class BR_Codegen(object):
                 self.spline += 1
         
         
+        #Add a_op terms
+        for k in range(self.a_terms):
+            input_vars += (",\n        " +
+                           "complex[::1,:] A%d" % k)
+        
+        
+        
         input_vars += (",\n        unsigned int nrows")
         
         func_end = "):"
@@ -180,9 +192,43 @@ class BR_Codegen(object):
     
     def aop_td_funcs(self):
         aop_func_str=[]
+        spline_val = self.spline_count[0]
         for kk in range(self.a_terms):
-            aop_func_str += ["cdef complex spectral{0}(double w, double t): return {1}".format(kk, self.a_td_terms[kk])]
+            aa = self.a_td_terms[kk]
+            if isinstance(aa, str):
+                aop_func_str += ["cdef complex spectral{0}(double w, double t): return {1}".format(kk, aa)]
+            elif isinstance(aa, tuple):
+                if isinstance(aa[0],str):
+                    str0 = aa[0]
+                elif isinstance(aa[0],Cubic_Spline):
+                    if not aa[0].is_complex:
+                        aop_func_str += ["cdef double[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[0].coeffs,separator=',',precision=16)+",dtype=float)"]
+                        str0 = "interp(w, %s, %s, spline%s)" % (aa[0].a, aa[0].b, spline_val)
+                    else:
+                        aop_func_str += ["cdef complex[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[0].coeffs,separator=',',precision=16)+",dtype=complex)"]
+                        str0 = "zinterp(w, %s, %s, spline%s)" % (aa[0].a, aa[0].b, spline_val)
+                    spline_val += 1
+                else:
+                    raise Exception('Error parsing tuple.')
+                    
+                if isinstance(aa[1],str):
+                    str1 = aa[1]
+                elif isinstance(aa[1],Cubic_Spline):
+                    if not aa[1].is_complex:
+                        aop_func_str += ["cdef double[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[1].coeffs,separator=',',precision=16)+",dtype=float)"]
+                        str1 = "interp(t, %s, %s, spline%s)" % (aa[1].a, aa[1].b, spline_val)
+                    else:
+                        aop_func_str += ["cdef complex[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[1].coeffs,separator=',',precision=16)+",dtype=complex)"]
+                        str1 = "zinterp(t, %s, %s, spline%s)" % (aa[1].a, aa[1].b, spline_val)
+                    spline_val += 1
+                else:
+                    raise Exception('Error parsing tuple.')
+                
+                aop_func_str += ["cdef complex spectral{0}(double w, double t): return ({1})*({2})".format(kk, str0, str1)]
+            else:
+                raise Exception('Invalid a_td_term.')
         return aop_func_str
+    
     
     def ham_add_and_eigsolve(self):
         ham_str = []
@@ -223,10 +269,18 @@ class BR_Codegen(object):
                     td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
                 else:
                     td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
-                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, td_str, self.atol)]
+                if self.use_openmp:
+                     br_str += ["cop_super_mult_openmp(C{0}, evecs, eig_vec, {1}, out, nrows, {2}, {3}, {4})".format(kk, td_str, self.atol,
+                                                                                            self.omp_thresh, self.omp_threads)]
+                else:
+                    br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, td_str, self.atol)]
                 self.spline += 1
             else:
-                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
+                if self.use_openmp:
+                    br_str += ["cop_super_mult_openmp(C{0}, evecs, eig_vec, {1}, out, nrows, {2}, {3}, {4})".format(kk, self.c_td_terms[kk], self.atol,
+                                                                                            self.omp_thresh, self.omp_threads)]
+                else:
+                    br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
         
         #Calculate skew and dw_min terms
         br_str += ["cdef double[:,::1] skew = <double[:nrows,:nrows]><double *>PyDataMem_NEW_ZEROED(nrows**2,sizeof(double))"]
@@ -234,7 +288,12 @@ class BR_Codegen(object):
         
         #Compute BR term matvec
         for kk in range(self.a_terms):
-            br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2})".format(kk, self.use_secular, self.atol)]
+            if self.use_openmp:
+                 br_str += ["br_term_mult_openmp(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4})".format(kk, 
+                                                                                                self.use_secular, self.atol,
+                                                                                                self.omp_thresh, self.omp_threads)]
+            else:
+                br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2})".format(kk, self.use_secular, self.atol)]
         
         return br_str
 
@@ -253,14 +312,17 @@ class BR_Codegen(object):
         return end_str
 
 
-def cython_preamble():
+def cython_preamble(use_openmp):
+    if use_openmp:
+        call_str = "from qutip.cy.openmp.brtools_openmp cimport (cop_super_mult_openmp, br_term_mult_openmp)"
+    else:
+        call_str = "from qutip.cy.brtools cimport (cop_super_mult, br_term_mult)"
     """
     Returns list of code segments for Cython preamble.
     """
     return ["""\
 # This file is generated automatically by QuTiP.
 # (C) 2011 and later, QuSTaR
-
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -275,11 +337,11 @@ from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 from qutip.cy.brtools cimport (ham_add_mult, ZHEEVR, dense_to_eigbasis,
         vec_to_eigbasis, vec_to_fockbasis, skew_and_dwmin,
-        diag_liou_mult, cop_super_mult, br_term_mult,
-        spec_func, farray_alloc)
-
+        diag_liou_mult, spec_func, farray_alloc)
+"""
++call_str+
+"""
 include """+_include_string+"""
-
 """]
     
 
