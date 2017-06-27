@@ -285,6 +285,8 @@ def _td_format_check(H, c_ops, solver='me'):
                         c_obj.append(k)
                     elif isinstance(c_ops[k][1], np.ndarray):
                         c_str.append(k)
+                    elif isinstance(c_ops[k][1], tuple):
+                        c_str.append(k)
                     else:
                         raise TypeError(
                             "Incorrect collapse operator specification")

@@ -47,7 +47,6 @@ from qutip.expect import expect
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
-from qutip.solver import Result
 from qutip.superoperator import liouvillian
 from qutip.interpolate import Cubic_Spline
 from qutip.cy.spconvert import arr_coo2fast
@@ -56,6 +55,7 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.expect import expect_rho_vec
 from qutip.rhs_generate import _td_format_check
+from qutip.cy.openmp.utilities import check_use_openmp
 import qutip.settings as qset
 
 
@@ -176,6 +176,13 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         
     if options is None:
         options = Options()
+
+    if (not options.rhs_reuse) or (not config.tdfunc):
+        # reset config collapse and time-dependence flags to default values
+        config.reset()
+    
+    #check if should use OPENMP
+    check_use_openmp(options)
     
     if n_str == 0:
     
@@ -467,11 +474,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True)
 def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                  use_secular=True, tol=qset.atol, options=None, 
                  progress_bar=None,_safe_mode=True):
-
-    if (not options.rhs_reuse) or (not config.tdfunc):
-        # reset config collapse and time-dependence flags to default values
-        config.reset()
-        
+    
     if isket(psi0):
         rho0 = ket2dm(psi0)
     else:
@@ -486,6 +489,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     C_terms = []
     C_td_terms = []
     C_obj = []
+    spline_count = [0,0]
     
     if isinstance(H, Qobj):
         H_terms.append(H.full('f'))
@@ -499,16 +503,11 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 H_terms.append(h[0].full('f'))
                 if isinstance(h[1], Cubic_Spline):
                     H_obj.append(h[1].coeffs)
+                    spline_count[0] += 1
                 H_td_terms.append(h[1])
             else:
                 raise Exception('Invalid Hamiltonian specifiction.')
-     
-    for kk, a in enumerate(a_ops):
-        if isinstance(a, list):
-            A_terms.append(a[0].full('f'))
-            A_td_terms.append(a[1])
-        else:
-            raise Exception('Invalid bath-coupling specifiction.')
+    
             
     for kk, c in enumerate(c_ops):
         if isinstance(c, Qobj):
@@ -518,21 +517,38 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             C_terms.append(c[0].full('f'))
             if isinstance(c[1], Cubic_Spline):
                 C_obj.append(c[1].coeffs)
+                spline_count[0] += 1
             C_td_terms.append(c[1])
         else:
             raise Exception('Invalid collape operator specifiction.')
             
+            
+    for kk, a in enumerate(a_ops):
+        if isinstance(a, list):
+            A_terms.append(a[0].full('f'))
+            A_td_terms.append(a[1])
+            if isinstance(a[1], tuple):
+                if not len(a[1])==2:
+                   raise Exception('Tuple must be len=2.')
+                if isinstance(a[1][0],Cubic_Spline):
+                    spline_count[1] += 1
+                if isinstance(a[1][1],Cubic_Spline):
+                    spline_count[1] += 1            
+        else:
+            raise Exception('Invalid bath-coupling specifiction.')
+            
+    
     string_list = []
     for kk,_ in enumerate(H_td_terms):
         string_list.append("H_terms[{0}]".format(kk))
     for kk,_ in enumerate(H_obj):
         string_list.append("H_obj[{0}]".format(kk))
-    for kk,_ in enumerate(A_td_terms):
-        string_list.append("A_terms[{0}]".format(kk))
     for kk,_ in enumerate(C_td_terms):
         string_list.append("C_terms[{0}]".format(kk))
     for kk,_ in enumerate(C_obj):
         string_list.append("C_obj[{0}]".format(kk))
+    for kk,_ in enumerate(A_td_terms):
+        string_list.append("A_terms[{0}]".format(kk))
     #Add nrows to parameters
     string_list.append('nrows')
     parameter_string = ",".join(string_list)
@@ -550,9 +566,10 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     c_terms=len(C_terms), 
                     c_td_terms=C_td_terms, c_obj=C_obj,
                     a_terms=len(A_terms), a_td_terms=A_td_terms,
+                    spline_count=spline_count,
                     config=config, sparse=False,
                     use_secular = use_secular,
-                    use_openmp=qset.has_openmp, 
+                    use_openmp=options.use_openmp, 
                     omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
                     omp_threads=options.num_cpus, 
                     atol=tol)
