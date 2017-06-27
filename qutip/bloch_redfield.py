@@ -552,7 +552,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     a_terms=len(A_terms), a_td_terms=A_td_terms,
                     config=config, sparse=False,
                     use_secular = use_secular,
-                    use_openmp=False, omp_threads=None, 
+                    use_openmp=qset.has_openmp, 
+                    omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
+                    omp_threads=options.num_cpus, 
                     atol=tol)
         
         cgen.generate(config.tdname + ".pyx")
