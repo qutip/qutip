@@ -80,7 +80,7 @@ class TestQFT:
             swaps = int(N // 2)
             assert_equal(len(circuit.gates), phases + swaps)
 
-            for i in range(phases, phases + swaps - 1):
+            for i in range(phases, phases + swaps):
                 assert_string_equal(circuit.gates[i].name, "SWAP")
 
 if __name__ == "__main__":
