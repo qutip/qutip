@@ -63,7 +63,8 @@ import qutip.settings as qset
 # Solve the Bloch-Redfield master equation
 #
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
-              args={}, use_secular=True, tol=qset.atol,
+              args={}, use_secular=True, sec_cutoff = 0.1,
+              tol=qset.atol,
               spectra_cb=None, options=None,
               progress_bar=None, _safe_mode=True):
     """
@@ -85,11 +86,20 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     format.  For the a_op spectra, the frequency variable must be `w`, and the 
     string cannot contain any other variables other than the possibility of having
     a time-dependence through the time variable `t`:
-              
-              
+                            
     *Example*
 
         a_ops = [[a+a.dag(), '0.2*exp(-t)*(w>=0)']]
+              
+    It is also possible to use Cubic_Spline objects for time-dependence.  In
+    the case of a_ops, Cubic_Splines must be passed as a tuple:
+              
+    *Example*
+              
+        a_ops = [ [a+a.dag(), ( f(w), g(t)] ]
+              
+    where f(w) and g(t) are strings or Cubic_spline objects for the bath
+    spectrum and time-dependence, respectively.
 
     
     Parameters
@@ -121,6 +131,9 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 
     use_secular : bool {True}
         Use secular approximation when evaluating bath-coupling terms.
+    
+    sec_cutoff : float {0.1}
+        Cutoff for secular approximation.
     
     tol : float {qutip.setttings.atol}
         Tolerance used for removing small values after 
@@ -186,7 +199,8 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     
     if n_str == 0:
     
-        R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=c_ops)
+        R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=c_ops,
+                    use_secular=use_secular, sec_cutoff=sec_cutoff)
 
         output = Result()
         output.solver = "brmesolve"
@@ -205,6 +219,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     elif n_str != 0 and n_func == 0:
         output = _td_brmesolve(H, psi0, tlist, a_ops=a_ops, e_ops=e_ops, 
                         c_ops=c_ops, use_secular=use_secular, 
+                        sec_cutoff=sec_cutoff,
                         tol=tol, options=options, 
                          progress_bar=progress_bar,
                          _safe_mode=_safe_mode)
@@ -337,7 +352,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
 # Functions for calculating the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True, sec_cutoff=0.1):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
@@ -366,6 +381,9 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True)
     use_secular : bool
         Flag (True of False) that indicates if the secular approximation should
         be used.
+    
+    sec_cutoff : float {0.1}
+        Threshold for secular approximation.
 
     Returns
     -------
@@ -442,7 +460,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True)
         # only check use_secular once per I
         if use_secular:
             # only loop over those indices J which actually contribute
-            Jcds = Iabs[np.where(np.abs(W[a, b] - W[Iabs[:,1], Iabs[:,2]]) < dw_min / 10.0)]
+            Jcds = Iabs[np.where(np.abs(W[a, b] - W[Iabs[:,1], Iabs[:,2]]) < dw_min * sec_cutoff)]
         else:
             Jcds = Iabs
         for J, c, d in Jcds:
@@ -472,7 +490,8 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True)
 
 
 def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
-                 use_secular=True, tol=qset.atol, options=None, 
+                 use_secular=True, sec_cutoff=0.1,
+                 tol=qset.atol, options=None, 
                  progress_bar=None,_safe_mode=True):
     
     if isket(psi0):
@@ -569,6 +588,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     spline_count=spline_count,
                     config=config, sparse=False,
                     use_secular = use_secular,
+                    sec_cutoff = sec_cutoff,
                     use_openmp=options.use_openmp, 
                     omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
                     omp_threads=options.num_cpus, 

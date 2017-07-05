@@ -49,6 +49,7 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
                 double complex * vec, double complex * out,
                 unsigned int nrows, int use_secular, 
+                double sec_cutoff,
                 unsigned int omp_thresh,
                 unsigned int nthr,
                 double atol)
