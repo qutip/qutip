@@ -214,5 +214,61 @@ def test_td_brmesolve_aop():
     assert_(avg_diff < 1e-6)
 
 
+def test_td_brmesolve_aop_tuple1():
+    """
+    td_brmesolve: time-dependent a_ops tuple of strings
+    """
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    a_ops = [[a+a.dag(), ('{kappa}*(w>=0)'.format(kappa=kappa),'exp(-t)')]]
+    tlist = np.linspace(0, 10, 100)
+    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a])
+    expt = medata.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_(avg_diff < 1e-6)
+
+
+def test_td_brmesolve_aop_tuple2():
+    """
+    td_brmesolve: time-dependent a_ops tuple interp
+    """
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    tlist = np.linspace(0, 10, 100)
+    S = Cubic_Spline(0,10,np.exp(-tlist))
+    a_ops = [[a+a.dag(), ('{kappa}*(w>=0)'.format(kappa=kappa), S)]]
+    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a])
+    expt = medata.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_(avg_diff < 1e-5)
+
+
+def test_td_brmesolve_aop_tuple3():
+    """
+    td_brmesolve: time-dependent a_ops & c_ops interp
+    """
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    tlist = np.linspace(0, 10, 100)
+    S = Cubic_Spline(0,10,np.exp(-tlist))
+    S_c = Cubic_Spline(0,10,np.sqrt(kappa*np.exp(-tlist)))
+    a_ops = [[a+a.dag(), ('{kappa}*(w>=0)'.format(kappa=kappa), S)]]
+    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a], c_ops=[[a,S_c]])
+    expt = medata.expect[0]
+    actual_answer = 9.0 * np.exp(-2*kappa * (1.0 - np.exp(-tlist)))
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_(avg_diff < 1e-5)
+
 if __name__ == "__main__":
     run_module_suite()
