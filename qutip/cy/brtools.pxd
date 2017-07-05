@@ -71,4 +71,5 @@ cdef double skew_and_dwmin(double * evals, double[:,::1] skew,
 cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
                 double complex * vec, double complex * out,
-                unsigned int nrows, int use_secular, double atol)
+                unsigned int nrows, int use_secular, double sec_cutoff,
+                double atol)
