@@ -166,7 +166,7 @@ def test_br_term_mult():
         ans = R.data.dot(vec)
         evals = np.zeros(N,dtype=float)
         evecs = _test_zheevr(Hf, evals)
-        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, atol)
+        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, 0.1, atol)
         assert_(np.allclose(ans,out))
     
     #non-secular tests
@@ -188,7 +188,7 @@ def test_br_term_mult():
         ans = R.data.dot(vec)
         evals = np.zeros(N,dtype=float)
         evecs = _test_zheevr(Hf, evals)
-        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, atol)
+        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, 0.1, atol)
         assert_(np.allclose(ans,out))
 
 

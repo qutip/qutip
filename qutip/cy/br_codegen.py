@@ -49,7 +49,8 @@ class BR_Codegen(object):
                 a_terms=None, a_td_terms=None,
                 spline_count=[0,0],
                 config=None, sparse=False,
-                use_secular = True,
+                use_secular=True,
+                sec_cutoff=0.1,
                 use_openmp=False, 
                 omp_thresh=None,
                 omp_threads=None, 
@@ -71,6 +72,7 @@ class BR_Codegen(object):
         self.a_td_terms = a_td_terms
         self.spline_count = spline_count
         self.use_secular = use_secular
+        self.sec_cutoff = sec_cutoff
         self.sparse = sparse
         self.spline = 0
         # Code generator properties
@@ -289,10 +291,10 @@ class BR_Codegen(object):
         for kk in range(self.a_terms):
             if self.use_openmp:
 
-                br_str += ["br_term_mult_openmp(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4})".format(kk, 
-                                    self.use_secular, self.omp_thresh, self.omp_threads, self.atol)]
+                br_str += ["br_term_mult_openmp(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4}, {5})".format(kk, 
+                                    self.use_secular, self.sec_cutoff, self.omp_thresh, self.omp_threads, self.atol)]
             else:
-                br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2})".format(kk, self.use_secular, self.atol)]
+                br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
         
         return br_str
 

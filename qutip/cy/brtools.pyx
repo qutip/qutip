@@ -482,7 +482,8 @@ cdef double skew_and_dwmin(double * evals, double[:,::1] skew,
 cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
                 double complex * vec, double complex * out,
-                unsigned int nrows, int use_secular, double atol):
+                unsigned int nrows, int use_secular, double sec_cutoff,
+                double atol):
                 
     cdef size_t kk
     cdef size_t I, J # vector index variables
@@ -497,7 +498,7 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
         for J in range(nrows**2):
             vec2mat_index(nrows, J, cd)
             
-            if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min * 0.1)):
+            if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min * sec_cutoff)):
                 elem = (A_eig[ab[0],cd[0]]*A_eig[cd[1],ab[1]]) * 0.5
                 elem *= (spectral(skew[cd[0],ab[0]],t)+spectral(skew[cd[1],ab[1]],t))
             
