@@ -270,5 +270,38 @@ def test_td_brmesolve_aop_tuple3():
     avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_(avg_diff < 1e-5)
 
+    
+def test_td_brmesolve_nonherm_eops():
+    """
+    td_brmesolve: non-Hermitian e_ops check
+    """
+    N = 5
+    a = destroy(N)
+    rnd = np.random.random() +1j*np.random.random()
+    H = a.dag()*a + rnd*a +np.conj(rnd)*a.dag()
+    H2 = [[H,'1']]
+    psi0 = basis(N,2)
+    tlist = np.linspace(0,10,10)
+    me = mesolve(H,psi0,tlist,c_ops=[],e_ops=[a],progress_bar=True)
+    br = brmesolve(H2,psi0,tlist,a_ops=[],e_ops=[a],progress_bar=True)
+    assert_(np.max(np.abs(me.expect[0]-br.expect[0])) < 1e-4)
+
+    
+def test_td_brmesolve_states():
+    """
+    td_brmesolve: states check
+    """
+    N = 5
+    a = destroy(N)
+    rnd = np.random.random() +1j*np.random.random()
+    H = a.dag()*a + rnd*a +np.conj(rnd)*a.dag()
+    H2 = [[H,'1']]
+    psi0 = fock_dm(N,2)
+    tlist = np.linspace(0,10,10)
+    me = mesolve(H,psi0,tlist,c_ops=[],e_ops=[],progress_bar=True)
+    br = brmesolve(H2,psi0,tlist,a_ops=[],e_ops=[],progress_bar=True)
+    assert_(np.max([np.abs((me.states[kk]-br.states[kk]).full()).max() 
+                for kk in range(len(tlist))]) < 1e-9)
+
 if __name__ == "__main__":
     run_module_suite()

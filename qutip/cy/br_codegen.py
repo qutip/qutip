@@ -283,9 +283,10 @@ class BR_Codegen(object):
                 else:
                     br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
         
-        #Calculate skew and dw_min terms
-        br_str += ["cdef double[:,::1] skew = <double[:nrows,:nrows]><double *>PyDataMem_NEW_ZEROED(nrows**2,sizeof(double))"]
-        br_str += ["cdef double dw_min = skew_and_dwmin(eigvals, skew, nrows)"]
+        if self.a_terms != 0:
+            #Calculate skew and dw_min terms
+            br_str += ["cdef double[:,::1] skew = <double[:nrows,:nrows]><double *>PyDataMem_NEW_ZEROED(nrows**2,sizeof(double))"]
+            br_str += ["cdef double dw_min = skew_and_dwmin(eigvals, skew, nrows)"]
         
         #Compute BR term matvec
         for kk in range(self.a_terms):
@@ -304,8 +305,9 @@ class BR_Codegen(object):
         #Transform out vector back to fock basis
         end_str += ["cdef np.ndarray[complex, ndim=1, mode='c'] arr_out = vec_to_fockbasis(out, evecs, nrows)"]
         #Free everything at end
+        if self.a_terms != 0:
+            end_str += ["PyDataMem_FREE(&skew[0,0])"]
         end_str += ["PyDataMem_FREE(&evecs[0,0])"]
-        end_str += ["PyDataMem_FREE(&skew[0,0])"]
         end_str += ["PyDataMem_FREE(eigvals)"]
         end_str += ["PyDataMem_FREE(eig_vec)"]
         end_str += ["PyDataMem_FREE(out)"]
@@ -352,6 +354,7 @@ def cython_checks():
     List of strings that turn off Cython checks.
     """
     return ["""
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)"""]
 
