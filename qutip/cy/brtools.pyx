@@ -265,16 +265,11 @@ cdef double complex * vec_to_eigbasis(complex[::1] vec, complex[::1,:] evecs,
     
     cdef size_t ii, jj 
     cdef double complex * temp1 = ZGEMM(&vec[0], &evecs[0,0], 
-                                       nrows, nrows, nrows, nrows, 1, 0)
+                                       nrows, nrows, nrows, nrows, 0, 0)
     cdef double complex * eig_vec = ZGEMM(&evecs[0,0], temp1,
                                        nrows, nrows, nrows, nrows, 2, 0)
     PyDataMem_FREE(temp1)
-    cdef double complex * c_eig_vec = <double complex *>PyDataMem_NEW((nrows**2) * sizeof(complex))
-    for ii in range(nrows):
-        for jj in range(nrows):
-            c_eig_vec[jj+nrows*ii] = eig_vec[ii+nrows*jj]
-    PyDataMem_FREE(eig_vec)
-    return c_eig_vec
+    return eig_vec
  
  
 @cython.boundscheck(False)
@@ -286,17 +281,12 @@ cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig
     cdef size_t ii, jj 
     cdef np.npy_intp nrows2 = nrows**2
     cdef double complex * temp1 = ZGEMM(&eig_vec[0], &evecs[0,0], 
-                                       nrows, nrows, nrows, nrows, 1, 2)
+                                       nrows, nrows, nrows, nrows, 0, 2)
     cdef double complex * fock_vec = ZGEMM(&evecs[0,0], temp1,
                                        nrows, nrows, nrows, nrows, 0, 0)
     PyDataMem_FREE(temp1)
-    cdef double complex * c_vec = <double complex *>PyDataMem_NEW((nrows**2) * sizeof(complex))
-    for ii in range(nrows):
-        for jj in range(nrows):
-            c_vec[jj+nrows*ii] = fock_vec[ii+nrows*jj]
-    PyDataMem_FREE(fock_vec)
     cdef np.ndarray[complex, ndim=1, mode='c'] out = \
-                np.PyArray_SimpleNewFromData(1, &nrows2, np.NPY_COMPLEX128, c_vec)
+                np.PyArray_SimpleNewFromData(1, &nrows2, np.NPY_COMPLEX128, fock_vec)
     PyArray_ENABLEFLAGS(out, np.NPY_OWNDATA)
     return out
  
