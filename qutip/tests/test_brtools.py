@@ -36,6 +36,7 @@ from numpy.testing import assert_equal, assert_, run_module_suite
 import unittest
 from qutip import *
 import qutip.settings as qset
+from qutip.superoperator import mat2vec
 from qutip.cy.brtools_testing import (_test_zheevr, _test_diag_liou_mult,
                     _test_dense_to_eigbasis, _test_vec_to_eigbasis,
                     _test_eigvec_to_fockbasis, _test_vector_roundtrip,
@@ -45,7 +46,7 @@ def test_br_zheevr():
     "BR Tools : zheevr"
     for kk in range(2,100):
         H = rand_herm(kk, 1/kk)
-        H2 =np.asfortranarray(H.full())
+        H2 =H.full('F')
         eigvals = np.zeros(kk,dtype=float)
         Z = _test_zheevr(H2, eigvals)
         ans_vals, ans_vecs = la.eigh(H.full())
@@ -79,8 +80,8 @@ def test_vec_to_eigbasis():
         H = rand_herm(N,0.5)
         h = H.full('F')
         R = rand_dm(N,0.5)
-        r = R.full().ravel()
-        ans = R.transform(H.eigenstates()[1]).full().ravel()
+        r = mat2vec(R.full()).ravel()
+        ans = mat2vec(R.transform(H.eigenstates()[1]).full()).ravel()
         out = _test_vec_to_eigbasis(h, r)
         assert_(np.allclose(ans,out))
 
@@ -92,10 +93,10 @@ def test_eigvec_to_fockbasis():
         H = rand_herm(N,0.5)
         h = H.full('F')
         R = rand_dm(N,0.5)
-        r = R.full().ravel()
+        r = mat2vec(R.full()).ravel()
         eigvals = np.zeros(N,dtype=float)
         Z = _test_zheevr(H.full('F'), eigvals)
-        eig_vec = R.transform(H.eigenstates()[1]).full().ravel()
+        eig_vec = mat2vec(R.transform(H.eigenstates()[1]).full()).ravel()
         out = _test_eigvec_to_fockbasis(eig_vec, Z, N)
         assert_(np.allclose(r,out))
 
@@ -107,7 +108,7 @@ def test_vector_roundtrip():
         H = rand_herm(N,0.5)
         h = H.full('F')
         R = rand_dm(N,0.5)
-        r = R.full().ravel()
+        r = mat2vec(R.full()).ravel()
         out = _test_vector_roundtrip(h,r)
         assert_(np.allclose(r,out))
 
