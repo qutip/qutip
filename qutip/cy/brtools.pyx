@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from scipy.linalg.cython_lapack cimport zheevr
-from scipy.linalg.cython_blas cimport zgemm
+from scipy.linalg.cython_blas cimport zgemm, zgemv
 from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron, 
                     _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
                     _zcsr_mult)
@@ -234,6 +234,25 @@ cdef double complex * ZGEMM(double complex * A, double complex * B,
     
     zgemm(&tA, &tB, &Arows, &Bcols, &Brows, &alpha, A, &Arows, B, &Brows, &beta, C, &Arows)
     return C
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void ZGEMV(double complex * A, double complex * vec, 
+                        double complex * out,
+                       int Arows, int Acols, int transA = 0, 
+                       double complex alpha=1, double complex beta=1):
+    cdef char tA
+    cdef int idx = 1, idy = 1
+    if transA == 0:
+        tA = b'N'
+    elif transA == 1:
+        tA = b'T'
+    elif transA == 2:
+        tA = b'C'
+    else:
+        raise Exception('Invalid transA value.')
+    zgemv(&tA, &Arows, &Acols, &alpha, A, &Arows, vec, &idx, &beta, out, &idy)
+
 
 
 @cython.boundscheck(False)
@@ -445,7 +464,7 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void vec2mat_index(int nrows, int index, int[2] out):                       
+cdef inline void vec2mat_index(int nrows, int index, int[2] out) nogil:                       
     out[1] = index // nrows
     out[0] = index - nrows * out[1] 
     
@@ -454,7 +473,7 @@ cdef inline void vec2mat_index(int nrows, int index, int[2] out):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef double skew_and_dwmin(double * evals, double[:,::1] skew, 
-                                unsigned int nrows):
+                                unsigned int nrows) nogil:
     cdef double diff
     dw_min = DBL_MAX
     cdef size_t ii, jj
@@ -482,6 +501,13 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
     cdef complex elem, ac_elem, bd_elem
     cdef vector[int] coo_rows, coo_cols
     cdef vector[complex] coo_data
+    cdef unsigned int nnz
+    cdef COO_Matrix coo
+    cdef CSR_Matrix csr
+    cdef complex[:,::1] non_sec_mat
+    
+    if not use_secular:
+        non_sec_mat = <complex[:nrows**2, :nrows**2]><complex *>PyDataMem_NEW(nrows**4 * sizeof(complex))
     
     for I in range(nrows**2):
         vec2mat_index(nrows, I, ab)
@@ -504,29 +530,32 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                         bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk],t)
                     elem -= 0.5*bd_elem
                     
-                if elem != 0:
-                    coo_rows.push_back(I)
-                    coo_cols.push_back(J)
-                    coo_data.push_back(elem)
+                if use_secular:
+                    if (elem != 0):
+                        coo_rows.push_back(I)
+                        coo_cols.push_back(J)
+                        coo_data.push_back(elem)
+                else:
+                    non_sec_mat[I,J] = elem
     
     PyDataMem_FREE(&A_eig[0,0])
-    #Number of elements in BR tensor
-    cdef unsigned int nnz = coo_rows.size()
-    cdef COO_Matrix coo
-    coo.nnz = nnz
-    coo.rows = coo_rows.data()
-    coo.cols = coo_cols.data()
-    coo.data = coo_data.data()
-    coo.nrows = nrows**2
-    coo.ncols = nrows**2
-    coo.is_set = 1 
-    coo.max_length = nnz
-    cdef CSR_Matrix csr
-    COO_to_CSR(&csr, &coo)
-    spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
-    free_CSR(&csr)
- 
- 
+    if use_secular:
+        #Number of elements in BR tensor
+        nnz = coo_rows.size()
+        coo.nnz = nnz
+        coo.rows = coo_rows.data()
+        coo.cols = coo_cols.data()
+        coo.data = coo_data.data()
+        coo.nrows = nrows**2
+        coo.ncols = nrows**2
+        coo.is_set = 1 
+        coo.max_length = nnz
+        COO_to_CSR(&csr, &coo)
+        spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
+        free_CSR(&csr)
+    else:
+        ZGEMV(&non_sec_mat[0,0], vec, out, nrows**2, nrows**2, 1, 1, 1)
+        PyDataMem_FREE(&non_sec_mat[0,0])
  
  
 @cython.boundscheck(False)
