@@ -30,8 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from scipy.linalg.cython_lapack cimport zheevr
-from scipy.linalg.cython_blas cimport zgemm
+from scipy.linalg.cython_blas cimport zgemv
 from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron, 
                     _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
                     _zcsr_mult)
@@ -49,6 +48,25 @@ include "../sparse_routines.pxi"
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
     double cabs   "abs" (double complex x)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void ZGEMV(double complex * A, double complex * vec, 
+                        double complex * out,
+                       int Arows, int Acols, int transA = 0, 
+                       double complex alpha=1, double complex beta=1):
+    cdef char tA
+    cdef int idx = 1, idy = 1
+    if transA == 0:
+        tA = b'N'
+    elif transA == 1:
+        tA = b'T'
+    elif transA == 2:
+        tA = b'C'
+    else:
+        raise Exception('Invalid transA value.')
+    zgemv(&tA, &Arows, &Acols, &alpha, A, &Arows, vec, &idx, &beta, out, &idy)
 
 
 @cython.boundscheck(False)
@@ -169,6 +187,13 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
     cdef complex elem, ac_elem, bd_elem
     cdef vector[int] coo_rows, coo_cols
     cdef vector[complex] coo_data
+    cdef unsigned int nnz
+    cdef COO_Matrix coo
+    cdef CSR_Matrix csr
+    cdef complex[:,::1] non_sec_mat
+    
+    if not use_secular:
+        non_sec_mat = <complex[:nrows**2, :nrows**2]><complex *>PyDataMem_NEW(nrows**4 * sizeof(complex))
     
     for I in range(nrows**2):
         vec2mat_index(nrows, I, ab)
@@ -191,31 +216,35 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
                         bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk],t)
                     elem -= 0.5*bd_elem
                     
-                if elem != 0:
-                    coo_rows.push_back(I)
-                    coo_cols.push_back(J)
-                    coo_data.push_back(elem)
+                if use_secular:
+                    if (elem != 0):
+                        coo_rows.push_back(I)
+                        coo_cols.push_back(J)
+                        coo_data.push_back(elem)
+                else:
+                    non_sec_mat[I,J] = elem
     
     PyDataMem_FREE(&A_eig[0,0])
-    #Number of elements in BR tensor
-    cdef unsigned int nnz = coo_rows.size()
-    cdef COO_Matrix coo
-    coo.nnz = nnz
-    coo.rows = coo_rows.data()
-    coo.cols = coo_cols.data()
-    coo.data = coo_data.data()
-    coo.nrows = nrows**2
-    coo.ncols = nrows**2
-    coo.is_set = 1 
-    coo.max_length = nnz
-    cdef CSR_Matrix csr
-    COO_to_CSR(&csr, &coo)
-    if csr.nnz > omp_thresh:
-        spmvpy_openmp(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2, nthr)
+    if use_secular:
+        #Number of elements in BR tensor
+        nnz = coo_rows.size()
+        coo.nnz = nnz
+        coo.rows = coo_rows.data()
+        coo.cols = coo_cols.data()
+        coo.data = coo_data.data()
+        coo.nrows = nrows**2
+        coo.ncols = nrows**2
+        coo.is_set = 1 
+        coo.max_length = nnz
+        COO_to_CSR(&csr, &coo)
+        if csr.nnz > omp_thresh:
+            spmvpy_openmp(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2, nthr)
+        else:
+            spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
+        free_CSR(&csr)
     else:
-        spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
-    free_CSR(&csr)
- 
+        ZGEMV(&non_sec_mat[0,0], vec, out, nrows**2, nrows**2, 1, 1, 1)
+        PyDataMem_FREE(&non_sec_mat[0,0])
  
 
  

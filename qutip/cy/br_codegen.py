@@ -49,7 +49,7 @@ class BR_Codegen(object):
                 a_terms=None, a_td_terms=None,
                 spline_count=[0,0],
                 config=None, sparse=False,
-                use_secular=True,
+                use_secular=None,
                 sec_cutoff=0.1,
                 use_openmp=False, 
                 omp_thresh=None,

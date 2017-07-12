@@ -62,10 +62,10 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,  double compl
                     unsigned int nrows,
                     double atol)
 
-cdef void vec2mat_index(int nrows, int index, int[2] out)                    
+cdef void vec2mat_index(int nrows, int index, int[2] out) nogil                   
                     
 cdef double skew_and_dwmin(double * evals, double[:,::1] skew, 
-                                unsigned int nrows)
+                                unsigned int nrows) nogil
                                 
 
 cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
