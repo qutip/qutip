@@ -75,7 +75,7 @@ cdef complex[::1,:] farray_alloc(int nrows):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void ham_add_mult(complex[::1,:] A, 
+cpdef void dense_add_mult(complex[::1,:] A, 
                   complex[::1,:] B, 
                   double complex alpha) nogil:
     """

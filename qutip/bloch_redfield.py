@@ -509,6 +509,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     C_td_terms = []
     C_obj = []
     spline_count = [0,0]
+    coupled_ops = []
+    coupled_lengths = []
+    coupled_spectra = []
     
     if isinstance(H, Qobj):
         H_terms.append(H.full('f'))
@@ -525,7 +528,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     spline_count[0] += 1
                 H_td_terms.append(h[1])
             else:
-                raise Exception('Invalid Hamiltonian specifiction.')
+                raise Exception('Invalid Hamiltonian specification.')
     
             
     for kk, c in enumerate(c_ops):
@@ -539,22 +542,41 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 spline_count[0] += 1
             C_td_terms.append(c[1])
         else:
-            raise Exception('Invalid collape operator specifiction.')
+            raise Exception('Invalid collape operator specification.')
             
             
     for kk, a in enumerate(a_ops):
         if isinstance(a, list):
-            A_terms.append(a[0].full('f'))
-            A_td_terms.append(a[1])
-            if isinstance(a[1], tuple):
-                if not len(a[1])==2:
-                   raise Exception('Tuple must be len=2.')
+            if isinstance(a[0], Qobj):
+                A_terms.append(a[0].full('f'))
+                A_td_terms.append(a[1])
+                if isinstance(a[1], tuple):
+                    if not len(a[1])==2:
+                       raise Exception('Tuple must be len=2.')
+                    if isinstance(a[1][0],Cubic_Spline):
+                        spline_count[1] += 1
+                    if isinstance(a[1][1],Cubic_Spline):
+                        spline_count[1] += 1
+            elif isinstance(a[0], tuple):
+                if not isinstance(a[1], tuple):
+                    raise Exception('Invalid bath-coupling specification.')
+                if (len(a[0])+1) != len(a[1]):
+                    raise Exception('BR a_ops tuple lengths not compatible.')
+                
+                coupled_ops.append(kk)
+                coupled_lengths.append(len(a[0]))
+                coupled_spectra.append(a[1][0])
                 if isinstance(a[1][0],Cubic_Spline):
                     spline_count[1] += 1
-                if isinstance(a[1][1],Cubic_Spline):
-                    spline_count[1] += 1            
+                
+                for nn, _a in enumerate(a[0]):
+                    A_terms.append(_a.full('f'))
+                    A_td_terms.append(a[1][nn+1])
+                    if isinstance(a[1][nn+1],Cubic_Spline):
+                        spline_count[1] += 1
+                                
         else:
-            raise Exception('Invalid bath-coupling specifiction.')
+            raise Exception('Invalid bath-coupling specification.')
             
     
     string_list = []
@@ -586,6 +608,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     c_td_terms=C_td_terms, c_obj=C_obj,
                     a_terms=len(A_terms), a_td_terms=A_td_terms,
                     spline_count=spline_count,
+                    coupled_ops = coupled_ops,
+                    coupled_lengths = coupled_lengths,
+                    coupled_spectra = coupled_spectra,
                     config=config, sparse=False,
                     use_secular = use_secular,
                     sec_cutoff = sec_cutoff,

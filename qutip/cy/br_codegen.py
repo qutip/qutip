@@ -48,6 +48,9 @@ class BR_Codegen(object):
                 c_terms=None, c_td_terms=None, c_obj=None,
                 a_terms=None, a_td_terms=None,
                 spline_count=[0,0],
+                coupled_ops=[],
+                coupled_lengths=[],
+                coupled_spectra=[],
                 config=None, sparse=False,
                 use_secular=None,
                 sec_cutoff=0.1,
@@ -71,7 +74,7 @@ class BR_Codegen(object):
         self.a_terms = a_terms  # number of A pieces
         self.a_td_terms = a_td_terms
         self.spline_count = spline_count
-        self.use_secular = use_secular
+        self.use_secular = int(use_secular)
         self.sec_cutoff = sec_cutoff
         self.sparse = sparse
         self.spline = 0
@@ -87,6 +90,10 @@ class BR_Codegen(object):
         self.use_openmp = use_openmp
         self.omp_thresh = omp_thresh
         self.omp_threads = omp_threads
+        
+        self.coupled_ops = coupled_ops
+        self.coupled_lengths = coupled_lengths
+        self.coupled_spectra = coupled_spectra
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -193,27 +200,49 @@ class BR_Codegen(object):
     def aop_td_funcs(self):
         aop_func_str=[]
         spline_val = self.spline_count[0]
-        for kk in range(self.a_terms):
-            aa = self.a_td_terms[kk]
-            if isinstance(aa, str):
-                aop_func_str += ["cdef complex spectral{0}(double w, double t): return {1}".format(kk, aa)]
-            elif isinstance(aa, tuple):
-                if isinstance(aa[0],str):
-                    str0 = aa[0]
-                elif isinstance(aa[0],Cubic_Spline):
-                    if not aa[0].is_complex:
-                        aop_func_str += ["cdef double[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[0].coeffs,separator=',',precision=16)+",dtype=float)"]
-                        str0 = "interp(w, %s, %s, spline%s)" % (aa[0].a, aa[0].b, spline_val)
+        coupled_val = 0
+        kk = 0
+        while kk < self.a_terms:
+            if kk not in self.coupled_ops:
+                aa = self.a_td_terms[kk]
+                if isinstance(aa, str):
+                    aop_func_str += ["cdef complex spectral{0}(double w, double t): return {1}".format(kk, aa)]
+                elif isinstance(aa, tuple):
+                    if isinstance(aa[0],str):
+                        str0 = aa[0]
+                    elif isinstance(aa[0],Cubic_Spline):
+                        if not aa[0].is_complex:
+                            aop_func_str += ["cdef double[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[0].coeffs,separator=',',precision=16)+",dtype=float)"]
+                            str0 = "interp(w, %s, %s, spline%s)" % (aa[0].a, aa[0].b, spline_val)
+                        else:
+                            aop_func_str += ["cdef complex[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[0].coeffs,separator=',',precision=16)+",dtype=complex)"]
+                            str0 = "zinterp(w, %s, %s, spline%s)" % (aa[0].a, aa[0].b, spline_val)
+                        spline_val += 1
                     else:
-                        aop_func_str += ["cdef complex[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[0].coeffs,separator=',',precision=16)+",dtype=complex)"]
-                        str0 = "zinterp(w, %s, %s, spline%s)" % (aa[0].a, aa[0].b, spline_val)
-                    spline_val += 1
-                else:
-                    raise Exception('Error parsing tuple.')
+                        raise Exception('Error parsing tuple.')
                     
-                if isinstance(aa[1],str):
-                    str1 = aa[1]
-                elif isinstance(aa[1],Cubic_Spline):
+                    if isinstance(aa[1],str):
+                        str1 = aa[1]
+                    elif isinstance(aa[1],Cubic_Spline):
+                        if not aa[1].is_complex:
+                            aop_func_str += ["cdef double[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[1].coeffs,separator=',',precision=16)+",dtype=float)"]
+                            str1 = "interp(t, %s, %s, spline%s)" % (aa[1].a, aa[1].b, spline_val)
+                        else:
+                            aop_func_str += ["cdef complex[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[1].coeffs,separator=',',precision=16)+",dtype=complex)"]
+                            str1 = "zinterp(t, %s, %s, spline%s)" % (aa[1].a, aa[1].b, spline_val)
+                        spline_val += 1
+                    else:
+                        raise Exception('Error parsing tuple.')
+                
+                    aop_func_str += ["cdef complex spectral{0}(double w, double t): return ({1})*({2})".format(kk, str0, str1)]
+                else:
+                    raise Exception('Invalid a_td_term.')
+                kk += 1
+            else:
+                aa = self.coupled_spectra[coupled_val]
+                if isinstance(aa, str):
+                    aop_func_str += ["cdef complex spectral{0}(double w, double t): return {1}".format(kk, aa)]
+                elif isinstance(aa, Cubic_Spline):
                     if not aa[1].is_complex:
                         aop_func_str += ["cdef double[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[1].coeffs,separator=',',precision=16)+",dtype=float)"]
                         str1 = "interp(t, %s, %s, spline%s)" % (aa[1].a, aa[1].b, spline_val)
@@ -221,12 +250,10 @@ class BR_Codegen(object):
                         aop_func_str += ["cdef complex[::1] spline{0} = np.array(".format(spline_val)+np.array2string(aa[1].coeffs,separator=',',precision=16)+",dtype=complex)"]
                         str1 = "zinterp(t, %s, %s, spline%s)" % (aa[1].a, aa[1].b, spline_val)
                     spline_val += 1
-                else:
-                    raise Exception('Error parsing tuple.')
+                    aop_func_str += ["cdef complex spectral{0}(double w, double t): return {1}".format(kk, str1)]
+                kk += self.coupled_lengths[coupled_val]
+                coupled_val += 1
                 
-                aop_func_str += ["cdef complex spectral{0}(double w, double t): return ({1})*({2})".format(kk, str0, str1)]
-            else:
-                raise Exception('Invalid a_td_term.')
         return aop_func_str
     
     
@@ -244,10 +271,10 @@ class BR_Codegen(object):
                     td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
                 else:
                     td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
-                ham_str += ["ham_add_mult(H, H{0}, {1})".format(kk,td_str)]
+                ham_str += ["dense_add_mult(H, H{0}, {1})".format(kk,td_str)]
                 self.spline += 1
             else:
-                ham_str += ["ham_add_mult(H, H{0}, {1})".format(kk,self.h_td_terms[kk])]
+                ham_str += ["dense_add_mult(H, H{0}, {1})".format(kk,self.h_td_terms[kk])]
         #Do the eigensolving
         ham_str += ["ZHEEVR(H, eigvals, evecs, nrows)"]
         #Free H as it is no longer needed
@@ -289,14 +316,30 @@ class BR_Codegen(object):
             br_str += ["cdef double dw_min = skew_and_dwmin(eigvals, skew, nrows)"]
         
         #Compute BR term matvec
-        for kk in range(self.a_terms):
-            if self.use_openmp:
-
-                br_str += ["br_term_mult_openmp(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4}, {5})".format(kk, 
-                                    self.use_secular, self.sec_cutoff, self.omp_thresh, self.omp_threads, self.atol)]
+        kk = 0
+        coupled_val = 0 
+        while kk < self.a_terms:
+            if kk not in self.coupled_ops:
+                if self.use_openmp:
+                    br_str += ["br_term_mult_openmp(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4}, {5})".format(kk, 
+                                        self.use_secular, self.sec_cutoff, self.omp_thresh, self.omp_threads, self.atol)]
+                else:
+                    br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
+                kk += 1
             else:
-                br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
-        
+                br_str += ['cdef complex[::1, :] Ac{0} = farray_alloc(nrows)'.format(kk)]
+                for nn in range(self.coupled_lengths[coupled_val]):
+                    br_str += ["dense_add_mult(Ac{0}, A{1}, {2})".format(kk,kk+nn,self.a_td_terms[kk+nn])]
+                    
+                if self.use_openmp:
+                    br_str += ["br_term_mult_openmp(t, Ac{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4}, {5})".format(kk, 
+                                        self.use_secular, self.sec_cutoff, self.omp_thresh, self.omp_threads, self.atol)]
+                else:
+                    br_str += ["br_term_mult(t, Ac{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
+                
+                br_str += ["PyDataMem_FREE(&Ac{0}[0,0])".format(kk)]
+                kk += self.coupled_lengths[coupled_val]
+                coupled_val += 1
         return br_str
 
 
@@ -338,7 +381,7 @@ cdef extern from "numpy/arrayobject.h" nogil:
 from qutip.cy.interpolate cimport interp, zinterp
 from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
-from qutip.cy.brtools cimport (ham_add_mult, ZHEEVR, dense_to_eigbasis,
+from qutip.cy.brtools cimport (dense_add_mult, ZHEEVR, dense_to_eigbasis,
         vec_to_eigbasis, vec_to_fockbasis, skew_and_dwmin,
         diag_liou_mult, spec_func, farray_alloc)
 """
