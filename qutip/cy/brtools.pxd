@@ -37,7 +37,7 @@ ctypedef complex (*spec_func)(double, double)
 
 cdef complex[::1,:] farray_alloc(int nrows)
 
-cpdef void ham_add_mult(complex[::1,:] A, complex[::1,:] B, 
+cpdef void dense_add_mult(complex[::1,:] A, complex[::1,:] B, 
                   double complex alpha) nogil
 
 cdef void ZHEEVR(complex[::1,:] H, double * eigvals, 

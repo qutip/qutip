@@ -272,9 +272,9 @@ def _td_format_check(H, c_ops, solver='me'):
             if isinstance(c_ops[k], Qobj):
                 c_const.append(k)
             elif isinstance(c_ops[k], list):
-                if len(c_ops[k]) != 2 or not isinstance(c_ops[k][0], Qobj):
+                if len(c_ops[k]) != 2:
                     raise TypeError(
-                        "Incorrect collapse operator specification")
+                        "Incorrect collapse operator specification.")
                 else:
                     if isinstance(c_ops[k][1], (FunctionType,
                                                 BuiltinFunctionType, partial)):
