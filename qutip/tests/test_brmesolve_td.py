@@ -303,5 +303,69 @@ def test_td_brmesolve_states():
     assert_(np.max([np.abs((me.states[kk]-br.states[kk]).full()).max() 
                 for kk in range(len(tlist))]) < 1e-9)
 
+
+def test_td_brmesolve_split_ops1():
+    """
+    td_brmesolve: split ops #1
+    """
+    N = 10
+    w0 = 1.0 * 2 * np.pi
+    g = 0.05 * w0
+    kappa = 0.15
+
+    times = np.linspace(0, 25, 1000)
+    a = destroy(N)
+    H = w0 * a.dag() * a + g * (a + a.dag())
+    H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
+
+
+    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
+
+    c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a]
+
+    a_ops = [[ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), '1', '1') ] , 
+                [a+a.dag(), '{0} * (w >= 0)'.format(kappa)]]
+
+
+    e_ops = [a.dag() * a, a + a.dag()]
+
+    res_me = mesolve(H, psi0, times, c_ops, e_ops)
+    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
+
+    for idx, e in enumerate(e_ops):
+        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
+        assert_(diff < 1e-2)
+    
+def test_td_brmesolve_split_ops2():
+    """
+    td_brmesolve: split ops #2
+    """
+    N = 10
+    w0 = 1.0 * 2 * np.pi
+    g = 0.05 * w0
+    kappa = 0.15
+
+    times = np.linspace(0, 25, 1000)
+    a = destroy(N)
+    H = w0 * a.dag() * a + g * (a + a.dag())
+    H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
+
+
+    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
+
+    c_ops = [np.sqrt(kappa) * a, np.sqrt(4*kappa) * a]
+
+    a_ops = [[a+a.dag(), '{0} * (w >= 0)'.format(kappa)], [ (a, a.dag(), a, a.dag()), 
+                    ('{0} * (w >= 0)'.format(kappa), '1', '1', '1', '1') ]]
+
+    e_ops = [a.dag() * a, a + a.dag()]
+
+    res_me = mesolve(H, psi0, times, c_ops, e_ops)
+    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
+
+    for idx, e in enumerate(e_ops):
+        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
+        assert_(diff < 1e-2)
+
 if __name__ == "__main__":
     run_module_suite()
