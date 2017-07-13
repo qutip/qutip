@@ -205,6 +205,15 @@ if "--with-openmp" in sys.argv:
             extra_link_args=[],
             language='c++')
     EXT_MODULES.append(_mod)
+    
+    # Add brtools_omp
+    _mod = Extension('qutip.cy.openmp.br_omp',
+            sources = ['qutip/cy/openmp/br_omp.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
 
 
 # Remove -Wstrict-prototypes from cflags

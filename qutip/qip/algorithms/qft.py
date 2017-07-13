@@ -101,7 +101,7 @@ def qft_steps(N=1, swapping=True):
                 U_step_list.append(cphase(np.pi / (2 ** (i - j)), N,
                                           control=i, target=j))
             U_step_list.append(snot(N, i))
-        if swapping is True:
+        if swapping:
             for i in range(N // 2):
                 U_step_list.append(swap(N, [N - i - 1, i]))
 
@@ -135,12 +135,12 @@ def qft_gate_sequence(N=1, swapping=True):
     else:
         for i in range(N):
             for j in range(i):
-                qc.add_gate(r"CPHASE", targets=[j], controls=[i],
+                qc.add_gate("CPHASE", targets=[j], controls=[i],
                             arg_label=r"{\pi/2^{%d}}" % (i - j),
                             arg_value=np.pi / (2 ** (i - j)))
             qc.add_gate("SNOT", targets=[i])
-        if swapping is True:
+        if swapping:
             for i in range(N // 2):
-                qc.add_gate(r"SWAP", targets=[i], controls=[N - 1 - i])
+                qc.add_gate("SWAP", targets=[N - i - 1, i])
 
     return qc

@@ -114,13 +114,13 @@ cdef complex spectral(double w, double t): return 1.0
 
 def _test_br_term_mult(double t, complex[::1,:] A, complex[::1, :] evecs,
             double[::1] evals, complex[::1] vec, complex[::1] out, 
-            int use_secular, double atol):
+            int use_secular, double sec_cutoff, double atol):
             
     cdef unsigned int nrows = A.shape[0]
     cdef double * _temp = <double *>PyDataMem_NEW((nrows**2) * sizeof(double))
     cdef double[:,::1] skew = <double[:nrows,:nrows]> _temp
     cdef double dw_min = skew_and_dwmin(&evals[0], skew, nrows)
     br_term_mult(t, A, evecs, skew, dw_min, spectral, &vec[0], &out[0],
-                nrows, use_secular, atol)
+                nrows, use_secular, sec_cutoff, atol)
     PyDataMem_FREE(&skew[0,0])
     

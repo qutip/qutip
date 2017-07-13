@@ -85,9 +85,9 @@ class Gate(object):
         if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                     "SWAPalpha"]:
             if len(self.targets) != 2:
-                raise ValueError("Gate %s requires two target" % name)
+                raise ValueError("Gate %s requires two targets" % name)
             if self.controls is not None:
-                raise ValueError("Gate %s does not require a control" % name)
+                raise ValueError("Gate %s cannot have a control" % name)
 
         if name in ["CNOT", "CSIGN", "CRX", "CRY", "CRZ"]:
             if self.targets is None or len(self.targets) != 1:
