@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 5 - Production/Stable
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -31,11 +31,10 @@ Operating System :: Microsoft :: Windows
 # import statements
 import os
 import sys
-
 # The following is required to get unit tests up and running.
 # If the user doesn't have, then that's OK, we'll just skip unit tests.
 try:
-    import setuptools
+    from setuptools import setup, Extension
     TEST_SUITE = 'nose.collector'
     TESTS_REQUIRE = ['nose']
     EXTRA_KWARGS = {
@@ -43,65 +42,54 @@ try:
         'tests_require': TESTS_REQUIRE
     }
 except:
+    from distutils.core import setup
+    from distutils.extension import Extension
     EXTRA_KWARGS = {}
 
 try:
     import numpy as np
-    from numpy.distutils.core import setup
-
-    # If we use NumPy's distutils, it will also
-    # try to import Cython due to the add_subpackage
-    # calls below. We want to fail early instead, so that
-    # we branch off to the setuptools/distutils fallbacks
-    # if Cython isn't present.
-    import Cython
-except ImportError:
-    # Use a more basic implementation of setup
-    # from setuptools so that we can bootstrap install_requires.
-    # If setuptools is also missing, we'll import distutils and hope
-    # for the best.
-    # This is essential for downloading QuTiP from within another
-    # project's requirements.txt.
-
-    # As per scipy/scipy#453, we should only do this fallback
-    # when called with the commands '--help' and 'egg_info':
-    if not (
-        '--help' in sys.argv[1:] or
-        sys.argv[1] in ('--help-commands', 'egg_info', '--version')
-    ):
-        # Reraise.
-        raise
-
+except:
     np = None
-    try:
-        from setuptools import setup
-    except ImportError:
-        from distutils.core import setup
+
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 0
+MINOR = 2
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.13)', 'cython (>=0.21)']
-INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.13', 'cython>=0.21']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
-            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov', 
-            'qutip/_mkl', 'qutip/tests']
+REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
+INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
+PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
+            'qutip/qip', 'qutip/qip/models',
+            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
+            'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
+            'qutip/cy/openmp', 'qutip/cy/openmp/src']
 PACKAGE_DATA = {
+    '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
-    'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
-    'qutip/cy': ['*.pxi', '*.pxd'],
-    'qutip/control': ['*.pyx']
+    'qutip/tests': ['*.ini'],
+    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
+    'qutip/cy/src': ['*.cpp', '*.hpp'],
+    'qutip/control': ['*.pyx'],
+    'qutip/cy/openmp': ['*.pxd', '*.pyx'],
+    'qutip/cy/openmp/src': ['*.cpp', '*.hpp']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
-EXT_MODULES = []
+# ajgpitch Mar 2017:
+# This HEADERS did not work, but I will leave it in anyway, as it is supposed to.
+# I had to do the nasty thing with PACKAGES and PACKAGE_DATA above.
+HEADERS = ['qutip/cy/src/zspmv.hpp', 'qutip/cy/openmp/src/zspmv_openmp.hpp']
 NAME = "qutip"
-AUTHOR = "Paul D. Nation, Robert J. Johansson"
-AUTHOR_EMAIL = "pnation@korea.ac.kr, robert@riken.jp"
+AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
+          "Chris Granade, Arne Grimsmo")
+AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
+                "jrjohansson@gmail.com, cgranade@cgranade.com, "
+                "arne.grimsmo@gmail.com")
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
@@ -111,19 +99,15 @@ CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
 
-def write_f2py_f2cmap():
-    dirname = os.path.dirname(__file__)
-    with open(os.path.join(dirname, '.f2py_f2cmap'), 'w') as f:
-        f.write("dict(real=dict(sp='float', dp='double', wp='double'), " +
-                "complex=dict(sp='complex_float', dp='complex_double', " +
-                "wp='complex_double'))")
-
-
 def git_short_hash():
     try:
-        return "+" + os.popen('git log -1 --format="%h"').read().strip()
+        git_str = "+" + os.popen('git log -1 --format="%h"').read().strip()
     except:
-        return ""
+        git_str = ""
+    else:
+        if git_str == '+': #fixes setuptools PEP issues with versioning
+            git_str = ''
+    return git_str
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -162,43 +146,92 @@ if os.path.exists('qutip/version.py'):
 
 write_version_py()
 
-# check for fortran option
-if "--with-f90mc" in sys.argv:
-    with_f90mc = True
-    sys.argv.remove("--with-f90mc")
-    write_f2py_f2cmap()
+# Add Cython extensions here
+cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
+        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
+        'brtools_testing']
+
+# If on Win and Python version >= 3.5 (i.e. Visual studio compile)
+if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
+    _compiler_flags = ['/w', '/Ox']
+# Everything else
 else:
-    with_f90mc = False
+    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops']
 
-if not with_f90mc:
-    os.environ['FORTRAN_LIBS'] = 'FALSE'
-    print("Installing without the fortran mcsolver.")
-else:
-    os.environ['FORTRAN_LIBS'] = 'TRUE'
+EXT_MODULES =[]
+# Add Cython files from qutip/cy
+for ext in cy_exts:
+    _mod = Extension('qutip.cy.'+ext,
+            sources = ['qutip/cy/'+ext+'.pyx', 'qutip/cy/src/zspmv.cpp'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
 
-# using numpy distutils to simplify install of data directory for testing
-def configuration(parent_package='', top_path=None):
-    from numpy.distutils.misc_util import Configuration
+# Add Cython files from qutip/control
+_mod = Extension('qutip.control.cy_grape',
+            sources = ['qutip/control/cy_grape.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+EXT_MODULES.append(_mod)
 
-    config = Configuration(None, parent_package, top_path)
-    config.set_options(ignore_setup_xxx_py=True,
-                       assume_default_configuration=True,
-                       delegate_options_to_subpackages=True,
-                       quiet=True)
 
-    config.add_subpackage('qutip')
-    config.get_version('qutip/version.py')  # sets config.version
-    config.add_data_dir('qutip/tests')
+# Add optional ext modules here
+if "--with-openmp" in sys.argv:
+    sys.argv.remove("--with-openmp")
+    if (sys.platform == 'win32'
+            and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35):
+        omp_flags = ['/openmp']
+        omp_args = []
+    else:
+        omp_flags = ['-fopenmp']
+        omp_args = omp_flags
+    _mod = Extension('qutip.cy.openmp.parfuncs',
+            sources = ['qutip/cy/openmp/parfuncs.pyx',
+                       'qutip/cy/openmp/src/zspmv_openmp.cpp'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags+omp_flags,
+            extra_link_args=omp_args,
+            language='c++')
+    EXT_MODULES.append(_mod)
+    # Add benchmark pyx
+    _mod = Extension('qutip.cy.openmp.benchmark',
+            sources = ['qutip/cy/openmp/benchmark.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
+    
+    # Add brtools_omp
+    _mod = Extension('qutip.cy.openmp.br_omp',
+            sources = ['qutip/cy/openmp/br_omp.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
 
-    return config
+
+# Remove -Wstrict-prototypes from cflags
+import distutils.sysconfig
+cfg_vars = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in cfg_vars:
+    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
 
 
 # Setup commands go here
 setup(
     name = NAME,
+    version = FULLVERSION,
     packages = PACKAGES,
     include_dirs = INCLUDE_DIRS,
-    ext_modules = EXT_MODULES,
+    headers = HEADERS,
+    ext_modules = cythonize(EXT_MODULES),
+    cmdclass = {'build_ext': build_ext},
     author = AUTHOR,
     author_email = AUTHOR_EMAIL,
     license = LICENSE,
@@ -210,7 +243,6 @@ setup(
     platforms = PLATFORMS,
     requires = REQUIRES,
     package_data = PACKAGE_DATA,
-    configuration = configuration,
     zip_safe = False,
     install_requires=INSTALL_REQUIRES,
     **EXTRA_KWARGS

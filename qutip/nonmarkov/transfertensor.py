@@ -171,7 +171,12 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
     if tensors is None:
         tensors, diff = _generatetensors(dynmaps, learningtimes, opt=opt)
 
-    rho0vec = operator_to_vector(rho0)
+    if rho0.isoper:
+        # vectorize density matrix
+        rho0vec = operator_to_vector(rho0)
+    else:
+        # rho0 might be a super in which case we should not vectorize
+        rho0vec = rho0
 
     K = len(tensors)
     states = [rho0vec]

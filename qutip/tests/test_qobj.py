@@ -586,9 +586,9 @@ def test_QobjNorm():
 
 def test_QobjPermute():
     "Qobj permute"
-    A = basis(5, 0)
+    A = basis(3, 0)
     B = basis(5, 4)
-    C = basis(5, 2)
+    C = basis(4, 2)
     psi = tensor(A, B, C)
     psi2 = psi.permute([2, 0, 1])
     assert_(psi2 == tensor(C, A, B))
@@ -597,16 +597,16 @@ def test_QobjPermute():
     psi2_bra = psi_bra.permute([2, 0, 1])
     assert_(psi2_bra == tensor(C, A, B).dag())
 
-    A = fock_dm(5, 0)
+    A = fock_dm(3, 0)
     B = fock_dm(5, 4)
-    C = fock_dm(5, 2)
+    C = fock_dm(4, 2)
     rho = tensor(A, B, C)
     rho2 = rho.permute([2, 0, 1])
     assert_(rho2 == tensor(C, A, B))
 
     for ii in range(3):
-        A = rand_ket(5)
-        B = rand_ket(5)
+        A = rand_ket(3)
+        B = rand_ket(4)
         C = rand_ket(5)
         psi = tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
@@ -617,12 +617,28 @@ def test_QobjPermute():
         assert_(psi2_bra == tensor(B, A, C).dag())
 
     for ii in range(3):
-        A = rand_dm(5)
-        B = rand_dm(5)
+        A = rand_dm(3)
+        B = rand_dm(4)
         C = rand_dm(5)
         rho = tensor(A, B, C)
         rho2 = rho.permute([1, 0, 2])
         assert_(rho2 == tensor(B, A, C))
+        
+        rho_vec = operator_to_vector(rho)
+        rho2_vec = rho_vec.permute([[1, 0, 2],[4,3,5]])
+        assert_(rho2_vec == operator_to_vector(tensor(B, A, C)))
+        
+        rho_vec_bra = operator_to_vector(rho).dag()
+        rho2_vec_bra = rho_vec_bra.permute([[1, 0, 2],[4,3,5]])
+        assert_(rho2_vec_bra == operator_to_vector(tensor(B, A, C)).dag())
+        
+    for ii in range(3):
+        super_dims = [3, 5, 4]
+        U = rand_unitary(np.prod(super_dims), density=0.02, dims=[super_dims, super_dims])
+        Unew = U.permute([2,1,0])
+        S_tens = to_super(U)
+        S_tens_new = to_super(Unew)
+        assert_(S_tens_new == S_tens.permute([[2,1,0],[5,4,3]]))
 
 
 def test_KetType():

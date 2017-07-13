@@ -662,7 +662,7 @@ class TestMESolverMisc:
         c = tensor(qeye(N+1), qeye(N+1), destroy(N+1))
         H = a*b*c.dag() * c.dag() - a.dag()*b.dag()*c * c
 
-        times = np.linspace(0.0, 2.0, 100.0)
+        times = np.linspace(0.0, 2.0, 100)
         opts = Options(store_states=False, store_final_state=True)
         rho0 = ket2dm(psi0)
         result = mesolve(H, rho0, times, [], [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
@@ -679,7 +679,7 @@ class TestMESolverMisc:
         c = tensor(qeye(N+1), qeye(N+1), destroy(N+1))
         H = a*b*c.dag() * c.dag() - a.dag()*b.dag()*c * c
 
-        times = np.linspace(0.0, 2.0, 100.0)
+        times = np.linspace(0.0, 2.0, 100)
         opts = Options(store_states=False, store_final_state=True)
         result = mesolve(H, psi0, times, [], [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
         assert_(psi0.dims == result.final_state.dims)

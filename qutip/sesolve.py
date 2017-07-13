@@ -42,7 +42,7 @@ from functools import partial
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm
-
+import qutip.settings as qset
 from qutip.qobj import Qobj, isket
 from qutip.rhs_generate import rhs_generate
 from qutip.solver import Result, Options, config, _solver_safety_check
@@ -51,10 +51,16 @@ from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
-                                 cy_ode_psi_func_td_with_state)
+                                 cy_ode_psi_func_td_with_state,
+                                 spmvpy_csr)
 from qutip.cy.codegen import Codegen
+from qutip.cy.utilities import _cython_build_cleanup
 
 from qutip.ui.progressbar import BaseProgressBar
+from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
+
+if qset.has_openmp:
+    from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
 
 if debug:
     import inspect
@@ -113,10 +119,6 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         which to calculate the expectation values.
 
     """
-
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
-    
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
@@ -125,7 +127,10 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
+    
     # convert array based time-dependence to string format
     H, _, args = _td_wrap_array_str(H, [], args, tlist)
     # check for type (if any) of time-dependent inputs
@@ -137,6 +142,9 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config time-dependence flags to default values
         config.reset()
+    
+    #check if should use OPENMP
+    check_use_openmp(options)
 
     if n_func > 0:
         res = _sesolve_list_func_td(H, rho0, tlist, e_ops, args, options,
@@ -240,15 +248,20 @@ def psi_list_td(t, psi, H_list_and_args):
     H_list = H_list_and_args[0]
     args = H_list_and_args[1]
 
-    H = H_list[0][0] * H_list[0][1](t, args)
+    H = H_list[0][0]
+    H_td = H_list[0][1]
+    out = np.zeros(psi.shape[0],dtype=complex)
+    spmvpy_csr(H.data, H.indices, H.indptr, psi, H_td(t, args), out)
     for n in range(1, len(H_list)):
         #
         # args[n][0] = the sparse data for a Qobj in operator form
         # args[n][1] = function callback giving the coefficient
         #
-        H = H + H_list[n][0] * H_list[n][1](t, args)
+        H = H_list[n][0]
+        H_td = H_list[n][1]
+        spmvpy_csr(H.data, H.indices, H.indptr, psi, H_td(t, args), out)
 
-    return H * psi
+    return out
 
 
 def psi_list_td_with_state(t, psi, H_list_and_args):
@@ -256,15 +269,21 @@ def psi_list_td_with_state(t, psi, H_list_and_args):
     H_list = H_list_and_args[0]
     args = H_list_and_args[1]
 
-    H = H_list[0][0] * H_list[0][1](t, psi, args)
+    H = H_list[0][0]
+    H_td = H_list[0][1]
+    out = np.zeros(psi.shape[0],dtype=complex)
+    spmvpy_csr(H.data, H.indices, H.indptr,
+                psi, H_td(t, args), out)
     for n in range(1, len(H_list)):
         #
         # args[n][0] = the sparse data for a Qobj in operator form
         # args[n][1] = function callback giving the coefficient
         #
-        H = H + H_list[n][0] * H_list[n][1](t, psi, args)
+        H = H_list[n][0]
+        H_td = H_list[n][1]
+        spmvpy_csr(H.data, H.indices, H.indptr, psi, H_td(t, args), out)
 
-    return H * psi
+    return out
 
 
 # -----------------------------------------------------------------------------
@@ -285,9 +304,15 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     # setup integrator.
     #
     initial_vector = psi0.full().ravel()
-    r = scipy.integrate.ode(cy_ode_rhs)
     L = -1.0j * H
-    r.set_f_params(L.data.data, L.data.indices, L.data.indptr)  # cython RHS
+    
+    if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
+        r = scipy.integrate.ode(cy_ode_rhs_openmp)
+        r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+                        opt.openmp_threads)
+    else:
+        r = scipy.integrate.ode(cy_ode_rhs)
+        r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -365,6 +390,12 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
+    
+    # Check which components should use OPENMP
+    omp_components = None
+    if qset.has_openmp:
+        if opt.use_openmp:
+            omp_components = openmp_components(Lptrs)
 
     #
     # setup ode args string: we expand the list Ldata, Linds and Lptrs into
@@ -393,7 +424,9 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
         else:
             config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       config=config)
+                       config=config, use_openmp=opt.use_openmp,
+                       omp_components=omp_components,
+                       omp_threads=opt.openmp_threads)
         cgen.generate(config.tdname + ".pyx")
 
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
@@ -416,6 +449,11 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
 
     exec(code, locals(), args)
 
+    
+    # Remove RHS cython file if necessary
+    if not opt.rhs_reuse and config.tdname:
+        _cython_build_cleanup(config.tdname)
+    
     #
     # call generic ODE code
     #

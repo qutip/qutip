@@ -40,26 +40,27 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(complex[::1] data,
                 int[::1] ind, int[::1] ptr, complex[::1] vec)
 
 
-cpdef void spmvpy(complex[::1] data,
-                int[::1] ind,
-                int[::1] ptr,
-                complex[::1] vec,
+cdef void spmvpy(complex * data,
+                int * ind,
+                int *  ptr,
+                complex * vec,
                 complex a,
-                complex[::1] out)
+                complex * out,
+                unsigned int nrows)
 
 
-cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-                            np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-                            np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-                            np.ndarray[CTYPE_t, ndim=1, mode="c"] rho_vec,
+cpdef cy_expect_rho_vec_csr(complex[::1] data,
+                            int[::1] idx,
+                            int[::1] ptr,
+                            complex[::1] rho_vec,
                             int herm)
 
 cpdef cy_expect_psi(object op,
-                    np.ndarray[CTYPE_t, ndim=1, mode="c"] state,
+                    complex[::1] state,
                     int isherm)
 
-cpdef cy_expect_psi_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-                        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-                        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr, 
-                        np.ndarray[CTYPE_t, ndim=1, mode="c"] state,
+cpdef cy_expect_psi_csr(complex[::1] data,
+                        int[::1] idx,
+                        int[::1] ptr, 
+                        complex[::1] state,
                         int isherm)

@@ -33,19 +33,58 @@
 import numpy as np
 cimport numpy as np
 cimport cython
+from libcpp.algorithm cimport sort
+from libcpp.vector cimport vector
+np.import_array()
 
 include "parameters.pxi"
+
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+    void PyDataMem_FREE(void * ptr)
+    void PyDataMem_RENEW(void * ptr, size_t size)
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyDataMem_NEW(size_t size)
+
+#Struct used for arg sorting
+cdef struct _int_pair:
+    int data
+    int idx
+
+ctypedef _int_pair int_pair
+ctypedef int (*cfptr)(int_pair, int_pair)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int int_sort(int_pair x, int_pair y):
+    return x.data < y.data
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _node_degrees(
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-        int num_rows):
+cdef int * int_argsort(int * x, int nrows):
+    cdef vector[int_pair] pairs
+    cdef cfptr cfptr_ = &int_sort
+    cdef size_t kk
+    pairs.resize(nrows)
+    for kk in range(nrows):
+        pairs[kk].data = x[kk]
+        pairs[kk].idx = kk
+    
+    sort(pairs.begin(),pairs.end(),cfptr_)
+    cdef int * out = <int *>PyDataMem_NEW(nrows *sizeof(int))
+    for kk in range(nrows):
+        out[kk] = pairs[kk].idx
+    return out
 
-    cdef unsigned int ii, jj
-    cdef np.ndarray[ITYPE_t] degree = np.zeros(num_rows, dtype=ITYPE)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef int[::1] _node_degrees(int[::1] ind, int[::1] ptr,
+        unsigned int num_rows):
+
+    cdef size_t ii, jj
+    cdef int[::1] degree = np.zeros(num_rows, dtype=np.int32)
 
     for ii in range(num_rows):
         degree[ii] = ptr[ii + 1] - ptr[ii]
@@ -100,23 +139,17 @@ def _breadth_first_search(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _reverse_cuthill_mckee(
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-        int num_rows):
+def _reverse_cuthill_mckee(int[::1] ind, int[::1] ptr, int num_rows):
     """
     Reverse Cuthill-McKee ordering of a sparse csr or csc matrix.
     """
     cdef unsigned int N = 0, N_old, seed, level_start, level_end
     cdef unsigned int zz, i, j, ii, jj, kk, ll, level_len, temp, temp2
-
-    cdef np.ndarray[ITYPE_t] order = np.zeros(num_rows, dtype=ITYPE)
-    cdef np.ndarray[ITYPE_t] degree = _node_degrees(ind, ptr,
-                                            num_rows).astype(ITYPE)
-    cdef np.ndarray[ITYPE_t] inds = np.argsort(degree).astype(ITYPE)
-    cdef np.ndarray[ITYPE_t] rev_inds = np.argsort(inds).astype(ITYPE)
-    cdef np.ndarray[ITYPE_t] temp_degrees = np.zeros(np.max(degree),
-                                            dtype=ITYPE)
+    cdef np.ndarray[int, ndim=1] order = np.zeros(num_rows, dtype=np.int32)
+    cdef int[::1] degree = _node_degrees(ind, ptr, num_rows)
+    cdef int * inds = int_argsort(&degree[0], num_rows)
+    cdef int * rev_inds = int_argsort(inds, num_rows)
+    cdef int * temp_degrees = NULL
 
     # loop over zz takes into account possible disconnected graph.
     for zz in range(num_rows):
@@ -143,6 +176,7 @@ def _reverse_cuthill_mckee(
                             N += 1
 
                     # Add values to temp_degrees array for insertion sort
+                    temp_degrees = <int *>PyDataMem_RENEW(temp_degrees, (N-N_old)*sizeof(int))
                     level_len = 0
                     for kk in range(N_old, N):
                         temp_degrees[level_len] = degree[order[kk]]
@@ -166,7 +200,9 @@ def _reverse_cuthill_mckee(
 
         if N == num_rows:
             break
-
+    PyDataMem_FREE(inds)
+    PyDataMem_FREE(rev_inds)
+    PyDataMem_FREE(temp_degrees)
     # return reversed order for RCM ordering
     return order[::-1]
 

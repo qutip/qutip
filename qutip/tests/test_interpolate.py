@@ -86,7 +86,7 @@ def test_interpolate_evolve1():
     H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
     out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve2():
     """
@@ -102,7 +102,7 @@ def test_interpolate_evolve2():
     H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve3():
     """
@@ -118,7 +118,7 @@ def test_interpolate_evolve3():
     H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
     out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve4():
     """
@@ -134,7 +134,7 @@ def test_interpolate_evolve4():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
     out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve5():
     """
@@ -151,7 +151,7 @@ def test_interpolate_evolve5():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve6():
     """
@@ -167,7 +167,7 @@ def test_interpolate_evolve6():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve7():
     """
@@ -184,7 +184,7 @@ def test_interpolate_evolve7():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve8():
     """
@@ -200,7 +200,7 @@ def test_interpolate_evolve8():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
     out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve9():
     """
@@ -217,7 +217,7 @@ def test_interpolate_evolve9():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve10():
     """
@@ -233,7 +233,7 @@ def test_interpolate_evolve10():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'-0.1j*sin(t)']]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 def test_interpolate_evolve11():
     """
@@ -250,7 +250,62 @@ def test_interpolate_evolve11():
     H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
     out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    print(np.max(np.abs(out1-out2)) < 1e-4)
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
+
+
+def test_interpolate_brevolve1():
+    """
+    Interpolate: brmesolve str + interp (real)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.25*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
+    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
+
+
+def test_interpolate_brevolve2():
+    """
+    Interpolate: brmesolve str + interp (complex)
+    """
+    tlist = np.linspace(0,5,50)
+    y = 0.1j*np.sin(tlist)
+    S = Cubic_Spline(tlist[0], tlist[-1], y)
+    N = 10
+    psi0 = fock_dm(N,1)
+    a = destroy(N)
+    H = [a.dag()*a,[a**2+a.dag()**2,'0.1j*sin(t)'], [a**2+a.dag()**2,'-0.1j*sin(t)']]
+    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'-0.1j*sin(t)']]
+    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
+    out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
+    assert_(np.max(np.abs(out1-out2)) < 1e-4)
+
+def test_interpolate_brevolve3():
+    """
+    Interpolate: brmesolve c_op as interp (str)
+    """
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    tlist = np.linspace(0, 10, 100)
+
+    f = lambda t: np.sqrt(kappa*np.exp(-t))
+
+    S = Cubic_Spline(tlist[0],tlist[-1],f(tlist))
+    c_ops = [[a, S]]
+    brdata = brmesolve(H, psi0, tlist, a_ops=[], e_ops=[a.dag() * a], c_ops=c_ops)
+    expt = brdata.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_(avg_diff < 1e-4)
 
 
 if __name__ == "__main__":

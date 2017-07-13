@@ -41,6 +41,7 @@ import os
 import warnings
 from qutip import __version__
 from qutip.qobj import Qobj
+import qutip.settings as qset
 from types import FunctionType, BuiltinFunctionType
 
 class Options():
@@ -95,6 +96,8 @@ class Options():
         correlation calculations when using mcsolve.
     ntraj : int {500}
         Number of trajectories in stochastic solvers.
+    openmp_threads : int
+        Number of OPENMP threads to use. Default is number of cpu cores.
     rhs_reuse : bool {False,True}
         Reuse Hamiltonian data.
     rhs_with_state : bool {False,True}
@@ -112,6 +115,9 @@ class Options():
         result class, even if expectation values operators are given. If no
         expectation are provided, then states are stored by default and this
         option has no effect.
+    use_openmp : bool {True, False}
+        Use OPENMP for sparse matrix vector multiplication. Default
+        None means auto check.
 
     """
 
@@ -121,7 +127,8 @@ class Options():
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False, normalize_output=True):
+                 steady_state_average=False, normalize_output=True,
+                 use_openmp=None, openmp_threads=None):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -167,6 +174,11 @@ class Options():
         # Max. number of steps taken to find wavefunction norm to within
         # norm_tol (mcsolve only)
         self.norm_steps = norm_steps
+        # Number of threads for openmp
+        if openmp_threads is None:
+            self.openmp_threads = qset.num_cpus
+        else:
+            self.openmp_threads = openmp_threads
         # store final state?
         self.store_final_state = store_final_state
         # store states even if expectation operators are given?
@@ -175,6 +187,8 @@ class Options():
         self.steady_state_average = steady_state_average
         # Normalize output of solvers (turned off for batch unitary propagator mode)
         self.normalize_output = normalize_output
+        # Use OPENMP for sparse matrix vector multiplication
+        self.use_openmp = use_openmp
 
     def __str__(self):
         if self.seeds is None:
@@ -793,6 +807,9 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
         elif isinstance(H[0], list):
             Hdims = H[0][0].dims
             Htype = H[0][0].type
+        elif isinstance(H[0], (FunctionType, BuiltinFunctionType)):
+            Hdims = H[0](0,args).dims
+            Htype = H[0](0,args).type 
         else:
             raise Exception('Invalid td-list element.')
         # Check all operators in list
@@ -803,23 +820,36 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             elif isinstance(H[ii], list):
                 _temp_dims = H[ii][0].dims
                 _temp_type = H[ii][0].type
-            else:
+            elif isinstance(H[ii], (FunctionType, BuiltinFunctionType)):
+                _temp_dims = H[ii](0,args).dims
+                _temp_type = H[ii](0,args).type
+            else: 
                 raise Exception('Invalid td-list element.')
             _structure_check(_temp_dims,_temp_type,state)
     
     else:
         raise Exception('Invalid time-dependent format.')
     
+    
     for ii in range(len(c_ops)):
+        do_tests = True
         if isinstance(c_ops[ii], Qobj):
             _temp_state = c_ops[ii]
         elif isinstance(c_ops[ii], list):
-            _temp_state = c_ops[ii][0]
+            if isinstance(c_ops[ii][0], Qobj):
+                _temp_state = c_ops[ii][0]
+            elif isinstance(c_ops[ii][0], tuple):
+                do_tests = False
+                for kk in range(len(c_ops[ii][0])):
+                    _temp_state = c_ops[ii][0][kk]
+                    _structure_check(Hdims, Htype, _temp_state)
         else:
             raise Exception('Invalid td-list element.')
-        _structure_check(Hdims, Htype, _temp_state)
+        if do_tests:
+            _structure_check(Hdims, Htype, _temp_state)
     
-    for ii in range(len(e_ops)):
+    if isinstance(e_ops, list): 
+        for ii in range(len(e_ops)):
             if isinstance(e_ops[ii], Qobj):
                 _temp_state = e_ops[ii]
             elif isinstance(e_ops[ii], list):
@@ -827,8 +857,10 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             else:
                 raise Exception('Invalid td-list element.')
             _structure_check(Hdims,Htype,_temp_state)
-
-
+    elif isinstance(e_ops, FunctionType):
+        pass
+    else:
+        raise Exception('Invalid e_ops specification.')
 
 def _structure_check(Hdims, Htype, state):
     # Input state is a ket vector
@@ -854,8 +886,7 @@ def _structure_check(Hdims, Htype, state):
             if Hdims[1] != state.dims:
                 raise Exception('Input operators do not share same structure.')
 
-
-       
+ 
 #
 # create a global instance of the SolverConfiguration class
 #

@@ -44,12 +44,13 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
 import warnings
-
+import qutip.settings as qset
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, _solver_safety_check
-from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
+from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td, spmvpy_csr
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.rhs_generate import rhs_generate
@@ -62,6 +63,11 @@ from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
                            _sesolve_list_td, _sesolve_func_td, _sesolve_const)
 
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+
+from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
+if qset.has_openmp:
+    from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
+
 
 if debug:
     import inspect
@@ -185,13 +191,12 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     options : :class:`qutip.Options`
         with options for the solver.
 
-    progress_bar: BaseProgressBar
+    progress_bar : BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation.
 
     Returns
     -------
-
     result: :class:`qutip.Result`
 
         An instance of the class :class:`qutip.Result`, which contains
@@ -202,16 +207,6 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         operators for which to calculate the expectation values.
 
     """
-    
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
-    
-    if progress_bar is None:
-        progress_bar = BaseProgressBar()
-    elif progress_bar is True:
-        progress_bar = TextProgressBar()
-
     # check whether c_ops or e_ops is is a single operator
     # if so convert it to a list containing only that operator
     if isinstance(c_ops, Qobj):
@@ -225,6 +220,14 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
+    
+    if _safe_mode:
+        _solver_safety_check(H, rho0, c_ops, e_ops, args)
+    
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
 
     # check if rho0 is a superoperator, in which case e_ops argument should
     # be empty, i.e., e_ops = []
@@ -244,7 +247,11 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config collapse and time-dependence flags to default values
         config.reset()
-
+    
+    #check if should use OPENMP
+    check_use_openmp(options)
+    
+    
     res = None
 
     #
@@ -455,35 +462,49 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
 # [Qobj, function] style time dependence API
 #
 def drho_list_td(t, rho, L_list, args):
-
-    L = L_list[0][0] * L_list[0][1](t, args)
+    out = np.zeros(rho.shape[0],dtype=complex)
+    L = L_list[0][0]
+    L_td = L_list[0][1]
+    spmvpy_csr(L.data, L.indices, L.indptr,
+                rho, L_td(t, args), out)
     for n in range(1, len(L_list)):
         #
         # L_args[n][0] = the sparse data for a Qobj in super-operator form
         # L_args[n][1] = function callback giving the coefficient
         #
+        L = L_list[n][0]
+        L_td = L_list[n][1]
         if L_list[n][2]:
-            L = L + L_list[n][0] * (L_list[n][1](t, args)) ** 2
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, args)**2, out)
         else:
-            L = L + L_list[n][0] * L_list[n][1](t, args)
-
-    return L * rho
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, args), out)
+    return out
 
 
 def drho_list_td_with_state(t, rho, L_list, args):
 
-    L = L_list[0][0] * L_list[0][1](t, rho, args)
+    out = np.zeros(rho.shape[0],dtype=complex)
+    L = L_list[0][0]
+    L_td = L_list[0][1]
+    spmvpy_csr(L.data, L.indices, L.indptr,
+                rho, L_td(t, rho, args), out)
     for n in range(1, len(L_list)):
         #
         # L_args[n][0] = the sparse data for a Qobj in super-operator form
         # L_args[n][1] = function callback giving the coefficient
         #
+        L = L_list[n][0]
+        L_td = L_list[n][1]
         if L_list[n][2]:
-            L = L + L_list[n][0] * (L_list[n][1](t, rho, args)) ** 2
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, rho, args)**2, out)
         else:
-            L = L + L_list[n][0] * L_list[n][1](t, rho, args)
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, rho, args), out)
 
-    return L * rho
+    return out
 
 #
 # evaluate dE(t)/dt according to the master equation using the
@@ -641,6 +662,12 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
+    
+    # Check which components should use OPENMP
+    omp_components = None
+    if qset.has_openmp:
+        if opt.use_openmp:
+            omp_components = openmp_components(Lptrs)
 
     #
     # setup ode args string: we expand the list Ldata, Linds and Lptrs into
@@ -668,7 +695,9 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
         else:
             config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       config=config)
+                       config=config, use_openmp=opt.use_openmp,
+                       omp_components=omp_components,
+                       omp_threads=opt.openmp_threads)
         cgen.generate(config.tdname + ".pyx")
 
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
@@ -743,6 +772,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         H = H.tidyup(opt.atol)
 
     L = liouvillian(H, c_op_list)
+    
 
     #
     # setup integrator
@@ -752,8 +782,13 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         r = scipy.integrate.ode(_ode_super_func)
         r.set_f_params(L.data)
     else:
-        r = scipy.integrate.ode(cy_ode_rhs)
-        r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
+        if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
+            r = scipy.integrate.ode(cy_ode_rhs_openmp)
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+                            opt.openmp_threads)
+        else:
+            r = scipy.integrate.ode(cy_ode_rhs)
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
         # r = scipy.integrate.ode(_ode_rho_test)
         # r.set_f_params(L.data)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -884,7 +919,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
 # evaluate drho(t)/dt according to the master equation
 #
 def _ode_rho_func_td(t, rho, L0, L_func, args):
-    L = L0 + L_func(t, args)
+    L = L0 + L_func(t, args).data
     return L * rho
 
 
@@ -892,7 +927,7 @@ def _ode_rho_func_td(t, rho, L0, L_func, args):
 # evaluate drho(t)/dt according to the master equation
 #
 def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
-    L = L0 + L_func(t, rho, args)
+    L = L0 + L_func(t, rho, args).data
     return L * rho
 
 #
@@ -980,7 +1015,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
                             "the nsteps parameter in the Options class.")
 
         if opt.store_states or expt_callback:
-            rho.data = vec2mat(r.y)
+            rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
 
             if opt.store_states:
                 output.states.append(Qobj(rho, isherm=True))
@@ -1006,7 +1041,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
         _cython_build_cleanup(config.tdname)
 
     if opt.store_final_state:
-        rho.data = vec2mat(r.y)
+        rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
         output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
 
     return output

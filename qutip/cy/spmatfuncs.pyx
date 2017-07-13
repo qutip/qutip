@@ -35,7 +35,7 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
-cdef extern from "src/zspmv.h" nogil:
+cdef extern from "src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
                 double complex a, double complex *out, int nrows)
 
@@ -45,7 +45,7 @@ include "complex_math.pxi"
 @cython.wraparound(False)
 cpdef np.ndarray[complex, ndim=1, mode="c"] spmv(
         object super_op,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec):
+        complex[::1] vec):
     """
     Sparse matrix, dense vector multiplication.  
     Here the vector is assumed to have one-dimension.
@@ -92,21 +92,50 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_csr(complex[::1] data,
         Returns dense array.
     
     """
-    cdef int num_rows = ptr.shape[0] - 1
+    cdef unsigned int num_rows = ptr.shape[0] - 1
     cdef np.ndarray[complex, ndim=1, mode="c"] out = np.zeros((num_rows), dtype=np.complex)
     zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows)
     return out
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef inline void spmvpy(complex[::1] data,
-            int[::1] ind,
-            int[::1] ptr,
-            complex[::1] vec,
+def spmvpy_csr(complex[::1] data,
+            int[::1] ind, int[::1] ptr, complex[::1] vec, 
+            complex alpha, complex[::1] out):
+    """
+    Sparse matrix, dense vector multiplication.  
+    Here the vector is assumed to have one-dimension.
+    Matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    data : array
+        Data for sparse matrix.
+    idx : array
+        Indices for sparse matrix data.
+    ptr : array
+        Pointers for sparse matrix data.
+    vec : array
+        Dense vector for multiplication.  Must be one-dimensional.
+    alpha : complex
+        Numerical coefficient for sparse matrix.
+    out: array
+        Output array
+
+    """
+    cdef unsigned int num_rows = vec.shape[0]
+    zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], alpha, &out[0], num_rows)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline void spmvpy(complex * data, int * ind, int * ptr,
+            complex * vec,
             complex a,
-            complex[::1] out):
+            complex * out,
+            unsigned int nrows):
     
-    zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], a, &out[0], vec.shape[0])
+    zspmvpy(data, ind, ptr, vec, a, out, nrows)
 
 
 
@@ -119,19 +148,19 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs(
         int[::1] ind,
         int[::1] ptr):
 
-    cdef int num_rows = rho.shape[0]
+    cdef unsigned int nrows = rho.shape[0]
     cdef np.ndarray[complex, ndim=1, mode="c"] out = \
-        np.zeros((num_rows), dtype=complex)
-    zspmvpy(&data[0], &ind[0], &ptr[0], &rho[0], 1.0, &out[0], num_rows)
+        np.zeros(nrows, dtype=complex)
+    zspmvpy(&data[0], &ind[0], &ptr[0], &rho[0], 1.0, &out[0], nrows)
 
     return out
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_psi_func_td(
+cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td(
         double t, 
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] psi, 
+        np.ndarray[complex, ndim=1, mode="c"] psi, 
         object H_func,
         object args):
 
@@ -141,9 +170,9 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_psi_func_td(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_psi_func_td_with_state(
+cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_with_state(
         double t,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] psi,
+        np.ndarray[complex, ndim=1, mode="c"] psi,
         object H_func,
         object args):
 
@@ -153,9 +182,9 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_psi_func_td_with_state(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_rho_func_td(
+cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rho_func_td(
         double t,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] rho,
+        np.ndarray[complex, ndim=1, mode="c"] rho,
         object L0,
         object L_func,
         object args):
@@ -166,76 +195,39 @@ cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] cy_ode_rho_func_td(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_dia(
-        np.ndarray[CTYPE_t, ndim=2, mode="c"] data,
-        np.ndarray[ITYPE_t, ndim=1, mode="c"] offsets, 
-        int num_rows, int num_diags,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] vec,
-        np.ndarray[CTYPE_t, ndim=1, mode="c"] ret,
-        int N):
-    """DIA sparse matrix-vector product
-    """
-    cdef int ii, jj,i0,i1,i2
-    cdef CTYPE_t dot
-
-    for ii in range(num_diags):
-        i0 = -offsets[ii]
-
-        if i0 > 0:
-            i1 = i0
-        else:
-            i1 = 0
-
-        if num_rows < num_rows + i0:
-            i2 = num_rows
-        else:
-            i2 = num_rows + i0
-
-        dot = 0.0j
-        for jj in range(i1, i2):
-            dot += data[ii, jj - i0] * vec[jj - i0]
-        ret[jj] = dot
-
-    return ret
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef cy_expect_psi(object op,
-                    np.ndarray[CTYPE_t, ndim=1, mode="c"] state,
+                    complex[::1] state,
                     int isherm):
 
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] y = spmv_csr(op.data, op.indices, op.indptr, state)
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] x = state.conj()
+    cdef complex[::1] y = spmv_csr(op.data, op.indices, op.indptr, state)
     cdef int row, num_rows = state.shape[0]
-    cdef CTYPE_t dot = 0.0j
-
+    cdef complex dot = 0
     for row from 0 <= row < num_rows:
-        dot += x[row] * y[row]
+        dot += conj(state[row]) * y[row]
 
     if isherm:
-        return float(dot.real)
+        return real(dot)
     else:
-        return complex(dot)
+        return dot
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_expect_psi_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-                        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-                        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr, 
-                        np.ndarray[CTYPE_t, ndim=1, mode="c"] state,
+cpdef cy_expect_psi_csr(complex[::1] data,
+                        int[::1] idx,
+                        int[::1] ptr, 
+                        complex[::1] state,
                         int isherm):
 
-    cdef complex [:] y = spmv_csr(data,idx,ptr,state)
+    cdef complex [::1] y = spmv_csr(data,idx,ptr,state)
     cdef int row, num_rows = state.shape[0]
-    cdef CTYPE_t dot = 0.0j
+    cdef complex dot = 0
 
     for row from 0 <= row < num_rows:
-        dot+=conj(state[row])*y[row]
+        dot += conj(state[row])*y[row]
 
     if isherm:
-        return <double>dot
+        return real(dot)
     else:
         return dot
 
@@ -243,7 +235,7 @@ cpdef cy_expect_psi_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cy_expect_rho_vec(object super_op,
-                        np.ndarray[CTYPE_t, ndim=1, mode="c"] rho_vec,
+                        complex[::1] rho_vec,
                         int herm):
 
     return cy_expect_rho_vec_csr(super_op.data,
@@ -255,17 +247,17 @@ cpdef cy_expect_rho_vec(object super_op,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
-                             np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
-                             np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-                             np.ndarray[CTYPE_t, ndim=1, mode="c"] rho_vec,
+cpdef cy_expect_rho_vec_csr(complex[::1] data,
+                             int[::1] idx,
+                             int[::1] ptr,
+                             complex[::1] rho_vec,
                              int herm):
     
-    cdef Py_ssize_t row
+    cdef size_t row
     cdef int jj,row_start,row_end
     cdef int num_rows = rho_vec.shape[0]
     cdef int n = <int>libc.math.sqrt(num_rows)
-    cdef CTYPE_t dot = 0.0
+    cdef complex dot = 0.0
 
     for row from 0 <= row < num_rows by n+1:
         row_start = ptr[row]
@@ -276,7 +268,7 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
     if herm == 0:
         return dot
     else:
-        return <double>dot
+        return real(dot)
 
 
 
@@ -284,18 +276,18 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
 @cython.wraparound(False)
 cpdef cy_spmm_tr(object op1, object op2, int herm):
     
-    cdef Py_ssize_t row
-    cdef CTYPE_t tr = 0.0
+    cdef size_t row
+    cdef complex tr = 0.0
 
     cdef int col1, row1_idx_start, row1_idx_end
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] data1 = op1.data
-    cdef np.ndarray[ITYPE_t, ndim=1, mode="c"] idx1 = op1.indices
-    cdef np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr1 = op1.indptr
+    cdef complex[::1] data1 = op1.data
+    cdef int[::1] idx1 = op1.indices
+    cdef int[::1] ptr1 = op1.indptr
 
     cdef int col2, row2_idx_start, row2_idx_end
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] data2 = op2.data
-    cdef np.ndarray[ITYPE_t, ndim=1, mode="c"] idx2 = op2.indices
-    cdef np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr2 = op2.indptr
+    cdef complex[::1] data2 = op2.data
+    cdef int[::1] idx2 = op2.indices
+    cdef int[::1] ptr2 = op2.indptr
 
     cdef int num_rows = ptr1.shape[0]-1
 
@@ -313,11 +305,12 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
 
                 if col2 == row:
                     tr += data1[row1_idx] * data2[row2_idx]
+                    break
  
     if herm == 0:
         return tr
     else:
-        return <double>tr
+        return real(tr)
 
 
 

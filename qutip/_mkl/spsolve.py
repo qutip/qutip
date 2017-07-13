@@ -154,15 +154,16 @@ class mkl_lu(object):
         np_x = x.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C')) 
         np_b = b.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C'))
         
-        error = 0
+        error = np.zeros(1,dtype=np.int32)
+        np_error = error.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C')) 
         #Call solver
         _solve_start = time.time()
         pardiso(self._np_pt, byref(c_int(1)), byref(c_int(1)), byref(c_int(self._mtype)),
             byref(c_int(33)), byref(c_int(self._dim)), self._data, self._indptr, self._indices, 
             self._np_perm, byref(c_int(nrhs)), self._np_iparm, byref(c_int(0)), np_b,
-            np_x, byref(c_int(error)))
+            np_x, np_error)
         self._solve_time = time.time() -_solve_start
-        if error != 0:
+        if error[0] != 0:
             raise Exception(pardiso_error_msgs[str(error)])
         
         if verbose:
@@ -193,12 +194,13 @@ class mkl_lu(object):
     
     def delete(self):
         #Delete all data
-        error = 0
+        error = np.zeros(1,dtype=np.int32)
+        np_error = error.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
         pardiso(self._np_pt, byref(c_int(1)), byref(c_int(1)), byref(c_int(self._mtype)),
             byref(c_int(-1)), byref(c_int(self._dim)), self._data, self._indptr, self._indices, 
             self._np_perm, byref(c_int(1)), self._np_iparm, byref(c_int(0)), byref(c_int(0)),
-            byref(c_int(0)), byref(c_int(error)))
-        if error == -10:
+            byref(c_int(0)), np_error)
+        if error[0] == -10:
             raise Exception('Error freeing solver memory')
         
         
@@ -315,16 +317,18 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     np_b = b.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C'))
     x =  np.zeros(1, dtype=data_type) # Input dummy solution at this phase
     np_x = x.ctypes.data_as(ctypeslib.ndpointer(data_type, ndim=1, flags='C'))
-    error = 0 #Int containing error info
+    
+    error = np.zeros(1,dtype=np.int32)
+    np_error = error.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     
     #Call solver
     _factor_start = time.time()
     pardiso(np_pt, byref(c_int(1)), byref(c_int(1)), byref(c_int(mtype)),
             byref(c_int(12)), byref(c_int(dim)), data, indptr, indices, np_perm,
             byref(c_int(1)), np_iparm, byref(c_int(0)), np_b,
-            np_x, byref(c_int(error)))
+            np_x, np_error)
     _factor_time = time.time() - _factor_start
-    if error != 0:
+    if error[0] != 0:
         raise Exception(pardiso_error_msgs[str(error)])
     
     if verbose:

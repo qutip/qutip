@@ -46,13 +46,14 @@ from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
+from qutip.cy.spconvert import dense2D_to_fastcsr_cmode
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
+from qutip.fastsparse import csr2fast
 import qutip.settings
-
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -181,6 +182,18 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
     if debug:
         print(inspect.stack()[0][3])
     
+    if isinstance(c_ops, Qobj):
+        c_ops = [c_ops]
+
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+    
     if _safe_mode:
         _solver_safety_check(H, psi0, c_ops, e_ops, args)
     
@@ -195,18 +208,6 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
-
-    if isinstance(c_ops, Qobj):
-        c_ops = [c_ops]
-
-    if isinstance(e_ops, Qobj):
-        e_ops = [e_ops]
-
-    if isinstance(e_ops, dict):
-        e_ops_dict = e_ops
-        e_ops = [e for e in e_ops.values()]
-    else:
-        e_ops_dict = None
 
     config.options = options
 
@@ -742,10 +743,11 @@ def _mc_alg_evolve(nt, config, opt, seeds):
     temp = sp.csr_matrix(
         np.reshape(config.psi0, (config.psi0.shape[0], 1)),
         dtype=complex)
+    temp = csr2fast(temp)
     if (config.options.average_states and
             not config.options.steady_state_average):
         # output is averaged states, so use dm
-        states_out[0] = Qobj(temp*temp.conj().transpose(),
+        states_out[0] = Qobj(temp*temp.H,
                              [config.psi0_dims[0],
                               config.psi0_dims[0]],
                              [config.psi0_shape[0],
@@ -757,7 +759,7 @@ def _mc_alg_evolve(nt, config, opt, seeds):
         states_out[0] = Qobj(temp, config.psi0_dims,
                              config.psi0_shape, fast='mc')
     elif config.options.steady_state_average:
-        states_out[0] = temp * temp.conj().transpose()
+        states_out[0] = temp * temp.H
 
     # PRE-GENERATE LIST FOR EXPECTATION VALUES
     expect_out = []
@@ -946,13 +948,13 @@ def _mc_alg_evolve(nt, config, opt, seeds):
         # ----------------
         out_psi = ODE._y / dznrm2(ODE._y)
         if config.e_num == 0 or config.options.store_states:
-            out_psi_csr = sp.csr_matrix(np.reshape(out_psi,
+            out_psi_csr = dense2D_to_fastcsr_cmode(np.reshape(out_psi,
                                                    (out_psi.shape[0], 1)),
-                                        dtype=complex)
+                                                   out_psi.shape[0], 1)
             if (config.options.average_states and
                     not config.options.steady_state_average):
                 states_out[k] = Qobj(
-                    out_psi_csr * out_psi_csr.conj().transpose(),
+                    out_psi_csr * out_psi_csr.H,
                     [config.psi0_dims[0], config.psi0_dims[0]],
                     [config.psi0_shape[0], config.psi0_shape[0]],
                     fast='mc-dm')
@@ -960,7 +962,7 @@ def _mc_alg_evolve(nt, config, opt, seeds):
             elif config.options.steady_state_average:
                 states_out[0] = (
                     states_out[0] +
-                    (out_psi_csr * out_psi_csr.conj().transpose()))
+                    (out_psi_csr * out_psi_csr.H))
 
             else:
                 states_out[k] = Qobj(out_psi_csr, config.psi0_dims,

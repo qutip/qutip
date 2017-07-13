@@ -57,12 +57,14 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
-from qutip.ptrace import _ptrace
+from qutip.fastsparse import fast_csr_matrix, fast_identity
+from qutip.cy.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
-
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm)
+from qutip.cy.sparse_utils import cy_tidyup
 import sys
 if sys.version_info.major >= 3:
     from itertools import zip_longest
@@ -89,6 +91,9 @@ class Qobj(object):
         Dimensions of object used for tensor products.
     shape : list
         Shape of underlying data structure (matrix shape).
+    copy : bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
     fast : bool
         Flag for fast qobj creation when running ode solvers.
         This parameter is used internally only.
@@ -139,6 +144,8 @@ class Qobj(object):
 
     Methods
     -------
+    copy()
+        Create copy of Qobj
     conj()
         Conjugate of quantum object.
     cosm()
@@ -155,7 +162,7 @@ class Qobj(object):
         Returns eigenenergies and eigenstates of quantum object.
     expm()
         Matrix exponential of quantum object.
-    full()
+    full(order='C')
         Returns dense array of quantum object `data` attribute.
     groundstate(sparse=False, tol=0, maxiter=100000)
         Returns eigenvalue and eigenket for the groundstate of a quantum
@@ -186,12 +193,13 @@ class Qobj(object):
         a valid density operator.
     unit(norm='tr', sparse=False, tol=0, maxiter=100000)
         Returns normalized quantum object.
-    
+
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
-                 type=None, isherm=None, fast=False, superrep=None):
+                 type=None, isherm=None, copy=True,
+                 fast=False, superrep=None):
         """
         Qobj constructor.
         """
@@ -201,14 +209,14 @@ class Qobj(object):
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self._data = inpt
             self.dims = dims
             self._isherm = False
             return
 
         if fast == 'mc-dm':
             # fast Qobj construction for use in mcsolve with dm output
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            self._data = inpt
             self.dims = dims
             self._isherm = True
             return
@@ -216,8 +224,9 @@ class Qobj(object):
         if isinstance(inpt, Qobj):
             # if input is already Qobj then return identical copy
 
-            # make sure matrix is sparse (safety check)
-            self.data = sp.csr_matrix(inpt.data, dtype=complex, copy=True)
+            self._data = fast_csr_matrix((inpt.data.data, inpt.data.indices,
+                                          inpt.data.indptr),
+                                          shape=inpt.shape, copy=copy)
 
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
@@ -243,7 +252,7 @@ class Qobj(object):
                 N, M = 1, 1
                 self.dims = [[N], [M]]
 
-            self.data = sp.csr_matrix((N, M), dtype=complex)
+            self._data = fast_csr_matrix(shape=(N, M))
 
         elif isinstance(inpt, list) or isinstance(inpt, tuple):
             # case where input is a list
@@ -252,8 +261,9 @@ class Qobj(object):
                 # if list has only one dimension (i.e [5,4])
                 data = data.transpose()
 
-            self.data = sp.csr_matrix(data, dtype=complex)
-
+            _tmp = sp.csr_matrix(data, dtype=complex)
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                         shape=_tmp.shape)
             if not np.any(dims):
                 self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
@@ -264,7 +274,15 @@ class Qobj(object):
             if inpt.ndim == 1:
                 inpt = inpt[:, np.newaxis]
 
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            do_copy = copy
+            if not isinstance(inpt, fast_csr_matrix):
+                _tmp = sp.csr_matrix(inpt, dtype=complex, copy=do_copy)
+                _tmp.sort_indices() #Make sure indices are sorted.
+                do_copy = 0
+            else:
+                _tmp = inpt
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                        shape=_tmp.shape, copy=do_copy)
 
             if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -274,8 +292,9 @@ class Qobj(object):
         elif isinstance(inpt, (int, float, complex,
                                np.integer, np.floating, np.complexfloating)):
             # if input is int, float, or complex then convert to array
-            self.data = sp.csr_matrix([[inpt]], dtype=complex)
-
+            _tmp = sp.csr_matrix([[inpt]], dtype=complex)
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                        shape=_tmp.shape)
             if not np.any(dims):
                 self.dims = [[1], [1]]
             else:
@@ -285,7 +304,9 @@ class Qobj(object):
             warnings.warn("Initializing Qobj from unsupported type: %s" %
                           builtins.type(inpt))
             inpt = np.array([[0]])
-            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
+            _tmp = sp.csr_matrix(inpt, dtype=complex, copy=copy)
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                        shape = _tmp.shape)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
         if type == 'super':
@@ -301,6 +322,20 @@ class Qobj(object):
 
         # clear type cache
         self._type = None
+
+    def copy(self):
+        """Create identical copy"""
+        return Qobj(inpt=self)
+
+    def get_data(self):
+        return self._data
+    #Here we perfrom a check of the csr matrix type during setting of Q.data
+    def set_data(self, data):
+        if not isinstance(data, fast_csr_matrix):
+            raise TypeError('Qobj data must be in fast_csr format.')
+        else:
+            self._data = data
+    data = property(get_data, set_data)
 
     def __add__(self, other):
         """
@@ -321,8 +356,8 @@ class Qobj(object):
             out = Qobj()
 
             if self.type in ['oper', 'super']:
-                out.data = self.data + dat * sp.identity(
-                    self.shape[0], dtype=complex, format='csr')
+                out.data = self.data + dat * fast_identity(
+                    self.shape[0])
             else:
                 out.data = self.data
                 out.data.data = out.data.data + dat
@@ -333,7 +368,8 @@ class Qobj(object):
             else:
                 # We use _isherm here to prevent recalculating on self and
                 # other, relying on that bool(None) == False.
-                out._isherm = True if self._isherm and other._isherm else out.isherm
+                out._isherm = (True if self._isherm and other._isherm
+                                    else out.isherm)
 
             out.superrep = self.superrep
 
@@ -347,8 +383,7 @@ class Qobj(object):
 
             out = Qobj()
             if other.type in ['oper', 'super']:
-                out.data = dat * sp.identity(other.shape[0], dtype=complex,
-                                             format='csr') + other.data
+                out.data = dat * fast_identity(other.shape[0]) + other.data
             else:
                 out.data = other.data
                 out.data.data = out.data.data + dat
@@ -431,15 +466,18 @@ class Qobj(object):
                     # to have uneven length (non-square Qobjs).
                     # We use None as padding so that it doesn't match anything,
                     # and will never cause a partial trace on the other side.
-                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1], fillvalue=None)]
+                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1],
+                                                                fillvalue=None)]
                     # To ensure that there are still any dimensions left, we
                     # use max() to add a dimensions list of [1] if all matching dims
                     # are traced out of that side.
-                    out.dims = [max([1], [dim
-                                          for dim, m in zip(dims[0], mask) if not m]),
-                                max([1], [dim
-                                          for dim, m in zip(dims[1], mask) if not m])]
-                    
+                    out.dims = [max([1],
+                                    [dim for dim, m in zip(dims[0], mask)
+                                    if not m]),
+                                max([1],
+                                    [dim for dim, m in zip(dims[1], mask)
+                                    if not m])]
+
                 else:
                     out.dims = dims
 
@@ -476,8 +514,8 @@ class Qobj(object):
                                 dtype=object)
             else:
                 return self.data * other
-            
-        
+
+
         elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
             return np.array([self * item for item in other],
@@ -512,7 +550,7 @@ class Qobj(object):
                                             dtype=object)
             else:
                 return other * self.data
-        
+
         elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
             return np.array([item * self for item in other],
@@ -678,18 +716,18 @@ class Qobj(object):
         """
         if not isinstance(other, Qobj):
             raise TypeError("Only defined for quantum objects.")
-        
+
         if self.type == "super":
             if other.type == "ket":
                 other = qutip.states.ket2dm(other)
-                
+
             if other.type == "oper":
                 return qutip.superoperator.vector_to_operator(
                     self * qutip.superoperator.operator_to_vector(other)
                 )
             else:
                 raise TypeError("Can only act super on oper or ket.")
-            
+
         elif self.type == "oper":
             if other.type == "ket":
                 return self * other
@@ -828,7 +866,7 @@ class Qobj(object):
         """Adjoint operator of quantum object.
         """
         out = Qobj()
-        out.data = self.data.T.conj().tocsr()
+        out.data = zcsr_adjoint(self.data)
         out.dims = [self.dims[1], self.dims[0]]
         out._isherm = self._isherm
         out.superrep = self.superrep
@@ -935,19 +973,25 @@ class Qobj(object):
         else:
             return complex(np.sum(self.data.diagonal()))
 
-    def full(self, squeeze=False):
+    def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
 
+        Parameters
+        ----------
+        order : str {'C', 'F'}
+            Return array in C (default) or Fortran ordering.
+        squeeze : bool {False, True}
+            Squeeze output array.
+        
         Returns
         -------
         data : array
             Array of complex data from quantum objects `data` attribute.
-
         """
         if squeeze:
-            return self.data.toarray().squeeze()
+            return self.data.toarray(order=order).squeeze()
         else:
-            return self.data.toarray()
+            return self.data.toarray(order=order)
 
     def diag(self):
         """Diagonal elements of quantum object.
@@ -974,7 +1018,7 @@ class Qobj(object):
         ----------
         method : str {'dense', 'sparse'}
             Use set method to use to calculate the matrix exponentiation. The
-            available choices includes 'dense' and 'sparse'.  Since the 
+            available choices includes 'dense' and 'sparse'.  Since the
             exponential of a matrix is nearly always dense, method='dense'
             is set as default.s
 
@@ -1062,7 +1106,7 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
-    
+
     def cosm(self):
         """Cosine of a quantum operator.
 
@@ -1087,8 +1131,8 @@ class Qobj(object):
              return 0.5 * ((1j * self).expm() + (-1j * self).expm())
         else:
             raise TypeError('Invalid operand for matrix square root')
-    
-    
+
+
     def sinm(self):
         """Sine of a quantum operator.
 
@@ -1113,9 +1157,9 @@ class Qobj(object):
              return -0.5j * ((1j * self).expm() - (-1j * self).expm())
         else:
             raise TypeError('Invalid operand for matrix square root')
-    
-    
-    
+
+
+
     def unit(self, norm=None, sparse=False, tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
@@ -1206,15 +1250,7 @@ class Qobj(object):
             atol = settings.auto_tidyup_atol
 
         if self.data.nnz:
-
-            data_real = self.data.data.real
-            data_real[abs(data_real) < atol] = 0
-
-            data_imag = self.data.data.imag
-            data_imag[abs(data_imag) < atol] = 0
-
-            self.data.data = data_real + 1j * data_imag
-
+            cy_tidyup(self.data.data,atol,self.data.nnz)
             self.data.eliminate_zeros()
             return self
         else:
@@ -1256,49 +1292,48 @@ class Qobj(object):
                 S = sp.hstack([psi.data for psi in inpt],
                             format='csr', dtype=complex).conj().T
             else:
-                S = np.hstack([psi.full() for psi in inpt],dtype=complex).conj().T
+                S = np.hstack([psi.full() for psi in inpt],
+                               dtype=complex).conj().T
         elif isinstance(inpt, Qobj) and inpt.isoper:
             S = inpt.data
         elif isinstance(inpt, np.ndarray):
             S = inpt.conj()
             sparse = False
-        else:    
+        else:
             raise TypeError('Invalid operand for basis transformation')
 
-        out = Qobj(dims=self.dims, shape=self.shape)
-        out._isherm = self._isherm
-        out.superrep = self.superrep
 
         # transform data
         if inverse:
             if self.isket:
-                  out.data = (S.conj().T) * self.data
+                  data = (S.conj().T) * self.data
             elif self.isbra:
-                out.data = self.data.dot(S)
+                data = self.data.dot(S)
             else:
                 if sparse:
-                    out.data = (S.conj().T) * self.data * S
+                    data = (S.conj().T) * self.data * S
                 else:
-                    out.data = (S.conj().T).dot(self.data.dot(S))
+                    data = (S.conj().T).dot(self.data.dot(S))
         else:
             if self.isket:
-                out.data = S * self.data
+                data = S * self.data
             elif self.isbra:
-                out.data = self.data.dot(S.conj().T)
+                data = self.data.dot(S.conj().T)
             else:
                 if sparse:
-                    out.data = S * self.data * (S.conj().T)
+                    data = S * self.data * (S.conj().T)
                 else:
-                    out.data = S.dot(self.data.dot(S.conj().T))
+                    data = S.dot(self.data.dot(S.conj().T))
 
-        # force sparse
-        out.data = sp.csr_matrix(out.data, dtype=complex)
+        out = Qobj(data, dims=self.dims)
+        out._isherm = self._isherm
+        out.superrep = self.superrep
 
         if settings.auto_tidyup:
             return out.tidyup()
         else:
             return out
-    
+
 
 
     def trunc_neg(self, method="clip"):
@@ -1321,10 +1356,11 @@ class Qobj(object):
         -------
         oper : qobj
             A valid density operator.
-        
+
         """
         if not self.isherm:
-            raise ValueError("Must be a Hermitian operator to remove negative eigenvalues.")
+            raise ValueError("Must be a Hermitian operator to remove negative "
+                            "eigenvalues.")
 
         if method not in ('clip', 'sgs'):
             raise ValueError("Method {} not recognized.".format(method))
@@ -1340,20 +1376,20 @@ class Qobj(object):
         if method == 'clip':
             eigvals[eigvals < 0] = 0
         elif method == 'sgs':
-            eigvals = eigvals[::-1]    
+            eigvals = eigvals[::-1]
             eigstates = eigstates[::-1]
-            
+
             acc = 0.0
             dim = self.shape[0]
             n_eigs = len(eigvals)
-            
+
             for idx in reversed(range(n_eigs)):
                 if eigvals[idx] + acc / (idx + 1) >= 0:
                     break
                 else:
                     acc += eigvals[idx]
                     eigvals[idx] = 0.0
-                    
+
             eigvals[:idx+1] += acc / (idx + 1)
 
         return sum([
@@ -1422,7 +1458,7 @@ class Qobj(object):
         ------
         TypeError
             Can only calculate overlap between a bra and ket quantum objects.
-        
+
         """
 
         if isinstance(state, Qobj):
@@ -1564,7 +1600,8 @@ class Qobj(object):
         if safe:
             if tol == 0: tol = 1e-15
             if (grndval[1]-grndval[0]) <= 10*tol:
-                print('WARNING: Ground state may be degenerate. Use Q.eigenstates()')
+                print("WARNING: Ground state may be degenerate. "
+                        "Use Q.eigenstates()")
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
         grndvec = Qobj(grndvec[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
@@ -1580,7 +1617,7 @@ class Qobj(object):
 
         """
         out = Qobj()
-        out.data = self.data.T.tocsr()
+        out.data = zcsr_transpose(self.data)
         out.dims = [self.dims[1], self.dims[0]]
         return out
 
@@ -1646,7 +1683,7 @@ class Qobj(object):
         Notes
         -----
         Experimental.
-        
+
         """
         keep_indices = np.array([s not in states_inds
                                  for s in range(self.shape[0])]).nonzero()[0]
@@ -1654,7 +1691,8 @@ class Qobj(object):
         return self.extract_states(keep_indices, normalize=normalize)
 
     def dnorm(self, B=None):
-        """Calculates the diamond norm, or the diamond distance to another operator.
+        """Calculates the diamond norm, or the diamond distance to another
+        operator.
 
         Parameters
         ----------
@@ -1667,9 +1705,10 @@ class Qobj(object):
         d : float
             Either the diamond norm of this operator, or the diamond distance
             from this operator to B.
-        
+
         """
         return mts.dnorm(self, B)
+
 
     @property
     def ishp(self):
@@ -1711,6 +1750,7 @@ class Qobj(object):
 
     @property
     def istp(self):
+        import qutip.superop_reps as sr
         if self.type in ["super", "oper"]:
             try:
                 # Normalize to a super of type choi or chi.
@@ -1723,16 +1763,17 @@ class Qobj(object):
                     qobj = sr.to_choi(self)
 
                 # Possibly collapse dims.
-                if any([len(index) > 1 for super_index in qobj.dims for index in super_index]):
+                if any([len(index) > 1 for super_index in qobj.dims
+                                            for index in super_index]):
                     qobj = Qobj(qobj, dims=collapse_dims_super(qobj.dims))
                 else:
                     qobj = qobj
 
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
-                tr_oper = ptrace((qobj), (0,))
+                tr_oper = qobj.ptrace([0])
                 ident = ops.identity(tr_oper.shape[0])
-                return isequal(tr_oper, ident)                
+                return isequal(tr_oper, ident)
             except:
                 return False
         else:
@@ -1755,12 +1796,7 @@ class Qobj(object):
             # used previously computed value
             return self._isherm
 
-        if self.dims[0] != self.dims[1]:
-            self._isherm = False
-        else:
-            data = self.data
-            h = np.abs((data.transpose().conj() - data).data)
-            self._isherm = False if np.any(h > settings.atol) else True
+        self._isherm = bool(zcsr_isherm(self.data))
 
         return self._isherm
 
@@ -1778,9 +1814,9 @@ class Qobj(object):
     @property
     def shape(self):
         if self.data.shape == (1, 1):
-            return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+            return tuple([np.prod(self.dims[0]), np.prod(self.dims[1])])
         else:
-            return list(self.data.shape)
+            return tuple(self.data.shape)
 
     @property
     def isbra(self):
@@ -1908,7 +1944,7 @@ def dag(A):
     -----
     This function is for legacy compatibility only. It is recommended to use
     the ``dag()`` Qobj method.
-    
+
     """
     if not isinstance(A, Qobj):
         raise TypeError("Input is not a quantum object")
@@ -1936,7 +1972,7 @@ def ptrace(Q, sel):
     -----
     This function is for legacy compatibility only. It is recommended to use
     the ``ptrace()`` Qobj method.
-    
+
     """
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
@@ -1961,7 +1997,7 @@ def dims(inpt):
     -----
     This function is for legacy compatibility only. Using the `Qobj.dims`
     attribute is recommended.
-    
+
     """
     if isinstance(inpt, Qobj):
         return inpt.dims
@@ -1986,7 +2022,7 @@ def shape(inpt):
     -----
     This function is for legacy compatibility only. Using the `Qobj.shape`
     attribute is recommended.
-    
+
     """
     if isinstance(inpt, Qobj):
         return Qobj.shape
@@ -2018,7 +2054,7 @@ def isket(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isket`
     attribute is recommended.
-    
+
     """
     return True if isinstance(Q, Qobj) and Q.isket else False
 
@@ -2046,7 +2082,7 @@ def isbra(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isbra`
     attribute is recommended.
-    
+
     """
     return True if isinstance(Q, Qobj) and Q.isbra else False
 
@@ -2069,7 +2105,7 @@ def isoperket(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isoperket`
     attribute is recommended.
-    
+
     """
     return True if isinstance(Q, Qobj) and Q.isoperket else False
 
@@ -2092,7 +2128,7 @@ def isoperbra(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isoperbra`
     attribute is recommended.
-    
+
     """
     return True if isinstance(Q, Qobj) and Q.isoperbra else False
 
@@ -2120,7 +2156,7 @@ def isoper(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isoper`
     attribute is recommended.
-    
+
     """
     return True if isinstance(Q, Qobj) and Q.isoper else False
 
@@ -2142,7 +2178,7 @@ def issuper(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.issuper`
     attribute is recommended.
-    
+
     """
     return True if isinstance(Q, Qobj) and Q.issuper else False
 
@@ -2168,7 +2204,7 @@ def isequal(A, B, tol=None):
     -----
     This function is for legacy compatibility only. Instead, it is recommended
     to use the equality operator of Qobj instances instead: A == B.
-    
+
     """
     if tol is None:
         tol = settings.atol
@@ -2182,7 +2218,7 @@ def isequal(A, B, tol=None):
     Adat = A.data
     Bdat = B.data
     elems = (Adat - Bdat).data
-    if np.any(abs(elems) > tol):
+    if np.any(np.abs(elems) > tol):
         return False
 
     return True
@@ -2211,7 +2247,7 @@ def isherm(Q):
     -----
     This function is for legacy compatibility only. Using the `Qobj.isherm`
     attribute is recommended.
-    
+
     """
     return True if isinstance(Q, Qobj) and Q.isherm else False
 

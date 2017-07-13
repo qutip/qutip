@@ -54,7 +54,9 @@ def about():
     print("")
     print("QuTiP: Quantum Toolbox in Python")
     print("Copyright (c) 2011 and later.")
-    print("Alexander Pitchford, Chris Granade, Paul D. Nation & Robert J. Johansson")
+    print(("A. J. Pitchford, P. D. Nation, "
+            "R. J. Johansson, A. Grimsmo, "
+            "and C. Granade"))
     print("")
     print("QuTiP Version:      %s" % qutip.__version__)
     print("Numpy Version:      %s" % numpy.__version__)
@@ -74,6 +76,7 @@ def about():
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
     print("Number of CPUs:     %s" % hardware_info()['cpus'])
     print("BLAS Info:          %s" % _blas_info())
+    print("OPENMP Installed:   %s" % str(qutip.settings.has_openmp))
     print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))

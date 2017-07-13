@@ -31,30 +31,23 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
-import sysconfig
-from distutils.util import get_platform
-from distutils.sysconfig import get_python_version
-from qutip.solver import config
-
 
 def _cython_build_cleanup(tdname, build_dir=None):
-    plat_and_py = get_platform()+'-'+get_python_version()+'/'
-    sys_so_var = sysconfig.get_config_var('EXT_SUFFIX')
-    #for backward compatibility with Py <= 3.4
-    if sys_so_var is None:    
-        sys_so_var = sysconfig.get_config_var('SO')
     if build_dir is None:
         build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
-    lib_dir = '/lib.' + plat_and_py
-    temp_dir = '/temp.' + plat_and_py
+    
+    # Remove tdname.pyx
     pyx_file = tdname + ".pyx"
-    lib_file = build_dir + lib_dir + tdname + sys_so_var
-    temp_c_file = build_dir + temp_dir + 'pyrex/' + tdname + ".c"
-    temp_o_file = build_dir + temp_dir + build_dir + temp_dir \
-        + 'pyrex/' + tdname + ".o"
-    for file in [pyx_file, lib_file, temp_c_file, temp_o_file]:
-        try:
-            os.remove(file)
-        except:
-            pass
-    return
+    try:
+        os.remove(pyx_file)
+    except:
+        pass
+    
+    # Remove temp build files
+    for dirpath, subdirs, files in os.walk(build_dir):
+        for f in files:
+            if f.startswith(tdname):
+                try:
+                    os.remove(os.path.join(dirpath,f))
+                except:
+                    pass

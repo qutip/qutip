@@ -40,8 +40,6 @@ __all__ = ['n_thermal', 'linspace_with', 'clebsch', 'convert_unit',
            'view_methods']
 
 import numpy as np
-from scipy.misc import factorial
-
 
 def n_thermal(w, w_th):
     """
@@ -143,6 +141,8 @@ def clebsch(j1, j2, j3, m1, m2, m3):
         Requested Clebsch-Gordan coefficient.
 
     """
+    from scipy.misc import factorial
+    
     if m3 != m1 + m2:
         return 0
     vmin = int(np.max([-j1 + j2 + m3, -j1 + m1, 0]))

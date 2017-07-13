@@ -52,8 +52,9 @@ from qutip.mcsolve import mcsolve
 from qutip.operators import qeye
 from qutip.qobj import Qobj, isket, issuper
 from qutip.rhs_generate import rhs_clear, _td_wrap_array_str
+from qutip.cy.utilities import _cython_build_cleanup
 from qutip.settings import debug
-from qutip.solver import Options
+from qutip.solver import Options, config
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.superoperator import liouvillian, spre, mat2vec
@@ -544,7 +545,7 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
                          "%s (use es or pi)." % solver)
 
 
-def spectrum_correlation_fft(taulist, y):
+def spectrum_correlation_fft(tlist, y):
     """
     Calculate the power spectrum corresponding to a two-time correlation
     function using FFT.
@@ -566,12 +567,13 @@ def spectrum_correlation_fft(taulist, y):
 
     if debug:
         print(inspect.stack()[0][3])
-
-    N = len(taulist)
-    dt = taulist[1] - taulist[0]
-
+    tlist = np.asarray(tlist)
+    N = tlist.shape[0]
+    dt = tlist[1] - tlist[0]
+    if not np.allclose(np.diff(tlist), dt*np.ones(N-1,dtype=float)):
+        raise Exception('tlist must be equally spaced for FFT.')
+    
     F = scipy.fftpack.fft(y)
-
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(N, dt)
 
@@ -1041,6 +1043,8 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
 
+    if config.tdname:
+        _cython_build_cleanup(config.tdname)
     rhs_clear()
     H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
@@ -1088,6 +1092,8 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    if config.tdname:
+        _cython_build_cleanup(config.tdname)
     rhs_clear()
 
     for t_idx, rho in enumerate(rho_t):
@@ -1102,6 +1108,8 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         if t_idx == 1:
             options.rhs_reuse = True
 
+    if config.tdname:
+        _cython_build_cleanup(config.tdname)
     rhs_clear()
 
     return corr_mat
@@ -1213,6 +1221,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    if config.tdname:
+        _cython_build_cleanup(config.tdname)
     rhs_clear()
 
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
@@ -1275,7 +1285,9 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     
         if t_idx == 1:
             options.rhs_reuse = True
-
+    
+    if config.tdname:
+        _cython_build_cleanup(config.tdname)
     rhs_clear()
 
     return corr_mat
