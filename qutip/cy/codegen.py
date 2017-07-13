@@ -216,8 +216,8 @@ class Codegen():
     def func_vars(self):
         """Writes the variables and their types & spmv parts"""
         func_vars = ["", 'cdef size_t row', 'cdef unsigned int num_rows = vec.shape[0]',
-                     "cdef np.ndarray[complex, ndim=1, mode='c'] " +
-                     'out = np.zeros((num_rows),dtype=np.complex)']
+                     "cdef double complex * " +
+                     'out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))']
         func_vars.append(" ")
         tdterms = self.h_tdterms
         hinds = 0
@@ -246,18 +246,18 @@ class Codegen():
             else:
                 if self.h_tdterms[ht] == "1.0":
                     if self.use_openmp and self.omp_components[ht]:
-                        str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, &out[0], num_rows, %s)" % (
+                        str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, out, num_rows, %s)" % (
                             ht, ht, ht, self.omp_threads)
                     else:    
-                        str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, &out[0], num_rows)" % (
+                        str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, out, num_rows)" % (
                                 ht, ht, ht)
                 else:
                     if isinstance(self.h_tdterms[ht], str):
                         if self.use_openmp and self.omp_components[ht]:
-                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows, %s)" % (
+                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows, %s)" % (
                                 ht, ht, ht, self.h_tdterms[ht], self.omp_threads)
                         else:
-                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
+                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows)" % (
                                     ht, ht, ht, self.h_tdterms[ht])
                     elif isinstance(self.h_tdterms[ht], Cubic_Spline):
                         S = self.h_tdterms[ht]
@@ -267,10 +267,10 @@ class Codegen():
                             interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
                         spline += 1
                         if self.use_openmp and self.omp_components[ht]:
-                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows, %s)" % (
+                            str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows, %s)" % (
                                 ht, ht, ht, interp_str, self.omp_threads)
                         else:
-                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
+                            str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows)" % (
                                 ht, ht, ht, interp_str)
                 func_vars.append(str_out)
 
@@ -283,7 +283,7 @@ class Codegen():
             cinds = 0
             for ct in range(terms):
                 cstr = str(ct + hinds + 1)
-                str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, &out[0], num_rows)" % (
+                str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows)" % (
                         cstr, cstr, cstr, " abs(" + tdterms[ct] + ")**2")
                 cinds += 1
                 func_vars.append(str_out)
@@ -293,9 +293,14 @@ class Codegen():
         """Writes 'else-if' statements forcollapse operator eval function"""
         out_string = []
         ind = 0
+        out_string.append("cdef size_t kk")
+        out_string.append("cdef complex ctd = %s" % self.c_tdterms[ind])
         for k in self.c_td_inds:
             out_string.append("if which == " + str(k) + ":")
-            out_string.append("    out *= " + self.c_tdterms[ind])
+            out_string.append("""\
+    for kk in range(num_rows):
+            out[kk] *= ctd
+                     """)
             ind += 1
         return out_string
 
@@ -306,13 +311,17 @@ class Codegen():
         ind = 0
         for k in self.c_td_inds:
             out_string.append("if which == " + str(k) + ":")
-            out_string.append("    out *= conj(" +
-                              self.c_tdterms[ind] + ")")
+            out_string.append("    out *= conj(" + self.c_tdterms[ind] + ")")
             ind += 1
         return out_string
 
     def func_end(self):
-        return "return out"
+        return """\
+cdef np.npy_intp dims = num_rows
+    cdef np.ndarray[complex, ndim=1, mode='c'] arr_out = np.PyArray_SimpleNewFromData(1, &dims, np.NPY_COMPLEX128, out)
+    PyArray_ENABLEFLAGS(arr_out, np.NPY_OWNDATA)
+    return arr_out   
+"""
 
     def func_end_real(self):
         return "return real(out)"
@@ -334,6 +343,10 @@ def cython_preamble(use_openmp=False):
 import numpy as np
 cimport numpy as np
 cimport cython
+np.import_array()
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
 """
 +openmp_string+
 """
@@ -352,6 +365,7 @@ def cython_checks():
     List of strings that turn off Cython checks.
     """
     return ["""
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)"""]
 
@@ -365,7 +379,7 @@ def cython_col_spmv():
     cdef unsigned int jj, row_start, row_end
     cdef unsigned int num_rows = vec.shape[0]
     cdef complex dot
-    cdef np.ndarray[complex, ndim=1, mode='c'] out = np.zeros(num_rows, dtype=np.complex)
+    cdef complex * out = <complex *>PyDataMem_NEW_ZEROED(num_rows,sizeof(complex))
 
     for row in range(num_rows):
         dot = 0.0

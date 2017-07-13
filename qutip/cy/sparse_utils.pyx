@@ -33,7 +33,7 @@
 import numpy as np
 from qutip.fastsparse import fast_csr_matrix
 cimport numpy as np
-from libc.math cimport abs, sqrt
+from libc.math cimport abs, fabs, sqrt
 cimport cython
 np.import_array()
 
@@ -49,6 +49,9 @@ cdef extern from "<complex>" namespace "std" nogil:
     double abs(double complex x)
     double real(double complex x)
     double imag(double complex x)
+
+cdef extern from "<complex>" namespace "std" nogil:
+    double cabs "abs" (double complex x)
 
 cdef inline int int_max(int x, int y):
     return x ^ ((x ^ y) & -(x < y))
@@ -313,7 +316,7 @@ cpdef double zcsr_one_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
             k = ind[jj]
-            col_sum[k] += abs(data[jj])
+            col_sum[k] += cabs(data[jj])
     for ii in range(ncols):
         if col_sum[ii] > max_col:
             max_col = col_sum[ii]        
@@ -332,9 +335,27 @@ cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
     cdef double max_row = 0
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
-            row_sum[ii] += abs(data[jj])
+            row_sum[ii] += cabs(data[jj])
     for ii in range(nrows):
         if row_sum[ii] > max_row:
             max_row = row_sum[ii]        
     PyDataMem_FREE(row_sum)
     return max_row
+    
+    
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cy_tidyup(complex[::1] data, double atol, unsigned int nnz):
+    """
+    Performs an in-place tidyup of CSR matrix data
+    """
+    cdef size_t kk
+    cdef double re, im
+    for kk in range(nnz):
+        re = real(data[kk])
+        im = imag(data[kk])
+        if fabs(re) < atol:
+            re = 0
+        if fabs(im) < atol:
+            im = 0
+        data[kk] = re + 1j*im

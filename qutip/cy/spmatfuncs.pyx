@@ -99,6 +99,36 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_csr(complex[::1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def spmvpy_csr(complex[::1] data,
+            int[::1] ind, int[::1] ptr, complex[::1] vec, 
+            complex alpha, complex[::1] out):
+    """
+    Sparse matrix, dense vector multiplication.  
+    Here the vector is assumed to have one-dimension.
+    Matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    data : array
+        Data for sparse matrix.
+    idx : array
+        Indices for sparse matrix data.
+    ptr : array
+        Pointers for sparse matrix data.
+    vec : array
+        Dense vector for multiplication.  Must be one-dimensional.
+    alpha : complex
+        Numerical coefficient for sparse matrix.
+    out: array
+        Output array
+
+    """
+    cdef unsigned int num_rows = vec.shape[0]
+    zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], alpha, &out[0], num_rows)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline void spmvpy(complex * data, int * ind, int * ptr,
             complex * vec,
             complex a,

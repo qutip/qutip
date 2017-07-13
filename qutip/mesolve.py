@@ -49,7 +49,7 @@ from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, _solver_safety_check
-from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
+from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td, spmvpy_csr
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
@@ -191,13 +191,12 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     options : :class:`qutip.Options`
         with options for the solver.
 
-    progress_bar: BaseProgressBar
+    progress_bar : BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation.
 
     Returns
     -------
-
     result: :class:`qutip.Result`
 
         An instance of the class :class:`qutip.Result`, which contains
@@ -463,35 +462,49 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
 # [Qobj, function] style time dependence API
 #
 def drho_list_td(t, rho, L_list, args):
-
-    L = L_list[0][0] * L_list[0][1](t, args)
+    out = np.zeros(rho.shape[0],dtype=complex)
+    L = L_list[0][0]
+    L_td = L_list[0][1]
+    spmvpy_csr(L.data, L.indices, L.indptr,
+                rho, L_td(t, args), out)
     for n in range(1, len(L_list)):
         #
         # L_args[n][0] = the sparse data for a Qobj in super-operator form
         # L_args[n][1] = function callback giving the coefficient
         #
+        L = L_list[n][0]
+        L_td = L_list[n][1]
         if L_list[n][2]:
-            L = L + L_list[n][0] * (L_list[n][1](t, args)) ** 2
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, args)**2, out)
         else:
-            L = L + L_list[n][0] * L_list[n][1](t, args)
-
-    return L * rho
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, args), out)
+    return out
 
 
 def drho_list_td_with_state(t, rho, L_list, args):
 
-    L = L_list[0][0] * L_list[0][1](t, rho, args)
+    out = np.zeros(rho.shape[0],dtype=complex)
+    L = L_list[0][0]
+    L_td = L_list[0][1]
+    spmvpy_csr(L.data, L.indices, L.indptr,
+                rho, L_td(t, rho, args), out)
     for n in range(1, len(L_list)):
         #
         # L_args[n][0] = the sparse data for a Qobj in super-operator form
         # L_args[n][1] = function callback giving the coefficient
         #
+        L = L_list[n][0]
+        L_td = L_list[n][1]
         if L_list[n][2]:
-            L = L + L_list[n][0] * (L_list[n][1](t, rho, args)) ** 2
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, rho, args)**2, out)
         else:
-            L = L + L_list[n][0] * L_list[n][1](t, rho, args)
+            spmvpy_csr(L.data, L.indices, L.indptr,
+                        rho, L_td(t, rho, args), out)
 
-    return L * rho
+    return out
 
 #
 # evaluate dE(t)/dt according to the master equation using the

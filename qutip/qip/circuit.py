@@ -36,7 +36,7 @@ import warnings
 
 from qutip.qip.circuit_latex import _latex_compile
 from qutip.qip.gates import *
-
+from qutip.qip.qubits import qubit_states
 
 __all__ = ['Gate', 'QubitCircuit']
 
@@ -85,9 +85,9 @@ class Gate(object):
         if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                     "SWAPalpha"]:
             if len(self.targets) != 2:
-                raise ValueError("Gate %s requires two target" % name)
+                raise ValueError("Gate %s requires two targets" % name)
             if self.controls is not None:
-                raise ValueError("Gate %s does not require a control" % name)
+                raise ValueError("Gate %s cannot have a control" % name)
 
         if name in ["CNOT", "CSIGN", "CRX", "CRY", "CRZ"]:
             if self.targets is None or len(self.targets) != 1:
@@ -165,13 +165,42 @@ class QubitCircuit(object):
     of gates.
     """
 
-    def __init__(self, N, reverse_states=True):
-
+    def __init__(self, N, input_states=None, output_states=None,
+                 reverse_states=True):
         # number of qubits in the register
         self.N = N
         self.reverse_states = reverse_states
         self.gates = []
         self.U_list = []
+        self.input_states = [None for i in range(N)]
+        self.output_states = [None for i in range(N)]
+
+    def add_state(self, state, targets=None, state_type="input"):
+        """
+        Add an input or ouput state to the circuit. By default all the input
+        and output states will be initialized to `None`. A particular state can
+        be added by specifying the state and the qubit where it has to be added
+        along with the type as input or output.
+
+        Parameters
+        ----------
+        state: str
+            The state that has to be added. It can be any string such as `0`,
+            '+', "A", "Y"
+        targets: list
+            A list of qubit positions where the given state has to be added.
+        state_type: str
+            One of either "input" or "output". This specifies whether the state
+            to be added is an input or output.
+            default: "input"
+
+        """
+        if state_type == "input":
+            for i in targets:
+                self.input_states[i] = state
+        if state_type == "output":
+            for i in targets:
+                self.output_states[i] = state
 
     def add_gate(self, gate, targets=None, controls=None, arg_value=None,
                  arg_label=None):
@@ -255,8 +284,7 @@ class QubitCircuit(object):
         start : Integer
             The qubit on which the first gate is applied.
         """
-
-        if self.N - start < len(qc.gates):
+        if self.N - start < qc.N:
             raise NotImplementedError("Targets exceed number of qubits.")
 
         for gate in qc.gates:
@@ -338,8 +366,8 @@ class QubitCircuit(object):
         """
         temp = QubitCircuit(self.N, self.reverse_states)
 
-        for i in range(self.N):
-            temp.append(self.gates[self.N - i - 1])
+        for gate in reversed(self.gates):
+            temp.add_gate(gate)
 
         return temp
 
@@ -992,10 +1020,14 @@ class QubitCircuit(object):
             col.append(r" \qw ")
             rows.append(col)
 
+        input_states = ["\lstick{\ket{" + x + "}}" if x is not None
+                        else "" for x in self.input_states]
+
         code = ""
         n_iter = (reversed(range(self.N)) if self.reverse_states
                   else range(self.N))
         for n in n_iter:
+            code += r" & %s" % input_states[n]
             for m in range(len(gates)):
                 code += r" & %s" % rows[m][n]
             code += r" & \qw \\ " + "\n"

@@ -37,6 +37,7 @@ cimport numpy as np
 cimport cython
 from libcpp.algorithm cimport sort
 from libcpp.vector cimport vector
+from qutip.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
 np.import_array()
 
 cdef extern from "numpy/arrayobject.h" nogil:
@@ -46,62 +47,12 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
 
-"""
-A struct representing a complex sparse CSR matrix.
-
-Attributes
-----------
-data : double complex *
-    Pointer to data array.
-indices : int *
-    Pointer to indices array.
-indptr : int *
-    Pointer to indptr array.
-nnz : int
-    Length of data and indices arrays. Also number of nonzero elements.
-nrows : int
-    Number of rows in matrix and gives indptr array
-    length (nrows+1).
-ncols : int
-    Number of columns in matrix.
-is_set : int
-    Has struct been initilized.
-max_length : int
-    Maximum length of data and indices arrays if
-    being resized.
-numpy_lock : int
-    Does NumPy have ownership of (data,indices,indptr) arrays?
-"""
-cdef struct _csr_mat:
-    double complex * data
-    int * indices
-    int * indptr
-    int nnz
-    int nrows
-    int ncols
-    int is_set
-    int max_length
-    int numpy_lock
-
-cdef struct _coo_mat:
-    double complex * data
-    int * rows
-    int * cols
-    int nnz
-    int nrows
-    int ncols
-    int is_set
-    int max_length
-    int numpy_lock
 
 #Struct used for CSR indices sorting
 cdef struct _data_ind_pair:
     double complex data
     int ind
 
-
-ctypedef _csr_mat CSR_Matrix
-ctypedef _coo_mat COO_Matrix
 ctypedef _data_ind_pair data_ind_pair
 ctypedef int (*cfptr)(data_ind_pair, data_ind_pair)
 
@@ -653,3 +604,14 @@ cdef COO_Matrix COO_from_scipy(object A):
     
     return mat
      
+     
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void identity_CSR(CSR_Matrix * mat, unsigned int nrows):
+    cdef size_t kk
+    init_CSR(mat, nrows, nrows, nrows, 0, 0)
+    for kk in range(nrows):
+        mat.data[kk] = 1
+        mat.indices[kk] = kk
+        mat.indptr[kk] = kk
+    mat.indptr[nrows] = nrows

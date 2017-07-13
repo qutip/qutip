@@ -807,6 +807,9 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
         elif isinstance(H[0], list):
             Hdims = H[0][0].dims
             Htype = H[0][0].type
+        elif isinstance(H[0], (FunctionType, BuiltinFunctionType)):
+            Hdims = H[0](0,args).dims
+            Htype = H[0](0,args).type 
         else:
             raise Exception('Invalid td-list element.')
         # Check all operators in list
@@ -817,23 +820,36 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             elif isinstance(H[ii], list):
                 _temp_dims = H[ii][0].dims
                 _temp_type = H[ii][0].type
-            else:
+            elif isinstance(H[ii], (FunctionType, BuiltinFunctionType)):
+                _temp_dims = H[ii](0,args).dims
+                _temp_type = H[ii](0,args).type
+            else: 
                 raise Exception('Invalid td-list element.')
             _structure_check(_temp_dims,_temp_type,state)
     
     else:
         raise Exception('Invalid time-dependent format.')
     
+    
     for ii in range(len(c_ops)):
+        do_tests = True
         if isinstance(c_ops[ii], Qobj):
             _temp_state = c_ops[ii]
         elif isinstance(c_ops[ii], list):
-            _temp_state = c_ops[ii][0]
+            if isinstance(c_ops[ii][0], Qobj):
+                _temp_state = c_ops[ii][0]
+            elif isinstance(c_ops[ii][0], tuple):
+                do_tests = False
+                for kk in range(len(c_ops[ii][0])):
+                    _temp_state = c_ops[ii][0][kk]
+                    _structure_check(Hdims, Htype, _temp_state)
         else:
             raise Exception('Invalid td-list element.')
-        _structure_check(Hdims, Htype, _temp_state)
+        if do_tests:
+            _structure_check(Hdims, Htype, _temp_state)
     
-    for ii in range(len(e_ops)):
+    if isinstance(e_ops, list): 
+        for ii in range(len(e_ops)):
             if isinstance(e_ops[ii], Qobj):
                 _temp_state = e_ops[ii]
             elif isinstance(e_ops[ii], list):
@@ -841,8 +857,10 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             else:
                 raise Exception('Invalid td-list element.')
             _structure_check(Hdims,Htype,_temp_state)
-
-
+    elif isinstance(e_ops, FunctionType):
+        pass
+    else:
+        raise Exception('Invalid e_ops specification.')
 
 def _structure_check(Hdims, Htype, state):
     # Input state is a ket vector

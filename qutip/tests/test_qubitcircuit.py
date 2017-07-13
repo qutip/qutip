@@ -158,5 +158,67 @@ class TestQubitCircuit:
         assert_(qc.gates[1].targets == test_gate.targets)
         assert_(qc.gates[1].controls == test_gate.controls)
 
+    def test_add_state(self):
+        """
+        Addition of input and output states to a circuit.
+        """
+        qc = QubitCircuit(3)
+
+        qc.add_state("0", targets=[0])
+        qc.add_state("+", targets=[1], state_type="output")
+        qc.add_state("-", targets=[1])
+
+        assert_(qc.input_states[0] == "0")
+        assert_(qc.input_states[2] == None)
+        assert_(qc.output_states[1] == "+")
+
+        qc1 = QubitCircuit(10)
+
+        qc1.add_state("0", targets=[2, 3, 5, 6])
+        qc1.add_state("+", targets=[1,4,9])
+        qc1.add_state("A", targets=[1,4,9], state_type="output")
+        qc1.add_state("A", targets=[1,4,9], state_type="output")
+        qc1.add_state("beta", targets=[0], state_type="output")
+        assert_(qc1.input_states[0] == None)
+        
+        assert_(qc1.input_states[2] == "0")
+        assert_(qc1.input_states[3] == "0")
+        assert_(qc1.input_states[6] == "0")
+        assert_(qc1.input_states[1] == "+")
+        assert_(qc1.input_states[4] == "+")
+
+        assert_(qc1.output_states[2] == None)        
+        assert_(qc1.output_states[1] == "A")
+        assert_(qc1.output_states[4] == "A")
+        assert_(qc1.output_states[9] == "A")
+
+        assert_(qc1.output_states[0] == "beta")
+
+    def test_reverse(self):
+        """
+        Reverse a quantum circuit
+        """
+        qc = QubitCircuit(3)
+
+        qc.add_gate("RX", targets=[0], arg_value=3.141,
+                    arg_label=r"\pi/2")
+        qc.add_gate("CNOT", targets=[1], controls=[0])
+        qc.add_gate("SNOT", targets=[2])
+        # Keep input output same
+
+        qc.add_state("0", targets=[0])
+        qc.add_state("+", targets=[1], state_type="output")
+        qc.add_state("-", targets=[1])
+
+        qc.reverse_circuit()
+
+        assert_(qc.gates[2].name == "SNOT")
+        assert_(qc.gates[1].name == "CNOT")
+        assert_(qc.gates[0].name == "RX")
+
+        assert_(qc.input_states[0] == "0")
+        assert_(qc.input_states[2] == None)
+        assert_(qc.output_states[1] == "+")
+
 if __name__ == "__main__":
     run_module_suite()

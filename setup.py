@@ -148,7 +148,8 @@ write_version_py()
 
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing']
+        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
+        'brtools_testing']
 
 # If on Win and Python version >= 3.5 (i.e. Visual studio compile)
 if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
@@ -199,6 +200,15 @@ if "--with-openmp" in sys.argv:
     # Add benchmark pyx
     _mod = Extension('qutip.cy.openmp.benchmark',
             sources = ['qutip/cy/openmp/benchmark.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags,
+            extra_link_args=[],
+            language='c++')
+    EXT_MODULES.append(_mod)
+    
+    # Add brtools_omp
+    _mod = Extension('qutip.cy.openmp.br_omp',
+            sources = ['qutip/cy/openmp/br_omp.pyx'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags,
             extra_link_args=[],

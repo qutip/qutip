@@ -272,18 +272,20 @@ def _td_format_check(H, c_ops, solver='me'):
             if isinstance(c_ops[k], Qobj):
                 c_const.append(k)
             elif isinstance(c_ops[k], list):
-                if len(c_ops[k]) != 2 or not isinstance(c_ops[k][0], Qobj):
+                if len(c_ops[k]) != 2:
                     raise TypeError(
-                        "Incorrect collapse operator specification")
+                        "Incorrect collapse operator specification.")
                 else:
                     if isinstance(c_ops[k][1], (FunctionType,
                                                 BuiltinFunctionType, partial)):
                         c_func.append(k)
                     elif isinstance(c_ops[k][1], str):
                         c_str.append(k)
-                    elif isinstance(H_k[1], Cubic_Spline):
+                    elif isinstance(c_ops[k][1], Cubic_Spline):
                         c_obj.append(k)
                     elif isinstance(c_ops[k][1], np.ndarray):
+                        c_str.append(k)
+                    elif isinstance(c_ops[k][1], tuple):
                         c_str.append(k)
                     else:
                         raise TypeError(
@@ -315,6 +317,7 @@ def _td_format_check(H, c_ops, solver='me'):
     # If only time-dependence is in Objects, then prefer string based format
     if (len(h_func) + len(c_func) + len(h_str) + len(c_str)) == 0:
          h_str += h_obj #Does nothing if not objects
+         c_str += c_obj
     else:
         # Combine Hamiltonian objects
         if len(h_func) > 0:

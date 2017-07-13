@@ -123,11 +123,6 @@ def qutrit_basis():
     return np.array([basis(3, 0), basis(3, 1), basis(3, 2)], dtype=object)
 
 
-def _sqrt_factorial(n_vec):
-    # take the square root before multiplying
-    return np.array([np.prod(np.sqrt(np.arange(1, n + 1))) for n in n_vec])
-
-
 def coherent(N, alpha, offset=0, method='operator'):
     """Generates a coherent state with eigenvalue alpha.
 
@@ -187,11 +182,16 @@ def coherent(N, alpha, offset=0, method='operator'):
 
     elif method == "analytic" or offset > 0:
 
-        data = np.zeros([N, 1], dtype=complex)
-        n = arange(N) + offset
-        data[:, 0] = np.exp(-(abs(alpha) ** 2) / 2.0) * (alpha ** (n)) / \
-            _sqrt_factorial(n)
-        return Qobj(data)
+        sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
+        sqrtn[0] = 1 # Get rid of divide by zero warning
+        data = alpha/sqrtn
+        if offset == 0:
+            data[0] = np.exp(-abs(alpha)**2 / 2.0)
+        else:
+            s = np.prod(np.sqrt(np.arange(1, offset + 1))) # sqrt factorial
+            data[0] = np.exp(-abs(alpha)**2 / 2.0) * alpha**(offset) / s
+        np.cumprod(data, out=sqrtn) # Reuse sqrtn array
+        return Qobj(sqrtn)
 
     else:
         raise TypeError(
@@ -478,7 +478,7 @@ def projection(N, n, m, offset=0):
     -------
     oper : qobj
          Requested projection operator.
-    
+
     """
     ket1 = basis(N, n, offset=offset)
     ket2 = basis(N, m, offset=offset)

@@ -31,11 +31,11 @@ def system_bench(func, dims):
             break
         nnz_old = nnz 
         ratio_old = ratio  
-    if ratio < 1:
-        raise Exception('Could not find OPENMP threshold.')
-    
-    rate = (ratio-ratio_old)/(nnz-nnz_old)
-    return int((1.0-ratio_old)/rate+nnz_old)
+    if ratio > 1:
+        rate = (ratio-ratio_old)/(nnz-nnz_old)
+        return int((1.0-ratio_old)/rate+nnz_old)
+    else:
+        return -1
 
 
 def calculate_openmp_thresh():
@@ -47,8 +47,12 @@ def calculate_openmp_thresh():
 
   spin_dims = np.arange(2,15,dtype=int)
   spin_result = system_bench(_spin_hamiltonian, spin_dims)
+  
   # Double result to be conservative
-  return 2*int(max([jc_result,opto_result,spin_result]))
+  thresh = 2*int(max([jc_result,opto_result,spin_result]))
+  if thresh < 0:
+      thresh = np.iinfo(np.int32).max
+  return thresh
   
 
 def _jc_liouvillian(N):
