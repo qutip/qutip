@@ -177,11 +177,22 @@ class BR_Codegen(object):
                 self.spline += 1
         
         
+        #Add coupled a_op terms
+        for _a in self.a_td_terms:
+            if isinstance(_a, Cubic_Spline):
+                if not _a.is_complex:
+                    input_vars += (",\n        " +
+                                   "double[::1] spline%d" % self.spline)
+                else:
+                    input_vars += (",\n        " +
+                                   "complex[::1] spline%d" % self.spline)
+                self.spline += 1
+        
+        
         #Add a_op terms
         for k in range(self.a_terms):
             input_vars += (",\n        " +
                            "complex[::1,:] A%d" % k)
-        
         
         
         input_vars += (",\n        unsigned int nrows")
@@ -329,7 +340,17 @@ class BR_Codegen(object):
             else:
                 br_str += ['cdef complex[::1, :] Ac{0} = farray_alloc(nrows)'.format(kk)]
                 for nn in range(self.coupled_lengths[coupled_val]):
-                    br_str += ["dense_add_mult(Ac{0}, A{1}, {2})".format(kk,kk+nn,self.a_td_terms[kk+nn])]
+                    if isinstance(self.a_td_terms[kk+nn], str):
+                        br_str += ["dense_add_mult(Ac{0}, A{1}, {2})".format(kk,kk+nn,self.a_td_terms[kk+nn])]
+                    elif isinstance(self.a_td_terms[kk+nn], Cubic_Spline):
+                        S = self.a_td_terms[kk+nn]
+                        if not S.is_complex:
+                            td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
+                        else:
+                            td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
+                        br_str += ["dense_add_mult(Ac{0}, A{1}, {2})".format(kk,kk+nn,td_str)]
+                    else:
+                        raise Exception('Invalid time-dependence fot a_op.')
                     
                 if self.use_openmp:
                     br_str += ["br_term_mult_openmp(t, Ac{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4}, {5})".format(kk, 
@@ -401,12 +422,4 @@ def cython_checks():
 @cython.boundscheck(False)
 @cython.wraparound(False)"""]
 
-
-
-if __name__ == "__main__":
-    from qutip.solver import config
-    _test_gen = BR_Codegen(h_terms=2, h_td_terms=['1','sin(t)'],
-                c_terms=1, c_td_terms=['1'],
-                a_terms=2, a_td_terms=['1','w'], config=config)
-    _test_gen.generate()
     
