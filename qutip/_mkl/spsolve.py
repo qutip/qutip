@@ -61,7 +61,7 @@ def _pardiso_parameters(hermitian=False, has_perm=False):
         iparm[9] = 13 
     if not hermitian:
         iparm[10] = 1 # Scaling vectors
-        iparm[12] = 1 # Use non-symmetric weighted matching
+        iparm[12] = 0 # Do not use non-symmetric weighted matching
     iparm[17] = -1
     iparm[20] = 1
     iparm[23] = 1 # Parallel factorization
