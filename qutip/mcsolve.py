@@ -256,7 +256,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     # --------------------------------------------
-    if not options.rhs_reuse or not config._cy_rhs_func:
+    if not options.rhs_reuse or not _cy_rhs_func:
         # reset config collapse and time-dependence flags to default values
         config.soft_reset()
 
