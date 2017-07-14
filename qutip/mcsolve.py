@@ -256,7 +256,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     # --------------------------------------------
-    if not options.rhs_reuse or not config.tdfunc:
+    if not options.rhs_reuse or not config._cy_rhs_func:
         # reset config collapse and time-dependence flags to default values
         config.soft_reset()
 
@@ -1241,7 +1241,10 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             for kk in range(len(config.c_args)):
                 config.string += "," + "config.c_args[" + str(kk) + "]"
 
-        name = "rhs" + str(os.getpid()) + str(config.cgen_num)
+        if options.rhs_filename is None:
+            name = "rhs" + str(os.getpid()) + str(config.cgen_num)
+        else:
+            name = options.rhs_filename
         config.tdname = name
         cgen = Codegen(H_inds, config.h_tdterms, config.h_td_inds, args,
                        C_inds, C_tdterms, config.c_td_inds, type='mc',
