@@ -54,7 +54,7 @@ def _pardiso_parameters(hermitian=False, has_perm=False):
     iparm[1] = 3 # Use openmp nested dissection
     if has_perm:
         iparm[4] = 1
-    iparm[7] = 10 # Max number of iterative refinements
+    iparm[7] = 20 # Max number of iterative refinements
     if hermitian:
         iparm[9] = 8
     else:
