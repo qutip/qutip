@@ -553,7 +553,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         else:
             raise Exception('Invalid collape operator specification.')
             
-            
+    coupled_offset = 0
     for kk, a in enumerate(a_ops):
         if isinstance(a, list):
             if isinstance(a[0], Qobj):
@@ -572,9 +572,10 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 if (len(a[0])+1) != len(a[1]):
                     raise Exception('BR a_ops tuple lengths not compatible.')
                 
-                coupled_ops.append(kk)
+                coupled_ops.append(kk+coupled_offset)
                 coupled_lengths.append(len(a[0]))
                 coupled_spectra.append(a[1][0])
+                coupled_offset += len(a[0])-1
                 if isinstance(a[1][0],Cubic_Spline):
                     spline_count[1] += 1
                 
