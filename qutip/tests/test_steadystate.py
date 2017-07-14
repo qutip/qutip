@@ -33,13 +33,13 @@
 
 import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
-
 from qutip import (sigmaz, destroy, steadystate, expect, coherent_dm,
                     build_preconditioner)
-
+import qutip.settings as qset
+import unittest
 
 def test_qubit_direct():
-    "Steady state: Thermal qubit - direct solver"
+    "Steady state: Thermal qubit - direct solver (scipy)"
     # thermal steadystate of a qubit: compare numerics with analytical formula
     sz = sigmaz()
     sm = destroy(2)
@@ -59,6 +59,35 @@ def test_qubit_direct():
         rate = gamma1 * n_th
         c_op_list.append(np.sqrt(rate) * sm.dag())
         rho_ss = steadystate(H, c_op_list, method='direct')
+        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
+
+    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
+    delta = sum(abs(p_ss_analytic - p_ss))
+    assert_equal(delta < 1e-5, True)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_qubit_direct_mkl():
+    "Steady state: Thermal qubit - direct solver (mkl)"
+    # thermal steadystate of a qubit: compare numerics with analytical formula
+    sz = sigmaz()
+    sm = destroy(2)
+
+    H = 0.5 * 2 * np.pi * sz
+    gamma1 = 0.05
+
+    wth_vec = np.linspace(0.1, 3, 20)
+    p_ss = np.zeros(np.shape(wth_vec))
+
+    for idx, wth in enumerate(wth_vec):
+
+        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(np.sqrt(rate) * sm)
+        rate = gamma1 * n_th
+        c_op_list.append(np.sqrt(rate) * sm.dag())
+        rho_ss = steadystate(H, c_op_list, method='direct', solver='mkl')
         p_ss[idx] = expect(sm.dag() * sm, rho_ss)
 
     p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
@@ -95,7 +124,7 @@ def test_qubit_eigen():
 
 
 def test_qubit_power():
-    "Steady state: Thermal qubit - power solver"
+    "Steady state: Thermal qubit - power solver (scipy)"
     # thermal steadystate of a qubit: compare numerics with analytical formula
     sz = sigmaz()
     sm = destroy(2)
@@ -120,6 +149,36 @@ def test_qubit_power():
     p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
     delta = sum(abs(p_ss_analytic - p_ss))
     assert_equal(delta < 1e-5, True)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_qubit_power_mkl():
+    "Steady state: Thermal qubit - power solver"
+    # thermal steadystate of a qubit: compare numerics with analytical formula
+    sz = sigmaz()
+    sm = destroy(2)
+
+    H = 0.5 * 2 * np.pi * sz
+    gamma1 = 0.05
+
+    wth_vec = np.linspace(0.1, 3, 20)
+    p_ss = np.zeros(np.shape(wth_vec))
+
+    for idx, wth in enumerate(wth_vec):
+
+        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(np.sqrt(rate) * sm)
+        rate = gamma1 * n_th
+        c_op_list.append(np.sqrt(rate) * sm.dag())
+        rho_ss = steadystate(H, c_op_list, method='power',solver='mkl')
+        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
+
+    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
+    delta = sum(abs(p_ss_analytic - p_ss))
+    assert_equal(delta < 1e-5, True)
+
 
 
 def test_qubit_power_gmres():
@@ -236,7 +295,7 @@ def test_qubit_bicgstab():
 
 
 def test_ho_direct():
-    "Steady state: Thermal HO - direct solver"
+    "Steady state: Thermal HO - direct solver (scipy)"
     # thermal steadystate of an oscillator: compare numerics with analytical
     # formula
     a = destroy(40)
@@ -260,6 +319,35 @@ def test_ho_direct():
     p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
     delta = sum(abs(p_ss_analytic - p_ss))
     assert_equal(delta < 1e-3, True)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_ho_direct_mkl():
+    "Steady state: Thermal HO - direct solver (mkl)"
+    # thermal steadystate of an oscillator: compare numerics with analytical
+    # formula
+    a = destroy(40)
+    H = 0.5 * 2 * np.pi * a.dag() * a
+    gamma1 = 0.05
+
+    wth_vec = np.linspace(0.1, 3, 20)
+    p_ss = np.zeros(np.shape(wth_vec))
+
+    for idx, wth in enumerate(wth_vec):
+
+        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(np.sqrt(rate) * a)
+        rate = gamma1 * n_th
+        c_op_list.append(np.sqrt(rate) * a.dag())
+        rho_ss = steadystate(H, c_op_list, method='direct', solver='mkl')
+        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
+
+    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
+    delta = sum(abs(p_ss_analytic - p_ss))
+    assert_equal(delta < 1e-3, True)
+
 
 
 def test_ho_eigen():
@@ -290,7 +378,7 @@ def test_ho_eigen():
 
 
 def test_ho_power():
-    "Steady state: Thermal HO - power solver"
+    "Steady state: Thermal HO - power solver (scipy)"
     # thermal steadystate of an oscillator: compare numerics with analytical
     # formula
     a = destroy(40)
@@ -314,6 +402,35 @@ def test_ho_power():
     p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
     delta = sum(abs(p_ss_analytic - p_ss))
     assert_equal(delta < 1e-3, True)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_ho_power_mkl():
+    "Steady state: Thermal HO - power solver (mkl)"
+    # thermal steadystate of an oscillator: compare numerics with analytical
+    # formula
+    a = destroy(40)
+    H = 0.5 * 2 * np.pi * a.dag() * a
+    gamma1 = 0.05
+
+    wth_vec = np.linspace(0.1, 3, 20)
+    p_ss = np.zeros(np.shape(wth_vec))
+
+    for idx, wth in enumerate(wth_vec):
+
+        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(np.sqrt(rate) * a)
+        rate = gamma1 * n_th
+        c_op_list.append(np.sqrt(rate) * a.dag())
+        rho_ss = steadystate(H, c_op_list, method='power', solver='mkl')
+        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
+
+    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
+    delta = sum(abs(p_ss_analytic - p_ss))
+    assert_equal(delta < 1e-3, True)
+
 
 def test_ho_power_gmres():
     "Steady state: Thermal HO - power-gmres solver"
@@ -423,9 +540,8 @@ def test_ho_bicgstab():
     assert_equal(delta < 1e-3, True)
 
 
-
 def test_driven_cavity_direct():
-    "Steady state: Driven cavity - direct solver"
+    "Steady state: Driven cavity - direct solver (scipy)"
 
     N = 30
     Omega = 0.01 * 2 * np.pi
@@ -436,6 +552,24 @@ def test_driven_cavity_direct():
     c_ops = [np.sqrt(Gamma) * a]
 
     rho_ss = steadystate(H, c_ops, method='direct')
+    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
+
+    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_driven_cavity_direct_mkl():
+    "Steady state: Driven cavity - direct solver (mkl)"
+
+    N = 30
+    Omega = 0.01 * 2 * np.pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [np.sqrt(Gamma) * a]
+
+    rho_ss = steadystate(H, c_ops, method='direct', solver='mkl')
     rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
 
     assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
@@ -459,7 +593,7 @@ def test_driven_cavity_eigen():
 
 
 def test_driven_cavity_power():
-    "Steady state: Driven cavity - power solver"
+    "Steady state: Driven cavity - power solver (scipy)"
 
     N = 30
     Omega = 0.01 * 2 * np.pi
@@ -473,7 +607,25 @@ def test_driven_cavity_power():
     rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
 
     assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
-    
+ 
+
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
+def test_driven_cavity_power():
+    "Steady state: Driven cavity - power solver (mkl)"
+
+    N = 30
+    Omega = 0.01 * 2 * np.pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [np.sqrt(Gamma) * a]
+
+    rho_ss = steadystate(H, c_ops, method='power', solver='mkl')
+    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
+
+    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)   
+
 
 def test_driven_cavity_power_gmres():
     "Steady state: Driven cavity - power-gmres solver"
