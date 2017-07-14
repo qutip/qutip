@@ -1151,7 +1151,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             # extract time-dependent coefficients (strings or functions)
             config.h_tdterms = [H[k][1] for k in H_td_inds]
             # combine time-INDEPENDENT terms into one.
-            H = np.array([np.sum([H[k] for k in H_const_inds] + [0.*H[0][0]])] +
+            H = np.array([np.sum(H[k] for k in H_const_inds)] +
                          [H[k][0] for k in H_td_inds], dtype=object)
             len_h = len(H)
             H_inds = np.arange(len_h)
