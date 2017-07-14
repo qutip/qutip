@@ -164,7 +164,7 @@ class mkl_lu(object):
             np_x, np_error)
         self._solve_time = time.time() -_solve_start
         if error[0] != 0:
-            raise Exception(pardiso_error_msgs[str(error)])
+            raise Exception(pardiso_error_msgs[str(error[0])])
         
         if verbose:
             print('Solution Stage')
@@ -329,7 +329,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
             np_x, np_error)
     _factor_time = time.time() - _factor_start
     if error[0] != 0:
-        raise Exception(pardiso_error_msgs[str(error)])
+        raise Exception(pardiso_error_msgs[str(error[0])])
     
     if verbose:
         print('Analysis and Factorization Stage')
@@ -407,5 +407,3 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         return x, info
     else:    
         return x
-
-        

@@ -670,10 +670,10 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
     rev_perm = None
     n = L.shape[0]
     if has_mkl:
-        L = L.data - (1e-15) * sp.eye(n, n, format='csr')
+        L = L.data - (1e-12) * sp.eye(n, n, format='csr')
         kind = 'csr'
     else:
-        L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
+        L = L.data.tocsc() - (1e-12) * sp.eye(n, n, format='csc')
         kind = 'csc'
     orig_nnz = L.nnz
     if settings.debug:
