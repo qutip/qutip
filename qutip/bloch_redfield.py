@@ -100,7 +100,16 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
               
     where f(w) and g(t) are strings or Cubic_spline objects for the bath
     spectrum and time-dependence, respectively.
+              
+    Finally, if one has bath-couplimg terms of the form
+    H = f(t)*a + conj[f(t)]*a.dag(), then the correct input format is
+              
+    *Example*
+    
+              a_ops = [ [(a,a.dag()), (f(w), g1(t), g2(t))],... ]
 
+    where f(w) is the spectrum of the operators while g1(t) and g2(t)
+    are the time-dependence of the operators `a` and `a.dag()`, respectively 
     
     Parameters
     ----------
@@ -507,7 +516,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     A_td_terms = []
     C_terms = []
     C_td_terms = []
-    C_obj = []
+    CA_obj = []
     spline_count = [0,0]
     coupled_ops = []
     coupled_lengths = []
@@ -538,7 +547,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         elif isinstance(c, list):
             C_terms.append(c[0].full('f'))
             if isinstance(c[1], Cubic_Spline):
-                C_obj.append(c[1].coeffs)
+                CA_obj.append(c[1].coeffs)
                 spline_count[0] += 1
             C_td_terms.append(c[1])
         else:
@@ -573,6 +582,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     A_terms.append(_a.full('f'))
                     A_td_terms.append(a[1][nn+1])
                     if isinstance(a[1][nn+1],Cubic_Spline):
+                        CA_obj.append(a[1][nn+1].coeffs)
                         spline_count[1] += 1
                                 
         else:
@@ -586,8 +596,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         string_list.append("H_obj[{0}]".format(kk))
     for kk,_ in enumerate(C_td_terms):
         string_list.append("C_terms[{0}]".format(kk))
-    for kk,_ in enumerate(C_obj):
-        string_list.append("C_obj[{0}]".format(kk))
+    for kk,_ in enumerate(CA_obj):
+        string_list.append("CA_obj[{0}]".format(kk))
     for kk,_ in enumerate(A_td_terms):
         string_list.append("A_terms[{0}]".format(kk))
     #Add nrows to parameters
@@ -605,7 +615,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         cgen = BR_Codegen(h_terms=len(H_terms), 
                     h_td_terms=H_td_terms, h_obj=H_obj,
                     c_terms=len(C_terms), 
-                    c_td_terms=C_td_terms, c_obj=C_obj,
+                    c_td_terms=C_td_terms, c_obj=CA_obj,
                     a_terms=len(A_terms), a_td_terms=A_td_terms,
                     spline_count=spline_count,
                     coupled_ops = coupled_ops,
