@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from scipy.linalg.cython_lapack cimport zheevr
-from scipy.linalg.cython_blas cimport zgemm, zgemv
+from scipy.linalg.cython_blas cimport zgemm, zgemv, zaxpy
 from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron, 
                     _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
                     _zcsr_mult)
@@ -93,11 +93,9 @@ cpdef void dense_add_mult(complex[::1,:] A,
         Coefficient in front of B.
     
     """
-    cdef unsigned int nrows = A.shape[0]
-    cdef size_t ii, jj
-    for jj in range(nrows):
-        for ii in range(nrows):
-            A[ii,jj] += alpha*B[ii,jj]
+    cdef int nrows2 = A.shape[0]**2
+    cdef int inc = 1
+    zaxpy(&nrows2, &alpha, &B[0,0], &inc, &A[0,0], &inc)
 
 
 @cython.boundscheck(False)
