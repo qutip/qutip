@@ -104,6 +104,14 @@ push changes to your fork ::
 
 Make a Pull Request to the release branch
 
+The ``master`` branch minor version should be bumped up and should remain in Beta status, e.g. ::
+    Development Status :: 4 - Beta
+    ...
+    MAJOR = 4
+    MINOR = 2
+    MICRO = 0
+    ISRELEASED = False
+
 .. _distbuild:
 
 Build distribution
