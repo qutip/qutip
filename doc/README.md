@@ -14,6 +14,10 @@ Build requirements
 * numpydoc
 * ipython
 
+In a conda environment use:
+    
+    $ conda install sphinx numpydoc sphinx_rtd_theme ipython
+
 2017-03-28: Successful building using:
 
 * sphinx v1.5.1
