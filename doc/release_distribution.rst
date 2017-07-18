@@ -237,7 +237,7 @@ Check that the recipe package version requirements at least match those in the s
 Ensure that that the build number is reset ::
 
     build:
-        number: 1
+        number: 0
 
 Push changes to your fork, e.g. ::
 
