@@ -234,6 +234,10 @@ Generate a new sha256 code from the gztar for this version, e.g. ::
 Edit the ``recipe/meta.yaml`` file.
 Change the version. Update the sha256 code. 
 Check that the recipe package version requirements at least match those in the setup.py
+Ensure that that the build number is reset:
+
+    build:
+        number: 1
 
 Push changes to your fork, e.g. ::
 
