@@ -303,6 +303,8 @@ Sometimes it is necessary to model a system where the time-dependent parameters 
     
     In [1]: noisy_data = noisy_func(t)
     
+    In [1]: plt.figure()
+    
     In [1]: plt.plot(t, func(t))
     
     In [1]: plt.plot(t, noisy_data, 'o')
@@ -317,6 +319,8 @@ To turn these data points into a function we call the QuTiP :class:`qutip.interp
 .. ipython::
     
     In [1]: S = Cubic_Spline(t[0], t[-1], noisy_data)
+    
+    In [1]: plt.figure()
     
     In [1]: plt.plot(t, func(t))
     
