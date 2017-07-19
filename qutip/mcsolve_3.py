@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['mcsolve_d']
+__all__ = ['mcsolve_3']
 
 import os
 from types import FunctionType
@@ -84,7 +84,7 @@ class qutip_zvode(zvode):
         return r
 
 
-def mcsolve_d(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
+def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
             args={}, options=None, progress_bar=True,
             map_func=None, map_kwargs=None,
             _safe_mode=True):
@@ -876,6 +876,7 @@ def _mc_alg_evolve(nt, config, opt, seeds):
             np.array(collapse_times, dtype=float),
             np.array(which_oper, dtype=int))
 
+
 def _mc_func_load(config):
     """Load cython functions"""
 
@@ -913,6 +914,46 @@ def _mc_func_load(config):
 
     elif config.tflag == 0:
         _cy_rhs_func = cy_ode_rhs
+
+
+def _mc_func_load(config):
+    """Load cython functions"""
+
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
+    if debug:
+        print(inspect.stack()[0][3] + " in " + str(os.getpid()))
+
+    if config.tflag in [1, 10, 11]:
+        # compile time-depdendent RHS code
+        if config.tflag in [1, 11]:
+            code = compile('from ' + config.tdname +
+                           ' import cy_td_ode_rhs, col_spmv, col_expect',
+                           '<string>', 'exec')
+            exec(code, globals())
+            _cy_rhs_func = cy_td_ode_rhs
+            _cy_col_spmv_func = col_spmv
+            _cy_col_expect_func = col_expect
+        else:
+            code = compile('from ' + config.tdname +
+                           ' import cy_td_ode_rhs', '<string>', 'exec')
+            exec(code, globals())
+            _cy_rhs_func = cy_td_ode_rhs
+
+        # compile wrapper functions for calling cython spmv and expect
+        if config.col_spmv_code:
+            _cy_col_spmv_call_func = compile(
+                config.col_spmv_code, '<string>', 'exec')
+
+        if config.col_expect_code:
+            _cy_col_expect_call_func = compile(
+                config.col_expect_code, '<string>', 'exec')
+
+    elif config.tflag == 0:
+        _cy_rhs_func = cy_ode_rhs
+
 
 def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,                    options, config):
     """Creates the appropriate data structures for the monte carlo solver
