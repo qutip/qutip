@@ -313,8 +313,12 @@ void ode::dopri5(const double &dt, cplx *in, cplx *out){
 	delete[] _errout;
 }
 
-
-
-
-
-
+class test{
+public:
+    test(){};
+    double run(double t, void (*f)(double, double*)){
+        double out[2] = {0., 0.};
+        f(t, out);
+        return out[0]*1000+out[1];
+    };
+};
