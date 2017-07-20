@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 5 - Production/Stable
+Development Status :: 4 - Beta
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -56,9 +56,9 @@ from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 2
+MINOR = 3
 MICRO = 0
-ISRELEASED = True
+ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
