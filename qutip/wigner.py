@@ -507,18 +507,18 @@ def spin_q_function(rho, theta, phi):
         rho = ket2dm(rho)
 
     J = rho.shape[0]
-    j = (J - 1) / 2
+    j = int((J - 1) / 2)
 
     THETA, PHI = meshgrid(theta, phi)
 
     Q = np.zeros_like(THETA, dtype=complex)
 
-    for m1 in arange(-j, j+1):
+    for m1 in range(-j, j+1):
 
         Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j-m1)) * sin(THETA/2) ** (2*(j+m1)) * \
             rho.data[int(j-m1), int(j-m1)]
 
-        for m2 in arange(m1+1, j+1):
+        for m2 in range(m1+1, j+1):
 
             Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
                   cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
@@ -531,8 +531,8 @@ def spin_q_function(rho, theta, phi):
 def _rho_kq(rho, j, k, q):
     v = 0j
 
-    for m1 in arange(-j, j+1):
-        for m2 in arange(-j, j+1):
+    for m1 in range(-j, j+1):
+        for m2 in range(-j, j+1):
             v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2,
                                               q) * rho.data[m1 + j, m2 + j]
 
@@ -570,7 +570,7 @@ def spin_wigner(rho, theta, phi):
         rho = ket2dm(rho)
 
     J = rho.shape[0]
-    j = (J - 1) / 2
+    j = int((J - 1) / 2)
 
     THETA, PHI = meshgrid(theta, phi)
 
