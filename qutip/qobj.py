@@ -364,7 +364,7 @@ class Qobj(object):
 
             out.dims = self.dims
            
-            out.tidyup() if settings.auto_tidyup
+            if settings.auto_tidyup: out.tidyup()
            
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
@@ -392,7 +392,7 @@ class Qobj(object):
                 out.data.data = out.data.data + dat
             out.dims = other.dims
             
-            out.tidyup() if settings.auto_tidyup
+            if settings.auto_tidyup: out.tidyup()
             
             if isinstance(dat, complex):
                 out._isherm = out.isherm
@@ -413,7 +413,7 @@ class Qobj(object):
             out = Qobj()
             out.data = self.data + other.data
             out.dims = self.dims
-            out.tidyup() if settings.auto_tidyup
+            if settings.auto_tidyup: out.tidyup()
            
             if self.type in ['ket', 'bra', 'operator-ket', 'operator-bra']:
                 out._isherm = False
@@ -462,7 +462,7 @@ class Qobj(object):
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
-                out.tidyup() if settings.auto_tidyup
+                if settings.auto_tidyup: out.tidyup()
                 if (not isinstance(dims[0][0], list) and
                         not isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
@@ -536,7 +536,7 @@ class Qobj(object):
             out.data = self.data * other
             out.dims = self.dims
             out.superrep = self.superrep
-            out.tidyup() if settings.auto_tidyup
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -572,7 +572,7 @@ class Qobj(object):
             out.data = other * self.data
             out.dims = self.dims
             out.superrep = self.superrep
-            out.tidyup() if settings.auto_tidyup
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -599,7 +599,7 @@ class Qobj(object):
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
-            out.tidyup() if settings.auto_tidyup
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -620,7 +620,7 @@ class Qobj(object):
         out.data = -self.data
         out.dims = self.dims
         out.superrep = self.superrep
-        out.tidyup() if settings.auto_tidyup
+        if settings.auto_tidyup: out.tidyup()
         out._isherm = self._isherm
         return out
 
