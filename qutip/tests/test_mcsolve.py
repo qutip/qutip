@@ -34,7 +34,9 @@
 import numpy as np
 from numpy.testing import assert_equal, run_module_suite, assert_
 import unittest
-from qutip import *
+from qutip import Qobj, basis, destroy, expect, qeye, tensor, coherent
+from qutip import mcsolve, mesolve, sigmax, sigmay, sigmaz, sigmam
+from qutip.solver import Options
 from qutip import _version2int
 
 # find Cython if it exists
@@ -534,7 +536,7 @@ def test_mc_ntraj_list():
 
 def test_mc_functd_sum():
     "Monte-carlo: Test for #490"
-    psi0 = (basis(2,0) + basis(2,1)).unit()   
+    psi0 = (basis(2,0) + basis(2,1)).unit()
     H0 = sigmax()
     H1 = sigmay()
     H2 = sigmaz()
@@ -556,3 +558,5 @@ def test_mc_functd_sum():
 
 if __name__ == "__main__":
     run_module_suite()
+
+
