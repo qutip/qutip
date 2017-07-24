@@ -323,14 +323,7 @@ class SolverConfiguration():
         # codegen has been run
         self.cflag = 0     # Flag signaling collapse operators
         self.tflag = 0     # Flag signaling time-dependent problem
-
-        # time-dependent (TD) function stuff
-        self.tdfunc = None     # Placeholder for TD RHS function.
-        self.tdname = None     # Name of td .pyx file
-        self.colspmv = None    # Placeholder for TD col-spmv function.
-        self.colexpect = None  # Placeholder for TD col_expect function.
-        self.string = None     # Holds string of variables passed to td solver
-
+        
         self.soft_reset()
 
     def soft_reset(self):
@@ -376,6 +369,14 @@ class SolverConfiguration():
         self.h_func_args = None
         self.c_funcs = None
         self.c_func_args = None
+        
+        # time-dependent (TD) function stuff
+        self.tdfunc = None     # Placeholder for TD RHS function.
+        self.tdname = None     # Name of td .pyx file
+        self.colspmv = None    # Placeholder for TD col-spmv function.
+        self.colexpect = None  # Placeholder for TD col_expect function.
+        self.string = None     # Holds string of variables passed to td solver
+        
 
 def _format_time(t, tt=None, ttt=None):
     time_str = str(datetime.timedelta(seconds=t))
