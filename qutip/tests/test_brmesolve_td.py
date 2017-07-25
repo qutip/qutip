@@ -301,7 +301,7 @@ def test_td_brmesolve_states():
     me = mesolve(H,psi0,tlist,c_ops=[],e_ops=[],progress_bar=True)
     br = brmesolve(H2,psi0,tlist,a_ops=[],e_ops=[],progress_bar=True)
     assert_(np.max([np.abs((me.states[kk]-br.states[kk]).full()).max() 
-                for kk in range(len(tlist))]) < 1e-7)
+                for kk in range(len(tlist))]) < 1e-5)
 
 
 def test_td_brmesolve_split_ops1():
