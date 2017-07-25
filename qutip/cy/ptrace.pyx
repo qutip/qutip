@@ -34,7 +34,7 @@ import numpy as np
 from qutip.cy.spconvert import zcsr_reshape
 from qutip.cy.spmath import zcsr_mult
 from qutip.fastsparse import fast_csr_matrix
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 from libc.math cimport floor, trunc
 
@@ -50,7 +50,7 @@ def _ptrace(object rho, _sel):
     
     cdef size_t mm, ii
     cdef int _tmp
-    cdef np.ndarray[int, ndim=1, mode='c'] drho = np.asarray(rho.dims[0], dtype=np.int32).ravel()
+    cdef cnp.ndarray[int, ndim=1, mode='c'] drho = np.asarray(rho.dims[0], dtype=np.int32).ravel()
     
     if isinstance(_sel, int):
         _sel = np.array([_sel], dtype=np.int32)
@@ -77,7 +77,7 @@ def _ptrace(object rho, _sel):
         _tmp = indrest[mm] * N + indrest[mm]-1
         indrest[mm] = _tmp
     
-    cdef np.ndarray[int, ndim=1, mode='c'] ind = np.zeros(M**2*indrest.shape[0],dtype=np.int32)
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ind = np.zeros(M**2*indrest.shape[0],dtype=np.int32)
     for mm in range(M**2):
         for ii in range(indrest.shape[0]):
             ind[mm*indrest.shape[0]+ii] = indrest[ii] + \
@@ -99,7 +99,7 @@ def _ptrace(object rho, _sel):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cpdef np.ndarray[int, ndim=1, mode='c'] _list2ind(int[:,::1] ilist, int[::1] dims):
+cpdef cnp.ndarray[int, ndim=1, mode='c'] _list2ind(int[:,::1] ilist, int[::1] dims):
     """!
     Private function returning indicies
     """
@@ -115,13 +115,13 @@ cpdef np.ndarray[int, ndim=1, mode='c'] _list2ind(int[:,::1] ilist, int[::1] dim
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cpdef np.ndarray[int, ndim=2, mode='c'] _select(int[::1] sel, int[::1] dims, int M):
+cpdef cnp.ndarray[int, ndim=2, mode='c'] _select(int[::1] sel, int[::1] dims, int M):
     """
     Private function finding selected components
     """
     cdef size_t ii, jj, kk
     cdef int _sel, _prd
-    cdef np.ndarray[int, ndim=2, mode='c'] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
+    cdef cnp.ndarray[int, ndim=2, mode='c'] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
     for jj in range(sel.shape[0]):
         _sel =  sel[jj]
         _prd = 1

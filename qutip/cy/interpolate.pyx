@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from libc.math cimport (fabs, fmin)
 cimport cython
 
@@ -94,7 +94,7 @@ def arr_interp(double[::1] x, double a, double b, double[::1] c):
     cdef size_t ii, jj
     cdef int l, m
     cdef double pos
-    cdef np.ndarray[double, ndim=1, mode="c"] out = np.zeros(lenx, dtype=float)
+    cdef cnp.ndarray[double, ndim=1, mode="c"] out = np.zeros(lenx, dtype=float)
     
     for jj in range(lenx):
         l = <int>((x[jj]-a)/h) + 1
@@ -118,7 +118,7 @@ def arr_zinterp(double[::1] x, double a, double b, complex[::1] c):
     cdef size_t ii, jj
     cdef int l, m
     cdef double pos
-    cdef np.ndarray[complex, ndim=1, mode="c"] out = np.zeros(lenx, dtype=complex)
+    cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros(lenx, dtype=complex)
 
     for jj in range(lenx):
         l = <int>((x[jj]-a)/h) + 1

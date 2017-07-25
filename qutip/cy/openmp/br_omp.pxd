@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-cimport numpy as np
+cimport numpy as cnp
 
 #Spectral function with signature (w,t)
 ctypedef complex (*spec_func)(double, double)

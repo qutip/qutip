@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 cimport libc.math
 from qutip.cy.spmatfuncs cimport (spmv_csr,
@@ -41,8 +41,8 @@ include "parameters.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_psi_deterministic(object H,
-                               np.ndarray[CTYPE_t, ndim=1] state,
+cpdef cnp.ndarray[CTYPE_t, ndim=1] cy_rhs_psi_deterministic(object H,
+                               cnp.ndarray[CTYPE_t, ndim=1] state,
                                double t,
                                double dt,
                                object args):
@@ -50,7 +50,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_psi_deterministic(object H,
     Deterministic contribution to the density matrix change; cython
     implementation.
     """
-    cdef np.ndarray[CTYPE_t, ndim=1] dpsi_t 
+    cdef cnp.ndarray[CTYPE_t, ndim=1] dpsi_t 
 
     dpsi_t = (-1.0j * dt) * spmv_csr(H.data, H.indices, H.indptr, state)
 
@@ -59,8 +59,8 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_psi_deterministic(object H,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_rho_deterministic(object L,
-                               np.ndarray[CTYPE_t, ndim=1] rho_t,
+cpdef cnp.ndarray[CTYPE_t, ndim=1] cy_rhs_rho_deterministic(object L,
+                               cnp.ndarray[CTYPE_t, ndim=1] rho_t,
                                double t,
                                double dt,
                                object args):
@@ -77,7 +77,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_rho_deterministic(object L,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d1_psi_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] psi,
+cpdef cy_d1_psi_photocurrent(double t, cnp.ndarray[CTYPE_t, ndim=1] psi,
                              object A, object args):
     """
     Cython version of d1_psi_photocurrent. See d1_psi_photocurrent for docs.
@@ -90,12 +90,12 @@ cpdef cy_d1_psi_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] psi,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d2_psi_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] psi,
+cpdef cy_d2_psi_photocurrent(double t, cnp.ndarray[CTYPE_t, ndim=1] psi,
                              object A, object args):
     """
     Cython version of d2_psi_photocurrent. See d2_psi_photocurrent for docs.
     """
-    cdef np.ndarray[CTYPE_t, ndim=1] psi1 
+    cdef cnp.ndarray[CTYPE_t, ndim=1] psi1 
 
     psi1 = spmv_csr(A[0].data, A[0].indices, A[0].indptr, psi)
     n1 = np.linalg.norm(psi1)
@@ -132,7 +132,7 @@ cpdef d2_psi_homodyne(t, psi, A, args):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d1_rho_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] rho_vec,
+cpdef cy_d1_rho_photocurrent(double t, cnp.ndarray[CTYPE_t, ndim=1] rho_vec,
                              object A, object args):
     """
     Photo-current D1 function
@@ -144,7 +144,7 @@ cpdef cy_d1_rho_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] rho_vec,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d2_rho_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] rho_vec,
+cpdef cy_d2_rho_photocurrent(double t, cnp.ndarray[CTYPE_t, ndim=1] rho_vec,
                              object A, object args):
     """
     Photo-current D2 function
