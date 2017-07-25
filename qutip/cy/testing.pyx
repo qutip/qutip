@@ -33,7 +33,7 @@
 import numpy as np
 import scipy.sparse as sp
 from qutip.fastsparse import fast_csr_matrix
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 
 include "sparse_routines.pxi"

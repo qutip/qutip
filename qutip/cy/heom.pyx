@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 
 @cython.boundscheck(False)
@@ -46,7 +46,7 @@ def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int inse
     cdef int temp, temp2
     cdef int[::1] ind = A.indices
     cdef int[::1] ptr_in = A.indptr
-    cdef np.ndarray[int, ndim=1, mode='c'] ptr_out = np.zeros(nrowout+1,dtype=np.int32)
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ptr_out = np.zeros(nrowout+1,dtype=np.int32)
     
     A._shape = (nrowout, ncolout)
     if insertcol == 0:
