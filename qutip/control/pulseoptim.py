@@ -147,7 +147,7 @@ def optimize_pulse(
     The dynamics of the system in any given timeslot are governed
     by the combined dynamics generator,
     i.e. the sum of the drift+ctrl_amp[j]*ctrls[j]
-    The control pulse is an [n_ts, len(ctrls)] array of piecewise amplitudes
+    The control pulse is an [n_ts, n_ctrls)] array of piecewise amplitudes
     Starting from an intital (typically random) pulse,
     a multivariable optimisation algorithm attempts to determines the
     optimal values for the control pulse to minimise the fidelity error
@@ -160,9 +160,10 @@ def optimize_pulse(
         the underlying dynamics generator of the system
         can provide list (of length num_tslots) for time dependent drift
 
-    ctrls : List of Qobj
+    ctrls : List of Qobj or array like [num_tslots, evo_time]
         a list of control dynamics generators. These are scaled by
         the amplitudes to alter the overall dynamics
+        Array like imput can be provided for time dependent control generators
 
     initial : Qobj
         starting point for the evolution.
@@ -544,7 +545,7 @@ def optimize_pulse_unitary(
     The dynamics of the system  in any given timeslot are governed
     by the combined Hamiltonian,
     i.e. the sum of the H_d + ctrl_amp[j]*H_c[j]
-    The control pulse is an [n_ts, len(ctrls)] array of piecewise amplitudes
+    The control pulse is an [n_ts, n_ctrls] array of piecewise amplitudes
     Starting from an intital (typically random) pulse,
     a multivariable optimisation algorithm attempts to determines the
     optimal values for the control pulse to minimise the fidelity error
@@ -558,9 +559,10 @@ def optimize_pulse_unitary(
         Drift (aka system) the underlying Hamiltonian of the system
         can provide list (of length num_tslots) for time dependent drift
         
-    H_c : Qobj
+    H_c : List of Qobj or array like [num_tslots, evo_time]
         a list of control Hamiltonians. These are scaled by
         the amplitudes to alter the overall dynamics
+        Array like imput can be provided for time dependent control generators
 
     U_0 : Qobj
         starting point for the evolution.
@@ -758,29 +760,7 @@ def optimize_pulse_unitary(
     
     """
 
-    # check parameters here, as names are different than in
-    # create_pulse_optimizer, so TypeErrors would be confusing
-
-    if not isinstance(H_d, Qobj):
-        if not isinstance(H_d, (list, tuple)):
-            raise TypeError("H_d should be a Qobj or a list of Qobj")
-        else:
-            for H in H_d:
-                if not isinstance(H, Qobj):
-                    raise TypeError("H_d should be a Qobj or a list of Qobj")
-
-    if not isinstance(H_c, (list, tuple)):
-        raise TypeError("H_c should be a list of Qobj")
-    else:
-        for ctrl in H_c:
-            if not isinstance(ctrl, Qobj):
-                raise TypeError("H_c should be a list of Qobj")
-
-    if not isinstance(U_0, Qobj):
-        raise TypeError("U_0 must be a Qobj")
-
-    if not isinstance(U_targ, Qobj):
-        raise TypeError("U_targ must be a Qobj")
+    # parameters are checked in create pulse optimiser
         
     # The deprecation management is repeated here
     # so that the stack level is correct
@@ -871,7 +851,7 @@ def opt_pulse_crab(
     The dynamics of the system in any given timeslot are governed
     by the combined dynamics generator,
     i.e. the sum of the drift+ctrl_amp[j]*ctrls[j]
-    The control pulse is an [n_ts, len(ctrls)] array of piecewise amplitudes.
+    The control pulse is an [n_ts, n_ctrls] array of piecewise amplitudes.
     The CRAB algorithm uses basis function coefficents as the variables to
     optimise. It does NOT use any gradient function.
     A multivariable optimisation algorithm attempts to determines the
@@ -885,9 +865,10 @@ def opt_pulse_crab(
         the underlying dynamics generator of the system
         can provide list (of length num_tslots) for time dependent drift
 
-    ctrls : List of Qobj
+    ctrls : List of Qobj or array like [num_tslots, evo_time]
         a list of control dynamics generators. These are scaled by
         the amplitudes to alter the overall dynamics
+        Array like imput can be provided for time dependent control generators
 
     initial : Qobj
         starting point for the evolution.
@@ -1164,7 +1145,7 @@ def opt_pulse_crab_unitary(
     The dynamics of the system  in any given timeslot are governed
     by the combined Hamiltonian,
     i.e. the sum of the H_d + ctrl_amp[j]*H_c[j]
-    The control pulse is an [n_ts, len(ctrls)] array of piecewise amplitudes
+    The control pulse is an [n_ts, n_ctrls] array of piecewise amplitudes
     
     The CRAB algorithm uses basis function coefficents as the variables to
     optimise. It does NOT use any gradient function.
@@ -1180,9 +1161,10 @@ def opt_pulse_crab_unitary(
         Drift (aka system) the underlying Hamiltonian of the system
         can provide list (of length num_tslots) for time dependent drift
 
-    H_c : Qobj
+    H_c : List of Qobj or array like [num_tslots, evo_time]
         a list of control Hamiltonians. These are scaled by
         the amplitudes to alter the overall dynamics
+        Array like imput can be provided for time dependent control generators
 
     U_0 : Qobj
         starting point for the evolution.
@@ -1455,9 +1437,10 @@ def create_pulse_optimizer(
         the underlying dynamics generator of the system
         can provide list (of length num_tslots) for time dependent drift
 
-    ctrls : List of Qobj
+    ctrls : List of Qobj or array like [num_tslots, evo_time]
         a list of control dynamics generators. These are scaled by
         the amplitudes to alter the overall dynamics
+        Array like imput can be provided for time dependent control generators
 
     initial : Qobj
         starting point for the evolution.
@@ -1669,20 +1652,8 @@ def create_pulse_optimizer(
     """
 
     # check parameters
-    if not isinstance(drift, Qobj):
-        if not isinstance(drift, (list, tuple)):
-            raise TypeError("drift should be a Qobj or a list of Qobj")
-        else:
-            for d in drift:
-                if not isinstance(d, Qobj):
-                    raise TypeError("drift should be a Qobj or a list of Qobj")
-
-    if not isinstance(ctrls, (list, tuple)):
-        raise TypeError("ctrls should be a list of Qobj")
-    else:
-        for ctrl in ctrls:
-            if not isinstance(ctrl, Qobj):
-                raise TypeError("ctrls should be a list of Qobj")
+    ctrls = dynamics._check_ctrls_container(ctrls)
+    dynamics._check_drift_dyn_gen(drift)
 
     if not isinstance(initial, Qobj):
         raise TypeError("initial must be a Qobj")
@@ -1795,6 +1766,8 @@ def create_pulse_optimizer(
     else:
         raise errors.UsageError("No option for dyn_type: " + dyn_type)
     dyn.apply_params(dyn_params)
+    dyn._drift_dyn_gen_checked = True
+    dyn._ctrl_dyn_gen_checked = True
     
     # Create the PropagatorComputer instance
     # The default will be typically be the best option
@@ -1881,7 +1854,6 @@ def create_pulse_optimizer(
     tc.max_iterations = max_iter
     tc.max_wall_time = max_wall_time
     optim.termination_conditions = tc
-    
     
     optim.apply_method_params(method_params)
 

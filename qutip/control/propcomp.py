@@ -216,7 +216,7 @@ class PropCompApproxGrad(PropagatorComputer):
         """
         dyn = self.parent
         dgt_eps = (dyn._get_phased_dyn_gen(k) +
-                epsilon*dyn._get_phased_ctrl_dyn_gen(j))*dyn.tau[k]
+                epsilon*dyn._get_phased_ctrl_dyn_gen(k, j))*dyn.tau[k]
 
         if dyn.oper_dtype == Qobj:
             prop_eps = dgt_eps.expm()
@@ -277,7 +277,7 @@ class PropCompDiag(PropagatorComputer):
         if dyn.oper_dtype == Qobj:
             # put control dyn_gen in combined dg diagonal basis
             cdg =  (dyn._get_dyn_gen_eigenvectors_adj(k)*
-                        dyn._get_phased_ctrl_dyn_gen(j)*
+                        dyn._get_phased_ctrl_dyn_gen(k, j)*
                         dyn._dyn_gen_eigenvectors[k])
             # multiply (elementwise) by timeslice and factor matrix
             cdg = Qobj(np.multiply(cdg.full()*dyn.tau[k],
@@ -288,7 +288,7 @@ class PropCompDiag(PropagatorComputer):
         else:
             # put control dyn_gen in combined dg diagonal basis
             cdg =  dyn._get_dyn_gen_eigenvectors_adj(k).dot(
-                        dyn._get_phased_ctrl_dyn_gen(j)).dot(
+                        dyn._get_phased_ctrl_dyn_gen(k, j)).dot(
                         dyn._dyn_gen_eigenvectors[k])
             # multiply (elementwise) by timeslice and factor matrix
             cdg = np.multiply(cdg*dyn.tau[k], dyn._dyn_gen_factormatrix[k])
@@ -336,17 +336,17 @@ class PropCompAugMat(PropagatorComputer):
 
         if dyn.oper_dtype == Qobj:
             A = dg.data*dyn.tau[k]
-            E = dyn._get_phased_ctrl_dyn_gen(j).data*dyn.tau[k]
+            E = dyn._get_phased_ctrl_dyn_gen(k, j).data*dyn.tau[k]
             Z = sp.csr_matrix(dg.data.shape)
             aug = Qobj(sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])]))
         elif dyn.oper_dtype == np.ndarray:
             A = dg*dyn.tau[k]
-            E = dyn._get_phased_ctrl_dyn_gen(j)*dyn.tau[k]
+            E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
             Z = np.zeros(dg.shape)
             aug = np.vstack([np.hstack([A, E]), np.hstack([Z, A])])
         else:
             A = dg*dyn.tau[k]
-            E = dyn._get_phased_ctrl_dyn_gen(j)*dyn.tau[k]
+            E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
             Z = dg*0.0
             aug = sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])])
         return aug
@@ -412,7 +412,7 @@ class PropCompFrechet(PropagatorComputer):
 
         if dyn.oper_dtype == Qobj:
             A = dyn._get_phased_dyn_gen(k).full()*dyn.tau[k]
-            E = dyn._get_phased_ctrl_dyn_gen(j).full()*dyn.tau[k]
+            E = dyn._get_phased_ctrl_dyn_gen(k, j).full()*dyn.tau[k]
             if compute_prop:
                 prop_dense, prop_grad_dense = la.expm_frechet(A, E)
                 prop = Qobj(prop_dense, dims=dyn.dyn_dims)
@@ -424,7 +424,7 @@ class PropCompFrechet(PropagatorComputer):
                                             dims=dyn.dyn_dims)
         elif dyn.oper_dtype == np.ndarray:
             A = dyn._get_phased_dyn_gen(k)*dyn.tau[k]
-            E = dyn._get_phased_ctrl_dyn_gen(j)*dyn.tau[k]
+            E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
             if compute_prop:
                 prop, prop_grad = la.expm_frechet(A, E)
             else:
@@ -434,7 +434,7 @@ class PropCompFrechet(PropagatorComputer):
             # Assuming some sparse matrix
             spcls = dyn._dyn_gen[k].__class__
             A = (dyn._get_phased_dyn_gen(k)*dyn.tau[k]).toarray()
-            E = (dyn._get_phased_ctrl_dyn_gen(j)*dyn.tau[k]).toarray()
+            E = (dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]).toarray()
             if compute_prop:
                 prop_dense, prop_grad_dense = la.expm_frechet(A, E)
                 prop = spcls(prop_dense)

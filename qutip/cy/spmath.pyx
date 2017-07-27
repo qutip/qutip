@@ -32,7 +32,7 @@
 ###############################################################################
 import numpy as np
 import qutip.settings as qset
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 
 cdef extern from "<complex>" namespace "std" nogil:
@@ -348,7 +348,7 @@ def zcsr_kron(object A, object B):
     cdef int rowsB = B.shape[0]
     cdef int colsB = B.shape[1]
 
-    cdef int out_nnz = dataA.shape[0] * dataB.shape[0]
+    cdef int out_nnz = _safe_multiply(dataA.shape[0], dataB.shape[0])
     cdef int rows_out = rowsA * rowsB
     cdef int cols_out = colsA * colsB
 
@@ -370,7 +370,7 @@ cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C):
     sparse matrices in CSR format.
     """
 
-    cdef int out_nnz = A.nnz * B.nnz
+    cdef int out_nnz = _safe_multiply(A.nnz, B.nnz)
     cdef int rows_out = A.nrows * B.nrows
     cdef int cols_out = A.ncols * B.ncols
 
@@ -616,3 +616,11 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
 
     PyDataMem_FREE(out_ptr)
     return 1
+
+@cython.overflowcheck(True)
+cdef _safe_multiply(int A, int B):
+    """
+    Computes A*B and checks for overflow.
+    """
+    cdef int C = A*B
+    return C

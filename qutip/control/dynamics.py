@@ -93,6 +93,47 @@ def _is_string(var):
         return False
 
     return False
+    
+def _check_ctrls_container(ctrls):
+    """
+    Check through the controls container.
+    Convert to an array if its a list of lists
+    return the processed container
+    raise type error if the container structure is invalid
+    """
+    if isinstance(ctrls, (list, tuple)):
+        # Check to see if list of lists
+        try:
+            if isinstance(ctrls[0], (list, tuple)):
+                ctrls = np.array(ctrls)
+        except:
+            pass
+        
+    if isinstance(ctrls, np.ndarray):
+        if len(ctrls.shape) != 2:
+            raise TypeError("Incorrect shape for ctrl dyn gen array")
+        for k in range(ctrls.shape[0]):
+            for j in range(ctrls.shape[1]):
+                if not isinstance(ctrls[k, j], Qobj):
+                    raise TypeError("All control dyn gen must be Qobj")
+    elif isinstance(ctrls, (list, tuple)):
+        for ctrl in ctrls:
+            if not isinstance(ctrl, Qobj):
+                raise TypeError("All control dyn gen must be Qobj") 
+    else:
+        raise TypeError("Controls list or array not set correctly")
+    
+    return ctrls
+    
+def _check_drift_dyn_gen(drift):
+    if not isinstance(drift, Qobj):
+        if not isinstance(drift, (list, tuple)):
+            raise TypeError("drift should be a Qobj or a list of Qobj")
+        else:
+            for d in drift:
+                if not isinstance(d, Qobj):
+                    raise TypeError(
+                        "drift should be a Qobj or a list of Qobj")
 
 warnings.simplefilter('always', DeprecationWarning) #turn off filter
 def _attrib_deprecation(message, stacklevel=3):
@@ -373,6 +414,7 @@ class Dynamics(object):
         self.sys_dims = None
         self.sys_shape = None
         self.time_depend_drift = False
+        self.time_depend_ctrl_dyn_gen = False
         # These internal attributes will be of the internal operator data type
         # used to compute the evolution
         # Note this maybe ndarray, Qobj or some other depending on oper_dtype
@@ -418,6 +460,8 @@ class Dynamics(object):
         self._dyn_gen_mapped = False
         self._timeslots_initialized = False
         self._ctrls_initialized = False
+        self._ctrl_dyn_gen_checked = False
+        self._drift_dyn_gen_checked = False
         # Unitary checking
         self.unitarity_check_level = 0
         self.unitarity_tol = 1e-10
@@ -662,7 +706,11 @@ class Dynamics(object):
                 dg = self.drift_dyn_gen[0]
             else:
                 dg = self.drift_dyn_gen
-            for c in self.ctrl_dyn_gen:
+            if self.time_depend_ctrl_dyn_gen:
+                ctrls = self.ctrl_dyn_gen[0, :]
+            else:
+                ctrls = self.ctrl_dyn_gen
+            for c in ctrls:
                dg = dg + c
 
             N = dg.data.shape[0]
@@ -687,21 +735,10 @@ class Dynamics(object):
         Set the time slices and cumulative time
         """
         # check evolution operators
-        if not isinstance(self.drift_dyn_gen, Qobj):
-            if not isinstance(self.drift_dyn_gen, (list, tuple)):
-                raise TypeError("drift should be a Qobj or a list of Qobj")
-            else:
-                for d in self.drift_dyn_gen:
-                    if not isinstance(d, Qobj):
-                        raise TypeError(
-                            "drift should be a Qobj or a list of Qobj")
-
-        if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
-            raise TypeError("ctrls should be a list of Qobj")
-        else:
-            for ctrl in self.ctrl_dyn_gen:
-                if not isinstance(ctrl, Qobj):
-                    raise TypeError("ctrls should be a list of Qobj")
+        if not self._drift_dyn_gen_checked:
+            _check_drift_dyn_gen(self.drift_dyn_gen)
+        if not self._ctrl_dyn_gen_checked:
+            self.ctrl_dyn_gen = _check_ctrls_container(self.ctrl_dyn_gen)
 
         if not isinstance(self.initial, Qobj):
             raise TypeError("initial must be a Qobj")
@@ -713,6 +750,8 @@ class Dynamics(object):
         self._set_memory_optimizations()
         self.sys_dims = self.initial.dims
         self.sys_shape = self.initial.shape
+        n_ts = self.num_tslots
+        n_ctrls = self.num_ctrls
         if self.oper_dtype == Qobj:
             self._initial = self.initial
             self._target = self.target
@@ -725,7 +764,15 @@ class Dynamics(object):
                 self._drift_dyn_gen = [d.full() for d in self.drift_dyn_gen]
             else:
                 self._drift_dyn_gen = self.drift_dyn_gen.full()
-            self._ctrl_dyn_gen = [ctrl.full() for ctrl in self.ctrl_dyn_gen]
+            if self.time_depend_ctrl_dyn_gen:
+                self._ctrl_dyn_gen = np.empty([n_ts, n_ctrls], dtype=object)
+                for k in range(n_ts):
+                    for j in range(n_ctrls):
+                        self._ctrl_dyn_gen[k, j] = \
+                                    self.ctrl_dyn_gen[k, j].full()
+            else:
+                self._ctrl_dyn_gen = [ctrl.full() 
+                                        for ctrl in self.ctrl_dyn_gen]
         elif self.oper_dtype == sp.csr_matrix:
             self._initial = self.initial.data
             self._target = self.target.data
@@ -733,20 +780,38 @@ class Dynamics(object):
                 self._drift_dyn_gen = [d.data for d in self.drift_dyn_gen]
             else:
                 self._drift_dyn_gen = self.drift_dyn_gen.data
-            self._ctrl_dyn_gen = [ctrl.data for ctrl in self.ctrl_dyn_gen]
+                
+            if self.time_depend_ctrl_dyn_gen:
+                self._ctrl_dyn_gen = np.empty([n_ts, n_ctrls], dtype=object)
+                for k in range(n_ts):
+                    for j in range(n_ctrls):
+                        self._ctrl_dyn_gen[k, j] = \
+                                    self.ctrl_dyn_gen[k, j].data
+            else:
+                self._ctrl_dyn_gen = [ctrl.data for ctrl in self.ctrl_dyn_gen]
         else:
             logger.warn("Unknown option '{}' for oper_dtype. "
                 "Assuming that internal drift, ctrls, initial and target "
                 "have been set correctly".format(self.oper_dtype))
+            
         if self.cache_phased_dyn_gen and not self.dyn_gen_phase is None:
-            self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
-                                            for ctrl in self._ctrl_dyn_gen]
+            if self.time_depend_ctrl_dyn_gen:
+                self._phased_ctrl_dyn_gen = np.empty([n_ts, n_ctrls], 
+                                                     dtype=object)
+                for k in range(n_ts):
+                    for j in range(n_ctrls):
+                        self._phased_ctrl_dyn_gen[k, j] = self._apply_phase(
+                                    self._ctrl_dyn_gen[k, j])
+            else:
+                self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
+                                                for ctrl in self._ctrl_dyn_gen]
+                                                
         self._dyn_gen = [object for x in range(self.num_tslots)]
         if self.cache_phased_dyn_gen:
             self._phased_dyn_gen = [object for x in range(self.num_tslots)]
         self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact and self.cache_prop_grad:
-            self._prop_grad = np.empty([self.num_tslots, self._num_ctrls],
+            self._prop_grad = np.empty([self.num_tslots, self.num_ctrls],
                                       dtype=object)
         # Time evolution operator (forward propagation)
         self._fwd_evo = [object for x in range(self.num_tslots+1)]
@@ -810,8 +875,6 @@ class Dynamics(object):
                 " set. A default should be assigned by the Dynamics subclass")
 
         self.ctrl_amps = None
-        self._num_ctrls = len(self.ctrl_dyn_gen)
-
         if not self._timeslots_initialized:
             init_tslots = True
         if init_tslots:
@@ -948,11 +1011,17 @@ class Dynamics(object):
         _func_deprecation("'get_num_ctrls' has been replaced by "
                          "'num_ctrls' property")
         return self.num_ctrls
-
+        
     def _get_num_ctrls(self):
-        if not isinstance(self.ctrl_dyn_gen, (list, tuple)):
-            raise errors.UsageError("Controls list not set")
-        self._num_ctrls = len(self.ctrl_dyn_gen)
+        if not self._ctrl_dyn_gen_checked:
+            self.ctrl_dyn_gen = _check_ctrls_container(self.ctrl_dyn_gen)
+            self._ctrl_dyn_gen_checked = True
+        if isinstance(self.ctrl_dyn_gen, np.ndarray):
+            self._num_ctrls = self.ctrl_dyn_gen.shape[1]
+            self.time_depend_ctrl_dyn_gen = True
+        else:
+            self._num_ctrls = len(self.ctrl_dyn_gen)    
+        
         return self._num_ctrls
 
     @property
@@ -1042,7 +1111,10 @@ class Dynamics(object):
         else:
             dg = self._drift_dyn_gen
         for j in range(self._num_ctrls):
-            dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
+            if self.time_depend_ctrl_dyn_gen:
+                dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[k, j]
+            else:
+                dg = dg + self.ctrl_amps[k, j]*self._ctrl_dyn_gen[j]
 
         self._dyn_gen[k] = dg
         if self.cache_phased_dyn_gen:
@@ -1094,13 +1166,19 @@ class Dynamics(object):
         """
         _func_deprecation("'get_ctrl_dyn_gen' has been replaced by "
                         "'_get_phased_ctrl_dyn_gen'")
-        return self._get_phased_ctrl_dyn_gen(j)
+        return self._get_phased_ctrl_dyn_gen(0, j)
 
-    def _get_phased_ctrl_dyn_gen(self, j):
+    def _get_phased_ctrl_dyn_gen(self, k, j):
         if self._phased_ctrl_dyn_gen is not None:
-            return self._phased_ctrl_dyn_gen[j]
+            if self.time_depend_ctrl_dyn_gen:
+                return self._phased_ctrl_dyn_gen[k, j]
+            else:
+                return self._phased_ctrl_dyn_gen[j]
         else:
-            return self._apply_phase(self._ctrl_dyn_gen[j])
+            if self.time_depend_ctrl_dyn_gen:
+                return self._apply_phase(self._ctrl_dyn_gen[k, j])
+            else:
+                return self._apply_phase(self._ctrl_dyn_gen[j])
 
     @property
     def dyn_gen(self):
