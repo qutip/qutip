@@ -45,7 +45,7 @@ import numpy as np
 import scipy.sparse as sp
 from numpy import matrix
 from numpy import linalg
-from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
+from qutip import spre, spost, sprepost, thermal_dm, mesolve, Options
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye, dims
 
 
