@@ -32,7 +32,7 @@
 ###############################################################################
 import numpy as np
 import qutip.settings as qset
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 
 cdef extern from "<complex>" namespace "std" nogil:
