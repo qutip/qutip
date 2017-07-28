@@ -7,6 +7,54 @@
 Change Log
 **********
 
+Version 4.2.0 (July 28, 2017)
+++++++++++++++++++++++++++++++
+
+Improvements
+------------
+
+- **MAJOR FEATURE**: Initial implementation of time-dependent Bloch-Redfield Solver.
+
+- Qobj tidyup is now an order of magnitude faster.
+
+- Time-dependent codegen now generates output NumPy arrays faster.
+
+- Improved calculation for analytic coefficients in coherent states (Sebastian Kramer).
+
+- Input array to correlation FFT method now checked for validity.
+
+- Function-based time-dependent mesolve and sesolve routines now faster.
+
+- Codegen now makes sure that division is done in C, as opposed to Python.
+
+- Can now set different controls for a each timeslot in quantum optimization. 
+This allows time-varying controls to be used in pulse optimisation.
+
+
+Bug Fixes
+---------
+
+- rcsolve importing old Odeoptions Class rather than Options.
+
+- Non-int issue in spin Q and Wigner functions.
+
+- Qobj's should tidyup before determining isherm.
+
+- Fixed time-dependent RHS function loading on Win.
+
+- Fixed several issues with compiling with Cython 0.26.
+
+- Liouvillian superoperators were hard setting isherm=True by default.
+
+- Fixed an issue with the solver safety checks when inputing a list
+with Python functions as time-dependence.
+
+- Fixed non-int issue in Wigner_cmap.
+
+- MKL solver error handling not working properly.
+
+
+
 Version 4.1.0 (March 10, 2017)
 ++++++++++++++++++++++++++++++
 
@@ -23,7 +71,7 @@ Improvements
 
 - **MAJOR FEATURE**: Sparse matrix - vector multiplication now parallel using OPENMP.
 
-- Automatic tuning of OPENMP threading threashold.
+- Automatic tuning of OPENMP threading threshold.
 
 - Partial trace function is now up to 100x+ faster.
 
