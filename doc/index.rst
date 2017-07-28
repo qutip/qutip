@@ -6,7 +6,7 @@
    :width: 7in
 
 
-QuTiP: Quantum Toolbox in Python (4.1)
+QuTiP: Quantum Toolbox in Python (4.2)
 ========================================
 
 .. toctree::

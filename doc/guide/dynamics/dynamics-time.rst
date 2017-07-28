@@ -22,7 +22,7 @@ Solving Problems with Time-dependent Hamiltonians
 Methods for Writing Time-Dependent Operators
 ============================================
 
-In the previous examples of quantum evolution, we assumed that the systems under consideration were described by time-independent Hamiltonians.  However, many systems have explicit time dependence in either the Hamiltonian, or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.  The two main evolution solvers in QuTiP, :func:`qutip.mesolve` and :func:`qutip.mcsolve`, discussed in :ref:`master` and :ref:`monte` respectively, are capable of handling time-dependent Hamiltonians and collapse terms.  There are, in general, three different ways to implement time-dependent problems in QuTiP:
+In the previous examples of quantum evolution, we assumed that the systems under consideration were described by time-independent Hamiltonians.  However, many systems have explicit time dependence in either the Hamiltonian, or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.  The time-evolutions  solvers :func:`qutip.mesolve`, :func:`qutip.mcsolve`, :func:`qutip.sesolve`, and :func:`qutip.brmesolve` are all capable of handling time-dependent Hamiltonians and collapse terms. There are, in general, three different ways to implement time-dependent problems in QuTiP:
 
 
 1. **Function based**: Hamiltonian / collapse operators expressed using [qobj, func] pairs, where the time-dependent coefficients of the Hamiltonian (or collapse operators) are expressed using Python functions.
@@ -32,20 +32,15 @@ In the previous examples of quantum evolution, we assumed that the systems under
 3. **Hamiltonian function (outdated)**: The Hamiltonian is itself a Python function with time-dependence.  Collapse operators must be time independent using this input format. 
 
 
-Give the multiple choices of input style, the first question that arrises is which option to choose?  In short, the function based method (option #1) is the most general, allowing for essentially arbitrary coefficients expressed via user defined functions.  However, by automatically compiling your system into C code, the second option (string based) tends to be more efficient and will run faster.  Of course, for small system sizes and evolution times, the difference will be minor.  Although this method does not support all time-dependent coefficients that one can think of, it does support essentially all problems that one would typically encounter.  Time-dependent coefficients using any of the following functions, or combinations thereof (including constants) can be compiled directly into C-code::
+Give the multiple choices of input style, the first question that arrises is which option to choose?  In short, the function based method (option #1) is the most general, allowing for essentially arbitrary coefficients expressed via user defined functions.  However, by automatically compiling your system into C++ code, the second option (string based) tends to be more efficient and will run faster [This is also the only format that is supported in the :func:`qutip.brmesolve` solver].  Of course, for small system sizes and evolution times, the difference will be minor.  Although this method does not support all time-dependent coefficients that one can think of, it does support essentially all problems that one would typically encounter.  Time-dependent coefficients using any of the following functions, or combinations thereof (including constants) can be compiled directly into C++-code::
 
-   'abs', 'arccos', 'arccosh', 'arg', 'arcsin', 'arcsinh', 'arctan', 'arctan2', 'arctanh', 'conj', 
-   'cos', 'cosh','exp', 'imag', 'log', 'pow', 'proj, 'real', 'sin', 'sinh', 'sqrt',
+   'abs', 'acos', 'acosh', 'arg', 'asin', 'asinh', 'atan', 'atanh', 'conj', 
+   'cos', 'cosh','exp', 'erf', 'imag', 'log', 'log10', 'norm', 'proj', 'real', 'sin', 'sinh', 'sqrt',
    'tan', 'tanh'
 
-If you require mathematical functions other than those listed above, than it is possible to call any of the functions in the numpy math library using the prefix ``np.`` before the function name in the string, i.e ``'np.sin(t)'``.  The available functions can be found using
+In addition, QuTiP supports cubic spline based interpolation functions [:ref:`time-interp`].
 
-.. ipython::
-
-    In [1]: import numpy as np
-    
-    In [1]: np.array(dir(np.math)[6:])
-
+If you require mathematical functions other than those listed above, than it is possible to call any of the functions in the NumPy library using the prefix ``np.`` before the function name in the string, i.e ``'np.sin(t)'``.  This includes a wide range of functionality, but comes with a small overhead created by going from C++->Python->C++.
 
 Finally option #3, expressing the Hamiltonian as a Python function, is the original method for time dependence in QuTiP 1.x.  However, this method is somewhat less efficient then the previously mentioned methods, and does not allow for time-dependent collapse operators. However, in contrast to options #1 and #2, this method can be used in implementing time-dependent Hamiltonians that cannot be expressed as a function of constant operators with time-dependent coefficients.
 

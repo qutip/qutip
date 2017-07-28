@@ -11,7 +11,10 @@ Saving QuTiP Objects and Data Sets
    :suppress:
 
    In [1]: from qutip import *
-           import numpy as np
+           
+   In [2]: import numpy as np
+           
+   In [3]: from pylab import *
 
 
 With time-consuming calculations it is often necessary to store the results to files on disk, so it can be post-processed and archived. In QuTiP there are two facilities for storing data: Quantum objects can be stored to files and later read back as python pickles, and numerical data (vectors and matrices) can be exported as plain text files in for example CSV (comma-separated values), TSV (tab-separated values), etc. The former method is preferred when further calculations will be performed with the data, and the latter when the calculations are completed and data is to be imported into a post-processing tool (e.g. for generating figures).
@@ -25,7 +28,7 @@ To illustrate how these functions can be used, consider a simple calculation of 
 
 .. ipython::
 
-   	In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [sqrt(0.5) * a, sqrt(0.25) * a.dag()]
+   	In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
    
    	In [2]: rho_ss = steadystate(H, c_ops)
 
@@ -52,7 +55,7 @@ The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qloa
 
 .. ipython::
 
-   	In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [sqrt(0.5) * a, sqrt(0.25) * a.dag()]
+   	In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
    
    	In [2]: psi0 = rand_ket(10)
 	
@@ -88,7 +91,7 @@ A common use for the :func:`qutip.fileio.file_data_store` function is to store t
 
 .. ipython::
 
-   	In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [sqrt(0.5) * a, sqrt(0.25) * a.dag()]
+   	In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
    
    	In [2]: psi0 = rand_ket(10)
 	
@@ -134,10 +137,8 @@ Loading data previously stored using :func:`qutip.fileio.file_data_store` (or so
    
    	In [2]: shape(input_data)
 	
-	In [4]: from pylab import *
-	
 	@savefig saving_ex.png width=4in align=center
-	In [3]: plot(input_data[:,0], input_data[:,1]);  # plot the data
+	In [5]: plot(input_data[:,0], input_data[:,1]);  # plot the data
 
 
 (If a particularly obscure choice of deliminator was used it might be necessary to use the optional second argument, for example `sep="_"` if _ is the deliminator).

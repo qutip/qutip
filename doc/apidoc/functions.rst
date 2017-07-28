@@ -58,6 +58,13 @@ Superoperator Representations
 Functions acting on states and operators
 ========================================
 
+Expectation Values
+--------------------
+
+.. automodule:: qutip.expect
+    :members: expect, variance
+
+
 Tensor
 -------
 
@@ -65,11 +72,6 @@ Tensor
     :members: tensor, super_tensor, composite, tensor_contract
 
 
-Expectation Values
---------------------
-
-.. automodule:: qutip.expect
-    :members: expect, variance
 
 Partial Transpose
 -----------------

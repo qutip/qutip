@@ -210,44 +210,6 @@ A full account of this feature is given in :ref:`options`.  Using the previous e
 
 In addition to the initial state, one may reuse the Hamiltonian data when changing the number of trajectories ``ntraj`` or simulation times ``times``.  The reusing of Hamiltonian data is also supported for time-dependent Hamiltonians.  See :ref:`time` for further details.
 
-Fortran Based Monte Carlo Solver
---------------------------------
-.. note:: In order to use the Fortran Monte Carlo solver, you must have the blas development libraries, and installed QuTiP using the flag: ``--with-f90mc``.
-
-In performing time-independent Monte Carlo simulations with QuTiP, systems with small Hilbert spaces suffer from poor performance as the ODE solver must exit the ODE solver at each time step and check for the state vector norm.  To correct this, QuTiP now includes an optional Fortran based Monte Carlo solver that has enhanced performance for systems with small Hilbert space dimensionality.  Using the Fortran based solver is extremely simple; one just needs to replace ``mcsolve`` with ``mcsolve_f90``.  For example, from our previous demonstration
-
-.. ipython::
-    :okexcept:
-
-    In [1]: data1 = mcsolve_f90(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
-
-In using the Fortran solver, there are a few limitations that must be kept in mind.  First, this solver only works for time-independent systems.  Second, you can not pass a list of trajectories to ``ntraj``.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -52,7 +52,7 @@ In addition, there are several optional packages that provide additional functio
 +----------------+--------------+-----------------------------------------------------+
 
 
-We would not recommend installation into the system Python on Linux platforms, as it is likely that the required libraries will be difficult to update to sufficiently recent versions. The system Python on Linux is used for system things, changing its configuration could lead to highly undesirable results. We are recommending and supporting Anaconda / Miniconda Python environments for QuTiP on all platforms.
+We would not recommend installation into the system Python on Linux platforms, as it is likely that the required libraries will be difficult to update to sufficiently recent versions. The system Python on Linux is used for system things, changing its configuration could lead to highly undesirable results. We are recommending and supporting Anaconda / Miniconda Python environments for QuTiP on all platformsx [It is also possible to install the Intel Python Distribution via the conda installer in Anaconda].
 
 .. _install-platform-independent:
 
