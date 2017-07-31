@@ -40,6 +40,7 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
+from qutip.td_qobj_codegen import _compile_str_single
 
 
 class td_Qobj:
@@ -202,10 +203,23 @@ class td_Qobj:
                     else:
                         self.cte += op
                 elif type_ == 1:
-                    self.ops.append([op[0], op[1], op[1], 1])
+                    try:
+                        n_args = op[1].__code__.co_argcount
+                        f_args = op[1].__code__.co_varnames[1:n_args]
+                        local_args = {}
+                        for fa in f_args:
+                            if fa in args:
+                                local_args[fa] = args[fa]
+                        self.ops.append([op[0], op[1], op[1], 1, local_args])
+                    else:
+                        self.ops.append([op[0], op[1], op[1], 1, args])
                     self.fast = False
                 elif type_ == 2:
-                    self.ops.append([op[0], None, op[1], 2])
+                    local_args = {}
+                    for i in args:
+                        if i in op[1]:
+                            local_args[i] = args[i]
+                    self.ops.append([op[0], None, op[1], 2, local_args])
                     compile_list.append((op[1], compile_count))
                     compile_count += 1
                 elif type_ == 3:
@@ -213,7 +227,7 @@ class td_Qobj:
                     N = len(self.tlist)
                     dt = self.tlist[-1] / (N - 1)
                     self.ops.append([op[0], None,
-                                     op[1].copy(), 3])
+                                     op[1].copy(), 3, {}])
 
                     def from_array(t, l=l, *args, **kw_args):
                         return _interpolate(t, self.ops[l][2], N, dt)
@@ -285,17 +299,22 @@ class td_Qobj:
     def __call__(self, t):
         op_t = self.cte
         for part in self.ops:
-            op_t += part[0] * part[1](t, **self.args)
+            op_t += part[0] * part[1](t, **part[4])
         return op_t
 
     def with_args(self, t, *args, **kw_args):
         op_t = self.cte
-        kw_args = {**self.args, **kw_args}
+        kw_args =
+        {**self.args, **kw_args}
         for part in self.ops:
+            part_args = part[4].copy()
+            for pa in part_args:
+                if pa in kw_args:
+                    part_args[pa] = kwargs[pa]
             if part[3] == 1:
-                op_t += part[0] * part[1](t, *args, **kw_args)
+                op_t += part[0] * part[1](t, *args, part_args)
             else:
-                op_t += part[0] * part[1](t, **kw_args)
+                op_t += part[0] * part[1](t, part_args)
         return op_t
 
     def copy(self):
@@ -312,9 +331,10 @@ class td_Qobj:
         new.compiled_code = None
 
         for l, op in enumerate(self.ops):
-            new.ops.append([None, None, None, None])
+            new.ops.append([None, None, None, None, None])
             new.ops[l][0] = op[0].copy()
             new.ops[l][3] = op[3]
+            new.ops[l][4] = op[4].copy()
             if new.ops[l][3] in [1, 2]:
                 new.ops[l][1] = op[1]
                 new.ops[l][2] = op[2]
@@ -350,6 +370,8 @@ class td_Qobj:
             self.dummy_cte = self.dummy_cte and other.dummy_cte
             self.valid = self.valid and other.valid
             self.fast = self.fast and other.fast
+            self.compiled = False
+            self.compiled_code = None
 
             if self.tlist is None:
                 self.tlist = other.tlist
