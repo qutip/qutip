@@ -239,5 +239,148 @@ def make_ops(obj):
     return ops_cdef, ops_set
 
 
-#    args_cdef, args_set = make_args(obj)
+def _get_arg_str(args):
+    if len(args) == 0:
+        return ''
+
+    ret = ''
+    for name, value in args.items():
+        if isinstance(value, np.ndarray):
+            ret += ",\n        np.ndarray[np.%s_t, ndim=1] %s" % \
+                (value.dtype.name, name)
+        else:
+            if isinstance(value, (int, np.int32, np.int64)):
+                kind = 'int'
+            elif isinstance(value, (float, np.float32, np.float64)):
+                kind = 'float'
+            elif isinstance(value, (complex, np.complex128)):
+                kind = 'complex'
+            ret += ",\n        " + kind + " " + name
+    return ret
+
+
+
+def make_ops(obj):
+    args = obj.args
+    if len(args) == 0:
+        args_cdef = ""
+
+    args_set = """
+    def set_args(self, args, tlist):\n"""
+
+    factor_code = """
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void factor(self, t, complex* out):"""
+
+    if obj.tlist is not None:
+        args_cdef += "    cdef double dt\n"
+        args_cdef += "    cdef int N\n"
+        args_set += "        self.dt = tlist[-1] / (tlist.shape[0]-1)\n"
+        args_set += "        self.N = tlist.shape[0]\n"
+        factor_code += "        cdef int N = self.N\n"
+        factor_code += "        cdef double dt = self.dt\n"
+
+    str_args = {}
+    for i, op in enumerate(obj.ops):
+        if op[3] == 3:
+            i_str = str(i)
+            str_args["str_array_" + i_str] = op[2]
+
+    for name, value in args.items():
+        if isinstance(value, (int, np.int32, np.int64)):
+            args_cdef += "    cdef int " + name + "\n"
+            args_set += "         self." + name + " = args['" + name +"']\n"
+            factor_code += "        cdef int " + name + " = self." + name + "\n"
+        elif isinstance(value, (float, np.float32, np.float64)):
+            args_cdef += "    cdef double " + name + "\n"
+            args_set += "         self." + name + " = args['" + name +"']\n"
+            factor_code += "        cdef double " + name + " = self." + name + "\n"
+        elif isinstance(value, (complex, np.complex128)):
+            args_cdef += "    cdef complex " + name + "\n"
+            args_set += "         self." + name + " = args['" + name +"']\n"
+            factor_code += "        cdef complex " + name + " = self." + name + "\n"
+
+    for i, (name, value) in enumerate(str_args.items()):
+        v0 = value[0]
+        i_str = str(i)
+        if isinstance(v0, (float, np.float32, np.float64)):
+            args_cdef += "    cdef double * " + name + "\n"
+            args_set += "         cdef np.ndarray[double, ndim=1] str_" + i_str + " = str_args['" + name + "']"
+            args_set += "         self." + name + " = &str_" + i_str + "[0]
+            factor_code += "        cdef double* " + name + " = self." + name + "\n"
+        elif isinstance(v0, (complex, np.complex128)):
+            args_cdef += "    cdef complex * " + name + "\n"
+            args_set += "         cdef np.ndarray[complex, ndim=1] str_" + i_str + " = str_args['" + name + "']"
+            args_set += "         self." + name + " = &str_" + i_str + "[0]
+            factor_code += "        cdef complex* " + name + " = self." + name + "\n"
+
+    args_cdef += "\n"
+    args_set += "\n\n"
+    factor_code += "\n"
+
+    for i, op in enumerate(obj.ops):
+        i_str = str(i)
+        if op[3] == 2:
+            factor_code += "        factor[" + i_str + "] = " + op[2] + "\n"
+        if op[3] == 3:
+            v0 = op[2][0]
+            if isinstance(v0, (float, np.float32, np.float64)):
+                factor_code += "        factor[" + i_str + "] = interpolate(t, str_array_ + i_str + , N, dt)\n"
+            elif isinstance(v0, (complex, np.complex128)):
+                factor_code += "        factor[" + i_str + "] = zinterpolate(t, str_array_ + i_str + , N, dt)\n"
+
+    factor_code += "\n"
+
+    return args_cdef, args_set, factor_code
+
+def make_call(obj):
+    N = len(obj.ops)
+    call_code = """
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _call_core(self, double t, CSR_Matrix * out):
+        cdef np.ndarray[complex, ndim=1] coeff = np.empty(""" +str(N)+""")
+        self.factor(t, coeff)
+    """
+
+    if N == 0:
+        out = self.cte
+
+    elif N == 1:
+        call_code += """
+        _zcsr_add_core(cte_obj.data, cte_obj.ind, cte_obj.ptr,
+                       op0_obj.ptr, op0_obj.ptr, op0_obj.data, coeff[0]
+                       out, self.shape0, self.shape1)"""
+    elif N == 2:
+        call_code += """
+        cdef CSR_Matrix * cummulative_0
+        cummulative_0 = new CSR_Matrix()
+        init_CSR(cummulative_0, self.op0_sum_elem, self.shape0, self.shape1)
+        self.factor(t, coeff)
+        _zcsr_add_core(cte_obj.data, cte_obj.ind, cte_obj.ptr,
+                       op0_obj.data, op0_obj.ind, op0_obj.ptr, coeff[0]
+                       cummulative_0, self.shape0, self.shape1)
+
+        _zcsr_add_core(cummulative_0[0].data, cummulative_0[0].ind, cummulative_0[0].ptr,
+                       op1_obj.ptr, op1_obj.ptr, op1_obj.data, coeff[1]
+                       out, self.shape0, self.shape1)"""
+    else:
+
+    for i in range(N-1):
+        i_str = str(i)
+        call_code += """
+        cdef CSR_Matrix * cummulative_0
+        cummulative_0 = new CSR_Matrix()
+        init_CSR(cummulative_0, self.op0_sum_elem, self.shape0, self.shape1)
+        self.factor(t, coeff)
+        _zcsr_add_core(cte_obj.data, cte_obj.ind, cte_obj.ptr,
+                       op0_obj.data, op0_obj.ind, op0_obj.ptr, coeff[0]
+                       cummulative_0, self.shape0, self.shape1)
+
+        _zcsr_add_core(cummulative_0[0].data, cummulative_0[0].ind, cummulative_0[0].ptr,
+                       op1_obj.ptr, op1_obj.ptr, op1_obj.data, coeff[1]
+                       out, self.shape0, self.shape1)"""
 #    factor_call_code = make_factor(obj)

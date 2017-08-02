@@ -42,17 +42,19 @@ cdef class cy_compiled_td_qobj:
     cdef int op1_sum_elem
 
     #args
-    cdef complex* str_array_0
     cdef double dt
     cdef int N
+    cdef complex* str_array_0
     cdef double w
 
     def __init__(self):
         pass
 
-    def set_args(self, args, tlist):
+    def set_args(self, args, str_args, tlist):
         self.dt = tlist[-1] / (tlist.shape[0]-1)
         self.N = args["str_array_0"].shape[0]
+        cdef np.ndarray[double, ndim=1] str_0 = str_args["str_array_0"]
+        self.str_array_0 = &str_0[0]
         self.w = args['w']
 
     def set_data(self, cte, ops):
