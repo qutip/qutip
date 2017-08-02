@@ -34,6 +34,7 @@ import numpy as np
 from qutip.fastsparse import fast_csr_matrix
 cimport numpy as cnp
 from libc.math cimport abs, fabs, sqrt
+from libcpp cimport bool
 cimport cython
 cnp.import_array()
 
@@ -345,17 +346,31 @@ cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cy_tidyup(complex[::1] data, double atol, unsigned int nnz):
+cpdef bool cy_tidyup(complex[::1] data, double atol, unsigned int nnz):
     """
     Performs an in-place tidyup of CSR matrix data
     """
     cdef size_t kk
     cdef double re, im
+    cdef bool re_flag, im_flag, out_flag = 0
     for kk in range(nnz):
+        re_flag = 0
+        im_flag = 0
         re = real(data[kk])
         im = imag(data[kk])
         if fabs(re) < atol:
             re = 0
+            re_flag = 1
         if fabs(im) < atol:
             im = 0
-        data[kk] = re + 1j*im
+            im_flag = 1
+        
+        if re_flag or im_flag:
+            data[kk] = re + 1j*im
+            
+        if re_flag and im_flag:
+            out_flag = 1
+    return out_flag
+        
+        
+        
