@@ -72,8 +72,9 @@ elif sys.version_info.major < 3:
     from itertools import izip_longest
     zip_longest = izip_longest
 
+#OPENMP stuff
+from qutip.cy.openmp.utilities import use_openmp
 if settings.has_openmp:
-    from qutip.cy.openmp.utilities import use_openmp
     from qutip.cy.openmp.omp_sparse_utils import omp_tidyup
 
 
