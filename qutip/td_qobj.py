@@ -41,7 +41,7 @@ import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
 from qutip.td_qobj_codegen import _compile_str_single
-
+from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,
@@ -169,7 +169,6 @@ class td_Qobj:
         self.args = args
         self.cte = None
         self.tlist = tlist
-        self.valid = True
         self.fast = True
         self.compiled = False
         self.compiled_code = None
@@ -220,7 +219,7 @@ class td_Qobj:
                         if i in op[1]:
                             local_args[i] = args[i]
                     self.ops.append([op[0], None, op[1], 2, local_args])
-                    compile_list.append((op[1], compile_count))
+                    compile_list.append((op[1], local_args, compile_count))
                     compile_count += 1
                 elif type_ == 3:
                     l = len(self.ops)
@@ -325,7 +324,6 @@ class td_Qobj:
         new.dummy_cte = self.dummy_cte
         new.op_type = self.op_type
         new.N_obj = self.N_obj
-        new.valid = self.valid
         new.fast = self.fast
         new.compiled = False
         new.compiled_code = None
@@ -350,6 +348,29 @@ class td_Qobj:
 
         return new
 
+    def arguments(**kwargs):
+        self.args.update(kwargs)
+        self.compiled = False
+        self.compiled_code = None
+        for op in self.ops:
+            if op[3] == 1:
+                try:
+                    n_args = op[1].__code__.co_argcount
+                    f_args = op[1].__code__.co_varnames[1:n_args]
+                    local_args = {}
+                    for fa in f_args:
+                        if fa in args:
+                            local_args[fa] = args[fa]
+                    op[4] = local_args
+                else:
+                    op[4] = self.args
+            elif op[3] == 2:
+                local_args = {}
+                for i in args:
+                    if i in op[1]:
+                        local_args[i] = args[i]
+                op[4] = local_args
+
     # Math function
     def __add__(self, other):
         res = self.copy()
@@ -365,10 +386,9 @@ class td_Qobj:
         if isinstance(other, td_Qobj):
             self.cte += other.cte
             self.ops += other.ops
-            self.args = {**self.args, **other.args}
+            self.args.update(**other.args)
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
-            self.valid = self.valid and other.valid
             self.fast = self.fast and other.fast
             self.compiled = False
             self.compiled_code = None
@@ -539,8 +559,6 @@ class td_Qobj:
             if op[3] == 2:
                 op[1] = function(op[1], *args, **kw_args)
                 if str_mod is None:
-                    op[2] = None
-                    res.valid = False
                     res.fast = False
                 else:
                     op[2] = str_mod[0] + op[2] + str_mod[1]
@@ -554,7 +572,6 @@ class td_Qobj:
                         op[2][i] = ff(v)
                 else:
                     op[1] = function(op[1], *args, **kw_args)
-                    res.valid = False
                     res.fast = False
         return res
 
@@ -582,15 +599,15 @@ class td_Qobj:
                 op[2] = np.conj(op[2])
         return self
 
-    def get_rhs_func(self):
+    def get_object_func(self):
         if self.compiled:
             return self.compiled_code[0][0]
         if not self.fast:
-            return self.rhs
+            return self.__call__
         self.compiled_code = td_qobj_codegen(self)
         return self.compiled_code[0][0]
 
-    def get_rhs_ptr(self):
+    def get_object_ptr(self):
         if self.compiled:
             return self.compiled_code[0][1]()
         if not self.fast:
@@ -598,19 +615,15 @@ class td_Qobj:
         self.compiled_code = td_qobj_codegen(self)
         return self.compiled_code[0][1]()
 
-    def get_expect_func(self):
-        if not self.N_obj == 1:
-            raise NotImplementedError("Only possible with one composing Qobj")
+    def get_rhs_func(self):
         if self.compiled:
             return self.compiled_code[1][0]
         if not self.fast:
-            return self.expect
+            return self.rhs
         self.compiled_code = td_qobj_codegen(self)
         return self.compiled_code[1][0]
 
-    def get_expect_ptr(self):
-        if not self.N_obj == 1:
-            raise NotImplementedError("Only possible with one composing Qobj")
+    def get_rhs_ptr(self):
         if self.compiled:
             return self.compiled_code[1][1]()
         if not self.fast:
@@ -618,7 +631,34 @@ class td_Qobj:
         self.compiled_code = td_qobj_codegen(self)
         return self.compiled_code[1][1]()
 
+    def get_expect_func(self):
+        if not self.N_obj == 1:
+            raise NotImplementedError("Only possible with one composing Qobj")
+        if self.compiled:
+            return self.compiled_code[2][0]
+        if not self.fast:
+            return self.expect
+        self.compiled_code = td_qobj_codegen(self)
+        return self.compiled_code[2][0]
 
+    def get_expect_ptr(self):
+        if not self.N_obj == 1:
+            raise NotImplementedError("Only possible with one composing Qobj")
+        if self.compiled:
+            return self.compiled_code[2][1]()
+        if not self.fast:
+            return self.rhs
+        self.compiled_code = td_qobj_codegen(self)
+        return self.compiled_code[2][1]()
+
+    def expect(self, t, vec, herm=0):
+        if self.cte.issuper:
+            return cy_expect_rho_vec(self.__call__(t), vec, herm)
+        else:
+            return cy_expect_psi(self.__call__(t), vec, herm)
+
+    def rhs(self, t, vec):
+        return spmv(self.__call__(t), vec)
 
 
 
