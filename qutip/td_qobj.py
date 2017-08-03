@@ -210,7 +210,7 @@ class td_Qobj:
                             if fa in args:
                                 local_args[fa] = args[fa]
                         self.ops.append([op[0], op[1], op[1], 1, local_args])
-                    else:
+                    except:
                         self.ops.append([op[0], op[1], op[1], 1, args])
                     self.fast = False
                 elif type_ == 2:
@@ -237,7 +237,7 @@ class td_Qobj:
                     raise Exception("Should never be here")
 
             if compile_count:
-                str_funcs = _compile_str_single(compile_list, args)
+                str_funcs = _compile_str_single(compile_list)
                 count = 0
                 for op in self.ops:
                     if op[3] == 2:
@@ -302,18 +302,16 @@ class td_Qobj:
         return op_t
 
     def with_args(self, t, *args, **kw_args):
-        op_t = self.cte
-        kw_args =
-        {**self.args, **kw_args}
+        op_t = self.cte.copy()
         for part in self.ops:
             part_args = part[4].copy()
             for pa in part_args:
                 if pa in kw_args:
-                    part_args[pa] = kwargs[pa]
+                    part_args[pa] = kw_args[pa]
             if part[3] == 1:
-                op_t += part[0] * part[1](t, *args, part_args)
+                op_t += part[0] * part[1](t, *args, **part_args)
             else:
-                op_t += part[0] * part[1](t, part_args)
+                op_t += part[0] * part[1](t, **part_args)
         return op_t
 
     def copy(self):
@@ -348,7 +346,7 @@ class td_Qobj:
 
         return new
 
-    def arguments(**kwargs):
+    def arguments(self, **kwargs):
         self.args.update(kwargs)
         self.compiled = False
         self.compiled_code = None
@@ -362,13 +360,13 @@ class td_Qobj:
                         if fa in args:
                             local_args[fa] = args[fa]
                     op[4] = local_args
-                else:
+                except:
                     op[4] = self.args
             elif op[3] == 2:
                 local_args = {}
-                for i in args:
-                    if i in op[1]:
-                        local_args[i] = args[i]
+                for i in self.args:
+                    if i in op[2]:
+                        local_args[i] = self.args[i]
                 op[4] = local_args
 
     # Math function

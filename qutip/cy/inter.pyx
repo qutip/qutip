@@ -6,7 +6,7 @@ import cython
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef double interpolate(double t, double* str_array_0, int N, double dt):
+cdef complex interpolate(double t, double* str_array_0, int N, double dt):
     # inbound?
     if t < 0.:
         return str_array_0[0]

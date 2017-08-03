@@ -1,4 +1,3 @@
-
 import numpy as np
 
 
@@ -30,13 +29,12 @@ cdef double pi = 3.14159265358979323
 
 include """+_include_string+"\n"
 
-    for str_coeff, args in compile_list:
+    for str_coeff in compile_list:
         Code += _str_2_code(str_coeff)
 
     file = open(filename+".pyx", "w")
     file.writelines(Code)
     file.close()
-    str_func = []
     str_func = []
     for i in range(len(compile_list)):
         func_name = '_str_factor_' + str(i)
@@ -55,7 +53,7 @@ include """+_include_string+"\n"
 
 def _str_2_code(str_coeff):
 
-    func_name = '_str_factor_' + str(str_coeff[1])
+    func_name = '_str_factor_' + str(str_coeff[2])
 
     Code = """
 
@@ -64,7 +62,7 @@ def _str_2_code(str_coeff):
 
 def """ + func_name + "(double t"
     #used arguments
-    Code += _get_arg_str(str_coeff[2])
+    Code += _get_arg_str(str_coeff[1])
     Code += "):\n"
     Code += "    return " + str_coeff[0] + "\n"
 
@@ -111,6 +109,38 @@ def _td_array_to_str(self, op_np2, times):
     return str_op, np_args
 
 def td_qobj_codegen(obj):
+    import os
+    code, str_args = make_code(obj)
+    all_str = ""
+    for op in obj.ops:
+        all_str += str(op[2])
+    filename = "compiled_td_Qobj_"+str(hash(all_str))[1:]
+
+    file = open(filename+".pyx", "w")
+    file.writelines(code)
+    file.close()
+
+    try:
+        import_code = compile('from ' + filename + ' import cy_compiled_td_qobj',
+                                  '<string>', 'exec')
+        exec(import_code, locals())
+        compiled_Qobj = cy_compiled_td_qobj()
+        compiled_Qobj.set_data(obj.cte, obj.ops)
+        compiled_Qobj.set_args(obj.args, str_args, obj.tlist)
+    except:
+        compiled_Qobj = None
+        print("Not compiled")
+
+    try:
+        os.remove(filename+".pyx")
+    except:
+        pass
+
+    return compiled_Qobj, code
+
+
+
+def make_code(obj):
 
     import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
@@ -119,17 +149,19 @@ def td_qobj_codegen(obj):
     _include_string_2 = "'"+_cython_path + "/cy/sparse_routines.pxi'"
 
     ops_cdef, ops_set = make_ops(obj)
-    args_cdef, args_set = make_args(obj)
-    factor_call_code = make_factor(obj)
+    args_cdef, args_set, factor_code, str_args = make_args(obj)
+    call_code = make_call(obj)
+    expect_code = make_expect(obj.cte.issuper)
 
     code = \
 """import numpy as np
-cimport numpy as cnp
+cimport numpy as np
 import cython
+cimport cython
 from qutip import qobj
-from scipy import sparse.csr_matrix as csr
-from qutip.cy.spmath import _zcsr_add_core
-from qutip.cy.inter import zinterpolate, interpolate
+#from scipy import sparse.csr_matrix as csr
+from qutip.cy.spmath cimport _zcsr_add_core
+from qutip.cy.inter cimport zinterpolate, interpolate
 """ + \
     "\ninclude " + _include_string_1 + \
     "\ninclude " + _include_string_2 + \
@@ -143,12 +175,6 @@ cdef extern from "Python.h":
     object PyLong_FromVoidPtr(void *)
     void* PyLong_AsVoidPtr(object)
 
-cdef void split_qobj(object obj, complex*, int*, int*):
-    cdef cnp.ndarray[complex, ndim=1] data = obj.data.data
-    cdef cnp.ndarray[complex, ndim=1] ptr = obj.data.indptr
-    cdef cnp.ndarray[complex, ndim=1] ind = obj.data.indices
-    return &ptr[0], &ind[0], &data[0]
-
 cdef class cy_compiled_td_qobj:
     cdef int total_elem
     cdef int shape0, shape1
@@ -158,57 +184,45 @@ cdef class cy_compiled_td_qobj:
     def __init__(self):
         pass
 
-    """ + ops_set + args_set + factor_call_code + """
-        def call(self, double t, bool data=False):
-            cdef CSR_Matrix * out
-            out = new CSR_Matrix()
-            init_CSR(out, self.total_elem, self.shape0, self.shape1)
-            self._c_call(t, out)
-            scipy_obj = CSR_to_scipy(out)
-            if data:
-                return scipy_obj
-            else:
-                return qobj(scipy_obj)
+    """ + ops_set + args_set + factor_code + call_code + """
+    def call(self, double t, int data=0):
+        cdef CSR_Matrix out
+        init_CSR(&out, self.total_elem, self.shape0, self.shape1)
+        self._call_core(t, &out)
+        scipy_obj = CSR_to_scipy(&out)
+        if data:
+            return scipy_obj
+        else:
+            return qobj(scipy_obj)
 
 
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef void _rhs_mat(self, double t, complex* vec, complex* out):
-            cdef CSR_Matrix * out_mat
-            out_mat = new CSR_Matrix()
-            init_CSR(out_mat, self.total_elem, self.shape0, self.shape1)
-            self._call_core(t, out_mat)
-            zspmvpy(out_mat.data, out_mat.ind, out_mat.ptr, vec, 1., out, self.shape0)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _rhs_mat(self, double t, complex* vec, complex* out):
+        cdef CSR_Matrix out_mat
+        init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
+        self._call_core(t, &out_mat)
+        zspmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., out, self.shape0)
 
-        def rhs(self, double t, np.ndarray[complex, ndim=1] vec):
-            cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0)
-            self._rhs_mat(t, vec, out)
-            return out
+    def rhs(self, double t, np.ndarray[complex, ndim=1] vec):
+        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0)
+        self._rhs_mat(t, &vec[0], &out[0])
+        return out
 
-        def rhs_ptr():
-            void * ptr = <void*>self._rhs_mat
-            return PyLong_FromVoidPtr(ptr)
+    def rhs_ptr(self):
+        cdef void * ptr = <void*>self._rhs_mat
+        return PyLong_FromVoidPtr(ptr)
 
+""" + expect_code + """
+    def expect(self, double t, np.ndarray[complex, ndim=1] vec, int isherm):
+        return self._expect_mat(t, &vec[0], isherm)
 
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef complex _expect_mat(self, double t, complex* vec, int herm):
-            cdef CSR_Matrix * out_mat
-            out_mat = new CSR_Matrix()
-            init_CSR(out_mat, self.total_elem, self.shape0, self.shape1)
-            self._call_core(t, out_mat)
-            return cy_expect_psi_csr(out_mat.data, out_mat.ind, out_mat.ptr, vec, herm)
+    def expect_ptr(self):
+        cdef void * ptr = <void*>self._expect_mat
+        return PyLong_FromVoidPtr(ptr)"""
 
-        def expect(self, double t, np.ndarray[complex, ndim=1] vec, int isherm):
-            return self._expect_mat(t, vec, isherm)
-
-        def expect_ptr():
-            void * ptr = <void*>self._expect_mat
-            return PyLong_FromVoidPtr(ptr)
-
-    """
+    return code, str_args
 
 def make_ops(obj):
     ops_cdef = """
@@ -226,16 +240,14 @@ def make_ops(obj):
 
     for i in range(len(obj.ops)):
         i_str = str(i)
-        ops_cdef += "\n    cdef CSR_Matrix op" + i_str + "_obj"
-        ops_cdef += "\n    cdef CSR_Matrix * op" + i_str + ""
+        ops_cdef += "\n    cdef CSR_Matrix op" + i_str
         ops_cdef += "\n    cdef int op" + i_str + "_sum_elem"
 
-        ops_set += "\n        self.op" + i_str + "_obj = CSR_from_scipy(ops[" + i_str + "][0])"
-        ops_set += "\n        self.op" + i_str + " = &self.op" + i_str + "_obj"
+        ops_set += "\n        self.op" + i_str + " = CSR_from_scipy(ops[" + i_str + "][0])"
         ops_set += "\n        cummulative_op += ops[" + i_str + "][0]"
         ops_set += "\n        op" + i_str + "_sum_elem = cummulative_op.data.shape[0]"
-
-    ops_set += "\n\n        total_elem = op" + i_str + "_sum_elem"
+    ops_cdef += "\n"
+    ops_set += "\n\n        total_elem = op" + i_str + "_sum_elem\n\n"
     return ops_cdef, ops_set
 
 
@@ -260,19 +272,18 @@ def _get_arg_str(args):
 
 
 
-def make_ops(obj):
+def make_args(obj):
     args = obj.args
-    if len(args) == 0:
-        args_cdef = ""
+    args_cdef = ""
 
     args_set = """
-    def set_args(self, args, tlist):\n"""
+    def set_args(self, args, str_args, tlist):\n"""
 
     factor_code = """
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void factor(self, t, complex* out):"""
+    cdef void factor(self, t, complex* out):\n"""
 
     if obj.tlist is not None:
         args_cdef += "    cdef double dt\n"
@@ -308,32 +319,32 @@ def make_ops(obj):
         if isinstance(v0, (float, np.float32, np.float64)):
             args_cdef += "    cdef double * " + name + "\n"
             args_set += "         cdef np.ndarray[double, ndim=1] str_" + i_str + " = str_args['" + name + "']"
-            args_set += "         self." + name + " = &str_" + i_str + "[0]
+            args_set += "         self." + name + " = &str_" + i_str + "[0]"
             factor_code += "        cdef double* " + name + " = self." + name + "\n"
         elif isinstance(v0, (complex, np.complex128)):
             args_cdef += "    cdef complex * " + name + "\n"
             args_set += "         cdef np.ndarray[complex, ndim=1] str_" + i_str + " = str_args['" + name + "']"
-            args_set += "         self." + name + " = &str_" + i_str + "[0]
+            args_set += "         self." + name + " = &str_" + i_str + "[0]"
             factor_code += "        cdef complex* " + name + " = self." + name + "\n"
 
     args_cdef += "\n"
-    args_set += "\n\n"
+    args_set += "\n"
     factor_code += "\n"
 
     for i, op in enumerate(obj.ops):
         i_str = str(i)
         if op[3] == 2:
-            factor_code += "        factor[" + i_str + "] = " + op[2] + "\n"
+            factor_code += "        out[" + i_str + "] = " + op[2] + "\n"
         if op[3] == 3:
             v0 = op[2][0]
             if isinstance(v0, (float, np.float32, np.float64)):
-                factor_code += "        factor[" + i_str + "] = interpolate(t, str_array_ + i_str + , N, dt)\n"
+                factor_code += "        out[" + i_str + "] = interpolate(t, str_array_ + i_str + , N, dt)\n"
             elif isinstance(v0, (complex, np.complex128)):
-                factor_code += "        factor[" + i_str + "] = zinterpolate(t, str_array_ + i_str + , N, dt)\n"
+                factor_code += "        out[" + i_str + "] = zinterpolate(t, str_array_ + i_str + , N, dt)\n"
 
     factor_code += "\n"
 
-    return args_cdef, args_set, factor_code
+    return args_cdef, args_set, factor_code, str_args
 
 def make_call(obj):
     N = len(obj.ops)
@@ -342,8 +353,8 @@ def make_call(obj):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _call_core(self, double t, CSR_Matrix * out):
-        cdef np.ndarray[complex, ndim=1] coeff = np.empty(""" +str(N)+""")
-        self.factor(t, coeff)
+        cdef np.ndarray[complex, ndim=1] coeff = np.empty(""" + str(N) + """)
+        self.factor(t, &coeff[0])
     """
 
     if N == 0:
@@ -351,8 +362,8 @@ def make_call(obj):
 
     elif N == 1:
         call_code += """
-        _zcsr_add_core(cte_obj.data, cte_obj.ind, cte_obj.ptr,
-                       op0_obj.ptr, op0_obj.ptr, op0_obj.data, coeff[0]
+        _zcsr_add_core(self.cte.data, self.cte.indices, self.cte.indptr,
+                       self.op0.data, self.op0.indices, self.op0.indptr, coeff[0],
                        out, self.shape0, self.shape1)"""
     elif N == 2:
         call_code += """
@@ -360,27 +371,90 @@ def make_call(obj):
         cummulative_0 = new CSR_Matrix()
         init_CSR(cummulative_0, self.op0_sum_elem, self.shape0, self.shape1)
         self.factor(t, coeff)
-        _zcsr_add_core(cte_obj.data, cte_obj.ind, cte_obj.ptr,
-                       op0_obj.data, op0_obj.ind, op0_obj.ptr, coeff[0]
+        _zcsr_add_core(self.cte.data, self.cte.indices, self.cte.indptr,
+                       self.op0.data, self.op0.indices, self.op0.indptr, coeff[0],
                        cummulative_0, self.shape0, self.shape1)
 
-        _zcsr_add_core(cummulative_0[0].data, cummulative_0[0].ind, cummulative_0[0].ptr,
-                       op1_obj.ptr, op1_obj.ptr, op1_obj.data, coeff[1]
+        _zcsr_add_core(cummulative_0.data, cummulative_0.indices, cummulative_0.indptr,
+                       self.op0.data, self.op0.indices, self.op0.indptr, coeff[1],
                        out, self.shape0, self.shape1)"""
     else:
-
-    for i in range(N-1):
-        i_str = str(i)
         call_code += """
         cdef CSR_Matrix * cummulative_0
         cummulative_0 = new CSR_Matrix()
         init_CSR(cummulative_0, self.op0_sum_elem, self.shape0, self.shape1)
         self.factor(t, coeff)
-        _zcsr_add_core(cte_obj.data, cte_obj.ind, cte_obj.ptr,
-                       op0_obj.data, op0_obj.ind, op0_obj.ptr, coeff[0]
-                       cummulative_0, self.shape0, self.shape1)
+        _zcsr_add_core(self.cte.data, self.cte.indices, self.cte.indptr,
+                       self.op0.data, self.op0.indices, self.op0.indptr, coeff[0],
+                       cummulative_0, self.shape0, self.shape1)"""
 
-        _zcsr_add_core(cummulative_0[0].data, cummulative_0[0].ind, cummulative_0[0].ptr,
-                       op1_obj.ptr, op1_obj.ptr, op1_obj.data, coeff[1]
-                       out, self.shape0, self.shape1)"""
-#    factor_call_code = make_factor(obj)
+        for i in range(1,N-1):
+            i_str = str(i)
+            i_s_p = str(i-1)
+            call_code += "            cdef CSR_Matrix * cummulative_" + i_str
+            call_code += "            cummulative_" + i_str + " = new CSR_Matrix()"
+            call_code += "            init_CSR(cummulative_" + i_str + ", self.op" + i_str + "_sum_elem, self.shape0, self.shape1)"
+            call_code += "            _zcsr_add_core(cummulative_" + i_s_p + ".data, cummulative_" + i_s_p + ".indices, cummulative_" + i_s_p + ".indptr,"
+            call_code += "                           self.op" + i_str + ".data, self.op" + i_str + ".indices, self.op" + i_str + ".indptr, coeff[" + i_str + "],"
+            call_code += "                           cummulative_" + i_str + ", self.shape0, self.shape1)"
+
+        i_str = str(N-1)
+        i_s_p = str(N-2)
+        call_code += "            _zcsr_add_core(cummulative_" + i_s_p + ".data, cummulative_" + i_s_p + ".indices, cummulative_" + i_s_p + ".indptr,"
+        call_code += "                           self.op" + i_str + ".data, self.op" + i_str + ".indices, self.op" + i_str + ".indptr, coeff[" + i_str + "],"
+        call_code += "                           out, self.shape0, self.shape1)"
+
+    call_code += "\n\n"
+    return call_code
+
+def make_expect(super):
+    if not super:
+        return """
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef complex _expect_mat(self, double t, complex* vec, int isherm):
+        cdef CSR_Matrix out_mat
+        init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
+        self._call_core(t, &out_mat)
+        cdef np.ndarray[complex, ndim=1] y = np.empty(self.shape0)
+        zspmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., &y[0], self.shape0)
+        cdef int row
+        cdef complex dot = 0
+
+        for row from 0 <= row < self.shape0:
+            dot += conj(vec[row])*y[row]
+
+        if isherm:
+            return real(dot)
+        else:
+            return dot
+"""
+
+    else:
+        return """
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef complex _expect_mat(self, double t, complex* vec, int isherm):
+        cdef CSR_Matrix out_mat
+        init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
+        self._call_core(t, &out_mat)
+
+        cdef int row
+        cdef int jj, row_start, row_end
+        cdef int num_rows = self.shape[0]
+        cdef int n = <int>np.sqrt(num_rows)
+        cdef complex dot = 0.0
+
+        for row from 0 <= row < num_rows by n+1:
+            row_start = out_mat.indptr[row]
+            row_end = out_mat.indptr[row+1]
+            for jj from row_start <= jj < row_end:
+                dot += out_mat.data[jj]*rho_vec[out_mat.indices[jj]]
+
+        if isherm:
+            return real(dot)
+        else:
+            return dot
+"""

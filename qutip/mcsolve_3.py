@@ -180,7 +180,7 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
     if len(c_ops) == 0:
         print("No c_ops, using sesolve")
         sesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options,
-                progress_bar=progress_bar, _safe_mode=_safe_mode):
+                progress_bar=progress_bar, _safe_mode=_safe_mode)
 
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
