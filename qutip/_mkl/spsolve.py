@@ -76,7 +76,7 @@ pardiso_error_msgs = {'-1': 'Input inconsistant', '-2': 'Out of memory', '-3': '
                 '-4' : 'Zero pivot, numerical factorization or iterative refinement problem', 
                 '-5': 'Unclassified internal error', '-6': 'Reordering failed',
                 '-7': 'Diagonal matrix is singular', '-8': '32-bit integer overflow', 
-                '-9': 'Not enough memeory for OOC', '-10': 'Error opening OOC files', 
+                '-9': 'Not enough memory for OOC', '-10': 'Error opening OOC files', 
                 '-11': 'Read/write error with OOC files', 
                 '-12': 'Pardiso-64 called from 32-bit library'}
                 
@@ -164,7 +164,7 @@ class mkl_lu(object):
             np_x, np_error)
         self._solve_time = time.time() -_solve_start
         if error[0] != 0:
-            raise Exception(pardiso_error_msgs[str(error)])
+            raise Exception(pardiso_error_msgs[str(error[0])])
         
         if verbose:
             print('Solution Stage')
@@ -329,7 +329,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
             np_x, np_error)
     _factor_time = time.time() - _factor_start
     if error[0] != 0:
-        raise Exception(pardiso_error_msgs[str(error)])
+        raise Exception(pardiso_error_msgs[str(error[0])])
     
     if verbose:
         print('Analysis and Factorization Stage')
