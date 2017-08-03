@@ -233,6 +233,10 @@ def zcsr_mult(object A, object B, int sorted = 1):
                      &out,       
                      nrows, ncols)
     
+    #Shorten data and indices if needed
+    if out.nnz > out.indptr[out.nrows]:
+        shorten_CSR(&out, out.indptr[out.nrows])
+    
     if sorted:
         sort_indices(&out)
     return CSR_to_scipy(&out)
@@ -252,6 +256,10 @@ cdef void _zcsr_mult(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C):
                  B.data, B.indices, B.indptr,
                  C,       
                  A.nrows, B.ncols)
+    
+    #Shorten data and indices if needed
+    if C.nnz > C.indptr[C.nrows]:
+        shorten_CSR(C, C.indptr[C.nrows])
     sort_indices(C)
 
 
@@ -261,23 +269,21 @@ cdef int _zcsr_mult_pass1(double complex * Adata, int * Aind, int * Aptr,
                      double complex * Bdata, int * Bind, int * Bptr,       
                      int nrows, int ncols) nogil:
 
-    cdef int j, k, row_nnz, nnz = 0
+    cdef int j, k, nnz = 0
     cdef size_t ii,jj,kk
     #Setup mask array
-    cdef int * mask = <int *>PyDataMem_NEW_ZEROED(ncols, sizeof(int))
+    cdef int * mask = <int *>PyDataMem_NEW(ncols*sizeof(int))
     for ii in range(ncols):
         mask[ii] = -1
     #Pass 1
     for ii in range(nrows):
-        row_nnz = 0
         for jj in range(Aptr[ii], Aptr[ii+1]):
             j = Aind[jj]
             for kk in range(Bptr[j], Bptr[j+1]):
                 k = Bind[kk]
                 if mask[k] != ii:
                     mask[k] = ii
-                    row_nnz += 1
-        nnz += row_nnz
+                    nnz += 1
     PyDataMem_FREE(mask)
     return nnz
 
@@ -293,7 +299,7 @@ cdef void _zcsr_mult_pass2(double complex * Adata, int * Aind, int * Aptr,
     cdef size_t ii,jj,kk
     cdef double complex val
     cdef double complex * sums = <double complex *>PyDataMem_NEW_ZEROED(ncols, sizeof(double complex))
-    cdef int * nxt = <int *>PyDataMem_NEW_ZEROED(ncols, sizeof(int))
+    cdef int * nxt = <int *>PyDataMem_NEW(ncols*sizeof(int))
     for ii in range(ncols):
         nxt[ii] = -1
 
