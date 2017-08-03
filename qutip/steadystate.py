@@ -72,6 +72,14 @@ logger.setLevel('DEBUG')
 if settings.has_mkl:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
+#check for umfpack (From SciPy)
+_umfpack = False
+try:
+    import scikits.umfpack as umfpack
+    _umfpack = True
+except:
+    pass
+
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
@@ -81,7 +89,8 @@ def _empty_info_dict():
                 'residual_norm': None, 'rcm_time': None, 'wbm_time': None,
                 'iter_time': None, 'precond_time': None, 'ILU_MILU': None,
                 'fill_factor': None, 'diag_pivot_thresh': None, 
-                'drop_tol': None, 'permc_spec': None, 'weight': None}
+                'drop_tol': None, 'permc_spec': None, 'weight': None,
+                'solver' : None}
     
     return def_info
 
@@ -92,7 +101,7 @@ def _default_steadystate_args():
                 'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000, 
                 'tol': 1e-12, 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 
                 'restart': 20, 'return_info': False, 'info': _empty_info_dict(), 
-                'verbose': False}
+                'verbose': False, 'solver': 'scipy'}
 
     return def_args
 
@@ -124,6 +133,11 @@ def steadystate(A, c_op_list=[], **kwargs):
         power methods 'power-gmres', 'power-lgmres', 'power-bicgstab' use
         the same solvers as their direct counterparts.
 
+    solver : str {'scipy', 'mkl'}
+        Which solver to use for LU factorization.  SciPy does SuperLU
+        by default, but will also use UMFPACK from scikits.umfpack,
+        if installed.
+    
     return_info : bool, optional, default = False
         Return a dictionary of solver-specific infomation about the
         solution and how it was obtained.
@@ -215,7 +229,12 @@ def steadystate(A, c_op_list=[], **kwargs):
         else:
             raise Exception(
                 "Invalid keyword argument '"+key+"' passed to steadystate.")
-
+    
+    ss_args['info']['solver'] = ss_args['solver']
+    
+    if ss_args['solver'] == 'mkl' and (not settings.has_mkl):
+        raise Exception('MKL LU solver not found.')
+    
     # Set column perm to NATURAL if using RCM and not specified by user
     if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         ss_args['permc_spec'] = 'NATURAL'
@@ -353,10 +372,15 @@ def _steadystate_direct_sparse(L, ss_args):
     n = int(np.sqrt(L.shape[0]))
     b = np.zeros(n ** 2, dtype=complex)
     b[0] = ss_args['weight']
-
-    if settings.has_mkl:
+    
+    if settings.has_mkl and ss_args['solver'] == 'mkl':
+        ss_args['info']['solver'] = 'mkl'
         has_mkl = 1
     else:
+        if _umfpack:
+            ss_args['info']['solver'] = 'scipy-umfpack'
+        else:
+            ss_args['info']['solver'] = 'scipy-superlu'
         has_mkl = 0
     
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args, has_mkl)
@@ -372,24 +396,30 @@ def _steadystate_direct_sparse(L, ss_args):
     ss_args['info']['ILU_MILU'] = ss_args['ILU_MILU']
 
     if not has_mkl:
-        # Use superLU solver
-        orig_nnz = L.nnz
-        _direct_start = time.time()
-        lu = splu(L, permc_spec=ss_args['permc_spec'],
-                  diag_pivot_thresh=ss_args['diag_pivot_thresh'],
-                  options=dict(ILU_MILU=ss_args['ILU_MILU']))
-        v = lu.solve(b)
-        _direct_end = time.time()
-        ss_args['info']['solution_time'] = _direct_end - _direct_start
-        if (settings.debug or ss_args['return_info']) and _scipy_check:
-            L_nnz = lu.L.nnz
-            U_nnz = lu.U.nnz
-            ss_args['info']['l_nnz'] = L_nnz
-            ss_args['info']['u_nnz'] = U_nnz
-            ss_args['info']['lu_fill_factor'] = (L_nnz + U_nnz)/L.nnz
-            if settings.debug:
-                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
-                logger.debug('Fill factor: %f' % ((L_nnz + U_nnz)/orig_nnz))
+        if _umfpack:
+            _direct_start = time.time()
+            v = spsolve(L,b)
+            _direct_end = time.time()
+            ss_args['info']['solution_time'] = _direct_end - _direct_start
+        else:
+            # Use superLU solver
+            orig_nnz = L.nnz
+            _direct_start = time.time()
+            lu = splu(L, permc_spec=ss_args['permc_spec'],
+                      diag_pivot_thresh=ss_args['diag_pivot_thresh'],
+                      options=dict(ILU_MILU=ss_args['ILU_MILU']))
+            v = lu.solve(b)
+            _direct_end = time.time()
+            ss_args['info']['solution_time'] = _direct_end - _direct_start
+            if (settings.debug or ss_args['return_info']) and _scipy_check:
+                L_nnz = lu.L.nnz
+                U_nnz = lu.U.nnz
+                ss_args['info']['l_nnz'] = L_nnz
+                ss_args['info']['u_nnz'] = U_nnz
+                ss_args['info']['lu_fill_factor'] = (L_nnz + U_nnz)/L.nnz
+                if settings.debug:
+                    logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
+                    logger.debug('Fill factor: %f' % ((L_nnz + U_nnz)/orig_nnz))
 
     else: # Use MKL solver
         if len(ss_args['info']['perm']) !=0:
@@ -670,10 +700,10 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
     rev_perm = None
     n = L.shape[0]
     if has_mkl:
-        L = L.data - (1e-15) * sp.eye(n, n, format='csr')
+        L = L.data - (1e-12) * sp.eye(n, n, format='csr')
         kind = 'csr'
     else:
-        L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
+        L = L.data.tocsc() - (1e-12) * sp.eye(n, n, format='csc')
         kind = 'csc'
     orig_nnz = L.nnz
     if settings.debug:
@@ -738,10 +768,12 @@ def _steadystate_power(L, ss_args):
         rhoss.dims = [L.dims[0], 1]
     n = L.shape[0]
     # Build Liouvillian
-    if settings.has_mkl and ss_args['method'] == 'power':
+    if settings.has_mkl and ss_args['solver'] == 'mkl':
         has_mkl = 1
+        ss_args['info']['solver'] = 'mkl'
     else:
         has_mkl = 0
+        ss_args['info']['solver'] = 'scipy'
     L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, 
                                                 ss_args, has_mkl)
     orig_nnz = L.nnz
@@ -768,7 +800,7 @@ def _steadystate_power(L, ss_args):
     _power_start = time.time()
     # Get LU factors
     if ss_args['method'] == 'power':
-        if settings.has_mkl:
+        if has_mkl:
             lu = mkl_splu(L)
         else: 
             lu = splu(L, permc_spec=ss_args['permc_spec'],
@@ -804,7 +836,7 @@ def _steadystate_power(L, ss_args):
             
         v = v / la.norm(v, np.inf)
         it += 1
-    if ss_args['method'] == 'power' and settings.has_mkl:
+    if ss_args['method'] == 'power' and has_mkl:
         lu.delete()
     if it >= maxiter:
         raise Exception('Failed to find steady state after ' +

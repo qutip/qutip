@@ -54,14 +54,14 @@ def _pardiso_parameters(hermitian=False, has_perm=False):
     iparm[1] = 3 # Use openmp nested dissection
     if has_perm:
         iparm[4] = 1
-    iparm[7] = 10 # Max number of iterative refinements
+    iparm[7] = 20 # Max number of iterative refinements
     if hermitian:
         iparm[9] = 8
     else:
         iparm[9] = 13 
     if not hermitian:
         iparm[10] = 1 # Scaling vectors
-        iparm[12] = 1 # Use non-symmetric weighted matching
+        iparm[12] = 0 # Do not use non-symmetric weighted matching
     iparm[17] = -1
     iparm[20] = 1
     iparm[23] = 1 # Parallel factorization
@@ -164,7 +164,7 @@ class mkl_lu(object):
             np_x, np_error)
         self._solve_time = time.time() -_solve_start
         if error[0] != 0:
-            raise Exception(pardiso_error_msgs[str(error)])
+            raise Exception(pardiso_error_msgs[str(error[0])])
         
         if verbose:
             print('Solution Stage')
@@ -329,7 +329,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
             np_x, np_error)
     _factor_time = time.time() - _factor_start
     if error[0] != 0:
-        raise Exception(pardiso_error_msgs[str(error)])
+        raise Exception(pardiso_error_msgs[str(error[0])])
     
     if verbose:
         print('Analysis and Factorization Stage')
@@ -407,5 +407,3 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         return x, info
     else:    
         return x
-
-        
