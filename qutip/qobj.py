@@ -468,30 +468,6 @@ class Qobj(object):
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
                 if settings.auto_tidyup: out.tidyup()
-                if (not isinstance(dims[0][0], list) and
-                        not isinstance(dims[1][0], list)):
-                    # If neither left or right is a superoperator,
-                    # we should implicitly partial trace over
-                    # matching dimensions of 1.
-                    # Using izip_longest allows for the left and right dims
-                    # to have uneven length (non-square Qobjs).
-                    # We use None as padding so that it doesn't match anything,
-                    # and will never cause a partial trace on the other side.
-                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1],
-                                                                fillvalue=None)]
-                    # To ensure that there are still any dimensions left, we
-                    # use max() to add a dimensions list of [1] if all matching dims
-                    # are traced out of that side.
-                    out.dims = [max([1],
-                                    [dim for dim, m in zip(dims[0], mask)
-                                    if not m]),
-                                max([1],
-                                    [dim for dim, m in zip(dims[1], mask)
-                                    if not m])]
-
-                else:
-                    out.dims = dims
-
                 out._isherm = None
 
                 if self.superrep and other.superrep:
