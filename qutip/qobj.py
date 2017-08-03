@@ -1265,12 +1265,12 @@ class Qobj(object):
             #This does the tidyup and returns True if
             #The sparse data needs to be shortened
             if use_openmp() and self.data.nnz > 500:
-                omp_tidyup(self.data.data,atol,self.data.nnz, 
-                            settings.num_cpus)
-                self.data.eliminate_zeros()
+                if omp_tidyup(self.data.data,atol,self.data.nnz, 
+                            settings.num_cpus):
+                            self.data.eliminate_zeros()
             else:
-                cy_tidyup(self.data.data,atol,self.data.nnz)
-                self.data.eliminate_zeros()
+                if cy_tidyup(self.data.data,atol,self.data.nnz):
+                    self.data.eliminate_zeros()
             return self
         else:
             return self
