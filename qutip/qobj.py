@@ -72,6 +72,11 @@ elif sys.version_info.major < 3:
     from itertools import izip_longest
     zip_longest = izip_longest
 
+#OPENMP stuff
+from qutip.cy.openmp.utilities import use_openmp
+if settings.has_openmp:
+    from qutip.cy.openmp.omp_sparse_utils import omp_tidyup
+
 
 class Qobj(object):
     """A class for representing quantum objects, such as quantum operators
@@ -1241,7 +1246,7 @@ class Qobj(object):
         q.data, q.dims = _permute(self, order)
         return q.tidyup() if settings.auto_tidyup else q
 
-    def tidyup(self, atol=None):
+    def tidyup(self, atol=settings.auto_tidyup_atol):
         """Removes small elements from the quantum object.
 
         Parameters
@@ -1256,12 +1261,16 @@ class Qobj(object):
             Quantum object with small elements removed.
 
         """
-        if atol is None:
-            atol = settings.auto_tidyup_atol
-
         if self.data.nnz:
-            cy_tidyup(self.data.data,atol,self.data.nnz)
-            self.data.eliminate_zeros()
+            #This does the tidyup and returns True if
+            #The sparse data needs to be shortened
+            if use_openmp() and self.data.nnz > 500:
+                if omp_tidyup(self.data.data,atol,self.data.nnz, 
+                            settings.num_cpus):
+                            self.data.eliminate_zeros()
+            else:
+                if cy_tidyup(self.data.data,atol,self.data.nnz):
+                    self.data.eliminate_zeros()
             return self
         else:
             return self
