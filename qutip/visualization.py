@@ -703,7 +703,7 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
                                   unit_y_range=unit_y_range)
 
 
-def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
+def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
                 cmap=None, alpha_max=7.5, colorbar=False,
                 method='clenshaw', projection='2d'):
     """
