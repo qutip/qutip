@@ -166,6 +166,13 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by `tlist`.
     """
+    
+    #This allows for passing a list of time-independent Qobj
+    #as allowed by mesolve
+    if isinstance(H, list):
+        if np.all([isinstance(h,Qobj) for h in H]):
+            H = sum(H)
+    
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
 
