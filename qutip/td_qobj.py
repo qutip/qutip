@@ -40,7 +40,7 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
-from qutip.td_qobj_codegen import _compile_str_single
+from qutip.td_qobj_codegen import _compile_str_single, td_qobj_codegen
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 
 class td_Qobj:
@@ -597,66 +597,57 @@ class td_Qobj:
                 op[2] = np.conj(op[2])
         return self
 
-    def get_object_func(self):
-        if self.compiled:
-            return self.compiled_code[0][0]
+    def compile(self):
+        if self.fast:
+            self.compiled_Qobj = td_qobj_codegen(self)
+            if self.compiled_Qobj is None:
+                raise Exception("Could not compile")
+            else:
+                self.compiled = True
+
+    def get_compiled_call(self):
         if not self.fast:
             return self.__call__
-        self.compiled_code = td_qobj_codegen(self)
-        return self.compiled_code[0][0]
-
-    def get_object_ptr(self):
-        if self.compiled:
-            return self.compiled_code[0][1]()
-        if not self.fast:
-            return self.rhs
-        self.compiled_code = td_qobj_codegen(self)
-        return self.compiled_code[0][1]()
+        if not self.compiled:
+            self.compile()
+        return self.compiled_Qobj.call
 
     def get_rhs_func(self):
-        if self.compiled:
-            return self.compiled_code[1][0]
         if not self.fast:
             return self.rhs
-        self.compiled_code = td_qobj_codegen(self)
-        return self.compiled_code[1][0]
+        if not self.compiled:
+            self.compile()
+        return self.compiled_Qobj.rhs
 
     def get_rhs_ptr(self):
-        if self.compiled:
-            return self.compiled_code[1][1]()
         if not self.fast:
             return self.rhs
-        self.compiled_code = td_qobj_codegen(self)
-        return self.compiled_code[1][1]()
+        if not self.compiled:
+            self.compile()
+        return self.compiled_Qobj.rhs_ptr()
 
     def get_expect_func(self):
-        if not self.N_obj == 1:
-            raise NotImplementedError("Only possible with one composing Qobj")
-        if self.compiled:
-            return self.compiled_code[2][0]
         if not self.fast:
             return self.expect
-        self.compiled_code = td_qobj_codegen(self)
-        return self.compiled_code[2][0]
+        if not self.compiled:
+            self.compile()
+        return self.compiled_Qobj.expect
 
     def get_expect_ptr(self):
-        if not self.N_obj == 1:
-            raise NotImplementedError("Only possible with one composing Qobj")
-        if self.compiled:
-            return self.compiled_code[2][1]()
         if not self.fast:
             return self.rhs
-        self.compiled_code = td_qobj_codegen(self)
-        return self.compiled_code[2][1]()
+        if not self.compiled:
+            self.compile()
+        return self.compiled_Qobj.expect_ptr()
 
     def expect(self, t, vec, herm=0):
         if self.cte.issuper:
-            return cy_expect_rho_vec(self.__call__(t), vec, herm)
+            return cy_expect_rho_vec(self.__call__(t).data, vec, herm)
         else:
-            return cy_expect_psi(self.__call__(t), vec, herm)
+            return cy_expect_psi(self.__call__(t).data, vec, herm)
 
     def rhs(self, t, vec):
-        return spmv(self.__call__(t), vec)
+        return spmv(self.__call__(t).data, vec)
 
 
 
@@ -694,7 +685,7 @@ def _conj(f):
         return np.conj(f(a, **kwargs))
     return ff
 
-def td_liouvillian(H, c_ops=[], chi=None):
+def td_liouvillian(H, c_ops=[], chi=None, tlist=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Accept time dependant
     operator and return a td_qobj
@@ -720,7 +711,7 @@ def td_liouvillian(H, c_ops=[], chi=None):
 
     if H is not None:
         if not isinstance(H, td_Qobj):
-            L = td_Qobj(H)
+            L = td_Qobj(H, tlist=tlist)
         else:
             L = H
         L = L.apply(liouvillian, chi=chi)
@@ -730,7 +721,7 @@ def td_liouvillian(H, c_ops=[], chi=None):
             return liouvillian(None, c_ops=[c_ops], chi=chi)
         for c in c_ops:
             if not isinstance(c, td_Qobj):
-                cL = td_Qobj(c)
+                cL = td_Qobj(c, tlist=tlist)
             else:
                 cL = c
             if not cL.N_obj == 1:
@@ -746,7 +737,7 @@ def td_liouvillian(H, c_ops=[], chi=None):
     return L
 
 
-def td_lindblad_dissipator(a):
+def td_lindblad_dissipator(a, tlist=None):
     """
     Lindblad dissipator (generalized) for a single collapse operator.
     For the
@@ -768,7 +759,7 @@ def td_lindblad_dissipator(a):
         Lindblad dissipator superoperator.
     """
     if not isinstance(a, td_Qobj):
-        b = td_Qobj(a)
+        b = td_Qobj(a, tlist=tlist)
     else:
         b = a
     if not b.N_obj == 1:
