@@ -198,6 +198,7 @@ cdef class cy_compiled_td_qobj:
         init_CSR(&out, self.total_elem, self.shape0, self.shape1)
         self._call_core(t, &out)
         scipy_obj = CSR_to_scipy(&out)
+        #free_CSR(&out)? data are own by the scipy_obj?
         if data:
             return scipy_obj
         else:
@@ -212,6 +213,7 @@ cdef class cy_compiled_td_qobj:
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
         self._call_core(t, &out_mat)
         spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., out, self.shape0)
+        free_CSR(&out_mat)
 
     def rhs(self, double t, np.ndarray[complex, ndim=1] vec):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0, dtype=complex)
@@ -251,17 +253,19 @@ def make_ops(obj):
 
         self.cte = CSR_from_scipy(cte.data)
         cummulative_op = cte.data"""
+    if len(obj.ops) >=1:
+        for i in range(len(obj.ops)):
+            i_str = str(i)
+            ops_cdef += "\n    cdef CSR_Matrix op" + i_str
+            ops_cdef += "\n    cdef int op" + i_str + "_sum_elem"
 
-    for i in range(len(obj.ops)):
-        i_str = str(i)
-        ops_cdef += "\n    cdef CSR_Matrix op" + i_str
-        ops_cdef += "\n    cdef int op" + i_str + "_sum_elem"
-
-        ops_set += "\n        self.op" + i_str + " = CSR_from_scipy(ops[" + i_str + "][0].data)"
-        ops_set += "\n        cummulative_op += ops[" + i_str + "][0].data"
-        ops_set += "\n        self.op" + i_str + "_sum_elem = cummulative_op.data.shape[0]"
-    ops_cdef += "\n"
-    ops_set += "\n\n        self.total_elem = self.op" + i_str + "_sum_elem\n\n"
+            ops_set += "\n        self.op" + i_str + " = CSR_from_scipy(ops[" + i_str + "][0].data)"
+            ops_set += "\n        cummulative_op += ops[" + i_str + "][0].data"
+            ops_set += "\n        self.op" + i_str + "_sum_elem = cummulative_op.data.shape[0]"
+        ops_cdef += "\n"
+        ops_set += "\n\n        self.total_elem = self.op" + i_str + "_sum_elem\n\n"
+    else:
+        ops_set += "\n\n        self.total_elem = cummulative_op.data.shape[0]\n\n"
     return ops_cdef, ops_set
 
 
@@ -307,6 +311,7 @@ def make_args(obj):
         factor_code += "        cdef int N = self.N\n"
         factor_code += "        cdef double dt = self.dt\n"
 
+
     str_args = {}
     for i, op in enumerate(obj.ops):
         if op[3] == 3:
@@ -341,6 +346,11 @@ def make_args(obj):
             args_set += "        self." + name + " = &str_" + i_str + "[0]\n"
             factor_code += "        cdef complex* " + name + " = self." + name + "\n"
 
+    if args_set[-2] == ":":
+        args_set += "        pass\n"
+    if factor_code[-2] == ":":
+        factor_code += "        pass\n"
+
     args_cdef += "\n"
     args_set += "\n"
     factor_code += "\n"
@@ -372,7 +382,9 @@ def make_call(obj):
     """
 
     if N == 0:
-        out = self.cte
+        call_code += """
+        free_CSR(out)
+        copy_CSR(out, &self.cte)"""
 
     elif N == 1:
         call_code += """
@@ -390,7 +402,8 @@ def make_call(obj):
 
         _zcsr_add_core(cummulative_0.data, cummulative_0.indices, cummulative_0.indptr,
                        self.op1.data, self.op1.indices, self.op1.indptr, coeff[1],
-                       out, self.shape0, self.shape1)"""
+                       out, self.shape0, self.shape1)\n"""
+        call_code += "        free_CSR(&cummulative_0)\n"
     else:
         call_code += """
         cdef CSR_Matrix cummulative_0
@@ -408,13 +421,14 @@ def make_call(obj):
             call_code += "        _zcsr_add_core(cummulative_" + i_s_p + ".data, cummulative_" + i_s_p + ".indices, cummulative_" + i_s_p + ".indptr,\n"
             call_code += "                       self.op" + i_str + ".data, self.op" + i_str + ".indices, self.op" + i_str + ".indptr, coeff[" + i_str + "],\n"
             call_code += "                       &cummulative_" + i_str + ", self.shape0, self.shape1)\n"
+            call_code += "        free_CSR(&cummulative_" + i_s_p + ")\n"
 
         i_str = str(N-1)
         i_s_p = str(N-2)
         call_code += "        _zcsr_add_core(cummulative_" + i_s_p + ".data, cummulative_" + i_s_p + ".indices, cummulative_" + i_s_p + ".indptr,\n"
         call_code += "                       self.op" + i_str + ".data, self.op" + i_str + ".indices, self.op" + i_str + ".indptr, coeff[" + i_str + "],\n"
-        call_code += "                       out, self.shape0, self.shape1)\n"
-
+        call_code += "                       out, self.shape0, self.shape1)\n\n"
+        call_code += "        free_CSR(&cummulative_" + i_s_p + ")\n"
     call_code += "\n\n"
     return call_code
 
@@ -432,6 +446,7 @@ def make_expect(super):
         spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., &y[0], self.shape0)
         cdef int row
         cdef complex dot = 0
+        free_CSR(&out_mat)
 
         for row from 0 <= row < self.shape0:
             dot += conj(vec[row])*y[row]
@@ -463,6 +478,7 @@ def make_expect(super):
             row_end = out_mat.indptr[row+1]
             for jj from row_start <= jj < row_end:
                 dot += out_mat.data[jj]*vec[out_mat.indices[jj]]
+        free_CSR(&out_mat)
 
         if isherm:
             return real(dot)

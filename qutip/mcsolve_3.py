@@ -34,33 +34,26 @@
 __all__ = ['mcsolve_3']
 
 import os
-from types import FunctionType
 import numpy as np
 from numpy.random import RandomState, randint
 from scipy.integrate import ode
 import scipy.sparse as sp
 from scipy.integrate._ode import zvode
-from scipy.linalg.blas import get_blas_funcs
+
+from types import FunctionType, BuiltinFunctionType
+from functools import partial
+
 from qutip.qobj import Qobj
 from qutip.td_qobj import td_Qobj
 from qutip.parallel import parfor, parallel_map, serial_map
-
-from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
-from qutip.cy.codegen import Codegen
-from qutip.cy.utilities import _cython_build_cleanup
-from qutip.cy.spconvert import dense2D_to_fastcsr_cmode
-from qutip.cy.mcsolve import cy_mc_run_ode, cy_mc_run_cte_ode
-#from qutip.cy.cy_dopri import ode_dopri
+from qutip.cy.spmatfuncs import spmv
+from qutip.cy.mcsolve import cy_mc_run_ode, cy_mc_run_fast
 
 from qutip.solver import Options, Result, config, _solver_safety_check
-from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
-from qutip.interpolate import Cubic_Spline
+#from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
-from qutip.fastsparse import csr2fast
 import qutip.settings
-
-dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 if debug:
     import inspect
@@ -201,8 +194,8 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
     mc.run()
 
     # Remove RHS cython file if necessary
-    if not options.rhs_reuse and config.tdname:
-        _cython_build_cleanup(config.tdname)
+    #if not options.rhs_reuse and config.tdname:
+    #    _cython_build_cleanup(config.tdname)
 
     # AFTER MCSOLVER IS DONE
     # ----------------------
@@ -225,9 +218,7 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
         if isinstance(ntraj, int):
             output.expect = [np.mean(np.array([mc.expect_out[nt][op]
                                                for nt in range(ntraj)],
-                                              dtype=object),
-                                     axis=0)
-                             for op in range(config.e_num)]
+                            dtype=object), axis=0) for op in range(config.e_num)]
         elif isinstance(ntraj, (list, np.ndarray)):
             output.expect = []
             for num in ntraj:
@@ -332,6 +323,10 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
     # take care of expectation values, if any
     if any(e_ops):
         config.e_num = len(e_ops)
+        config.e_ops_data = []
+        config.e_ops_ind = []
+        config.e_ops_ptr = []
+        config.e_ops_isherm = []
         for op in e_ops:
             if isinstance(op, list):
                 op = op[0]
@@ -413,13 +408,13 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
 
                 if config.h_tflag in (0,1):
                     config.rhs = H_td.get_rhs_func()
-                    config.rhs_ptr = H_td.get_rhs_ptr()
+                    config.rhs_ptr = H_td._get_rhs_ptr()
                     if config.c_tflag in (0,1):
                         config.c_rhs_ptr = []
                         config.c_expect_ptr = []
                         for td_c in c_td_ops:
-                            config.c_rhs_ptr += [td_c.get_rhs_ptr()]
-                            config.c_expect_ptr += [td_c.get_expect_ptr()]
+                            config.c_rhs_ptr += [td_c._get_rhs_ptr()]
+                            config.c_expect_ptr += [td_c._get_expect_ptr()]
                 elif config.h_tflag == 2:
                     config.rhs = H_td.get_rhs_func()
             else:
@@ -515,6 +510,8 @@ class _MC():
                                        np.arange(config.ntraj) * step
                     self.config.options.seeds = np.hstack(
                         (config.options.seeds, newseeds))
+        else:
+            raise Exception("mcsolve without collapse!")
 
     def run(self):
         if debug:
@@ -570,7 +567,10 @@ def _build_integration_func(config):
         print(inspect.stack()[0][3] + " in " + str(os.getpid()))
 
     ODE = ode(config.rhs)
-    ODE.set_f_params(config)
+    if config.h_tflag in (3,4):
+        ODE.set_f_params(config)
+    #else:
+        #ODE.set_f_params(None)
 
     # initialize ODE solver for RHS
     ODE.set_integrator('zvode', method="adams")
@@ -590,13 +590,13 @@ def _build_integration_func(config):
 
 # RHS of ODE for python function Hamiltonian
 def _tdrhs(t, psi, config):
-    h_func_data = -1.0j * config.h_func(t, config.h_func_args)
+    h_func_data = -1.0j * config.h_func(t, config.h_func_args).data
     h_func_term = spmv(h_func_data, psi)
     return h_func_term + config.Hc_func(t, psi)
 
 
 def _tdrhs_with_state(t, psi, config):
-    h_func_data = - 1.0j * config.h_func(t, psi, config.h_func_args)
+    h_func_data = - 1.0j * config.h_func(t, psi, config.h_func_args).data
     h_func_term = spmv(h_func_data, psi)
     return h_func_term + config.Hc_func(t, psi)
 

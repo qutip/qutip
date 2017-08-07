@@ -522,11 +522,12 @@ class td_Qobj:
     # Unitary function of Qobj
     def tidyup(self, atol=1e-12):
         self.cte = self.cte.tidyup(atol)
-        for op in res.ops:
+        for op in self.ops:
             op[0] = op[0].tidyup(atol)
-        return res
+        return self
 
     def permute(self, order):
+        res = self.copy()
         res.cte = res.cte.permute(order)
         for op in res.ops:
             op[0] = op[0].permute(order)
