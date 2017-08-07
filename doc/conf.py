@@ -206,6 +206,7 @@ latex_elements = {
                   'classoptions': '',
                   'babel': '\\usepackage[english]{babel}',
                   'fncychap' : '',
+                  'figure_align': 'H',
 #                  'preamble': PREAMBLE
 }
 
