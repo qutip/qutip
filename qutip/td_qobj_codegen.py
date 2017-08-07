@@ -123,15 +123,19 @@ def td_qobj_codegen(obj, return_code=False):
 
     try:
         compiled_obj_container = [None]
-        import_code = compile('from ' + filename + ' import cy_compiled_td_qobj\n' +
-                              'compiled_obj_container[0] = cy_compiled_td_qobj',
+        compiled_obj_ptr = [None]
+        import_code = compile('from ' + filename + ' import get_object, get_ptr\n' +
+                              'compiled_obj_container[0] = get_object()\n' +
+                              'compiled_obj_ptr[0] = get_ptr()',
                               '<string>', 'exec')
         exec(import_code, locals())
-        compiled_Qobj = compiled_obj_container[0]()
+        compiled_Qobj = compiled_obj_container[0]
         compiled_Qobj.set_data(obj.cte, obj.ops)
         compiled_Qobj.set_args(obj.args, str_args, obj.tlist)
+        ptr = compiled_obj_ptr[0]
     except Exception as e:
         compiled_Qobj = None
+        ptr = None
         print("Not compiled")
         print(str(e))
 
@@ -141,9 +145,9 @@ def td_qobj_codegen(obj, return_code=False):
         pass
 
     if return_code:
-        return compiled_Qobj, code
+        return compiled_Qobj, ptr, code
     else:
-        return compiled_Qobj
+        return compiled_Qobj, ptr
 
 
 
@@ -167,7 +171,6 @@ cimport numpy as np
 import cython
 cimport cython
 from qutip.qobj import Qobj
-#from scipy import sparse.csr_matrix as csr
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.inter cimport zinterpolate, interpolate
 from qutip.cy.spmatfuncs cimport spmvpy
@@ -215,17 +218,25 @@ cdef class cy_compiled_td_qobj:
         self._rhs_mat(t, &vec[0], &out[0])
         return out
 
-    def rhs_ptr(self):
-        cdef void * ptr = <void*>self._rhs_mat
-        return PyLong_FromVoidPtr(ptr)
-
 """ + expect_code + """
     def expect(self, double t, np.ndarray[complex, ndim=1] vec, int isherm):
         return self._expect_mat(t, &vec[0], isherm)
 
-    def expect_ptr(self):
-        cdef void * ptr = <void*>self._expect_mat
-        return PyLong_FromVoidPtr(ptr)"""
+cdef cy_compiled_td_qobj ctdqo = cy_compiled_td_qobj()
+
+def get_object():
+    return ctdqo
+
+cdef void rhs_mat(double t, complex* vec, complex* out):
+    ctdqo._rhs_mat(t, vec, out)
+
+cdef complex expect_mat(double t, complex* vec, int isherm):
+    return ctdqo._expect_mat(t, vec, isherm)
+
+def get_ptr():
+    cdef void * ptr1 = <void*>rhs_mat
+    cdef void * ptr2 = <void*>expect_mat
+    return PyLong_FromVoidPtr(ptr1), PyLong_FromVoidPtr(ptr2)"""
 
     return code, str_args
 

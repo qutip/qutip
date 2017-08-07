@@ -4,7 +4,6 @@ cimport numpy as np
 import cython
 cimport cython
 from qutip.qobj import Qobj
-#from scipy import sparse.csr_matrix as csr
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.inter cimport zinterpolate, interpolate
 from qutip.cy.spmatfuncs cimport spmvpy
@@ -54,7 +53,6 @@ cdef class cy_compiled_td_qobj:
     @cython.cdivision(True)
     cdef void factor(self, t, complex* out):
         cdef double w = self.w
-
         out[0] = cos(w*t)
 
 
@@ -95,10 +93,6 @@ cdef class cy_compiled_td_qobj:
         self._rhs_mat(t, &vec[0], &out[0])
         return out
 
-    def rhs_ptr(self):
-        cdef void * ptr = <void*>self._rhs_mat
-        return PyLong_FromVoidPtr(ptr)
-
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -123,6 +117,18 @@ cdef class cy_compiled_td_qobj:
     def expect(self, double t, np.ndarray[complex, ndim=1] vec, int isherm):
         return self._expect_mat(t, &vec[0], isherm)
 
-    def expect_ptr(self):
-        cdef void * ptr = <void*>self._expect_mat
-        return PyLong_FromVoidPtr(ptr)
+cdef cy_compiled_td_qobj ctdqo = cy_compiled_td_qobj()
+
+def get_object():
+    return ctdqo
+
+cdef void rhs_mat(double t, complex* vec, complex* out):
+    ctdqo._rhs_mat(t, vec, out)
+
+cdef complex expect_mat(double t, complex* vec, int isherm):
+    return ctdqo._expect_mat(t, vec, isherm)
+
+def get_ptr():
+    cdef void * ptr1 = <void*>rhs_mat
+    cdef void * ptr2 = <void*>expect_mat
+    return PyLong_FromVoidPtr(ptr1), PyLong_FromVoidPtr(ptr2)

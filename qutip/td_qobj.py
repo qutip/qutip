@@ -171,7 +171,8 @@ class td_Qobj:
         self.tlist = tlist
         self.fast = True
         self.compiled = False
-        self.compiled_code = None
+        self.compiled_Qobj = None
+        self.compiled_ptr = None
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not \
@@ -324,7 +325,8 @@ class td_Qobj:
         new.N_obj = self.N_obj
         new.fast = self.fast
         new.compiled = False
-        new.compiled_code = None
+        new.compiled_Qobj = None
+        new.compiled_ptr = None
 
         for l, op in enumerate(self.ops):
             new.ops.append([None, None, None, None, None])
@@ -539,6 +541,7 @@ class td_Qobj:
 
     # function to apply custom transformations
     def apply(self, function, *args, **kw_args):
+        self.compiled = False
         res = self.copy()
         cte_res = function(res.cte, *args, **kw_args)
         if not isinstance(cte_res, Qobj):
@@ -549,6 +552,7 @@ class td_Qobj:
         return res
 
     def apply_decorator(self, function, *args, str_mod=None, inplace_np=False, **kw_args):
+        self.compiled = False
         res = self.copy()
         for op in res.ops:
             if op[3] == 1:
@@ -597,13 +601,22 @@ class td_Qobj:
                 op[2] = np.conj(op[2])
         return self
 
-    def compile(self):
+    def compile(self, code=False):
         if self.fast:
-            self.compiled_Qobj = td_qobj_codegen(self)
-            if self.compiled_Qobj is None:
-                raise Exception("Could not compile")
+            if not code:
+                self.compiled_Qobj, self.compiled_ptr = td_qobj_codegen(self)
+                if self.compiled_Qobj is None:
+                    raise Exception("Could not compile")
+                else:
+                    self.compiled = True
             else:
-                self.compiled = True
+                self.compiled_Qobj, self.compiled_ptr, code_str = \
+                        td_qobj_codegen(self, code)
+                if self.compiled_Qobj is None:
+                    raise Exception("Could not compile")
+                else:
+                    self.compiled = True
+                return code_str
 
     def get_compiled_call(self):
         if not self.fast:
@@ -619,12 +632,12 @@ class td_Qobj:
             self.compile()
         return self.compiled_Qobj.rhs
 
-    def get_rhs_ptr(self):
+    def _get_rhs_ptr(self):
         if not self.fast:
-            return self.rhs
+            raise Exception("Cannot be compiled")
         if not self.compiled:
             self.compile()
-        return self.compiled_Qobj.rhs_ptr()
+        return self.compiled_ptr[0]
 
     def get_expect_func(self):
         if not self.fast:
@@ -633,12 +646,12 @@ class td_Qobj:
             self.compile()
         return self.compiled_Qobj.expect
 
-    def get_expect_ptr(self):
+    def _get_expect_ptr(self):
         if not self.fast:
-            return self.rhs
+            raise Exception("Cannot be compiled")
         if not self.compiled:
             self.compile()
-        return self.compiled_Qobj.expect_ptr()
+        return self.compiled_ptr[1]
 
     def expect(self, t, vec, herm=0):
         if self.cte.issuper:
