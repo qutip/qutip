@@ -77,14 +77,11 @@ Earlier development of QuTiP was partially supported by the Japanese Society for
 	:width: 1.5in
 	:figclass: align-center
 
-|
-
 .. _image-korea:
 
 .. figure:: figures/korea-logo.png
 	:width: 3in
 	:figclass: align-center
-
 
 .. _about:
 
