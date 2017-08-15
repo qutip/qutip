@@ -4,7 +4,7 @@ from qutip.fastsparse import csr2fast
 from qutip.qobj import Qobj
 from qutip.cy.spmatfuncs import cy_expect_psi_csr,  spmv_csr
 from qutip.cy.spconvert import dense2D_to_fastcsr_cmode
-#from qutip.cy.dopri5 import ode_dopri
+from qutip.cy.dopri5td import ode_dopri
 cimport numpy as np
 cimport cython
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
@@ -80,6 +80,9 @@ def cy_mc_run_ode(ODE, config, prng):
     # make array for collapse operator inds
     cdef np.ndarray[long, ndim=1] cinds = np.arange(config.c_num)
 
+    c_ops_rhs = [c.get_rhs_func() for c in config.td_c_ops]
+    c_expect_func = [c.get_expect_func() for c in config.td_n_ops]
+
     norm2_prev = dznrm2(ODE._y) ** 2
     # RUN ODE UNTIL EACH TIME IN TLIST
     for k in range(1, num_times):
@@ -140,16 +143,17 @@ def cy_mc_run_ode(ODE, config, prng):
 
                 # some string based collapse operators
                 n_dp = [expect(ODE.t,ODE._y,1)
-                          for expect in config.c_expect_func]
+                          for expect in c_expect_func]
 
                 # determine which operator does collapse and store it
                 kk = np.cumsum(n_dp / np.sum(n_dp))
                 j = cinds[kk >= rand_vals[1]][0]
                 which_oper.append(j)
-                state = config.c_rhs_func(ODE.t, )
+                state = c_ops_rhs(ODE.t, ODE._y)
                 state = state / dznrm2(state)
                 ODE.set_initial_value(state, t_prev)
                 rand_vals = prng.rand(2)
+
             else:
                 norm2_prev = norm2_psi
                 t_prev = ODE.t
@@ -280,7 +284,7 @@ def cy_mc_run_fast(config, prng):
                 j = cinds[kk >= rand_vals[1]][0]
                 which_oper.append(j)
 
-                state = config.c_ops_rhs[j](t, psi)
+                state = c_ops_rhs[j](t, psi)
                 state = state / dznrm2(state)
                 psi = state
                 rand_vals = prng.rand(2)

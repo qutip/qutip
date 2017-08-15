@@ -700,7 +700,7 @@ def _conj(f):
         return np.conj(f(a, **kwargs))
     return ff
 
-def td_liouvillian(H, c_ops=[], chi=None, tlist=None):
+def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Accept time dependant
     operator and return a td_qobj
@@ -726,7 +726,7 @@ def td_liouvillian(H, c_ops=[], chi=None, tlist=None):
 
     if H is not None:
         if not isinstance(H, td_Qobj):
-            L = td_Qobj(H, tlist=tlist)
+            L = td_Qobj(H, args=args, tlist=tlist)
         else:
             L = H
         L = L.apply(liouvillian, chi=chi)
@@ -736,7 +736,7 @@ def td_liouvillian(H, c_ops=[], chi=None, tlist=None):
             return liouvillian(None, c_ops=[c_ops], chi=chi)
         for c in c_ops:
             if not isinstance(c, td_Qobj):
-                cL = td_Qobj(c, tlist=tlist)
+                cL = td_Qobj(c, args=args, tlist=tlist)
             else:
                 cL = c
             if not cL.N_obj == 1:
@@ -752,7 +752,7 @@ def td_liouvillian(H, c_ops=[], chi=None, tlist=None):
     return L
 
 
-def td_lindblad_dissipator(a, tlist=None):
+def td_lindblad_dissipator(a, args={}, tlist=None):
     """
     Lindblad dissipator (generalized) for a single collapse operator.
     For the
@@ -774,7 +774,7 @@ def td_lindblad_dissipator(a, tlist=None):
         Lindblad dissipator superoperator.
     """
     if not isinstance(a, td_Qobj):
-        b = td_Qobj(a, tlist=tlist)
+        b = td_Qobj(a, args=args, tlist=tlist)
     else:
         b = a
     if not b.N_obj == 1:

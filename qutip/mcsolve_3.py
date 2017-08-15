@@ -348,116 +348,90 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
 
         # Find the type of time-dependence for H and c_ops
         # h_tflag
-        #   0 : const
-        #   1 : td that can be compiled to cython (str, numpy)
+        #   1 : td that can be compiled to cython (const, str, numpy)
         #   2 : td that cannot be compiled (func)
         #   3 : H is a functions
         #   4 : H functions with state
         #
         # c_tflag
-        #   0 : const
-        #   1 : td that can be compiled to cython (str, numpy)
+        #   1 : td that can be compiled to cython (const, str, numpy)
         #   2 : td that cannot be compiled (func)
-        #
+
 
         # define :
         # config.rhs : the function called by the integrator
-        # config.c_rhs_func : product by the c_op
-        # config.c_expect_func : expectation value of the c_op
-        # config.*_ptr : pointer to the cdef function
+        # config.td_c_ops : to get needed spmv function
+        # config.td_n_ops : to get the expectation value of the c_op
+        # config.rhs_ptr : pointer to the H rhs function
 
         if len(c_ops) > 0:
             config.cflag = True
         else:
-            raise Exception("Should use sesolve instead of mcsolve")
             config.cflag = False
+            raise Exception("Should use sesolve instead of mcsolve")
 
         c_types = []
-        c_td_ops = []
+        config.td_c_ops = []
+        config.td_n_ops = []
         for c in c_ops:
-            c_td_ops += [td_Qobj(c, args)]
-            if c_td_ops[-1].const:
-                c_types += [0]
-            elif c_td_ops[-1].fast:
+            config.td_c_ops += [td_Qobj(c, args, tlist)]
+            config.td_n_ops += config.td_c_ops[-1].norm()
+            if c_td_ops[-1].fast:
                 c_types += [1]
+                [c_ops.compile() for c_ops in td_c_ops]
+                [c_ops.compile() for c_ops in td_n_ops]
             else:
                 c_types += [2]
         config.c_tflag = max(c_types)
-        config.c_td_ops = c_td_ops
 
-        Hc_td = td_Qobj(c_td_ops[0](0)*0.)
-        for c in c_td_ops:
+        Hc_td = td_Qobj(td_c_ops[0](0)*0., args, tlist)
+        for c in td_c_ops:
             Hc_td += -0.5j * c.norm()
 
         config.h_func_args = {}
         if not options.rhs_with_state:
             if not isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
-                H_td = td_Qobj(H, args)
-                for c in c_td_ops:
-                    H_td += -0.5j * c.norm()
-                if H_td.const:
-                    config.h_tflag = 0
-                elif H_td.fast:
-                    config.h_tflag = 1
-                else:
-                    config.h_tflag = 2
+                H_td = td_Qobj(H, args, tlist)
+                for c in td_n_ops:
+                    H_td += -0.5j * c
                 if options.tidy:
                     H_td = H_td.tidyup(options.atol)
                 H_td *= -1j
                 config.H_td = H_td
-
-                if config.h_tflag in (0,1):
+                if H_td.fast:
+                    config.h_tflag = 1
                     config.rhs = H_td.get_rhs_func()
                     config.rhs_ptr = H_td._get_rhs_ptr()
-                    if config.c_tflag in (0,1):
-                        config.c_rhs_ptr = []
-                        config.c_expect_ptr = []
-                        for td_c in c_td_ops:
-                            config.c_rhs_ptr += [td_c._get_rhs_ptr()]
-                            config.c_expect_ptr += [td_c._get_expect_ptr()]
-                elif config.h_tflag == 2:
+                else:
+                    config.h_tflag = 2
                     config.rhs = H_td.get_rhs_func()
             else:
                 config.h_tflag = 3
                 config.h_func = H
                 config.h_func_args = args
                 Hc_td *= -1j
-                config.Hc_td_func = Hc_td.get_rhs_func()
+                config.Hc_td = Hc_td
+                config.Hc_rhs = Hc_td.get_rhs_func()
                 config.rhs = _tdrhs
-                config.hc_func = H_td.get_rhs_func()
+
         else:
             config.h_tflag = 4
             Hc_td *= -1j
             config.Hc_td = Hc_td
-            config.Hc_func = Hc_td.get_rhs_func()
+            config.Hc_rhs = Hc_td.get_rhs_func()
             config.rhs = _tdrhs_with_state
             if isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
                 config.h_func = H
                 config.h_func_args = args
             else:
-                H_td = td_Qobj(H, args)
+                H_td = td_Qobj(H, args, tlist)
                 config.H_td = H_td
                 config.h_func = H_td.with_args
-
-        config.c_rhs_func = []
-        config.c_expect_func = []
-        for td_c in c_td_ops:
-            config.c_rhs_func += [td_c.get_rhs_func()]
-            config.c_expect_func += [td_c.get_expect_func()]
 
     else:
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
         # string based
         raise NotImplementedError("How would this be used?")
-        if config.tflag in [1, 10, 11]:
-            if any(args):
-                config.c_args = []
-                arg_items = list(args.items())
-                for k in range(len(arg_items)):
-                    config.c_args.append(arg_items[k][1])
-        # function based
-        elif config.tflag in [2, 3, 20, 22]:
-            config.h_func_args = args
 
     return config
 
@@ -470,7 +444,6 @@ class _MC():
     """
 
     def __init__(self, config):
-
         self.config = config
         # set output variables, even if they are not used to simplify output
         # code.
@@ -481,8 +454,8 @@ class _MC():
 
         # FOR EVOLUTION WITH COLLAPSE OPERATORS
         if config.cflag:
-            # preallocate ntraj arrays for state vectors, collapse times, and
-            # which operator
+            # preallocate ntraj arrays for state vectors,
+            # collapse times, and which operator
             self.collapse_times_out = np.zeros(config.ntraj, dtype=np.ndarray)
             self.which_op_out = np.zeros(config.ntraj, dtype=np.ndarray)
             if config.e_num == 0 or config.options.store_states:
@@ -531,7 +504,6 @@ class _MC():
             map_kwargs = {'progress_bar': self.config.progress_bar,
                           'num_cpus': self.config.options.num_cpus}
             map_kwargs.update(self.config.map_kwargs)
-
             task_args = (self.config, self.config.options,
                          self.config.options.seeds)
             task_kwargs = {}
@@ -612,7 +584,7 @@ def _mc_alg_evolve(nt, config, opt, seeds):
 
     # SEED AND RNG AND GENERATE
     prng = RandomState(seeds[nt])
-    if ( config.h_tflag in (0, 1) and config.options.method == "dopri5" ):
+    if ( config.h_tflag in (1) and config.options.method == "dopri5" ):
         states_out, expect_out, collapse_times, which_oper = cy_mc_run_fast(
             config, prng)
     else:

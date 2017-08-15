@@ -163,7 +163,7 @@ public:
         H.enter_mats(l, _h_ind, _h_ptr, _h_data);
         H.set_func(_f);
     }
-    
+
 
     ~ode(){
         delete[] derr_in;
