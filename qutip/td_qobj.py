@@ -604,6 +604,7 @@ class td_Qobj:
 
     def compile(self, code=False):
         if self.fast:
+            self.tidyup()
             if not code:
                 self.compiled_Qobj, self.compiled_ptr = td_qobj_codegen(self)
                 if self.compiled_Qobj is None:

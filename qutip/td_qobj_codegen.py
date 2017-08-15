@@ -1,5 +1,7 @@
 import numpy as np
 
+global _list_of_complied_td_Qobj_
+_list_of_complied_td_Qobj_ = []
 
 def _compile_str_single(compile_list):
     import os
@@ -111,7 +113,7 @@ def _td_array_to_str(self, op_np2, times):
 def td_qobj_codegen(obj, return_code=False):
     import os
     code, str_args = make_code(obj)
-    all_str = ""
+    all_str = "compiled_td_Qobj_"
     for op in obj.ops:
         all_str += str(op[2])
     filename = "compiled_td_Qobj_"+str(hash(all_str))[1:] + \
@@ -120,19 +122,31 @@ def td_qobj_codegen(obj, return_code=False):
     file = open(filename+".pyx", "w")
     file.writelines(code)
     file.close()
-
+    local = False
     try:
-        compiled_obj_container = [None]
-        compiled_obj_ptr = [None]
-        import_code = compile('from ' + filename + ' import get_object, get_ptr\n' +
-                              'compiled_obj_container[0] = get_object()\n' +
-                              'compiled_obj_ptr[0] = get_ptr()',
+        if local:
+            compiled_obj_container = [None]
+            compiled_obj_ptr = [None]
+            import_code = compile('from ' + filename + ' import get_object, get_ptr\n' +
+                                  'compiled_obj_container[0] = get_object()\n' +
+                                  'compiled_obj_ptr[0] = get_ptr()',
+                                  '<string>', 'exec')
+            exec(import_code, locals())
+            compiled_Qobj = compiled_obj_container[0]
+            compiled_Qobj.set_data(obj.cte, obj.ops)
+            compiled_Qobj.set_args(obj.args, str_args, obj.tlist)
+            ptr = compiled_obj_ptr[0]
+        else:
+            global _list_of_complied_td_Qobj_
+            import_code = compile('import ' + filename + '\n' +
+                              '_list_of_complied_td_Qobj_.append(' + filename + ')\n',
                               '<string>', 'exec')
-        exec(import_code, locals())
-        compiled_Qobj = compiled_obj_container[0]
-        compiled_Qobj.set_data(obj.cte, obj.ops)
-        compiled_Qobj.set_args(obj.args, str_args, obj.tlist)
-        ptr = compiled_obj_ptr[0]
+            exec(import_code, globals())
+            compiled_Qobj = _list_of_complied_td_Qobj_[-1].get_object()
+            compiled_Qobj.set_data(obj.cte, obj.ops)
+            compiled_Qobj.set_args(obj.args, str_args, obj.tlist)
+            ptr = _list_of_complied_td_Qobj_[-1].get_ptr()
+
     except Exception as e:
         compiled_Qobj = None
         ptr = None
