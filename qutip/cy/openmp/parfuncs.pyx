@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 
 cdef extern from "src/zspmv_openmp.hpp" nogil:
@@ -41,7 +41,7 @@ cdef extern from "src/zspmv_openmp.hpp" nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_openmp(
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_openmp(
         object super_op,
         complex[::1] vec,
         unsigned int nthr):
@@ -67,7 +67,7 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_openmp(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_csr_openmp(complex[::1] data,
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_csr_openmp(complex[::1] data,
             int[::1] ind, int[::1] ptr, complex[::1] vec, unsigned int nthr):
     """
     Sparse matrix, dense vector multiplication.  
@@ -92,7 +92,7 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] spmv_csr_openmp(complex[::1] data,
     
     """
     cdef unsigned int num_rows = vec.shape[0]
-    cdef np.ndarray[complex, ndim=1, mode="c"] out = np.zeros(num_rows, dtype=complex)
+    cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros(num_rows, dtype=complex)
     zspmvpy_openmp(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows, nthr)
     return out
 
@@ -111,7 +111,7 @@ cdef inline void spmvpy_openmp(complex * data, int * ind, int * ptr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs_openmp(
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs_openmp(
         double t, 
         complex[::1] rho,
         complex[::1] data,
@@ -120,7 +120,7 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs_openmp(
         unsigned int nthr):
 
     cdef unsigned int nrows = rho.shape[0]
-    cdef np.ndarray[complex, ndim=1, mode="c"] out = \
+    cdef cnp.ndarray[complex, ndim=1, mode="c"] out = \
         np.zeros((nrows), dtype=complex)
     zspmvpy_openmp(&data[0], &ind[0], &ptr[0], &rho[0], 1.0, &out[0], nrows, nthr)
 
@@ -129,9 +129,9 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs_openmp(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_openmp(
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_openmp(
         double t, 
-        np.ndarray[complex, ndim=1, mode="c"] psi, 
+        cnp.ndarray[complex, ndim=1, mode="c"] psi, 
         object H_func,
         object args,
         unsigned int nthr):
@@ -142,9 +142,9 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_openmp(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_with_state_openmp(
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_with_state_openmp(
         double t,
-        np.ndarray[complex, ndim=1, mode="c"] psi,
+        cnp.ndarray[complex, ndim=1, mode="c"] psi,
         object H_func,
         object args,
         unsigned int nthr):
@@ -155,9 +155,9 @@ cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_with_state_openmp
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[complex, ndim=1, mode="c"] cy_ode_rho_func_td_openmp(
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rho_func_td_openmp(
         double t,
-        np.ndarray[complex, ndim=1, mode="c"] rho,
+        cnp.ndarray[complex, ndim=1, mode="c"] rho,
         object L0,
         object L_func,
         object args,

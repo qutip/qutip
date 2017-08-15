@@ -1,12 +1,14 @@
+import numpy as np
+cimport numpy as cnp
 
 DTYPE = np.float64
-ctypedef np.float64_t DTYPE_t
+ctypedef cnp.float64_t DTYPE_t
 
 ITYPE = np.int32
-ctypedef np.int32_t ITYPE_t
+ctypedef cnp.int32_t ITYPE_t
 
 CTYPE = np.complex128
-ctypedef np.complex128_t CTYPE_t
+ctypedef cnp.complex128_t CTYPE_t
 
 CTYPE = np.int64
-ctypedef np.int64_t LTYPE_t
+ctypedef cnp.int64_t LTYPE_t

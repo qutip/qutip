@@ -72,6 +72,11 @@ elif sys.version_info.major < 3:
     from itertools import izip_longest
     zip_longest = izip_longest
 
+#OPENMP stuff
+from qutip.cy.openmp.utilities import use_openmp
+if settings.has_openmp:
+    from qutip.cy.openmp.omp_sparse_utils import omp_tidyup
+
 
 class Qobj(object):
     """A class for representing quantum objects, such as quantum operators
@@ -363,6 +368,9 @@ class Qobj(object):
                 out.data.data = out.data.data + dat
 
             out.dims = self.dims
+           
+            if settings.auto_tidyup: out.tidyup()
+           
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
             else:
@@ -373,7 +381,7 @@ class Qobj(object):
 
             out.superrep = self.superrep
 
-            return out.tidyup() if settings.auto_tidyup else out
+            return out
 
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
             # case for scalar quantum object
@@ -388,7 +396,9 @@ class Qobj(object):
                 out.data = other.data
                 out.data.data = out.data.data + dat
             out.dims = other.dims
-
+            
+            if settings.auto_tidyup: out.tidyup()
+            
             if isinstance(dat, complex):
                 out._isherm = out.isherm
             else:
@@ -396,7 +406,7 @@ class Qobj(object):
 
             out.superrep = self.superrep
 
-            return out.tidyup() if settings.auto_tidyup else out
+            return out
 
         elif self.dims != other.dims:
             raise TypeError('Incompatible quantum object dimensions')
@@ -408,7 +418,8 @@ class Qobj(object):
             out = Qobj()
             out.data = self.data + other.data
             out.dims = self.dims
-
+            if settings.auto_tidyup: out.tidyup()
+           
             if self.type in ['ket', 'bra', 'operator-ket', 'operator-bra']:
                 out._isherm = False
             elif self._isherm is None or other._isherm is None:
@@ -426,7 +437,7 @@ class Qobj(object):
 
                 out.superrep = self.superrep
 
-            return out.tidyup() if settings.auto_tidyup else out
+            return out
 
     def __radd__(self, other):
         """
@@ -456,7 +467,7 @@ class Qobj(object):
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
-
+                if settings.auto_tidyup: out.tidyup()
                 if (not isinstance(dims[0][0], list) and
                         not isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
@@ -491,7 +502,7 @@ class Qobj(object):
 
                     out.superrep = self.superrep
 
-                return out.tidyup() if settings.auto_tidyup else out
+                return out
 
             elif np.prod(self.shape) == 1:
                 out = Qobj(other)
@@ -530,12 +541,13 @@ class Qobj(object):
             out.data = self.data * other
             out.dims = self.dims
             out.superrep = self.superrep
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
                 out._isherm = self._isherm
 
-            return out.tidyup() if settings.auto_tidyup else out
+            return out
 
         else:
             raise TypeError("Incompatible object for multiplication")
@@ -565,12 +577,13 @@ class Qobj(object):
             out.data = other * self.data
             out.dims = self.dims
             out.superrep = self.superrep
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
                 out._isherm = self._isherm
 
-            return out.tidyup() if settings.auto_tidyup else out
+            return out
 
         else:
             raise TypeError("Incompatible object for multiplication")
@@ -591,6 +604,7 @@ class Qobj(object):
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -598,7 +612,7 @@ class Qobj(object):
 
             out.superrep = self.superrep
 
-            return out.tidyup() if settings.auto_tidyup else out
+            return out
 
         else:
             raise TypeError("Incompatible object for division")
@@ -611,8 +625,9 @@ class Qobj(object):
         out.data = -self.data
         out.dims = self.dims
         out.superrep = self.superrep
+        if settings.auto_tidyup: out.tidyup()
         out._isherm = self._isherm
-        return out.tidyup() if settings.auto_tidyup else out
+        return out
 
     def __getitem__(self, ind):
         """
@@ -1231,7 +1246,7 @@ class Qobj(object):
         q.data, q.dims = _permute(self, order)
         return q.tidyup() if settings.auto_tidyup else q
 
-    def tidyup(self, atol=None):
+    def tidyup(self, atol=settings.auto_tidyup_atol):
         """Removes small elements from the quantum object.
 
         Parameters
@@ -1246,12 +1261,16 @@ class Qobj(object):
             Quantum object with small elements removed.
 
         """
-        if atol is None:
-            atol = settings.auto_tidyup_atol
-
         if self.data.nnz:
-            cy_tidyup(self.data.data,atol,self.data.nnz)
-            self.data.eliminate_zeros()
+            #This does the tidyup and returns True if
+            #The sparse data needs to be shortened
+            if use_openmp() and self.data.nnz > 500:
+                if omp_tidyup(self.data.data,atol,self.data.nnz, 
+                            settings.num_cpus):
+                            self.data.eliminate_zeros()
+            else:
+                if cy_tidyup(self.data.data,atol,self.data.nnz):
+                    self.data.eliminate_zeros()
             return self
         else:
             return self

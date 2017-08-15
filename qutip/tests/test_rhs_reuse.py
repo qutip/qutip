@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, QuSTaR,
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -30,43 +30,55 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import os
+
 import numpy as np
-import qutip.settings as qset
+from numpy.testing import assert_, assert_equal, run_module_suite
+import qutip as qt
+from qutip.solver import config
 
 
-def check_use_openmp(options):
+def test_rhs_reuse():
     """
-    Check to see if OPENMP should be used in dynamic solvers.
+    rhs_reuse : pyx filenames match for rhs_reus= True
     """
-    force_omp = False
-    if qset.has_openmp and options.use_openmp is None:
-        options.use_openmp = True
-        force_omp = False
-    elif qset.has_openmp and options.use_openmp == True:
-        force_omp = True
-    elif qset.has_openmp and options.use_openmp == False:
-        force_omp = False
-    elif qset.has_openmp == False and options.use_openmp == True:
-        raise Exception('OPENMP not available.')
-    else:
-        options.use_openmp = False
-        force_omp = False
-    #Disable OPENMP in parallel mode unless explicitly set.    
-    if not force_omp and os.environ['QUTIP_IN_PARALLEL'] == 'TRUE':
-        options.use_openmp = False
+    N = 10 
+    a = qt.destroy(N)
+    H = [a.dag()*a, [a+a.dag(), 'sin(t)']]
+    psi0 = qt.fock(N,3)
+    tlist = np.linspace(0,10,10)
+    e_ops = [a.dag()*a]
+    c_ops = [0.25*a]
 
+    # Test sesolve
+    out1 = qt.mesolve(H, psi0,tlist, e_ops=e_ops)
 
-def use_openmp():
-    """
-    Check for using openmp in general cases outside of dynamics
-    """
-    if qset.has_openmp and os.environ['QUTIP_IN_PARALLEL'] != 'TRUE':
-        return True
-    else:
-        return False
+    _temp_config_name = config.tdname
 
+    out2 = qt.mesolve(H, psi0,tlist, e_ops=e_ops)
 
-def openmp_components(ptr_list):
-    return np.array([ptr[-1] >= qset.openmp_thresh for ptr in ptr_list], dtype=bool)
-    
+    assert_(config.tdname != _temp_config_name)
+    _temp_config_name = config.tdname
+
+    out3 = qt.mesolve(H, psi0,tlist, e_ops=e_ops, 
+                        options=qt.Options(rhs_reuse=True))
+                    
+    assert_(config.tdname == _temp_config_name)
+
+    # Test mesolve
+
+    out1 = qt.mesolve(H, psi0,tlist, c_ops=c_ops, e_ops=e_ops)
+
+    _temp_config_name = config.tdname
+
+    out2 = qt.mesolve(H, psi0,tlist, c_ops=c_ops, e_ops=e_ops)
+
+    assert_(config.tdname != _temp_config_name)
+    _temp_config_name = config.tdname
+
+    out3 = qt.mesolve(H, psi0,tlist, e_ops=e_ops, c_ops=c_ops,
+                        options=qt.Options(rhs_reuse=True))
+                    
+    assert_(config.tdname == _temp_config_name)
+
+if __name__ == "__main__":
+    run_module_suite()
