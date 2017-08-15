@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 5 - Production/Stable
+Development Status :: 4 - Beta
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -58,7 +58,7 @@ from Cython.Distutils import build_ext
 MAJOR = 4
 MINOR = 3
 MICRO = 0
-ISRELEASED = True
+ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
 INSTALL_REQUIRES = ['numpy>=1.8', 'scipy>=0.15', 'cython>=0.21']
@@ -68,7 +68,6 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
             'qutip/cy/openmp', 'qutip/cy/openmp/src']
 PACKAGE_DATA = {
-    '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
@@ -237,6 +236,7 @@ setup(
     name = NAME,
     version = FULLVERSION,
     packages = PACKAGES,
+    include_package_data=True,
     include_dirs = INCLUDE_DIRS,
     headers = HEADERS,
     ext_modules = cythonize(EXT_MODULES),
