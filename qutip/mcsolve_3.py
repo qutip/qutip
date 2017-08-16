@@ -47,7 +47,7 @@ from qutip.qobj import Qobj
 from qutip.td_qobj import td_Qobj
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import spmv
-from qutip.cy.mcsolve import cy_mc_run_ode, cy_mc_run_fast
+from qutip.cy.mcsolvetd import cy_mc_run_ode, cy_mc_run_fast
 
 from qutip.solver import Options, Result, config, _solver_safety_check
 #from qutip.interpolate import Cubic_Spline
@@ -189,7 +189,6 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     # load monte carlo class
     mc = _MC(config)
-
     # Run the simulation
     mc.run()
 
@@ -270,6 +269,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
     if options is None:
         options = Options()
 
+    config.soft_reset()
     # set general items
     if ntraj is None:
         ntraj = options.ntraj
@@ -342,9 +342,8 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     # --------------------------------------------
     if not options.rhs_reuse or not config.tdfunc:
-
         # reset config collapse and time-dependence flags to default values
-        config.soft_reset()
+
 
         # Find the type of time-dependence for H and c_ops
         # h_tflag
@@ -356,7 +355,6 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         # c_tflag
         #   1 : td that can be compiled to cython (const, str, numpy)
         #   2 : td that cannot be compiled (func)
-
 
         # define :
         # config.rhs : the function called by the integrator
@@ -375,24 +373,24 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         config.td_n_ops = []
         for c in c_ops:
             config.td_c_ops += [td_Qobj(c, args, tlist)]
-            config.td_n_ops += config.td_c_ops[-1].norm()
-            if c_td_ops[-1].fast:
+            config.td_n_ops += [config.td_c_ops[-1].norm()]
+            if config.td_c_ops[-1].fast:
                 c_types += [1]
-                [c_ops.compile() for c_ops in td_c_ops]
-                [c_ops.compile() for c_ops in td_n_ops]
+                [c_ops.compile() for c_ops in config.td_c_ops]
+                [c_ops.compile() for c_ops in config.td_n_ops]
             else:
                 c_types += [2]
         config.c_tflag = max(c_types)
 
-        Hc_td = td_Qobj(td_c_ops[0](0)*0., args, tlist)
-        for c in td_c_ops:
+        Hc_td = td_Qobj(config.td_c_ops[0](0)*0., args, tlist)
+        for c in config.td_c_ops:
             Hc_td += -0.5j * c.norm()
 
         config.h_func_args = {}
         if not options.rhs_with_state:
             if not isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
                 H_td = td_Qobj(H, args, tlist)
-                for c in td_n_ops:
+                for c in config.td_n_ops:
                     H_td += -0.5j * c
                 if options.tidy:
                     H_td = H_td.tidyup(options.atol)
@@ -543,7 +541,6 @@ def _build_integration_func(config):
         ODE.set_f_params(config)
     #else:
         #ODE.set_f_params(None)
-
     # initialize ODE solver for RHS
     ODE.set_integrator('zvode', method="adams")
     opt = config.options
@@ -556,7 +553,6 @@ def _build_integration_func(config):
         ODE.t = 0.0
         ODE._y = np.array([0.0], complex)
     ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
-
     return ODE
 
 
@@ -584,7 +580,7 @@ def _mc_alg_evolve(nt, config, opt, seeds):
 
     # SEED AND RNG AND GENERATE
     prng = RandomState(seeds[nt])
-    if ( config.h_tflag in (1) and config.options.method == "dopri5" ):
+    if ( config.h_tflag in (1,) and config.options.method == "dopri5" ):
         states_out, expect_out, collapse_times, which_oper = cy_mc_run_fast(
             config, prng)
     else:

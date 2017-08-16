@@ -79,14 +79,14 @@ int ode::step(const double t, double &dtt, cplx *psi_in, cplx *psi_out){
 
     dopri5(t, dtt, psi_in, psi_out);
     while(err>=1. && count<2){
-        dtt *= std::pow(2*err[2],-0.25);
+        dtt *= std::pow(2*err,-0.25);
         dopri5(t, dtt, psi_in, psi_out);
         count++;
     }
     if (count==2) return 0;
 
     if (ratio > 0.5){ // New dt if ddt meaningful
-        dt = dtt*std::pow(2*err[2],-0.25);
+        dt = dtt*std::pow(2*err,-0.25);
         if(dt>max_step) dt = max_step;
     }
     return 1;
@@ -114,9 +114,7 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi, doub
         H(t, psi, derr_in);
         success = step(t, dtt, psi, psi_out);
         debug[3] = dtt;
-        debug[8] = err[2];
-        debug[9] = err[0];
-        debug[10] = err[1];
+        debug[8] = err;
 
         if(!success){
             delete[] psi_out;
@@ -132,10 +130,8 @@ double ode::integrate(double t_in, double t_target, double rand, cplx *psi, doub
                 dopri5(t, dt_guess, psi, psi_out);
 
                 debug[4] = dt_guess;
-                debug[8] = err[2];
-                debug[9] = err[0];
-                debug[10] = err[1];
-                if(err[2]>1.){
+                debug[8] = err;
+                if(err>1.){
                     delete[] psi_out;
                     return -2;
                 }
@@ -232,7 +228,7 @@ void ode::dopri5(const double t, const double &dt, cplx *in, cplx *out){
         out[i] = in[i];
         out[i] += _dxdt0[i]*a1[0]*dt;
     }
-    H(t+c[0]*dt, out, _dxdt1, );
+    H(t+c[0]*dt, out, _dxdt1);
 
     for(int i=0;i<l;++i){
         out[i] = in[i];

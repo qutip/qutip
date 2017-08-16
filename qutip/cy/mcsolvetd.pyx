@@ -4,16 +4,24 @@ from qutip.fastsparse import csr2fast
 from qutip.qobj import Qobj
 from qutip.cy.spmatfuncs import cy_expect_psi_csr,  spmv_csr
 from qutip.cy.spconvert import dense2D_to_fastcsr_cmode
-from qutip.cy.dopri5td import ode_dopri
+from qutip.cy.dopri5td import ode_td_dopri
 cimport numpy as np
 cimport cython
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
 
 cdef int ONE=1;
 
-cdef double dznrm2(np.ndarray[complex, ndim=1] psi):
-    cdef int l = psi.shape[0]#*2
-    return raw_dznrm2(&l,<complex*>psi.data,&ONE)
+cdef double dznrm2(complex[::1] psi):
+    cdef int l = psi.shape[0]
+    return raw_dznrm2(&l,<complex*>&psi[0],&ONE)
+
+cdef complex[::1] normalize(complex[::1] psi):
+    cdef int i, l = psi.shape[0]
+    cdef double norm = dznrm2(psi)
+    cdef complex[::1] out = np.empty(l, dtype=complex)
+    for i in range(l):
+        out[i] = psi[i] / norm
+    return out
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -32,7 +40,6 @@ def cy_mc_run_ode(ODE, config, prng):
         states_out = np.zeros((1), dtype=object)
     else:
         states_out = np.zeros((num_times), dtype=object)
-
     temp = sp.csr_matrix(
         np.reshape(config.psi0, (config.psi0.shape[0], 1)),
         dtype=complex)
@@ -73,16 +80,14 @@ def cy_mc_run_ode(ODE, config, prng):
 
     collapse_times = []
     which_oper = []
-
     # first rand is collapse norm, second is which operator
     rand_vals = prng.rand(2)
 
     # make array for collapse operator inds
-    cdef np.ndarray[long, ndim=1] cinds = np.arange(config.c_num)
+    cdef np.ndarray[long, ndim=1] cinds = np.arange(len(config.td_c_ops))
 
     c_ops_rhs = [c.get_rhs_func() for c in config.td_c_ops]
     c_expect_func = [c.get_expect_func() for c in config.td_n_ops]
-
     norm2_prev = dznrm2(ODE._y) ** 2
     # RUN ODE UNTIL EACH TIME IN TLIST
     for k in range(1, num_times):
@@ -140,20 +145,17 @@ def cy_mc_run_ode(ODE, config, prng):
                                     "Options.norm_steps.")
 
                 collapse_times.append(ODE.t)
-
                 # some string based collapse operators
-                n_dp = [expect(ODE.t,ODE._y,1)
+                n_dp = [expect(ODE.t, ODE._y, 1)
                           for expect in c_expect_func]
-
                 # determine which operator does collapse and store it
                 kk = np.cumsum(n_dp / np.sum(n_dp))
                 j = cinds[kk >= rand_vals[1]][0]
                 which_oper.append(j)
-                state = c_ops_rhs(ODE.t, ODE._y)
-                state = state / dznrm2(state)
+                state = c_ops_rhs[j](ODE.t, ODE._y)
+                state = normalize(state)
                 ODE.set_initial_value(state, t_prev)
                 rand_vals = prng.rand(2)
-
             else:
                 norm2_prev = norm2_psi
                 t_prev = ODE.t
@@ -161,11 +163,11 @@ def cy_mc_run_ode(ODE, config, prng):
 
         # after while loop
         # ----------------
-        out_psi = ODE._y / dznrm2(ODE._y)
+        out_psi = normalize(ODE._y)
         if config.e_num == 0 or config.options.store_states:
             out_psi_csr = dense2D_to_fastcsr_cmode(np.reshape(out_psi,
                                                    (out_psi.shape[0], 1)),
-                                                   out_psi.shape[0], 1)
+                                                    out_psi.shape[0], 1)
             if (config.options.average_states and
                     not config.options.steady_state_average):
                 states_out[k] = Qobj(
@@ -211,7 +213,6 @@ def cy_mc_run_fast(config, prng):
         states_out = np.zeros((1), dtype=object)
     else:
         states_out = np.zeros((num_times), dtype=object)
-
     temp = sp.csr_matrix(
         np.reshape(config.psi0, (config.psi0.shape[0], 1)),
         dtype=complex)
@@ -232,7 +233,6 @@ def cy_mc_run_fast(config, prng):
                              config.psi0_shape, fast='mc')
     elif config.options.steady_state_average:
         states_out[0] = temp * temp.H
-
     # PRE-GENERATE LIST FOR EXPECTATION VALUES
     expect_out = []
     for i in range(config.e_num):
@@ -252,18 +252,16 @@ def cy_mc_run_fast(config, prng):
 
     collapse_times = []
     which_oper = []
-
     # first rand is collapse norm, second is which operator
     rand_vals = prng.rand(2)
 
     # make array for collapse operator inds
-    cdef np.ndarray[long, ndim=1] cinds = np.arange(config.c_num)
+    cdef np.ndarray[long, ndim=1] cinds = np.arange(len(config.td_c_ops))
 
-    ODE = ode_dopri(len(config.psi0), config.rhs_ptr, config)
+    ODE = ode_td_dopri(len(config.psi0), config.rhs_ptr, config)
 
     c_ops_rhs = [c.get_rhs_func() for c in config.td_c_ops]
     c_expect_func = [c.get_expect_func() for c in config.td_n_ops]
-
     t = tlist[0]
     psi = np.array(config.psi0)
     # RUN ODE UNTIL EACH TIME IN TLIST
@@ -273,7 +271,7 @@ def cy_mc_run_fast(config, prng):
             tt = ODE.integrate(t,tlist[k],rand_vals[0],psi,err)
             if(tt<0):
                 print(k)
-                print(tt,err)
+                print(tt,np.array(err))
             t=tt
             if(t<tlist[k]):
                 collapse_times.append(t)
@@ -285,14 +283,16 @@ def cy_mc_run_fast(config, prng):
                 which_oper.append(j)
 
                 state = c_ops_rhs[j](t, psi)
-                state = state / dznrm2(state)
+                state = normalize(state)
                 psi = state
                 rand_vals = prng.rand(2)
 
 
         # after while loop
         # ----------------
-        out_psi = psi / dznrm2(psi)
+        #for ii in range(len(psi)):
+        #out_psi = psi / dznrm2(psi)#Correct
+        out_psi = normalize(psi)
         if config.e_num == 0 or config.options.store_states:
             out_psi_csr = dense2D_to_fastcsr_cmode(np.reshape(out_psi,
                                                    (out_psi.shape[0], 1)),
