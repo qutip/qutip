@@ -20,6 +20,8 @@ cdef extern from "/home/eric/algo/qutip/qutip/qutip/cy/src/dopri5td.cpp":
         ode(int*, double*, void (*_H)(double, complex *, complex *))
         int step(double, double, complex*, complex*)
         double integrate(double, double, double, complex*, double*)
+        int len()
+        int debug(complex * , complex *, double* )
 
 cdef class ode_td_dopri:
     cdef ode* cobj
@@ -55,3 +57,16 @@ cdef class ode_td_dopri:
         return self.cobj.integrate(_t_in, _t_target, rand,
                                    <complex*>&_psi[0],
                                    <double*>&_err[0])
+
+    def debug(self):
+      l = self.cobj.len()
+      cdef complex[::1] derr_in = np.zeros(l,dtype=complex)
+      cdef complex[::1] derr_out = np.zeros(l,dtype=complex)
+      cdef double[::1] opt = np.zeros(8)
+      print("step_limit", self.cobj.debug(<complex*>&derr_in[0],
+                                          <complex*>&derr_out[0],
+                                          <double*>&opt[0]))
+      for i in range(l):
+          print(derr_in[i], derr_out[i])
+      for i in range(8):
+          print(opt[i])

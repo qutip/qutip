@@ -229,13 +229,13 @@ cdef class cy_compiled_td_qobj:
         spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., out, self.shape0)
         free_CSR(&out_mat)
 
-    def rhs(self, double t, np.ndarray[complex, ndim=1] vec):
-        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0, dtype=complex)
+    def rhs(self, double t, complex[::1] vec):
+        cdef complex[::1] out = np.zeros(self.shape0, dtype=complex)
         self._rhs_mat(t, &vec[0], &out[0])
         return out
 
 """ + expect_code + """
-    def expect(self, double t, np.ndarray[complex, ndim=1] vec, int isherm):
+    def expect(self, double t, complex[::1] vec, int isherm):
         return self._expect_mat(t, &vec[0], isherm)
 
 cdef cy_compiled_td_qobj ctdqo = cy_compiled_td_qobj()

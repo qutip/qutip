@@ -60,7 +60,7 @@ class td_Qobj:
 
         H = [H0, [H1, 'sin(w*t)'], [H2, f1_t], [H3, np.sin(3*w*tlist)]]
 
-        where f1_t ia a python functions with signature f_t(t, args, **kw_args).
+        where f1_t ia a python functions with signature f_t(t, args).
 
     Parameters
     ----------
@@ -203,16 +203,7 @@ class td_Qobj:
                     else:
                         self.cte += op
                 elif type_ == 1:
-                    try:
-                        n_args = op[1].__code__.co_argcount
-                        f_args = op[1].__code__.co_varnames[1:n_args]
-                        local_args = {}
-                        for fa in f_args:
-                            if fa in args:
-                                local_args[fa] = args[fa]
-                        self.ops.append([op[0], op[1], op[1], 1, local_args])
-                    except:
-                        self.ops.append([op[0], op[1], op[1], 1, args])
+                    self.ops.append([op[0], op[1], op[1], 1, args])
                     self.fast = False
                 elif type_ == 2:
                     local_args = {}
@@ -226,13 +217,8 @@ class td_Qobj:
                     l = len(self.ops)
                     N = len(self.tlist)
                     dt = self.tlist[-1] / (N - 1)
-                    self.ops.append([op[0], None,
-                                     op[1].copy(), 3, {}])
-
-                    def from_array(t, l=l, *args, **kw_args):
-                        return _interpolate(t, self.ops[l][2], N, dt)
-
-                    self.ops[-1][1] = from_array
+                    self.ops.append([op[0], _interpolate,
+                                     op[1].copy(), 3, (N, dt)])
 
                 else:
                     raise Exception("Should never be here")
@@ -296,29 +282,113 @@ class td_Qobj:
             raise TypeError("Incorrect Q_object specification")
         return op_type
 
-    def __call__(self, t):
-        op_t = self.cte
-        for part in self.ops:
-            op_t += part[0] * part[1](t, **part[4])
+    def __call__(self, t, data=False):
+        if data:
+            op_t = self.cte.data.copy()
+            for part in self.ops:
+                if part[3] == 1: #func: f(t,args)
+                    op_t += part[0].data * part[1](t, part[4])
+                elif part[3] == 2: #str: f(t,w=2)
+                    op_t += part[0].data * part[1](t, **part[4])
+                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    op_t += part[0].data * part[1](t, part[2], *part[4])
+        else:
+            op_t = self.cte.copy()
+            for part in self.ops:
+                if part[3] == 1: #func: f(t,args)
+                    op_t += part[0] * part[1](t, part[4])
+                elif part[3] == 2: #str: f(t,w=2)
+                    op_t += part[0] * part[1](t, **part[4])
+                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    op_t += part[0] * part[1](t, part[2], *part[4])
         return op_t
 
-    def with_args(self, t, *args, **kw_args):
-        op_t = self.cte.copy()
-        for part in self.ops:
-            part_args = part[4].copy()
-            for pa in part_args:
-                if pa in kw_args:
-                    part_args[pa] = kw_args[pa]
-            if part[3] == 1:
-                op_t += part[0] * part[1](t, *args, **part_args)
+    def with_args(self, t, args, data=False):
+        new_args = self.args.copy()
+        new_args.update(args)
+        if data:
+            op_t = self.cte.data.copy()
+            for part in self.ops:
+                if part[3] == 1: #func: f(t,args)
+                    op_t += part[0].data * part[1](t, new_args)
+                elif part[3] == 2: #str: f(t,w=2)
+                    part_args = part[4].copy()
+                    for pa in part_args:
+                        if pa in args:
+                            part_args[pa] = new_args[pa]
+                    op_t += part[0].data * part[1](t, **part_args)
+                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    op_t += part[0].data * part[1](t, part[2], *part[4])
+        else:
+            op_t = self.cte.copy()
+            for part in self.ops:
+                if part[3] == 1: #func: f(t,args)
+                    op_t += part[0] * part[1](t, new_args)
+                elif part[3] == 2: #str: f(t,w=2)
+                    part_args = part[4].copy()
+                    for pa in part_args:
+                        if pa in args:
+                            part_args[pa] = new_args[pa]
+                    op_t += part[0] * part[1](t, **part_args)
+                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    op_t += part[0] * part[1](t, part[2], *part[4])
+        return op_t
+
+    def with_state(self, t, psi, args={}, data=False):
+        if args:
+            new_args = self.args.copy()
+            new_args.update()
+            if data:
+                op_t = self.cte.data.copy()
+                for part in self.ops:
+                    if part[3] == 1: #func: f(t,args)
+                        op_t += part[0].data * part[1](t, psi, new_args)
+                    elif part[3] == 2: #str: f(t,w=2)
+                        part_args = part[4].copy()
+                        for pa in part_args:
+                            if pa in args:
+                                part_args[pa] = kw_args[pa]
+                        op_t += part[0].data * part[1](t, **part_args)
+                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                        op_t += part[0].data * part[1](t, part[2], *part[4])
             else:
-                op_t += part[0] * part[1](t, **part_args)
+                op_t = self.cte.copy()
+                for part in self.ops:
+                    if part[3] == 1: #func: f(t,args)
+                        op_t += part[0] * part[1](t, new_args)
+                    elif part[3] == 2: #str: f(t,w=2)
+                        part_args = part[4].copy()
+                        for pa in part_args:
+                            if pa in args:
+                                part_args[pa] = kw_args[pa]
+                        op_t += part[0] * part[1](t, **part_args)
+                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                        op_t += part[0] * part[1](t, part[2], *part[4])
+        else:
+            if data:
+                op_t = self.cte.data.copy()
+                for part in self.ops:
+                    if part[3] == 1: #func: f(t,args)
+                        op_t += part[0].data * part[1](t, psi, part[4])
+                    elif part[3] == 2: #str: f(t,w=2)
+                        op_t += part[0].data * part[1](t, **part[4])
+                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                        op_t += part[0].data * part[1](t, part[2], *part[4])
+            else:
+                op_t = self.cte.copy()
+                for part in self.ops:
+                    if part[3] == 1: #func: f(t,args)
+                        op_t += part[0] * part[1](t, psi, part[4])
+                    elif part[3] == 2: #str: f(t,w=2)
+                        op_t += part[0] * part[1](t, **part[4])
+                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                        op_t += part[0] * part[1](t, part[2], *part[4])
         return op_t
 
     def copy(self):
         new = td_Qobj(self.cte.copy())
         new.const = self.const
-        new.args = self.args
+        new.args = self.args.copy()
         new.tlist = self.tlist
         new.dummy_cte = self.dummy_cte
         new.op_type = self.op_type
@@ -332,38 +402,28 @@ class td_Qobj:
             new.ops.append([None, None, None, None, None])
             new.ops[l][0] = op[0].copy()
             new.ops[l][3] = op[3]
-            new.ops[l][4] = op[4].copy()
+            new.ops[l][1] = op[1]
             if new.ops[l][3] in [1, 2]:
-                new.ops[l][1] = op[1]
                 new.ops[l][2] = op[2]
+                new.ops[l][4] = op[4].copy()
             elif new.ops[l][3] == 3:
-                N = len(self.tlist)
-                dt = self.tlist[-1] / (N - 1)
                 new.ops[l][2] = op[2].copy()
-
-                def from_array(t, l=l, *args, **kw_args):
-                    return _interpolate(t, new.ops[l][2], N, dt)
-
-                new.ops[l][1] = from_array
+                new.ops[l][4] = op[4]
 
         return new
 
-    def arguments(self, **kwargs):
-        self.args.update(kwargs)
-        self.compiled = False
-        self.compiled_code = None
+    def arguments(self, args):
+        self.args.update(args)
+        if self.compiled:
+            str_args = {}
+            for i, op in enumerate(self.ops):
+                if op[3] == 3:
+                    i_str = str(i)
+                    str_args["str_array_" + i_str] = op[2]
+            self.compiled_Qobj.set_args(self.args, str_args, self.tlist)
         for op in self.ops:
             if op[3] == 1:
-                try:
-                    n_args = op[1].__code__.co_argcount
-                    f_args = op[1].__code__.co_varnames[1:n_args]
-                    local_args = {}
-                    for fa in f_args:
-                        if fa in args:
-                            local_args[fa] = args[fa]
-                    op[4] = local_args
-                except:
-                    op[4] = self.args
+                op[4] = self.args
             elif op[3] == 2:
                 local_args = {}
                 for i in self.args:
@@ -657,12 +717,12 @@ class td_Qobj:
 
     def expect(self, t, vec, herm=0):
         if self.cte.issuper:
-            return cy_expect_rho_vec(self.__call__(t).data, vec, herm)
+            return cy_expect_rho_vec(self.__call__(t, data=True), vec, herm)
         else:
-            return cy_expect_psi(self.__call__(t).data, vec, herm)
+            return cy_expect_psi(self.__call__(t, data=True), vec, herm)
 
     def rhs(self, t, vec):
-        return spmv(self.__call__(t).data, vec)
+        return spmv(self.__call__(t, data=True), vec)
 
 
 
@@ -691,13 +751,13 @@ def _interpolate(t, f_array, N, dt):
     return approx
 
 def _norm2(f):
-    def ff(a, **kwargs):
-        return np.abs(f(a, **kwargs))**2
+    def ff(a, *args, **kwargs):
+        return np.abs(f(a, *args, **kwargs))**2
     return ff
 
 def _conj(f):
-    def ff(a, **kwargs):
-        return np.conj(f(a, **kwargs))
+    def ff(a, *args, **kwargs):
+        return np.conj(f(a, *args, **kwargs))
     return ff
 
 def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None):

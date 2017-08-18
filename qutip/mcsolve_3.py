@@ -255,7 +255,7 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
 def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
             options=None, progress_bar=True, map_func=None,
-            map_kwargs=None, _safe_mode=True):
+            map_kwargs=None, _safe_mode=True, compile=True):
 
     if debug:
         print(inspect.stack()[0][3])
@@ -341,19 +341,22 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
 
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     # --------------------------------------------
+    dopri = (options.method == "dopri5")
     if not options.rhs_reuse or not config.tdfunc:
         # reset config collapse and time-dependence flags to default values
 
 
         # Find the type of time-dependence for H and c_ops
         # h_tflag
-        #   1 : td that can be compiled to cython (const, str, numpy)
+        #   0 : cte
+        #   1 : td that can be compiled to cython (str, numpy)
         #   2 : td that cannot be compiled (func)
         #   3 : H is a functions
         #   4 : H functions with state
         #
         # c_tflag
-        #   1 : td that can be compiled to cython (const, str, numpy)
+        #   0 : cte
+        #   1 : td that can be compiled to cython (str, numpy)
         #   2 : td that cannot be compiled (func)
 
         # define :
@@ -374,13 +377,22 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         for c in c_ops:
             config.td_c_ops += [td_Qobj(c, args, tlist)]
             config.td_n_ops += [config.td_c_ops[-1].norm()]
+            if config.td_c_ops[-1].cte:
+                c_types += [0]
             if config.td_c_ops[-1].fast:
                 c_types += [1]
-                [c_ops.compile() for c_ops in config.td_c_ops]
-                [c_ops.compile() for c_ops in config.td_n_ops]
             else:
                 c_types += [2]
         config.c_tflag = max(c_types)
+        if config.c_tflag in (0,1):
+            #Compile str, fast cte/numpy
+            [c_ops.get_rhs_func() for c_ops in config.td_c_ops]
+            [c_ops.get_rhs_func() for c_ops in config.td_n_ops]
+        elif config.c_tflag == 2:
+            for c_ops in config.td_c_ops:
+                 c_ops.fast = False
+            for c_ops in config.td_n_ops:
+                 c_ops.fast = False
 
         Hc_td = td_Qobj(config.td_c_ops[0](0)*0., args, tlist)
         for c in config.td_c_ops:
@@ -399,7 +411,8 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 if H_td.fast:
                     config.h_tflag = 1
                     config.rhs = H_td.get_rhs_func()
-                    config.rhs_ptr = H_td._get_rhs_ptr()
+                    if dopri:
+                        config.rhs_ptr = H_td._get_rhs_ptr()
                 else:
                     config.h_tflag = 2
                     config.rhs = H_td.get_rhs_func()
@@ -426,11 +439,15 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 config.H_td = H_td
                 config.h_func = H_td.with_args
 
+
+
     else:
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
         # string based
         raise NotImplementedError("How would this be used?")
-
+    if config.h_tflag >= 2 or config.c_tflag ==2:
+        config.options.method = "adams"
+    print(config.h_tflag, config.c_tflag,config.options.method)
     return config
 
 # -----------------------------------------------------------------------------

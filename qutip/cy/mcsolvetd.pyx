@@ -1,3 +1,6 @@
+# cython: profile=True
+# cython: linetrace=True
+# distutils: define_macros=CYTHON_TRACE_NOGIL=1
 import numpy as np
 import scipy.sparse as sp
 from qutip.fastsparse import csr2fast
@@ -286,7 +289,6 @@ def cy_mc_run_fast(config, prng):
                 state = normalize(state)
                 psi = state
                 rand_vals = prng.rand(2)
-
 
         # after while loop
         # ----------------
