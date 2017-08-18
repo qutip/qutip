@@ -647,7 +647,7 @@ class Dynamics(object):
         Set various memory optimisation attributes based on the 
         memory_optimization attribute
         If they have been set already, e.g. in apply_params
-        then they will not be overidden here
+        then they will not be overridden here
         """
         logger.info("Setting memory optimisations for level {}".format(
                     self.memory_optimization))
@@ -916,7 +916,7 @@ class Dynamics(object):
         """
         This default method does nothing.
         It will be set to another method automatically if `phase_application`
-        is 'preop' or 'postop'. It should be overidden repointed if
+        is 'preop' or 'postop'. It should be overridden repointed if
         `phase_application` is 'custom'
         It will never be called if `dyn_gen_phase` is None
         """
