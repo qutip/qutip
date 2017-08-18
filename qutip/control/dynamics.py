@@ -1802,4 +1802,3 @@ class DynamicsSymplectic(Dynamics):
         if self._dyn_gen_phase is None:
             self._dyn_gen_phase = self._get_dyn_gen_phase()
         return self._dyn_gen_phase
-
