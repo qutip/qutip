@@ -703,9 +703,9 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
                                   unit_y_range=unit_y_range)
 
 
-def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
+def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
                 cmap=None, alpha_max=7.5, colorbar=False,
-                method='iterative', projection='2d'):
+                method='clenshaw', projection='2d'):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -735,7 +735,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
-    method : string {'iterative', 'laguerre', 'fft'}
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 

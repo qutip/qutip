@@ -68,7 +68,6 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
             'qutip/cy/openmp', 'qutip/cy/openmp/src']
 PACKAGE_DATA = {
-    '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
@@ -237,6 +236,7 @@ setup(
     name = NAME,
     version = FULLVERSION,
     packages = PACKAGES,
+    include_package_data=True,
     include_dirs = INCLUDE_DIRS,
     headers = HEADERS,
     ext_modules = cythonize(EXT_MODULES),
