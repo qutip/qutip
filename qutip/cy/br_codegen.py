@@ -54,6 +54,7 @@ class BR_Codegen(object):
                 config=None, sparse=False,
                 use_secular=None,
                 sec_cutoff=0.1,
+                args=None,
                 use_openmp=False, 
                 omp_thresh=None,
                 omp_threads=None, 
@@ -76,6 +77,7 @@ class BR_Codegen(object):
         self.spline_count = spline_count
         self.use_secular = int(use_secular)
         self.sec_cutoff = sec_cutoff
+        self.args = args
         self.sparse = sparse
         self.spline = 0
         # Code generator properties
@@ -139,6 +141,27 @@ class BR_Codegen(object):
         self.level -= 1
 
 
+    def _get_arg_str(self, args):
+        if len(args) == 0:
+            return ''
+
+        ret = ''
+        for name, value in self.args.items():
+            if isinstance(value, np.ndarray):
+                ret += ",\n        np.ndarray[np.%s_t, ndim=1] %s" % \
+                    (value.dtype.name, name)
+            else:
+                if isinstance(value, (int, np.int32, np.int64)):
+                    kind = 'int'
+                elif isinstance(value, (float, np.float32, np.float64)):
+                    kind = 'float'
+                elif isinstance(value, (complex, np.complex128)):
+                    kind = 'complex'
+                #kind = type(value).__name__
+                ret += ",\n        " + kind + " " + name
+        return ret
+    
+    
     def ODE_func_header(self):
         """Creates function header for time-dependent ODE RHS."""
         func_name = "def cy_td_ode_rhs("
@@ -196,6 +219,7 @@ class BR_Codegen(object):
         
         
         input_vars += (",\n        unsigned int nrows")
+        input_vars += self._get_arg_str(self.args)
         
         func_end = "):"
         return [func_name + input_vars + func_end]

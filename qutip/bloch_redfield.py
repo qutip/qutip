@@ -35,6 +35,7 @@ __all__ = ['brmesolve', 'bloch_redfield_solve', 'bloch_redfield_tensor']
 
 import numpy as np
 import os
+import time
 import types
 import warnings
 from functools import partial
@@ -66,7 +67,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
               args={}, use_secular=True, sec_cutoff = 0.1,
               tol=qset.atol,
               spectra_cb=None, options=None,
-              progress_bar=None, _safe_mode=True):
+              progress_bar=None, _safe_mode=True, verbose=False):
     """
     Solves for the dynamics of a system using the Bloch-Redfield master equation,
     given an input Hamiltonian, Hermitian bath-coupling terms and their associated 
@@ -135,7 +136,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         List of system collapse operators, or nested list in
         string-based format.
 
-    args : dict (not implimented)
+    args : dict 
         Placeholder for future implementation, kept for API consistency.
 
     use_secular : bool {True}
@@ -166,7 +167,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by `tlist`.
     """
-    
+    _prep_time = time.time()
     #This allows for passing a list of time-independent Qobj
     #as allowed by mesolve
     if isinstance(H, list):
@@ -234,11 +235,12 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         
     elif n_str != 0 and n_func == 0:
         output = _td_brmesolve(H, psi0, tlist, a_ops=a_ops, e_ops=e_ops, 
-                        c_ops=c_ops, use_secular=use_secular, 
+                        c_ops=c_ops, args=args, use_secular=use_secular, 
                         sec_cutoff=sec_cutoff,
                         tol=tol, options=options, 
                          progress_bar=progress_bar,
-                         _safe_mode=_safe_mode)
+                         _safe_mode=_safe_mode, verbose=verbose, 
+                         _prep_time=_prep_time)
                          
         return output
         
@@ -505,10 +507,12 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True,
 
 
 
-def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
+def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                  use_secular=True, sec_cutoff=0.1,
                  tol=qset.atol, options=None, 
-                 progress_bar=None,_safe_mode=True):
+                 progress_bar=None,_safe_mode=True,
+                 verbose=False,
+                 _prep_time=0):
     
     if isket(psi0):
         rho0 = ket2dm(psi0)
@@ -558,7 +562,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 spline_count[0] += 1
             C_td_terms.append(c[1])
         else:
-            raise Exception('Invalid collape operator specification.')
+            raise Exception('Invalid collapse operator specification.')
             
     coupled_offset = 0
     for kk, a in enumerate(a_ops):
@@ -610,8 +614,15 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         string_list.append("A_terms[{0}]".format(kk))
     #Add nrows to parameters
     string_list.append('nrows')
+    for name, value in args.items():
+        if isinstance(value, np.ndarray):
+            raise TypeError('NumPy arrays not valid args for BR solver.')
+        else:
+            string_list.append(str(value))
     parameter_string = ",".join(string_list)
     
+    if verbose:
+        print('BR prep time:', time.time()-_prep_time)
     #
     # generate and compile new cython code if necessary
     #
@@ -620,6 +631,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
+        if verbose:
+            _st = time.time()
         cgen = BR_Codegen(h_terms=len(H_terms), 
                     h_td_terms=H_td_terms, h_obj=H_obj,
                     c_terms=len(C_terms), 
@@ -632,6 +645,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     config=config, sparse=False,
                     use_secular = use_secular,
                     sec_cutoff = sec_cutoff,
+                    args=args,
                     use_openmp=options.use_openmp, 
                     omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
                     omp_threads=options.num_cpus, 
@@ -642,7 +656,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                        '<string>', 'exec')
         exec(code, globals())
         config.tdfunc = cy_td_ode_rhs
-    
+        if verbose:
+            print('BR compile time:', time.time()-_st)
     initial_vector = mat2vec(rho0.full()).ravel()
     
     _ode = scipy.integrate.ode(config.tdfunc)
@@ -698,6 +713,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     #
     # start evolution
     #
+    if type(progress_bar)==BaseProgressBar and verbose:
+        _run_time = time.time()
+    
     progress_bar.start(n_tsteps)
 
     rho = Qobj(rho0)
@@ -733,6 +751,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             _ode.integrate(_ode.t + dt[t_idx])
 
     progress_bar.finished()
+    
+    if type(progress_bar)==BaseProgressBar and verbose:
+        print('BR runtime:', time.time()-_run_time)
 
     if (not options.rhs_reuse) and (config.tdname is not None):
         _cython_build_cleanup(config.tdname)

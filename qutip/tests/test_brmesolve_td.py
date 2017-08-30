@@ -418,7 +418,34 @@ def test_td_brmesolve_split_ops4():
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 1e-2)
 
+def test_td_brmesolve_args():
+    """
+    td_brmesolve: Hamiltonian args
+    """
+    N = 10
+    a = tensor(destroy(N), identity(2))
+    sm = tensor(identity(N), destroy(2))
+    psi0 = ket2dm(tensor(basis(N, 1), basis(2, 0)))
+    e_ops = [a.dag() * a, sm.dag() * sm]
 
+    w0 = 1.0 * 2 * np.pi
+    g = 0.75 * 2 * np.pi
+    kappa = 0.05
+    times = np.linspace(0, 5 * 2 * np.pi / g, 1000)
+
+    a_ops = [[(a + a.dag()),'{k}*(w > 0)'.format(k=kappa)]]
+
+    c_ops = [np.sqrt(kappa) * a]
+    H = w0 * a.dag() * a + w0 * sm.dag() * sm + g * (a + a.dag()) * (sm + sm.dag())
+
+    brme1 = brmesolve(H, psi0, times, a_ops, e_ops)
+
+    H2= [[w0 * a.dag() * a + w0 * sm.dag() * sm + g * (a + a.dag()) * (sm + sm.dag()),'ii']]
+
+    brme2 = brmesolve(H2, psi0, times, a_ops, e_ops, args={'ii': 1})
+
+    assert_allclose(brme2.expect[0], brme1.expect[0])
+    assert_allclose(brme2.expect[1], brme1.expect[1])
 
 if __name__ == "__main__":
     run_module_suite()
