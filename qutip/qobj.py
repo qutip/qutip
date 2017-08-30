@@ -953,9 +953,12 @@ class Qobj(object):
         """
         if self.type in ['oper', 'super']:
             if norm is None or norm == 'tr':
-                vals = sp_eigs(self.data, self.isherm, vecs=False,
-                               sparse=sparse, tol=tol, maxiter=maxiter)
-                return np.sum(sqrt(abs(vals) ** 2))
+                if self.isherm:
+                    vals = sp_eigs(self.data, self.isherm, vecs=False,
+                                   sparse=sparse, tol=tol, maxiter=maxiter)
+                    return np.sum(sqrt(abs(vals) ** 2))
+                else:
+                    return (self * self.dag()).sqrtm().tr()
             elif norm == 'fro':
                 return sp_fro_norm(self.data)
             elif norm == 'one':
