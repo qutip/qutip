@@ -583,6 +583,10 @@ def test_QobjNorm():
     assert_equal(
         np.abs(A.norm('fro') - la.norm(A.full(), 'fro')) < 1e-12, True)
 
+    # Test trace norm for non-hermitian operators
+    s = Qobj([[0., 1], [0., 0.]])
+    assert_equal(s.norm(), 1.)
+
 
 def test_QobjPermute():
     "Qobj permute"
