@@ -110,6 +110,175 @@ def _td_array_to_str(self, op_np2, times):
 
     return str_op, np_args
 
+
+def make_united_f_ptr(ops, args, tlist, return_code=False):
+    import os
+    _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
+                    "\\", "/")
+    _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
+
+    compile_list = []
+    N_np = 0
+    args_np = []
+    for op in ops:
+        if op[3] == 2:
+            compile_list.append(op[2])
+        elif op[3] == 3:
+            if isinstance(op[2][0], (float, np.float32, np.float64)):
+                string = "interpolate(t, &str_array_" + str(N_np) + "[0], N_times, dt_times)"
+                args_np += [0]
+            elif isinstance(op[2][0], (complex, np.complex128)):
+                string = "zinterpolate(t, &str_array_" + str(N_np) + "[0], N_times, dt_times)"
+                args_np += [1]
+            compile_list.append(string)
+            N_np += 1
+    if args_np != 0:
+
+    all_str = ""
+    for op in compile_list:
+        all_str += op[0]
+    filename = "td_Qobj_f_ptr"+str(hash(all_str))[1:]
+
+    Code = """
+# This file is generated automatically by QuTiP.
+
+import numpy as np
+cimport numpy as np
+cimport cython
+np.import_array()
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+from qutip.cy.spmatfuncs cimport spmvpy
+from qutip.cy.inter cimport zinterpolate, interpolate
+from qutip.cy.math cimport erf
+cdef double pi = 3.14159265358979323
+
+cdef extern from "Python.h":
+    object PyLong_FromVoidPtr(void *)
+    void* PyLong_AsVoidPtr(object)
+
+include """+_include_string+"\n\n"
+
+    if N_np:
+        code += "cdef class np_array_obj:"
+        for i, iscplx in enumerate(args_np):
+            if iscplx:
+                code += "    cdef np.ndarray[complex, ndim=1] str_array_" + str(i) + "\n"
+            else:
+                code += "    cdef np.ndarray[double, ndim=1] str_array_" + str(i) + "\n"
+        code += "\n"
+        code += "    def set_array_imag(int N, np.ndarray[complex, ndim=1] array):\n"
+        code += "        if N ==-1:\n"
+        code += "            pass\n"
+        for i, iscplx in enumerate(args_np):
+            if iscplx:
+                code += "        elif N =="+ str(i) + ":\n"
+                code += "            str_array_" + str(i) + "= array\n"
+        code += "        else:\n"
+        code += "            raise Exception('Bad classification imag')\n"
+        code += "\n"
+        code += "    def set_array_real(int N, np.ndarray[double, ndim=1] array):\n"
+        code += "        if N ==-1:\n"
+        code += "            pass\n"
+        for i, iscplx in enumerate(args_np):
+            if not iscplx:
+                code += "        elif N =="+ str(i) + ":\n"
+                code += "            str_array_" + str(i) + "= array\n"
+        code += "        else:\n"
+        code += "            raise Exception('Bad classification real')\n"
+    else:
+        code += "cdef class np_array_obj:"
+        code += "    pass"
+
+    code += "\n"
+    code += "cdef np_array_obj np_obj = np_array_obj()"
+    code += "\n\n"
+
+    code += "cdef void coeff(t, complex* out):\n"
+    if N_np:
+        code += "cdef int N_times = " + str(len(tlist)) + "\n"
+        code += "cdef int dt_times = " + str(tlist[1]-tlist[0]) + "\n"
+        for i, iscplx in enumerate(args_np):
+            if iscplx:
+                code += "    cdef np.ndarray[complex, ndim=1] str_array_" + str(i) + "= np_obj.str_array_" + str(i) + "\n"
+            else:
+                code += "    cdef np.ndarray[double, ndim=1] str_array_" + str(i) + "= np_obj.str_array_" + str(i) + "\n"
+    for name, value in args.items():
+        is not isinstance(name, str):
+            raise Exception("All arguments key must be string and valid variables name")
+        if isinstance(value, (int, np.int32, np.int64)):
+            code += "    cdef int " + name + " = " + str(value) + "\n"
+        elif isinstance(value, (float, np.float32, np.float64)):
+            code += "    cdef double " + name + " = " + str(value) + "\n"
+        elif isinstance(value, (complex, np.complex128)):
+            code += "    cdef complex " + name + " = " + str(value) + "\n"
+    code += "\n"
+    for i, str_coeff in enumerate(compile_list):
+        Code += "    out[" + str(i) +"] = " + str_coeff
+
+    code += """
+
+def get_ptr(set_np_obj = False):
+    if set_np_obj:
+        return np_obj
+    else:
+        return PyLong_FromVoidPtr(<void*> coeff)
+"""
+
+    file = open(filename+".pyx", "w")
+    print(code)
+    file.writelines(Code)
+    file.close()
+    compile_f_ptr = []
+
+    import_code = compile('from ' + filename + ' import get_ptr' +
+                          "\ncompile_f_ptr.append(get_ptr)" ,
+                          '<string>', 'exec')
+    exec(import_code, locals())
+
+    if N_np:
+        np_obj = compile_f_ptr[0](set_np_obj = True)
+        n_op = 0
+        for op in ops:
+            if op[3] == 3:
+                if isinstance(op[2][0], (float, np.float32, np.float64)):
+                    np_obj.set_array_real(n_op, op[2])
+                elif isinstance(op[2][0], (complex, np.complex128)):
+                    np_obj.set_array_imag(n_op, op[2])
+                n_op += 1
+
+    try:
+        os.remove(filename+".pyx")
+    except:
+        pass
+
+    if return_code:
+        return compile_f_ptr[0], code
+    else:
+        return compile_f_ptr[0]
+
+
+
+
+    for i, op in enumerate(obj.ops):
+        i_str = str(i)
+        if op[3] == 2:
+            factor_code += "        out[" + i_str + "] = " + op[2] + "\n"
+        if op[3] == 3:
+            v0 = op[2][0]
+            if isinstance(v0, (float, np.float32, np.float64)):
+                factor_code += "        out[" + i_str + "] = interpolate(t, str_array_" + i_str + ", N, dt)\n"
+            elif isinstance(v0, (complex, np.complex128)):
+                factor_code += "        out[" + i_str + "] = zinterpolate(t, str_array_" + i_str + ", N, dt)\n"
+
+
+
+
+
+
+
+
 def td_qobj_codegen(obj, return_code=False):
     import os
     code, str_args = make_code(obj)

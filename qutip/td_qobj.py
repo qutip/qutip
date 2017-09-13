@@ -40,8 +40,9 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
-from qutip.td_qobj_codegen import _compile_str_single, td_qobj_codegen
+from qutip.td_qobj_codegen import _compile_str_single, td_qobj_codegen, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
+from qutip.cy.td_Qobj_cy import cy_cte_qobj, cy_td_qobj
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,
@@ -670,14 +671,14 @@ class td_Qobj:
                 if self.compiled_Qobj is None:
                     raise Exception("Could not compile")
                 else:
-                    self.compiled = True
+                    self.compiled = 1
             else:
                 self.compiled_Qobj, self.compiled_ptr, code_str = \
                         td_qobj_codegen(self, code)
                 if self.compiled_Qobj is None:
                     raise Exception("Could not compile")
                 else:
-                    self.compiled = True
+                    self.compiled = 1
                 return code_str
 
     def get_compiled_call(self):
@@ -724,6 +725,58 @@ class td_Qobj:
     def rhs(self, t, vec):
         return spmv(self.__call__(t, data=True), vec)
 
+    def build():
+        if self.compiled == 1:
+            raise Exception("Only one compiled form at a time")
+        if self.compiled == 2:
+            raise Exception("Already builded")
+        elif self.const:
+            self.compiled_Qobj = cy_cte_qobj()
+            self.compiled_Qobj.set_data(self.cte)
+            self.compiled = 2
+        elif self.fast:
+            self.compiled_Qobj = cy_td_qobj()
+            self.compiled_Qobj.set_data(self.cte, self.ops)
+            self.coeff_get = make_united_f_ptr(self.ops, self.args)
+            self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+            self.compiled = 2
+        else:
+            self.compiled_Qobj = cy_td_qobj()
+            self.compiled_Qobj.set_data(self.cte, self.ops)
+            self.compiled_Qobj.set_factor(func=self.make_united_f_call())
+            self.compiled = 2
+
+    def make_united_f_call(self):
+        types = [0,0,0]
+        for part in self.ops:
+            types[part[3]-1] += 1
+        if sum(types) == 0:
+            if len(self.ops) == 0:
+                raise Exception("No td operator but constant flag missing")
+            else:
+                raise Exception("Type of td_operator not supported")
+        elif types[1] == 0 and types[2] == 0:
+            #Only functions
+            self.funclist = []
+            for part in self.ops:
+                self.funclist.append(part[1])
+            def united_f_call(t):
+                out = []
+                for func in self.funclist:
+                    out.append( func(t, self.args)))
+                return out
+        else:
+            #Must be mixed, would be fast otherwise
+            def united_f_call(t):
+                out = []
+                for part in self.ops:
+                    if part[3] == 1: #func: f(t,args)
+                        out.append( part[1](t, part[4]))
+                    elif part[3] == 2: #str: f(t,w=2)
+                        out.append(part[1](t, **part[4]))
+                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                        out.append( part[1](t, part[2], *part[4]))
+        return united_f_call
 
 
 def _interpolate(t, f_array, N, dt):
