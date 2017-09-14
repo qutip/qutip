@@ -415,13 +415,17 @@ class td_Qobj:
 
     def arguments(self, args):
         self.args.update(args)
-        if self.compiled:
+        if self.compiled == 1:
             str_args = {}
             for i, op in enumerate(self.ops):
                 if op[3] == 3:
                     i_str = str(i)
                     str_args["str_array_" + i_str] = op[2]
             self.compiled_Qobj.set_args(self.args, str_args, self.tlist)
+        elif self.compiled == 2 and self.fast:
+            self.coeff_get = make_united_f_ptr(self.ops, self.args,
+                                               self.tlist, False)
+            self.compiled_Qobj.set_factor(ptr=self.coeff_get())
         for op in self.ops:
             if op[3] == 1:
                 op[4] = self.args
@@ -446,7 +450,19 @@ class td_Qobj:
     def __iadd__(self, other):
         if isinstance(other, td_Qobj):
             self.cte += other.cte
-            self.ops += other.ops
+            l = len(self.ops)
+            for op in other.ops:
+                self.ops.append([None, None, None, None, None])
+                self.ops[l][0] = op[0].copy()
+                self.ops[l][3] = op[3]
+                self.ops[l][1] = op[1]
+                if self.ops[l][3] in [1, 2]:
+                    self.ops[l][2] = op[2]
+                    self.ops[l][4] = op[4].copy()
+                elif self.ops[l][3] == 3:
+                    self.ops[l][2] = op[2].copy()
+                    self.ops[l][4] = op[4]
+                l += 1
             self.args.update(**other.args)
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
@@ -663,7 +679,9 @@ class td_Qobj:
                 op[2] = np.conj(op[2])
         return self
 
-    def compile(self, code=False):
+    def build(self, code=False):
+        if self.compiled == 2:
+            raise Exception("Only one compiled form at a time")
         if self.fast:
             self.tidyup()
             if not code:
@@ -682,17 +700,13 @@ class td_Qobj:
                 return code_str
 
     def get_compiled_call(self):
-        if not self.fast:
-            return self.__call__
         if not self.compiled:
             self.compile()
         return self.compiled_Qobj.call
 
     def get_rhs_func(self):
-        if not self.fast:
-            return self.rhs
         if not self.compiled:
-            self.compile()
+            self.build()
         return self.compiled_Qobj.rhs
 
     def _get_rhs_ptr(self):
@@ -703,8 +717,6 @@ class td_Qobj:
         return self.compiled_ptr[0]
 
     def get_expect_func(self):
-        if not self.fast:
-            return self.expect
         if not self.compiled:
             self.compile()
         return self.compiled_Qobj.expect
@@ -713,7 +725,7 @@ class td_Qobj:
         if not self.fast:
             raise Exception("Cannot be compiled")
         if not self.compiled:
-            self.compile()
+            self.build()
         return self.compiled_ptr[1]
 
     def expect(self, t, vec, herm=0):
@@ -725,11 +737,10 @@ class td_Qobj:
     def rhs(self, t, vec):
         return spmv(self.__call__(t, data=True), vec)
 
-    def build():
+    def compile(self, code=False):
+        self.tidyup()
         if self.compiled == 1:
             raise Exception("Only one compiled form at a time")
-        if self.compiled == 2:
-            raise Exception("Already builded")
         elif self.const:
             self.compiled_Qobj = cy_cte_qobj()
             self.compiled_Qobj.set_data(self.cte)
@@ -737,9 +748,16 @@ class td_Qobj:
         elif self.fast:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
-            self.coeff_get = make_united_f_ptr(self.ops, self.args)
+            if code:
+                self.coeff_get,Code = make_united_f_ptr(self.ops, self.args,
+                                                        self.tlist, True)
+            else:
+                self.coeff_get = make_united_f_ptr(self.ops, self.args,
+                                                   self.tlist, False)
+                Code = None
             self.compiled_Qobj.set_factor(ptr=self.coeff_get())
             self.compiled = 2
+            return Code
         else:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
@@ -763,7 +781,7 @@ class td_Qobj:
             def united_f_call(t):
                 out = []
                 for func in self.funclist:
-                    out.append( func(t, self.args)))
+                    out.append( func(t, self.args))
                 return out
         else:
             #Must be mixed, would be fast otherwise
@@ -776,6 +794,7 @@ class td_Qobj:
                         out.append(part[1](t, **part[4]))
                     elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
                         out.append( part[1](t, part[2], *part[4]))
+                return(out)
         return united_f_call
 
 

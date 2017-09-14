@@ -132,14 +132,12 @@ def make_united_f_ptr(ops, args, tlist, return_code=False):
                 args_np += [1]
             compile_list.append(string)
             N_np += 1
-    if args_np != 0:
-
-    all_str = ""
+    all_str = "" + str(np.random.random())
     for op in compile_list:
         all_str += op[0]
     filename = "td_Qobj_f_ptr"+str(hash(all_str))[1:]
 
-    Code = """
+    code = """
 # This file is generated automatically by QuTiP.
 
 import numpy as np
@@ -161,51 +159,51 @@ cdef extern from "Python.h":
 include """+_include_string+"\n\n"
 
     if N_np:
-        code += "cdef class np_array_obj:"
+        code += "cdef class np_array_obj:\n"
         for i, iscplx in enumerate(args_np):
             if iscplx:
-                code += "    cdef np.ndarray[complex, ndim=1] str_array_" + str(i) + "\n"
+                code += "    cdef complex[::1] str_array_" + str(i) + "\n"
             else:
-                code += "    cdef np.ndarray[double, ndim=1] str_array_" + str(i) + "\n"
+                code += "    cdef double[::1] str_array_" + str(i) + "\n"
         code += "\n"
-        code += "    def set_array_imag(int N, np.ndarray[complex, ndim=1] array):\n"
+        code += "    def set_array_imag(self, int N, np.ndarray[complex, ndim=1] array):\n"
         code += "        if N ==-1:\n"
         code += "            pass\n"
         for i, iscplx in enumerate(args_np):
             if iscplx:
                 code += "        elif N =="+ str(i) + ":\n"
-                code += "            str_array_" + str(i) + "= array\n"
+                code += "            self.str_array_" + str(i) + "= array\n"
         code += "        else:\n"
         code += "            raise Exception('Bad classification imag')\n"
         code += "\n"
-        code += "    def set_array_real(int N, np.ndarray[double, ndim=1] array):\n"
+        code += "    def set_array_real(self, int N, np.ndarray[double, ndim=1] array):\n"
         code += "        if N ==-1:\n"
         code += "            pass\n"
         for i, iscplx in enumerate(args_np):
             if not iscplx:
                 code += "        elif N =="+ str(i) + ":\n"
-                code += "            str_array_" + str(i) + "= array\n"
+                code += "            self.str_array_" + str(i) + "= array\n"
         code += "        else:\n"
         code += "            raise Exception('Bad classification real')\n"
     else:
-        code += "cdef class np_array_obj:"
+        code += "cdef class np_array_obj:\n"
         code += "    pass"
 
     code += "\n"
     code += "cdef np_array_obj np_obj = np_array_obj()"
     code += "\n\n"
 
-    code += "cdef void coeff(t, complex* out):\n"
+    code += "cdef void coeff(double t, complex* out):\n"
     if N_np:
-        code += "cdef int N_times = " + str(len(tlist)) + "\n"
-        code += "cdef int dt_times = " + str(tlist[1]-tlist[0]) + "\n"
+        code += "    cdef int N_times = " + str(len(tlist)) + "\n"
+        code += "    cdef double dt_times = " + str(tlist[1]-tlist[0]) + "\n"
         for i, iscplx in enumerate(args_np):
             if iscplx:
-                code += "    cdef np.ndarray[complex, ndim=1] str_array_" + str(i) + "= np_obj.str_array_" + str(i) + "\n"
+                code += "    cdef complex[::1] str_array_" + str(i) + "= np_obj.str_array_" + str(i) + "\n"
             else:
-                code += "    cdef np.ndarray[double, ndim=1] str_array_" + str(i) + "= np_obj.str_array_" + str(i) + "\n"
+                code += "    cdef double[::1] str_array_" + str(i) + "= np_obj.str_array_" + str(i) + "\n"
     for name, value in args.items():
-        is not isinstance(name, str):
+        if not isinstance(name, str):
             raise Exception("All arguments key must be string and valid variables name")
         if isinstance(value, (int, np.int32, np.int64)):
             code += "    cdef int " + name + " = " + str(value) + "\n"
@@ -215,7 +213,7 @@ include """+_include_string+"\n\n"
             code += "    cdef complex " + name + " = " + str(value) + "\n"
     code += "\n"
     for i, str_coeff in enumerate(compile_list):
-        Code += "    out[" + str(i) +"] = " + str_coeff
+        code += "    out[" + str(i) +"] = " + str_coeff + "\n"
 
     code += """
 
@@ -227,8 +225,7 @@ def get_ptr(set_np_obj = False):
 """
 
     file = open(filename+".pyx", "w")
-    print(code)
-    file.writelines(Code)
+    file.writelines(code)
     file.close()
     compile_f_ptr = []
 

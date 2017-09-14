@@ -60,6 +60,7 @@ cdef class cy_cte_qobj:
 
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
+        out.is_set = 0
         copy_CSR(&out, &self.cte)
         scipy_obj = CSR_to_scipy(&out)
         #free_CSR(&out)? data is own by the scipy_obj?
