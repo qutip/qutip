@@ -42,7 +42,7 @@ from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
 from qutip.td_qobj_codegen import _compile_str_single, td_qobj_codegen, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
-from qutip.cy.td_Qobj_cy import cy_cte_qobj, cy_td_qobj
+from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,

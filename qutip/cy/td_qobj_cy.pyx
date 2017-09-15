@@ -42,12 +42,6 @@ cdef extern from "Python.h":
     void* PyLong_AsVoidPtr(object)
 
 cdef class cy_cte_qobj:
-    cdef int total_elem
-    cdef int shape0, shape1
-    cdef int super
-    #pointer to data
-    cdef CSR_Matrix cte
-
     def __init__(self):
         pass
 
@@ -60,6 +54,7 @@ cdef class cy_cte_qobj:
 
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
+        out.is_set = 0
         copy_CSR(&out, &self.cte)
         scipy_obj = CSR_to_scipy(&out)
         #free_CSR(&out)? data is own by the scipy_obj?
@@ -67,6 +62,9 @@ cdef class cy_cte_qobj:
             return scipy_obj
         else:
             return Qobj(scipy_obj)
+
+    def get_ptr(self):
+        return PyLong_FromVoidPtr(<void*> self)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -123,26 +121,6 @@ cdef class cy_cte_qobj:
 
 
 cdef class cy_td_qobj:
-    cdef long total_elem
-    cdef int shape0, shape1
-    cdef int super
-    cdef void (*factor_ptr)(double, complex*)
-    cdef object factor_func
-    cdef int factor_use_ptr
-
-    #pointer to data
-    cdef CSR_Matrix cte
-
-    cdef CSR_Matrix ** ops
-    cdef long[::1] sum_elem
-    cdef int N_ops
-
-    #args
-    #cdef double dt dt_times
-    #cdef int N N_times
-    #cdef double w
-    #cdef double * str_array_0
-
     def __init__(self):
         self.N_ops = 0
         self.ops = <CSR_Matrix**> malloc(0 * sizeof(CSR_Matrix*))
@@ -190,6 +168,9 @@ cdef class cy_td_qobj:
             coeff = self.factor_func(t)
             for i in range(self.N_ops):
                 out[i] = coeff[i]
+
+    def get_ptr(self):
+        return PyLong_FromVoidPtr(<void*> self)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -362,7 +343,7 @@ cdef class cy_td_qobj:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef expect_rho(self, complex* data, int* idx, int* ptr, complex* rho_vec,
+    cdef complex expect_rho(self, complex* data, int* idx, int* ptr, complex* rho_vec,
                     int isherm):
         cdef size_t row
         cdef int jj,row_start,row_end
