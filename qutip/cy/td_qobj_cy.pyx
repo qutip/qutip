@@ -72,6 +72,17 @@ cdef class cy_cte_qobj(cy_qobj):
         else:
             return Qobj(scipy_obj)
 
+    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+        cdef CSR_Matrix out
+        out.is_set = 0
+        copy_CSR(&out, &self.cte)
+        scipy_obj = CSR_to_scipy(&out)
+        #free_CSR(&out)? data is own by the scipy_obj?
+        if data:
+            return scipy_obj
+        else:
+            return Qobj(scipy_obj)
+
     def get_ptr(self):
         return PyLong_FromVoidPtr(<void*> self)
 
@@ -181,13 +192,15 @@ cdef class cy_td_qobj(cy_qobj):
     def get_ptr(self):
         return PyLong_FromVoidPtr(<void*> self)
 
+    #cdef void _call_core(self, double t, CSR_Matrix * out):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _call_core(self, double t, CSR_Matrix * out):
-        cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
-                                                          dtype=complex)
-        self.factor(t, &coeff[0])
+    cdef void _call_core(self, double t, CSR_Matrix * out,
+                                    complex* coeff):
+        #cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
+        #                                                  dtype=complex)
+        #self.factor(t, &coeff[0])
         cdef int i
         cdef CSR_Matrix previous, next
 
@@ -229,7 +242,21 @@ cdef class cy_td_qobj(cy_qobj):
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
         init_CSR(&out, self.total_elem, self.shape0, self.shape1)
-        self._call_core(t, &out)
+        cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
+                                                          dtype=complex)
+        self.factor(t, &coeff[0])
+        self._call_core(t, &out, &coeff[0])
+        scipy_obj = CSR_to_scipy(&out)
+        #free_CSR(&out)? data is own by the scipy_obj?
+        if data:
+            return scipy_obj
+        else:
+            return Qobj(scipy_obj)
+
+    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+        cdef CSR_Matrix out
+        init_CSR(&out, self.total_elem, self.shape0, self.shape1)
+        self._call_core(t, &out, &coeff[0])
         scipy_obj = CSR_to_scipy(&out)
         #free_CSR(&out)? data is own by the scipy_obj?
         if data:
@@ -243,7 +270,10 @@ cdef class cy_td_qobj(cy_qobj):
     cdef void _rhs_mat_sum(self, double t, complex* vec, complex* out):
         cdef CSR_Matrix out_mat
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
-        self._call_core(t, &out_mat)
+        cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
+                                                          dtype=complex)
+        self.factor(t, &coeff[0])
+        self._call_core(t, &out_mat, &coeff[0])
         spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., out, self.shape0)
         free_CSR(&out_mat)
 
@@ -293,7 +323,10 @@ cdef class cy_td_qobj(cy_qobj):
     cdef complex _expect_mat_sum1(self, double t, complex* vec, int isherm):
         cdef CSR_Matrix out_mat
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
-        self._call_core(t, &out_mat)
+        cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
+                                                          dtype=complex)
+        self.factor(t, &coeff[0])
+        self._call_core(t, &out_mat, &coeff[0])
         cdef complex [::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., &y[0], self.shape0)
         cdef int row
@@ -312,7 +345,10 @@ cdef class cy_td_qobj(cy_qobj):
     cdef complex _expect_mat_sum2(self, double t, complex* vec, int isherm):
         cdef CSR_Matrix out_mat
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
-        self._call_core(t, &out_mat)
+        cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
+                                                          dtype=complex)
+        self.factor(t, &coeff[0])
+        self._call_core(t, &out_mat, &coeff[0])
         expect = self._expect_psi(out_mat.data, out_mat.indices, out_mat.indptr,
                                  vec, isherm)
         free_CSR(&out_mat)
@@ -375,7 +411,10 @@ cdef class cy_td_qobj(cy_qobj):
     cdef complex _expect_mat_super_sum(self, double t, complex* vec, int isherm):
         cdef CSR_Matrix out_mat
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
-        self._call_core(t, &out_mat)
+        cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
+                                                          dtype=complex)
+        self.factor(t, &coeff[0])
+        self._call_core(t, &out_mat, &coeff[0])
         expect = self._expect_rho(out_mat.data, out_mat.indices,
                                    out_mat.indptr, vec, isherm)
         free_CSR(&out_mat)
@@ -431,11 +470,11 @@ cdef class cy_td_qobj(cy_qobj):
     def expect(self, double t, complex[::1] vec, int isherm, type = 1):
         if self.super:
           if type == 1:
-            return self._expect_mat_super_sum(t, &vec[0], isherm)
+              return self._expect_mat_super(t, &vec[0], isherm)
           elif type == 2:
-            return self._expect_mat_super(t, &vec[0], isherm)
+              return self._expect_mat_super_last(t, &vec[0], isherm)
           else:
-            return self._expect_mat_super_last(t, &vec[0], isherm)
+              return self._expect_mat_super_sum(t, &vec[0], isherm)
         else:
           if type == 1:
             return self._expect_mat(t, &vec[0], isherm)

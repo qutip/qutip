@@ -33,7 +33,7 @@ cdef class cy_td_qobj(cy_qobj):
     cdef int N_ops
 
     cdef void factor(self, double t, complex* out)
-    cdef void _call_core(self, double t, CSR_Matrix * out)
+    cdef void _call_core(self, double t, CSR_Matrix * out, complex* coeff)
     cdef void _rhs_mat_sum(self, double t, complex* vec, complex* out)
     cdef void _rhs_mat(self, double t, complex* vec, complex* out)
     cdef complex _expect_psi(self, complex* data, int* idx, int* ptr,

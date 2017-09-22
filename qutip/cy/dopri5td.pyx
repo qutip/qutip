@@ -70,14 +70,6 @@ cdef class ode_td_dopri:
                                    <complex*>&_psi[0],
                                    <double*>&_err[0])
 
-    def test1(self):
-        global compiled_cte_cy
-        print(compiled_cte_cy.call(0,data=1))
-
-    def test(self, double t, complex[::1] vec, complex[::1] out):
-        global compiled_cte_cy
-        compiled_cte_cy._rhs_mat(t, <complex*>&vec[0], <complex*>&out[0])
-
 
     def debug(self):
       l = self.cobj.len()

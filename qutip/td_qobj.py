@@ -40,7 +40,7 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
-from qutip.td_qobj_codegen import _compile_str_single, td_qobj_codegen, make_united_f_ptr
+from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
 
@@ -284,6 +284,8 @@ class td_Qobj:
         return op_type
 
     def __call__(self, t, data=False):
+        if self.compiled:
+            return self.compiled_Qobj.call(t, data)
         if data:
             op_t = self.cte.data.copy()
             for part in self.ops:
@@ -305,9 +307,23 @@ class td_Qobj:
         return op_t
 
     def with_args(self, t, args, data=False):
+        coeff = np.zeros(len(self.ops), dtype=complex)
         new_args = self.args.copy()
         new_args.update(args)
-        if data:
+        if self.compiled:
+            for i, part in enumerate(self.ops):
+                if part[3] == 1: #func: f(t,args)
+                    coeff[i] = part[1](t, new_args)
+                elif part[3] == 2: #str: f(t,w=2)
+                    part_args = part[4].copy()
+                    for pa in part_args:
+                        if pa in args:
+                            part_args[pa] = new_args[pa]
+                    coeff[i] = part[1](t, **part_args)
+                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    coeff[i] = part[1](t, part[2], *part[4])
+            op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+        elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
                 if part[3] == 1: #func: f(t,args)
@@ -336,7 +352,33 @@ class td_Qobj:
         return op_t
 
     def with_state(self, t, psi, args={}, data=False):
-        if args:
+        if self.compiled:
+            coeff = np.zeros(len(self.ops), dtype=complex)
+            if args:
+                new_args = self.args.copy()
+                new_args.update(args)
+                for i, part in enumerate(self.ops):
+                    if part[3] == 1: #func: f(t,args)
+                        coeff[i] = part[1](t, psi, new_args)
+                    elif part[3] == 2: #str: f(t,w=2)
+                        part_args = part[4].copy()
+                        for pa in part_args:
+                            if pa in new_args:
+                                part_args[pa] = new_args[pa]
+                        coeff[i] = part[1](t, **part_args)
+                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                        coeff[i] = part[1](t, part[2], *part[4])
+                op_t = call_with_coeff(t, coeff, data=data)
+            else:
+                for i, part in enumerate(self.ops):
+                    if part[3] == 1: #func: f(t,args)
+                        coeff[i] = part[1](t, psi, part[4])
+                    elif part[3] == 2: #str: f(t,w=2)
+                        coeff[i] = part[1](t, **part[4])
+                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                        coeff[i] = part[1](t, part[2], *part[4])
+            op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+        elif args:
             new_args = self.args.copy()
             new_args.update()
             if data:
@@ -679,26 +721,6 @@ class td_Qobj:
                 op[2] = np.conj(op[2])
         return self
 
-    def build(self, code=False):
-        if self.compiled == 2:
-            raise Exception("Only one compiled form at a time")
-        if self.fast:
-            self.tidyup()
-            if not code:
-                self.compiled_Qobj, self.compiled_ptr = td_qobj_codegen(self)
-                if self.compiled_Qobj is None:
-                    raise Exception("Could not compile")
-                else:
-                    self.compiled = 1
-            else:
-                self.compiled_Qobj, self.compiled_ptr, code_str = \
-                        td_qobj_codegen(self, code)
-                if self.compiled_Qobj is None:
-                    raise Exception("Could not compile")
-                else:
-                    self.compiled = 1
-                return code_str
-
     def get_compiled_call(self):
         if not self.compiled:
             self.compile()
@@ -706,44 +728,30 @@ class td_Qobj:
 
     def get_rhs_func(self):
         if not self.compiled:
-            self.build()
-        return self.compiled_Qobj.rhs
-
-    def _get_rhs_ptr(self):
-        print("Old _get_rhs_ptr")
-        if not self.fast:
-            raise Exception("Cannot be compiled")
-        if not self.compiled:
             self.compile()
-        return self.compiled_ptr[0]
+        return self.compiled_Qobj.rhs
 
     def get_expect_func(self):
         if not self.compiled:
             self.compile()
         return self.compiled_Qobj.expect
 
-    def _get_expect_ptr(self):
-        print("Old _get_expect_ptr")
-        if not self.fast:
-            raise Exception("Cannot be compiled")
-        if not self.compiled:
-            self.build()
-        return self.compiled_ptr[1]
-
     def expect(self, t, vec, herm=0):
+        if self.compiled:
+            return self.compiled_Qobj.expect(t, vec, herm)
         if self.cte.issuper:
             return cy_expect_rho_vec(self.__call__(t, data=True), vec, herm)
         else:
             return cy_expect_psi(self.__call__(t, data=True), vec, herm)
 
     def rhs(self, t, vec):
+        if self.compiled:
+            return self.compiled_Qobj.rhs(t, vec)
         return spmv(self.__call__(t, data=True), vec)
 
     def compile(self, code=False):
         self.tidyup()
-        if self.compiled == 1:
-            raise Exception("Only one compiled form at a time")
-        elif self.const:
+        if self.const:
             self.compiled_Qobj = cy_cte_qobj()
             self.compiled_Qobj.set_data(self.cte)
             self.compiled = 2
