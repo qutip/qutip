@@ -710,6 +710,7 @@ class td_Qobj:
         return self.compiled_Qobj.rhs
 
     def _get_rhs_ptr(self):
+        print("Old _get_rhs_ptr")
         if not self.fast:
             raise Exception("Cannot be compiled")
         if not self.compiled:
@@ -722,6 +723,7 @@ class td_Qobj:
         return self.compiled_Qobj.expect
 
     def _get_expect_ptr(self):
+        print("Old _get_expect_ptr")
         if not self.fast:
             raise Exception("Cannot be compiled")
         if not self.compiled:

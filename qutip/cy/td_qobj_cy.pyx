@@ -41,7 +41,16 @@ cdef extern from "Python.h":
     object PyLong_FromVoidPtr(void *)
     void* PyLong_AsVoidPtr(object)
 
-cdef class cy_cte_qobj:
+cdef class cy_qobj:
+    cdef void _rhs_mat(self, double t, complex* vec, complex* out):
+        pass
+    cdef complex _expect_mat(self, double t, complex* vec, int isherm):
+        return 0.
+    cdef complex _expect_mat_super(self, double t, complex* vec, int isherm):
+        return 0.
+
+
+cdef class cy_cte_qobj(cy_qobj):
     def __init__(self):
         pass
 
@@ -120,7 +129,7 @@ cdef class cy_cte_qobj:
             return self._expect_mat(t, &vec[0], isherm)
 
 
-cdef class cy_td_qobj:
+cdef class cy_td_qobj(cy_qobj):
     def __init__(self):
         self.N_ops = 0
         self.ops = <CSR_Matrix**> malloc(0 * sizeof(CSR_Matrix*))
@@ -265,7 +274,7 @@ cdef class cy_td_qobj:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef complex expect_psi(self, complex* data, int* idx, int* ptr, complex* vec,
+    cdef complex _expect_psi(self, complex* data, int* idx, int* ptr, complex* vec,
                     int isherm):
         cdef complex [::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy(data, idx, ptr, vec, 1., &y[0], self.shape0)
@@ -304,7 +313,7 @@ cdef class cy_td_qobj:
         cdef CSR_Matrix out_mat
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
         self._call_core(t, &out_mat)
-        expect = self.expect_psi(out_mat.data, out_mat.indices, out_mat.indptr,
+        expect = self._expect_psi(out_mat.data, out_mat.indices, out_mat.indptr,
                                  vec, isherm)
         free_CSR(&out_mat)
         return expect
@@ -331,10 +340,10 @@ cdef class cy_td_qobj:
         cdef complex [::1] coeff = np.empty(self.N_ops, dtype=complex)
         self.factor(t, &coeff[0])
         cdef int i
-        expect = self.expect_psi(self.cte.data, self.cte.indices,
+        expect = self._expect_psi(self.cte.data, self.cte.indices,
                                    self.cte.indptr, vec, 0)
         for i in range(self.N_ops):
-            expect += self.expect_psi(self.ops[i].data, self.ops[i].indices,
+            expect += self._expect_psi(self.ops[i].data, self.ops[i].indices,
                                       self.ops[i].indptr, vec, 0) * coeff[i]
         if isherm:
             return real(expect)
@@ -343,7 +352,7 @@ cdef class cy_td_qobj:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef complex expect_rho(self, complex* data, int* idx, int* ptr, complex* rho_vec,
+    cdef complex _expect_rho(self, complex* data, int* idx, int* ptr, complex* rho_vec,
                     int isherm):
         cdef size_t row
         cdef int jj,row_start,row_end
@@ -367,7 +376,7 @@ cdef class cy_td_qobj:
         cdef CSR_Matrix out_mat
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
         self._call_core(t, &out_mat)
-        expect = self.expect_rho(out_mat.data, out_mat.indices,
+        expect = self._expect_rho(out_mat.data, out_mat.indices,
                                    out_mat.indptr, vec, isherm)
         free_CSR(&out_mat)
         return expect
@@ -409,10 +418,10 @@ cdef class cy_td_qobj:
                                                           dtype=complex)
         self.factor(t, &coeff[0])
         cdef int i
-        expect = self.expect_rho(self.cte.data, self.cte.indices,
+        expect = self._expect_rho(self.cte.data, self.cte.indices,
                                    self.cte.indptr, vec, 0)
         for i in range(self.N_ops):
-            expect += self.expect_rho(self.ops[i].data, self.ops[i].indices,
+            expect += self._expect_rho(self.ops[i].data, self.ops[i].indices,
                                       self.ops[i].indptr, vec, 0) * coeff[i]
         if isherm:
             return real(expect)

@@ -11,6 +11,8 @@ from qutip.cy.dopri5td import ode_td_dopri
 cimport numpy as np
 cimport cython
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
+from qutip.cy.td_qobj_cy cimport cy_qobj#, cy_td_qobj, cy_cte_qobj
+
 
 cdef int ONE=1;
 
@@ -198,6 +200,8 @@ def cy_mc_run_ode(ODE, config, prng):
 
 
 
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def cy_mc_run_fast(config, prng):
@@ -261,7 +265,8 @@ def cy_mc_run_fast(config, prng):
     # make array for collapse operator inds
     cdef np.ndarray[long, ndim=1] cinds = np.arange(len(config.td_c_ops))
 
-    ODE = ode_td_dopri(len(config.psi0), config.rhs_ptr, config)
+    #ODE = ode_td_dopri(len(config.psi0), config.rhs_ptr, config)
+    ODE = ode_td_dopri(len(config.psi0), config.H_td, config)
 
     c_ops_rhs = [c.get_rhs_func() for c in config.td_c_ops]
     c_expect_func = [c.get_expect_func() for c in config.td_n_ops]

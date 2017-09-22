@@ -379,56 +379,62 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
             config.td_n_ops += [config.td_c_ops[-1].norm()]
             if config.td_c_ops[-1].cte:
                 c_types += [0]
-            if config.td_c_ops[-1].fast:
-                c_types += [1]
             else:
-                c_types += [2]
+                c_types += [1]
         config.c_tflag = max(c_types)
-        if config.c_tflag in (0,1):
+        [c_op.compile() for c_op in config.td_c_ops]
+        [c_op.compile() for c_op in config.td_n_ops]
+        #if config.c_tflag in (0,1):
             #Compile str, fast cte/numpy
-            [c_ops.get_rhs_func() for c_ops in config.td_c_ops]
-            [c_ops.get_rhs_func() for c_ops in config.td_n_ops]
-        elif config.c_tflag == 2:
-            for c_ops in config.td_c_ops:
-                 c_ops.fast = False
-            for c_ops in config.td_n_ops:
-                 c_ops.fast = False
+        #    [c_ops.get_rhs_func() for c_ops in config.td_c_ops]
+        #    [c_ops.get_rhs_func() for c_ops in config.td_n_ops]
+        #elif config.c_tflag == 2:
+        #    for c_ops in config.td_c_ops:
+        #         c_ops.fast = False
+        #    for c_ops in config.td_n_ops:
+        #         c_ops.fast = False
 
         Hc_td = td_Qobj(config.td_c_ops[0](0)*0., args, tlist)
-        for c in config.td_c_ops:
-            Hc_td += -0.5j * c.norm()
+        for c in config.td_n_ops:
+            Hc_td += -0.5 * c
 
         config.h_func_args = {}
         if not options.rhs_with_state:
             if not isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
                 H_td = td_Qobj(H, args, tlist)
-                for c in config.td_n_ops:
-                    H_td += -0.5j * c
-                if options.tidy:
-                    H_td = H_td.tidyup(options.atol)
                 H_td *= -1j
+                H_td += Hc_td
+                if options.tidy:
+                    # Compiling tidyup anyway
+                    H_td.tidyup(options.atol)
                 config.H_td = H_td
-                if H_td.fast:
-                    config.h_tflag = 1
-                    config.rhs = H_td.get_rhs_func()
-                    if dopri:
-                        config.rhs_ptr = H_td._get_rhs_ptr()
-                else:
-                    config.h_tflag = 2
-                    config.rhs = H_td.get_rhs_func()
+                config.H_td.compile()
+                config.h_tflag = 1
+                config.rhs = H_td.get_rhs_func()
+
+                #if H_td.fast:
+                #    config.h_tflag = 1
+                #    config.rhs = H_td.get_rhs_func()
+                #    if dopri:
+                #        config.rhs_ptr = H_td._get_rhs_ptr()
+                #else:
+                #    config.h_tflag = 2
+                #    config.rhs = H_td.get_rhs_func()
             else:
                 config.h_tflag = 3
                 config.h_func = H
                 config.h_func_args = args
-                Hc_td *= -1j
+                #Hc_td *= -1j
                 config.Hc_td = Hc_td
+                config.Hc_td.compile()
                 config.Hc_rhs = Hc_td.get_rhs_func()
                 config.rhs = _tdrhs
 
         else:
             config.h_tflag = 4
-            Hc_td *= -1j
+            #Hc_td *= -1j
             config.Hc_td = Hc_td
+            config.Hc_td.compile()
             config.Hc_rhs = Hc_td.get_rhs_func()
             config.rhs = _tdrhs_with_state
             if isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
@@ -437,7 +443,8 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
             else:
                 H_td = td_Qobj(H, args, tlist)
                 config.H_td = H_td
-                config.h_func = H_td.with_args
+                config.H_td.compile()
+                config.h_func = H_td.with_args # compiled
 
 
 
@@ -445,9 +452,8 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
         # string based
         raise NotImplementedError("How would this be used?")
-    if config.h_tflag >= 2 or config.c_tflag ==2:
-        config.options.method = "adams"
-    print(config.h_tflag, config.c_tflag,config.options.method)
+    #if config.h_tflag >= 2 or config.c_tflag ==2:
+    #    config.options.method = "adams"
     return config
 
 # -----------------------------------------------------------------------------

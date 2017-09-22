@@ -1,7 +1,12 @@
 
 from qutip.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
 
-cdef class cy_cte_qobj:
+cdef class cy_qobj:
+    cdef void _rhs_mat(self, double t, complex* vec, complex* out)
+    cdef complex _expect_mat(self, double t, complex* vec, int isherm)
+    cdef complex _expect_mat_super(self, double t, complex* vec, int isherm)
+
+cdef class cy_cte_qobj(cy_qobj):
     cdef int total_elem
     cdef int shape0, shape1
     cdef int super
@@ -13,7 +18,7 @@ cdef class cy_cte_qobj:
     cdef complex _expect_mat_super(self, double t, complex* vec, int isherm)
 
 
-cdef class cy_td_qobj:
+cdef class cy_td_qobj(cy_qobj):
     cdef long total_elem
     cdef int shape0, shape1
     cdef int super
@@ -31,13 +36,13 @@ cdef class cy_td_qobj:
     cdef void _call_core(self, double t, CSR_Matrix * out)
     cdef void _rhs_mat_sum(self, double t, complex* vec, complex* out)
     cdef void _rhs_mat(self, double t, complex* vec, complex* out)
-    cdef complex expect_psi(self, complex* data, int* idx, int* ptr,
+    cdef complex _expect_psi(self, complex* data, int* idx, int* ptr,
                             complex* vec, int isherm)
     cdef complex _expect_mat_sum1(self, double t, complex* vec, int isherm)
     cdef complex _expect_mat_sum2(self, double t, complex* vec, int isherm)
     cdef complex _expect_mat(self, double t, complex* vec, int isherm)
     cdef complex _expect_mat_last(self, double t, complex* vec, int isherm)
-    cdef complex expect_rho(self, complex* data, int* idx, int* ptr,
+    cdef complex _expect_rho(self, complex* data, int* idx, int* ptr,
                             complex* rho_vec, int isherm)
     cdef complex _expect_mat_super_sum(self, double t, complex* vec, int isherm)
     cdef complex _expect_mat_super(self, double t, complex* vec, int isherm)

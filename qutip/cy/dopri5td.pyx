@@ -3,9 +3,12 @@
 import numpy as np
 cimport numpy as np
 
+from qutip.cy.td_qobj_cy cimport cy_qobj#, cy_td_qobj, cy_cte_qobj
+
 cdef extern from "Python.h":
     object PyLong_FromVoidPtr(void *)
     void* PyLong_AsVoidPtr(object)
+
 
 """cdef extern from "src/dopri5td.cpp":
     cdef cppclass ode:
@@ -13,6 +16,12 @@ cdef extern from "Python.h":
         ode(int*, double*, void (*_H)(double, complex *, complex *))
         int step(double, double, complex*, complex*)
         double integrate(double, double, double, complex*, double*)"""
+
+cdef cy_qobj compiled_cte_cy
+
+cdef void _rhs(double t, complex* vec, complex* out):
+    global compiled_cte_cy
+    compiled_cte_cy._rhs_mat(t, vec, out)
 
 cdef extern from "/home/eric/algo/qutip/qutip/qutip/cy/src/dopri5td.cpp":
     cdef cppclass ode:
@@ -26,13 +35,16 @@ cdef extern from "/home/eric/algo/qutip/qutip/qutip/cy/src/dopri5td.cpp":
 cdef class ode_td_dopri:
     cdef ode* cobj
 
-    def __init__(self, int l, rhs_function, config):
+    #def __init__(self, int l, rhs_function, config):
+    def __init__(self, int l, H, config):
+        global compiled_cte_cy
         _y1 = np.zeros(l,dtype=complex)
         cdef int[::1] int_option = np.zeros(2,dtype=np.intc)
         cdef double[::1] double_option = np.zeros(5,dtype=np.double)
-        cdef void* rhs_ptr = PyLong_AsVoidPtr(rhs_function)
+        #cdef void* rhs_ptr = PyLong_AsVoidPtr(rhs_function)
+        compiled_cte_cy = H.compiled_Qobj
         cdef void (*rhs)(double, complex*, complex*)
-        rhs = <void (*)(double, complex*, complex*)> rhs_ptr
+        rhs = <void (*)(double, complex*, complex*)> _rhs
 
         int_option[0]=l
         int_option[1]=config.norm_steps
@@ -57,6 +69,15 @@ cdef class ode_td_dopri:
         return self.cobj.integrate(_t_in, _t_target, rand,
                                    <complex*>&_psi[0],
                                    <double*>&_err[0])
+
+    def test1(self):
+        global compiled_cte_cy
+        print(compiled_cte_cy.call(0,data=1))
+
+    def test(self, double t, complex[::1] vec, complex[::1] out):
+        global compiled_cte_cy
+        compiled_cte_cy._rhs_mat(t, <complex*>&vec[0], <complex*>&out[0])
+
 
     def debug(self):
       l = self.cobj.len()
