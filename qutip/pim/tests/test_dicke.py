@@ -147,11 +147,37 @@ class TestPim:
 
     def test_initial_dicke_state(self):
         """
-        Test generation of an initial dicke state vector from the |jo. mo>
-        value
+        Test generation of an initial dicke state vector from the |j0, m0>
         """
-        pass
+        N = 6
+        jm_vals = [(3., 3.),
+                   (2., 3.), (2., 2.),
+                   (1., 3.), (1., 2.), (1., 1.),
+                   (0., 3.), (0., 2.), (0., 1.), (0., 0.),
+                   (-1., 3.), (-1., 2.), (-1., 1.),
+                   (-2., 3.), (-2., 2.),
+                   (-3., 3.)]
 
+        k_values = [0,
+                    1, 7,
+                    2, 8, 12,
+                    3, 9, 13, 15,
+                    4, 10, 14,
+                    5, 11,
+                    6]
+
+        rhos_calculated = [initial_dicke_state(N, jm0) for jm0 in jm_vals]
+
+        i = 0
+
+        for rho in rhos_calculated:
+            rho_true = np.zeros(16)
+            k = k_values[i]
+            rho_true[k] = 1
+            assert_array_equal(rho_true, rho)
+            i += 1
+
+        assert_raises(ValueError, initial_dicke_state, N, (3, 2))
 
 if __name__ == "__main__":
     run_module_suite()

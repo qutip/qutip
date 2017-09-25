@@ -277,8 +277,8 @@ def get_k(N, index):
     1
 
     The elements marked `x` and `y` here, will have the `k` value as
-    3 and 11 respectively as they are the 3rd and 10th element in the
-    dicke ladder.
+    2 and 10 respectively (indexing starts from 0) as they are the 3rd and 11th
+    element in the dicke ladder.
 
     Parameters
     ----------
@@ -320,10 +320,18 @@ def initial_dicke_state(N, jm0):
     rho: array
         The initial dicke state vector constructed from this j0, m0 value
     """
+    j, m = jm0
     nds = num_dicke_states(N)
     rho0 = np.zeros(nds)
 
-    k = get_k(N, jm0)
-    rho0[k] = 1.
+    dicke_row = int(N/2 - j)
+    dicke_col = int(N/2 - m)
 
-    return(rho0)
+    k = get_k(N, (dicke_row, dicke_col))
+
+    if k is False:
+        raise ValueError("Invalid value of |j0, m0> for given number of TLS")
+
+    else:
+        rho0[k] = 1.
+        return(rho0)
