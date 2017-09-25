@@ -6,7 +6,7 @@ from numpy.testing import assert_, run_module_suite, assert_raises, assert_array
 
 from qutip.pim.dicke import (num_dicke_states, num_two_level, irreducible_dim,
                              num_dicke_ladders, generate_dicke_space, isdicke,
-                             get_j_m, is_j_m)
+                             get_j_m, is_j_m, get_k, initial_dicke_state)
 
 class TestPim:
     """
@@ -120,6 +120,37 @@ class TestPim:
 
         jm_check = [is_j_m(N, jm) for jm in jm_vals]
         assert_array_equal(jm_check, valid_jm)
+
+    def test_get_k(self):
+        """
+        Tests the calculation of row number for the dicke state element
+        """
+        N = 6
+        indices = [(0, 0), (0, 1), (0, 2), (0, 3),
+                   (1, 0), (1, 1), (1, 2), (1, 3),
+                   (2, 0), (2, 1), (2, 2), (2, 3),
+                   (3, 0), (3, 1), (3, 2), (3, 3),
+                   (4, 0), (4, 1), (4, 2), (4, 3),
+                   (5, 0), (5, 1), (5, 2), (5, 3),
+                   (6, 0), (6, 1), (6, 2), (6, 3)]
+
+        k_values = [0, False, False, False,
+                    1, 7, False, False,
+                    2, 8, 12, False,
+                    3, 9, 13, 15,
+                    4, 10, 14, False,
+                    5, 11, False, False,
+                    6, False, False, False]
+
+        predicted_k = [get_k(N, index) for index in indices]
+        assert_array_equal(predicted_k, k_values)
+
+    def test_initial_dicke_state(self):
+        """
+        Test generation of an initial dicke state vector from the |jo. mo>
+        value
+        """
+        pass
 
 
 if __name__ == "__main__":

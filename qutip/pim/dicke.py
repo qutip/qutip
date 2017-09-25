@@ -171,7 +171,7 @@ def isdicke(N, index):
     Parameters
     ----------
     index: tuple
-        Index of the element (i,j) in Dicke space which needs to be checked
+        Index of the element (i, j) in Dicke space which needs to be checked
     """
     # The number of rows is N + 1
     dicke_row, dicke_col = index
@@ -219,8 +219,8 @@ def get_j_m(N, index):
 
     Parameters
     ----------
-    dicke_row, dicke_col: int
-        The row and column from the Dicke space matrix
+    index: tuple
+        Index of the element (i, j) in Dicke space
 
     Returns
     -------
@@ -260,3 +260,70 @@ def is_j_m(N, jm):
     else:
         return(False)
 
+def get_k(N, index):
+    """
+    Get the index `k` in the dicke state vector corresponding to given
+    index (row, col) entry where the entry is non-zero. This also forms
+    the row index in the matrix M for the given dicke state element
+
+    For N = 6, the dice space will look like this
+
+    1
+    1 1
+    x 1 1
+    1 1 1 1
+    1 y 1
+    1 1
+    1
+
+    The elements marked `x` and `y` here, will have the `k` value as
+    3 and 11 respectively as they are the 3rd and 10th element in the
+    dicke ladder.
+
+    Parameters
+    ----------
+    index: tuple
+        Index of the element (i, j) in Dicke space
+
+    Returns
+    -------
+    k: int
+        The index k for the non zero element in the dicke state vector
+    """
+    dicke_row, dicke_col = index
+
+    if not isdicke(N, index):
+        return (False)
+
+    if dicke_row == 0:
+        k = dicke_col
+
+    else:
+        k = int(((dicke_col)/2) * (2 * (N + 1) - 2 * (dicke_col - 1)) + (dicke_row - (dicke_col)))
+
+    return k
+
+def initial_dicke_state(N, jm0):
+    """
+    Generates a initial dicke state vector given the number of two-level systems, from specified |j0, m0>
+
+    Parameters
+    ----------
+    N: int
+        The number of two level systems
+
+    jm0: tuple
+        A tuple containing (j0, m0) value as type float
+
+    Returns
+    -------
+    rho: array
+        The initial dicke state vector constructed from this j0, m0 value
+    """
+    nds = num_dicke_states(N)
+    rho0 = np.zeros(nds)
+
+    k = get_k(N, jm0)
+    rho0[k] = 1.
+
+    return(rho0)
