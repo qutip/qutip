@@ -209,13 +209,13 @@ def get_j_m(N, index):
 
     For N = 6 |j,m> would be :
 
-    | 3, 3>
-    | 2, 3>  | 2, 2>
-    | 1, 3>  | 1, 2>  | 1,  1>
-    | 0, 3>  | 0, 2>  | 0,  1> |0, 0>
-    |-1, 3>  |-1, 2>  |-1,  1>
-    |-2, 3>  |-2, 2>
-    |-3, 3>
+    | 3, 3  >
+    | 3, 2  > | 2, 2  >
+    | 3, 1  > | 2, 1  > | 1,  1  >
+    | 3, 0  > | 2, 0  > | 1,  0  > |0, 0>
+    | 3, -1 > | 2, -1 > | 1,  -1 >
+    | 3, -2 > | 2, -1 >
+    | 3, -3 >
 
     Parameters
     ----------
@@ -227,8 +227,12 @@ def get_j_m(N, index):
     j, m: float
         The j and m values for this element
     """
-    index = (dicke_row, dicke_col)
-    j = N/2 - dicke_col
-    m = N/2 - dicke_row
-    
-    return(j, m)
+    if not isdicke(N, index):
+        return False
+
+    else:
+        dicke_row, dicke_col = index
+        j = N/2 - dicke_col
+        m = N/2 - dicke_row
+
+        return(j, m)

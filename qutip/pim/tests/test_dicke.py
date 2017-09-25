@@ -62,6 +62,39 @@ class TestPim:
 
         assert_array_equal(dicke_labels, [True, False, True, False, False])
 
+    def test_get_j_m(self):
+        """
+        Tests `get_j_m` function to get the (j, m) values.
+
+        N = 6
+        | 3, 3  >
+        | 3, 2  > | 2, 2  >
+        | 3, 1  > | 2, 1  > | 1,  1  >
+        | 3, 0  > | 2, 0  > | 1,  0  > |0, 0>
+        | 3, -1 > | 2, -1 > | 1,  -1 >
+        | 3, -2 > | 2, -1 >
+        | 3, -3 >
+        """
+        N = 6
+        indices = [(0, 0), (0, 1), (0, 2), (0, 3),
+                   (1, 0), (1, 1), (1, 2), (1, 3),
+                   (2, 0), (2, 1), (2, 2), (2, 3),
+                   (3, 0), (3, 1), (3, 2), (3, 3),
+                   (4, 0), (4, 1), (4, 2), (4, 3),
+                   (5, 0), (5, 1), (5, 2), (5, 3),
+                   (6, 0), (6, 1), (6, 2), (6, 3)]
+
+        jm_vals = [(3., 3.), False, False, False,
+                   (3., 2.), (2., 2.),  False, False,
+                   (3., 1.), (2., 1.), (1., 1.), False,
+                   (3., 0.), (2., 0.), (1., 0.), (0., 0.),
+                   (3., -1.), (2., -1.), (1., -1.), False,
+                   (3., -2.), (2., -2.), False, False,
+                   (3., -3.), False, False, False]
+
+        predicted_jm = [get_j_m(N, index) for index in indices]
+        assert_array_equal(predicted_jm, jm_vals)
+
 
 if __name__ == "__main__":
     run_module_suite()
