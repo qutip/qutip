@@ -236,3 +236,27 @@ def get_j_m(N, index):
         m = N/2 - dicke_col
 
         return(j, m)
+
+def is_j_m(N, jm):
+    """
+    Test if |j, m> is valid for the given number of two level systems
+
+    Parameters
+    ----------
+    N: int
+        Number of two level systems
+
+    jm: tuple of floats
+        A tuple of (j, m) values as type float
+    """
+    j, m = jm
+
+    dicke_row = int(N/2 - j)
+    dicke_col = int(N/2 - m)
+
+    if isdicke(N, (dicke_row, dicke_col)):
+        return(True)
+
+    else:
+        return(False)
+

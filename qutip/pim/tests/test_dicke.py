@@ -6,7 +6,7 @@ from numpy.testing import assert_, run_module_suite, assert_raises, assert_array
 
 from qutip.pim.dicke import (num_dicke_states, num_two_level, irreducible_dim,
                              num_dicke_ladders, generate_dicke_space, isdicke,
-                             get_j_m)
+                             get_j_m, is_j_m)
 
 class TestPim:
     """
@@ -96,6 +96,30 @@ class TestPim:
 
         predicted_jm = [get_j_m(N, index) for index in indices]
         assert_array_equal(predicted_jm, jm_vals)
+
+    def test_is_j_m(self):
+        """
+        Tests to check validity of |j, m> given N
+        """
+        N = 6
+        jm_vals = [(3., 3.), (3, 2), (3, 1), (3, 0),
+                   (2., 3.), (2, 2.),  (2, 1), (2, 0),
+                   (1., 3.), (1., 2.), (1., 1.), (1, 0),
+                   (0., 3.), (0., 2.), (0., 1.), (0., 0.),
+                   (-1., 3.), (-1., 2.), (-1., 1.), (-1, 0),
+                   (-2., 3.), (-2., 2.), (-2, 1), (-2, 0),
+                   (-3., 3.), (-3., 2), (-3, 1), (-3, 0)]
+
+        valid_jm = [True, False, False, False,
+                    True, True,  False, False,
+                    True, True, True, False,
+                    True, True, True, True,
+                    True, True, True, False,
+                    True, True, False, False,
+                    True, False, False, False]
+
+        jm_check = [is_j_m(N, jm) for jm in jm_vals]
+        assert_array_equal(jm_check, valid_jm)
 
 
 if __name__ == "__main__":
