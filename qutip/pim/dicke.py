@@ -207,15 +207,15 @@ def get_j_m(N, index):
     """
     Get the value of j and m for the particular Dicke space element given N TLS
 
-    For N = 6 |j,m> would be :
+    For N = 6 |j, m> would be :
 
     | 3, 3>
-    | 2, 3>  | 2, 2>
-    | 1, 3>  | 1, 2>  | 1,  1>
-    | 0, 3>  | 0, 2>  | 0,  1> |0, 0>
-    |-1, 3>  |-1, 2>  |-1,  1>
-    |-2, 3>  |-2, 2>
-    |-3, 3>
+    | 3, 2> | 2, 2>
+    | 3, 1> | 2, 1> | 1, 1>
+    | 3, 0> | 2, 0> | 1, 0> |0, 0>
+    | 3,-1> | 2,-1> | 1,-1>
+    | 3,-2> | 2,-2>
+    | 3,-3>
 
     Parameters
     ----------
@@ -232,8 +232,8 @@ def get_j_m(N, index):
 
     else:
         dicke_row, dicke_col = index
-        j = N/2 - dicke_row
-        m = N/2 - dicke_col
+        j = N/2 - dicke_col
+        m = N/2 - dicke_row
 
         return(j, m)
 
@@ -251,8 +251,8 @@ def is_j_m(N, jm):
     """
     j, m = jm
 
-    dicke_row = int(N/2 - j)
-    dicke_col = int(N/2 - m)
+    dicke_row = int(N/2 - m)
+    dicke_col = int(N/2 - j)
 
     if isdicke(N, (dicke_row, dicke_col)):
         return(True)
@@ -324,8 +324,8 @@ def initial_dicke_state(N, jm0):
     nds = num_dicke_states(N)
     rho0 = np.zeros(nds)
 
-    dicke_row = int(N/2 - j)
-    dicke_col = int(N/2 - m)
+    dicke_row = int(N/2 - m)
+    dicke_col = int(N/2 - j)
 
     k = get_k(N, (dicke_row, dicke_col))
 
