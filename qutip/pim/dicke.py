@@ -28,7 +28,6 @@ def num_dicke_states(N):
     nds = (N/2 + 1)**2 - (N % 2)/4
     return int(nds)
 
-
 def num_two_level(nds):
     """
     The number of two level systems (TLS), given the number of Dicke states.
@@ -80,7 +79,6 @@ def irreducible_dim(N, j):
 
     return (djn)
 
-
 def num_dicke_ladders(N):
     """
     Calculates the total number of Dicke ladders in the Dicke space indexed by
@@ -99,7 +97,6 @@ def num_dicke_ladders(N):
     """
     Nj = (N + 1) * 0.5 + (1 - np.mod(N, 2)) * 0.5
     return int(Nj)
-
 
 def generate_dicke_space(N):
     """
@@ -144,164 +141,11 @@ def generate_dicke_space(N):
 
     dicke_space = np.zeros((rows, cols), dtype = int)
 
+    model = Pim(N)
     for (i, j) in np.ndindex(rows, cols):
-        dicke_space[i, j] = self.isdicke(i, j)
+        dicke_space[i, j] = model.isdicke(i, j)
 
     return (dicke_space)
-
-
-def isdicke(N, index):
-    """
-    Check if the index of the element specified is a valid dicke space element.
-
-    This depends on how many two level systems you consider. For instance, at
-    N = 6, the dicke space would look like the following:
-
-    1  
-    1 1 
-    1 1 1
-    1 1 1 1
-    1 1 1
-    1 1 
-    1
-    
-    Thus (0, 0), (1, 0), (2, 2) etc are valid dicke space elements but 
-    (0, 1), (1, 3) do not exist
-
-    Parameters
-    ----------
-    index: tuple
-        Index of the element (i, j) in Dicke space which needs to be checked
-    """
-    # The number of rows is N + 1
-    dicke_row, dicke_col = index
-    rows = N + 1
-    cols = 0
-
-    # The number of columns depends on whether N is even or odd.
-    if (N % 2) == 0:
-        cols = int(N/2 + 1)
-    else:
-        cols = int(N/2 + 1/2)
-
-    # Check if the given indices falls inside the matrix region
-    if (dicke_row > rows) or (dicke_row < 0):
-        return (False)
-
-    if (dicke_col > cols) or (dicke_col < 0):
-        return (False)
-
-    # If the element is in the upper region, it should lie below the diagonal
-    if (dicke_row < int(rows/2)) and (dicke_col > dicke_row):
-        return False
-
-    # If the element is in the lower region, it should lie above the diagonal
-    if (dicke_row >= int(rows/2)) and (rows - dicke_row <= dicke_col):
-        return False
-    
-    else:
-        return True
-
-
-def get_j_m(N, index):
-    """
-    Get the value of j and m for the particular Dicke space element given N TLS
-
-    For N = 6 |j, m> would be :
-
-    | 3, 3>
-    | 3, 2> | 2, 2>
-    | 3, 1> | 2, 1> | 1, 1>
-    | 3, 0> | 2, 0> | 1, 0> |0, 0>
-    | 3,-1> | 2,-1> | 1,-1>
-    | 3,-2> | 2,-2>
-    | 3,-3>
-
-    Parameters
-    ----------
-    index: tuple
-        Index of the element (i, j) in Dicke space
-
-    Returns
-    -------
-    j, m: float
-        The j and m values for this element
-    """
-    if not isdicke(N, index):
-        return False
-
-    else:
-        dicke_row, dicke_col = index
-        j = N/2 - dicke_col
-        m = N/2 - dicke_row
-
-        return(j, m)
-
-def is_j_m(N, jm):
-    """
-    Test if |j, m> is valid for the given number of two level systems
-
-    Parameters
-    ----------
-    N: int
-        Number of two level systems
-
-    jm: tuple of floats
-        A tuple of (j, m) values as type float
-    """
-    j, m = jm
-
-    dicke_row = int(N/2 - m)
-    dicke_col = int(N/2 - j)
-
-    if isdicke(N, (dicke_row, dicke_col)):
-        return(True)
-
-    else:
-        return(False)
-
-def get_k(N, index):
-    """
-    Get the index `k` in the dicke state vector corresponding to given
-    index (row, col) entry where the entry is non-zero. This also forms
-    the row index in the matrix M for the given dicke state element
-
-    For N = 6, the dice space will look like this
-
-    1
-    1 1
-    x 1 1
-    1 1 1 1
-    1 y 1
-    1 1
-    1
-
-    The elements marked `x` and `y` here, will have the `k` value as
-    2 and 10 respectively (indexing starts from 0) as they are the 3rd and 11th
-    element in the dicke ladder.
-
-    Parameters
-    ----------
-    index: tuple
-        Index of the element (i, j) in Dicke space
-
-    Returns
-    -------
-    k: int
-        The index k for the non zero element in the dicke state vector
-    """
-    dicke_row, dicke_col = index
-
-    if not isdicke(N, index):
-        return (False)
-
-    if dicke_row == 0:
-        k = dicke_col
-
-    else:
-        k = int(((dicke_col)/2) * (2 * (N + 1) - 2 * (dicke_col - 1)) + (dicke_row - (dicke_col)))
-
-    return k
 
 def initial_dicke_state(N, jm0):
     """
@@ -327,7 +171,8 @@ def initial_dicke_state(N, jm0):
     dicke_row = int(N/2 - m)
     dicke_col = int(N/2 - j)
 
-    k = get_k(N, (dicke_row, dicke_col))
+    model = Pim(N)
+    k = model.get_k(dicke_row, dicke_col)
 
     if k is False:
         raise ValueError("Invalid value of |j0, m0> for given number of TLS")
@@ -384,6 +229,156 @@ class Pim(object):
         self.collective_pumping = collective_pumping
         self.M = {}
         self.sparse_M = None
+
+    def isdicke(self, dicke_row, dicke_col):
+        """
+        Check if the index of the element specified is a valid dicke space element.
+
+        This depends on how many two level systems you consider. For instance, at
+        N = 6, the dicke space would look like the following:
+
+        1
+        1 1
+        1 1 1
+        1 1 1 1
+        1 1 1
+        1 1
+        1
+
+        Thus (0, 0), (1, 0), (2, 2) etc are valid dicke space elements but
+        (0, 1), (1, 3) do not exist
+
+        Parameters
+        ----------
+        dicke_row, dicke_col
+            Index of the element (i, j) in Dicke space which needs to be checked
+        """
+        # The number of rows is N + 1
+
+        N = self.N
+        rows = N + 1
+        cols = 0
+
+        # The number of columns depends on whether N is even or odd.
+        if (N % 2) == 0:
+            cols = int(N/2 + 1)
+        else:
+            cols = int(N/2 + 1/2)
+
+        # Check if the given indices falls inside the matrix region
+        if (dicke_row > rows) or (dicke_row < 0):
+            return (False)
+
+        if (dicke_col > cols) or (dicke_col < 0):
+            return (False)
+
+        # If the element is in the upper region, it should lie below the diagonal
+        if (dicke_row < int(rows/2)) and (dicke_col > dicke_row):
+            return False
+
+        # If the element is in the lower region, it should lie above the diagonal
+        if (dicke_row >= int(rows/2)) and (rows - dicke_row <= dicke_col):
+            return False
+
+        else:
+            return True
+
+    def get_j_m(self, dicke_row, dicke_col):
+        """
+        Get the value of j and m for the particular Dicke space element given N TLS
+
+        For N = 6 |j, m> would be :
+
+        | 3, 3>
+        | 3, 2> | 2, 2>
+        | 3, 1> | 2, 1> | 1, 1>
+        | 3, 0> | 2, 0> | 1, 0> |0, 0>
+        | 3,-1> | 2,-1> | 1,-1>
+        | 3,-2> | 2,-2>
+        | 3,-3>
+
+        Parameters
+        ----------
+        index: tuple
+            Index of the element (i, j) in Dicke space
+
+        Returns
+        -------
+        j, m: float
+            The j and m values for this element
+        """
+        N = self.N
+        if not self.isdicke(dicke_row, dicke_col):
+            return False
+
+        else:
+            j = N/2 - dicke_col
+            m = N/2 - dicke_row
+
+            return(j, m)
+
+    def is_j_m(self, j, m):
+        """
+        Test if |j, m> is valid for the given number of two level systems
+
+        Parameters
+        ----------
+        j, m: float
+            j, m values
+        """
+        N = self.N
+
+        print(j, m)
+        dicke_row = int(N/2 - m)
+        dicke_col = int(N/2 - j)
+
+        if self.isdicke(dicke_row, dicke_col):
+            return(True)
+
+        else:
+            return(False)
+
+    def get_k(self, dicke_row, dicke_col):
+        """
+        Get the index `k` in the dicke state vector corresponding to given
+        index (row, col) entry where the entry is non-zero. This also forms
+        the row index in the matrix M for the given dicke state element
+
+        For N = 6, the dice space will look like this
+
+        1
+        1 1
+        x 1 1
+        1 1 1 1
+        1 y 1
+        1 1
+        1
+
+        The elements marked `x` and `y` here, will have the `k` value as
+        2 and 10 respectively (indexing starts from 0) as they are the 3rd and 11th
+        element in the dicke ladder.
+
+        Parameters
+        ----------
+        dicke_row, dicke_col: int
+            Index of the element (i, j) in Dicke space
+
+        Returns
+        -------
+        k: int
+            The index k for the non zero element in the dicke state vector
+        """
+        N = self.N
+        if not self.isdicke(dicke_row, dicke_col):
+            return (False)
+
+        if dicke_row == 0:
+            k = dicke_col
+
+        else:
+            k = int(((dicke_col)/2) * (2 * (N + 1) - 2 * (dicke_col - 1)) + (dicke_row - (dicke_col)))
+
+        return k
 
     def tau1(self, j, m):
         """

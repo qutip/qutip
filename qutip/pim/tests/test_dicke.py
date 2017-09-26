@@ -6,8 +6,8 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal)
 
 from qutip.pim.dicke import (num_dicke_states, num_two_level, irreducible_dim,
-                             num_dicke_ladders, generate_dicke_space, isdicke,
-                             get_j_m, is_j_m, get_k, initial_dicke_state, Pim)
+                             num_dicke_ladders, generate_dicke_space, initial_dicke_state,
+                             Pim)
 
 class TestPim:
     """
@@ -58,8 +58,10 @@ class TestPim:
         Tests the `isdicke` function
         """
         N = 6
+
+        model = Pim(N)
         test_indices = [(0, 0), (0, 1), (1, 0), (-1, -1), (2, -1)]
-        dicke_labels = [isdicke(N, x) for x in test_indices]
+        dicke_labels = [model.isdicke(x, y) for (x, y) in test_indices]
 
         assert_array_equal(dicke_labels, [True, False, True, False, False])
 
@@ -79,6 +81,9 @@ class TestPim:
 
         """
         N = 6
+
+        model = Pim(N)
+
         indices = [(0, 0), (0, 1), (0, 2), (0, 3),
                    (1, 0), (1, 1), (1, 2), (1, 3),
                    (2, 0), (2, 1), (2, 2), (2, 3),
@@ -95,7 +100,7 @@ class TestPim:
                    (3.,-2.), (2.,-2.), False, False,
                    (3.,-3.), False, False, False]
 
-        predicted_jm = [get_j_m(N, index) for index in indices]
+        predicted_jm = [model.get_j_m(x, y) for (x, y) in indices]
         assert_array_equal(predicted_jm, jm_vals)
 
     def test_is_j_m(self):
@@ -103,6 +108,7 @@ class TestPim:
         Tests to check validity of |j, m> given N
         """
         N = 6
+        model = Pim(N)
 
         jm_vals = [(3., 3.), (2., 3.), (1., 3.), (0., 3.),
                    (3., 2.), (2., 2.), (1., 2.), (0., 2.),
@@ -120,7 +126,7 @@ class TestPim:
                     True, True, False, False,
                     True, False, False, False]
 
-        jm_check = [is_j_m(N, jm) for jm in jm_vals]
+        jm_check = [model.is_j_m(x, y) for (x, y) in jm_vals]
         assert_array_equal(jm_check, valid_jm)
 
     def test_get_k(self):
@@ -128,6 +134,8 @@ class TestPim:
         Tests the calculation of row number for the dicke state element
         """
         N = 6
+
+        model = Pim(N)
         indices = [(0, 0), (0, 1), (0, 2), (0, 3),
                    (1, 0), (1, 1), (1, 2), (1, 3),
                    (2, 0), (2, 1), (2, 2), (2, 3),
@@ -144,7 +152,7 @@ class TestPim:
                     5, 11, False, False,
                     6, False, False, False]
 
-        predicted_k = [get_k(N, index) for index in indices]
+        predicted_k = [model.get_k(x, y) for (x, y) in indices]
         assert_array_equal(predicted_k, k_values)
 
     def test_initial_dicke_state(self):
