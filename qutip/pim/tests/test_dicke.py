@@ -2,11 +2,12 @@
 Tests for Permutation Invariance methods
 """
 import numpy as np
-from numpy.testing import assert_, run_module_suite, assert_raises, assert_array_equal
+from numpy.testing import (assert_, run_module_suite, assert_raises,
+                           assert_array_equal, assert_array_almost_equal)
 
 from qutip.pim.dicke import (num_dicke_states, num_two_level, irreducible_dim,
                              num_dicke_ladders, generate_dicke_space, isdicke,
-                             get_j_m, is_j_m, get_k, initial_dicke_state)
+                             get_j_m, is_j_m, get_k, initial_dicke_state, Pim)
 
 class TestPim:
     """
@@ -180,6 +181,39 @@ class TestPim:
             i += 1
 
         assert_raises(ValueError, initial_dicke_state, N, (2, 3))
+
+    def test_taus(self):
+        """
+        Tests the calculation of various Tau values for a given system
+
+        For N = 6 |j, m> would be :
+
+        | 3, 3>
+        | 3, 2> | 2, 2>
+        | 3, 1> | 2, 1> | 1, 1>
+        | 3, 0> | 2, 0> | 1, 0> |0, 0>
+        | 3,-1> | 2,-1> | 1,-1>
+        | 3,-2> | 2,-2>
+        | 3,-3>
+        """
+        N = 6
+        emission = 1.
+        loss = 1.
+        dephasing = 1.
+        pumping = 1.
+        collective_pumping = 1.
+
+        model = Pim(N, emission, loss, dephasing, pumping, collective_pumping)
+
+        tau_calculated = [model.tau3(3, 1), model.tau2(2, 1), model.tau4(1, 1),
+                          model.tau5(3, 0), model.tau1(2, 0), model.tau6(1, 0),
+                          model.tau7(3,-1), model.tau8(2,-1), model.tau9(1,-1)]
+
+        tau_real = [2., 8., 0.333333,
+                    1.5, -19.5, 0.666667,
+                    2., 8., 0.333333]
+
+        assert_array_almost_equal(tau_calculated, tau_real)
 
 if __name__ == "__main__":
     run_module_suite()

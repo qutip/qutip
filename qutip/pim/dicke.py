@@ -335,3 +335,215 @@ def initial_dicke_state(N, jm0):
     else:
         rho0[k] = 1.
         return(rho0)
+
+
+class Pim(object):
+    """
+    The permutation invariant matrix class. Initialize the class with the
+    parameters for generating a permutation invariant density matrix.
+    
+    Parameters
+    ----------
+    N : int
+        The number of two level systems
+        default: 1
+        
+    emission : float
+        Collective loss emmission coefficient
+        default: 1.0
+    
+    loss : float
+        Incoherent loss coefficient
+        default: 1.0
+        
+    dephasing : float
+        Local dephasing coefficient
+        default: 1.0
+        
+    pumping : float
+        Incoherent pumping coefficient
+        default: 1.0
+    
+    collective_pumping : float
+        Collective pumping coefficient
+        default: 1.0
+
+    M: dict
+        A nested dictionary of the structure {row: {col: val}} which holds
+        non zero elements of the matrix M
+
+    sparse_M: scipy.sparse.csr_matrix
+        A sparse representation of the matrix M for efficient vector multiplication
+    """
+    def __init__(self, N = 1, emission = 1, loss = 1, dephasing = 1, pumping = 1, collective_pumping = 1):
+        self.N = N
+        self.emission = emission
+        self.loss = loss
+        self.dephasing = dephasing
+        self.pumping = pumping
+        self.collective_pumping = collective_pumping
+        self.M = {}
+        self.sparse_M = None
+
+    def tau1(self, j, m):
+        """
+        Calculate tau1 for value of j and m.
+        """
+        yS = self.emission
+        yL = self.loss
+        yD = self.dephasing
+        yP = self.pumping
+        yCP = self.collective_pumping
+
+        N = self.N # Take care of integers
+        N = float(N)
+
+        spontaneous = yS * (1 + j - m) * (j + m)
+        losses = yL * (N/2 + m)
+        pump = yP * (N/2 - m)
+        collective_pump = yCP * (1 + j + m) * (j - m)
+        
+        if j==0:
+            dephase = yD * N/4
+        else :
+            dephase = yD * (N/4 - m**2 * ((1 + N/2)/(2 * j *(j+1))))
+
+        t1 = spontaneous + losses + pump + dephase + collective_pump
+        
+        return(-t1)
+
+    def tau2(self, j, m):
+        """
+        Calculate tau2 for given j and m
+        """
+        yS = self.emission
+        yL = self.loss
+
+        N = self.N # Take care of integers
+        N = float(N)
+
+        spontaneous = yS * (1 + j - m) * (j + m)
+        losses = yL * (((N/2 + 1) * (j - m + 1) * (j + m))/(2 * j * (j+1)))
+
+        t2 = spontaneous + losses
+
+        return(t2)
+
+    def tau3(self, j, m):
+        """
+        Calculate tau3 for given j and m
+        """
+        yL = self.loss
+        
+        N = self.N # Take care of integers
+        N = float(N)
+
+        num = (j + m - 1) * (j + m) * (j + 1 + N/2)
+        den = 2 * j * (2 * j + 1)
+
+        t3 = yL * (num/den)
+
+        return (t3)
+
+    def tau4(self, j, m):
+        """
+        Calculate tau4 for given j and m.
+        """
+        yL = self.loss
+        
+        N = self.N # Take care of integers
+        N = float(N)
+
+
+        num = (j - m + 1) * (j - m + 2) * (N/2 - j)
+        den = 2 * (j + 1) * (2 * j + 1)
+
+        t4 = yL * (num/den)
+
+        return (t4)
+
+    def tau5(self, j, m):
+        """
+        Calculate tau5 for j and m
+        """
+        yD = self.dephasing
+        
+        N = self.N # Take care of integers
+        N = float(N)
+
+
+        num = (j - m) * (j + m) * (j + 1 + N/2)
+        den = 2 * j * (2 * j + 1)
+
+        t5 = yD * (num/den)
+
+        return(t5)
+
+    def tau6(self, j, m):
+        """
+        Calculate tau6 for given j and m
+        """
+        yD = self.dephasing
+        
+        N = self.N # Take care of integers
+        N = float(N)
+
+
+        num = (j - m + 1) * (j + m + 1) * (N/2 - j)
+        den = 2 * (j + 1) * (2 * j + 1)
+
+        t6 = yD * (num/den)
+
+        return(t6)
+
+    def tau7(self, j, m):
+        """
+        Calculate tau7 for given j and m
+        """
+        yP = self.pumping
+        
+        N = self.N # Take care of integers
+        N = float(N)
+
+
+        num = (j - m - 1) * (j - m) * (j + 1 + N/2)
+        den = 2 * j * (2 * j + 1)
+
+        t7 = yP * (float(num)/den)
+
+        return (t7)
+
+    def tau8(self, j, m):
+        """
+        Calculate self.tau8
+        """
+        yP = self.pumping
+        yCP = self.collective_pumping
+        
+        N = self.N # Take care of integers
+        N = float(N)
+
+        num = (1 + N/2) * (j - m) * (j + m + 1)
+        den = 2 * j * (j + 1)
+        pump = yP * (float(num)/den)
+        collective_pump = yCP * (j - m) * (j + m + 1)
+        
+        t8 = pump + collective_pump
+
+        return (t8)
+
+    def tau9(self, j, m):
+        """
+        Calculate self.tau9
+        """
+        yP = self.pumping
+        
+        N = self.N # Take care of integers
+        N = float(N)
+
+        num = (j + m + 1) * (j + m + 2) * (N/2 - j)
+        den = 2 * (j + 1) * (2 * j + 1)
+
+        t9 = yP * (float(num)/den)
+
+        return (t9)
