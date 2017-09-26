@@ -167,7 +167,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for each
         value in ``values``.
-    
+
     """
     try:
         progress_bar = kwargs['progress_bar']
@@ -211,8 +211,8 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     Returns
     --------
     result : list
-        The result list contains the value of 
-        ``task(value, *task_args, **task_kwargs)`` for 
+        The result list contains the value of
+        ``task(value, *task_args, **task_kwargs)`` for
         each value in ``values``.
 
     """

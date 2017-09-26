@@ -31,6 +31,7 @@ cdef complex[::1] normalize(complex[::1] psi):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def cy_mc_run_ode(ODE, config, prng):
+    #print(ODE,config,prng)
     cdef int i,ii,j,jj,k
     cdef double norm2_psi, norm2_prev, norm2_guess, t_prev, t_final, t_guess
     cdef np.ndarray[ double, ndim=1] rand_vals

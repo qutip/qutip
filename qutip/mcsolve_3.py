@@ -522,6 +522,7 @@ class _MC():
 
         else:
             # set arguments for input to monte carlo
+            #print(config.rhs)
             map_kwargs = {'progress_bar': self.config.progress_bar,
                           'num_cpus': self.config.options.num_cpus}
             map_kwargs.update(self.config.map_kwargs)
@@ -603,6 +604,12 @@ def _mc_alg_evolve(nt, config, opt, seeds):
 
     # SEED AND RNG AND GENERATE
     prng = RandomState(seeds[nt])
+
+    #print(config.h_tflag, config.options.method)
+    #print(config.H_td, config.H_td.compiled_Qobj)
+    #print(config.rhs)
+    #print(config.rhs is config.H_td.compiled_Qobj.rhs)
+
     if ( config.h_tflag in (1,) and config.options.method == "dopri5" ):
         states_out, expect_out, collapse_times, which_oper = cy_mc_run_fast(
             config, prng)

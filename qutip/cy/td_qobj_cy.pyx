@@ -13,6 +13,10 @@ cimport libc.math
 include "complex_math.pxi"
 include "sparse_routines.pxi"
 
+cdef extern from "Python.h":
+    object PyLong_FromVoidPtr(void *)
+    void* PyLong_AsVoidPtr(object)
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
@@ -37,9 +41,36 @@ cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
     mat.is_set = 1
     mat.numpy_lock = 1
 
-cdef extern from "Python.h":
-    object PyLong_FromVoidPtr(void *)
-    void* PyLong_AsVoidPtr(object)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef shallow_get_state(CSR_Matrix* mat):
+    """
+    Converts a CSR sparse matrix to a tuples for pickling.
+    No deep copy of the data, pointer are passed.
+    """
+    long_data = PyLong_FromVoidPtr(<void *>&mat.data[0])
+    long_indices = PyLong_FromVoidPtr(<void *>&mat.indices[0])
+    long_indptr = PyLong_FromVoidPtr(<void *>&mat.indptr[0])
+    return (long_data,  long_indices,  long_indptr,
+            mat.nrows, mat.ncols, mat.nnz, mat.max_length,
+            mat.is_set, mat.numpy_lock)
+#
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef shallow_set_state(CSR_Matrix* mat, state):
+    """
+    Converts a CSR sparse matrix to a tuples for pickling.
+    No deep copy of the data, pointer are passed.
+    """
+    mat.data = <complex*>PyLong_AsVoidPtr(state[0])
+    mat.indices = <int*>PyLong_AsVoidPtr(state[1])
+    mat.indptr = <int*>PyLong_AsVoidPtr(state[2])
+    mat.nrows = state[3]
+    mat.ncols = state[4]
+    mat.nnz = state[5]
+    mat.max_length = state[6]
+    mat.is_set = state[7]
+    mat.numpy_lock = state[8]
 
 cdef class cy_qobj:
     cdef void _rhs_mat(self, double t, complex* vec, complex* out):
@@ -60,6 +91,18 @@ cdef class cy_cte_qobj(cy_qobj):
         self.cte = CSR_from_scipy(cte.data)
         self.total_elem = cte.data.data.shape[0]
         self.super = cte.issuper
+
+    def __getstate__(self):
+        CSR_info = shallow_get_state(&self.cte)
+        return (self.shape0, self.shape1, self.total_elem, self.super, CSR_info)
+
+
+    def __setstate__(self, state):
+        self.shape0 = state[0]
+        self.shape1 = state[1]
+        self.total_elem = state[2]
+        self.super = state[3]
+        shallow_set_state(&self.cte, state[4])
 
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
@@ -92,7 +135,7 @@ cdef class cy_cte_qobj(cy_qobj):
     cdef void _rhs_mat(self, double t, complex* vec, complex* out):
         spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1., out, self.shape0)
 
-    def rhs(self, double t, complex[::1] vec):
+    def rhs(self, double t, np.ndarray[complex, ndim=1] vec):#complex[::1] vec):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0, dtype=complex)
         self._rhs_mat(t, &vec[0], &out[0])
         return out
@@ -179,6 +222,37 @@ cdef class cy_td_qobj(cy_qobj):
         else:
             self.factor_use_ptr = 0
             self.factor_func = func
+
+    def __getstate__(self):
+        cte_info = shallow_get_state(&self.cte)
+        ops_info = ()
+        sum_elem = ()
+        for i in range(self.N_ops):
+            ops_info += (shallow_get_state(self.ops[i]),)
+            sum_elem += (self.sum_elem[i],)
+
+        factor_ptr = PyLong_FromVoidPtr(<void*>self.factor_ptr)
+        factor_func = PyLong_FromVoidPtr(<void*>self.factor_func)
+        return (self.shape0, self.shape1, self.total_elem, self.super,
+                self.factor_use_ptr, factor_ptr, factor_func, self.N_ops,
+                sum_elem, cte_info, ops_info)
+
+    def __setstate__(self, state):
+        self.shape0 = state[0]
+        self.shape1 = state[1]
+        self.total_elem = state[2]
+        self.super = state[3]
+        self.factor_use_ptr = state[4]
+        self.factor_ptr = <void(*)(double, complex*)> PyLong_AsVoidPtr(state[5])
+        self.factor_func = <object> PyLong_AsVoidPtr(state[6])
+        self.N_ops = state[7]
+        shallow_set_state(&self.cte, state[9])
+        self.sum_elem = np.zeros(self.N_ops, dtype=int)
+        self.ops = <CSR_Matrix**> malloc(self.N_ops * sizeof(CSR_Matrix*))
+        for i in range(self.N_ops):
+            self.ops[i] = <CSR_Matrix*> malloc(sizeof(CSR_Matrix))
+            self.sum_elem[i] = state[8][i]
+            shallow_set_state(self.ops[i], state[10])
 
     cdef void factor(self, double t, complex* out):
         cdef int i
@@ -467,7 +541,13 @@ cdef class cy_td_qobj(cy_qobj):
         else:
             return expect
 
-    def expect(self, double t, complex[::1] vec, int isherm, type = 1):
+    def expect(self, double t, complex[::1] vec, int isherm):
+        if self.super:
+            return self._expect_mat_super(t, &vec[0], isherm)
+        else:
+            return self._expect_mat(t, &vec[0], isherm)
+
+    def expect_all(self, double t, complex[::1] vec, int isherm, type = 1):
         if self.super:
           if type == 1:
               return self._expect_mat_super(t, &vec[0], isherm)
