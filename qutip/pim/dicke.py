@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import numpy as np
 
+from scipy.sparse import csr_matrix, dok_matrix
 
 def num_dicke_states(N):
     """
@@ -275,11 +276,11 @@ class Pim(object):
         Collective pumping coefficient
         default: 1.0
 
-    M: dict
+    M_dict: dict
         A nested dictionary of the structure {row: {col: val}} which holds
         non zero elements of the matrix M
 
-    sparse_M: scipy.sparse.csr_matrix
+    M: scipy.sparse.csr_matrix
         A sparse representation of the matrix M for efficient vector multiplication
     """
     def __init__(self, N = 1, emission = 1, loss = 1, dephasing = 1, pumping = 1, collective_pumping = 1):
@@ -289,8 +290,8 @@ class Pim(object):
         self.dephasing = dephasing
         self.pumping = pumping
         self.collective_pumping = collective_pumping
-        self.M = {}
-        self.sparse_M = None
+        self.M_dict = {}
+        self.M = None
 
     def isdicke(self, dicke_row, dicke_col):
         """
@@ -489,10 +490,86 @@ class Pim(object):
 
         for idx, tau in zip(indices, tau_functions):
             if self.isdicke(idx[0], idx[1]):
-                j, m = self.calculate_j_m(idx[0], idx[1])
+                j, m = self.get_j_m(idx[0], idx[1])
                 taus[tau.__name__] = tau(j, m)
 
         return taus
+
+    def generate_row(self, dicke_row, dicke_col):
+        """
+        Generates one row of the Matrix M based on the k value running from top to
+        bottom of the Dicke space. Also update the row in M - dictionary with {key: val}
+        specifying the column index and the tau element for the given Dicke space element
+
+        Parameters
+        ----------
+        dicke_row, dicke_col: int
+            The row and column from the Dicke space matrix
+
+        Returns
+        -------
+        row: dict
+            A dictionary with {key: val} specifying the column index and
+            the tau element for the given Dicke space element
+        """
+        if self.isdicke(dicke_row, dicke_col) is False:
+            return False
+
+        # Calculate k as the number of Dicke elements till
+
+        k = self.get_k(dicke_row, dicke_col)
+
+        row = {}
+
+        taus = self.tau_valid(dicke_row, dicke_col)
+
+        for tau in taus:
+            j, m = self.get_j_m(dicke_row, dicke_col)
+            current_col = _tau_column_index(tau, k, j)
+
+            self.M_dict[(k, current_col)] = taus[tau]
+
+            row[k] = {current_col: taus[tau]}
+
+        return row
+
+    def generate_M_dict(self):
+        """
+        Generate the matrix M
+        """
+        N = self.N
+        rows = self.N + 1
+        cols = 0
+
+        if (self.N % 2) == 0:
+            cols = int(self.N/2 + 1)
+        else:
+            cols = int(self.N/2 + 1/2)
+
+        for (dicke_row, dicke_col) in np.ndindex(rows, cols):
+            if self.isdicke(dicke_row, dicke_col):
+                self.generate_row(dicke_row, dicke_col)
+
+        return self.M
+
+    def generate_M(self):
+        """
+        Generate sparse format of the matrix M
+        """
+        N = self.N # Take care of integers
+
+        if not self.M_dict.keys:
+            print("Generating matrix M as a DOK to get the sparse representation")
+            self.generate_M_dict()
+
+        sparse_M = dok_matrix((num_dicke_states(N), num_dicke_states(N)), dtype=float)
+
+        for (i, j) in self.M_dict.keys():
+            sparse_M[i, j] = self.M_dict[i, j]
+
+        self.M = sparse_M.asformat("csr")
+
+        return sparse_M.asformat("csr")
 
     def tau1(self, j, m):
         """

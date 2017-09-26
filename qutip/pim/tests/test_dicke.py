@@ -3,7 +3,8 @@ Tests for Permutation Invariance methods
 """
 import numpy as np
 from numpy.testing import (assert_, run_module_suite, assert_raises,
-                           assert_array_equal, assert_array_almost_equal)
+                           assert_array_equal, assert_array_almost_equal,
+                           assert_almost_equal)
 
 from qutip.pim.dicke import (num_dicke_states, num_two_level, irreducible_dim,
                              num_dicke_ladders, generate_dicke_space, initial_dicke_state,
@@ -244,6 +245,56 @@ class TestPim:
 
         for tau in taus:
             assert_(_tau_column_index(tau, k, j) == taus[tau])
+
+    def test_generate_row(self):
+        """
+        Test generating one row of the matrix M
+        """
+        N = 2
+
+        model = Pim(N)
+
+        dicke_row, dicke_col = 0, 0
+
+        k = model.get_k(dicke_row, dicke_col)
+
+        row = {0: {3:1}}
+
+        generated_row = model.generate_row(dicke_row, dicke_col)
+
+        assert_array_equal(generated_row.keys(), row.keys())
+        # ====================================================================
+        # Needs more testing here
+        # ====================================================================
+
+    def test_generate_M_dict(self):
+        """
+        Test the function for generating the matrix dict
+        """
+        N = 2
+
+        model = Pim(N)
+        model.generate_M_dict()
+
+        actual_M = {(0, 0): -4.0, (0, 1): 3.0, (0, 3): 1.0,
+                    (1, 0): 3.0, (1, 1): -6.5, (1, 3): 0.5, (1, 2): 3.0,
+                    (2, 1): 3.0, (2, 3): 1.0, (2, 2): -4.0,
+                    (3, 0): 1.0, (3, 1): 0.5, (3, 3): -2.5, (3, 2): 1.0}
+
+        for (row, col) in actual_M.keys():
+            assert_almost_equal(model.M_dict[(row, col)], actual_M[(row, col)])
+
+    def test_generate_sparse(self):
+        """
+        Test the function to generate the sparse matrix from the M dictionary
+        """
+        N = 6
+        model = Pim(N)
+
+        model.generate_M()
+        #=====================================================================
+        # Write test functions for the sparse matrix
+        pass
 
 if __name__ == "__main__":
     run_module_suite()
