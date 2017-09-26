@@ -325,8 +325,8 @@ def expect_csr_ket(object A, object B, int isherm):
     cdef int[::1] Bptr = B.indptr
     cdef int nrows = A.shape[0]
 
-    cdef int j, head = 0
-    cdef size_t ii,jj,kk, ll
+    cdef int j
+    cdef size_t ii, jj, kk
     cdef double complex val, cval=0, row_sum, expt = 0
 
     for ii in range(nrows):
