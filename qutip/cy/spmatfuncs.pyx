@@ -322,7 +322,6 @@ def expect_csr_ket(object A, object B, int isherm):
     cdef int[::1] Aind = A.indices
     cdef int[::1] Aptr = A.indptr 
     cdef complex[::1] Bdata = B.data
-    cdef int[::1] Bind = B.indices
     cdef int[::1] Bptr = B.indptr
     cdef int nrows = A.shape[0]
 
