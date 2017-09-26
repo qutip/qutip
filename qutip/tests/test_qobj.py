@@ -582,7 +582,11 @@ def test_QobjNorm():
     A = Qobj(x)
     assert_equal(
         np.abs(A.norm('fro') - la.norm(A.full(), 'fro')) < 1e-12, True)
-
+    # operator trace norm
+    a = rand_herm(10,0.25)
+    assert_almost_equal(a.norm(), (a*a.dag()).sqrtm().tr().real)
+    b = rand_herm(10,0.25) - 1j*rand_herm(10,0.25)
+    assert_almost_equal(b.norm(), (b*b.dag()).sqrtm().tr().real)
 
 def test_QobjPermute():
     "Qobj permute"
