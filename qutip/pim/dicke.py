@@ -181,6 +181,68 @@ def initial_dicke_state(N, jm0):
         rho0[k] = 1.
         return(rho0)
 
+def _tau_column_index(tau, k, j):
+    """
+    Determine the column index for the non-zero elements of the matrix for a particular
+    row k and the value of j from the dicke space
+
+    For N = 2
+
+    | 1, 1>
+    | 1, 0> | 2, 0>
+    | 1,-1>
+
+    The M matrix for this would be a 4x4 matrix and position of the the non-zero elements
+    in each row is given by this function
+
+    For the 1st row, k = 1, j = 1, non-zero taus are:
+
+    tau1,
+    tau8, tau9
+
+    Similarly, for 2nd row, k = 2, j = 1, non-zero taus are:
+
+    tau2
+    tau1 tau6
+    tau8
+
+    Thus the M matrix would be:
+
+    [0., 0., 0, 0]
+     0., 0., 0, 0]
+     0., 0., 0, 0]
+     0., 0., 0, 0]]
+
+    Parameters
+    ----------
+    tau: str
+        The tau function to check for this k and j
+
+    k: int
+        The row of the matrix M for which the non zero elements have
+        to be calculated
+
+    j: float
+        The value of j for this row
+    """
+    #==============================================================
+    # In the notes, we indexed from k = 1, here we do it from k = 0
+    # Should put a test to check valid dicke state perhaps
+    #==============================================================
+    k = k + 1
+    mapping = {"tau3": k - (2 * j + 3),
+               "tau2": k - 1,
+               "tau4": k + (2 * j - 1),
+               "tau5": k - (2 * j + 2),
+               "tau1": k,
+               "tau6": k + (2 * j),
+               "tau7": k - (2 * j + 1),
+               "tau8": k + 1,
+               "tau9": k + (2 * j + 1)}
+
+    # we need to decrement k again as indexing is from 0
+    return int(mapping[tau] - 1)
+
 
 class Pim(object):
     """
@@ -379,6 +441,58 @@ class Pim(object):
             k = int(((dicke_col)/2) * (2 * (N + 1) - 2 * (dicke_col - 1)) + (dicke_row - (dicke_col)))
 
         return k
+
+    def tau_valid(self, dicke_row, dicke_col):
+        """
+        Find the Tau functions which are valid for this value of (dicke_row, dicke_col) given
+        the number of TLS. This calculates the valid tau values and reurns a dictionary
+        specifying the tau function name and the value.
+
+        We make a 3x3 sub matrix surrounding the Dicke space element to
+        run the tau functions on. This checks for valid elements and gets calculates those
+        tau values for which the dicke state element exists. For instance for the case N = 4
+
+        1
+        1 1
+        1 1 1
+        1 1
+        1
+
+        The (2, 1) element will only have the following taus valid
+
+        tau3 tau2
+        tau5 tau1 tau6
+        tau7 tau8
+
+        Parameters
+        ----------
+        dicke_row, dicke_col : int
+            Index of the element in Dicke space which needs to be checked
+
+        Returns
+        -------
+        taus: dict
+            A dictionary of key, val as {tau: value} consisting of the valid
+            taus for this row and column of the Dicke space element
+        """
+        tau_functions = [self.tau3, self.tau2, self.tau4,
+                         self.tau5, self.tau1, self.tau6,
+                         self.tau7, self.tau8, self.tau9]
+
+        N = self.N
+
+        if self.isdicke(dicke_row, dicke_col) is False:
+            return False
+
+        indices = [(dicke_row + x, dicke_col + y) for x in range(-1, 2) for y in range(-1, 2)]
+        taus = {}
+
+        for idx, tau in zip(indices, tau_functions):
+            if self.isdicke(idx[0], idx[1]):
+                j, m = self.calculate_j_m(idx[0], idx[1])
+                taus[tau.__name__] = tau(j, m)
+
+        return taus
 
     def tau1(self, j, m):
         """

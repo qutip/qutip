@@ -7,7 +7,7 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
 
 from qutip.pim.dicke import (num_dicke_states, num_two_level, irreducible_dim,
                              num_dicke_ladders, generate_dicke_space, initial_dicke_state,
-                             Pim)
+                             Pim, _tau_column_index)
 
 class TestPim:
     """
@@ -222,6 +222,28 @@ class TestPim:
                     2., 8., 0.333333]
 
         assert_array_almost_equal(tau_calculated, tau_real)
+
+    def test_tau_column_index(self):
+        """
+        Tests calculation of the non-zero columns for a particular row
+        """
+        k, j = 0, 1
+
+        taus = {'tau3': -5, 'tau2': -1, 'tau4': 1,
+                'tau5': -4, 'tau1': 0, 'tau6': 2,
+                'tau7': -3, 'tau8': 1, 'tau9': 3}
+
+        for tau in taus:
+            assert_(_tau_column_index(tau, k, j) == taus[tau])
+
+        k, j = 2, 1
+
+        taus = {'tau3': -3, 'tau2': 1, 'tau4': 3,
+                'tau5': -2, 'tau1': 2, 'tau6': 4,
+                'tau7': -1, 'tau8': 3, 'tau9': 5}
+
+        for tau in taus:
+            assert_(_tau_column_index(tau, k, j) == taus[tau])
 
 if __name__ == "__main__":
     run_module_suite()
