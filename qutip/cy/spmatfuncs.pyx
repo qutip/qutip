@@ -326,8 +326,8 @@ def expect_csr_ket(object A, object B, int isherm):
     cdef int nrows = A.shape[0]
 
     cdef int j
-    cdef size_t ii, jj, kk
-    cdef double complex val, cval=0, row_sum, expt = 0
+    cdef size_t ii, jj
+    cdef double complex cval=0, row_sum, expt = 0
 
     for ii in range(nrows):
         if (Bptr[ii+1] - Bptr[ii]) != 0:
@@ -335,10 +335,8 @@ def expect_csr_ket(object A, object B, int isherm):
             row_sum = 0
             for jj in range(Aptr[ii], Aptr[ii+1]):
                 j = Aind[jj]
-                val = Adata[jj]
-                for kk in range(Bptr[j], Bptr[j+1]):
-                    row_sum += val*Bdata[kk]
-    
+                if (Bptr[j+1] - Bptr[j]) != 0:
+                    row_sum += Adata[jj]*Bdata[Bptr[j]]
             expt += cval*row_sum
     if isherm:
         return real(expt)
