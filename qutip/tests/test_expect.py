@@ -39,6 +39,7 @@ from qutip.operators import (num, destroy,
 from qutip.states import fock, fock_dm
 from qutip.expect import expect
 from qutip.mesolve import mesolve
+from qutip.random_objects import rand_herm, rand_ket
 
 
 class TestExpect:
@@ -61,6 +62,23 @@ class TestExpect:
             assert_(e == 0)
             assert_(type(e) == complex)
 
+    def testOperatorKetRand(self):
+        """
+        expect: rand operator & rand ket
+        """
+        for kk in range(20):
+            N = 20
+            H = rand_herm(N, 0.2)
+            psi = rand_ket(N,0.3)
+            out = expect(H,psi)
+            ans = (psi.dag()*H*psi).tr()
+            assert_(np.abs(out-ans) < 1e-14)
+    
+            G = rand_herm(N, 0.1)
+            out = expect(H+1j*G,psi)
+            ans = (psi.dag()*(H+1j*G)*psi).tr()
+            assert_(np.abs(out-ans) < 1e-14)
+    
     def testOperatorDensityMatrix(self):
         """
         expect: operator and density matrix
