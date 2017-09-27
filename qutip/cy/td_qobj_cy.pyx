@@ -135,7 +135,7 @@ cdef class cy_cte_qobj(cy_qobj):
     cdef void _rhs_mat(self, double t, complex* vec, complex* out):
         spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1., out, self.shape0)
 
-    def rhs(self, double t, np.ndarray[complex, ndim=1] vec):#complex[::1] vec):
+    def rhs(self, double t, complex[::1] vec):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0, dtype=complex)
         self._rhs_mat(t, &vec[0], &out[0])
         return out
@@ -252,7 +252,7 @@ cdef class cy_td_qobj(cy_qobj):
         for i in range(self.N_ops):
             self.ops[i] = <CSR_Matrix*> malloc(sizeof(CSR_Matrix))
             self.sum_elem[i] = state[8][i]
-            shallow_set_state(self.ops[i], state[10])
+            shallow_set_state(self.ops[i], state[10][i])
 
     cdef void factor(self, double t, complex* out):
         cdef int i

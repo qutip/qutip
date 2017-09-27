@@ -49,7 +49,7 @@ from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import spmv
 from qutip.cy.mcsolvetd import cy_mc_run_ode, cy_mc_run_fast
 
-from qutip.solver import Options, Result, config, _solver_safety_check
+from qutip.solver import Options, Result, _solver_safety_check
 #from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
@@ -61,6 +61,21 @@ if debug:
 #
 # Internal, global variables for storing references to dynamically loaded
 # cython functions
+
+global config_global
+
+class SolverConfiguration():
+    def __init__(self):
+        pass
+
+    def reset(self):
+        pass
+
+    def soft_reset(self):
+        pass
+
+config = SolverConfiguration()
+
 
 class qutip_zvode(zvode):
     def step(self, *args):
@@ -365,6 +380,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         # config.td_n_ops : to get the expectation value of the c_op
         # config.rhs_ptr : pointer to the H rhs function
 
+        config.c_num = len(c_ops)
         if len(c_ops) > 0:
             config.cflag = True
         else:
@@ -508,6 +524,7 @@ class _MC():
             raise Exception("mcsolve without collapse!")
 
     def run(self):
+        global config_global
         if debug:
             print(inspect.stack()[0][3])
 
@@ -526,15 +543,17 @@ class _MC():
             map_kwargs = {'progress_bar': self.config.progress_bar,
                           'num_cpus': self.config.options.num_cpus}
             map_kwargs.update(self.config.map_kwargs)
-            task_args = (self.config, self.config.options,
-                         self.config.options.seeds)
+            #task_args = (self.config, self.config.options,
+            #             self.config.options.seeds)
+            task_args = (self.config.options.seeds,)
             task_kwargs = {}
-
+            config_global = self.config
+            print( config_global.h_tflag in (1,) and config_global.options.method == "dopri5" )
             results = config.map_func(_mc_alg_evolve,
                                       list(range(config.ntraj)),
                                       task_args, task_kwargs,
                                       **map_kwargs)
-
+            config_global = None
             for n, result in enumerate(results):
                 state_out, expect_out, collapse_times, which_oper = result
 
@@ -584,19 +603,23 @@ def _build_integration_func(config):
 def _tdrhs(t, psi, config):
     h_func_data = -1.0j * config.h_func(t, config.h_func_args).data
     h_func_term = spmv(h_func_data, psi)
-    return h_func_term + config.Hc_func(t, psi)
+    return h_func_term + config.Hc_rhs(t, psi)
 
 
 def _tdrhs_with_state(t, psi, config):
     h_func_data = - 1.0j * config.h_func(t, psi, config.h_func_args).data
     h_func_term = spmv(h_func_data, psi)
-    return h_func_term + config.Hc_func(t, psi)
+    return h_func_term + config.Hc_rhs(t, psi)
 
 
 # -----------------------------------------------------------------------------
 # single-trajectory for monte carlo
 # -----------------------------------------------------------------------------
-def _mc_alg_evolve(nt, config, opt, seeds):
+#def _mc_alg_evolve(nt, config, opt, seeds):
+def _mc_alg_evolve(nt, seeds):
+    global config_global
+    config = config_global
+    opt = config_global.options
     """
     Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.

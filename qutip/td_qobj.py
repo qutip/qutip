@@ -164,7 +164,7 @@ class td_Qobj:
         Transpose of quantum object.
     """
 
-    def __init__(self, Q_object=[], args={}, tlist=None):
+    def __init__(self, Q_object=[], args={}, tlist=None, raw_str=False):
         self.const = False
         self.dummy_cte = False
         self.args = args
@@ -174,6 +174,7 @@ class td_Qobj:
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
+        self.raw_str = False
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not \
@@ -211,7 +212,7 @@ class td_Qobj:
                     for i in args:
                         if i in op[1]:
                             local_args[i] = args[i]
-                    self.ops.append([op[0], None, op[1], 2, local_args])
+                    self.ops.append([op[0], _dummy, op[1], 2, local_args])
                     compile_list.append((op[1], local_args, compile_count))
                     compile_count += 1
                 elif type_ == 3:
@@ -224,7 +225,7 @@ class td_Qobj:
                 else:
                     raise Exception("Should never be here")
 
-            if compile_count:
+            if compile_count and not self.raw_str:
                 str_funcs = _compile_str_single(compile_list)
                 count = 0
                 for op in self.ops:
@@ -437,6 +438,7 @@ class td_Qobj:
         new.op_type = self.op_type
         new.N_obj = self.N_obj
         new.fast = self.fast
+        new.raw_str = self.raw_str
         new.compiled = False
         new.compiled_Qobj = None
         new.compiled_ptr = None
@@ -509,6 +511,7 @@ class td_Qobj:
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
             self.fast = self.fast and other.fast
+            self.raw_str = self.raw_str and other.raw_str
             self.compiled = False
             self.compiled_code = None
 
@@ -703,8 +706,10 @@ class td_Qobj:
                 op[1] = _norm2(op[1])
                 op[2] = op[1]
             elif op[3] == 2:
-                op[1] = _norm2(op[1])
+                #op[1] = _norm2(op[1])
                 op[2] = "norm(" + op[2] + ")"
+                if not self.raw_str:
+                    op[1] = _compile_str_single([[op[2],op[4],0]])[0]
             elif op[3] == 3:
                 op[2] = np.abs(op[2])**2
         return self
@@ -715,8 +720,10 @@ class td_Qobj:
                 op[1] = _conj(op[1])
                 op[2] = op[1]
             elif op[3] == 2:
-                op[1] = _conj(op[1])
+                #op[1] = _conj(op[1])
                 op[2] = "conj(" + op[2] + ")"
+                if not self.raw_str:
+                    op[1] = _compile_str_single([[op[2],op[4],0]])[0]
             elif op[3] == 3:
                 op[2] = np.conj(op[2])
         return self
@@ -832,6 +839,10 @@ def _interpolate(t, f_array, N, dt):
 
     return approx
 
+
+def _dummy(t, *args, **kwargs):
+    return 0.
+
 def _norm2(f):
     def ff(a, *args, **kwargs):
         return np.abs(f(a, *args, **kwargs))**2
@@ -849,10 +860,10 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None):
 
     Parameters
     ----------
-    H : qobj
+    H : qobj, [qobj], td_Qobj
         System Hamiltonian.
 
-    c_ops : array_like
+    c_ops : array_like of qobj or td_Qobj
         A ``list`` or ``array`` of collapse operators.
 
     Returns
@@ -906,7 +917,7 @@ def td_lindblad_dissipator(a, args={}, tlist=None):
 
     Parameters
     ----------
-    a : qobj
+    a : qobj, [qobj], td_Qobj
         Left part of collapse operator.
 
 
