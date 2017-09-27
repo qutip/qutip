@@ -284,7 +284,7 @@ class TestPim:
         for (row, col) in actual_M.keys():
             assert_almost_equal(model.M_dict[(row, col)], actual_M[(row, col)])
 
-    def test_generate_sparse(self):
+    def test_generate_M(self):
         """
         Test the function to generate the sparse matrix from the M dictionary
         """
