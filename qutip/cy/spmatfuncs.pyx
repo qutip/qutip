@@ -314,4 +314,31 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
 
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def expect_csr_ket(object A, object B, int isherm):  
 
+    cdef complex[::1] Adata = A.data 
+    cdef int[::1] Aind = A.indices
+    cdef int[::1] Aptr = A.indptr 
+    cdef complex[::1] Bdata = B.data
+    cdef int[::1] Bptr = B.indptr
+    cdef int nrows = A.shape[0]
+
+    cdef int j
+    cdef size_t ii, jj
+    cdef double complex cval=0, row_sum, expt = 0
+
+    for ii in range(nrows):
+        if (Bptr[ii+1] - Bptr[ii]) != 0:
+            cval = conj(Bdata[Bptr[ii]])
+            row_sum = 0
+            for jj in range(Aptr[ii], Aptr[ii+1]):
+                j = Aind[jj]
+                if (Bptr[j+1] - Bptr[j]) != 0:
+                    row_sum += Adata[jj]*Bdata[Bptr[j]]
+            expt += cval*row_sum
+    if isherm:
+        return real(expt)
+    else:
+        return expt
