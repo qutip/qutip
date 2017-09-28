@@ -34,6 +34,7 @@ import numpy as np
 cimport numpy as cnp
 cimport cython
 cimport libc.math
+from libcpp cimport bool
 
 cdef extern from "src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
@@ -342,3 +343,54 @@ def expect_csr_ket(object A, object B, int isherm):
         return real(expt)
     else:
         return expt
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef double complex zcsr_mat_elem(object A, object left, object right, bool bra_ket=1):
+    """
+    Computes the matrix element for an operator A and left and right vectors.
+    right must be a ket, but left can be a ket or bra vector.  If left
+    is bra then bra_ket = 1, else set bra_ket = 0.
+    """
+    cdef complex[::1] Adata = A.data
+    cdef int[::1] Aind = A.indices
+    cdef int[::1] Aptr = A.indptr
+    cdef int nrows = A.shape[0]
+
+    cdef complex[::1] Ldata = left.data
+    cdef int[::1] Lind = left.indices
+    cdef int[::1] Lptr = left.indptr
+    cdef int Lnnz = Lind.shape[0]
+
+    cdef complex[::1] Rdata = right.data
+    cdef int[::1] Rind = right.indices
+    cdef int[::1] Rptr = right.indptr
+
+    cdef int j, go, head=0
+    cdef size_t ii, jj, kk
+    cdef double complex cval=0, row_sum, mat_elem=0
+
+    for ii in range(nrows):
+        row_sum = 0
+        go = 0
+        if bra_ket:
+            for kk in range(head, Lnnz):
+                if Lind[kk] == ii:
+                    cval = Ldata[kk]
+                    head = kk
+                    go = 1
+        else:
+            if (Lptr[ii] - Lptr[ii+1]) != 0:
+                cval = conj(Ldata[Lptr[ii]])
+                go = 1
+
+        if go:
+            for jj in range(Aptr[ii], Aptr[ii+1]):
+                j = Aind[jj]
+                if (Rptr[j] - Rptr[j+1]) != 0:
+                    row_sum += Adata[jj]*Rdata[Rptr[j]]
+            mat_elem += cval*row_sum
+    
+    return mat_elem

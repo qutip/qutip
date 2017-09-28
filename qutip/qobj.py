@@ -64,6 +64,7 @@ from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm)
+from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
 import sys
 if sys.version_info.major >= 3:
@@ -1428,7 +1429,7 @@ class Qobj(object):
         Parameters
         -----------
         bra : qobj
-            Quantum object of type 'bra'.
+            Quantum object of type 'bra' or 'ket'
 
         ket : qobj
             Quantum object of type 'ket'.
@@ -1438,25 +1439,23 @@ class Qobj(object):
         elem : complex
             Complex valued matrix element.
 
-        Raises
-        ------
-        TypeError
-            Can only calculate matrix elements between a bra and ket
-            quantum object.
-
+        Note
+        ----
+        It is slightly more computationally efficient to use a ket
+        vector for the 'bra' input.
+        
         """
+        if not self.isoper:
+            raise TypeError("Can only get matrix elements for an operator.")
 
-        if isinstance(bra, Qobj) and isinstance(ket, Qobj):
+        else:
+            if bra.isbra and ket.isket:
+                return zcsr_mat_elem(self.data,bra.data,ket.data,1)
 
-            if self.isoper:
-                if bra.isbra and ket.isket:
-                    return (bra.data * self.data * ket.data)[0, 0]
-
-                if bra.isket and ket.isket:
-                    return (bra.data.T * self.data * ket.data)[0, 0]
-
-        raise TypeError("Can only calculate matrix elements for operators " +
-                        "and between ket and bra Qobj")
+            elif bra.isket and ket.isket:
+                return zcsr_mat_elem(self.data,bra.data,ket.data,0)
+            else:
+                raise TypeError("Can only calculate matrix elements for bra and ket vectors.")
 
     def overlap(self, state):
         """Overlap between two state vectors.
