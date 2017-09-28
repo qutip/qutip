@@ -48,6 +48,7 @@ from qutip.td_qobj import td_Qobj
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import spmv
 from qutip.cy.mcsolvetd import cy_mc_run_ode, cy_mc_run_fast
+from qutip.sesolve import sesolve
 
 from qutip.solver import Options, Result, _solver_safety_check
 #from qutip.interpolate import Cubic_Spline
@@ -62,7 +63,7 @@ if debug:
 # Internal, global variables for storing references to dynamically loaded
 # cython functions
 
-global config_global
+global config_mcsolve
 
 class SolverConfiguration():
     def __init__(self):
@@ -73,9 +74,6 @@ class SolverConfiguration():
 
     def soft_reset(self):
         pass
-
-config = SolverConfiguration()
-
 
 class qutip_zvode(zvode):
     def step(self, *args):
@@ -187,7 +185,9 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     if len(c_ops) == 0:
         print("No c_ops, using sesolve")
-        sesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options,
+        if progress_bar is True:
+            progress_bar = BaseProgressBar()
+        return sesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options,
                 progress_bar=progress_bar, _safe_mode=_safe_mode)
 
     if isinstance(e_ops, Qobj):
@@ -271,6 +271,8 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
             options=None, progress_bar=True, map_func=None,
             map_kwargs=None, _safe_mode=True, compile=True):
+
+    config = SolverConfiguration()
 
     if debug:
         print(inspect.stack()[0][3])
@@ -460,9 +462,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 H_td = td_Qobj(H, args, tlist)
                 config.H_td = H_td
                 config.H_td.compile()
-                config.h_func = H_td.with_args # compiled
-
-
+                config.h_func = H_td.with_state # compiled
 
     else:
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
@@ -524,7 +524,7 @@ class _MC():
             raise Exception("mcsolve without collapse!")
 
     def run(self):
-        global config_global
+        global config_mcsolve
         if debug:
             print(inspect.stack()[0][3])
 
@@ -547,13 +547,13 @@ class _MC():
             #             self.config.options.seeds)
             task_args = (self.config.options.seeds,)
             task_kwargs = {}
-            config_global = self.config
-            print( config_global.h_tflag in (1,) and config_global.options.method == "dopri5" )
-            results = config.map_func(_mc_alg_evolve,
-                                      list(range(config.ntraj)),
-                                      task_args, task_kwargs,
-                                      **map_kwargs)
-            config_global = None
+            config_mcsolve = self.config
+            print( config_mcsolve.h_tflag in (1,) and config_mcsolve.options.method == "dopri5" )
+            results = self.config.map_func(_mc_alg_evolve,
+                                           list(range(self.config.ntraj)),
+                                           task_args, task_kwargs,
+                                           **map_kwargs)
+            config_mcsolve = None
             for n, result in enumerate(results):
                 state_out, expect_out, collapse_times, which_oper = result
 
@@ -617,9 +617,9 @@ def _tdrhs_with_state(t, psi, config):
 # -----------------------------------------------------------------------------
 #def _mc_alg_evolve(nt, config, opt, seeds):
 def _mc_alg_evolve(nt, seeds):
-    global config_global
-    config = config_global
-    opt = config_global.options
+    global config_mcsolve
+    config = config_mcsolve
+    opt = config_mcsolve.options
     """
     Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
