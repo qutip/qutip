@@ -63,7 +63,8 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
-from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm)
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm,
+                            zcsr_trace)
 from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
 import sys
@@ -985,10 +986,7 @@ class Qobj(object):
             otherwise.
 
         """
-        if self.isherm:
-            return float(np.real(np.sum(self.data.diagonal())))
-        else:
-            return complex(np.sum(self.data.diagonal()))
+        return zcsr_trace(self.data, self.isherm)
 
     def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
