@@ -34,6 +34,7 @@ import numpy as np
 import qutip.settings as qset
 cimport numpy as cnp
 cimport cython
+from libcpp cimport bool
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -630,3 +631,25 @@ cdef _safe_multiply(int A, int B):
     """
     cdef int C = A*B
     return C
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_trace(object A, bool isherm):
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = ptr.shape[0]-1
+    cdef size_t ii, jj
+    cdef complex tr = 0
+
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            if ind[jj] == ii:
+                tr += data[jj]
+                break
+    if imag(tr) == 0 or isherm:
+        return real(tr)
+    else:
+        return tr
