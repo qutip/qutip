@@ -1022,6 +1022,22 @@ def test_matelem():
         assert_(abs(ans-out2) < 1e-14)
     
     
+def test_projection():
+    """
+    Test Qobj: Projection operator
+    """
+    for kk in range(10):
+        N = 5
+        K = tensor(rand_ket(N,0.75),rand_ket(N,0.75))
+        B = K.dag()
+        
+        ans = K*K.dag()
+        
+        out1 = K.proj()
+        out2 = B.proj()
+        
+        assert_(out1==ans)
+        assert_(out2==ans)
 
 
 if __name__ == "__main__":
