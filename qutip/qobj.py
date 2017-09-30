@@ -64,7 +64,7 @@ from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm,
-                            zcsr_trace)
+                            zcsr_trace, zcsr_proj)
 from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
 import sys
@@ -976,6 +976,31 @@ class Qobj(object):
             else:
                 raise ValueError("For vectors, norm must be 'l2', or 'max'.")
 
+    def proj(self):
+        """Form the projector from a given ket or bra vector.
+    
+        Parameters
+        ----------
+        Q : Qobj
+            Input bra or ket vector
+        
+        Returns
+        -------
+        P : Qobj
+            Projection operator.
+        """
+        if self.isket:
+            _out = zcsr_proj(self.data,1)
+            _dims = [self.dims[0],self.dims[0]]
+        elif self.isbra:
+            _out = zcsr_proj(self.data,0)
+            _dims = [self.dims[1],self.dims[1]]
+        else:
+            raise TypeError('Projector can only be formed from a bra or ket.')
+    
+        return Qobj(_out,dims=_dims)
+    
+    
     def tr(self):
         """Trace of a quantum object.
 
