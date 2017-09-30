@@ -316,6 +316,9 @@ Like attributes, the quantum object class has defined functions (methods) that o
 | Permute         | ``Q.permute(order)``          | Permutes the tensor structure of a     | 
 |                 |                               | composite object in the given order.   |
 +-----------------+-------------------------------+----------------------------------------+
+| Projector       | ``Q.proj()``                  | Form projector operator from given     | 
+|                 |                               | ket or bra vector.                     |
++-----------------+-------------------------------+----------------------------------------+
 | Sine            | ``Q.sinm()``                  | Sine of quantum operator.              |
 +-----------------+-------------------------------+----------------------------------------+
 | Sqrt            | ``Q.sqrtm()``                 | Matrix sqrt of operator.               |

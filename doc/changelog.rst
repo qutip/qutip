@@ -7,6 +7,27 @@
 Change Log
 **********
 
+Version 4.3.0 ()
+++++++++++++++++++++++++++++++
+
+Improvements
+------------
+
+- Added fast projector method, ``Q.proj()``.
+
+- Computing matrix elements, ``Q.matrix_element`` is now ~10x faster.
+
+- Computing expectation values for ket vectors using ``expect`` is now ~10x faster.
+
+- ``Q.tr()`` is now faster for small Hilbert space dimensions.
+
+
+Bug Fixes
+---------
+
+- Fixed bug in trace-norm for non-Hermitian operators.
+
+
 Version 4.2.0 (July 28, 2017)
 ++++++++++++++++++++++++++++++
 

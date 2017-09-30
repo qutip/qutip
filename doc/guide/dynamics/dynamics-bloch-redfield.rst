@@ -241,6 +241,12 @@ Time-dependent Bloch-Redfield Dynamics
 
     New in QuTiP 4.2.
     
+.. warning::
+
+    It takes ~3-5 seconds (~30 if using Visual Studio) to compile a time-dependent Bloch-Redfield problem.  Therefore,
+    if you are doing repeated simulations by varying parameters, then it is best to pass
+    ``options = Options(rhs_reuse=True)`` to the solver.
+    
 If you have not done so already, please read the section: :ref:`time`.
 
 As we have already discussed, the Bloch-Redfield master equation requires transforming into the eigenbasis of the system Hamiltonian.  For time-independent systems, this transformation need only be done once.  However, for time-dependent systems, one must move to the instantaneous eigenbasis at each time-step in the evolution, thus greatly increasing the computational complexity of the dynamics.  In addition, the requirement for computing all the eigenvalues severely limits the scalability of the method.  Fortunately, this eigen decomposition occurs at the Hamiltonian level, as opposed to the super-operator level, and thus, with efficient programming, one can tackle many systems that are commonly encountered.
