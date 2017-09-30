@@ -653,3 +653,70 @@ def zcsr_trace(object A, bool isherm):
         return real(tr)
     else:
         return tr
+        
+        
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_proj(object A, bool is_ket=1):
+    """
+    Computes the projection operator
+    from a given ket or bra vector
+    in CSR format.  The flag 'is_ket'
+    is True if passed a ket.
+    
+    This is ~3x faster than doing the 
+    conjugate transpose and sparse multiplication
+    directly.  Also, does not need a temp matrix.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows
+    cdef int nnz
+
+    cdef int offset = 0, new_idx, count, change_idx
+    cdef size_t jj, kk
+
+    if is_ket:
+        nrows = A.shape[0]
+        nnz = ptr[nrows]
+    else:
+        nrows = A.shape[1]
+        nnz = ptr[1]
+
+    cdef CSR_Matrix out
+    init_CSR(&out, nnz**2, nrows)
+
+    if is_ket:
+        #Compute new ptrs and inds
+        for jj in range(nrows):
+            out.indptr[jj] = ptr[jj]*nnz
+            if ptr[jj+1] != ptr[jj]:
+                new_idx = jj
+                for kk in range(nnz):
+                    out.indices[offset+kk*nnz] = new_idx
+                offset += 1
+        #set nnz in new ptr
+        out.indptr[nrows] = nnz**2
+
+        #Compute the data
+        for jj in range(nnz):
+            for kk in range(nnz):
+                out.data[jj*nnz+kk] = data[jj]*conj(data[kk])
+        
+    else:
+        count = nnz**2
+        new_idx = nrows
+        for kk in range(nnz-1,-1,-1):
+            for jj in range(nnz-1,-1,-1):
+                out.indices[offset+jj] = ind[jj]
+                out.data[kk*nnz+jj] = conj(data[kk])*data[jj]
+            offset += nnz
+            change_idx = ind[kk]
+            while new_idx > change_idx:
+                out.indptr[new_idx] = count
+                new_idx -= 1
+            count -= nnz
+    
+
+    return CSR_to_scipy(&out)
