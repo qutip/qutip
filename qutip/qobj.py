@@ -180,6 +180,8 @@ class Qobj(object):
         Returns norm of a ket or an operator.
     permute(order)
         Returns composite qobj with indices reordered.
+    proj()
+        Computes the projector for a ket or bra vector.
     ptrace(sel)
         Returns quantum object for selected dimensions after performing
         partial trace.
