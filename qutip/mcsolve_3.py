@@ -366,8 +366,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         # Find the type of time-dependence for H and c_ops
         # h_tflag
         #   0 : cte
-        #   1 : td that can be compiled to cython (str, numpy)
-        #   2 : td that cannot be compiled (func)
+        #   1 : H as td_Qobj
         #   3 : H is a functions
         #   4 : H functions with state
         #
@@ -393,7 +392,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         config.td_c_ops = []
         config.td_n_ops = []
         for c in c_ops:
-            config.td_c_ops += [td_Qobj(c, args, tlist)]
+            config.td_c_ops += [td_Qobj(c, args, tlist, raw_str=True)]
             config.td_n_ops += [config.td_c_ops[-1].norm()]
             if config.td_c_ops[-1].cte:
                 c_types += [0]
@@ -402,24 +401,15 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         config.c_tflag = max(c_types)
         [c_op.compile() for c_op in config.td_c_ops]
         [c_op.compile() for c_op in config.td_n_ops]
-        #if config.c_tflag in (0,1):
-            #Compile str, fast cte/numpy
-        #    [c_ops.get_rhs_func() for c_ops in config.td_c_ops]
-        #    [c_ops.get_rhs_func() for c_ops in config.td_n_ops]
-        #elif config.c_tflag == 2:
-        #    for c_ops in config.td_c_ops:
-        #         c_ops.fast = False
-        #    for c_ops in config.td_n_ops:
-        #         c_ops.fast = False
 
-        Hc_td = td_Qobj(config.td_c_ops[0](0)*0., args, tlist)
+        Hc_td = td_Qobj(config.td_c_ops[0](0)*0., args, tlist, raw_str=True)
         for c in config.td_n_ops:
             Hc_td += -0.5 * c
 
         config.h_func_args = {}
         if not options.rhs_with_state:
             if not isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
-                H_td = td_Qobj(H, args, tlist)
+                H_td = td_Qobj(H, args, tlist, raw_str=True)
                 H_td *= -1j
                 H_td += Hc_td
                 if options.tidy:
@@ -430,36 +420,28 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 config.h_tflag = 1
                 config.rhs = H_td.get_rhs_func()
 
-                #if H_td.fast:
-                #    config.h_tflag = 1
-                #    config.rhs = H_td.get_rhs_func()
-                #    if dopri:
-                #        config.rhs_ptr = H_td._get_rhs_ptr()
-                #else:
-                #    config.h_tflag = 2
-                #    config.rhs = H_td.get_rhs_func()
             else:
                 config.h_tflag = 3
                 config.h_func = H
                 config.h_func_args = args
-                #Hc_td *= -1j
                 config.Hc_td = Hc_td
                 config.Hc_td.compile()
                 config.Hc_rhs = Hc_td.get_rhs_func()
-                config.rhs = _tdrhs
+                config.rhs = _funcrhs
 
         else:
             config.h_tflag = 4
-            #Hc_td *= -1j
             config.Hc_td = Hc_td
             config.Hc_td.compile()
             config.Hc_rhs = Hc_td.get_rhs_func()
-            config.rhs = _tdrhs_with_state
             if isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
                 config.h_func = H
                 config.h_func_args = args
+                config.rhs = _funcrhs_with_state
             else:
-                H_td = td_Qobj(H, args, tlist)
+                config.rhs = _tdrhs_with_state
+                H_td = td_Qobj(H, args, tlist, raw_str=True)
+                H_td *= -1j
                 config.H_td = H_td
                 config.H_td.compile()
                 config.h_func = H_td.with_state # compiled
@@ -548,7 +530,6 @@ class _MC():
             task_args = (self.config.options.seeds,)
             task_kwargs = {}
             config_mcsolve = self.config
-            print( config_mcsolve.h_tflag in (1,) and config_mcsolve.options.method == "dopri5" )
             results = self.config.map_func(_mc_alg_evolve,
                                            list(range(self.config.ntraj)),
                                            task_args, task_kwargs,
@@ -600,17 +581,20 @@ def _build_integration_func(config):
 
 
 # RHS of ODE for python function Hamiltonian
-def _tdrhs(t, psi, config):
+def _funcrhs(t, psi, config):
     h_func_data = -1.0j * config.h_func(t, config.h_func_args).data
     h_func_term = spmv(h_func_data, psi)
     return h_func_term + config.Hc_rhs(t, psi)
 
-
-def _tdrhs_with_state(t, psi, config):
+def _funcrhs_with_state(t, psi, config):
     h_func_data = - 1.0j * config.h_func(t, psi, config.h_func_args).data
     h_func_term = spmv(h_func_data, psi)
     return h_func_term + config.Hc_rhs(t, psi)
 
+def _tdrhs_with_state(t, psi, config):
+    h_func_data = config.h_func(t, psi, config.h_func_args, data=1)
+    h_func_term = spmv(h_func_data, psi)
+    return h_func_term + config.Hc_rhs(t, psi)
 
 # -----------------------------------------------------------------------------
 # single-trajectory for monte carlo

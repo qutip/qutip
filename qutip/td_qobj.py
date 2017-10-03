@@ -174,7 +174,7 @@ class td_Qobj:
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
-        self.raw_str = False
+        self.raw_str = raw_str
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not \
@@ -353,7 +353,18 @@ class td_Qobj:
         return op_t
 
     def with_state(self, t, psi, args={}, data=False):
-        if self.compiled:
+        if self.compiled == 3:
+            coeff = np.zeros(len(self.ops), dtype=complex)
+            if args:
+                new_args = self.args.copy()
+                new_args.update(args)
+                for i, part in enumerate(self.ops):
+                    coeff[i] = part[1](t, psi, new_args)
+            else:
+                for i, part in enumerate(self.ops):
+                    coeff[i] = part[1](t, psi, part[4])
+            op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+        elif self.compiled:
             coeff = np.zeros(len(self.ops), dtype=complex)
             if args:
                 new_args = self.args.copy()
@@ -369,7 +380,6 @@ class td_Qobj:
                         coeff[i] = part[1](t, **part_args)
                     elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
                         coeff[i] = part[1](t, part[2], *part[4])
-                op_t = call_with_coeff(t, coeff, data=data)
             else:
                 for i, part in enumerate(self.ops):
                     if part[3] == 1: #func: f(t,args)
@@ -479,6 +489,14 @@ class td_Qobj:
                     if i in op[2]:
                         local_args[i] = self.args[i]
                 op[4] = local_args
+
+    def to_list(self):
+        list_Qobj = []
+        if not self.dummy_cte:
+            list_Qobj.append(self.cte)
+        for op in self.ops:
+            list_Qobj.append([op[0],op[2]])
+        return list_Qobj
 
     # Math function
     def __add__(self, other):
@@ -648,6 +666,51 @@ class td_Qobj:
             op[0] = op[0].tidyup(atol)
         return self
 
+    def compress(self):
+        sets = []
+        to_class = list(range(len(self.ops)))
+        for i, op1 in enumerate(self.ops):
+            already_matched = False
+            for _set in sets:
+                already_matched = already_done and i in _set
+            if not already_matched:
+                this_set = [i]
+                for j, op2 in enumerate(self.ops[i+1:]):
+                    if op1[0] == op2[0] and op1[3] == op2[3]:
+                        this_set.append(j)
+                sets.append(this_set)
+        if len(self.ops) != len(sets):
+            #found 2 td part with the same Qobj
+            new_ops = []
+            for _set in sets:
+                if len(_set) == 1:
+                    new_ops.append(self.ops[_set[0]])
+                elif self.ops[_set[0]][3] == 1:
+                    new_ops.append(self.ops[_set[0]])
+                elif self.ops[_set[0]][3] == 2:
+                    new_ops.append(self.ops[_set[0]])
+                elif self.ops[_set[0]][3] == 3:
+                    new_ops.append(self.ops[_set[0]])
+
+"""                elif type_ == 1:
+                    self.ops.append([op[0], op[1], op[1], 1, args])
+                    self.fast = False
+                elif type_ == 2:
+                    local_args = {}
+                    for i in args:
+                        if i in op[1]:
+                            local_args[i] = args[i]
+                    self.ops.append([op[0], _dummy, op[1], 2, local_args])
+                    compile_list.append((op[1], local_args, compile_count))
+                    compile_count += 1
+                elif type_ == 3:
+                    l = len(self.ops)
+                    N = len(self.tlist)
+                    dt = self.tlist[-1] / (N - 1)
+                    self.ops.append([op[0], _interpolate,
+                                     op[1].copy(), 3, (N, dt)])"""
+
+
     def permute(self, order):
         res = self.copy()
         res.cte = res.cte.permute(order)
@@ -761,7 +824,7 @@ class td_Qobj:
         if self.const:
             self.compiled_Qobj = cy_cte_qobj()
             self.compiled_Qobj.set_data(self.cte)
-            self.compiled = 2
+            self.compiled = 1
         elif self.fast:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
@@ -778,8 +841,9 @@ class td_Qobj:
         else:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
-            self.compiled_Qobj.set_factor(func=self.make_united_f_call())
-            self.compiled = 2
+            self.coeff_get, self.compiled = self.make_united_f_call()
+            self.compiled_Qobj.set_factor(func=self.coeff_get)
+
 
     def make_united_f_call(self):
         types = [0,0,0]
@@ -800,6 +864,7 @@ class td_Qobj:
                 for func in self.funclist:
                     out.append( func(t, self.args))
                 return out
+            all_function = 3
         else:
             #Must be mixed, would be fast otherwise
             def united_f_call(t):
@@ -811,8 +876,9 @@ class td_Qobj:
                         out.append(part[1](t, **part[4]))
                     elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
                         out.append( part[1](t, part[2], *part[4]))
-                return(out)
-        return united_f_call
+                return out
+            all_function = 4
+        return united_f_call, all_function
 
 
 def _interpolate(t, f_array, N, dt):
@@ -853,7 +919,7 @@ def _conj(f):
         return np.conj(f(a, *args, **kwargs))
     return ff
 
-def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None):
+def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Accept time dependant
     operator and return a td_qobj
@@ -879,7 +945,7 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None):
 
     if H is not None:
         if not isinstance(H, td_Qobj):
-            L = td_Qobj(H, args=args, tlist=tlist)
+            L = td_Qobj(H, args=args, tlist=tlist, raw_str=raw_str)
         else:
             L = H
         L = L.apply(liouvillian, chi=chi)
@@ -889,7 +955,7 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None):
             return liouvillian(None, c_ops=[c_ops], chi=chi)
         for c in c_ops:
             if not isinstance(c, td_Qobj):
-                cL = td_Qobj(c, args=args, tlist=tlist)
+                cL = td_Qobj(c, args=args, tlist=tlist, raw_str=raw_str)
             else:
                 cL = c
             if not cL.N_obj == 1:
@@ -905,7 +971,7 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None):
     return L
 
 
-def td_lindblad_dissipator(a, args={}, tlist=None):
+def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
     """
     Lindblad dissipator (generalized) for a single collapse operator.
     For the
@@ -927,7 +993,7 @@ def td_lindblad_dissipator(a, args={}, tlist=None):
         Lindblad dissipator superoperator.
     """
     if not isinstance(a, td_Qobj):
-        b = td_Qobj(a, args=args, tlist=tlist)
+        b = td_Qobj(a, args=args, tlist=tlist, raw_str=raw_str)
     else:
         b = a
     if not b.N_obj == 1:

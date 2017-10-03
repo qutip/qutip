@@ -359,6 +359,7 @@ cdef class cy_td_qobj(cy_qobj):
                                                           dtype=complex)
         self.factor(t, &coeff[0])
         cdef int i
+
         spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec,
                1., out, self.shape0)
         for i in range(self.N_ops):
@@ -433,9 +434,9 @@ cdef class cy_td_qobj(cy_qobj):
     @cython.cdivision(True)
     cdef complex _expect_mat(self, double t, complex* vec, int isherm):
         cdef complex [::1] y = np.zeros(self.shape0, dtype=complex)
-        self._rhs_mat(t, &vec[0], &y[0])
         cdef int row
         cdef complex dot = 0
+        self._rhs_mat(t, &vec[0], &y[0])
         for row from 0 <= row < self.shape0:
             dot += conj(vec[row])*y[row]
         if isherm:
