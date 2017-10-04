@@ -40,7 +40,7 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
-from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
+from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr, make_united_f_ptr_args
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
 
@@ -65,104 +65,170 @@ class td_Qobj:
 
     Parameters
     ----------
+    td_Qobj(Q_object=[], args={}, tlist=None, raw_str=False)
     Q_object : array_like
         Data for vector/matrix representation of the quantum object.
     args : dictionary that contain the arguments for
     tlist : array_like
         List of times at which the numpy-array coefficients are applied. Times
         must be equidistant and start from 0.
-    #copy : bool
-    #    Flag specifying whether Qobj should get a copy of the
-    #    input data, or use the original.
-    #check : bool
-    #    Check if the supplied Qobj are compatible
+    raw_str : delay the compilation of str based coefficient until the "compile"
+        method is called.
 
 
     Attributes
     ----------
     cte : Qobj
         Constant part of the td_Qobj
-    args : map
-        arguments of the coefficients
-    const : bool
-        Indicates if quantum object is Constant
-    tlist : array_like
-        List of times at which the numpy-array coefficients are applied.
     ops : list
         List of Qobj and the coefficients.
-        [(Qobj, coefficient as a function, original coefficient, type), ... ]
+        [(Qobj, coefficient as a function, original coefficient,
+            type, local arguments ), ... ]
         type :
             1: function
             2: string
             3: np.array
-    op_call : function
-        User defined function as a td_Qobj. For wrapping function Hamiltonian
-        given to solvers.
+    args : map
+        arguments of the coefficients
+    tlist : array_like
+        List of times at which the numpy-array coefficients are applied.
 
+    compiled : int
+        Has the cython version of the td_Qobj been created
+    compiled_Qobj : cy_qobj (cy_cte_qobj or cy_td_qobj)
+        Cython version of the td_Qobj
+    dummy_cte : bool
+        is self.cte a dummy Qobj
+    const : bool
+        Indicates if quantum object is Constant
+    raw_str : bool
+        compile the str coefficient only at the cration of the cy_qobj
+    fast : bool
+        Use a cython function for the coefficient of the cy_qobj? (str/array)
+    N_obj : int
+        number of Qobj in the td_Qobj : len(ops) + (1 if not dummy_cte)
 
-    To implements: callback to the self.cte
-        dims : list
-            List of dimensions keeping track of the tensor structure.
-        shape : list
-            Shape of the underlying `data` array.
-        type : str
-            Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
-            'operator-bra', or 'super'.
-        superrep : str
-            Representation used if `type` is 'super'. One of 'super'
-            (Liouville form) or 'choi' (Choi matrix with tr = dimension).
-        isherm : bool
-            Indicates if quantum object represents Hermitian operator.
-        iscp : bool
-            Indicates if the quantum object represents a map, and if that map is
-            completely positive (CP).
-        ishp : bool
-            Indicates if the quantum object represents a map, and if that map is
-            hermicity preserving (HP).
-        istp : bool
-            Indicates if the quantum object represents a map, and if that map is
-            trace preserving (TP).
-        iscptp : bool
-            Indicates if the quantum object represents a map that is completely
-            positive and trace preserving (CPTP).
-            Indicates if the quantum object represents a map that is completely
-            positive and trace preserving (CPTP).
-        isket : bool
-            Indicates if the quantum object represents a ket.
-        isbra : bool
-            Indicates if the quantum object represents a bra.
-        isoper : bool
-            Indicates if the quantum object represents an operator.
-        issuper : boolt
-            Indicates if the quantum object represents a superoperator.
-        isoperket : bool
-            Indicates if the quantum object represents an operator in column
-            vector form.
-        isoperbra : bool
-            Indicates if the quantum object represents an operator in row vector
-            form.
 
     Methods
     -------
-    apply(f, *args, **kw_args)
-        Apply the function f to every Qobj. f(Qobj) -> Qobj
-        Return a modified td_Qobj and let the original one untouched
-    copy()
+    copy() :
         Create copy of Qobj
+    arguments(new_args):
+        Update the args of the object
+
+    Math:
+        +/- td_Qobj, Qobj, scalar:
+            Addition is possible between td_Qobj and with Qobj or scalar
+        -:
+            Negation operator
+        * Qobj, scalar:
+            Product is possible with Qobj or scalar
+        / scalar:
+            It is possible to divide by scalar only
     conj()
-        Conjugate of quantum object.
+        Return the conjugate of quantum object.
     dag()
-        Adjoint (dagger) of quantum object.
+        Return the adjoint (dagger) of quantum object.
+    trans()
+        Return the transpose of quantum object.
+    norm()
+        Return self.dag() * self.
+        Only possible if N_obj == 1
     permute(order)
         Returns composite qobj with indices reordered.
     ptrace(sel)
         Returns quantum object for selected dimensions after performing
         partial trace.
+    apply(f, *args, **kw_args)
+        Apply the function f to every Qobj. f(Qobj) -> Qobj
+        Return a modified td_Qobj and let the original one untouched
+    apply_decorator(decorator, *args, str_mod=None, inplace_np=False, **kw_args):
+        Apply the decorator to each function of the ops.
+        The *args and **kw_args are passed to the decorator.
+        new_coeff_function = decorator(coeff_function, *args, **kw_args)
+        str_mod : list of 2 elements
+            replace the string : str_mod[0] + original_string + str_mod[1]
+            *exemple: str_mod = ["exp(",")"]
+        inplace_np:
+            Change the numpy array instead of applying the decorator to the
+            function reading the array. Some decorators create incorrect array.
+            Transformations f'(t) = f(g(t)) create a missmatch between the array
+            and the associated time list.
     tidyup(atol=1e-12)
         Removes small elements from quantum object.
-    trans()
-        Transpose of quantum object.
+    compress():
+        Merge ops which are based on the same quantum object and coeff type.
+
+    compile():
+        Create the associated cython object for faster usage.
+    __call__(t):
+        Return the Qobj at time t.
+        *Faster after compilation
+    with_args(t, new_args):
+        Return the Qobj at time t with the new_args instead of the original
+        arguments. Do not change the args of the object.
+    with_state(t, psi, args={}):
+        Allow to use function coefficients that use states:
+            "def coeff(t,psi,args):" instead of "def coeff(t,args):"
+        Return the Qobj at time t, with the new_args if defined.
+        *Mixing both definition types of coeff will make the td_Qobj crach on
+            call
+    rhs(t, psi):
+        Apply the quantum object (if operator, no check) to psi.
+        More generaly, return the product of the object at t with psi.
+        *Faster after compilation
+    expect(t, psi, herm=False):
+        Calculates the expectation value for the quantum object (if operator,
+            no check) and state psi.
+        Return only the real part if herm.
+        *Faster after compilation
+    get_compiled_call, get_rhs_func, get_expect_func:
+        Compile and return the corresponding function of the cython object.
+        Was useful before the python function was set to call the cython version
+            after compilation.
+    to_list():
+        Return the time-dependent quantum object as a list
+
+
+    Functions
+    ---------
+    td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False)
+    Assembles the Liouvillian superoperator for time-dependent Hamiltonian and
+    collapse operators.
+    Parameters
+    ----------
+    H : td_qobj, qobj, [qobj]
+        System Hamiltonian.
+
+    c_ops : array_like
+        A ``list`` or ``array`` of collapse operators.
+
+    args, tlist, raw_str:
+        Arguments to pass to the td_qobj
+
+    Returns
+    -------
+    L : td_qobj
+        Liouvillian superoperator.
+
+    td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False)
+    Lindblad dissipator (generalized) for a single pair of collapse operators
+    for a single collapse operator
+    Parameters
+    ----------
+    a : qobj
+        Collapse operator.
+
+    args, tlist, raw_str:
+        Arguments to pass to the td_qobj
+
+    Returns
+    -------
+    D : td_qobj
+        Lindblad dissipator superoperator.
     """
+
+
 
     def __init__(self, Q_object=[], args={}, tlist=None, raw_str=False):
         self.const = False
@@ -183,7 +249,6 @@ class td_Qobj:
                         Q_object = [Q_object]
 
         op_type = self._td_format_check_single(Q_object, tlist)
-        self.op_type = op_type
         self.ops = []
 
         if isinstance(op_type, int):
@@ -445,13 +510,13 @@ class td_Qobj:
         new.args = self.args.copy()
         new.tlist = self.tlist
         new.dummy_cte = self.dummy_cte
-        new.op_type = self.op_type
         new.N_obj = self.N_obj
         new.fast = self.fast
         new.raw_str = self.raw_str
         new.compiled = False
         new.compiled_Qobj = None
         new.compiled_ptr = None
+        new.coeff_get = None
 
         for l, op in enumerate(self.ops):
             new.ops.append([None, None, None, None, None])
@@ -469,17 +534,11 @@ class td_Qobj:
 
     def arguments(self, args):
         self.args.update(args)
-        if self.compiled == 1:
-            str_args = {}
-            for i, op in enumerate(self.ops):
-                if op[3] == 3:
-                    i_str = str(i)
-                    str_args["str_array_" + i_str] = op[2]
-            self.compiled_Qobj.set_args(self.args, str_args, self.tlist)
-        elif self.compiled == 2 and self.fast:
-            self.coeff_get = make_united_f_ptr(self.ops, self.args,
-                                               self.tlist, False)
-            self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+        if self.compiled == 2:
+            self.coeff_get(True).set_args(self.args)
+            #self.coeff_get = make_united_f_ptr(self.ops, self.args,
+            #                                   self.tlist, False)
+            #self.compiled_Qobj.set_factor(ptr=self.coeff_get())
         for op in self.ops:
             if op[3] == 1:
                 op[4] = self.args
@@ -495,7 +554,10 @@ class td_Qobj:
         if not self.dummy_cte:
             list_Qobj.append(self.cte)
         for op in self.ops:
-            list_Qobj.append([op[0],op[2]])
+            if op[3] == 1:
+                list_Qobj.append([op[0],op[1]])
+            else:
+                list_Qobj.append([op[0],op[2]])
         return list_Qobj
 
     # Math function
@@ -668,16 +730,15 @@ class td_Qobj:
 
     def compress(self):
         sets = []
-        to_class = list(range(len(self.ops)))
         for i, op1 in enumerate(self.ops):
             already_matched = False
             for _set in sets:
-                already_matched = already_done and i in _set
+                already_matched = already_matched or i in _set
             if not already_matched:
                 this_set = [i]
                 for j, op2 in enumerate(self.ops[i+1:]):
                     if op1[0] == op2[0] and op1[3] == op2[3]:
-                        this_set.append(j)
+                        this_set.append(j+i+1)
                 sets.append(this_set)
         if len(self.ops) != len(sets):
             #found 2 td part with the same Qobj
@@ -686,29 +747,39 @@ class td_Qobj:
                 if len(_set) == 1:
                     new_ops.append(self.ops[_set[0]])
                 elif self.ops[_set[0]][3] == 1:
-                    new_ops.append(self.ops[_set[0]])
-                elif self.ops[_set[0]][3] == 2:
-                    new_ops.append(self.ops[_set[0]])
-                elif self.ops[_set[0]][3] == 3:
-                    new_ops.append(self.ops[_set[0]])
+                    new_op = self.ops[_set[0]]
 
-"""                elif type_ == 1:
-                    self.ops.append([op[0], op[1], op[1], 1, args])
-                    self.fast = False
-                elif type_ == 2:
-                    local_args = {}
-                    for i in args:
-                        if i in op[1]:
-                            local_args[i] = args[i]
-                    self.ops.append([op[0], _dummy, op[1], 2, local_args])
-                    compile_list.append((op[1], local_args, compile_count))
-                    compile_count += 1
-                elif type_ == 3:
-                    l = len(self.ops)
-                    N = len(self.tlist)
-                    dt = self.tlist[-1] / (N - 1)
-                    self.ops.append([op[0], _interpolate,
-                                     op[1].copy(), 3, (N, dt)])"""
+                    new_fs = [self.ops[_set[0]][1]]
+                    for i in _set[1:]:
+                        new_op[4].update(self.ops[i][4])
+                        new_fs += [self.ops[i][1]]
+                    new_op[2] = new_fs
+                    def _new_f(t, *args, **kwargs):
+                        return sum((f(t, *args, **kwargs) for f in new_op[2]))
+                    new_op[1] = _new_f
+                    new_ops.append(new_op)
+                elif self.ops[_set[0]][3] == 2:
+                    new_op = self.ops[_set[0]]
+                    new_str = self.ops[_set[0]][2]
+                    for i in _set[1:]:
+                        if self.ops[i][4]:
+                            new_op[4].update(self.ops[i][4])
+                        new_str = "(" + new_str + ") + (" + \
+                                  self.ops[i][2] + ")"
+                    if self.raw_str:
+                        new_op[1] = _dummy
+                    else:
+                        new_op[1] = _compile_str_single([[new_str,new_op[4],0]])[0]
+                    new_op[2] = new_str
+                    new_ops.append(new_op)
+                elif self.ops[_set[0]][3] == 3:
+                    new_op = self.ops[_set[0]]
+                    new_array = (self.ops[_set[0]][2]).copy()
+                    for i in _set[1:]:
+                        new_array += self.ops[i][2]
+                    new_op[2] = new_array
+                    new_ops.append(new_op)
+            self.ops = new_ops
 
 
     def permute(self, order):
@@ -740,15 +811,21 @@ class td_Qobj:
     def apply_decorator(self, function, *args, str_mod=None, inplace_np=False, **kw_args):
         self.compiled = False
         res = self.copy()
+        raw_str = self.raw_str
         for op in res.ops:
             if op[3] == 1:
                 op[1] = function(op[1], *args, **kw_args)
                 op[2] = function(op[1], *args, **kw_args)
             if op[3] == 2:
-                op[1] = function(op[1], *args, **kw_args)
                 if str_mod is None:
+                    if self.raw_str:
+                        op[1] = _compile_str_single([[op[2],op[4],0]])[0]
+                        raw_str = False
+                    op[1] = function(op[1], *args, **kw_args)
                     res.fast = False
                 else:
+                    if not self.raw_str:
+                        op[1] = function(op[1], *args, **kw_args)
                     op[2] = str_mod[0] + op[2] + str_mod[1]
             elif op[3] == 3:
                 if inplace_np:
@@ -761,6 +838,7 @@ class td_Qobj:
                 else:
                     op[1] = function(op[1], *args, **kw_args)
                     res.fast = False
+        self.raw_str = raw_str
         return res
 
     def _f_norm2(self):
@@ -829,10 +907,10 @@ class td_Qobj:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
             if code:
-                self.coeff_get,Code = make_united_f_ptr(self.ops, self.args,
+                self.coeff_get,Code = make_united_f_ptr_args(self.ops, self.args,
                                                         self.tlist, True)
             else:
-                self.coeff_get = make_united_f_ptr(self.ops, self.args,
+                self.coeff_get = make_united_f_ptr_args(self.ops, self.args,
                                                    self.tlist, False)
                 Code = None
             self.compiled_Qobj.set_factor(ptr=self.coeff_get())
@@ -841,11 +919,11 @@ class td_Qobj:
         else:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
-            self.coeff_get, self.compiled = self.make_united_f_call()
+            self.coeff_get, self.compiled = self._make_united_f_call()
             self.compiled_Qobj.set_factor(func=self.coeff_get)
 
 
-    def make_united_f_call(self):
+    def _make_united_f_call(self):
         types = [0,0,0]
         for part in self.ops:
             types[part[3]-1] += 1
@@ -873,6 +951,9 @@ class td_Qobj:
                     if part[3] == 1: #func: f(t,args)
                         out.append( part[1](t, part[4]))
                     elif part[3] == 2: #str: f(t,w=2)
+                        if self.raw_str:
+                            #Must compile the str here
+                            part[1] = _compile_str_single([[part[2],part[4],0]])[0]
                         out.append(part[1](t, **part[4]))
                     elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
                         out.append( part[1](t, part[2], *part[4]))
