@@ -23,7 +23,7 @@ cdef void _rhs(double t, complex* vec, complex* out):
     global compiled_cte_cy
     compiled_cte_cy._rhs_mat(t, vec, out)
 
-cdef extern from "/home/eric/algo/qutip/qutip/qutip/cy/src/dopri5td.cpp":
+cdef extern from "src/dopri5td.cpp":
     cdef cppclass ode:
         ode()
         ode(int*, double*, void (*_H)(double, complex *, complex *))
