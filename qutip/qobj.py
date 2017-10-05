@@ -63,7 +63,9 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
-from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm)
+from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm,
+                            zcsr_trace, zcsr_proj)
+from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
 import sys
 if sys.version_info.major >= 3:
@@ -71,6 +73,11 @@ if sys.version_info.major >= 3:
 elif sys.version_info.major < 3:
     from itertools import izip_longest
     zip_longest = izip_longest
+
+#OPENMP stuff
+from qutip.cy.openmp.utilities import use_openmp
+if settings.has_openmp:
+    from qutip.cy.openmp.omp_sparse_utils import omp_tidyup
 
 
 class Qobj(object):
@@ -173,6 +180,8 @@ class Qobj(object):
         Returns norm of a ket or an operator.
     permute(order)
         Returns composite qobj with indices reordered.
+    proj()
+        Computes the projector for a ket or bra vector.
     ptrace(sel)
         Returns quantum object for selected dimensions after performing
         partial trace.
@@ -948,9 +957,10 @@ class Qobj(object):
         """
         if self.type in ['oper', 'super']:
             if norm is None or norm == 'tr':
-                vals = sp_eigs(self.data, self.isherm, vecs=False,
+                _op = self*self.dag()
+                vals = sp_eigs(_op.data, _op.isherm, vecs=False,
                                sparse=sparse, tol=tol, maxiter=maxiter)
-                return np.sum(sqrt(abs(vals) ** 2))
+                return np.sum(np.sqrt(np.abs(vals)))
             elif norm == 'fro':
                 return sp_fro_norm(self.data)
             elif norm == 'one':
@@ -968,6 +978,31 @@ class Qobj(object):
             else:
                 raise ValueError("For vectors, norm must be 'l2', or 'max'.")
 
+    def proj(self):
+        """Form the projector from a given ket or bra vector.
+    
+        Parameters
+        ----------
+        Q : Qobj
+            Input bra or ket vector
+        
+        Returns
+        -------
+        P : Qobj
+            Projection operator.
+        """
+        if self.isket:
+            _out = zcsr_proj(self.data,1)
+            _dims = [self.dims[0],self.dims[0]]
+        elif self.isbra:
+            _out = zcsr_proj(self.data,0)
+            _dims = [self.dims[1],self.dims[1]]
+        else:
+            raise TypeError('Projector can only be formed from a bra or ket.')
+    
+        return Qobj(_out,dims=_dims)
+    
+    
     def tr(self):
         """Trace of a quantum object.
 
@@ -978,10 +1013,7 @@ class Qobj(object):
             otherwise.
 
         """
-        if self.isherm:
-            return float(np.real(np.sum(self.data.diagonal())))
-        else:
-            return complex(np.sum(self.data.diagonal()))
+        return zcsr_trace(self.data, self.isherm)
 
     def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
@@ -1241,7 +1273,7 @@ class Qobj(object):
         q.data, q.dims = _permute(self, order)
         return q.tidyup() if settings.auto_tidyup else q
 
-    def tidyup(self, atol=None):
+    def tidyup(self, atol=settings.auto_tidyup_atol):
         """Removes small elements from the quantum object.
 
         Parameters
@@ -1256,12 +1288,16 @@ class Qobj(object):
             Quantum object with small elements removed.
 
         """
-        if atol is None:
-            atol = settings.auto_tidyup_atol
-
         if self.data.nnz:
-            cy_tidyup(self.data.data,atol,self.data.nnz)
-            self.data.eliminate_zeros()
+            #This does the tidyup and returns True if
+            #The sparse data needs to be shortened
+            if use_openmp() and self.data.nnz > 500:
+                if omp_tidyup(self.data.data,atol,self.data.nnz, 
+                            settings.num_cpus):
+                            self.data.eliminate_zeros()
+            else:
+                if cy_tidyup(self.data.data,atol,self.data.nnz):
+                    self.data.eliminate_zeros()
             return self
         else:
             return self
@@ -1418,7 +1454,7 @@ class Qobj(object):
         Parameters
         -----------
         bra : qobj
-            Quantum object of type 'bra'.
+            Quantum object of type 'bra' or 'ket'
 
         ket : qobj
             Quantum object of type 'ket'.
@@ -1428,25 +1464,23 @@ class Qobj(object):
         elem : complex
             Complex valued matrix element.
 
-        Raises
-        ------
-        TypeError
-            Can only calculate matrix elements between a bra and ket
-            quantum object.
-
+        Note
+        ----
+        It is slightly more computationally efficient to use a ket
+        vector for the 'bra' input.
+        
         """
+        if not self.isoper:
+            raise TypeError("Can only get matrix elements for an operator.")
 
-        if isinstance(bra, Qobj) and isinstance(ket, Qobj):
+        else:
+            if bra.isbra and ket.isket:
+                return zcsr_mat_elem(self.data,bra.data,ket.data,1)
 
-            if self.isoper:
-                if bra.isbra and ket.isket:
-                    return (bra.data * self.data * ket.data)[0, 0]
-
-                if bra.isket and ket.isket:
-                    return (bra.data.T * self.data * ket.data)[0, 0]
-
-        raise TypeError("Can only calculate matrix elements for operators " +
-                        "and between ket and bra Qobj")
+            elif bra.isket and ket.isket:
+                return zcsr_mat_elem(self.data,bra.data,ket.data,0)
+            else:
+                raise TypeError("Can only calculate matrix elements for bra and ket vectors.")
 
     def overlap(self, state):
         """Overlap between two state vectors.

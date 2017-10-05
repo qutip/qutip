@@ -68,7 +68,6 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
             'qutip/cy/openmp', 'qutip/cy/openmp/src']
 PACKAGE_DATA = {
-    '.': ['README.md', 'LICENSE.txt'],
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
@@ -214,6 +213,15 @@ if "--with-openmp" in sys.argv:
             extra_link_args=[],
             language='c++')
     EXT_MODULES.append(_mod)
+    
+    # Add omp_sparse_utils
+    _mod = Extension('qutip.cy.openmp.omp_sparse_utils',
+            sources = ['qutip/cy/openmp/omp_sparse_utils.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags+omp_flags,
+            extra_link_args=omp_args,
+            language='c++')
+    EXT_MODULES.append(_mod)
 
 
 # Remove -Wstrict-prototypes from cflags
@@ -228,6 +236,7 @@ setup(
     name = NAME,
     version = FULLVERSION,
     packages = PACKAGES,
+    include_package_data=True,
     include_dirs = INCLUDE_DIRS,
     headers = HEADERS,
     ext_modules = cythonize(EXT_MODULES),

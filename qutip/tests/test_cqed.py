@@ -99,7 +99,7 @@ class Testcqed:
         U_physical = gate_sequence_product(U_list)
 
         print((U_ideal - U_physical).norm())
-        assert_((U_ideal - U_physical).norm() < 1e-3)
+        assert_((U_ideal - U_physical).norm() < 1e-2)
 
 
 if __name__ == "__main__":

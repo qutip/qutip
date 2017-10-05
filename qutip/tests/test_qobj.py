@@ -582,7 +582,11 @@ def test_QobjNorm():
     A = Qobj(x)
     assert_equal(
         np.abs(A.norm('fro') - la.norm(A.full(), 'fro')) < 1e-12, True)
-
+    # operator trace norm
+    a = rand_herm(10,0.25)
+    assert_almost_equal(a.norm(), (a*a.dag()).sqrtm().tr().real)
+    b = rand_herm(10,0.25) - 1j*rand_herm(10,0.25)
+    assert_almost_equal(b.norm(), (b*b.dag()).sqrtm().tr().real)
 
 def test_QobjPermute():
     "Qobj permute"
@@ -969,6 +973,9 @@ def test_dual_channel():
 
 
 def test_call():
+    """
+    Test Qobj: Call
+    """
     # Make test objects.
     psi = rand_ket(3)
     rho = rand_dm_ginibre(3)
@@ -991,6 +998,46 @@ def test_call():
     # Case 4: super(super). Should raise TypeError.
     with expect_exception(TypeError):
         S(S)
+
+def test_matelem():
+    """
+    Test Qobj: Compute matrix elements
+    """
+    for kk in range(10):
+        N = 20
+        H = rand_herm(N,0.2)
+
+        L = rand_ket(N,0.3)
+        Ld = L.dag()
+        R = rand_ket(N,0.3)
+    
+        ans = (Ld*H*R).tr()
+    
+        #bra-ket
+        out1 = H.matrix_element(Ld,R)
+        #ket-ket
+        out2 = H.matrix_element(Ld,R)
+    
+        assert_(abs(ans-out1) < 1e-14)
+        assert_(abs(ans-out2) < 1e-14)
+    
+    
+def test_projection():
+    """
+    Test Qobj: Projection operator
+    """
+    for kk in range(10):
+        N = 5
+        K = tensor(rand_ket(N,0.75),rand_ket(N,0.75))
+        B = K.dag()
+        
+        ans = K*K.dag()
+        
+        out1 = K.proj()
+        out2 = B.proj()
+        
+        assert_(out1==ans)
+        assert_(out2==ans)
 
 
 if __name__ == "__main__":

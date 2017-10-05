@@ -272,5 +272,27 @@ def test_pull_572_error():
     sol = bloch_redfield_solve(R, ekets, ini, times, [proj_up1])
     assert_allclose(sol[0],np.ones_like(times))
 
+
+def testQobjList():
+    """
+    brmesolve: input list of Qobj
+    """
+
+    delta = 0.0 * 2 * np.pi
+    epsilon = 0.5 * 2 * np.pi
+    gamma = 0.25
+    times = np.linspace(0, 10, 100)
+    H = [delta/2 * sigmax(), epsilon/2 * sigmaz()]
+    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
+    c_ops = [np.sqrt(gamma) * sigmam()]
+    e_ops = [sigmax(), sigmay(), sigmaz()]
+    res_me = mesolve(H, psi0, times, c_ops, e_ops)
+    res_brme = brmesolve(H, psi0, times, [], e_ops, c_ops=c_ops)
+
+    for idx, e in enumerate(e_ops):
+        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
+        assert_(diff < 1e-2)
+
+
 if __name__ == "__main__":
     run_module_suite()

@@ -34,6 +34,7 @@ import numpy as np
 import qutip.settings as qset
 cimport numpy as cnp
 cimport cython
+from libcpp cimport bool
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -233,6 +234,10 @@ def zcsr_mult(object A, object B, int sorted = 1):
                      &out,       
                      nrows, ncols)
     
+    #Shorten data and indices if needed
+    if out.nnz > out.indptr[out.nrows]:
+        shorten_CSR(&out, out.indptr[out.nrows])
+    
     if sorted:
         sort_indices(&out)
     return CSR_to_scipy(&out)
@@ -252,6 +257,10 @@ cdef void _zcsr_mult(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C):
                  B.data, B.indices, B.indptr,
                  C,       
                  A.nrows, B.ncols)
+    
+    #Shorten data and indices if needed
+    if C.nnz > C.indptr[C.nrows]:
+        shorten_CSR(C, C.indptr[C.nrows])
     sort_indices(C)
 
 
@@ -261,23 +270,21 @@ cdef int _zcsr_mult_pass1(double complex * Adata, int * Aind, int * Aptr,
                      double complex * Bdata, int * Bind, int * Bptr,       
                      int nrows, int ncols) nogil:
 
-    cdef int j, k, row_nnz, nnz = 0
+    cdef int j, k, nnz = 0
     cdef size_t ii,jj,kk
     #Setup mask array
-    cdef int * mask = <int *>PyDataMem_NEW_ZEROED(ncols, sizeof(int))
+    cdef int * mask = <int *>PyDataMem_NEW(ncols*sizeof(int))
     for ii in range(ncols):
         mask[ii] = -1
     #Pass 1
     for ii in range(nrows):
-        row_nnz = 0
         for jj in range(Aptr[ii], Aptr[ii+1]):
             j = Aind[jj]
             for kk in range(Bptr[j], Bptr[j+1]):
                 k = Bind[kk]
                 if mask[k] != ii:
                     mask[k] = ii
-                    row_nnz += 1
-        nnz += row_nnz
+                    nnz += 1
     PyDataMem_FREE(mask)
     return nnz
 
@@ -293,7 +300,7 @@ cdef void _zcsr_mult_pass2(double complex * Adata, int * Aind, int * Aptr,
     cdef size_t ii,jj,kk
     cdef double complex val
     cdef double complex * sums = <double complex *>PyDataMem_NEW_ZEROED(ncols, sizeof(double complex))
-    cdef int * nxt = <int *>PyDataMem_NEW_ZEROED(ncols, sizeof(int))
+    cdef int * nxt = <int *>PyDataMem_NEW(ncols*sizeof(int))
     for ii in range(ncols):
         nxt[ii] = -1
 
@@ -624,3 +631,92 @@ cdef _safe_multiply(int A, int B):
     """
     cdef int C = A*B
     return C
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_trace(object A, bool isherm):
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = ptr.shape[0]-1
+    cdef size_t ii, jj
+    cdef complex tr = 0
+
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            if ind[jj] == ii:
+                tr += data[jj]
+                break
+    if imag(tr) == 0 or isherm:
+        return real(tr)
+    else:
+        return tr
+        
+        
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_proj(object A, bool is_ket=1):
+    """
+    Computes the projection operator
+    from a given ket or bra vector
+    in CSR format.  The flag 'is_ket'
+    is True if passed a ket.
+    
+    This is ~3x faster than doing the 
+    conjugate transpose and sparse multiplication
+    directly.  Also, does not need a temp matrix.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows
+    cdef int nnz
+
+    cdef int offset = 0, new_idx, count, change_idx
+    cdef size_t jj, kk
+
+    if is_ket:
+        nrows = A.shape[0]
+        nnz = ptr[nrows]
+    else:
+        nrows = A.shape[1]
+        nnz = ptr[1]
+
+    cdef CSR_Matrix out
+    init_CSR(&out, nnz**2, nrows)
+
+    if is_ket:
+        #Compute new ptrs and inds
+        for jj in range(nrows):
+            out.indptr[jj] = ptr[jj]*nnz
+            if ptr[jj+1] != ptr[jj]:
+                new_idx = jj
+                for kk in range(nnz):
+                    out.indices[offset+kk*nnz] = new_idx
+                offset += 1
+        #set nnz in new ptr
+        out.indptr[nrows] = nnz**2
+
+        #Compute the data
+        for jj in range(nnz):
+            for kk in range(nnz):
+                out.data[jj*nnz+kk] = data[jj]*conj(data[kk])
+        
+    else:
+        count = nnz**2
+        new_idx = nrows
+        for kk in range(nnz-1,-1,-1):
+            for jj in range(nnz-1,-1,-1):
+                out.indices[offset+jj] = ind[jj]
+                out.data[kk*nnz+jj] = conj(data[kk])*data[jj]
+            offset += nnz
+            change_idx = ind[kk]
+            while new_idx > change_idx:
+                out.indptr[new_idx] = count
+                new_idx -= 1
+            count -= nnz
+    
+
+    return CSR_to_scipy(&out)
