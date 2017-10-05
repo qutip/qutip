@@ -188,44 +188,6 @@ class td_Qobj:
             after compilation.
     to_list():
         Return the time-dependent quantum object as a list
-
-
-    Functions
-    ---------
-    td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False)
-    Assembles the Liouvillian superoperator for time-dependent Hamiltonian and
-    collapse operators.
-    Parameters
-    ----------
-    H : td_qobj, qobj, [qobj]
-        System Hamiltonian.
-
-    c_ops : array_like
-        A ``list`` or ``array`` of collapse operators.
-
-    args, tlist, raw_str:
-        Arguments to pass to the td_qobj
-
-    Returns
-    -------
-    L : td_qobj
-        Liouvillian superoperator.
-
-    td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False)
-    Lindblad dissipator (generalized) for a single pair of collapse operators
-    for a single collapse operator
-    Parameters
-    ----------
-    a : qobj
-        Collapse operator.
-
-    args, tlist, raw_str:
-        Arguments to pass to the td_qobj
-
-    Returns
-    -------
-    D : td_qobj
-        Lindblad dissipator superoperator.
     """
 
 
@@ -1000,6 +962,9 @@ def _conj(f):
         return np.conj(f(a, *args, **kwargs))
     return ff
 
+
+
+
 def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Accept time dependant
@@ -1012,6 +977,9 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
 
     c_ops : array_like of qobj or td_Qobj
         A ``list`` or ``array`` of collapse operators.
+
+    args, tlist, raw_str:
+        Arguments to pass to the td_qobj
 
     Returns
     -------
@@ -1067,6 +1035,8 @@ def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
     a : qobj, [qobj], td_Qobj
         Left part of collapse operator.
 
+    args, tlist, raw_str:
+        Arguments to pass to the td_qobj
 
     Returns
     -------
