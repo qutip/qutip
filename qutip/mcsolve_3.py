@@ -67,13 +67,9 @@ global config_mcsolve
 
 class SolverConfiguration():
     def __init__(self):
-        pass
+        self.H_is_set = False
 
-    def reset(self):
-        pass
-
-    def soft_reset(self):
-        pass
+config_mcsolve = SolverConfiguration()
 
 class qutip_zvode(zvode):
     def step(self, *args):
@@ -183,7 +179,7 @@ def mcsolve_3(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
         Options class, i.e. Options(seeds=prev_result.seeds).
     """
 
-    if len(c_ops) == 0:
+    if len(c_ops) == 0 and not options.rhs_reuse:
         print("No c_ops, using sesolve")
         if progress_bar is True:
             progress_bar = BaseProgressBar()
@@ -272,21 +268,18 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
             options=None, progress_bar=True, map_func=None,
             map_kwargs=None, _safe_mode=True, compile=True):
 
-    config = SolverConfiguration()
-
+    global config_mcsolve
+    config = config_mcsolve
+    print(type(config))
     if debug:
         print(inspect.stack()[0][3])
 
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
 
-    if _safe_mode:
-        _solver_safety_check(H, psi0, c_ops, e_ops, args)
-
     if options is None:
         options = Options()
 
-    config.soft_reset()
     # set general items
     if ntraj is None:
         ntraj = options.ntraj
@@ -359,16 +352,13 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     # --------------------------------------------
     dopri = (options.method == "dopri5")
-    if not options.rhs_reuse or not config.tdfunc:
-        # reset config collapse and time-dependence flags to default values
-
-
+    if not options.rhs_reuse or not config.H_is_set:
         # Find the type of time-dependence for H and c_ops
         # h_tflag
         #   0 : cte
         #   1 : H as td_Qobj
-        #   3 : H is a functions
-        #   4 : H functions with state
+        #   2 : H is a functions
+        #   3 : H functions with state
         #
         # c_tflag
         #   0 : cte
@@ -381,16 +371,27 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         # config.td_n_ops : to get the expectation value of the c_op
         # config.rhs_ptr : pointer to the H rhs function
 
+        if _safe_mode:
+            _solver_safety_check(H, psi0, c_ops, e_ops, args)
+
         config.c_num = len(c_ops)
         if len(c_ops) > 0:
             config.cflag = True
         else:
             config.cflag = False
             raise Exception("Should use sesolve instead of mcsolve")
-
-        c_types = []
+        config.H_is_set = False
+        config.c_tflag = -1
+        config.h_tflag = -1
+        config.Hc_td = None
         config.td_c_ops = []
         config.td_n_ops = []
+        config.rhs = None
+        config.Hc_rhs = None
+        config.h_func = None
+        config.h_func_args = None
+
+        c_types = []
         for c in c_ops:
             config.td_c_ops += [td_Qobj(c, args, tlist, raw_str=True)]
             config.td_n_ops += [config.td_c_ops[-1].norm()]
@@ -399,8 +400,8 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
             else:
                 c_types += [1]
         config.c_tflag = max(c_types)
-        [c_op.compile() for c_op in config.td_c_ops]
-        [c_op.compile() for c_op in config.td_n_ops]
+        (c_op.compile() for c_op in config.td_c_ops)
+        (c_op.compile() for c_op in config.td_n_ops)
 
         Hc_td = td_Qobj(config.td_c_ops[0](0)*0., args, tlist, raw_str=True)
         for c in config.td_n_ops:
@@ -421,7 +422,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 config.rhs = H_td.get_rhs_func()
 
             else:
-                config.h_tflag = 3
+                config.h_tflag = 2
                 config.h_func = H
                 config.h_func_args = args
                 config.Hc_td = Hc_td
@@ -430,7 +431,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 config.rhs = _funcrhs
 
         else:
-            config.h_tflag = 4
+            config.h_tflag = 3
             config.Hc_td = Hc_td
             config.Hc_td.compile()
             config.Hc_rhs = Hc_td.get_rhs_func()
@@ -445,13 +446,26 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 config.H_td = H_td
                 config.H_td.compile()
                 config.h_func = H_td.with_state # compiled
+        config.H_is_set = True
 
     else:
-        # setup args for new parameters when rhs_reuse=True and tdfunc is given
-        # string based
-        raise NotImplementedError("How would this be used?")
-    #if config.h_tflag >= 2 or config.c_tflag ==2:
-    #    config.options.method = "adams"
+        if args:
+            if config.h_tflag == 1:
+                config.H_td.arguments(args)
+                (c_op.arguments(args) for c_op in config.td_c_ops)
+                (c_op.arguments(args) for c_op in config.td_n_ops)
+            elif config.h_tflag == 2:
+                config.h_func_args = args
+                (c_op.arguments(args) for c_op in config.td_c_ops)
+                (c_op.arguments(args) for c_op in config.td_n_ops)
+            elif config.h_tflag == 3:
+                if config.rhs is _tdrhs_with_state:
+                    config.H_td.arguments(args)
+                (c_op.arguments(args) for c_op in config.td_c_ops)
+                (c_op.arguments(args) for c_op in config.td_n_ops)
+
+
+
     return config
 
 # -----------------------------------------------------------------------------
@@ -534,7 +548,7 @@ class _MC():
                                            list(range(self.config.ntraj)),
                                            task_args, task_kwargs,
                                            **map_kwargs)
-            config_mcsolve = None
+            
             for n, result in enumerate(results):
                 state_out, expect_out, collapse_times, which_oper = result
 
@@ -561,7 +575,7 @@ def _build_integration_func(config):
         print(inspect.stack()[0][3] + " in " + str(os.getpid()))
 
     ODE = ode(config.rhs)
-    if config.h_tflag in (3,4):
+    if config.h_tflag in (2,3):
         ODE.set_f_params(config)
     #else:
         #ODE.set_f_params(None)
@@ -611,11 +625,6 @@ def _mc_alg_evolve(nt, seeds):
 
     # SEED AND RNG AND GENERATE
     prng = RandomState(seeds[nt])
-
-    #print(config.h_tflag, config.options.method)
-    #print(config.H_td, config.H_td.compiled_Qobj)
-    #print(config.rhs)
-    #print(config.rhs is config.H_td.compiled_Qobj.rhs)
 
     if ( config.h_tflag in (1,) and config.options.method == "dopri5" ):
         states_out, expect_out, collapse_times, which_oper = cy_mc_run_fast(
