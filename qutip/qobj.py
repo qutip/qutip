@@ -64,7 +64,7 @@ from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm,
-                            zcsr_trace, zcsr_proj)
+                            zcsr_trace, zcsr_proj, inner_product)
 from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
 import sys
@@ -1482,15 +1482,15 @@ class Qobj(object):
             else:
                 raise TypeError("Can only calculate matrix elements for bra and ket vectors.")
 
-    def overlap(self, state):
+    def overlap(self, other):
         """Overlap between two state vectors.
 
-        Gives the overlap (scalar product) for the quantum object and `state`
-        state vector.
+        Gives the overlap (inner product) between the current bra or ket Qobj 
+        and and another bra or ket Qobj.
 
         Parameters
         -----------
-        state : qobj
+        other : qobj
             Quantum object for a state vector of type 'ket' or 'bra'.
 
         Returns
@@ -1502,22 +1502,34 @@ class Qobj(object):
         ------
         TypeError
             Can only calculate overlap between a bra and ket quantum objects.
+        
+        Notes
+        -----
+        Since QuTiP mainly deals with ket vectors, the most efficient inner product
+        call is the ket-ket version that computes the product <self|other> with 
+        both vectors expressed as kets.
 
         """
 
-        if isinstance(state, Qobj):
+        if isinstance(other, Qobj):
 
             if self.isbra:
-                if state.isket:
-                    return (self.data * state.data)[0, 0]
-                elif state.isbra:
-                    return (self.data * state.data.H)[0, 0]
+                if other.isket:
+                    return inner_product(self.data, other.data, 1)
+                elif other.isbra:
+                    #Since we deal mainly with ket vectors, the bra-bra combo
+                    #is not common, and not optimized.
+                    return inner_product(self.data, other.dag().data, 1)
+                else:
+                    raise TypeError("Can only calculate overlap for state vector Qobjs")
 
             elif self.isket:
-                if state.isbra:
-                    return (self.data.H * state.data.H)[0, 0]
-                elif state.isket:
-                    return (self.data.H * state.data)[0, 0]
+                if other.isbra:
+                    return inner_product(other.data, self.data, 1)
+                elif other.isket:
+                    return inner_product(self.data, other.data, 0)
+                else:
+                    raise TypeError("Can only calculate overlap for state vector Qobjs")
 
         raise TypeError("Can only calculate overlap for state vector Qobjs")
 
