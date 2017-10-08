@@ -989,6 +989,8 @@ class QubitCircuit(object):
 
                     elif gate.name == "CNOT":
                         col.append(r" \targ ")
+                    elif gate.name == "TOFFOLI":
+                        col.append(r" \targ ")
                     elif gate.name == "SWAP":
                         col.append(r" \qswap ")
                     else:
