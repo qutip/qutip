@@ -64,7 +64,7 @@ from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm,
-                            zcsr_trace, zcsr_proj, inner_product)
+                            zcsr_trace, zcsr_proj, zcsr_inner)
 from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
 import sys
@@ -1515,24 +1515,25 @@ class Qobj(object):
 
             if self.isbra:
                 if other.isket:
-                    return inner_product(self.data, other.data, 1)
+                    return zcsr_inner(self.data, other.data, 1)
                 elif other.isbra:
                     #Since we deal mainly with ket vectors, the bra-bra combo
                     #is not common, and not optimized.
-                    return inner_product(self.data, other.dag().data, 1)
+                    return zcsr_inner(self.data, other.dag().data, 1)
                 else:
                     raise TypeError("Can only calculate overlap for state vector Qobjs")
 
             elif self.isket:
                 if other.isbra:
-                    return inner_product(other.data, self.data, 1)
+                    return zcsr_inner(other.data, self.data, 1)
                 elif other.isket:
-                    return inner_product(self.data, other.data, 0)
+                    return zcsr_inner(self.data, other.data, 0)
                 else:
                     raise TypeError("Can only calculate overlap for state vector Qobjs")
 
         raise TypeError("Can only calculate overlap for state vector Qobjs")
 
+    
     def eigenstates(self, sparse=False, sort='low',
                     eigvals=0, tol=0, maxiter=100000):
         """Eigenstates and eigenenergies.
@@ -1582,6 +1583,7 @@ class Qobj(object):
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 
+    
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
         """Eigenenergies of a quantum object.
