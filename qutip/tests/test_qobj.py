@@ -34,7 +34,8 @@
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
-from numpy.testing import assert_equal, assert_, assert_almost_equal, run_module_suite
+from numpy.testing import (assert_equal, assert_, assert_almost_equal, 
+                            run_module_suite)
 
 from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
@@ -1038,6 +1039,25 @@ def test_projection():
         
         assert_(out1==ans)
         assert_(out2==ans)
+
+
+def test_overlap():
+    """
+    Test Qobj: Overlap (inner product)
+    """
+    for kk in range(10):
+        N = 10
+        A = rand_ket(N,0.75)
+        Ad = A.dag()
+        B = rand_ket(N,0.75)
+        Bd = B.dag()
+        
+        ans = (A.dag()*B).tr()
+        
+        assert_almost_equal(A.overlap(B), ans)
+        assert_almost_equal(Ad.overlap(B), ans)
+        assert_almost_equal(Ad.overlap(Bd), ans)
+        assert_almost_equal(A.overlap(Bd), np.conj(ans))
 
 
 if __name__ == "__main__":

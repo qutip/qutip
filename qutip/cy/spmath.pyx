@@ -720,3 +720,43 @@ def zcsr_proj(object A, bool is_ket=1):
     
 
     return CSR_to_scipy(&out)
+    
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_inner(object A, object B, bool bra_ket):
+    """
+    Computes the inner-product <A|B> between ket-ket,
+    or bra-ket vectors in sparse CSR format.
+    """
+    cdef complex[::1] a_data = A.data
+    cdef int[::1] a_ind = A.indices
+    cdef int[::1] a_ptr = A.indptr
+
+    cdef complex[::1] b_data = B.data
+    cdef int[::1] b_ind = B.indices
+    cdef int[::1] b_ptr = B.indptr
+    cdef int nrows = B.shape[0]
+
+    cdef double complex inner = 0
+    cdef size_t jj, kk
+    cdef int a_idx, b_idx
+
+    if bra_ket:
+        for kk in range(a_ind.shape[0]):
+            a_idx = a_ind[kk]
+            for jj in range(nrows):
+                if (b_ptr[jj+1]-b_ptr[jj]) != 0:
+                    if jj == a_idx:
+                        inner += a_data[kk]*b_data[b_ptr[jj]]
+                        break
+    else:
+        for kk in range(nrows):
+            a_idx = a_ptr[kk]
+            b_idx = b_ptr[kk]
+            if (a_ptr[kk+1]-a_idx) != 0:
+                if (b_ptr[kk+1]-b_idx) != 0:
+                    inner += conj(a_data[a_idx])*b_data[b_idx]
+                
+    return inner
