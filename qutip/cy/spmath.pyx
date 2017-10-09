@@ -725,7 +725,7 @@ def zcsr_proj(object A, bool is_ket=1):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def inner_product(object A, object B, bool bra_ket):
+def zcsr_inner(object A, object B, bool bra_ket):
     """
     Computes the inner-product <A|B> between ket-ket,
     or bra-ket vectors in sparse CSR format.

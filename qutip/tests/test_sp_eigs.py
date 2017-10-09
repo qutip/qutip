@@ -33,7 +33,7 @@
 
 import scipy
 import numpy as np
-from numpy.testing import assert_equal, run_module_suite
+from numpy.testing import assert_equal, run_module_suite, assert_
 import unittest
 
 from qutip import num, rand_herm, expect, rand_unitary
@@ -186,21 +186,21 @@ def test_DenseValsVecs():
     """
     Dense eigs non-Hermitian
     """
-    U = rand_unitary(10)
-    spvals, spvecs = U.eigenstates(sparse=False)
+    W = rand_herm(10,0.5) + 1j*rand_herm(10,0.5)
+    spvals, spvecs = W.eigenstates(sparse=False)
     assert_equal(np.real(spvals[0]) <= np.real(spvals[-1]), True)
     for k in range(10):
         # check that eigenvectors are right and in right order
-        assert_equal(abs(expect(U, spvecs[k]) - spvals[k]) < 1e-14, True)
-        assert_equal(np.iscomplex(spvals[k]), True)
+        assert_equal(abs(expect(W, spvecs[k]) - spvals[k]) < 1e-14, True)
+        assert_(np.iscomplex(spvals[k]))
 
     # check sorting
-    spvals, spvecs = U.eigenstates(sparse=False, sort='high')
+    spvals, spvecs = W.eigenstates(sparse=False, sort='high')
     assert_equal(np.real(spvals[0]) >= np.real(spvals[-1]), True)
 
     # check for N-1 eigenvals
-    U = rand_unitary(10)
-    spvals, spvecs = U.eigenstates(sparse=False, eigvals=9)
+    W = rand_unitary(10)
+    spvals, spvecs = W.eigenstates(sparse=False, eigvals=9)
     assert_equal(len(spvals), 9)
 
 
