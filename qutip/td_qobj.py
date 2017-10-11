@@ -193,6 +193,12 @@ class td_Qobj:
 
 
     def __init__(self, Q_object=[], args={}, tlist=None, raw_str=False):
+        if isinstance(Q_object, td_Qobj):
+            self._inplace_copy(Q_object)
+            if args:
+                self.arguments(args)
+            return
+
         self.const = False
         self.dummy_cte = False
         self.args = args
@@ -493,6 +499,34 @@ class td_Qobj:
                 new.ops[l][4] = op[4]
 
         return new
+
+    def _inplace_copy(self, other):
+        self.cte = other.cte
+        self.const = other.const
+        self.args = other.args.copy()
+        self.tlist = other.tlist
+        self.dummy_cte = other.dummy_cte
+        self.N_obj = other.N_obj
+        self.fast = other.fast
+        self.raw_str = other.raw_str
+        self.compiled = False
+        self.compiled_Qobj = None
+        self.compiled_ptr = None
+        self.coeff_get = None
+        self.ops = []
+
+        for l, op in enumerate(other.ops):
+            self.ops.append([None, None, None, None, None])
+            self.ops[l][0] = op[0].copy()
+            self.ops[l][3] = op[3]
+            self.ops[l][1] = op[1]
+            if self.ops[l][3] in [1, 2]:
+                self.ops[l][2] = op[2]
+                self.ops[l][4] = op[4].copy()
+            elif self.ops[l][3] == 3:
+                self.ops[l][2] = op[2].copy()
+                self.ops[l][4] = op[4]
+
 
     def arguments(self, args):
         self.args.update(args)

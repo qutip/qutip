@@ -183,7 +183,11 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
         print("No c_ops, using sesolve")
         if progress_bar is True:
             progress_bar = BaseProgressBar()
-        return sesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options,
+        if isinstance(H,td_Qobj):
+            Hlist = H.to_list()
+        else:
+            Hlist = H
+        return sesolve(Hlist, psi0, tlist, e_ops=e_ops, args=args, options=options,
                 progress_bar=progress_bar, _safe_mode=_safe_mode)
 
     if isinstance(e_ops, Qobj):
@@ -227,8 +231,8 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
             output.expect = [np.mean(np.array([mc.expect_out[nt][op]
-                                               for nt in range(ntraj)],
-                            dtype=object), axis=0) for op in range(config.e_num)]
+                                for nt in range(ntraj)], dtype=object), axis=0)
+                             for op in range(config.e_num)]
         elif isinstance(ntraj, (list, np.ndarray)):
             output.expect = []
             for num in ntraj:
@@ -274,7 +278,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
     if debug:
         print(inspect.stack()[0][3])
 
-    if isinstance(c_ops, Qobj):
+    if isinstance(c_ops, (Qobj, td_Qobj)):
         c_ops = [c_ops]
 
     if options is None:
@@ -318,7 +322,6 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         config.psi0 = psi0.tidyup(options.atol).full().ravel()
     else:
         config.psi0 = psi0.full().ravel()
-
     config.psi0_dims = psi0.dims
     config.psi0_shape = psi0.shape
 
@@ -370,10 +373,6 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         # config.td_c_ops : to get needed spmv function
         # config.td_n_ops : to get the expectation value of the c_op
         # config.rhs_ptr : pointer to the H rhs function
-
-        if _safe_mode:
-            _solver_safety_check(H, psi0, c_ops, e_ops, args)
-
         config.c_num = len(c_ops)
         if len(c_ops) > 0:
             config.cflag = True
@@ -384,24 +383,27 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         config.c_tflag = -1
         config.h_tflag = -1
         config.Hc_td = None
-        config.td_c_ops = []
-        config.td_n_ops = []
+        config.H_td = None
         config.rhs = None
         config.Hc_rhs = None
         config.h_func = None
         config.h_func_args = None
+        config.td_c_ops = []
+        config.td_n_ops = []
 
         c_types = []
         for c in c_ops:
             config.td_c_ops += [td_Qobj(c, args, tlist, raw_str=True)]
             config.td_n_ops += [config.td_c_ops[-1].norm()]
-            if config.td_c_ops[-1].cte:
+            if config.td_c_ops[-1].const:
                 c_types += [0]
             else:
                 c_types += [1]
         config.c_tflag = max(c_types)
-        (c_op.compile() for c_op in config.td_c_ops)
-        (c_op.compile() for c_op in config.td_n_ops)
+        for c_op in config.td_c_ops:
+            c_op.compile()
+        for c_op in config.td_n_ops:
+            c_op.compile()
 
         Hc_td = td_Qobj(config.td_c_ops[0](0)*0., args, tlist, raw_str=True)
         for c in config.td_n_ops:
@@ -447,25 +449,45 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 config.H_td.compile()
                 config.h_func = H_td.with_state # compiled
         config.H_is_set = True
+        if _safe_mode:
+            try:
+                for c_op in config.td_c_ops:
+                    c_op(0.)
+            except:
+                raise Exception("Error calculating c_ops ")
+            try:
+                for c_op in config.td_c_ops:
+                    c_op.rhs(0,config.psi0)
+            except:
+                raise Exception("c_ops are not consistant with psi0")
+            try:
+                if config.H_td and config.h_tflag != 3:
+                    config.H_td(0.)
+            except:
+                raise Exception("Error calculating H")
+            try:
+                if config.h_tflag == 1:
+                    config.rhs(0, config.psi0)
+                else:
+                    config.rhs(0, config.psi0, config)
+            except:
+                raise Exception("H is not consistant with psi0")
 
     else:
         if args:
             if config.h_tflag == 1:
                 config.H_td.arguments(args)
-                (c_op.arguments(args) for c_op in config.td_c_ops)
-                (c_op.arguments(args) for c_op in config.td_n_ops)
+                [c_op.arguments(args) for c_op in config.td_c_ops]
+                [c_op.arguments(args) for c_op in config.td_n_ops]
             elif config.h_tflag == 2:
                 config.h_func_args = args
-                (c_op.arguments(args) for c_op in config.td_c_ops)
-                (c_op.arguments(args) for c_op in config.td_n_ops)
+                [c_op.arguments(args) for c_op in config.td_c_ops]
+                [c_op.arguments(args) for c_op in config.td_n_ops]
             elif config.h_tflag == 3:
                 if config.rhs is _tdrhs_with_state:
                     config.H_td.arguments(args)
-                (c_op.arguments(args) for c_op in config.td_c_ops)
-                (c_op.arguments(args) for c_op in config.td_n_ops)
-
-
-
+                [c_op.arguments(args) for c_op in config.td_c_ops]
+                [c_op.arguments(args) for c_op in config.td_n_ops]
     return config
 
 # -----------------------------------------------------------------------------
