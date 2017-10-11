@@ -179,11 +179,11 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
         Options class, i.e. Options(seeds=prev_result.seeds).
     """
 
-    if len(c_ops) == 0 and not options.rhs_reuse:
+    if len(c_ops) == 0 and (not options or not options.rhs_reuse):
         print("No c_ops, using sesolve")
         if progress_bar is True:
             progress_bar = BaseProgressBar()
-        if isinstance(H,td_Qobj):
+        if isinstance(H, td_Qobj):
             Hlist = H.to_list()
         else:
             Hlist = H
@@ -274,7 +274,6 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
 
     global config_mcsolve
     config = config_mcsolve
-    print(type(config))
     if debug:
         print(inspect.stack()[0][3])
 
