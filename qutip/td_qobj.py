@@ -40,9 +40,10 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
-from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr_args
+from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
+
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,
@@ -142,7 +143,8 @@ class td_Qobj:
     apply(f, *args, **kw_args)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
         Return a modified td_Qobj and let the original one untouched
-    apply_decorator(decorator, *args, str_mod=None, inplace_np=False, **kw_args):
+    apply_decorator(decorator, *args, str_mod=None,
+                    inplace_np=False, **kw_args):
         Apply the decorator to each function of the ops.
         The *args and **kw_args are passed to the decorator.
         new_coeff_function = decorator(coeff_function, *args, **kw_args)
@@ -190,8 +192,6 @@ class td_Qobj:
         Return the time-dependent quantum object as a list
     """
 
-
-
     def __init__(self, Q_object=[], args={}, tlist=None, raw_str=False):
         if isinstance(Q_object, td_Qobj):
             self._inplace_copy(Q_object)
@@ -211,10 +211,10 @@ class td_Qobj:
         self.raw_str = raw_str
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
-            if isinstance(Q_object[0], Qobj) and not \
-                isinstance(Q_object[1], (Qobj, list)):
-                        # The format is [Qobj, f/str]
-                        Q_object = [Q_object]
+            if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
+                                                                (Qobj, list)):
+                # The format is [Qobj, f/str]
+                Q_object = [Q_object]
 
         op_type = self._td_format_check_single(Q_object, tlist)
         self.ops = []
@@ -323,20 +323,20 @@ class td_Qobj:
         if data:
             op_t = self.cte.data.copy()
             for part in self.ops:
-                if part[3] == 1: #func: f(t,args)
+                if part[3] == 1:  # func: f(t,args)
                     op_t += part[0].data * part[1](t, part[4])
-                elif part[3] == 2: #str: f(t,w=2)
+                elif part[3] == 2:  # str: f(t,w=2)
                     op_t += part[0].data * part[1](t, **part[4])
-                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                     op_t += part[0].data * part[1](t, part[2], *part[4])
         else:
             op_t = self.cte.copy()
             for part in self.ops:
-                if part[3] == 1: #func: f(t,args)
+                if part[3] == 1:  # func: f(t,args)
                     op_t += part[0] * part[1](t, part[4])
-                elif part[3] == 2: #str: f(t,w=2)
+                elif part[3] == 2:  # str: f(t,w=2)
                     op_t += part[0] * part[1](t, **part[4])
-                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                     op_t += part[0] * part[1](t, part[2], *part[4])
         return op_t
 
@@ -346,42 +346,42 @@ class td_Qobj:
         new_args.update(args)
         if self.compiled:
             for i, part in enumerate(self.ops):
-                if part[3] == 1: #func: f(t,args)
+                if part[3] == 1:  # func: f(t,args)
                     coeff[i] = part[1](t, new_args)
-                elif part[3] == 2: #str: f(t,w=2)
+                elif part[3] == 2:  # str: f(t,w=2)
                     part_args = part[4].copy()
                     for pa in part_args:
                         if pa in args:
                             part_args[pa] = new_args[pa]
                     coeff[i] = part[1](t, **part_args)
-                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                     coeff[i] = part[1](t, part[2], *part[4])
             op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
         elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
-                if part[3] == 1: #func: f(t,args)
+                if part[3] == 1:
                     op_t += part[0].data * part[1](t, new_args)
-                elif part[3] == 2: #str: f(t,w=2)
+                elif part[3] == 2:
                     part_args = part[4].copy()
                     for pa in part_args:
                         if pa in args:
                             part_args[pa] = new_args[pa]
                     op_t += part[0].data * part[1](t, **part_args)
-                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                elif part[3] == 3:
                     op_t += part[0].data * part[1](t, part[2], *part[4])
         else:
             op_t = self.cte.copy()
             for part in self.ops:
-                if part[3] == 1: #func: f(t,args)
+                if part[3] == 1:
                     op_t += part[0] * part[1](t, new_args)
-                elif part[3] == 2: #str: f(t,w=2)
+                elif part[3] == 2:
                     part_args = part[4].copy()
                     for pa in part_args:
                         if pa in args:
                             part_args[pa] = new_args[pa]
                     op_t += part[0] * part[1](t, **part_args)
-                elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                elif part[3] == 3:
                     op_t += part[0] * part[1](t, part[2], *part[4])
         return op_t
 
@@ -403,23 +403,23 @@ class td_Qobj:
                 new_args = self.args.copy()
                 new_args.update(args)
                 for i, part in enumerate(self.ops):
-                    if part[3] == 1: #func: f(t,args)
+                    if part[3] == 1:  # func: f(t, psi, args)
                         coeff[i] = part[1](t, psi, new_args)
-                    elif part[3] == 2: #str: f(t,w=2)
+                    elif part[3] == 2:  # str: f(t,w=2)
                         part_args = part[4].copy()
                         for pa in part_args:
                             if pa in new_args:
                                 part_args[pa] = new_args[pa]
                         coeff[i] = part[1](t, **part_args)
-                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                         coeff[i] = part[1](t, part[2], *part[4])
             else:
                 for i, part in enumerate(self.ops):
-                    if part[3] == 1: #func: f(t,args)
+                    if part[3] == 1:
                         coeff[i] = part[1](t, psi, part[4])
-                    elif part[3] == 2: #str: f(t,w=2)
+                    elif part[3] == 2:
                         coeff[i] = part[1](t, **part[4])
-                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    elif part[3] == 3:
                         coeff[i] = part[1](t, part[2], *part[4])
             op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
         elif args:
@@ -428,47 +428,47 @@ class td_Qobj:
             if data:
                 op_t = self.cte.data.copy()
                 for part in self.ops:
-                    if part[3] == 1: #func: f(t,args)
+                    if part[3] == 1:
                         op_t += part[0].data * part[1](t, psi, new_args)
-                    elif part[3] == 2: #str: f(t,w=2)
+                    elif part[3] == 2:
                         part_args = part[4].copy()
                         for pa in part_args:
                             if pa in args:
                                 part_args[pa] = kw_args[pa]
                         op_t += part[0].data * part[1](t, **part_args)
-                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    elif part[3] == 3:
                         op_t += part[0].data * part[1](t, part[2], *part[4])
             else:
                 op_t = self.cte.copy()
                 for part in self.ops:
-                    if part[3] == 1: #func: f(t,args)
+                    if part[3] == 1:
                         op_t += part[0] * part[1](t, new_args)
-                    elif part[3] == 2: #str: f(t,w=2)
+                    elif part[3] == 2:
                         part_args = part[4].copy()
                         for pa in part_args:
                             if pa in args:
                                 part_args[pa] = kw_args[pa]
                         op_t += part[0] * part[1](t, **part_args)
-                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    elif part[3] == 3:
                         op_t += part[0] * part[1](t, part[2], *part[4])
         else:
             if data:
                 op_t = self.cte.data.copy()
                 for part in self.ops:
-                    if part[3] == 1: #func: f(t,args)
+                    if part[3] == 1:
                         op_t += part[0].data * part[1](t, psi, part[4])
-                    elif part[3] == 2: #str: f(t,w=2)
+                    elif part[3] == 2:
                         op_t += part[0].data * part[1](t, **part[4])
-                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    elif part[3] == 3:
                         op_t += part[0].data * part[1](t, part[2], *part[4])
             else:
                 op_t = self.cte.copy()
                 for part in self.ops:
-                    if part[3] == 1: #func: f(t,args)
+                    if part[3] == 1:
                         op_t += part[0] * part[1](t, psi, part[4])
-                    elif part[3] == 2: #str: f(t,w=2)
+                    elif part[3] == 2:
                         op_t += part[0] * part[1](t, **part[4])
-                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
+                    elif part[3] == 3:
                         op_t += part[0] * part[1](t, part[2], *part[4])
         return op_t
 
@@ -527,14 +527,10 @@ class td_Qobj:
                 self.ops[l][2] = op[2].copy()
                 self.ops[l][4] = op[4]
 
-
     def arguments(self, args):
         self.args.update(args)
         if self.compiled == 2:
             self.coeff_get(True).set_args(self.args)
-            #self.coeff_get = make_united_f_ptr(self.ops, self.args,
-            #                                   self.tlist, False)
-            #self.compiled_Qobj.set_factor(ptr=self.coeff_get())
         for op in self.ops:
             if op[3] == 1:
                 op[4] = self.args
@@ -551,9 +547,9 @@ class td_Qobj:
             list_Qobj.append(self.cte)
         for op in self.ops:
             if op[3] == 1:
-                list_Qobj.append([op[0],op[1]])
+                list_Qobj.append([op[0], op[1]])
             else:
-                list_Qobj.append([op[0],op[2]])
+                list_Qobj.append([op[0], op[2]])
         return list_Qobj
 
     # Math function
@@ -737,7 +733,7 @@ class td_Qobj:
                         this_set.append(j+i+1)
                 sets.append(this_set)
         if len(self.ops) != len(sets):
-            #found 2 td part with the same Qobj
+            # found 2 td part with the same Qobj
             new_ops = []
             for _set in sets:
                 if len(_set) == 1:
@@ -750,6 +746,7 @@ class td_Qobj:
                         new_op[4].update(self.ops[i][4])
                         new_fs += [self.ops[i][1]]
                     new_op[2] = new_fs
+
                     def _new_f(t, *args, **kwargs):
                         return sum((f(t, *args, **kwargs) for f in new_op[2]))
                     new_op[1] = _new_f
@@ -765,7 +762,8 @@ class td_Qobj:
                     if self.raw_str:
                         new_op[1] = _dummy
                     else:
-                        new_op[1] = _compile_str_single([[new_str,new_op[4],0]])[0]
+                        new_op[1] = \
+                            _compile_str_single([[new_str, new_op[4], 0]])[0]
                     new_op[2] = new_str
                     new_ops.append(new_op)
                 elif self.ops[_set[0]][3] == 3:
@@ -776,7 +774,6 @@ class td_Qobj:
                     new_op[2] = new_array
                     new_ops.append(new_op)
             self.ops = new_ops
-
 
     def permute(self, order):
         res = self.copy()
@@ -804,7 +801,8 @@ class td_Qobj:
             op[0] = function(op[0], *args, **kw_args)
         return res
 
-    def apply_decorator(self, function, *args, str_mod=None, inplace_np=False, **kw_args):
+    def apply_decorator(self, function, *args, str_mod=None, inplace_np=False,
+                        **kw_args):
         self.compiled = False
         res = self.copy()
         raw_str = self.raw_str
@@ -815,7 +813,7 @@ class td_Qobj:
             if op[3] == 2:
                 if str_mod is None:
                     if self.raw_str:
-                        op[1] = _compile_str_single([[op[2],op[4],0]])[0]
+                        op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
                         raw_str = False
                     op[1] = function(op[1], *args, **kw_args)
                     res.fast = False
@@ -843,10 +841,9 @@ class td_Qobj:
                 op[1] = _norm2(op[1])
                 op[2] = op[1]
             elif op[3] == 2:
-                #op[1] = _norm2(op[1])
                 op[2] = "norm(" + op[2] + ")"
                 if not self.raw_str:
-                    op[1] = _compile_str_single([[op[2],op[4],0]])[0]
+                    op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
             elif op[3] == 3:
                 op[2] = np.abs(op[2])**2
         return self
@@ -857,10 +854,9 @@ class td_Qobj:
                 op[1] = _conj(op[1])
                 op[2] = op[1]
             elif op[3] == 2:
-                #op[1] = _conj(op[1])
                 op[2] = "conj(" + op[2] + ")"
                 if not self.raw_str:
-                    op[1] = _compile_str_single([[op[2],op[4],0]])[0]
+                    op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
             elif op[3] == 3:
                 op[2] = np.conj(op[2])
         return self
@@ -903,10 +899,10 @@ class td_Qobj:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
             if code:
-                self.coeff_get,Code = make_united_f_ptr_args(self.ops, self.args,
-                                                        self.tlist, True)
+                self.coeff_get, Code = make_united_f_ptr(self.ops, self.args,
+                                                         self.tlist, True)
             else:
-                self.coeff_get = make_united_f_ptr_args(self.ops, self.args,
+                self.coeff_get = make_united_f_ptr(self.ops, self.args,
                                                    self.tlist, False)
                 Code = None
             self.compiled_Qobj.set_factor(ptr=self.coeff_get())
@@ -918,9 +914,8 @@ class td_Qobj:
             self.coeff_get, self.compiled = self._make_united_f_call()
             self.compiled_Qobj.set_factor(func=self.coeff_get)
 
-
     def _make_united_f_call(self):
-        types = [0,0,0]
+        types = [0, 0, 0]
         for part in self.ops:
             types[part[3]-1] += 1
         if sum(types) == 0:
@@ -929,30 +924,32 @@ class td_Qobj:
             else:
                 raise Exception("Type of td_operator not supported")
         elif types[1] == 0 and types[2] == 0:
-            #Only functions
+            # Only functions
             self.funclist = []
             for part in self.ops:
                 self.funclist.append(part[1])
+
             def united_f_call(t):
                 out = []
                 for func in self.funclist:
-                    out.append( func(t, self.args))
+                    out.append(func(t, self.args))
                 return out
             all_function = 3
         else:
-            #Must be mixed, would be fast otherwise
+            # Must be mixed, would be fast otherwise
             def united_f_call(t):
                 out = []
                 for part in self.ops:
-                    if part[3] == 1: #func: f(t,args)
-                        out.append( part[1](t, part[4]))
-                    elif part[3] == 2: #str: f(t,w=2)
+                    if part[3] == 1:  # func: f(t,args)
+                        out.append(part[1](t, part[4]))
+                    elif part[3] == 2:  # str: f(t,w=2)
                         if self.raw_str:
-                            #Must compile the str here
-                            part[1] = _compile_str_single([[part[2],part[4],0]])[0]
+                            # Must compile the str here
+                            part[1] = \
+                                _compile_str_single([[part[2], part[4], 0]])[0]
                         out.append(part[1](t, **part[4]))
-                    elif part[3] == 3: #numpy: _interpolate(t,arr,N,dt)
-                        out.append( part[1](t, part[2], *part[4]))
+                    elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
+                        out.append(part[1](t, part[2], *part[4]))
                 return out
             all_function = 4
         return united_f_call, all_function
@@ -975,10 +972,10 @@ def _interpolate(t, f_array, N, dt):
     # In the middle: 4th order polynomial approximation
     ii = int(t/dt)
     a = (t/dt - ii)
-    approx  = (-a**3 +3*a**2 - 2*a   )/6.0*f_array[ii-1]
-    approx += ( a**3 -2*a**2 -   a +2)*0.5*f_array[ii]
-    approx += (-a**3 +  a**2 + 2*a   )*0.5*f_array[ii+1]
-    approx += ( a**3         -   a   )/6.0*f_array[ii+2]
+    approx = (-a**3 + 3*a**2 - 2*a) * 0.1666666666666666 * f_array[ii-1]
+    approx += (a**3 - 2*a**2 - a + 2) * 0.5 * f_array[ii]
+    approx += (-a**3 + a**2 + 2*a) * 0.5 * f_array[ii+1]
+    approx += (a**3 - a) * 0.1666666666666666 * f_array[ii+2]
 
     return approx
 
@@ -986,17 +983,17 @@ def _interpolate(t, f_array, N, dt):
 def _dummy(t, *args, **kwargs):
     return 0.
 
+
 def _norm2(f):
     def ff(a, *args, **kwargs):
         return np.abs(f(a, *args, **kwargs))**2
     return ff
 
+
 def _conj(f):
     def ff(a, *args, **kwargs):
         return np.conj(f(a, *args, **kwargs))
     return ff
-
-
 
 
 def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
@@ -1042,8 +1039,9 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
             else:
                 cL = c
             if not cL.N_obj == 1:
-                raise Exception("Each c_ops must be composed of ony one Qobj " +\
-                                "to be used with in a time-dependent liouvillian")
+                raise Exception("Each c_ops must be composed of  " +
+                                "only one Qobj to be used " +
+                                "with in a time-dependent liouvillian")
 
             if L is None:
                 L = cL.apply(liouvillian_c, chi=chi)._f_norm2()
@@ -1082,8 +1080,8 @@ def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
     else:
         b = a
     if not b.N_obj == 1:
-        raise Exception("Each sc_ops must be composed of ony one Qobj " +\
-                        "to be used with in a time-dependent lindblad_dissipator")
+        raise Exception("Each sc_ops must be composed of ony one Qobj to " +
+                        "be used with in a time-dependent lindblad_dissipator")
 
     D = b.apply(lindblad_dissipator)._f_norm2()
     return D

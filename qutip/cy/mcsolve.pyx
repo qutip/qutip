@@ -5,20 +5,20 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.fastsparse import csr2fast
 from qutip.qobj import Qobj
-from qutip.cy.spmatfuncs import cy_expect_psi_csr,  spmv_csr
+from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv_csr
 from qutip.cy.spconvert import dense2D_to_fastcsr_cmode
-from qutip.cy.dopri5td import ode_td_dopri
+from qutip.cy.dopri5 import ode_td_dopri
 cimport numpy as np
 cimport cython
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
-from qutip.cy.td_qobj_cy cimport cy_qobj#, cy_td_qobj, cy_cte_qobj
+from qutip.cy.td_qobj_cy cimport cy_qobj
 
 
-cdef int ONE=1;
+cdef int ONE = 1
 
 cdef double dznrm2(complex[::1] psi):
     cdef int l = psi.shape[0]
-    return raw_dznrm2(&l,<complex*>&psi[0],&ONE)
+    return raw_dznrm2(&l, <complex*>&psi[0], &ONE)
 
 cdef complex[::1] normalize(complex[::1] psi):
     cdef int i, l = psi.shape[0]
@@ -28,13 +28,13 @@ cdef complex[::1] normalize(complex[::1] psi):
         out[i] = psi[i] / norm
     return out
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def cy_mc_run_ode(ODE, config, prng):
-    #print(ODE,config,prng)
-    cdef int i,ii,j,jj,k
+    cdef int i, ii, j, jj, k
     cdef double norm2_psi, norm2_prev, norm2_guess, t_prev, t_final, t_guess
-    cdef np.ndarray[ double, ndim=1] rand_vals
+    cdef np.ndarray[double, ndim=1] rand_vals
     cdef np.ndarray[complex, ndim=1] y_prev
 
     cdef np.ndarray[double, ndim=1] tlist = config.tlist
@@ -104,10 +104,8 @@ def cy_mc_run_ode(ODE, config, prng):
         while t_prev < tlist[k]:
             # integrate up to tlist[k], one step at a time.
             ODE.integrate(tlist[k], step=1)
-            #if prng.rand(2)[0] < 0.0001:
-            #    print(ODE._integrator.call_args)
             if not ODE.successful():
-                print(ODE.t,t_prev,tlist[k])
+                print(ODE.t, t_prev, tlist[k])
                 print(ODE._integrator.call_args)
                 raise Exception("ZVODE failed!")
             norm2_psi = dznrm2(ODE._y) ** 2
@@ -153,7 +151,7 @@ def cy_mc_run_ode(ODE, config, prng):
                 collapse_times.append(ODE.t)
                 # some string based collapse operators
                 n_dp = [expect(ODE.t, ODE._y, 1)
-                          for expect in c_expect_func]
+                        for expect in c_expect_func]
                 # determine which operator does collapse and store it
                 kk = np.cumsum(n_dp / np.sum(n_dp))
                 j = cinds[kk >= rand_vals[1]][0]
@@ -200,14 +198,11 @@ def cy_mc_run_ode(ODE, config, prng):
     return states_out, expect_out, collapse_times, which_oper
 
 
-
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def cy_mc_run_fast(config, prng):
-    cdef int i,ii,j,jj,k
-    cdef double t,tt
+    cdef int i, ii, j, jj, k
+    cdef double t, tt
     cdef double[::1] rand_vals
     cdef double[::1] tlist = config.tlist
     cdef int num_times = len(tlist)
@@ -266,7 +261,6 @@ def cy_mc_run_fast(config, prng):
     # make array for collapse operator inds
     cdef np.ndarray[long, ndim=1] cinds = np.arange(len(config.td_c_ops))
 
-    #ODE = ode_td_dopri(len(config.psi0), config.rhs_ptr, config)
     ODE = ode_td_dopri(len(config.psi0), config.H_td, config)
 
     c_ops_rhs = [c.get_rhs_func() for c in config.td_c_ops]
@@ -277,12 +271,12 @@ def cy_mc_run_fast(config, prng):
     for k in range(1, num_times):
         while t < tlist[k]:
             # integrate up to tlist[k], one step at a time.
-            tt = ODE.integrate(t,tlist[k],rand_vals[0],psi,err)
-            if(tt<0):
-                print(k)
-                print(tt,np.array(err))
-            t=tt
-            if(t<tlist[k]):
+            tt = ODE.integrate(t, tlist[k], rand_vals[0], psi, err)
+            if(tt < 0):
+                print("Error at time ", tlist[k])
+                print(tt, np.array(err))
+            t = tt
+            if(t < tlist[k]):
                 collapse_times.append(t)
                 n_dp = [expect(t, psi, 1)
                         for expect in c_expect_func]
@@ -298,8 +292,6 @@ def cy_mc_run_fast(config, prng):
 
         # after while loop
         # ----------------
-        #for ii in range(len(psi)):
-        #out_psi = psi / dznrm2(psi)#Correct
         out_psi = normalize(psi)
         if config.e_num == 0 or config.options.store_states:
             out_psi_csr = dense2D_to_fastcsr_cmode(np.reshape(out_psi,

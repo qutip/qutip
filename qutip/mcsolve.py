@@ -47,11 +47,11 @@ from qutip.qobj import Qobj
 from qutip.td_qobj import td_Qobj
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import spmv
-from qutip.cy.mcsolvetd import cy_mc_run_ode, cy_mc_run_fast
+from qutip.cy.mcsolve import cy_mc_run_ode, cy_mc_run_fast
 from qutip.sesolve import sesolve
 
 from qutip.solver import Options, Result, _solver_safety_check
-#from qutip.interpolate import Cubic_Spline
+# from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
 import qutip.settings
@@ -70,6 +70,7 @@ class SolverConfiguration():
         self.H_is_set = False
 
 config_mcsolve = SolverConfiguration()
+
 
 class qutip_zvode(zvode):
     def step(self, *args):
@@ -187,8 +188,9 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
             Hlist = H.to_list()
         else:
             Hlist = H
-        return sesolve(Hlist, psi0, tlist, e_ops=e_ops, args=args, options=options,
-                progress_bar=progress_bar, _safe_mode=_safe_mode)
+        return sesolve(Hlist, psi0, tlist, e_ops=e_ops, args=args,
+                       options=options, progress_bar=progress_bar,
+                       _safe_mode=_safe_mode)
 
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
@@ -199,17 +201,14 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
         e_ops_dict = None
 
     config = _mc_make_config(H, psi0, tlist, c_ops, e_ops, ntraj,
-            args, options, progress_bar, map_func, map_kwargs, _safe_mode)
+                             args, options, progress_bar, map_func,
+                             map_kwargs, _safe_mode)
     options = config.options
 
     # load monte carlo class
     mc = _MC(config)
     # Run the simulation
     mc.run()
-
-    # Remove RHS cython file if necessary
-    #if not options.rhs_reuse and config.tdname:
-    #    _cython_build_cleanup(config.tdname)
 
     # AFTER MCSOLVER IS DONE
     # ----------------------
@@ -219,19 +218,19 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
     output.solver = 'mcsolve'
     output.seeds = config.options.seeds
     # state vectors
-    if (mc.psi_out is not None and config.options.average_states
-            and config.cflag and ntraj != 1):
+    if (mc.psi_out is not None and config.options.average_states and
+            config.cflag and ntraj != 1):
         output.states = parfor(_mc_dm_avg, mc.psi_out.T)
     elif mc.psi_out is not None:
         output.states = mc.psi_out
 
     # expectation values
-    if (mc.expect_out is not None and config.cflag
-            and config.options.average_expect):
+    if (mc.expect_out is not None and config.cflag and
+            config.options.average_expect):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
             output.expect = [np.mean(np.array([mc.expect_out[nt][op]
-                                for nt in range(ntraj)], dtype=object), axis=0)
+                             for nt in range(ntraj)], dtype=object), axis=0)
                              for op in range(config.e_num)]
         elif isinstance(ntraj, (list, np.ndarray)):
             output.expect = []
@@ -269,8 +268,8 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
 
 def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
-            options=None, progress_bar=True, map_func=None,
-            map_kwargs=None, _safe_mode=True, compile=True):
+                    options=None, progress_bar=True, map_func=None,
+                    map_kwargs=None, _safe_mode=True, compile=True):
 
     global config_mcsolve
     config = config_mcsolve
@@ -446,7 +445,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 H_td *= -1j
                 config.H_td = H_td
                 config.H_td.compile()
-                config.h_func = H_td.with_state # compiled
+                config.h_func = H_td.with_state
         config.H_is_set = True
         if _safe_mode:
             try:
@@ -456,7 +455,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 raise Exception("Error calculating c_ops ")
             try:
                 for c_op in config.td_c_ops:
-                    c_op.rhs(0,config.psi0)
+                    c_op.rhs(0, config.psi0)
             except:
                 raise Exception("c_ops are not consistant with psi0")
             try:
@@ -488,6 +487,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
                 [c_op.arguments(args) for c_op in config.td_c_ops]
                 [c_op.arguments(args) for c_op in config.td_n_ops]
     return config
+
 
 # -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
@@ -521,7 +521,7 @@ class _MC():
             if self.config.options.seeds is None:
                 step = 4294967295 // config.ntraj
                 self.config.options.seeds = \
-                    randint(0, step -1, size=config.ntraj) + \
+                    randint(0, step - 1, size=config.ntraj) + \
                     np.arange(config.ntraj) * step
             else:
                 # if ntraj was reduced but reusing seeds
@@ -532,8 +532,8 @@ class _MC():
                 # if ntraj was increased but reusing seeds
                 elif seed_length < config.ntraj:
                     step = 4294967295 // (config.ntraj - seed_length)
-                    newseeds = randint(0, step -1,
-                                       size = (config.ntraj - seed_length)) + \
+                    newseeds = randint(0, step - 1,
+                                       size=(config.ntraj - seed_length)) + \
                                        np.arange(config.ntraj) * step
                     self.config.options.seeds = np.hstack(
                         (config.options.seeds, newseeds))
@@ -556,12 +556,10 @@ class _MC():
 
         else:
             # set arguments for input to monte carlo
-            #print(config.rhs)
             map_kwargs = {'progress_bar': self.config.progress_bar,
                           'num_cpus': self.config.options.num_cpus}
             map_kwargs.update(self.config.map_kwargs)
-            #task_args = (self.config, self.config.options,
-            #             self.config.options.seeds)
+
             task_args = (self.config.options.seeds,)
             task_kwargs = {}
             config_mcsolve = self.config
@@ -596,10 +594,8 @@ def _build_integration_func(config):
         print(inspect.stack()[0][3] + " in " + str(os.getpid()))
 
     ODE = ode(config.rhs)
-    if config.h_tflag in (2,3):
+    if config.h_tflag in (2, 3):
         ODE.set_f_params(config)
-    #else:
-        #ODE.set_f_params(None)
     # initialize ODE solver for RHS
     ODE.set_integrator('zvode', method="adams")
     opt = config.options
@@ -631,10 +627,10 @@ def _tdrhs_with_state(t, psi, config):
     h_func_term = spmv(h_func_data, psi)
     return h_func_term + config.Hc_rhs(t, psi)
 
+
 # -----------------------------------------------------------------------------
 # single-trajectory for monte carlo
 # -----------------------------------------------------------------------------
-#def _mc_alg_evolve(nt, config, opt, seeds):
 def _mc_alg_evolve(nt, seeds):
     global config_mcsolve
     config = config_mcsolve
@@ -647,7 +643,7 @@ def _mc_alg_evolve(nt, seeds):
     # SEED AND RNG AND GENERATE
     prng = RandomState(seeds[nt])
 
-    if ( config.h_tflag in (1,) and config.options.method == "dopri5" ):
+    if (config.h_tflag in (1,) and config.options.method == "dopri5"):
         states_out, expect_out, collapse_times, which_oper = cy_mc_run_fast(
             config, prng)
     else:

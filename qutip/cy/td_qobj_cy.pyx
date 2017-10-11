@@ -13,9 +13,11 @@ cimport libc.math
 include "complex_math.pxi"
 include "sparse_routines.pxi"
 
+
 cdef extern from "Python.h":
     object PyLong_FromVoidPtr(void *)
     void* PyLong_AsVoidPtr(object)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -41,6 +43,7 @@ cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
     mat.is_set = 1
     mat.numpy_lock = 1
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef shallow_get_state(CSR_Matrix* mat):
@@ -54,7 +57,8 @@ cdef shallow_get_state(CSR_Matrix* mat):
     return (long_data,  long_indices,  long_indptr,
             mat.nrows, mat.ncols, mat.nnz, mat.max_length,
             mat.is_set, mat.numpy_lock)
-#
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef shallow_set_state(CSR_Matrix* mat, state):
@@ -71,6 +75,7 @@ cdef shallow_set_state(CSR_Matrix* mat, state):
     mat.max_length = state[6]
     mat.is_set = state[7]
     mat.numpy_lock = state[8]
+
 
 cdef class cy_qobj:
     cdef void _rhs_mat(self, double t, complex* vec, complex* out):
@@ -96,7 +101,6 @@ cdef class cy_cte_qobj(cy_qobj):
         CSR_info = shallow_get_state(&self.cte)
         return (self.shape0, self.shape1, self.total_elem, self.super, CSR_info)
 
-
     def __setstate__(self, state):
         self.shape0 = state[0]
         self.shape1 = state[1]
@@ -109,7 +113,7 @@ cdef class cy_cte_qobj(cy_qobj):
         out.is_set = 0
         copy_CSR(&out, &self.cte)
         scipy_obj = CSR_to_scipy(&out)
-        #free_CSR(&out)? data is own by the scipy_obj?
+        # free_CSR(&out)? data is own by the scipy_obj?
         if data:
             return scipy_obj
         else:
@@ -120,7 +124,7 @@ cdef class cy_cte_qobj(cy_qobj):
         out.is_set = 0
         copy_CSR(&out, &self.cte)
         scipy_obj = CSR_to_scipy(&out)
-        #free_CSR(&out)? data is own by the scipy_obj?
+        # free_CSR(&out)? data is own by the scipy_obj?
         if data:
             return scipy_obj
         else:
@@ -133,10 +137,12 @@ cdef class cy_cte_qobj(cy_qobj):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _rhs_mat(self, double t, complex* vec, complex* out):
-        spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1., out, self.shape0)
+        spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
+               out, self.shape0)
 
     def rhs(self, double t, complex[::1] vec):
-        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0, dtype=complex)
+        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
+                                                        dtype=complex)
         self._rhs_mat(t, &vec[0], &out[0])
         return out
 
@@ -145,7 +151,8 @@ cdef class cy_cte_qobj(cy_qobj):
     @cython.cdivision(True)
     cdef complex _expect_mat(self, double t, complex* vec, int isherm):
         cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
-        spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1., &y[0], self.shape0)
+        spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
+               &y[0], self.shape0)
         cdef int row
         cdef complex dot = 0
         for row from 0 <= row < self.shape0:
@@ -266,25 +273,22 @@ cdef class cy_td_qobj(cy_qobj):
     def get_ptr(self):
         return PyLong_FromVoidPtr(<void*> self)
 
-    #cdef void _call_core(self, double t, CSR_Matrix * out):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _call_core(self, double t, CSR_Matrix * out,
                                     complex* coeff):
-        #cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
-        #                                                  dtype=complex)
-        #self.factor(t, &coeff[0])
         cdef int i
         cdef CSR_Matrix previous, next
 
         if(self.N_ops ==1):
             _zcsr_add_core(self.cte.data, self.cte.indices, self.cte.indptr,
-                         self.ops[0].data, self.ops[0].indices, self.ops[0].indptr,
+                         self.ops[0].data, self.ops[0].indices,
+                         self.ops[0].indptr,
                          coeff[0], out, self.shape0, self.shape1)
         else:
-            #Ugly with a loop for 1 to N-2...
-            #It save the copy of data from cte and out
+            # Ugly with a loop for 1 to N-2...
+            # It save the copy of data from cte and out
             # no init/free to cte, out
             init_CSR(&next, self.sum_elem[0], self.shape0, self.shape1)
             _zcsr_add_core(self.cte.data, self.cte.indices, self.cte.indptr,
@@ -297,7 +301,8 @@ cdef class cy_td_qobj(cy_qobj):
 
             for i in range(1,self.N_ops-1):
                 init_CSR(&next, self.sum_elem[i], self.shape0, self.shape1)
-                _zcsr_add_core(previous.data, previous.indices, previous.indptr,
+                _zcsr_add_core(previous.data, previous.indices,
+                               previous.indptr,
                                self.ops[i].data,
                                self.ops[i].indices,
                                self.ops[i].indptr,
@@ -321,7 +326,7 @@ cdef class cy_td_qobj(cy_qobj):
         self.factor(t, &coeff[0])
         self._call_core(t, &out, &coeff[0])
         scipy_obj = CSR_to_scipy(&out)
-        #free_CSR(&out)? data is own by the scipy_obj?
+        # free_CSR(&out)? data is own by the scipy_obj?
         if data:
             return scipy_obj
         else:
@@ -332,7 +337,7 @@ cdef class cy_td_qobj(cy_qobj):
         init_CSR(&out, self.total_elem, self.shape0, self.shape1)
         self._call_core(t, &out, &coeff[0])
         scipy_obj = CSR_to_scipy(&out)
-        #free_CSR(&out)? data is own by the scipy_obj?
+        # free_CSR(&out)? data is own by the scipy_obj?
         if data:
             return scipy_obj
         else:
@@ -348,7 +353,8 @@ cdef class cy_td_qobj(cy_qobj):
                                                           dtype=complex)
         self.factor(t, &coeff[0])
         self._call_core(t, &out_mat, &coeff[0])
-        spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., out, self.shape0)
+        spmvpy(out_mat.data, out_mat.indices, out_mat.indptr,
+               vec, 1., out, self.shape0)
         free_CSR(&out_mat)
 
     @cython.boundscheck(False)
@@ -366,27 +372,28 @@ cdef class cy_td_qobj(cy_qobj):
             spmvpy(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                    vec, coeff[i], out, self.shape0)
 
-
     def rhs_sum(self, double t, complex[::1] vec):
-        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0, dtype=complex)
+        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
+                                                        dtype=complex)
         self._rhs_mat_sum(t, &vec[0], &out[0])
         return out
 
     def rhs(self, double t, complex[::1] vec):
-        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0, dtype=complex)
+        cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
+                                                        dtype=complex)
         self._rhs_mat(t, &vec[0], &out[0])
         return out
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef complex _expect_psi(self, complex* data, int* idx, int* ptr, complex* vec,
-                    int isherm):
+    cdef complex _expect_psi(self, complex* data, int* idx, int* ptr,
+                             complex* vec, int isherm):
         cdef complex [::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy(data, idx, ptr, vec, 1., &y[0], self.shape0)
         cdef int row, num_rows = self.shape0
         cdef complex dot = 0
         for row from 0 <= row < num_rows:
-            dot += conj(vec[row])*y[row]
+            dot += conj(vec[row]) * y[row]
         if isherm:
             return real(dot)
         else:
@@ -403,12 +410,13 @@ cdef class cy_td_qobj(cy_qobj):
         self.factor(t, &coeff[0])
         self._call_core(t, &out_mat, &coeff[0])
         cdef complex [::1] y = np.zeros(self.shape0, dtype=complex)
-        spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1., &y[0], self.shape0)
+        spmvpy(out_mat.data, out_mat.indices, out_mat.indptr, vec, 1.,
+               &y[0], self.shape0)
         cdef int row
         cdef complex dot = 0
         free_CSR(&out_mat)
         for row from 0 <= row < self.shape0:
-            dot += conj(vec[row])*y[row]
+            dot += conj(vec[row]) * y[row]
         if isherm:
             return real(dot)
         else:
@@ -424,8 +432,8 @@ cdef class cy_td_qobj(cy_qobj):
                                                           dtype=complex)
         self.factor(t, &coeff[0])
         self._call_core(t, &out_mat, &coeff[0])
-        expect = self._expect_psi(out_mat.data, out_mat.indices, out_mat.indptr,
-                                 vec, isherm)
+        expect = self._expect_psi(out_mat.data, out_mat.indices,
+                                  out_mat.indptr, vec, isherm)
         free_CSR(&out_mat)
         return expect
 
@@ -438,7 +446,7 @@ cdef class cy_td_qobj(cy_qobj):
         cdef complex dot = 0
         self._rhs_mat(t, &vec[0], &y[0])
         for row from 0 <= row < self.shape0:
-            dot += conj(vec[row])*y[row]
+            dot += conj(vec[row]) * y[row]
         if isherm:
             return real(dot)
         else:
@@ -452,10 +460,10 @@ cdef class cy_td_qobj(cy_qobj):
         self.factor(t, &coeff[0])
         cdef int i
         expect = self._expect_psi(self.cte.data, self.cte.indices,
-                                   self.cte.indptr, vec, 0)
+                                  self.cte.indptr, vec, 0)
         for i in range(self.N_ops):
             expect += self._expect_psi(self.ops[i].data, self.ops[i].indices,
-                                      self.ops[i].indptr, vec, 0) * coeff[i]
+                                       self.ops[i].indptr, vec, 0) * coeff[i]
         if isherm:
             return real(expect)
         else:
@@ -463,10 +471,10 @@ cdef class cy_td_qobj(cy_qobj):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef complex _expect_rho(self, complex* data, int* idx, int* ptr, complex* rho_vec,
-                    int isherm):
+    cdef complex _expect_rho(self, complex* data, int* idx, int* ptr,
+                             complex* rho_vec, int isherm):
         cdef size_t row
-        cdef int jj,row_start,row_end
+        cdef int jj, row_start, row_end
         cdef int num_rows = self.shape0
         cdef int n = <int>np.sqrt(num_rows)
         cdef complex dot = 0.0
@@ -474,7 +482,7 @@ cdef class cy_td_qobj(cy_qobj):
             row_start = ptr[row]
             row_end = ptr[row+1]
             for jj from row_start <= jj < row_end:
-                dot += data[jj]*rho_vec[idx[jj]]
+                dot += data[jj] * rho_vec[idx[jj]]
         if isherm == 0:
             return dot
         else:
@@ -483,7 +491,8 @@ cdef class cy_td_qobj(cy_qobj):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect_mat_super_sum(self, double t, complex* vec, int isherm):
+    cdef complex _expect_mat_super_sum(self, double t, complex* vec,
+                                       int isherm):
         cdef CSR_Matrix out_mat
         init_CSR(&out_mat, self.total_elem, self.shape0, self.shape1)
         cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
@@ -491,7 +500,7 @@ cdef class cy_td_qobj(cy_qobj):
         self.factor(t, &coeff[0])
         self._call_core(t, &out_mat, &coeff[0])
         expect = self._expect_rho(out_mat.data, out_mat.indices,
-                                   out_mat.indptr, vec, isherm)
+                                  out_mat.indptr, vec, isherm)
         free_CSR(&out_mat)
         return expect
 
@@ -518,7 +527,8 @@ cdef class cy_td_qobj(cy_qobj):
                 row_start = self.ops[i].indptr[row]
                 row_end = self.ops[i].indptr[row+1]
                 for jj from row_start <= jj < row_end:
-                    dot += self.ops[i].data[jj]*vec[self.ops[i].indices[jj]]*coeff[i]
+                    dot += self.ops[i].data[jj] * \
+                          vec[self.ops[i].indices[jj]] * coeff[i]
         if isherm:
             return real(dot)
         else:
@@ -527,16 +537,17 @@ cdef class cy_td_qobj(cy_qobj):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect_mat_super_last(self, double t, complex* vec, int isherm):
+    cdef complex _expect_mat_super_last(self, double t, complex* vec,
+                                        int isherm):
         cdef np.ndarray[complex, ndim=1] coeff = np.empty(self.N_ops,
                                                           dtype=complex)
         self.factor(t, &coeff[0])
         cdef int i
         expect = self._expect_rho(self.cte.data, self.cte.indices,
-                                   self.cte.indptr, vec, 0)
+                                  self.cte.indptr, vec, 0)
         for i in range(self.N_ops):
             expect += self._expect_rho(self.ops[i].data, self.ops[i].indices,
-                                      self.ops[i].indptr, vec, 0) * coeff[i]
+                                       self.ops[i].indptr, vec, 0) * coeff[i]
         if isherm:
             return real(expect)
         else:
@@ -548,20 +559,20 @@ cdef class cy_td_qobj(cy_qobj):
         else:
             return self._expect_mat(t, &vec[0], isherm)
 
-    def expect_all(self, double t, complex[::1] vec, int isherm, type = 1):
+    def expect_all(self, double t, complex[::1] vec, int isherm, type=1):
         if self.super:
-          if type == 1:
-              return self._expect_mat_super(t, &vec[0], isherm)
-          elif type == 2:
-              return self._expect_mat_super_last(t, &vec[0], isherm)
-          else:
-              return self._expect_mat_super_sum(t, &vec[0], isherm)
+            if type == 1:
+                return self._expect_mat_super(t, &vec[0], isherm)
+            elif type == 2:
+                return self._expect_mat_super_last(t, &vec[0], isherm)
+            else:
+                return self._expect_mat_super_sum(t, &vec[0], isherm)
         else:
-          if type == 1:
-            return self._expect_mat(t, &vec[0], isherm)
-          elif type == 2:
-            return self._expect_mat_sum1(t, &vec[0], isherm)
-          elif type == 3:
-            return self._expect_mat_sum2(t, &vec[0], isherm)
-          else:
-            return self._expect_mat_last(t, &vec[0], isherm)
+            if type == 1:
+                return self._expect_mat(t, &vec[0], isherm)
+            elif type == 2:
+                return self._expect_mat_sum1(t, &vec[0], isherm)
+            elif type == 3:
+                return self._expect_mat_sum2(t, &vec[0], isherm)
+            else:
+                return self._expect_mat_last(t, &vec[0], isherm)
