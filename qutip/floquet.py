@@ -616,11 +616,13 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         # f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
         for a in range(N):
+            scalar_product_a = f_modes_t[a].dag() * c_op
             for b in range(N):
+                scalar_product_a_b = (scalar_product_a * f_modes_t[b])[0, 0]
                 k_idx = 0
                 for k in range(-kmax, kmax + 1, 1):
                     X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
-                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[0, 0]
+                        scalar_product_a_b
                     k_idx += 1
 
     Heaviside = lambda x: ((np.sign(x) + 1) / 2.0)
