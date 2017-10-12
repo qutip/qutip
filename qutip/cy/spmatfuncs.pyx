@@ -196,20 +196,27 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rho_func_td(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_expect_psi(object op,
-                    complex[::1] state,
-                    int isherm):
+cpdef cy_expect_psi(object A, complex[::1] vec, bool isherm):
 
-    cdef complex[::1] y = spmv_csr(op.data, op.indices, op.indptr, state)
-    cdef int row, num_rows = state.shape[0]
-    cdef complex dot = 0
-    for row from 0 <= row < num_rows:
-        dot += conj(state[row]) * y[row]
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
 
-    if isherm:
-        return real(dot)
+    cdef size_t row, jj
+    cdef int nrows = vec.shape[0]
+    cdef complex expt = 0, temp, cval
+
+    for row in range(nrows):
+        cval = conj(vec[row])
+        temp = 0
+        for jj in range(ptr[row], ptr[row+1]):
+            temp += data[jj]*vec[ind[jj]]
+        expt += cval*temp
+
+    if isherm :
+        return real(expt)
     else:
-        return dot
+        return expt
 
 
 @cython.boundscheck(False)
