@@ -33,6 +33,7 @@
 
 cimport numpy as cnp
 cimport cython
+from libcpp cimport bool
 
 include "parameters.pxi"
 
@@ -55,12 +56,12 @@ cpdef cy_expect_rho_vec_csr(complex[::1] data,
                             complex[::1] rho_vec,
                             int herm)
 
-cpdef cy_expect_psi(object op,
-                    complex[::1] state,
-                    int isherm)
+cpdef cy_expect_psi(object A,
+                    complex[::1] vec,
+                    bool isherm)
 
 cpdef cy_expect_psi_csr(complex[::1] data,
-                        int[::1] idx,
+                        int[::1] ind,
                         int[::1] ptr, 
-                        complex[::1] state,
-                        int isherm)
+                        complex[::1] vec,
+                        bool isherm)
