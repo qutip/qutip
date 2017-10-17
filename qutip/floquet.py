@@ -434,7 +434,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
         The coefficients :math:`c_\\alpha` in the Floquet state decomposition.
 
     """
-    return [(f_states[i].dag() * psi).data[0, 0]
+    return [f_states[i].overlap(psi)
             for i in np.arange(len(f_energies))]
 
 def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
@@ -615,12 +615,14 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
 
         # f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-        for a in range(N):
-            for b in range(N):
+        for b in range(N):
+            ket_b = c_op * f_modes_t[b]
+            for a in range(N):
+                scalar_product = ket_b.overlap(f_modes_t[a])
                 k_idx = 0
                 for k in range(-kmax, kmax + 1, 1):
                     X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
-                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[0, 0]
+                        scalar_product
                     k_idx += 1
 
     Heaviside = lambda x: ((np.sign(x) + 1) / 2.0)
@@ -934,10 +936,10 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
-    
+
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
+
     if T is None:
         T = max(tlist)
 
