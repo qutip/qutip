@@ -248,5 +248,5 @@ The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.m
 
 Alternatively, we can let the :func:`qutip.floquet.fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, but using::
 
-    output = fmmesolve(H, psi0, times, [sigmax()], [num(2)], [noise_spectrum], T, args)
+    output = fmmesolve(H, psi0, tlist, [sigmax()], [num(2)], [noise_spectrum], T, args)
     p_ex = output.expect[0]
