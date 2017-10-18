@@ -849,7 +849,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                 for m in range(0, n_expt_op):
                     output.expect[m][t_idx] = \
-                        expect(e_ops[m], rho.transform(f_modes_t, False))
+                        expect(e_ops[m], rho.transform(f_modes_t, True))
 
         r.integrate(r.t + dt)
         t_idx += 1
