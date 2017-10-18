@@ -41,7 +41,6 @@ __all__ = ['floquet_modes', 'floquet_modes_t', 'floquet_modes_table',
            'floquet_markov_mesolve', 'fmmesolve']
 
 import numpy as np
-import scipy.linalg as la
 import scipy
 from scipy import angle, pi, exp, sqrt
 from types import FunctionType
@@ -100,15 +99,11 @@ def floquet_modes(H, T, args=None, sort=False, U=None):
         U = propagator(H, T, [], args)
 
     # find the eigenstates for the propagator
-    evals, evecs = la.eig(U.full())
+    evals, evecs = U.eigenstates()
 
     eargs = angle(evals)
-
-    # make sure that the phase is in the interval [-pi, pi], so that
-    # the quasi energy is in the interval [-pi/T, pi/T] where T is the
-    # period of the driving.  eargs += (eargs <= -2*pi) * (2*pi) +
-    # (eargs > 0) * (-2*pi)
-    eargs += (eargs <= -pi) * (2 * pi) + (eargs > pi) * (-2 * pi)
+    # note: angle is in the interval [-pi, pi], so that the quasi energy is in
+    # the interval [-pi/T, pi/T] where T is the period of the driving.
     e_quasi = -eargs / T
 
     # sort by the quasi energy
@@ -117,13 +112,7 @@ def floquet_modes(H, T, args=None, sort=False, U=None):
     else:
         order = list(range(len(evals)))
 
-    # prepare a list of kets for the floquet states
-    new_dims = [U.dims[0], [1] * len(U.dims[0])]
-    new_shape = [U.shape[0], 1]
-    kets_order = [Qobj(np.matrix(evecs[:, o]).T,
-                       dims=new_dims, shape=new_shape) for o in order]
-
-    return kets_order, e_quasi[order]
+    return [evecs[o] for o in order], e_quasi[order]
 
 def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
     """
