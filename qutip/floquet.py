@@ -519,7 +519,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
             # calculate all the expectation values, or output psi if
             # no expectation value operators where defined
             if output.num_expect == 0:
-                output.states.append(Qobj(psi_t))
+                output.states.append(psi_t)
             else:
                 for e_idx, e in enumerate(e_ops):
                     output.expect[e_idx][t_idx] = expect(e, psi_t)
@@ -817,7 +817,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     #
     # start evolution
     #
-    rho = Qobj(rho0)
+    rho = rho0
 
     t_idx = 0
     for t in tlist:
@@ -829,21 +829,21 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
         if expt_callback:
             # use callback method
             if floquet_basis:
-                e_ops(t, Qobj(rho))
+                e_ops(t, rho)
             else:
                 f_modes_table_t, T = f_modes_table
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                e_ops(t, Qobj(rho).transform(f_modes_t, True))
+                e_ops(t, rho.transform(f_modes_t, True))
         else:
             # calculate all the expectation values, or output rho if
             # no operators
             if n_expt_op == 0:
                 if floquet_basis:
-                    output.states.append(Qobj(rho))
+                    output.states.append(rho)
                 else:
                     f_modes_table_t, T = f_modes_table
                     f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                    output.states.append(Qobj(rho).transform(f_modes_t, True))
+                    output.states.append(rho.transform(f_modes_t, True))
             else:
                 f_modes_table_t, T = f_modes_table
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
