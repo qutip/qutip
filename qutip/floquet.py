@@ -662,7 +662,7 @@ def floquet_collapse_operators(A):
 
     return c_ops
 
-def floquet_master_equation_tensor(Alist, f_energies):
+def floquet_master_equation_tensor(Alist):
     """
     Construct a tensor that represents the master equation in the floquet
     basis (with constant Hamiltonian and collapse operators).
@@ -674,9 +674,6 @@ def floquet_master_equation_tensor(Alist, f_energies):
 
     Alist : list
         A list of Floquet-Markov master equation rate matrices.
-
-    f_energies : array
-        The Floquet energies.
 
     Returns
     -------
@@ -702,20 +699,14 @@ def floquet_master_equation_tensor(Alist, f_energies):
         for J in range(N * N):
             c, d = vec2mat_index(N, J)
 
-            R = -1.0j * (f_energies[a] - f_energies[b])*(a == c)*(b == d)
-            Rdata_lil[I, J] = R
+            if a == b and c == d:
+                Rdata_lil[I, J] += sum(A[a, c] for A in Alist)
 
-            for A in Alist:
-                s1 = s2 = 0
-                for n in range(N):
-                    s1 += A[a, n] * (n == c) * (n == d) - A[n, a] * \
-                        (a == c) * (a == d)
-                    s2 += (A[n, a] + A[n, b]) * (a == c) * (b == d)
-
-                dR = (a == b) * s1 - 0.5 * (1 - (a == b)) * s2
-
-                if dR != 0.0:
-                    Rdata_lil[I, J] += dR
+            if a == c and b == d:
+                Rdata_lil[I, J] += -0.5 * sum(
+                    sum(A[n, a] + A[n, b] for n in range(N))
+                    for A in Alist
+                )
 
     return Qobj(Rdata_lil, [[N, N], [N, N]], [N*N, N*N])
 
@@ -956,7 +947,7 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         w_th, kmax, f_modes_table_t)
 
     # the floquet-markov master equation tensor
-    R = floquet_master_equation_tensor(Amat, f_energies)
+    R = floquet_master_equation_tensor(Amat)
 
     return floquet_markov_mesolve(R, f_modes_0, rho0, tlist, e_ops,
                                   f_modes_table=(f_modes_table_t, T),
