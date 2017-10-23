@@ -319,9 +319,16 @@ class Qobj(object):
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
         if type == 'super':
-            if self.type == 'oper':
-                self.dims = [[[d] for d in self.dims[0]],
-                             [[d] for d in self.dims[1]]]
+            # Type is not super, i.e. dims not explicitly passed, but oper shape
+            if dims== [[], []] and self.shape[0] == self.shape[1]:
+                sub_shape = np.sqrt(self.shape[0])
+                # check if root of shape is int
+                if (sub_shape % 1) != 0:
+                    raise Exception('Invalid shape for a super operator.')
+                else:
+                    sub_shape = int(sub_shape)
+                    self.dims = [[[sub_shape], [sub_shape]]]*2
+                    
 
         if superrep:
             self.superrep = superrep
