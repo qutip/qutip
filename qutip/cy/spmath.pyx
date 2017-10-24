@@ -562,7 +562,7 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
     Parameters
     ----------
     A : csr_matrix
-        Input sparse matrix.  Must have sorted indices.
+        Input sparse matrix.
     tol : float (default is atol from settings)
         Desired tolerance value.
 
