@@ -54,21 +54,9 @@ class TestPim:
         """
         pass
 
-    def test_isdicke(self):
+    def test_get_jmm1(self):
         """
-        Tests the `isdicke` function
-        """
-        N = 6
-
-        model = Pim(N)
-        test_indices = [(0, 0), (0, 1), (1, 0), (-1, -1), (2, -1)]
-        dicke_labels = [model.isdicke(x, y) for (x, y) in test_indices]
-
-        assert_array_equal(dicke_labels, [True, False, True, False, False])
-
-    def test_get_j_m(self):
-        """
-        Tests `get_j_m` function to get the (j, m) values.
+        Tests `get_jmm1` function to get the (j, m) values.
 
         For N = 6 |j, m> would be :
 
