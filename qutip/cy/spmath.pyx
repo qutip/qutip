@@ -564,7 +564,7 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
     A : csr_matrix
         Input sparse matrix.
     tol : float (default is atol from settings)
-        Desired toelrance value.
+        Desired tolerance value.
 
     Returns
     -------
@@ -585,7 +585,7 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
     cdef int nrows = A.shape[0]
     cdef int ncols = A.shape[1]
 
-    cdef int k, nxt
+    cdef int k, nxt, isherm = 1
     cdef size_t ii, jj
     cdef complex tmp, tmp2
 
@@ -599,30 +599,30 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
             k = ind[jj] + 1
             out_ptr[k] += 1
 
-    for ii in range(ncols):
+    for ii in range(nrows):
         out_ptr[ii+1] += out_ptr[ii]
 
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
             k = ind[jj]
             nxt = out_ptr[k]
+            out_ptr[k] += 1
+            #structure test
+            if ind[nxt] != ii:
+                isherm = 0
+                break
             tmp = conj(data[jj])
             tmp2 = data[nxt]
+            #data test
             if abs(tmp-tmp2) > tol:
-                PyDataMem_FREE(out_ptr)
-                return 0
-            if ind[nxt] != ii:
-                PyDataMem_FREE(out_ptr)
-                return 0
-            out_ptr[k] = nxt + 1
-
-    for ii in range(ncols,0,-1):
-        if out_ptr[ii-1] != ptr[ii]:
-            PyDataMem_FREE(out_ptr)
-            return 0
+                isherm = 0
+                break
+        else:
+            continue
+        break
 
     PyDataMem_FREE(out_ptr)
-    return 1
+    return isherm
 
 @cython.overflowcheck(True)
 cdef _safe_multiply(int A, int B):
