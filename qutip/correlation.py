@@ -49,6 +49,7 @@ from qutip.essolve import ode2es
 from qutip.expect import expect
 from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
+from qutip.bloch_redfield import brmesolve
 from qutip.operators import qeye
 from qutip.qobj import Qobj, isket, issuper
 from qutip.rhs_generate import rhs_clear, _td_wrap_array_str
@@ -70,9 +71,9 @@ if debug:
 
 # low level correlation
 
-def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
+def correlation_2op_1t(H, state0, taulist, collapse_ops, A, B,
                        solver="me", reverse=False, args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=Options(ntraj=[20, 100]),coupling_ops=None):
     """
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\\tau)B(t)\\right>`
@@ -93,12 +94,12 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     taulist : array_like
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
-    a_op : Qobj
+    A : Qobj
         operator A.
-    b_op : Qobj
+    B : Qobj
         operator B.
     reverse : bool {False, True}
         If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
@@ -127,21 +128,22 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         print(inspect.stack()[0][3])
 
     if reverse:
-        A_op = a_op
-        B_op = b_op
+        A_op = A
+        B_op = B
         C_op = 1
     else:
         A_op = 1
-        B_op = a_op
-        C_op = b_op
+        B_op = A
+        C_op = B
 
-    return _correlation_2t(H, state0, [0], taulist, c_ops, A_op, B_op, C_op,
-                           solver=solver, args=args, options=options)[0]
+    return _correlation_2t(H, state0, [0], taulist, collapse_ops, A_op, B_op, C_op,
+                           solver=solver, args=args, options=options, 
+                           coupling_ops=coupling_ops)[0]
 
 
-def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
+def correlation_2op_2t(H, state0, tlist, taulist, collapse_ops, A, B,
                        solver="me", reverse=False, args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=Options(ntraj=[20, 100]),coupling_ops=None):
     """
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\\tau)B(t)\\right>`
@@ -166,12 +168,12 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     taulist : array_like
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
-    a_op : Qobj
+    A : Qobj
         operator A.
-    b_op : Qobj
+    B : Qobj
         operator B.
     reverse : bool {False, True}
         If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
@@ -203,27 +205,28 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         print(inspect.stack()[0][3])
 
     if tlist is None:
-        return correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
+        return correlation_2op_1t(H, state0, taulist, collapse_ops, A, B,
                                   solver=solver, reverse=reverse, args=args,
                                   options=options)
     else:
         if reverse:
-            A_op = a_op
-            B_op = b_op
+            A_op = A
+            B_op = B
             C_op = 1
         else:
             A_op = 1
-            B_op = a_op
-            C_op = b_op
+            B_op = A
+            C_op = B
 
         return _correlation_2t(H, state0, tlist, taulist,
-                               c_ops, A_op, B_op, C_op,
-                               solver=solver, args=args, options=options)
+                               collapse_ops, A_op, B_op, C_op,
+                               solver=solver, args=args, options=options, 
+                           coupling_ops=coupling_ops)
 
 
-def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
+def correlation_3op_1t(H, state0, taulist, collapse_ops, A, B, C,
                        solver="me", args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=Options(ntraj=[20, 100]),coupling_ops=None):
     """
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t)\\right>`
@@ -246,14 +249,14 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     taulist : array_like
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
-    a_op : Qobj
+    A : Qobj
         operator A.
-    b_op : Qobj
+    B : Qobj
         operator B.
-    c_op : Qobj
+    C : Qobj
         operator C.
     solver : str
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
@@ -278,13 +281,14 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     if debug:
         print(inspect.stack()[0][3])
 
-    return _correlation_2t(H, state0, [0], taulist, c_ops, a_op, b_op, c_op,
-                           solver=solver, args=args, options=options)[0]
+    return _correlation_2t(H, state0, [0], taulist, collapse_ops, A, B, C,
+                           solver=solver, args=args, options=options, 
+                           coupling_ops=coupling_ops)[0]
 
 
-def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
+def correlation_3op_2t(H, state0, tlist, taulist, collapse_ops, A, B, C,
                        solver="me", args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=Options(ntraj=[20, 100]),coupling_ops=None):
     """
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t)\\right>`
@@ -312,14 +316,14 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     taulist : array_like
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
-    a_op : Qobj
+    A : Qobj
         operator A.
-    b_op : Qobj
+    B : Qobj
         operator B.
-    c_op : Qobj
+    C : Qobj
         operator C.
     solver : str
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
@@ -349,17 +353,19 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         print(inspect.stack()[0][3])
 
     if tlist is None:
-        return correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
-                                  solver=solver, args=args, options=options)
+        return correlation_3op_1t(H, state0, taulist, collapse_ops, A, B, C,
+                                  solver=solver, args=args, options=options, 
+                           coupling_ops=coupling_ops)
     else:
         return _correlation_2t(H, state0, tlist, taulist,
-                               c_ops, a_op, b_op, c_op,
-                               solver=solver, args=args, options=options)
+                               collapse_ops, A, B, C,
+                               solver=solver, args=args, options=options, 
+                           coupling_ops=coupling_ops)
 
 
 # high level correlation
 
-def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
+def coherence_function_g1(H, state0, taulist, collapse_ops, A, solver="me",
                           args={}, options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized first-order quantum coherence function:
@@ -387,10 +393,10 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
     taulist : array_like
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
-    a_op : Qobj
+    A : Qobj
         operator A.
     solver : str
         choice of solver (`me` for master-equation and
@@ -410,21 +416,21 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
 
     # first calculate the photon number
     if state0 is None:
-        state0 = steadystate(H, c_ops)
-        n = np.array([expect(state0, a_op.dag() * a_op)])
+        state0 = steadystate(H, collapse_ops)
+        n = np.array([expect(state0, A.dag() * A)])
     else:
-        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op],
+        n = mesolve(H, state0, taulist, collapse_ops, [A.dag() * A],
                     options=options).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_2op_1t(H, state0, taulist, c_ops, a_op.dag(), a_op,
+    G1 = correlation_2op_1t(H, state0, taulist, collapse_ops, A.dag(), A,
                             solver=solver, args=args, options=options)
     g1 = G1 / np.sqrt(n[0] * n)
 
     return g1, G1
 
 
-def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
+def coherence_function_g2(H, state0, taulist, collapse_ops, A, solver="me", args={},
                           options=Options(ntraj=[20, 100])):
     """
     Calculate the normalized second-order quantum coherence function:
@@ -452,10 +458,10 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
     taulist : array_like
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
-    a_op : Qobj
+    A : Qobj
         operator A.
     args : dict
         Dictionary of arguments to be passed to solver.
@@ -477,14 +483,14 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
 
     # first calculate the photon number
     if state0 is None:
-        state0 = steadystate(H, c_ops)
-        n = np.array([expect(state0, a_op.dag() * a_op)])
+        state0 = steadystate(H, collapse_ops)
+        n = np.array([expect(state0, A.dag() * A)])
     else:
-        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op], args=args).expect[0]
+        n = mesolve(H, state0, taulist, collapse_ops, [A.dag() * A], args=args).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
-    G2 = correlation_3op_1t(H, state0, taulist, c_ops,
-                            a_op.dag(), a_op.dag()*a_op, a_op,
+    G2 = correlation_3op_1t(H, state0, taulist, collapse_ops,
+                            A.dag(), A.dag()*A, A,
                             solver=solver, args=args, options=options)
     g2 = G2 / (n[0] * n)
 
@@ -493,7 +499,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
 
 # spectrum
 
-def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
+def spectrum(H, wlist, collapse_ops, A, B, solver="es", use_pinv=False):
     """
     Calculate the spectrum of the correlation function
     :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`,
@@ -514,11 +520,11 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
         system Hamiltonian.
     wlist : array_like
         list of frequencies for :math:`\\omega`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators.
-    a_op : Qobj
+    A : Qobj
         operator A.
-    b_op : Qobj
+    B : Qobj
         operator B.
     solver : str
         choice of solver (`es` for exponential series and
@@ -539,9 +545,9 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
         print(inspect.stack()[0][3])
 
     if solver == "es":
-        return _spectrum_es(H, wlist, c_ops, a_op, b_op)
+        return _spectrum_es(H, wlist, collapse_ops, A, B)
     elif solver == "pi":
-        return _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv)
+        return _spectrum_pi(H, wlist, collapse_ops, A, B, use_pinv)
     else:
         raise ValueError("Unrecognized choice of solver" +
                          "%s (use es or pi)." % solver)
@@ -592,7 +598,7 @@ def spectrum_correlation_fft(tlist, y):
 
 # low level correlation
 
-def correlation_ss(H, taulist, c_ops, a_op, b_op,
+def correlation_ss(H, taulist, collapse_ops, A, B,
                    solver="me", reverse=False, args={},
                    options=Options(ntraj=[20, 100])):
     """
@@ -616,13 +622,13 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list
+    collapse_ops : list
         list of collapse operators.
 
-    a_op : Qobj
+    A : Qobj
         operator A.
 
-    b_op : Qobj
+    B : Qobj
         operator B.
 
     reverse : *bool*
@@ -659,14 +665,14 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
     if debug:
         print(inspect.stack()[0][3])
 
-    return correlation_2op_1t(H, None, taulist, c_ops, a_op, b_op,
+    return correlation_2op_1t(H, None, taulist, collapse_ops, A, B,
                               solver=solver, reverse=reverse, args=args,
                               options=options)
 
 
-def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
+def correlation(H, state0, tlist, taulist, collapse_ops, A, B,
                 solver="me", reverse=False, args={},
-                options=Options(ntraj=[20, 100])):
+                options=Options(ntraj=[20, 100]),coupling_ops=None):
     """
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\\tau)B(t)\\right>`
@@ -696,14 +702,14 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
 
-    a_op : Qobj
+    A : Qobj
         operator A.
 
-    b_op : Qobj
+    B : Qobj
         operator B.
 
     reverse : *bool*
@@ -742,14 +748,14 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     if debug:
         print(inspect.stack()[0][3])
 
-    return correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
+    return correlation_2op_2t(H, state0, tlist, taulist, collapse_ops, A, B,
                               solver=solver, reverse=reverse, args=args,
-                              options=options)
+                              options=options, coupling_ops=coupling_ops)
 
 
-def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
+def correlation_4op_1t(H, state0, taulist, collapse_ops, A, B, C, D,
                        solver="me", args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=Options(ntraj=[20, 100]),coupling_ops=None):
     """
     Calculate the four-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`
@@ -772,20 +778,20 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     taulist : array_like
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
 
-    a_op : Qobj
+    A : Qobj
         operator A.
 
-    b_op : Qobj
+    B : Qobj
         operator B.
 
-    c_op : Qobj
+    C : Qobj
         operator C.
 
-    d_op : Qobj
+    D : Qobj
         operator D.
 
     solver : str
@@ -820,14 +826,15 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     if debug:
         print(inspect.stack()[0][3])
 
-    return correlation_3op_1t(H, state0, taulist, c_ops,
-                              a_op, b_op * c_op, d_op,
-                              solver=solver, args=args, options=options)
+    return correlation_3op_1t(H, state0, taulist, collapse_ops,
+                              A, B * C, D,
+                              solver=solver, args=args, options=options, 
+                              coupling_ops=coupling_ops)
 
 
-def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
-                       a_op, b_op, c_op, d_op, solver="me", args={},
-                       options=Options(ntraj=[20, 100])):
+def correlation_4op_2t(H, state0, tlist, taulist, collapse_ops,
+                       A, B, C, D, solver="me", args={},
+                       options=Options(ntraj=[20, 100]),coupling_ops=None):
     """
     Calculate the four-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`
@@ -860,20 +867,20 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
         list of times for :math:`\\tau`. taulist must be positive and contain
         the element `0`.
 
-    c_ops : list
+    collapse_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me` or `mc`.
 
-    a_op : Qobj
+    A : Qobj
         operator A.
 
-    b_op : Qobj
+    B : Qobj
         operator B.
 
-    c_op : Qobj
+    C : Qobj
         operator C.
 
-    d_op : Qobj
+    D : Qobj
         operator D.
 
     solver : str
@@ -910,14 +917,15 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     if debug:
         print(inspect.stack()[0][3])
 
-    return correlation_3op_2t(H, state0, tlist, taulist, c_ops,
-                              a_op, b_op * c_op, d_op,
-                              solver=solver, args=args, options=options)
+    return correlation_3op_2t(H, state0, tlist, taulist, collapse_ops,
+                              A, B * C, D,
+                              solver=solver, args=args, options=options, 
+                           	  coupling_ops=coupling_ops)
 
 
 # spectrum
 
-def spectrum_ss(H, wlist, c_ops, a_op, b_op):
+def spectrum_ss(H, wlist, collapse_ops, A, B):
     """
     Calculate the spectrum of the correlation function
     :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`,
@@ -941,13 +949,13 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     wlist : array_like
         list of frequencies for :math:`\\omega`.
 
-    c_ops : *list* of :class:`qutip.qobj`
+    collapse_ops : *list* of :class:`qutip.qobj`
         list of collapse operators.
 
-    a_op : :class:`qutip.qobj`
+    A : :class:`qutip.qobj`
         operator A.
 
-    b_op : :class:`qutip.qobj`
+    B : :class:`qutip.qobj`
         operator B.
 
     use_pinv : *bool*
@@ -964,10 +972,10 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
 
     warn("spectrum_ss() now legacy, please use spectrum()", FutureWarning)
 
-    return spectrum(H, wlist, c_ops, a_op, b_op, solver="es")
+    return spectrum(H, wlist, collapse_ops, A, B, solver="es")
 
 
-def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
+def spectrum_pi(H, wlist, collapse_ops, A, B, use_pinv=False):
     """
     Calculate the spectrum of the correlation function
     :math:`\lim_{t \\to \\infty} \left<A(t+\\tau)B(t)\\right>`,
@@ -991,13 +999,13 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     wlist : array_like
         list of frequencies for :math:`\\omega`.
 
-    c_ops : *list* of :class:`qutip.qobj`
+    collapse_ops : *list* of :class:`qutip.qobj`
         list of collapse operators.
 
-    a_op : :class:`qutip.qobj`
+    A : :class:`qutip.qobj`
         operator A.
 
-    b_op : :class:`qutip.qobj`
+    B : :class:`qutip.qobj`
         operator B.
 
     use_pinv : *bool*
@@ -1014,7 +1022,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
     warn("spectrum_pi() now legacy, please use spectrum()", FutureWarning)
 
-    return spectrum(H, wlist, c_ops, a_op, b_op,
+    return spectrum(H, wlist, collapse_ops, A, B,
                     solver="pi", use_pinv=use_pinv)
 
 
@@ -1024,8 +1032,9 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 # master 2t correlation solver
 
-def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                    solver="me", args={}, options=Options()):
+def _correlation_2t(H, state0, tlist, taulist, collapse_ops, A, B, C,
+                    a_ops = None, solver="me", args={}, options=Options(),
+                    coupling_ops=None):
     """
     Internal function for calling solvers in order to calculate the
     three-operator two-time correlation function:
@@ -1034,8 +1043,8 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     # Note: the current form of the correlator is sufficient for all possible
     # two-time correlations (incuding those with 2ops vs 3). Ex: to compute a
-    # correlation of the form <A(t+tau)B(t)>: a_op = identity, b_op = A,
-    # and c_op = B.
+    # correlation of the form <A(t+tau)B(t)>: A = identity, B = A,
+    # and C = B.
 
     if debug:
         print(inspect.stack()[0][3])
@@ -1048,27 +1057,86 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
-    H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
+    H, collapse_ops, args = _td_wrap_array_str(H, collapse_ops, args, tlist)
 
     if solver == "me":
         return _correlation_me_2t(H, state0, tlist, taulist,
-                                  c_ops, a_op, b_op, c_op,
+                                  collapse_ops, A, B, C,
                                   args=args, options=options)
     elif solver == "mc":
         return _correlation_mc_2t(H, state0, tlist, taulist,
-                                  c_ops, a_op, b_op, c_op,
+                                  collapse_ops, A, B, C,
                                   args=args, options=options)
     elif solver == "es":
         return _correlation_es_2t(H, state0, tlist, taulist,
-                                  c_ops, a_op, b_op, c_op)
+                                  collapse_ops, A, B, C)
+
+    elif solver == "br":
+    	return _correlation_br_2t(H, state0, tlist, taulist,
+                                  collapse_ops, coupling_ops, A, B, C,
+                                  args=args, options=options)
+
     else:
         raise ValueError("Unrecognized choice of solver" +
                          "%s (use me, mc, or es)." % solver)
 
-
 # master equation solvers
 
-def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
+def _correlation_br_2t(H, state0, tlist, taulist, collapse_ops, coupling_ops, A, B, C,
+                       args={}, options=Options()):
+    """
+    Internal function for calculating the three-operator two-time
+    correlation function:
+    <A(t)B(t+tau)C(t)>
+    using a bloch-redfield solver.
+    """
+    # the solvers only work for positive time differences and the correlators
+    # require positive tau
+    # coupling_ops must be provided
+    if coupling_ops is None:
+        pass #throw error!!!
+    
+    if state0 is None:
+        rho0 = steadystate(H, collapse_ops)
+        tlist = [0]
+    elif isket(state0):
+        rho0 = ket2dm(state0)
+    else:
+        rho0 = state0
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    rho_t = brmesolve(H, rho0, tlist, coupling_ops, [], collapse_ops,
+                    args=args, options=options).states  #I think this works
+    corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, collapse_ops, args)
+    coupling_ops_shifted = coupling_ops #change this line when coupling op shifting is implemented
+    if config.tdname:
+        _cython_build_cleanup(config.tdname)
+    rhs_clear()
+
+    for t_idx, rho in enumerate(rho_t):
+        if not isinstance(H, Qobj):
+            _args["_t0"] = tlist[t_idx]
+
+        corr_mat[t_idx, :] = brmesolve(
+            H_shifted, C * rho * A, taulist, coupling_ops_shifted,
+            [B], c_ops_shifted, args=_args, options=options
+        ).expect[0] #I think this works
+
+        if t_idx == 1:
+            options.rhs_reuse = True
+
+    if config.tdname:
+        _cython_build_cleanup(config.tdname)
+    rhs_clear()
+
+    return corr_mat
+
+
+
+def _correlation_me_2t(H, state0, tlist, taulist, collapse_ops, A, B, C,
                        args={}, options=Options()):
     """
     Internal function for calculating the three-operator two-time
@@ -1080,7 +1148,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     # the solvers only work for positive time differences and the correlators
     # require positive tau
     if state0 is None:
-        rho0 = steadystate(H, c_ops)
+        rho0 = steadystate(H, collapse_ops)
         tlist = [0]
     elif isket(state0):
         rho0 = ket2dm(state0)
@@ -1090,10 +1158,10 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if debug:
         print(inspect.stack()[0][3])
 
-    rho_t = mesolve(H, rho0, tlist, c_ops, [],
+    rho_t = mesolve(H, rho0, tlist, collapse_ops, [],
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, collapse_ops, args)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1103,8 +1171,8 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             _args["_t0"] = tlist[t_idx]
 
         corr_mat[t_idx, :] = mesolve(
-            H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
-            [b_op], args=_args, options=options
+            H_shifted, C * rho * A, taulist, c_ops_shifted,
+            [B], args=_args, options=options
         ).expect[0]
 
         if t_idx == 1:
@@ -1119,7 +1187,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 # exponential series solvers
 
-def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
+def _correlation_es_2t(H, state0, tlist, taulist, collapse_ops, A, B, C):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -1130,7 +1198,7 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
     # the solvers only work for positive time differences and the correlators
     # require positive tau
     if state0 is None:
-        rho0 = steadystate(H, c_ops)
+        rho0 = steadystate(H, collapse_ops)
         tlist = [0]
     elif isket(state0):
         rho0 = ket2dm(state0)
@@ -1141,7 +1209,7 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
         print(inspect.stack()[0][3])
 
     # contruct the Liouvillian
-    L = liouvillian(H, c_ops)
+    L = liouvillian(H, collapse_ops)
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     solES_t = ode2es(L, rho0)
@@ -1149,13 +1217,13 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
     # evaluate the correlation function
     for t_idx in range(len(tlist)):
         rho_t = esval(solES_t, [tlist[t_idx]])
-        solES_tau = ode2es(L, c_op * rho_t * a_op)
-        corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
+        solES_tau = ode2es(L, C * rho_t * A)
+        corr_mat[t_idx, :] = esval(expect(B, solES_tau), taulist)
 
     return corr_mat
 
 
-def _spectrum_es(H, wlist, c_ops, a_op, b_op):
+def _spectrum_es(H, wlist, collapse_ops, A, B):
     """
     Internal function for calculating the spectrum of the correlation function
     :math:`\left<A(\\tau)B(0)\\right>`.
@@ -1164,19 +1232,19 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
         print(inspect.stack()[0][3])
 
     # construct the Liouvillian
-    L = liouvillian(H, c_ops)
+    L = liouvillian(H, collapse_ops)
 
-    # find the steady state density matrix and a_op and b_op expecation values
+    # find the steady state density matrix and A and B expecation values
     rho0 = steadystate(L)
 
-    a_op_ss = expect(a_op, rho0)
-    b_op_ss = expect(b_op, rho0)
+    a_op_ss = expect(A, rho0)
+    b_op_ss = expect(B, rho0)
 
     # eseries solution for (b * rho0)(t)
-    es = ode2es(L, b_op * rho0)
+    es = ode2es(L, B * rho0)
 
     # correlation
-    corr_es = expect(a_op, es)
+    corr_es = expect(A, es)
 
     # covariance
     cov_es = corr_es - a_op_ss * b_op_ss
@@ -1191,7 +1259,7 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
 
 # Monte Carlo solvers
 
-def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
+def _correlation_mc_2t(H, state0, tlist, taulist, collapse_ops, A, B, C,
                        args={}, options=Options()):
     """
     Internal function for calculating the three-operator two-time
@@ -1200,7 +1268,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     using a Monte Carlo solver.
     """
 
-    if not c_ops:
+    if not collapse_ops:
         raise TypeError("If no collapse operators are required, use the `me`" +
                         "or `es` solvers")
 
@@ -1217,12 +1285,12 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         print(inspect.stack()[0][3])
 
     psi_t_mat = mcsolve(
-        H, psi0, tlist, c_ops, [],
+        H, psi0, tlist, collapse_ops, [],
         args=args, ntraj=options.ntraj[0], options=options, progress_bar=None
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, collapse_ops, args)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1234,16 +1302,16 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             _args["_t0"] = tlist[t_idx]
 
         for trial_idx in range(options.ntraj[0]):
-            if isinstance(a_op, Qobj) and isinstance(c_op, Qobj):
-                if a_op.dag() == c_op:
+            if isinstance(A, Qobj) and isinstance(C, Qobj):
+                if A.dag() == C:
                     # A shortcut here, requires only 1/4 the trials
-                    chi_0 = (options.mc_corr_eps + c_op) * \
+                    chi_0 = (options.mc_corr_eps + C) * \
                         psi_t_mat[trial_idx, t_idx]
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
                         H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
-                        [b_op],
+                        [B],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
@@ -1254,15 +1322,15 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             else:
                 # otherwise, need four trial wavefunctions
                 # (Ad+C)*psi_t, (Ad+iC)*psi_t, (Ad-C)*psi_t, (Ad-iC)*psi_t
-                if isinstance(a_op, Qobj):
-                    a_op_dag = a_op.dag()
+                if isinstance(A, Qobj):
+                    a_op_dag = A.dag()
                 else:
-                    # assume this is a number, ex. i.e. a_op = 1
+                    # assume this is a number, ex. i.e. A = 1
                     # if this is not correct, the over-loaded addition
                     # operation will raise errors
-                    a_op_dag = a_op
+                    a_op_dag = A
                 chi_0 = [(options.mc_corr_eps + a_op_dag +
-                          np.exp(1j*x*np.pi/2)*c_op) *
+                          np.exp(1j*x*np.pi/2)*C) *
                          psi_t_mat[trial_idx, t_idx]
                          for x in range(4)]
 
@@ -1270,7 +1338,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 c_tau = [
                     chi.norm()**2 * mcsolve(
                         H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
-                        [b_op],
+                        [B],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
@@ -1297,20 +1365,20 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 # pseudo-inverse solvers
 
-def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
+def _spectrum_pi(H, wlist, collapse_ops, A, B, use_pinv=False):
     """
     Internal function for calculating the spectrum of the correlation function
     :math:`\left<A(\\tau)B(0)\\right>`.
     """
 
-    L = H if issuper(H) else liouvillian(H, c_ops)
+    L = H if issuper(H) else liouvillian(H, collapse_ops)
 
     tr_mat = tensor([qeye(n) for n in L.dims[0][0]])
     N = np.prod(L.dims[0][0])
 
     A = L.full()
-    b = spre(b_op).full()
-    a = spre(a_op).full()
+    b = spre(B).full()
+    a = spre(A).full()
 
     tr_vec = np.transpose(mat2vec(tr_mat.full()))
 
@@ -1338,7 +1406,7 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 # auxiliary
 
-def _transform_L_t_shift(H, c_ops, args={}):
+def _transform_L_t_shift(H, collapse_ops, args={}):
     """
     Time shift the Hamiltonian with private time-shift variable _t0
     """
@@ -1355,15 +1423,15 @@ def _transform_L_t_shift(H, c_ops, args={}):
         H_shifted = H  # not shifted!
 
     c_ops_is_td = False
-    if isinstance(c_ops, list):
-        for i in range(len(c_ops)):
+    if isinstance(collapse_ops, list):
+        for i in range(len(collapse_ops)):
             # test is collapse operators are time-dependent
-            if isinstance(c_ops[i], list):
+            if isinstance(collapse_ops[i], list):
                 c_ops_is_td = True
 
     if not c_ops_is_td:
         # constant collapse operators
-        c_ops_shifted = c_ops  # not shifted!
+        c_ops_shifted = collapse_ops  # not shifted!
 
     if isinstance(H, Qobj) and not c_ops_is_td:
         # constant hamiltonian and collapse operators
@@ -1429,34 +1497,34 @@ def _transform_L_t_shift(H, c_ops, args={}):
             # collapse operators are time-dependent
             c_ops_shifted = []
 
-            for i in range(len(c_ops)):
-                if isinstance(c_ops[i], list):
+            for i in range(len(collapse_ops)):
+                if isinstance(collapse_ops[i], list):
                     # modify collapse operators time dependence in accordance
                     # with the quantum regression theorem
                     if isinstance(args, dict) or args is None:
-                        if isinstance(c_ops[i][1], types.FunctionType):
+                        if isinstance(collapse_ops[i][1], types.FunctionType):
                             # function-list based time-dependence
                             fn = lambda t, args_i: \
-                                c_ops[i][1](t + args_i["_t0"], args_i)
+                                collapse_ops[i][1](t + args_i["_t0"], args_i)
                         else:
                             # string-list based time-dependence
                             # Again, note: _td_format_check already raises
                             # errors formixed td formatting
                             fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                     "(t+_t0)", c_ops[i][1])
+                                     "(t+_t0)", collapse_ops[i][1])
                     else:
                         if isinstance(H[i][1], types.FunctionType):
                             # function-list based time-dependence
                             fn = lambda t, args_i: \
-                                c_ops[i][1](t + args_i["_t0"],
+                                collapse_ops[i][1](t + args_i["_t0"],
                                             args_i["_user_args"])
                         else:
                             raise TypeError("If using string-list based" +
                                             "collapse operator" +
                                             "time-dependence, " +
                                             "args must be a dictionary")
-                    c_ops_shifted.append([c_ops[i][0], fn])
+                    c_ops_shifted.append([collapse_ops[i][0], fn])
                 else:
-                    c_ops_shifted.append(c_ops[i])
+                    c_ops_shifted.append(collapse_ops[i])
 
     return H_shifted, c_ops_shifted, _args
