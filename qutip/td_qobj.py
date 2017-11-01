@@ -972,10 +972,10 @@ def _interpolate(t, f_array, N, dt):
     # In the middle: 4th order polynomial approximation
     ii = int(t/dt)
     a = (t/dt - ii)
-    approx = (-a**3 + 3*a**2 - 2*a) * 0.1666666666666666 * f_array[ii-1]
-    approx += (a**3 - 2*a**2 - a + 2) * 0.5 * f_array[ii]
-    approx += (-a**3 + a**2 + 2*a) * 0.5 * f_array[ii+1]
-    approx += (a**3 - a) * 0.1666666666666666 * f_array[ii+2]
+    approx = a * (a * (3 - a) - 2) * 0.1666666666666666 * f_array[ii-1]
+    approx += (2 + a * (a * (a - 2) - 1)) * 0.5 * f_array[ii]
+    approx += a * (a * (1 - a) + 2) * 0.5 * f_array[ii+1]
+    approx += a * (a * a - 1) * 0.1666666666666666 * f_array[ii+2]
 
     return approx
 

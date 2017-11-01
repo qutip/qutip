@@ -10,6 +10,7 @@ cdef class cy_qobj:
 cdef class cy_cte_qobj(cy_qobj):
     cdef int total_elem
     cdef int shape0, shape1
+    cdef object dims
     cdef int super
 
     # pointer to data
@@ -23,6 +24,7 @@ cdef class cy_cte_qobj(cy_qobj):
 cdef class cy_td_qobj(cy_qobj):
     cdef long total_elem
     cdef int shape0, shape1
+    cdef object dims
     cdef int super
     cdef void (*factor_ptr)(double, complex*)
     cdef object factor_func

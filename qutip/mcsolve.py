@@ -349,6 +349,8 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
         config.e_ops_ind = np.array(config.e_ops_ind)
         config.e_ops_ptr = np.array(config.e_ops_ptr)
         config.e_ops_isherm = np.array(config.e_ops_isherm)
+    else:
+        config.e_num = 0
 
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     # --------------------------------------------
@@ -502,7 +504,7 @@ class _MC():
         # set output variables, even if they are not used to simplify output
         # code.
         self.psi_out = None
-        self.expect_out = []
+        self.expect_out = None
         self.collapse_times_out = None
         self.which_op_out = None
 
@@ -573,9 +575,13 @@ class _MC():
 
                 if self.config.e_num == 0 or self.config.options.store_states:
                     self.psi_out[n] = state_out
+                else:
+                    self.psi_out = None
 
                 if self.config.e_num > 0:
                     self.expect_out[n] = expect_out
+                else:
+                    self.expect_out = None
 
                 self.collapse_times_out[n] = collapse_times
                 self.which_op_out[n] = which_oper

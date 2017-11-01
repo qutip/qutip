@@ -93,20 +93,23 @@ cdef class cy_cte_qobj(cy_qobj):
     def set_data(self, cte):
         self.shape0 = cte.shape[0]
         self.shape1 = cte.shape[1]
+        self.dims = cte.dims
         self.cte = CSR_from_scipy(cte.data)
         self.total_elem = cte.data.data.shape[0]
         self.super = cte.issuper
 
     def __getstate__(self):
         CSR_info = shallow_get_state(&self.cte)
-        return (self.shape0, self.shape1, self.total_elem, self.super, CSR_info)
+        return (self.shape0, self.shape1, self.dims,
+                self.total_elem, self.super, CSR_info)
 
     def __setstate__(self, state):
         self.shape0 = state[0]
         self.shape1 = state[1]
-        self.total_elem = state[2]
-        self.super = state[3]
-        shallow_set_state(&self.cte, state[4])
+        self.dims = state[2]
+        self.total_elem = state[3]
+        self.super = state[4]
+        shallow_set_state(&self.cte, state[5])
 
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
@@ -117,7 +120,7 @@ cdef class cy_cte_qobj(cy_qobj):
         if data:
             return scipy_obj
         else:
-            return Qobj(scipy_obj)
+            return Qobj(scipy_obj,dims = self.dims)
 
     def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
         cdef CSR_Matrix out
@@ -204,6 +207,7 @@ cdef class cy_td_qobj(cy_qobj):
         cdef int i
         self.shape0 = cte.shape[0]
         self.shape1 = cte.shape[1]
+        self.dims = cte.dims
         self.cte = CSR_from_scipy(cte.data)
         cummulative_op = cte.data
         self.super = cte.issuper
@@ -240,26 +244,27 @@ cdef class cy_td_qobj(cy_qobj):
 
         factor_ptr = PyLong_FromVoidPtr(<void*>self.factor_ptr)
         factor_func = PyLong_FromVoidPtr(<void*>self.factor_func)
-        return (self.shape0, self.shape1, self.total_elem, self.super,
+        return (self.shape0, self.shape1, self.dims, self.total_elem, self.super,
                 self.factor_use_ptr, factor_ptr, factor_func, self.N_ops,
                 sum_elem, cte_info, ops_info)
 
     def __setstate__(self, state):
         self.shape0 = state[0]
         self.shape1 = state[1]
-        self.total_elem = state[2]
-        self.super = state[3]
-        self.factor_use_ptr = state[4]
-        self.factor_ptr = <void(*)(double, complex*)> PyLong_AsVoidPtr(state[5])
-        self.factor_func = <object> PyLong_AsVoidPtr(state[6])
-        self.N_ops = state[7]
-        shallow_set_state(&self.cte, state[9])
+        self.dims = state[2]
+        self.total_elem = state[3]
+        self.super = state[4]
+        self.factor_use_ptr = state[5]
+        self.factor_ptr = <void(*)(double, complex*)> PyLong_AsVoidPtr(state[6])
+        self.factor_func = <object> PyLong_AsVoidPtr(state[7])
+        self.N_ops = state[8]
+        shallow_set_state(&self.cte, state[10])
         self.sum_elem = np.zeros(self.N_ops, dtype=int)
         self.ops = <CSR_Matrix**> malloc(self.N_ops * sizeof(CSR_Matrix*))
         for i in range(self.N_ops):
             self.ops[i] = <CSR_Matrix*> malloc(sizeof(CSR_Matrix))
-            self.sum_elem[i] = state[8][i]
-            shallow_set_state(self.ops[i], state[10][i])
+            self.sum_elem[i] = state[9][i]
+            shallow_set_state(self.ops[i], state[11][i])
 
     cdef void factor(self, double t, complex* out):
         cdef int i
@@ -330,7 +335,7 @@ cdef class cy_td_qobj(cy_qobj):
         if data:
             return scipy_obj
         else:
-            return Qobj(scipy_obj)
+            return Qobj(scipy_obj,dims = self.dims)
 
     def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
         cdef CSR_Matrix out

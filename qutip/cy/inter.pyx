@@ -24,10 +24,10 @@ cdef complex interpolate(double t, double* str_array_0, int N, double dt):
     cdef double a = (t/dt - ii)
     cdef complex approx = 0.
 
-    approx += (-a**3 + 3*a**2 - 2*a) * 0.1666666666666666 * str_array_0[ii-1]
-    approx += (a**3 - 2*a**2 - a + 2) * 0.5 * str_array_0[ii]
-    approx += (-a**3 + a**2 + 2*a) * 0.5 * str_array_0[ii+1]
-    approx += (a**3 - a) * 0.1666666666666666 * str_array_0[ii+2]
+    approx += a * (a * (3 - a) - 2) * 0.1666666666666666 * str_array_0[ii-1]
+    approx += (2 + a * (a * (a - 2) - 1)) * 0.5 * str_array_0[ii]
+    approx += a * (a * (1 - a) + 2) * 0.5 * str_array_0[ii+1]
+    approx += a * (a * a - 1) * 0.1666666666666666 * str_array_0[ii+2]
 
     return approx
 
@@ -55,9 +55,9 @@ cdef complex zinterpolate(double t, complex* str_array_0, int N, double dt):
     cdef double a = (t/dt - ii)
     cdef complex approx = 0.
 
-    approx += (-a**3 + 3*a**2 - 2*a) * 0.1666666666666666 * str_array_0[ii-1]
-    approx += (a**3 - 2*a**2 - a + 2) * 0.5 * str_array_0[ii]
-    approx += (-a**3 + a**2 + 2*a) * 0.5 * str_array_0[ii+1]
-    approx += (a**3 - a) * 0.1666666666666666 * str_array_0[ii+2]
+    approx += a * (a * (3 - a) - 2) * 0.1666666666666666 * str_array_0[ii-1]
+    approx += (2 + a * (a * (a - 2) - 1)) * 0.5 * str_array_0[ii]
+    approx += a * (a * (1 - a) + 2) * 0.5 * str_array_0[ii+1]
+    approx += a * (a * a - 1) * 0.1666666666666666 * str_array_0[ii+2]
 
     return approx
