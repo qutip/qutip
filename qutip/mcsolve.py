@@ -533,10 +533,11 @@ class _MC():
                         config.options.seeds[0:config.ntraj]
                 # if ntraj was increased but reusing seeds
                 elif seed_length < config.ntraj:
-                    step = 4294967295 // (config.ntraj - seed_length)
+                    len_new_seed = (config.ntraj - seed_length)
+                    step = 4294967295 // len_new_seed
                     newseeds = randint(0, step - 1,
-                                       size=(config.ntraj - seed_length)) + \
-                                       np.arange(config.ntraj) * step
+                                       size=(len_new_seed)) + \
+                                       np.arange(len_new_seed) * step
                     self.config.options.seeds = np.hstack(
                         (config.options.seeds, newseeds))
         else:
