@@ -801,8 +801,9 @@ class td_Qobj:
             op[0] = function(op[0], *args, **kw_args)
         return res
 
-    def apply_decorator(self, function, *args, str_mod=None, inplace_np=False,
-                        **kw_args):
+    def apply_decorator(self, function, *args, **kw_args):
+        str_mod = kw_args["str_mod"]
+        inplace_np  = kw_args["inplace_np"]
         self.compiled = False
         res = self.copy()
         raw_str = self.raw_str
