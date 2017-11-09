@@ -35,4 +35,3 @@ cpdef double spline_float_cte_poly(double x, double[::1] t,
 cpdef double spline_float_t_poly(double x, double[::1] t,
                                  double[:,::1] poly,
                                  int N)
->>>>>>> tdQobj
