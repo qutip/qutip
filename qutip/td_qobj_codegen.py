@@ -286,7 +286,7 @@ string coefficients are compiled
 array_like coefficients become cubic spline (see qutip.cy.inter.pyx)
 
 ??? I don't know if it will be useful, but the code is written in a way
-??? it would be easy to have different tlist for each array_like coefficients
+    it would be easy to have different tlist for each array_like coefficients
     """
     import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
@@ -386,11 +386,17 @@ include """ + _include_string + "\n\n"
         if iscplx[0]:
             code += "    cdef double[::1] str_tlist_" + str(i) + "\n"
             code += "    cdef complex[::1] str_array_" + str(i) + "\n"
-            code += "    cdef complex[::1] str_spline_" + str(i) + "\n"
+            if poly:
+                code += "    cdef complex[:, ::1] str_spline_" + str(i) + "\n"
+            else:
+                code += "    cdef complex[::1] str_spline_" + str(i) + "\n"
         else:
             code += "    cdef double[::1] str_tlist_" + str(i) + "\n"
             code += "    cdef double[::1] str_array_" + str(i) + "\n"
-            code += "    cdef double[::1] str_spline_" + str(i) + "\n"
+            if poly:
+                code += "    cdef double[:, ::1] str_spline_" + str(i) + "\n"
+            else:
+                code += "    cdef double[::1] str_spline_" + str(i) + "\n"
 
     for name, value in args.items():
         if not isinstance(name, str):
@@ -404,8 +410,12 @@ include """ + _include_string + "\n\n"
             code += "    cdef complex " + name + "\n"
 
     code += "\n"
-    code += "    def set_array_imag(self, int N, " +\
-            "double[::1] tlist, complex[::1] array, complex[::1] spline):\n"
+    if poly:
+        code += "    def set_array_imag(self, int N, double[::1] tlist, " +\
+                "complex[::1] array, complex[:, ::1] spline):\n"
+    else:
+        code += "    def set_array_imag(self, int N, double[::1] tlist, " +\
+                "complex[::1] array, complex[::1] spline):\n"
     code += "        if N == -1:\n"
     code += "            pass\n"
     for i, iscplx in enumerate(args_np):
@@ -417,8 +427,12 @@ include """ + _include_string + "\n\n"
     code += "        else:\n"
     code += "            raise Exception('Bad classification imag')\n"
     code += "\n"
-    code += "    def set_array_real(self, int N, " +\
-            "double[::1] tlist, double[::1] array, double[::1] spline):\n"
+    if poly:
+        code += "    def set_array_real(self, int N, double[::1] tlist, " +\
+                "double[::1] array, double[:, ::1] spline):\n"
+    else:
+        code += "    def set_array_real(self, int N, double[::1] tlist, " +\
+                "double[::1] array, double[::1] spline):\n"
     code += "        if N ==-1:\n"
     code += "            pass\n"
     for i, iscplx in enumerate(args_np):
@@ -450,15 +464,23 @@ include """ + _include_string + "\n\n"
                         "= np_obj.str_tlist_" + str(i) + "\n"
                 code += "    cdef complex[::1] str_array_" + str(i) +\
                         "= np_obj.str_array_" + str(i) + "\n"
-                code += "    cdef complex[::1] str_spline_" + str(i) +\
-                        "= np_obj.str_spline_" + str(i) + "\n"
+                if poly:
+                    code += "    cdef complex[:, ::1] str_spline_" + str(i) +\
+                            "= np_obj.str_spline_" + str(i) + "\n"
+                else:
+                    code += "    cdef complex[::1] str_spline_" + str(i) +\
+                            "= np_obj.str_spline_" + str(i) + "\n"
             else:
                 code += "    cdef double[::1] str_tlist_" + str(i) +\
                         "= np_obj.str_tlist_" + str(i) + "\n"
                 code += "    cdef double[::1] str_array_" + str(i) +\
                         "= np_obj.str_array_" + str(i) + "\n"
-                code += "    cdef double[::1] str_spline_" + str(i) +\
-                        "= np_obj.str_spline_" + str(i) + "\n"
+                if poly:
+                    code += "    cdef double[:, ::1] str_spline_" + str(i) +\
+                            "= np_obj.str_spline_" + str(i) + "\n"
+                else:
+                    code += "    cdef double[::1] str_spline_" + str(i) +\
+                            "= np_obj.str_spline_" + str(i) + "\n"
     for name, value in args.items():
         if not isinstance(name, str):
             raise Exception("All arguments key must be string and" +
