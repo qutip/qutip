@@ -1060,5 +1060,16 @@ def test_overlap():
         assert_almost_equal(A.overlap(Bd), np.conj(ans))
 
 
+def test_unit():
+    """
+    Test Qobj: unit
+    """
+    psi = 10*np.random.randn()*basis(2,0)-10*np.random.randn()*1j*basis(2,1)
+    psi2 = psi.unit()
+    psi.unit(inplace=True)
+    assert_(psi == psi2)
+    assert_almost_equal(np.linalg.norm(psi.full()), 1.0)
+
+
 if __name__ == "__main__":
     run_module_suite()
