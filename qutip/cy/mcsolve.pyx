@@ -95,6 +95,7 @@ def cy_mc_run_ode(ODE, config, prng):
     c_ops_rhs = [c.get_rhs_func() for c in config.td_c_ops]
     c_expect_func = [c.get_expect_func() for c in config.td_n_ops]
     norm2_prev = dznrm2(ODE._y) ** 2
+
     # RUN ODE UNTIL EACH TIME IN TLIST
     for k in range(1, num_times):
         # ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
@@ -117,16 +118,23 @@ def cy_mc_run_ode(ODE, config, prng):
                 t_final = ODE.t
                 while ii < config.norm_steps:
                     ii += 1
+                    if (t_final - t_prev) < config.norm_t_tol:
+                        t_prev = t_final
+                        y_prev = ODE.y
+                        break
                     t_guess = t_prev + \
                         np.log(norm2_prev / rand_vals[0]) / \
                         np.log(norm2_prev / norm2_psi) * (t_final - t_prev)
+                    if (t_guess - t_prev) < config.norm_t_tol:
+                        t_guess = t_prev + config.norm_t_tol
                     ODE._y = y_prev
                     ODE.t = t_prev
                     ODE._integrator.call_args[3] = 1
                     ODE.integrate(t_guess, step=0)
                     if not ODE.successful():
                         raise Exception(
-                            "ZVODE failed after adjusting step size!")
+                              "ZVODE failed after adjusting step size!")
+
                     norm2_guess = dznrm2(ODE._y)**2
                     if (np.abs(rand_vals[0] - norm2_guess) <
                             config.norm_tol * rand_vals[0]):
@@ -134,6 +142,13 @@ def cy_mc_run_ode(ODE, config, prng):
                         t_prev = t_guess
                         y_prev = ODE.y
                         break
+
+                    if (np.abs(rand_vals[0] - norm2_guess) <
+                                config.norm_tol * rand_vals[0]):
+                            norm2_psi = norm2_guess
+                            t_prev = t_guess
+                            y_prev = ODE.y
+                            break
                     elif (norm2_guess < rand_vals[0]):
                         # t_guess is still > t_jump
                         t_final = t_guess
@@ -160,6 +175,7 @@ def cy_mc_run_ode(ODE, config, prng):
                 state = normalize(state)
                 ODE.set_initial_value(state, t_prev)
                 rand_vals = prng.rand(2)
+                norm2_prev = dznrm2(ODE._y)**2
             else:
                 norm2_prev = norm2_psi
                 t_prev = ODE.t

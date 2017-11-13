@@ -124,11 +124,11 @@ class Options():
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  average_expect=True, average_states=False, tidy=True,
-                 num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
-                 rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
-                 store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False, normalize_output=True,
-                 use_openmp=None, openmp_threads=None):
+                 num_cpus=0, norm_tol=1e-3, norm_t_tol=1e-14, norm_steps=5,
+                 rhs_reuse=False, rhs_filename=None, ntraj=500, gui=False,
+                 rhs_with_state=False, store_final_state=False,
+                 store_states=False, seeds=None, steady_state_average=False,
+                 normalize_output=True, use_openmp=None, openmp_threads=None):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -171,6 +171,8 @@ class Options():
             self.num_cpus = 0
         # Tolerance for wavefunction norm (mcsolve only)
         self.norm_tol = norm_tol
+        # Tolerance for colapse time (mcsolve only)
+        self.norm_t_tol = norm_t_tol
         # Max. number of steps taken to find wavefunction norm to within
         # norm_tol (mcsolve only)
         self.norm_steps = norm_steps
@@ -323,14 +325,14 @@ class SolverConfiguration():
         # codegen has been run
         self.cflag = 0     # Flag signaling collapse operators
         self.tflag = 0     # Flag signaling time-dependent problem
-        
+
         self.soft_reset()
 
     def soft_reset(self):
 
         # Hamiltonian stuff
         self.h_td_inds = []  # indicies of time-dependent Hamiltonian operators
-        self.h_tdterms = []  # List of td strs and funcs 
+        self.h_tdterms = []  # List of td strs and funcs
         self.h_data = None   # List of sparse matrix data
         self.h_ind = None    # List of sparse matrix indices
         self.h_ptr = None    # List of sparse matrix ptrs
@@ -369,14 +371,14 @@ class SolverConfiguration():
         self.h_func_args = None
         self.c_funcs = None
         self.c_func_args = None
-        
+
         # time-dependent (TD) function stuff
         self.tdfunc = None     # Placeholder for TD RHS function.
         self.tdname = None     # Name of td .pyx file
         self.colspmv = None    # Placeholder for TD col-spmv function.
         self.colexpect = None  # Placeholder for TD col_expect function.
         self.string = None     # Holds string of variables passed to td solver
-        
+
 
 def _format_time(t, tt=None, ttt=None):
     time_str = str(datetime.timedelta(seconds=t))
@@ -388,11 +390,11 @@ def _format_time(t, tt=None, ttt=None):
     elif tt is not None:
         sect_percent = 100*t/tt
         time_str += " ({:03.2f}% section)".format(sect_percent)
-        
+
     elif ttt is not None:
         solve_percent = 100*t/ttt
         time_str += " ({:03.2f}% total)".format(solve_percent)
-                                            
+
     return time_str
 
 class Stats(object):
@@ -401,7 +403,7 @@ class Stats(object):
     Statistics can be grouped into sections.
     If no section names are given in the the contructor, then all statistics
     will be added to one section 'main'
-    
+
     Parameters
     ----------
     section_names : list
@@ -410,35 +412,35 @@ class Stats(object):
         The text in the output can be overidden by setting the header property
         of the section
         If no names are given then one section called 'main' is created
-        
+
     Attributes
     ----------
     sections : OrderedDict of _StatsSection
         These are the sections that are created automatically on instantiation
         or added using add_section
-        
+
     header : string
         Some text that will be used as the heading in the report
         By default there is None
-        
+
     total_time : float
         Time in seconds for the solver to complete processing
         Can be None, meaning that total timing percentages will be reported
-        
+
     Methods
     -------
     add_section
         Add another section
-        
+
     add_count
         Add some stat that is an integer count
-        
+
     add_timing
         Add some timing statistics
-        
+
     add_message
         Add some text type for output in the report
-        
+
     report:
         Output the statistics report to console or file.
     """
@@ -455,11 +457,11 @@ class Stats(object):
                 if c == 0:
                     self._def_section_name = name
                 c += 1
-                
+
         else:
             self.sections[self._def_section_name] = \
                         _StatsSection(self._def_section_name)
-    
+
     def _get_section(self, section):
         if section is None:
             return self.sections[self._def_section_name]
@@ -471,17 +473,17 @@ class Stats(object):
                 raise ValueError("Unknown section {}".format(section))
             else:
                 return sect
-                
+
     def add_section(self, name):
         """
         Add another section with the given name
-        
+
         Parameters
         ----------
         name : string
             will be used as key for sections dict
             will also be the header for the section
-        
+
         Returns
         -------
         section : `class` : _StatsSection
@@ -490,87 +492,87 @@ class Stats(object):
         sect = _StatsSection(name, self)
         self.sections[name] = sect
         return sect
-        
+
     def add_count(self, key, value, section=None):
         """
         Add value to count. If key does not already exist in section then
         it is created with this value.
         If key already exists it is increased by the give value
         value is expected to be an integer
-        
+
         Parameters
         ----------
         key : string
             key for the section.counts dictionary
             reusing a key will result in numerical addition of value
-            
+
         value : int
             Initial value of the count, or added to an existing count
-        
+
         section: string or `class` : _StatsSection
             Section which to add the count to.
             If None given, the default (first) section will be used
         """
-                
+
         self._get_section(section).add_count(key, value)
-        
+
     def add_timing(self, key, value, section=None):
         """
         Add value to timing. If key does not already exist in section then
         it is created with this value.
         If key already exists it is increased by the give value
         value is expected to be a float, and given in seconds.
-        
+
         Parameters
         ----------
         key : string
             key for the section.timings dictionary
             reusing a key will result in numerical addition of value
-            
+
         value : int
             Initial value of the timing, or added to an existing timing
-        
+
         section: string or `class` : _StatsSection
             Section which to add the timing to.
             If None given, the default (first) section will be used
-        """               
+        """
         self._get_section(section).add_timing(key, value)
-            
+
     def add_message(self, key, value, section=None, sep=";"):
         """
         Add value to message. If key does not already exist in section then
         it is created with this value.
         If key already exists the value is added to the message
         The value will be converted to a string
-        
+
         Parameters
         ----------
         key : string
             key for the section.messages dictionary
             reusing a key will result in concatenation of value
-            
+
         value : int
             Initial value of the message, or added to an existing message
-            
+
         sep : string
             Message will be prefixed with this string when concatenating
-        
+
         section: string or `class` : _StatsSection
             Section which to add the message to.
             If None given, the default (first) section will be used
-        """                
+        """
         self._get_section(section).add_message(key, value, sep=sep)
-    
+
     def set_total_time(self, value, section=None):
         """
         Sets the total time for the complete solve or for a specific section
         value is expected to be a float, and given in seconds
-        
+
         Parameters
         ----------
         value : float
             Time in seconds to complete the solver section
-            
+
         section : string or `class` : _StatsSection
             Section which to set the total_time for
             If None given, the total_time for complete solve is set
@@ -580,13 +582,13 @@ class Stats(object):
                 value = float(value)
             except:
                 raise TypeError("value is expected to be a float")
-        
+
         if section is None:
             self.total_time = value
         else:
             sect = self._get_section(section)
             sect.total_time = value
-                
+
     def report(self, output=sys.stdout):
         """
         Report the counts, timings and messages from the sections.
@@ -597,28 +599,28 @@ class Stats(object):
         The output can be written to anything that supports a write method,
         e.g. a file or the console (default)
         The output is intended to in markdown format
-        
+
         Parameters
         ----------
         output : stream
             file or console stream - anything that support write - where
             the output will be written
         """
-        
+
         if not hasattr(output, 'write'):
             raise TypeError("output must have a write method")
-        
+
         if self.header:
-            output.write("{}\n{}\n".format(self.header, 
+            output.write("{}\n{}\n".format(self.header,
                                      ("="*len(self.header))))
         for name, sect in self.sections.items():
             sect.report(output)
-            
+
         if self.total_time is not None:
             output.write("\nSummary\n-------\n")
             output.write("{}\t solver total time\n".format(
                                             _format_time(self.total_time)))
-                                            
+
     def clear(self):
         """
         Clear counts, timings and messages from all sections
@@ -626,46 +628,46 @@ class Stats(object):
         for sect in self.sections.values():
             sect.clear()
         self.total_time = None
-            
+
 class _StatsSection(object):
     """
     Not intended to be directly instantiated
     This is the type for the SolverStats.sections values
-    
-    The method parameter descriptions are the same as for those the parent 
+
+    The method parameter descriptions are the same as for those the parent
     with the same method name
-    
+
     Parameters
     ----------
     name : string
         key for the parent sections dictionary
         will also be used as the header
-    
+
     parent : `class` :  SolverStats
         The container for all the sections
-        
+
     Attributes
     ----------
     name : string
         key for the parent sections dictionary
         will also be used as the header
-    
+
     parent : `class` :  SolverStats
         The container for all the sections
-        
+
     header : string
         Used as heading for section in report
-        
+
     counts : OrderedDict
         The integer type statistics for the stats section
-        
+
     timings : OrderedDict
         The timing type statistics for the stats section
         Expected to contain float values representing values in seconds
-        
+
     messages : OrderedDict
         Text type output to be reported
-    
+
     total_time : float
         Total time for processing in the section
         Can be None, meaning that section timing percentages will be reported
@@ -691,12 +693,12 @@ class _StatsSection(object):
                 value = int(value)
             except:
                 raise TypeError("value is expected to be an integer")
-                
+
         if key in self.counts:
             self.counts[key] += value
         else:
             self.counts[key] = value
-        
+
     def add_timing(self, key, value):
         """
         Add value to timing. If key does not already exist in section then
@@ -709,12 +711,12 @@ class _StatsSection(object):
                 value = float(value)
             except:
                 raise TypeError("value is expected to be a float")
-                
+
         if key in self.timings:
             self.timings[key] += value
         else:
             self.timings[key] = value
-            
+
     def add_message(self, key, value, sep=";"):
         """
         Add value to message. If key does not already exist in section then
@@ -734,7 +736,7 @@ class _StatsSection(object):
             self.messages[key] += value
         else:
             self.messages[key] = value
-            
+
     def report(self, output=sys.stdout):
         """
         Report the counts, timings and messages for this section.
@@ -742,40 +744,40 @@ class _StatsSection(object):
         given if the parent and or section total_time is set
         """
         if self.header:
-            output.write("\n{}\n{}\n".format(self.header, 
+            output.write("\n{}\n{}\n".format(self.header,
                                      ("-"*len(self.header))))
-        
+
         # TODO: Make the timings and counts ouput in a table format
         #       Generally make more pretty
-        
+
         # Report timings
         try:
             ttt = self.parent.total_time
         except:
             ttt = None
-            
+
         tt = self.total_time
-        
+
         output.write("### Timings:\n")
         for key, value in self.timings.items():
             l = " - {}\t{}\n".format(_format_time(value, tt, ttt), key)
             output.write(l)
         if tt is not None:
-            output.write(" - {}\t{} total time\n".format(_format_time(tt), 
+            output.write(" - {}\t{} total time\n".format(_format_time(tt),
                                                      self.name))
-            
+
         # Report counts
         output.write("### Counts:\n")
         for key, value in self.counts.items():
             l = " - {}\t{}\n".format(value, key)
             output.write(l)
-        
+
         # Report messages
         output.write("### Messages:\n")
         for key, value in self.messages.items():
             l = " - {}:\t{}\n".format(key, value)
             output.write(l)
-            
+
 
     def clear(self):
         """
@@ -785,7 +787,7 @@ class _StatsSection(object):
         self.timings.clear()
         self.messages.clear()
         self.total_time = None
-        
+
 
 
 
@@ -810,7 +812,7 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             Htype = H[0][0].type
         elif isinstance(H[0], (FunctionType, BuiltinFunctionType)):
             Hdims = H[0](0,args).dims
-            Htype = H[0](0,args).type 
+            Htype = H[0](0,args).type
         else:
             raise Exception('Invalid td-list element.')
         # Check all operators in list
@@ -824,14 +826,14 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             elif isinstance(H[ii], (FunctionType, BuiltinFunctionType)):
                 _temp_dims = H[ii](0,args).dims
                 _temp_type = H[ii](0,args).type
-            else: 
+            else:
                 raise Exception('Invalid td-list element.')
             _structure_check(_temp_dims,_temp_type,state)
-    
+
     else:
         raise Exception('Invalid time-dependent format.')
-    
-    
+
+
     for ii in range(len(c_ops)):
         do_tests = True
         if isinstance(c_ops[ii], Qobj):
@@ -848,8 +850,8 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
             raise Exception('Invalid td-list element.')
         if do_tests:
             _structure_check(Hdims, Htype, _temp_state)
-    
-    if isinstance(e_ops, list): 
+
+    if isinstance(e_ops, list):
         for ii in range(len(e_ops)):
             if isinstance(e_ops[ii], Qobj):
                 _temp_state = e_ops[ii]
@@ -887,7 +889,7 @@ def _structure_check(Hdims, Htype, state):
             if Hdims[1] != state.dims:
                 raise Exception('Input operators do not share same structure.')
 
- 
+
 #
 # create a global instance of the SolverConfiguration class
 #

@@ -329,6 +329,7 @@ def _mc_make_config(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None, args={},
 
     # set norm finding constants
     config.norm_tol = options.norm_tol
+    config.norm_t_tol = options.norm_t_tol
     config.norm_steps = options.norm_steps
 
     # take care of expectation values, if any
