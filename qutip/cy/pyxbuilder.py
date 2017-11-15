@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import sys
+import sys, os
 import pyximport
 from pyximport import install
 
@@ -39,7 +39,8 @@ old_get_distutils_extension = pyximport.pyximport.get_distutils_extension
 def new_get_distutils_extension(modname, pyxfilename, language_level=None):
     extension_mod, setup_args = old_get_distutils_extension(modname, pyxfilename, language_level)
     extension_mod.language='c++'
-    if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
+    # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
+    if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35 and os.environ.get('MSYSTEM') is None:
         extension_mod.extra_compile_args = ['/w', '/O1']
     else:
         extension_mod.extra_compile_args = ['-w', '-O1']
