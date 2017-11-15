@@ -7,12 +7,18 @@ from qutip.qobj import Qobj
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.inter cimport zinterpolate, interpolate
 from qutip.cy.spmatfuncs cimport spmvpy
-from libc.stdlib cimport malloc, free
+#from libc.stdlib cimport malloc, free
 cimport libc.math
 
 include "complex_math.pxi"
 include "sparse_routines.pxi"
 
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+    void PyDataMem_FREE(void * ptr)
+    void PyDataMem_RENEW(void * ptr, size_t size)
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyDataMem_NEW(size_t size)
 
 cdef extern from "Python.h":
     object PyLong_FromVoidPtr(void *)
@@ -196,12 +202,12 @@ cdef class cy_cte_qobj(cy_qobj):
 cdef class cy_td_qobj(cy_qobj):
     def __init__(self):
         self.N_ops = 0
-        self.ops = <CSR_Matrix**> malloc(0 * sizeof(CSR_Matrix*))
+        self.ops = <CSR_Matrix**> PyDataMem_NEW(0 * sizeof(CSR_Matrix*))
 
     def __del__(self):
         for i in range(self.N_ops):
-            free(self.ops[i])
-        free(self.ops)
+            PyDataMem_FREE(self.ops[i])
+        PyDataMem_FREE(self.ops)
 
     def set_data(self, cte, ops):
         cdef int i
@@ -213,11 +219,11 @@ cdef class cy_td_qobj(cy_qobj):
         self.super = cte.issuper
 
         self.N_ops = len(ops)
-        free(self.ops)
-        self.ops = <CSR_Matrix**> malloc(self.N_ops * sizeof(CSR_Matrix*))
+        PyDataMem_FREE(self.ops)
+        self.ops = <CSR_Matrix**> PyDataMem_NEW(self.N_ops * sizeof(CSR_Matrix*))
         self.sum_elem = np.zeros(self.N_ops, dtype=int)
         for i, op in enumerate(ops):
-            self.ops[i] = <CSR_Matrix*> malloc(sizeof(CSR_Matrix))
+            self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
             CSR_from_scipy_inplace(op[0].data, self.ops[i])
             cummulative_op += op[0].data
             self.sum_elem[i] = cummulative_op.data.shape[0]
@@ -260,9 +266,9 @@ cdef class cy_td_qobj(cy_qobj):
         self.N_ops = state[8]
         shallow_set_state(&self.cte, state[10])
         self.sum_elem = np.zeros(self.N_ops, dtype=int)
-        self.ops = <CSR_Matrix**> malloc(self.N_ops * sizeof(CSR_Matrix*))
+        self.ops = <CSR_Matrix**> PyDataMem_NEW(self.N_ops * sizeof(CSR_Matrix*))
         for i in range(self.N_ops):
-            self.ops[i] = <CSR_Matrix*> malloc(sizeof(CSR_Matrix))
+            self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
             self.sum_elem[i] = state[9][i]
             shallow_set_state(self.ops[i], state[11][i])
 
