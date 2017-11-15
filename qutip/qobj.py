@@ -1209,13 +1209,17 @@ class Qobj(object):
 
 
 
-    def unit(self, norm=None, sparse=False, tol=0, maxiter=100000):
+    def unit(self, inplace=False,
+            norm=None, sparse=False, 
+            tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
         Uses norm from Qobj.norm().
 
         Parameters
         ----------
+        inplace : bool
+            Do an in-place normalization
         norm : str
             Requested norm for states / operators.
         sparse : bool
@@ -1228,15 +1232,24 @@ class Qobj(object):
         Returns
         -------
         oper : qobj
-            Normalized quantum object.
+            Normalized quantum object if not in-place,
+            else None.
 
         """
-        out = self / self.norm(norm=norm, sparse=sparse,
-                               tol=tol, maxiter=maxiter)
-        if settings.auto_tidyup:
-            return out.tidyup()
+        if inplace:
+            nrm = self.norm(norm=norm, sparse=sparse,
+                           tol=tol, maxiter=maxiter)
+            
+            self.data /= nrm
+        elif not inplace:
+            out = self / self.norm(norm=norm, sparse=sparse,
+                                   tol=tol, maxiter=maxiter)
+            if settings.auto_tidyup:
+                return out.tidyup()
+            else:
+                return out
         else:
-            return out
+            raise Exception('inplace kwarg must be bool.')
 
     def ptrace(self, sel):
         """Partial trace of the quantum object.
