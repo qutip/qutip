@@ -32,6 +32,7 @@
 ###############################################################################
 """Time-dependent Quantum Object (Qobj) class.
 """
+__all__ = ['td_Qobj', 'td_liouvillian', 'td_lindblad_dissipator']
 
 from qutip import Qobj
 from scipy.interpolate import CubicSpline
@@ -723,7 +724,6 @@ class td_Qobj:
         return self
 
     def compress(self):
-
         sets = []
         for i, op1 in enumerate(self.ops):
             already_matched = False
@@ -977,7 +977,6 @@ class td_Qobj:
             all_function = 4
         return united_f_call, all_function
 
-np.array([1.])
 def _interpolate(t, f_array, N, dt):
     print("Outdated _interpolate")
     # inbound?
@@ -1104,7 +1103,7 @@ def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
     else:
         b = a
     if not b.N_obj == 1:
-        raise Exception("Each sc_ops must be composed of ony one Qobj to " +
+        raise Exception("Each sc_ops must be composed of only one Qobj to " +
                         "be used with in a time-dependent lindblad_dissipator")
 
     D = b.apply(lindblad_dissipator)._f_norm2()
