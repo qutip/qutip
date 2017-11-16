@@ -1115,16 +1115,14 @@ def _correlation_br_2t(H, state0, tlist, taulist, collapse_ops, coupling_ops, A,
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
-
     for t_idx, rho in enumerate(rho_t):
         if not isinstance(H, Qobj):
             _args["_t0"] = tlist[t_idx]
-
-        corr_mat[t_idx, :] = brmesolve(
+        temp = brmesolve(
             H_shifted, C * rho * A, taulist, coupling_ops_shifted,
-            [B], c_ops_shifted, args=_args, options=options
-        ).expect[0] #I think this works
-
+            [], c_ops_shifted, args=_args, options=options
+        ).states #this crashes cause B is herm?
+        corr_mat[t_idx, :] = expect(B,temp) #good luck
         if t_idx == 1:
             options.rhs_reuse = True
 
@@ -1425,7 +1423,7 @@ def _transform_L_t_shift(H, collapse_ops, args={}):
     c_ops_is_td = False
     if isinstance(collapse_ops, list):
         for i in range(len(collapse_ops)):
-            # test is collapse operators are time-dependent
+            # test if collapse operators are time-dependent
             if isinstance(collapse_ops[i], list):
                 c_ops_is_td = True
 
