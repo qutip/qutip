@@ -39,6 +39,7 @@ from numpy.testing import (assert_equal, assert_, assert_almost_equal,
                             run_module_suite, assert_allclose)
 from functools import partial
 from types import FunctionType, BuiltinFunctionType
+from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 
 def _f1(t,args):
     return np.sin(t*args['w1'])
@@ -56,11 +57,12 @@ def _random_td_Qobj(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
 
     Qobj_list = []
     if cte:
-        Qobj_list.append(Qobj(np.random.random(shape,dtype=complex)))
+        Qobj_list.append(Qobj(np.random.random(shape) + \
+                              1j*np.random.random(shape)))
 
     coeff = [[_f1, "sin(w1*t)", np.sin(tlist)],
              [_f2, "cos(w2*t)", np.cos(tlist)],
-             [_f3, "exp(w3*t)", np.exp(tlist)]]
+             [_f3, "exp(w3*t*1j)", np.exp(tlist*1j)]]
     for i,form in enumerate(ops):
         if form:
             Qobj_list.append([Qobj(np.random.random(shape)),coeff[i][form-1]])
@@ -78,18 +80,18 @@ def test_td_Qobj_cte_call():
     # Check that the call return the Qobj
     assert_equal(td_data(np.random.random()) == q1, True)
     # Check that the call for the data return the data
-    assert_equal(all(td_data(np.random.random(),data=True) - data == 0), True)
+    assert_equal((td_data(np.random.random(),data=True) - data == 0).all(), True)
 
     # Test another creation format
     data2 = np.random.random((N, N))
-    q2 = Qobj(data)
+    q2 = Qobj(data2)
     td_data2 = td_Qobj([q2])
     # Check the constant flag
     assert_equal(td_data2.const, True)
     # Check that the call return the Qobj
     assert_equal(td_data2(np.random.random()) == q2, True)
     # Check that the call for the data return the data
-    assert_equal(all(td_data2(np.random.random(), data=True) - data2 == 0), True)
+    assert_equal((td_data2(np.random.random(), data=True) - data2 == 0).all(), True)
 
 
 def test_td_Qobj_func_call():
@@ -109,7 +111,7 @@ def test_td_Qobj_func_call():
     q_at_t = q1 + np.sin(t*args['w1']) * q2 + np.cos(t*args['w2']) * q3
     # Check that the call return the Qobj
     assert_equal(td_data(t) == q_at_t, True)
-    data_at_t = q1 + np.sin(t*args['w1']) * q2 + np.cos(t*args['w2']) * q3
+    data_at_t = data1 + np.sin(t*args['w1']) * data2 + np.cos(t*args['w2']) * data3
     # Check that the call for the data return the data
     assert_allclose(td_data(t, data=True).todense(), data_at_t)
 
@@ -120,7 +122,7 @@ def test_td_Qobj_func_call():
     t = np.random.random()
     q_at_t = q1 * np.sin(t*args['w1'])
     # Check that the call return the Qobj
-    assert_equal(td_data(t) == q_at_t, True)
+    assert_equal(td_data2(t) == q_at_t, True)
 
 
 def test_td_Qobj_str_call():
@@ -149,14 +151,14 @@ def test_td_Qobj_str_call():
     t = np.random.random()
     q_at_t = q1 * np.sin(t*args['w1'])
     # Check that the call return the Qobj
-    assert_equal(td_data(t) == q_at_t, True)
+    assert_equal(td_data2(t) == q_at_t, True)
 
 
 def test_td_Qobj_array_call():
     "td_Qobj call: array format"
     N = 5
-    tlist = np.linspace(0,1,100)
-    tlistlog = np.logspace(-3,0,100)
+    tlist = np.linspace(0,1,200)
+    tlistlog = np.logspace(-3,0,200)
     data1 = np.random.random((N, N))
     data2 = np.random.random((N, N))
     data3 = np.random.random((N, N))
@@ -169,7 +171,7 @@ def test_td_Qobj_array_call():
     t = np.random.random()
     q_at_t = q1 + np.sin(t) * q2 + np.cos(t*2) * q3
     # Check that the call return the Qobj
-    assert_equal(td_data(t) == q_at_t, True)
+    assert_allclose(td_data(t,data=1).todense() , q_at_t.data.todense())
     data_at_t = data1 + np.sin(t) * data2 + np.cos(t*2) * data3
     # Check that the call for the data return the data
     assert_allclose(td_data(t,data=True).todense(), data_at_t)
@@ -179,7 +181,7 @@ def test_td_Qobj_array_call():
     t = np.random.random()
     data_at_t = data1 + np.sin(t) * data2 + np.cos(t*2) * data3
     # Check that the call for the data return the data
-    assert_allclose(td_data(t,data=True).todense(), data_at_t)
+    assert_allclose(np.array(td_data(t,data=True).todense()), data_at_t)
 
 
 def test_td_Qobj_mixed_call():
@@ -195,12 +197,9 @@ def test_td_Qobj_mixed_call():
     q3 = Qobj(data3)
     q4 = Qobj(data4)
     args={"w1":1, "w2":2}
-    td_data = td_Qobj([q1, [q2,_f1], [q3,"sin(w2*t)"],
+    td_data = td_Qobj([q1, [q2,_f1], [q3,"cos(w2*t)"],
                       [q4,np.exp(3*tlist)]], tlist=tlist, args=args)
     t = np.random.random()
-    q_at_t = q1 + np.sin(t) * q2 + np.cos(t*2) * q3 + np.exp(3*t) * q4
-    # Check that the call return the Qobj
-    assert_equal(td_data(t) == q_at_t, True)
     data_at_t = data1 + np.sin(t) * data2 + np.cos(t*2) * data3 +\
                 np.exp(t*3) * data4
     # Check that the call for the data return the data
@@ -211,18 +210,18 @@ def test_td_Qobj_copy():
     "td_Qobj copy"
     tlist = np.linspace(0,1,100)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
-                       args=args={"w1":1, "w2":2}, tlist=tlist)
+                       args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random()
     td_obj_copy = td_obj_1.copy()
     #Check that the copy is independent
     assert_equal(td_obj_1 is td_obj_copy, False)
     #Check that the copy has the same data
-    assert_equal(td_obj_1(t) == td_obj_copy(t), False)
+    assert_equal(td_obj_1(t) == td_obj_copy(t), True)
     td_obj_copy = td_Qobj(td_obj_1)
     #Check that the copy is independent
     assert_equal(td_obj_1 is td_obj_copy, False)
     #Check that the copy has the same data
-    assert_equal(td_obj_1(t) == td_obj_copy(t), False)
+    assert_equal(td_obj_1(t) == td_obj_copy(t), True)
 
 
 def test_td_Qobj_to_list():
@@ -245,7 +244,7 @@ def test_td_Qobj_to_list():
             all_match = all_match and td_as_list_1[1][1] == part[1]
             all_match = all_match and td_as_list_1[1][0] == part[0]
         elif isinstance(part[1], np.ndarray):
-            all_match = all_match and td_as_list_1[2][1] == part[1]
+            all_match = all_match and (td_as_list_1[2][1] == part[1]).all()
             all_match = all_match and td_as_list_1[2][0] == part[0]
         else:
             all_match = False
@@ -254,7 +253,7 @@ def test_td_Qobj_to_list():
 
 
 def test_td_Qobj_math_neg():
-    "td_Qobj math"
+    "td_Qobj negation"
     tlist = np.linspace(0,1,100)
     td_obj = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
@@ -280,7 +279,7 @@ def test_td_Qobj_math_add():
     td_obj_sum2 += td_obj_2
     # check the inplace addition td_Qobj += td_Qobj
     assert_equal(td_obj_sum2(t) == td_obj_1(t) + td_obj_2(t), True)
-    td_obj_sum = q1 + td_obj_1
+    td_obj_sum = td_obj_1 + q1
     t = np.random.random()
     # check the addition td_Qobj + Qobj
     assert_equal(td_obj_sum(t) == td_obj_1(t) + q1, True)
@@ -300,12 +299,13 @@ def test_td_Qobj_math_add():
 
 
 def test_td_Qobj_math_sub():
-    "td_Qobj sub"
+    "td_Qobj subtraction"
     tlist = np.linspace(0,1,100)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_2 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
+    q1 = Qobj(np.random.random((5,5)))
     td_obj_sum = td_obj_1 - td_obj_2
     t = np.random.random()
     # check the subtraction -
@@ -314,16 +314,16 @@ def test_td_Qobj_math_sub():
     td_obj_sum2 -= td_obj_2
     # check the inplace subtraction -=
     assert_equal(td_obj_sum2(t) == td_obj_1(t) - td_obj_2(t), True)
-    td_obj_sum = q1 - td_obj_1
+    td_obj_sum = td_obj_1 - q1
     t = np.random.random()
     # check the addition td_Qobj - Qobj
-    assert_equal(td_obj_sum(t) == -td_obj_1(t) + q1, True)
+    assert_equal(td_obj_sum(t) == td_obj_1(t) - q1, True)
     td_obj_sum2 = td_obj_1.copy()
     td_obj_sum2 -= q1
     # check the inplace addition td_Qobj -= Qobj
     assert_equal(td_obj_sum2(t) == td_obj_1(t) - q1, True)
     scalar = np.random.random()
-    td_obj_sum = scalar - td_obj_1
+    td_obj_sum = scalar - td_obj_1   ################ Real error
     t = np.random.random()
     # check the addition td_Qobj - scalar
     assert_equal(td_obj_sum(t) == -td_obj_1(t) + scalar, True)
@@ -338,7 +338,8 @@ def test_td_Qobj_math_mult():
     tlist = np.linspace(0,1,100)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
-    td_obj_sum = q1 * td_obj_1
+    q1 = Qobj(np.random.random((5,5)))
+    td_obj_sum = td_obj_1 *q1
     t = np.random.random()
     # check the addition td_Qobj * Qobj
     assert_equal(td_obj_sum(t) == td_obj_1(t) * q1, True)
@@ -363,12 +364,12 @@ def test_td_Qobj_math_div():
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     scalar = np.random.random()
-    td_obj_sum = scalar * td_obj_1
+    td_obj_sum =  td_obj_1 / scalar
     t = np.random.random()
     # check the addition td_Qobj / scalar
     assert_equal(td_obj_sum(t) == td_obj_1(t) / scalar, True)
     td_obj_sum2 = td_obj_1.copy()
-    td_obj_sum2 *= scalar
+    td_obj_sum2 /= scalar
     # check the inplace addition td_Qobj /= scalar
     assert_equal(td_obj_sum2(t) == td_obj_1(t) / scalar, True)
 
@@ -409,12 +410,12 @@ def test_td_Qobj_conj():
 def test_td_Qobj_norm():
     "td_Qobj norm: a.dag * dag"
     tlist = np.linspace(0,1,100)
-    args={"w1":1}
-    td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [0,0,1], tlist=tlist),
+    args={"w3":1}
+    td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [0,0,1], tlist=tlist, cte=0),
                        args=args, tlist=tlist)
-    td_obj_2 = td_Qobj(_random_td_Qobj((5,5), [0,0,2], tlist=tlist),
+    td_obj_2 = td_Qobj(_random_td_Qobj((5,5), [0,0,2], tlist=tlist, cte=0),
                        args=args, tlist=tlist)
-    td_obj_3 = td_Qobj(_random_td_Qobj((5,5), [0,0,3], tlist=tlist),
+    td_obj_3 = td_Qobj(_random_td_Qobj((5,5), [0,0,3], tlist=tlist, cte=0),
                        args=args, tlist=tlist)
     t = np.random.random()
     td_obj_norm =  td_obj_1.norm()
@@ -425,7 +426,8 @@ def test_td_Qobj_norm():
     assert_equal(td_obj_norm(t) == td_obj_2(t).dag() * td_obj_2(t), True)
     td_obj_norm =  td_obj_3.norm()
     # check the a.dag * dag, array
-    assert_equal(td_obj_norm(t) == td_obj_3(t).dag() * td_obj_3(t), True)
+    assert_allclose(td_obj_norm(t,data=True).todense(),
+                    (td_obj_3(t).dag() * td_obj_3(t)).data.todense())
 
 
 def test_td_Qobj_tidyup():
@@ -450,9 +452,9 @@ def test_td_Qobj_compress():
     t = np.random.random()
     td_obj_2.compress()
     # check that the number of part is decreased
-    assert_equal(len(td_obj_2(t).to_list()), 4)
+    assert_equal(len(td_obj_2.to_list()), 4)
     # check that data is still valid
-    assert_equal(td_obj_2(t) == td_obj_1(t), 4)
+    assert_equal(td_obj_2(t) == td_obj_1(t), True)
 
 
 def test_td_Qobj_apply():
@@ -480,7 +482,7 @@ def test_td_Qobj_apply_decorator():
     td_obj = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist, cte=False),
                      args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random() / 2.
-    td_obj_scaled = apply_decorator(rescale_time_and_scale,2)
+    td_obj_scaled = td_obj.apply_decorator(rescale_time_and_scale,2)
     # check that the decorated took effect mixed
     assert_equal(td_obj_scaled(t) == td_obj(2*t), True)
     def square_f(f_original):
@@ -496,17 +498,17 @@ def test_td_Qobj_apply_decorator():
     assert_equal(td_obj_str_2(t) == td_list[0][0] * np.sin(t)**2, True)
 
     td_list = _random_td_Qobj((5,5), [3,0,0], tlist=tlist, cte=False)
-    td_obj_array = td_Qobj(td_list, args={"w1":1, "w2":2}, tlist=tlist)
-    td_obj_array_2 = td_obj_str.apply_decorator(square_f, inplace_np=True)
+    td_obj_array = td_Qobj(td_list, tlist=tlist)
+    td_obj_array_2 = td_obj_array.apply_decorator(square_f, inplace_np=True)
     #Check that it can only be compiled to cython
     assert_equal(td_obj_array_2.fast, True)
-    assert_equal(td_obj_array_2(t) == td_list[0][0] * np.sin(t)**2, True)
+    assert_allclose(td_obj_array_2(t, data=True).todense(), (td_list[0][0] * np.sin(t)**2).data.todense())
 
 
 def test_td_Qobj_compile():
     "td_Qobj compile"
     tlist = np.linspace(0,1,100)
-    tlistlog = np.logspace(0,1,100)
+    tlistlog = np.logspace(-5,0,400)
     args={"w1":1, "w2":2}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
     td_obj_f = td_Qobj(_random_td_Qobj((5,5), [1,0,0], tlist=tlist),
@@ -521,49 +523,50 @@ def test_td_Qobj_compile():
                        args=args, tlist=tlist)
     td_obj_m = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args=args, tlist=tlist)
-    t = np.random.random()
+    t = np.random.random() *.99 + 0.01
     td_obj_cc = td_obj_c.copy()
     td_obj_cc.compile()
     # check if compiled for const format
     assert_equal(td_obj_cc.compiled != 0, True)
     # check compiled for const format call
-    assert_equal(td_obj_cc(t) = td_obj_c(t), True)
+    assert_equal(td_obj_cc(t) == td_obj_c(t), True)
     td_obj_fc = td_obj_f.copy()
     td_obj_fc.compile()
     # check if compiled for func format
     assert_equal(td_obj_fc.compiled != 0, True)
     # check compiled for func format call
-    assert_equal(td_obj_fc(t) = td_obj_f(t), True)
+    assert_equal(td_obj_fc(t) == td_obj_f(t), True)
     td_obj_sc = td_obj_s.copy()
     td_obj_sc.compile()
     # check if compiled for str format
     assert_equal(td_obj_sc.compiled != 0, True)
     # check compiled for str format call
-    assert_equal(td_obj_sc(t) = td_obj_s(t), True)
+    assert_equal(td_obj_sc(t) == td_obj_s(t), True)
     td_obj_ac = td_obj_a.copy()
     td_obj_ac.compile()
     # check if compiled for array format
     assert_equal(td_obj_ac.compiled != 0, True)
     # check compiled for array format call
-    assert_equal(td_obj_ac(t) = td_obj_a(t), True)
+    assert_allclose(np.array(td_obj_ac(t,data=True).todense()), np.array(td_obj_a(t,data=True).todense()), rtol=1e-07, atol=0)
     td_obj_cac = td_obj_ca.copy()
     td_obj_cac.compile()
     # check if compiled for array format
     assert_equal(td_obj_cac.compiled != 0, True)
     # check compiled for array format call
-    assert_equal(td_obj_cac(t) = td_obj_ca(t), True)
+    assert_allclose(np.array(td_obj_cac(t,data=True).todense()), np.array(td_obj_ca(t,data=True).todense()), rtol=1e-07, atol=0)
     td_obj_sac = td_obj_sa.copy()
     td_obj_sac.compile()
     # check if compiled for mixed array str format
     assert_equal(td_obj_sac.compiled != 0, True)
     # check compiled for mixed array str format call
-    assert_equal(td_obj_sac(t) = td_obj_sa(t), True)
+    assert_allclose(np.array(td_obj_sac(t,data=True).todense()), np.array(td_obj_sa(t,data=True).todense()), rtol=1e-07, atol=0)
     td_obj_mc = td_obj_m.copy()
     td_obj_mc.compile()
     # check if compiled for mixed format
     assert_equal(td_obj_mc.compiled != 0, True)
     # check compiled for mixed format call
-    assert_equal(td_obj_mc(t) = td_obj_m(t), True)
+    assert_equal(td_obj_mc(t) == td_obj_m(t), True)
+    assert_allclose(np.array(td_obj_ac(t,data=True).todense()), np.array(td_obj_a(t,data=True).todense()), rtol=1e-07, atol=0)
 
 
 def test_td_Qobj_rhs():
@@ -621,10 +624,10 @@ def test_td_Qobj_rhs():
     assert_allclose(v3, v2)
 
 
-def test_td_Qobj_expect():
+def test_td_Qobj_expect_psi():
     "td_Qobj expect psi"
-    tlist = np.linspace(0,1,100)
-    args={"w1":1, "w2":2}
+    tlist = np.linspace(0,1,200)
+    args={"w1":1, "w2":2, "w3":3}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
     td_obj_f = td_Qobj(_random_td_Qobj((5,5), [0,0,1], tlist=tlist),
                        args=args, tlist=tlist)
@@ -679,7 +682,7 @@ def test_td_Qobj_expect():
 def test_td_Qobj_expect():
     "td_Qobj expect rho"
     tlist = np.linspace(0,1,100)
-    args={"w1":1, "w2":2}
+    args={"w1":1, "w2":2, "w3":3}
     data1 = np.random.random((3,3))
     data2 = np.random.random((3,3))
     td_obj_sa = td_Qobj(_random_td_Qobj((3,3), [0,3,2], tlist=tlist),
@@ -687,29 +690,24 @@ def test_td_Qobj_expect():
     td_obj_m = td_Qobj(_random_td_Qobj((3,3), [1,2,3], tlist=tlist),
                        args=args, tlist=tlist)
     t = np.random.random()
-    td_L = td_liouvillian(H=td_obj_sa,
-                          c_ops=[[data1,"1j*sin(t)"],[data2,np.cos(tlist)]],
-                          tlist=tlist)
-    td_L_mix = td_liouvillian(H=td_obj_m,
-                              c_ops=[[data1,"1j*sin(t)"],[data2,_f2]],
-                              tlist=tlist,args=args)
+    td_obj_sa = td_obj_sa.apply(spre)
+    td_obj_m = td_obj_m.apply(spre)
     rho = np.arange(3*3)*0.25+.25j
-
-    td_L = td_L.copy()
-    td_Lc.compile()
-    v1 = td_L.expect(t, rho, 0)
-    v2 = td_Lc.expect(t, rho, 0)
-    v3 = cy_expect_rho_vec(td_L(t, data=True), rho, 0)
+    td_obj_sac = td_obj_sa.copy()
+    td_obj_sac.compile()
+    v1 = td_obj_sa.expect(t, rho, 0)
+    v2 = td_obj_sac.expect(t, rho, 0)
+    v3 = cy_expect_rho_vec(td_obj_sa(t, data=True), rho, 0)
     # check not compiled rhs const
     assert_allclose(v1, v3)
     # check compiled rhs
     assert_allclose(v3, v2)
 
-    td_L_mixc = td_L_mix.copy()
-    td_L_mixc.compile()
-    v1 = td_L_mix.expect(t, rho, 1)
-    v2 = td_L_mixc.expect(t, rho, 1)
-    v3 = cy_expect_rho_vec(td_L_mix(t, data=True), rho, 1)
+    td_obj_mc = td_obj_m.copy()
+    td_obj_mc.compile()
+    v1 = td_obj_m.expect(t, rho, 1)
+    v2 = td_obj_mc.expect(t, rho, 1)
+    v3 = cy_expect_rho_vec(td_obj_m(t, data=True), rho, 1)
     # check not compiled rhs func
     assert_allclose(v1, v3)
     # check compiled rhs func
@@ -726,7 +724,7 @@ def test_td_Qobj_func_args():
     q2 = Qobj(data2)
     q3 = Qobj(data3)
     args={"w1":1, "w2":2}
-    td_data = td_Qobj([q1,[q2,_f1],[q2,_f2]], args=args)
+    td_data = td_Qobj([q1,[q2,_f1],[q3,_f2]], args=args)
 
     t = np.random.random()
     q_at_t = q1 + np.sin(t*args['w1']) * q2 + np.cos(t*10) * q3
@@ -763,7 +761,7 @@ def test_td_Qobj_str_args():
     q2 = Qobj(data2)
     q3 = Qobj(data3)
     args={"w1":1, "w2":2}
-    td_data = td_Qobj([q1,[q2,"sin(w1*t)"],[q2,"sin(w2*t)"]], args=args)
+    td_data = td_Qobj([q1,[q2,"sin(w1*t)"],[q3,"cos(w2*t)"]], args=args)
 
     t = np.random.random()
     q_at_t = q1 + np.sin(t*args['w1']) * q2 + np.cos(t*10) * q3
@@ -803,46 +801,45 @@ def test_td_Qobj_mixed_args():
     q3 = Qobj(data3)
     q4 = Qobj(data4)
     args={"w1":1, "w2":2}
-    td_data = td_Qobj([q1, [q2,_f1], [q3,"sin(w2*t)"],
+    td_data = td_Qobj([q1, [q2,_f1], [q3,"cos(w2*t)"],
                       [q4,np.exp(3*tlist)]], tlist=tlist, args=args)
 
     t = np.random.random()
-    q_at_t = q1 + np.sin(t*args['w1']) * q2 +\
-             np.cos(t*10) * q3 + np.exp(3*t) * q4
+    data_at_t = data1 + np.sin(t*args['w1']) * data2 +\
+             np.cos(t*10) * data3 + np.exp(3*t) * data4
     # Check that the call with custom args
-    assert_equal(td_data.with_args(t,{"w2":10}) == q_at_t, True)
+    assert_allclose(np.array(td_data.with_args(t,{"w2":10},data=True).todense()), data_at_t)
 
     t = np.random.random()
-    q_at_t = q1 + np.sin(t*10) * q2 +\
-             np.cos(t*args['w2']) * q3 + np.exp(3*t) * q4
+    data_at_t = data1 + np.sin(t*10) * data2 +\
+             np.cos(t*args['w2']) * data3 + np.exp(3*t) * data4
     # Check that the call with custom args
-    assert_equal(td_data.with_args(t,{"w1":10}) == q_at_t, True)
+    assert_allclose(np.array(td_data.with_args(t,{"w1":10},data=True).todense()), data_at_t)
 
     t = np.random.random()
-    q_at_t = q1 + np.sin(t*args['w1']) * q2 +\
-             np.cos(t*args['w2']) * q3 + np.exp(3*t) * q4
+    data_at_t = data1 + np.sin(t*args['w1']) * data2 +\
+             np.cos(t*args['w2']) * data3 + np.exp(3*t) * data4
     # Check that the with_args call did not change the original args
-    assert_equal(td_data(t) == q_at_t, True)
+    assert_allclose(np.array(td_data(t,data=True).todense()), data_at_t)
 
     new_args={"w1":10, "w2":7}
     td_data.arguments(new_args)
     t = np.random.random()
-    q_at_t = q1 + np.sin(t*10) * q2 + np.cos(t*7) * q3 + np.exp(3*t) * q4
+    data_at_t = data1 + np.sin(t*10) * data2 + np.cos(t*7) * data3 + np.exp(3*t) * data4
     # Check the arguments change
-    assert_equal(td_data(t) == q_at_t, True)
+    assert_allclose(np.array(td_data(t,data=True).todense()), data_at_t)
 
     td_data.compile()
     new_args={"w1":3, "w2":5}
     td_data.arguments(new_args)
     t = np.random.random()
-    q_at_t = q1 + np.sin(t*3) * q2 + np.cos(t*5) * q3 + np.exp(3*t) * q4
+    data_at_t = data1 + np.sin(t*3) * data2 + np.cos(t*5) * data3 + np.exp(3*t) * data4
     # Check the arguments change after compile
-    assert_equal(td_data(t) == q_at_t, True)
+    assert_allclose(np.array(td_data(t,data=True).todense()), data_at_t)
 
 
 def test_td_Qobj_with_state():
     "td_Qobj args: with_state"
-
     def coeff_state(t,psi,args):
         return np.mean(psi) * args["w1"]
     N = 5
@@ -856,35 +853,51 @@ def test_td_Qobj_with_state():
     q3 = Qobj(data3)
     q4 = Qobj(data4)
     args={"w1":1}
+    new_args={"w1":10}
     td_data = td_Qobj([q1,[q2,coeff_state]], args=args)
     vec = np.arange(N)*.5+.5j
 
     t = np.random.random()
     q_at_t = q1 + np.mean(vec) * args["w1"] * q2
+    q_at_t_new = q1 + np.mean(vec) * new_args["w1"] * q2
+
     # Check that the with_state call
     assert_equal(td_data.with_state(t,vec) == q_at_t, True)
-
-    new_args={"w1":10}
-    t = np.random.random()
-    q_at_t = q1 + np.mean(vec) * new_args["w1"] * q2
+    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), np.array(q_at_t.data.todense()))
     # Check that the with_state call with custom args
-    assert_equal(td_data.with_state(t, vec, new_args) == q_at_t, True)
-
-    args={"w1":1, "w2":2}
-    td_data = td_Qobj([q1, [q2,coeff_state], [q3,"sin(w2*t)"],
-                      [q4,np.exp(3*tlist)]], tlist=tlist, args=args)
-    t = np.random.random()
-    q_at_t = q1 + np.mean(vec) * new_args["w1"] * q2 +\
-             np.cos(t*10) * q3 + np.exp(3*t) * q4
-    # Check that the with_state call for mixed format
-    assert_equal(td_data.with_args(t,{"w2":10}) == q_at_t, True)
+    assert_equal(td_data.with_state(t, vec, new_args) == q_at_t_new, True)
+    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), np.array(q_at_t_new.data.todense()))
 
     td_data.compile()
+    # Check that the with_state call compiled
+    assert_equal(td_data.with_state(t,vec) == q_at_t, True)
+    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), np.array(q_at_t.data.todense()))
+    # Check that the with_state call with custom args compiled
+    assert_equal(td_data.with_state(t, vec, new_args) == q_at_t_new, True)
+    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), np.array(q_at_t_new.data.todense()))
+
+    args={"w1":1, "w2":2}
+    new_args={"w2":10}
     t = np.random.random()
-    q_at_t = q1 + np.mean(vec) * new_args["w1"] * q2 +\
-             np.cos(t*10) * q3 + np.exp(3*t) * q4
+    td_data = td_Qobj([q1, [q2,coeff_state], [q3,"cos(w2*t)"],
+                      [q4,np.exp(3*tlist)]], tlist=tlist, args=args)
+    data_at_t = data1 + np.mean(vec) * args["w1"] * data2 +\
+             np.cos(t*args["w2"]) * data3 + np.exp(3*t) * data4
+    data_at_t_args = data1 + np.mean(vec) * args["w1"] * data2 +\
+             np.cos(t*new_args["w2"]) * data3 + np.exp(3*t) * data4
+
+    # Check that the with_state call for mixed format
+    assert_allclose(np.array(td_data.with_state(t, vec, data=True).todense()), data_at_t)
+    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), data_at_t)
+    assert_allclose(np.array(td_data.with_state(t, vec, new_args,data=True).todense()), data_at_t_args)
+    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), data_at_t_args)
+
+    td_data.compile()
     # Check that the with_state call for mixed format and compiled
-    assert_equal(td_data.with_args(t,{"w2":10}) == q_at_t, True)
+    assert_allclose(np.array(td_data.with_state(t, vec, data=True).todense()), data_at_t)
+    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), data_at_t)
+    assert_allclose(np.array(td_data.with_state(t, vec, new_args,data=True).todense()), data_at_t_args)
+    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), data_at_t_args)
 
 
 def test_td_Qobj_pickle_cy_td_Qobj():
@@ -900,17 +913,15 @@ def test_td_Qobj_pickle_cy_td_Qobj():
     td_obj_sa.compile()
     td_obj_m = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args=args, tlist=tlist)
-    td_obj_m.compile()
+    td_obj_sa.compile()
     t = np.random.random()
-    pickled = td_obj_c.dumps(td_o.compiled)
+    pickled = pickle.dumps(td_obj_sa)
     td_pick = pickle.loads(pickled)
     # Check for const case
-    assert_equal(td_obj_c(t) == td_pick(t), True)
-    pickled = td_obj_sa.dumps(td_o.compiled)
+    assert_equal(td_obj_sa(t) == td_pick(t), True)
+
+    td_obj_m.compile()
+    pickled = pickle.dumps(td_obj_m)
     td_pick = pickle.loads(pickled)
     # Check for cython compiled coeff
-    assert_equal(td_obj_sa(t) == td_pick(t), True)
-    pickled = td_obj_m.dumps(td_o.compiled)
-    td_pick = pickle.loads(pickled)
-    # Check for python function coeff
     assert_equal(td_obj_m(t) == td_pick(t), True)
