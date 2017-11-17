@@ -56,13 +56,40 @@ class td_Qobj:
         / : C-number
     and some common linear operator/state operations. The td_Qobj
     are constructed from a nested list of Qobj with their time-dependent
-    coefficients.
+    coefficients. The time-dependent coefficients are either a funciton, a
+    string or a numpy array.
 
+    For function format, the function signature must be f(t, args).
     *Examples*
+        def f1_t(t,args):
+            return np.exp(-1j*t*args["w1"])
 
-        H = [H0, [H1, 'sin(w*t)'], [H2, f1_t], [H3, np.sin(3*w*tlist)]]
+        def f2_t(t,args):
+            return np.cos(t*args["w2"])
 
-        where f1_t ia a python functions with signature f_t(t, args).
+        H = td_Qobj([H0, [H1, f1_t], [H2, f2_t]], args={"w1":1.,"w2":2.})
+
+    For string based, the string must be a compilable python code resulting in
+    a scalar. The following symbols are defined:
+        sin cos tan asin acos atan pi
+        sinh cosh tanh asinh acosh atanh
+        exp log log10 erf sqrt
+        real imag conj abs norm arg proj
+    numpy is also imported as np.
+    *Examples*
+        H = td_Qobj([H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
+                    args={"w1":1.,"w2":2.})
+
+    For numpy array format, the array must be an 1d of dtype float64 or complex.
+    A list of times (float64) at which the coeffients must be given (tlist).
+    The coeffients array must have the same len as the tlist.
+    The time of the tlist do not need to be equidistant, but must be sorted.
+    *Examples*
+        tlist = np.logspace(-5,0,100)
+        H = td_Qobj([H0, [H1, np.exp(-1j*tlist)], [H2, np.cos(2.*tlist)]],
+                    tlist=tlist)
+
+    Mixing the formats is possible, but not recommended.
 
     Parameters
     ----------
