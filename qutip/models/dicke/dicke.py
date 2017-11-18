@@ -314,7 +314,7 @@ class Dicke(object):
         llind_dims = [[[nds], [nds]],[[nds], [nds]]]
         lindblad_qobj = Qobj(lindblad_matrix, dims = llind_dims)
 
-        return lindblad_matrix
+        return lindblad_qobj
         
     def tau1(self, jmm1):
         """
