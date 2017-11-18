@@ -34,6 +34,7 @@ import numpy as np
 cimport numpy as cnp
 cimport cython
 cimport libc.math
+from libcpp cimport bool
 
 cdef extern from "src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
@@ -195,41 +196,52 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rho_func_td(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_expect_psi(object op,
-                    complex[::1] state,
-                    int isherm):
+cpdef cy_expect_psi(object A, complex[::1] vec, bool isherm):
 
-    cdef complex[::1] y = spmv_csr(op.data, op.indices, op.indptr, state)
-    cdef int row, num_rows = state.shape[0]
-    cdef complex dot = 0
-    for row from 0 <= row < num_rows:
-        dot += conj(state[row]) * y[row]
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
 
-    if isherm:
-        return real(dot)
+    cdef size_t row, jj
+    cdef int nrows = vec.shape[0]
+    cdef complex expt = 0, temp, cval
+
+    for row in range(nrows):
+        cval = conj(vec[row])
+        temp = 0
+        for jj in range(ptr[row], ptr[row+1]):
+            temp += data[jj]*vec[ind[jj]]
+        expt += cval*temp
+
+    if isherm :
+        return real(expt)
     else:
-        return dot
+        return expt
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cy_expect_psi_csr(complex[::1] data,
-                        int[::1] idx,
+                        int[::1] ind,
                         int[::1] ptr, 
-                        complex[::1] state,
-                        int isherm):
+                        complex[::1] vec,
+                        bool isherm):
 
-    cdef complex [::1] y = spmv_csr(data,idx,ptr,state)
-    cdef int row, num_rows = state.shape[0]
-    cdef complex dot = 0
+    cdef size_t row, jj
+    cdef int nrows = vec.shape[0]
+    cdef complex expt = 0, temp, cval
 
-    for row from 0 <= row < num_rows:
-        dot += conj(state[row])*y[row]
+    for row in range(nrows):
+        cval = conj(vec[row])
+        temp = 0
+        for jj in range(ptr[row], ptr[row+1]):
+            temp += data[jj]*vec[ind[jj]]
+        expt += cval*temp
 
-    if isherm:
-        return real(dot)
+    if isherm :
+        return real(expt)
     else:
-        return dot
+        return expt
 
 
 @cython.boundscheck(False)
@@ -314,4 +326,82 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
 
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def expect_csr_ket(object A, object B, int isherm):  
 
+    cdef complex[::1] Adata = A.data 
+    cdef int[::1] Aind = A.indices
+    cdef int[::1] Aptr = A.indptr 
+    cdef complex[::1] Bdata = B.data
+    cdef int[::1] Bptr = B.indptr
+    cdef int nrows = A.shape[0]
+
+    cdef int j
+    cdef size_t ii, jj
+    cdef double complex cval=0, row_sum, expt = 0
+
+    for ii in range(nrows):
+        if (Bptr[ii+1] - Bptr[ii]) != 0:
+            cval = conj(Bdata[Bptr[ii]])
+            row_sum = 0
+            for jj in range(Aptr[ii], Aptr[ii+1]):
+                j = Aind[jj]
+                if (Bptr[j+1] - Bptr[j]) != 0:
+                    row_sum += Adata[jj]*Bdata[Bptr[j]]
+            expt += cval*row_sum
+    if isherm:
+        return real(expt)
+    else:
+        return expt
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef double complex zcsr_mat_elem(object A, object left, object right, bool bra_ket=1):
+    """
+    Computes the matrix element for an operator A and left and right vectors.
+    right must be a ket, but left can be a ket or bra vector.  If left
+    is bra then bra_ket = 1, else set bra_ket = 0.
+    """
+    cdef complex[::1] Adata = A.data
+    cdef int[::1] Aind = A.indices
+    cdef int[::1] Aptr = A.indptr
+    cdef int nrows = A.shape[0]
+
+    cdef complex[::1] Ldata = left.data
+    cdef int[::1] Lind = left.indices
+    cdef int[::1] Lptr = left.indptr
+    cdef int Lnnz = Lind.shape[0]
+
+    cdef complex[::1] Rdata = right.data
+    cdef int[::1] Rind = right.indices
+    cdef int[::1] Rptr = right.indptr
+
+    cdef int j, go, head=0
+    cdef size_t ii, jj, kk
+    cdef double complex cval=0, row_sum, mat_elem=0
+
+    for ii in range(nrows):
+        row_sum = 0
+        go = 0
+        if bra_ket:
+            for kk in range(head, Lnnz):
+                if Lind[kk] == ii:
+                    cval = Ldata[kk]
+                    head = kk
+                    go = 1
+        else:
+            if (Lptr[ii] - Lptr[ii+1]) != 0:
+                cval = conj(Ldata[Lptr[ii]])
+                go = 1
+
+        if go:
+            for jj in range(Aptr[ii], Aptr[ii+1]):
+                j = Aind[jj]
+                if (Rptr[j] - Rptr[j+1]) != 0:
+                    row_sum += Adata[jj]*Rdata[Rptr[j]]
+            mat_elem += cval*row_sum
+    
+    return mat_elem
