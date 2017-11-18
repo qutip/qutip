@@ -6,12 +6,10 @@ from decimal import Decimal
 
 import numpy as np
 
-from scipy.integrate import odeint, ode
-
 from scipy import constants
 from scipy.sparse import *
-from qutip import Qobj, spre, spost
-from qutip.solver import Result
+
+__all__ = ['num_dicke_states', 'num_dicke_ladders', 'num_two_level', 'Dicke']
 
 
 def num_dicke_states(N):
@@ -213,7 +211,7 @@ class Dicke(object):
                     jmm1 = (j, m, m1)
                     i, k = self.get_index(jmm1)
                     l = nds * i  + k
-                    jmm1_flat[l] = jmm1
+                    jmm1_flat[jmm1] = l
 
         return jmm1_flat
     
@@ -247,8 +245,8 @@ class Dicke(object):
         S = dok_matrix((nds**2, nds**2))
 
         # perform loop in each row of matrix 
-        for r in jmm1_row:
-            j, m, m1 = jmm1_row[r]
+        for jmm1 in jmm1_row:
+            j, m, m1 = jmm1
             jmm1_1 = (j, m, m1)
             jmm1_2 = (j, m+1, m1+1)
             jmm1_3 = (j+1, m+1, m1+1)
@@ -262,48 +260,49 @@ class Dicke(object):
             t1 = self.tau1(jmm1_1)
             c1 = self._get_element_flat(jmm1_1)
             
+            r = jmm1_row[jmm1]
             S[r, c1] = t1
 
             # generate taus in the given row
             # checking if the taus exist
             # and load taus in the lindbladian in the correct position
 
-            if jmm1_2 in jmm1_row.values():
+            if jmm1_2 in jmm1_row:
                 t2 = self.tau2(jmm1_2)
                 c2 = self._get_element_flat(jmm1_2)
                 S[r, c2] = t2
 
-            if jmm1_3 in jmm1_row.values():
+            if jmm1_3 in jmm1_row:
                 t3 = self.tau3(jmm1_3)
                 c3 = self._get_element_flat(jmm1_3)
                 S[r, c3] = t3
 
-            if jmm1_4 in jmm1_row.values():
+            if jmm1_4 in jmm1_row:
                 t4 = self.tau4(jmm1_4)
                 c4 = self._get_element_flat(jmm1_4)
                 S[r, c4]
 
-            if jmm1_5 in jmm1_row.values():
+            if jmm1_5 in jmm1_row:
                 t5 = self.tau5(jmm1_5)
                 c5 = self._get_element_flat(jmm1_5)
                 S[r, c5] = t5
 
-            if jmm1_6 in jmm1_row.values():
+            if jmm1_6 in jmm1_row:
                 t6 = self.tau6(jmm1_6)
                 c6 = self._get_element_flat(jmm1_6)
                 S[r, c6] = t6
 
-            if jmm1_7 in jmm1_row.values():                
+            if jmm1_7 in jmm1_row:                
                 t7 = self.tau7(jmm1_7)
                 c7 = self._get_element_flat(jmm1_7)
                 S[r, c7] = t7 
 
-            if jmm1_8 in jmm1_row.values():
+            if jmm1_8 in jmm1_row:
                 t8 = self.tau8(jmm1_8)
                 c8 = self._get_element_flat(jmm1_8)
                 S[r, c8] = t8
 
-            if jmm1_9 in jmm1_row.values():
+            if jmm1_9 in jmm1_row:
                 t9 = self.tau9(jmm1_9)
                 c9 = self._get_element_flat(jmm1_9)
                 S[r, c9] = t9
