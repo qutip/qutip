@@ -44,6 +44,7 @@ import scipy.integrate
 from scipy.linalg import norm
 import qutip.settings as qset
 from qutip.qobj import Qobj, isket
+from qutip.td_qobj import td_Qobj
 from qutip.rhs_generate import rhs_generate
 from qutip.solver import Result, Options, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
@@ -119,6 +120,13 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         which to calculate the expectation values.
 
     """
+    # check whether H is a td_Qobj and put it back to list form.
+    if isinstance(H, td_Qobj):
+        H_args = H.args.copy()
+        H_args.update(args)
+        args = H_args
+        H = H.to_list()
+
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
@@ -127,10 +135,10 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
+
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
-    
+
     # convert array based time-dependence to string format
     H, _, args = _td_wrap_array_str(H, [], args, tlist)
     # check for type (if any) of time-dependent inputs
@@ -142,7 +150,7 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config time-dependence flags to default values
         config.reset()
-    
+
     #check if should use OPENMP
     check_use_openmp(options)
 
@@ -305,10 +313,10 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     #
     initial_vector = psi0.full().ravel()
     L = -1.0j * H
-    
+
     if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
         r = scipy.integrate.ode(cy_ode_rhs_openmp)
-        r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+        r.set_f_params(L.data.data, L.data.indices, L.data.indptr,
                         opt.openmp_threads)
     else:
         r = scipy.integrate.ode(cy_ode_rhs)
@@ -390,7 +398,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
-    
+
     # Check which components should use OPENMP
     omp_components = None
     if qset.has_openmp:
@@ -407,7 +415,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     # Add object terms to end of ode args string
     for k in range(len(Lobj)):
         string_list.append("Lobj[%d]" % k)
-    
+
     for name, value in args.items():
         if isinstance(value, np.ndarray):
             string_list.append(name)
@@ -449,11 +457,11 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
 
     exec(code, locals(), args)
 
-    
+
     # Remove RHS cython file if necessary
     if not opt.rhs_reuse and config.tdname:
         _cython_build_cleanup(config.tdname)
-    
+
     #
     # call generic ODE code
     #
@@ -641,8 +649,8 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
         state_norm_func = norm
     else:
         state_norm_func = None
-        
-    
+
+
     #
     # prepare output array
     #

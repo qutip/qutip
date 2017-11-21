@@ -46,6 +46,7 @@ import scipy.integrate
 import warnings
 import qutip.settings as qset
 from qutip.qobj import Qobj, isket, isoper, issuper
+from qutip.td_qobj import td_Qobj
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, _solver_safety_check
@@ -207,23 +208,42 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         operators for which to calculate the expectation values.
 
     """
+    # check whether H is a td_Qobj and put it back to list form.
+    if isinstance(H, td_Qobj):
+        H_args = H.args.copy()
+        H_args.update(args)
+        args = H_args
+        H = H.to_list()
+
     # check whether c_ops or e_ops is is a single operator
     # if so convert it to a list containing only that operator
-    if isinstance(c_ops, Qobj):
+    if isinstance(c_ops, (Qobj, td_Qobj)):
         c_ops = [c_ops]
 
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
+
+    c_ops_args = {}
+    for i,c_op in enumerate(c_ops):
+        if isinstance(c_op, td_Qobj):
+            op = c_op.to_list()
+            c_ops_args.update(c_op.args)
+            if len(op) == 1:
+                c_ops[i] = op[0]
+            else:
+                raise Exception("Each c_ops must be composed of only 1 Qobj")
+    c_ops_args.update(args)
+    args = c_ops_args
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
+
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
+
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
@@ -247,11 +267,11 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config collapse and time-dependence flags to default values
         config.reset()
-    
+
     #check if should use OPENMP
     check_use_openmp(options)
-    
-    
+
+
     res = None
 
     #
@@ -662,7 +682,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
-    
+
     # Check which components should use OPENMP
     omp_components = None
     if qset.has_openmp:
@@ -772,7 +792,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         H = H.tidyup(opt.atol)
 
     L = liouvillian(H, c_op_list)
-    
+
 
     #
     # setup integrator
@@ -784,7 +804,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
     else:
         if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
             r = scipy.integrate.ode(cy_ode_rhs_openmp)
-            r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr,
                             opt.openmp_threads)
         else:
             r = scipy.integrate.ode(cy_ode_rhs)
@@ -931,7 +951,7 @@ def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
     return L * rho
 
 #
-# evaluate dE(t)/dt according to the master equation, where E is a 
+# evaluate dE(t)/dt according to the master equation, where E is a
 # superoperator
 #
 def _ode_super_func_td(t, y, L0, L_func, args):
@@ -939,7 +959,7 @@ def _ode_super_func_td(t, y, L0, L_func, args):
     return _ode_super_func(t, y, L)
 
 #
-# evaluate dE(t)/dt according to the master equation, where E is a 
+# evaluate dE(t)/dt according to the master equation, where E is a
 # superoperator
 #
 def _ode_super_func_td_with_state(t, y, L0, L_func, args):
