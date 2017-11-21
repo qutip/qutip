@@ -502,7 +502,8 @@ def test_td_Qobj_apply_decorator():
     td_obj_array_2 = td_obj_array.apply_decorator(square_f, inplace_np=True)
     #Check that it can only be compiled to cython
     assert_equal(td_obj_array_2.fast, True)
-    assert_allclose(td_obj_array_2(t, data=True).todense(), (td_list[0][0] * np.sin(t)**2).data.todense())
+    assert_allclose(np.array(td_obj_array_2(t, data=True).todense()),
+                    np.array((td_list[0][0] * np.sin(t)**2).data.todense()))
 
 
 def test_td_Qobj_compile():
