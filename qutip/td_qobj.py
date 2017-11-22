@@ -345,6 +345,8 @@ class td_Qobj:
         return op_type
 
     def __call__(self, t, data=False):
+        if not isinstance(t, (int, float)):
+            raise TypeError("the time need to be a real scalar")
         if self.compiled:
             return self.compiled_Qobj.call(t, data)
         if data:
@@ -368,6 +370,10 @@ class td_Qobj:
         return op_t
 
     def with_args(self, t, args, data=False):
+        if not isinstance(t, (int, float)):
+            raise TypeError("the time need to be a real scalar")
+        if not isinstance(args, dict):
+            raise TypeError("The new args must be in a dict")
         coeff = np.zeros(len(self.ops), dtype=complex)
         new_args = self.args.copy()
         new_args.update(args)
@@ -413,6 +419,10 @@ class td_Qobj:
         return op_t
 
     def with_state(self, t, psi, args={}, data=False):
+        if not isinstance(t, (int, float)):
+            raise TypeError("the time need to be a real scalar")
+        if not isinstance(args, dict):
+            raise TypeError("The new args must be in a dict")
         if self.compiled == 3:
             coeff = np.zeros(len(self.ops), dtype=complex)
             if args:
@@ -555,6 +565,8 @@ class td_Qobj:
                 self.ops[l][4] = None
 
     def arguments(self, args):
+        if not isinstance(args, dict):
+            raise TypeError("The new args must be in a dict")
         self.args.update(args)
         if self.compiled == 2:
             self.coeff_get(True).set_args(self.args)
@@ -923,6 +935,20 @@ class td_Qobj:
         return self.compiled_Qobj.expect
 
     def expect(self, t, vec, herm=0):
+        if not isinstance(t, (int, float)):
+            raise TypeError("The time need to be a real scalar")
+        if isinstance(vec, Qobj):
+            if cte.dims[1] != vec.dims[0]:
+                raise Exception("Dimensions do not fit")
+            vec = vec.full().ravel()
+        elif not isinstance(vec, np.ndarray):
+            raise TypeError("The vector must be an array or Qobj")
+        if vec.ndim != 1:
+            raise Exception("The vector must be 1d")
+        if vec.shape[0] != cte.shape[1]:
+            raise Exception("The length do not match")
+        if not isinstance(herm, (int, bool)):
+            herm = bool(herm)
         if self.compiled:
             return self.compiled_Qobj.expect(t, vec, herm)
         if self.cte.issuper:
@@ -931,6 +957,18 @@ class td_Qobj:
             return cy_expect_psi(self.__call__(t, data=True), vec, herm)
 
     def rhs(self, t, vec):
+        if not isinstance(t, (int, float)):
+            raise TypeError("the time need to be a real scalar")
+        if isinstance(vec, Qobj):
+            if cte.dims[1] != vec.dims[0]:
+                raise Exception("Dimensions do not fit")
+            vec = vec.full().ravel()
+        elif not isinstance(vec, np.ndarray):
+            raise TypeError("The vector must be an array or Qobj")
+        if vec.ndim != 1:
+            raise Exception("The vector must be 1d")
+        if vec.shape[0] != cte.shape[1]:
+            raise Exception("The length do not match")
         if self.compiled:
             return self.compiled_Qobj.rhs(t, vec)
         return spmv(self.__call__(t, data=True), vec)
@@ -1003,7 +1041,7 @@ class td_Qobj:
             all_function = 4
         return united_f_call, all_function
 
-    def _get_coeff(self,t):
+    def _get_coeff(self, t):
         out = []
         for part in self.ops:
             if part[3] == 1:  # func: f(t,args)
