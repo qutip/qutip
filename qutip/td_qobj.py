@@ -41,7 +41,7 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.superoperator import liouvillian, lindblad_dissipator
-from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr, make_united_f_ptr_spline
+from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
 
@@ -973,7 +973,7 @@ class td_Qobj:
             return self.compiled_Qobj.rhs(t, vec)
         return spmv(self.__call__(t, data=True), vec)
 
-    def compile(self, code=False, poly=False):
+    def compile(self, code=False):
         self.tidyup()
         if self.const:
             self.compiled_Qobj = cy_cte_qobj()
@@ -983,13 +983,12 @@ class td_Qobj:
             self.compiled_Qobj = cy_td_qobj()
             self.compiled_Qobj.set_data(self.cte, self.ops)
             if code:
-                self.coeff_get, Code = make_united_f_ptr_spline(self.ops,
+                self.coeff_get, Code = make_united_f_ptr(self.ops,
                                                     self.args, self.tlist,
-                                                    True, poly)
+                                                    True)
             else:
-                self.coeff_get = make_united_f_ptr_spline(self.ops, self.args,
-                                                          self.tlist, False,
-                                                          poly)
+                self.coeff_get = make_united_f_ptr(self.ops, self.args,
+                                                          self.tlist, False)
                 Code = None
             self.compiled_Qobj.set_factor(ptr=self.coeff_get())
             self.compiled = 2
