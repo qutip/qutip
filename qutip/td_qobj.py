@@ -44,6 +44,7 @@ from qutip.superoperator import liouvillian, lindblad_dissipator
 from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
+import pickle
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,
@@ -938,14 +939,14 @@ class td_Qobj:
         if not isinstance(t, (int, float)):
             raise TypeError("The time need to be a real scalar")
         if isinstance(vec, Qobj):
-            if cte.dims[1] != vec.dims[0]:
+            if self.cte.dims[1] != vec.dims[0]:
                 raise Exception("Dimensions do not fit")
             vec = vec.full().ravel()
         elif not isinstance(vec, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if vec.ndim != 1:
             raise Exception("The vector must be 1d")
-        if vec.shape[0] != cte.shape[1]:
+        if vec.shape[0] != self.cte.shape[1]:
             raise Exception("The length do not match")
         if not isinstance(herm, (int, bool)):
             herm = bool(herm)
@@ -960,14 +961,14 @@ class td_Qobj:
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
         if isinstance(vec, Qobj):
-            if cte.dims[1] != vec.dims[0]:
+            if self.cte.dims[1] != vec.dims[0]:
                 raise Exception("Dimensions do not fit")
             vec = vec.full().ravel()
         elif not isinstance(vec, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if vec.ndim != 1:
             raise Exception("The vector must be 1d")
-        if vec.shape[0] != cte.shape[1]:
+        if vec.shape[0] != self.cte.shape[1]:
             raise Exception("The length do not match")
         if self.compiled:
             return self.compiled_Qobj.rhs(t, vec)
@@ -1054,6 +1055,29 @@ class td_Qobj:
             elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                 out.append(part[1](np.array([t]))[0])
         return out
+
+    def __getstate__(self):
+        _dict_ = {key: self.__dict__[key]
+                  for key in self.__dict__ if key is not "compiled_Qobj"}
+        if self.compiled:
+            return (_dict_, self.compiled_Qobj.__getstate__())
+            #return (_dict_, pickle.dumps(self.compiled_Qobj))
+        else:
+            return (_dict_,)
+
+    def __setstate__(self, state):
+        self.__dict__ = state[0]
+        if not self.compiled:
+            self.compiled_Qobj = None
+        elif self.compiled == 1:
+            self.compiled_Qobj = cy_cte_qobj.__new__(cy_cte_qobj)
+            self.compiled_Qobj.__setstate__(state[1])
+            #self.compiled_Qobj = pickle.loads(state[1])
+        elif self.compiled in (2,3,4):
+            self.compiled_Qobj = cy_td_qobj.__new__(cy_td_qobj)
+            self.compiled_Qobj.__setstate__(state[1])
+            #self.compiled_Qobj = pickle.loads(state[1])
+
 
 #Function defined inside another function cannot be pickle,
 #Using class instead
