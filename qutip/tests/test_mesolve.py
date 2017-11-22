@@ -301,7 +301,7 @@ class TestMESolverConstDecay:
         assert_(avg_diff < me_error)
 
     def testMEDecaySingleCollapse(self):
-        "mesolve: simple constant decay"
+        "mesolve: simple constant decay single collapse"
 
         N = 10  # number of basis states to consider
         a = destroy(N)
@@ -436,6 +436,25 @@ class TestMESolveTDDecay:
         actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < 100 * me_error)
+
+    def testMETDDecayAsFuncInTd_Qobj(self):
+        "mesolve: time-dependence as td_Qobj list"
+
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        kappa = 0.2  # coupling to oscillator
+
+        def sqrt_kappa(t, args):
+            return np.sqrt(kappa * np.exp(-t))
+        c_op_list = [td_Qobj([a, sqrt_kappa])]
+        tlist = np.linspace(0, 10, 100)
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < me_error)
 
     def testMETDDecayAsFunc(self):
         "mesolve: time-dependent Liouvillian as single function"
@@ -667,8 +686,8 @@ class TestMESolverMisc:
         rho0 = ket2dm(psi0)
         result = mesolve(H, rho0, times, [], [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
         assert_(rho0.dims == result.final_state.dims)
-        
-    
+
+
     def testSEFinalState(self):
         "sesolve: final_state has correct dims"
 
@@ -685,6 +704,23 @@ class TestMESolverMisc:
         assert_(psi0.dims == result.final_state.dims)
 
 
+    def testSETimeDependent(self):
+        "sesolve: time-dependent system"
+
+        N = 5
+        psi0 = tensor(basis(N+1,0), basis(N+1,0), basis(N+1,N))
+        a = tensor(destroy(N+1), qeye(N+1), qeye(N+1))
+        b = tensor(qeye(N+1), destroy(N+1), qeye(N+1))
+        c = tensor(qeye(N+1), qeye(N+1), destroy(N+1))
+        H = [a*b*c.dag() * c.dag(), [- a.dag()*b.dag()*c * c,"sin(t)"]]
+        H_td = td_Qobj([a*b*c.dag() * c.dag(), [- a.dag()*b.dag()*c * c, "sin(t)"]])
+        times = np.linspace(0.0, 2.0, 100)
+        opts = Options(store_states=False, store_final_state=True)
+        result_list = mesolve(H, psi0, times, [],
+                              [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
+        result_td_Qobj = mesolve(H_td, psi0, times, [],
+                                 [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
+        assert_(result_list.final_state == result_td_Qobj.final_state)
 
 
 if __name__ == "__main__":

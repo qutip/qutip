@@ -53,7 +53,7 @@ def _f3(t,args):
 def _random_td_Qobj(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
     """Create a list to make a td_Qobj with up to 3 coefficients"""
     if tlist is None:
-        tlist = np.linspace(0,1,100)
+        tlist = np.linspace(0,1,300)
 
     Qobj_list = []
     if cte:
@@ -157,8 +157,8 @@ def test_td_Qobj_str_call():
 def test_td_Qobj_array_call():
     "td_Qobj call: array format"
     N = 5
-    tlist = np.linspace(0,1,200)
-    tlistlog = np.logspace(-3,0,200)
+    tlist = np.linspace(0,1,300)
+    tlistlog = np.logspace(-3,0,450)
     data1 = np.random.random((N, N))
     data2 = np.random.random((N, N))
     data3 = np.random.random((N, N))
@@ -168,7 +168,7 @@ def test_td_Qobj_array_call():
     td_data = td_Qobj([q1,[q2,np.sin(tlist)],[q3,np.cos(2*tlist)]], tlist=tlist)
     # Check the constant flag
     assert_equal(td_data.const, False)
-    t = np.random.random()
+    t = np.random.random() *.99 + 0.01
     q_at_t = q1 + np.sin(t) * q2 + np.cos(t*2) * q3
     # Check that the call return the Qobj
     assert_allclose(td_data(t,data=1).todense() , q_at_t.data.todense())
@@ -181,13 +181,13 @@ def test_td_Qobj_array_call():
     t = np.random.random()
     data_at_t = data1 + np.sin(t) * data2 + np.cos(t*2) * data3
     # Check that the call for the data return the data
-    assert_allclose(np.array(td_data(t,data=True).todense()), data_at_t)
+    assert_allclose(np.array(td_data(t,data=True).todense()), data_at_t, rtol=3e-7)
 
 
 def test_td_Qobj_mixed_call():
     "td_Qobj call: mixed format"
     N = 5
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     data1 = np.random.random((N, N))
     data2 = np.random.random((N, N))
     data3 = np.random.random((N, N))
@@ -208,7 +208,7 @@ def test_td_Qobj_mixed_call():
 
 def test_td_Qobj_copy():
     "td_Qobj copy"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random()
@@ -254,7 +254,7 @@ def test_td_Qobj_to_list():
 
 def test_td_Qobj_math_neg():
     "td_Qobj negation"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_neg = -td_obj
@@ -265,7 +265,7 @@ def test_td_Qobj_math_neg():
 
 def test_td_Qobj_math_add():
     "td_Qobj addition"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_2 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
@@ -300,7 +300,7 @@ def test_td_Qobj_math_add():
 
 def test_td_Qobj_math_sub():
     "td_Qobj subtraction"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_2 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
@@ -335,7 +335,7 @@ def test_td_Qobj_math_sub():
 
 def test_td_Qobj_math_mult():
     "td_Qobj multiplication"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     q1 = Qobj(np.random.random((5,5)))
@@ -360,7 +360,7 @@ def test_td_Qobj_math_mult():
 
 def test_td_Qobj_math_div():
     "td_Qobj division"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     scalar = np.random.random()
@@ -376,7 +376,7 @@ def test_td_Qobj_math_div():
 
 def test_td_Qobj_trans():
     "td_Qobj transpose"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_trans =  td_obj_1.trans()
@@ -387,7 +387,7 @@ def test_td_Qobj_trans():
 
 def test_td_Qobj_dag():
     "td_Qobj dag"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_dag =  td_obj_1.dag()
@@ -398,7 +398,7 @@ def test_td_Qobj_dag():
 
 def test_td_Qobj_conj():
     "td_Qobj conjugate"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_conj =  td_obj_1.conj()
@@ -409,7 +409,7 @@ def test_td_Qobj_conj():
 
 def test_td_Qobj_norm():
     "td_Qobj norm: a.dag * dag"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     args={"w3":1}
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [0,0,1], tlist=tlist, cte=0),
                        args=args, tlist=tlist)
@@ -432,7 +432,7 @@ def test_td_Qobj_norm():
 
 def test_td_Qobj_tidyup():
     "td_Qobj tidyup"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     args={"w1":1}
     td_obj = td_Qobj(_random_td_Qobj((5,5), [1,0,0], tlist=tlist),
                      args=args, tlist=tlist)
@@ -445,7 +445,7 @@ def test_td_Qobj_tidyup():
 
 def test_td_Qobj_compress():
     "td_Qobj compress"
-    tlist = np.linspace(0, 1, 100)
+    tlist = np.linspace(0, 1, 300)
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_2 = (td_obj_1 + td_obj_1)/2.
@@ -461,7 +461,7 @@ def test_td_Qobj_apply():
     "td_Qobj apply"
     def multiply(qobj,b,factor = 3.):
         return qobj*b*factor
-    tlist = np.linspace(0, 1, 100)
+    tlist = np.linspace(0, 1, 300)
     td_obj = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                      args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random()
@@ -478,7 +478,7 @@ def test_td_Qobj_apply_decorator():
             return f_original(time_scale*t, *args, **kwargs)*factor
         return f
 
-    tlist = np.linspace(0, 1, 100)
+    tlist = np.linspace(0, 1, 300)
     td_obj = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist, cte=False),
                      args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random() / 2.
@@ -503,13 +503,14 @@ def test_td_Qobj_apply_decorator():
     #Check that it can only be compiled to cython
     assert_equal(td_obj_array_2.fast, True)
     assert_allclose(np.array(td_obj_array_2(t, data=True).todense()),
-                    np.array((td_list[0][0] * np.sin(t)**2).data.todense()))
+                    np.array((td_list[0][0] * np.sin(t)**2).data.todense()),
+                    rtol=3e-7)
 
 
 def test_td_Qobj_compile():
     "td_Qobj compile"
-    tlist = np.linspace(0,1,100)
-    tlistlog = np.logspace(-5,0,400)
+    tlist = np.linspace(0, 1, 300)
+    tlistlog = np.logspace(-3, 0, 450)
     args={"w1":1, "w2":2}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
     td_obj_f = td_Qobj(_random_td_Qobj((5,5), [1,0,0], tlist=tlist),
@@ -548,31 +549,31 @@ def test_td_Qobj_compile():
     # check if compiled for array format
     assert_equal(td_obj_ac.compiled != 0, True)
     # check compiled for array format call
-    assert_allclose(np.array(td_obj_ac(t,data=True).todense()), np.array(td_obj_a(t,data=True).todense()), rtol=1e-07, atol=0)
+    assert_allclose(np.array(td_obj_ac(t,data=True).todense()), np.array(td_obj_a(t,data=True).todense()), rtol=3e-07, atol=0)
     td_obj_cac = td_obj_ca.copy()
     td_obj_cac.compile()
     # check if compiled for array format
     assert_equal(td_obj_cac.compiled != 0, True)
     # check compiled for array format call
-    assert_allclose(np.array(td_obj_cac(t,data=True).todense()), np.array(td_obj_ca(t,data=True).todense()), rtol=1e-07, atol=0)
+    assert_allclose(np.array(td_obj_cac(t,data=True).todense()), np.array(td_obj_ca(t,data=True).todense()), rtol=3e-07, atol=0)
     td_obj_sac = td_obj_sa.copy()
     td_obj_sac.compile()
     # check if compiled for mixed array str format
     assert_equal(td_obj_sac.compiled != 0, True)
     # check compiled for mixed array str format call
-    assert_allclose(np.array(td_obj_sac(t,data=True).todense()), np.array(td_obj_sa(t,data=True).todense()), rtol=1e-07, atol=0)
+    assert_allclose(np.array(td_obj_sac(t,data=True).todense()), np.array(td_obj_sa(t,data=True).todense()), rtol=3e-07, atol=0)
     td_obj_mc = td_obj_m.copy()
     td_obj_mc.compile()
     # check if compiled for mixed format
     assert_equal(td_obj_mc.compiled != 0, True)
     # check compiled for mixed format call
     assert_equal(td_obj_mc(t) == td_obj_m(t), True)
-    assert_allclose(np.array(td_obj_ac(t,data=True).todense()), np.array(td_obj_a(t,data=True).todense()), rtol=1e-07, atol=0)
+    assert_allclose(np.array(td_obj_ac(t,data=True).todense()), np.array(td_obj_a(t,data=True).todense()), rtol=3e-07, atol=0)
 
 
 def test_td_Qobj_rhs():
     "td_Qobj rhs"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
     td_obj_f = td_Qobj(_random_td_Qobj((5,5), [1,0,0], tlist=tlist),
@@ -627,7 +628,7 @@ def test_td_Qobj_rhs():
 
 def test_td_Qobj_expect_psi():
     "td_Qobj expect psi"
-    tlist = np.linspace(0,1,200)
+    tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
     td_obj_f = td_Qobj(_random_td_Qobj((5,5), [0,0,1], tlist=tlist),
@@ -682,7 +683,7 @@ def test_td_Qobj_expect_psi():
 
 def test_td_Qobj_expect():
     "td_Qobj expect rho"
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}
     data1 = np.random.random((3,3))
     data2 = np.random.random((3,3))
@@ -792,7 +793,7 @@ def test_td_Qobj_str_args():
 def test_td_Qobj_mixed_args():
     "td_Qobj args: mixed arguments changes"
     N = 5
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     data1 = np.random.random((N, N))
     data2 = np.random.random((N, N))
     data3 = np.random.random((N, N))
@@ -844,7 +845,7 @@ def test_td_Qobj_with_state():
     def coeff_state(t,psi,args):
         return np.mean(psi) * args["w1"]
     N = 5
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     data1 = np.random.random((N, N))
     data2 = np.random.random((N, N))
     data3 = np.random.random((N, N))
@@ -902,10 +903,10 @@ def test_td_Qobj_with_state():
 
 
 def test_td_Qobj_pickle_cy_td_Qobj():
-    "td_Qobj  pickle cy_td_Qobj"
+    "td_Qobj pickle cy_td_Qobj"
     #used in parallel_map
     import pickle
-    tlist = np.linspace(0,1,100)
+    tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
     td_obj_c.compile()
