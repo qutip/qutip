@@ -922,21 +922,18 @@ def test_td_Qobj_pickle_cy_td_Qobj():
     td_obj_sa.compile()
     td_obj_m = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args=args, tlist=tlist)
-    td_obj_sa.compile()
 
-
-    td_obj_sa.__getstate__
-    pickled = pickle.dumps(td_obj_sa)
+    pickled = pickle.dumps(td_obj_sa, -1)
     td_pick = pickle.loads(pickled)
     # Check for cython compiled coeff
     assert_equal(td_obj_sa(t) == td_pick(t), True)
 
-    pickled = pickle.dumps(td_obj_m)
+    pickled = pickle.dumps(td_obj_m, -1)
     td_pick = pickle.loads(pickled)
     # Check for not compiled mix
     assert_equal(td_obj_m(t) == td_pick(t), True)
     td_obj_m.compile()
-    pickled = pickle.dumps(td_obj_m)
+    pickled = pickle.dumps(td_obj_m, -1)
     td_pick = pickle.loads(pickled)
     # Check for ct_td_qobj
     assert_equal(td_obj_m(t) == td_pick(t), True)
