@@ -36,6 +36,7 @@ __all__ = ['hardware_info']
 import os
 import sys
 import multiprocessing
+import numpy as np
 
 def _mac_hardware_info():
     info = dict()
@@ -55,11 +56,13 @@ def _mac_hardware_info():
 def _linux_hardware_info():
     results = {}
     # get cpu number
-    cpu_info = dict()
-    for l in [l.split(':') for l in os.popen('lscpu').readlines()]:
-        cpu_info[l[0]] = l[1].strip('.\n ').strip('kB')
-    sockets = int(cpu_info['Socket(s)'])
-    cores_per_socket = int(cpu_info['Core(s) per socket'])
+    sockets = 0
+    cores_per_socket = 0
+    for l in [l.split(':') for l in open("/proc/cpuinfo").readlines()]:
+        if (l[0].strip() == "physical id"):
+            sockets = np.maximum(sockets,int(l[1].strip())+1)
+        if (l[0].strip() == "cpu cores"):
+            cores_per_socket = int(l[1].strip())
     results.update({'cpus': sockets * cores_per_socket})
     # get cpu frequency directly (bypasses freq scaling)
     try:
