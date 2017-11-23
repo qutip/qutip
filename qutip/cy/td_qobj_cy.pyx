@@ -57,13 +57,13 @@ cdef extern from "Python.h":
     void* PyLong_AsVoidPtr(object)
 
 
-@cython.boundscheck(False)
+"""@cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
-    """
+    ""
     Converts a SciPy CSR sparse matrix to a
     CSR_Matrix struct.
-    """
+    ""
     cdef complex[::1] data = A.data
     cdef int[::1] ind = A.indices
     cdef int[::1] ptr = A.indptr
@@ -79,7 +79,7 @@ cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
     mat.nnz = nnz
     mat.max_length = nnz
     mat.is_set = 1
-    mat.numpy_lock = 1
+    mat.numpy_lock = 1"""
 
 
 @cython.boundscheck(False)
@@ -118,8 +118,10 @@ cdef shallow_set_state(CSR_Matrix* mat, state):
 cdef class cy_qobj:
     cdef void _rhs_mat(self, double t, complex* vec, complex* out):
         pass
+
     cdef complex _expect_mat(self, double t, complex* vec, int isherm):
         return 0.
+
     cdef complex _expect_mat_super(self, double t, complex* vec, int isherm):
         return 0.
 

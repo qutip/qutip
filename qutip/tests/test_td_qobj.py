@@ -158,7 +158,7 @@ def test_td_Qobj_array_call():
     "td_Qobj call: array format"
     N = 5
     tlist = np.linspace(0,1,300)
-    tlistlog = np.logspace(-3,0,450)
+    tlistlog = np.logspace(-3,0,600)
     data1 = np.random.random((N, N))
     data2 = np.random.random((N, N))
     data3 = np.random.random((N, N))
@@ -510,7 +510,7 @@ def test_td_Qobj_apply_decorator():
 def test_td_Qobj_compile():
     "td_Qobj compile"
     tlist = np.linspace(0, 1, 300)
-    tlistlog = np.logspace(-3, 0, 450)
+    tlistlog = np.logspace(-3, 0, 600)
     args={"w1":1, "w2":2}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
     td_obj_f = td_Qobj(_random_td_Qobj((5,5), [1,0,0], tlist=tlist),
