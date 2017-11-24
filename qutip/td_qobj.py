@@ -34,13 +34,12 @@
 """
 __all__ = ['td_Qobj', 'td_liouvillian', 'td_lindblad_dissipator']
 
-from qutip import Qobj
+from qutip.qobj import Qobj
 from scipy.interpolate import CubicSpline
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
-from qutip.superoperator import liouvillian, lindblad_dissipator
 from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
@@ -665,8 +664,14 @@ class td_Qobj:
 
     def __rmul__(self, other):
         res = self.copy()
-        res *= other
-        return res
+        if isinstance(other, Qobj):
+            res.cte = other * res.cte
+            for op in res.ops:
+                op[0] = other * op[0]
+            return res
+        else:
+            res *= other
+            return res
 
     def __imul__(self, other):
         if isinstance(other, Qobj) or isinstance(other, Number):
@@ -1118,9 +1123,16 @@ def _conj(f):
         return np.conj(f(a, *args, **kwargs))
     return ff
 
-
 def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
-    """Assembles the Liouvillian superoperator from a Hamiltonian
+    print("Old method")
+
+def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
+    print("Old method")
+
+
+
+"""def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
+    ""Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Accept time dependant
     operator and return a td_qobj
 
@@ -1140,7 +1152,7 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
     L : td_qobj
         Liouvillian superoperator.
 
-    """
+    ""
     L = None
 
     if chi and len(chi) != len(c_ops):
@@ -1176,7 +1188,7 @@ def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
 
 
 def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
-    """
+    ""
     Lindblad dissipator (generalized) for a single collapse operator.
     For the
 
@@ -1197,7 +1209,7 @@ def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
     -------
     D : td_qobj
         Lindblad dissipator superoperator.
-    """
+    ""
     if not isinstance(a, td_Qobj):
         b = td_Qobj(a, args=args, tlist=tlist, raw_str=raw_str)
     else:
@@ -1207,4 +1219,4 @@ def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
                         "be used with in a time-dependent lindblad_dissipator")
 
     D = b.apply(lindblad_dissipator)._f_norm2()
-    return D
+    return D"""

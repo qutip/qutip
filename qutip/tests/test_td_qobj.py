@@ -283,6 +283,10 @@ def test_td_Qobj_math_add():
     t = np.random.random()
     # check the addition td_Qobj + Qobj
     assert_equal(td_obj_sum(t) == td_obj_1(t) + q1, True)
+    td_obj_sum = q1 + td_obj_1
+    t = np.random.random()
+    # check the addition Qobj + td_Qobj
+    assert_equal(td_obj_sum(t) == td_obj_1(t) + q1, True)
     td_obj_sum2 = td_obj_1.copy()
     td_obj_sum2 += q1
     # check the inplace addition td_Qobj += Qobj
@@ -314,6 +318,10 @@ def test_td_Qobj_math_sub():
     td_obj_sum2 -= td_obj_2
     # check the inplace subtraction -=
     assert_equal(td_obj_sum2(t) == td_obj_1(t) - td_obj_2(t), True)
+    td_obj_sum = q1 - td_obj_1
+    t = np.random.random()
+    # check the addition td_Qobj - Qobj
+    assert_equal(td_obj_sum(t) == q1 - td_obj_1(t), True)
     td_obj_sum = td_obj_1 - q1
     t = np.random.random()
     # check the addition td_Qobj - Qobj
@@ -323,7 +331,7 @@ def test_td_Qobj_math_sub():
     # check the inplace addition td_Qobj -= Qobj
     assert_equal(td_obj_sum2(t) == td_obj_1(t) - q1, True)
     scalar = np.random.random()
-    td_obj_sum = scalar - td_obj_1   ################ Real error
+    td_obj_sum = scalar - td_obj_1
     t = np.random.random()
     # check the addition td_Qobj - scalar
     assert_equal(td_obj_sum(t) == -td_obj_1(t) + scalar, True)
@@ -339,6 +347,10 @@ def test_td_Qobj_math_mult():
     td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     q1 = Qobj(np.random.random((5,5)))
+    td_obj_sum = q1 * td_obj_1
+    t = np.random.random()
+    # check the addition td_Qobj * Qobj
+    assert_equal(td_obj_sum(t) == q1 * td_obj_1(t), True)
     td_obj_sum = td_obj_1 *q1
     t = np.random.random()
     # check the addition td_Qobj * Qobj
