@@ -607,7 +607,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         for b in range(N):
             ket_b = c_op * f_modes_t[b]
             for a in range(N):
-                scalar_product = ket_b.overlap(f_modes_t[a])
+                scalar_product = f_modes_t[a].overlap(ket_b)
                 k_idx = 0
                 for k in range(-kmax, kmax + 1, 1):
                     X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
