@@ -58,20 +58,20 @@ def _linux_hardware_info():
     # get cpu number
     sockets = 0
     cores_per_socket = 0
-    frequency = 0
+    frequency = 0.0
     for l in [l.split(':') for l in open("/proc/cpuinfo").readlines()]:
         if (l[0].strip() == "physical id"):
             sockets = np.maximum(sockets,int(l[1].strip())+1)
         if (l[0].strip() == "cpu cores"):
             cores_per_socket = int(l[1].strip())
         if (l[0].strip() == "cpu MHz"):
-            frequency = int(l[1].strip())
+            frequency = float(l[1].strip()) / 1000.
     results.update({'cpus': sockets * cores_per_socket})
     # get cpu frequency directly (bypasses freq scaling)
     try:
         file = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
         line = open(file).readlines()[0]
-        frequency = float(line.strip('\n')) / (1000. ** 2)
+        frequency = float(line.strip('\n')) / 1000000.
     except:
         pass
     results.update({'cpu_freq': frequency})
