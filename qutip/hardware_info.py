@@ -58,21 +58,23 @@ def _linux_hardware_info():
     # get cpu number
     sockets = 0
     cores_per_socket = 0
+    frequency = 0
     for l in [l.split(':') for l in open("/proc/cpuinfo").readlines()]:
         if (l[0].strip() == "physical id"):
             sockets = np.maximum(sockets,int(l[1].strip())+1)
         if (l[0].strip() == "cpu cores"):
             cores_per_socket = int(l[1].strip())
+        if (l[0].strip() == "cpu MHz"):
+            frequency = int(l[1].strip())
     results.update({'cpus': sockets * cores_per_socket})
     # get cpu frequency directly (bypasses freq scaling)
     try:
         file = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
-        cpu_freq = open(file).readlines()[0]
-        cpu_freq = float(cpu_freq.strip('\n'))
-        results.update({'cpu_freq': cpu_freq / (1000. ** 2)})
+        line = open(file).readlines()[0]
+        frequency = float(line.strip('\n')) / (1000. ** 2)
     except:
-        cpu_freq = float(cpu_info['CPU MHz']) / 1000.
-        results.update({'cpu_freq': cpu_freq})
+        pass
+    results.update({'cpu_freq': frequency})
 
     # get total amount of memory
     mem_info = dict()
@@ -110,14 +112,17 @@ def hardware_info():
         Dictionary containing cpu and memory information.
 
     """
-    if sys.platform == 'darwin':
-        out = _mac_hardware_info()
-    elif sys.platform == 'win32':
-        out = _win_hardware_info()
-    elif sys.platform in ['linux', 'linux2']:
-        out = _linux_hardware_info()
-    else:
-        out = {}
+    try:
+        if sys.platform == 'darwin':
+            out = _mac_hardware_info()
+        elif sys.platform == 'win32':
+            out = _win_hardware_info()
+        elif sys.platform in ['linux', 'linux2']:
+            out = _linux_hardware_info()
+        else:
+            out = {}
+    except:
+        return {}
 
     return out
 
