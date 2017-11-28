@@ -32,7 +32,7 @@
 ###############################################################################
 """Time-dependent Quantum Object (Qobj) class.
 """
-__all__ = ['td_Qobj', 'td_liouvillian', 'td_lindblad_dissipator']
+__all__ = ['td_Qobj']#, 'td_liouvillian', 'td_lindblad_dissipator']
 
 from qutip.qobj import Qobj
 from scipy.interpolate import CubicSpline
@@ -1122,13 +1122,6 @@ def _conj(f):
     def ff(a, *args, **kwargs):
         return np.conj(f(a, *args, **kwargs))
     return ff
-
-def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
-    print("Old method")
-
-def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
-    print("Old method")
-
 
 
 """def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):

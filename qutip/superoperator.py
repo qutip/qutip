@@ -192,9 +192,6 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         return L
 
 
-
-
-
 def liouvillian_ref(H, c_ops=[]):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
