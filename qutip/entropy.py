@@ -165,7 +165,7 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
 
         Experimental.
     """
-    mask = [int(idx == subsys) for idx, n in enumerate(rho.dims[0])]
+    mask = [idx == subsys for idx, n in enumerate(rho.dims[0])]
     rho_pt = partial_transpose(rho, mask)
 
     if method == 'tracenorm':

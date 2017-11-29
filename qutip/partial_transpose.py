@@ -76,6 +76,9 @@ def partial_transpose(rho, mask, method='dense'):
         A density matrix with the selected subsystems transposed.
 
     """
+
+    mask = [int(i) for i in mask]
+
     if method == 'sparse':
         return _partial_transpose_sparse(rho, mask)
     else:
