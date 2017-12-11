@@ -1118,11 +1118,15 @@ def _correlation_br_2t(H, state0, tlist, taulist, collapse_ops, coupling_ops, A,
     for t_idx, rho in enumerate(rho_t):
         if not isinstance(H, Qobj):
             _args["_t0"] = tlist[t_idx]
-        temp = brmesolve(
+
+        temp = B.isherm
+        B.isherm = False #temporarily pretend B is non hermitian otherwise a crash will happen later on
+        corr_mat[t_idx, :] = brmesolve(
             H_shifted, C * rho * A, taulist, coupling_ops_shifted,
-            [], c_ops_shifted, args=_args, options=options
-        ).states #this crashes cause B is herm?
-        corr_mat[t_idx, :] = expect(B,temp) #good luck
+            [B], c_ops_shifted, args=_args, options=options
+        ).expect[0]
+        B.isherm = temp
+        
         if t_idx == 1:
             options.rhs_reuse = True
 

@@ -323,7 +323,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
 
     for e_eb in e_eb_ops:
         if e_eb.isherm:
-            result_list.append(np.zeros(n_tsteps, dtype=float)) #this line gives grief 
+            result_list.append(np.zeros(n_tsteps, dtype=float))
         else:
             result_list.append(np.zeros(n_tsteps, dtype=complex))
 

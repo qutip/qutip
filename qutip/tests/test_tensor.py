@@ -61,6 +61,7 @@ def case_tensor_contract_other(left, right, pairs, expected_dims, expected_data=
     dat = np.arange(np.product(left) * np.product(right)).reshape((np.product(left), np.product(right)))
     
     qobj = Qobj(dat, dims=[left, right])
+    
     cqobj = tensor_contract(qobj, *pairs)
 
     assert_equal(cqobj.dims, expected_dims)
@@ -100,7 +101,7 @@ def test_tensor_contract_other():
 
     # Let's try a weird tensor contraction; this will likely never come up in practice,
     # but it should serve as a good canary for more reasonable contractions.
-    case_tensor_contract_other(big_dims[0], big_dims[1],
+    return case_tensor_contract_other(big_dims[0], big_dims[1],
         [(0, 4)], [[[2], [3, 3]], [[3], [2, 3]]],
         # We separate einsum into two calls due to a bug internal to
         # einsum.
