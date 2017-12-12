@@ -391,12 +391,17 @@ def tensor_contract(qobj, *pairs):
         #fill in the CSR data
         if idx_val[0] == prev_idx:
             A[-1] += idx_val[1]
+            if A[-1] == 0: #don't include 0 terms in sparse matrix. duh
+                A.pop()
+                JA.pop()
+                IA[-1] += -1
+                prev_idx = None
         else:
             A += [idx_val[1]]
             JA += [idx_val[0]%new_w]
             IA += [IA[-1]]*((idx_val[0]//new_w) - len(IA) + 2)
             IA[-1] += 1
-        prev_idx = idx_val[0]   
+            prev_idx = idx_val[0]   
     IA += [IA[-1]]*(new_h+1-len(IA)) #fill remaining rows so dims match
     qmtx = sp.csr_matrix((A,JA,IA),(new_h,new_w))
     
