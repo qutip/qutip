@@ -504,9 +504,6 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
     cdef CSR_Matrix csr
     cdef complex[:,::1] non_sec_mat
     
-    if not use_secular:
-        non_sec_mat = <complex[:nrows**2, :nrows**2]><complex *>PyDataMem_NEW(nrows**4 * sizeof(complex))
-    
     for I in range(nrows**2):
         vec2mat_index(nrows, I, ab)
         for J in range(nrows**2):
@@ -528,32 +525,26 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
                         bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk],t)
                     elem -= 0.5*bd_elem
                     
-                if use_secular:
-                    if (elem != 0):
-                        coo_rows.push_back(I)
-                        coo_cols.push_back(J)
-                        coo_data.push_back(elem)
-                else:
-                    non_sec_mat[I,J] = elem
+                if (elem != 0):
+                    coo_rows.push_back(I)
+                    coo_cols.push_back(J)
+                    coo_data.push_back(elem)
     
     PyDataMem_FREE(&A_eig[0,0])
-    if use_secular:
-        #Number of elements in BR tensor
-        nnz = coo_rows.size()
-        coo.nnz = nnz
-        coo.rows = coo_rows.data()
-        coo.cols = coo_cols.data()
-        coo.data = coo_data.data()
-        coo.nrows = nrows**2
-        coo.ncols = nrows**2
-        coo.is_set = 1 
-        coo.max_length = nnz
-        COO_to_CSR(&csr, &coo)
-        spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
-        free_CSR(&csr)
-    else:
-        ZGEMV(&non_sec_mat[0,0], vec, out, nrows**2, nrows**2, 1, 1, 1)
-        PyDataMem_FREE(&non_sec_mat[0,0])
+    
+    #Number of elements in BR tensor
+    nnz = coo_rows.size()
+    coo.nnz = nnz
+    coo.rows = coo_rows.data()
+    coo.cols = coo_cols.data()
+    coo.data = coo_data.data()
+    coo.nrows = nrows**2
+    coo.ncols = nrows**2
+    coo.is_set = 1 
+    coo.max_length = nnz
+    COO_to_CSR(&csr, &coo)
+    spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
+    free_CSR(&csr)
  
  
 @cython.boundscheck(False)
