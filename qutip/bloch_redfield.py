@@ -43,6 +43,7 @@ import scipy.integrate
 import scipy.sparse as sp
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
+from qutip.operators import qdiags
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
 from qutip.solver import Options, Result, config, _solver_safety_check
@@ -439,7 +440,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True,
     
     #only Lindblad collapse terms
     if K==0:
-        Heb = H.transform(ekets)
+        Heb = qdiags(evals,0,dims=H.dims)
         L = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
         return L, ekets
     
@@ -467,7 +468,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True,
         Iab[1:] = vec2mat_index(N, I)
 
     # unitary part + dissipation from c_ops (if given):
-    Heb = H.transform(ekets)
+    Heb = qdiags(evals,0,dims=H.dims)
     L = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
     
     # dissipative part:
