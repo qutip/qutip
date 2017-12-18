@@ -112,6 +112,10 @@ def correlation_2op_1t(H, state0, taulist, collapse_ops, A, B,
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
         the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+    coupling_ops : list
+        Coupling operators for use by the bloch redfield solver. Nested list of
+        Hermitian system operators that couple to the bath degrees of freedom,
+        along with their associated spectra. 
 
     Returns
     -------
@@ -186,7 +190,11 @@ def correlation_2op_2t(H, state0, tlist, taulist, collapse_ops, A, B,
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
         the `mc` correlator; by default, `mc_corr_eps=1e-10`.
-
+    coupling_ops : list
+        Coupling operators for use by the bloch redfield solver. Nested list of
+        Hermitian system operators that couple to the bath degrees of freedom,
+        along with their associated spectra.
+        
     Returns
     -------
     corr_mat : ndarray
@@ -266,7 +274,11 @@ def correlation_3op_1t(H, state0, taulist, collapse_ops, A, B, C,
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
         the `mc` correlator; by default, `mc_corr_eps=1e-10`.
-
+    coupling_ops : list
+        Coupling operators for use by the bloch redfield solver. Nested list of
+        Hermitian system operators that couple to the bath degrees of freedom,
+        along with their associated spectra.
+        
     Returns
     -------
     corr_vec : array
@@ -333,7 +345,11 @@ def correlation_3op_2t(H, state0, tlist, taulist, collapse_ops, A, B, C,
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
         the `mc` correlator; by default, `mc_corr_eps=1e-10`.
-
+    coupling_ops : list
+        Coupling operators for use by the bloch redfield solver. Nested list of
+        Hermitian system operators that couple to the bath degrees of freedom,
+        along with their associated spectra.
+        
     Returns
     -------
     corr_mat : array
@@ -724,7 +740,12 @@ def correlation(H, state0, tlist, taulist, collapse_ops, A, B,
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
         the `mc` correlator; by default, `mc_corr_eps=1e-10`.
-
+        
+    coupling_ops : list
+        Coupling operators for use by the bloch redfield solver. Nested list of
+        Hermitian system operators that couple to the bath degrees of freedom,
+        along with their associated spectra.
+        
     Returns
     -------
 
@@ -802,7 +823,11 @@ def correlation_4op_1t(H, state0, taulist, collapse_ops, A, B, C, D,
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
         the `mc` correlator; by default, `mc_corr_eps=1e-10`.
-
+    coupling_ops : list
+        Coupling operators for use by the bloch redfield solver. Nested list of
+        Hermitian system operators that couple to the bath degrees of freedom,
+        along with their associated spectra.
+        
     Returns
     -------
     corr_vec : array
@@ -892,6 +917,11 @@ def correlation_4op_2t(H, state0, tlist, taulist, collapse_ops,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
         the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
+    coupling_ops : list
+        Coupling operators for use by the bloch redfield solver. Nested list of
+        Hermitian system operators that couple to the bath degrees of freedom,
+        along with their associated spectra.
+        
     Returns
     -------
 
