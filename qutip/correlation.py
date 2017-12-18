@@ -540,7 +540,6 @@ def spectrum(H, wlist, collapse_ops, A, B, solver="es", use_pinv=False):
         specified in `wlist`.
 
     """
-
     if debug:
         print(inspect.stack()[0][3])
 
@@ -1380,7 +1379,8 @@ def _spectrum_pi(H, wlist, collapse_ops, A, B, use_pinv=False):
     tr_mat = tensor([qeye(n) for n in L.dims[0][0]])
     N = np.prod(L.dims[0][0])
 
-    A = L.full()
+    A_ = L.full()
+    
     b = spre(B).full()
     a = spre(A).full()
 
@@ -1397,9 +1397,9 @@ def _spectrum_pi(H, wlist, collapse_ops, A, B, use_pinv=False):
 
     for idx, w in enumerate(wlist):
         if use_pinv:
-            MMR = np.linalg.pinv(-1.0j * w * I + A)
+            MMR = np.linalg.pinv(-1.0j * w * I + A_)
         else:
-            MMR = np.dot(Q, np.linalg.solve(-1.0j * w * I + A, Q))
+            MMR = np.dot(Q, np.linalg.solve(-1.0j * w * I + A_, Q))
 
         s = np.dot(tr_vec,
                    np.dot(a, np.dot(MMR, np.dot(b, np.transpose(rho)))))
