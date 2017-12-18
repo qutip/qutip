@@ -323,6 +323,9 @@ def tensor_contract(qobj, *pairs):
         away.
 
     """
+    if qobj.data.format != "csr": #not sparse, revert to old code
+        return _tensor_contract_dense_pairs(qobj, pairs)
+    
     #first the setup of values we will need later
     contracted_idxs = deep_remove(enumerate_flat(qobj.dims), *flatten(list(map(list, pairs))))# Record and label the original dims.
     contracted_dims = unflatten(flatten(qobj.dims), contracted_idxs)
@@ -466,7 +469,7 @@ def _tensor_contract_dense(arr, *pairs):
         list(map(axis_idxs.remove, pair))
     return arr
 
-def _tensor_contract_debug(qobj, *pairs):
+def _tensor_contract_dense_pairs(qobj, *pairs):
     #this is the old tensor_contract code which used to convert everything to a
     #dense matrix.
     #for future debugging it may be worthwhile to see if the bug exists in the
