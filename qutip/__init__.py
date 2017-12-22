@@ -210,6 +210,7 @@ from qutip.eseries import *
 from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
+from qutip.cy.br_tensor import bloch_redfield_tensor
 from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.countstat import *
