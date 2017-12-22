@@ -332,7 +332,7 @@ class td_Qobj:
                                         len(op_k[1]) == len(tlist):
                                 raise TypeError("Time list do not match")
                             op_type.append(3)
-                        elif isinstance(op_k[1], Cubic_Spline):
+                        elif isinstance(op_k[1], CubicSpline):
                             raise NotImplementedError(
                                     "Cubic_Spline not supported")
                         #    h_obj.append(k)
