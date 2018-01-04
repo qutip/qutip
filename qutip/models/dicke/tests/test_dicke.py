@@ -6,9 +6,24 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal)
 
-from qutip.pim.dicke import (num_dicke_states, num_two_level, irreducible_dim,
-                             num_dicke_ladders, generate_dicke_space, initial_dicke_state,
-                             Pim, _tau_column_index)
+from qutip.models.dicke import (j_min, num_dicke_states, num_two_level,
+                                ders, generate_dicke_space, initial_dicke_state,
+                                Dicke)
+
+
+def test_j_min():
+    """
+    Test the `j_min` function
+    """
+    even = [2, 4, 6, 8]
+    odd = [1, 3, 5, 7]
+
+    for i in even:
+        _assert(j_min(i) == 0)
+
+    for i in odd:
+        _assert(j_min(i) == 0.5)
+
 
 class TestPim:
     """
@@ -48,13 +63,7 @@ class TestPim:
         ndl = [num_dicke_ladders(N) for N in range (1, 10)]        
         assert_array_equal(ndl, ndl_true)    
 
-    def test_irreducible_dim(self):
-        """
-        Test the irreducible dimension function
-        """
-        pass
-
-    def test_taus(self):
+    def test_gamma(self):
         """
         Tests the calculation of various Tau values for a given system
 
@@ -77,9 +86,9 @@ class TestPim:
 
         model = Pim(N, emission, loss, dephasing, pumping, collective_pumping)
 
-        tau_calculated = [model.tau3(3, 1), model.tau2(2, 1), model.tau4(1, 1),
-                          model.tau5(3, 0), model.tau1(2, 0), model.tau6(1, 0),
-                          model.tau7(3,-1), model.tau8(2,-1), model.tau9(1,-1)]
+        tau_calculated = [model.gamma3(3, 1, 1), model.gamma2(2, 1, 1), model.gamma4(1, 1, 1),
+                          model.gamma5(3, 0, 0), model.gamma1(2, 0, 0), model.gamma6(1, 0, 1),
+                          model.gamma7(3,-1, -1), model.gamma8(2,-1, -1), model.gammma9(1,-1, -1)]
 
         tau_real = [2., 8., 0.333333,
                     1.5, -19.5, 0.666667,
