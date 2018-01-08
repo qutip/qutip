@@ -48,7 +48,7 @@ from qutip.qobj import Qobj, isket, isoper
 from qutip.states import ket2dm
 from qutip.parallel import parfor
 from qutip.utilities import clebsch
-from scipy.misc import factorial
+from scipy.special import factorial
 from qutip.cy.sparse_utils import _csr_get_diag
 
 

@@ -592,7 +592,7 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
     yticks = []
 
     x = 0
-    evals0 = H.eigenenergies(eigvals=N) / (2 * np.pi)
+    evals0 = H.eigenenergies(eigvals=N)
     for e_idx, e in enumerate(evals0[:N]):
         ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
         yticks.append(e)
@@ -602,7 +602,7 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
     for H1 in H_list[1:]:
 
         H = H + H1
-        evals1 = H.eigenenergies() / (2 * np.pi)
+        evals1 = H.eigenenergies()
 
         for e_idx, e in enumerate(evals1[:N]):
             ax.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
