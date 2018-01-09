@@ -92,7 +92,6 @@ def block_matrix(N):
 
     # create the final block diagonal matrix (dense)
     block_matr = block_diag(square_blocks)
-
     return block_matr
 
 
@@ -188,20 +187,22 @@ class Dicke(object):
     def lindbladian(self):
         """
         Build the Lindbladian superoperator of the dissipative dynamics as a
-        sparse matrix using COO.
+        sparse matrix using a Cythonized function
 
         Returns
         ----------
-        lindblad_qobj: Qobj superoperator (sparse)
+        lindbladian: Qobj superoperator (sparse)
                 The matrix size is (nds**2, nds**2) where nds is the number of
                 Dicke states.
         """
-        system = _Dicke(int(self.N), float(self.loss), float(self.dephasing),
-                        float(self.pumping), float(self.emission=1),
-                        float(self.collective_pumping),
-                        float(self.collective_dephasing))
+        cythonized_dicke = _Dicke(int(self.N), float(self.loss),
+                                  float(self.dephasing),
+                                  float(self.pumping),
+                                  float(self.emission=1),
+                                  float(self.collective_pumping),
+                                  float(self.collective_dephasing))
 
-        return system.lindbladian()
+        return cythonized_dicke.lindbladian()
 
     def liouvillian(self):
         """
@@ -220,216 +221,6 @@ class Dicke(object):
 
         return liouv
 
-    def css_10(self, a, b):
-        """
-        Loads the separable spin state |->= Prod_i^N(a|1>_i + b|0>_i) into
-        the reduced density matrix rho(j,m,m').
-        """
-        N = self.N
-
-        nds = num_dicke_states(N)
-        num_ladders = num_dicke_ladders(N)
-        rho = dok_matrix((nds, nds))
-
-        # loop in the allowed matrix elements
-        j = 0.5 * N
-        mmax = int(2 * j + 1)
-        for i in range(0, mmax):
-            m = j - i
-            psi_m = np.sqrt(float(energy_degeneracy(N, m))) * \
-                a**(N * 0.5 + m) * b**(N * 0.5 - m)
-            for i1 in range(0, mmax):
-                m1 = j - i1
-                row_column = self.get_index((j, m, m1))
-                psi_m1 = np.sqrt(float(energy_degeneracy(N, m1))) * \
-                    a**(N * 0.5 + m1) * b**(N * 0.5 - m1)
-                rho[row_column] = psi_m * psi_m1
-
-        return Qobj(rho)
-
-    def ghz(self):
-        """
-        Loads the Greenberger‚ÄìHorne‚ÄìZeilinger state, |GHZ>, into the
-        reduced density matrix rho(j,m,m').
-        """
-        N = self.N
-
-        nds = num_dicke_states(N)
-        rho = dok_matrix((nds, nds))
-
-        rho[0, 0] = 1 / 2
-        rho[N, N] = 1 / 2
-        rho[N, 0] = 1 / 2
-        rho[0, N] = 1 / 2
-
-        return Qobj(rho)
-
-    def dicke(self, j, m):
-        """
-        Loads the Dicke state |j, m>, into the reduced density matrix
-        rho(j,m,m').
-        """
-        N = self.N
-
-        nds = num_dicke_states(N)
-        rho = dok_matrix((nds, nds))
-
-        row_column = self.get_index((j, m, m))
-        rho[row_column] = 1
-
-        return Qobj(rho)
-
-    def thermal_diagonal(self, temperature):
-        """
-        Gives the thermal state density matrix at the absolute temperature T
-        for a diagonal hamiltonian. It is defined for N two-level systems
-        written into the reduced density matrix rho(j,m,m'). For
-        temperature = 0, the thermal state is the ground state.
-
-        Parameters
-        ----------
-        temperature: float
-            The absolute temperature in Kelvin.
-        Returns
-        -------
-        rho_thermal: matrix array
-            A square matrix of dimensions (nds, nds), with
-            nds = num_dicke_states(N). The thermal populations are the matrix
-            elements on the main diagonal.
-        """
-
-        N = self.N
-        hamiltonian = self.hamiltonian
-
-        nds = num_dicke_states(N)
-        num_ladders = num_dicke_ladders(N)
-
-        if isdiagonal(hamiltonian) is False:
-            raise ValueError("Hamiltonian is not diagonal")
-
-        if temperature == 0:
-            ground_energy, ground_state = hamiltonian.groundstate()
-            ground_dm = ground_state * ground_state.dag()
-            return ground_dm
-
-        eigenval, eigenvec = hamiltonian.eigenstates()
-        rho_thermal = dok_matrix((nds, nds))
-
-        s = 0
-        for k in range(1, int(num_ladders + 1)):
-            j = 0.5 * N + 1 - k
-            mmax = (2 * j + 1)
-            for i in range(1, int(mmax + 1)):
-                m = j + 1 - i
-                x = (hamiltonian[s, s] / temperature) * \
-                    (constants.hbar / constants.Boltzmann)
-                rho_thermal[s, s] = np.exp(- x) * state_degeneracy(N, j)
-                s = s + 1
-        zeta = self.partition_diagonal(temperature)
-        rho = rho_thermal / zeta
-
-        return Qobj(rho)
-
-    def partition_diagonal(self, temperature):
-        """
-        Gives the partition function for the system at a given temperature
-        if the Hamiltonian is diagonal.
-
-        The Hamiltonian is assumed to be given with hbar = 1.
-
-        Parameters
-        ----------
-        temperature: float
-            The absolute temperature in Kelvin
-
-        Returns
-        -------
-        zeta: float
-            The partition function of the system, used to calculate the
-            thermal state.
-        """
-        N = self.N
-        hamiltonian = self.hamiltonian
-
-        nds = num_dicke_states(N)
-        num_ladders = num_dicke_ladders(N)
-
-        zeta = 0
-        s = 0
-
-        for k in range(1, int(num_ladders + 1)):
-            j = 0.5 * N + 1 - k
-            mmax = (2 * j + 1)
-
-            for i in range(1, int(mmax + 1)):
-                m = j + 1 - i
-                x = (hamiltonian[s, s] / temperature) * \
-                    (constants.hbar / constants.Boltzmann)
-                zeta = zeta + np.exp(- x) * state_degeneracy(N, j)
-                s = s + 1
-
-        if zeta <= 0:
-            raise ValueError("Error, zeta <=0, zeta = {}".format(zeta))
-
-        return float(zeta)
-
-    def thermal_old(self, temperature):
-        """
-        Gives the thermal state density matrix at the absolute temperature T.
-        It is defined for N two-level systems written into the reduced density
-        matrix rho(j,m,m').
-        For temperature = 0, the thermal state is the ground state.
-
-        Parameters
-        ----------
-        temperature: float
-            The absolute temperature in Kelvin.
-        Returns
-        -------
-        rho_thermal: matrix array
-            A square matrix of dimensions (nds, nds), with
-            nds = num_dicke_states(N). The thermal populations are the
-            matrix elements on the main diagonal
-        """
-        N = self.N
-        hamiltonian = self.hamiltonian
-
-        nds = num_dicke_states(N)
-        num_ladders = num_dicke_ladders(N)
-
-        if temperature == 0:
-            if isdiagonal(hamiltonian):
-                ground_state = self.dicke(N / 2, - N / 2)
-                return ground_state
-            else:
-                eigval, eigvec = hamiltonian.eigenstates()
-                ground_state = eigvec[0] * eigvec[0].dag()
-                return ground_state
-
-        rho_thermal = dok_matrix((nds, nds))
-
-        if isdiagonal(hamiltonian):
-            s = 0
-            for k in range(1, int(num_ladders + 1)):
-                j = 0.5 * N + 1 - k
-                mmax = (2 * j + 1)
-                for i in range(1, int(mmax + 1)):
-                    m = j + 1 - i
-                    x = (hamiltonian[s, s] / temperature) * \
-                        (constants.hbar / constants.Boltzmann)
-                    rho_thermal[s, s] = np.exp(- x) * state_degeneracy(N, j)
-                    s = s + 1
-            zeta = self.partition_function_diag(temperature)
-            rho = rho_thermal / zeta
-
-        else:
-            eigval, eigvec = hamiltonian.eigenstates()
-            zeta = self.partition_function(temperature)
-
-            rho = rho_thermal / zeta
-
-        return Qobj(rho)
-
     def eigenstates(self, liouvillian):
         """
         Calculates the eigenvalues and eigenvectors of the Liouvillian,
@@ -446,9 +237,7 @@ class Dicke(object):
             The list of eigenvalues and correspondent eigenstates.
         """
         unpruned_eigenstates = liouvillian.eigenstates()
-
         eigen_states = self.prune_eigenstates(unpruned_eigenstates)
-
         return eigen_states
 
     def prune_eigenstates(self, liouvillian_eigenstates):
@@ -489,9 +278,7 @@ class Dicke(object):
             for i in nnz_tuple:
                 if i not in nnz_tuple_bm:
                     if np.round(dm[i], tol) != 0:
-                        # print(nnz_tuple)
                         forbidden_eig_index.append(k)
-                        # break
 
         forbidden_eig_index = np.array(list(set(forbidden_eig_index)))
         # 3. Remove the forbidden eigenvalues and eigenvectors.
@@ -838,10 +625,8 @@ def c_ops_tls(N=2, emission=1., loss=0., dephasing=0., pumping=0.,
 
     return c_ops
 
-# TLS Hilbert space (2**N) functions
-
-
-def excited_tls(N):
+# States
+def excited(N, basis='hilbert'):
     """
     Generates a initial dicke state |N/2, N/2 > as a Qobj in a 2**N
     dimensional Hilbert space
@@ -855,18 +640,17 @@ def excited_tls(N):
     -------
     psi0: Qobj array (QuTiP class)
     """
+    if basis == 'dicke':
+        raise NotImplemented
+
     N = int(N)
-
     jz = collective_algebra(N)[2]
-
     en, vn = jz.eigenstates()
-
     psi0 = vn[2**N - 1]
-
     return psi0
 
 
-def superradiant_tls(N):
+def superradiant(N, basis='hilbert'):
     """
     Generates a initial dicke state |N/2, 0 > (N even) or |N/2, 0.5 > (N odd)
     as a Qobj in a 2**N dimensional Hilbert space
@@ -880,18 +664,18 @@ def superradiant_tls(N):
     -------
     psi0: Qobj array (QuTiP class)
     """
+    if basis == 'dicke':
+        raise NotImplemented
+
     N = int(N)
-
     jz = collective_algebra(N)[2]
-
     en, vn = jz.eigenstates()
-
     psi0 = vn[2**N - N]
 
     return psi0
 
 
-def ground_tls(N):
+def ground(N, basis='hilbert'):
     """
     Generates a initial dicke state |N/2, - N/2 > as a Qobj in a 2**N
     dimensional Hilbert space
@@ -905,18 +689,17 @@ def ground_tls(N):
     -------
     psi0: Qobj array (QuTiP class)
     """
+    if basis == 'dicke':
+        raise NotImplemented
+
     N = int(N)
-
     jz = collective_algebra(N)[2]
-
     en, vn = jz.eigenstates()
-
     psi0 = vn[0]
-
     return psi0
 
 
-def identity_tls(N):
+def identity(N, basis='hilbert'):
     """
     Generates the identity in a 2**N dimensional Hilbert space
 
@@ -930,6 +713,9 @@ def identity_tls(N):
     identity: Qobj matrix (QuTiP class)
         With the correct dimensions (dims)
     """
+    if basis == 'dicke':
+        raise NotImplemented
+
     N = int(N)
 
     rho = np.zeros((2**N, 2**N))
@@ -945,7 +731,7 @@ def identity_tls(N):
     return identity
 
 
-def ghz_tls(N):
+def ghz(N, basis='hilbert'):
     """
     Generates the GHZ density matrix in a 2**N dimensional Hilbert space
 
@@ -959,6 +745,9 @@ def ghz_tls(N):
     ghz: Qobj matrix (QuTiP class)
         With the correct dimensions (dims)
     """
+    if basis == 'dicke':
+        raise NotImplemented
+
     N = int(N)
 
     rho = np.zeros((2**N, 2**N))
@@ -977,7 +766,7 @@ def ghz_tls(N):
     return ghz
 
 
-def css_tls(N):
+def css(N, basis='hilbert'):
     """
     Generates the CSS density matrix in a 2**N dimensional Hilbert space.
     The CSS state, also called 'plus state' is,
@@ -994,6 +783,9 @@ def css_tls(N):
     ghz: Qobj matrix (QuTiP class)
         With the correct dimensions (dims)
     """
+    if basis == 'dicke':
+        raise NotImplemented
+
     N = int(N)
 
     # 1. Define i_th factorized density matrix in the uncoupled basis
@@ -1021,8 +813,50 @@ def css_tls(N):
 
     return rho_tot
 
+def thermal_state(N, omega_0, temperature, basis='hilbert'):
+    """
+    Gives the thermal state for a collection of N two-level systems with
+    H = omega_0 * j_z. It is calculated in the full 2**N Hilbert state on the
+    eigenstates of H in the uncoupled basis, not the Dicke basis.
 
-def partition_function_tls(N, omega_0, temperature):
+    Parameters
+    ----------
+    N: int
+        The number of two level systems
+
+    omega_0: float
+        The resonance frequency of each two-level system (homogeneous)
+
+    temperature: float
+        The absolute temperature in Kelvin
+
+    Returns
+    -------
+    rho_thermal: Qobj operator
+        The thermal state calculated in the full Hilbert space 2**N
+    """
+
+    N = int(N)
+    x = (omega_0 / temperature) * (constants.hbar / constants.Boltzmann)
+
+    jz = collective_algebra(N)[2]
+    m_list = jz.eigenstates()[0]
+    m_list = np.flip(m_list, 0)
+
+    rho_thermal = np.zeros(jz.shape)
+
+    for i in range(jz.shape[0]):
+        rho_thermal[i, i] = np.exp(- x * m_list[i])
+    rho_thermal = Qobj(rho_thermal, dims=jz.dims, shape=jz.shape)
+
+    zeta = partition_function_tls(N, omega_0, temperature)
+
+    rho_thermal = rho_thermal / zeta
+
+    return rho_thermal
+
+
+def partition_function(N, omega_0, temperature):
     """
     Gives the partition function for a collection of N two-level systems
     with H = omega_0 * j_z.
@@ -1057,43 +891,4 @@ def partition_function_tls(N, omega_0, temperature):
 
     return zeta
 
-
-def thermal_state_tls(N, omega_0, temperature):
-    """
-    Gives the thermal state for a collection of N two-level systems with
-    H = omega_0 * j_z. It is calculated in the full 2**N Hilbert state on the
-    eigenstates of H in the uncoupled basis, not the Dicke basis.
-
-    Parameters
-    ----------
-    N: int
-        The number of two level systems
-    omega_0: float
-        The resonance frequency of each two-level system (homogeneous)
-    temperature: float
-        The absolute temperature in Kelvin
-
-    Returns
-    -------
-    rho_thermal: Qobj operator
-        The thermal state calculated in the full Hilbert space 2**N
-    """
-
-    N = int(N)
-    x = (omega_0 / temperature) * (constants.hbar / constants.Boltzmann)
-
-    jz = collective_algebra(N)[2]
-    m_list = jz.eigenstates()[0]
-    m_list = np.flip(m_list, 0)
-
-    rho_thermal = np.zeros(jz.shape)
-
-    for i in range(jz.shape[0]):
-        rho_thermal[i, i] = np.exp(- x * m_list[i])
-    rho_thermal = Qobj(rho_thermal, dims=jz.dims, shape=jz.shape)
-
-    zeta = partition_function_tls(N, omega_0, temperature)
-
-    rho_thermal = rho_thermal / zeta
-
-    return rho_thermal
+def dicke(N, jmm):

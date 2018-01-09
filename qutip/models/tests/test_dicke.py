@@ -6,9 +6,9 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
 
-from qutip.models.dicke import (j_min, j_vals, m_vals, 
-                                num_dicke_states, num_dicke_ladders, num_tls,
-                                get_blocks, Dicke)
+from qutip.models.dicke import (num_tls, Dicke, Pim)
+from qutip.cy.dicke import (get_blocks, j_min, j_vals, m_vals, num_dicke_states,
+                            num_dicke_ladders, _Dicke)
 from qutip import Qobj
 
 
@@ -107,7 +107,7 @@ class TestPim:
         """
         Test the index fetching function for given j, m, m1 value
         """
-        model = Dicke(1)
+        model = _Dicke(1)
         jmm1_list = [(0.5, 0.5, 0.5), (0.5, 0.5, -0.5), 
                      (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
         indices = [(0, 0), (0, 1), (1, 0), (1, 1)]
@@ -148,7 +148,7 @@ class TestPim:
         """
         Test the function to generate the mapping from jmm1 to ik matrix
         """
-        model = Dicke(1)
+        model = _Dicke(1)
 
         d1, d2, d3, d4 = (model._jmm1_dict, model._jmm1_dict_inv,
                         model._jmm1_flat, model._jmm1_flat_inv)
@@ -219,7 +219,7 @@ class TestPim:
         gD = 0.1
         gP = 0.1
 
-        system = Dicke(N = N, loss = gE, pumping = gP, dephasing = gD,
+        system = _Dicke(N = N, loss = gE, pumping = gP, dephasing = gD,
                         emission = gCE, collective_pumping = gCP,
                         collective_dephasing = gCD)
 
@@ -243,7 +243,7 @@ class TestPim:
         gD = 0.1
         gP = 0.1
 
-        system = Dicke(N = N, loss = gE, pumping = gP, dephasing = gD,
+        system = _Dicke(N = N, loss = gE, pumping = gP, dephasing = gD,
                         emission = gCE, collective_pumping = gCP,
                         collective_dephasing = gCD)
 
@@ -293,7 +293,7 @@ class TestPim:
         pumping = 1.
         collective_pumping = 1.
 
-        model = Dicke(N, emission = emission, loss = loss, dephasing = dephasing,
+        model = _Dicke(N, emission = emission, loss = loss, dephasing = dephasing,
                       pumping = pumping, collective_pumping = collective_pumping)
 
         tau_calculated = [model.gamma3((3, 1, 1)), model.gamma2((2, 1, 1)), model.gamma4((1, 1, 1)),
