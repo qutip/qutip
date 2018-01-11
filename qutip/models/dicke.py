@@ -16,7 +16,8 @@ from qutip import *
 from qutip.cy.dicke import Pim as _Pim
 from qutip.cy.dicke import Dicke as _Dicke
 from qutip.cy.dicke import (j_min, j_vals, num_dicke_states,
-                            num_dicke_ladders, get_blocks)
+                            num_dicke_ladders, get_blocks, 
+                            jmm1_dictionary)
 
 
 # ============================================================================
@@ -625,8 +626,65 @@ def c_ops_tls(N=2, emission=1., loss=0., dephasing=0., pumping=0.,
 
     return c_ops
 
-# States
-def excited(N, basis='hilbert'):
+
+
+# State definitions in the Dicke basis with an option for basis transformation
+def dicke(N, jmm1 = None, basis = "dicke"):
+    """
+    Initialize a Dicke basis state from a dictionary of coefficients for each
+    jmm1 value in the dictionary jmm1. For instance, if we start from the most
+    excited state for N = 2, we have the following state represented as a
+    density matrix of size (nds, nds) or (4, 4).
+
+    1 0 0 0
+    0 0 0 0
+    0 0 0 0
+    0 0 0 0 
+    
+    Similarly, if the state was rho0 = |0, 0, 0> + |1, -1, -1>, the density
+    matrix in the Dicke basis would be:
+
+    0 0 0 0
+    0 1 0 0
+    0 0 0 0
+    0 0 0 1
+
+    The mapping for the (i, k) index of the density matrix to the |j,m,m1>
+    values is given by the cythonized function `jmm1_dictionary`.
+
+    This function can thus be used to build arbitrary states in the Dicke
+    basis.
+
+    Parameters
+    ==========
+    N: int
+        The number of two-level systems
+
+    jmm1: dict
+        A dictionary of {(j, m, m1): p} which gives the coefficient of the (j, m, m1)
+        state in the density matrix.
+    """
+    if basis = "uncoupled":
+        raise NotImplemented
+
+    nds = num_dicke_states(N)
+    rho = np.zeros((nds, nds))
+
+    jmm1_dict = jmm1_dictionary(N)[0]
+
+    for key in jmm1:
+        i, k = jmm1_dict[key]
+        rho[i, k] = jmm1[key]
+
+    return rho
+
+
+# Uncoupled states in the full Hilbert space.
+# These functions will be accessed when the input to a state
+# generation function is supplied with the parameter `basis`
+# as "uncoupled". Otherwise, we work in the default Dicke
+# basis
+def _uncoupled_excited(N):
     """
     Generates a initial dicke state |N/2, N/2 > as a Qobj in a 2**N
     dimensional Hilbert space
@@ -640,9 +698,6 @@ def excited(N, basis='hilbert'):
     -------
     psi0: Qobj array (QuTiP class)
     """
-    if basis == 'dicke':
-        raise NotImplemented
-
     N = int(N)
     jz = collective_algebra(N)[2]
     en, vn = jz.eigenstates()
@@ -650,7 +705,7 @@ def excited(N, basis='hilbert'):
     return psi0
 
 
-def superradiant(N, basis='hilbert'):
+def _uncoupled_superradiant(N):
     """
     Generates a initial dicke state |N/2, 0 > (N even) or |N/2, 0.5 > (N odd)
     as a Qobj in a 2**N dimensional Hilbert space
@@ -675,7 +730,7 @@ def superradiant(N, basis='hilbert'):
     return psi0
 
 
-def ground(N, basis='hilbert'):
+def _uncoupled_ground(N):
     """
     Generates a initial dicke state |N/2, - N/2 > as a Qobj in a 2**N
     dimensional Hilbert space
@@ -699,7 +754,7 @@ def ground(N, basis='hilbert'):
     return psi0
 
 
-def identity(N, basis='hilbert'):
+def _uncoupled_identity(N):
     """
     Generates the identity in a 2**N dimensional Hilbert space
 
@@ -731,7 +786,7 @@ def identity(N, basis='hilbert'):
     return identity
 
 
-def ghz(N, basis='hilbert'):
+def _uncoupled_ghz(N):
     """
     Generates the GHZ density matrix in a 2**N dimensional Hilbert space
 
@@ -766,7 +821,7 @@ def ghz(N, basis='hilbert'):
     return ghz
 
 
-def css(N, basis='hilbert'):
+def _uncoupled_css(N):
     """
     Generates the CSS density matrix in a 2**N dimensional Hilbert space.
     The CSS state, also called 'plus state' is,
@@ -783,16 +838,13 @@ def css(N, basis='hilbert'):
     ghz: Qobj matrix (QuTiP class)
         With the correct dimensions (dims)
     """
-    if basis == 'dicke':
-        raise NotImplemented
-
     N = int(N)
 
     # 1. Define i_th factorized density matrix in the uncoupled basis
     rho = [0 for i in range(N)]
     rho[0] = 0.5 * (qeye(2) + sigmax())
 
-    # 2. Place single-two-level-system denisty matrices in total Hilbert space
+    # 2. Place single-two-level-system density matrices in total Hilbert space
     for k in range(N - 1):
         rho[0] = tensor(rho[0], identity(2))
 
@@ -813,7 +865,7 @@ def css(N, basis='hilbert'):
 
     return rho_tot
 
-def thermal_state(N, omega_0, temperature, basis='hilbert'):
+def _uncoupled_thermal_state(N, omega_0, temperature):
     """
     Gives the thermal state for a collection of N two-level systems with
     H = omega_0 * j_z. It is calculated in the full 2**N Hilbert state on the
@@ -835,7 +887,6 @@ def thermal_state(N, omega_0, temperature, basis='hilbert'):
     rho_thermal: Qobj operator
         The thermal state calculated in the full Hilbert space 2**N
     """
-
     N = int(N)
     x = (omega_0 / temperature) * (constants.hbar / constants.Boltzmann)
 
@@ -856,7 +907,7 @@ def thermal_state(N, omega_0, temperature, basis='hilbert'):
     return rho_thermal
 
 
-def partition_function(N, omega_0, temperature):
+def _uncoupled_partition_function(N, omega_0, temperature):
     """
     Gives the partition function for a collection of N two-level systems
     with H = omega_0 * j_z.
@@ -890,5 +941,3 @@ def partition_function(N, omega_0, temperature):
         zeta = zeta + np.exp(- x * m)
 
     return zeta
-
-def dicke(N, jmm):
