@@ -662,7 +662,7 @@ cdef class Dicke(object):
 
 
 #=============================================================================
-# Method to be used when the Hamiltonian is diagonal
+# Method to be used when the Hamiltonian and initial state is diagonal
 #=============================================================================
 
 

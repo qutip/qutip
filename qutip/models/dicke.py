@@ -11,13 +11,16 @@ from scipy.sparse import dok_matrix, csr_matrix
 
 from qutip import Qobj, spre, spost
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
-from qutip.solver import Result
+from qutip.solver import Result, Options
 from qutip import *
 from qutip.cy.dicke import Pim as _Pim
 from qutip.cy.dicke import Dicke as _Dicke
 from qutip.cy.dicke import (j_min, j_vals, num_dicke_states,
                             num_dicke_ladders, get_blocks, 
                             jmm1_dictionary)
+from qutip.cy.spmatfuncs import cy_ode_rhs
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.mesolve import _generic_ode_solve
 
 
 # ============================================================================
@@ -222,6 +225,14 @@ class Dicke(object):
 
         return liouv
 
+    def solve(self, initial_state, tlist, options=None, progress_bar=None):
+        """
+        Solver for the Dicke model optimized with QuTiP's spmat functions
+        """
+        if isdiagonal(initial_state) and isdiagonal(self.hamiltonian):
+            pass
+
+
     def eigenstates(self, liouvillian):
         """
         Calculates the eigenvalues and eigenvectors of the Liouvillian,
@@ -296,7 +307,10 @@ class Dicke(object):
 class Pim(object):
     """
     The permutation invariant matrix class. Initialize the class with the
-    parameters for generating a permutation invariant density matrix.
+    parameters for generating a permutation invariant density matrix. This
+    is a faster implementation for diagonal Hamiltonians when the initial
+    state is also diagonal in the Dicke basis. i.e., we only have non-zero
+    coefficient values for |j, m, m>.
 
     Parameters
     ----------
@@ -360,11 +374,44 @@ class Pim(object):
         self.M = system.generate_matrix()
         return self.M
 
-    def solve(self):
+    def solve(self, initial_state, tlist, options=None, progress_bar=None):
         """
-        An optimized solver for diagonal states using the matrix M
+        An optimized solver for diagonal states using the matrix M and QuTiP's
+        sparse `spmat` routine
         """
-        pass
+        if options is None:
+            options = Options()
+        if progress_bar is None:
+            progress_bar = BaseProgressBar()
+        elif progress_bar is True:
+            progress_bar = TextProgressBar()
+
+        n_tsteps = len(tlist)
+        output = Result()
+        output.solver = "pim"
+
+        if options.store_states:
+            output.states = []
+
+        M = self.M
+        r = scipy.integrate.ode(cy_ode_rhs)
+
+        r.set_f_params(M.data, M.indices, M.indptr)
+        r.set_integrator('zvode', method=options.method,order=options.order,
+                 atol=options.atol, rtol=options.rtol,
+                 nsteps=options.nsteps, first_step=options.first_step,
+                 min_step=options.min_step,max_step=options.max_step)
+
+        rho0 = None
+        if not isinstance(initial_state, Qobj):
+            rho0 = Qobj(initial_state)
+
+        else:
+            rho0 = initial_state
+
+        r.set_initial_value(initial_state.data, tlist[0])
+
+        return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 
 
 # ============================================================================
