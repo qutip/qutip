@@ -55,6 +55,7 @@ from qutip.cy.heom import cy_pad_csr
 from qutip.cy.spmath import zcsr_kron
 from qutip.fastsparse import fast_csr_matrix, fast_identity
 
+from operator import mul
 
 class HEOMSolver(object):
     """
@@ -307,8 +308,10 @@ class HSolverDL(HEOMSolver):
             if stats:
                 stats.add_message('options', 'renormalisation', ss_conf)
         # Dimensions et by system
-        sup_dim = H_sys.dims[0][0]**2
-        unit_sys = qeye(H_sys.dims[0])
+        N_temp = reduce(mul, H_sys.dims[0], 1)
+        sup_dim = N_temp**2
+        unit_sys = qeye(N_temp)
+
 
         # Use shorthands (mainly as in referenced PRL)
         lam0 = self.coup_strength
