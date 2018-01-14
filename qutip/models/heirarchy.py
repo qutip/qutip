@@ -14,6 +14,7 @@ from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
 from qutip import liouvillian as liouv
 from qutip import mat2vec, state_number_enumerate
 
+from operators import mul
 
 def _heom_state_dictionaries(dims, excitations):
     """
@@ -107,25 +108,71 @@ def cot(x):
 class Heirarchy(object):
     """
     The hierarchy model class.
-    """
 
-    def __init__(self, hamiltonian, coupling, Nc,
-                 real_prefactors=[], real_exponents=[],
-                 complex_prefactors=[], complex_exponents=[]):
+    Parameters
+    ==========
+    hamiltonian: Qobj
+        The system hamiltonian
+
+    coupling: float
+        The coupling strength
+
+    temperature: float
+        The temperature of the bath in units corresponding to the planck const
+        default: 1.
+
+    Nc: int
+        Cutoff temperature for the bath
+
+    real_coeff: list
+        The list of coefficients for the real terms in the exponential
+        series expansion of the spectral density
+
+    real_freq: list
+        The list of frequencies for the real terms of the exponential series
+        expansion of the spectral density
+
+    imaginary_coeff: list
+        The list of coefficients for the imaginary terms of the exponential
+        series expansion of the spectral density
+
+    imaginary_freq: list
+        The list of frequencies for the imaginary terms of the exponential
+        series expansion of the spectral density
+
+    planck: float
+        default: 1.
+        The reduced Planck's constant.
+
+    boltzmann: float
+        default: 1.
+        The reduced Boltzmann's constant.
+    """
+    def __init__(self, hamiltonian, coupling, temperature, Nc,
+                 real_coeff=[], real_freq=[],
+                 imaginary_coeff=[], imaginary_freq=[],
+                 planck=1., boltzmann=1.):
         self.hamiltonian = hamiltonian
         self.coupling = coupling
+        self.temperature = temperature
         self.Nc = Nc
-        self.real_prefactors = real_prefactors
+
+        # Make this automated from just a normal list of real+complex list
+        # Have a check on the lengths of the two lists if this is separate
+
+        self.real_prefactors = real_coeff
         self.real_exponents = real_exponents
-        self.complex_prefactors = complex_prefactors
-        self.complex_exponents = complex_exponents
+        self.complex_prefactors = imaginary_coeff
+        self.complex_exponents = imaginary_freq
+        
+        self.planck = planck
+        self.boltzmann = boltzmann
+        self.NR = len(real_coeff)
+        self.NI = len(imaginary_coeff)
 
-        self.NR = len(real_prefactors)
-        self.NI = len(complex_prefactors)
-
-    def liouvillian(self):
+    def _rhs(self):
         """
-        Construct the liouvillian for this system
+        Construct the RHS for the dynamics of this system
         """
         NI = self.NI
         NR = self.NR
@@ -138,10 +185,9 @@ class Heirarchy(object):
         vkAI = self.complex_exponents
 
         # Set by system
-        dimensions = dims(self.hamiltonian)
-
-        Nsup = dimensions[0][0] * dimensions[0][0]
-        unit = qeye(dimensions[0])
+        N_temp = reduce(mul, self.hamiltonian.dims[0], 1)
+        sup_dim = N_temp**2
+        unit_sys = qeye(N_temp)
 
         # Ntot is the total number of ancillary elements in the hierarchy
         Ntot = int(round(factorial(Nc + N) / (factorial(Nc) * factorial(N))))
@@ -241,14 +287,14 @@ class Heirarchy(object):
         """
         if options is None:
             options = Options()
+
         N = self.NI + self.NR
         Nc = self.Nc
 
         # Set by system
-        dimensions = dims(self.hamiltonian)
-
-        Nsup = dimensions[0][0] * dimensions[0][0]
-        unit = qeye(dimensions[0])
+        N_temp = reduce(mul, self.hamiltonian.dims[0], 1)
+        Nsup = N_temp**2
+        unit = qeye(N_temp)
 
         # Ntot is the total number of ancillary elements in the hierarchy
         Ntot = int(round(factorial(Nc + N) / (factorial(Nc) * factorial(N))))
@@ -267,7 +313,7 @@ class Heirarchy(object):
 
         r = scipy.integrate.ode(cy_ode_rhs)
 
-        L = self.liouvillian()
+        L = self._rhs()
         r.set_f_params(L.data, L.indices, L.indptr)
         r.set_integrator('zvode', method=options.method, order=options.order,
                          atol=options.atol, rtol=options.rtol,
