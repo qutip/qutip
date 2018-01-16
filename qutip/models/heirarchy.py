@@ -9,10 +9,13 @@ from numpy import matrix
 from numpy import linalg
 from scipy.misc import factorial
 from qutip.cy.spmatfuncs import cy_ode_rhs
+from qutip import Qobj
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Options, dims
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
 from qutip import liouvillian as liouv
 from qutip import mat2vec, state_number_enumerate, basis
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.solver import Result
 
 
 def _heom_state_dictionaries(dims, excitations):
@@ -169,8 +172,11 @@ class Heirarchy(object):
         self.boltzmann = boltzmann
         self.NR = len(real_coeff)
         self.NI = len(imaginary_coeff)
+        self._N_he = 0
 
-    def _rhs(self):
+        self.progress_bar = None
+
+    def _rhs(self, progress_bar=False):
         """
         Construct the RHS for the dynamics of this system
         """
@@ -184,6 +190,12 @@ class Heirarchy(object):
         vkAR = self.real_exponents
         vkAI = self.complex_exponents
 
+        if isinstance(progress_bar, BaseProgressBar):
+            self.progress_bar = progress_bar
+        elif progress_bar == True:
+            self.progress_bar = TextProgressBar()
+        elif progress_bar == False:
+            self.progress_bar = None 
         # Set by system
         N_temp = 1
         for i in self.hamiltonian.dims[0]:
@@ -203,6 +215,7 @@ class Heirarchy(object):
         Lbig = sp.kron(unitthing, Ltot.tocsr())
         
         nstates, state2idx, idx2state =_heom_state_dictionaries([Nc+1]*(N),Nc)
+        self._N_he = nstates
         for nlabelt in _heom_number_enumerate([Nc+1]*(N),Nc):
             nlabel = list(nlabelt)                    
             ntotalcheck = 0
@@ -284,62 +297,55 @@ class Heirarchy(object):
 
 
 
-    def solve(self, initial_state, tlist, options=None):
+    def solve(self, initial_state, tlist, options=None, progress_bar=False):
         """
         """
         if options is None:
             options = Options()
 
+        if isinstance(progress_bar, BaseProgressBar):
+            self.progress_bar = progress_bar
+        elif progress_bar == True:
+            self.progress_bar = TextProgressBar()
+        elif progress_bar == False:
+            self.progress_bar = None
+
         N = self.NI + self.NR
         Nc = self.Nc
-
+        rho0 = initial_state
         # Set by system
         N_temp = 1
         for i in self.hamiltonian.dims[0]:
             N_temp = N_temp*i
 
-        Nsup = N_temp**2
+        sup_dim = N_temp**2
         unit = qeye(N_temp)
 
+        L_helems = self._rhs(progress_bar)
+        output = Result()
+        output.solver = "hsolve"
+        output.times = tlist
+        output.states = []
+        output.states.append(Qobj(rho0))
+
+        rho0_flat = rho0.full().ravel('F') # Using 'F' effectively transposes
+        rho0_he = np.zeros([sup_dim*self._N_he], dtype=complex)
+        rho0_he[:sup_dim] = rho0_flat
+
         # Ntot is the total number of ancillary elements in the hierarchy
-        Ntot = int(round(factorial(Nc + N) / (factorial(Nc) * factorial(N))))
-        #
-        rho0big1 = np.zeros((Nsup * Ntot), dtype=complex)
-        rho0big1 = sp.lil_matrix((1, Nsup * Ntot), dtype='complex')
-        # Prepare initial state:
-        rhotemp =  mat2vec(np.array(initial_state.full(), dtype=complex))
-
-        for idx,element in enumerate(rhotemp):
-            rho0big1[0,idx] = element[0]
-        rho0big =rho0big1.tocsr()
-        
-        Lbig2 = self._rhs()
-        output = []
-        for element in rhotemp:
-            output.append([])
-        for idx,element in enumerate(rhotemp):
-            output[idx].append  (element[0])
-        n_tsteps = len(tlist)
-
         r = scipy.integrate.ode(cy_ode_rhs)
-        r.set_f_params(Lbig2.data, Lbig2.indices, Lbig2.indptr)
+        r.set_f_params(L_helems.data, L_helems.indices, L_helems.indptr)
         r.set_integrator('zvode', method=options.method, order=options.order,
-                     atol=options.atol, rtol=options.rtol,
-                     nsteps=options.nsteps, first_step=options.first_step,
-                     min_step=options.min_step,max_step=options.max_step)
-        rho0= mat2vec(rho0big1.toarray()).ravel()
-
-
-        r.set_initial_value(rho0, tlist[0])
-        dt = tlist[1] - tlist[0]    
-
+                         atol=options.atol, rtol=options.rtol,
+                         nsteps=options.nsteps, first_step=options.first_step,
+                         min_step=options.min_step, max_step=options.max_step)
+        r.set_initial_value(rho0_he, tlist[0])
+        dt = np.diff(tlist)
+        n_tsteps = len(tlist)
         for t_idx, t in enumerate(tlist):
             if t_idx < n_tsteps - 1:
-                r.integrate(r.t + dt)
-
-
-                for idx,element in enumerate(rhotemp):        
-                    output[idx].append(r.y[idx])
-
+                r.integrate(r.t + dt[t_idx])
+                rho = Qobj(r.y[:sup_dim].reshape(rho0.shape), dims=rho0.dims)
+                output.states.append(rho)
         return output
 

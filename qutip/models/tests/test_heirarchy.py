@@ -47,7 +47,7 @@ class TestHeirarchy(object):
         system = Heirarchy(Hsys, Q, Nc = Nc, real_coeff=ckAR, real_freq=vkAR,
                            imaginary_coeff=ckAI, imaginary_freq=vkAI)
 
-        rhs_calculated = system._rhs()
+        rhs_calculated = system._rhs(progress_bar=True)
         row0_expected = np.array([0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
                                   0.+0.j,0.-0.07071068j,0.+0.07071068j,
                                   0.+0.j, 0.+0.j,0.-0.07071068j,
@@ -115,11 +115,10 @@ class TestHeirarchy(object):
                           rtol=1e-12)
 
         result = system.solve(initial_state, tlist, options)
-        final_state = np.array(result[-1])
-
+        final_state = result.states[-1].full()
         norm = np.linalg.norm(final_state)
 
-        assert_equal(norm, 1.01775491392301)
+        assert_equal(norm, 0.81087653436037588)
 
     def test_heom_state_dictionaries(self):
         """
