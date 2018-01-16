@@ -34,6 +34,7 @@ import numpy as np
 import qutip.settings as qset
 cimport numpy as cnp
 cimport cython
+from libcpp cimport bool
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -563,7 +564,7 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
     A : csr_matrix
         Input sparse matrix.
     tol : float (default is atol from settings)
-        Desired toelrance value.
+        Desired tolerance value.
 
     Returns
     -------
@@ -584,7 +585,7 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
     cdef int nrows = A.shape[0]
     cdef int ncols = A.shape[1]
 
-    cdef int k, nxt
+    cdef int k, nxt, isherm = 1
     cdef size_t ii, jj
     cdef complex tmp, tmp2
 
@@ -598,30 +599,30 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
             k = ind[jj] + 1
             out_ptr[k] += 1
 
-    for ii in range(ncols):
+    for ii in range(nrows):
         out_ptr[ii+1] += out_ptr[ii]
 
     for ii in range(nrows):
         for jj in range(ptr[ii], ptr[ii+1]):
             k = ind[jj]
             nxt = out_ptr[k]
+            out_ptr[k] += 1
+            #structure test
+            if ind[nxt] != ii:
+                isherm = 0
+                break
             tmp = conj(data[jj])
             tmp2 = data[nxt]
+            #data test
             if abs(tmp-tmp2) > tol:
-                PyDataMem_FREE(out_ptr)
-                return 0
-            if ind[nxt] != ii:
-                PyDataMem_FREE(out_ptr)
-                return 0
-            out_ptr[k] = nxt + 1
-
-    for ii in range(ncols,0,-1):
-        if out_ptr[ii-1] != ptr[ii]:
-            PyDataMem_FREE(out_ptr)
-            return 0
+                isherm = 0
+                break
+        else:
+            continue
+        break
 
     PyDataMem_FREE(out_ptr)
-    return 1
+    return isherm
 
 @cython.overflowcheck(True)
 cdef _safe_multiply(int A, int B):
@@ -630,3 +631,132 @@ cdef _safe_multiply(int A, int B):
     """
     cdef int C = A*B
     return C
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_trace(object A, bool isherm):
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = ptr.shape[0]-1
+    cdef size_t ii, jj
+    cdef complex tr = 0
+
+    for ii in range(nrows):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            if ind[jj] == ii:
+                tr += data[jj]
+                break
+    if imag(tr) == 0 or isherm:
+        return real(tr)
+    else:
+        return tr
+        
+        
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_proj(object A, bool is_ket=1):
+    """
+    Computes the projection operator
+    from a given ket or bra vector
+    in CSR format.  The flag 'is_ket'
+    is True if passed a ket.
+    
+    This is ~3x faster than doing the 
+    conjugate transpose and sparse multiplication
+    directly.  Also, does not need a temp matrix.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows
+    cdef int nnz
+
+    cdef int offset = 0, new_idx, count, change_idx
+    cdef size_t jj, kk
+
+    if is_ket:
+        nrows = A.shape[0]
+        nnz = ptr[nrows]
+    else:
+        nrows = A.shape[1]
+        nnz = ptr[1]
+
+    cdef CSR_Matrix out
+    init_CSR(&out, nnz**2, nrows)
+
+    if is_ket:
+        #Compute new ptrs and inds
+        for jj in range(nrows):
+            out.indptr[jj] = ptr[jj]*nnz
+            if ptr[jj+1] != ptr[jj]:
+                new_idx = jj
+                for kk in range(nnz):
+                    out.indices[offset+kk*nnz] = new_idx
+                offset += 1
+        #set nnz in new ptr
+        out.indptr[nrows] = nnz**2
+
+        #Compute the data
+        for jj in range(nnz):
+            for kk in range(nnz):
+                out.data[jj*nnz+kk] = data[jj]*conj(data[kk])
+        
+    else:
+        count = nnz**2
+        new_idx = nrows
+        for kk in range(nnz-1,-1,-1):
+            for jj in range(nnz-1,-1,-1):
+                out.indices[offset+jj] = ind[jj]
+                out.data[kk*nnz+jj] = conj(data[kk])*data[jj]
+            offset += nnz
+            change_idx = ind[kk]
+            while new_idx > change_idx:
+                out.indptr[new_idx] = count
+                new_idx -= 1
+            count -= nnz
+    
+
+    return CSR_to_scipy(&out)
+    
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def zcsr_inner(object A, object B, bool bra_ket):
+    """
+    Computes the inner-product <A|B> between ket-ket,
+    or bra-ket vectors in sparse CSR format.
+    """
+    cdef complex[::1] a_data = A.data
+    cdef int[::1] a_ind = A.indices
+    cdef int[::1] a_ptr = A.indptr
+
+    cdef complex[::1] b_data = B.data
+    cdef int[::1] b_ind = B.indices
+    cdef int[::1] b_ptr = B.indptr
+    cdef int nrows = B.shape[0]
+
+    cdef double complex inner = 0
+    cdef size_t jj, kk
+    cdef int a_idx, b_idx
+
+    if bra_ket:
+        for kk in range(a_ind.shape[0]):
+            a_idx = a_ind[kk]
+            for jj in range(nrows):
+                if (b_ptr[jj+1]-b_ptr[jj]) != 0:
+                    if jj == a_idx:
+                        inner += a_data[kk]*b_data[b_ptr[jj]]
+                        break
+    else:
+        for kk in range(nrows):
+            a_idx = a_ptr[kk]
+            b_idx = b_ptr[kk]
+            if (a_ptr[kk+1]-a_idx) != 0:
+                if (b_ptr[kk+1]-b_idx) != 0:
+                    inner += conj(a_data[a_idx])*b_data[b_idx]
+                
+    return inner

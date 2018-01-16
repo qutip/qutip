@@ -37,7 +37,8 @@ import scipy.sparse as sp
 
 from qutip.random_objects import (rand_dm, rand_herm,
                                   rand_ket, rand_unitary)
-from qutip.cy.spmath import (zcsr_kron, zcsr_transpose, zcsr_adjoint)
+from qutip.cy.spmath import (zcsr_kron, zcsr_transpose, zcsr_adjoint,
+                            zcsr_isherm)
 
 
 def test_csr_kron():
@@ -248,7 +249,18 @@ def test_zcsr_mult():
         y = np.all(ans1.indices == ans2.indices)
         z = np.all(ans1.indptr == ans2.indptr)
         assert_(x*y*z)
-        
+ 
+
+def test_zcsr_isherm():
+    "spmath: zcsr_isherm"
+    N = 100
+    for kk in range(100):
+        A = rand_herm(N, 0.1)
+        B = rand_herm(N, 0.05) + 1j*rand_herm(N, 0.05)
+        assert_(zcsr_isherm(A.data))
+        assert_(zcsr_isherm(B.data)==0)
+
+
 
 if __name__ == "__main__":
     run_module_suite()
