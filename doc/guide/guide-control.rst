@@ -22,8 +22,13 @@ In quantum control we look to prepare some specific state, effect some state-to-
 
 2. what is the shape of the control pulse required to achieve this?
 
-These questions are addressed as *controllability* and *quantum optimal control* [1]. The answer to question of *controllability* is determined by the commutability of the dynamics generators and is formalised as the *Lie Algebra Rank Criterion* and is discussed in detail in [1]. The solutions to the second question can be determined through optimal control algorithms, or control pulse optimisation. 
-![qc_shematic](./images/quant_optim_ctrl.png "Schematic showing the principle of quantum control")
+These questions are addressed as *controllability* and *quantum optimal control* [dAless08]_. The answer to question of *controllability* is determined by the commutability of the dynamics generators and is formalised as the *Lie Algebra Rank Criterion* and is discussed in detail in [dAless08]_. The solutions to the second question can be determined through optimal control algorithms, or control pulse optimisation.
+
+.. figure:: figures/quant_optim_ctrl.png
+   :align: center
+   :width: 3.5in
+   
+   Schematic showing the principle of quantum control.
 
 Quantum Control has many applications including NMR, *quantum metrology*, *control of chemical reactions*, and *quantum information processing*.
 
