@@ -12,7 +12,7 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Options, dims
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
 from qutip import liouvillian as liouv
-from qutip import mat2vec, state_number_enumerate
+from qutip import mat2vec, state_number_enumerate, basis
 
 from operator import mul
 
@@ -188,7 +188,7 @@ class Heirarchy(object):
         # Set by system
         N_temp = 1
         for i in self.hamiltonian.dims[0]:
-            N_temp = N_temp*i
+            N_temp *= N_temp*i
         sup_dim = N_temp**2
         unit = qeye(N_temp)
 
@@ -203,87 +203,87 @@ class Heirarchy(object):
         unitthing = sp.identity(Ntot, dtype='complex', format='csr')
         Lbig = sp.kron(unitthing, Ltot.tocsr())
         
-        nstates, state2idx, idx2state = _heom_state_dictionaries([Nc + 1] * (N), Nc)
-        for nlabelt in _heom_number_enumerate([Nc + 1] * (N), Nc):
-            nlabel = list(nlabelt)
+        nstates, state2idx, idx2state =_heom_state_dictionaries([Nc+1]*(N),Nc)
+        for nlabelt in _heom_number_enumerate([Nc+1]*(N),Nc):
+            nlabel = list(nlabelt)                    
             ntotalcheck = 0
             for ncheck in range(N):
-                ntotalcheck = ntotalcheck + nlabel[ncheck]
+                ntotalcheck = ntotalcheck + nlabel[ncheck]                            
             current_pos = int(round(state2idx[tuple(nlabel)]))
             Ltemp = sp.lil_matrix((Ntot, Ntot))
-            Ltemp[current_pos, current_pos] = 1
+            Ltemp[current_pos,current_pos] = 1
             Ltemp.tocsr()
-            for idx, vki in enumerate(vkAR):
-                Lbig = Lbig + sp.kron(Ltemp,
-                                      (-nlabel[idx] * vki * spre(unit).data))
+            for idx,vki in enumerate(vkAR):
+                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[idx] * vki * spre(unit).data))
 
-            # treat real and imaginary parts seperately
+            #treat real and imaginary parts seperately
 
-            for idx, vki in enumerate(vkAI):
-                Lbig = Lbig + sp.kron(Ltemp,
-                                      (-nlabel[(NR) + idx] * vki * spre(unit).data))
+            for idx,vki in enumerate(vkAI):
+                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[(NR)+idx] * vki * spre(unit).data))
                 #Lbig = Lbig + sp.kron(Ltemp,(-nlabel[1] * vkA[1] * spre(unit).data))
-            # for kcount in range(N):
+            #for kcount in range(N):
             #    Lbig = Lbig + sp.kron(Ltemp,(-nlabel[kcount] * (vkA[kcount])
             #                    * spre(unit).data))
 
             for kcount in range(N):
-                if nlabel[kcount] >= 1:
-                    # find the position of the neighbour
+                if nlabel[kcount]>=1:
+                #find the position of the neighbour
                     nlabeltemp = copy(nlabel)
-                    nlabel[kcount] = nlabel[kcount] - 1
+                    nlabel[kcount] = nlabel[kcount] -1
                     current_pos2 = int(round(state2idx[tuple(nlabel)]))
                     Ltemp = sp.lil_matrix((Ntot, Ntot))
                     Ltemp[current_pos, current_pos2] = 1
                     Ltemp.tocsr()
-                # renormalized version:
-                    # ci =  (4 * lam0 * gam * kb * Temperature * kcount
+                # renormalized version:    
+                    #ci =  (4 * lam0 * gam * kb * Temperature * kcount
                     #      * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
-                    if kcount <= (NR - 1):
-                        # DO REAL PARTS Vx
-                        c0 = ckAR[kcount]
-                        c0n = ckAR[kcount]
-                        Lbig = Lbig + sp.kron(Ltemp, (-1.j
-                                                      * np.sqrt((nlabeltemp[kcount]
-                                                                 / abs(c0n)))
-                                                      * c0 * (spre(Q).data - spost(Q).data)))
-                    if kcount >= (NR):
-                        # in=lam
+                    if kcount<=(NR-1):
+                        #DO REAL PARTS Vx
+                        c0=ckAR[kcount]
+                        c0n=ckAR[kcount]
+                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
+                                         * np.sqrt((nlabeltemp[kcount]
+                                            / abs(c0n)))
+                                         * c0*(spre(Q).data - spost(Q).data)))
+                    if kcount>=(NR):     
+                        #in=lam
                         #i =  ckA[kcount]
-                        c0 = ckAI[kcount - NR]
-                        c0n = ckAI[kcount - NR]
-                        Lbig = Lbig + sp.kron(Ltemp, (-1.j
-                                                      * np.sqrt((nlabeltemp[kcount]
-                                                                 / abs(c0n)))
-                                                      * (1.j * (c0) * (spre(Q).data + spost(Q).data))))
+                        c0=ckAI[kcount-NR]
+                        c0n=ckAI[kcount-NR]
+                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
+                                         * np.sqrt((nlabeltemp[kcount]
+                                            / abs(c0n)))
+                                         * (1.j*(c0) * (spre(Q).data + spost(Q).data))))
                     nlabel = copy(nlabeltemp)
 
             for kcount in range(N):
-                if ntotalcheck <= (Nc - 1):
+                if ntotalcheck<=(Nc-1):
                     nlabeltemp = copy(nlabel)
                     nlabel[kcount] = nlabel[kcount] + 1
                     current_pos3 = int(round(state2idx[tuple(nlabel)]))
-                if current_pos3 <= (Ntot):
+                if current_pos3<=(Ntot):
                     Ltemp = sp.lil_matrix((Ntot, Ntot))
                     Ltemp[current_pos, current_pos3] = 1
                     Ltemp.tocsr()
-                # renormalized
-                    if kcount <= (NR - 1):
-                        c0n = ckAR[kcount]
+                #renormalized   
+                    if kcount<=(NR-1):
+                        c0n=ckAR[kcount]
 
-                        Lbig = Lbig + sp.kron(Ltemp, -1.j
-                                              * np.sqrt((nlabeltemp[kcount] + 1) * ((abs(c0n))))
-                                              * (spre(Q) - spost(Q)).data)
-                    if kcount >= (NR):
-                        cin = ckAI[kcount - NR]
+                        Lbig = Lbig + sp.kron(Ltemp,-1.j
+                                      * np.sqrt((nlabeltemp[kcount]+1)*((abs(c0n))))
+                                      * (spre(Q)- spost(Q)).data)
+                    if kcount>=(NR):
+                        cin=ckAI[kcount-NR]
 
-                        Lbig = Lbig + sp.kron(Ltemp, -1.j
-                                              * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
-                                              * (spre(Q) - spost(Q)).data)
+                        Lbig = Lbig + sp.kron(Ltemp,-1.j
+                                      * np.sqrt((nlabeltemp[kcount]+1)*(abs(cin)))
+                                      * (spre(Q)- spost(Q)).data)
                 nlabel = copy(nlabeltemp)
 
-        liouvillian = Lbig.tocsr()
-        return liouvillian
+        rhs = Lbig.tocsr()
+        return rhs
+
+
 
     def solve(self, initial_state, tlist, options=None):
         """
@@ -308,32 +308,39 @@ class Heirarchy(object):
         rho0big1 = np.zeros((Nsup * Ntot), dtype=complex)
         rho0big1 = sp.lil_matrix((1, Nsup * Ntot), dtype='complex')
         # Prepare initial state:
-        rhotemp = mat2vec(np.array(initial_state.full(), dtype=complex))
+        rhotemp =  mat2vec(np.array(initial_state.full(), dtype=complex))
+
+        for idx,element in enumerate(rhotemp):
+            rho0big1[0,idx] = element[0]
+        rho0big =rho0big1.tocsr()
         
+        Lbig2 = self._rhs()
         output = []
         for element in rhotemp:
             output.append([])
-        for idx, element in enumerate(rhotemp):
-            output[idx].append(element[0])
+        for idx,element in enumerate(rhotemp):
+            output[idx].append  (element[0])
         n_tsteps = len(tlist)
 
         r = scipy.integrate.ode(cy_ode_rhs)
-
-        L = self._rhs()
-        r.set_f_params(L.data, L.indices, L.indptr)
+        r.set_f_params(Lbig2.data, Lbig2.indices, Lbig2.indptr)
         r.set_integrator('zvode', method=options.method, order=options.order,
-                         atol=options.atol, rtol=options.rtol,
-                         nsteps=options.nsteps, first_step=options.first_step,
-                         min_step=options.min_step, max_step=options.max_step)
-        rho0 = mat2vec(rho0big1.toarray()).ravel()
+                     atol=options.atol, rtol=options.rtol,
+                     nsteps=options.nsteps, first_step=options.first_step,
+                     min_step=options.min_step,max_step=options.max_step)
+        rho0= mat2vec(rho0big1.toarray()).ravel()
+
+
         r.set_initial_value(rho0, tlist[0])
-        dt = tlist[1] - tlist[0]
+        dt = tlist[1] - tlist[0]    
 
         for t_idx, t in enumerate(tlist):
             if t_idx < n_tsteps - 1:
                 r.integrate(r.t + dt)
-            for idx, element in enumerate(rhotemp):
-                output[idx].append(r.y[idx])
+
+
+                for idx,element in enumerate(rhotemp):        
+                    output[idx].append(r.y[idx])
 
         return output
 
