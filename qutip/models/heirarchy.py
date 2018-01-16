@@ -14,7 +14,7 @@ from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
 from qutip import liouvillian as liouv
 from qutip import mat2vec, state_number_enumerate
 
-from operators import mul
+from operator import mul
 
 def _heom_state_dictionaries(dims, excitations):
     """
@@ -123,6 +123,7 @@ class Heirarchy(object):
 
     Nc: int
         Cutoff temperature for the bath
+        default=1
 
     real_coeff: list
         The list of coefficients for the real terms in the exponential
@@ -148,7 +149,7 @@ class Heirarchy(object):
         default: 1.
         The reduced Boltzmann's constant.
     """
-    def __init__(self, hamiltonian, coupling, temperature, Nc,
+    def __init__(self, hamiltonian, coupling, temperature = 1, Nc = 1,
                  real_coeff=[], real_freq=[],
                  imaginary_coeff=[], imaginary_freq=[],
                  planck=1., boltzmann=1.):
@@ -161,7 +162,7 @@ class Heirarchy(object):
         # Have a check on the lengths of the two lists if this is separate
 
         self.real_prefactors = real_coeff
-        self.real_exponents = real_exponents
+        self.real_exponents = real_freq
         self.complex_prefactors = imaginary_coeff
         self.complex_exponents = imaginary_freq
         
@@ -185,9 +186,11 @@ class Heirarchy(object):
         vkAI = self.complex_exponents
 
         # Set by system
-        N_temp = reduce(mul, self.hamiltonian.dims[0], 1)
+        N_temp = 1
+        for i in self.hamiltonian.dims[0]:
+            N_temp = N_temp*i
         sup_dim = N_temp**2
-        unit_sys = qeye(N_temp)
+        unit = qeye(N_temp)
 
         # Ntot is the total number of ancillary elements in the hierarchy
         Ntot = int(round(factorial(Nc + N) / (factorial(Nc) * factorial(N))))
@@ -292,7 +295,10 @@ class Heirarchy(object):
         Nc = self.Nc
 
         # Set by system
-        N_temp = reduce(mul, self.hamiltonian.dims[0], 1)
+        N_temp = 1
+        for i in self.hamiltonian.dims[0]:
+            N_temp = N_temp*i
+
         Nsup = N_temp**2
         unit = qeye(N_temp)
 
