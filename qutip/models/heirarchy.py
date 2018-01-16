@@ -14,7 +14,6 @@ from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
 from qutip import liouvillian as liouv
 from qutip import mat2vec, state_number_enumerate, basis
 
-from operator import mul
 
 def _heom_state_dictionaries(dims, excitations):
     """
