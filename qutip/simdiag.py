@@ -39,7 +39,7 @@ from qutip.qobj import Qobj
 
 
 def simdiag(ops, evals=True):
-    """Simulateous diagonalization of communting Hermitian matrices..
+    """Simultaneous diagonalization of commuting Hermitian matrices.
 
     Parameters
     ----------
