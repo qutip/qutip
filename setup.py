@@ -151,7 +151,8 @@ cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpola
         'brtools_testing', 'br_tensor']
 
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
-if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35 and os.environ.get('MSYSTEM') is None:
+if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
+    and os.environ.get('MSYSTEM') is None):
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
@@ -257,4 +258,5 @@ setup(
     **EXTRA_KWARGS
 )
 
-print("Installation complete\nPlease cite QuTiP in your publication - for you convenience a bibtex file can be easily generated using `qutip.about.cite()`")
+print("Installation complete\nPlease cite QuTiP in your publication.\n"
+      "For your convenience a bibtex file can be easily generated using `qutip.about.cite()`")
