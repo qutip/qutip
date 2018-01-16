@@ -82,7 +82,8 @@ def about():
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
     print("Installation path:  %s" % qutip_install_path)
-    print("Please cite QuTiP in your publication - for you convenience a bibtex file can be easily generated using `qutip.about.cite()`")
+    print("Please cite QuTiP in your publication.")
+    print("For your convenience a bibtex file can be easily generated using `qutip.about.cite()`")
 
 def cite(path=None, verbose=True):
     """
