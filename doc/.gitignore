@@ -1,5 +1,4 @@
 .DS_Store
-*.png
 *.pyc
 *.pyx
 *.dat
@@ -8,3 +7,4 @@
 *~
 
 _build
+_images
