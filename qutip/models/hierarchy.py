@@ -1,5 +1,5 @@
 """
-Generic Heirarchy equations model version for complex exponents
+Generic Hierarchy equations of motion model for a sum of exponentials
 """
 import numpy as np
 import scipy.sparse as sp
@@ -107,7 +107,7 @@ def cot(x):
     return np.cos(x) / np.sin(x)
 
 
-class Heirarchy(object):
+class Heom(object):
     """
     The hierarchy model class.
 

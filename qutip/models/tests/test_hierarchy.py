@@ -1,5 +1,5 @@
 """
-Tests for the Heirarchy model
+Tests for the Hierarchy model
 """
 from __future__ import division
 
@@ -11,17 +11,17 @@ from numpy.testing import (assert_, assert_almost_equal,
 from scipy.integrate import quad, IntegrationWarning
 
 from qutip import Qobj, sigmaz, sigmax, basis, Options
-from qutip.models.heirarchy import Heirarchy, _heom_state_dictionaries
+from qutip.models.hierarchy import Heom, _heom_state_dictionaries
 
 
-class TestHeirarchy(object):
+class TestHeom(object):
     """
     Tests for the Heirarchy equation of motion model
     """
     def test_rhs(self):
         """Tests the generation of the RHS for the evolution of an initial
-        density matrix using the Heirarchy equations of motion.
-            """
+        density matrix using the Hierarchy equations of motion.
+        """
         lam = 0.01
         kappa =0.025
 
@@ -44,7 +44,7 @@ class TestHeirarchy(object):
         Hsys = 0.5 * wq * sigmaz() + 0.5 * Del * sigmax()
 
 
-        system = Heirarchy(Hsys, Q, Nc = Nc, real_coeff=ckAR, real_freq=vkAR,
+        system = Heom(Hsys, Q, Nc = Nc, real_coeff=ckAR, real_freq=vkAR,
                            imaginary_coeff=ckAI, imaginary_freq=vkAI)
 
         rhs_calculated = system._rhs(progress_bar=True)
@@ -103,7 +103,7 @@ class TestHeirarchy(object):
         Hsys = 0.5 * wq * sigmaz() + 0.5 * Del * sigmax()
 
 
-        system = Heirarchy(Hsys, Q, Nc=Nc, real_coeff=ckAR,real_freq=vkAR,
+        system = Heom(Hsys, Q, Nc=Nc, real_coeff=ckAR,real_freq=vkAR,
                            imaginary_coeff=ckAI, imaginary_freq=vkAI)
         
         wc = 0.05                # Cutoff frequency.
