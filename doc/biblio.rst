@@ -68,8 +68,8 @@ Bibliography
     T. Caneva, T. Calarco, & S. Montangero, *Chopped random-basis quantum optimization*, Phys. Rev. A **84**, 022326 (2011). :doi:`10.1103/PhysRevA.84.022326`
     
 .. [Rach15]
-    N. Rach, M. M. Müller, T. Calarco, and S. Montangero, *Dressing the chopped-random-basis optimization: A bandwidth-limited access to the trap-free landscape*, Phys. Rev. A. 92, 062343 (2015). :doi:`10.1103/PhysRevA.92.062343`
+    N. Rach, M. M. Müller, T. Calarco, and S. Montangero, *Dressing the chopped-random-basis optimization: A bandwidth-limited access to the trap-free landscape*, Phys. Rev. A. **92**, 062343 (2015). :doi:`10.1103/PhysRevA.92.062343`
 
-.. [DYNAMO]  
+.. [DYNAMO]
    S. Machnes, U. Sander, S. J. Glaser, P. De Fouquieres, A. Gruslys, S. Schirmer, and T. Schulte-Herbrueggen, *Comparing, Optimising and Benchmarking Quantum Control Algorithms in a Unifying Programming Framework*, Phys. Rev. A. **84**, 022305 (2010). :arxiv:`1011.4874`
     
