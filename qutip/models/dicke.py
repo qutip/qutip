@@ -13,16 +13,13 @@ from qutip import Qobj, spre, spost
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
 from qutip.solver import Result, Options
 from qutip import *
-from qutip.cy.dicke import Pim as _Pim
-from qutip.cy.dicke import Dicke as _Dicke
-from qutip.cy.dicke import (j_min, j_vals, num_dicke_states,
-                            num_dicke_ladders, get_blocks, 
-                            jmm1_dictionary)
+
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.mesolve import _generic_ode_solve
-
-
+from qutip.cy.dicke import Dicke as _Dicke
+from qutip.cy.dicke import (j_min, j_vals, get_blocks, 
+                            jmm1_dictionary, num_dicke_states, num_dicke_ladders)
 # ============================================================================
 # Functions necessary to generate the Lindbladian/Liouvillian for j, m, m1
 # ============================================================================
@@ -99,7 +96,7 @@ def block_matrix(N):
     return block_matr
 
 
-class Dicke(object):
+class Piqs(object):
     """
     The Dicke States class.
 
@@ -202,7 +199,7 @@ class Dicke(object):
         cythonized_dicke = _Dicke(int(self.N), float(self.loss),
                                   float(self.dephasing),
                                   float(self.pumping),
-                                  float(self.emission=1),
+                                  float(self.emission),
                                   float(self.collective_pumping),
                                   float(self.collective_dephasing))
 
@@ -367,7 +364,7 @@ class Pim(object):
             \frac{\partial\rho}{\partial t} = M\rho
         """
         system = _Pim(int(self.N), float(self.loss), float(self.dephasing),
-                      float(self.pumping), float(self.emission=1),
+                      float(self.pumping), float(self.emission),
                       float(self.collective_pumping),
                       float(self.collective_dephasing))
 
@@ -411,7 +408,7 @@ class Pim(object):
 
         r.set_initial_value(initial_state.data, tlist[0])
 
-        return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
+        return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
 
 
 # ============================================================================
@@ -711,7 +708,7 @@ def dicke(N, jmm1 = None, basis = "dicke"):
         A dictionary of {(j, m, m1): p} which gives the coefficient of the (j, m, m1)
         state in the density matrix.
     """
-    if basis = "uncoupled":
+    if basis == "uncoupled":
         raise NotImplemented
 
     nds = num_dicke_states(N)

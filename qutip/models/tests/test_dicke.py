@@ -6,9 +6,11 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
 
-from qutip.models.dicke import (num_tls, Dicke, Pim)
+from qutip.models.dicke import (num_tls, Piqs)
+
 from qutip.cy.dicke import (get_blocks, j_min, j_vals, m_vals, num_dicke_states,
-                            num_dicke_ladders, _Dicke)
+                            num_dicke_ladders, get_index, jmm1_dictionary)
+from qutip.cy.dicke import Dicke as _Dicke
 from qutip import Qobj
 
 
@@ -107,14 +109,17 @@ class TestPim:
         """
         Test the index fetching function for given j, m, m1 value
         """
-        model = _Dicke(1)
+        N = 1
         jmm1_list = [(0.5, 0.5, 0.5), (0.5, 0.5, -0.5), 
                      (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
         indices = [(0, 0), (0, 1), (1, 0), (1, 1)]
-        calculated_indices = [model.get_index(jmm1) for jmm1 in jmm1_list]
-        assert_array_equal(calculated_indices, indices)
 
-        model = Dicke(2)
+        blocks = get_blocks(N)
+        calculated_indices = [get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list]
+        assert_array_almost_equal(calculated_indices, indices)
+
+        N = 2
+        blocks = get_blocks(N)
         jmm1_list = [(1, 1, 1), (1, 1, 0), (1, 1, -1), 
                      (1, 0, 1), (1, 0, 0), (1, 0, -1),
                      (1, -1, 1), (1, -1, 0), (1, -1, -1),
@@ -125,33 +130,29 @@ class TestPim:
                     (2, 0), (2, 1), (2, 2),
                     (3, 3)]
 
-        calculated_indices = [model.get_index(jmm1) for jmm1 in jmm1_list]
-        assert_array_equal(calculated_indices, indices)
+        calculated_indices = [get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list]
+        assert_array_almost_equal(calculated_indices, indices)
 
-        model = Dicke(3)
-        jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5), 
-                     (1.5, 1.5, -1.5),
-                     (1.5, 0.5, 0.5), (1.5, -0.5, -0.5), (1.5, -1.5, -1.5),
-                     (1.5, -1.5, 1.5),
-                     (0.5, 0.5, 0.5), (0.5, 0.5, -0.5), (0.5, -0.5, 0.5),
-                     (0.5, -0.5, 0.5)]
+        N = 3
+        blocks = get_blocks(N)
+        jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5), (1.5, 1.5, -1.5),
+                     (1.5, 0.5, 0.5), (1.5, -0.5, -0.5), (1.5, -1.5, -1.5), (1.5, -1.5, 1.5),
+                     (0.5, 0.5, 0.5), (0.5, 0.5, -0.5),
+                     (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
         
         indices = [(0, 0), (0, 1), (0, 2), (0, 3),
                    (1, 1), (2, 2), (3, 3), (3, 0),
                    (4, 4), (4, 5),
-                   (5, 4), (5, 4)]
+                   (5, 4), (5, 5)]
 
-        calculated_indices = [model.get_index(jmm1) for jmm1 in jmm1_list]
-        assert_array_equal(calculated_indices, indices)
+        calculated_indices = [get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list]
+        assert_array_almost_equal(calculated_indices, indices)
 
     def test_jmm1_dictionary(self):
         """
         Test the function to generate the mapping from jmm1 to ik matrix
         """
-        model = _Dicke(1)
-
-        d1, d2, d3, d4 = (model._jmm1_dict, model._jmm1_dict_inv,
-                        model._jmm1_flat, model._jmm1_flat_inv)
+        d1, d2, d3, d4 = jmm1_dictionary(1)
 
         d1_correct = {(0, 0): (0.5, 0.5, 0.5), (0, 1): (0.5, 0.5, -0.5),
                         (1, 0): (0.5, -0.5, 0.5), (1, 1): (0.5, -0.5, -0.5)}
@@ -173,10 +174,7 @@ class TestPim:
         assert_equal(d4, d4_correct)
 
 
-        model = Dicke(2)
-
-        d1, d2, d3, d4 = (model._jmm1_dict, model._jmm1_dict_inv,
-                        model._jmm1_flat, model._jmm1_flat_inv)
+        d1, d2, d3, d4 = jmm1_dictionary(2)
 
         d1_correct = {(3, 3): (0.0, -0.0, -0.0), (2, 2): (1.0, -1.0, -1.0),
                         (2, 1): (1.0, -1.0, 0.0), (2, 0): (1.0, -1.0, 1.0),
@@ -219,7 +217,7 @@ class TestPim:
         gD = 0.1
         gP = 0.1
 
-        system = _Dicke(N = N, loss = gE, pumping = gP, dephasing = gD,
+        system = Piqs(N = N, loss = gE, pumping = gP, dephasing = gD,
                         emission = gCE, collective_pumping = gCP,
                         collective_dephasing = gCD)
 
@@ -233,7 +231,7 @@ class TestPim:
         lindbladian_correct = Qobj(Ldata, dims= [[[2], [2]], [[2], [2]]],
                                    shape = (4, 4))
 
-        assert_equal(lindbladian, lindbladian_correct)
+        assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
 
         N = 2
         gCE = 0.5
@@ -243,7 +241,7 @@ class TestPim:
         gD = 0.1
         gP = 0.1
 
-        system = _Dicke(N = N, loss = gE, pumping = gP, dephasing = gD,
+        system = Piqs(N = N, loss = gE, pumping = gP, dephasing = gD,
                         emission = gCE, collective_pumping = gCP,
                         collective_dephasing = gCD)
 
@@ -269,7 +267,7 @@ class TestPim:
         lindbladian_correct = Qobj(Ldata, dims= [[[4], [4]], [[4], [4]]],
                                     shape = (16, 16))
 
-        assert_equal(lindbladian, lindbladian_correct)
+        assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
 
 
     def test_gamma(self):
