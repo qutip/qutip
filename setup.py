@@ -67,7 +67,7 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
             'qutip/cy/openmp', 'qutip/cy/openmp/src',
-            'qutip/models', 'qutip/models/cy']
+            'qutip/models']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
