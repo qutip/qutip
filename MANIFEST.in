@@ -1,3 +1,4 @@
 include README.md
 include LICENSE.txt
 include requirements.txt
+include qutip.bib
