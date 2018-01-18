@@ -77,17 +77,14 @@ _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
 
 def _empty_info_dict():
-    def_info = {'perm': [], 'solution_time': None, 'iterations': None,
-                'residual_norm': None, 'rcm_time': None, 'wbm_time': None,
-                'iter_time': None, 'precond_time': None, 'ILU_MILU': None,
-                'fill_factor': None, 'diag_pivot_thresh': None, 
-                'drop_tol': None, 'permc_spec': None, 'weight': None,
-                'solver': None}
+    def_info = {'perm': [], 'solution_time': None,
+                'residual_norm': None,
+                'solver': None, 'method': None}
     
     return def_info
 
 def _default_steadystate_args():
-    def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
+    def_args = {'sparse': True, 'use_rcm': False,
                 'use_wbm': False, 'weight': None, 'use_precond': False, 
                 'all_states': False, 'M': None, 'x0': None, 'drop_tol': 1e-4, 
                 'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000, 
@@ -98,7 +95,7 @@ def _default_steadystate_args():
     return def_args
     
 def _mkl_steadystate_args():
-    def_args = {'method': 'direct', 'max_iter_refine': 10,
+    def_args = {'max_iter_refine': 10,
                 'scaling_vectors': True,
                 'weighted_matching': True,
                 'return_info': False, 'info': _empty_info_dict(), 
@@ -111,7 +108,7 @@ def _mkl_steadystate_args():
     return def_args
 
 
-def steadystate(A, c_op_list=[], solver=None, **kwargs):
+def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     """Calculates the steady state for quantum evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
     list of collapse operators.
@@ -228,10 +225,17 @@ def steadystate(A, c_op_list=[], solver=None, **kwargs):
     """
     
     if solver is None:
+        solver = 'scipy'
         if settings.has_mkl:
-            solver = 'mkl'
-        else:
-            solver = 'scipy'
+            if method in ['direct', 'power']:
+                solver = 'mkl'
+    elif ss_args['solver'] == 'mkl' and \
+            (method not in ['direct', 'power']):
+        raise Exception('MKL solver only for direct or power methods.')
+        
+    elif solver not in ['scipy', 'mkl']:
+        raise Exception('Invalid solver kwarg.')
+    
     
     if solver == 'scipy':
         ss_args = _default_steadystate_args()
@@ -239,7 +243,9 @@ def steadystate(A, c_op_list=[], solver=None, **kwargs):
         ss_args = _mkl_steadystate_args()
     else:
         raise Exception('Invalid solver keyword argument.')
+    ss_args['method'] = method
     ss_args['info']['solver'] = ss_args['solver']
+    ss_args['info']['method'] = ss_args['method']
     
     for key in kwargs.keys():
         if key in ss_args.keys():
@@ -247,9 +253,6 @@ def steadystate(A, c_op_list=[], solver=None, **kwargs):
         else:
             raise Exception(
                 "Invalid keyword argument '"+key+"' passed to steadystate.")
-    if ss_args['solver'] == 'mkl' and \
-            (not ss_args['method'] in ['direct', 'power']):
-        raise Exception('MKL solver only for direct or power methods.')
     
     
     # Set column perm to NATURAL if using RCM and not specified by user
@@ -261,7 +264,6 @@ def steadystate(A, c_op_list=[], solver=None, **kwargs):
 
     # Set weight parameter to avg abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
-        ss_args['info']['weight']
         ss_args['weight'] = np.mean(np.abs(A.data.data.max()))
         ss_args['info']['weight'] = ss_args['weight']
 
@@ -444,6 +446,9 @@ def _steadystate_direct_sparse(L, ss_args):
 
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['max_iter_refine'] = ss_args['max_iter_refine']
+        ss_args['info']['scaling_vectors'] = ss_args['scaling_vectors']
+        ss_args['info']['weighted_matching'] = ss_args['weighted_matching']
 
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
@@ -635,7 +640,7 @@ def _steadystate_iterative(L, ss_args):
     _iter_end = time.time()
 
     ss_args['info']['iter_time'] = _iter_end - _iter_start
-    if ss_args['info']['precond_time'] is not None:
+    if 'precond_time' in ss_args['info'].keys():
         ss_args['info']['solution_time'] = (ss_args['info']['iter_time'] +
                                             ss_args['info']['precond_time'])
     else:
@@ -850,6 +855,11 @@ def _steadystate_power(L, ss_args):
         it += 1
     if ss_args['method'] == 'power' and ss_args['solver'] == 'mkl':
         lu.delete()
+        if ss_args['return_info']:
+            ss_args['info']['max_iter_refine'] = ss_args['max_iter_refine']
+            ss_args['info']['scaling_vectors'] = ss_args['scaling_vectors']
+            ss_args['info']['weighted_matching'] = ss_args['weighted_matching']
+    
     if it >= maxiter:
         raise Exception('Failed to find steady state after ' +
                         str(maxiter) + ' iterations')
