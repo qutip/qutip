@@ -162,6 +162,15 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
         to the linear solvers.  This is set to the average abs value of the
         Liouvillian elements if not specified by the user.
 
+    max_iter_refine : int {10}
+        MKL ONLY. Max. number of iterative refinements to perform.
+    
+    scaling_vectors : bool {True, False}
+        MKL ONLY.  Scale matrix to unit norm columns and rows.
+    
+    weighted_matching : bool {True, False}
+        MKL ONLY.  Use weighted matching to better condition diagonal.
+    
     x0 : ndarray, optional
         ITERATIVE ONLY. Initial guess for solution vector.
 
