@@ -229,7 +229,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
         if settings.has_mkl:
             if method in ['direct', 'power']:
                 solver = 'mkl'
-    elif ss_args['solver'] == 'mkl' and \
+    elif solver == 'mkl' and \
             (method not in ['direct', 'power']):
         raise Exception('MKL solver only for direct or power methods.')
         
