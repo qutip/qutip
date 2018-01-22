@@ -307,8 +307,12 @@ class HSolverDL(HEOMSolver):
             if stats:
                 stats.add_message('options', 'renormalisation', ss_conf)
         # Dimensions et by system
-        sup_dim = H_sys.dims[0][0]**2
-        unit_sys = qeye(H_sys.dims[0])
+        N_temp = 1
+        for i in H_sys.dims[0]:
+            N_temp *= i
+        sup_dim = N_temp**2
+        unit_sys = qeye(N_temp)
+
 
         # Use shorthands (mainly as in referenced PRL)
         lam0 = self.coup_strength
