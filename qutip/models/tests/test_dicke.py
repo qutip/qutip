@@ -6,11 +6,11 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
 
-from qutip.models.dicke import (num_tls, Piqs)
+from piqs.dicke import (num_tls, Piqs)
 
-from qutip.cy.dicke import (get_blocks, j_min, j_vals, m_vals, num_dicke_states,
-                            num_dicke_ladders, get_index, jmm1_dictionary)
-from qutip.cy.dicke import Dicke as _Dicke
+from piqs.cy.dicke import (_get_blocks, _j_min, _j_vals, m_vals, _num_dicke_states,
+                            _num_dicke_ladders, get_index, jmm1_dictionary)
+from piqs.cy.dicke import Dicke as _Dicke
 from qutip import Qobj
 
 
@@ -23,16 +23,16 @@ class TestPim:
         Tests the `num_dicke_state` function
         """
         N_list = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
-        dicke_states = [num_dicke_states(i) for i in N_list]
+        dicke_states = [_num_dicke_states(i) for i in N_list]
 
         assert_array_equal(dicke_states, [2, 4, 6, 9, 12, 16, 30, 36, 121,
                                           2601, 3906])
 
         N = -1
-        assert_raises(ValueError, num_dicke_states, N)
+        assert_raises(ValueError, _num_dicke_states, N)
 
         N = 0.2
-        assert_raises(ValueError, num_dicke_states, N)
+        assert_raises(ValueError, _num_dicke_states, N)
 
     def test_num_tls(self):
         """
@@ -47,24 +47,24 @@ class TestPim:
     
     def test_num_dicke_ladders(self):
         """
-        Tests the `num_dicke_ladders` function
+        Tests the `_num_dicke_ladders` function
         """
         ndl_true = [1, 2, 2, 3, 3, 4, 4, 5, 5]
-        ndl = [num_dicke_ladders(N) for N in range (1, 10)]        
+        ndl = [_num_dicke_ladders(N) for N in range (1, 10)]        
         assert_array_equal(ndl, ndl_true)    
      
     def test_j_min(self):
         """
-        Test the `j_min` function
+        Test the `_j_min` function
         """
         even = [2, 4, 6, 8]
         odd = [1, 3, 5, 7]
 
         for i in even:
-            assert_(j_min(i) == 0)
+            assert_(_j_min(i) == 0)
 
         for i in odd:
-            assert_(j_min(i) == 0.5)
+            assert_(_j_min(i) == 0.5)
 
     def test_get_blocks(self):
         """
@@ -73,7 +73,7 @@ class TestPim:
         N_list = [1, 2, 5, 7]
         blocks = [np.array([2]), np.array([3, 4]), np.array([ 6, 10, 12]),
                   np.array([ 8, 14, 18, 20])]
-        calculated_blocks = [get_blocks(i) for i in N_list]
+        calculated_blocks = [_get_blocks(i) for i in N_list]
         for (i, j) in zip(calculated_blocks, blocks):
             assert_array_equal(i, j)
 
@@ -82,13 +82,13 @@ class TestPim:
         Test calculation of j values for given N
         """
         N_list = [1, 2, 3, 4, 7]
-        j_vals_real = [np.array([ 0.5]), np.array([ 0.,  1.]),
+        _j_vals_real = [np.array([ 0.5]), np.array([ 0.,  1.]),
                        np.array([ 0.5,  1.5]),
                        np.array([ 0.,  1.,  2.]),
                        np.array([ 0.5,  1.5,  2.5,  3.5])]
-        j_vals_calc = [j_vals(i) for i in N_list]
+        _j_vals_calc = [_j_vals(i) for i in N_list]
 
-        for (i, j) in zip(j_vals_calc, j_vals_real):
+        for (i, j) in zip(_j_vals_calc, _j_vals_real):
             assert_array_equal(i, j)
 
     def test_m_vals(self):
@@ -114,12 +114,12 @@ class TestPim:
                      (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
         indices = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
-        blocks = get_blocks(N)
+        blocks = _get_blocks(N)
         calculated_indices = [get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
 
         N = 2
-        blocks = get_blocks(N)
+        blocks = _get_blocks(N)
         jmm1_list = [(1, 1, 1), (1, 1, 0), (1, 1, -1), 
                      (1, 0, 1), (1, 0, 0), (1, 0, -1),
                      (1, -1, 1), (1, -1, 0), (1, -1, -1),
@@ -134,7 +134,7 @@ class TestPim:
         assert_array_almost_equal(calculated_indices, indices)
 
         N = 3
-        blocks = get_blocks(N)
+        blocks = _get_blocks(N)
         jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5), (1.5, 1.5, -1.5),
                      (1.5, 0.5, 0.5), (1.5, -0.5, -0.5), (1.5, -1.5, -1.5), (1.5, -1.5, 1.5),
                      (0.5, 0.5, 0.5), (0.5, 0.5, -0.5),
@@ -217,8 +217,8 @@ class TestPim:
         gD = 0.1
         gP = 0.1
 
-        system = Piqs(N = N, loss = gE, pumping = gP, dephasing = gD,
-                        emission = gCE, collective_pumping = gCP,
+        system = Piqs(N = N, emission = gE, pumping = gP, dephasing = gD,
+                        collective_emission = gCE, collective_pumping = gCP,
                         collective_dephasing = gCD)
 
         lindbladian = system.lindbladian()
@@ -241,8 +241,8 @@ class TestPim:
         gD = 0.1
         gP = 0.1
 
-        system = Piqs(N = N, loss = gE, pumping = gP, dephasing = gD,
-                        emission = gCE, collective_pumping = gCP,
+        system = Piqs(N = N, emission = gE, pumping = gP, dephasing = gD,
+                        collective_emission = gCE, collective_pumping = gCP,
                         collective_dephasing = gCD)
 
         lindbladian = system.lindbladian()
@@ -285,13 +285,13 @@ class TestPim:
         | 3,-3>
         """
         N = 6
+        collective_emission = 1.
         emission = 1.
-        loss = 1.
         dephasing = 1.
         pumping = 1.
         collective_pumping = 1.
 
-        model = _Dicke(N, emission = emission, loss = loss, dephasing = dephasing,
+        model = _Dicke(N, collective_emission = collective_emission, emission = emission, dephasing = dephasing,
                       pumping = pumping, collective_pumping = collective_pumping)
 
         tau_calculated = [model.gamma3((3, 1, 1)), model.gamma2((2, 1, 1)), model.gamma4((1, 1, 1)),
