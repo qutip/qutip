@@ -56,7 +56,7 @@ from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
 from qutip.cy.codegen import Codegen
 from qutip.cy.utilities import _cython_build_cleanup
 
-from qutip.ui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
 if qset.has_openmp:
@@ -67,7 +67,7 @@ if debug:
 
 
 def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
-            progress_bar=BaseProgressBar(),
+            progress_bar=None,
             _safe_mode=True):
     """
     Schrodinger equation evolution of a state vector for a given Hamiltonian.
@@ -105,6 +105,10 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
 
     options : :class:`qutip.Qdeoptions`
         with options for the ODE solver.
+            
+    progress_bar : BaseProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation.
 
     Returns
     -------
@@ -130,6 +134,11 @@ def sesolve(H, rho0, tlist, e_ops=[], args={}, options=None,
     
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops=[], e_ops=e_ops, args=args)
+    
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
     
     # convert array based time-dependence to string format
     H, _, args = _td_wrap_array_str(H, [], args, tlist)
