@@ -182,9 +182,10 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                             H2.append(tensor(qeye(N), H[k]))
                 else:
                     H2 = tensor(qeye(N), H)
+                options.normalize_output = False
                 output = sesolve(H2, psi0, tlist, [],
-                                 args=args, _safe_mode=False,
-                                 options=Options(normalize_output=False))
+                                 args=args, options=options,
+                                 _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[k] = sp_reshape(output.states[k].data, (N, N))
                     unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
