@@ -6,11 +6,11 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
 
-from piqs.dicke import (num_tls, Piqs)
+from qutip.models.dicke import (num_tls, Piqs)
 
-from piqs.cy.dicke import (_get_blocks, _j_min, _j_vals, m_vals, _num_dicke_states,
+from qutip.cy.dicke import (_get_blocks, _j_min, _j_vals, m_vals, _num_dicke_states,
                             _num_dicke_ladders, get_index, jmm1_dictionary)
-from piqs.cy.dicke import Dicke as _Dicke
+from qutip.cy.dicke import Dicke as _Dicke
 from qutip import Qobj
 
 
