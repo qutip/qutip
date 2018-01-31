@@ -24,7 +24,6 @@ from qutip import mat2vec, state_number_enumerate, basis
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.solver import Result
 
-import numpy as np
 
 def _heom_state_dictionaries(dims, excitations):
     """
@@ -358,6 +357,20 @@ class Heom(object):
         return output
 
 
+import numpy as np
+
+from copy import copy
+from numpy import matrix
+from numpy import linalg
+
+from scipy.misc import factorial
+from scipy.optimize import curve_fit
+from scipy.constants import k
+import scipy.sparse as sp
+import scipy.integrate
+from scipy.integrate import quad
+from scipy.signal import hilbert, find_peaks_cwt
+
 def lorrentz(w, gamma = 0.05, lam = 0.1, w0 = 1, wc = None):
     """
     The lorrentz spectral density.
@@ -519,7 +532,6 @@ def envelope_fit(tt, yy):
     """
     analytic_signal = hilbert(yy)
     amplitude_envelope = np.abs(analytic_signal)
-    
     tt = np.array(tt)
     yy = np.array(amplitude_envelope)
     ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
@@ -529,13 +541,13 @@ def envelope_fit(tt, yy):
     guess_amp = np.std(yy) * 2.**0.5
     guess_offset = np.mean(yy)
     guess = np.array([guess_amp, 2.*np.pi*guess_freq,
-                         0., guess_offset])
+                         0., 0.])
     
     expfit = lambda x, A, w, p, c: A * np.exp(-w*x + p) + c
     popt, pcov = curve_fit(expfit, xdata=tt, ydata=amplitude_envelope)
     A, w, p, c = popt
     fitfunc = lambda x: A * np.exp(-w*x + p) + c
-    fitparams = np.array([A, w, p, c])
+    fitparams = np.array([A, -w, p, c])
     return fitfunc, fitparams
 
 def get_exponents(t, y, num_terms=3):
@@ -622,8 +634,9 @@ def _exponents(envelope_params, cosine_params):
     a5 = amp_neg * c0
     a6 = np.array([constant_term*c0])
 
-    amplitudes, frequencies = np.concatenate([a1, a2, a3, a4, a5, a6]), -np.concatenate([f1, f2, f3, f4, f5, f6])
+    amplitudes, frequencies = np.concatenate([a1, a2, a3, a4, a5, a6]), np.concatenate([f1, f2, f3, f4, f5, f6])
     ordered = np.argsort(amplitudes)
     
     return amplitudes[-ordered], frequencies[-ordered]
+
 
