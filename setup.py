@@ -257,6 +257,11 @@ setup(
     install_requires=INSTALL_REQUIRES,
     **EXTRA_KWARGS
 )
-
-print("Installation complete\nPlease cite QuTiP in your publication.\n"
-      "For your convenience a bibtex file can be easily generated using `qutip.about.cite()`")
+_cite = """\
+==============================================================================
+Installation complete
+Please cite QuTiP in your publication.
+==============================================================================
+For your convenience a bibtex file can be easily generated using
+`qutip.about.cite()`"""
+print(_cite)
