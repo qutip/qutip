@@ -44,8 +44,9 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 type='me', config=None, use_openmp=False,
-                 omp_components=None, omp_threads=None):
+                 c_td_splines=[], c_td_spline_flags=[],
+                 type='me', config=None, 
+                 use_openmp=False, omp_components=None, omp_threads=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -64,6 +65,8 @@ class Codegen():
         self.c_terms = c_terms  # number of C pieces
         self.c_tdterms = c_tdterms  # list of time-dependent strings
         self.c_td_inds = c_td_inds  # indicies of time-dependent terms
+        self.c_td_splines = c_td_splines #List of c_op spline arrays
+        self.c_td_spline_flags = c_td_spline_flags #flags for oper or super
 
         # Code generator properties
         self.code = []  # strings to be written to file
@@ -173,7 +176,7 @@ class Codegen():
         
         #Add array for each Cubic_Spline term
         spline = 0
-        for htd in self.h_tdterms:
+        for htd in (self.h_tdterms+self.c_td_splines):
             if isinstance(htd, Cubic_Spline):
                 if not htd.is_complex:
                     input_vars += (",\n        " +
@@ -274,6 +277,7 @@ class Codegen():
                                 ht, ht, ht, interp_str)
                 func_vars.append(str_out)
 
+        cstr = 0
         if len(self.c_tdterms) > 0:
             # add a spacer line between Hamiltonian components and collapse
             # components.
@@ -287,6 +291,32 @@ class Codegen():
                         cstr, cstr, cstr, " abs(" + tdterms[ct] + ")**2")
                 cinds += 1
                 func_vars.append(str_out)
+        
+        #Collapse operators have cubic spline td-coeffs
+        c_idx = 0
+        if len(self.c_td_splines) > 0:
+            for ct in range(len(self.c_td_splines)):
+                c_idx = str(ht+cstr+ct+1)
+                S = self.c_td_splines[ct]
+                if not S.is_complex:
+                    interp_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                else:
+                    interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
+                spline += 1
+                
+                #check if need to wrap string with abs()**2
+                if c_td_spline_flags[ct]:
+                    interp_str = "abs("+interp_str+")**2"
+                
+                if self.use_openmp and self.omp_components[ht]:
+                    str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows, %s)" % (
+                        c_idx, c_idx, c_idx, interp_str, self.omp_threads)
+                else:
+                    str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows)" % (
+                        c_idx, c_idx, c_idx, interp_str)
+                func_vars.append(str_out)
+                
+        
         return func_vars
 
     def func_which(self):
