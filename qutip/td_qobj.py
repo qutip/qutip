@@ -1110,106 +1110,17 @@ def _dummy(t, *args, **kwargs):
     return 0.
 
 
-def _norm2(f):
-    @wraps(f)
-    def ff(a, *args, **kwargs):
-        return np.abs(f(a, *args, **kwargs))**2
-    return ff
+class _norm2():
+    def __init__(self, f):
+        self.func = f
+
+    def __call__(self, t, args):
+        return self.func(t, args)**2
 
 
-def _conj(f):
-    @wraps(f)
-    def ff(a, *args, **kwargs):
-        return np.conj(f(a, *args, **kwargs))
-    return ff
+class _conj():
+    def __init__(self, f):
+        self.func = f
 
-
-"""def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
-    ""Assembles the Liouvillian superoperator from a Hamiltonian
-    and a ``list`` of collapse operators. Accept time dependant
-    operator and return a td_qobj
-
-    Parameters
-    ----------
-    H : qobj, [qobj], td_Qobj
-        System Hamiltonian.
-
-    c_ops : array_like of qobj or td_Qobj
-        A ``list`` or ``array`` of collapse operators.
-
-    args, tlist, raw_str:
-        Arguments to pass to the td_qobj
-
-    Returns
-    -------
-    L : td_qobj
-        Liouvillian superoperator.
-
-    ""
-    L = None
-
-    if chi and len(chi) != len(c_ops):
-        raise ValueError('chi must be a list with same length as c_ops')
-
-    if H is not None:
-        if not isinstance(H, td_Qobj):
-            L = td_Qobj(H, args=args, tlist=tlist, raw_str=raw_str)
-        else:
-            L = H
-        L = L.apply(liouvillian, chi=chi)
-
-    if isinstance(c_ops, list) and len(c_ops) > 0:
-        def liouvillian_c(c_ops, chi):
-            return liouvillian(None, c_ops=[c_ops], chi=chi)
-        for c in c_ops:
-            if not isinstance(c, td_Qobj):
-                cL = td_Qobj(c, args=args, tlist=tlist, raw_str=raw_str)
-            else:
-                cL = c
-            if not cL.N_obj == 1:
-                raise Exception("Each c_ops must be composed of  " +
-                                "only one Qobj to be used " +
-                                "with in a time-dependent liouvillian")
-
-            if L is None:
-                L = cL.apply(liouvillian_c, chi=chi)._f_norm2()
-
-            else:
-                L += cL.apply(liouvillian_c, chi=chi)._f_norm2()
-
-    return L
-
-
-def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
-    ""
-    Lindblad dissipator (generalized) for a single collapse operator.
-    For the
-
-    .. math::
-
-        \\mathcal{D}[a,b]\\rho = a \\rho b^\\dagger -
-        \\frac{1}{2}a^\\dagger b\\rho - \\frac{1}{2}\\rho a^\\dagger b
-
-    Parameters
-    ----------
-    a : qobj, [qobj], td_Qobj
-        Left part of collapse operator.
-
-    args, tlist, raw_str:
-        Arguments to pass to the td_qobj
-
-    Returns
-    -------
-    D : td_qobj
-        Lindblad dissipator superoperator.
-    ""
-    if not isinstance(a, td_Qobj):
-        b = td_Qobj(a, args=args, tlist=tlist, raw_str=raw_str)
-    else:
-        b = a
-    if not b.N_obj == 1:
-        raise Exception("Each sc_ops must be composed of only one Qobj to " +
-                        "be used with in a time-dependent lindblad_dissipator")
-
-    D = b.apply(lindblad_dissipator)._f_norm2()
-    return D"""
+    def __call__(self, t, args):
+        return np.conj(self.func(t, args))
