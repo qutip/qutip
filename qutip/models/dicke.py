@@ -17,7 +17,6 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.mesolve import _generic_ode_solve
 from qutip.cy.dicke import Dicke as _Dicke
-from qutip.cy.dicke import Pim as _Pim
 from qutip.cy.dicke import (_j_min, _j_vals, _get_blocks, 
                       jmm1_dictionary, _num_dicke_states,
                       _num_dicke_ladders)
@@ -257,18 +256,6 @@ class Piqs(object):
                                 float(self.collective_pumping))
 
         return cythonized_dicke.lindbladian()
-
-    def diagonal_lindbladian(self):
-        """
-        A faster implementation for diagonal Hamiltonians which only computes
-        the Lindblad terms for the diagonal elements and hence is much faster.
-        """
-        system = _Pim(int(self.N), float(self.emission), float(self.dephasing),
-              float(self.pumping), float(self.collective_emission),
-              float(self.collective_dephasing), float(self.collective_pumping))
-
-        M = system.generate_matrix()
-        return M
 
     def liouvillian(self):
         """
