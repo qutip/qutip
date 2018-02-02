@@ -1115,7 +1115,7 @@ class _norm2():
         self.func = f
 
     def __call__(self, t, args):
-        return self.func(t, args)**2
+        return self.func(t, args)*np.conj(self.func(t, args))
 
 
 class _conj():
