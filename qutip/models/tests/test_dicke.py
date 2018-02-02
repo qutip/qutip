@@ -14,9 +14,9 @@ from qutip.cy.dicke import Dicke as _Dicke
 from qutip import Qobj
 
 
-class TestPim:
+class TestPiqs:
     """
-    A test class for the Permutation invariance matrix generation
+    A test class for the Permutational Invariant Quantum Solver
     """
     def test_num_dicke_states(self):
         """
