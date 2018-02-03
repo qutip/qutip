@@ -166,6 +166,14 @@ class Codegen():
                            "complex[::1] data%d," % k +
                            "int[::1] idx%d," % k +
                            "int[::1] ptr%d" % k)
+                           
+        kk = len(self.h_tdterms)
+        for jj in range(len(self.c_td_splines)):
+            input_vars += (",\n        " +
+                           "complex[::1] data%d," % (jj+kk) +
+                           "int[::1] idx%d," % (jj+kk) +
+                           "int[::1] ptr%d" % (jj+kk))
+            
         if any(self.c_tdterms):
             for k in range(len(self.h_terms),
                            len(self.h_terms) + len(self.c_tdterms)):
@@ -275,6 +283,9 @@ class Codegen():
                         else:
                             str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows)" % (
                                 ht, ht, ht, interp_str)
+                    #Do nothing if not a specified type
+                    else:
+                        str_out=  ''
                 func_vars.append(str_out)
 
         cstr = 0
@@ -288,26 +299,26 @@ class Codegen():
             for ct in range(terms):
                 cstr = str(ct + hinds + 1)
                 str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows)" % (
-                        cstr, cstr, cstr, " abs(" + tdterms[ct] + ")**2")
+                        cstr, cstr, cstr, " (" + tdterms[ct] + ")**2")
                 cinds += 1
                 func_vars.append(str_out)
         
         #Collapse operators have cubic spline td-coeffs
-        c_idx = 0
         if len(self.c_td_splines) > 0:
+            func_vars.append(" ")
             for ct in range(len(self.c_td_splines)):
-                c_idx = str(ht+cstr+ct+1)
                 S = self.c_td_splines[ct]
+                c_idx = self.c_td_spline_flags[ct]
                 if not S.is_complex:
                     interp_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
                 else:
                     interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
                 spline += 1
                 
-                #check if need to wrap string with abs()**2
-                if c_td_spline_flags[ct]:
-                    interp_str = "abs("+interp_str+")**2"
-                
+                #check if need to wrap string with ()**2
+                if c_idx > 0:
+                    interp_str = "("+interp_str+")**2"
+                c_idx = abs(c_idx)
                 if self.use_openmp and self.omp_components[ht]:
                     str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows, %s)" % (
                         c_idx, c_idx, c_idx, interp_str, self.omp_threads)
