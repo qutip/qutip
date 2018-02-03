@@ -575,8 +575,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
 
     # loop over all hamiltonian terms, convert to superoperator form and
     # add the data of sparse matrix representation to
+    n_not_const_terms = 0
     for h_spec in H_list:
-
         if isinstance(h_spec, Qobj):
             h = h_spec
 
@@ -590,6 +590,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                                 "superoperator)")
 
         elif isinstance(h_spec, list):
+            n_not_const_terms +=1
             h = h_spec[0]
             h_coeff = h_spec[1]
 
@@ -613,9 +614,10 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
             raise TypeError("Incorrect specification of time-dependent " +
                             "Hamiltonian (expected string format)")
 
+
+    
     # loop over all collapse operators
     for c_spec in c_list:
-
         if isinstance(c_spec, Qobj):
             c = c_spec
 
@@ -631,6 +633,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                                 "superoperator)")
 
         elif isinstance(c_spec, list):
+            n_not_const_terms +=1
             c = c_spec[0]
             c_coeff = c_spec[1]
             
@@ -640,7 +643,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                                              - 0.5 * spost(cdc)
                 if isinstance(c_coeff, Cubic_Spline):
                     me_cops_obj.append(c_coeff.coeffs)
-                    me_cops_obj_flags.append(1)
+                    me_cops_obj_flags.append(n_not_const_terms)
                     me_cops_coeff.append(c_coeff)
                 else:
                     c_coeff = "(" + c_coeff + ")**2"
@@ -649,7 +652,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                 L = c
                 if isinstance(c_coeff, Cubic_Spline):
                     me_cops_obj.append(c_coeff.coeffs)
-                    me_cops_obj_flags.append(0)
+                    me_cops_obj_flags.append(-n_not_const_terms)
                     me_cops_coeff.append(c_coeff)
                 else:
                     Lcoeff.append(c_coeff)
@@ -666,17 +669,21 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
         else:
             raise TypeError("Incorrect specification of time-dependent " +
                             "collapse operators (expected string format)")
-
-    # add the constant part of the liouvillian
+    
+    
+    #prepend the constant part of the liouvillian
     if Lconst != 0:
-        Ldata.append(Lconst.data.data)
-        Linds.append(Lconst.data.indices)
-        Lptrs.append(Lconst.data.indptr)
-        Lcoeff.append("1.0")
-
+       Ldata = [Lconst.data.data]+Ldata
+       Linds = [Lconst.data.indices]+Linds
+       Lptrs = [Lconst.data.indptr]+Lptrs
+       Lcoeff = ["1.0"]+Lcoeff
+       
+    else:
+        me_cops_obj_flags = [kk-1 for kk in me_cops_obj_flags]
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
+    n_td_cops = len(me_cops_obj)
     
     # Check which components should use OPENMP
     omp_components = None
@@ -691,6 +698,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     string_list = []
     for k in range(n_L_terms):
         string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
+    
     # Add H object terms to ode args string
     for k in range(len(Lobj)):
         string_list.append("Lobj[%d]" % k)
@@ -705,7 +713,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
         else:
             string_list.append(str(value))
     parameter_string = ",".join(string_list)
-
+    
     #
     # generate and compile new cython code if necessary
     #
@@ -714,7 +722,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
             config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, 
+        cgen = Codegen(h_terms=len(Lcoeff), h_tdterms=Lcoeff, 
                        c_td_splines=me_cops_coeff, 
                        c_td_spline_flags=me_cops_obj_flags, args=args,
                        config=config, use_openmp=opt.use_openmp,
