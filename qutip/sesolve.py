@@ -70,17 +70,20 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
             progress_bar=None,
             _safe_mode=True):
     """
-    Schrodinger equation evolution of a state vector for a given Hamiltonian.
+    Schrodinger equation evolution of a state vector or unitary matrix
+    for a given Hamiltonian.
 
     Evolve the state vector (`psi0`) using a given
     Hamiltonian (`H`), by integrating the set of ordinary differential
-    equations that define the system.
+    equations that define the system. Alternatively evolve a unitary matrix in
+    solving the Schrodinger operator equation.
 
-    The output is either the state vector at arbitrary points in time
-    (`tlist`), or the expectation values of the supplied operators
+    The output is either the state vector or unitary matrix at arbitrary points
+    in time (`tlist`), or the expectation values of the supplied operators
     (`e_ops`). If e_ops is a callback function, it is invoked for each
     time in `tlist` with time and the state as arguments, and the function
-    does not use any return values.
+    does not use any return values. e_ops cannot be used in conjunction
+    with solving the Schrodinger operator equation
 
     Parameters
     ----------
@@ -90,7 +93,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
         Hamiltonians.
 
     psi0 : :class:`qutip.qobj`
-        initial state vector (ket).
+        initial state vector (ket)
+        or initial unitary operator `psi0 = U`
 
     tlist : *list* / *array*
         list of times for :math:`t`.
@@ -98,10 +102,10 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
     e_ops : list of :class:`qutip.qobj` / callback function single
         single operator or list of operators for which to evaluate
         expectation values.
+        Must be empty list operator evolution
 
     args : *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians and
-        collapse operators.
+        dictionary of parameters for time-dependent Hamiltonians
 
     options : :class:`qutip.Qdeoptions`
         with options for the ODE solver.
@@ -124,8 +128,7 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
 
     """
     # check initial state: must be a state vector
-    if not isket(psi0):
-        raise TypeError("The unitary solver requires a ket as initial state")
+
 
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
@@ -137,6 +140,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
         e_ops_dict = None
 
     if _safe_mode:
+        if not isket(psi0):
+            raise TypeError("The unitary solver requires a ket as initial state")
         _solver_safety_check(H, psi0, c_ops=[], e_ops=e_ops, args=args)
 
     if progress_bar is None:
