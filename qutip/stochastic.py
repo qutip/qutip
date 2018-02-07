@@ -145,7 +145,7 @@ class StochasticSolverOptions:
     Attributes
     ----------
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.Qobj`, :class:`qutip.td_Qobj`, time-dependent Qobj as a list*
         System Hamiltonian.
 
     state0 : :class:`qutip.Qobj`
@@ -154,10 +154,10 @@ class StochasticSolverOptions:
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : list of :class:`qutip.Qobj`, :class:`qutip.td_Qobj` or [Qobj, coeff*]
         List of deterministic collapse operators.
 
-    sc_ops : list of :class:`qutip.Qobj`
+    sc_ops : list of :class:`qutip.Qobj`, :class:`qutip.td_Qobj` or [Qobj, coeff*]
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the equation of motion according to how the d1 and d2 functions
@@ -230,6 +230,27 @@ class StochasticSolverOptions:
     progress_bar : :class:`qutip.ui.BaseProgressBar`
         Optional progress bar class instance.
 
+    *
+    time-dependent Qobj can be used for H, c_ops and sc_ops.
+    The format for time-dependent system hamiltonian is:
+    H = [Qobj0,[Qobj1,coeff1],[Qobj2,coeff2],...]
+      = Qobj0 + Qobj1 * coeff1(t) + Qobj2 * coeff2(t)
+
+    coeff function can be:
+        function: coeff(t, args) -> complex
+        str: "sin(1j*w*t)"
+        np.array[complex, 1d] of length equal to the times array
+    The argument args for the function coeff is the args keyword argument of the
+        stochastic solver.
+    Likewisem in str cases, the parameters ('w' in this case) are taken from the
+        args keywords argument.
+    *While mixing coeff type does not results in errors, it is not recommended.*
+
+    For the collapse operators (c_ops, sc_ops):
+    Each operators can only be composed of 1 Qobj.
+    c_ops = [c_op1, c_op2, ...]
+    c_opN = Qobj or [Qobj,coeff]
+    The coeff format is the same as for the Hamiltonian.
     """
     def __init__(self, H=None, c_ops=[], sc_ops=[], state0=None,
                  e_ops=[], m_ops=None, store_measurement=False, dW_factors=None,
@@ -398,8 +419,9 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     Parameters
     ----------
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.Qobj`, or time dependent system.
         System Hamiltonian.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     rho0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
@@ -407,15 +429,17 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
+        Can depend on time, see StochasticSolverOptions help for format.
 
-    sc_ops : list of :class:`qutip.Qobj`
+    sc_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the eqaution of motion according to how the d1 and d2 functions
         are defined.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     e_ops : list of :class:`qutip.Qobj`
         single operator or list of operators for which to evaluate
@@ -520,8 +544,9 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     Parameters
     ----------
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.Qobj`, or time dependent system.
         System Hamiltonian.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     rho0 : :class:`qutip.Qobj`
         State vector (ket).
@@ -529,11 +554,12 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    sc_ops : list of :class:`qutip.Qobj`
+    sc_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the eqaution of motion according to how the d1 and d2 functions
         are defined.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     e_ops : list of :class:`qutip.Qobj`
         single operator or list of operators for which to evaluate
@@ -633,8 +659,9 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     Parameters
     ----------
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.Qobj`, or time dependent system.
         System Hamiltonian.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     rho/psi : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
@@ -642,16 +669,17 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.Qobj`
-        If master equation,
+    c_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
+        Can depend on time, see StochasticSolverOptions help for format.
 
-    sc_ops : list of :class:`qutip.Qobj`
+    sc_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the eqaution of motion according to how the d1 and d2 functions
         are defined.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     e_ops : list of :class:`qutip.Qobj` / callback function single
         single operator or list of operators for which to evaluate
@@ -724,8 +752,9 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     Parameters
     ----------
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.Qobj`, or time dependent system.
         System Hamiltonian.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     rho/psi : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
@@ -733,11 +762,12 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    sc_ops : list of :class:`qutip.Qobj`
+    sc_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the eqaution of motion according to how the d1 and d2 functions
         are defined.
+        Can depend on time, see StochasticSolverOptions help for format.
 
     e_ops : list of :class:`qutip.Qobj` / callback function single
         single operator or list of operators for which to evaluate
@@ -994,7 +1024,7 @@ def _safety_checks(sso):
 
 def _sesolve_generic(sso, options, progress_bar):
     """
-    Internal function. See smesolve.   Not Good yet ------------------------------------------
+    Internal function. See smesolve.
     """
     data = Result()
     data.times = sso.times
