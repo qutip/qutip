@@ -364,6 +364,45 @@ def test_TDStr():
     assert_equal(diff < error, True)
 
 
+def test_MCTDtd_Qobj():
+    "Monte-carlo: Time-dependent H (td_Qobj)"
+    error = 5e-2
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    c_op_list = [td_Qobj([a, sqrt_kappa2])]
+    tlist = np.linspace(0, 10, 100)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
+    expt = mcdata.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_equal(diff < error, True)
+
+
+@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
+                 Cython_found == 0, 'Cython not found or version too low.')
+def test_MCdopri5Solver():
+    "Monte-carlo: dopri5 solver, Time-dependent H (str)"
+    error = 5e-2
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    args = {'k': kappa}
+    c_op_list = [td_Qobj([a, 'sqrt(k*exp(-t))'],args=args)]
+    tlist = np.linspace(0, 10, 100)
+    opts = Options(method="dopri5")
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a],
+                     ntraj=ntraj, options=opts)
+    expt = mcdata.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_equal(diff < error, True)
+
+
 def test_mc_dtypes1():
     "Monte-carlo: check for correct dtypes (average_states=True)"
     # set system parameters
@@ -534,7 +573,7 @@ def test_mc_ntraj_list():
 
 def test_mc_functd_sum():
     "Monte-carlo: Test for #490"
-    psi0 = (basis(2,0) + basis(2,1)).unit()   
+    psi0 = (basis(2,0) + basis(2,1)).unit()
     H0 = sigmax()
     H1 = sigmay()
     H2 = sigmaz()
