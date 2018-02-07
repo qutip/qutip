@@ -45,20 +45,6 @@ from qutip.cy.spmath import zcsr_kron
 from functools import partial
 
 
-"""def td_liouvillian(H, c_ops=[], chi=None, args={}, tlist=None, raw_str=False):
-    print("Old method")
-    h = td_Qobj(H, args=args, tlist=tlist, raw_str=raw_str)
-    co = []
-    for c in c_ops:
-        co.append(td_Qobj(c, args=args, tlist=tlist, raw_str=raw_str))
-    return liouvillian(h, co, chi=chi)
-
-def td_lindblad_dissipator(a, args={}, tlist=None, raw_str=False):
-    print("Old method")
-    return lindblad_dissipator(td_Qobj(a, args=args, tlist=tlist, raw_str=raw_str))
-"""
-
-
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
