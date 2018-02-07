@@ -34,15 +34,16 @@
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
-from numpy.testing import (assert_equal, assert_, assert_almost_equal, 
+from numpy.testing import (assert_equal, assert_, assert_almost_equal,
                             run_module_suite)
 
 from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_super_bcsz, rand_dm_ginibre)
 from qutip.states import basis, fock_dm, ket2dm
-from qutip.operators import create, destroy, num, sigmax, sigmay, qeye
-from qutip.superoperator import spre, spost, operator_to_vector, vector_to_operator
+from qutip.operators import create, destroy, num, sigmax, sigmay, sigmam, qeye
+from qutip.superoperator import (spre, spost, operator_to_vector,
+                                 vector_to_operator)
 from qutip.superop_reps import to_super, to_choi, to_chi
 from qutip.tensor import tensor, super_tensor, composite
 
@@ -191,7 +192,32 @@ def test_QobjHerm():
     q = sigmax() * (1j * sigmay())
     assert_hermicity(q, True, "Expected -Z = X * iY to be Hermitian.")
 
+def assert_unitarity(oper, unitarity, msg=""):
+    # Check the cached isunitary, if any exists.
+    assert_(oper.isunitary == unitarity, msg)
+    # Force a reset of the cached value for isunitary.
+    oper._isunitary = None
+    # Force a recalculation of isunitary.
+    assert_(oper.isunitary == unitarity, msg)
 
+def test_QobjUnitaryOper():
+    "Qobj unitarity"
+    # Check some standard operators
+    Sx = sigmax()
+    Sy = sigmay()
+    assert_unitarity(qeye(4), True, "qeye(4) should be unitary.")
+    assert_unitarity(Sx, True, "sigmax() should be unitary.")
+    assert_unitarity(Sy, True, "sigmax() should be unitary.")
+    assert_unitarity(sigmam(), False, "sigmam() should NOT be unitary.")
+    assert_unitarity(destroy(10), False, "destroy(10) should NOT be unitary.")
+    # Check multiplcation of unitary is unitary
+    assert_unitarity(Sx*Sy, True, "sigmax()*sigmay() should be unitary.")
+    # Check some other operations clear unitarity
+    assert_unitarity(Sx+Sy, False, "sigmax()+sigmay() should NOT be unitary.")
+    assert_unitarity(4*Sx, False, "4*sigmax() should NOT be unitary.")
+    assert_unitarity(Sx*4, False, "sigmax()*4 should NOT be unitary.")
+    assert_unitarity(4+Sx, False, "4+sigmax() should NOT be unitary.")
+    assert_unitarity(Sx+4, False, "sigmax()+4 should NOT be unitary.")
 
 def test_QobjDimsShape():
     "Qobj shape"
@@ -238,7 +264,7 @@ def test_QobjMulNonsquareDims():
     # as matching dimensions of 1 are implicitly partial traced out.
     # (See #331.)
     assert_equal((q1 * q2 * q1.dag()).dims, [[2], [2]])
-    
+
     # Because of the above, we also need to check for extra indices
     # that aren't of length 1.
     q1 = Qobj([[ 1.+0.j,  0.+0.j],
@@ -597,7 +623,7 @@ def test_QobjPermute():
     psi = tensor(A, B, C)
     psi2 = psi.permute([2, 0, 1])
     assert_(psi2 == tensor(C, A, B))
-    
+
     psi_bra = psi.dag()
     psi2_bra = psi_bra.permute([2, 0, 1])
     assert_(psi2_bra == tensor(C, A, B).dag())
@@ -616,7 +642,7 @@ def test_QobjPermute():
         psi = tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
         assert_(psi2 == tensor(B, A, C))
-        
+
         psi_bra = psi.dag()
         psi2_bra = psi_bra.permute([1, 0, 2])
         assert_(psi2_bra == tensor(B, A, C).dag())
@@ -628,15 +654,15 @@ def test_QobjPermute():
         rho = tensor(A, B, C)
         rho2 = rho.permute([1, 0, 2])
         assert_(rho2 == tensor(B, A, C))
-        
+
         rho_vec = operator_to_vector(rho)
         rho2_vec = rho_vec.permute([[1, 0, 2],[4,3,5]])
         assert_(rho2_vec == operator_to_vector(tensor(B, A, C)))
-        
+
         rho_vec_bra = operator_to_vector(rho).dag()
         rho2_vec_bra = rho_vec_bra.permute([[1, 0, 2],[4,3,5]])
         assert_(rho2_vec_bra == operator_to_vector(tensor(B, A, C)).dag())
-        
+
     for ii in range(3):
         super_dims = [3, 5, 4]
         U = rand_unitary(np.prod(super_dims), density=0.02, dims=[super_dims, super_dims])
@@ -901,7 +927,7 @@ def test_trunc_neg():
         Qobj(np.diag([3. / 5, 1. / 2, 7. / 20, 1. / 10, -11. / 20])), 'sgs',
         Qobj(np.diag([9. / 20, 7. / 20, 1. / 5, 0, 0]))
     )
-    
+
 
 def test_cosm():
     """
@@ -935,19 +961,19 @@ def test_dual_channel():
     Qobj: dual_chan() preserves inner products with arbitrary density ops.
     """
 
-    def case(S, n_trials=50):        
+    def case(S, n_trials=50):
         S = to_super(S)
         left_dims, right_dims = S.dims
-        
+
         # Assume for the purposes of the test that S maps square operators to square operators.
         in_dim = np.prod(right_dims[0])
         out_dim = np.prod(left_dims[0])
-        
+
         S_dual = to_super(S.dual_chan())
-        
+
         primals = []
         duals = []
-    
+
         for idx_trial in range(n_trials):
             X = rand_dm_ginibre(out_dim)
             X.dims = left_dims
@@ -958,7 +984,7 @@ def test_dual_channel():
 
             primals.append((X.dag() * S * Y)[0, 0])
             duals.append((X.dag() * S_dual.dag() * Y)[0, 0])
-    
+
         np.testing.assert_array_almost_equal(primals, duals)
 
     for subdims in [
@@ -1011,18 +1037,18 @@ def test_matelem():
         L = rand_ket(N,0.3)
         Ld = L.dag()
         R = rand_ket(N,0.3)
-    
+
         ans = (Ld*H*R).tr()
-    
+
         #bra-ket
         out1 = H.matrix_element(Ld,R)
         #ket-ket
         out2 = H.matrix_element(Ld,R)
-    
+
         assert_(abs(ans-out1) < 1e-14)
         assert_(abs(ans-out2) < 1e-14)
-    
-    
+
+
 def test_projection():
     """
     Test Qobj: Projection operator
@@ -1031,12 +1057,12 @@ def test_projection():
         N = 5
         K = tensor(rand_ket(N,0.75),rand_ket(N,0.75))
         B = K.dag()
-        
+
         ans = K*K.dag()
-        
+
         out1 = K.proj()
         out2 = B.proj()
-        
+
         assert_(out1==ans)
         assert_(out2==ans)
 
@@ -1051,9 +1077,9 @@ def test_overlap():
         Ad = A.dag()
         B = rand_ket(N,0.75)
         Bd = B.dag()
-        
+
         ans = (A.dag()*B).tr()
-        
+
         assert_almost_equal(A.overlap(B), ans)
         assert_almost_equal(Ad.overlap(B), ans)
         assert_almost_equal(Ad.overlap(Bd), ans)
