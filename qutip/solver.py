@@ -172,7 +172,7 @@ class Options():
         # Tolerance for wavefunction norm (mcsolve only)
         self.norm_tol = norm_tol
         # Tolerance for colapse time (mcsolve only)
--       self.norm_t_tol = norm_t_tol
+        self.norm_t_tol = norm_t_tol
         # Max. number of steps taken to find wavefunction norm to within
         # norm_tol (mcsolve only)
         self.norm_steps = norm_steps
