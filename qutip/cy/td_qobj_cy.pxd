@@ -1,6 +1,6 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, The QuTiP Project.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -31,27 +31,48 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip.cy.sparse_structs cimport CSR_Matrix
-
-cdef void _zcsr_add(CSR_Matrix * A, CSR_Matrix * B,
-                    CSR_Matrix * C, double complex alpha)
-
-cdef int _zcsr_add_core(double complex * Adata, int * Aind, int * Aptr,
-                        double complex * Bdata, int * Bind, int * Bptr,
-                        double complex alpha,
-                        CSR_Matrix * C,
-                        int nrows, int ncols) nogil
-
-cdef void _zcsr_mult(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
+from qutip.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
 
 
-cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
+cdef class cy_qobj:
+    cdef void _rhs_mat(self, double t, complex* vec, complex* out)
+    cdef complex _expect_mat(self, double t, complex* vec, int isherm)
+    cdef complex _expect_mat_super(self, double t, complex* vec, int isherm)
 
-cdef void _zcsr_kron_core(double complex * dataA, int * indsA, int * indptrA,
-                          double complex * dataB, int * indsB, int * indptrB,
-                          CSR_Matrix * out,
-                          int rowsA, int rowsB, int colsB) nogil
 
-cdef void _zcsr_transpose(CSR_Matrix * A, CSR_Matrix * B)
+cdef class cy_cte_qobj(cy_qobj):
+    cdef int total_elem
+    cdef int shape0, shape1
+    cdef object dims
+    cdef int super
 
-cdef void _zcsr_adjoint(CSR_Matrix * A, CSR_Matrix * B)
+    # pointer to data
+    cdef CSR_Matrix cte
+
+    cdef void _rhs_mat(self, double t, complex* vec, complex* out)
+    cdef complex _expect_mat(self, double t, complex* vec, int isherm)
+    cdef complex _expect_mat_super(self, double t, complex* vec, int isherm)
+
+
+cdef class cy_td_qobj(cy_qobj):
+    cdef long total_elem
+    cdef int shape0, shape1
+    cdef object dims
+    cdef int super
+    cdef void (*factor_ptr)(double, complex*)
+    cdef object factor_func
+    cdef int factor_use_ptr
+
+    # pointer to data
+    cdef CSR_Matrix cte
+    cdef CSR_Matrix ** ops
+    cdef long[::1] sum_elem
+    cdef int N_ops
+
+    cdef void factor(self, double t, complex* out)
+    cdef void _call_core(self, double t, CSR_Matrix * out, complex* coeff)
+    cdef void _rhs_mat(self, double t, complex* vec, complex* out)
+    cdef complex _expect_psi(self, complex* data, int* idx, int* ptr,
+                             complex* vec, int isherm)
+    cdef complex _expect_mat(self, double t, complex* vec, int isherm)
+    cdef complex _expect_mat_super(self, double t, complex* vec, int isherm)
