@@ -1896,12 +1896,16 @@ class Qobj(object):
         Checks whether qobj is a unitary matrix
         """
         if self.isoper:
-            return not np.any(np.abs((self.data*self.dag().data
-                                     - fast_identity(self.shape[0])).data) >
+            eye_data = fast_identity(self.shape[0])
+            return not (np.any(np.abs((self.data*self.dag().data
+                                       - eye_data).data)
+                                > settings.atol)
+                        or
+                        np.any(np.abs((self.dag().data*self.data
+                                       - eye_data).data) >
                               settings.atol)
+                        )
 
-#                not np.any(np.abs((self.data - other.data).data) >
-#                           settings.atol)):
         else:
             return False
 
