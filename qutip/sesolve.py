@@ -48,6 +48,7 @@ from qutip.rhs_generate import rhs_generate
 from qutip.solver import Result, Options, config, _solver_safety_check
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.interpolate import Cubic_Spline
+from qutip.superoperator import operator_to_vector, vector_to_operator, spre, mat2vec
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
@@ -130,6 +131,22 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
     # check initial state: must be a state vector
 
 
+    if _safe_mode:
+        if not isinstance(psi0, Qobj):
+            raise TypeError("psi0 must be Qobj")
+        if psi0.isket:
+            pass
+        elif psi0.isunitary:
+            if not e_ops == []:
+                raise TypeError("Must have e_ops = [] when initial condition"
+                                " psi0 is a unitary operator.")
+        else:
+            raise TypeError("The unitary solver requires psi0 to be"
+                            " a ket as initial state"
+                            " or a unitary as initial operator.")
+        _solver_safety_check(H, psi0, c_ops=[], e_ops=e_ops, args=args)
+
+
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
@@ -138,11 +155,6 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-
-    if _safe_mode:
-        if not isket(psi0):
-            raise TypeError("The unitary solver requires a ket as initial state")
-        _solver_safety_check(H, psi0, c_ops=[], e_ops=e_ops, args=args)
 
     if progress_bar is None:
         progress_bar = BaseProgressBar()
@@ -315,14 +327,22 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     if debug:
         print(inspect.stack()[0][3])
 
-    if not isket(psi0):
-        raise TypeError("psi0 must be a ket")
-
     #
     # setup integrator.
     #
-    initial_vector = psi0.full().ravel()
-    L = -1.0j * H
+
+    if psi0.isket:
+        #initial_vector = psi0.full().ravel()
+        initial_vector = mat2vec(psi0.full()).ravel('F')
+        L = -1.0j * H
+        oper_evo = False
+    elif psi0.isunitary:
+        initial_vector = operator_to_vector(psi0).full().ravel()
+        L = -1.0j * spre(H)
+    else:
+        raise TypeError("The unitary solver requires psi0 to be"
+                        " a ket as initial state"
+                        " or a unitary as initial operator.")
 
     if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
         r = scipy.integrate.ode(cy_ode_rhs_openmp)
@@ -671,6 +691,10 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
 
     if opt.store_states:
         output.states = []
+        output_opers = False
+        if psi0.isunitary:
+            output_opers = True
+            oper_n = dims[0][0]
 
     if isinstance(e_ops, types.FunctionType):
         n_expt_op = 0
@@ -715,7 +739,13 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
             r.set_initial_value(data, r.t)
 
         if opt.store_states:
-            output.states.append(Qobj(r.y, dims=dims))
+            if output_opers:
+                output.states.append(Qobj(r.y.reshape([oper_n, oper_n]).T,
+                                          dims=dims))
+#                vec = Qobj(r.y)
+#                output.states.append(vector_to_operator(vec))
+            else:
+                output.states.append(Qobj(r.y, dims=dims))
 
         if expt_callback:
             # use callback method
