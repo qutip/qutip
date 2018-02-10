@@ -335,10 +335,10 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
         #initial_vector = psi0.full().ravel()
         initial_vector = mat2vec(psi0.full()).ravel('F')
         L = -1.0j * H
-        oper_evo = False
     elif psi0.isunitary:
         initial_vector = operator_to_vector(psi0).full().ravel()
         L = -1.0j * spre(H)
+        opt.normalize_output = False
     else:
         raise TypeError("The unitary solver requires psi0 to be"
                         " a ket as initial state"
@@ -357,6 +357,7 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
                      max_step=opt.max_step)
 
     r.set_initial_value(initial_vector, tlist[0])
+    print("y init: ", r.y)
 
     #
     # call generic ODE code
@@ -680,7 +681,6 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
     else:
         state_norm_func = None
 
-
     #
     # prepare output array
     #
@@ -740,6 +740,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
 
         if opt.store_states:
             if output_opers:
+                print("y: ", r.y)
                 output.states.append(Qobj(r.y.reshape([oper_n, oper_n]).T,
                                           dims=dims))
 #                vec = Qobj(r.y)
