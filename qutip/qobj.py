@@ -122,6 +122,8 @@ class Qobj(object):
         (Liouville form) or 'choi' (Choi matrix with tr = dimension).
     isherm : bool
         Indicates if quantum object represents Hermitian operator.
+    isunitary : bool
+        Indictaes if quantum object represents unitary operator.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
@@ -208,13 +210,14 @@ class Qobj(object):
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
                  type=None, isherm=None, copy=True,
-                 fast=False, superrep=None):
+                 fast=False, superrep=None, isunitary=None):
         """
         Qobj constructor.
         """
         self._isherm = isherm
         self._type = type
         self.superrep = superrep
+        self._isunitary = isunitary
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
@@ -245,6 +248,7 @@ class Qobj(object):
                 self.dims = dims
 
             self.superrep = inpt.superrep
+            self._isunitary = inpt._isunitary
 
         elif inpt is None:
             # initialize an empty Qobj with correct dimensions and shape
@@ -328,7 +332,7 @@ class Qobj(object):
                 else:
                     sub_shape = int(sub_shape)
                     self.dims = [[[sub_shape], [sub_shape]]]*2
-                    
+
 
         if superrep:
             self.superrep = superrep
@@ -357,6 +361,8 @@ class Qobj(object):
         """
         ADDITION with Qobj on LEFT [ ex. Qobj+4 ]
         """
+        self._isunitary = None
+
         if isinstance(other, eseries):
             return other.__radd__(self)
 
@@ -379,9 +385,9 @@ class Qobj(object):
                 out.data.data = out.data.data + dat
 
             out.dims = self.dims
-           
+
             if settings.auto_tidyup: out.tidyup()
-           
+
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
             else:
@@ -407,9 +413,9 @@ class Qobj(object):
                 out.data = other.data
                 out.data.data = out.data.data + dat
             out.dims = other.dims
-            
+
             if settings.auto_tidyup: out.tidyup()
-            
+
             if isinstance(dat, complex):
                 out._isherm = out.isherm
             else:
@@ -430,7 +436,7 @@ class Qobj(object):
             out.data = self.data + other.data
             out.dims = self.dims
             if settings.auto_tidyup: out.tidyup()
-           
+
             if self.type in ['ket', 'bra', 'operator-ket', 'operator-bra']:
                 out._isherm = False
             elif self._isherm is None or other._isherm is None:
@@ -472,6 +478,8 @@ class Qobj(object):
         """
         MULTIPLICATION with Qobj on LEFT [ ex. Qobj*4 ]
         """
+        self._isunitary = None
+
         if isinstance(other, Qobj):
             if self.dims[1] == other.dims[0]:
                 out = Qobj()
@@ -638,6 +646,7 @@ class Qobj(object):
         out.superrep = self.superrep
         if settings.auto_tidyup: out.tidyup()
         out._isherm = self._isherm
+        out._isunitary = self._isunitary
         return out
 
     def __getitem__(self, ind):
@@ -987,12 +996,12 @@ class Qobj(object):
 
     def proj(self):
         """Form the projector from a given ket or bra vector.
-    
+
         Parameters
         ----------
         Q : Qobj
             Input bra or ket vector
-        
+
         Returns
         -------
         P : Qobj
@@ -1006,10 +1015,10 @@ class Qobj(object):
             _dims = [self.dims[1],self.dims[1]]
         else:
             raise TypeError('Projector can only be formed from a bra or ket.')
-    
+
         return Qobj(_out,dims=_dims)
-    
-    
+
+
     def tr(self):
         """Trace of a quantum object.
 
@@ -1031,7 +1040,7 @@ class Qobj(object):
             Return array in C (default) or Fortran ordering.
         squeeze : bool {False, True}
             Squeeze output array.
-        
+
         Returns
         -------
         data : array
@@ -1210,7 +1219,7 @@ class Qobj(object):
 
 
     def unit(self, inplace=False,
-            norm=None, sparse=False, 
+            norm=None, sparse=False,
             tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
@@ -1239,7 +1248,7 @@ class Qobj(object):
         if inplace:
             nrm = self.norm(norm=norm, sparse=sparse,
                            tol=tol, maxiter=maxiter)
-            
+
             self.data /= nrm
         elif not inplace:
             out = self / self.norm(norm=norm, sparse=sparse,
@@ -1312,7 +1321,7 @@ class Qobj(object):
             #This does the tidyup and returns True if
             #The sparse data needs to be shortened
             if use_openmp() and self.data.nnz > 500:
-                if omp_tidyup(self.data.data,atol,self.data.nnz, 
+                if omp_tidyup(self.data.data,atol,self.data.nnz,
                             settings.num_cpus):
                             self.data.eliminate_zeros()
             else:
@@ -1488,7 +1497,7 @@ class Qobj(object):
         ----
         It is slightly more computationally efficient to use a ket
         vector for the 'bra' input.
-        
+
         """
         if not self.isoper:
             raise TypeError("Can only get matrix elements for an operator.")
@@ -1505,7 +1514,7 @@ class Qobj(object):
     def overlap(self, other):
         """Overlap between two state vectors.
 
-        Gives the overlap (inner product) between the current bra or ket Qobj 
+        Gives the overlap (inner product) between the current bra or ket Qobj
         and and another bra or ket Qobj.
 
         Parameters
@@ -1522,11 +1531,11 @@ class Qobj(object):
         ------
         TypeError
             Can only calculate overlap between a bra and ket quantum objects.
-        
+
         Notes
         -----
         Since QuTiP mainly deals with ket vectors, the most efficient inner product
-        call is the ket-ket version that computes the product <self|other> with 
+        call is the ket-ket version that computes the product <self|other> with
         both vectors expressed as kets.
 
         """
@@ -1553,7 +1562,7 @@ class Qobj(object):
 
         raise TypeError("Can only calculate overlap for state vector Qobjs")
 
-    
+
     def eigenstates(self, sparse=False, sort='low',
                     eigvals=0, tol=0, maxiter=100000):
         """Eigenstates and eigenenergies.
@@ -1603,7 +1612,7 @@ class Qobj(object):
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 
-    
+
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
         """Eigenenergies of a quantum object.
@@ -1881,6 +1890,38 @@ class Qobj(object):
     @isherm.setter
     def isherm(self, isherm):
         self._isherm = isherm
+
+    def check_isunitary(self):
+        """
+        Checks whether qobj is a unitary matrix
+        """
+        if self.isoper:
+            eye_data = fast_identity(self.shape[0])
+            return not (np.any(np.abs((self.data*self.dag().data
+                                       - eye_data).data)
+                                > settings.atol)
+                        or
+                        np.any(np.abs((self.dag().data*self.data
+                                       - eye_data).data) >
+                              settings.atol)
+                        )
+
+        else:
+            return False
+
+    @property
+    def isunitary(self):
+        if self._isunitary is not None:
+            # used previously computed value
+            return self._isunitary
+
+        self._isunitary = self.check_isunitary()
+
+        return self._isunitary
+
+    @isunitary.setter
+    def isunitary(self, isunitary):
+        self._isunitary = isunitary
 
     @property
     def type(self):
