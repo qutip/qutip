@@ -332,8 +332,7 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     #
 
     if psi0.isket:
-        #initial_vector = psi0.full().ravel()
-        initial_vector = mat2vec(psi0.full()).ravel('F')
+        initial_vector = psi0.full().ravel()
         L = -1.0j * H
     elif psi0.isunitary:
         initial_vector = operator_to_vector(psi0).full().ravel()
@@ -357,7 +356,6 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
                      max_step=opt.max_step)
 
     r.set_initial_value(initial_vector, tlist[0])
-    print("y init: ", r.y)
 
     #
     # call generic ODE code
@@ -386,14 +384,19 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     if debug:
         print(inspect.stack()[0][3])
 
-    #
-    # check initial state: must be a state vector
-    #
-    if not isket(psi0):
-        raise TypeError("The unitary solver requires a ket as initial state")
+    if psi0.isket:
+        initial_vector = psi0.full().ravel()
+        oper_evo = True
+    elif psi0.isunitary:
+        initial_vector = operator_to_vector(psi0).full().ravel()
+        opt.normalize_output = False
+    else:
+        raise TypeError("The unitary solver requires psi0 to be"
+                        " a ket as initial state"
+                        " or a unitary as initial operator.")
 
     #
-    # construct liouvillian
+    # construct dynamics generator
     #
     Ldata = []
     Linds = []
@@ -417,7 +420,10 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
             raise TypeError("Incorrect specification of time-dependent " +
                             "Hamiltonian (expected string format)")
 
-        L = -1j * h
+        if oper_evo:
+            L = -1.0j * spre(h)
+        else:
+            L = -1j * h
 
         Ldata.append(L.data.data)
         Linds.append(L.data.indices)
@@ -426,8 +432,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
             Lobj.append(h_coeff.coeffs)
         Lcoeff.append(h_coeff)
 
-    # the total number of liouvillian terms (hamiltonian terms +
-    # collapse operators)
+    # the total number of Hamiltonian terms
     n_L_terms = len(Ldata)
 
     # Check which components should use OPENMP
@@ -740,11 +745,8 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
 
         if opt.store_states:
             if output_opers:
-                print("y: ", r.y)
                 output.states.append(Qobj(r.y.reshape([oper_n, oper_n]).T,
                                           dims=dims))
-#                vec = Qobj(r.y)
-#                output.states.append(vector_to_operator(vec))
             else:
                 output.states.append(Qobj(r.y, dims=dims))
 
