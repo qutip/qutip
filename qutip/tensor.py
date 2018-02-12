@@ -379,7 +379,7 @@ def tensor_contract(qobj, *pairs):
     A = []
     IA = [0]
     JA = []
-    prev_idx = None
+    prev_idx = -1
     for idx_val in lol:
         if idx_val == None: #take care of the EoL case for the generator
             break
@@ -390,7 +390,7 @@ def tensor_contract(qobj, *pairs):
                 A.pop()
                 JA.pop()
                 IA[-1] += -1
-                prev_idx = None
+                prev_idx = -1
         else:
             A += [idx_val[1]]
             JA += [idx_val[0]%new_w]
