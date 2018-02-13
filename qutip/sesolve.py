@@ -41,7 +41,7 @@ import types
 from functools import partial
 import numpy as np
 import scipy.integrate
-from scipy.linalg import norm
+from scipy.linalg import la_norm
 import qutip.settings as qset
 from qutip.qobj import Qobj, isket
 from qutip.rhs_generate import rhs_generate
@@ -673,6 +673,9 @@ def _ode_psi_func_td_with_state(t, psi, H_func, args):
     return -1j * (H * psi)
 
 
+def _trace_norm(A):
+    """Trace norm of dense matrix"""
+    return np.trace(A.dot(A.conj().T))
 # -----------------------------------------------------------------------------
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
@@ -681,10 +684,6 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
     """
     Internal function for solving ODEs.
     """
-    if opt.normalize_output:
-        state_norm_func = norm
-    else:
-        state_norm_func = None
 
     #
     # prepare output array
@@ -694,19 +693,23 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
     output.solver = "sesolve"
     output.times = tlist
 
+    state_norm_func = None
+    if psi0.isunitary:
+        oper_evo = True
+        oper_n = dims[0][0]
+        state_norm_func = _trace_norm
+    else:
+        oper_evo = False
+        state_norm_func = la_norm
+
     if opt.store_states:
         output.states = []
-        output_opers = False
-        if psi0.isunitary:
-            output_opers = True
-            oper_n = dims[0][0]
 
     if isinstance(e_ops, types.FunctionType):
         n_expt_op = 0
         expt_callback = True
 
     elif isinstance(e_ops, list):
-
         n_expt_op = len(e_ops)
         expt_callback = False
 
@@ -725,6 +728,12 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
+    def get_curr_state():
+        if oper_evo:
+            return Qobj(r.y.reshape([oper_n, oper_n]).T, dims=dims)
+        else:
+            return Qobj(r.y, dims=dims)
+
     #
     # start evolution
     #
@@ -739,16 +748,23 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
 
-        if state_norm_func:
-            data = r.y / state_norm_func(r.y)
-            r.set_initial_value(data, r.t)
+        # get the current state / oper data if needed
+        cdata = None
+        if opt.store_states or opt.normalize_output or n_expt_op > 0:
+            if oper_evo:
+                cdata = r.y.reshape([oper_n, oper_n]).T
+            else:
+                cdata = r.y
+
+        if opt.normalize_output:
+            cdata = cdata / state_norm_func(cdata)
+            if oper_evo:
+                r.set_initial_value(cdata.ravel(), r.t)
+            else:
+                r.set_initial_value(cdata, r.t)
 
         if opt.store_states:
-            if output_opers:
-                output.states.append(Qobj(r.y.reshape([oper_n, oper_n]).T,
-                                          dims=dims))
-            else:
-                output.states.append(Qobj(r.y, dims=dims))
+
 
         if expt_callback:
             # use callback method
