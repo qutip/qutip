@@ -671,18 +671,6 @@ def _ode_psi_func_td_with_state(t, psi, H_func, args):
     H = H_func(t, psi, args)
     return -1j * (H * psi)
 
-def _trace_norm(A):
-    """Trace norm of dense matrix"""
-    return np.abs(np.trace(A.dot(A.conj().T)))
-
-def _get_norm_factor(A, norm_dim_factor):
-    if oper:
-        # return np.sqrt(float(A.shape[0]) / _trace_norm(A))
-        #return float(A.shape[0]) / Qobj(A).norm()
-        return np.sqrt(A.shape[0]) / la_norm(A)
-    else:
-        return norm_dim_factor / la_norm(A)
-
 # -----------------------------------------------------------------------------
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
