@@ -41,7 +41,7 @@ import types
 from functools import partial
 import numpy as np
 import scipy.integrate
-from scipy.linalg import la_norm
+from scipy.linalg import norm as la_norm
 import qutip.settings as qset
 from qutip.qobj import Qobj, isket
 from qutip.rhs_generate import rhs_generate
@@ -337,7 +337,6 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     elif psi0.isunitary:
         initial_vector = operator_to_vector(psi0).full().ravel()
         L = -1.0j * spre(H)
-        opt.normalize_output = False
     else:
         raise TypeError("The unitary solver requires psi0 to be"
                         " a ket as initial state"
@@ -672,10 +671,18 @@ def _ode_psi_func_td_with_state(t, psi, H_func, args):
     H = H_func(t, psi, args)
     return -1j * (H * psi)
 
-
 def _trace_norm(A):
     """Trace norm of dense matrix"""
-    return np.trace(A.dot(A.conj().T))
+    return np.abs(np.trace(A.dot(A.conj().T)))
+
+def _get_norm_factor(A, norm_dim_factor):
+    if oper:
+        # return np.sqrt(float(A.shape[0]) / _trace_norm(A))
+        #return float(A.shape[0]) / Qobj(A).norm()
+        return np.sqrt(A.shape[0]) / la_norm(A)
+    else:
+        return norm_dim_factor / la_norm(A)
+
 # -----------------------------------------------------------------------------
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
@@ -693,14 +700,13 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
     output.solver = "sesolve"
     output.times = tlist
 
-    state_norm_func = None
     if psi0.isunitary:
         oper_evo = True
         oper_n = dims[0][0]
-        state_norm_func = _trace_norm
+        norm_dim_factor = np.sqrt(oper_n)
     else:
         oper_evo = False
-        state_norm_func = la_norm
+        norm_dim_factor = 1.0
 
     if opt.store_states:
         output.states = []
@@ -728,11 +734,11 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
-    def get_curr_state():
+    def get_curr_state_data():
         if oper_evo:
-            return Qobj(r.y.reshape([oper_n, oper_n]).T, dims=dims)
+            return r.y.reshape([oper_n, oper_n]).T
         else:
-            return Qobj(r.y, dims=dims)
+            return r.y
 
     #
     # start evolution
@@ -751,28 +757,26 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
         # get the current state / oper data if needed
         cdata = None
         if opt.store_states or opt.normalize_output or n_expt_op > 0:
-            if oper_evo:
-                cdata = r.y.reshape([oper_n, oper_n]).T
-            else:
-                cdata = r.y
+            cdata = get_curr_state_data()
 
         if opt.normalize_output:
-            cdata = cdata / state_norm_func(cdata)
+            # cdata *= _get_norm_factor(cdata, oper_evo)
+            cdata *= norm_dim_factor / la_norm(cdata)
             if oper_evo:
                 r.set_initial_value(cdata.ravel(), r.t)
             else:
                 r.set_initial_value(cdata, r.t)
 
         if opt.store_states:
-
+            output.states.append(Qobj(cdata, dims=dims))
 
         if expt_callback:
             # use callback method
-            e_ops(t, Qobj(r.y, dims=psi0.dims))
+            e_ops(t, Qobj(cdata, dims=dims))
 
         for m in range(n_expt_op):
             output.expect[m][t_idx] = cy_expect_psi(e_ops[m].data,
-                                                    r.y, e_ops[m].isherm)
+                                                    cdata, e_ops[m].isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
@@ -786,6 +790,9 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, dims=None):
             pass
 
     if opt.store_final_state:
-        output.final_state = Qobj(r.y, dims=dims)
+        cdata = get_curr_state_data()
+        if opt.normalize_output:
+            cdata *= norm_dim_factor / la_norm(cdata)
+        output.final_state = Qobj(cdata, dims=dims)
 
     return output
