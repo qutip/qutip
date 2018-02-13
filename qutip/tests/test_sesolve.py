@@ -79,5 +79,30 @@ class TestSchrodingerEqSolve:
         assert_(max(abs(sz - sz_analytic)) < tol,
                 msg="expect Z not matching analytic")
 
+    def test_01_1_unitary_with_const_H(self):
+        "sesolve: unitary operator with const H"
+        tol = 5e-3
+        epsilon = 0.0 * 2 * np.pi   # cavity frequency
+        delta = 1.0 * 2 * np.pi   # atom frequency
+        psi0 = basis(2, 0)        # initial state
+        U0 = qeye(2)                # initital operator
+        tlist = np.linspace(0, 5, 200)
+
+        output = self.qubit_integrate(tlist, U0, epsilon, delta)
+        sx = [expect(sigmax(), U*psi0) for U in output.states]
+        sy = [expect(sigmay(), U*psi0) for U in output.states]
+        sz = [expect(sigmaz(), U*psi0) for U in output.states]
+
+        sx_analytic = np.zeros(np.shape(tlist))
+        sy_analytic = -np.sin(2 * np.pi * tlist)
+        sz_analytic = np.cos(2 * np.pi * tlist)
+
+        assert_(max(abs(sx - sx_analytic)) < tol,
+                msg="expect X not matching analytic")
+        assert_(max(abs(sy - sy_analytic)) < tol,
+                msg="expect Y not matching analytic")
+        assert_(max(abs(sz - sz_analytic)) < tol,
+                msg="expect Z not matching analytic")
+
 if __name__ == "__main__":
     run_module_suite()
