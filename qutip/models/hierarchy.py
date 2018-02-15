@@ -1,6 +1,157 @@
 import numpy as np
-from qutip import enr_state_dictionaries
+from qutip import enr_state_dictionaries, commutator
 
+from scipy.misc import factorial
+
+
+class Heom(object):
+    """
+    The Heom class to tackle Hierarchy.
+    
+    Parameters
+    ==========
+    lindbladian: ndarray
+        The Lindbladian operator of the system
+    
+    coupling: ndarray
+        The coupling operator
+    
+    ckr, vkr, cki, vki: ndarray
+        The array of real and imaginary terms (amplitude and frequency)
+        in the expansion of the correlation function as exponentials
+
+    ncut: int
+        The Hierarchy cutoff
+        
+    kcut: int
+        The cutoff in the Matsubara frequencies
+    """
+    def __init__(self, N, hamiltonian, coupling,
+                 ckr, vkr, cki, vki,
+                 ncut, kcut=None, rhocut=0):
+        self.hamiltonian = hamiltonian
+        self.coupling = coupling
+        self.ck = np.concatenate([ckr, 1j*cki])
+        self.vk = np.concatenate([vkr, vki])
+        self.ncut = ncut
+        
+        if kcut:
+            self.kcut = kcut
+        else:
+            self.kcut = len(self.ckr)
+        
+        self.rhocut = rhocut
+        self.nhe, self.he2idx, self.idx2he = hierarchy_idx(ncut, kcut)
+        self.rho = np.zeros((2**N, 2**N, self.nhe), dtype = np.complex)
+        
+        self.deltak = self._deltak()
+    
+    def _normalize(self, rho, n):
+        """
+        Normalize the density matrix for the level n
+        """
+        nk = self.idx2he[n]
+        cknk = np.power(np.abs(self.ck[:self.kcut]), nk)
+        fnk = factorial(nk)
+        terms = np.multiply(fnk, cknk)
+        norm = np.power(np.prod(terms), -0.5)
+        rho_normalized = norm*rho
+        return rho_normalized
+    
+    def normalize(self, rho):
+        """
+        Normalize all the Hierarchy elements at a particular time step
+        """
+        for n in range(self.nhe):
+            rho[..., n] = self._normalize(rho[..., n], n)
+        return rho
+        
+    def _deltak(self):
+        """
+        Calculates the deltak values for those Matsubara terms which are
+        greater than the cutoff set for the exponentials.
+        """
+        dk = np.sum(np.divide(self.ck[self.kcut:], self.vk[self.kcut:]))
+        return dk
+
+    def _t1(self, rho, n):
+        """
+        Get the first term of the RHS which is the -i Lindblad + Q
+        operator on the density matrix
+        """
+        nk = self.idx2he[n]
+        H = self.hamiltonian
+        Q = self.coupling
+        dk = self.deltak
+
+        t1 = 1j*commutator(H, rho) + dk*(commutator(Q, commutator(Q, rho)))
+        t2 = np.sum(np.multiply(nk, self.vk[:kcut]))*rho
+        return -(t1+t2)
+
+    def pop_he(self, he2pop):
+        """
+        Pop the elements of the Hierarchy which have are very small
+        """
+        for p in he2pop:
+            idx = self.he2idx[p]
+            self.he2idx.pop(p)
+            self.idx2he.pop(idx)
+            self.nhe -= 1
+
+    def _grad(self, n):
+        """
+        Get the gradient of the Hierarchy ADM at
+        level n
+        """        
+        nk = self.idx2he[n]
+        rho_current = self.rho[..., n]
+        gradient = self._t1(rho_current, n)
+        Q = self.coupling
+        ck = self.ck
+
+        for k in range(self.kcut):
+            zeros = np.zeros(self.kcut)
+            zeros[k] = 1
+            nnext = tuple(nk + zeros)
+            nprev = tuple(nk - zeros)
+            if nnext in self.he2idx:
+                idx = self.he2idx[nnext]
+                rho_next = self.rho[..., idx]
+                gradient += -1j*np.sqrt((nk[k]+1)*np.abs(ck[k]))*commutator(Q, rho_next)
+
+            if nprev in self.he2idx:
+                idx = self.he2idx[nprev]
+                rho_prev = self.rho[..., idx]
+                gradient += -1j*np.sqrt(nk[k]/np.abs(ck[k]))*(ck[k]*Q*rho_prev - np.conjugate(ck[k])*rho_prev*Q)
+                
+        return gradient
+
+    def grad(self):
+        """
+        Calculate the gradient of the full Hierarchy for a particular
+        time slice.
+        """
+        grad = np.zeros_like(self.rho)
+        for n in self.idx2he:
+            grad[..., n] = self._grad(n)
+        return grad
+    
+    def solve(self, rho0, tlist, rhocut=1e-3):
+        """
+        Solve the Hierarchy equations of motion for the given initial
+        density matrix and time.
+        """
+        # Initialize the Hierarchy matrix with rho0
+        dt = tlist[1] - tlist[0]
+        self.rho[..., 0] = self._normalize(rho0, 0)
+        for t in tlist:
+            gradient = self.grad()
+            self.rho += dt*gradient
+            self.rho = self.normalize(self.rho)
+            he2pop = np.argwhere(np.max(np.absolute(self.rho), (0, 1)) < self.rhocut).flatten()
+            self.pop_he(he2pop)
+        return self.rho
+    
 
 def hierarchy_idx(ncut, nexp):
     """
@@ -33,114 +184,3 @@ def hierarchy_idx(ncut, nexp):
     """
     N_he, he2idx, idx2he = enr_state_dictionaries([ncut + 1]*nexp , ncut)
     return N_he, he2idx, idx2he
-
-
-class Heom(object):
-    """
-    The Heom class to tackle Hierarchy.
-    
-    Parameters
-    ==========
-    lindbladian: ndarray
-        The Lindbladian operator of the system
-    
-    coupling: ndarray
-        The coupling operator
-    
-    ckr, vkr, cki, vki: ndarray
-        The array of real and imaginary terms (amplitude and frequency)
-        in the expansion of the correlation function as exponentials
-
-    ncut: int
-        The Hierarchy cutoff
-        
-    kcut: int
-        The cutoff in the Matsubara frequencies
-    """
-    def __init__(self, N, lindbladian, coupling,
-                 ckr, vkr, cki, vki,
-                 ncut, kcut=None, dt = 1e-2):
-        self.lindbladian = lindbladian
-        self.coupling = coupling
-        self.ck = np.concatenate([ckr, 1j*cki])
-        self.vk = np.concatenate([vkr, vki])
-        self.ncut = ncut
-        
-        if kcut:
-            self.kcut = kcut
-        else:
-            self.kcut = len(self.ckr)
-
-        self.nhe, self.he2idx, self.idx2he = hierarchy_idx(ncut, kcut)
-        self.rho = np.zeros((2**N, 2**N, self.nhe), dtype = np.complex)
-        self.dt = dt
-    
-    def normalize(self):
-        """
-        Normalize the initial density vector
-        """
-        pass
-
-    def _deltak(self):
-        """
-        Calculates the deltak values for those Matsubara terms which are
-        greater than the cutoff set for the exponentials.
-        """
-        dk = np.sum(np.divide(self.ck[self.kcut:], self.vk[self.kcut:]))
-        return dk
-    
-    def _hinit(self, rho0):
-        """
-        Initialize the Hierarchy matrix with rho0
-        """
-        self.rho[..., 0] = rho0
-
-    def _grad(self, n):
-        """
-        Get the gradient of the Hierarchy ADM at
-        level n
-        """        
-        nidx = self.idx2he[n]
-        rho_current = self.rho[..., n]
-        
-        A = np.random.random(rho_current.shape)
-        B = np.random.random(rho_current.shape)
-        C = np.random.random(rho_current.shape)
-        
-        grad = self._t1(rho_current)
-
-        for k in range(self.kcut):
-            zeros = np.zeros(self.kcut)
-            zeros[k] = 1
-            nnext = tuple(nidx + zeros)
-            nprev = tuple(nidx - zeros)
-            if nnext in self.he2idx:
-                grad += rho_current*self.rho[..., self.he2idx[nnext]]
-            if nprev in self.he2idx:
-                grad += rho_current*self.rho[..., self.he2idx[nprev]]
-
-        return grad
-
-    def grad(self):
-        """
-        Calculate the gradient of the full Hierarchy for a particular
-        time slice.
-        """
-        grad = np.zeros_like(self.rho)
-        for n in self.idx2he:
-            grad[..., n] = self._grad(n)
-
-        return grad
-
-
-    def _t1(self, rho):
-        """
-        Get the first term of the RHS which is the -i Lindblad + Q
-        operator on the density matrix
-        """
-        L = self.lindbladian
-        Q = self.coupling
-        dk = self._deltak()
-
-        return (-1j*L + dk*Q**2)*rho
-    
