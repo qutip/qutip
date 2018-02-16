@@ -547,7 +547,7 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
                          "%s (use es or pi)." % solver)
 
 
-def spectrum_correlation_fft(tlist, y, inverse = False):
+def spectrum_correlation_fft(tlist, y, inverse=False):
     """
     Calculate the power spectrum corresponding to a two-time correlation
     function using FFT.
