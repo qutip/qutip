@@ -1,8 +1,12 @@
-import numpy as np
-from qutip import enr_state_dictionaries, commutator
-
 from scipy.misc import factorial
+from scipy.integrate import ode
 
+from qutip import enr_state_dictionaries, commutator
+from qutip import Options
+from qutip.solver import Result
+from qutip import Qobj, commutator
+
+from copy import copy
 
 class Heom(object):
     """
@@ -26,25 +30,24 @@ class Heom(object):
     kcut: int
         The cutoff in the Matsubara frequencies
     """
-    def __init__(self, N, hamiltonian, coupling,
+    def __init__(self, hamiltonian, coupling,
                  ckr, vkr, cki, vki,
                  ncut, kcut=None, rhocut=0):
         self.hamiltonian = hamiltonian
         self.coupling = coupling
-        self.ck = np.concatenate([ckr, 1j*cki])
+        self.ck = np.concatenate([ckr, np.multiply(1j, cki)])
         self.vk = np.concatenate([vkr, vki])
         self.ncut = ncut
-        
         if kcut:
             self.kcut = kcut
         else:
             self.kcut = len(self.ckr)
-        
         self.rhocut = rhocut
         self.nhe, self.he2idx, self.idx2he = hierarchy_idx(ncut, kcut)
-        self.rho = np.zeros((2**N, 2**N, self.nhe), dtype = np.complex)
-        
+        N = self.hamiltonian.shape[0]
+        self.rho = np.zeros((N, N, self.nhe), dtype = np.complex)
         self.deltak = self._deltak()
+        self.hshape = (N, N, self.nhe)
     
     def _normalize(self, rho, n):
         """
@@ -54,8 +57,8 @@ class Heom(object):
         cknk = np.power(np.abs(self.ck[:self.kcut]), nk)
         fnk = factorial(nk)
         terms = np.multiply(fnk, cknk)
-        norm = np.power(np.prod(terms), -0.5)
-        rho_normalized = norm*rho
+        norm = np.power(np.prod(terms), 0.5)
+        rho_normalized = rho/norm
         return rho_normalized
     
     def normalize(self, rho):
@@ -71,21 +74,25 @@ class Heom(object):
         Calculates the deltak values for those Matsubara terms which are
         greater than the cutoff set for the exponentials.
         """
+        # Needs some test or check here
         dk = np.sum(np.divide(self.ck[self.kcut:], self.vk[self.kcut:]))
         return dk
 
     def _t1(self, rho, n):
         """
-        Get the first term of the RHS which is the -i Lindblad + Q
-        operator on the density matrix
+        Get the first term of the RHS
         """
         nk = self.idx2he[n]
         H = self.hamiltonian
         Q = self.coupling
         dk = self.deltak
-
-        t1 = 1j*commutator(H, rho) + dk*(commutator(Q, commutator(Q, rho)))
-        t2 = np.sum(np.multiply(nk, self.vk[:kcut]))*rho
+        
+        rho_n = rho[..., n]
+        kcut = self.kcut
+        t1 = 1j*commutator(H, rho_n) + dk*(commutator(Q, commutator(Q, rho_n)))
+        
+        summation = np.sum(np.multiply(nk, self.vk[:kcut]))
+        t2 = np.multiply(summation, rho_n)
         return -(t1+t2)
 
     def pop_he(self, he2pop):
@@ -93,64 +100,94 @@ class Heom(object):
         Pop the elements of the Hierarchy which have are very small
         """
         for p in he2pop:
-            idx = self.he2idx[p]
-            self.he2idx.pop(p)
-            self.idx2he.pop(idx)
-            self.nhe -= 1
+            if p in self.he2idx:
+                idx = self.he2idx[p]
+                self.he2idx.pop(p)
+                self.idx2he.pop(idx)
+                self.nhe -= 1
 
-    def _grad(self, n):
+    def _grad(self, t, rho, n):
         """
         Get the gradient of the Hierarchy ADM at
         level n
         """        
-        nk = self.idx2he[n]
-        rho_current = self.rho[..., n]
-        gradient = self._t1(rho_current, n)
+        nk = list(self.idx2he[n])
+        gradient = self._t1(rho, n)
         Q = self.coupling
         ck = self.ck
 
         for k in range(self.kcut):
-            zeros = np.zeros(self.kcut)
-            zeros[k] = 1
-            nnext = tuple(nk + zeros)
-            nprev = tuple(nk - zeros)
+            nnext = copy(nk)
+            nprev = copy(nk)
+            
+            nnext[k] += 1
+            nprev[k] -= 1
+            
+            nnext = tuple(nnext)
+            nprev = tuple(nprev)
             if nnext in self.he2idx:
                 idx = self.he2idx[nnext]
-                rho_next = self.rho[..., idx]
+                rho_next = rho[..., idx]
                 gradient += -1j*np.sqrt((nk[k]+1)*np.abs(ck[k]))*commutator(Q, rho_next)
 
             if nprev in self.he2idx:
                 idx = self.he2idx[nprev]
-                rho_prev = self.rho[..., idx]
+                rho_prev = rho[..., idx]
                 gradient += -1j*np.sqrt(nk[k]/np.abs(ck[k]))*(ck[k]*Q*rho_prev - np.conjugate(ck[k])*rho_prev*Q)
                 
         return gradient
 
-    def grad(self):
+    def grad(self, t, rho):
         """
         Calculate the gradient of the full Hierarchy for a particular
         time slice.
         """
         grad = np.zeros_like(self.rho)
         for n in self.idx2he:
-            grad[..., n] = self._grad(n)
+            grad[..., n] = self._grad(t, rho, n)
+
         return grad
     
-    def solve(self, rho0, tlist, rhocut=1e-3):
+    def solve(self, rho0, tlist, options=None, rhocut=1e-3):
         """
         Solve the Hierarchy equations of motion for the given initial
         density matrix and time.
         """
-        # Initialize the Hierarchy matrix with rho0
+        if options is None:
+            options = Options()
+
+        output = Result()
+        output.solver = "hsolve"
+        output.times = tlist
+        output.states = []
+        output.states.append(Qobj(rho0))
+
         dt = tlist[1] - tlist[0]
         self.rho[..., 0] = self._normalize(rho0, 0)
-        for t in tlist:
-            gradient = self.grad()
-            self.rho += dt*gradient
-            self.rho = self.normalize(self.rho)
-            he2pop = np.argwhere(np.max(np.absolute(self.rho), (0, 1)) < self.rhocut).flatten()
-            self.pop_he(he2pop)
-        return self.rho
+        
+        f = lambda t, y: self.grad(t, y.reshape(self.hshape)).ravel()
+        r = ode(f)
+        r.set_integrator('zvode', method=options.method, order=options.order,
+                         atol=options.atol, rtol=options.rtol,
+                         nsteps=options.nsteps, first_step=options.first_step,
+                         min_step=options.min_step, max_step=options.max_step)
+
+        rho_he_flat = self.rho.ravel()
+        r.set_initial_value(rho_he_flat, tlist[0])
+        dt = np.diff(tlist)
+        n_tsteps = len(tlist)
+
+        for t_idx, t in enumerate(tlist):
+            if t_idx < n_tsteps - 1:
+                r.integrate(r.t + dt[t_idx])
+                rhot = r.y.reshape(self.hshape)
+                rhot = self.normalize(rhot)
+                self.rho = rhot.copy()
+                he2pop = np.argwhere(np.max(np.absolute(self.rho), (0, 1)) < self.rhocut).flatten()
+                self.pop_he(he2pop)
+                rho00 = Qobj(self.rho[..., 0])
+                output.states.append(rho00)
+        return output        
     
 
 def hierarchy_idx(ncut, nexp):

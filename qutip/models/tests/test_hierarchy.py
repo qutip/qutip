@@ -24,6 +24,7 @@ class TestHeom(object):
         and checks if the shapes of the rho term is constructed properly
         for all the density matrices.
         """
+        # test if the expansion coefficients are correctly specified
         pass
 
     def test_normalize(self):
@@ -64,6 +65,13 @@ class TestHeom(object):
     def test_hierarchy_idx(self):
         """
         Test the HEOM state and index generation function
+        """
+        pass
+
+    def test_no_cut(self):
+        """
+        Test if letting the Matsubara cutoff as the total number of exponentials
+        gives a correct value of the delta term
         """
         pass
 
