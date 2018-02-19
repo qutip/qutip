@@ -882,11 +882,30 @@ def dicke_basis(N, jmm1=None, basis="dicke"):
     """
     Initialize the density matrix of a Dicke state.
 
-    The default basis is "dicke", which creates coefficients for each jmm1
-    value in the dictionary jmm1. The mapping for the (i, k) index of the
-    density matrix to the |j, m> values is given by the cythonized function
-    `jmm1_dictionary`. This function can thus be used to build arbitrary
-    states in the Dicke basis.
+    The default basis is "dicke",
+    which creates coefficients for each jmm1 value in the dictionary
+    jmm1. For instance, if we start from the most excited state for
+    N = 2, we have the following state represented as a
+    density matrix of size (nds, nds) or (4, 4).
+
+    1 0 0 0
+    0 0 0 0
+    0 0 0 0
+    0 0 0 0
+
+    Similarly, if the state was rho0 = |1, 0> <1, 0| + |0, 0><0, 0|,
+    the density matrix in the Dicke basis would be:
+
+    0 0 0 0
+    0 1 0 0
+    0 0 0 0
+    0 0 0 1
+
+    The mapping for the (i, k) index of the density matrix to the |j, m>
+    values is given by the cythonized function `jmm1_dictionary`.
+
+    This function can thus be used to build arbitrary states in the Dicke
+    basis.
 
     Parameters
     ==========
@@ -894,8 +913,8 @@ def dicke_basis(N, jmm1=None, basis="dicke"):
         The number of two-level systems
 
     jmm1: dict
-        A dictionary of {(j, m, m1): p} which gives the coefficient of the
-        (j, m, m1) state in the density matrix.
+        A dictionary of {(j, m, m1): p} which gives the coefficient of
+        the (j, m, m1) state in the density matrix.
     """
     if basis == "uncoupled":
         raise NotImplemented
@@ -921,9 +940,8 @@ def dicke_basis(N, jmm1=None, basis="dicke"):
 def dicke_state(N, j, m, basis="dicke"):
     """
     Initialize the density matrix in the Dicke basis state.
-    For instance, if the superradiant state is given |j, m> = |1, 0>
-    for N = 2, the state is represented as a density matrix of size (nds, nds)
-    or (4, 4),
+    For instance, if the superradiant state is given |j, m> = |1, 0> for N = 2,
+    the state is represented as a density matrix of size (nds, nds) or (4, 4),
 
     0 0 0 0
     0 1 0 0
@@ -956,15 +974,16 @@ def dicke_state(N, j, m, basis="dicke"):
     return Qobj(rho)
 
 
-def excited(N, basis="dicke"):
+def excited_state(N, basis="dicke"):
     """
-    Generate the density matrix for the Dicke state |N/2, N/2>/
-
-    If the argument `basis` is "uncoupled" then it generates
+    Generates the density matrix for the Dicke state |N/2, N/2>, default in the
+    Dicke basis. If the argument `basis` is "uncoupled" then it generates
     the state in a 2**N dim Hilbert space.
     """
+
     if basis == "uncoupled":
-        return _uncoupled_excited(N)
+        state = _uncoupled_excited(N)
+        return ket2dm(state)
 
     jmm1 = {(N / 2, N / 2, N / 2): 1}
     return dicke_basis(N, jmm1)
@@ -972,25 +991,42 @@ def excited(N, basis="dicke"):
 
 def superradiant(N, basis="dicke"):
     """
-    Generate the superradiant dicke state as |N/2, 0> or |N/2, 0.5>
+    Generates the superradiant dicke state as |N/2, 0> or |N/2, 0.5>
+    in the Dicke basis
     """
     if basis == "uncoupled":
-        return _uncoupled_superradiant(N)
+        state = _uncoupled_superradiant(N)
+        return ket2dm(state)
 
     if N % 2 == 0:
         jmm1 = {(N / 2, 0, 0): 1.}
-        return dicke(N, jmm1)
+        return dicke_basis(N, jmm1)
     else:
         jmm1 = {(N / 2, 0.5, 0.5): 1.}
     return dicke_basis(N, jmm1)
 
 
-def css(N, a=1 / np.sqrt(2), b=1 / np.sqrt(2), basis="dicke"):
+def css(
+        N,
+        x=1 / np.sqrt(2),
+        y=1 / np.sqrt(2),
+        basis="dicke",
+        coordinates="cartesian"):
     """
-    Generate the separable spin state |CSS>= Prod_i^N(a|1>_i + b|0>_i)
+    Loads the coherent spin state (CSS).
+    It can be defined as |CSS>= Prod_i^N(a|1>_i + b|0>_i)
+    with a = sin(theta/2), b = exp(1j*phi) * cos(theta/2).
+    The default basis is that of Dicke space |j, m> < j, m'|.
+    The default state is the symmetric CSS, |CSS> = |+>.
+    """
 
-    The default state is the symmetric CSS, |CSS> = |+> in the jmm basis.
-    """
+    if coordinates == "polar":
+        a = np.cos(0.5 * x) * np.exp(1j * y)
+        b = np.sin(0.5 * x)
+    else:
+        a = x
+        b = y
+
     if basis == "uncoupled":
         return _uncoupled_css(N, a, b)
 
@@ -1003,6 +1039,7 @@ def css(N, a=1 / np.sqrt(2), b=1 / np.sqrt(2), basis="dicke"):
 
     j = 0.5 * N
     mmax = int(2 * j + 1)
+
     for i in range(0, mmax):
         m = j - i
         psi_m = np.sqrt(float(energy_degeneracy(N, m))) * \
@@ -1011,7 +1048,7 @@ def css(N, a=1 / np.sqrt(2), b=1 / np.sqrt(2), basis="dicke"):
             m1 = j - i1
             row_column = jmm1_dict[(j, m, m1)]
             psi_m1 = np.sqrt(float(energy_degeneracy(N, m1))) * \
-                a**(N * 0.5 + m1) * b**(N * 0.5 - m1)
+                np.conj(a)**(N * 0.5 + m1) * np.conj(b)**(N * 0.5 - m1)
             rho[row_column] = psi_m * psi_m1
 
     return Qobj(rho)
@@ -1019,7 +1056,7 @@ def css(N, a=1 / np.sqrt(2), b=1 / np.sqrt(2), basis="dicke"):
 
 def ghz(N, basis="dicke"):
     """
-    Generate the the density matric of the GHZ state
+    Generates the density matrix of the GHZ state in the dicke basis
     """
     if basis == "uncoupled":
         return _uncoupled_ghz(N)
@@ -1035,24 +1072,26 @@ def ghz(N, basis="dicke"):
     return Qobj(rho)
 
 
-def ground(N, basis="dicke"):
+def ground_state(N, basis="dicke"):
     """
-    Generate the density matrix of the ground state for N spins
+    Generates the density matrix of the ground state for N spins
     """
     if basis == "uncoupled":
-        return _uncoupled_ground(N)
+        state = _uncoupled_ground(N)
+        return ket2dm(state)
 
     nds = _num_dicke_states(N)
     rho = dok_matrix((nds, nds))
 
-    rho[-1, -1] = 1
+    rho[N, N] = 1
 
     return Qobj(rho)
 
 
 def uncoupled_identity(N):
     """
-    Generate the identity in a 2**N dimensional Hilbert space
+    Generates the identity in a 2**N dimensional Hilbert space formed from the
+    tensor product of N TLSs. It has the correct dimensions.
 
     Parameters
     ----------
@@ -1082,7 +1121,7 @@ def uncoupled_identity(N):
 
 def _uncoupled_excited(N):
     """
-    Generate a initial dicke state |N/2, N/2> as a Qobj in a 2**N
+    Generates a initial dicke state |N/2, N/2> as a Qobj in a 2**N
     dimensional Hilbert space
 
     Parameters
@@ -1104,7 +1143,7 @@ def _uncoupled_excited(N):
 
 def _uncoupled_superradiant(N):
     """
-    Generate a initial dicke state |N/2, 0> (N even) or |N/2, 0.5> (N odd)
+    Generates a initial dicke state |N/2, 0> (N even) or |N/2, 0.5> (N odd)
     as a Qobj in a 2**N dimensional Hilbert space
 
     Parameters
@@ -1119,14 +1158,14 @@ def _uncoupled_superradiant(N):
     N = int(N)
     jz = collective_algebra(N)[2]
     en, vn = jz.eigenstates()
-    psi0 = vn[2**N - N]
+    psi0 = vn[2**N - (N + 1)]
 
     return psi0
 
 
 def _uncoupled_ground(N):
     """
-    Generate a initial dicke state |N/2, - N/2> as a Qobj in a 2**N
+    Generates a initial dicke state |N/2, - N/2> as a Qobj in a 2**N
     dimensional Hilbert space
 
     Parameters
@@ -1148,7 +1187,7 @@ def _uncoupled_ground(N):
 
 def _uncoupled_ghz(N):
     """
-    Generate the GHZ density matrix in a 2**N dimensional Hilbert space
+    Generates the GHZ density matrix in a 2**N dimensional Hilbert space
 
     Parameters
     ----------
@@ -1180,8 +1219,7 @@ def _uncoupled_ghz(N):
 
 def _uncoupled_css(N, a, b):
     """
-    Generate the CSS density matrix in a 2**N dimensional Hilbert space.
-
+    Generates the CSS density matrix in a 2**N dimensional Hilbert space.
     The CSS states are non-entangled states of the form
     |a, b> =  \Prod_i (a|1>_i + b|0>_i).
 
@@ -1235,7 +1273,7 @@ def _uncoupled_css(N, a, b):
 
 def uncoupled_thermal(N, omega_0, temperature):
     """
-    Generate the thermal state for a collection of N two-level systems with
+    Gives the thermal state for a collection of N two-level systems with
     H = omega_0 * j_z. It is calculated in the full 2**N Hilbert state on the
     eigenstates of H in the uncoupled basis, not the Dicke basis.
 
@@ -1275,9 +1313,10 @@ def uncoupled_thermal(N, omega_0, temperature):
 
 def uncoupled_partition_function(N, omega_0, temperature):
     """
-    Calculate the partition function for a collection of N two-level systems
-    with H = omega_0 * j_z. It is calculated in the full 2**N Hilbert state,
-    using the eigenstates of H in the uncoupled basis, not the Dicke basis.
+    Gives the partition function for a collection of N two-level systems
+    with H = omega_0 * j_z.
+    It is calculated in the full 2**N Hilbert state, using the eigenstates of
+    H in the uncoupled basis, not the Dicke basis.
 
     Parameters
     ----------
@@ -1307,9 +1346,8 @@ def uncoupled_partition_function(N, omega_0, temperature):
 
 def block_matrix(N):
     """
-    Generate the block diagonal matrix filled with 1 if the matrix element
+    Gives the block diagonal matrix filled with 1 if the matrix element
     is allowed in the reduced basis |j,m><j,m'|.
-
     Parameters
     ----------
     N: int
@@ -1321,6 +1359,8 @@ def block_matrix(N):
         A block diagonal matrix of ones with dimension (nds,nds), where
         nds is the number of Dicke states for N two-level systems.
     """
+    nds = _num_dicke_states(N)
+
     # create a list with the sizes of the blocks, in order
     blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
     blocks_list = [(2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2))

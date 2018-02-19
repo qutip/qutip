@@ -43,6 +43,7 @@ from qutip.cy.dicke import (_get_blocks, _j_min, _j_vals, m_vals,
 from qutip.cy.dicke import Dicke as _Dicke
 from qutip.models.dicke import (num_tls, Piqs)
 from qutip import Qobj
+from qutip.models.dicke import *
 
 
 class TestPiqs:
@@ -363,6 +364,372 @@ class TestPiqs:
                     2., 8., 0.333333]
 
         assert_array_almost_equal(tau_calculated, tau_real)
+
+    def test_j_algebra(self):
+        """
+        Test calculation of the j algebra relation for the total operators.
+
+        The [jx, jy, jz, jp, jm] for a given N in the (j, m, m1) basis should
+        follow the following algebra
+        [jx, jy] == 1j * jz, [jp, jm] == 2 * jz, jx^2 + jy^2 + jz^2 == j2^2.
+        """
+        N_list = [1, 2, 3, 4, 7]
+        
+        for nn in N_list :
+
+            # tests 1
+
+            [jX, jY, jZ, jP, jM ] =  j_algebra(nn)
+
+            test_jxjy = jX * jY - jY * jX
+            true_jxjy = 1j *jZ
+            
+            test_jpjm = jP * jM - jM * jP
+            true_jpjm = 2 * jZ
+
+            test_j2 = jX**2 + jY**2 + jZ**2
+            true_j2 = j2_op(nn)            
+
+            assert_array_equal(test_jxjy,  true_jxjy)
+            assert_array_equal(test_jpjm,  true_jpjm)
+            assert_array_equal(test_j2,  true_j2)    
+
+            # tests 2
+
+            [jX, jY, jZ, jP, jM ] =  j_algebra(nn)
+
+            test_jxjy = jx_op(nn) * jy_op(nn) - jy_op(nn) * jx_op(nn)
+            true_jxjy = 1j *jz_op(nn)
+            
+            test_jpjm = jp_op(nn) * jm_op(nn) - jm_op(nn) * jp_op(nn)
+            true_jpjm = 2 * jz_op(nn)
+
+            test_j2 = jx_op(nn)**2 + jy_op(nn)**2 + jz_op(nn)**2
+            true_j2 = j2_op(nn)            
+
+            assert_array_equal(test_jxjy,  true_jxjy)
+            assert_array_equal(test_jpjm,  true_jpjm)
+            assert_array_equal(test_j2,  true_j2)
+
+            # tests 3
+
+            [jX, jY, jZ, jP, jM ] =  j_algebra(nn)
+
+            assert_array_equal(jX,  jx_op(nn))
+            assert_array_equal(jY,  jy_op(nn))
+            assert_array_equal(jZ,  jz_op(nn))
+            assert_array_equal(jP,  jp_op(nn))
+            assert_array_equal(jM,  jm_op(nn))
+
+    def test_isdiagonal(self):
+        """
+        Test if the function isdiagonal checks if a matrix (a Qobj or ndarray)
+        is diagonal
+        """
+        
+        diag_matrix = [[1, 0, 0], [0, 3, 0], [0, 0, -1j]]
+
+        nondiag_matrix = [[1, 0, 0, 0], [0, 0, 3, 0], [0, 0, 3, 0],
+                          [0, 0, 0, -1j]]
+        
+        test_true1 = isdiagonal(diag_matrix)
+        test_true2 = isdiagonal(Qobj(diag_matrix))
+
+        test_false1 = isdiagonal(nondiag_matrix)
+        test_false2 = isdiagonal(Qobj(nondiag_matrix))
+                                                            
+        assert_equal(test_true1, True)
+        assert_equal(test_true2, True)
+        assert_equal(test_false1, False)
+        assert_equal(test_false2, False)
+
+    def test_j_min_(self):
+        """
+        Test the `j_min` function
+        """
+        even = [2, 4, 6, 8]
+        odd = [1, 3, 5, 7]
+
+        for i in even:
+            assert_(_j_min(i) == 0)
+
+        for i in odd:
+            assert_(_j_min(i) == 0.5)
+
+
+    def test_energy_degeneracy(self):
+        """
+        Test the energy degeneracy (m) of Dicke state | j, m >
+
+        """
+
+        true_en_deg = [1, 1, 1, 1, 1]
+        true_en_deg_even = [2, 6, 20]
+        true_en_deg_odd = [1, 1, 3, 3, 35, 35]        
+
+        test_en_deg = []
+        test_en_deg_even = []
+        test_en_deg_odd = []
+
+        for nn in [1, 2, 3, 4, 7]:
+            test_en_deg.append(energy_degeneracy(nn, nn/2))
+        
+        for nn in [2, 4, 6]:
+            test_en_deg_even.append(energy_degeneracy(nn, 0))
+
+        for nn in [1, 3, 7]:
+            test_en_deg_odd.append(energy_degeneracy(nn, 1/2))
+            test_en_deg_odd.append(energy_degeneracy(nn, -1/2))
+
+        assert_array_equal(test_en_deg , true_en_deg)
+        assert_array_equal(test_en_deg_even , true_en_deg_even)
+        assert_array_equal(test_en_deg_odd , true_en_deg_odd)
+
+    def test_state_degeneracy(self):
+        """
+        Test the calculation of the degeneracy of the Dicke state |j, m>, state_degeneracy(N, j).
+        """
+        true_state_deg = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 14, 14, 42, 42]
+        state_deg = []
+
+        state_deg = []
+        for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
+            state_deg.append(state_degeneracy(nn, nn/2))
+        for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
+            state_deg.append(state_degeneracy(nn, (nn/2)%1))
+
+        assert_array_equal(state_deg , true_state_deg)
+
+    def test_m_degeneracy(self):
+        """
+        Tests the degeneracy of how many TLS states exist with same m eigenvalue for a given number N of TLSs.
+        """
+        true_m_deg = [1, 2, 2, 3, 4, 5, 5, 6]
+        m_deg = []
+
+        for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
+            m_deg.append(m_degeneracy(nn, -(nn/2)%1))
+
+        assert_array_equal(m_deg , true_m_deg)
+
+    def test_dicke_basis(self):
+        """
+        Test if the Dicke basis (j, m, m') is constructed correctly. 
+        We test the state with for N = 2, 
+
+        0   0   0.3 0
+        0   0.5 0   0
+        0.3 0   0   0
+        0   0   0   0.5
+        """
+        N = 2
+
+        true_dicke_basis = np.zeros((4, 4))
+        true_dicke_basis[1, 1] = 0.5
+        true_dicke_basis[-1, -1] = 0.5
+        true_dicke_basis[0, 2] = 0.3
+        true_dicke_basis[2, 0] = 0.3
+        true_dicke_basis = Qobj(true_dicke_basis)
+
+        jmm1_1 = {(N/2, 0, 0): 0.5}
+        jmm1_2 = {(0, 0, 0): 0.5}
+        jmm1_3 = {(N/2, N/2, N/2-2): 0.3}
+        jmm1_4 = {(N/2, N/2-2, N/2): 0.3}
+
+        db1 = dicke_basis(2, jmm1_1)
+        db2 = dicke_basis(2, jmm1_2)
+        db3 = dicke_basis(2, jmm1_3)
+        db4 = dicke_basis(2, jmm1_4)
+        test_dicke_basis =  db1 + db2 + db3 + db4
+
+        assert_equal(test_dicke_basis, true_dicke_basis)
+
+    def test_dicke_state(self):
+        """
+        Tests the calculation of the Dicke state as a pure state in 
+        the diagonal density matrix of the (j, m, m') basis of size (O(N^2), O(N^2)). 
+        For N = 2 we test that the following states are correctly initialized
+
+        excited, (N, j, m) = (2, 1, 1)
+
+        1 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+
+        superradiant, (N, j, m) = (2, 1, 0)
+
+        0 0 0 0
+        0 1 0 0
+        0 0 0 0
+        0 0 0 0
+
+        subradiant, (N, j, m) = (2, 0, 0)
+
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 1
+
+        """
+        true_excited = np.zeros((4, 4))
+        true_excited[0, 0] = 1        
+
+        true_superradiant = np.zeros((4,4))
+        true_superradiant[1, 1] = 1        
+                                      
+        true_subradiant = np.zeros((4, 4))
+        true_subradiant[-1, -1] = 1        
+
+        test_excited = dicke_state(2, 1, 1)
+        test_superradiant = dicke_state(2, 1, 0)
+        test_subradiant = dicke_state(2, 0, 0)
+
+        assert_equal(test_excited, Qobj(true_excited) )
+        assert_equal(test_superradiant, Qobj(true_superradiant) )
+        assert_equal(test_subradiant, Qobj(true_subradiant) )
+
+    def test_superradiant(self):
+        """
+        Tests the calculation of the superradiant state density matrix. 
+        The state is |N/2, 0> for N even and |N/2, 0.5> for N odd.  
+        The matrix has size (O(N^2), O(N^2)) in Dicke basis ('dicke').
+        The matrix has size (2^N, 2^N) in the uncoupled basis ('uncoupled').
+        """
+        N = 3
+        true_state = np.zeros((6,6))
+        true_state[1, 1] = 1
+        true_state = Qobj(true_state)
+
+        test_state = superradiant(N)
+        assert_equal(test_state, true_state)
+
+        N = 4
+        true_state = np.zeros((9,9))
+        true_state[2, 2] = 1
+        true_state = Qobj(true_state)
+
+        test_state = superradiant(N)
+        assert_equal(test_state, true_state)
+
+    def test_ghz(self):
+        """
+        Tests the calculation of the density matrix of the GHZ state.
+        Test for N = 2 in the 'dicke' and in the 'uncoupled' basis
+        """
+        ghz_dicke = Qobj([[ 0.5,  0,  0.5,  0],[ 0,  0,  0,  0],
+             [ 0.5,  0,  0.5,  0],[ 0,  0,  0,  0]])
+        
+        ghz_uncoupled = Qobj([[ 0.5,0,0,0.5],[0,0,0,0],[0,0,0,0],[0.5,0,0,0.5]])
+        ghz_uncoupled.dims = [[2, 2], [2, 2]]
+        
+        assert_equal(ghz(2), ghz_dicke)
+        assert_equal(ghz(2,"uncoupled"), ghz_uncoupled)
+
+    def test_uncoupled_identity(self):
+        """
+        Tests the calculation of the identity matrix in a 2**N dimensional Hilbert space.
+        The space is a tensor product of N TLSs. Test performed for N = 2.
+        """
+        true_id = Qobj(np.diag([1,1,1,1]))
+        true_id.dims = [[2, 2], [2, 2]]
+        assert_equal(true_id,uncoupled_identity(2))
+
+    def test_c_ops_tls(self):
+        """
+        Tests the calculation of the correct collapse operators (c_ops) list.
+        In the "uncoupled" basis of N two-level system (TLS). 
+        The test is performed for N = 2 and emission = 1.
+        """
+        c1 = Qobj([[0,0,0,0],[ 0,0,0,0],[1,0,0,0],[0,1,0,0]], dims = [[2, 2], [2, 2]])
+        c2 = Qobj([[0,0,0,0],[1,0,0,0],[0,0,0,0],[0,0,1,0]], dims = [[2, 2], [2, 2]])
+        true_c_ops = [c1,c2]
+
+        assert_equal(true_c_ops, c_ops_tls( N = 2, emission = 1))                
+
+
+    def test_get_blocks(self):
+        """
+        Tests that the calculation of the list which gets the number of cumulative elements at each block
+        boundary is correct, in the (j,m,m1) block-diagonal representation. For N = 4
+
+        1 1 1 1 1
+        1 1 1 1 1
+        1 1 1 1 1
+        1 1 1 1 1
+        1 1 1 1 1
+                1 1 1
+                1 1 1
+                1 1 1
+                     1
+
+        Thus, the blocks are [5, 8, 9] denoting that after the first block 5
+        elements have been accounted for and so on.
+        """
+        trueb1 = [2]
+        trueb2 = [3,4]    
+        trueb3 = [4,6]
+        trueb4 = [5,8,9]
+
+        test_b1 = _get_blocks(1)
+        test_b2 = _get_blocks(2)
+        test_b3 = _get_blocks(3)
+        test_b4 = _get_blocks(4)
+
+        assert_equal(test_b1, trueb1)
+        assert_equal(test_b2, trueb2)
+        assert_equal(test_b3, trueb3)
+
+    def test_lindbladian_dims(self):
+        """
+        Tests the calculation of the lindbladian matrix including its dimensions
+        """        
+
+        true_L = [[-4, 0, 0, 3],[0, -3.54999995, 0, 0],[0, 0, -3.54999995,0],
+                  [ 4,  0,  0, -3]]
+
+        true_L = Qobj(true_L)
+        true_L.dims = [[[2], [2]], [[2], [2]]]
+
+        N = 1
+        test_dicke = _Dicke(N = N, pumping = 1, collective_pumping = 2,
+                            emission = 1, collective_emission = 3,
+                            dephasing = 0.1)
+        test_L = test_dicke.lindbladian()
+        assert_array_almost_equal(test_L.full() , true_L.full())
+        assert_array_equal(test_L.dims , true_L.dims)
+
+    def test_liouvillian(self):
+        """
+        Tests the calculation of the liouvillian matrix including its dimensions as Qobj. Test performed for N = 1.
+        """        
+        
+        true_L = [[-4, 0, 0,  3],[0, -3.54999995, 0, 0],[0, 0, -3.54999995,0], 
+                  [ 4,  0,  0, -3]]
+
+        true_L = Qobj(true_L)
+        true_L.dims = [[[2], [2]], [[2], [2]]]
+
+        true_H = [[ 1.+0.j,  1.+0.j],[ 1.+0.j, -1.+0.j]]
+        true_H = Qobj(true_H)
+        true_H.dims = [[[2], [2]]]
+
+        true_liouvillian = [[-4,-1.j,1.j,3],[-1.j,-3.54999995+2.j,0,1.j],
+                            [1.j,0, -3.54999995-2.j,-1.j],[ 4, +1.j,-1.j, -3]]
+        true_liouvillian = Qobj(true_liouvillian)
+        true_liouvillian.dims = [[[2], [2]], [[2], [2]]]
+
+        N = 1
+        test_piqs = Piqs(hamiltonian = sigmaz() + sigmax(), N = N,
+                         pumping = 1, collective_pumping = 2, emission = 1,
+                         collective_emission = 3, dephasing = 0.1)
+
+        test_liouvillian = test_piqs.liouvillian()
+        test_hamiltonian = test_piqs.hamiltonian
+
+        assert_array_almost_equal(test_liouvillian.full() , true_liouvillian.full())
+        assert_array_almost_equal(test_hamiltonian.full() , true_H.full())
+        assert_array_equal(test_liouvillian.dims , test_liouvillian.dims)
 
 
 if __name__ == "__main__":
