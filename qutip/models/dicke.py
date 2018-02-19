@@ -1,32 +1,59 @@
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
-Dynamics for dicke states exploiting permutational invariance
+Calculate the dynamics of identical two level systems in the presence of
+local and collective processes by exploiting permutational symmetry
 """
 from math import factorial
 from decimal import Decimal
 import numpy as np
 
 from scipy import constants
-from scipy.integrate import odeint, ode
-from scipy.sparse import dok_matrix, csr_matrix, block_diag
+from scipy.sparse import dok_matrix, block_diag
 from qutip import Qobj, spre, spost
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
-from qutip.solver import Result, Options
 from qutip import *
-
-from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
-from qutip.mesolve import _generic_ode_solve
 from qutip.cy.dicke import Dicke as _Dicke
-from qutip.cy.dicke import (_j_min, _j_vals, _get_blocks, 
-                      jmm1_dictionary, _num_dicke_states,
-                      _num_dicke_ladders)
+from qutip.cy.dicke import (jmm1_dictionary, _num_dicke_states,
+                            _num_dicke_ladders)
+
+
 # ============================================================================
 # Functions necessary to generate the Lindbladian/Liouvillian for j, m, m1
 # ============================================================================
 def num_dicke_states(N):
     """
-    The number of dicke states with a modulo term taking care of ensembles
-    with odd number of systems.
+    Calculate the number of dicke states.
 
     Parameters
     -------
@@ -37,21 +64,15 @@ def num_dicke_states(N):
     nds: int
         The number of Dicke states
     """
-    if (not float(N).is_integer()):
-        raise ValueError("Number of TLS should be an integer")
-
-    if (N < 1):
-        raise ValueError("Number of TLS should be non-negative")
-
-    nds = (N / 2 + 1)**2 - (N % 2) / 4
-    return int(nds)
+    return _num_dicke_states(N)
 
 
 def num_dicke_ladders(N):
     """
-    Calculates the total number of Dicke ladders in the Dicke space for a
-    collection of N two-level systems. It counts how many different "j" exist.
-    Or the number of blocks in the block diagonal matrix.
+    Calculate the total number of Dicke ladders in the Dicke space.
+
+    For a collection of N two-level systems. It counts how many different
+    "j" exist or the number of blocks in the block diagonal matrix.
 
     Parameters
     -------
@@ -68,8 +89,10 @@ def num_dicke_ladders(N):
 
 def num_tls(nds):
     """
-    The number of two level systems (TLS), given the number of Dicke states.
-    Inverse function of _num_dicke_states(N)
+    Calculate the number of two level systems (TLS)
+
+    Given the number of Dicke states this is the inverse function to
+    `_num_dicke_states`
 
     Parameters
     ----------
@@ -102,54 +125,10 @@ def isdiagonal(matrix):
     return isdiag
 
 
-def dicke_states(N):
-    """
-    The number of dicke states with a modulo term taking care of ensembles
-    with odd number of systems. Same function, named "num_dicke_states",
-    is present in the file with cythonized code, dicke.pyx. 
-
-    Parameters
-    -------
-    N: int
-        The number of two level systems
-    Returns
-    -------
-    nds: int
-        The number of Dicke states
-    """
-    if (not float(N).is_integer()):
-        raise ValueError("Number of TLS should be an integer")
-
-    if (N < 1):
-        raise ValueError("Number of TLS should be non-negative")
-
-    nds = (N / 2 + 1)**2 - (N % 2) / 4
-
-    return int(nds)
-
-def dicke_ladders(N):
-    """
-    Calculates the total number of Dicke ladders in the Dicke space for a
-    collection of N two-level systems. It counts how many different "j" exist.
-    Or the number of blocks in the block diagonal matrix. Same function, 
-    named "num_dicke_ladders", is present in the file with cythonized code, dicke.pyx.
-
-    Parameters
-    -------
-    N: int
-        The number of two level systems.
-    Returns
-    -------
-    Nj: int
-        The number of Dicke ladders
-    """
-    Nj = (N + 1) * 0.5 + (1 - np.mod(N, 2)) * 0.5
-
-    return int(Nj)
-
 class Piqs(object):
     """
-    The Dicke States class.
+    The PIQS class which builds the Lindbladian and Liouvillian matrix for the
+    dynamics of ensembles of TLS.
 
     Parameters
     ----------
@@ -157,7 +136,7 @@ class Piqs(object):
         The number of two level systems
         default: 2
 
-    hamiltonian : Qobj matrix
+    hamiltonian : :class: `qutip.Qobj`
         An Hamiltonian H in the reduced basis set by `reduced_algebra()`.
         Matrix dimensions are (nds, nds), with nds = _num_dicke_states.
         The hamiltonian is assumed to be with hbar = 1.
@@ -200,9 +179,16 @@ class Piqs(object):
         default:  array([3, 4])
     """
 
-    def __init__(self, N=1, hamiltonian=None,
-                 emission=0., dephasing=0., pumping=0.,
-                 collective_emission=0., collective_dephasing=0., collective_pumping=0.):
+    def __init__(
+            self,
+            N=1,
+            hamiltonian=None,
+            emission=0.,
+            dephasing=0.,
+            pumping=0.,
+            collective_emission=0.,
+            collective_dephasing=0.,
+            collective_pumping=0.):
         self.N = N
         self.hamiltonian = hamiltonian
 
@@ -212,28 +198,36 @@ class Piqs(object):
         self.collective_emission = collective_emission
         self.collective_dephasing = collective_dephasing
         self.collective_pumping = collective_pumping
-        
+
         self.nds = _num_dicke_states(self.N)
         self.dshape = (_num_dicke_states(self.N), _num_dicke_states(self.N))
 
     def __repr__(self):
         """
-        Print the current parameters of the system.
+        Prints the current parameters of the system.
         """
         string = []
         string.append("N = {}".format(self.N))
         string.append("Hilbert space dim = {}".format(self.dshape))
-        string.append("collective_emission = {}".format(self.collective_emission))
-        string.append("emission = {}".format(self.emission))
-        string.append("dephasing = {}".format(self.dephasing))
-        string.append("pumping = {}".format(self.pumping))
-        string.append(
-            "collective_dephasing = {}".format(
-                self.collective_dephasing))
-        string.append(
-            "collective_pumping = {}".format(
-                self.collective_pumping))
+        string.append("Number of dicke states = {}".format(self.nds))
 
+        if self.emission > 0:
+            string.append("emission = {}".format(self.emission))
+        if self.dephasing > 0:
+            string.append("dephasing = {}".format(self.dephasing))
+        if self.pumping > 0:
+            string.append("pumping = {}".format(self.pumping))
+
+        if self.collective_emission > 0:
+            string.append(
+                "collective_emission = {}".format(self.collective_emission))
+
+        if self.collective_dephasing > 0:
+            string.append(
+                "collective_dephasing = {}".format(self.collective_dephasing))
+        if self.collective_pumping > 0:
+            string.append(
+                "collective_pumping = {}".format(self.collective_pumping))
         return "\n".join(string)
 
     def lindbladian(self):
@@ -248,20 +242,19 @@ class Piqs(object):
                 Dicke states.
         """
         cythonized_dicke = _Dicke(int(self.N),
-                                float(self.emission),
-                                float(self.dephasing),
-                                float(self.pumping),
-                                float(self.collective_emission),
-                                float(self.collective_dephasing),
-                                float(self.collective_pumping))
+                                  float(self.emission),
+                                  float(self.dephasing),
+                                  float(self.pumping),
+                                  float(self.collective_emission),
+                                  float(self.collective_dephasing),
+                                  float(self.collective_pumping))
 
         return cythonized_dicke.lindbladian()
 
     def liouvillian(self):
         """
-        Gives the total liouvillian in the jmm1 basis |j, m > < j, m1|
+        Build the total liouvillian in the jmm1 basis |j, m > < j, m1|
         """
-
         lindblad = self.lindbladian()
 
         if self.hamiltonian is None:
@@ -274,28 +267,20 @@ class Piqs(object):
 
         return liouv
 
-    def solve(self, initial_state, tlist, options=None, progress_bar=None):
-        """
-        Solver for the Dicke model optimized with QuTiP's spmat functions
-        """
-        if isdiagonal(initial_state) and isdiagonal(self.hamiltonian):
-            pass
-
-
     def eigenstates(self, liouvillian):
         """
-        Calculates the eigenvalues and eigenvectors of the Liouvillian,
+        Calculate the eigenvalues and eigenvectors of the Liouvillian,
         removing the spurious ones of eigenvectors with corresponding
         non-hermitian density matrices.
 
         Parameters
         ----------
-        liouvillian: Qobj superoperator type
+        liouvillian: :class:`qutip.Qobj`
             The Liouvillian of which to calculate the spectrum.
 
         Returns
         -------
-        eigen_states: list of Qobj
+        eigen_states: list
             The list of eigenvalues and correspondent eigenstates.
         """
         unpruned_eigenstates = liouvillian.eigenstates()
@@ -305,19 +290,19 @@ class Piqs(object):
 
     def prune_eigenstates(self, liouvillian_eigenstates):
         """
-        Removes the spurious eigenvalues and eigenvectors of the Liouvillian.
+        Remove the spurious eigenvalues and eigenvectors of the Liouvillian.
         Spurious means that the given eigenvector has elements outside of the
         block diagonal matrix.
 
         Parameters
         ----------
-        liouvillian_eigenstates: list of Qobj
+        liouvillian_eigenstates: list
             A list with the eigenvalues and eigenvectors of the Liouvillian
             including spurious ones.
 
         Returns
         -------
-        correct_eigenstates: list of Qobj
+        correct_eigenstates: list
             The list with the correct eigenvalues and eigenvectors of the
             Liouvillian.
         """
@@ -357,7 +342,8 @@ class Piqs(object):
 # ============================================================================
 def energy_degeneracy(N, m):
     """
-    Calculates how many Dicke states |j, m, alpha> have the same energy
+    Calculate how many Dicke states |j, m, alpha> have the same energy
+
     (hbar * omega_0 * m) given N two-level systems.
     The use of the Decimals class allows to explore N > 1000,
     unlike the built-in function 'scipy.special.binom(N, N/2 + m)'
@@ -383,9 +369,11 @@ def energy_degeneracy(N, m):
 
     return int(degeneracy)
 
+
 def state_degeneracy(N, j):
     """
-    Calculates the degeneracy of the Dicke state |j, m>.
+    Calculate the degeneracy of the Dicke state |j, m>.
+
     Each state |j, m> includes D(N,j) irreducible representations |j, m,alpha>.
     Uses Decimals to calculate higher numerator and denominators numbers.
 
@@ -414,10 +402,12 @@ def state_degeneracy(N, j):
 
     return degeneracy
 
+
 def m_degeneracy(N, m):
     """
-    The number of Dicke states |j, m> with same energy (hbar * omega_0 * m)
-    for N two-level systems.
+    Calculate the number of Dicke states |j, m> with same energy
+
+    (hbar * omega_0 * m) for N two-level systems.
 
     Parameters
     ----------
@@ -440,20 +430,20 @@ def m_degeneracy(N, m):
 
     return int(degeneracy)
 
+
 def jx_op(N):
     """
-    Builds the Jx operator in the same basis of the reduced density matrix
-    rho(j,m,m').    
+    Build the Jx operator in the same basis of the reduced density matrix
 
     Parameters
     ----------
-    N: int 
+    N: int
         Number of two-level systems
     Returns
     -------
     jx_operator: Qobj matrix
         The Jx operator as a QuTiP object. The dimensions are (nds,nds) where
-        nds is the number of Dicke states.         
+        nds is the number of Dicke states.
     """
     nds = _num_dicke_states(N)
     num_ladders = _num_dicke_ladders(N)
@@ -464,32 +454,34 @@ def jx_op(N):
 
     s = 0
     for k in range(0, num_ladders):
-            j = 0.5 * N - k
-            mmax = int(2 * j + 1)
-            for i in range(0, mmax):
-                m = j - i
-                if (s + 1) in range(0,nds):
-                    jp_operator[s,s+1] = block_diagonal[s,s+1] * ap(j,m-1)
-                if (s - 1) in range(0,nds):
-                    jm_operator[s,s-1] =  block_diagonal[s,s-1] * am(j,m+1)
-                s = s + 1
-    jx_operator = 1/2*(jp_operator + jm_operator)
+        j = 0.5 * N - k
+        mmax = int(2 * j + 1)
+        for i in range(0, mmax):
+            m = j - i
+            if (s + 1) in range(0, nds):
+                jp_operator[s, s + 1] = block_diagonal[s, s + 1] * ap(j, m - 1)
+            if (s - 1) in range(0, nds):
+                jm_operator[s, s - 1] = block_diagonal[s, s - 1] * am(j, m + 1)
+            s = s + 1
+    jx_operator = 1 / 2 * (jp_operator + jm_operator)
 
     return Qobj(jx_operator)
 
+
 def jy_op(N):
     """
-    Builds the Jy operator in the same basis of the reduced density matrix
-    rho(j,m,m').    
+    Build the Jy operator in the same basis of the reduced density matrix
+
+
     Parameters
     ----------
-    N: int 
+    N: int
         Number of two-level systems
     Returns
     -------
-    jy_operator: Qobj matrix
+    jy_operator: :class:`qutip.Qobj`
         The Jy operator as a QuTiP object. The dimensions are (nds,nds) where
-        nds is the number of Dicke states.    
+        nds is the number of Dicke states.
     """
     nds = _num_dicke_states(N)
     num_ladders = _num_dicke_ladders(N)
@@ -499,34 +491,35 @@ def jy_op(N):
 
     s = 0
     for k in range(0, num_ladders):
-            j = 0.5 * N - k
-            mmax = int(2 * j + 1)
-            for i in range(0, mmax):
-                m = j - i
-                if (s + 1) in range(0,nds):
-                    jp_operator[s,s+1] = block_diagonal[s,s+1] * ap(j,m-1)
-                if (s - 1) in range(0,nds):
-                    jm_operator[s,s-1] =  block_diagonal[s,s-1] * am(j,m+1)
-                s = s + 1
-    jy_operator = 1j/2*(jm_operator - jp_operator)
+        j = 0.5 * N - k
+        mmax = int(2 * j + 1)
+        for i in range(0, mmax):
+            m = j - i
+            if (s + 1) in range(0, nds):
+                jp_operator[s, s + 1] = block_diagonal[s, s + 1] * ap(j, m - 1)
+            if (s - 1) in range(0, nds):
+                jm_operator[s, s - 1] = block_diagonal[s, s - 1] * am(j, m + 1)
+            s = s + 1
+    jy_operator = 1j / 2 * (jm_operator - jp_operator)
 
     return Qobj(jy_operator)
 
+
 def jz_op(N):
     """
-    Builds the Jz operator in the same basis of the reduced density matrix
-    rho(j,m,m'). Jz is diagonal in this basis.   
-    
+    Build the Jz operator in the same basis of the reduced density matrix
+    rho(j,m,m'). Jz is diagonal in this basis.
+
     Parameters
     ----------
-    N: int 
+    N: int
         Number of two-level systems
-    
+
     Returns
     -------
-    jz_operator: Qobj matrix
+    jz_operator: :class: `qutip.Qobj`
         The Jz operator as a QuTiP object. The dimensions are (nds,nds)
-        where nds is the number of Dicke states.      
+        where nds is the number of Dicke states.
     """
     nds = _num_dicke_states(N)
     num_ladders = _num_dicke_ladders(N)
@@ -534,28 +527,30 @@ def jz_op(N):
 
     s = 0
     for k in range(0, num_ladders):
-            j = 0.5 * N - k
-            mmax = int(2 * j + 1)
-            for i in range(0, mmax):
-                m = j - i
-                jz_operator[s,s] = m
-                s = s + 1
+        j = 0.5 * N - k
+        mmax = int(2 * j + 1)
+        for i in range(0, mmax):
+            m = j - i
+            jz_operator[s, s] = m
+            s = s + 1
 
     return Qobj(jz_operator)
+
 
 def j2_op(N):
     """
     Builds the J^2 operator in the same basis of the reduced density matrix
-    rho(j,m,m'). J^2 is diagonal in this basis.   
+    rho(j,m,m'). J^2 is diagonal in this basis.
     Parameters
     ----------
-    N: int 
+    N: int
         Number of two-level systems
+
     Returns
     -------
-    j2_operator: Qobj matrix
+    j2_operator: :class: `qutip.Qobj`
         The J^2 operator as a QuTiP object. The dimensions are (nds,nds) where
-        nds is the number of Dicke states.  
+        nds is the number of Dicke states.
     """
     nds = _num_dicke_states(N)
     num_ladders = _num_dicke_ladders(N)
@@ -563,30 +558,31 @@ def j2_op(N):
 
     s = 0
     for k in range(0, num_ladders):
-            j = 0.5 * N - k
-            mmax = int(2 * j + 1)
-            for i in range(0, mmax):
-                m = j - i
-                j2_operator[s,s] = j * (j + 1)
-                s = s + 1
+        j = 0.5 * N - k
+        mmax = int(2 * j + 1)
+        for i in range(0, mmax):
+            m = j - i
+            j2_operator[s, s] = j * (j + 1)
+            s = s + 1
 
-    return Qobj(j2_operator) 
+    return Qobj(j2_operator)
+
 
 def jp_op(N):
     """
     Builds the Jp operator in the same basis of the reduced density matrix
-    rho(j,m,m').   
-    
+    rho(j,m,m').
+
     Parameters
     ----------
-    N: int 
+    N: int
         Number of two-level systems
-    
+
     Returns
     -------
-    jp_operator: Qobj matrix
+    jp_operator: :class: `qutip.Qobj`
         The Jp operator as a QuTiP object. The dimensions are (nds,nds) where
-        nds is the number of Dicke states.    
+        nds is the number of Dicke states.
     """
     nds = _num_dicke_states(N)
     num_ladders = _num_dicke_ladders(N)
@@ -594,30 +590,31 @@ def jp_op(N):
 
     s = 0
     for k in range(0, num_ladders):
-            j = 0.5 * N - k
-            mmax = int(2 * j + 1)
-            for i in range(0, mmax):
-                m = j - i
-                if (s + 1) in range(0,nds):
-                    jp_operator[s,s+1] = ap(j,m-1)
-                s = s + 1
+        j = 0.5 * N - k
+        mmax = int(2 * j + 1)
+        for i in range(0, mmax):
+            m = j - i
+            if (s + 1) in range(0, nds):
+                jp_operator[s, s + 1] = ap(j, m - 1)
+            s = s + 1
 
     return Qobj(jp_operator)
 
+
 def jm_op(N):
     """
-    Builds the Jm operator in the same basis of the reduced density matrix rho(j,m,m').    
+    Builds the Jm operator in the same basis of the reduced density matrix.
 
     Parameters
     ----------
-    N: int 
+    N: int
         Number of two-level systems
 
     Returns
     -------
-    jm_operator: Qobj matrix
-        The Jm operator as a QuTiP object. The dimensions are (nds,nds) where nds is
-        the number of Dicke states.    
+    jm_operator: :class: `qutip.Qobj`
+        The Jm operator as a QuTiP object. The dimensions are (nds,nds) where
+        nds is the number of Dicke states.
     """
     nds = _num_dicke_states(N)
     num_ladders = _num_dicke_ladders(N)
@@ -625,43 +622,47 @@ def jm_op(N):
 
     s = 0
     for k in range(0, num_ladders):
-            j = 0.5 * N - k
-            mmax = int(2 * j + 1)
-            for i in range(0, mmax):
-                m = j - i
-                if (s - 1) in range(0,nds):
-                    jm_operator[s,s-1] = am(j,m+1)
-                s = s + 1
+        j = 0.5 * N - k
+        mmax = int(2 * j + 1)
+        for i in range(0, mmax):
+            m = j - i
+            if (s - 1) in range(0, nds):
+                jm_operator[s, s - 1] = am(j, m + 1)
+            s = s + 1
 
     return Qobj(jm_operator)
 
-def ap( j, m):
+
+def ap(j, m):
     """
     Calculate A_{+} for value of j, m.
     """
     a_plus = np.sqrt((j - m) * (j + m + 1))
-    
+
     return(a_plus)
+
 
 def am(j, m):
     """
     Calculate A_{m} for value of j, m.
     """
     a_minus = np.sqrt((j + m) * (j - m + 1))
-    
+
     return(a_minus)
+
 
 # ============================================================================
 # Operators definitions in the uncoupled SU(2) basis used for comparison
 # ============================================================================
 def su2_algebra(N):
     """
-    Creates the vector (sx, sy, sz, sm, sp) with the spin operators of a
-    collection of N two-level systems (TLSs). Each element of the vector,
-    i.e., sx, is a vector of Qobs objects (spin matrices), as it cointains the
-    list of the SU(2) Pauli matrices for the N TLSs. Each TLS operator
-    sx[i], with i = 0, ..., (N-1), is placed in a 2^N-dimensional
-    Hilbert space.
+    Create the vector (sx, sy, sz, sm, sp) with the spin operators.
+
+    The operators are constructed for a collection of N two-level systems
+    (TLSs). Each element of the vector, i.e., sx, is a vector of Qobs objects
+    (spin matrices), as it cointains the list of the SU(2) Pauli matrices for
+    the N TLSs. Each TLS operator sx[i], with i = 0, ..., (N-1), is placed in
+    a 2^N-dimensional Hilbert space.
 
     Parameters
     ----------
@@ -710,11 +711,12 @@ def su2_algebra(N):
 
     return su2_operators
 
+
 def collective_algebra(N):
     """
-    Uses the module su2_algebra to create the collective spin algebra
-    Jx, Jy, Jz, Jm, Jp in the uncoupled basis of the two-level system
-    (TLS) SU(2) Pauli matrices. Each collective operator is placed in a
+    Construct the the collective spin algebra using `module su2_algebra`.
+    Jx, Jy, Jz, Jm, Jp are constructed in the uncoupled basis of the
+    two-level system (TLS). Each collective operator is placed in a
     Hilbert space of dimension 2^N.
 
     Parameters
@@ -748,19 +750,22 @@ def collective_algebra(N):
 
     return collective_operators
 
+
 def j_algebra(N):
     """
-    Gives the list with the collective operators of the total algebra, using the reduced basis
-    |j,m><j,m'| in which the density matrix is expressed.    
-    The list returned is [J^2, J_x, J_y, J_z, J_+, J_-]. 
+    Calculate the list of collective operators of the total algebra,
+    using the reduced basis |j,m><j,m'| in which the density matrix is
+    expressed. The list returned is [J^2, J_x, J_y, J_z, J_+, J_-].
     Parameters
     ----------
-    N: int 
-        Number of two-level systems    
+    N: int
+        Number of two-level systems
     Returns
     -------
     red_alg: list
-        Each element of the list is a Qobj matrix (QuTiP class) of dimensions (nds,nds). nds = number of Dicke states.    
+        [J^2, J_x, J_y, J_z, J_+, J_-]
+        Each element of the list is a Qobj matrix (QuTiP class) of dimensions
+        (nds,nds), where nds = number of Dicke states.
     """
     nds = num_dicke_states(N)
     num_ladders = num_dicke_ladders(N)
@@ -771,32 +776,39 @@ def j_algebra(N):
 
     s = 0
     for k in range(0, num_ladders):
-            j = 0.5 * N - k
-            mmax = int(2 * j + 1)
-            for i in range(0, mmax):
-                m = j - i
-                jz_operator[s,s] = m
-                if (s + 1) in range(0,nds):
-                    jp_operator[s,s+1] = ap(j,m-1)
-                if (s - 1) in range(0,nds):
-                    jm_operator[s,s-1] = am(j,m+1)
-                s = s + 1
-    jx_operator = 1/2*(jp_operator + jm_operator)
-    jy_operator = 1j/2*(jm_operator - jp_operator)
+        j = 0.5 * N - k
+        mmax = int(2 * j + 1)
+        for i in range(0, mmax):
+            m = j - i
+            jz_operator[s, s] = m
+            if (s + 1) in range(0, nds):
+                jp_operator[s, s + 1] = ap(j, m - 1)
+            if (s - 1) in range(0, nds):
+                jm_operator[s, s - 1] = am(j, m + 1)
+            s = s + 1
+    jx_operator = 1 / 2 * (jp_operator + jm_operator)
+    jy_operator = 1j / 2 * (jm_operator - jp_operator)
 
-    j_alg = [Qobj(jx_operator), Qobj(jy_operator), Qobj(jz_operator), Qobj(jp_operator), Qobj(jm_operator)]
+    j_alg = [
+        Qobj(jx_operator),
+        Qobj(jy_operator),
+        Qobj(jz_operator),
+        Qobj(jp_operator),
+        Qobj(jm_operator)]
 
     return j_alg
 
 
-def c_ops_tls(N=2, emission=0., dephasing=0., pumping=0., collective_emission=0.,
-              collective_dephasing=0., collective_pumping=0.):
+def c_ops_tls(N=2,
+              emission=0., dephasing=0., pumping=0.,
+              collective_emission=0., collective_dephasing=0.,
+              collective_pumping=0.):
     """
     Create the collapse operators (c_ops) of the Lindblad master equation in
-    the in the uncoupled basis of the two-level system (TLS) SU(2) Pauli matrices. 
-    The collapse operator list can be given to the Qutip algorithm 'mesolve'. 
-    Notice that the operators are placed in a Hilbert space of dimension 2^N.
-    Thus the method is suitable only for small N, N max of order 10.
+    the in the uncoupled basis of the two-level system (TLS) SU(2) Pauli
+    matrices. The collapse operator list can be given to the Qutip algorithm
+    'mesolve'. Notice that the operators are placed in a Hilbert space of
+    dimension 2^N. Thus the method is suitable only for small N (upto 10).
 
     Parameters
     ----------
@@ -862,35 +874,19 @@ def c_ops_tls(N=2, emission=0., dephasing=0., pumping=0., collective_emission=0.
 
     return c_ops
 
+
 # ============================================================================
 # State definitions in the Dicke basis with an option for basis transformation
 # ============================================================================
-def dicke_basis(N, jmm1 = None, basis = "dicke"):
+def dicke_basis(N, jmm1=None, basis="dicke"):
     """
-    Initialize the density matrix of a Dicke state. The default basis is "dicke", 
-    which creates coefficients for each jmm1 value in the dictionary jmm1. 
-    For instance, if we start from the most excited state for N = 2, 
-    we have the following state represented as a
-    density matrix of size (nds, nds) or (4, 4).
+    Initialize the density matrix of a Dicke state.
 
-    1 0 0 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0 
-    
-    Similarly, if the state was rho0 = |1, 0> <1, 0| + |0, 0><0, 0|, the density
-    matrix in the Dicke basis would be:
-
-    0 0 0 0
-    0 1 0 0
-    0 0 0 0
-    0 0 0 1
-
-    The mapping for the (i, k) index of the density matrix to the |j, m>
-    values is given by the cythonized function `jmm1_dictionary`.
-
-    This function can thus be used to build arbitrary states in the Dicke
-    basis.
+    The default basis is "dicke", which creates coefficients for each jmm1
+    value in the dictionary jmm1. The mapping for the (i, k) index of the
+    density matrix to the |j, m> values is given by the cythonized function
+    `jmm1_dictionary`. This function can thus be used to build arbitrary
+    states in the Dicke basis.
 
     Parameters
     ==========
@@ -898,13 +894,13 @@ def dicke_basis(N, jmm1 = None, basis = "dicke"):
         The number of two-level systems
 
     jmm1: dict
-        A dictionary of {(j, m, m1): p} which gives the coefficient of the (j, m, m1)
-        state in the density matrix.
+        A dictionary of {(j, m, m1): p} which gives the coefficient of the
+        (j, m, m1) state in the density matrix.
     """
     if basis == "uncoupled":
         raise NotImplemented
 
-    if jmm1 == None:
+    if jmm1 is None:
         msg = "Please specify the jmm1 values as a dictionary"
         msg += "or use the `excited(N)` function to create an"
         msg += "excited state where jmm1 = {(N/2, N/2, N/2): 1}"
@@ -921,16 +917,18 @@ def dicke_basis(N, jmm1 = None, basis = "dicke"):
 
     return Qobj(rho)
 
-def dicke_state(N, j, m, basis = "dicke"):
+
+def dicke_state(N, j, m, basis="dicke"):
     """
-    Initialize the density matrix in the Dicke basis state. 
-    For instance, if the superradiant state is given |j, m> = |1, 0> for N = 2, 
-    the state is represented as a density matrix of size (nds, nds) or (4, 4),
+    Initialize the density matrix in the Dicke basis state.
+    For instance, if the superradiant state is given |j, m> = |1, 0>
+    for N = 2, the state is represented as a density matrix of size (nds, nds)
+    or (4, 4),
 
     0 0 0 0
     0 1 0 0
     0 0 0 0
-    0 0 0 0 
+    0 0 0 0
 
     Parameters
     ==========
@@ -955,41 +953,43 @@ def dicke_state(N, j, m, basis = "dicke"):
     i, k = jmm1_dict[(j, m, m)]
     rho[i, k] = 1.
 
-    return Qobj(rho) 
+    return Qobj(rho)
 
 
-def excited(N, basis = "dicke"):
+def excited(N, basis="dicke"):
     """
-    Generates the density matrix for the Dicke state |N/2, N/2>, default in the
-    Dicke basis. If the argument `basis` is "uncoupled" then it generates
+    Generate the density matrix for the Dicke state |N/2, N/2>/
+
+    If the argument `basis` is "uncoupled" then it generates
     the state in a 2**N dim Hilbert space.
     """
     if basis == "uncoupled":
         return _uncoupled_excited(N)
 
-    jmm1 = {(N/2, N/2, N/2): 1}
+    jmm1 = {(N / 2, N / 2, N / 2): 1}
     return dicke_basis(N, jmm1)
 
-def superradiant(N, basis = "dicke"):
+
+def superradiant(N, basis="dicke"):
     """
-    Generates the superradiant dicke state as |N/2, 0> or |N/2, 0.5>
-    in the Dicke basis
+    Generate the superradiant dicke state as |N/2, 0> or |N/2, 0.5>
     """
     if basis == "uncoupled":
         return _uncoupled_superradiant(N)
 
-    if N%2 == 0:
-        jmm1 = {(N/2, 0, 0):1.}
+    if N % 2 == 0:
+        jmm1 = {(N / 2, 0, 0): 1.}
         return dicke(N, jmm1)
     else:
-        jmm1 = {(N/2, 0.5, 0.5):1.}
+        jmm1 = {(N / 2, 0.5, 0.5): 1.}
     return dicke_basis(N, jmm1)
 
-def css(N, a=1/np.sqrt(2), b=1/np.sqrt(2), basis = "dicke"):
+
+def css(N, a=1 / np.sqrt(2), b=1 / np.sqrt(2), basis="dicke"):
     """
-    Loads the separable spin state |CSS>= Prod_i^N(a|1>_i + b|0>_i)
-    into the reduced density matrix rho(j,m,m'). 
-    The default state is the symmetric CSS, |CSS> = |+>.
+    Generate the separable spin state |CSS>= Prod_i^N(a|1>_i + b|0>_i)
+
+    The default state is the symmetric CSS, |CSS> = |+> in the jmm basis.
     """
     if basis == "uncoupled":
         return _uncoupled_css(N, a, b)
@@ -1001,22 +1001,25 @@ def css(N, a=1/np.sqrt(2), b=1/np.sqrt(2), basis = "dicke"):
     # loop in the allowed matrix elements
     jmm1_dict = jmm1_dictionary(N)[1]
 
-    j = 0.5 * N 
+    j = 0.5 * N
     mmax = int(2 * j + 1)
     for i in range(0, mmax):
         m = j - i
-        psi_m = np.sqrt(float(energy_degeneracy(N, m))) * a**( N * 0.5 + m) * b**( N * 0.5 - m)
+        psi_m = np.sqrt(float(energy_degeneracy(N, m))) * \
+            a**(N * 0.5 + m) * b**(N * 0.5 - m)
         for i1 in range(0, mmax):
             m1 = j - i1
             row_column = jmm1_dict[(j, m, m1)]
-            psi_m1 = np.sqrt(float(energy_degeneracy(N, m1))) * a**( N * 0.5 + m1) * b**( N * 0.5 - m1)
+            psi_m1 = np.sqrt(float(energy_degeneracy(N, m1))) * \
+                a**(N * 0.5 + m1) * b**(N * 0.5 - m1)
             rho[row_column] = psi_m * psi_m1
-    
+
     return Qobj(rho)
 
-def ghz(N, basis = "dicke"):
+
+def ghz(N, basis="dicke"):
     """
-    Generates the the density matric of the GHZ state
+    Generate the the density matric of the GHZ state
     """
     if basis == "uncoupled":
         return _uncoupled_ghz(N)
@@ -1024,16 +1027,17 @@ def ghz(N, basis = "dicke"):
     nds = _num_dicke_states(N)
     rho = dok_matrix((nds, nds))
 
-    rho[0,0] = 1/2
-    rho[N,N] = 1/2
-    rho[N,0] = 1/2
-    rho[0,N] = 1/2
+    rho[0, 0] = 1 / 2
+    rho[N, N] = 1 / 2
+    rho[N, 0] = 1 / 2
+    rho[0, N] = 1 / 2
 
     return Qobj(rho)
 
-def ground(N, basis = "dicke"):
+
+def ground(N, basis="dicke"):
     """
-    Generates the density matric of the ground state for N spins
+    Generate the density matrix of the ground state for N spins
     """
     if basis == "uncoupled":
         return _uncoupled_ground(N)
@@ -1045,9 +1049,10 @@ def ground(N, basis = "dicke"):
 
     return Qobj(rho)
 
+
 def uncoupled_identity(N):
     """
-    Generates the identity in a 2**N dimensional Hilbert space
+    Generate the identity in a 2**N dimensional Hilbert space
 
     Parameters
     ----------
@@ -1066,18 +1071,18 @@ def uncoupled_identity(N):
 
     spin_dim = [2 for i in range(0, N)]
     spins_dims = list((spin_dim, spin_dim))
-    identity = Qobj(rho, dims = spins_dims)
+    identity = Qobj(rho, dims=spins_dims)
 
     return identity
 
+# ============================================================================
 # Uncoupled states in the full Hilbert space.
-# These functions will be accessed when the input to a state
-# generation function is supplied with the parameter `basis`
-# as "uncoupled". Otherwise, we work in the default Dicke
-# basis
+# ============================================================================
+
+
 def _uncoupled_excited(N):
     """
-    Generates a initial dicke state |N/2, N/2> as a Qobj in a 2**N
+    Generate a initial dicke state |N/2, N/2> as a Qobj in a 2**N
     dimensional Hilbert space
 
     Parameters
@@ -1096,9 +1101,10 @@ def _uncoupled_excited(N):
 
     return psi0
 
+
 def _uncoupled_superradiant(N):
     """
-    Generates a initial dicke state |N/2, 0> (N even) or |N/2, 0.5> (N odd)
+    Generate a initial dicke state |N/2, 0> (N even) or |N/2, 0.5> (N odd)
     as a Qobj in a 2**N dimensional Hilbert space
 
     Parameters
@@ -1117,9 +1123,10 @@ def _uncoupled_superradiant(N):
 
     return psi0
 
+
 def _uncoupled_ground(N):
     """
-    Generates a initial dicke state |N/2, - N/2> as a Qobj in a 2**N
+    Generate a initial dicke state |N/2, - N/2> as a Qobj in a 2**N
     dimensional Hilbert space
 
     Parameters
@@ -1138,9 +1145,10 @@ def _uncoupled_ground(N):
 
     return psi0
 
+
 def _uncoupled_ghz(N):
     """
-    Generates the GHZ density matrix in a 2**N dimensional Hilbert space
+    Generate the GHZ density matrix in a 2**N dimensional Hilbert space
 
     Parameters
     ----------
@@ -1168,9 +1176,12 @@ def _uncoupled_ghz(N):
 
 # This needs to be consistent to allow for coefficients a and b in the state
 # as a|0> + b|1>
+
+
 def _uncoupled_css(N, a, b):
     """
-    Generates the CSS density matrix in a 2**N dimensional Hilbert space.
+    Generate the CSS density matrix in a 2**N dimensional Hilbert space.
+
     The CSS states are non-entangled states of the form
     |a, b> =  \Prod_i (a|1>_i + b|0>_i).
 
@@ -1189,11 +1200,11 @@ def _uncoupled_css(N, a, b):
     N = int(N)
 
     # 1. Define i_th factorized density matrix in the uncoupled basis
-    rho_i = np.zeros((2,2), dtype=complex)
-    rho_i[0,0] = a * np.conj(a)
-    rho_i[1,1] = b * np.conj(b)
-    rho_i[0,1] = a * np.conj(a)
-    rho_i[1,0] = b * np.conj(b)
+    rho_i = np.zeros((2, 2), dtype=complex)
+    rho_i[0, 0] = a * np.conj(a)
+    rho_i[1, 1] = b * np.conj(b)
+    rho_i[0, 1] = a * np.conj(a)
+    rho_i[1, 0] = b * np.conj(b)
     rho_i = Qobj(rho_i)
 
     rho = [0 for i in range(N)]
@@ -1203,7 +1214,8 @@ def _uncoupled_css(N, a, b):
     for k in range(N - 1):
         rho[0] = tensor(rho[0], identity(2))
 
-    # 3. Cyclic sequence to create all N factorized density matrices |CSS>_i<CSS|_i
+    # 3. Cyclic sequence to create all N factorized density matrices
+    # |CSS>_i<CSS|_i
     a = [i for i in range(N)]
     b = [[a[i - i2] for i in range(N)] for i2 in range(N)]
 
@@ -1220,9 +1232,10 @@ def _uncoupled_css(N, a, b):
 
     return rho_tot
 
+
 def uncoupled_thermal(N, omega_0, temperature):
     """
-    Gives the thermal state for a collection of N two-level systems with
+    Generate the thermal state for a collection of N two-level systems with
     H = omega_0 * j_z. It is calculated in the full 2**N Hilbert state on the
     eigenstates of H in the uncoupled basis, not the Dicke basis.
 
@@ -1262,10 +1275,9 @@ def uncoupled_thermal(N, omega_0, temperature):
 
 def uncoupled_partition_function(N, omega_0, temperature):
     """
-    Gives the partition function for a collection of N two-level systems
-    with H = omega_0 * j_z.
-    It is calculated in the full 2**N Hilbert state, using the eigenstates of
-    H in the uncoupled basis, not the Dicke basis.
+    Calculate the partition function for a collection of N two-level systems
+    with H = omega_0 * j_z. It is calculated in the full 2**N Hilbert state,
+    using the eigenstates of H in the uncoupled basis, not the Dicke basis.
 
     Parameters
     ----------
@@ -1292,34 +1304,35 @@ def uncoupled_partition_function(N, omega_0, temperature):
         zeta = zeta + np.exp(- x * m)
     return zeta
 
+
 def block_matrix(N):
     """
-    Gives the block diagonal matrix filled with 1 if the matrix element
-    is allowed in the reduced basis |j,m><j,m'|.   
+    Generate the block diagonal matrix filled with 1 if the matrix element
+    is allowed in the reduced basis |j,m><j,m'|.
+
     Parameters
     ----------
-    N: int 
+    N: int
         Number of two-level systems
-    
+
     Returns
     -------
     block_matr: ndarray
         A block diagonal matrix of ones with dimension (nds,nds), where
-        nds is the number of Dicke states for N two-level systems.   
+        nds is the number of Dicke states for N two-level systems.
     """
-    nds = _num_dicke_states(N)
-    
-    #create a list with the sizes of the blocks, in order
-    blocks_dimensions = int(N/2 + 1 - 0.5 *(N%2))
-    blocks_list = [ (2*(i+1*(N%2))+1*((N+1)%2)) for i in range(blocks_dimensions)]
-    blocks_list = np.flip(blocks_list,0)
+    # create a list with the sizes of the blocks, in order
+    blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
+    blocks_list = [(2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2))
+                   for i in range(blocks_dimensions)]
+    blocks_list = np.flip(blocks_list, 0)
 
-    #create a list with each block matrix as element  
+    # create a list with each block matrix as element
 
     square_blocks = []
     k = 0
     for i in blocks_list:
-        square_blocks.append(np.ones((i,i)))
+        square_blocks.append(np.ones((i, i)))
         k = k + 1
 
     return block_diag(square_blocks)

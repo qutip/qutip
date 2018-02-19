@@ -10,8 +10,7 @@ cimport cython
 
 def _num_dicke_states(N):
     """
-    The number of dicke states with a modulo term taking care of ensembles
-    with odd number of systems.
+    Calculate the number of dicke states
 
     Parameters
     -------
@@ -34,14 +33,13 @@ def _num_dicke_states(N):
 
 def _num_dicke_ladders(N):
     """
-    Calculates the total number of Dicke ladders in the Dicke space for a
-    collection of N two-level systems. It counts how many different "j" exist.
-    Or the number of blocks in the block diagonal matrix.
+    Calculate the total number of Dicke ladders in the Dicke space.
 
     Parameters
-    -------
+    ----------
     N: int
         The number of two level systems.
+
     Returns
     -------
     Nj: int
@@ -55,8 +53,9 @@ def _num_dicke_ladders(N):
 @cython.wraparound(False)
 cpdef list _get_blocks(int N):
     """
-    A list which gets the number of cumulative elements at each block
-    boundary. For N = 4
+    Calculate the number of cumulative elements at each block boundary.
+
+    For N = 4
 
     1 1 1 1 1
     1 1 1 1 1
@@ -124,7 +123,6 @@ def m_vals(j):
     return np.arange(-j, j + 1, 1)
 
 
-
 def get_index(N, j, m, m1, blocks):
     """
     Get the index in the density matrix for this j, m, m1 value.
@@ -190,7 +188,7 @@ cdef class Dicke(object):
         The number of two level systems
         default: 2
 
-    hamiltonian : Qobj matrix
+    hamiltonian :class: `qutip.Qobj`
         An Hamiltonian H in the reduced basis set by `reduced_algebra()`.
         Matrix dimensions are (nds, nds), with nds = _num_dicke_states.
         The hamiltonian is assumed to be with hbar = 1.
@@ -244,7 +242,7 @@ cdef class Dicke(object):
         self.emission = emission
         self.dephasing = dephasing
         self.pumping = pumping
-        self.collective_emission = collective_emission        
+        self.collective_emission = collective_emission
         self.collective_dephasing = collective_dephasing
         self.collective_pumping = collective_pumping
 
@@ -370,7 +368,8 @@ cdef class Dicke(object):
                 lindblad_col.append(int(c9))
                 lindblad_data.append(g9)
 
-        cdef lindblad_matrix = csr_matrix((lindblad_data, (lindblad_row, lindblad_col)),
+        cdef lindblad_matrix = csr_matrix((lindblad_data,
+                                          (lindblad_row, lindblad_col)),
                                           shape=(nds**2, nds**2))
 
         # make matrix a Qobj superoperator with expected dims
@@ -400,7 +399,7 @@ cdef class Dicke(object):
         yE = self.emission
         yD = self.dephasing
         yP = self.pumping
-        yCE = self.collective_emission        
+        yCE = self.collective_emission
         yCP = self.collective_pumping
         yCD = self.collective_dephasing
 
@@ -453,7 +452,7 @@ cdef class Dicke(object):
             losses = 0.0
         else:
             losses = yE / 2 * \
-                np.sqrt((j + m) * (j - m + 1) * (j + m1) * (j - m1 + 1)) * (N / 2 + 1) / (j * (j + 1))
+                np.sqrt((j+m)*(j-m+1)*(j+m1)*(j-m1+1))*(N/2+1)/(j*(j+1))
 
         g2 = spontaneous + losses
 
@@ -483,7 +482,8 @@ cdef class Dicke(object):
         if (yE == 0) or (j <= 0):
             g3 = 0.0
         else:
-            g3 = yE / 2 * np.sqrt((j + m) * (j + m - 1) * (j + m1) * (j + m1 - 1)) * (N / 2 + j + 1) / (j * (2 * j + 1))
+            g3 = yE/2 * np.sqrt((j + m)*(j + m - 1) * (j + m1) * (j + m1-1))\
+                * (N/2 + j + 1)/(j * (2 * j + 1))
 
         return (g3)
 
@@ -507,7 +507,9 @@ cdef class Dicke(object):
         if (yE == 0) or ((j + 1) <= 0):
             g4 = 0.0
         else:
-            g4 = yE / 2 * np.sqrt((j - m + 1) * (j - m + 2) * (j - m1 + 1) * (j - m1 + 2)) * (N / 2 - j) / ((j + 1) * (2 * j + 1))
+            g4 = yE / 2 * np.sqrt((j - m + 1) * (j - m + 2) * (j - m1 + 1) *
+                                  (j - m1 + 2)) * (N / 2 - j) / ((j + 1) *
+                                                                 (2 * j + 1))
 
         return (g4)
 
@@ -557,7 +559,9 @@ cdef class Dicke(object):
             g6 = 0.0
         else:
             g6 = yD / 2 * np.sqrt(((j + 1)**2 - m**2) * ((j + 1) **
-                                                         2 - m1**2)) * (N / 2 - j) / ((j + 1) * (2 * j + 1))
+                                                         2 - m1**2)) *\
+                                                         (N / 2 - j)/((j + 1) *
+                                                                      (2*j+1))
 
         return (g6)
 
@@ -581,7 +585,9 @@ cdef class Dicke(object):
         if (yP == 0) or (j <= 0):
             g7 = 0.0
         else:
-            g7 = yP / 2 * np.sqrt((j - m - 1) * (j - m) * (j - m1 - 1) * (j - m1)) * (N / 2 + j + 1) / (j * (2 * j + 1))
+            g7 = yP / 2 * np.sqrt((j - m - 1) * (j - m) * (j - m1 - 1) *
+                                  (j - m1)) * (N / 2 + j + 1) / (j *
+                                                                 (2*j+1))
 
         return (g7)
 
@@ -607,7 +613,8 @@ cdef class Dicke(object):
         if (yP == 0) or (j <= 0):
             pump = 0.0
         else:
-            pump = yP / 2 * np.sqrt((j + m + 1) * (j - m) * (j + m1 + 1) * (j - m1)) * (N / 2 + 1) / (j * (j + 1))
+            pump = yP / 2 * np.sqrt((j + m + 1) * (j - m) * (j + m1 + 1) *
+                                    (j - m1)) * (N / 2 + 1) / (j * (j + 1))
 
         if yCP == 0:
             collective_pump = 0.0
@@ -639,7 +646,8 @@ cdef class Dicke(object):
         if (yP == 0):
             g9 = 0.0
         else:
-            g9 = yP / 2 * np.sqrt((j + m + 1) * (j + m + 2) * (j + m1 + 1)
-                                  * (j + m1 + 2)) * (N / 2 - j) / ((j + 1) * (2 * j + 1))
+            g9 = yP / 2 * np.sqrt((j + m + 1) * (j + m + 2) * (j + m1 + 1) *
+                                  (j + m1 + 2)) * (N / 2 - j) / ((j + 1) *
+                                                                 (2*j+1))
 
         return (g9)
