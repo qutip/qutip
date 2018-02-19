@@ -1,3 +1,35 @@
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 Tests for Permutation Invariance methods
 """
@@ -5,12 +37,11 @@ import numpy as np
 from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
-
-from qutip.models.dicke import (num_tls, Piqs)
-
-from qutip.cy.dicke import (_get_blocks, _j_min, _j_vals, m_vals, _num_dicke_states,
-                            _num_dicke_ladders, get_index, jmm1_dictionary)
+from qutip.cy.dicke import (_get_blocks, _j_min, _j_vals, m_vals,
+                            _num_dicke_states, _num_dicke_ladders,
+                            get_index, jmm1_dictionary)
 from qutip.cy.dicke import Dicke as _Dicke
+from qutip.models.dicke import (num_tls, Piqs)
 from qutip import Qobj
 
 
@@ -18,6 +49,7 @@ class TestPiqs:
     """
     A test class for the Permutational Invariant Quantum Solver
     """
+
     def test_num_dicke_states(self):
         """
         Tests the `num_dicke_state` function
@@ -44,15 +76,15 @@ class TestPiqs:
         calculated_N = [num_tls(i) for i in N_dicke]
 
         assert_array_equal(calculated_N, N)
-    
+
     def test_num_dicke_ladders(self):
         """
         Tests the `_num_dicke_ladders` function
         """
         ndl_true = [1, 2, 2, 3, 3, 4, 4, 5, 5]
-        ndl = [_num_dicke_ladders(N) for N in range (1, 10)]        
-        assert_array_equal(ndl, ndl_true)    
-     
+        ndl = [_num_dicke_ladders(N) for N in range(1, 10)]
+        assert_array_equal(ndl, ndl_true)
+
     def test_j_min(self):
         """
         Test the `_j_min` function
@@ -71,8 +103,8 @@ class TestPiqs:
         Test the function to get blocks
         """
         N_list = [1, 2, 5, 7]
-        blocks = [np.array([2]), np.array([3, 4]), np.array([ 6, 10, 12]),
-                  np.array([ 8, 14, 18, 20])]
+        blocks = [np.array([2]), np.array([3, 4]), np.array([6, 10, 12]),
+                  np.array([8, 14, 18, 20])]
         calculated_blocks = [_get_blocks(i) for i in N_list]
         for (i, j) in zip(calculated_blocks, blocks):
             assert_array_equal(i, j)
@@ -82,10 +114,10 @@ class TestPiqs:
         Test calculation of j values for given N
         """
         N_list = [1, 2, 3, 4, 7]
-        _j_vals_real = [np.array([ 0.5]), np.array([ 0.,  1.]),
-                       np.array([ 0.5,  1.5]),
-                       np.array([ 0.,  1.,  2.]),
-                       np.array([ 0.5,  1.5,  2.5,  3.5])]
+        _j_vals_real = [np.array([0.5]), np.array([0., 1.]),
+                        np.array([0.5, 1.5]),
+                        np.array([0., 1., 2.]),
+                        np.array([0.5, 1.5, 2.5, 3.5])]
         _j_vals_calc = [_j_vals(i) for i in N_list]
 
         for (i, j) in zip(_j_vals_calc, _j_vals_real):
@@ -96,11 +128,11 @@ class TestPiqs:
         Test calculation of m values for a particular j
         """
         j_list = [0.5, 1, 1.5, 2, 2.5]
-        m_real = [np.array([-0.5,  0.5]), np.array([-1,  0,  1]),
-                  np.array([-1.5, -0.5,  0.5,  1.5]),
-                  np.array([-2, -1,  0,  1,  2]),
-                  np.array([-2.5, -1.5, -0.5,  0.5,  1.5,  2.5])]
-        
+        m_real = [np.array([-0.5, 0.5]), np.array([-1, 0, 1]),
+                  np.array([-1.5, -0.5, 0.5, 1.5]),
+                  np.array([-2, -1, 0, 1, 2]),
+                  np.array([-2.5, -1.5, -0.5, 0.5, 1.5, 2.5])]
+
         m_calc = [m_vals(i) for i in j_list]
         for (i, j) in zip(m_real, m_calc):
             assert_array_equal(i, j)
@@ -110,42 +142,61 @@ class TestPiqs:
         Test the index fetching function for given j, m, m1 value
         """
         N = 1
-        jmm1_list = [(0.5, 0.5, 0.5), (0.5, 0.5, -0.5), 
+        jmm1_list = [(0.5, 0.5, 0.5), (0.5, 0.5, -0.5),
                      (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
         indices = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
         blocks = _get_blocks(N)
-        calculated_indices = [get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list]
+        calculated_indices = [
+            get_index(
+                N,
+                jmm1[0],
+                jmm1[1],
+                jmm1[2],
+                blocks) for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
 
         N = 2
         blocks = _get_blocks(N)
-        jmm1_list = [(1, 1, 1), (1, 1, 0), (1, 1, -1), 
+        jmm1_list = [(1, 1, 1), (1, 1, 0), (1, 1, -1),
                      (1, 0, 1), (1, 0, 0), (1, 0, -1),
                      (1, -1, 1), (1, -1, 0), (1, -1, -1),
                      (0, 0, 0)]
-        
-        indices = [(0, 0), (0, 1), (0, 2),
-                    (1, 0), (1, 1), (1, 2),
-                    (2, 0), (2, 1), (2, 2),
-                    (3, 3)]
 
-        calculated_indices = [get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list]
+        indices = [(0, 0), (0, 1), (0, 2),
+                   (1, 0), (1, 1), (1, 2),
+                   (2, 0), (2, 1), (2, 2),
+                   (3, 3)]
+
+        calculated_indices = [
+            get_index(
+                N,
+                jmm1[0],
+                jmm1[1],
+                jmm1[2],
+                blocks) for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
 
         N = 3
         blocks = _get_blocks(N)
-        jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5), (1.5, 1.5, -1.5),
-                     (1.5, 0.5, 0.5), (1.5, -0.5, -0.5), (1.5, -1.5, -1.5), (1.5, -1.5, 1.5),
-                     (0.5, 0.5, 0.5), (0.5, 0.5, -0.5),
-                     (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
-        
+        jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5),
+                     (1.5, 1.5, -1.5), (1.5, 0.5, 0.5), (1.5, -0.5, -0.5),
+                     (1.5, -1.5, -1.5), (1.5, -1.5, 1.5), (0.5, 0.5, 0.5),
+                     (0.5, 0.5, -0.5), (0.5, - 0.5, 0.5),
+                     (0.5, -0.5, -0.5)]
+
         indices = [(0, 0), (0, 1), (0, 2), (0, 3),
                    (1, 1), (2, 2), (3, 3), (3, 0),
                    (4, 4), (4, 5),
                    (5, 4), (5, 5)]
 
-        calculated_indices = [get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list]
+        calculated_indices = [
+            get_index(
+                N,
+                jmm1[0],
+                jmm1[1],
+                jmm1[2],
+                blocks) for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
 
     def test_jmm1_dictionary(self):
@@ -155,56 +206,55 @@ class TestPiqs:
         d1, d2, d3, d4 = jmm1_dictionary(1)
 
         d1_correct = {(0, 0): (0.5, 0.5, 0.5), (0, 1): (0.5, 0.5, -0.5),
-                        (1, 0): (0.5, -0.5, 0.5), (1, 1): (0.5, -0.5, -0.5)}
+                      (1, 0): (0.5, -0.5, 0.5), (1, 1): (0.5, -0.5, -0.5)}
 
-        d2_correct = {(0.5, -0.5, -0.5): (1, 1),(0.5, -0.5, 0.5): (1, 0),
-                            (0.5, 0.5, -0.5): (0, 1),
-                            (0.5, 0.5, 0.5): (0, 0)}
+        d2_correct = {(0.5, -0.5, -0.5): (1, 1), (0.5, -0.5, 0.5): (1, 0),
+                      (0.5, 0.5, -0.5): (0, 1),
+                      (0.5, 0.5, 0.5): (0, 0)}
 
         d3_correct = {0: (0.5, 0.5, 0.5), 1: (0.5, 0.5, -0.5),
-                        2: (0.5, -0.5, 0.5),
-                        3: (0.5, -0.5, -0.5)}
+                      2: (0.5, -0.5, 0.5),
+                      3: (0.5, -0.5, -0.5)}
 
-        d4_correct = {(0.5, -0.5, -0.5): 3, (0.5, -0.5, 0.5): 2, 
-                        (0.5, 0.5, -0.5): 1, (0.5, 0.5, 0.5): 0}
+        d4_correct = {(0.5, -0.5, -0.5): 3, (0.5, -0.5, 0.5): 2,
+                      (0.5, 0.5, -0.5): 1, (0.5, 0.5, 0.5): 0}
 
         assert_equal(d1, d1_correct)
         assert_equal(d2, d2_correct)
         assert_equal(d3, d3_correct)
         assert_equal(d4, d4_correct)
-
 
         d1, d2, d3, d4 = jmm1_dictionary(2)
 
         d1_correct = {(3, 3): (0.0, -0.0, -0.0), (2, 2): (1.0, -1.0, -1.0),
-                        (2, 1): (1.0, -1.0, 0.0), (2, 0): (1.0, -1.0, 1.0),
-                        (1, 2): (1.0, 0.0, -1.0), (1, 1): (1.0, 0.0, 0.0),
-                        (1, 0): (1.0, 0.0, 1.0), (0, 2): (1.0, 1.0, -1.0),
-                        (0, 1): (1.0, 1.0, 0.0), (0, 0): (1.0, 1.0, 1.0)}
+                      (2, 1): (1.0, -1.0, 0.0), (2, 0): (1.0, -1.0, 1.0),
+                      (1, 2): (1.0, 0.0, -1.0), (1, 1): (1.0, 0.0, 0.0),
+                      (1, 0): (1.0, 0.0, 1.0), (0, 2): (1.0, 1.0, -1.0),
+                      (0, 1): (1.0, 1.0, 0.0), (0, 0): (1.0, 1.0, 1.0)}
 
         d2_correct = {(0.0, -0.0, -0.0): (3, 3), (1.0, -1.0, -1.0): (2, 2),
-                        (1.0, -1.0, 0.0): (2, 1), (1.0, -1.0, 1.0): (2, 0),
-                        (1.0, 0.0, -1.0): (1, 2), (1.0, 0.0, 0.0): (1, 1),
-                        (1.0, 0.0, 1.0): (1, 0), (1.0, 1.0, -1.0): (0, 2),
-                        (1.0, 1.0, 0.0): (0, 1), (1.0, 1.0, 1.0): (0, 0)}
+                      (1.0, -1.0, 0.0): (2, 1), (1.0, -1.0, 1.0): (2, 0),
+                      (1.0, 0.0, -1.0): (1, 2), (1.0, 0.0, 0.0): (1, 1),
+                      (1.0, 0.0, 1.0): (1, 0), (1.0, 1.0, -1.0): (0, 2),
+                      (1.0, 1.0, 0.0): (0, 1), (1.0, 1.0, 1.0): (0, 0)}
 
-        d3_correct ={15: (0.0, -0.0, -0.0), 10: (1.0, -1.0, -1.0),
-                        9: (1.0, -1.0, 0.0), 8: (1.0, -1.0, 1.0),
-                        6: (1.0, 0.0, -1.0), 5: (1.0, 0.0, 0.0),
-                        4: (1.0, 0.0, 1.0), 2: (1.0, 1.0, -1.0),
-                        1: (1.0, 1.0, 0.0), 0: (1.0, 1.0, 1.0)}
+        d3_correct = {15: (0.0, -0.0, -0.0), 10: (1.0, -1.0, -1.0),
+                      9: (1.0, -1.0, 0.0), 8: (1.0, -1.0, 1.0),
+                      6: (1.0, 0.0, -1.0), 5: (1.0, 0.0, 0.0),
+                      4: (1.0, 0.0, 1.0), 2: (1.0, 1.0, -1.0),
+                      1: (1.0, 1.0, 0.0), 0: (1.0, 1.0, 1.0)}
 
         d4_correct = {(0.0, -0.0, -0.0): 15, (1.0, -1.0, -1.0): 10,
-                        (1.0, -1.0, 0.0): 9, (1.0, -1.0, 1.0): 8,
-                        (1.0, 0.0, -1.0): 6, (1.0, 0.0, 0.0): 5,
-                        (1.0, 0.0, 1.0): 4, (1.0, 1.0, -1.0): 2,
-                        (1.0, 1.0, 0.0): 1, (1.0, 1.0, 1.0): 0}
-        
+                      (1.0, -1.0, 0.0): 9, (1.0, -1.0, 1.0): 8,
+                      (1.0, 0.0, -1.0): 6, (1.0, 0.0, 0.0): 5,
+                      (1.0, 0.0, 1.0): 4, (1.0, 1.0, -1.0): 2,
+                      (1.0, 1.0, 0.0): 1, (1.0, 1.0, 1.0): 0}
+
         assert_equal(d1, d1_correct)
         assert_equal(d2, d2_correct)
         assert_equal(d3, d3_correct)
         assert_equal(d4, d4_correct)
-    
+
     def test_lindbladian(self):
         """
         Test the generation of the Lindbladian matrix
@@ -217,9 +267,9 @@ class TestPiqs:
         gD = 0.1
         gP = 0.1
 
-        system = Piqs(N = N, emission = gE, pumping = gP, dephasing = gD,
-                        collective_emission = gCE, collective_pumping = gCP,
-                        collective_dephasing = gCD)
+        system = Piqs(N=N, emission=gE, pumping=gP, dephasing=gD,
+                      collective_emission=gCE, collective_pumping=gCP,
+                      collective_dephasing=gCD)
 
         lindbladian = system.lindbladian()
         Ldata = np.zeros((4, 4), dtype="complex")
@@ -228,8 +278,8 @@ class TestPiqs:
         Ldata[2] = [0, 0, -0.9, 0]
         Ldata[3] = [0.6, 0, 0, -0.6]
 
-        lindbladian_correct = Qobj(Ldata, dims= [[[2], [2]], [[2], [2]]],
-                                   shape = (4, 4))
+        lindbladian_correct = Qobj(Ldata, dims=[[[2], [2]], [[2], [2]]],
+                                   shape=(4, 4))
 
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
 
@@ -241,9 +291,9 @@ class TestPiqs:
         gD = 0.1
         gP = 0.1
 
-        system = Piqs(N = N, emission = gE, pumping = gP, dephasing = gD,
-                        collective_emission = gCE, collective_pumping = gCP,
-                        collective_dephasing = gCD)
+        system = Piqs(N=N, emission=gE, pumping=gP, dephasing=gD,
+                      collective_emission=gCE, collective_pumping=gCP,
+                      collective_dephasing=gCD)
 
         lindbladian = system.lindbladian()
 
@@ -264,11 +314,10 @@ class TestPiqs:
                                                                     0.1,
                                                                     -0.25)
 
-        lindbladian_correct = Qobj(Ldata, dims= [[[4], [4]], [[4], [4]]],
-                                    shape = (16, 16))
+        lindbladian_correct = Qobj(Ldata, dims=[[[4], [4]], [[4], [4]]],
+                                   shape=(16, 16))
 
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
-
 
     def test_gamma(self):
         """
@@ -291,12 +340,23 @@ class TestPiqs:
         pumping = 1.
         collective_pumping = 1.
 
-        model = _Dicke(N, collective_emission = collective_emission, emission = emission, dephasing = dephasing,
-                      pumping = pumping, collective_pumping = collective_pumping)
+        model = _Dicke(
+            N,
+            collective_emission=collective_emission,
+            emission=emission,
+            dephasing=dephasing,
+            pumping=pumping,
+            collective_pumping=collective_pumping)
 
-        tau_calculated = [model.gamma3((3, 1, 1)), model.gamma2((2, 1, 1)), model.gamma4((1, 1, 1)),
-                          model.gamma5((3, 0, 0)), model.gamma1((2, 0, 0)), model.gamma6((1, 0, 0)),
-                          model.gamma7((3,-1, -1)), model.gamma8((2,-1, -1)), model.gamma9((1,-1, -1))]
+        tau_calculated = [model.gamma3((3, 1, 1)),
+                          model.gamma2((2, 1, 1)),
+                          model.gamma4((1, 1, 1)),
+                          model.gamma5((3, 0, 0)),
+                          model.gamma1((2, 0, 0)),
+                          model.gamma6((1, 0, 0)),
+                          model.gamma7((3, -1, -1)),
+                          model.gamma8((2, -1, -1)),
+                          model.gamma9((1, -1, -1))]
 
         tau_real = [2., 8., 0.333333,
                     1.5, -19.5, 0.666667,
