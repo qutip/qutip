@@ -547,7 +547,7 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
                          "%s (use es or pi)." % solver)
 
 
-def spectrum_correlation_fft(tlist, y):
+def spectrum_correlation_fft(tlist, y, inverse=False):
     """
     Calculate the power spectrum corresponding to a two-time correlation
     function using FFT.
@@ -558,12 +558,14 @@ def spectrum_correlation_fft(tlist, y):
         list/array of times :math:`t` which the correlation function is given.
     y : array_like
         list/array of correlations corresponding to time delays :math:`t`.
+    inverse: boolean
+        boolean parameter for using a positive exponent in the Fourier Transform instead. Default is False.
 
     Returns
     -------
     w, S : tuple
         Returns an array of angular frequencies 'w' and the corresponding
-        one-sided power spectrum 'S(w)'.
+        two-sided power spectrum 'S(w)'.
 
     """
 
@@ -575,15 +577,20 @@ def spectrum_correlation_fft(tlist, y):
     if not np.allclose(np.diff(tlist), dt*np.ones(N-1,dtype=float)):
         raise Exception('tlist must be equally spaced for FFT.')
     
-    F = scipy.fftpack.fft(y)
+    if inverse:
+           F = N * scipy.fftpack.ifft(y)
+    else:
+           F = scipy.fftpack.fft(y)
+    
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(N, dt)
 
-    # select only indices for elements that corresponds
-    # to positive frequencies
-    indices = np.where(f > 0.0)
+    # re-order frequencies from most negative to most positive (centre on 0)
+    idx = np.array([], dtype = 'int')
+    idx = np.append(idx, np.where(f < 0.0))
+    idx = np.append(idx, np.where(f >= 0.0))
 
-    return 2 * np.pi * f[indices], 2 * dt * np.real(F[indices])
+    return 2 * np.pi * f[idx], 2 * dt * np.real(F[idx])
 
 
 # -----------------------------------------------------------------------------
