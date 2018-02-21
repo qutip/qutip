@@ -236,7 +236,7 @@ cdef class Dicke(object):
     cdef float collective_emission, collective_dephasing, collective_pumping
 
     def __init__(self, int N=2, float emission=0., float dephasing=0.,
-                 float pumping=0., float collective_emission=1.,
+                 float pumping=0., float collective_emission=0.,
                  collective_dephasing=0., collective_pumping=0.):
         self.N = N
         self.emission = emission
@@ -404,7 +404,7 @@ cdef class Dicke(object):
         yCD = self.collective_dephasing
 
         spontaneous = yCE / 2 * (2 * j * (j + 1) - m * (m - 1) - m1 * (m1 - 1))
-        losses = yE / 2 * (N + m + m1)
+        losses = (yE / 2) * (N + m + m1)
         pump = yP / 2 * (N - m - m1)
         collective_pump = yCP / 2 * \
             (2 * j * (j + 1) - m * (m + 1) - m1 * (m1 + 1))
