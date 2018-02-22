@@ -45,7 +45,7 @@ from qutip.solver import Options
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
 
-class TestSchrodingerEqSolve:
+class TestSESolve:
     """
     A test class for the QuTiP Schrodinger Eq. solver
     """
@@ -103,6 +103,113 @@ class TestSchrodingerEqSolve:
                 msg="expect Y not matching analytic")
         assert_(max(abs(sz - sz_analytic)) < tol,
                 msg="expect Z not matching analytic")
+
+    def fidelitycheck(self, out1, out2, rho0vec):
+        fid = np.zeros(len(out1.states))
+        for i, E in enumerate(out2.states):
+            rhot = vector_to_operator(E*rho0vec)
+            fid[i] = fidelity(out1.states[i], rhot)
+        return fid
+
+    def testMETDDecayAsFuncList(self):
+        "mesolve: time-dependence as function list with super as init cond"
+        me_error = 1e-6
+
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        rho0vec = operator_to_vector(psi0*psi0.dag())
+        E0 = sprepost(qeye(N), qeye(N))
+        kappa = 0.2  # coupling to oscillator
+
+        def sqrt_kappa(t, args):
+            return np.sqrt(kappa * np.exp(-t))
+        c_op_list = [[a, sqrt_kappa]]
+        tlist = np.linspace(0, 10, 100)
+        out1 = mesolve(H, psi0, tlist, c_op_list, [])
+        out2 = mesolve(H, E0, tlist, c_op_list, [])
+
+        fid = self.fidelitycheck(out1, out2, rho0vec)
+        assert_(max(abs(1.0-fid)) < me_error, True)
+
+    def testMETDDecayAsStrList(self):
+        "mesolve: time-dependence as string list with super as init cond"
+        me_error = 1e-6
+
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        rho0vec = operator_to_vector(psi0*psi0.dag())
+        E0 = sprepost(qeye(N), qeye(N))
+        kappa = 0.2  # coupling to oscillator
+        c_op_list = [[a, 'sqrt(k*exp(-t))']]
+        args = {'k': kappa}
+        tlist = np.linspace(0, 10, 100)
+        out1 = mesolve(H, psi0, tlist, c_op_list, [], args=args)
+        out2 = mesolve(H, E0, tlist, c_op_list, [], args=args)
+        fid = self.fidelitycheck(out1, out2, rho0vec)
+        assert_(max(abs(1.0-fid)) < me_error, True)
+
+    def testMETDDecayAsArray(self):
+        "mesolve: time-dependence as array with super as init cond"
+        me_error = 1e-5
+
+        N = 10
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)
+        rho0vec = operator_to_vector(psi0*psi0.dag())
+        E0 = sprepost(qeye(N), qeye(N))
+        kappa = 0.2
+        tlist = np.linspace(0, 10, 1000)
+        c_op_list = [[a, np.sqrt(kappa * np.exp(-tlist))]]
+        out1 = mesolve(H, psi0, tlist, c_op_list, [])
+        out2 = mesolve(H, E0, tlist, c_op_list, [])
+        fid = self.fidelitycheck(out1, out2, rho0vec)
+        assert_(max(abs(1.0-fid)) < me_error, True)
+
+    def testMETDDecayAsFunc(self):
+        "mesolve: time-dependence as function with super as init cond"
+
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        rho0 = ket2dm(basis(N, 9))  # initial state
+        rho0vec = operator_to_vector(rho0)
+        E0 = sprepost(qeye(N), qeye(N))
+        kappa = 0.2  # coupling to oscillator
+
+        def Liouvillian_func(t, args):
+            c = np.sqrt(kappa * np.exp(-t))*a
+            data = liouvillian(H, [c])
+            return data
+
+        tlist = np.linspace(0, 10, 100)
+        args = {'kappa': kappa}
+        out1 = mesolve(Liouvillian_func, rho0, tlist, [], [], args=args)
+        out2 = mesolve(Liouvillian_func, E0, tlist, [], [], args=args)
+
+        fid = self.fidelitycheck(out1, out2, rho0vec)
+        assert_(max(abs(1.0-fid)) < me_error, True)
+
+    def test_me_interp1(self):
+        "mesolve: interp time-dependent collapse operator #1"
+
+        N = 10  # number of basis states to consider
+        kappa = 0.2  # coupling to oscillator
+        tlist = np.linspace(0, 10, 100)
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        c_op_list = [[a, S]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 1e-5)
 
 if __name__ == "__main__":
     run_module_suite()

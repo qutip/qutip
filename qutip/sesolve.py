@@ -302,8 +302,7 @@ def psi_list_td_with_state(t, psi, H_list_and_args):
     H = H_list[0][0]
     H_td = H_list[0][1]
     out = np.zeros(psi.shape[0],dtype=complex)
-    spmvpy_csr(H.data, H.indices, H.indptr,
-                psi, H_td(t, args), out)
+    spmvpy_csr(H.data, H.indices, H.indptr, psi, H_td(t, args), out)
     for n in range(1, len(H_list)):
         #
         # args[n][0] = the sparse data for a Qobj in operator form
@@ -385,10 +384,10 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
 
     if psi0.isket:
         initial_vector = psi0.full().ravel()
-        oper_evo = True
+        oper_evo = False
     elif psi0.isunitary:
         initial_vector = operator_to_vector(psi0).full().ravel()
-        opt.normalize_output = False
+        oper_evo = True
     else:
         raise TypeError("The unitary solver requires psi0 to be"
                         " a ket as initial state"
@@ -509,7 +508,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
 # time dependent hamiltonians
 #
 def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
-    """!
+    """
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
     """
