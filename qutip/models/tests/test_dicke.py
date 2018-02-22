@@ -421,28 +421,6 @@ class TestPiqs:
             assert_array_equal(jP, jp_op(nn))
             assert_array_equal(jM, jm_op(nn))
 
-    def test_isdiagonal(self):
-        """
-        Test if the function isdiagonal checks if a matrix (a Qobj or ndarray)
-        is diagonal
-        """
-
-        diag_matrix = [[1, 0, 0], [0, 3, 0], [0, 0, -1j]]
-
-        nondiag_matrix = [[1, 0, 0, 0], [0, 0, 3, 0], [0, 0, 3, 0],
-                          [0, 0, 0, -1j]]
-
-        test_true1 = isdiagonal(diag_matrix)
-        test_true2 = isdiagonal(Qobj(diag_matrix))
-
-        test_false1 = isdiagonal(nondiag_matrix)
-        test_false2 = isdiagonal(Qobj(nondiag_matrix))
-
-        assert_equal(test_true1, True)
-        assert_equal(test_true2, True)
-        assert_equal(test_false1, False)
-        assert_equal(test_false2, False)
-
     def test_j_min_(self):
         """
         Test the `j_min` function

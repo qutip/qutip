@@ -35,17 +35,20 @@ Calculate the dynamics of identical two level systems in the presence of
 local and collective processes by exploiting permutational symmetry
 """
 from math import factorial
+
 from decimal import Decimal
+
 import numpy as np
 
 from scipy import constants
 from scipy.sparse import dok_matrix, block_diag
-from qutip import Qobj, spre, spost
+
+from qutip import Qobj, spre, spost, tensor, identity
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
-from qutip import *
 from qutip.cy.dicke import Dicke as _Dicke
 from qutip.cy.dicke import (jmm1_dictionary, _num_dicke_states,
                             _num_dicke_ladders)
+
 
 
 # ============================================================================
@@ -56,16 +59,16 @@ def num_dicke_states(N):
     Calculate the number of dicke states.
 
     Parameters
-    -------
+    ----------
     N: int
         The number of two level systems
+
     Returns
     -------
     nds: int
         The number of Dicke states
     """
     return _num_dicke_states(N)
-
 
 def num_dicke_ladders(N):
     """
@@ -86,18 +89,15 @@ def num_dicke_ladders(N):
     Nj = (N + 1) * 0.5 + (1 - np.mod(N, 2)) * 0.5
     return int(Nj)
 
-
 def num_tls(nds):
     """
     Calculate the number of two level systems (TLS)
-
-    Given the number of Dicke states this is the inverse function to
-    `_num_dicke_states`
 
     Parameters
     ----------
     nds: int
          The number of Dicke states
+
     Returns
     -------
     N: int
@@ -109,26 +109,12 @@ def num_tls(nds):
     else:
         # N is odd
         N = 2 * (np.sqrt(nds + 1 / 4) - 1)
-
     return int(N)
-
-
-def isdiagonal(matrix):
-    """
-    Check if a matrix is diagonal either if it is a Qobj or a ndarray
-    """
-    if isinstance(matrix, Qobj):
-        matrix = matrix.full()
-
-    isdiag = np.all(matrix == np.diag(np.diagonal(matrix)))
-
-    return isdiag
 
 
 class Piqs(object):
     """
-    The PIQS class which builds the Lindbladian and Liouvillian matrix for the
-    dynamics of ensembles of TLS.
+    The PIQS class which builds the Lindbladian and Liouvillian matrix
 
     Parameters
     ----------
@@ -165,6 +151,7 @@ class Piqs(object):
     collective_dephasing : float
         Collective dephasing coefficient
         default: 0.0
+
     nds : int
         The number of Dicke states
         default: nds(2) = 4
@@ -178,33 +165,28 @@ class Piqs(object):
         boundary
         default:  array([3, 4])
     """
-
-    def __init__(
-            self,
-            N=1,
-            hamiltonian=None,
-            emission=0.,
-            dephasing=0.,
-            pumping=0.,
-            collective_emission=0.,
-            collective_dephasing=0.,
-            collective_pumping=0.):
+    def __init__(self,
+                 N=1, hamiltonian=None,
+                 emission=0.,
+                 dephasing=0.,
+                 pumping=0.,
+                 collective_emission=0.,
+                 collective_dephasing=0.,
+                 collective_pumping=0.):
         self.N = N
         self.hamiltonian = hamiltonian
-
         self.emission = emission
         self.dephasing = dephasing
         self.pumping = pumping
         self.collective_emission = collective_emission
         self.collective_dephasing = collective_dephasing
         self.collective_pumping = collective_pumping
-
         self.nds = _num_dicke_states(self.N)
         self.dshape = (_num_dicke_states(self.N), _num_dicke_states(self.N))
 
     def __repr__(self):
         """
-        Prints the current parameters of the system.
+        Print the current parameters of the system.
         """
         string = []
         string.append("N = {}".format(self.N))
@@ -217,11 +199,9 @@ class Piqs(object):
             string.append("dephasing = {}".format(self.dephasing))
         if self.pumping > 0:
             string.append("pumping = {}".format(self.pumping))
-
         if self.collective_emission > 0:
             string.append(
                 "collective_emission = {}".format(self.collective_emission))
-
         if self.collective_dephasing > 0:
             string.append(
                 "collective_dephasing = {}".format(self.collective_dephasing))
@@ -236,10 +216,10 @@ class Piqs(object):
         sparse matrix using a Cythonized function
 
         Returns
-        ----------
-        lindbladian: Qobj superoperator (sparse)
-                The matrix size is (nds**2, nds**2) where nds is the number of
-                Dicke states.
+        -------
+        lindbladian: :class:`Qobj`
+            The matrix size is (nds**2, nds**2) where nds is the number of
+            Dicke states.
         """
         cythonized_dicke = _Dicke(int(self.N),
                                   float(self.emission),
@@ -248,15 +228,17 @@ class Piqs(object):
                                   float(self.collective_emission),
                                   float(self.collective_dephasing),
                                   float(self.collective_pumping))
-
         return cythonized_dicke.lindbladian()
 
     def liouvillian(self):
         """
         Build the total liouvillian in the jmm1 basis |j, m > < j, m1|
+
+        Returns
+        -------
+        liouv: :class:`Qobj`
         """
         lindblad = self.lindbladian()
-
         if self.hamiltonian is None:
             liouv = lindblad
         else:
@@ -269,8 +251,9 @@ class Piqs(object):
 
     def eigenstates(self, liouvillian):
         """
-        Calculate the eigenvalues and eigenvectors of the Liouvillian,
-        removing the spurious ones of eigenvectors with corresponding
+        Calculate the eigenvalues and eigenvectors of the Liouvillian.
+
+        It removes the spurious eigenvectors with corresponding
         non-hermitian density matrices.
 
         Parameters
@@ -306,7 +289,6 @@ class Piqs(object):
             The list with the correct eigenvalues and eigenvectors of the
             Liouvillian.
         """
-
         N = self.N
         block_mat = block_matrix(N)
         nnz_tuple_bm = [(i, j) for i, j in zip(*block_mat.nonzero())]
@@ -333,18 +315,15 @@ class Piqs(object):
         correct_eig_val = np.delete(eig_val, forbidden_eig_index)
         correct_eig_vec = np.delete(eig_vec, forbidden_eig_index)
         correct_eigenstates = correct_eig_val, correct_eig_vec
-
         return correct_eigenstates
-
 
 # ============================================================================
 # Utility functions for operators in the Dicke basis
 # ============================================================================
 def energy_degeneracy(N, m):
     """
-    Calculate how many Dicke states |j, m, alpha> have the same energy
+    Calculate the number of Dicke states with same energy
 
-    (hbar * omega_0 * m) given N two-level systems.
     The use of the Decimals class allows to explore N > 1000,
     unlike the built-in function 'scipy.special.binom(N, N/2 + m)'
 
@@ -352,6 +331,7 @@ def energy_degeneracy(N, m):
     ----------
     N: int
         The number of two level systems.
+
     m: float
         Total spin z-axis projection eigenvalue.
         This is proportional to the total energy)
@@ -369,10 +349,9 @@ def energy_degeneracy(N, m):
 
     return int(degeneracy)
 
-
 def state_degeneracy(N, j):
     """
-    Calculate the degeneracy of the Dicke state |j, m>.
+    Calculate the degeneracy of the Dicke state
 
     Each state |j, m> includes D(N,j) irreducible representations |j, m,alpha>.
     Uses Decimals to calculate higher numerator and denominators numbers.
@@ -402,7 +381,6 @@ def state_degeneracy(N, j):
 
     return degeneracy
 
-
 def m_degeneracy(N, m):
     """
     Calculate the number of Dicke states |j, m> with same energy
@@ -429,7 +407,6 @@ def m_degeneracy(N, m):
         raise ValueError(e)
 
     return int(degeneracy)
-
 
 def jx_op(N):
     """
@@ -467,11 +444,9 @@ def jx_op(N):
 
     return Qobj(jx_operator)
 
-
 def jy_op(N):
     """
     Build the Jy operator in the same basis of the reduced density matrix
-
 
     Parameters
     ----------
@@ -504,7 +479,6 @@ def jy_op(N):
 
     return Qobj(jy_operator)
 
-
 def jz_op(N):
     """
     Build the Jz operator in the same basis of the reduced density matrix
@@ -517,7 +491,7 @@ def jz_op(N):
 
     Returns
     -------
-    jz_operator: :class: `qutip.Qobj`
+    jz_operator: :class:`qutip.Qobj`
         The Jz operator as a QuTiP object. The dimensions are (nds,nds)
         where nds is the number of Dicke states.
     """
@@ -535,7 +509,6 @@ def jz_op(N):
             s = s + 1
 
     return Qobj(jz_operator)
-
 
 def j2_op(N):
     """
@@ -566,7 +539,6 @@ def j2_op(N):
             s = s + 1
 
     return Qobj(j2_operator)
-
 
 def jp_op(N):
     """
@@ -600,7 +572,6 @@ def jp_op(N):
 
     return Qobj(jp_operator)
 
-
 def jm_op(N):
     """
     Builds the Jm operator in the same basis of the reduced density matrix.
@@ -632,7 +603,6 @@ def jm_op(N):
 
     return Qobj(jm_operator)
 
-
 def ap(j, m):
     """
     Calculate A_{+} for value of j, m.
@@ -641,7 +611,6 @@ def ap(j, m):
 
     return(a_plus)
 
-
 def am(j, m):
     """
     Calculate A_{m} for value of j, m.
@@ -649,7 +618,6 @@ def am(j, m):
     a_minus = np.sqrt((j + m) * (j - m + 1))
 
     return(a_minus)
-
 
 # ============================================================================
 # Operators definitions in the uncoupled SU(2) basis used for comparison
@@ -711,7 +679,6 @@ def su2_algebra(N):
 
     return su2_operators
 
-
 def collective_algebra(N):
     """
     Construct the the collective spin algebra using `module su2_algebra`.
@@ -747,9 +714,7 @@ def collective_algebra(N):
     jp = sum(sp)
 
     collective_operators = [jx, jy, jz, jm, jp]
-
     return collective_operators
-
 
 def j_algebra(N):
     """
@@ -797,7 +762,6 @@ def j_algebra(N):
         Qobj(jm_operator)]
 
     return j_alg
-
 
 def c_ops_tls(N=2,
               emission=0., dephasing=0., pumping=0.,
@@ -874,7 +838,6 @@ def c_ops_tls(N=2,
 
     return c_ops
 
-
 # ============================================================================
 # State definitions in the Dicke basis with an option for basis transformation
 # ============================================================================
@@ -936,7 +899,6 @@ def dicke_basis(N, jmm1=None, basis="dicke"):
 
     return Qobj(rho)
 
-
 def dicke_state(N, j, m, basis="dicke"):
     """
     Initialize the density matrix in the Dicke basis state.
@@ -973,7 +935,6 @@ def dicke_state(N, j, m, basis="dicke"):
 
     return Qobj(rho)
 
-
 def excited_state(N, basis="dicke"):
     """
     Generates the density matrix for the Dicke state |N/2, N/2>, default in the
@@ -987,7 +948,6 @@ def excited_state(N, basis="dicke"):
 
     jmm1 = {(N / 2, N / 2, N / 2): 1}
     return dicke_basis(N, jmm1)
-
 
 def superradiant(N, basis="dicke"):
     """
@@ -1004,7 +964,6 @@ def superradiant(N, basis="dicke"):
     else:
         jmm1 = {(N / 2, 0.5, 0.5): 1.}
     return dicke_basis(N, jmm1)
-
 
 def css(
         N,
@@ -1053,7 +1012,6 @@ def css(
 
     return Qobj(rho)
 
-
 def ghz(N, basis="dicke"):
     """
     Generates the density matrix of the GHZ state in the dicke basis
@@ -1071,7 +1029,6 @@ def ghz(N, basis="dicke"):
 
     return Qobj(rho)
 
-
 def ground_state(N, basis="dicke"):
     """
     Generates the density matrix of the ground state for N spins
@@ -1086,7 +1043,6 @@ def ground_state(N, basis="dicke"):
     rho[N, N] = 1
 
     return Qobj(rho)
-
 
 def uncoupled_identity(N):
     """
@@ -1107,18 +1063,14 @@ def uncoupled_identity(N):
     rho = np.zeros((2**N, 2**N))
     for i in range(0, 2**N):
         rho[i, i] = 1
-
     spin_dim = [2 for i in range(0, N)]
     spins_dims = list((spin_dim, spin_dim))
     identity = Qobj(rho, dims=spins_dims)
-
     return identity
 
 # ============================================================================
 # Uncoupled states in the full Hilbert space.
 # ============================================================================
-
-
 def _uncoupled_excited(N):
     """
     Generates a initial dicke state |N/2, N/2> as a Qobj in a 2**N
@@ -1139,7 +1091,6 @@ def _uncoupled_excited(N):
     psi0 = vn[2**N - 1]
 
     return psi0
-
 
 def _uncoupled_superradiant(N):
     """
@@ -1162,7 +1113,6 @@ def _uncoupled_superradiant(N):
 
     return psi0
 
-
 def _uncoupled_ground(N):
     """
     Generates a initial dicke state |N/2, - N/2> as a Qobj in a 2**N
@@ -1183,7 +1133,6 @@ def _uncoupled_ground(N):
     psi0 = vn[0]
 
     return psi0
-
 
 def _uncoupled_ghz(N):
     """
@@ -1215,8 +1164,6 @@ def _uncoupled_ghz(N):
 
 # This needs to be consistent to allow for coefficients a and b in the state
 # as a|0> + b|1>
-
-
 def _uncoupled_css(N, a, b):
     """
     Generates the CSS density matrix in a 2**N dimensional Hilbert space.
@@ -1270,7 +1217,6 @@ def _uncoupled_css(N, a, b):
 
     return rho_tot
 
-
 def uncoupled_thermal(N, omega_0, temperature):
     """
     Gives the thermal state for a collection of N two-level systems with
@@ -1310,7 +1256,6 @@ def uncoupled_thermal(N, omega_0, temperature):
     rho_thermal = rho_thermal / zeta
     return rho_thermal
 
-
 def uncoupled_partition_function(N, omega_0, temperature):
     """
     Gives the partition function for a collection of N two-level systems
@@ -1342,7 +1287,6 @@ def uncoupled_partition_function(N, omega_0, temperature):
     for m in m_list:
         zeta = zeta + np.exp(- x * m)
     return zeta
-
 
 def block_matrix(N):
     """
