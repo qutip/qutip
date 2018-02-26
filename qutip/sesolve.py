@@ -214,10 +214,18 @@ def _sesolve_list_func_td(H_list, psi0, tlist, e_ops, args, opt,
         print(inspect.stack()[0][3])
 
     #
-    # check initial state
+    # check initial state or oper
     #
-    if not isket(psi0):
-        raise TypeError("The unitary solver requires a ket as initial state")
+    if psi0.isket:
+        initial_vector = psi0.full().ravel()
+        oper_evo = False
+    elif psi0.isunitary:
+        initial_vector = operator_to_vector(psi0).full().ravel()
+        oper_evo = True
+    else:
+        raise TypeError("The unitary solver requires psi0 to be"
+                        " a ket as initial state"
+                        " or a unitary as initial operator.")
 
     #
     # construct liouvillian in list-function format
@@ -243,14 +251,21 @@ def _sesolve_list_func_td(H_list, psi0, tlist, e_ops, args, opt,
             raise TypeError("Incorrect specification of time-dependent " +
                             "Hamiltonian (expected callback function)")
 
-        L_list.append([-1j * h.data, h_coeff])
+        if oper_evo:
+            L = -1.0j * spre(h)
+        else:
+            L = -1j * h
+        L_list.append([L.data, h_coeff])
 
     L_list_and_args = [L_list, args]
 
     #
     # setup integrator
     #
-    initial_vector = psi0.full().ravel()
+    if oper_evo:
+        initial_vector = operator_to_vector(psi0).full().ravel()
+    else:
+        initial_vector = psi0.full().ravel()
     if not opt.rhs_with_state:
         r = scipy.integrate.ode(psi_list_td)
     else:
@@ -383,10 +398,8 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
         print(inspect.stack()[0][3])
 
     if psi0.isket:
-        initial_vector = psi0.full().ravel()
         oper_evo = False
     elif psi0.isunitary:
-        initial_vector = operator_to_vector(psi0).full().ravel()
         oper_evo = True
     else:
         raise TypeError("The unitary solver requires psi0 to be"
@@ -479,7 +492,11 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = psi0.full().ravel()
+    if oper_evo:
+        initial_vector = operator_to_vector(psi0).full().ravel()
+    else:
+        initial_vector = psi0.full().ravel()
+
     r = scipy.integrate.ode(config.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -605,8 +622,19 @@ def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     if debug:
         print(inspect.stack()[0][3])
 
-    if not isket(psi0):
-        raise TypeError("psi0 must be a ket")
+    #
+    # check initial state or oper
+    #
+    if psi0.isket:
+        initial_vector = psi0.full().ravel()
+        oper_evo = False
+    elif psi0.isunitary:
+        initial_vector = operator_to_vector(psi0).full().ravel()
+        oper_evo = True
+    else:
+        raise TypeError("The unitary solver requires psi0 to be"
+                        " a ket as initial state"
+                        " or a unitary as initial operator.")
 
     #
     # setup integrator
@@ -637,7 +665,17 @@ def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
         else:
             new_args = args
 
-    initial_vector = psi0.full().ravel()
+    if oper_evo:
+        initial_vector = operator_to_vector(psi0).full().ravel()
+        # Check function returns superoperator
+        if H_func(0, args).issuper:
+            L_func = H_func
+        else:
+            L_func = lambda t, args: spre(H_func(t, args))
+
+    else:
+        initial_vector = psi0.full().ravel()
+        L_func = H_func
 
     if not opt.rhs_with_state:
         r = scipy.integrate.ode(cy_ode_psi_func_td)
@@ -649,7 +687,7 @@ def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(H_func, new_args)
+    r.set_f_params(L_func, new_args)
 
     #
     # call generic ODE code
