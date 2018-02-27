@@ -335,7 +335,7 @@ def psi_list_td_with_state(t, psi, H_list_and_args):
 # a constant Hamiltonian.
 #
 def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
-    """!
+    """
     Evolve the wave function using an ODE solver
     """
     if debug:
@@ -522,19 +522,26 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
-# time dependent hamiltonians
-#
+# time dependent Hamiltonians
 def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     """
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
+    Note: Deprecated method
     """
 
     if debug:
         print(inspect.stack()[0][3])
 
-    if not isket(psi0):
-        raise TypeError("psi0 must be a ket")
+    if psi0.isket:
+        pass
+    elif psi0.isunitary:
+        raise TypeError("The unitary operator evolution is not supported"
+                        " in the list td method.")
+    else:
+        raise TypeError("The unitary solver requires psi0 to be"
+                        " a ket as initial state"
+                        " or a unitary as initial operator.")
 
     #
     # configure time-dependent terms and setup ODE solver
@@ -611,7 +618,7 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
-# time dependent hamiltonians
+# time dependent hamiltonians.
 #
 def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     """!
@@ -667,7 +674,7 @@ def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
 
     if oper_evo:
         initial_vector = operator_to_vector(psi0).full().ravel()
-        # Check function returns superoperator
+        # Check that function returns superoperator
         if H_func(0, args).issuper:
             L_func = H_func
         else:
