@@ -1,5 +1,5 @@
 """
-Heirarchy equations of motion
+Hierarchy equations of motion
 """
 import numpy as np
 
@@ -18,7 +18,7 @@ from copy import copy
 
 class Heom(object):
     """
-    The Heom class to tackle Heirarchy.
+    The Heom class to tackle hierarchy.
     
     Parameters
     ==========
@@ -35,14 +35,14 @@ class Heom(object):
         The list of frequencies in the expansion of the correlation function
 
     ncut: int
-        The Heirarchy cutoff
+        The hierarchy cutoff
         
     kcut: int
         The cutoff in the Matsubara frequencies
 
     rcut: float
         The cutoff for the maximum absolute value in an auxillary matrix
-        which is used to remove it from the heirarchy
+        which is used to remove it from the hierarchy
     """
     def __init__(self, hamiltonian, coupling, ck, vk, 
                  ncut, kcut=None, rcut=None):
@@ -72,10 +72,13 @@ class Heom(object):
         
         self.L = liouvillian(self.hamiltonian, [])
         self.grad_shape = (self.N**2, self.N**2)
+        
+        self.spreQ = spre(coupling).full()
+        self.spostQ = spost(coupling).full()
 
     def prev_next(self, n, k):
         """
-        Calculate the next and previous heirarchy index for the
+        Calculate the next and previous hierarchy index for the
         current index `n`.
         """            
         current_he_n = copy(self.idx2he[n])
@@ -140,6 +143,9 @@ class Heom(object):
         c = self.ck
         nu = self.vk
         nk = self.idx2he[n]
+        
+        spreQ = self.spreQ
+        spostQ = self.spostQ
 
         gprev = np.zeros_like(rho[n], dtype=np.complex)
         gnext = np.zeros_like(rho[n], dtype=np.complex)
@@ -149,13 +155,14 @@ class Heom(object):
             if ~np.isnan(nprev):
                 rho_prev = rho[nprev]
                 norm_prev = np.sqrt(nk[k]/abs(c[k]))
-                op1 = -1j*norm_prev*(c[k]*spre(Q) - np.conj(c[k])*spost(Q))
-                gprev += op1.data*rho_prev
+                op1 = -1j*norm_prev*(c[k]*spreQ - np.conj(c[k])*spostQ)
+                gprev += np.dot(op1, rho_prev)
 
             if ~np.isnan(nnext):
                 rho_next = rho[nnext]
                 norm_next = np.sqrt(abs(c[k])*(n + 1))
-                gnext += -1j*norm_next*(spre(Q) - spost(Q)).data*rho_next
+                op2 = -1j*norm_next*(spreQ - spostQ)
+                gnext += np.dot(op2, rho_next)
 
         return (gprev + gnext)
 
@@ -200,7 +207,6 @@ class Heom(object):
 
         for t_idx, t in enumerate(tlist):
             if t_idx < n_tsteps - 1:
-                print(t_idx)
                 r.integrate(r.t + dt[t_idx])
                 r1 = r.y.copy()
                 r0 = r1.reshape((self.nhe, self.N**2))[0].reshape(self.N, self.N).T
