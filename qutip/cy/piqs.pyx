@@ -1,9 +1,43 @@
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2011 and later, The QuTiP Project.
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
-Cythonized code for permutationally invariant Liouvillian
+Cythonized code for permutationally invariant Lindbladian generation
 """
 import numpy as np
+
 from scipy.sparse import csr_matrix, dok_matrix
 from qutip import Qobj
+
 cimport numpy as cnp
 cimport cython
 
@@ -13,9 +47,10 @@ def _num_dicke_states(N):
     Calculate the number of dicke states
 
     Parameters
-    -------
+    ----------
     N: int
         The number of two level systems
+
     Returns
     -------
     nds: int
@@ -55,22 +90,8 @@ cpdef list _get_blocks(int N):
     """
     Calculate the number of cumulative elements at each block boundary.
 
-    For N = 4
-
-    1 1 1 1 1
-    1 1 1 1 1
-    1 1 1 1 1
-    1 1 1 1 1
-    1 1 1 1 1
-            1 1 1
-            1 1 1
-            1 1 1
-                 1
-
-    Thus, the blocks are [5, 8, 9] denoting that after the first block 5
-    elements have been accounted for and so on. This function will later
-    be helpful in the calculation of j, m, m' value for a given (row, col)
-    index in this matrix.
+    Example
+    -------
 
     Returns
     -------
@@ -79,7 +100,6 @@ cpdef list _get_blocks(int N):
         each block
     """
     cdef int num_blocks = _num_dicke_ladders(N)
-
     cdef list blocks
     blocks = [i * (N + 2 - i) for i in range(1, num_blocks + 1)]
     return blocks
@@ -129,16 +149,12 @@ def get_index(N, j, m, m1, blocks):
     """
     _k = int(j - m1)
     _k_prime = int(j - m)
-
     block_number = int(N / 2 - j)
-
     offset = 0
     if block_number > 0:
         offset = blocks[block_number - 1]
-
     i = _k_prime + offset
     k = _k + offset
-
     return (i, k)
 
 
@@ -150,18 +166,15 @@ cpdef list jmm1_dictionary(int N):
     """
     cdef long i
     cdef long k
-
     cdef dict jmm1_dict = {}
     cdef dict jmm1_inv = {}
     cdef dict jmm1_flat = {}
     cdef dict jmm1_flat_inv = {}
     cdef int l
     cdef int nds = _num_dicke_states(N)
-
     cdef list blocks = _get_blocks(N)
 
     jvalues = _j_vals(N)
-
     for j in jvalues:
         mvalues = m_vals(j)
         for m in mvalues:
@@ -172,7 +185,6 @@ cpdef list jmm1_dictionary(int N):
                 l = nds * i + k
                 jmm1_flat[l] = (j, m, m1)
                 jmm1_flat_inv[(j, m, m1)] = l
-
     return [jmm1_dict, jmm1_inv, jmm1_flat, jmm1_flat_inv]
 
 
@@ -184,52 +196,50 @@ cdef class Dicke(object):
 
     Parameters
     ----------
-    N : int
+    N: int
         The number of two level systems
         default: 2
 
-    hamiltonian :class: `qutip.Qobj`
-        An Hamiltonian H in the reduced basis set by `reduced_algebra()`.
-        Matrix dimensions are (nds, nds), with nds = _num_dicke_states.
-        The hamiltonian is assumed to be with hbar = 1.
-        default: H = jz_op(N)
+    hamiltonian: `qutip.Qobj`
+        An Hamiltonian in the reduced dicke basis set.
 
-    emission : float
-        Incoherent emission coefficient
+        The matrix dimensions are (nds, nds), with nds being the number of
+        dicke states. The hamiltonian can be built with the operators given
+        by the `j_algebra` function in the "dicke" basis.
+
+    emission: float
+        Incoherent emission coefficient (also nonradiative emission)
         default: 0.0
 
-    dephasing : float
+    dephasing: float
         Local dephasing coefficient
         default: 0.0
 
-    pumping : float
+    pumping: float
         Incoherent pumping coefficient
         default: 0.0
 
-    collective_emission : float
-        Collective spontaneous emmission coefficient
+    collective_emission: float
+        Collective (superradiant) emmission coefficient
         default: 1.0
 
-    collective_dephasing : float
-        Collective dephasing coefficient
-        default: 0.0
-
-    collective_pumping : float
+    collective_pumping: float
         Collective pumping coefficient
         default: 0.0
 
-    nds : int
+    collective_dephasing: float
+        Collective dephasing coefficient
+        default: 0.0
+
+    nds: int
         The number of Dicke states
-        default: nds(2) = 4
 
-    dshape : tuple
+    dshape: tuple
         The tuple (nds, nds)
-        default: (4,4)
 
-    blocks : array
+    blocks : list
         A list which gets the number of cumulative elements at each block
         boundary
-        default:  array([3, 4])
     """
     cdef int N
     cdef float emission, dephasing, pumping
@@ -258,7 +268,6 @@ cdef class Dicke(object):
         lindblad_qobj: Qobj superoperator (sparse)
                 The matrix size is (nds**2, nds**2) where nds is the number of
                 Dicke states.
-
         """
         N = self.N
         cdef int nds = _num_dicke_states(N)
@@ -267,7 +276,6 @@ cdef class Dicke(object):
         cdef list lindblad_row = []
         cdef list lindblad_col = []
         cdef list lindblad_data = []
-
         cdef tuple jmm1_1
         cdef tuple jmm1_2
         cdef tuple jmm1_3
@@ -375,7 +383,6 @@ cdef class Dicke(object):
         # make matrix a Qobj superoperator with expected dims
         llind_dims = [[[nds], [nds]], [[nds], [nds]]]
         cdef object lindblad_qobj = Qobj(lindblad_matrix, dims=llind_dims)
-
         return lindblad_qobj
 
     @cython.boundscheck(False)
@@ -385,16 +392,13 @@ cdef class Dicke(object):
         Calculate gamma1 for value of j, m, m'
         """
         cdef float j, m, m1
-
-        j, m, m1 = jmm1
-
         cdef float yCE, yE, yD, yP, yCP, yCD
-
         cdef float N
-        N = float(self.N)
-
         cdef float spontaneous, losses, pump, collective_pump
         cdef float dephase, collective_dephase, g1
+
+        j, m, m1 = jmm1
+        N = float(self.N)
 
         yE = self.emission
         yD = self.dephasing
@@ -403,22 +407,22 @@ cdef class Dicke(object):
         yCP = self.collective_pumping
         yCD = self.collective_dephasing
 
-        spontaneous = yCE / 2 * (2 * j * (j + 1) - m * (m - 1) - m1 * (m1 - 1))
-        losses = (yE / 2) * (N + m + m1)
-        pump = yP / 2 * (N - m - m1)
-        collective_pump = yCP / 2 * \
-            (2 * j * (j + 1) - m * (m + 1) - m1 * (m1 + 1))
-        collective_dephase = yCD / 2 * (m - m1)**2
+        spontaneous = yCE/2 * (2*j*(j+1) - m*(m - 1) - m1*(m1 - 1))
+        losses = (yE/2) * (N+m+m1)
+        pump = yP/2 * (N-m-m1)
+        collective_pump = yCP/2 * \
+            (2*j * (j+1) - m*(m+1) - m1*(m1+1))
+        collective_dephase = yCD/2 * (m-m1)**2
 
         if j <= 0:
-            dephase = yD * N / 4
+            dephase = yD*N/4
         else:
-            dephase = yD / 2 * (N / 2 - m * m1 * (N / 2 + 1) / j / (j + 1))
+            dephase = yD/2*(N/2 - m*m1 * (N/2 + 1)/j/(j+1))
 
         g1 = spontaneous + losses + pump + dephase + \
             collective_pump + collective_dephase
 
-        return(-g1)
+        return -g1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -427,36 +431,28 @@ cdef class Dicke(object):
         Calculate gamma2 for given j, m, m'
         """
         cdef float j, m, m1
-
-        j, m, m1 = jmm1
-
         cdef float yCE, yE, yD, yP, yCP, yCD, g2
-
         cdef float N
-        N = float(self.N)
-
         cdef float spontaneous, losses, pump, collective_pump
         cdef float dephase, collective_dephase
 
         j, m, m1 = jmm1
+        N = float(self.N)
         yCE = self.collective_emission
         yE = self.emission
 
         if yCE == 0:
             spontaneous = 0.0
         else:
-            spontaneous = yCE * \
-                np.sqrt((j + m) * (j - m + 1) * (j + m1) * (j - m1 + 1))
+            spontaneous = yCE * np.sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1))
 
         if (yE == 0) or (j <= 0):
             losses = 0.0
         else:
-            losses = yE / 2 * \
-                np.sqrt((j+m)*(j-m+1)*(j+m1)*(j-m1+1))*(N/2+1)/(j*(j+1))
-
+            losses = yE/2 * np.sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1)) * \
+                                                      (N/2 + 1)/(j*(j+1))
         g2 = spontaneous + losses
-
-        return (g2)
+        return g2
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -465,27 +461,22 @@ cdef class Dicke(object):
         Calculate gamma3 for given j, m, m'
         """
         cdef float j, m, m1
-        j, m, m1 = jmm1
-
         cdef float yE
-
         cdef float N
-        N = float(self.N)
-
         cdef float spontaneous, losses, pump, collective_pump
         cdef float dephase, collective_dephase
 
         cdef complex g3
-
+        j, m, m1 = jmm1
+        N = float(self.N)
         yE = self.emission
 
         if (yE == 0) or (j <= 0):
             g3 = 0.0
         else:
-            g3 = yE/2 * np.sqrt((j + m)*(j + m - 1) * (j + m1) * (j + m1-1))\
-                * (N/2 + j + 1)/(j * (2 * j + 1))
-
-        return (g3)
+            g3 = yE/2 * np.sqrt((j+m) * (j+m-1) * (j+m1) * (j+m1-1)) * \
+                 (N/2 + j+1)/(j*(2*j + 1))
+        return g3
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -494,24 +485,20 @@ cdef class Dicke(object):
         Calculate gamma4 for given j, m, m'
         """
         cdef float j, m, m1
-        j, m, m1 = jmm1
-
+        cdef complex g4
         cdef float yE
         cdef float N
+
         N = float(self.N)
-
-        cdef complex g4
-
+        j, m, m1 = jmm1
         yE = self.emission
-
-        if (yE == 0) or ((j + 1) <= 0):
+        if (yE == 0) or ((j+1) <= 0):
             g4 = 0.0
         else:
-            g4 = yE / 2 * np.sqrt((j - m + 1) * (j - m + 2) * (j - m1 + 1) *
-                                  (j - m1 + 2)) * (N / 2 - j) / ((j + 1) *
-                                                                 (2 * j + 1))
-
-        return (g4)
+            g4 = yE/2 * np.sqrt((j-m+1) * (j-m+2) * (j-m1+1) *
+                                (j-m1+2)) * (N/2 - j)/((j+1) *
+                                                       (2*j + 1))
+        return g4
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -520,23 +507,21 @@ cdef class Dicke(object):
         Calculate gamma5 for given j, m, m'
         """
         cdef float j, m, m1
+        cdef complex g5
         j, m, m1 = jmm1
-
         cdef float yD
         cdef float N
+
         N = float(self.N)
-
-        cdef complex g5
-
         yD = self.dephasing
 
         if (yD == 0) or (j <= 0):
             g5 = 0.0
         else:
-            g5 = yD / 2 * np.sqrt((j**2 - m**2) * (j**2 - m1**2)) * \
-                (N / 2 + j + 1) / (j * (2 * j + 1))
+            g5 = yD/2 * np.sqrt((j**2 - m**2)*(j**2 - m1**2)) * \
+                (N/2 + j + 1)/(j*(2*j + 1))
 
-        return (g5)
+        return g5
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -545,25 +530,21 @@ cdef class Dicke(object):
         Calculate gamma6 for given j, m, m'
         """
         cdef float j, m, m1
-        j, m, m1 = jmm1
-
         cdef float yD
         cdef float N
-        N = float(self.N)
-
         cdef complex g6
 
-        yD = self.dephasing
+        j, m, m1 = jmm1
+        N = float(self.N)
 
+        yD = self.dephasing
         if yD == 0:
             g6 = 0.0
         else:
-            g6 = yD / 2 * np.sqrt(((j + 1)**2 - m**2) * ((j + 1) **
-                                                         2 - m1**2)) *\
-                                                         (N / 2 - j)/((j + 1) *
-                                                                      (2*j+1))
-
-        return (g6)
+            g6 = yD/2 * np.sqrt(((j+1)**2 - m**2)*((j+1) **
+                                                   2-m1**2)) * \
+                                                   (N/2 - j)/((j+1) * (2*j+1))
+        return g6
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -572,24 +553,20 @@ cdef class Dicke(object):
         Calculate gamma7 for given j, m, m'
         """
         cdef float j, m, m1
-        j, m, m1 = jmm1
-
         cdef float yP
         cdef float N
-        N = float(self.N)
-
         cdef complex g7
 
+        j, m, m1 = jmm1
+        N = float(self.N)
         yP = self.pumping
 
         if (yP == 0) or (j <= 0):
             g7 = 0.0
         else:
-            g7 = yP / 2 * np.sqrt((j - m - 1) * (j - m) * (j - m1 - 1) *
-                                  (j - m1)) * (N / 2 + j + 1) / (j *
-                                                                 (2*j+1))
-
-        return (g7)
+            g7 = yP/2 * np.sqrt((j-m-1)*(j-m)*(j-m1-1) *
+                                (j-m1)) * (N/2 + j + 1)/(j * (2*j+1))
+        return g7
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -598,33 +575,26 @@ cdef class Dicke(object):
         Calculate gamma8 for given j, m, m'
         """
         cdef float j, m, m1
-        j, m, m1 = jmm1
-
         cdef float yP, yCP
-
         cdef float N
-        N = float(self.N)
-
         cdef complex g8
 
+        j, m, m1 = jmm1
+        N = float(self.N)
         yP = self.pumping
         yCP = self.collective_pumping
-
         if (yP == 0) or (j <= 0):
             pump = 0.0
         else:
-            pump = yP / 2 * np.sqrt((j + m + 1) * (j - m) * (j + m1 + 1) *
-                                    (j - m1)) * (N / 2 + 1) / (j * (j + 1))
-
+            pump = yP/2 * np.sqrt((j+m+1) * (j-m) * (j+m1+1) *
+                                  (j-m1)) * (N/2 + 1)/(j*(j+1))
         if yCP == 0:
             collective_pump = 0.0
         else:
             collective_pump = yCP * \
-                np.sqrt((j - m) * (j + m + 1) * (j + m1 + 1) * (j - m1))
-
+                np.sqrt((j-m) * (j+m+1) * (j+m1+1) * (j-m1))
         g8 = pump + collective_pump
-
-        return (g8)
+        return g8
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -633,21 +603,17 @@ cdef class Dicke(object):
         Calculate gamma9 for given j, m, m'
         """
         cdef float j, m, m1
-        j, m, m1 = jmm1
-
         cdef float yP
         cdef float N
-        N = float(self.N)
-
         cdef complex g9
 
+        j, m, m1 = jmm1
+        N = float(self.N)
         yP = self.pumping
 
         if (yP == 0):
             g9 = 0.0
         else:
-            g9 = yP / 2 * np.sqrt((j + m + 1) * (j + m + 2) * (j + m1 + 1) *
-                                  (j + m1 + 2)) * (N / 2 - j) / ((j + 1) *
-                                                                 (2*j+1))
-
-        return (g9)
+            g9 = yP/2 * np.sqrt((j+m+1) * (j+m+2) * (j+m1+1) *
+                                (j+m1+2)) * (N/2 - j)/((j+1) * (2*j+1))
+        return g9

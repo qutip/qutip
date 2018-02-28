@@ -37,50 +37,44 @@ import numpy as np
 from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
-from qutip.cy.dicke import (_get_blocks, _j_min, _j_vals, m_vals,
-                            _num_dicke_states, _num_dicke_ladders,
-                            get_index, jmm1_dictionary)
-from qutip.cy.dicke import Dicke as _Dicke
-from qutip.models.dicke import (num_tls, Piqs)
+
 from qutip import Qobj
-from qutip.models.dicke import *
+from qutip.cy.piqs import (_get_blocks, _j_min, _j_vals, m_vals,
+                           _num_dicke_states, _num_dicke_ladders,
+                           get_index, jmm1_dictionary)
+from qutip.cy.piqs import Dicke as _Dicke
+from qutip.models.piqs import *
 
 
-class TestPiqs:
+class TestDicke:
     """
     A test class for the Permutational Invariant Quantum Solver
     """
-
     def test_num_dicke_states(self):
         """
-        Tests the `num_dicke_state` function
+        Test the `num_dicke_state` function
         """
         N_list = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
         dicke_states = [_num_dicke_states(i) for i in N_list]
-
         assert_array_equal(dicke_states, [2, 4, 6, 9, 12, 16, 30, 36, 121,
                                           2601, 3906])
-
         N = -1
         assert_raises(ValueError, _num_dicke_states, N)
-
         N = 0.2
         assert_raises(ValueError, _num_dicke_states, N)
 
     def test_num_tls(self):
         """
-        Tests the `num_two_level` function.
+        Test the `num_two_level` function.
         """
         N_dicke = [2, 4, 6, 9, 12, 16, 30, 36, 121, 2601, 3906]
         N = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
-
         calculated_N = [num_tls(i) for i in N_dicke]
-
         assert_array_equal(calculated_N, N)
 
     def test_num_dicke_ladders(self):
         """
-        Tests the `_num_dicke_ladders` function
+        Test the `_num_dicke_ladders` function
         """
         ndl_true = [1, 2, 2, 3, 3, 4, 4, 5, 5]
         ndl = [_num_dicke_ladders(N) for N in range(1, 10)]
@@ -148,36 +142,24 @@ class TestPiqs:
         indices = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
         blocks = _get_blocks(N)
-        calculated_indices = [
-            get_index(
-                N,
-                jmm1[0],
-                jmm1[1],
-                jmm1[2],
-                blocks) for jmm1 in jmm1_list]
+        calculated_indices = [get_index(N, jmm1[0], jmm1[1],
+                                        jmm1[2], blocks)
+                              for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
-
         N = 2
         blocks = _get_blocks(N)
         jmm1_list = [(1, 1, 1), (1, 1, 0), (1, 1, -1),
                      (1, 0, 1), (1, 0, 0), (1, 0, -1),
                      (1, -1, 1), (1, -1, 0), (1, -1, -1),
                      (0, 0, 0)]
-
         indices = [(0, 0), (0, 1), (0, 2),
                    (1, 0), (1, 1), (1, 2),
                    (2, 0), (2, 1), (2, 2),
                    (3, 3)]
-
-        calculated_indices = [
-            get_index(
-                N,
-                jmm1[0],
-                jmm1[1],
-                jmm1[2],
-                blocks) for jmm1 in jmm1_list]
+        calculated_indices = [get_index(N, jmm1[0], jmm1[1],
+                                        jmm1[2], blocks)
+                              for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
-
         N = 3
         blocks = _get_blocks(N)
         jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5),
@@ -191,13 +173,9 @@ class TestPiqs:
                    (4, 4), (4, 5),
                    (5, 4), (5, 5)]
 
-        calculated_indices = [
-            get_index(
-                N,
-                jmm1[0],
-                jmm1[1],
-                jmm1[2],
-                blocks) for jmm1 in jmm1_list]
+        calculated_indices = [get_index(N, jmm1[0], jmm1[1],
+                                        jmm1[2], blocks)
+                              for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
 
     def test_jmm1_dictionary(self):
@@ -268,9 +246,9 @@ class TestPiqs:
         gD = 0.1
         gP = 0.1
 
-        system = Piqs(N=N, emission=gE, pumping=gP, dephasing=gD,
-                      collective_emission=gCE, collective_pumping=gCP,
-                      collective_dephasing=gCD)
+        system = Dicke(N=N, emission=gE, pumping=gP, dephasing=gD,
+                       collective_emission=gCE, collective_pumping=gCP,
+                       collective_dephasing=gCD)
 
         lindbladian = system.lindbladian()
         Ldata = np.zeros((4, 4), dtype="complex")
@@ -281,9 +259,7 @@ class TestPiqs:
 
         lindbladian_correct = Qobj(Ldata, dims=[[[2], [2]], [[2], [2]]],
                                    shape=(4, 4))
-
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
-
         N = 2
         gCE = 0.5
         gCD = 0.5
@@ -291,15 +267,13 @@ class TestPiqs:
         gE = 0.1
         gD = 0.1
         gP = 0.1
-
-        system = Piqs(N=N, emission=gE, pumping=gP, dephasing=gD,
-                      collective_emission=gCE, collective_pumping=gCP,
-                      collective_dephasing=gCD)
+        system = Dicke(N=N, emission=gE, pumping=gP, dephasing=gD,
+                       collective_emission=gCE, collective_pumping=gCP,
+                       collective_dephasing=gCD)
 
         lindbladian = system.lindbladian()
 
         Ldata = np.zeros((16, 16), dtype="complex")
-
         Ldata[0][0], Ldata[0][5], Ldata[0][15] = -1.2, 1.1, 0.1
         Ldata[1, 1], Ldata[1, 6] = -2, 1.1
         Ldata[2, 2] = -2.2999999999999998
@@ -314,15 +288,13 @@ class TestPiqs:
                                                                     0.05,
                                                                     0.1,
                                                                     -0.25)
-
         lindbladian_correct = Qobj(Ldata, dims=[[[4], [4]], [[4], [4]]],
                                    shape=(16, 16))
-
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
 
     def test_gamma(self):
         """
-        Tests the calculation of various Tau values for a given system
+        Test the calculation of various gamma values for diagonal system.
 
         For N = 6 |j, m> would be :
 
@@ -340,15 +312,9 @@ class TestPiqs:
         dephasing = 1.
         pumping = 1.
         collective_pumping = 1.
-
-        model = _Dicke(
-            N,
-            collective_emission=collective_emission,
-            emission=emission,
-            dephasing=dephasing,
-            pumping=pumping,
-            collective_pumping=collective_pumping)
-
+        model = _Dicke(N, collective_emission=collective_emission,
+                       emission=emission, dephasing=dephasing,
+                       pumping=pumping, collective_pumping=collective_pumping)
         tau_calculated = [model.gamma3((3, 1, 1)),
                           model.gamma2((2, 1, 1)),
                           model.gamma4((1, 1, 1)),
@@ -358,11 +324,9 @@ class TestPiqs:
                           model.gamma7((3, -1, -1)),
                           model.gamma8((2, -1, -1)),
                           model.gamma9((1, -1, -1))]
-
         tau_real = [2., 8., 0.333333,
                     1.5, -19.5, 0.666667,
                     2., 8., 0.333333]
-
         assert_array_almost_equal(tau_calculated, tau_real)
 
     def test_j_algebra(self):
@@ -376,50 +340,25 @@ class TestPiqs:
         N_list = [1, 2, 3, 4, 7]
 
         for nn in N_list:
-
             # tests 1
-
-            [jX, jY, jZ, jP, jM] = j_algebra(nn)
-
-            test_jxjy = jX * jY - jY * jX
-            true_jxjy = 1j * jZ
-
-            test_jpjm = jP * jM - jM * jP
-            true_jpjm = 2 * jZ
-
-            test_j2 = jX**2 + jY**2 + jZ**2
-            true_j2 = j2_op(nn)
+            [jx, jy, jz, jp, jm] = j_algebra(nn)
+            test_jxjy = jx * jy - jy * jx
+            true_jxjy = 1j * jz
+            test_jpjm = jp * jm - jm * jp
+            true_jpjm = 2 * jz
 
             assert_array_equal(test_jxjy, true_jxjy)
             assert_array_equal(test_jpjm, true_jpjm)
-            assert_array_equal(test_j2, true_j2)
 
             # tests 2
-
-            [jX, jY, jZ, jP, jM] = j_algebra(nn)
-
-            test_jxjy = jx_op(nn) * jy_op(nn) - jy_op(nn) * jx_op(nn)
-            true_jxjy = 1j * jz_op(nn)
-
-            test_jpjm = jp_op(nn) * jm_op(nn) - jm_op(nn) * jp_op(nn)
-            true_jpjm = 2 * jz_op(nn)
-
-            test_j2 = jx_op(nn)**2 + jy_op(nn)**2 + jz_op(nn)**2
-            true_j2 = j2_op(nn)
+            [jx, jy, jz, jp, jm] = j_algebra(nn)
+            test_jxjy = jx * jy - jy * jx
+            true_jxjy = 1j * jz
+            test_jpjm = jp * jm - jm * jp
+            true_jpjm = 2 * jz
 
             assert_array_equal(test_jxjy, true_jxjy)
             assert_array_equal(test_jpjm, true_jpjm)
-            assert_array_equal(test_j2, true_j2)
-
-            # tests 3
-
-            [jX, jY, jZ, jP, jM] = j_algebra(nn)
-
-            assert_array_equal(jX, jx_op(nn))
-            assert_array_equal(jY, jy_op(nn))
-            assert_array_equal(jZ, jz_op(nn))
-            assert_array_equal(jP, jp_op(nn))
-            assert_array_equal(jM, jm_op(nn))
 
     def test_j_min_(self):
         """
@@ -437,13 +376,10 @@ class TestPiqs:
     def test_energy_degeneracy(self):
         """
         Test the energy degeneracy (m) of Dicke state | j, m >
-
         """
-
         true_en_deg = [1, 1, 1, 1, 1]
         true_en_deg_even = [2, 6, 20]
         true_en_deg_odd = [1, 1, 3, 3, 35, 35]
-
         test_en_deg = []
         test_en_deg_even = []
         test_en_deg_odd = []
@@ -469,30 +405,27 @@ class TestPiqs:
         """
         true_state_deg = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 14, 14, 42, 42]
         state_deg = []
-
         state_deg = []
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
             state_deg.append(state_degeneracy(nn, nn / 2))
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
             state_deg.append(state_degeneracy(nn, (nn / 2) % 1))
-
         assert_array_equal(state_deg, true_state_deg)
 
     def test_m_degeneracy(self):
         """
-        Tests the degeneracy of TLS states with same m eigenvalue
+        Test the degeneracy of TLS states with same m eigenvalue
         """
         true_m_deg = [1, 2, 2, 3, 4, 5, 5, 6]
         m_deg = []
-
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
             m_deg.append(m_degeneracy(nn, -(nn / 2) % 1))
-
         assert_array_equal(m_deg, true_m_deg)
 
     def test_dicke_basis(self):
         """
         Test if the Dicke basis (j, m, m') is constructed correctly.
+
         We test the state with for N = 2,
 
         0   0   0.3 0
@@ -501,56 +434,26 @@ class TestPiqs:
         0   0   0   0.5
         """
         N = 2
-
         true_dicke_basis = np.zeros((4, 4))
         true_dicke_basis[1, 1] = 0.5
         true_dicke_basis[-1, -1] = 0.5
         true_dicke_basis[0, 2] = 0.3
         true_dicke_basis[2, 0] = 0.3
         true_dicke_basis = Qobj(true_dicke_basis)
-
         jmm1_1 = {(N / 2, 0, 0): 0.5}
         jmm1_2 = {(0, 0, 0): 0.5}
         jmm1_3 = {(N / 2, N / 2, N / 2 - 2): 0.3}
         jmm1_4 = {(N / 2, N / 2 - 2, N / 2): 0.3}
-
         db1 = dicke_basis(2, jmm1_1)
         db2 = dicke_basis(2, jmm1_2)
         db3 = dicke_basis(2, jmm1_3)
         db4 = dicke_basis(2, jmm1_4)
         test_dicke_basis = db1 + db2 + db3 + db4
-
         assert_equal(test_dicke_basis, true_dicke_basis)
 
     def test_dicke_state(self):
         """
-        Tests the calculation of the Dicke state as a pure state in
-        the diagonal density matrix of the (j, m, m') basis of size
-        (O(N^2), O(N^2)).
-
-        For N = 2 we test that the following states are correctly initialized
-
-        excited, (N, j, m) = (2, 1, 1)
-
-        1 0 0 0
-        0 0 0 0
-        0 0 0 0
-        0 0 0 0
-
-        superradiant, (N, j, m) = (2, 1, 0)
-
-        0 0 0 0
-        0 1 0 0
-        0 0 0 0
-        0 0 0 0
-
-        subradiant, (N, j, m) = (2, 0, 0)
-
-        0 0 0 0
-        0 0 0 0
-        0 0 0 0
-        0 0 0 1
-
+        Test the calculation of the Dicke state as a pure state.
         """
         true_excited = np.zeros((4, 4))
         true_excited[0, 0] = 1
@@ -561,9 +464,9 @@ class TestPiqs:
         true_subradiant = np.zeros((4, 4))
         true_subradiant[-1, -1] = 1
 
-        test_excited = dicke_state(2, 1, 1)
-        test_superradiant = dicke_state(2, 1, 0)
-        test_subradiant = dicke_state(2, 0, 0)
+        test_excited = dicke(2, 1, 1)
+        test_superradiant = dicke(2, 1, 0)
+        test_subradiant = dicke(2, 0, 0)
 
         assert_equal(test_excited, Qobj(true_excited))
         assert_equal(test_superradiant, Qobj(true_superradiant))
@@ -571,7 +474,8 @@ class TestPiqs:
 
     def test_superradiant(self):
         """
-        Tests the calculation of the superradiant state density matrix.
+        Test the calculation of the superradiant state density matrix.
+
         The state is |N/2, 0> for N even and |N/2, 0.5> for N odd.
         The matrix has size (O(N^2), O(N^2)) in Dicke basis ('dicke').
         The matrix has size (2^N, 2^N) in the uncoupled basis ('uncoupled').
@@ -580,47 +484,33 @@ class TestPiqs:
         true_state = np.zeros((6, 6))
         true_state[1, 1] = 1
         true_state = Qobj(true_state)
-
         test_state = superradiant(N)
         assert_equal(test_state, true_state)
-
         N = 4
         true_state = np.zeros((9, 9))
         true_state[2, 2] = 1
         true_state = Qobj(true_state)
-
         test_state = superradiant(N)
         assert_equal(test_state, true_state)
 
     def test_ghz(self):
         """
-        Tests the calculation of the density matrix of the GHZ state.
+        Test the calculation of the density matrix of the GHZ state.
+
         Test for N = 2 in the 'dicke' and in the 'uncoupled' basis
         """
         ghz_dicke = Qobj([[0.5, 0, 0.5, 0], [0, 0, 0, 0],
                           [0.5, 0, 0.5, 0], [0, 0, 0, 0]])
-
-        ghz_uncoupled = Qobj([[0.5, 0, 0, 0.5], [0, 0, 0, 0], [
-                             0, 0, 0, 0], [0.5, 0, 0, 0.5]])
+        ghz_uncoupled = Qobj([[0.5, 0, 0, 0.5], [0, 0, 0, 0],
+                              [0, 0, 0, 0], [0.5, 0, 0, 0.5]])
         ghz_uncoupled.dims = [[2, 2], [2, 2]]
-
         assert_equal(ghz(2), ghz_dicke)
         assert_equal(ghz(2, "uncoupled"), ghz_uncoupled)
 
-    def test_uncoupled_identity(self):
-        """
-        Tests the calculation of the identity matrix in a 2**N dimensional
-        Hilbert space.
-
-        The space is a tensor product of N TLSs. Test performed for N = 2.
-        """
-        true_id = Qobj(np.diag([1, 1, 1, 1]))
-        true_id.dims = [[2, 2], [2, 2]]
-        assert_equal(true_id, uncoupled_identity(2))
-
     def test_c_ops_tls(self):
         """
-        Tests the calculation of the correct collapse operators (c_ops) list.
+        Test the calculation of the correct collapse operators (c_ops) list.
+
         In the "uncoupled" basis of N two-level system (TLS).
         The test is performed for N = 2 and emission = 1.
         """
@@ -629,12 +519,11 @@ class TestPiqs:
         c2 = Qobj([[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0],
                    [0, 0, 1, 0]], dims=[[2, 2], [2, 2]])
         true_c_ops = [c1, c2]
-
         assert_equal(true_c_ops, c_ops_tls(N=2, emission=1))
 
     def test_get_blocks(self):
         """
-        Tests the calculation of list of cumulative elements at each block.
+        Test the calculation of list of cumulative elements at each block.
 
         For N = 4
 
@@ -647,7 +536,6 @@ class TestPiqs:
                 1 1 1
                 1 1 1
                      1
-
         Thus, the blocks are [5, 8, 9] denoting that after the first block 5
         elements have been accounted for and so on.
         """
@@ -667,15 +555,12 @@ class TestPiqs:
 
     def test_lindbladian_dims(self):
         """
-        Tests the calculation of the lindbladian matrix
+        Test the calculation of the lindbladian matrix
         """
-
         true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
                   [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
-
         true_L = Qobj(true_L)
         true_L.dims = [[[2], [2]], [[2], [2]]]
-
         N = 1
         test_dicke = _Dicke(N=N, pumping=1, collective_pumping=2,
                             emission=1, collective_emission=3,
@@ -686,34 +571,27 @@ class TestPiqs:
 
     def test_liouvillian(self):
         """
-        Tests the calculation of the liouvillian matrix
+        Test the calculation of the liouvillian matrix
         """
-
         true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
                   [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
-
         true_L = Qobj(true_L)
         true_L.dims = [[[2], [2]], [[2], [2]]]
-
         true_H = [[1. + 0.j, 1. + 0.j], [1. + 0.j, -1. + 0.j]]
         true_H = Qobj(true_H)
         true_H.dims = [[[2], [2]]]
-
         true_liouvillian = [[-4, -1.j, 1.j, 3],
                             [-1.j, -3.54999995+2.j, 0, 1.j],
                             [1.j, 0, -3.54999995-2.j, -1.j],
                             [4, +1.j, -1.j, -3]]
         true_liouvillian = Qobj(true_liouvillian)
         true_liouvillian.dims = [[[2], [2]], [[2], [2]]]
-
         N = 1
-        test_piqs = Piqs(hamiltonian=sigmaz() + sigmax(), N=N,
-                         pumping=1, collective_pumping=2, emission=1,
-                         collective_emission=3, dephasing=0.1)
-
+        test_piqs = Dicke(hamiltonian=sigmaz() + sigmax(), N=N,
+                          pumping=1, collective_pumping=2, emission=1,
+                          collective_emission=3, dephasing=0.1)
         test_liouvillian = test_piqs.liouvillian()
         test_hamiltonian = test_piqs.hamiltonian
-
         assert_array_almost_equal(
             test_liouvillian.full(),
             true_liouvillian.full())
@@ -722,9 +600,8 @@ class TestPiqs:
 
     def test_gamma1(self):
         """
-        Tests the calculation of gamma1.
+        Test the calculation of gamma1.
         """
-
         true_gamma_1 = -2
         true_gamma_2 = -3
         true_gamma_3 = -7
@@ -755,7 +632,7 @@ class TestPiqs:
 
     def test_gamma2(self):
         """
-        Tests the calculation of gamma2. Test performed for N = 4.
+        Test the calculation of gamma2. Test performed for N = 4.
         """
         true_gamma_1 = 2
         true_gamma_2 = 1.5
@@ -787,7 +664,7 @@ class TestPiqs:
 
     def test_gamma3(self):
         """
-        Tests the calculation of gamma3. Test performed for N = 4.
+        Test the calculation of gamma3. Test performed for N = 4.
         """
         true_gamma_1 = 0
         true_gamma_2 = 1.3333333730697632
@@ -819,9 +696,8 @@ class TestPiqs:
 
     def test_gamma4(self):
         """
-        Tests the calculation of gamma4. Test performed for N = 4.
+        Test the calculation of gamma4. Test performed for N = 4.
         """
-
         true_gamma_1 = 0.1666666716337204
         true_gamma_2 = 2
         true_gamma_3 = 0
@@ -841,9 +717,8 @@ class TestPiqs:
 
     def test_gamma5(self):
         """
-        Tests the calculation of gamma5. Test performed for N = 4.
+        Test the calculation of gamma5. Test performed for N = 4.
         """
-
         true_gamma_1 = 0
         true_gamma_2 = 0
         true_gamma_3 = 0.75
@@ -863,7 +738,7 @@ class TestPiqs:
 
     def test_gamma6(self):
         """
-        Tests the calculation of gamma6. Test performed for N = 4.
+        Test the calculation of gamma6. Test performed for N = 4.
         """
         true_gamma_1 = 0.25
         true_gamma_2 = 1
@@ -884,7 +759,7 @@ class TestPiqs:
 
     def test_gamma7(self):
         """
-        Tests the calculation of gamma7. Test performed for N = 4.
+        Test the calculation of gamma7. Test performed for N = 4.
         """
         true_gamma_1 = 0
         true_gamma_2 = 0.5
@@ -905,7 +780,7 @@ class TestPiqs:
 
     def test_gamma8(self):
         """
-        Tests the calculation of gamma8. Test performed for N = 4.
+        Test the calculation of gamma8. Test performed for N = 4.
         """
         true_gamma_1 = 0
         true_gamma_2 = 13.5
@@ -926,20 +801,18 @@ class TestPiqs:
 
     def test_gamma9(self):
         """
-        Tests the calculation of gamma9. Test performed for N = 4.
+        Test the calculation of gamma9. Test performed for N = 4.
         """
         true_gamma_1 = 1
         true_gamma_2 = 0
         true_gamma_3 = 0.5
         true_gamma_4 = 0
-
         N = 4
         test_dicke = _Dicke(N=N, pumping=1, collective_pumping=2)
         test_gamma_1 = test_dicke.gamma9((1, 1, 1))
         test_gamma_2 = test_dicke.gamma9((2, 0, 0))
         test_gamma_3 = test_dicke.gamma9((1, 0, 0))
         test_gamma_4 = test_dicke.gamma9((2, -1, -1))
-
         assert_almost_equal(true_gamma_1, test_gamma_1)
         assert_almost_equal(true_gamma_2, test_gamma_2)
         assert_almost_equal(true_gamma_3, test_gamma_3)
