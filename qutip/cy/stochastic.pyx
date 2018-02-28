@@ -111,10 +111,95 @@ Solver:
     milstein          102
     milstein-imp      103
   order 1.5
-    platen1.5         150
+    explicit1.5       150
     taylor1.5         152
     taylor1.5-imp     153
+  order 2.0
+    explicit2.0       200
+    taylor2.0         202
+    taylor2.0-imp     203
 """
+
+cdef class taylorNoise:
+    """ Object to build the Stratonovich integral for order 2.0 strong taylor.
+    Complex enough that I fell it should be kept separated from the main solver.
+    """
+    cdef:
+      int p
+      double rho, alpha
+      double aFactor, bFactor
+      double BFactor, CFactor
+      double dt, dt_sqrt
+
+    @cython.cdivision(True)
+    def __init__(self, int p, double dt):
+        self.p = p
+        self.dt = dt
+        self.dt_sqrt = dt**.5
+        cdef double pi = np.pi
+        cdef int i
+
+        cdef double rho = 0.
+        for i in range(1,p+1):
+            rho += (i+0.)**-2
+        rho = 1./3.-2*rho/(pi**2)
+        self.rho = (rho)**.5
+        self.aFactor = -(2)**.5/pi
+
+        cdef double alpha = 0.
+        for i in range(1,p+1):
+            alpha += (i+0.)**-4
+        alpha = pi/180-alpha/(2*pi**2)/pi
+        self.alpha = (alpha)**.5
+        self.bFactor = (0.5)**.5/pi**2
+
+        self.BFactor = 1/(4*pi**2)
+        self.CFactor = -1/(2*pi**2)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cpdef void order2(self, double[::1] noise, double[::1] dws):
+        cdef int p = self.p
+        cdef int r, l
+        cdef double s = 0.1666666666666666666666
+        cdef double a = 0
+        cdef double b = 0
+        cdef double AA = 0
+        cdef double BB = 0
+        cdef double CC = 0
+
+        for r in range(p):
+            a += noise[3+r]/(r+1.)
+            b += noise[3+r+p]/(r+1.)/(r+1.)
+            BB += (1/(r+1.)/(r+1.)) *\
+                 (noise[3+r]*noise[3+r]+noise[3+r+p]*noise[3+r+p])
+            for l in range(p):
+                if r != l:
+                    CC += (r+1.)/((r+1.)*(r+1.)-(l+1.)*(l+1.)) *\
+                         (1/(l+1.)*noise[3+r]*noise[3+l] -(l+1.)/(r+1.)*noise[3+r+p]*noise[3+l+p])
+
+        a = self.aFactor * a + self.rho * noise[1]
+        b = self.bFactor * b + self.alpha * noise[2]
+        AA = 0.25*a*a
+        BB *= self.BFactor
+        CC *= self.CFactor
+
+        dws[0] = noise[0]                       # dw
+        dws[1] = 0.5*(noise[0]+a)               # dz
+        #dws[1] *= self.dt
+        dws[2] = noise[0]*(noise[0]*s -0.25*a -0.5*b) \
+            +BB +CC
+        #dws[2] *=   self.dt                     # j011
+
+        dws[3] = noise[0]*(noise[0]*s         +   b) \
+            -AA -BB
+        #dws[3] *= self.dt                       # j101
+
+        dws[4] = noise[0]*(noise[0]*s +0.25*a -0.5*b) \
+            +AA -CC
+        #dws[4] *= self.dt                       # j110
+
 
 cdef class ssolvers:
     cdef int l_vec, N_ops
@@ -139,6 +224,8 @@ cdef class ssolvers:
     cdef complex[:, ::1] func_buffer_2d
     cdef complex[:, :, ::1] func_buffer_3d
 
+    cdef taylorNoise order2noise
+
     def __init__(self):
         self.l_vec = 0
         self.N_ops = 0
@@ -153,6 +240,9 @@ cdef class ssolvers:
         self.N_dw = len(sso.sops)
         if self.solver in [150, 152, 153]:
             self.N_dw *= 2
+        if self.solver in [202]:
+            self.N_dw *= 3+2*sso.p
+            self.order2noise = taylorNoise(sso.p, self.dt)
         # prepare buffers for the solvers
         nb_solver = [0,0,0,0]
         nb_func = [0,0,0]
@@ -179,6 +269,8 @@ cdef class ssolvers:
             nb_solver = [2,3,1,1]
         elif self.solver == 153:
             nb_solver = [2,3,1,1]
+        elif self.solver == 202:
+            nb_solver = [11,0,0,0]
 
         if self.solver in [101,102,103,104,152,153]:
           if sso.me:
@@ -187,6 +279,13 @@ cdef class ssolvers:
           else:
             nb_func = [2,1,1]
             nb_expect = [2,1,1]
+        elif self.solver in [202]:
+          if sso.me:
+            nb_func = [2,0,0]
+            nb_expect = [2,0,0]
+          else:
+            nb_func = [2,0,0]
+            nb_expect = [2,0,0]
         else:
           if not sso.me:
             nb_func = [1,0,0]
@@ -328,6 +427,11 @@ cdef class ssolvers:
                 self.taylor15_imp(t + i*dt, dt, noise[i, :], vec, out)
                 out, vec = vec, out
 
+        elif self.solver == 202:
+            for i in range(N_substeps):
+                self.taylor20(t + i*dt, dt, noise[i, :], vec, out)
+                out, vec = vec, out
+
         if self.normalize:
             normalize_inplace(vec)
         return vec
@@ -348,6 +452,14 @@ cdef class ssolvers:
                               complex[:, :, ::1] Lb, complex[:,::1] La,
                               complex[:, ::1] L0b, complex[:, :, :, ::1] LLb,
                               complex[::1] L0a):
+        pass
+
+    cdef void derivativesO2(self, double t, complex[::1] rho,
+                            complex[::1] a, complex[::1] b, complex[::1] Lb,
+                            complex[::1] La, complex[::1] L0b, complex[::1] LLb,
+                            complex[::1] L0a,
+                            complex[::1] LLa, complex[::1] LL0b,
+                            complex[::1] L0Lb, complex[::1] LLLb):
         pass
 
     def set_implicit(self, sso):
@@ -617,6 +729,18 @@ cdef class ssolvers:
         copy(vec,out)
         axpy(1.0, a, out)
         axpy(0.5, L0a, out)
+        if t==0 and False:
+          print("b",b[0,0],b[0,1])
+          print("Lb",Lb[0,0,0],Lb[0,0,1])
+          print("LLb",LLb[0,0,0,0],LLb[0,0,0,1])
+
+          print("a",a[0],a[1])
+          print("La",La[0,0],La[0,1])
+
+          print("L0b",L0b[0,0],L0b[0,1])
+
+          print("L0a",L0a[0],L0a[1])
+          print(dw[0],dz[0])
 
         for i in range(self.N_ops):
             axpy(dw[i], b[i,:], out)
@@ -832,6 +956,86 @@ cdef class ssolvers:
                 axpy(-ddw, d2mm[j,:], out)
                 axpy(-ddw, d2p[j,:], out)
                 axpy( ddw, d2m[j,:], out)
+
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    @cython.cdivision(True)
+    cdef void taylor20(self, double t, double dt, double[::1] noise,
+                           complex[::1] vec, complex[::1] out):
+        """
+        Chapter 10.5 Eq. (5.1),
+        Numerical Solution of Stochastic Differential Equations
+        By Peter E. Kloeden, Eckhard Platen
+        """
+        cdef double[::1] noises = np.empty(5)
+        cdef double dwn
+        self.order2noise.order2(noise,noises)
+        cdef complex[::1] a = self.buffer_1d[0, :]
+        cdef complex[::1] b = self.buffer_1d[1, :]
+        cdef complex[::1] Lb = self.buffer_1d[2, :]
+        cdef complex[::1] La = self.buffer_1d[3, :]
+        cdef complex[::1] L0b = self.buffer_1d[4, :]
+        cdef complex[::1] LLb = self.buffer_1d[5, :]
+        cdef complex[::1] L0a = self.buffer_1d[6, :]
+        cdef complex[::1] LLa = self.buffer_1d[7, :]
+        cdef complex[::1] LL0b = self.buffer_1d[8, :]
+        cdef complex[::1] L0Lb = self.buffer_1d[9, :]
+        cdef complex[::1] LLLb = self.buffer_1d[10, :]
+        zero(a)
+        zero(b)
+        zero(Lb)
+        zero(La)
+        zero(L0b)
+        zero(LLb)
+        zero(L0a)
+        zero(LLa)
+        zero(LL0b)
+        zero(L0Lb)
+        zero(LLLb)
+        self.derivativesO2(t, vec, a, b, Lb,
+                           La, L0b, LLb,
+                           L0a, LLa, LL0b, L0Lb, LLLb)
+
+        if t ==0 and False:
+          print("b",b[0],b[1])
+          print("Lb",Lb[0],Lb[1])
+          print("LLb",LLb[0],LLb[1])
+          print("LLLb",LLLb[0],LLLb[1])
+
+          print("a",a[0],a[1])
+          print("La",La[0],La[1])
+          print("LLa",LLa[0],LLa[1])
+
+          print("L0b",L0b[0],L0b[1])
+          print("LL0b",LL0b[0],LL0b[1])
+          print("L0Lb",L0Lb[0],L0Lb[1])
+
+          print("L0a",L0a[0],L0a[1])
+          print(noises[0])
+          print(noises[1])
+          print(noises[2])
+          print(noises[3])
+          print(noises[4])
+
+        copy(vec,out)
+        axpy(1.0, a, out)
+
+        axpy(noises[0], b, out)
+        dwn = noises[0]*noises[0]*0.5
+        axpy(dwn, Lb, out)
+
+        axpy(noises[1], La, out)
+        axpy(noises[0]-noises[1], L0b, out)
+        dwn *= noises[0]*0.3333333333333333333333
+        axpy(dwn, LLb, out)
+        axpy(0.5, L0a, out)
+
+        axpy(noises[2], L0Lb, out)
+        axpy(noises[3], LL0b, out)
+        axpy(noises[4], LLa, out)
+        dwn *= noises[0]*0.25
+        axpy(dwn, LLLb, out)
+
 
     def checks(self, double t, double dt, complex[::1] vec):
         cdef complex[::1] a = np.zeros((self.l_vec), dtype=complex)
@@ -1114,7 +1318,6 @@ cdef class sse(ssolvers):
         cdef int i
         copy(spout, out)
 
-
 cdef class sme(ssolvers):
     cdef cy_qobj L
     cdef object imp
@@ -1192,7 +1395,7 @@ cdef class sme(ssolvers):
         cdef complex[::1] trAp = self.expect_buffer_1d[0,:]
         cdef complex[:, ::1] trAb = self.expect_buffer_2d
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
-        zero(temp)
+        #zero(temp)
 
         # a
         self.L._rhs_mat(t, &rho[0], &a[0])
@@ -1230,7 +1433,7 @@ cdef class sme(ssolvers):
             axpy(-trApp, rho, L0b[i,:])
             axpy(-1, b[i,:], L0b[i,:])
             # ab'
-            temp = np.zeros((self.l_vec, ), dtype=complex)
+            zero(temp) # = np.zeros((self.l_vec, ), dtype=complex)
             c_op._rhs_mat(t, &a[0], &temp[0])
             trAa = self.expect(temp)
             axpy(1., temp, L0b[i,:])
@@ -1260,6 +1463,173 @@ cdef class sme(ssolvers):
             self.L._rhs_mat(t+self.dt, &rho[0], &L0a[0])
             axpy(-1, a, L0a)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void derivativesO2(self, double t, complex[::1] rho,
+                            complex[::1] a, complex[::1] b, complex[::1] Lb,
+                            complex[::1] La, complex[::1] L0b, complex[::1] LLb,
+                            complex[::1] L0a,
+                            complex[::1] LLa, complex[::1] LL0b,
+                            complex[::1] L0Lb, complex[::1] LLLb):
+        """
+        Combinaisons of a and b derivative for m sc_ops up to order dt**2.0
+        Use Stratonovich-Taylor expansion.
+        One one sc_ops
+        dY ~ a dt + bi dwi
+
+        b[:]     b                        d2 euler    dw
+        a[:]     a- Lb/2                  d1 euler    dt
+        Lb[:]    b'b                      milstein    dw^2/2
+        L0b[:]   ab'- b'b'b/2             taylor1.5   dwdt-dz
+        La[:]    ba'- (b'b'b+b"bb)/2      taylor1.5   dz
+        LLb[:]   (b"bb+b'b'b)             taylor1.5   dw^3/6
+        L0a[:]   a_a'_ + da/dt -Lb_a'_/2  taylor1.5   dt^2/2
+
+        LLa[:]   ...  taylor2.0   dwdt-dz
+        LL0b[:]  ...                 taylor2.0   dz
+        L0Lb[:]  ...         taylor2.0   dw^3/6
+        LLLb[:]  ...  taylor2.0   dt^2/2
+        """
+        cdef int i, j, k
+        cdef cy_qobj c_op = self.c_ops[0]
+        cdef cy_qobj c_opj
+        cdef complex trAp, trApt
+        cdef complex trAb, trALb, trALLb
+        cdef complex trAa, trALa
+        cdef complex trAL0b
+
+        cdef complex[::1] temp = self.func_buffer_1d[0,:]
+        cdef complex[::1] temp2 = self.func_buffer_1d[1,:]
+
+        # b
+        c_op._rhs_mat(t, &rho[0], &b[0])
+        trAp = self.expect(b)
+        axpy(-trAp, rho, b)
+
+        # Lb = b'b
+        c_op._rhs_mat(t, &b[0], &Lb[0])
+        trAb = self.expect(Lb)
+        axpy(-trAp, b, Lb)
+        axpy(-trAb, rho, Lb)
+
+        # LLb = b'Lb+b"bb
+        c_op._rhs_mat(t, &Lb[0], &LLb[0])
+        trALb = self.expect(LLb)
+        axpy(-trAp, Lb, LLb)
+        axpy(-trALb, rho, LLb)
+        axpy(-trAb*2, b, LLb)
+
+        # LLLb = b'LLb + 3 b"bLb + b"'bbb
+        c_op._rhs_mat(t, &LLb[0], &LLLb[0])
+        trALLb = self.expect(LLLb)
+        axpy(-trAp, LLb, LLLb)
+        axpy(-trALLb, rho, LLLb)
+        axpy(-trALb*3, b, LLLb)
+        axpy(-trAb*3, Lb, LLLb)
+
+        # _a_ = a - Lb/2
+        self.L._rhs_mat(t, &rho[0], &a[0])
+        axpy(-0.5*self.dt, Lb, a)
+
+        # L_a_ = ba' - LLb/2
+        self.L._rhs_mat(t, &b[0], &La[0])
+        axpy(-0.5*self.dt, LLb, La)
+
+        # LL_a_ = b(La)' - LLLb/2
+        self.L._rhs_mat(t, &Lb[0], &LLa[0])
+        axpy(-0.5*self.dt, LLLb, LLa)
+
+        # _L0_b = b'(_a_)
+        c_op._rhs_mat(t, &a[0], &L0b[0])
+        trAa = self.expect(L0b)
+        axpy(-trAp, a, L0b)
+        axpy(-trAa, rho, L0b)
+
+        # _L0_Lb = b'(b'(_a_))+b"(_a_,b)
+        c_op._rhs_mat(t, &L0b[0], &L0Lb[0])
+        trAL0b = self.expect(L0Lb)
+        axpy(-trAp, L0b, L0Lb)
+        axpy(-trAL0b, rho, L0Lb)
+        axpy(-trAa, b, L0Lb)
+        axpy(-trAb, a, L0Lb)
+
+        # L_L0_b = b'(_a_'(b))+b"(_a_,b)
+        c_op._rhs_mat(t, &La[0], &LL0b[0])
+        trAL0b = self.expect(LL0b)
+        axpy(-trAp, La, LL0b)
+        axpy(-trAL0b, rho, LL0b)
+        axpy(-trAa, b, LL0b)
+        axpy(-trAb, a, LL0b)
+
+        # _L0_ _a_ = _L0_a - _L0_Lb/2 + da/dt
+        #zero(temp)
+        #self.L._rhs_mat(t, &rho[0], &temp[0])
+        #self.L._rhs_mat(t, &temp[0], &L0a[0])
+
+        # _L0_ _a_ = _L0_a - _L0_Lb/2 + da/dt
+        self.L._rhs_mat(t, &a[0], &L0a[0])
+        self.L._rhs_mat(t+self.dt, &rho[0], &L0a[0])
+        axpy(-0.5*self.dt, Lb, L0a) # _a_(t+dt) = a(t+dt)-0.5*Lb
+        axpy(-1, a, L0a)
+        axpy(-self.dt*0.5, L0Lb, L0a)
+
+
+        #zero(temp)
+        #axpy(-trALb*self.dt, b, temp) # L contain dt
+        #axpy(-trAb*self.dt, Lb, temp) # L contain dt
+
+        #axpy(-0.5*self.dt, temp, L0a)
+
+        #axpy(-trAa, b, temp)
+        #axpy(-trAb, a, temp)
+
+        #axpy(-trAa*0.5*self.dt, b, L0a)
+        #axpy(-trAb*0.5*self.dt, a, L0a)
+
+        # L0Lb = b'(L0b) + b"bLb + b"ab
+        #c_op._rhs_mat(t, &L0b[0], &L0Lb[0])
+        #trAL0b = self.expect(L0Lb)
+        #axpy(-trAp, L0b, L0Lb)
+        #axpy(-trAL0b, rho, L0Lb)
+        #axpy(1, temp, L0Lb)
+
+        # LL0b = b'(La) + b"bLb + b"ab
+        #c_op._rhs_mat(t, &La[0], &LL0b[0])
+        #trALa = self.expect(LL0b)
+        #axpy(-trAp, La, LL0b)
+        #axpy(-trALa, rho, LL0b)
+        #axpy(0.5*self.dt, LL0b, L0a)
+        #axpy(1, temp, LL0b)
+
+        #axpy(-0.5*self.dt, L0Lb, L0a)
+
+        # L0_a_ = a'a + da/dt + bba"/2  (a" = 0)
+        #       - 0.5*(a (Lb)' + bb(Lb)"/2 )
+        #self.L._rhs_mat(t, &a[0], &L0a[0])
+        #self.L._rhs_mat(t+self.dt, &rho[0], &L0a[0])
+        #axpy(-1, a, L0a)
+        #axpy(-self.dt*0.5, L0Lb, L0a)
+
+        # b'b"bb
+        #zero(temp)
+        #zero(temp2)
+        #axpy(-trAb*2, b, temp)  # b"bb
+        #c_op._rhs_mat(t, &temp[0], &temp2[0])
+        #trAt = self.expect(temp2)
+        #axpy(-trAp, temp, temp2)
+        #axpy(-trAt, rho, temp2)
+        #axpy(-0.25*self.dt*self.dt, temp2, L0a)
+        #
+        #zero(temp)
+        #c_op._rhs_mat(t, &La[0], &temp[0])
+        #trAt = self.expect(temp)
+        #axpy(-trAp, temp, temp)
+        #axpy(-trALa, rho, temp)
+        #axpy(0.5*self.dt*self.dt, temp, L0a)
+
+
+
     cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
                                         complex[::1] out,
                                         np.ndarray[complex, ndim=1] guess):
@@ -1269,6 +1639,7 @@ cdef class sme(ssolvers):
                                         dvec, x0 = guess, tol=self.tol)
         cdef int i
         copy(spout,out)
+
 
 cdef class psse(ssolvers):
     cdef cy_qobj L
@@ -1423,6 +1794,7 @@ cdef class psme(ssolvers):
             else:
                 zero(out[i,:])
             axpy(-1, rho, out[i,:])
+
 
 cdef class generic(ssolvers):
     cdef object d1_func, d2_func

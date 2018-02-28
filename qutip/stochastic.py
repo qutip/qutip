@@ -258,7 +258,7 @@ class StochasticSolverOptions:
                  times=None, nsubsteps=1, ntraj=1, tol=None,
                  generate_noise=None, noise=None,
                  progress_bar=None, map_func=None, map_kwargs=None,
-                 args={}, options=None):
+                 args={}, options=None, noiseDeep=20):
 
         if options is None:
             options = Options()
@@ -394,20 +394,31 @@ class StochasticSolverOptions:
             self.solver_code = 104
             self.solver = 'pred-corr-2'
 
-        elif self.solver in ['platen15', 'explicit15', 150]:
+        elif self.solver in ['platen15', 'explicit1.5', 'explicit15', 150]:
             self.solver_code = 150
-            self.solver = 'explicit15'
-        elif self.solver in ['taylor15', None, 1.5, 152]:
+            self.solver = 'explicit1.5'
+        elif self.solver in ['taylor15', 'taylor1.5', None, 1.5, 152]:
             self.solver_code = 152
-            self.solver = 'taylor15'
-        elif self.solver in ['taylor15-imp', 153]:
+            self.solver = 'taylor1.5'
+        elif self.solver in ['taylor15-imp', 'taylor1.5-imp', 153]:
             self.solver_code = 153
-            self.solver = 'taylor15-imp'
+            self.solver = 'taylor1.5-imp'
+        elif self.solver in [202, 'taylor2.0', 'taylor20']:
+            self.solver_code = 202
+            self.solver = 'taylor2.0'
+            self.p = noiseDeep
+            if not len(self.sc_ops) == 1 or \
+                not self.sc_ops[0].const or \
+                not self.method=="homodyne":
+                raise Exception("Taylor2.0 only work with 1 constant sc_ops " +\
+                                "and for homodyne method")
+
         else:
             raise Exception("The solver should be one of "+\
                             "[None, 'euler-maruyama', 'platen', 'pc-euler', "+\
                             "'pc-euler-2', 'milstein', 'milstein-imp', "+\
-                            "'taylor15', 'taylor15-imp', 'explicit15']")
+                            "'taylor1.5', 'taylor1.5-imp', 'explicit15' "+\
+                            "'taylor2.0']")
 
 
 def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
