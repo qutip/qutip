@@ -1,5 +1,5 @@
 """
-Hierarchy equations of motion
+Heirarchy equations of motion
 """
 import numpy as np
 
@@ -18,7 +18,7 @@ from copy import copy
 
 class Heom(object):
     """
-    The Heom class to tackle hierarchy.
+    The Heom class to tackle Heirarchy.
     
     Parameters
     ==========
@@ -35,14 +35,14 @@ class Heom(object):
         The list of frequencies in the expansion of the correlation function
 
     ncut: int
-        The hierarchy cutoff
+        The Heirarchy cutoff
         
     kcut: int
         The cutoff in the Matsubara frequencies
 
     rcut: float
         The cutoff for the maximum absolute value in an auxillary matrix
-        which is used to remove it from the hierarchy
+        which is used to remove it from the heirarchy
     """
     def __init__(self, hamiltonian, coupling, ck, vk, 
                  ncut, kcut=None, rcut=None):
@@ -63,6 +63,7 @@ class Heom(object):
         nhe, he2idx, idx2he = enr_state_dictionaries([self.ncut+1]*self.kcut,
                                                      self.ncut)
         self.nhe = nhe
+        self.filtered_nhe = []
         self.he2idx = he2idx
         self.idx2he = idx2he 
 
@@ -78,7 +79,7 @@ class Heom(object):
 
     def prev_next(self, n, k):
         """
-        Calculate the next and previous hierarchy index for the
+        Calculate the next and previous heirarchy index for the
         current index `n`.
         """            
         current_he_n = copy(self.idx2he[n])
@@ -119,7 +120,7 @@ class Heom(object):
         else:
             dk = np.sum(np.divide(self.ck[self.kcut:], self.vk[self.kcut:]))
             return dk
-
+    
     def grad_n(self, t, rho, n):
         """
         Get the gradient term for the Hierarchy ADM at
@@ -135,7 +136,7 @@ class Heom(object):
         gradient = L*rho[n]
         gradient += -np.sum(np.multiply(nk, nu))*rho[n]
         return gradient
-            
+    
     def grad_prev_next(self, t, rho, n):
         """
         """
@@ -147,37 +148,42 @@ class Heom(object):
         spreQ = self.spreQ
         spostQ = self.spostQ
 
-        gprev = np.zeros_like(rho[n], dtype=np.complex)
-        gnext = np.zeros_like(rho[n], dtype=np.complex)
+        g = np.zeros_like(rho[n], dtype=np.complex)
 
         for k in range(self.kcut):
             nprev, nnext = self.prev_next(n, k)
             if ~np.isnan(nprev):
                 rho_prev = rho[nprev]
-                norm_prev = np.sqrt(nk[k]/abs(c[k]))
+                norm_prev = np.sqrt(np.divide(nk[k], np.abs(c[k])))
+
                 op1 = -1j*norm_prev*(c[k]*spreQ - np.conj(c[k])*spostQ)
-                gprev += np.dot(op1, rho_prev)
+                t1 = np.dot(op1, rho_prev)
+                g += t1
 
             if ~np.isnan(nnext):
                 rho_next = rho[nnext]
-                norm_next = np.sqrt(abs(c[k])*(n + 1))
+                norm_next = np.sqrt(np.abs(c[k])*(n + 1))
+
                 op2 = -1j*norm_next*(spreQ - spostQ)
-                gnext += np.dot(op2, rho_next)
+                t2 = np.dot(op2, rho_next)
+                g += t2
 
-        return (gprev + gnext)
-
+        return g
+    
     def grad(self, t, rho):
         """
         Calculate the gradient operator of the full Hierarchy
         """
         gradn = np.zeros((self.nhe, self.N**2), dtype=np.complex)
         state = rho.reshape((self.nhe, self.N**2)).copy()
+
         for n in self.idx2he:
-            g_current = self.grad_n(t, state, n) + self.grad_prev_next(t, state, n)
-            gradn[n] = g_current
+            if n not in self.filtered_nhe:
+                g_current = self.grad_n(t, state, n) + self.grad_prev_next(t, state, n)
+                gradn[n] = g_current
         return gradn.ravel()
     
-    def solve(self, rho0, tlist, options=None, rcut=1e-3):
+    def solve(self, rho0, tlist, options=None, rcut=0.):
         """
         Solve the Hierarchy equations of motion for the given initial
         density matrix and time.
@@ -195,23 +201,43 @@ class Heom(object):
         dt = np.diff(tlist)
         rho_he = np.zeros((self.nhe, self.N**2), dtype=np.complex)
         rho_he[0] = rho0.full().ravel("F")
+        rho_he = rho_he.flatten()
         r = ode(self.grad)
         r.set_integrator('zvode', method=options.method, order=options.order,
                          atol=options.atol, rtol=options.rtol,
                          nsteps=options.nsteps, first_step=options.first_step,
-                         min_step=options.min_step, max_step=options.max_step)        
-        r.set_initial_value(rho_he.flatten(), tlist[0])
+                         min_step=options.min_step, max_step=options.max_step)
+                        
+        r.set_initial_value(rho_he, tlist[0])
         
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
-
+        
+        #bar = tqdm_notebook(total = n_tsteps-1)
         for t_idx, t in enumerate(tlist):
+
             if t_idx < n_tsteps - 1:
                 r.integrate(r.t + dt[t_idx])
-                r1 = r.y.copy()
-                r0 = r1.reshape((self.nhe, self.N**2))[0].reshape(self.N, self.N).T
+                r1 = r.y.copy().reshape((self.nhe, self.N**2))
+                r0 = r1[0].reshape(self.N, self.N).T
                 output.states.append(Qobj(r0))
+
+                rho_modulus = np.abs(r1.max(1))
+                filter_idx = np.argwhere(rho_modulus < rcut).flatten()
+
+                self.pop_he(filter_idx)
+
+            #bar.update()
         return output
+    
+    def pop_he(self, nlist):
+        """
+        Pop the given list of hierarchy index
+        """
+        for n in nlist:
+            if n not in self.filtered_nhe:
+                self.filtered_nhe.append(n)
+        
     
 def add_at_idx(tup, k, val):
     """
@@ -219,4 +245,4 @@ def add_at_idx(tup, k, val):
     """
     lst = list(tup)
     lst[k] += val
-    return tuple(lst)
+    return tuple(lst)eturn tuple(lst)
