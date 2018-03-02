@@ -62,7 +62,7 @@ def _num_dicke_states(N):
     if (N < 1):
         raise ValueError("Number of TLS should be non-negative")
 
-    nds = (N / 2 + 1)**2 - (N % 2) / 4
+    nds = (N/2 + 1)**2 - (N%2)/4
     return int(nds)
 
 
@@ -80,7 +80,7 @@ def _num_dicke_ladders(N):
     Nj: int
         The number of Dicke ladders
     """
-    Nj = (N + 1) * 0.5 + (1 - np.mod(N, 2)) * 0.5
+    Nj = (N+1) * 0.5 + (1-np.mod(N, 2)) * 0.5
     return int(Nj)
 
 
@@ -90,9 +90,6 @@ cpdef list _get_blocks(int N):
     """
     Calculate the number of cumulative elements at each block boundary.
 
-    Example
-    -------
-
     Returns
     -------
     blocks: arr
@@ -101,7 +98,7 @@ cpdef list _get_blocks(int N):
     """
     cdef int num_blocks = _num_dicke_ladders(N)
     cdef list blocks
-    blocks = [i * (N + 2 - i) for i in range(1, num_blocks + 1)]
+    blocks = [i * (N+2-i) for i in range(1, num_blocks+1)]
     return blocks
 
 
@@ -132,13 +129,13 @@ def _j_vals(N):
     """
     Get the valid values of j for given N.
     """
-    j = np.arange(_j_min(N), N / 2 + 1, 1)
+    j = np.arange(_j_min(N), N/2 + 1, 1)
     return j
 
 
 def m_vals(j):
     """
-    Get all the possible values of m or $m^\prime$ for given j.
+    Get all the possible values of m or m1 for given j.
     """
     return np.arange(-j, j + 1, 1)
 
@@ -147,12 +144,12 @@ def get_index(N, j, m, m1, blocks):
     """
     Get the index in the density matrix for this j, m, m1 value.
     """
-    _k = int(j - m1)
-    _k_prime = int(j - m)
-    block_number = int(N / 2 - j)
+    _k = int(j-m1)
+    _k_prime = int(j-m)
+    block_number = int(N/2 - j)
     offset = 0
     if block_number > 0:
-        offset = blocks[block_number - 1]
+        offset = blocks[block_number-1]
     i = _k_prime + offset
     k = _k + offset
     return (i, k)
@@ -182,7 +179,7 @@ cpdef list jmm1_dictionary(int N):
                 i, k = get_index(N, j, m, m1, blocks)
                 jmm1_dict[(i, k)] = (j, m, m1)
                 jmm1_inv[(j, m, m1)] = (i, k)
-                l = nds * i + k
+                l = nds * i+k
                 jmm1_flat[l] = (j, m, m1)
                 jmm1_flat_inv[(j, m, m1)] = l
     return [jmm1_dict, jmm1_inv, jmm1_flat, jmm1_flat_inv]
@@ -245,7 +242,7 @@ cdef class Dicke(object):
     cdef float emission, dephasing, pumping
     cdef float collective_emission, collective_dephasing, collective_pumping
 
-    def __init__(self, int N=2, float emission=0., float dephasing=0.,
+    def __init__(self, int N, float emission=0., float dephasing=0.,
                  float pumping=0., float collective_emission=0.,
                  collective_dephasing=0., collective_pumping=0.):
         self.N = N
@@ -292,14 +289,14 @@ cdef class Dicke(object):
         for r in jmm1_row:
             j, m, m1 = jmm1_row[r]
             jmm1_1 = (j, m, m1)
-            jmm1_2 = (j, m + 1, m1 + 1)
-            jmm1_3 = (j + 1, m + 1, m1 + 1)
-            jmm1_4 = (j - 1, m + 1, m1 + 1)
-            jmm1_5 = (j + 1, m, m1)
-            jmm1_6 = (j - 1, m, m1)
-            jmm1_7 = (j + 1, m - 1, m1 - 1)
-            jmm1_8 = (j, m - 1, m1 - 1)
-            jmm1_9 = (j - 1, m - 1, m1 - 1)
+            jmm1_2 = (j, m+1, m1+1)
+            jmm1_3 = (j+1, m+1, m1+1)
+            jmm1_4 = (j-1, m+1, m1+1)
+            jmm1_5 = (j+1, m, m1)
+            jmm1_6 = (j-1, m, m1)
+            jmm1_7 = (j+1, m-1, m1-1)
+            jmm1_8 = (j, m-1, m1-1)
+            jmm1_9 = (j-1, m-1, m1-1)
 
             g1 = self.gamma1(jmm1_1)
             c1 = jmm1_inv[jmm1_1]
@@ -407,7 +404,7 @@ cdef class Dicke(object):
         yCP = self.collective_pumping
         yCD = self.collective_dephasing
 
-        spontaneous = yCE/2 * (2*j*(j+1) - m*(m - 1) - m1*(m1 - 1))
+        spontaneous = yCE/2 * (2*j*(j+1) - m * (m-1) - m1 * (m1 - 1))
         losses = (yE/2) * (N+m+m1)
         pump = yP/2 * (N-m-m1)
         collective_pump = yCP/2 * \

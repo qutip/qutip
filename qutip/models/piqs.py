@@ -116,13 +116,21 @@ def num_tls(nds):
 class Dicke(object):
     """The Dicke class which builds the Lindbladian and Liouvillian matrix
 
+    Example
+    -------
+    >> from qutip.models.piqs import Dicke, j_algebra
+    >> N = 2
+    >> jx, jy, jz, jp, jm = j_algebra(N)
+    >> ensemble = Dicke(N, emission=1.)
+    >> L = ensemble.liouvillian()
+
     Parameters
     ----------
     N: int
         The number of two level systems
         default: 2
 
-    hamiltonian: `qutip.Qobj`
+    hamiltonian: :class: qutip.Qobj
         An Hamiltonian in the reduced dicke basis set.
 
         The matrix dimensions are (nds, nds), with nds being the number of
@@ -206,7 +214,7 @@ class Dicke(object):
 
         Returns
         -------
-        lindbladian: :class:`qutip.Qobj`
+        lindbladian: :class: qutip.Qobj
             The Lindbladian matrix as a `qutip.Qobj`
         """
         cythonized_dicke = _Dicke(int(self.N),
@@ -223,7 +231,7 @@ class Dicke(object):
 
         Returns
         -------
-        liouv: :class:`qutip.Qobj`
+        liouv: :class: qutip.Qobj
             The Liouvillian matrix for the system
         """
         lindblad = self.lindbladian()
@@ -245,7 +253,7 @@ class Dicke(object):
 
         Parameters
         ----------
-        liouvillian: :class:`qutip.Qobj`
+        liouvillian: :class: qutip.Qobj
             The Liouvillian of which to calculate the spectrum.
 
         Returns
@@ -729,7 +737,7 @@ def dicke_basis(N, jmm1=None):
 
     Returns
     -------
-    rho: `qutip.Qobj`
+    rho: :class: qutip.Qobj
         The density matrix in the dicke basis.
     """
     if jmm1 is None:
@@ -780,6 +788,153 @@ def dicke(N, j, m):
     rho[i, k] = 1.
 
     return Qobj(rho)
+
+
+# Uncoupled states in the full Hilbert space. These are returned with the
+# choice of the keyword argument "dicke" in the states
+def _uncoupled_excited(N):
+    """
+    Generate am excite dicke state in the full Hilbert space.
+
+    Parameters
+    ----------
+    N: int
+        The number of two level systems
+
+    Returns
+    -------
+    psi0: :class: qutip.Qobj
+        The density matrix in the uncoupled basis.
+    """
+    N = int(N)
+    jz = collective_algebra(N)[2]
+    en, vn = jz.eigenstates()
+    psi0 = vn[2**N - 1]
+    return psi0
+
+
+def _uncoupled_superradiant(N):
+    """
+    Generate a superradiant state in full Hilbert space.
+
+    The state is given by |N/2, 0> (N even) or |N/2, 0.5> (N odd)
+    and is returned as a `qutip.Qobj` in a 2**N dimensional Hilbert
+    space
+
+    Parameters
+    ----------
+    N: int
+        The number of two level systems
+
+    Returns
+    -------
+    psi0: :class: qutip.Qobj
+    """
+    N = int(N)
+    jz = collective_algebra(N)[2]
+    en, vn = jz.eigenstates()
+    psi0 = vn[2**N - (N + 1)]
+
+    return psi0
+
+
+def _uncoupled_ground(N):
+    """
+    Generates a initial dicke state |N/2, - N/2> as a Qobj in a 2**N
+    dimensional Hilbert space
+
+    Parameters
+    ----------
+    N: int
+        The number of two level systems
+
+    Returns
+    -------
+    psi0: :class: qutip.Qobj
+    """
+    N = int(N)
+    jz = collective_algebra(N)[2]
+    en, vn = jz.eigenstates()
+    psi0 = vn[0]
+
+    return psi0
+
+
+def _uncoupled_ghz(N):
+    """
+    Generates the GHZ density matrix in a 2**N dimensional Hilbert space
+
+    Parameters
+    ----------
+    N: int
+        The number of two level systems
+
+    Returns
+    -------
+    ghz: :class: qutip.Qobj
+        The density matrix for the GHZ state in the full Hilbert space.
+    """
+    N = int(N)
+
+    rho = np.zeros((2**N, 2**N))
+    rho[0, 0] = 1 / 2
+    rho[2**N - 1, 0] = 1 / 2
+    rho[0, 2**N - 1] = 1 / 2
+    rho[2**N - 1, 2**N - 1] = 1 / 2
+
+    spin_dim = [2 for i in range(0, N)]
+    spins_dims = list((spin_dim, spin_dim))
+    rho = Qobj(rho, dims=spins_dims)
+    return rho
+
+
+def _uncoupled_css(N, a, b):
+    """
+    Generate the CSS state density matrix the full Hilbert space.
+
+    The CSS states are non-entangled states of the form
+    |a, b> =  \Prod_i (a|1>_i + b|0>_i).
+
+    Parameters
+    ----------
+    N: int
+        The number of two level systems
+    a: complex
+        The coefficient of the |1_i> state
+    b: complex
+        The coefficient of the |0_i> state
+
+    Returns
+    -------
+    css: :class: qutip.Qobj
+        The density matrix for the CSS state in the full Hilbert space.
+    """
+    N = int(N)
+    # 1. Define i_th factorized density matrix in the uncoupled basis
+    rho_i = np.zeros((2, 2), dtype=complex)
+    rho_i[0, 0] = a * np.conj(a)
+    rho_i[1, 1] = b * np.conj(b)
+    rho_i[0, 1] = a * np.conj(a)
+    rho_i[1, 0] = b * np.conj(b)
+    rho_i = Qobj(rho_i)
+    rho = [0 for i in range(N)]
+    rho[0] = rho_i
+    # 2. Place single-two-level-system density matrices in total Hilbert space
+    for k in range(N - 1):
+        rho[0] = tensor(rho[0], identity(2))
+    # 3. Cyclic sequence to create all N factorized density matrices
+    # |CSS>_i<CSS|_i
+    a = [i for i in range(N)]
+    b = [[a[i - i2] for i in range(N)] for i2 in range(N)]
+    # 4. Create all other N-1 factorized density matrices
+    # |+><+| = Prod_(i=1)^N |CSS>_i<CSS|_i
+    for i in range(1, N):
+        rho[i] = rho[0].permute(b[i])
+    identity_i = Qobj(np.eye(2**N), dims=rho[0].dims, shape=rho[0].shape)
+    rho_tot = identity_i
+    for i in range(0, N):
+        rho_tot = rho_tot * rho[i]
+    return rho_tot
 
 
 def excited(N, basis="dicke"):
@@ -897,7 +1052,7 @@ def identity_uncoupled(N):
 
     Returns
     -------
-    identity: `qutip.Qobj`
+    identity: :class: qutip.Qobj
         The identity matrix
     """
     N = int(N)
@@ -908,153 +1063,6 @@ def identity_uncoupled(N):
     spins_dims = list((spin_dim, spin_dim))
     identity = Qobj(rho, dims=spins_dims)
     return identity
-
-
-# Uncoupled states in the full Hilbert space. These are returned with the
-# choice of the keyword argument "dicke" in the states
-def _uncoupled_excited(N):
-    """
-    Generate am excite dicke state in the full Hilbert space.
-
-    Parameters
-    ----------
-    N: int
-        The number of two level systems
-
-    Returns
-    -------
-    psi0: `qutip.Qobj`
-        The density matrix in the uncoupled basis.
-    """
-    N = int(N)
-    jz = collective_algebra(N)[2]
-    en, vn = jz.eigenstates()
-    psi0 = vn[2**N - 1]
-    return psi0
-
-
-def _uncoupled_superradiant(N):
-    """
-    Generate a superradiant state in full Hilbert space.
-
-    The state is given by |N/2, 0> (N even) or |N/2, 0.5> (N odd)
-    and is returned as a `qutip.Qobj` in a 2**N dimensional Hilbert
-    space
-
-    Parameters
-    ----------
-    N: int
-        The number of two level systems
-
-    Returns
-    -------
-    psi0: `qutip.Qobj`
-    """
-    N = int(N)
-    jz = collective_algebra(N)[2]
-    en, vn = jz.eigenstates()
-    psi0 = vn[2**N - (N + 1)]
-
-    return psi0
-
-
-def _uncoupled_ground(N):
-    """
-    Generates a initial dicke state |N/2, - N/2> as a Qobj in a 2**N
-    dimensional Hilbert space
-
-    Parameters
-    ----------
-    N: int
-        The number of two level systems
-
-    Returns
-    -------
-    psi0: `qutip.Qobj`
-    """
-    N = int(N)
-    jz = collective_algebra(N)[2]
-    en, vn = jz.eigenstates()
-    psi0 = vn[0]
-
-    return psi0
-
-
-def _uncoupled_ghz(N):
-    """
-    Generates the GHZ density matrix in a 2**N dimensional Hilbert space
-
-    Parameters
-    ----------
-    N: int
-        The number of two level systems
-
-    Returns
-    -------
-    ghz: `qutip.Qobj`
-        The density matrix for the GHZ state in the full Hilbert space.
-    """
-    N = int(N)
-
-    rho = np.zeros((2**N, 2**N))
-    rho[0, 0] = 1 / 2
-    rho[2**N - 1, 0] = 1 / 2
-    rho[0, 2**N - 1] = 1 / 2
-    rho[2**N - 1, 2**N - 1] = 1 / 2
-
-    spin_dim = [2 for i in range(0, N)]
-    spins_dims = list((spin_dim, spin_dim))
-    rho = Qobj(rho, dims=spins_dims)
-    return rho
-
-
-def _uncoupled_css(N, a, b):
-    """
-    Generate the CSS state density matrix the full Hilbert space.
-
-    The CSS states are non-entangled states of the form
-    |a, b> =  \Prod_i (a|1>_i + b|0>_i).
-
-    Parameters
-    ----------
-    N: int
-        The number of two level systems
-    a: complex
-        The coefficient of the |1_i> state
-    b: complex
-        The coefficient of the |0_i> state
-
-    Returns
-    -------
-    css: `qubtip.Qobj`
-        The density matrix for the CSS state in the full Hilbert space.
-    """
-    N = int(N)
-    # 1. Define i_th factorized density matrix in the uncoupled basis
-    rho_i = np.zeros((2, 2), dtype=complex)
-    rho_i[0, 0] = a * np.conj(a)
-    rho_i[1, 1] = b * np.conj(b)
-    rho_i[0, 1] = a * np.conj(a)
-    rho_i[1, 0] = b * np.conj(b)
-    rho_i = Qobj(rho_i)
-    rho = [0 for i in range(N)]
-    rho[0] = rho_i
-    # 2. Place single-two-level-system density matrices in total Hilbert space
-    for k in range(N - 1):
-        rho[0] = tensor(rho[0], identity(2))
-    # 3. Cyclic sequence to create all N factorized density matrices
-    # |CSS>_i<CSS|_i
-    a = [i for i in range(N)]
-    b = [[a[i - i2] for i in range(N)] for i2 in range(N)]
-    # 4. Create all other N-1 factorized density matrices
-    # |+><+| = Prod_(i=1)^N |CSS>_i<CSS|_i
-    for i in range(1, N):
-        rho[i] = rho[0].permute(b[i])
-    identity_i = Qobj(np.eye(2**N), dims=rho[0].dims, shape=rho[0].shape)
-    rho_tot = identity_i
-    for i in range(0, N):
-        rho_tot = rho_tot * rho[i]
-    return rho_tot
 
 
 def block_matrix(N):
