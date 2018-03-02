@@ -284,8 +284,8 @@ cdef class ssolvers:
             nb_func = [2,0,0]
             nb_expect = [2,0,0]
           else:
-            nb_func = [2,0,0]
-            nb_expect = [2,0,0]
+            nb_func = [14,0,0]
+            nb_expect = [0,0,0]
         else:
           if not sso.me:
             nb_func = [1,0,0]
@@ -1124,7 +1124,6 @@ cdef class sse(ssolvers):
         axpy(1.,vec,out)
         return out
 
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1307,6 +1306,188 @@ cdef class sse(ssolvers):
                   axpy(0.5*dde_bb[i,j,j] * dt * dt, Cvec[i,:], L0a[:])
                   axpy(de_b[i,j] * dt * dt, Cb[i,j,:], L0a[:])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void C_vec_conj(self, double t, cy_qobj c_op,
+                         complex[::1] vec, complex[::1] out):
+        cdef int k
+        cdef complex[::1] temp = self.func_buffer_1d[13,:]
+        for k in range(self.l_vec):
+            temp[k] = conj(vec[k])
+            out[k] = 0.
+        c_op._rhs_mat(t, &temp[0], &out[0])
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void derivativesO2(self, double t, complex[::1] psi,
+                            complex[::1] a, complex[::1] b, complex[::1] Lb,
+                            complex[::1] La, complex[::1] L0b, complex[::1] LLb,
+                            complex[::1] L0a,
+                            complex[::1] LLa, complex[::1] LL0b,
+                            complex[::1] L0Lb, complex[::1] LLLb):
+        """
+        Combinaisons of a and b derivative for m sc_ops up to order dt**2.0
+        Use Stratonovich-Taylor expansion.
+        One one sc_ops
+        dY ~ a dt + bi dwi
+
+        b[:]     b                        d2 euler    dw
+        a[:]     a- Lb/2                  d1 euler    dt
+        Lb[:]    b'b                      milstein    dw^2/2
+        L0b[:]   ab'- b'b'b/2             taylor1.5   dwdt-dz
+        La[:]    ba'- (b'b'b+b"bb)/2      taylor1.5   dz
+        LLb[:]   (b"bb+b'b'b)             taylor1.5   dw^3/6
+        L0a[:]   a_a'_ + da/dt -Lb_a'_/2  taylor1.5   dt^2/2
+
+        LLa[:]   ...                      taylor2.0   dwdt-dz
+        LL0b[:]  ...                      taylor2.0   dz
+        L0Lb[:]  ...                      taylor2.0   dw^3/6
+        LLLb[:]  ...                      taylor2.0   dt^2/2
+        """
+        cdef double dt = self.dt
+        cdef cy_qobj c_op = self.c_ops[0]
+        cdef complex e, de_b, de_Lb, de_LLb, dde_bb, dde_bLb
+        cdef complex de_a, dde_ba, de_La, de_L0b
+
+        cdef complex[::1] Cpsi = self.func_buffer_1d[0,:]
+        cdef complex[::1] Cb = self.func_buffer_1d[1,:]
+        cdef complex[::1] Cbc = self.func_buffer_1d[2,:]
+        cdef complex[::1] CLb = self.func_buffer_1d[3,:]
+        cdef complex[::1] CLbc = self.func_buffer_1d[4,:]
+        cdef complex[::1] CLLb = self.func_buffer_1d[5,:]
+        cdef complex[::1] CLLbc = self.func_buffer_1d[6,:]
+        cdef complex[::1] Ca = self.func_buffer_1d[7,:]
+        cdef complex[::1] Cac = self.func_buffer_1d[8,:]
+        cdef complex[::1] CLa = self.func_buffer_1d[9,:]
+        cdef complex[::1] CLac = self.func_buffer_1d[10,:]
+        cdef complex[::1] CL0b = self.func_buffer_1d[11,:]
+        cdef complex[::1] CL0bc = self.func_buffer_1d[12,:]
+        zero(Cpsi)
+        zero(Cb)
+        zero(CLb)
+        zero(CLLb)
+        zero(Ca)
+        zero(CLa)
+        zero(CL0b)
+
+        # b
+        c_op._rhs_mat(t, &psi[0], &Cpsi[0])
+        e = real(dotc(psi, Cpsi))
+        axpy(1., Cpsi, b)
+        axpy(-e, psi, b)
+
+        # Lb
+        c_op._rhs_mat(t, &b[0], &Cb[0])
+        self.C_vec_conj(t, c_op, b, Cbc)
+        de_b = (dotc(psi, Cb) + dot(b, Cpsi) + \
+                conj(dotc(b, Cpsi) + dotc(psi, Cbc))) * 0.5
+        axpy(1., Cb, Lb)
+        axpy(-e, b, Lb)
+        axpy(-de_b, psi, Lb)
+
+        # LLb = b'b'b + b"bb
+        c_op._rhs_mat(t, &Lb[0], &CLb[0])
+        self.C_vec_conj(t, c_op, Lb, CLbc)
+        de_Lb = (dotc(psi, CLb) + dot(Lb, Cpsi) + \
+                 conj(dotc(Lb, Cpsi) + dotc(psi, CLbc)))*0.5
+        axpy(1, CLb, LLb)      # b'b'b
+        axpy(-e, Lb, LLb)      # b'b'b
+        axpy(-de_Lb, psi, LLb) # b'b'b
+        dde_bb += (dot(b, Cb) + conj(dotc(b, Cbc)))
+        axpy(-dde_bb, psi, LLb) # b"bb
+        axpy(-de_b*2, b, LLb)   # b"bb
+
+        # LLLb = b"'bbb + 3* b"b'bb + b'(b"bb + b'b'b)
+        c_op._rhs_mat(t, &LLb[0], &CLLb[0])
+        self.C_vec_conj(t, c_op, LLb, CLLbc)
+        de_LLb = (dotc(psi, CLLb) + dot(LLb, Cpsi) + \
+                  conj(dotc(LLb, Cpsi) + dotc(psi, CLLbc)))*0.5
+        dde_bLb += (dot(b, CLb) + dot(Lb, Cb) + conj(dotc(Lb, Cbc)) + \
+                    conj(dotc(b, CLbc)))*.5
+        axpy(1, CLLb, LLLb)          # b'(b"bb + b'b'b)
+        axpy(-e, LLb, LLLb)          # b'(b"bb + b'b'b)
+        axpy(-de_LLb, psi, LLLb)     # b'(b"bb + b'b'b)
+        axpy(-dde_bLb*3, psi, LLLb)  # b"bLb
+        axpy(-de_Lb*3, b, LLLb)      # b"bLb
+        axpy(-de_b*3, Lb, LLLb)      # b"bLb
+        axpy(-dde_bb*3, b, LLLb)       # b"'bbb
+
+        # a
+        self.L._rhs_mat(t, &psi[0], &a[0])
+        axpy(-0.5 * e * e * dt, psi, a)
+        axpy(e * dt, Cpsi, a)
+        axpy(-0.5 * dt, Lb, a)
+
+        #La
+        self.L._rhs_mat(t, &b[0], &La[0])
+        axpy(-0.5 * e * e * dt, b, La)
+        axpy(-e * de_b * dt, psi, La)
+        axpy(e * dt, Cb, La)
+        axpy(de_b * dt, Cpsi, La)
+        axpy(-0.5 * dt, LLb, La)
+
+        #LLa
+        axpy(-2 * e * de_b * dt, b, LLa)
+        axpy(-de_b * de_b * dt, psi, LLa)
+        axpy(-e * dde_bb * dt, psi, LLa)
+        axpy( 2 * de_b * dt, Cb, LLa)
+        axpy( dde_bb * dt, Cpsi, LLa)
+
+        self.L._rhs_mat(t, &Lb[0], &LLa[0])
+        axpy(-de_Lb * e * dt, psi, LLa)
+        axpy(-0.5 * e * e * dt, Lb, LLa)
+        axpy( de_Lb * dt, Cpsi, LLa)
+        axpy( e * dt, CLb, LLa)
+
+        axpy(-0.5 * dt, LLLb, LLa)
+
+        # L0b = b'a
+        c_op._rhs_mat(t, &a[0], &Ca[0])
+        self.C_vec_conj(t, c_op, a, Cac)
+        de_a = (dotc(psi, Ca) + dot(a, Cpsi) + \
+                conj(dotc(a, Cpsi) + dotc(psi, Cac))) * 0.5
+        axpy(1.0, Ca, L0b)
+        axpy(-e, a, L0b)
+        axpy(-de_a, psi, L0b)
+
+        # LL0b = b"ba + b'La
+        dde_ba += (dot(b, Ca) + dot(a, Cb) + conj(dotc(a, Cbc)) + \
+                    conj(dotc(b, Cac)))*.5
+        axpy(-dde_ba, psi, LL0b)
+        axpy(-de_a, b, LL0b)
+        axpy(-de_b, a, LL0b)
+        c_op._rhs_mat(t, &La[0], &CLa[0])
+        self.C_vec_conj(t, c_op, La, CLac)
+        de_La = (dotc(psi, CLa) + dot(La, Cpsi) + \
+                conj(dotc(La, Cpsi) + dotc(psi, CLac))) * 0.5
+        axpy(1., CLa, LL0b)
+        axpy(-e, La, LL0b)
+        axpy(-de_La, psi, LL0b)
+
+        # L0Lb = b"ba + b'L0b
+        axpy(-dde_ba, psi, L0Lb)
+        axpy(-de_a, b, L0Lb)
+        axpy(-de_b, a, L0Lb)
+        c_op._rhs_mat(t, &L0b[0], &CL0b[0])
+        self.C_vec_conj(t, c_op, L0b, CL0bc)
+        de_L0b = (dotc(psi, CL0b) + dot(L0b, Cpsi) + \
+                  conj(dotc(L0b, Cpsi) + dotc(psi, CL0bc))) * 0.5
+        axpy(1., CL0b, L0Lb)
+        axpy(-e, L0b, L0Lb)
+        axpy(-de_L0b, psi, L0Lb)
+
+        # _L0_ _a_ = da/dt + a'_a_ -_L0_Lb/2
+        self.d1(t + dt, psi, L0a) # da/dt
+        axpy(-0.5 * dt, Lb, L0a)  # da/dt
+        axpy(-1.0, a, L0a)        # da/dt
+        self.L._rhs_mat(t, &a[0], &L0a[0]) # a'_a_
+        axpy(-0.5 * e * e * dt, a, L0a)    # a'_a_
+        axpy(-e * de_a * dt, psi, L0a)     # a'_a_
+        axpy(e * dt, Ca, L0a)              # a'_a_
+        axpy(de_a * dt, Cpsi, L0a)         # a'_a_
+        axpy(-0.5 * dt, L0Lb, L0a) # _L0_Lb/2
+
     cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
                                         complex[::1] out,
                                         np.ndarray[complex, ndim=1] guess):
@@ -1486,10 +1667,10 @@ cdef class sme(ssolvers):
         LLb[:]   (b"bb+b'b'b)             taylor1.5   dw^3/6
         L0a[:]   a_a'_ + da/dt -Lb_a'_/2  taylor1.5   dt^2/2
 
-        LLa[:]   ...  taylor2.0   dwdt-dz
-        LL0b[:]  ...                 taylor2.0   dz
-        L0Lb[:]  ...         taylor2.0   dw^3/6
-        LLLb[:]  ...  taylor2.0   dt^2/2
+        LLa[:]   ...                      taylor2.0   dwdt-dz
+        LL0b[:]  ...                      taylor2.0   dz
+        L0Lb[:]  ...                      taylor2.0   dw^3/6
+        LLLb[:]  ...                      taylor2.0   dt^2/2
         """
         cdef int i, j, k
         cdef cy_qobj c_op = self.c_ops[0]
@@ -1563,71 +1744,11 @@ cdef class sme(ssolvers):
         axpy(-trAb, a, LL0b)
 
         # _L0_ _a_ = _L0_a - _L0_Lb/2 + da/dt
-        #zero(temp)
-        #self.L._rhs_mat(t, &rho[0], &temp[0])
-        #self.L._rhs_mat(t, &temp[0], &L0a[0])
-
-        # _L0_ _a_ = _L0_a - _L0_Lb/2 + da/dt
         self.L._rhs_mat(t, &a[0], &L0a[0])
         self.L._rhs_mat(t+self.dt, &rho[0], &L0a[0])
         axpy(-0.5*self.dt, Lb, L0a) # _a_(t+dt) = a(t+dt)-0.5*Lb
         axpy(-1, a, L0a)
         axpy(-self.dt*0.5, L0Lb, L0a)
-
-
-        #zero(temp)
-        #axpy(-trALb*self.dt, b, temp) # L contain dt
-        #axpy(-trAb*self.dt, Lb, temp) # L contain dt
-
-        #axpy(-0.5*self.dt, temp, L0a)
-
-        #axpy(-trAa, b, temp)
-        #axpy(-trAb, a, temp)
-
-        #axpy(-trAa*0.5*self.dt, b, L0a)
-        #axpy(-trAb*0.5*self.dt, a, L0a)
-
-        # L0Lb = b'(L0b) + b"bLb + b"ab
-        #c_op._rhs_mat(t, &L0b[0], &L0Lb[0])
-        #trAL0b = self.expect(L0Lb)
-        #axpy(-trAp, L0b, L0Lb)
-        #axpy(-trAL0b, rho, L0Lb)
-        #axpy(1, temp, L0Lb)
-
-        # LL0b = b'(La) + b"bLb + b"ab
-        #c_op._rhs_mat(t, &La[0], &LL0b[0])
-        #trALa = self.expect(LL0b)
-        #axpy(-trAp, La, LL0b)
-        #axpy(-trALa, rho, LL0b)
-        #axpy(0.5*self.dt, LL0b, L0a)
-        #axpy(1, temp, LL0b)
-
-        #axpy(-0.5*self.dt, L0Lb, L0a)
-
-        # L0_a_ = a'a + da/dt + bba"/2  (a" = 0)
-        #       - 0.5*(a (Lb)' + bb(Lb)"/2 )
-        #self.L._rhs_mat(t, &a[0], &L0a[0])
-        #self.L._rhs_mat(t+self.dt, &rho[0], &L0a[0])
-        #axpy(-1, a, L0a)
-        #axpy(-self.dt*0.5, L0Lb, L0a)
-
-        # b'b"bb
-        #zero(temp)
-        #zero(temp2)
-        #axpy(-trAb*2, b, temp)  # b"bb
-        #c_op._rhs_mat(t, &temp[0], &temp2[0])
-        #trAt = self.expect(temp2)
-        #axpy(-trAp, temp, temp2)
-        #axpy(-trAt, rho, temp2)
-        #axpy(-0.25*self.dt*self.dt, temp2, L0a)
-        #
-        #zero(temp)
-        #c_op._rhs_mat(t, &La[0], &temp[0])
-        #trAt = self.expect(temp)
-        #axpy(-trAp, temp, temp)
-        #axpy(-trALa, rho, temp)
-        #axpy(0.5*self.dt*self.dt, temp, L0a)
-
 
 
     cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
