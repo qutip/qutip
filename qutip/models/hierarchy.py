@@ -45,17 +45,19 @@ class Heom(object):
         which is used to remove it from the heirarchy
     """
     def __init__(self, hamiltonian, coupling, ck, vk, 
-                 ncut, kcut=None, rcut=None):
+                 ncut, kcut=None, rcut=None, renorm=False):
         self.hamiltonian = hamiltonian
         self.coupling = coupling        
         self.ck = np.array(ck)
         self.vk = np.array(vk)
         self.ncut = ncut
+        self.renorm = renorm
 
         if kcut:
             self.kcut = kcut
         else:
             self.kcut = len(ck)
+
         if self.kcut > len(self.vk):
             raise Warning("Truncation of exponential exceeds number of terms")
 
@@ -76,6 +78,7 @@ class Heom(object):
         
         self.spreQ = spre(coupling).full()
         self.spostQ = spost(coupling).full()
+        self.norm_plus, self.norm_minus = self._calc_renorm_factors()
 
     def prev_next(self, n, k):
         """
@@ -100,14 +103,6 @@ class Heom(object):
         else:
             prev_next.append(np.nan)
         return prev_next
-    
-    def norm(self, nk):
-        """
-        Calculates the norm for a given ADM with the given nk value.
-        """
-        allprod = np.multiply(factorial(nk), np.power(np.abs(self.ck), nk))
-        normalization = np.prod(allprod)
-        return normalization
         
     def deltak(self):
         """
@@ -143,8 +138,7 @@ class Heom(object):
         Q = self.coupling
         c = self.ck
         nu = self.vk
-        nk = self.idx2he[n]
-        
+        he_n = self.idx2he[n]
         spreQ = self.spreQ
         spostQ = self.spostQ
 
@@ -154,16 +148,20 @@ class Heom(object):
             nprev, nnext = self.prev_next(n, k)
             if ~np.isnan(nprev):
                 rho_prev = rho[nprev]
-                norm_prev = np.sqrt(np.divide(nk[k], np.abs(c[k])))
-
+                nk = he_n[k]
+                norm_prev = nk
+                if self.renorm:
+                    norm_prev = self.norm_minus[nk, k]
                 op1 = -1j*norm_prev*(c[k]*spreQ - np.conj(c[k])*spostQ)
                 t1 = np.dot(op1, rho_prev)
                 g += t1
 
             if ~np.isnan(nnext):
+                nk = he_n[k]
                 rho_next = rho[nnext]
-                norm_next = np.sqrt(np.abs(c[k])*(n + 1))
-
+                norm_next = 1.
+                if self.renorm:
+                    norm_next = self.norm_plus[nk, k]                  
                 op2 = -1j*norm_next*(spreQ - spostQ)
                 t2 = np.dot(op2, rho_next)
                 g += t2
@@ -213,7 +211,7 @@ class Heom(object):
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
         
-        #bar = tqdm_notebook(total = n_tsteps-1)
+        bar = tqdm_notebook(total = n_tsteps-1)
         for t_idx, t in enumerate(tlist):
 
             if t_idx < n_tsteps - 1:
@@ -221,13 +219,11 @@ class Heom(object):
                 r1 = r.y.copy().reshape((self.nhe, self.N**2))
                 r0 = r1[0].reshape(self.N, self.N).T
                 output.states.append(Qobj(r0))
-
-                rho_modulus = np.abs(r1.max(1))
-                filter_idx = np.argwhere(rho_modulus < rcut).flatten()
-
+                filter_idx = np.argwhere(np.abs(r1.max(1) \
+                                         <= rcut)).flatten()
                 self.pop_he(filter_idx)
 
-            #bar.update()
+            bar.update()
         return output
     
     def pop_he(self, nlist):
@@ -235,9 +231,30 @@ class Heom(object):
         Pop the given list of hierarchy index
         """
         for n in nlist:
-            if n not in self.filtered_nhe:
-                self.filtered_nhe.append(n)
-        
+            if n in self.filtered_nhe:
+                self.filtered_nhe.remove(n)
+    def _calc_renorm_factors(self):
+        """
+        Calculate the renormalisation factors
+
+        Returns
+        -------
+        norm_plus, norm_minus : array[N_c, N_m] of float
+        """
+        c = self.ck
+        N_m = self.ncut
+        N_c = self.kcut
+
+        norm_plus = np.empty((N_c+1, N_m))
+        norm_minus = np.empty((N_c+1, N_m))
+        for k in range(N_m):
+            for n in range(N_c+1):
+                norm_plus[n, k] = np.sqrt(abs(c[k])*(n + 1))
+                norm_minus[n, k] = np.sqrt(float(n)/abs(c[k]))
+
+        return norm_plus, norm_minus
+
+
     
 def add_at_idx(tup, k, val):
     """
@@ -245,4 +262,4 @@ def add_at_idx(tup, k, val):
     """
     lst = list(tup)
     lst[k] += val
-    return tuple(lst)eturn tuple(lst)
+    return tuple(lst)
