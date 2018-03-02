@@ -807,7 +807,7 @@ def _uncoupled_excited(N):
         The density matrix in the uncoupled basis.
     """
     N = int(N)
-    jz = collective_algebra(N)[2]
+    jz = _collective_algebra_uncoupled(N)[2]
     en, vn = jz.eigenstates()
     psi0 = vn[2**N - 1]
     return psi0
@@ -831,7 +831,7 @@ def _uncoupled_superradiant(N):
     psi0: :class: qutip.Qobj
     """
     N = int(N)
-    jz = collective_algebra(N)[2]
+    jz = _collective_algebra_uncoupled(N)[2]
     en, vn = jz.eigenstates()
     psi0 = vn[2**N - (N + 1)]
 
@@ -853,7 +853,7 @@ def _uncoupled_ground(N):
     psi0: :class: qutip.Qobj
     """
     N = int(N)
-    jz = collective_algebra(N)[2]
+    jz = _collective_algebra_uncoupled(N)[2]
     en, vn = jz.eigenstates()
     psi0 = vn[0]
 
