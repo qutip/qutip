@@ -15,6 +15,16 @@ from qutip.states import enr_state_dictionaries
 from qutip.superoperator import liouvillian, spre, spost
 from copy import copy
 
+try:
+    from tqdm import tqdm, tqdm_notebook
+    progress_bar = True
+    if get_ipython().config:
+        progress = tqdm_notebook
+    else:
+        progress = tqdm
+except:
+    progress_bar = None
+
 
 class Heom(object):
     """
@@ -211,7 +221,8 @@ class Heom(object):
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
         
-        bar = tqdm_notebook(total = n_tsteps-1)
+        if progress_bar:
+            bar = progress(total = n_tsteps-1)
         for t_idx, t in enumerate(tlist):
 
             if t_idx < n_tsteps - 1:
@@ -222,8 +233,8 @@ class Heom(object):
                 filter_idx = np.argwhere(np.abs(r1.max(1) \
                                          <= rcut)).flatten()
                 self.pop_he(filter_idx)
-
-            bar.update()
+            
+            if progress_bar: bar.update()
         return output
     
     def pop_he(self, nlist):
@@ -233,6 +244,7 @@ class Heom(object):
         for n in nlist:
             if n in self.filtered_nhe:
                 self.filtered_nhe.remove(n)
+
     def _calc_renorm_factors(self):
         """
         Calculate the renormalisation factors
@@ -242,20 +254,18 @@ class Heom(object):
         norm_plus, norm_minus : array[N_c, N_m] of float
         """
         c = self.ck
-        N_m = self.ncut
-        N_c = self.kcut
+        N_m = self.kcut
+        N_c = self.ncut
 
         norm_plus = np.empty((N_c+1, N_m))
         norm_minus = np.empty((N_c+1, N_m))
-        for k in range(N_m):
-            for n in range(N_c+1):
-                norm_plus[n, k] = np.sqrt(abs(c[k])*(n + 1))
-                norm_minus[n, k] = np.sqrt(float(n)/abs(c[k]))
+        for kk in range(N_m):
+            for nn in range(N_c+1):
+                norm_plus[nn, kk] = np.sqrt(abs(c[kk])*(nn + 1))
+                norm_minus[nn, kk] = np.sqrt(float(nn)/abs(c[kk]))
 
         return norm_plus, norm_minus
 
-
-    
 def add_at_idx(tup, k, val):
     """
     Add (subtract) a value in the tuple at position k
