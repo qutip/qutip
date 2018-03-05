@@ -44,17 +44,17 @@ cimport cython
 
 def _num_dicke_states(N):
     """
-    Calculate the number of dicke states
+    Calculate the number of Dicke states.
 
     Parameters
     ----------
     N: int
-        The number of two level systems
+        The number of two-level systems.
 
     Returns
     -------
     nds: int
-        The number of Dicke states
+        The number of Dicke states.
     """
     if (not float(N).is_integer()):
         raise ValueError("Number of TLS should be an integer")
@@ -73,12 +73,12 @@ def _num_dicke_ladders(N):
     Parameters
     ----------
     N: int
-        The number of two level systems.
+        The number of two-level systems.
 
     Returns
     -------
     Nj: int
-        The number of Dicke ladders
+        The number of Dicke ladders.
     """
     Nj = (N+1) * 0.5 + (1-np.mod(N, 2)) * 0.5
     return int(Nj)
@@ -86,15 +86,20 @@ def _num_dicke_ladders(N):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef list _get_blocks(int N):
+cpdef list get_blocks(int N):
     """
     Calculate the number of cumulative elements at each block boundary.
 
+    Parameters
+    ----------
+    N: int
+        The number of two-level systems.
+
     Returns
     -------
-    blocks: arr
+    blocks: np.ndarray
         An array with the number of cumulative elements at the boundary of
-        each block
+        each block.
     """
     cdef int num_blocks = _num_dicke_ladders(N)
     cdef list blocks
@@ -104,20 +109,20 @@ cpdef list _get_blocks(int N):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef float _j_min(N):
+cpdef float j_min(N):
     """
-    Calculate the minimum value of j for given N
+    Calculate the minimum value of j for given N.
 
     Parameters
-    ==========
+    ----------
     N: int
-        Number of two level systems
+        Number of two-level systems.
 
     Returns
-    =======
+    -------
     jmin: float
         The minimum value of j for odd or even number of two
-        level systems
+        level systems.
     """
     if N % 2 == 0:
         return 0
@@ -125,17 +130,37 @@ cpdef float _j_min(N):
         return 0.5
 
 
-def _j_vals(N):
+def j_vals(N):
     """
     Get the valid values of j for given N.
+
+    Parameters
+    ----------
+    N: int
+        The number of two-level systems.
+
+    Returns
+    -------
+    jvals: np.ndarray
+        The j values for given N as a 1D array.
     """
-    j = np.arange(_j_min(N), N/2 + 1, 1)
+    j = np.arange(j_min(N), N/2 + 1, 1)
     return j
 
 
 def m_vals(j):
     """
     Get all the possible values of m or m1 for given j.
+
+    Parameters
+    ----------
+    N: int
+        The number of two-level systems.
+
+    Returns
+    -------
+    mvals: np.ndarray
+        The m values for given j as a 1D array.
     """
     return np.arange(-j, j + 1, 1)
 
@@ -143,6 +168,23 @@ def m_vals(j):
 def get_index(N, j, m, m1, blocks):
     """
     Get the index in the density matrix for this j, m, m1 value.
+
+    Parameters
+    ----------
+    N: int
+        The number of two-level systems.
+
+    j, m, m1: float
+        The j, m, m1 values.
+
+    blocks: np.ndarray
+        An 1D array with the number of cumulative elements at the boundary of
+        each block.
+
+    Returns
+    -------
+    mvals: array
+        The m values for given j.
     """
     _k = int(j-m1)
     _k_prime = int(j-m)
@@ -177,9 +219,9 @@ cpdef list jmm1_dictionary(int N):
     cdef dict jmm1_flat_inv = {}
     cdef int l
     cdef int nds = _num_dicke_states(N)
-    cdef list blocks = _get_blocks(N)
+    cdef list blocks = get_blocks(N)
 
-    jvalues = _j_vals(N)
+    jvalues = j_vals(N)
     for j in jvalues:
         mvalues = m_vals(j)
         for m in mvalues:
@@ -202,48 +244,48 @@ cdef class Dicke(object):
     Parameters
     ----------
     N: int
-        The number of two level systems
+        The number of two-level systems.
 
     hamiltonian: :class: qutip.Qobj
-        An Hamiltonian in the reduced dicke basis set.
+        An Hamiltonian in the reduced Dicke basis set.
 
         The matrix dimensions are (nds, nds), with nds being the number of
-        dicke states. The hamiltonian can be built with the operators given
+        Dicke states. The hamiltonian can be built with the operators given
         by the `j_algebra` function in the "dicke" basis.
 
     emission: float
-        Incoherent emission coefficient (also nonradiative emission)
+        Incoherent emission coefficient (also nonradiative emission).
         default: 0.0
 
     dephasing: float
-        Local dephasing coefficient
+        Local dephasing coefficient.
         default: 0.0
 
     pumping: float
-        Incoherent pumping coefficient
+        Incoherent pumping coefficient.
         default: 0.0
 
     collective_emission: float
-        Collective (superradiant) emmission coefficient
+        Collective (superradiant) emmission coefficient.
         default: 0.0
 
     collective_pumping: float
-        Collective pumping coefficient
+        Collective pumping coefficient.
         default: 0.0
 
     collective_dephasing: float
-        Collective dephasing coefficient
+        Collective dephasing coefficient.
         default: 0.0
 
     nds: int
-        The number of Dicke states
+        The number of Dicke states.
 
     dshape: tuple
         The tuple (nds, nds)
 
     blocks : list
         A list which gets the number of cumulative elements at each block
-        boundary
+        boundary.
     """
     cdef int N
     cdef float emission, dephasing, pumping
@@ -393,7 +435,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma1(self, tuple jmm1):
         """
-        Calculate gamma1 for value of j, m, m'
+        Calculate gamma1 for value of j, m, m'.
         """
         cdef float j, m, m1
         cdef float yCE, yE, yD, yP, yCP, yCD
@@ -432,7 +474,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma2(self, tuple jmm1):
         """
-        Calculate gamma2 for given j, m, m'
+        Calculate gamma2 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef float yCE, yE, yD, yP, yCP, yCD, g2
@@ -462,7 +504,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma3(self, tuple jmm1):
         """
-        Calculate gamma3 for given j, m, m'
+        Calculate gamma3 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef float yE
@@ -486,7 +528,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma4(self, tuple jmm1):
         """
-        Calculate gamma4 for given j, m, m'
+        Calculate gamma4 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef complex g4
@@ -508,7 +550,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma5(self, tuple jmm1):
         """
-        Calculate gamma5 for given j, m, m'
+        Calculate gamma5 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef complex g5
@@ -531,7 +573,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma6(self, tuple jmm1):
         """
-        Calculate gamma6 for given j, m, m'
+        Calculate gamma6 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef float yD
@@ -554,7 +596,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma7(self, tuple jmm1):
         """
-        Calculate gamma7 for given j, m, m'
+        Calculate gamma7 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef float yP
@@ -576,7 +618,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma8(self, tuple jmm1):
         """
-        Calculate gamma8 for given j, m, m'
+        Calculate gamma8 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef float yP, yCP
@@ -604,7 +646,7 @@ cdef class Dicke(object):
     @cython.wraparound(False)
     cpdef complex gamma9(self, tuple jmm1):
         """
-        Calculate gamma9 for given j, m, m'
+        Calculate gamma9 for given j, m, m'.
         """
         cdef float j, m, m1
         cdef float yP

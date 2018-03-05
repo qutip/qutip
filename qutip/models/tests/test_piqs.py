@@ -39,7 +39,7 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_almost_equal, assert_equal)
 
 from qutip import Qobj
-from qutip.cy.piqs import (_get_blocks, _j_min, _j_vals, m_vals,
+from qutip.cy.piqs import (get_blocks, j_min, j_vals, m_vals,
                            _num_dicke_states, _num_dicke_ladders,
                            get_index, jmm1_dictionary)
 from qutip.cy.piqs import Dicke as _Dicke
@@ -48,20 +48,21 @@ from qutip.models.piqs import *
 
 class TestDicke:
     """
-    A test class for the Permutational Invariant Quantum Solver
+    A test class for the Permutational Invariant Quantum Solver.
     """
+
     def test_num_dicke_states(self):
         """
-        Test the `num_dicke_state` function
+        Test the `num_dicke_state` function.
         """
         N_list = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
-        dicke_states = [_num_dicke_states(i) for i in N_list]
+        dicke_states = [num_dicke_states(i) for i in N_list]
         assert_array_equal(dicke_states, [2, 4, 6, 9, 12, 16, 30, 36, 121,
                                           2601, 3906])
         N = -1
-        assert_raises(ValueError, _num_dicke_states, N)
+        assert_raises(ValueError, num_dicke_states, N)
         N = 0.2
-        assert_raises(ValueError, _num_dicke_states, N)
+        assert_raises(ValueError, num_dicke_states, N)
 
     def test_num_tls(self):
         """
@@ -74,53 +75,40 @@ class TestDicke:
 
     def test_num_dicke_ladders(self):
         """
-        Test the `_num_dicke_ladders` function
+        Test the `_num_dicke_ladders` function.
         """
         ndl_true = [1, 2, 2, 3, 3, 4, 4, 5, 5]
-        ndl = [_num_dicke_ladders(N) for N in range(1, 10)]
+        ndl = [num_dicke_ladders(N) for N in range(1, 10)]
         assert_array_equal(ndl, ndl_true)
-
-    def test_j_min(self):
-        """
-        Test the `_j_min` function
-        """
-        even = [2, 4, 6, 8]
-        odd = [1, 3, 5, 7]
-
-        for i in even:
-            assert_(_j_min(i) == 0)
-
-        for i in odd:
-            assert_(_j_min(i) == 0.5)
 
     def test_get_blocks(self):
         """
-        Test the function to get blocks
+        Test the function to get blocks.
         """
         N_list = [1, 2, 5, 7]
         blocks = [np.array([2]), np.array([3, 4]), np.array([6, 10, 12]),
                   np.array([8, 14, 18, 20])]
-        calculated_blocks = [_get_blocks(i) for i in N_list]
+        calculated_blocks = [get_blocks(i) for i in N_list]
         for (i, j) in zip(calculated_blocks, blocks):
             assert_array_equal(i, j)
 
     def test_j_vals(self):
         """
-        Test calculation of j values for given N
+        Test calculation of j values for given N.
         """
         N_list = [1, 2, 3, 4, 7]
-        _j_vals_real = [np.array([0.5]), np.array([0., 1.]),
-                        np.array([0.5, 1.5]),
-                        np.array([0., 1., 2.]),
-                        np.array([0.5, 1.5, 2.5, 3.5])]
-        _j_vals_calc = [_j_vals(i) for i in N_list]
+        j_vals_real = [np.array([0.5]), np.array([0., 1.]),
+                       np.array([0.5, 1.5]),
+                       np.array([0., 1., 2.]),
+                       np.array([0.5, 1.5, 2.5, 3.5])]
+        j_vals_calc = [j_vals(i) for i in N_list]
 
-        for (i, j) in zip(_j_vals_calc, _j_vals_real):
+        for (i, j) in zip(j_vals_calc, j_vals_real):
             assert_array_equal(i, j)
 
     def test_m_vals(self):
         """
-        Test calculation of m values for a particular j
+        Test calculation of m values for a particular j.
         """
         j_list = [0.5, 1, 1.5, 2, 2.5]
         m_real = [np.array([-0.5, 0.5]), np.array([-1, 0, 1]),
@@ -134,20 +122,20 @@ class TestDicke:
 
     def test_get_index(self):
         """
-        Test the index fetching function for given j, m, m1 value
+        Test the index fetching function for given j, m, m1 value.
         """
         N = 1
         jmm1_list = [(0.5, 0.5, 0.5), (0.5, 0.5, -0.5),
                      (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
         indices = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
-        blocks = _get_blocks(N)
+        blocks = get_blocks(N)
         calculated_indices = [get_index(N, jmm1[0], jmm1[1],
                                         jmm1[2], blocks)
                               for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
         N = 2
-        blocks = _get_blocks(N)
+        blocks = get_blocks(N)
         jmm1_list = [(1, 1, 1), (1, 1, 0), (1, 1, -1),
                      (1, 0, 1), (1, 0, 0), (1, 0, -1),
                      (1, -1, 1), (1, -1, 0), (1, -1, -1),
@@ -161,7 +149,7 @@ class TestDicke:
                               for jmm1 in jmm1_list]
         assert_array_almost_equal(calculated_indices, indices)
         N = 3
-        blocks = _get_blocks(N)
+        blocks = get_blocks(N)
         jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5),
                      (1.5, 1.5, -1.5), (1.5, 0.5, 0.5), (1.5, -0.5, -0.5),
                      (1.5, -1.5, -1.5), (1.5, -1.5, 1.5), (0.5, 0.5, 0.5),
@@ -180,7 +168,7 @@ class TestDicke:
 
     def test_jmm1_dictionary(self):
         """
-        Test the function to generate the mapping from jmm1 to ik matrix
+        Test the function to generate the mapping from jmm1 to ik matrix.
         """
         d1, d2, d3, d4 = jmm1_dictionary(1)
 
@@ -236,7 +224,7 @@ class TestDicke:
 
     def test_lindbladian(self):
         """
-        Test the generation of the Lindbladian matrix
+        Test the generation of the Lindbladian matrix.
         """
         N = 1
         gCE = 0.5
@@ -362,20 +350,20 @@ class TestDicke:
 
     def test_j_min_(self):
         """
-        Test the `j_min` function
+        Test the `j_min` function.
         """
         even = [2, 4, 6, 8]
         odd = [1, 3, 5, 7]
 
         for i in even:
-            assert_(_j_min(i) == 0)
+            assert_(j_min(i) == 0)
 
         for i in odd:
-            assert_(_j_min(i) == 0.5)
+            assert_(j_min(i) == 0.5)
 
     def test_energy_degeneracy(self):
         """
-        Test the energy degeneracy (m) of Dicke state | j, m >
+        Test the energy degeneracy (m) of Dicke state | j, m >.
         """
         true_en_deg = [1, 1, 1, 1, 1]
         true_en_deg_even = [2, 6, 20]
@@ -414,13 +402,170 @@ class TestDicke:
 
     def test_m_degeneracy(self):
         """
-        Test the degeneracy of TLS states with same m eigenvalue
+        Test the degeneracy of TLS states with same m eigenvalue.
         """
         true_m_deg = [1, 2, 2, 3, 4, 5, 5, 6]
         m_deg = []
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
             m_deg.append(m_degeneracy(nn, -(nn / 2) % 1))
         assert_array_equal(m_deg, true_m_deg)
+
+    def test_ap(self):
+        """
+        Tests the calculation of the real coefficient A_{+}(j,m).
+
+        For given values of j, m. For a Dicke state,
+        J_{+} |j, m> = A_{+}(j,m) |j, m + 1>.
+        """
+        true_ap_list = [110, 108, 104, 98, 90, 54, 38, 20, 0]
+        ap_list = []
+        for m in [0, 1, 2, 3, 4, 7, 8, 9, 10]:
+            ap_list.append(ap(10, m)**2)
+
+        assert_almost_equal(ap_list, true_ap_list)
+
+    def test_am(self):
+        """
+        Tests the calculation of the real coefficient A_{-}(j,m).
+
+        For a Dicke state,  J_{-} |j, m> = A_{+}(j,m) |j, m - 1>.
+        """
+        true_am_list = [110, 110, 108, 104, 98, 68, 54, 38, 20]
+        am_list = []
+        for m in [0, 1, 2, 3, 4, 7, 8, 9, 10]:
+            am_list.append(am(10, m)**2)
+
+        assert_almost_equal(am_list, true_am_list)
+
+    def test_spin_algebra(self):
+        """
+        Tests the function that creates the SU2 algebra in uncoupled basis.
+        The list [sx, sy, sz, sp, sm] is checked for N = 2.
+        """
+        sx1 = [[0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
+               [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j]]
+
+        sx2 = [[0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+               [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
+               [0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j]]
+
+        sy1 = [[0. + 0.j, 0. + 0.j, 0. - 0.5j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
+               [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.5j, 0. + 0.j, 0. + 0.j]]
+
+        sy2 = [[0. + 0.j, 0. - 0.5j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.5j, 0. + 0.j]]
+
+        sz1 = [[0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j]]
+
+        sz2 = [[0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, -0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j],
+               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j]]
+
+        sp1 = [[0. + 0.j, 0. + 0.j, 1. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]]
+
+        sp2 = [[0. + 0.j, 1. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]]
+
+        sm1 = [[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 1. + 0.j, 0. + 0.j, 0. + 0.j]]
+
+        sm2 = [[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+               [0. + 0.j, 0. + 0.j, 1. + 0.j, 0. + 0.j]]
+
+        assert_array_equal(spin_algebra(2, "x")[0].full(), sx1)
+        assert_array_equal(spin_algebra(2, "x")[1].full(), sx2)
+        assert_array_equal(spin_algebra(2, "y")[0].full(), sy1)
+        assert_array_equal(spin_algebra(2, "y")[1].full(), sy2)
+        assert_array_equal(spin_algebra(2, "z")[0].full(), sz1)
+        assert_array_equal(spin_algebra(2, "z")[1].full(), sz2)
+        assert_array_equal(spin_algebra(2, "+")[0].full(), sp1)
+        assert_array_equal(spin_algebra(2, "+")[1].full(), sp2)
+        assert_array_equal(spin_algebra(2, "-")[0].full(), sm1)
+        assert_array_equal(spin_algebra(2, "-")[1].full(), sm2)
+
+    def test_collective_algebra(self):
+        """
+        Tests the generation of the collective algebra in uncoupled basis.
+
+        The list [jx, jy, jz, jp, jm] created in the 2^N Hilbert space is
+        checked for N = 2.
+        """
+
+        jx_n2 = [[0.0 + 0.j, 0.5 + 0.j, 0.5 + 0.j, 0.0 + 0.j],
+                 [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
+                 [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
+                 [0.0 + 0.j, 0.5 + 0.j, 0.5 + 0.j, 0.0 + 0.j]]
+
+        jy_n2 = [[0. + 0.j, 0. - 0.5j, 0. - 0.5j, 0. + 0.j],
+                 [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
+                 [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
+                 [0. + 0.j, 0. + 0.5j, 0. + 0.5j, 0. + 0.j]]
+
+        jz_n2 = [[1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                 [0. + 0.j, 0. + 0.j, 0. + 0.j, -1. + 0.j]]
+
+        jp_n2 = [[0. + 0.j, 1. + 0.j, 1. + 0.j, 0. + 0.j],
+                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
+                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
+                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]]
+
+        jm_n2 = [[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                 [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                 [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
+                 [0. + 0.j, 1. + 0.j, 1. + 0.j, 0. + 0.j]]
+
+        assert_array_equal(j_algebra(2, "x", basis="uncoupled").full(), jx_n2)
+        assert_array_equal(j_algebra(2, "y", basis="uncoupled").full(), jy_n2)
+        assert_array_equal(j_algebra(2, "z", basis="uncoupled").full(), jz_n2)
+        assert_array_equal(j_algebra(2, "+", basis="uncoupled").full(), jp_n2)
+        assert_array_equal(j_algebra(2, "-", basis="uncoupled").full(), jm_n2)
+
+    def test_block_matrix(self):
+        """
+        Tests the calculation of the block-diagonal matrix for given N.
+        
+        If the matrix element |j,m><j,m'| is allowed it is 1, otherwise 0.
+        """
+        # N = 1 TLSs
+        block_1 = [[1., 1.], [1., 1.]]
+
+        # N = 2 TLSs
+        block_2 = [[1., 1., 1., 0.], [1., 1., 1., 0.],
+                   [1., 1., 1., 0.], [0., 0., 0., 1.]]
+
+        # N = 3 TLSs
+        block_3 = [[1., 1., 1., 1., 0., 0.],
+                   [1., 1., 1., 1., 0., 0.],
+                   [1., 1., 1., 1., 0., 0.],
+                   [1., 1., 1., 1., 0., 0.],
+                   [0., 0., 0., 0., 1., 1.],
+                   [0., 0., 0., 0., 1., 1.]]
+
+        assert_equal(Qobj(block_1), Qobj(block_matrix(1)))
+        assert_equal(Qobj(block_2), Qobj(block_matrix(2)))
+        assert_equal(Qobj(block_3), Qobj(block_matrix(3)))
 
     def test_dicke_basis(self):
         """
@@ -472,6 +617,29 @@ class TestDicke:
         assert_equal(test_superradiant, Qobj(true_superradiant))
         assert_equal(test_subradiant, Qobj(true_subradiant))
 
+    def test_excited_state(self):
+        """
+        Tests the calculation of the totally excited state density matrix.
+
+        The matrix has size (O(N^2), O(N^2)) in Dicke basis ('dicke').
+        The matrix has size (2^N, 2^N) in the uncoupled basis ('uncoupled').
+        """
+        N = 3
+        true_state = np.zeros((6, 6))
+        true_state[0, 0] = 1
+        true_state = Qobj(true_state)
+
+        test_state = excited(N)
+        assert_equal(test_state, true_state)
+
+        N = 4
+        true_state = np.zeros((9, 9))
+        true_state[0, 0] = 1
+        true_state = Qobj(true_state)
+
+        test_state = excited(N)
+        assert_equal(test_state, true_state)
+
     def test_superradiant(self):
         """
         Test the calculation of the superradiant state density matrix.
@@ -497,7 +665,7 @@ class TestDicke:
         """
         Test the calculation of the density matrix of the GHZ state.
 
-        Test for N = 2 in the 'dicke' and in the 'uncoupled' basis
+        Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
         """
         ghz_dicke = Qobj([[0.5, 0, 0.5, 0], [0, 0, 0, 0],
                           [0.5, 0, 0.5, 0], [0, 0, 0, 0]])
@@ -544,10 +712,10 @@ class TestDicke:
         trueb3 = [4, 6]
         trueb4 = [5, 8, 9]
 
-        test_b1 = _get_blocks(1)
-        test_b2 = _get_blocks(2)
-        test_b3 = _get_blocks(3)
-        test_b4 = _get_blocks(4)
+        test_b1 = get_blocks(1)
+        test_b2 = get_blocks(2)
+        test_b3 = get_blocks(3)
+        test_b4 = get_blocks(4)
 
         assert_equal(test_b1, trueb1)
         assert_equal(test_b2, trueb2)
@@ -555,7 +723,7 @@ class TestDicke:
 
     def test_lindbladian_dims(self):
         """
-        Test the calculation of the lindbladian matrix
+        Test the calculation of the lindbladian matrix.
         """
         true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
                   [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
@@ -571,7 +739,7 @@ class TestDicke:
 
     def test_liouvillian(self):
         """
-        Test the calculation of the liouvillian matrix
+        Test the calculation of the liouvillian matrix.
         """
         true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
                   [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
@@ -581,8 +749,8 @@ class TestDicke:
         true_H = Qobj(true_H)
         true_H.dims = [[[2], [2]]]
         true_liouvillian = [[-4, -1.j, 1.j, 3],
-                            [-1.j, -3.54999995+2.j, 0, 1.j],
-                            [1.j, 0, -3.54999995-2.j, -1.j],
+                            [-1.j, -3.54999995 + 2.j, 0, 1.j],
+                            [1.j, 0, -3.54999995 - 2.j, -1.j],
                             [4, +1.j, -1.j, -3]]
         true_liouvillian = Qobj(true_liouvillian)
         true_liouvillian.dims = [[[2], [2]], [[2], [2]]]
