@@ -609,18 +609,18 @@ def j_algebra(N, op=None, basis="dicke"):
 
     for k in range(0, num_ladders):
         j = 0.5 * N - k
-        mmax = int(2 * j + 1)
+        mmax = int(2*j + 1)
         for i in range(0, mmax):
-            m = j - i
+            m = j-i
             jz_operator[s, s] = m
-            if (s + 1) in range(0, nds):
-                jp_operator[s, s + 1] = ap(j, m - 1)
-            if (s - 1) in range(0, nds):
-                jm_operator[s, s - 1] = am(j, m + 1)
-            s = s + 1
+            if (s+1) in range(0, nds):
+                jp_operator[s, s+1] = ap(j, m-1)
+            if (s-1) in range(0, nds):
+                jm_operator[s, s-1] = am(j, m+1)
+            s = s+1
 
-    jx_operator = 1 / 2 * (jp_operator + jm_operator)
-    jy_operator = 1j / 2 * (jm_operator - jp_operator)
+    jx_operator = 1/2 * (jp_operator+jm_operator)
+    jy_operator = 1j/2 * (jm_operator-jp_operator)
     jx = Qobj(jx_operator)
     jy = Qobj(jy_operator)
     jz = Qobj(jz_operator)
