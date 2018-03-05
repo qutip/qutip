@@ -62,7 +62,7 @@ def _num_dicke_states(N):
     if (N < 1):
         raise ValueError("Number of TLS should be non-negative")
 
-    nds = (N/2 + 1)**2 - (N%2)/4
+    nds = (N/2 + 1)**2 - (N % 2)/4
     return int(nds)
 
 
@@ -160,6 +160,14 @@ def get_index(N, j, m, m1, blocks):
 cpdef list jmm1_dictionary(int N):
     """
     Get the index in the density matrix for this j, m, m1 value.
+
+    The (j, m, m1) values are mapped to the (i, k) index of a block
+    diagonal matrix which has the structure to capture the permutationally
+    symmetric part of the density matrix. For each (j, m, m1) value, first
+    we get the block by using the "j" value and then the addition in the
+    row/column due to the m and m1 is determined. Four dictionaries are
+    returned giving a map from the (j, m, m1) values to (i, k), the inverse
+    map, a flattened map and the inverse of the flattened map.
     """
     cdef long i
     cdef long k
@@ -195,9 +203,8 @@ cdef class Dicke(object):
     ----------
     N: int
         The number of two level systems
-        default: 2
 
-    hamiltonian: `qutip.Qobj`
+    hamiltonian: :class: qutip.Qobj
         An Hamiltonian in the reduced dicke basis set.
 
         The matrix dimensions are (nds, nds), with nds being the number of
@@ -218,7 +225,7 @@ cdef class Dicke(object):
 
     collective_emission: float
         Collective (superradiant) emmission coefficient
-        default: 1.0
+        default: 0.0
 
     collective_pumping: float
         Collective pumping coefficient
@@ -258,13 +265,13 @@ cdef class Dicke(object):
     cpdef object lindbladian(self):
         """
         Build the Lindbladian superoperator of the dissipative dynamics as a
-        sparse matrix using COO.
+        sparse matrix.
 
         Returns
         ----------
-        lindblad_qobj: Qobj superoperator (sparse)
-                The matrix size is (nds**2, nds**2) where nds is the number of
-                Dicke states.
+        lindblad_qobj: :class: qutip.Qobj
+            The matrix size is (nds**2, nds**2) where nds is the number of
+            Dicke states.
         """
         N = self.N
         cdef int nds = _num_dicke_states(N)
