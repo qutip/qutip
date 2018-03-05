@@ -64,7 +64,8 @@ def test_smesolve_homodyne_methods():
     rho0 = fock_dm(N,0)      # initial vacuum state
 
     T = 6.                   # final time
-    N_store = 200            # number of time steps for which we save the expectation values
+    # number of time steps for which we save the expectation values
+    N_store = 200
     Nsub = 10
     tlist = np.linspace(0, T, N_store)
     ddt = (tlist[1]-tlist[0])
@@ -82,9 +83,10 @@ def test_smesolve_homodyne_methods():
                         ['platen', 1e-3],
                         ['milstein', 1e-3],
                         ['milstein-imp', 1e-3],
-                        ['taylor15', 1e-4],
-                        ['taylor15-imp', 1e-4],
-                        ['explicit15', 1e-4]]
+                        ['taylor1.5', 1e-4],
+                        ['taylor1.5-imp', 1e-4],
+                        ['explicit1.5', 1e-4],
+                        ['taylor2.0', 1e-4]]
     for n_method in list_methods_tol:
         sol = smesolve(H, rho0, tlist, c_op, sc_op, e_op,
                        nsubsteps=Nsub, method='homodyne', solver = n_method[0])
@@ -94,12 +96,16 @@ def test_smesolve_homodyne_methods():
         sol3 = smesolve(H, rho0, tlist, c_op, sc_op, e_op,
                         nsubsteps=Nsub*5, method='homodyne',
                         solver = n_method[0], tol=1e-8)
-        err = 1/T * np.sum(np.abs(y_an - (sol.expect[1]-sol.expect[0]*sol.expect[0].conj())))*ddt
-        err3 = 1/T * np.sum(np.abs(y_an - (sol3.expect[1]-sol3.expect[0]*sol3.expect[0].conj())))*ddt
+        err = 1/T * np.sum(np.abs(y_an - \
+                    (sol.expect[1]-sol.expect[0]*sol.expect[0].conj())))*ddt
+        err3 = 1/T * np.sum(np.abs(y_an - \
+                    (sol3.expect[1]-sol3.expect[0]*sol3.expect[0].conj())))*ddt
         print(n_method[0], ': deviation =', err, ', tol =', n_method[1])
         assert_(err < n_method[1])
-        assert_(err3 < err) # 5* more substep should decrease the error
-        assert_(np.all(sol.noise == sol2.noise))# just to check that noise is not affected by smesolve
+        # 5* more substep should decrease the error
+        assert_(err3 < err)
+        # just to check that noise is not affected by smesolve
+        assert_(np.all(sol.noise == sol2.noise))
         assert_(np.all(sol.expect[0] == sol2.expect[0]))
 
     sol = smesolve(H, rho0, tlist[:2], c_op, sc_op, e_op, noise=10, ntraj=2,
@@ -151,7 +157,7 @@ def test_smesolve_photocurrent():
                  for m in res.measurement]))
 
 def test_smesolve_homodyne():
-    "Stochastic: smesolve: homodyne"
+    "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.01
 
     N = 4
@@ -188,7 +194,7 @@ def test_smesolve_homodyne():
                      for m in res.measurement]))
 
 def test_smesolve_heterodyne():
-    "Stochastic: smesolve: heterodyne"
+    "Stochastic: smesolve: heterodyne, time-dependent H"
     tol = 0.01
 
     N = 4
@@ -197,7 +203,7 @@ def test_smesolve_heterodyne():
     nsubsteps = 100
     a = destroy(N)
 
-    H = [[a.dag() * a,f]]
+    H = [[a.dag() * a, f]]
     psi0 = coherent(N, 0.5)
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a * 0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]

@@ -50,8 +50,8 @@ __all__ = ['ssesolve', 'photocurrentsesolve', 'smepdpsolve',
            'smesolve', 'photocurrentmesolve', 'ssepdpsolve',
            'stochastic_solver_info', 'general_stochastic']
 
-def stochastic_solver_info():
-    print( """Available solvers
+def solvers():
+    """Available solvers
     euler-maruyama:
         A simple generalization of the Euler method for ordinary
         differential equations to stochastic differential equations.
@@ -99,35 +99,44 @@ def stochastic_solver_info():
         The Theory of Open Quantum Systems
         Chapter 7 Eq. (7.47), H.-P Breuer, F. Petruccione
 
-    taylor15, Order 1.5 strong Taylor scheme:
+    taylor1.5, Order 1.5 strong Taylor scheme:
         Solver with more terms of the Ito-Taylor expansion.
         Default solver for smesolve and ssesolve.
         -Order strong 1.5
-        -Code: 'taylor15', 1.5
+        -Code: 'taylor1.5', 'taylor15', 1.5, None
         Numerical Solution of Stochastic Differential Equations
         Chapter 10.4 Eq. (4.6), By Peter E. Kloeden, Eckhard Platen
 
-    taylor15-imp, Order 1.5 implicit strong Taylor scheme:
+    taylor1.5-imp, Order 1.5 implicit strong Taylor scheme:
         implicit Taylor 1.5 (alpha = 1/2, beta = doesn't matter)
         -Order strong 1.5
-        -Code: 'taylor15-imp'
+        -Code: 'taylor1.5-imp', 'taylor15-imp'
         Numerical Solution of Stochastic Differential Equations
         Chapter 12.2 Eq. (2.18), By Peter E. Kloeden, Eckhard Platen
 
-    explicit15, Explicit Order 1.5 Strong Schemes:
+    explicit1.5, Explicit Order 1.5 Strong Schemes:
         Reproduce the order 1.5 strong Taylor scheme using finite difference
         instead of derivatives. Slower than taylor15 but usable by
         :func:`qutip.stochastic.general_stochastic`
         -Order strong 1.5
-        -Code: 'explicit15', 'platen15'
+        -Code: 'explicit1.5', 'explicit15', 'platen15'
         Numerical Solution of Stochastic Differential Equations
         Chapter 11.2 Eq. (2.13), By Peter E. Kloeden, Eckhard Platen
 
-    ---All solvers are usable in both smesolve and ssesolve and
-    for both heterodyne and homodyne.
+    taylor2.0, Order 2 strong Taylor scheme:
+        Solver with more terms of the Stratonovich expansion.
+        -Order strong 2.0
+        -Code: 'taylor2.0', 'taylor20', 2.0
+        Numerical Solution of Stochastic Differential Equations
+        Chapter 10.5 Eq. (5.2), By Peter E. Kloeden, Eckhard Platen
+
+    ---All solvers, except taylor2.0, are usable in both smesolve and ssesolve
+    and for both heterodyne and homodyne. taylor2.0 only work for 1 stochastic
+    operator not dependent of time with the homodyne method.
     The :func:`qutip.stochastic.general_stochastic` only accept derivatives free
-    solvers: ['euler', 'platen', 'explicit15'].
-    """)
+    solvers: ['euler', 'platen', 'explicit1.5'].
+    """
+    pass
 
 class StochasticSolverOptions:
     """Class of options for stochastic solvers such as
@@ -191,9 +200,10 @@ class StochasticSolverOptions:
     solver : string
         Name of the solver method to use for solving the stochastic
         equations. Valid values are:
-        1/2 order algorithms: 'euler-maruyama', 'pc-euler'
-        1 order algorithms: 'milstein', 'platen', 'milstein-imp'
-        3/2 order algorithms: 'taylor15', 'taylor15-imp', 'explicit15'
+        order 1/2 algorithms: 'euler-maruyama', 'pc-euler', 'pc-euler-2'
+        order 1 algorithms: 'milstein', 'platen', 'milstein-imp'
+        order 3/2 algorithms: 'taylor1.5', 'taylor1.5-imp', 'explicit1.5'
+        order 2 algorithms: 'taylor2.0'
         call :func:`qutip.stochastic.stochastic_solver_info` for a description
         of the solvers.
         Implicit methods can adjust tolerance via the kw 'tol'
@@ -249,7 +259,7 @@ class StochasticSolverOptions:
     For the collapse operators (c_ops, sc_ops):
     Each operators can only be composed of 1 Qobj.
     c_ops = [c_op1, c_op2, ...]
-    c_opN = Qobj or [Qobj,coeff]
+    where, c_opN = Qobj or [Qobj,coeff]
     The coeff format is the same as for the Hamiltonian.
     """
     def __init__(self, H=None, c_ops=[], sc_ops=[], state0=None,
@@ -393,7 +403,6 @@ class StochasticSolverOptions:
         elif self.solver in ['pred-corr-2', 'pc-euler-2', 104]:
             self.solver_code = 104
             self.solver = 'pred-corr-2'
-
         elif self.solver in ['platen15', 'explicit1.5', 'explicit15', 150]:
             self.solver_code = 150
             self.solver = 'explicit1.5'
@@ -403,7 +412,7 @@ class StochasticSolverOptions:
         elif self.solver in ['taylor15-imp', 'taylor1.5-imp', 153]:
             self.solver_code = 153
             self.solver = 'taylor1.5-imp'
-        elif self.solver in [202, 'taylor2.0', 'taylor20']:
+        elif self.solver in [202, 'taylor2.0', 'taylor20', 2.0]:
             self.solver_code = 202
             self.solver = 'taylor2.0'
             self.p = noiseDeep
