@@ -1,2 +1,2 @@
 from qutip.models.piqs import *
-from qutip.cy.dicke import jmm1_dictionary
+from qutip.cy.piqs import jmm1_dictionary
