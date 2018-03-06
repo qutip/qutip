@@ -48,7 +48,8 @@ import numpy as np
 from scipy import constants
 from scipy.sparse import dok_matrix, block_diag
 
-from qutip import Qobj, spre, spost, tensor, identity, ket2dm
+from qutip import (Qobj, spre, spost, tensor, identity, ket2dm,
+                   vector_to_operator)
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
 from qutip.cy.piqs import Dicke as _Dicke
 from qutip.cy.piqs import (jmm1_dictionary, _num_dicke_states,
@@ -249,27 +250,7 @@ class Dicke(object):
             liouv = lindblad + hamiltonian_superoperator
         return liouv
 
-    def eigenstates(self, liouvillian):
-        """Calculate the eigenvalues and eigenvectors of the Liouvillian.
-
-        It removes the spurious eigenvectors with corresponding
-        non-hermitian density matrices.
-
-        Parameters
-        ----------
-        liouvillian: :class: qutip.Qobj
-            The Liouvillian of which to calculate the spectrum.
-
-        Returns
-        -------
-        eigen_states: list
-            The list of eigenvalues and correspondent eigenstates.
-        """
-        unpruned_eigenstates = liouvillian.eigenstates()
-        eigen_states = self.prune_eigenstates(unpruned_eigenstates)
-        return eigen_states
-
-    def prune_eigenstates(self, liouvillian_eigenstates):
+    def prune_eigenstates(self, liouvillian):
         """Remove spurious eigenvalues and eigenvectors of the Liouvillian.
 
         Spurious means that the given eigenvector has elements outside of the
@@ -287,6 +268,7 @@ class Dicke(object):
             The list with the correct eigenvalues and eigenvectors of the
             Liouvillian.
         """
+        liouvillian_eigenstates = liouvillian.eigenstates()
         N = self.N
         block_mat = block_matrix(N)
         nnz_tuple_bm = [(i, j) for i, j in zip(*block_mat.nonzero())]
