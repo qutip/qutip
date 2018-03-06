@@ -48,7 +48,7 @@ from qutip.pdpsolve import main_ssepdpsolve, main_smepdpsolve
 
 __all__ = ['ssesolve', 'photocurrentsesolve', 'smepdpsolve',
            'smesolve', 'photocurrentmesolve', 'ssepdpsolve',
-           'stochastic_solver_info', 'general_stochastic']
+           'solvers', 'general_stochastic']
 
 def solvers():
     """Available solvers
@@ -223,6 +223,10 @@ class StochasticSolverOptions:
         array[double, 4d] (ntraj, len(times), nsubsteps, len(sc_ops)*[1|2])
             vector for the noise, the len of the last dimensions is doubled for
             solvers of order 1.5. The correspond to results.noise
+
+    noiseDeep : int
+        Number of terms kept of the truncated series used to create the
+        noise used by taylor2.0 solver.
 
     normalize : bool (default True for ssesolve)
         Whether or not to normalize the wave function during the evolution.

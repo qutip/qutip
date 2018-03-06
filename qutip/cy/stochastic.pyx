@@ -187,18 +187,9 @@ cdef class taylorNoise:
 
         dws[0] = noise[0]                       # dw
         dws[1] = 0.5*(noise[0]+a)               # dz
-        #dws[1] *= self.dt
-        dws[2] = noise[0]*(noise[0]*s -0.25*a -0.5*b) \
-            +BB +CC
-        #dws[2] *=   self.dt                     # j011
-
-        dws[3] = noise[0]*(noise[0]*s         +   b) \
-            -AA -BB
-        #dws[3] *= self.dt                       # j101
-
-        dws[4] = noise[0]*(noise[0]*s +0.25*a -0.5*b) \
-            +AA -CC
-        #dws[4] *= self.dt                       # j110
+        dws[2] = noise[0]*(noise[0]*s -0.25*a -0.5*b) +BB +CC  # j011
+        dws[3] = noise[0]*(noise[0]*s          +   b) -AA -BB  # j101
+        dws[4] = noise[0]*(noise[0]*s +0.25*a -0.5*b) +AA -CC  # j110
 
 
 cdef class ssolvers:
