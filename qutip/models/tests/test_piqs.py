@@ -348,6 +348,13 @@ class TestDicke:
             assert_array_equal(test_jxjy, true_jxjy)
             assert_array_equal(test_jpjm, true_jpjm)
 
+            assert_array_equal(j_algebra(nn, "x"), jx)
+            assert_array_equal(j_algebra(nn, "y"), jy)
+            assert_array_equal(j_algebra(nn, "z"), jz)
+            assert_array_equal(j_algebra(nn, "+"), jp)
+            assert_array_equal(j_algebra(nn, "-"), jm)
+            assert_raises(TypeError, j_algebra, nn, "q")
+
     def test_j_min_(self):
         """
         Test the `j_min` function.
@@ -395,10 +402,14 @@ class TestDicke:
         state_deg = []
         state_deg = []
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
-            state_deg.append(state_degeneracy(nn, nn / 2))
+            state_deg.append(state_degeneracy(nn, nn/2))
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
-            state_deg.append(state_degeneracy(nn, (nn / 2) % 1))
+            state_deg.append(state_degeneracy(nn, (nn/2) % 1))
         assert_array_equal(state_deg, true_state_deg)
+
+        # check error
+        assert_raises(ValueError, state_degeneracy, 2, -1)
+
 
     def test_m_degeneracy(self):
         """
@@ -407,8 +418,11 @@ class TestDicke:
         true_m_deg = [1, 2, 2, 3, 4, 5, 5, 6]
         m_deg = []
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
-            m_deg.append(m_degeneracy(nn, -(nn / 2) % 1))
+            m_deg.append(m_degeneracy(nn, -(nn/2) % 1))
         assert_array_equal(m_deg, true_m_deg)
+
+        # check error
+        assert_raises(ValueError, m_degeneracy, 6, -6)
 
     def test_ap(self):
         """
@@ -503,6 +517,9 @@ class TestDicke:
         assert_array_equal(spin_algebra(2, "-")[0].full(), sm1)
         assert_array_equal(spin_algebra(2, "-")[1].full(), sm2)
 
+        # test error
+        assert_raises(TypeError, spin_algebra, 2, "q")
+
     def test_collective_algebra(self):
         """
         Tests the generation of the collective algebra in uncoupled basis.
@@ -541,6 +558,9 @@ class TestDicke:
         assert_array_equal(j_algebra(2, "z", basis="uncoupled").full(), jz_n2)
         assert_array_equal(j_algebra(2, "+", basis="uncoupled").full(), jp_n2)
         assert_array_equal(j_algebra(2, "-", basis="uncoupled").full(), jm_n2)
+
+        # error
+        assert_raises(TypeError, spin_algebra, 2, "q")
 
     def test_block_matrix(self):
         """
@@ -596,7 +616,10 @@ class TestDicke:
         test_dicke_basis = db1 + db2 + db3 + db4
         assert_equal(test_dicke_basis, true_dicke_basis)
 
-    def test_dicke_state(self):
+        # error
+        assert_raises(AttributeError, dicke_basis, N)
+
+    def test_dicke(self):
         """
         Test the calculation of the Dicke state as a pure state.
         """
@@ -617,7 +640,7 @@ class TestDicke:
         assert_equal(test_superradiant, Qobj(true_superradiant))
         assert_equal(test_subradiant, Qobj(true_subradiant))
 
-    def test_excited_state(self):
+    def test_excited(self):
         """
         Tests the calculation of the totally excited state density matrix.
 
@@ -640,6 +663,12 @@ class TestDicke:
         test_state = excited(N)
         assert_equal(test_state, true_state)
 
+        # uncoupled
+        test_state_uncoupled = excited(2, basis="uncoupled")
+        assert_array_equal(test_state_uncoupled.dims, [[2, 2], [2, 2]])
+        assert_array_equal(test_state_uncoupled.shape, (4, 4))
+        assert_almost_equal(test_state_uncoupled.full()[0, 0], 1+0j)
+
     def test_superradiant(self):
         """
         Test the calculation of the superradiant state density matrix.
@@ -661,6 +690,12 @@ class TestDicke:
         test_state = superradiant(N)
         assert_equal(test_state, true_state)
 
+        # uncoupled
+        test_state_uncoupled = superradiant(2, basis="uncoupled")
+        assert_array_equal(test_state_uncoupled.dims, [[2, 2], [2, 2]])
+        assert_array_equal(test_state_uncoupled.shape, (4, 4))
+        assert_almost_equal(test_state_uncoupled.full()[1, 1], 1+0j)
+
     def test_ghz(self):
         """
         Test the calculation of the density matrix of the GHZ state.
@@ -674,6 +709,56 @@ class TestDicke:
         ghz_uncoupled.dims = [[2, 2], [2, 2]]
         assert_equal(ghz(2), ghz_dicke)
         assert_equal(ghz(2, "uncoupled"), ghz_uncoupled)
+
+    def test_ground(self):
+        """
+        Test the calculation of the density matrix of the ground state.
+
+        Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
+        """
+        zeros = np.zeros((4, 4), dtype=np.complex)
+        gdicke = zeros.copy()
+        guncoupled = zeros.copy()
+        gdicke[2, 2] = 1
+        guncoupled[3, 3] = 1
+
+        dim_dicke = [[4], [4]]
+        dim_uncoupled = [[2, 2], [2, 2]]
+
+        test_ground_dicke = ground(2)
+        test_ground_uncoupled = ground(2, "uncoupled")
+
+        assert_array_equal(test_ground_dicke.full(), gdicke)
+        assert_array_equal(test_ground_dicke.dims, dim_dicke)
+        assert_array_equal(test_ground_uncoupled.full(), guncoupled)
+        assert_array_equal(test_ground_uncoupled.dims, dim_uncoupled)
+
+    def test_identity_uncoupled(self):
+        """
+        Test the calculation of the identity in a 2^N dim Hilbert space.
+        """
+        test_identity = identity_uncoupled(4)
+        assert_equal(test_identity.dims, [[2, 2, 2, 2], [2, 2, 2, 2]])
+        assert_array_equal(np.diag(test_identity.full()), np.ones(16,
+                                                                  np.complex))
+
+    def test_css(self):
+        """
+        Test the calculation of the CSS state.
+        """
+        test_css_uncoupled = css(2, basis='uncoupled')
+        test_css_dicke = css(2)
+        css_uncoupled = 0.25*np.ones((4, 4), dtype=np.complex)
+        css_dicke = np.array([[0.25000000+0.j, 0.35355339+0.j,
+                               0.25000000+0.j, 0.00000000+0.j],
+                               [0.35355339+0.j, 0.50000000+0.j,
+                               0.35355339+0.j,  0.00000000+0.j],
+                               [ 0.25000000+0.j, 0.35355339+0.j,
+                               0.25000000+0.j, 0.00000000+0.j],
+                               [0.00000000+0.j, 0.00000000+0.j,
+                               0.00000000+0.j, 0.00000000+0.j]])
+        assert_array_almost_equal(test_css_uncoupled.full(), css_uncoupled)
+        assert_array_almost_equal(test_css_dicke.full(), css_dicke)
 
     def test_c_ops_tls(self):
         """

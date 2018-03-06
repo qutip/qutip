@@ -157,7 +157,7 @@ def m_vals(j):
     mvals: np.ndarray
         The m values for given j as a 1D array.
     """
-    return np.arange(-j, j + 1, 1)
+    return np.arange(-j, j+1, 1)
 
 def get_index(N, j, m, m1, blocks):
     """

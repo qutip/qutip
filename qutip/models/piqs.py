@@ -53,7 +53,8 @@ from qutip import (Qobj, spre, spost, tensor, identity, ket2dm,
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
 from qutip.cy.piqs import Dicke as _Dicke
 from qutip.cy.piqs import (jmm1_dictionary, _num_dicke_states,
-                           _num_dicke_ladders, get_blocks)
+                           _num_dicke_ladders, get_blocks, j_min,
+                           m_vals, j_vals)
 
 
 # Functions necessary to generate the Lindbladian/Liouvillian
@@ -344,13 +345,13 @@ def state_degeneracy(N, j):
     degeneracy: int
         The state degeneracy
     """
+    if j < 0:
+        raise ValueError("j value should be >= 0")
     numerator = Decimal(factorial(N)) * Decimal(2*j + 1)
     denominator_1 = Decimal(factorial(N/2 + j + 1))
     denominator_2 = Decimal(factorial(N/2 - j))
     degeneracy = numerator/(denominator_1 * denominator_2)
     degeneracy = int(np.round(float(degeneracy)))
-    if degeneracy < 0:
-        raise ValueError("m-degeneracy must be >=0")
     return degeneracy
 
 def m_degeneracy(N, m):
@@ -370,11 +371,13 @@ def m_degeneracy(N, m):
     degeneracy: int
         The m-degeneracy
     """
-    degeneracy = N/2 + 1 - abs(m)
-    if degeneracy % 1 != 0 or degeneracy <= 0:
-        e = "m-degeneracy must be integer >=0, "
-        e.append("but degeneracy = {}".format(degeneracy))
+    jvals = j_vals(N)
+    maxj = np.max(jvals)
+    if m < -maxj:
+        e = "m value is incorrect for this N."
+        e += " Minimum m value can be {}".format(-maxj)
         raise ValueError(e)
+    degeneracy = N/2 + 1 - abs(m)
     return int(degeneracy)
 
 def ap(j, m):
@@ -805,7 +808,7 @@ def _uncoupled_excited(N):
         The density matrix in the uncoupled basis.
     """
     N = int(N)
-    jz = _collective_algebra_uncoupled(N)[2]
+    jz = _j_algebra_uncoupled(N)[2]
     en, vn = jz.eigenstates()
     psi0 = vn[2**N - 1]
     return ket2dm(psi0)
