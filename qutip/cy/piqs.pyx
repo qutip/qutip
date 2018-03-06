@@ -262,6 +262,35 @@ cdef class Dicke(object):
     collective_dephasing: float
         Collective dephasing coefficient.
         default: 0.0
+        
+    Attributes
+    ----------
+    N: int
+        The number of two-level systems.
+
+    emission: float
+        Incoherent emission coefficient (also nonradiative emission).
+        default: 0.0
+
+    dephasing: float
+        Local dephasing coefficient.
+        default: 0.0
+
+    pumping: float
+        Incoherent pumping coefficient.
+        default: 0.0
+
+    collective_emission: float
+        Collective (superradiant) emmission coefficient.
+        default: 0.0
+
+    collective_pumping: float
+        Collective pumping coefficient.
+        default: 0.0
+
+    collective_dephasing: float
+        Collective dephasing coefficient.
+        default: 0.0
     """
     cdef int N
     cdef float emission, dephasing, pumping
