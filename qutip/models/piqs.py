@@ -193,12 +193,9 @@ class Dicke(object):
         string = []
         string.append("N = {}".format(self.N))
         string.append("Hilbert space dim = {}".format(self.dshape))
-        string.append("Number of dicke states = {}".format(self.nds))
+        string.append("Number of Dicke states = {}".format(self.nds))
         string.append("Liouvillian space dim = {}".format((self.nds**2,
                                                            self.nds**2)))
-        nonzero = np.sum(get_blocks(self.N))
-        sparsity = nonzero/self.N**4
-        string.append("Sparsity of Liouvillian = {}".format(sparsity))
         if self.emission != 0:
             string.append("emission = {}".format(self.emission))
         if self.dephasing != 0:
@@ -1001,7 +998,7 @@ def superradiant(N, basis="dicke"):
     """
     if basis == "uncoupled":
         state = _uncoupled_superradiant(N)
-        return ket2dm(state)
+        return state
 
     if N % 2 == 0:
         jmm1 = {(N/2, 0, 0): 1.}
@@ -1121,7 +1118,7 @@ def ground(N, basis="dicke"):
     """
     if basis == "uncoupled":
         state = _uncoupled_ground(N)
-        return ket2dm(state)
+        return state
     nds = _num_dicke_states(N)
     rho = dok_matrix((nds, nds))
     rho[N, N] = 1
