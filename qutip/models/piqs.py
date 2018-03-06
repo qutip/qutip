@@ -162,6 +162,40 @@ class Dicke(object):
 
     Attributes
     ----------
+    N: int
+        The number of two-level systems.
+
+    hamiltonian: :class: qutip.Qobj
+        A Hamiltonian in the reduced Dicke basis set.
+
+        The matrix dimensions are (nds, nds), with nds being the number of
+        dicke states. The hamiltonian can be built with the operators given
+        by the `j_algebra` function in the "dicke" basis.
+
+    emission: float
+        Incoherent emission coefficient (also nonradiative emission).
+        default: 0.0
+
+    dephasing: float
+        Local dephasing coefficient.
+        default: 0.0
+
+    pumping: float
+        Incoherent pumping coefficient.
+        default: 0.0
+
+    collective_emission: float
+        Collective (superradiant) emmission coefficient.
+        default: 0.0
+
+    collective_pumping: float
+        Collective pumping coefficient.
+        default: 0.0
+
+    collective_dephasing: float
+        Collective dephasing coefficient.
+        default: 0.0
+        
     nds: int
         The number of Dicke states.
 
