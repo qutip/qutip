@@ -233,7 +233,35 @@ cpdef list jmm1_dictionary(int N):
 cdef class Dicke(object):
     """
     A faster Cythonized Dicke state class to build the Lindbladian.
+    
+    Parameters
+    ----------
+    N: int
+        The number of two-level systems.
 
+    emission: float
+        Incoherent emission coefficient (also nonradiative emission).
+        default: 0.0
+
+    dephasing: float
+        Local dephasing coefficient.
+        default: 0.0
+
+    pumping: float
+        Incoherent pumping coefficient.
+        default: 0.0
+
+    collective_emission: float
+        Collective (superradiant) emmission coefficient.
+        default: 0.0
+
+    collective_pumping: float
+        Collective pumping coefficient.
+        default: 0.0
+
+    collective_dephasing: float
+        Collective dephasing coefficient.
+        default: 0.0
     """
     cdef int N
     cdef float emission, dephasing, pumping
@@ -242,36 +270,6 @@ cdef class Dicke(object):
     def __init__(self, int N, float emission=0., float dephasing=0.,
                  float pumping=0., float collective_emission=0.,
                  collective_dephasing=0., collective_pumping=0.):
-        """
-        Parameters
-        ----------
-        N: int
-            The number of two-level systems.
-
-        emission: float
-            Incoherent emission coefficient (also nonradiative emission).
-            default: 0.0
-
-        dephasing: float
-            Local dephasing coefficient.
-            default: 0.0
-
-        pumping: float
-            Incoherent pumping coefficient.
-            default: 0.0
-
-        collective_emission: float
-            Collective (superradiant) emmission coefficient.
-            default: 0.0
-
-        collective_pumping: float
-            Collective pumping coefficient.
-            default: 0.0
-
-        collective_dephasing: float
-            Collective dephasing coefficient.
-            default: 0.0
-        """
         self.N = N
         self.emission = emission
         self.dephasing = dephasing
