@@ -166,7 +166,7 @@ class Dicke(object):
         The number of Dicke states.
 
     dshape: tuple
-        The tuple (nds, nds)
+        The tuple (nds, nds).
 
     blocks : list
         A list which gets the number of cumulative elements at each block
@@ -310,7 +310,7 @@ def energy_degeneracy(N, m):
 
     m: float
         Total spin z-axis projection eigenvalue.
-        This is proportional to the total energy
+        This is proportional to the total energy.
 
     Returns
     -------
@@ -335,12 +335,12 @@ def state_degeneracy(N, j):
         The number of two-level systems.
 
     j: float
-        Total spin eigenvalue (cooperativity)
+        Total spin eigenvalue (cooperativity).
 
     Returns
     -------
     degeneracy: int
-        The state degeneracy
+        The state degeneracy.
     """
     if j < 0:
         raise ValueError("j value should be >= 0")
@@ -357,16 +357,16 @@ def m_degeneracy(N, m):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     m: float
         Total spin z-axis projection eigenvalue (proportional to the total
-        energy)
+        energy).
 
     Returns
     -------
     degeneracy: int
-        The m-degeneracy
+        The m-degeneracy.
     """
     jvals = j_vals(N)
     maxj = np.max(jvals)
@@ -385,12 +385,12 @@ def ap(j, m):
     Parameters
     ----------
     j, m: float
-        The value for j and m in the dicke basis |j,m>
+        The value for j and m in the dicke basis |j,m>.
 
     Returns
     -------
     a_plus: float
-        The value of `a_plus`
+        The value of `a_plus`.
     """
     a_plus = np.sqrt((j-m) * (j+m+1))
     return a_plus
@@ -424,12 +424,12 @@ def spin_algebra(N, op=None):
 
     Notes
     -----
-    sx[i] is igmax()/2 in the composite Hilbert space.
+    sx[i] is sigmax()/2 in the composite Hilbert space.
 
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     Returns
     -------
@@ -498,12 +498,12 @@ def _j_algebra_uncoupled(N, op=None):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     op: str
         The operator to return 'x','y','z','+','-'.
         If no operator given, then output is the list of operators
-        for ['x','y','z', '+', '-']
+        for ['x','y','z', '+', '-'].
 
     Returns
     -------
@@ -555,16 +555,16 @@ def j_algebra(N, op=None, basis="dicke"):
     Parameters
     ----------
     N: int
-        Number of two-level systems
+        Number of two-level systems.
 
     op: str
         The operator to return 'x','y','z','+','-'.
         If no operator given, then output is the list of operators
-        for ['x','y','z', '+', '-']
+        for ['x','y','z', '+', '-'].
 
     basis: str
         The basis of the operators - "dicke" or "uncoupled"
-        default: "dicke"
+        default: "dicke".
 
     Returns
     -------
@@ -621,7 +621,7 @@ def c_ops_tls(N, emission=0., dephasing=0., pumping=0.,
               collective_emission=0., collective_dephasing=0.,
               collective_pumping=0.):
     """
-    Create the collapse operators (c_ops) of the Lindblad master equation.
+    Create the collapse operators (c_ops) of the Lindbladian.
 
     These operators are in the uncoupled basis of the two-level system
     (TLS) SU(2) Pauli matrices.
@@ -765,7 +765,7 @@ def dicke(N, j, m):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     j: float
         The eigenvalue j of the Dicke state |j, m>.
@@ -788,7 +788,7 @@ def dicke(N, j, m):
     return Qobj(rho)
 
 # Uncoupled states in the full Hilbert space. These are returned with the
-# choice of the keyword argument "dicke" in the states
+# choice of the keyword argument `basis="uncoupled"` in the state functions.
 def _uncoupled_excited(N):
     """
     Generate the density matrix of the excited Dicke state in the full
@@ -797,12 +797,12 @@ def _uncoupled_excited(N):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     Returns
     -------
     psi0: :class: qutip.Qobj
-        The density matrix in the uncoupled basis.
+        The density matrix for the excited state in the uncoupled basis.
     """
     N = int(N)
     jz = _j_algebra_uncoupled(N)[2]
@@ -818,11 +818,13 @@ def _uncoupled_superradiant(N):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     Returns
     -------
     psi0: :class: qutip.Qobj
+        The density matrix for the superradiant state in the full Hilbert
+        space.
     """
     N = int(N)
     jz = _j_algebra_uncoupled(N, "z")
@@ -838,11 +840,12 @@ def _uncoupled_ground(N):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     Returns
     -------
     psi0: :class: qutip.Qobj
+        The density matrix for the ground state in the full Hilbert space.
     """
     N = int(N)
     jz = _j_algebra_uncoupled(N, "z")
@@ -858,7 +861,7 @@ def _uncoupled_ghz(N):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     Returns
     -------
@@ -889,13 +892,13 @@ def _uncoupled_css(N, a, b):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     a: complex
-        The coefficient of the |1_i> state
+        The coefficient of the |1_i> state.
 
     b: complex
-        The coefficient of the |0_i> state
+        The coefficient of the |0_i> state.
 
     Returns
     -------
@@ -940,10 +943,10 @@ def excited(N, basis="dicke"):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     basis: str
-        The basis to use. Either "dicke" or "uncoupled"
+        The basis to use. Either "dicke" or "uncoupled".
 
     Returns
     -------
@@ -1002,22 +1005,22 @@ def css(N, x=1/np.sqrt(2), y=1/np.sqrt(2),
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     x, y: float
-        The coefficients of the CSS state
+        The coefficients of the CSS state.
 
     basis: str
-        The basis to use. Either "dicke" or "uncoupled"
+        The basis to use. Either "dicke" or "uncoupled".
 
     coordinates: str
         Either "cartesian" or "polar". If polar then the coefficients
-        are constructed as sin(x/2), cos(x/2)e^(iy)
+        are constructed as sin(x/2), cos(x/2)e^(iy).
 
     Returns
     -------
     rho: :class: qutip.Qobj
-        The CSS state density matrix
+        The CSS state density matrix.
     """
     if coordinates == "polar":
         a = np.cos(0.5 * x) * np.exp(1j * y)
@@ -1058,10 +1061,10 @@ def ghz(N, basis="dicke"):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     basis: str
-        The basis to use. Either "dicke" or "uncoupled"
+        The basis to use. Either "dicke" or "uncoupled".
 
     Returns
     -------
@@ -1088,7 +1091,7 @@ def ground(N, basis="dicke"):
     Parameters
     ----------
     N: int
-        The number of two-level systems
+        The number of two-level systems.
 
     basis: str
         The basis to use. Either "dicke" or "uncoupled"
@@ -1120,7 +1123,7 @@ def identity_uncoupled(N):
     Returns
     -------
     identity: :class: qutip.Qobj
-        The identity matrix
+        The identity matrix.
     """
     N = int(N)
     rho = np.zeros((2**N, 2**N))
@@ -1137,7 +1140,7 @@ def block_matrix(N):
     Parameters
     ----------
     N: int
-        Number of two-level systems
+        Number of two-level systems.
 
     Returns
     -------
