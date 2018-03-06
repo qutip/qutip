@@ -65,7 +65,6 @@ def _num_dicke_states(N):
     nds = (N/2 + 1)**2 - (N % 2)/4
     return int(nds)
 
-
 def _num_dicke_ladders(N):
     """
     Calculate the total number of Dicke ladders in the Dicke space.
@@ -82,7 +81,6 @@ def _num_dicke_ladders(N):
     """
     Nj = (N+1) * 0.5 + (1-np.mod(N, 2)) * 0.5
     return int(Nj)
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -106,7 +104,6 @@ cpdef list get_blocks(int N):
     blocks = [i * (N+2-i) for i in range(1, num_blocks+1)]
     return blocks
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef float j_min(N):
@@ -129,7 +126,6 @@ cpdef float j_min(N):
     else:
         return 0.5
 
-
 def j_vals(N):
     """
     Get the valid values of j for given N.
@@ -147,7 +143,6 @@ def j_vals(N):
     j = np.arange(j_min(N), N/2 + 1, 1)
     return j
 
-
 def m_vals(j):
     """
     Get all the possible values of m or m1 for given j.
@@ -163,7 +158,6 @@ def m_vals(j):
         The m values for given j as a 1D array.
     """
     return np.arange(-j, j + 1, 1)
-
 
 def get_index(N, j, m, m1, blocks):
     """
@@ -195,7 +189,6 @@ def get_index(N, j, m, m1, blocks):
     i = _k_prime + offset
     k = _k + offset
     return (i, k)
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -239,53 +232,8 @@ cpdef list jmm1_dictionary(int N):
 @cython.wraparound(False)
 cdef class Dicke(object):
     """
-    The Dicke States class.
+    A faster Cythonized Dicke state class to build the Lindbladian.
 
-    Parameters
-    ----------
-    N: int
-        The number of two-level systems.
-
-    hamiltonian: :class: qutip.Qobj
-        An Hamiltonian in the reduced Dicke basis set.
-
-        The matrix dimensions are (nds, nds), with nds being the number of
-        Dicke states. The hamiltonian can be built with the operators given
-        by the `j_algebra` function in the "dicke" basis.
-
-    emission: float
-        Incoherent emission coefficient (also nonradiative emission).
-        default: 0.0
-
-    dephasing: float
-        Local dephasing coefficient.
-        default: 0.0
-
-    pumping: float
-        Incoherent pumping coefficient.
-        default: 0.0
-
-    collective_emission: float
-        Collective (superradiant) emmission coefficient.
-        default: 0.0
-
-    collective_pumping: float
-        Collective pumping coefficient.
-        default: 0.0
-
-    collective_dephasing: float
-        Collective dephasing coefficient.
-        default: 0.0
-
-    nds: int
-        The number of Dicke states.
-
-    dshape: tuple
-        The tuple (nds, nds)
-
-    blocks : list
-        A list which gets the number of cumulative elements at each block
-        boundary.
     """
     cdef int N
     cdef float emission, dephasing, pumping
@@ -294,6 +242,36 @@ cdef class Dicke(object):
     def __init__(self, int N, float emission=0., float dephasing=0.,
                  float pumping=0., float collective_emission=0.,
                  collective_dephasing=0., collective_pumping=0.):
+        """
+        Parameters
+        ----------
+        N: int
+            The number of two-level systems.
+
+        emission: float
+            Incoherent emission coefficient (also nonradiative emission).
+            default: 0.0
+
+        dephasing: float
+            Local dephasing coefficient.
+            default: 0.0
+
+        pumping: float
+            Incoherent pumping coefficient.
+            default: 0.0
+
+        collective_emission: float
+            Collective (superradiant) emmission coefficient.
+            default: 0.0
+
+        collective_pumping: float
+            Collective pumping coefficient.
+            default: 0.0
+
+        collective_dephasing: float
+            Collective dephasing coefficient.
+            default: 0.0
+        """
         self.N = N
         self.emission = emission
         self.dephasing = dephasing

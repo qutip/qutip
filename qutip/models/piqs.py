@@ -71,7 +71,6 @@ def num_dicke_states(N):
     """
     return _num_dicke_states(N)
 
-
 def num_dicke_ladders(N):
     """Calculate the total number of ladders in the Dicke space.
 
@@ -89,7 +88,6 @@ def num_dicke_ladders(N):
         The number of Dicke ladders.
     """
     return _num_dicke_ladders(N)
-
 
 def num_tls(nds):
     """Calculate the number of two-level systems.
@@ -124,42 +122,8 @@ class Dicke(object):
     >> ensemble = Dicke(N, emission=1.)
     >> L = ensemble.liouvillian()
 
-    Parameters
+    Attributes
     ----------
-    N: int
-        The number of two-level systems.
-
-    hamiltonian: :class: qutip.Qobj
-        A Hamiltonian in the reduced Dicke basis set.
-
-        The matrix dimensions are (nds, nds), with nds being the number of
-        dicke states. The hamiltonian can be built with the operators given
-        by the `j_algebra` function in the "dicke" basis.
-
-    emission: float
-        Incoherent emission coefficient (also nonradiative emission).
-        default: 0.0
-
-    dephasing: float
-        Local dephasing coefficient.
-        default: 0.0
-
-    pumping: float
-        Incoherent pumping coefficient.
-        default: 0.0
-
-    collective_emission: float
-        Collective (superradiant) emmission coefficient.
-        default: 0.0
-
-    collective_pumping: float
-        Collective pumping coefficient.
-        default: 0.0
-
-    collective_dephasing: float
-        Collective dephasing coefficient.
-        default: 0.0
-
     nds: int
         The number of Dicke states.
 
@@ -174,6 +138,45 @@ class Dicke(object):
                  emission=0., dephasing=0., pumping=0.,
                  collective_emission=0., collective_dephasing=0.,
                  collective_pumping=0.):
+        """
+        The ensemble initialization for N two-level systems.
+
+        Parameters
+        ----------
+        N: int
+            The number of two-level systems.
+
+        hamiltonian: :class: qutip.Qobj
+            A Hamiltonian in the reduced Dicke basis set.
+
+            The matrix dimensions are (nds, nds), with nds being the number of
+            dicke states. The hamiltonian can be built with the operators given
+            by the `j_algebra` function in the "dicke" basis.
+
+        emission: float
+            Incoherent emission coefficient (also nonradiative emission).
+            default: 0.0
+
+        dephasing: float
+            Local dephasing coefficient.
+            default: 0.0
+
+        pumping: float
+            Incoherent pumping coefficient.
+            default: 0.0
+
+        collective_emission: float
+            Collective (superradiant) emmission coefficient.
+            default: 0.0
+
+        collective_pumping: float
+            Collective pumping coefficient.
+            default: 0.0
+
+        collective_dephasing: float
+            Collective dephasing coefficient.
+            default: 0.0
+        """
         self.N = N
         self.hamiltonian = hamiltonian
         self.emission = emission
@@ -343,7 +346,6 @@ def energy_degeneracy(N, m):
     degeneracy = numerator/(d1 * d2)
     return int(degeneracy)
 
-
 def state_degeneracy(N, j):
     """Calculate the degeneracy of the Dicke state.
 
@@ -372,7 +374,6 @@ def state_degeneracy(N, j):
         raise ValueError("m-degeneracy must be >=0")
     return degeneracy
 
-
 def m_degeneracy(N, m):
     """Calculate the number of Dicke states |j, m> with same energy.
 
@@ -390,13 +391,12 @@ def m_degeneracy(N, m):
     degeneracy: int
         The m-degeneracy
     """
-    degeneracy = N / 2 + 1 - abs(m)
+    degeneracy = N/2 + 1 - abs(m)
     if degeneracy % 1 != 0 or degeneracy <= 0:
         e = "m-degeneracy must be integer >=0, "
         e.append("but degeneracy = {}".format(degeneracy))
         raise ValueError(e)
     return int(degeneracy)
-
 
 def ap(j, m):
     """Calculate the operator `ap` used later.
@@ -416,7 +416,6 @@ def ap(j, m):
     a_plus = np.sqrt((j-m) * (j+m+1))
     return a_plus
 
-
 def am(j, m):
     """Calculate the operator `am` used later.
 
@@ -434,7 +433,6 @@ def am(j, m):
     """
     a_minus = np.sqrt((j+m) * (j-m+1))
     return a_minus
-
 
 def spin_algebra(N, op=None):
     """Create the list [sx, sy, sz, sp, sm] with the spin operators.
@@ -456,7 +454,7 @@ def spin_algebra(N, op=None):
 
     Returns
     -------
-    spin_operators: list / :class: qutip.Qobj
+    spin_operators: list or :class: qutip.Qobj
         A list of `qutip.Qobj` operators - [sx, sy, sz, sp, sm] or the
         requested operator.
     """
@@ -511,7 +509,6 @@ def spin_algebra(N, op=None):
     else:
         raise TypeError('Invalid type')
 
-
 def _j_algebra_uncoupled(N, op=None):
     """Construct the the collective spin algebra in the uncoupled basis.
 
@@ -531,7 +528,7 @@ def _j_algebra_uncoupled(N, op=None):
 
     Returns
     -------
-    collective_operators: list / :class: qutip.Qobj
+    collective_operators: list or :class: qutip.Qobj
         A list of `qutip.Qobj` representing all the operators in
         uncoupled" basis or a single operator requested.
     """
@@ -569,7 +566,6 @@ def _j_algebra_uncoupled(N, op=None):
     else:
         raise TypeError('Invalid type')
 
-
 def j_algebra(N, op=None, basis="dicke"):
     """
     Calculate the list of collective operators of the total algebra.
@@ -593,7 +589,7 @@ def j_algebra(N, op=None, basis="dicke"):
 
     Returns
     -------
-    j_alg: list / :class: qutip.Qobj
+    j_alg: list or :class: qutip.Qobj
         A list of `qutip.Qobj` representing all the operators in
         the "dicke" or "uncoupled" basis or a single operator requested.
     """
@@ -641,7 +637,6 @@ def j_algebra(N, op=None, basis="dicke"):
         return jz
     else:
         raise TypeError('Invalid type')
-
 
 def c_ops_tls(N, emission=0., dephasing=0., pumping=0.,
               collective_emission=0., collective_dephasing=0.,
@@ -728,7 +723,6 @@ def c_ops_tls(N, emission=0., dephasing=0., pumping=0.,
 
     return c_ops
 
-
 # State definitions in the Dicke basis with an option for basis transformation
 def dicke_basis(N, jmm1=None):
     """
@@ -777,7 +771,6 @@ def dicke_basis(N, jmm1=None):
         rho[i, k] = jmm1[key]
     return Qobj(rho)
 
-
 def dicke(N, j, m):
     """
     Generate a Dicke state as a pure density matrix in the Dicke basis.
@@ -803,7 +796,7 @@ def dicke(N, j, m):
 
     Returns
     -------
-    rho: `qutip.Qobj`
+    rho: :class: qutip.Qobj
         The density matrix.
     """
     nds = num_dicke_states(N)
@@ -814,7 +807,6 @@ def dicke(N, j, m):
     i, k = jmm1_dict[(j, m, m)]
     rho[i, k] = 1.
     return Qobj(rho)
-
 
 # Uncoupled states in the full Hilbert space. These are returned with the
 # choice of the keyword argument "dicke" in the states
@@ -839,7 +831,6 @@ def _uncoupled_excited(N):
     psi0 = vn[2**N - 1]
     return ket2dm(psi0)
 
-
 def _uncoupled_superradiant(N):
     """
     Generate the density matrix of a superradiant state in the full 2^N
@@ -860,7 +851,6 @@ def _uncoupled_superradiant(N):
     psi0 = vn[2**N - (N+1)]
     return ket2dm(psi0)
 
-
 def _uncoupled_ground(N):
     """
     Generate the density matrix of the ground state in the full 2^N
@@ -880,7 +870,6 @@ def _uncoupled_ground(N):
     en, vn = jz.eigenstates()
     psi0 = vn[0]
     return ket2dm(psi0)
-
 
 def _uncoupled_ghz(N):
     """
@@ -909,7 +898,6 @@ def _uncoupled_ghz(N):
     spins_dims = list((spin_dim, spin_dim))
     rho = Qobj(rho, dims=spins_dims)
     return rho
-
 
 def _uncoupled_css(N, a, b):
     """
@@ -962,7 +950,6 @@ def _uncoupled_css(N, a, b):
         rho_tot = rho_tot * rho[i]
     return rho_tot
 
-
 def excited(N, basis="dicke"):
     """
     Generate the density matrix for the excited state.
@@ -991,7 +978,6 @@ def excited(N, basis="dicke"):
     jmm1 = {(N/2, N/2, N/2): 1}
     return dicke_basis(N, jmm1)
 
-
 def superradiant(N, basis="dicke"):
     """
     Generate the density matrix of the superradiant state.
@@ -1018,12 +1004,11 @@ def superradiant(N, basis="dicke"):
         return ket2dm(state)
 
     if N % 2 == 0:
-        jmm1 = {(N / 2, 0, 0): 1.}
+        jmm1 = {(N/2, 0, 0): 1.}
         return dicke_basis(N, jmm1)
     else:
-        jmm1 = {(N / 2, 0.5, 0.5): 1.}
+        jmm1 = {(N/2, 0.5, 0.5): 1.}
     return dicke_basis(N, jmm1)
-
 
 def css(N, x=1/np.sqrt(2), y=1/np.sqrt(2),
         basis="dicke", coordinates="cartesian"):
@@ -1084,7 +1069,6 @@ def css(N, x=1/np.sqrt(2), y=1/np.sqrt(2),
             rho[row_column] = psi_m*psi_m1
     return Qobj(rho)
 
-
 def ghz(N, basis="dicke"):
     """
     Generate the density matrix of the GHZ state.
@@ -1115,7 +1099,6 @@ def ghz(N, basis="dicke"):
     rho[0, N] = 1/2
     return Qobj(rho)
 
-
 def ground(N, basis="dicke"):
     """
     Generate the density matrix of the ground state.
@@ -1144,7 +1127,6 @@ def ground(N, basis="dicke"):
     rho[N, N] = 1
     return Qobj(rho)
 
-
 def identity_uncoupled(N):
     """
     Generate the identity in a 2**N dimensional Hilbert space.
@@ -1170,7 +1152,6 @@ def identity_uncoupled(N):
     identity = Qobj(rho, dims=spins_dims)
     return identity
 
-
 def block_matrix(N):
     """Construct the block-diagonal matrix for the Dicke basis.
 
@@ -1182,7 +1163,7 @@ def block_matrix(N):
     Returns
     -------
     block_matr: ndarray
-        A block-diagonal matrix of ones with dimension (nds,nds),
+        A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
     """
