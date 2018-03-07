@@ -201,10 +201,6 @@ class Dicke(object):
 
     dshape: tuple
         The tuple (nds, nds).
-
-    blocks : list
-        A list which gets the number of cumulative elements at each block
-        boundary.
     """
     def __init__(self, N, hamiltonian=None,
                  emission=0., dephasing=0., pumping=0.,
