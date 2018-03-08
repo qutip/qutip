@@ -265,5 +265,5 @@ Installation complete
 Please cite QuTiP in your publication.
 ==============================================================================
 For your convenience a bibtex file can be easily generated using
-`qutip.about.cite()`"""
+`qutip.cite()`"""
 print(_cite)

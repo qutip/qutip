@@ -226,6 +226,7 @@ from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
+from qutip.cite import *
 
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig
