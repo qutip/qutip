@@ -224,7 +224,7 @@ class StochasticSolverOptions:
             vector for the noise, the len of the last dimensions is doubled for
             solvers of order 1.5. The correspond to results.noise
 
-    noiseDeep : int
+    noiseDepth : int
         Number of terms kept of the truncated series used to create the
         noise used by taylor2.0 solver.
 
@@ -272,7 +272,7 @@ class StochasticSolverOptions:
                  times=None, nsubsteps=1, ntraj=1, tol=None,
                  generate_noise=None, noise=None,
                  progress_bar=None, map_func=None, map_kwargs=None,
-                 args={}, options=None, noiseDeep=20):
+                 args={}, options=None, noiseDepth=20):
 
         if options is None:
             options = Options()
@@ -416,10 +416,10 @@ class StochasticSolverOptions:
         elif self.solver in ['taylor15-imp', 'taylor1.5-imp', 153]:
             self.solver_code = 153
             self.solver = 'taylor1.5-imp'
-        elif self.solver in [202, 'taylor2.0', 'taylor20', 2.0]:
+        elif self.solver in ['taylor2.0', 'taylor20', 2.0, 202]:
             self.solver_code = 202
             self.solver = 'taylor2.0'
-            self.p = noiseDeep
+            self.p = noiseDepth
             if not len(self.sc_ops) == 1 or \
                 not self.sc_ops[0].const or \
                 not self.method=="homodyne":

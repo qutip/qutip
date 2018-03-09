@@ -49,52 +49,64 @@ cdef double DZERO=0
 cdef complex ZZERO=0j
 cdef int ONE=1
 
+@cython.boundscheck(False)
 cpdef void axpy(complex a, complex[::1] x, complex[::1] y):
     cdef int l = x.shape[0]
     zaxpy(&l, &a, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
+@cython.boundscheck(False)
 cpdef void copy(complex[::1] x, complex[::1] y):
     cdef int l = x.shape[0]
     zcopy(&l, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
+@cython.boundscheck(False)
 cpdef complex dot(complex[::1] x,complex[::1] y):
     cdef int l = x.shape[0]
     return zdotu(&l, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
+@cython.boundscheck(False)
 cpdef complex dotc(complex[::1] x,complex[::1] y):
     cdef int l = x.shape[0]
     return zdotc(&l, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
+@cython.boundscheck(False)
 cpdef double dznrm2(complex[::1] vec):
     cdef int l = vec.shape[0]
     return raw_dznrm2(&l, <complex*>&vec[0], &ONE)
 
 @cython.cdivision(True)
+@cython.boundscheck(False)
 cpdef void normalize_inplace(complex[::1] vec):
     cdef int l = vec.shape[0]
     cdef double norm = 1.0/dznrm2(vec)
     zdscal(&l, &norm, <complex*>&vec[0], &ONE)
 
+@cython.boundscheck(False)
 cdef void scale(double a, complex[::1] x):
     cdef int l = x.shape[0]
     zdscal(&l, &a, <complex*>&x[0], &ONE)
 
+@cython.boundscheck(False)
 cdef void zscale(complex a, complex[::1] x):
     cdef int l = x.shape[0]
     zscal(&l, &a, <complex*>&x[0], &ONE)
 
+@cython.boundscheck(False)
 cdef void zero(complex[::1] x):
     cdef int l = x.shape[0]
     zdscal(&l, &DZERO, <complex*>&x[0], &ONE)
 
+@cython.boundscheck(False)
 cdef void zero_2d(complex[:,::1] x):
     cdef int l = x.shape[0]*x.shape[1]
     zdscal(&l, &DZERO, <complex*>&x[0,0], &ONE)
 
+@cython.boundscheck(False)
 cdef void zero_3d(complex[:,:,::1] x):
     cdef int l = x.shape[0]*x.shape[1]*x.shape[2]
     zdscal(&l, &DZERO, <complex*>&x[0,0,0], &ONE)
 
+@cython.boundscheck(False)
 cdef void zero_4d(complex[:,:,:,::1] x):
     cdef int l = x.shape[0]*x.shape[1]*x.shape[2]*x.shape[3]
     zdscal(&l, &DZERO, <complex*>&x[0,0,0,0], &ONE)
@@ -312,7 +324,7 @@ cdef class ssolvers:
         if self.solver == 60 and self.noise_type == 0:
             # photocurrent, just seed,
             np.random.seed(self.seed[n])
-            return np.empty((self.N_step, self.N_substeps, self.N_dw))
+            return np.zeros((self.N_step, self.N_substeps, self.N_dw))
         if self.noise_type == 0:
             np.random.seed(self.seed[n])
             return np.random.randn(self.N_step, self.N_substeps, self.N_dw) *\
@@ -364,6 +376,7 @@ cdef class ssolvers:
 
         return states_list, noise, measurements, expect, ss
 
+    @cython.boundscheck(False)
     cdef complex[::1] run(self, double t, double dt, double[:, ::1] noise,
                           complex[::1] vec, int N_substeps):
         cdef complex[::1] out = np.zeros(self.l_vec, dtype=complex)
@@ -459,7 +472,6 @@ cdef class ssolvers:
     cdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         pass
-
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -720,18 +732,6 @@ cdef class ssolvers:
         copy(vec,out)
         axpy(1.0, a, out)
         axpy(0.5, L0a, out)
-        if t==0 and False:
-          print("b",b[0,0],b[0,1])
-          print("Lb",Lb[0,0,0],Lb[0,0,1])
-          print("LLb",LLb[0,0,0,0],LLb[0,0,0,1])
-
-          print("a",a[0],a[1])
-          print("La",La[0,0],La[0,1])
-
-          print("L0b",L0b[0,0],L0b[0,1])
-
-          print("L0a",L0a[0],L0a[1])
-          print(dw[0],dz[0])
 
         for i in range(self.N_ops):
             axpy(dw[i], b[i,:], out)
@@ -983,30 +983,8 @@ cdef class ssolvers:
         zero(LL0b)
         zero(L0Lb)
         zero(LLLb)
-        self.derivativesO2(t, vec, a, b, Lb,
-                           La, L0b, LLb,
+        self.derivativesO2(t, vec, a, b, Lb, La, L0b, LLb,
                            L0a, LLa, LL0b, L0Lb, LLLb)
-
-        if t ==0 and False:
-          print("b",b[0],b[1])
-          print("Lb",Lb[0],Lb[1])
-          print("LLb",LLb[0],LLb[1])
-          print("LLLb",LLLb[0],LLLb[1])
-
-          print("a",a[0],a[1])
-          print("La",La[0],La[1])
-          print("LLa",LLa[0],LLa[1])
-
-          print("L0b",L0b[0],L0b[1])
-          print("LL0b",LL0b[0],LL0b[1])
-          print("L0Lb",L0Lb[0],L0Lb[1])
-
-          print("L0a",L0a[0],L0a[1])
-          print(noises[0])
-          print(noises[1])
-          print(noises[2])
-          print(noises[3])
-          print(noises[4])
 
         copy(vec,out)
         axpy(1.0, a, out)
@@ -1026,62 +1004,6 @@ cdef class ssolvers:
         axpy(noises[4], LLa, out)
         dwn *= noises[0]*0.25
         axpy(dwn, LLLb, out)
-
-
-    def checks(self, double t, double dt, complex[::1] vec):
-        cdef complex[::1] a = np.zeros((self.l_vec), dtype=complex)
-        cdef complex[::1] a1 = np.zeros((self.l_vec), dtype=complex)
-        cdef complex[:, ::1] b = np.zeros((self.N_ops, self.l_vec),
-                                           dtype=complex)
-        cdef complex[:, ::1] b1 = np.zeros((self.N_ops, self.l_vec),
-                                           dtype=complex)
-        cdef complex[:, ::1] b2 = np.zeros((self.N_ops, self.l_vec),
-                                           dtype=complex)
-        cdef complex[:, :, ::1] Lb = np.zeros((self.N_ops, self.N_ops,
-                    self.l_vec), dtype=complex)
-        cdef complex[:, :, ::1] Lb2 = np.zeros((self.N_ops, self.N_ops,
-                                               self.l_vec), dtype=complex)
-        cdef complex[:, ::1] L0b = np.zeros((self.N_ops,
-                                             self.l_vec), dtype=complex)
-        cdef complex[:,::1] La = np.zeros((self.N_ops,
-                                           self.l_vec), dtype=complex)
-        cdef complex[:, :, :, ::1] LLb = np.zeros((self.N_ops, self.N_ops,
-                                        self.N_ops, self.l_vec), dtype=complex)
-        cdef complex[::1] L0a = np.zeros((self.l_vec), dtype=complex)
-
-        cdef complex[:, ::1] dvec = np.zeros((7, self.l_vec), dtype=complex)
-
-        self.d1(t, vec, a)
-        self.d2(t, vec, b)
-        self.d2d2p(t, vec, b1, Lb)
-        self.derivatives(t, 2, vec, a1, b2, Lb2, La, L0b, LLb, L0a)
-        self.taylor_15_1(t, vec, dvec)
-
-        print("a[0]",a[0],a1[0],dvec[0,0])
-        print("a[1]",a[1],a1[1],dvec[0,1])
-        for i in range(self.N_ops):
-            print(i)
-            print("b[0]",b[i,0],b1[i,0],b2[i,0],dvec[1,0])
-            print("b[1]",b[i,1],b1[i,1],b2[i,1],dvec[1,1])
-        for i in range(self.N_ops):
-          for j in range(self.N_ops):
-            print(i,j)
-            print("Lb[0]",Lb[i,j,0],Lb[i,j,0],dvec[2,0])
-            print("Lb[1]",Lb[i,j,1],Lb[i,j,1],dvec[2,1])
-        for i in range(self.N_ops):
-            print(i)
-            print("La[0]",La[i,0],dvec[3,0])
-            print("La[1]",La[i,1],dvec[3,1])
-            print("L0b[0]",L0b[i,0],dvec[4,0])
-            print("L0b[1]",L0b[i,1],dvec[4,1])
-        for i in range(self.N_ops):
-          for j in range(self.N_ops):
-            for k in range(self.N_ops):
-              print(i,j,k)
-              print("LLb[0]",LLb[i,j,k,0],dvec[6,0])
-              print("LLb[1]",LLb[i,j,k,1],dvec[6,1])
-        print("L0a[0]",L0a[0],dvec[5,0])
-        print("L0a[1]",L0a[1],dvec[5,1])
 
 
 cdef class sse(ssolvers):
@@ -1521,6 +1443,7 @@ cdef class sme(ssolvers):
             e += rho[k*(self.N_root+1)]
         return e
 
+    @cython.boundscheck(False)
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         self.L._rhs_mat(t, &rho[0], &out[0])
 
@@ -1876,6 +1799,8 @@ cdef class psme(ssolvers):
             e += rho[k*(self.N_root+1)]
         return e
 
+
+    @cython.boundscheck(False)
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         cdef int i
         cdef cy_qobj c_op
@@ -1917,6 +1842,7 @@ cdef class generic(ssolvers):
         self.d1_func = sso.d1
         self.d2_func = sso.d2
 
+
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         cdef np.ndarray[complex, ndim=1] in_np
         cdef np.ndarray[complex, ndim=1] out_np
@@ -1925,6 +1851,7 @@ cdef class generic(ssolvers):
         out_np = self.d1_func(t, in_np)
         axpy(self.dt, out_np, out) # d1 is += and * dt
 
+    @cython.boundscheck(False)
     cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef np.ndarray[complex, ndim=1] in_np
         cdef np.ndarray[complex, ndim=2] out_np
