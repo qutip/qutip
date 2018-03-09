@@ -645,7 +645,77 @@ class TestMESolveSuperInit:
 
         fid = self.fidelitycheck(out1, out2, rho0vec)
         assert_(max(abs(1.0-fid)) < me_error, True)
-
+    
+    def test_me_interp1(self):
+        "mesolve: interp time-dependent collapse operator #1"
+        
+        N = 10  # number of basis states to consider
+        kappa = 0.2  # coupling to oscillator
+        tlist = np.linspace(0, 10, 100)
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        c_op_list = [[a, S]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 1e-5)
+        
+    def test_me_interp2(self):
+         "mesolve: interp time-dependent collapse operator #2"
+         
+         N = 10  # number of basis states to consider
+         kappa = 0.2  # coupling to oscillator
+         tlist = np.linspace(0, 10, 100)
+         C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
+         S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+         a = destroy(N)
+         H = [[a.dag() * a, C]]
+         psi0 = basis(N, 9)  # initial state
+         c_op_list = [[a, S]]
+         medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+         expt = medata.expect[0]
+         actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+         assert_(avg_diff < 1e-5)
+         
+    def test_me_interp3(self):
+        "mesolve: interp time-dependent collapse operator #3"
+        
+        N = 10  # number of basis states to consider
+        kappa = 0.2  # coupling to oscillator
+        tlist = np.linspace(0, 10, 100)
+        C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
+        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        a = destroy(N)
+        H = [a.dag() * a, [a.dag() * a, C]]
+        psi0 = basis(N, 9)  # initial state
+        c_op_list = [[a, S]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 1e-5)
+        
+    def test_me_interp4(self):
+        "mesolve: interp time-dependent collapse operator #4"
+        
+        N = 10  # number of basis states to consider
+        kappa = 0.2  # coupling to oscillator
+        tlist = np.linspace(0, 10, 100)
+        C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
+        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        a = destroy(N)
+        H = [a.dag() * a, [a.dag() * a, C]]
+        psi0 = basis(N, 9)  # initial state
+        c_op_list = [[a, S],[a, S]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-2*kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 1e-5)
 
 class TestMESolverMisc:
     """

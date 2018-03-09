@@ -101,7 +101,7 @@ shape = [3, 3], type = oper, isHerm = True
         raise TypeError('j must be a non-negative integer or half-integer')
 
     if not args:
-        return jmat(j, 'x'), jmat(j, 'y'), jmat(j, 'z') 
+        return jmat(j, 'x'), jmat(j, 'y'), jmat(j, 'z')
 
     if args[0] == '+':
         A = _jplus(j)
@@ -458,7 +458,7 @@ shape = [3, 3], type = oper, isHerm = True
     N = int(N)
     if N < 0:
         raise ValueError("N must be integer N>=0")
-    return Qobj(fast_identity(N), isherm=True)
+    return Qobj(fast_identity(N), isherm=True, isunitary=True)
 
 
 def identity(N):
@@ -562,7 +562,7 @@ shape = [4, 4], type = oper, isHerm = True
         ind = np.arange(N, dtype=np.int32)
         ptr = np.arange(N+1,dtype=np.int32)
         ptr[-1] = N
-    
+
     return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,N)), isherm=True)
 
 
@@ -911,27 +911,27 @@ def charge(Nmax, Nmin=None, frac = 1):
     """
     Generate the diagonal charge operator over charge states
     from Nmin to Nmax.
-    
+
     Parameters
     ----------
     Nmax : int
         Maximum charge state to consider.
-    
+
     Nmin : int (default = -Nmax)
         Lowest charge state to consider.
-    
+
     frac : float (default = 1)
         Specify fractional charge if needed.
-    
+
     Returns
     -------
     C : Qobj
         Charge operator over [Nmin,Nmax].
-    
+
     Notes
     -----
     .. versionadded:: 3.2
-    
+
     """
     if Nmin is None:
         Nmin = -Nmax
@@ -945,25 +945,25 @@ def charge(Nmax, Nmin=None, frac = 1):
 
 def tunneling(N, m=1):
     """
-    Tunneling operator with elements of the form 
+    Tunneling operator with elements of the form
     :math:`\sum |N><N+m| + |N+m><N|`.
-    
+
     Parameters
     ----------
     N : int
         Number of basis states in Hilbert space.
     m : int (default = 1)
         Number of excitations in tunneling event.
-    
+
     Returns
     -------
     T : Qobj
         Tunneling operator.
-    
+
     Notes
     -----
     .. versionadded:: 3.2
-    
+
     """
     diags = [np.ones(N-m,dtype=int),np.ones(N-m,dtype=int)]
     T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
