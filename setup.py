@@ -66,12 +66,8 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
-<<<<<<< HEAD
-            'qutip/cy/openmp', 'qutip/cy/openmp/src', 'qutip/models']
-=======
             'qutip/cy/openmp', 'qutip/cy/openmp/src',
             'qutip/models']
->>>>>>> cdc2204a143c850a0d620bd2acfd9aae3aef57d0
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
