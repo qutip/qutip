@@ -1,36 +1,24 @@
-"""
-Heirarchy equations of motion
-"""
 import numpy as np
 
 from scipy.misc import factorial
-from scipy.integrate import complex_ode, ode
+from scipy.integrate import ode
 from scipy.constants import h as planck
+from qutip.cy.spmatfuncs import cy_ode_rhs
+from scipy.sparse import lil_matrix
 
-from qutip import enr_state_dictionaries, commutator
-from qutip import Options
+from qutip import commutator, Options
 from qutip.solver import Result
-from qutip import Qobj, commutator
+from qutip import Qobj
 from qutip.states import enr_state_dictionaries
 from qutip.superoperator import liouvillian, spre, spost
 from copy import copy
-
-try:
-    from tqdm import tqdm, tqdm_notebook
-    progress_bar = True
-    if get_ipython().config:
-        progress = tqdm_notebook
-    else:
-        progress = tqdm
-except:
-    progress_bar = None
 
 
 def add_at_idx(seq, k, val):
     """
     Add (subtract) a value in the tuple at position k
     """
-    lst = copy(list(seq))
+    lst = list(seq)
     lst[k] += val
     return tuple(lst)
 
@@ -50,7 +38,7 @@ def nexthe(current_he, k, ncut):
     for the current index `n`.
     """
     nnext = add_at_idx(current_he, k, 1)
-    if np.sum(nnext) > ncut:
+    if sum(nnext) > ncut:
         return False
     return nnext
 
@@ -60,7 +48,6 @@ def num_hierarchy(kcut, ncut):
     Hierarchy
     """
     return int(factorial(ncut + kcut)/(factorial(ncut)*factorial(kcut)))
-
 
 class Heom(object):
     """
@@ -114,13 +101,15 @@ class Heom(object):
         self.N = self.hamiltonian.shape[0]
         
         total_nhe = int(factorial(self.ncut + self.kcut)/(factorial(self.ncut)*factorial(kcut)))
+        self.total_nhe = total_nhe
         self.hshape = (total_nhe, self.N**2)
         self.weak_coupling = self.deltak()
-        self.L = liouvillian(self.hamiltonian, [])
+        self.L = liouvillian(self.hamiltonian, []).full()
         self.grad_shape = (self.N**2, self.N**2)
         self.spreQ = spre(coupling).full()
         self.spostQ = spost(coupling).full()
-        self.norm_plus, self.norm_minus = self._calc_renorm_factors()
+        self.norm_plus, self.norm_minus = None, None
+        self.L_helems = lil_matrix((total_nhe*self.N**2, total_nhe*self.N**2), dtype=np.complex)
 
     def _initialize_he(self):
         """
@@ -131,6 +120,9 @@ class Heom(object):
         idx2he = {0:zeroth}
         nhe = 1
         return he2idx, idx2he, nhe
+
+    def jac(self, i, j):
+        return self.L_helems[i, j]
 
     def populate(self, heidx_list):
         """
@@ -168,7 +160,7 @@ class Heom(object):
             dk = np.sum(np.divide(self.ck[self.kcut:], self.vk[self.kcut:]))
             return dk
     
-    def grad_n(self, rho_n, he_n):
+    def grad_n(self, he_n):
         """
         Get the gradient term for the Hierarchy ADM at
         level n
@@ -176,11 +168,17 @@ class Heom(object):
         c = self.ck
         nu = self.vk
         L = self.L
-        gradient = L*rho_n
-        gradient += -np.sum(np.multiply(he_n, nu))*rho_n
-        return gradient
+        gradient_sum = -np.sum(np.multiply(he_n, nu))
+        sum_op = gradient_sum*np.eye(L.shape[0])
+        L += sum_op
 
-    def grad_prev(self, rho_prev, he_n, k):
+        # Fill in larger L
+        nidx = self.he2idx[he_n]
+        block = self.N**2
+        pos = int(nidx*(block))
+        self.L_helems[pos:pos+block, pos:pos+block] = L
+
+    def grad_prev(self, he_n, k, prev_he):
         """
         Get prev gradient
         """
@@ -193,10 +191,15 @@ class Heom(object):
         if self.renorm:
             norm_prev = self.norm_minus[nk, k]
         op1 = -1j*norm_prev*(c[k]*spreQ - np.conj(c[k])*spostQ)
-        t1 = np.dot(op1, rho_prev)
-        return t1
 
-    def grad_next(self, rho_next, he_n, k):
+        rowidx = self.he2idx[he_n]
+        colidx = self.he2idx[prev_he]
+        block = self.N**2
+        rowpos = int(rowidx*(block))
+        colpos = int(colidx*(block))
+        self.L_helems[rowpos:rowpos+block, colpos:colpos+block] = op1
+
+    def grad_next(self, he_n, k, next_he):
         c = self.ck
         nu = self.vk
         spreQ = self.spreQ
@@ -207,40 +210,40 @@ class Heom(object):
         if self.renorm:
             norm_next = self.norm_plus[nk, k]                  
         op2 = -1j*norm_next*(spreQ - spostQ)
-        t2 = np.dot(op2, rho_next)
-        return t2
+        rowidx = self.he2idx[he_n]
+        colidx = self.he2idx[next_he]
+        block = self.N**2
+        rowpos = int(rowidx*(block))
+        colpos = int(colidx*(block))
+        self.L_helems[rowpos:rowpos+block, colpos:colpos+block] = op2
     
-    def grad(self, t, rho):
-        """
-        Calculate the gradient operator of the full Hierarchy
-        """
-        gradn = np.zeros(self.hshape, dtype=np.complex)
-        state = rho.reshape(self.hshape).copy()
-        heidxlist = copy(list(self.idx2he.keys()))
-        self.populate(heidxlist)
+    def rhs(self, progress=None):
+        print("Populating the hierarchy indices")
+        while self.nhe < self.total_nhe:
+            heidxlist = copy(list(self.idx2he.keys()))
+            self.populate(heidxlist)
+        print("Calculating normalization factors")
+        self.norm_plus, self.norm_minus = self._calc_renorm_factors()
+        if progress != None:
+            bar = progress(total = self.nhe*self.kcut)
 
         for n in self.idx2he:
-            he_n = copy(self.idx2he[n])
-            rho_current = state[n]
-            g_current = self.grad_n(rho_current, he_n)
+            he_n = self.idx2he[n]
+            self.grad_n(he_n)
             for k in range(self.kcut):
                 next_he = nexthe(he_n, k, self.ncut)
                 prev_he = prevhe(he_n, k, self.ncut)
-                if next_he and next_he in self.he2idx:
-                    rho_next = state[self.he2idx[next_he]]
-                    g_current += self.grad_next(rho_next, he_n, k)
-                if prev_he and prev_he in self.he2idx:
-                    rho_prev = state[self.he2idx[prev_he]]
-                    g_current += self.grad_prev(rho_prev, he_n, k)
-            gradn[n] = g_current
-        return gradn.ravel()
+                if next_he and (next_he in self.he2idx):
+                    self.grad_next(he_n, k, next_he)
+                if prev_he and (prev_he in self.he2idx):
+                    self.grad_prev(he_n, k, prev_he)
+                if progress: bar.update()
     
-    def solve(self, rho0, tlist, options=None, rcut=0.):
+    def solve(self, rho0, tlist, options=None, progress=None):
         """
         Solve the Hierarchy equations of motion for the given initial
         density matrix and time.
         """
-        self.rcut = rcut
         if options is None:
             options = Options()
 
@@ -254,42 +257,30 @@ class Heom(object):
         rho_he = np.zeros(self.hshape, dtype=np.complex)
         rho_he[0] = rho0.full().ravel("F")
         rho_he = rho_he.flatten()
-        r = ode(self.grad)
+        
+        print("Calculating Liouvillian")
+        self.rhs()
+        L_helems = self.L_helems.asformat("csr")
+        r = ode(cy_ode_rhs)
+        r.set_f_params(L_helems.data, L_helems.indices, L_helems.indptr)
         r.set_integrator('zvode', method=options.method, order=options.order,
                          atol=options.atol, rtol=options.rtol,
                          nsteps=options.nsteps, first_step=options.first_step,
                          min_step=options.min_step, max_step=options.max_step)
                         
         r.set_initial_value(rho_he, tlist[0])
-        
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
-        
-        if progress_bar:
-            bar = progress(total = n_tsteps-1)
+        if progress:
+            bar = progress(total=n_tsteps-1)
         for t_idx, t in enumerate(tlist):
-
             if t_idx < n_tsteps - 1:
                 r.integrate(r.t + dt[t_idx])
-                r1 = r.y.copy().reshape(self.hshape)
+                r1 = r.y.reshape(self.hshape)
                 r0 = r1[0].reshape(self.N, self.N).T
                 output.states.append(Qobj(r0))
-#                 filter_idx = np.argwhere(np.abs(r1.max(1) \
-#                                          <= rcut)).flatten()
-#                 self.pop_he(filter_idx)
-            
-            if progress_bar: bar.update()
+                if progress: bar.update()
         return output
-    
-    def pop_he(self, nlist):
-        """
-        Pop the given list of hierarchy index
-        """
-        for n in nlist:
-            if n in self.idx2he:
-                he = self.idx2he[n]
-                self.idx2he.pop(n)
-                self.he2idx.pop(he)
 
     def _calc_renorm_factors(self):
         """
