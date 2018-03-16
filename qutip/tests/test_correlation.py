@@ -44,8 +44,7 @@ from qutip import (correlation, destroy, coherent_dm, correlation_2op_2t,
                    fock, correlation_2op_1t, tensor, qeye, spectrum_ss,
                    spectrum_pi, correlation_ss, spectrum_correlation_fft,
                    spectrum, correlation_3op_2t, mesolve, Options,
-                   Cubic_Spline,sigmax,sigmaz,basis,sigmam,ket2dm, Qobj,
-                   identity)
+                   Cubic_Spline)
 
 # find Cython if it exists
 try:
@@ -666,136 +665,6 @@ def test_fn_list_td_corr():
 
     assert_(abs(g20 - 0.85) < 1e-2)
 
-def test_simple_qubit():
-    """
-    correlation: brmesolve simple qubit
-    """
-    x = sigmax()
-    times = np.linspace(0, 10, 100)
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam()]
-    a_ops = [[sigmax(),lambda w: gamma * (w >= 0)]]
-    corr_br = correlation_2op_2t(H, psi0, times, times, [], x, x, solver = "br", coupling_ops = a_ops)
-    corr_me = correlation_2op_2t(H, psi0, times, times, c_ops, x, x, solver = "me", coupling_ops = [])
-    diff = abs(corr_br - corr_me)
-    assert_(max(diff.reshape(len(times)**2)), 1e-7)
-
-
-def test_COPS():
-    """
-    correlation: brmesolve COPS
-    """
-    x = sigmax()
-    times = np.linspace(0, 10, 100)
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam()]
-    corr_br = correlation_2op_2t(H, psi0, times, times, c_ops, x, x, solver = "br", coupling_ops = [])
-    corr_me = correlation_2op_2t(H, psi0, times, times, c_ops, x, x, solver = "me", coupling_ops = [])
-    diff = abs(corr_br - corr_me)
-    assert_(max(diff.reshape(len(times)**2)), 1e-7)
-
-def test_COPS_with_AOPS():
-    """
-    correlation: brmesolve COPS with AOPS
-    """
-    x = sigmax()
-    times = np.linspace(0, 10, 100)
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam(), np.sqrt(gamma) * sigmaz()]
-    c_ops_brme = [np.sqrt(gamma) * sigmaz()]
-    a_ops = [[sigmax(),lambda w: gamma * (w >= 0)]]
-    corr_br = correlation_2op_2t(H, psi0, times, times, c_ops_brme, x, x, solver = "br", coupling_ops = a_ops)
-    corr_me = correlation_2op_2t(H, psi0, times, times, c_ops, x, x, solver = "me", coupling_ops = [])
-    diff = abs(corr_br - corr_me)
-    assert_(max(diff.reshape(len(times)**2)), 1e-7)
-
-def test_H0_zero_temp_harmonic_osc():
-    """
-    correlation: brmesolve H0 zero temp harmonic oscilator
-    """
-    x = sigmax()
-    times = np.linspace(0, 10, 100)
-    N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.15
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-    c_ops = [np.sqrt(kappa) * a]
-    a_ops = [[a + a.dag(),lambda w: kappa * (w >= 0)]]
-
-    corr_br = correlation_2op_2t(H, psi0, times, times, [], a.dag() * a, a + a.dag(), solver = "br", coupling_ops = a_ops)
-    corr_me = correlation_2op_2t(H, psi0, times, times, c_ops, a.dag() * a, a + a.dag(), solver = "me", coupling_ops = [])
-    diff = abs(corr_br - corr_me)
-    assert_(max(diff.reshape(len(times)**2)), 1e-7)
-
-def test_H0_finite_temp_harmonic_osc():
-    """
-    correlation: brmesolve H0 finite temperature harmonic oscilator
-    """
-    x = sigmax()
-    times = np.linspace(0, 10, 100)
-    N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.15
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-    n_th = 1.5
-    w_th = w0/np.log(1 + 1/n_th)
-    def S_w(w):
-        if w >= 0:
-            return (n_th + 1) * kappa
-        else:
-            return (n_th + 1) * kappa * np.exp(w / w_th)
-
-    c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
-    a_ops = [[a + a.dag(),S_w]]
-    e_ops = [a.dag() * a, a + a.dag()]
-
-
-    corr_br = correlation_2op_2t(H, psi0, times, times, [], a.dag() * a, a + a.dag(), solver = "br", coupling_ops = a_ops)
-    corr_me = correlation_2op_2t(H, psi0, times, times, c_ops, a.dag() * a, a + a.dag(), solver = "me", coupling_ops = [])
-    diff = abs(corr_br - corr_me)
-    assert_(max(diff.reshape(len(times)**2)), 1e-7)
-
-def test_JC_zero_temp():
-    """
-    correlation: brmesolve JC zero jaynes cumming model zero temperature
-    """
-    x = sigmax()
-    times = np.linspace(0, 10, 100)
-    N = 10
-    a = tensor(destroy(N), Qobj(identity(2)))
-    sm = tensor(Qobj(identity(N)), destroy(2))
-    psi0 = ket2dm(tensor(basis(N, 1), basis(2, 0)))
-    a_ops = [[(a + a.dag()),lambda w: kappa * (w >= 0)]]
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * 2 * np.pi
-    kappa = 0.05
-    #times = np.linspace(0, 2 * 2 * np.pi / g, 1000)
-    c_ops = [np.sqrt(kappa) * a]
-    H = w0 * a.dag() * a + w0 * sm.dag() * sm + \
-        g * (a + a.dag()) * (sm + sm.dag())
-
-    corr_br = correlation_2op_2t(H, psi0, times, times, [], a.dag() * a, sm.dag() * sm, solver = "br", coupling_ops = a_ops)
-    corr_me = correlation_2op_2t(H, psi0, times, times, c_ops, a.dag() * a, sm.dag() * sm, solver = "me", coupling_ops = [])
-    diff = abs(corr_br - corr_me)
-    assert_(max(diff.reshape(len(times)**2)), 1e-7)
 
 if __name__ == "__main__":
     run_module_suite()
