@@ -48,9 +48,9 @@ from qutip.pdpsolve import main_ssepdpsolve, main_smepdpsolve
 
 __all__ = ['ssesolve', 'photocurrentsesolve', 'smepdpsolve',
            'smesolve', 'photocurrentmesolve', 'ssepdpsolve',
-           'solvers', 'general_stochastic']
+           'stochastic_solvers', 'general_stochastic']
 
-def solvers():
+def stochastic_solvers():
     """Available solvers
     euler-maruyama:
         A simple generalization of the Euler method for ordinary
@@ -213,7 +213,7 @@ class StochasticSolverOptions:
         The name of the type of measurement process that give rise to the
         stochastic equation to solve.
 
-    store_measurements : bool (default False)
+    store_measurement : bool (default False)
         Whether or not to store the measurement results in the
         :class:`qutip.solver.SolverResult` instance returned by the solver.
 
@@ -268,7 +268,7 @@ class StochasticSolverOptions:
     """
     def __init__(self, H=None, c_ops=[], sc_ops=[], state0=None,
                  e_ops=[], m_ops=None, store_measurement=False, dW_factors=None,
-                 solver="euler", method="homodyne", normalize=1,
+                 solver=None, method="homodyne", normalize=1,
                  times=None, nsubsteps=1, ntraj=1, tol=None,
                  generate_noise=None, noise=None,
                  progress_bar=None, map_func=None, map_kwargs=None,
@@ -391,7 +391,6 @@ class StochasticSolverOptions:
         if self.solver in ['euler-maruyama', 'euler', 50, 0.5]:
             self.solver_code = 50
             self.solver = 'euler-maruyama'
-
         elif self.solver in ['platen', 'platen1', 'explicit1', 100]:
             self.solver_code = 100
             self.solver = 'platen'
@@ -738,7 +737,7 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         _safety_checks(sso)
 
     if sso.m_ops is None:
-        sso.m_ops = [op + op.dag() for op in sso.sc_ops]
+        sso.m_ops = [op * 0 for op in sso.sc_ops]
     if not isinstance(sso.dW_factors, list):
         sso.dW_factors = [1] * len(sso.sc_ops)
     elif len(sso.dW_factors) != len(sso.sc_ops):
@@ -823,7 +822,7 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
         _safety_checks(sso)
 
     if sso.m_ops is None:
-        sso.m_ops = [op + op.dag() for op in sso.sc_ops]
+        sso.m_ops = [op * 0 for op in sso.sc_ops]
     if not isinstance(sso.dW_factors, list):
         sso.dW_factors = [1] * len(sso.sc_ops)
     elif len(sso.dW_factors) != len(sso.sc_ops):
@@ -852,7 +851,7 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     return res
 
 
-def general_stochastic(state0, times, d1, d2, e_ops=[],
+def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
                _safe_mode=True, len_d2=1, args={}, **kwargs):
     """
     Solve stochastic general equation. Dispatch to specific solvers
@@ -952,11 +951,18 @@ def general_stochastic(state0, times, d1, d2, e_ops=[],
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
                     raise Exception("The size of the e_ops does not fit the intial state")
 
-
-    if sso.store_measurement:
-        raise Exception("General stochastic solver cannot store measurement")
     sso.m_ops = []
     sso.cm_ops = []
+    if sso.store_measurement:
+        if not m_ops:
+            raise Exception("General stochastic need explicit " +
+                            "m_ops to store measurement")
+        sso.m_ops = m_ops
+        sso.cm_ops = [td_Qobj(op) for op in sso.m_ops]
+        [op.compile() for op in sso.cm_ops]
+
+
+
     sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
     sso.ce_ops = [td_Qobj(op) for op in sso.e_ops]

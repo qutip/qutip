@@ -362,14 +362,15 @@ cdef class ssolvers:
                 else:
                     states_list.append(Qobj(np.asarray(rho_t), dims=dims))
 
-            if sso.store_measurement:
-                for m_idx, m in enumerate(sso.cm_ops):
-                    m_expt = m.compiled_Qobj.expect(t, rho_t, 0)
-                    measurements[t_idx, m_idx] = m_expt + self.dW_factor[m_idx] * \
-                        sum(noise[t_idx, :, m_idx]) / (self.dt * self.N_substeps)
             if t_idx != tlast-1:
                 rho_t = self.run(t, self.dt, noise[t_idx, :, :],
                                  rho_t, self.N_substeps)
+
+            if sso.store_measurement:
+                 for m_idx, m in enumerate(sso.cm_ops):
+                     m_expt = m.compiled_Qobj.expect(t, rho_t, 0)
+                     measurements[t_idx, m_idx] = m_expt + self.dW_factor[m_idx] * \
+                         sum(noise[t_idx, :, m_idx]) / (self.dt * self.N_substeps)
 
         if sso.method == 'heterodyne':
             measurements = measurements.reshape(len(times),len(sso.cm_ops)//2,2)
@@ -1691,7 +1692,7 @@ cdef class psse(ssolvers):
         self.cdc_ops = []
         for i, op in enumerate(c_ops):
             self.c_ops.append(op[0].compiled_Qobj)
-            self.cdc_ops.append(op[0].compiled_Qobj)
+            self.cdc_ops.append(op[1].compiled_Qobj)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1709,7 +1710,7 @@ cdef class psse(ssolvers):
             c_op = self.cdc_ops[i]
             expect = c_op.expect(t, vec, 1).real * dt
             if expect > 0:
-              noise[i] = np.random.poisson(expect, 1)[0]
+              noise[i] = np.random.poisson(expect)
             else:
               noise[i] = 0.
             axpy(noise[i], d2[i,:], out)
@@ -1728,7 +1729,7 @@ cdef class psse(ssolvers):
             c_op = self.c_ops[i]
             c_op._rhs_mat(t, &vec[0], &temp[0])
             e = dznrm2(temp)
-            axpy(-e * e * self.dt, vec, out)
+            axpy(0.5 * e * e * self.dt, vec, out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1784,7 +1785,7 @@ cdef class psme(ssolvers):
             c_op = self.cdcl_ops[i]
             expect = c_op.expect(t, vec, 1).real * dt
             if expect > 0:
-              noise[i] = np.random.poisson(expect, 1)[0]
+              noise[i] = np.random.poisson(expect)
             else:
               noise[i] = 0.
             axpy(noise[i], d2[i,:], out)
