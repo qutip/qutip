@@ -213,6 +213,9 @@ class StochasticSolverOptions:
         The name of the type of measurement process that give rise to the
         stochastic equation to solve.
 
+    store_all_expect : bool (default False)
+        Whether or not to store the e_ops expect values for all paths.
+
     store_measurement : bool (default False)
         Whether or not to store the measurement results in the
         :class:`qutip.solver.SolverResult` instance returned by the solver.
@@ -267,7 +270,8 @@ class StochasticSolverOptions:
     The coeff format is the same as for the Hamiltonian.
     """
     def __init__(self, H=None, c_ops=[], sc_ops=[], state0=None,
-                 e_ops=[], m_ops=None, store_measurement=False, dW_factors=None,
+                 e_ops=[], m_ops=None, store_all_expect=False,
+                 store_measurement=False, dW_factors=None,
                  solver=None, method="homodyne", normalize=1,
                  times=None, nsubsteps=1, ntraj=1, tol=None,
                  generate_noise=None, noise=None,
@@ -319,6 +323,7 @@ class StochasticSolverOptions:
         self.e_ops = e_ops
         self.m_ops = m_ops
         self.store_measurement = store_measurement
+        self.store_all_expect = store_all_expect
         self.store_states = options.store_states
         self.dW_factors = dW_factors
 
@@ -1081,6 +1086,12 @@ def _sesolve_generic(sso, options, progress_bar):
         data.expect += expect
         data.ss += ss
     data.noise = np.stack(noise)
+
+    if sso.store_all_expect:
+        paths_expect = []
+        for result in results:
+            paths_expect.append(result[3])
+        data.paths_expect = np.stack(paths_expect)
 
     # average density matrices
     if options.average_states and np.any(data.states):
