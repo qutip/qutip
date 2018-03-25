@@ -1060,8 +1060,7 @@ def spin_state(j, m, type='ket'):
 
 
 def spin_coherent(j, theta, phi, type='ket'):
-    """Generates the spin state |j, m>, i.e.  the eigenstate
-    of the spin-j Sz operator with eigenvalue m.
+    """Generate the coherent spin state |theta, phi>.
 
     Parameters
     ----------

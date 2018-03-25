@@ -66,7 +66,8 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
-            'qutip/cy/openmp', 'qutip/cy/openmp/src']
+            'qutip/cy/openmp', 'qutip/cy/openmp/src',
+            'qutip/models']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
@@ -74,7 +75,8 @@ PACKAGE_DATA = {
     'qutip/cy/src': ['*.cpp', '*.hpp'],
     'qutip/control': ['*.pyx'],
     'qutip/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/cy/openmp/src': ['*.cpp', '*.hpp']
+    'qutip/cy/openmp/src': ['*.cpp', '*.hpp'],
+    'qutip/models/cy': ['*.pxi', '*.pxd', '*.pyx']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
@@ -148,7 +150,7 @@ write_version_py()
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
-        'brtools_testing', 'br_tensor']
+        'brtools_testing', 'br_tensor', 'piqs']
 
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
 if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
@@ -263,5 +265,5 @@ Installation complete
 Please cite QuTiP in your publication.
 ==============================================================================
 For your convenience a bibtex file can be easily generated using
-`qutip.about.cite()`"""
+`qutip.cite()`"""
 print(_cite)
