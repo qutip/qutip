@@ -49,8 +49,8 @@ __all__ = ['temporal_basis_vector',
            'scattering_probability']
 
 import numpy as np
-
-from itertools import product, combinations
+from math import factorial
+from itertools import product, combinations_with_replacement
 from qutip import propagator, Options, basis, tensor, zero_ket, Qobj
 
 
@@ -307,6 +307,7 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     evolver = Evolver(Heff, tlist)
 
     indicesList = product(range(T), repeat = n_emissions)
+    # indicesList = combinations_with_replacement(range(T), n_emissions)
 
     if system_zero_state is None:
         system_zero_state = psi0
@@ -319,7 +320,8 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
         for partitioned_taus, partitioned_indices in \
                 zip(set_partition(taus, W), set_partition(indices, W)):
             omega = photon_scattering_operator(evolver, c_ops, partitioned_taus)
-            phi_n_amp = system_zero_state.dag() * omega * psi0
+            phi_n_amp = system_zero_state.dag() * omega * psi0 / \
+                        np.sqrt(factorial(n_emissions))
             # Add scatter amplitude times temporal basis to overall state
             phi_n += phi_n_amp * temporal_basis_vector(partitioned_indices, T)
 
@@ -373,22 +375,23 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
                                      construct_effective_hamiltonian)
     T = len(tlist)
     W = len(c_ops)
-    probs = np.zeros([T] * n_emissions, dtype = np.complex64)
+    amplitudes = np.zeros([T] * n_emissions, dtype = np.complex64)
 
     # Compute <omega_tau> for all combinations of tau
-    indicesList = combinations(range(T), n_emissions)
+    # indicesList = combinations_with_replacement(range(T), n_emissions)
+    indicesList = product(range(T), repeat = n_emissions)
 
     # Project scattered state onto temporal basis
     for indices in indicesList:
         wg_indices_list = list(set_partition(indices, W))
         sum_wg_projectors = sum([temporal_basis_vector(wg_indices, T)
-                                 for wg_indices in wg_indices_list]) / \
-                            np.sqrt(len(wg_indices_list))
-        # the np.sqrt(len(wg_indices_list)) term accounts for double-counting
-        probs[indices] = (sum_wg_projectors.dag() * phi_n).full().item()
+                                 for wg_indices in wg_indices_list])
+        amplitudes[indices] = (sum_wg_projectors.dag() * phi_n).full().item() / \
+            np.sqrt(len(wg_indices_list))
 
-    # Conjugate amplitudes to get probability
-    probs = probs.conj() * probs
+    # Conjugate amplitudes and normalize for double-counting to get probability
+    probs = amplitudes.conj() * amplitudes# / \
+            # (factorial(n_emissions) * (W ** n_emissions))
 
     # Iteratively integrate to obtain single value
     while probs.shape != ():
