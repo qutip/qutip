@@ -49,7 +49,7 @@ __all__ = ['temporal_basis_vector',
            'scattering_probability']
 
 import numpy as np
-from itertools import product, combinations
+from itertools import product, combinations_with_replacement
 from qutip import propagator, Options, basis, tensor, zero_ket, Qobj
 
 
@@ -158,7 +158,7 @@ def set_partition(collection, num_sets):
         partition = [[] for _ in range(num_sets)]
         for i, set_index in enumerate(partitioning):
             partition[set_index].append(collection[i])
-        yield partition
+        yield tuple(tuple(indices) for indices in partition)
 
 
 def photon_scattering_operator(evolver, c_ops, taus_list):
@@ -215,7 +215,7 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
 
     Parameters
     ----------
-    waveguide_emission_indices : list
+    waveguide_emission_indices : list or tuple
         list of indices where photon emission occurs for each waveguide,
         e.g. [[t_1]_wg1, [t_1, t_2]_wg2, []_wg3, [t_1, t_2, t_3]_wg4]
     n_time_bins : int
@@ -226,22 +226,28 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
     temporal_basis_vector : Qobj
         A basis vector representing photon scattering at the specified indices.
         If there are W waveguides, T times, and N photon emissions, then the
-        state is a tensor product state with dimensionality T^(W*N).
+        state is a tensor product state with dimensionality (W*T)^N.
     """
+
+    # Cast waveguide_emission_indices to list for mutability
+    waveguide_emission_indices = [list(i) for i in waveguide_emission_indices]
+
+    # Calculate total number of waveguides
+    W = len(waveguide_emission_indices)
+
     # Calculate total number of emissions
     num_emissions = sum([len(waveguide_indices) for waveguide_indices in
                          waveguide_emission_indices])
     if num_emissions == 0:
-        return basis(n_time_bins, 0)
+        return basis(W * n_time_bins, 0)
 
     # Pad the emission indices with zeros
-    for i, waveguide_indices in enumerate(waveguide_emission_indices):
-        waveguide_emission_indices[i] \
-            = [0] * (num_emissions - len(waveguide_indices)) + waveguide_indices
+    offset_indices = []
+    for i, wg_indices in enumerate(waveguide_emission_indices):
+        offset_indices += [index + i * n_time_bins for index in wg_indices]
 
     # Return an appropriate tensor product state
-    return tensor([tensor([basis(n_time_bins, i) for i in waveguide_indices])
-                   for waveguide_indices in waveguide_emission_indices])
+    return tensor([basis(n_time_bins * W, i) for i in offset_indices])
 
 
 def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
@@ -288,9 +294,9 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     W = len(c_ops)
 
     if n_emissions == 0:
-        phi_n = zero_ket(T)
+        phi_n = zero_ket(W * T)
     else:
-        phi_n = tensor([zero_ket(T)] * (W * n_emissions))
+        phi_n = tensor([zero_ket(W * T)] * n_emissions)
 
     if construct_effective_hamiltonian:
         # Construct an effective Hamiltonian from system hamiltonian and c_ops
@@ -305,22 +311,22 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
 
     evolver = Evolver(Heff, tlist)
 
-    indicesList = combinations(range(T), n_emissions)
+    all_emission_indices = combinations_with_replacement(range(T), n_emissions)
 
     if system_zero_state is None:
         system_zero_state = psi0
 
     # Compute <omega_tau> for all combinations of tau
-    for indices in indicesList:
-        # time indices where a photon is scattered into some waveguide
-        taus = [tlist[i] for i in indices]
+    for emission_indices in all_emission_indices:
+        # Consider unique partitionings of emission times into waveguides
+        partition = tuple(set(set_partition(emission_indices, W)))
         # Consider all possible partitionings of time bins by waveguide
-        for partitioned_taus, partitioned_indices in \
-                zip(set_partition(taus, W), set_partition(indices, W)):
-            omega = photon_scattering_operator(evolver, c_ops, partitioned_taus)
+        for indices in partition:
+            taus = [[tlist[i] for i in wg_indices] for wg_indices in indices]
+            omega = photon_scattering_operator(evolver, c_ops, taus)
             phi_n_amp = system_zero_state.dag() * omega * psi0
             # Add scatter amplitude times temporal basis to overall state
-            phi_n += phi_n_amp * temporal_basis_vector(partitioned_indices, T)
+            phi_n += phi_n_amp * temporal_basis_vector(indices, T)
 
     return phi_n
 
@@ -374,16 +380,18 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
     W = len(c_ops)
 
     # Compute <omega_tau> for all combinations of tau
-    indicesList = combinations(range(T), n_emissions)
+    all_emission_indices = combinations_with_replacement(range(T), n_emissions)
     probs = np.zeros([T] * n_emissions)
 
     # Project scattered state onto temporal basis
-    for indices in indicesList:
-        wg_indices_list = list(set_partition(indices, W))
-        for wg_indices in wg_indices_list:
+    for emit_indices in all_emission_indices:
+        # Consider unique emission time partitionings
+        partition = tuple(set(set_partition(emit_indices, W)))
+        # wg_indices_list = list(set_partition(indices, W))
+        for wg_indices in partition:
             projector = temporal_basis_vector(wg_indices, T)
             amplitude = (projector.dag() * phi_n).full().item()
-            probs[indices] += np.real(amplitude.conjugate() * amplitude)
+            probs[emit_indices] += np.real(amplitude.conjugate() * amplitude)
 
     # Iteratively integrate to obtain single value
     while probs.shape != ():
