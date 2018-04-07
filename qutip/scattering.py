@@ -71,13 +71,13 @@ class Evolver:
 
     Attributes
     ----------
-    H: qutip.Qobj
+    H: Qobj
         system-waveguide(s) Hamiltonian, may be time-dependent
     times: list-like
         list of times to evaluate propagators over
     propagators: (dict of float: (dict of float: qutip.Qobj))
         dictionary of dictionaries of propagator objects with keys of
-        evaluation times (e.g. propagators[t2][t1] returns U[t2,t1]
+        evaluation times, e.g. propagators[t2][t1] returns U[t2,t1]
 
     """
 
@@ -102,12 +102,11 @@ class Evolver:
             final time to compute the propagator U[tf,ti] for; the propagator
             is computed to the nearest time in self.times
         ti: float
-            initial time to compute the propagator U[tf,ti] for; the propagator
-            is computed to the nearest time in self.times
+            initial time to compute the propagator U[tf,ti] for
 
         Returns
         -------
-        propagator: qutip.Qobj
+        propagator: Qobj
             the propagation operator
         """
         left, right = np.searchsorted(self.times, [ti, tf], side = 'left')
@@ -226,7 +225,7 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
     temporal_basis_vector : Qobj
         A basis vector representing photon scattering at the specified indices.
         If there are W waveguides, T times, and N photon emissions, then the
-        state is a tensor product state with dimensionality (W*T)^N.
+        basis vector has dimensionality (W*T)^N.
     """
 
     # Cast waveguide_emission_indices to list for mutability

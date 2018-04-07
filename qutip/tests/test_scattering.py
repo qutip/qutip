@@ -105,6 +105,28 @@ class TestScattering:
         amplitude = np.abs((basisVec.dag() * state).full().item())
         assert_(amplitude < 1e-3)
 
+    def testWaveguideSplit(self):
+        """
+        Checks that a trivial splitting of a waveguide collapse operator like
+        [sm] -> [sm/sqrt2, sm/sqrt2] doesn't affect the normalization or result
+        """
+        gamma = 1.0
+        sm = np.sqrt(gamma) * destroy(2)
+        pulseArea = np.pi
+        pulseLength = 0.2 / gamma
+        RabiFreq = pulseArea / (2 * pulseLength)
+        psi0 = basis(2, 0)
+        tlist = np.geomspace(gamma, 10 * gamma, 40) - gamma
+        # Define TLS Hamiltonian with rotating frame transformation
+        Htls = [[sm.dag() + sm, lambda t, args: RabiFreq * (t < pulseLength)]]
+        # Run the test
+        c_ops = [sm]
+        c_ops_split = [sm / np.sqrt(2), sm / np.sqrt(2)]
+        P1 = scattering_probability(Htls, psi0, 1, c_ops, tlist)
+        P1_split = scattering_probability(Htls, psi0, 1, c_ops_split, tlist)
+        tolerance = 1e-7
+        assert_(1 - tolerance < P1 / P1_split < 1 + tolerance)
+
 
 if __name__ == "__main__":
     run_module_suite()
