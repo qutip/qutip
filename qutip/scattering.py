@@ -73,7 +73,7 @@ class Evolver:
     ----------
     H: Qobj
         system-waveguide(s) Hamiltonian, may be time-dependent
-    times: list-like
+    tlist: list-like
         list of times to evaluate propagators over
     propagators: (dict of float: (dict of float: qutip.Qobj))
         dictionary of dictionaries of propagator objects with keys of
@@ -81,17 +81,17 @@ class Evolver:
 
     """
 
-    def __init__(self, H, times, options = None):
+    def __init__(self, H, tlist, options = None):
         self.H = H
-        self.times = times
+        self.tlist = tlist
         if options is not None:
             self.options = options
         else:
             self.options = Options(nsteps = 10000, normalize_output = False)
         # Make a blank nested dictionary to store propagators
-        self.propagators = dict.fromkeys(times)
-        for t in times:
-            self.propagators[t] = dict.fromkeys(times)
+        self.propagators = dict.fromkeys(tlist)
+        for t in tlist:
+            self.propagators[t] = dict.fromkeys(tlist)
 
     def prop(self, tf, ti):
         """Compute U[t2,t1] where t2 > t1 or return the cached operator
@@ -109,8 +109,8 @@ class Evolver:
         propagator: Qobj
             the propagation operator
         """
-        left, right = np.searchsorted(self.times, [ti, tf], side = 'left')
-        t1, t2 = self.times[left], self.times[right]
+        left, right = np.searchsorted(self.tlist, [ti, tf], side = 'left')
+        t1, t2 = self.tlist[left], self.tlist[right]
         if self.propagators[t2][t1] is None:
             self.propagators[t2][t1] = propagator(self.H, [t1, t2],
                                                   options = self.options,
@@ -199,7 +199,7 @@ def photon_scattering_operator(evolver, c_ops, taus_list):
         omega = c_ops[q] * evolver.prop(tq, tprev) * omega
 
     # Add the <0|Uff(TP, tm)|0> term
-    tmax = evolver.times[-1]
+    tmax = evolver.tlist[-1]
     taumax, _ = taus[-1]
     # if taus[-1] < tmax:
     omega = evolver.prop(tmax, taumax) * omega
@@ -271,8 +271,8 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
         include spontaneous decay rates, e.g.
         :math:`\\sigma = \\sqrt \\gamma \\cdot a`
     tlist : array_like
-        list of times for :math:`\\tau`. taulist must be positive and `0` will
-        be added to the list if not present.
+        list of times for :math:`\\tau_i`. tlist should contain 0 and exceed
+        the pulse duration / temporal region of interest
     system_zero_state : Qobj
         State representing zero excitations in the system. Defaults to
         :math:`\\psi(t_0)`
@@ -354,9 +354,9 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         include spontaneous decay rates, e.g.
         :math:`\\sigma = \\sqrt \\gamma \\cdot a`
     tlist : array_like
-        list of times for :math:`\\tau`. taulist must be positive and `0` will
-        be added to the list if not present. This list can be nonlinearly
-        spaced.
+        list of times for :math:`\\tau_i`. tlist should contain 0 and exceed
+        the pulse duration / temporal region of interest; tlist need not be
+        linearly spaced.
     system_zero_state : Qobj
         State representing zero excitations in the system. Defaults to
         `basis(systemDims, 0)`
