@@ -717,6 +717,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
     ----------
     diagonals : sequence of array_like
         Array of elements to place along the selected diagonals.
+
     offsets : sequence of ints
         Sequence for diagonals to be set:
             - k=0 main diagonal
@@ -724,6 +725,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
             - k<0 kth lower diagonal
     dims : list, optional
         Dimensions for operator
+
     shape : list, tuple, optional
         Shape of operator.  If omitted, a square operator large enough
         to contain the diagonals is generated.
@@ -738,7 +740,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     Examples
     --------
-    >>> qdiags(sqrt(range(1,4)),1)
+    >>> qdiags(sqrt(range(1, 4)), 1)
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isherm = False
     Qobj data =
@@ -748,10 +750,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
-    try:
-        data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
-    except:
-        raise NotImplementedError("This function requires SciPy 0.11+.")
+    data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
     if not dims:
         dims = [[], []]
     if not shape:
