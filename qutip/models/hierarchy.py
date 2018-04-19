@@ -185,9 +185,22 @@ class Heom2(object):
         spostQ = self.spostQ
         nk = he_n[k]
         norm_prev = nk
+        # Real part
         if self.renorm:
-            norm_prev = self.norm_minus[nk, k]
-        op1 = -1j*norm_prev*(c[k]*spreQ - np.conj(c[k])*spostQ)
+            if ~np.iscomplex(c[k]):
+                norm_prev = np.sqrt(float(nk)/abs(c[k]))
+            else:
+                norm_prev = 0.
+        op1_real = -1j*norm_prev*np.real(c[k])*(spreQ - spostQ)
+        
+        # imaginary part
+        if self.renorm:
+            if np.iscomplex(c[k]):
+                norm_prev = np.sqrt(float(nk)/abs(np.imag(c[k])))
+            else:
+                norm_prev = 0.
+        op1_imag = norm_prev*np.imag(c[k])*(spreQ + spostQ)
+        op1 = op1_real + op1_imag
 
         # Fill in larger L
         rowidx = self.he2idx[he_n]
@@ -206,7 +219,9 @@ class Heom2(object):
         nk = he_n[k]
         norm_next = 1.
         if self.renorm:
-            norm_next = self.norm_plus[nk, k]                  
+#             norm_next = self.norm_plus[nk, k]    
+            norm_next = np.sqrt(abs(c[k])*(nk + 1))
+
         op2 = -1j*norm_next*(spreQ - spostQ)
         
         # Fill in larger L
@@ -218,11 +233,12 @@ class Heom2(object):
         self.L_helems[rowpos:rowpos+block, colpos:colpos+block] = op2
     
     def rhs(self, progress=None):
-        print("Populating the hierarchy indices")
+        """
+        Make the RHS
+        """
         while self.nhe < self.total_nhe:
             heidxlist = copy(list(self.idx2he.keys()))
             self.populate(heidxlist)
-        print("Calculating normalization factors")
         self.norm_plus, self.norm_minus = self._calc_renorm_factors()
         if progress != None:
             bar = progress(total = self.nhe*self.kcut)
