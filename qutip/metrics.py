@@ -42,6 +42,7 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
 
 import numpy as np
 from scipy import linalg as la
+import scipy.sparse as sp
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
 from qutip.superop_reps import to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
@@ -389,7 +390,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     # of the dual map of Lambda. We can evaluate that norm much more
     # easily if Lambda is completely positive, since then the largest
     # eigenvalue is the same as the largest singular value.
-
+    
     if not force_solve and J.iscp:
         S_dual = to_super(J.dual_chan())
         vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
@@ -397,7 +398,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
         return la.norm(op.data.todense(), 2)
-
+    
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
@@ -409,11 +410,15 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     
     # Load the parameters with the Choi matrix passed in.
     J_dat = J.data
-    Jr.value, Ji.value = J_dat.real, J_dat.imag
-        
+    
+    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr), 
+                             shape=J_dat.shape)
+   
+    Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
+                             shape=J_dat.shape)
     # Finally, set up and run the problem.
     problem.solve(solver=solver, verbose=verbose)
-
+    
     return problem.value
 
 
