@@ -60,7 +60,7 @@ class Evolver:
 
     Parameters
     ----------
-    H : Qobj or list
+    H : :class: qutip.Qobj or list
         system-waveguide(s) Hamiltonian or effective Hamiltonian in Qobj or
         list-callback format. If construct_effective_hamiltonian is not
         specified, an effective Hamiltonian is constructed from H and c_ops
@@ -71,23 +71,22 @@ class Evolver:
 
     Attributes
     ----------
-    H: Qobj
+    H: :class: qutip.Qobj or list
         system-waveguide(s) Hamiltonian, may be time-dependent
     tlist: list-like
         list of times to evaluate propagators over
-    propagators: (dict of float: (dict of float: qutip.Qobj))
+    propagators: (dict of float: (dict of float: :class: qutip.Qobj))
         dictionary of dictionaries of propagator objects with keys of
         evaluation times, e.g. propagators[t2][t1] returns U[t2,t1]
-
     """
 
     def __init__(self, H, tlist, options = None):
         self.H = H
         self.tlist = tlist
-        if options is not None:
-            self.options = options
-        else:
+        if options is None:
             self.options = Options(nsteps = 10000, normalize_output = False)
+        else:
+            self.options = options
         # Make a blank nested dictionary to store propagators
         self.propagators = dict.fromkeys(tlist)
         for t in tlist:
@@ -106,7 +105,7 @@ class Evolver:
 
         Returns
         -------
-        propagator: Qobj
+        propagator: :class: qutip.Qobj
             the propagation operator
         """
         left, right = np.searchsorted(self.tlist, [ti, tf], side = 'left')
@@ -117,22 +116,6 @@ class Evolver:
                                                   unitary_mode = 'single')
             # Something is still broken about batch unitary mode (see #807)
         return self.propagators[t2][t1]
-
-    def count_filled(self):
-        """Count the number of currently computed propagators in
-        self.propagators.
-
-        Returns
-        -------
-        count: int
-            the number of propagators which have been computed so far
-        """
-        count = 0
-        for _, dic in self.propagators.items():
-            for _, prop in dic.items():
-                if prop is not None:
-                    count += 1
-        return count
 
 
 def set_partition(collection, num_sets):
@@ -167,7 +150,7 @@ def photon_scattering_operator(evolver, c_ops, taus_list):
 
     Parameters
     ----------
-    evolver : Evolver
+    evolver : :class: qutip.scattering.Evolver
         Evolver-wrapped Hamiltonian describing the system
     c_ops : list
         list of collapse operators for each waveguide; these are assumed to
@@ -178,17 +161,16 @@ def photon_scattering_operator(evolver, c_ops, taus_list):
 
     Returns
     -------
-    Omega : Qobj
+    omega : :class: qutip.Qobj
         The temporal scattering operator with dimensionality equal to the
         system state
     """
-
     omega = 1
 
     # Extract the full list of taus
     taus = [(0.0, -1)]  # temporal "ground state" for arbitrary waveguide
-    for i, tauWG in enumerate(taus_list):
-        for tau in tauWG:
+    for i, tau_wg in enumerate(taus_list):
+        for tau in tau_wg:
             taus.append((tau, i))
     taus.sort(key = lambda tup: tup[0])  # sort taus by time
 
@@ -216,18 +198,17 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
     ----------
     waveguide_emission_indices : list or tuple
         list of indices where photon emission occurs for each waveguide,
-        e.g. [[t_1]_wg1, [t_1, t_2]_wg2, []_wg3, [t_1, t_2, t_3]_wg4]
+        e.g. [[t1_wg1], [t1_wg2, t2_wg2], [], [t1_wg4, t2_wg4, t3_wg4]]
     n_time_bins : int
         number of time bins; the range over which each index can vary
 
     Returns
     -------
-    temporal_basis_vector : Qobj
+    temporal_basis_vector : :class: qutip.Qobj
         A basis vector representing photon scattering at the specified indices.
         If there are W waveguides, T times, and N photon emissions, then the
         basis vector has dimensionality (W*T)^N.
     """
-
     # Cast waveguide_emission_indices to list for mutability
     waveguide_emission_indices = [list(i) for i in waveguide_emission_indices]
 
@@ -243,7 +224,7 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
     # Pad the emission indices with zeros
     offset_indices = []
     for i, wg_indices in enumerate(waveguide_emission_indices):
-        offset_indices += [index + i * n_time_bins for index in wg_indices]
+        offset_indices += [index + (i * n_time_bins) for index in wg_indices]
 
     # Return an appropriate tensor product state
     return tensor([basis(n_time_bins * W, i) for i in offset_indices])
@@ -257,11 +238,11 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
 
     Parameters
     ----------
-    H : Qobj or list
+    H : :class: qutip.Qobj or list
         system-waveguide(s) Hamiltonian or effective Hamiltonian in Qobj or
         list-callback format. If construct_effective_hamiltonian is not
         specified, an effective Hamiltonian is constructed from H and c_ops
-    psi0 : Qobj
+    psi0 : :class: qutip.Qobj
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
     n_emissions : int
@@ -273,7 +254,7 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     tlist : array_like
         list of times for :math:`\\tau_i`. tlist should contain 0 and exceed
         the pulse duration / temporal region of interest
-    system_zero_state : Qobj
+    system_zero_state : :class: qutip.Qobj
         State representing zero excitations in the system. Defaults to
         :math:`\\psi(t_0)`
     construct_effective_hamiltonian : bool
@@ -283,12 +264,11 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
 
     Returns
     -------
-    phi_n : Qobj
+    phi_n : :class: qutip.Qobj
         The scattered bath state projected onto the temporal basis given by
         tlist. If there are W waveguides, T times, and N photon emissions, then
         the state is a tensor product state with dimensionality T^(W*N)
     """
-
     T = len(tlist)
     W = len(c_ops)
 
@@ -339,11 +319,11 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
 
     Parameters
     ----------
-    H : Qobj or list
+    H : :class: qutip.Qobj or list
         system-waveguide(s) Hamiltonian or effective Hamiltonian in Qobj or
         list-callback format. If construct_effective_hamiltonian is not
         specified, an effective Hamiltonian is constructed from H and c_ops
-    psi0 : Qobj
+    psi0 : :class: qutip.Qobj
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
     n_emissions : int
@@ -357,7 +337,7 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         list of times for :math:`\\tau_i`. tlist should contain 0 and exceed
         the pulse duration / temporal region of interest; tlist need not be
         linearly spaced.
-    system_zero_state : Qobj
+    system_zero_state : :class: qutip.Qobj
         State representing zero excitations in the system. Defaults to
         `basis(systemDims, 0)`
     construct_effective_hamiltonian : bool
@@ -371,7 +351,6 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         The probability of scattering n photons from the system over the time
         range specified.
     """
-
     phi_n = temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
                                      system_zero_state,
                                      construct_effective_hamiltonian)
