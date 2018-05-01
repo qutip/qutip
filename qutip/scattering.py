@@ -375,3 +375,4 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
     while probs.shape != ():
         probs = np.trapz(probs, x = tlist)
     return np.abs(probs)
+
