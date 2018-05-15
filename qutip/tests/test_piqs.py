@@ -43,7 +43,7 @@ from qutip.cy.piqs import (get_blocks, j_min, j_vals, m_vals,
                            _num_dicke_states, _num_dicke_ladders,
                            get_index, jmm1_dictionary)
 from qutip.cy.piqs import Dicke as _Dicke
-from qutip.models.piqs import *
+from qutip.piqs import *
 
 
 class TestDicke:

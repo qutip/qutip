@@ -66,8 +66,7 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
-            'qutip/cy/openmp', 'qutip/cy/openmp/src',
-            'qutip/models']
+            'qutip/cy/openmp', 'qutip/cy/openmp/src']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
@@ -75,8 +74,7 @@ PACKAGE_DATA = {
     'qutip/cy/src': ['*.cpp', '*.hpp'],
     'qutip/control': ['*.pyx'],
     'qutip/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/cy/openmp/src': ['*.cpp', '*.hpp'],
-    'qutip/models/cy': ['*.pxi', '*.pxd', '*.pyx']
+    'qutip/cy/openmp/src': ['*.cpp', '*.hpp']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
