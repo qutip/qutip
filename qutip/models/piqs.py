@@ -44,10 +44,10 @@ from math import factorial
 from decimal import Decimal
 
 import numpy as np
-
+from scipy.integrate import odeint
 from scipy import constants
-from scipy.sparse import dok_matrix, block_diag
-
+from scipy.sparse import dok_matrix, block_diag, lil_matrix
+from qutip.solver import Options, Result
 from qutip import (Qobj, spre, spost, tensor, identity, ket2dm,
                    vector_to_operator)
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
@@ -112,17 +112,38 @@ def num_tls(nds):
         N = 2*(np.sqrt(nds + 1/4)-1)
     return int(N)
 
+def isdiagonal(mat):
+    """
+    Check if the input matrix is diagonal
+
+    Parameters
+    ==========
+    mat: ndarray/Qobj
+        A 2D numpy array
+
+    Returns
+    =======
+    diag: bool
+        True/False depending on whether the input matrix is diagonal
+    """
+    if isinstance(mat, Qobj):
+        mat = mat.full()
+
+    return np.all(mat == np.diag(np.diagonal(mat)))
+
 
 class Dicke(object):
     """The Dicke class which builds the Lindbladian and Liouvillian matrix.
 
     Example
     -------
-    >> from qutip.models.piqs import Dicke, j_algebra
-    >> N = 2
-    >> jx, jy, jz, jp, jm = j_algebra(N)
-    >> ensemble = Dicke(N, emission=1.)
-    >> L = ensemble.liouvillian()
+    >>> from piqs import Dicke, jspin
+    >>> N = 2
+    >>> jx, jy, jz = jspin(N)
+    >>> jp = jspin(N, "+")
+    >>> jm = jspin(N, "-")
+    >>> ensemble = Dicke(N, emission=1.)
+    >>> L = ensemble.liouvillian()
 
     Parameters
     ----------
@@ -130,11 +151,12 @@ class Dicke(object):
         The number of two-level systems.
 
     hamiltonian: :class: qutip.Qobj
-        A Hamiltonian in the reduced Dicke basis set.
+        A Hamiltonian in the Dicke basis.
 
-        The matrix dimensions are (nds, nds), with nds being the number of
-        dicke states. The hamiltonian can be built with the operators given
-        by the `j_algebra` function in the "dicke" basis.
+        The matrix dimensions are (nds, nds),
+        with nds being the number of Dicke states.
+        The Hamiltonian can be built with the operators
+        given by the `jspin` functions.
 
     emission: float
         Incoherent emission coefficient (also nonradiative emission).
@@ -166,11 +188,12 @@ class Dicke(object):
         The number of two-level systems.
 
     hamiltonian: :class: qutip.Qobj
-        A Hamiltonian in the reduced Dicke basis set.
+        A Hamiltonian in the Dicke basis.
 
-        The matrix dimensions are (nds, nds), with nds being the number of
-        dicke states. The hamiltonian can be built with the operators given
-        by the `j_algebra` function in the "dicke" basis.
+        The matrix dimensions are (nds, nds),
+        with nds being the number of Dicke states.
+        The Hamiltonian can be built with the operators given
+        by the `jspin` function in the "dicke" basis.
 
     emission: float
         Incoherent emission coefficient (also nonradiative emission).
@@ -188,19 +211,20 @@ class Dicke(object):
         Collective (superradiant) emmission coefficient.
         default: 0.0
 
+    collective_dephasing: float
+        Collective dephasing coefficient.
+        default: 0.0
+
     collective_pumping: float
         Collective pumping coefficient.
         default: 0.0
 
-    collective_dephasing: float
-        Collective dephasing coefficient.
-        default: 0.0
-        
     nds: int
         The number of Dicke states.
 
     dshape: tuple
-        The tuple (nds, nds).
+        The shape of the Hilbert space in the Dicke or uncoupled basis.
+        default: (nds, nds).
     """
     def __init__(self, N, hamiltonian=None,
                  emission=0., dephasing=0., pumping=0.,
@@ -260,7 +284,7 @@ class Dicke(object):
         return cythonized_dicke.lindbladian()
 
     def liouvillian(self):
-        """Build the total Liouvillian in the Dicke basis.
+        """Build the total Liouvillian using the Dicke basis.
 
         Returns
         -------
@@ -277,6 +301,50 @@ class Dicke(object):
                 spre(hamiltonian) + 1j * spost(hamiltonian)
             liouv = lindblad + hamiltonian_superoperator
         return liouv
+
+    def pisolve(self, initial_state, tlist, options=None):
+        """
+        Solve for diagonal Hamiltonians and initial states faster.
+
+        Parameters
+        ==========
+        initial_state: :class: qutip.Qobj
+            An initial state specified as a density matrix of
+            `qutip.Qbj` type.
+
+        tlist: ndarray
+            A 1D numpy array of list of timesteps to integrate
+
+        options: :class: qutip.solver.Options
+            The options for the solver.
+
+        Returns
+        =======
+        result: list
+            A dictionary of the type `qutip.solver.Result` which holds the
+            results of the evolution.
+        """
+        if isdiagonal(initial_state) == False:
+            msg = "`pisolve` requires a diagonal initial density matrix. "
+            msg += "In general construct the Liouvillian using "
+            msg += "`piqs.liouvillian` and use qutip.mesolve."
+            raise ValueError(msg)
+
+        if self.hamiltonian and isdiagonal(self.hamiltonian) == False:
+            msg = "`pisolve` should only be used for diagonal Hamiltonians. "
+            msg += "Construct the Liouvillian using `piqs.liouvillian` and"
+            msg += "  use `qutip.mesolve`."
+            raise ValueError(msg)
+
+        if initial_state.full().shape != self.dshape:
+            msg = "Initial density matrix should be diagonal."
+            raise ValueError(msg)
+
+        pim = Pim(self.N, self.emission, self.dephasing, self.pumping,
+                  self.collective_emission, self.collective_pumping,
+                  self.collective_dephasing)
+        result = pim.solve(initial_state, tlist, options=None)
+        return result
 
     def prune_eigenstates(self, liouvillian):
         """Remove spurious eigenvalues and eigenvectors of the Liouvillian.
@@ -325,8 +393,48 @@ class Dicke(object):
         correct_eigenstates = correct_eig_val, correct_eig_vec
         return correct_eigenstates
 
+    def c_ops(self):
+        """Build collapse operators in the full Hilbert space 2^N.
 
-# Utility functions for operators in the Dicke basis
+        Returns
+        -------
+        c_ops_list: list
+            The list with the collapse operators in the 2^N Hilbert space.
+        """
+        ce = self.collective_emission
+        cd = self.collective_dephasing
+        cp = self.collective_pumping
+        c_ops_list = collapse_uncoupled(N=self.N,
+                                        emission=self.emission,
+                                        dephasing=self.dephasing,
+                                        pumping=self.pumping,
+                                        collective_emission=ce,
+                                        collective_dephasing=cd,
+                                        collective_pumping=cp)
+        return c_ops_list
+
+    def coefficient_matrix(self):
+        """Build coefficient matrix for ODE for a diagonal problem.
+
+        Returns
+        -------
+        M: ndarray
+            The matrix M of the coefficients for the ODE dp/dt = Mp.
+            p is the vector of the diagonal matrix elements
+            of the density matrix rho in the Dicke basis.
+        """
+        diagonal_system = Pim(N=self.N,
+                              emission=self.emission,
+                              dephasing=self.dephasing,
+                              pumping=self.pumping,
+                              collective_emission=self.collective_emission,
+                              collective_dephasing=self.collective_dephasing,
+                              collective_pumping=self.collective_pumping)
+        coef_matrix = diagonal_system.coefficient_matrix()
+        return coef_matrix
+
+
+# Utility functions for properties of the Dicke space
 def energy_degeneracy(N, m):
     """Calculate the number of Dicke states with same energy.
 
@@ -356,8 +464,9 @@ def energy_degeneracy(N, m):
 def state_degeneracy(N, j):
     """Calculate the degeneracy of the Dicke state.
 
-    Each state |j, m> includes D(N,j) irreducible representations |j, m,alpha>
-    Uses Decimals to calculate higher numerator and denominators numbers.
+    Each state |j, m> includes D(N,j) irreducible representations
+    |j, m,alpha>. Uses Decimals to calculate higher numerator and
+    denominators numbers.
 
     Parameters
     ----------
@@ -444,7 +553,7 @@ def am(j, m):
     return a_minus
 
 def spin_algebra(N, op=None):
-    """Create the list [sx, sy, sz, sp, sm] with the spin operators.
+    """Create the list [sx, sy, sz] with the spin operators.
 
     The operators are constructed for a collection of N two-level systems
     (TLSs). Each element of the list, i.e., sx, is a vector of `qutip.Qobj`
@@ -464,7 +573,7 @@ def spin_algebra(N, op=None):
     Returns
     -------
     spin_operators: list or :class: qutip.Qobj
-        A list of `qutip.Qobj` operators - [sx, sy, sz, sp, sm] or the
+        A list of `qutip.Qobj` operators - [sx, sy, sz] or the
         requested operator.
     """
     # 1. Define N TLS spin-1/2 matrices in the uncoupled basis
@@ -501,7 +610,7 @@ def spin_algebra(N, op=None):
         sp[i] = sp[0].permute(b[i])
         sm[i] = sm[0].permute(b[i])
 
-    spin_operators = [sx, sy, sz, sp, sm]
+    spin_operators = [sx, sy, sz]
 
     if not op:
         return spin_operators
@@ -518,7 +627,7 @@ def spin_algebra(N, op=None):
     else:
         raise TypeError('Invalid type')
 
-def _j_algebra_uncoupled(N, op=None):
+def _jspin_uncoupled(N, op=None):
     """Construct the the collective spin algebra in the uncoupled basis.
 
     jx, jy, jz, jp, jm are constructed in the uncoupled basis of the
@@ -533,7 +642,7 @@ def _j_algebra_uncoupled(N, op=None):
     op: str
         The operator to return 'x','y','z','+','-'.
         If no operator given, then output is the list of operators
-        for ['x','y','z', '+', '-'].
+        for ['x','y','z',].
 
     Returns
     -------
@@ -544,13 +653,8 @@ def _j_algebra_uncoupled(N, op=None):
     # 1. Define N TLS spin-1/2 matrices in the uncoupled basis
     N = int(N)
 
-    si_TLS = spin_algebra(N)
-
-    sx = si_TLS[0]
-    sy = si_TLS[1]
-    sz = si_TLS[2]
-    sp = si_TLS[3]
-    sm = si_TLS[4]
+    sx, sy, sz = spin_algebra(N)
+    sp, sm = spin_algebra(N, "+"), spin_algebra(N, "-")
 
     jx = sum(sx)
     jy = sum(sy)
@@ -558,7 +662,7 @@ def _j_algebra_uncoupled(N, op=None):
     jp = sum(sp)
     jm = sum(sm)
 
-    collective_operators = [jx, jy, jz, jp, jm]
+    collective_operators = [jx, jy, jz]
 
     if not op:
         return collective_operators
@@ -575,7 +679,7 @@ def _j_algebra_uncoupled(N, op=None):
     else:
         raise TypeError('Invalid type')
 
-def j_algebra(N, op=None, basis="dicke"):
+def jspin(N, op=None, basis="dicke"):
     """
     Calculate the list of collective operators of the total algebra.
 
@@ -590,7 +694,7 @@ def j_algebra(N, op=None, basis="dicke"):
     op: str
         The operator to return 'x','y','z','+','-'.
         If no operator given, then output is the list of operators
-        for ['x','y','z', '+', '-'].
+        for ['x','y','z'].
 
     basis: str
         The basis of the operators - "dicke" or "uncoupled"
@@ -603,7 +707,7 @@ def j_algebra(N, op=None, basis="dicke"):
         the "dicke" or "uncoupled" basis or a single operator requested.
     """
     if basis == "uncoupled":
-        return _j_algebra_uncoupled(N, op)
+        return _jspin_uncoupled(N, op)
 
     nds = num_dicke_states(N)
     num_ladders = num_dicke_ladders(N)
@@ -633,7 +737,7 @@ def j_algebra(N, op=None, basis="dicke"):
     jm = Qobj(jm_operator)
 
     if not op:
-        return [jx, jy, jz, jp, jm]
+        return [jx, jy, jz]
     if op == '+':
         return jp
     elif op == '-':
@@ -647,20 +751,21 @@ def j_algebra(N, op=None, basis="dicke"):
     else:
         raise TypeError('Invalid type')
 
-def c_ops_tls(N, emission=0., dephasing=0., pumping=0.,
+def collapse_uncoupled(N, emission=0., dephasing=0., pumping=0.,
               collective_emission=0., collective_dephasing=0.,
               collective_pumping=0.):
     """
     Create the collapse operators (c_ops) of the Lindbladian.
 
-    These operators are in the uncoupled basis of the two-level system
-    (TLS) SU(2) Pauli matrices.
+    These operators are in the uncoupled basis of the two-level
+    system (TLS) SU(2) Pauli matrices.
 
     Notes
     -----
     The collapse operator list can be given to `qutip.mesolve`.
-    Notice that the operators are placed in a Hilbert space of dimension 2^N.
-    Thus the method is suitable only for small N (upto 10).
+    Notice that the operators are placed in a Hilbert space of
+    dimension 2^N. Thus the method is suitable only for small
+    N (of the order of 10).
 
     Parameters
     ----------
@@ -700,12 +805,15 @@ def c_ops_tls(N, emission=0., dephasing=0., pumping=0.,
 
     if N > 10:
         msg = "N > 10. dim(H) = 2^N. "
-        msg += "Better use `qutip.models.piqs` to reduce Hilbert space "
-        msg += "dimension and exploit permutational symmetry"
+        msg += "Better use `piqs.lindbladian` to reduce Hilbert space "
+        msg += "dimension and exploit permutational symmetry."
         raise Warning(msg)
 
-    [sx, sy, sz, sp, sm] = spin_algebra(N)
-    [jx, jy, jz, jp, jm] = _j_algebra_uncoupled(N)
+    [sx, sy, sz] = spin_algebra(N)
+    sp, sm = spin_algebra(N, "+"), spin_algebra(N, "-")
+    [jx, jy, jz] = jspin(N, basis="uncoupled")
+    jp, jm = (jspin(N, "+", basis = "uncoupled"),
+              jspin(N, "-", basis="uncoupled"))
 
     c_ops = []
 
@@ -835,7 +943,7 @@ def _uncoupled_excited(N):
         The density matrix for the excited state in the uncoupled basis.
     """
     N = int(N)
-    jz = _j_algebra_uncoupled(N)[2]
+    jz = jspin(N, "z", basis="uncoupled")
     en, vn = jz.eigenstates()
     psi0 = vn[2**N - 1]
     return ket2dm(psi0)
@@ -857,7 +965,7 @@ def _uncoupled_superradiant(N):
         space.
     """
     N = int(N)
-    jz = _j_algebra_uncoupled(N, "z")
+    jz = jspin(N, "z", basis="uncoupled")
     en, vn = jz.eigenstates()
     psi0 = vn[2**N - (N+1)]
     return ket2dm(psi0)
@@ -878,7 +986,7 @@ def _uncoupled_ground(N):
         The density matrix for the ground state in the full Hilbert space.
     """
     N = int(N)
-    jz = _j_algebra_uncoupled(N, "z")
+    jz = jspin(N, "z", basis="uncoupled")
     en, vn = jz.eigenstates()
     psi0 = vn[0]
     return ket2dm(psi0)
@@ -899,13 +1007,11 @@ def _uncoupled_ghz(N):
         The density matrix for the GHZ state in the full Hilbert space.
     """
     N = int(N)
-
     rho = np.zeros((2**N, 2**N))
     rho[0, 0] = 1/2
     rho[2**N - 1, 0] = 1/2
     rho[0, 2**N - 1] = 1/2
     rho[2**N - 1, 2**N - 1] = 1/2
-
     spin_dim = [2 for i in range(0, N)]
     spins_dims = list((spin_dim, spin_dim))
     rho = Qobj(rho, dims=spins_dims)
@@ -1115,8 +1221,9 @@ def ground(N, basis="dicke"):
     """
     Generate the density matrix of the ground state.
 
-    This state is given by |N/2, -N/2> in the Dicke basis. If the argument `basis`
-    is "uncoupled" then it generates the state in a 2**N dim Hilbert space.
+    This state is given by |N/2, -N/2> in the Dicke basis. If the argument
+    `basis` is "uncoupled" then it generates the state in a 2**N dim Hilbert
+    space.
 
     Parameters
     ----------
@@ -1192,3 +1299,389 @@ def block_matrix(N):
         square_blocks.append(np.ones((i, i)))
         k = k + 1
     return block_diag(square_blocks)
+
+# ============================================================================
+# Adding a faster version to make a Permutational Invariant matrix
+# ============================================================================
+def tau_column(tau, k, j):
+    """
+    Determine the column index for the non-zero elements of the matrix for a
+    particular row `k` and the value of `j` from the Dicke space.
+
+    Parameters
+    ----------
+    tau: str
+        The tau function to check for this `k` and `j`.
+
+    k: int
+        The row of the matrix M for which the non zero elements have
+        to be calculated.
+
+    j: float
+        The value of `j` for this row.
+    """
+    # In the notes, we indexed from k = 1, here we do it from k = 0
+    k = k + 1
+    mapping = {"tau3": k-(2 * j + 3),
+               "tau2": k-1,
+               "tau4": k+(2 * j - 1),
+               "tau5": k-(2 * j + 2),
+               "tau1": k,
+               "tau6": k+(2 * j),
+               "tau7": k-(2 * j + 1),
+               "tau8": k+1,
+               "tau9": k+(2 * j + 1)}
+    # we need to decrement k again as indexing is from 0
+    return int(mapping[tau] - 1)
+
+
+class Pim(object):
+    """
+    The Permutation Invariant Matrix class.
+
+    Initialize the class with the parameters for generating a Permutation
+    Invariant matrix which evolves a given diagonal initial state `p` as:
+
+                                dp/dt = Mp
+
+    Parameters
+    ----------
+    N: int
+        The number of two-level systems.
+
+    emission: float
+        Incoherent emission coefficient (also nonradiative emission).
+        default: 0.0
+
+    dephasing: float
+        Local dephasing coefficient.
+        default: 0.0
+
+    pumping: float
+        Incoherent pumping coefficient.
+        default: 0.0
+
+    collective_emission: float
+        Collective (superradiant) emmission coefficient.
+        default: 0.0
+
+    collective_pumping: float
+        Collective pumping coefficient.
+        default: 0.0
+
+    collective_dephasing: float
+        Collective dephasing coefficient.
+        default: 0.0
+
+    Attributes
+    ----------
+    N: int
+        The number of two-level systems.
+
+    emission: float
+        Incoherent emission coefficient (also nonradiative emission).
+        default: 0.0
+
+    dephasing: float
+        Local dephasing coefficient.
+        default: 0.0
+
+    pumping: float
+        Incoherent pumping coefficient.
+        default: 0.0
+
+    collective_emission: float
+        Collective (superradiant) emmission coefficient.
+        default: 0.0
+
+    collective_dephasing: float
+        Collective dephasing coefficient.
+        default: 0.0
+
+    collective_pumping: float
+        Collective pumping coefficient.
+        default: 0.0
+
+    M: dict
+        A nested dictionary of the structure {row: {col: val}} which holds
+        non zero elements of the matrix M
+    """
+    def __init__(self, N, emission=0., dephasing=0, pumping=0,
+                 collective_emission=0, collective_pumping=0,
+                 collective_dephasing=0):
+        self.N = N
+        self.emission = emission
+        self.dephasing = dephasing
+        self.pumping = pumping
+        self.collective_pumping = collective_pumping
+        self.collective_dephasing = collective_dephasing
+        self.collective_emission = collective_emission
+        self.M = {}
+
+    def isdicke(self, dicke_row, dicke_col):
+        """
+        Check if an element in a matrix is a valid element in the Dicke space.
+        Dicke row: j value index. Dicke column: m value index.
+        The function returns True if the element exists in the Dicke space and
+        False otherwise.
+
+        Parameters
+        ----------
+        dicke_row, dicke_col : int
+            Index of the element in Dicke space which needs to be checked
+        """
+        rows = self.N + 1
+        cols = 0
+
+        if (self.N % 2) == 0:
+            cols = int(self.N/2 + 1)
+        else:
+            cols = int(self.N/2 + 1/2)
+        if (dicke_row > rows) or (dicke_row < 0):
+            return (False)
+        if (dicke_col > cols) or (dicke_col < 0):
+            return (False)
+        if (dicke_row < int(rows/2)) and (dicke_col > dicke_row):
+            return False
+        if (dicke_row >= int(rows/2)) and (rows - dicke_row <= dicke_col):
+            return False
+        else:
+            return True
+
+    def tau_valid(self, dicke_row, dicke_col):
+        """
+        Find the Tau functions which are valid for this value of (dicke_row,
+        dicke_col) given the number of TLS. This calculates the valid tau
+        values and reurns a dictionary specifying the tau function name and
+        the value.
+
+        Parameters
+        ----------
+        dicke_row, dicke_col : int
+            Index of the element in Dicke space which needs to be checked.
+
+        Returns
+        -------
+        taus: dict
+            A dictionary of key, val as {tau: value} consisting of the valid
+            taus for this row and column of the Dicke space element.
+        """
+        tau_functions = [self.tau3, self.tau2, self.tau4,
+                         self.tau5, self.tau1, self.tau6,
+                         self.tau7, self.tau8, self.tau9]
+        N = self.N
+        if self.isdicke(dicke_row, dicke_col) is False:
+            return False
+        # The 3x3 sub matrix surrounding the Dicke space element to
+        # run the tau functions
+        indices = [(dicke_row + x, dicke_col + y) for x in range(-1, 2)
+                   for y in range(-1, 2)]
+        taus = {}
+        for idx, tau in zip(indices, tau_functions):
+            if self.isdicke(idx[0], idx[1]):
+                j, m = self.calculate_j_m(idx[0], idx[1])
+                taus[tau.__name__] = tau(j, m)
+        return taus
+
+    def calculate_j_m(self, dicke_row, dicke_col):
+        """
+        Get the value of j and m for the particular Dicke space element.
+
+        Parameters
+        ----------
+        dicke_row, dicke_col: int
+            The row and column from the Dicke space matrix
+
+        Returns
+        -------
+        j, m: float
+            The j and m values.
+        """
+        N = self.N
+        j = N/2 - dicke_col
+        m = N/2 - dicke_row
+        return(j, m)
+
+    def calculate_k(self, dicke_row, dicke_col):
+        """
+        Get k value from the current row and column element in the Dicke space.
+
+        Parameters
+        ----------
+        dicke_row, dicke_col: int
+            The row and column from the Dicke space matrix.
+        Returns
+        -------
+        k: int
+            The row index for the matrix M for given Dicke space
+            element.
+        """
+        N = self.N
+        if dicke_row == 0:
+            k = dicke_col
+        else:
+            k = int(((dicke_col)/2) * (2 * (N + 1) - 2 * (dicke_col - 1)) +
+                                      (dicke_row - (dicke_col)))
+        return k
+
+    def coefficient_matrix(self):
+        """
+        Generate the matrix M governing the dynamics.
+
+        If the initial density matrix and the Hamiltonian is diagonal, the
+        evolution of the system is given by the simple ODE: dp/dt = Mp.
+        """
+        N = self.N
+        nds = num_dicke_states(N)
+        rows = self.N + 1
+        cols = 0
+
+        sparse_M = lil_matrix((nds, nds), dtype=float)
+        if (self.N % 2) == 0:
+            cols = int(self.N/2 + 1)
+        else:
+            cols = int(self.N/2 + 1/2)
+        for (dicke_row, dicke_col) in np.ndindex(rows, cols):
+            if self.isdicke(dicke_row, dicke_col):
+                k = int(self.calculate_k(dicke_row, dicke_col))
+                row = {}
+                taus = self.tau_valid(dicke_row, dicke_col)
+                for tau in taus:
+                    j, m = self.calculate_j_m(dicke_row, dicke_col)
+                    current_col = tau_column(tau, k, j)
+                    sparse_M[k, int(current_col)] = taus[tau]
+        return sparse_M.tocsr()
+
+    def solve(self, rho0, tlist, options=None):
+        """
+        Solve the ODE for the evolution of diagonal states and Hamiltonians.
+        """
+        if options is None:
+            options = Options()
+        output = Result()
+        output.solver = "pisolve"
+        output.times = tlist
+        output.states = []
+        output.states.append(Qobj(rho0))
+        rhs_generate = lambda y, tt, M: M.dot(y)
+        rho0_flat = np.diag(np.real(rho0.full()))
+        L = self.coefficient_matrix()
+        rho_t = odeint(rhs_generate, rho0_flat, tlist, args=(L,))
+        for r in rho_t[1:]:
+            diag = np.diag(r)
+            output.states.append(Qobj(diag))
+        return output
+
+    def tau1(self, j, m):
+        """
+        Calculate tau1 for value of j and m.
+        """
+        yS = self.collective_emission
+        yL = self.emission
+        yD = self.dephasing
+        yP = self.pumping
+        yCP = self.collective_pumping
+        N = float(self.N)
+        spontaneous = yS * (1 + j - m) * (j + m)
+        losses = yL * (N/2 + m)
+        pump = yP * (N/2 - m)
+        collective_pump = yCP * (1 + j + m) * (j - m)
+        if j == 0:
+            dephase = yD * N/4
+        else:
+            dephase = yD * (N/4 - m**2 * ((1 + N/2)/(2 * j * (j+1))))
+        t1 = spontaneous + losses + pump + dephase + collective_pump
+        return -t1
+
+    def tau2(self, j, m):
+        """
+        Calculate tau2 for given j and m
+        """
+        yS = self.collective_emission
+        yL = self.emission
+        N = float(self.N)
+        spontaneous = yS * (1 + j - m) * (j + m)
+        losses = yL * (((N/2 + 1) * (j - m + 1) * (j + m))/(2 * j * (j+1)))
+        t2 = spontaneous + losses
+        return t2
+
+    def tau3(self, j, m):
+        """
+        Calculate tau3.
+        """
+        yL = self.emission
+        N = float(self.N)
+        num = (j + m - 1) * (j + m) * (j + 1 + N/2)
+        den = 2 * j * (2 * j + 1)
+        t3 = yL * (num/den)
+        return t3
+
+    def tau4(self, j, m):
+        """
+        Calculate tau4.
+        """
+        yL = self.emission
+        N = float(self.N)
+        num = (j - m + 1) * (j - m + 2) * (N/2 - j)
+        den = 2 * (j + 1) * (2 * j + 1)
+        t4 = yL * (num/den)
+        return t4
+
+    def tau5(self, j, m):
+        """
+        Calculate tau5.
+        """
+        yD = self.dephasing
+        N = float(self.N)
+        num = (j - m) * (j + m) * (j + 1 + N/2)
+        den = 2 * j * (2 * j + 1)
+        t5 = yD * (num/den)
+        return t5
+
+    def tau6(self, j, m):
+        """
+        Calculate tau6.
+        """
+        yD = self.dephasing
+        N = float(self.N)
+        num = (j - m + 1) * (j + m + 1) * (N/2 - j)
+        den = 2 * (j + 1) * (2 * j + 1)
+        t6 = yD * (num/den)
+        return t6
+
+    def tau7(self, j, m):
+        """
+        Calculate tau7.
+        """
+        yP = self.pumping
+        N = float(self.N)
+        num = (j - m - 1) * (j - m) * (j + 1 + N/2)
+        den = 2 * j * (2 * j + 1)
+        t7 = yP * (float(num)/den)
+        return t7
+
+    def tau8(self, j, m):
+        """
+        Calculate tau8.
+        """
+        yP = self.pumping
+        yCP = self.collective_pumping
+        N = float(self.N)
+
+        num = (1 + N/2) * (j-m) * (j + m + 1)
+        den = 2 * j * (j+1)
+        pump = yP * (float(num)/den)
+        collective_pump = yCP * (j-m) * (j+m+1)
+        t8 = pump + collective_pump
+        return t8
+
+    def tau9(self, j, m):
+        """
+        Calculate tau9.
+        """
+        yP = self.pumping
+        N = float(self.N)
+        num = (j+m+1) * (j+m+2) * (N/2 - j)
+        den = 2 * (j+1) * (2*j + 1)
+        t9 = yP * (float(num)/den)
+        return t9

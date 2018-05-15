@@ -317,19 +317,20 @@ class TestDicke:
                     2., 8., 0.333333]
         assert_array_almost_equal(tau_calculated, tau_real)
 
-    def test_j_algebra(self):
+    def test_jspin(self):
         """
         Test calculation of the j algebra relation for the total operators.
 
-        The [jx, jy, jz, jp, jm] for a given N in the (j, m, m1) basis should
-        follow the following algebra
+        The jx, jy, jz, jp and jm for a given N in the (j, m, m1)
+        basis should follow the following algebra
         [jx, jy] == 1j * jz, [jp, jm] == 2 * jz, jx^2 + jy^2 + jz^2 == j2^2.
         """
         N_list = [1, 2, 3, 4, 7]
 
         for nn in N_list:
             # tests 1
-            [jx, jy, jz, jp, jm] = j_algebra(nn)
+            [jx, jy, jz] = jspin(nn)
+            jp, jm = jspin(nn, "+"), jspin(nn, "-")
             test_jxjy = jx * jy - jy * jx
             true_jxjy = 1j * jz
             test_jpjm = jp * jm - jm * jp
@@ -339,7 +340,8 @@ class TestDicke:
             assert_array_equal(test_jpjm, true_jpjm)
 
             # tests 2
-            [jx, jy, jz, jp, jm] = j_algebra(nn)
+            [jx, jy, jz] = jspin(nn)
+            jp, jm = jspin(nn, "+"), jspin(nn, "-")
             test_jxjy = jx * jy - jy * jx
             true_jxjy = 1j * jz
             test_jpjm = jp * jm - jm * jp
@@ -348,12 +350,12 @@ class TestDicke:
             assert_array_equal(test_jxjy, true_jxjy)
             assert_array_equal(test_jpjm, true_jpjm)
 
-            assert_array_equal(j_algebra(nn, "x"), jx)
-            assert_array_equal(j_algebra(nn, "y"), jy)
-            assert_array_equal(j_algebra(nn, "z"), jz)
-            assert_array_equal(j_algebra(nn, "+"), jp)
-            assert_array_equal(j_algebra(nn, "-"), jm)
-            assert_raises(TypeError, j_algebra, nn, "q")
+            assert_array_equal(jspin(nn, "x"), jx)
+            assert_array_equal(jspin(nn, "y"), jy)
+            assert_array_equal(jspin(nn, "z"), jz)
+            assert_array_equal(jspin(nn, "+"), jp)
+            assert_array_equal(jspin(nn, "-"), jm)
+            assert_raises(TypeError, jspin, nn, "q")
 
     def test_j_min_(self):
         """
@@ -524,7 +526,7 @@ class TestDicke:
         """
         Tests the generation of the collective algebra in uncoupled basis.
 
-        The list [jx, jy, jz, jp, jm] created in the 2^N Hilbert space is
+        The list [jx, jy, jz] created in the 2^N Hilbert space is
         checked for N = 2.
         """
 
@@ -553,11 +555,11 @@ class TestDicke:
                  [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
                  [0. + 0.j, 1. + 0.j, 1. + 0.j, 0. + 0.j]]
 
-        assert_array_equal(j_algebra(2, "x", basis="uncoupled").full(), jx_n2)
-        assert_array_equal(j_algebra(2, "y", basis="uncoupled").full(), jy_n2)
-        assert_array_equal(j_algebra(2, "z", basis="uncoupled").full(), jz_n2)
-        assert_array_equal(j_algebra(2, "+", basis="uncoupled").full(), jp_n2)
-        assert_array_equal(j_algebra(2, "-", basis="uncoupled").full(), jm_n2)
+        assert_array_equal(jspin(2, "x", basis="uncoupled").full(), jx_n2)
+        assert_array_equal(jspin(2, "y", basis="uncoupled").full(), jy_n2)
+        assert_array_equal(jspin(2, "z", basis="uncoupled").full(), jz_n2)
+        assert_array_equal(jspin(2, "+", basis="uncoupled").full(), jp_n2)
+        assert_array_equal(jspin(2, "-", basis="uncoupled").full(), jm_n2)
 
         # error
         assert_raises(TypeError, spin_algebra, 2, "q")
@@ -760,7 +762,7 @@ class TestDicke:
         assert_array_almost_equal(test_css_uncoupled.full(), css_uncoupled)
         assert_array_almost_equal(test_css_dicke.full(), css_dicke)
 
-    def test_c_ops_tls(self):
+    def test_collapse_uncoupled(self):
         """
         Test the calculation of the correct collapse operators (c_ops) list.
 
@@ -772,7 +774,9 @@ class TestDicke:
         c2 = Qobj([[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0],
                    [0, 0, 1, 0]], dims=[[2, 2], [2, 2]])
         true_c_ops = [c1, c2]
-        assert_equal(true_c_ops, c_ops_tls(N=2, emission=1))
+        assert_equal(true_c_ops, collapse_uncoupled(N=2, emission=1))
+        system = Dicke(N=2, emission=1)
+        assert_equal(true_c_ops, system.c_ops())
 
     def test_get_blocks(self):
         """
@@ -1089,23 +1093,14 @@ class TestDicke:
         gCE = kappa /(N/2)
         gE = 1
         gD = 1
-        [jx, jy, jz, jp, jm] = j_algebra(N)
+        [jx, jy, jz] = jspin(N)
+        jp, jm = jspin(N, "+"), jspin(N, "-")
         H = w0 * jx
 
         ensemble = Dicke(N=N, hamiltonian=H, collective_emission=gCE,
-                        
                          emission=gE, dephasing=gD)
         liouv = ensemble.liouvillian() 
         pruned_eig_values, pruned_eig_states = ensemble.prune_eigenstates(liouv)
-        eigvals = np.array([-6.27240464 -2.23707007e+00j,
-                            -6.27240464 +2.23707007e+00j,
-                            -5.10278472 -6.65456951e-01j,
-                            -5.10278472 +6.65456951e-01j,
-                            -4.50131848 -2.11316508e-01j,
-                            -4.50131848 +2.11316508e-01j,
-                            -2.92477558 -7.01479149e-16j,
-                            -2.79443057 +2.54557035e-16j,
-                            -1.52777818 +3.65078564e-16j])
         estate_last = np.array([[-0.00510544+0.j],
                                 [0.00000000-0.01614514j],
                                 [0.08133350+0.j],
@@ -1122,8 +1117,141 @@ class TestDicke:
                                 [0.00000000+0.j],
                                 [0.00000000+0.j],
                                 [0.64971224+0.j]])
-        assert_array_almost_equal(pruned_eig_values, eigvals)
         assert_array_almost_equal(pruned_eig_states[-1].full(), estate_last)
+
+
+class TestPim:
+    """
+    A test class for the Permutation invariance matrix generation
+    """
+    def test_gamma(self):
+        """
+        Test the calculation of various gamma values for diagonal system.
+
+        For N = 6 |j, m> would be :
+
+        | 3, 3>
+        | 3, 2> | 2, 2>
+        | 3, 1> | 2, 1> | 1, 1>
+        | 3, 0> | 2, 0> | 1, 0> |0, 0>
+        | 3,-1> | 2,-1> | 1,-1>
+        | 3,-2> | 2,-2>
+        | 3,-3>
+        """
+        N = 6
+        collective_emission = 1.
+        emission = 1.
+        dephasing = 1.
+        pumping = 1.
+        collective_pumping = 1.
+        model = Pim(N, collective_emission=collective_emission,
+                       emission=emission, dephasing=dephasing,
+                       pumping=pumping, collective_pumping=collective_pumping)
+        tau_calculated = [model.tau3(3, 1),
+                          model.tau2(2, 1),
+                          model.tau4(1, 1),
+                          model.tau5(3, 0),
+                          model.tau1(2, 0),
+                          model.tau6(1, 0),
+                          model.tau7(3, -1),
+                          model.tau8(2, -1),
+                          model.tau9(1, -1)]
+        tau_real = [2., 8., 0.333333,
+                    1.5, -19.5, 0.666667,
+                    2., 8., 0.333333]
+        assert_array_almost_equal(tau_calculated, tau_real)
+
+    def test_isdicke(self):
+        """
+        Tests the `isdicke` function
+        """
+        N1 = 1
+        g0=.01
+        nth=.01
+        gP=g0*nth
+        gL=g0*(0.1+nth)
+        gS= 0.1
+        gD= 0.1
+
+        pim1 = Pim(N1, gS, gL, gD, gP)
+
+        test_indices1 = [(0, 0), (0, 1), (1, 0), (-1, -1), (2, -1)]
+        dicke_labels = [pim1.isdicke(x[0], x[1]) for x in test_indices1]
+
+        N2 = 4
+
+        pim2 = Pim(N2, gS, gL, gD, gP)
+        test_indices2 = [(0, 0), (4, 4), (2, 0), (1, 3), (2, 2)]
+        dicke_labels = [pim2.isdicke(x[0], x[1]) for x in test_indices2]
+
+        assert_array_equal(dicke_labels, [True, False, True, False, True])
+
+    def test_isdiagonal(self):
+        """
+        Test the isdiagonal function.
+        """
+        mat1 = np.array([[1, 2], [3, 4]])
+        mat2 = np.array([[1, 0.], [0., 2]])
+        mat3 = np.array([[1+1j, 0.], [0.-2j, 2-2j]])
+        mat4 = np.array([[1+1j, 0.], [0., 2-2j]])
+        assert_equal(isdiagonal(mat1), False)
+        assert_equal(isdiagonal(mat2), True)
+        assert_equal(isdiagonal(mat3), False)
+        assert_equal(isdiagonal(mat4), True)
+
+    def test_pisolve(self):
+        """
+        Test the warning for diagonal Hamiltonians to use internal solver
+        """
+        jx, jy, jz = jspin(4)
+        jp, jm = jspin(4, "+"), jspin(4, "-")
+
+    def test_coefficient_matrix(self):
+        """
+        Test the coefficient matrix used by 'pisolve' for diagonal problems.
+        """
+        N = 2
+        ensemble = Pim(N, emission=1)
+        test_matrix = ensemble.coefficient_matrix().todense()
+        ensemble2 = Dicke(N, emission=1)
+        test_matrix2 = ensemble.coefficient_matrix().todense()
+        true_matrix = [[-2, 0, 0, 0], [ 1, -1, 0, 0], [ 0, 1, 0, 1.], [ 1, 0, 0, -1.]]
+
+        assert_array_almost_equal(test_matrix, true_matrix)
+        assert_array_almost_equal(test_matrix2, true_matrix)
+
+    def test_pisolve(self):
+        """
+        Test the warning for diagonal Hamiltonians to use internal solver.
+        """
+        jx, jy, jz = jspin(4)
+        jp, jm = jspin(4, "+"), jspin(4, "-")
+        non_diag_hamiltonian = jx
+        diag_hamiltonian = jz
+
+        non_diag_system = Dicke(4, non_diag_hamiltonian, emission=0.1)
+        diag_system = Dicke(4, diag_hamiltonian, emission=0.1)
+
+        diag_initial_state = dicke(4, 1, 0)
+        non_diag_initial_state = ghz(4)
+        tlist = np.linspace(0, 10, 100)
+
+        assert_raises(ValueError, non_diag_system.pisolve,
+                      diag_initial_state, tlist)
+        assert_raises(ValueError, non_diag_system.pisolve,
+                      non_diag_initial_state, tlist)
+        assert_raises(ValueError, diag_system.pisolve,
+                      non_diag_initial_state, tlist)
+
+        non_dicke_initial_state = excited(4, basis='uncoupled')
+        assert_raises(ValueError, diag_system.pisolve,
+                      non_dicke_initial_state, tlist)
+
+        # no Hamiltonian
+        no_hamiltonian_system = Dicke(4, emission=0.1)
+        result = no_hamiltonian_system.pisolve(diag_initial_state, tlist)
+        assert_equal(True, len(result.states)>0)
+
 
 if __name__ == "__main__":
     run_module_suite()
