@@ -185,6 +185,13 @@ Time-dependent problems
 .. automodule:: qutip.rhs_generate
     :members: rhs_generate, rhs_clear
 
+Scattering in Quantum Optical Systems
+-------------------------------------
+
+.. automodule:: qutip.scattering
+    :members: temporal_basis_vector, temporal_scattered_state, scattering_probability
+    :undoc-members:
+
 Visualization
 ===============
 

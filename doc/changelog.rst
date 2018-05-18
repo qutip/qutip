@@ -13,6 +13,8 @@ Version 4.3.0 ()
 Improvements
 ------------
 
+- Added API reference for ``qutip.scattering`` module
+
 - Added fast projector method, ``Q.proj()``.
 
 - Computing matrix elements, ``Q.matrix_element`` is now ~10x faster.
