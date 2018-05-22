@@ -2064,7 +2064,8 @@ def _rhs_rho_milstein_implicit(L, rho_t, t, A, dt, ddW, d1, d2, args):
     drho_t += (A[0] * b - TrAb * rho_t - e0 * b) * dW[1] # Milstein term
     drho_t += rho_t
 
-    v, check = sp.linalg.bicgstab(A[-2], drho_t, x0 = drho_t + a, tol=args['tol'])
+    v, check = sp.linalg.bicgstab(A[-2], drho_t, x0 = drho_t + a, tol=args['tol'],
+                                    atol='legacy')
 
     return v
     
@@ -2099,7 +2100,8 @@ def _rhs_rho_taylor_15_implicit(L, rho_t, t, A, dt, ddW, d1, d2, args):
     drho_t += (A[0] * Lb - TrALb * rho_t - (2 * TrAb) * b - e0 * Lb) * dW[4]
     drho_t += rho_t
 
-    v, check = sp.linalg.bicgstab(A[-2], drho_t, x0 = xx0, tol=args['tol'])
+    v, check = sp.linalg.bicgstab(A[-2], drho_t, x0 = xx0, tol=args['tol'],
+                                    atol='legacy')
 
     return v
     
