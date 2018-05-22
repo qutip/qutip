@@ -138,14 +138,16 @@ def _super_tofrom_choi(q_oper):
     type should be called externally.
     """
     data = q_oper.data.toarray()
-    flat_dims = np.ravel(q_oper.dims)
-    new_dims = [[q_oper.dims[1][1], q_oper.dims[0][1]],
-                [q_oper.dims[1][0], q_oper.dims[0][0]]]
+    dims = q_oper.dims
+    new_dims = [[dims[1][1], dims[0][1]], [dims[1][0], dims[0][0]]]
     d0 = np.prod(np.ravel(new_dims[0]))
     d1 = np.prod(np.ravel(new_dims[1]))
+    s0 = np.prod(dims[0][0])
+    s1 = np.prod(dims[1][1])
     return Qobj(dims=new_dims,
-                inpt=data.reshape(flat_dims).
+                inpt=data.reshape([s0, s1, s0, s1]).
                 transpose(3, 1, 2, 0).reshape((d0, d1)))
+
 
 def _isqubitdims(dims):
     """Checks whether all entries in a dims list are integer powers of 2.
@@ -222,8 +224,8 @@ def choi_to_kraus(q_oper):
     """
     vals, vecs = eig(q_oper.data.todense())
     vecs = [array(_) for _ in zip(*vecs)]
-    nrows = q_oper.dims[0][1][0]
-    return [Qobj(inpt=sqrt(val)*vec2mat(vec, nrows=nrows),
+    shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
+    return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
             dims=q_oper.dims[0][::-1])
             for val, vec in zip(vals, vecs)]
 
