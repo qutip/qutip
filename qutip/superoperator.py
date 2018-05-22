@@ -224,12 +224,14 @@ def mat2vec(mat):
     return mat.T.reshape(np.prod(np.shape(mat)), 1)
 
 
-def vec2mat(vec):
+def vec2mat(vec, nrows=None):
     """
     Private function reshaping vector to matrix.
     """
-    n = int(np.sqrt(len(vec)))
-    return vec.reshape((n, n)).T
+    if nrows is None:
+        nrows = int(np.sqrt(len(vec)))
+    ncols = int(len(vec)/nrows)
+    return vec.reshape((ncols, nrows)).T
 
 
 def vec2mat_index(N, I):

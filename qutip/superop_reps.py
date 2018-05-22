@@ -138,10 +138,14 @@ def _super_tofrom_choi(q_oper):
     type should be called externally.
     """
     data = q_oper.data.toarray()
-    sqrt_shape = int(sqrt(data.shape[0]))
-    return Qobj(dims=q_oper.dims,
-                inpt=data.reshape([sqrt_shape] * 4).
-                transpose(3, 1, 2, 0).reshape(q_oper.data.shape))
+    flat_dims = np.ravel(q_oper.dims)
+    new_dims = [[q_oper.dims[1][1], q_oper.dims[0][1]],
+                [q_oper.dims[1][0], q_oper.dims[0][0]]]
+    d0 = np.prod(np.ravel(new_dims[0]))
+    d1 = np.prod(np.ravel(new_dims[1]))
+    return Qobj(dims=new_dims,
+                inpt=data.reshape(flat_dims).
+                transpose(3, 1, 2, 0).reshape((d0, d1)))
 
 def _isqubitdims(dims):
     """Checks whether all entries in a dims list are integer powers of 2.
@@ -218,7 +222,10 @@ def choi_to_kraus(q_oper):
     """
     vals, vecs = eig(q_oper.data.todense())
     vecs = [array(_) for _ in zip(*vecs)]
-    return [Qobj(inpt=sqrt(val)*vec2mat(vec)) for val, vec in zip(vals, vecs)]
+    nrows = q_oper.dims[0][1][0]
+    return [Qobj(inpt=sqrt(val)*vec2mat(vec, nrows=nrows),
+            dims=q_oper.dims[0][::-1])
+            for val, vec in zip(vals, vecs)]
 
 
 def kraus_to_choi(kraus_list):
@@ -227,15 +234,14 @@ def kraus_to_choi(kraus_list):
     represented by the Kraus operators in `kraus_list`
     """
     kraus_mat_list = list(map(lambda x: matrix(x.data.todense()), kraus_list))
-    op_len = len(kraus_mat_list[0])
-    op_rng = range(op_len)
+    op_rng = range(kraus_mat_list[0].shape[1])
     choi_blocks = array([[sum([op[:, c_ix] * array([op.H[r_ix, :]])
                                for op in kraus_mat_list])
                           for r_ix in op_rng]
                          for c_ix in op_rng])
     return Qobj(inpt=hstack(hstack(choi_blocks)),
-                dims=[kraus_list[0].dims, kraus_list[0].dims], type='super',
-                superrep='choi')
+                dims=[kraus_list[0].dims[::-1], kraus_list[0].dims[::-1]],
+                type='super', superrep='choi')
 
 
 def kraus_to_super(kraus_list):
