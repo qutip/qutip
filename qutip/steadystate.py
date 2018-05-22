@@ -633,16 +633,17 @@ def _steadystate_iterative(L, ss_args):
     if ss_args['method'] == 'iterative-gmres':
         v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
                             x0=ss_args['x0'], restart=ss_args['restart'],
-                            maxiter=ss_args['maxiter'], callback=_iter_count)
+                            maxiter=ss_args['maxiter'], 
+                            atol='legacy', callback=_iter_count)
 
     elif ss_args['method'] == 'iterative-lgmres':
         v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
                           x0=ss_args['x0'], maxiter=ss_args['maxiter'],
-                          callback=_iter_count)
+                          atol='legacy', callback=_iter_count)
 
     elif ss_args['method'] == 'iterative-bicgstab':
         v, check = bicgstab(L, b, tol=ss_args['tol'], M=ss_args['M'],
-                            x0=ss_args['x0'],
+                            x0=ss_args['x0'], atol='legacy',
                             maxiter=ss_args['maxiter'], callback=_iter_count)
     else:
         raise Exception("Invalid iterative solver method.")
@@ -848,15 +849,17 @@ def _steadystate_power(L, ss_args):
         elif ss_args['method'] == 'power-gmres':
             v, check = gmres(L, v, tol=_tol, M=ss_args['M'],
                                 x0=ss_args['x0'], restart=ss_args['restart'],
-                                maxiter=ss_args['maxiter'], callback=_iter_count)
+                                maxiter=ss_args['maxiter'], 
+                                atol='legacy', callback=_iter_count)
         elif ss_args['method'] == 'power-lgmres':
             v, check = lgmres(L, v, tol=_tol, M=ss_args['M'],
                               x0=ss_args['x0'], maxiter=ss_args['maxiter'],
-                              callback=_iter_count)
+                              atol='legacy', callback=_iter_count)
         elif ss_args['method'] == 'power-bicgstab':
             v, check = bicgstab(L, v, tol=_tol, M=ss_args['M'],
                                 x0=ss_args['x0'],
-                                maxiter=ss_args['maxiter'], callback=_iter_count)
+                                maxiter=ss_args['maxiter'], 
+                                atol='legacy', callback=_iter_count)
         else:
             raise Exception("Invalid iterative solver method.")
             
