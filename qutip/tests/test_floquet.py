@@ -33,7 +33,10 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip import fsesolve, sigmax, sigmaz, rand_ket, num, mesolve
+from qutip import (basis, expect, fsesolve, sigmax, sigmaz, rand_ket, num,
+                   mesolve)
+from qutip.floquet import (floquet_modes, floquet_modes_table,
+                           floquet_modes_t_lookup, fmmesolve)
 
 
 class TestFloquet:
@@ -66,6 +69,94 @@ class TestFloquet:
         sol_ref = mesolve(H, psi0, tlist, [], e_ops, args)
 
         assert_(max(abs(sol.expect[0] - sol_ref.expect[0])) < 1e-4)
+
+    def testFloquetDissipativeEOps(self):
+        """
+        Floquet: test dissipative evolution of time-dependent two-level system
+        using expectation values computed in fmmesolve.
+        """
+        delta = 0.0 * 2 * np.pi
+        eps0 = 1.0 * 2 * np.pi
+        A = 0.25 * 2 * np.pi
+        omega = 1.0 * 2 * np.pi
+        T = (2 * np.pi) / omega
+        tlist = np.linspace(0.0, 20 * T, 101)
+        psi0 = basis(2, 0)
+
+        H0 = - delta / 2.0 * sigmax() - eps0 / 2.0 * sigmaz()
+        H1 = A / 2.0 * sigmax()
+        args = {'w': omega}
+        H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]]
+
+        # noise power spectrum
+        gamma1 = 0.1
+        def noise_spectrum(omega):
+            return 0.5 * gamma1 * omega / (2 * np.pi)
+
+        # find the floquet modes for the time-dependent hamiltonian
+        f_modes_0, f_energies = floquet_modes(H, T, args)
+
+        # solve the floquet-markov master equation
+        output = fmmesolve(H, psi0, tlist,
+                           [sigmax()], [num(2)], [noise_spectrum], T, args)
+
+        # calculate expectation values in the computational basis
+        p_ex = output.expect[0]
+
+        # For reference: calculate the same thing with mesolve
+        output = mesolve(H, psi0, tlist, [np.sqrt(gamma1) * sigmax()],
+                         [num(2)], args)
+        p_ex_ref = output.expect[0]
+
+        assert_(max(abs(np.real(p_ex) - np.real(p_ex_ref))) < 1e-1)
+
+    def testFloquetDissipative(self):
+        """
+        Floquet: test dissipative evolution of time-dependent two-level system
+        """
+        delta = 0.0 * 2 * np.pi
+        eps0 = 1.0 * 2 * np.pi
+        A = 0.25 * 2 * np.pi
+        omega = 1.0 * 2 * np.pi
+        T = (2 * np.pi) / omega
+        tlist = np.linspace(0.0, 20 * T, 101)
+        psi0 = basis(2, 0)
+
+        H0 = - delta / 2.0 * sigmax() - eps0 / 2.0 * sigmaz()
+        H1 = A / 2.0 * sigmax()
+        args = {'w': omega}
+        H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]]
+
+        # noise power spectrum
+        gamma1 = 0.1
+        def noise_spectrum(omega):
+            return 0.5 * gamma1 * omega / (2 * np.pi)
+
+        # find the floquet modes for the time-dependent hamiltonian
+        f_modes_0, f_energies = floquet_modes(H, T, args)
+
+        # precalculate mode table
+        f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
+                                              np.linspace(0, T, 500 + 1),
+                                              H, T, args)
+
+        # solve the floquet-markov master equation
+        output = fmmesolve(H, psi0, tlist,
+                           [sigmax()], [], [noise_spectrum], T, args)
+
+        # calculate expectation values in the computational basis
+        p_ex = np.zeros(np.shape(tlist), dtype=np.complex)
+        for idx, t in enumerate(tlist):
+            f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
+            p_ex[idx] = expect(num(2), output.states[idx].transform(f_modes_t,
+                                                                    True))
+
+        # For reference: calculate the same thing with mesolve
+        output = mesolve(H, psi0, tlist, [np.sqrt(gamma1) * sigmax()],
+                         [num(2)], args)
+        p_ex_ref = output.expect[0]
+
+        assert_(max(abs(np.real(p_ex) - np.real(p_ex_ref))) < 1e-1)
 
 
 if __name__ == "__main__":
