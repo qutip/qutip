@@ -1110,8 +1110,10 @@ def _correlation_br_2t(H, state0, tlist, taulist, collapse_ops, coupling_ops, A,
     rho_t = brmesolve(H, rho0, tlist, coupling_ops, [], collapse_ops,
                     args=args, options=options).states  #I think this works
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, collapse_ops, args)
-    coupling_ops_shifted = coupling_ops #change this line when coupling op shifting is implemented
+    allops = collapse_ops + coupling_ops
+    H_shifted, allops_shifted, _args = _transform_L_t_shift(H, allops, args)
+    c_ops_shifted = allops_shifted[:len(collapse_ops)]
+    coupling_ops_shifted = coupling_ops #allops_shifted[len(collapse_ops):] #time shifting coupling ops is irrelevant? 
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
