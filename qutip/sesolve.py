@@ -190,9 +190,11 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=None,
         res = _sesolve_func_td(H, psi0, tlist, e_ops, args, options,
                                progress_bar)
 
-    else:
+    elif isinstance(H, Qobj):
         res = _sesolve_const(H, psi0, tlist, e_ops, args, options,
                              progress_bar)
+    else:
+        raise TypeError("Invalid Hamiltonian specification")
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
