@@ -51,7 +51,7 @@ from qutip.dimensions import (
 
 import qutip.settings
 import qutip.superop_reps  # Avoid circular dependency here.
-
+from collections import deque
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -306,22 +306,17 @@ def tensor_contract(qobj, *pairs):
     """Contracts a qobj along one or more index pairs.
     Note that this uses dense representations and thus
     should *not* be used for very large Qobjs.
-
     Parameters
     ----------
-
     pairs : tuple
         One or more tuples ``(i, j)`` indicating that the
         ``i`` and ``j`` dimensions of the original qobj
         should be contracted.
-
     Returns
     -------
-
     cqobj : Qobj
         The original Qobj with all named index pairs contracted
         away.
-
     """
     #first the setup of values we will need later
     contracted_idxs = deep_remove(enumerate_flat(qobj.dims), *flatten(list(map(list, pairs))))# Record and label the original dims.
@@ -436,7 +431,7 @@ def _merge(lol): #think of this as the merge step in a generalized merge-sort
             yield k
         for k in B: #if B is empty A was already yielded out and this does nothing
             yield k
-
+        
 
 #below here is depreciated 
 def _tensor_contract_single(arr, i, j):
