@@ -1139,10 +1139,8 @@ def _correlation_br_2t(H, state0, tlist, taulist, collapse_ops, coupling_ops, A,
     rho_t = brmesolve(H, rho0, tlist, coupling_ops, [], collapse_ops,
                     args=args, options=options).states  #I think this works
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    allops = collapse_ops + coupling_ops
-    H_shifted, allops_shifted, _args = _transform_L_t_shift(H, allops, args)
-    c_ops_shifted = allops_shifted[:len(collapse_ops)]
-    coupling_ops_shifted = coupling_ops #allops_shifted[len(collapse_ops):] #time shifting coupling ops is irrelevant? 
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, collapse_ops, args)
+    coupling_ops_shifted = _coupling_ops_shift(coupling_ops,_args)  #time shifting coupling ops 
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1543,7 +1541,7 @@ def _transform_L_t_shift(H, collapse_ops, args={}):
                         else:
                             # string-list based time-dependence
                             # Again, note: _td_format_check already raises
-                            # errors formixed td formatting
+                            # errors for mixed td formatting
                             fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
                                      "(t+_t0)", collapse_ops[i][1])
                     else:
@@ -1562,3 +1560,32 @@ def _transform_L_t_shift(H, collapse_ops, args={}):
                     c_ops_shifted.append(collapse_ops[i])
 
     return H_shifted, c_ops_shifted, _args
+
+
+def _coupling_ops_shift(coupling_ops, args={}):
+    #this function could be combined with _transform_L_t_shift for consistency
+    #alternatively _transform_L_t_shift could be broken into _H_shift and _cops_shift for clarity
+    coupling_ops_shifted = []
+    for i in range(len(coupling_ops)):
+        if isinstance(coupling_ops[i][1], types.FunctionType): #operator spectrum pair (time independent)
+            coupling_ops_shifted.append(coupling_ops[i])
+        elif isinstance(coupling_ops[i][1],str): #operator string pair
+            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                     "(t+_t0)", coupling_ops[i][1])
+            coupling_ops_shifted.append([coupling_ops[i][0],fn])
+        elif isinstance(coupling_ops[i][1],tuple): #cubic spline (2-tuple) and special (3-tuple)
+            shifted_fun = [coupling_ops[i][1][0]]
+            if isinstance(args, dict) or args is None:
+                for j in range(1,len(coupling_ops[i][1])):#shift coupling_ops[i][1][j]
+                    shifted_fun.append(lambda t, args_i: \
+                                collapse_ops[i][1][j](t + args_i["_t0"], args_i))
+            else:
+                for j in range(1,len(coupling_ops[i][1])):#shift coupling_ops[i][1][j]
+                    shifted_fun.append(lambda t, args_i: \
+                                collapse_ops[i][1][j](t + args_i["_t0"],
+                                            args_i["_user_args"]))
+            coupling_ops_shifted.append([coupling_ops[i][0],tuple(shifted_fun)]) 
+        else:
+            raise TypeError("coupling operators in unrecognized format")
+    return coupling_ops_shifted
+
