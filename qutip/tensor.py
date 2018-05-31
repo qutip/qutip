@@ -255,34 +255,6 @@ def composite(*args):
         ))
 
 
-def _tensor_contract_single(arr, i, j):
-    """
-    Contracts a dense tensor along a single index pair.
-    """
-    if arr.shape[i] != arr.shape[j]:
-        raise ValueError("Cannot contract over indices of different length.")
-    idxs = np.arange(arr.shape[i])
-    sl = tuple(slice(None, None, None)
-               if idx not in (i, j) else idxs for idx in range(arr.ndim))
-    contract_at = i if j == i + 1 else 0
-    return np.sum(arr[sl], axis=contract_at)
-
-
-def _tensor_contract_dense(arr, *pairs):
-    """
-    Contracts a dense tensor along one or more index pairs,
-    keeping track of how the indices are relabeled by the removal
-    of other indices.
-    """
-    axis_idxs = list(range(arr.ndim))
-    for pair in pairs:
-        # axis_idxs.index effectively evaluates the mapping from
-        # original index labels to the labels after contraction.
-        arr = _tensor_contract_single(arr, *map(axis_idxs.index, pair))
-        list(map(axis_idxs.remove, pair))
-    return arr
-
-
 def tensor_swap(q_oper, *pairs):
     """Transposes one or more pairs of indices of a Qobj.
     Note that this uses dense representations and thus
@@ -328,6 +300,8 @@ def tensor_swap(q_oper, *pairs):
     return Qobj(inpt=data, dims=dims, superrep=q_oper.superrep)
 
 
+import qutip.states
+
 def tensor_contract(qobj, *pairs):
     """Contracts a qobj along one or more index pairs.
     Note that this uses dense representations and thus
@@ -349,6 +323,150 @@ def tensor_contract(qobj, *pairs):
         away.
 
     """
+    #first the setup of values we will need later
+    contracted_idxs = deep_remove(enumerate_flat(qobj.dims), *flatten(list(map(list, pairs))))# Record and label the original dims.
+    contracted_dims = unflatten(flatten(qobj.dims), contracted_idxs)
+    data = qobj.data
+    h,w = data.get_shape()
+    new_h, new_w = map(np.product, map(flatten, contracted_dims))
+    pairs = dims_idxs_to_tensor_idxs(qobj.dims, pairs) #keep the contraction index convention consistent
+    t_dims = dims_to_tensor_shape(qobj.dims) #setup dims and adjacent dims
+    adj_dims = list(t_dims)                 #which will be needed for later bookkeeping
+    adj_dims[-1] = 1
+    for k in range(len(t_dims)-1,0,-1):
+        adj_dims[k-1] = adj_dims[k]*t_dims[k]
+    allidx = flatten(list(map(list, pairs)))
+    allidx.sort() #we will need a sorted list of all the indicies (irrespective of pair) for latter flat index reassignment
+
+    #second we check that the indices passed are valid
+    for k in pairs: 
+        if t_dims[k[0]] != t_dims[k[1]]:
+            raise ValueError("Cannot contract over indices of different length.")
+    oldk = None
+    for k in allidx:
+        if k == oldk:#check that pairs does not contain overlapping indicies like [(i,j),(k,j)]. 
+            raise ValueError("Cannot contract over overlapping pairs of indices (eg [(i,j),(k,j)]) or invalid pair (eg [(i,i)])")
+        oldk = k
+
+    #third we will loop through the sparse matrix data itself, mapping and adding data to a temporary data structure
+    row = 0
+    lol = [[(-1,0)]] #a list of lists of (flat index, value) pairs. Each sub list is sorted by index
+    for dat_idx in range(len(data.data)):#this is efficent because incoming indices are already somewhat sorted.
+        col = data.indices[dat_idx] #deduce the column value
+        while dat_idx + 1 > data.indptr[row+1]: #and row value
+            row += 1
+        idx = row*w + col #totally flattened index
+
+        
+        accept = True #for every pair of indices we test that index i = index j 
+        k=0           #since the result is usually false. early exit beats parallel testing.
+        while accept and k < len(pairs): #used a while loop to allow early exit if false
+            accept = (idx//adj_dims[pairs[k][0]])%t_dims[pairs[k][0]] == (idx//adj_dims[pairs[k][1]])%t_dims[pairs[k][1]]
+            k+=1 #this test was derived from the numpy reshape documentation and painstakingly keeping track of indices
+
+            
+        if accept: #if all the indices matched then we add this element to the contracted tensor
+            #but first we need to map the row and column to the contracted row and column
+            #this is done by mapping the flat index to the contracted flat index
+            newidx = idx
+            for k in allidx:
+                newidx = (adj_dims[k]*(newidx//(t_dims[k]*adj_dims[k]))) + (newidx % adj_dims[k]) #reassign the flat idx
+                #this mapping was derived from the numpy reshape documentation and painstakingly keeping track of indices
+
+            if newidx < lol[-1][-1][0]: #new index does not follow previous index
+                lol += [[(newidx, data.data[dat_idx])]] #put it in a new sublist
+            else: #new index does happen to follow previous index
+                lol[-1] += [(newidx, data.data[dat_idx])] #put it at the end of the last sublist    
+    lol = _merge(lol)
+    lol.send(None) #get rid of the initial (-1,0) pair
+    
+    #fourth we convert the temporary data structure back to CSR
+    A = []
+    IA = [0]
+    JA = []
+    prev_idx = None
+    for idx_val in lol:
+        if idx_val == None: #take care of the EoL case for the generator
+            break
+        #fill in the CSR data
+        if idx_val[0] == prev_idx:
+            A[-1] += idx_val[1]
+        else:
+            A += [idx_val[1]]
+            JA += [idx_val[0]%new_w]
+            IA += [IA[-1]]*((idx_val[0]//new_w) - len(IA) + 2)
+            IA[-1] += 1
+        prev_idx = idx_val[0]   
+    IA += [IA[-1]]*(new_h+1-len(IA)) #fill remaining rows so dims match
+    qmtx = sp.csr_matrix((A,JA,IA),(new_h,new_w))
+    
+    #fifth and final step is to move everything back to a qobj before returning
+    return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
+    
+
+def _merge(lol): #think of this as the merge step in a generalized merge-sort
+    if len(lol) == 1: #lol = list of lists
+        for k in lol[0]:
+            yield k
+        yield None #my EOL shibboleth
+    else:
+        pivot = len(lol)//2
+        A = _merge(lol[:pivot])
+        B = _merge(lol[pivot:])
+        a = A.send(None)
+        b = B.send(None)
+        while a != None and b != None:
+            if a < b:
+                yield a
+                a = A.send(None)
+            else:
+                yield b
+                b = B.send(None)
+        if a == None: #we may be out of the merge loop, but don't forget to give back 
+            yield b   #the non-None value
+        else:
+            yield a
+        #at this point either A is empty or B is empty
+        for k in A: #if A is empty this does nothing and the rest of B is yielded out
+            yield k
+        for k in B: #if B is empty A was already yielded out and this does nothing
+            yield k
+
+
+#below here is depreciated 
+def _tensor_contract_single(arr, i, j):
+    """
+    Contracts a dense tensor along a single index pair.
+    """
+    if arr.shape[i] != arr.shape[j]:
+        raise ValueError("Cannot contract over indices of different length.")
+    idxs = np.arange(arr.shape[i])
+    sl = tuple(slice(None, None, None)
+               if idx not in (i, j) else idxs for idx in range(arr.ndim))
+    contract_at = i if j == i + 1 else 0
+    return np.sum(arr[sl], axis=contract_at)
+
+
+def _tensor_contract_dense(arr, *pairs):
+    """
+    Contracts a dense tensor along one or more index pairs,
+    keeping track of how the indices are relabeled by the removal
+    of other indices.
+    """
+    axis_idxs = list(range(arr.ndim))
+    for pair in pairs:
+        # axis_idxs.index effectively evaluates the mapping from
+        # original index labels to the labels after contraction.
+        arr = _tensor_contract_single(arr, *map(axis_idxs.index, pair))
+        list(map(axis_idxs.remove, pair))
+    return arr
+
+def _tensor_contract_debug(qobj, *pairs):
+    #this is the old tensor_contract code which used to convert everything to a
+    #dense matrix.
+    #for future debugging it may be worthwhile to see if the bug exists in the
+    #older code as well. Thus I left this code here.
+    
     # Record and label the original dims.
     dims = qobj.dims
     dims_idxs = enumerate_flat(dims)
@@ -359,7 +477,7 @@ def tensor_contract(qobj, *pairs):
 
     # Reshape by the flattened dims.
     qtens = qtens.reshape(tensor_dims)
-
+    
     # Contract out the indices from the flattened object.
     # Note that we need to feed pairs through dims_idxs_to_tensor_idxs
     # to ensure that we are contracting the right indices.
@@ -370,7 +488,9 @@ def tensor_contract(qobj, *pairs):
     # This concerns dims, and not the tensor indices, so we need
     # to make sure to use the original dims indices and not the ones
     # generated by dims_to_* functions.
+    
     contracted_idxs = deep_remove(dims_idxs, *flatten(list(map(list, pairs))))
+
     contracted_dims = unflatten(flatten(dims), contracted_idxs)
 
     # We don't need to check for tensor idxs versus dims idxs here,
@@ -383,5 +503,3 @@ def tensor_contract(qobj, *pairs):
 
     # Return back as a qobj.
     return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
-
-import qutip.states
