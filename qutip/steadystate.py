@@ -55,7 +55,7 @@ from qutip.superoperator import liouvillian, vec2mat, spre
 from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
 
 from qutip.superoperator import liouvillian, vec2mat
-from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape, 
+from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape,
                             sp_profile)
 from qutip.cy.spmath import zcsr_kron
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
@@ -80,29 +80,30 @@ def _empty_info_dict():
     def_info = {'perm': [], 'solution_time': None,
                 'residual_norm': None,
                 'solver': None, 'method': None}
-    
+
     return def_info
 
 def _default_steadystate_args():
     def_args = {'sparse': True, 'use_rcm': False,
-                'use_wbm': False, 'weight': None, 'use_precond': False, 
-                'all_states': False, 'M': None, 'x0': None, 'drop_tol': 1e-4, 
-                'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000, 
-                'tol': 1e-12, 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 
-                'restart': 20, 'return_info': False, 'info': _empty_info_dict(), 
+                'use_wbm': False, 'weight': None, 'use_precond': False,
+                'all_states': False, 'M': None, 'x0': None, 'drop_tol': 1e-4,
+                'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000,
+                'tol': 1e-12, 'matol': 1e-15, 'mtol':None,
+                'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2',
+                'restart': 20, 'return_info': False, 'info': _empty_info_dict(),
                 'verbose': False, 'solver': 'scipy'}
 
     return def_args
-    
+
 def _mkl_steadystate_args():
     def_args = {'max_iter_refine': 10,
                 'scaling_vectors': True,
                 'weighted_matching': True,
-                'return_info': False, 'info': _empty_info_dict(), 
+                'return_info': False, 'info': _empty_info_dict(),
                 'verbose': False, 'solver': 'mkl',
                 'use_rcm': False,
                 'use_wbm': False, 'weight': None,
-                'tol': 1e-12,
+                'tol': 1e-12, 'matol': 1e-15, 'mtol':None,
                 'maxiter': 1000}
 
     return def_args
@@ -127,7 +128,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     solver : str {None, 'scipy', 'mkl'}
         Selects the sparse solver to use.  Default is auto-select
         based on the availability of the MKL library.
-    
+
     method : str {'direct', 'eigen', 'iterative-gmres',
                   'iterative-lgmres', 'iterative-bicgstab', 'svd', 'power',
                   'power-gmres', 'power-lgmres', 'power-bicgstab'}
@@ -164,13 +165,13 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
 
     max_iter_refine : int {10}
         MKL ONLY. Max. number of iterative refinements to perform.
-    
+
     scaling_vectors : bool {True, False}
         MKL ONLY.  Scale matrix to unit norm columns and rows.
-    
+
     weighted_matching : bool {True, False}
         MKL ONLY.  Use weighted matching to better condition diagonal.
-    
+
     x0 : ndarray, optional
         ITERATIVE ONLY. Initial guess for solution vector.
 
@@ -179,6 +180,13 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
 
     tol : float, optional, default=1e-12
         ITERATIVE ONLY. Tolerance used for terminating solver.
+
+    mtol : float, optional, default=None
+        ITERATIVE 'power' methods ONLY. Tolerance for lu solve method.
+        If None given then `max(0.1*tol, 1e-15)` is used
+
+    matol : float, optional, default=1e-15
+        ITERATIVE ONLY. Absolute tolerance for lu solve method.
 
     permc_spec : str, optional, default='COLAMD'
         ITERATIVE ONLY. Column ordering used internally by superLU for the
@@ -230,9 +238,9 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     Notes
     -----
     The SVD method works only for dense operators (i.e. small systems).
-    
+
     """
-    
+
     if solver is None:
         solver = 'scipy'
         if settings.has_mkl:
@@ -241,11 +249,11 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     elif solver == 'mkl' and \
             (method not in ['direct', 'power']):
         raise Exception('MKL solver only for direct or power methods.')
-        
+
     elif solver not in ['scipy', 'mkl']:
         raise Exception('Invalid solver kwarg.')
-    
-    
+
+
     if solver == 'scipy':
         ss_args = _default_steadystate_args()
     elif solver == 'mkl':
@@ -255,15 +263,15 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     ss_args['method'] = method
     ss_args['info']['solver'] = ss_args['solver']
     ss_args['info']['method'] = ss_args['method']
-    
+
     for key in kwargs.keys():
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
             raise Exception(
                 "Invalid keyword argument '"+key+"' passed to steadystate.")
-    
-    
+
+
     # Set column perm to NATURAL if using RCM and not specified by user
     if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         ss_args['permc_spec'] = 'NATURAL'
@@ -372,15 +380,15 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
             rcm_band = sp_bandwidth(L)[0]
             rcm_pro = sp_profile(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
-            logger.debug('Bandwidth reduction factor: %f' % 
+            logger.debug('Bandwidth reduction factor: %f' %
                     (old_band/rcm_band))
-            logger.debug('Profile reduction factor: %f' % 
+            logger.debug('Profile reduction factor: %f' %
                     (old_pro/rcm_pro))
     L.sort_indices()
     return L, perm, perm2, rev_perm, ss_args
 
 
-def steady(L, maxiter=10, tol=1e-12, itertol=1e-15, method='solve', 
+def steady(L, maxiter=10, tol=1e-12, itertol=1e-15, method='solve',
             use_precond=False):
     """
     Deprecated. See steadystate instead.
@@ -406,7 +414,7 @@ def _steadystate_direct_sparse(L, ss_args):
         has_mkl = 1
     else:
         has_mkl = 0
-    
+
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args, has_mkl)
     if np.any(perm):
         b = b[np.ix_(perm,)]
@@ -630,21 +638,49 @@ def _steadystate_iterative(L, ss_args):
 
     # Select iterative solver type
     _iter_start = time.time()
+    #FIXME: These atol keyword except checks can be removed once scipy 1.1
+    #       is a minimum requirement
     if ss_args['method'] == 'iterative-gmres':
-        v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
-                            x0=ss_args['x0'], restart=ss_args['restart'],
-                            maxiter=ss_args['maxiter'], 
-                            atol='legacy', callback=_iter_count)
+        try:
+            v, check = gmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
+                             M=ss_args['M'], x0=ss_args['x0'],
+                             restart=ss_args['restart'],
+                             maxiter=ss_args['maxiter'],
+                             callback=_iter_count)
+        except TypeError as e:
+            if "unexpected keyword argument 'atol'" in str(e):
+                v, check = gmres(L, b, tol=ss_args['tol'],
+                                 M=ss_args['M'], x0=ss_args['x0'],
+                                 restart=ss_args['restart'],
+                                 maxiter=ss_args['maxiter'],
+                                 callback=_iter_count)
 
     elif ss_args['method'] == 'iterative-lgmres':
-        v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
-                          x0=ss_args['x0'], maxiter=ss_args['maxiter'],
-                          atol='legacy', callback=_iter_count)
+        try:
+            v, check = lgmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
+                              M=ss_args['M'], x0=ss_args['x0'],
+                              maxiter=ss_args['maxiter'],
+                              callback=_iter_count)
+        except TypeError as e:
+            if "unexpected keyword argument 'atol'" in str(e):
+                v, check = lgmres(L, b, tol=ss_args['tol'],
+                                  M=ss_args['M'], x0=ss_args['x0'],
+                                  maxiter=ss_args['maxiter'],
+                                  callback=_iter_count)
 
     elif ss_args['method'] == 'iterative-bicgstab':
-        v, check = bicgstab(L, b, tol=ss_args['tol'], M=ss_args['M'],
-                            x0=ss_args['x0'], atol='legacy',
-                            maxiter=ss_args['maxiter'], callback=_iter_count)
+        try:
+            v, check = bicgstab(L, b, tol=ss_args['tol'],
+                                atol=ss_args['matol'],
+                                M=ss_args['M'],x0=ss_args['x0'],
+                                maxiter=ss_args['maxiter'],
+                                callback=_iter_count)
+        except TypeError as e:
+            if "unexpected keyword argument 'atol'" in str(e):
+                v, check = bicgstab(L, b, tol=ss_args['tol'],
+                                    M=ss_args['M'],x0=ss_args['x0'],
+                                    maxiter=ss_args['maxiter'],
+                                    callback=_iter_count)
     else:
         raise Exception("Invalid iterative solver method.")
     _iter_end = time.time()
@@ -737,7 +773,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         old_pro = sp_profile(L)[0]
         logger.debug('Original bandwidth: %i' % old_band)
         logger.debug('Original profile: %i' % old_pro)
-    
+
     if ss_args['use_wbm']:
         if settings.debug:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
@@ -752,7 +788,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
             wbm_pro = sp_profile(L)[0]
             logger.debug('WBM bandwidth: %i' % wbm_band)
             logger.debug('WBM profile: %i' % wbm_pro)
-    
+
     if ss_args['use_rcm']:
         if settings.debug:
             logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
@@ -772,8 +808,6 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
             logger.debug('Profile reduction factor: %f' % (old_pro/new_pro))
     L.sort_indices()
     return L, perm, perm2, rev_perm, ss_args
-    
-
 
 def _steadystate_power(L, ss_args):
     """
@@ -783,6 +817,9 @@ def _steadystate_power(L, ss_args):
     if settings.debug:
         logger.debug('Starting iterative inverse-power method solver.')
     tol = ss_args['tol']
+    mtol = ss_args['mtol']
+    if mtol is None:
+        mtol = max(0.1*tol, 1e-15)
     maxiter = ss_args['maxiter']
 
     use_solver(assumeSortedIndices=True)
@@ -798,30 +835,30 @@ def _steadystate_power(L, ss_args):
         has_mkl = 1
     else:
         has_mkl = 0
-    L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, 
+    L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L,
                                                 ss_args, has_mkl)
     orig_nnz = L.nnz
     # start with all ones as RHS
     v = np.ones(n, dtype=complex)
     if ss_args['use_rcm']:
         v = v[np.ix_(perm2,)]
-    
+
     # Do preconditioning
     if ss_args['solver'] == 'scipy':
         if ss_args['M'] is None and ss_args['use_precond'] and \
-                ss_args['method'] in ['power-gmres', 
+                ss_args['method'] in ['power-gmres',
                                     'power-lgmres', 'power-bicgstab']:
             ss_args['M'], ss_args = _iterative_precondition(L, int(np.sqrt(n)), ss_args)
             if ss_args['M'] is None:
                 warnings.warn("Preconditioning failed. Continuing without.",
                               UserWarning)
-    
+
     ss_iters = {'iter': 0}
 
     def _iter_count(r):
         ss_iters['iter'] += 1
         return
-    
+
     _power_start = time.time()
     # Get LU factors
     if ss_args['method'] == 'power':
@@ -829,7 +866,7 @@ def _steadystate_power(L, ss_args):
             lu = mkl_splu(L,max_iter_refine=ss_args['max_iter_refine'],
                         scaling_vectors=ss_args['scaling_vectors'],
                         weighted_matching=ss_args['weighted_matching'])
-        else: 
+        else:
             lu = splu(L, permc_spec=ss_args['permc_spec'],
               diag_pivot_thresh=ss_args['diag_pivot_thresh'],
               options=dict(ILU_MILU=ss_args['ILU_MILU']))
@@ -841,28 +878,60 @@ def _steadystate_power(L, ss_args):
                 logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
-    _tol = max(ss_args['tol']/10, 1e-15) # Should make this user accessible
+    #FIXME: These atol keyword except checks can be removed once scipy 1.1
+    #       is a minimum requirement
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
-        
+        check = 0
         if ss_args['method'] == 'power':
             v = lu.solve(v)
         elif ss_args['method'] == 'power-gmres':
-            v, check = gmres(L, v, tol=_tol, M=ss_args['M'],
-                                x0=ss_args['x0'], restart=ss_args['restart'],
-                                maxiter=ss_args['maxiter'], 
-                                atol='legacy', callback=_iter_count)
+            try:
+                v, check = gmres(L, v, tol=mtol, atol=ss_args['matol'],
+                                 M=ss_args['M'], x0=ss_args['x0'],
+                                 restart=ss_args['restart'],
+                                 maxiter=ss_args['maxiter'],
+                                 callback=_iter_count)
+            except TypeError as e:
+                if "unexpected keyword argument 'atol'" in str(e):
+                    v, check = gmres(L, v, tol=mtol,
+                                     M=ss_args['M'], x0=ss_args['x0'],
+                                     restart=ss_args['restart'],
+                                     maxiter=ss_args['maxiter'],
+                                     callback=_iter_count)
+
         elif ss_args['method'] == 'power-lgmres':
-            v, check = lgmres(L, v, tol=_tol, M=ss_args['M'],
-                              x0=ss_args['x0'], maxiter=ss_args['maxiter'],
-                              atol='legacy', callback=_iter_count)
+            try:
+                v, check = lgmres(L, v, tol=mtol, atol=ss_args['matol'],
+                                  M=ss_args['M'], x0=ss_args['x0'],
+                                  maxiter=ss_args['maxiter'],
+                                  callback=_iter_count)
+            except TypeError as e:
+                if "unexpected keyword argument 'atol'" in str(e):
+                    v, check = lgmres(L, v, tol=mtol,
+                                      M=ss_args['M'], x0=ss_args['x0'],
+                                      maxiter=ss_args['maxiter'],
+                                      callback=_iter_count)
+
         elif ss_args['method'] == 'power-bicgstab':
-            v, check = bicgstab(L, v, tol=_tol, M=ss_args['M'],
-                                x0=ss_args['x0'],
-                                maxiter=ss_args['maxiter'], 
-                                atol='legacy', callback=_iter_count)
+            try:
+                v, check = bicgstab(L, v, tol=mtol, atol=ss_args['matol'],
+                                    M=ss_args['M'], x0=ss_args['x0'],
+                                    maxiter=ss_args['maxiter'],
+                                    callback=_iter_count)
+            except TypeError as e:
+                if "unexpected keyword argument 'atol'" in str(e):
+                    v, check = bicgstab(L, v, tol=mtol,
+                                        M=ss_args['M'], x0=ss_args['x0'],
+                                        maxiter=ss_args['maxiter'],
+                                        callback=_iter_count)
         else:
             raise Exception("Invalid iterative solver method.")
-            
+        if check > 0:
+            raise Exception("{} failed to find solution in "
+                            "{} iterations.".format(ss_args['method'],
+                                                     check))
+        if check < 0:
+            raise Exception("Breakdown in {}".format(ss_args['method']))
         v = v / la.norm(v, np.inf)
         it += 1
     if ss_args['method'] == 'power' and ss_args['solver'] == 'mkl':
@@ -871,7 +940,7 @@ def _steadystate_power(L, ss_args):
             ss_args['info']['max_iter_refine'] = ss_args['max_iter_refine']
             ss_args['info']['scaling_vectors'] = ss_args['scaling_vectors']
             ss_args['info']['weighted_matching'] = ss_args['weighted_matching']
-    
+
     if it >= maxiter:
         raise Exception('Failed to find steady state after ' +
                         str(maxiter) + ' iterations')
@@ -937,7 +1006,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         Tells the preconditioner what type of Liouvillian to build for
         iLU factorization.  For direct iterative methods use 'iterative'.
         For power iterative methods use 'power'.
-    
+
     permc_spec : str, optional, default='COLAMD'
         Column ordering used internally by superLU for the
         'direct' LU decomposition method. Options include 'COLAMD' and
@@ -999,7 +1068,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, ss_args)
     else:
         raise Exception("Invalid preconditioning method.")
-    
+
     M, ss_args = _iterative_precondition(L, n, ss_args)
 
     if ss_args['return_info']:
@@ -1020,20 +1089,20 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
     I = np.identity(N * N)
     P = np.kron(np.transpose(rho_vec), tr_vec)
     Q = I - P
-    
+
     if w is None:
         L = L
     else:
         L = 1.0j*w*spre(tr_mat)+L
-    
+
     if pseudo_args['method'] == 'direct':
         try:
             LIQ = np.linalg.solve(L.full(), Q)
         except:
             LIQ = np.linalg.lstsq(L.full(), Q)[0]
-         
+
         R = np.dot(Q, LIQ)
-     
+
         return Qobj(R, dims=L.dims)
 
     elif pseudo_args['method'] == 'numpy':
@@ -1068,8 +1137,8 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     P = zcsr_kron(rhoss_vec.data, tr_op_vec.data.T)
     I = sp.eye(N*N, N*N, format='csr')
     Q = I - P
-    
-  
+
+
     if w is None:
         L =  1.0j*(1e-15)*spre(tr_op) + L
     else:
@@ -1077,8 +1146,8 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
             L = 1.0j*w*spre(tr_op) + L
         else:
             L =  1.0j*(1e-15)*spre(tr_op) + L
-        
-        
+
+
     if pseudo_args['use_rcm']:
         perm = reverse_cuthill_mckee(L.data)
         A = sp_permute(L.data, perm, perm)
@@ -1087,26 +1156,26 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         if ss_args['solver'] == 'scipy':
             A = L.data.tocsc()
             A.sort_indices()
-        
-        
-    
+
+
+
     if pseudo_args['method'] == 'splu':
         if settings.has_mkl:
             A = L.data.tocsr()
             A.sort_indices()
             LIQ = mkl_spsolve(A,Q.toarray())
         else:
-       
+
             lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
                             diag_pivot_thresh=pseudo_args['diag_pivot_thresh'],
                             options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
             LIQ = lu.solve(Q.toarray())
-         
-            
+
+
     elif pseudo_args['method'] == 'spilu':
-        
+
         lu = sp.linalg.spilu(A, permc_spec=pseudo_args['permc_spec'],
-                             fill_factor=pseudo_args['fill_factor'], 
+                             fill_factor=pseudo_args['fill_factor'],
                              drop_tol=pseudo_args['drop_tol'])
         LIQ = lu.solve(Q.toarray())
 
@@ -1132,12 +1201,12 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
     -------
     L : Qobj
         A Liouvillian superoperator for which to compute the pseudo inverse.
-    
-    
+
+
     rhoss : Qobj
         A steadystate density matrix as Qobj instance, for the Liouvillian
         superoperator L.
-        
+
     w : double
         frequency at which to evaluate pseudo-inverse.  Can be zero for dense systems
         and large sparse systems. Small sparse systems can fail for zero frequencies.
@@ -1158,7 +1227,7 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
     -------
     R : Qobj
         Returns a Qobj instance representing the pseudo inverse of L.
-    
+
     Note
     ----
     In general the inverse of a sparse matrix will be dense.  If you
@@ -1167,11 +1236,11 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
     of the inverse is not required. See page 67 of "Electrons in nanostructures"
     C. Flindt, PhD Thesis available online:
     http://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/file_4732600/content
-    
+
     Note also that the definition of the pseudo-inverse herein is different
-    from numpys pinv() alone, as it includes pre and post projection onto 
+    from numpys pinv() alone, as it includes pre and post projection onto
     the subspace defined by the projector Q.
-    
+
     """
     pseudo_args = _default_steadystate_args()
     for key in kwargs.keys():
@@ -1182,11 +1251,11 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
                 "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
     if 'method' not in kwargs.keys():
         pseudo_args['method']='splu'
-        
+
     # Set column perm to NATURAL if using RCM and not specified by user
     if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         pseudo_args['permc_spec'] = 'NATURAL'
-    
+
     if rhoss is None:
         rhoss = steadystate(L, **pseudo_args)
 
