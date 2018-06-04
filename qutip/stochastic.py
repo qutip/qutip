@@ -167,13 +167,13 @@ class StochasticSolverOptions:
 
     solver : string
         Name of the solver method to use for solving the stochastic
-        equations. Valid values are: 
+        equations. Valid values are:
         1/2 order algorithms: 'euler-maruyama', 'fast-euler-maruyama',
-        'pc-euler' is a predictor-corrector method which is more 
+        'pc-euler' is a predictor-corrector method which is more
         stable than explicit methods,
         1 order algorithms: 'milstein', 'fast-milstein', 'platen',
         'milstein-imp' is semi-implicit Milstein method,
-        3/2 order algorithms: 'taylor15', 
+        3/2 order algorithms: 'taylor15',
         'taylor15-imp' is semi-implicit Taylor 1.5 method.
         Implicit methods can adjust tolerance via args = {'tol':value},
         default is {'tol':1e-6}
@@ -312,10 +312,10 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[], _safe_mode=True, **kwargs):
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
+
     if _safe_mode:
         _solver_safety_check(H, psi0, sc_ops, e_ops)
-    
+
     sso = StochasticSolverOptions(H=H, state0=psi0, times=times,
                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
@@ -383,7 +383,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[], _safe_mode=True, **kwargs):
     return res
 
 
-def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[], 
+def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
             _safe_mode=True ,**kwargs):
     """
     Solve stochastic master equation. Dispatch to specific solvers
@@ -442,7 +442,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
+
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops+sc_ops, e_ops)
 
@@ -536,7 +536,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
                     sso.rhs = _rhs_rho_milstein_homodyne_two_fast
                 else:
                     sso.rhs = _rhs_rho_milstein_homodyne_fast
-                 
+
         elif sso.solver == 'taylor15':
             sso.generate_A_ops = _generate_A_ops_simple
             sso.generate_noise = _generate_noise_Taylor_15
@@ -561,9 +561,9 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
                 else:
                     raise Exception("Only one stochastic operator is supported")
             else:
-                raise Exception("Only homodyne is available") 
+                raise Exception("Only homodyne is available")
 
-        elif sso.solver == 'taylor15-imp':  
+        elif sso.solver == 'taylor15-imp':
             sso.generate_A_ops = _generate_A_ops_implicit
             sso.generate_noise = _generate_noise_Taylor_15
             if sso.args == None:
@@ -1568,14 +1568,14 @@ def _generate_A_ops_simple(sc, L, dt):
     out = []
     out += temp
     out += [tempL]
-    
+
     out1 = [out]
     # the following hack is required for compatibility with old A_ops
     out1 += [[] for n in range(A_len - 1)]
 
     return out1
-    
-    
+
+
 def _generate_A_ops_implicit(sc, L, dt):
     """
     pre-compute superoperator operator combinations that are commonly needed
@@ -1590,7 +1590,7 @@ def _generate_A_ops_implicit(sc, L, dt):
     out += temp
     out += [sp.eye(L.shape[0], format='csr') - 0.5*dt*tempL]
     out += [tempL]
-    
+
     out1 = [out]
     # the following hack is required for compatibility with old A_ops
     out1 += [[] for n in range(A_len - 1)]
@@ -1620,24 +1620,24 @@ def _generate_noise_Taylor_15(sc_len, N_store, N_substeps, d2_len, dt):
     """
     generate noise terms for the strong Taylor 1.5 scheme
     """
-    U1 = np.random.randn(sc_len, N_store, N_substeps, 1) 
-    U2 = np.random.randn(sc_len, N_store, N_substeps, 1) 
-    dW = U1 * np.sqrt(dt) 
-    dZ = 0.5 * dt**(3./2) * (U1 + 1./np.sqrt(3) * U2) 
+    U1 = np.random.randn(sc_len, N_store, N_substeps, 1)
+    U2 = np.random.randn(sc_len, N_store, N_substeps, 1)
+    dW = U1 * np.sqrt(dt)
+    dZ = 0.5 * dt**(3./2) * (U1 + 1./np.sqrt(3) * U2)
 
     if sc_len == 1:
-        noise = np.vstack([ dW, 0.5 * (dW * dW - dt), dZ, dW * dt - dZ, 0.5 * (1./3. * dW**2 - dt) * dW ])                    
-    
+        noise = np.vstack([ dW, 0.5 * (dW * dW - dt), dZ, dW * dt - dZ, 0.5 * (1./3. * dW**2 - dt) * dW ])
+
     elif sc_len == 2:
-        noise = np.vstack([ dW, 0.5 * (dW**2 - dt), dZ, dW * dt - dZ, 0.5 * (1./3. * dW**2 - dt) * dW] 
+        noise = np.vstack([ dW, 0.5 * (dW**2 - dt), dZ, dW * dt - dZ, 0.5 * (1./3. * dW**2 - dt) * dW]
                     + [[dW[n] * dW[m] for (n, m) in np.ndindex(sc_len, sc_len) if n < m]]  # Milstein
                     + [[0.5 * dW[n] * (dW[m]**2 - dt) for (n, m) in np.ndindex(sc_len, sc_len) if n != m]])
 
     #else:
-        #noise = np.vstack([ dW, 0.5 * (dW**2 - dt), dZ, dW * dt - dZ, 0.5 * (1./3. * dW**2 - dt) * dW] 
+        #noise = np.vstack([ dW, 0.5 * (dW**2 - dt), dZ, dW * dt - dZ, 0.5 * (1./3. * dW**2 - dt) * dW]
                     #+ [[dW[n] * dW[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m]]  # Milstein
                     #+ [[0.5 * dW[n] * (dW[m]**2 - dt) for (n, m) in np.ndindex(sc_len, sc_len) if n != m]]
-                    #+ [[dW[n] * dW[m] * dW[k] for (n, m, k) in np.ndindex(sc_len, sc_len, sc_len) if n>m>k]])  
+                    #+ [[dW[n] * dW[m] * dW[k] for (n, m, k) in np.ndindex(sc_len, sc_len, sc_len) if n>m>k]])
     else:
         raise Exception("too many stochastic operators")
 
@@ -2030,12 +2030,12 @@ def _rhs_rho_taylor_15_one(L, rho_t, t, A, dt, ddW, d1, d2,
     drho_t += b * dW[0]
     drho_t += Lb * dW[1] # Milstein term
 
-    # new terms: 
+    # new terms:
     drho_t += A[-1] * b * dW[2]
     drho_t += (A[0] * a - TrAa * rho_t - e0 * a - TrAb * b) * dW[3]
     drho_t += A[-1] * a * (0.5 * dt*dt)
-    drho_t += (A[0] * Lb - TrALb * rho_t - (2 * TrAb) * b - e0 * Lb) * dW[4] 
-        
+    drho_t += (A[0] * Lb - TrALb * rho_t - (2 * TrAb) * b - e0 * Lb) * dW[4]
+
     return rho_t + drho_t
 
 #include _rhs_rho_Taylor_15_two#
@@ -2043,15 +2043,15 @@ def _rhs_rho_taylor_15_one(L, rho_t, t, A, dt, ddW, d1, d2,
 def _rhs_rho_milstein_implicit(L, rho_t, t, A, dt, ddW, d1, d2, args):
     """
     Drift implicit Milstein (theta = 1/2, eta = 0)
-    Wang, X., Gan, S., & Wang, D. (2012). 
-    A family of fully implicit Milstein methods for stiff stochastic differential 
-    equations with multiplicative noise. 
+    Wang, X., Gan, S., & Wang, D. (2012).
+    A family of fully implicit Milstein methods for stiff stochastic differential
+    equations with multiplicative noise.
     BIT Numerical Mathematics, 52(3), 741–772.
     """
-    
+
     dW = ddW[:, 0]
     A = A[0]
-    
+
 
     #reusable operators and traces
     a = A[-1] * rho_t * (0.5 * dt)
@@ -2059,22 +2059,30 @@ def _rhs_rho_milstein_implicit(L, rho_t, t, A, dt, ddW, d1, d2, args):
     b = A[0] * rho_t - e0 * rho_t
     TrAb = cy_expect_rho_vec(A[0], b, 1)
 
-    drho_t = b * dW[0] 
+    drho_t = b * dW[0]
     drho_t += a
     drho_t += (A[0] * b - TrAb * rho_t - e0 * b) * dW[1] # Milstein term
     drho_t += rho_t
 
-    v, check = sp.linalg.bicgstab(A[-2], drho_t, x0 = drho_t + a, tol=args['tol'])
+    #FIXME: This atol keyword except check can be removed once scipy 1.1
+    #       is a minimum requirement
+    try:
+        v, check = sp.linalg.bicgstab(A[-2], drho_t, x0=drho_t + a,
+                                      tol=args['tol'], atol='legacy')
+    except TypeError as e:
+        if "unexpected keyword argument 'atol'" in str(e):
+            v, check = sp.linalg.bicgstab(A[-2], drho_t, x0=drho_t + a,
+                                          tol=args['tol'])
 
     return v
-    
+
 def _rhs_rho_taylor_15_implicit(L, rho_t, t, A, dt, ddW, d1, d2, args):
     """
     Drift implicit Taylor 1.5 (alpha = 1/2, beta = doesn't matter)
     Chaptert 12.2 Eq. (2.18) in Numerical Solution of Stochastic Differential Equations
     By Peter E. Kloeden, Eckhard Platen
     """
-    
+
     dW = ddW[:, 0]
     A = A[0]
 
@@ -2087,29 +2095,36 @@ def _rhs_rho_taylor_15_implicit(L, rho_t, t, A, dt, ddW, d1, d2, args):
     TrALb = cy_expect_rho_vec(A[0], Lb, 1)
     TrAa = cy_expect_rho_vec(A[0], a, 1)
 
-    drho_t = b * dW[0] 
+    drho_t = b * dW[0]
     drho_t += Lb * dW[1] # Milstein term
     xx0 = (drho_t + a * dt) + rho_t #starting vector for the linear solver (Milstein prediction)
     drho_t += (0.5 * dt) * a
 
-    # new terms: 
+    # new terms:
     drho_t += A[-1] * b * (dW[2] - 0.5*dW[0]*dt)
     drho_t += (A[0] * a - TrAa * rho_t - e0 * a - TrAb * b) * dW[3]
 
     drho_t += (A[0] * Lb - TrALb * rho_t - (2 * TrAb) * b - e0 * Lb) * dW[4]
     drho_t += rho_t
 
-    v, check = sp.linalg.bicgstab(A[-2], drho_t, x0 = xx0, tol=args['tol'])
-
+    #FIXME: This atol keyword except check can be removed once scipy 1.1
+    #       is a minimum requirement
+    try:
+        v, check = sp.linalg.bicgstab(A[-2], drho_t, x0=xx0,
+                                      tol=args['tol'], atol='legacy')
+    except TypeError as e:
+        if "unexpected keyword argument 'atol'" in str(e):
+            v, check = sp.linalg.bicgstab(A[-2], drho_t, x0=xx0,
+                                          tol=args['tol'])
     return v
-    
+
 def _rhs_rho_pred_corr_homodyne_single(L, rho_t, t, A, dt, ddW, d1, d2,
                                            args):
     """
     1/2 predictor-corrector scheme for homodyne detection with 1 stochastic operator
     """
     dW = ddW[:, 0]
-    
+
     #predictor
 
     d_vec = (A[0][0] * rho_t).reshape(-1, len(rho_t))
@@ -2125,7 +2140,7 @@ def _rhs_rho_pred_corr_homodyne_single(L, rho_t, t, A, dt, ddW, d1, d2,
     pred_rho_t += rho_t
 
     a_pred -= ((d_vec[1] - e[1] * rho_t) - (2.0 * e[0]) * b_pred) * (0.5 * dt)
-    
+
     #corrector
 
     d_vec = (A[0][0] * pred_rho_t).reshape(-1, len(rho_t))
