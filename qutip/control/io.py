@@ -38,6 +38,7 @@ import errno
 def create_dir(dir_name, desc='output'):
     """
     Checks if the given directory exists, if not it is created
+
     Returns
     -------
     dir_ok : boolean
@@ -49,15 +50,15 @@ def create_dir(dir_name, desc='output'):
 
     msg : string
         Error msg if directory creation failed
-    
+
     """
 
     dir_ok = True
     if '~' in dir_name:
         dir_name = os.path.expanduser(dir_name)
-    elif not os.path.abspath(dir_name):
+    elif not os.path.isabs(dir_name):
         # Assume relative path from cwd given
-        dir_name = os.path.join(os.getcwd(), dir_name)
+        dir_name = os.path.abspath(dir_name)
 
     msg = "{} directory is ready".format(desc)
     errmsg = "Failed to create {} directory:\n{}\n".format(desc,
@@ -85,4 +86,3 @@ def create_dir(dir_name, desc='output'):
         return dir_ok, dir_name, msg
     else:
         return dir_ok, dir_name, errmsg
-        
