@@ -63,7 +63,7 @@ try:
 except:
     warnings.warn("numpy not found.")
 
-scipy_requirement = "0.15.0"
+scipy_requirement = "1.1.0"
 try:
     import scipy
     if _version2int(scipy.__version__) < _version2int(scipy_requirement):
