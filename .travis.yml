@@ -41,9 +41,9 @@ install:
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - if [[ "${NOMKL}" == "1" ]]; then
-          conda install nomkl numpy scipy nose cython;
+          conda install nomkl blas=*=openblas numpy scipy nose cython;
         else
-          conda install mkl numpy scipy nose cython;
+          conda install mkl blas=*=mkl numpy scipy nose cython;
       fi
     # yml does not work well with multiple ifs
     - if [[ "${NOMKL}" == "1" ]]; then
