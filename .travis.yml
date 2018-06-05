@@ -41,7 +41,7 @@ install:
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - if [[ "${NOMKL}" == "1" ]]; then
-          conda install nomkl numpy scipy nose cython;
+          conda install nomkl numpy scipy nose cython &&
           # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
           pip install cvxopt scs cvxpy;
         else
