@@ -5,17 +5,19 @@ language: python
 matrix:
     include:
         - python: 2.7
-          env: OPENMP=0
+          env: MKL=1 OPENMP=0
         - python: 2.7
-          env: OPENMP=1
+          env: MKL=1 OPENMP=1
         - python: 3.6
-          env: OPENMP=0
+          env: MKL=1 OPENMP=0
         - python: 3.6
-          env: CC=clang CXX=clang++ OPENMP=0
+          env: CC=clang CXX=clang++ MKL=1 OPENMP=0
         - python: 3.6
-          env: NOMKL=1 OPENMP=0
+          env: MKL=0 OPENMP=0
         - python: 3.6
-          env: OPENMP=1
+          env: MKL=1 OPENMP=1
+        - python: 3.6
+          env: MKL=0 OPENMP=1
 addons:
     apt:
         packages:
@@ -38,16 +40,24 @@ install:
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - if [[ "${NOMKL}" == "1" ]]; then
+    - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] && [[ "${MKL}" == "0" ]]; then
           conda install nomkl numpy scipy nose cython;
-        else
+      fi
+    - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] && [[ "${MKL}" == "1" ]]; then
           conda install mkl numpy scipy nose cython;
       fi
+    - if [[ "$TRAVIS_PYTHON_VERSION" == "3.6" ]] && [[ "${MKL}" == "0" ]]; then
+          conda install nomkl blas=*=openblas numpy scipy nose cython;
+      fi
+    - if [[ "$TRAVIS_PYTHON_VERSION" == "3.6" ]] && [[ "${MKL}" == "1" ]]; then
+          conda install mkl blas=*=mkl numpy scipy nose cython;
+      fi
+      
+    # yml does not work well with multiple ifs
+    - if [[ "${MKL}" == "0" ]]; then
+          pip install cvxopt scs cvxpy;
+      fi     
     - pip install coverage coveralls
-    # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
-    - pip install cvxopt==1.1.8
-    - pip install scs
-    - pip install cvxpy
     # Finally, install ourselves.
     - if [[ "${OPENMP}" == "1" ]]; then
           python setup.py install --with-openmp;
