@@ -373,16 +373,13 @@ def tensor_contract(qobj, *pairs):
             else: #new index does happen to follow previous index
                 lol[-1] += [(newidx, data.data[dat_idx])] #put it at the end of the last sublist    
     lol = _merge(lol)
-    lol.send(None) #get rid of the initial (-1,0) pair
     
     #fourth we convert the temporary data structure back to CSR
     A = []
     IA = [0]
     JA = []
     prev_idx = -1
-    for idx_val in lol:
-        if idx_val == None: #take care of the EoL case for the generator
-            break
+    for idx_val in lol[1:]:
         #fill in the CSR data
         if idx_val[0] == prev_idx:
             A[-1] += idx_val[1]
@@ -404,33 +401,27 @@ def tensor_contract(qobj, *pairs):
     return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
     
 
-def _merge(lol): #think of this as the merge step in a generalized merge-sort
+def _merge(lol, ascend = True): #think of this as the merge step in a generalized merge-sort
     if len(lol) == 1: #lol = list of lists
-        for k in lol[0]:
-            yield k
-        yield None #my EOL shibboleth
+        if not ascend: #this is a trick take advantage of the fact that poping from a list is faster
+            lol[0].reverse()#than other list operations. Also I can avoid making redundant data copies
+        return lol[0]
     else:
         pivot = len(lol)//2
-        A = _merge(lol[:pivot])
-        B = _merge(lol[pivot:])
-        a = A.send(None)
-        b = B.send(None)
-        while a != None and b != None:
-            if a < b:
-                yield a
-                a = A.send(None)
+        A = _merge(lol[:pivot],not ascend)
+        B = _merge(lol[pivot:],not ascend)
+        res = []
+        while len(A)*len(B) > 0:
+            if (A[-1] < B[-1] and ascend) or (A[-1] > B[-1] and not ascend):
+                res.append(A.pop())
             else:
-                yield b
-                b = B.send(None)
-        if a == None: #we may be out of the merge loop, but don't forget to give back 
-            yield b   #the non-None value
-        else:
-            yield a
-        #at this point either A is empty or B is empty
-        for k in A: #if A is empty this does nothing and the rest of B is yielded out
-            yield k
-        for k in B: #if B is empty A was already yielded out and this does nothing
-            yield k
+                res.append(B.pop())
+        while len(A) > 0:
+            res.append(A.pop())
+        while len(B) >0:
+            res.append(B.pop())
+        return res
+        
         
 
 #below here is depreciated 
