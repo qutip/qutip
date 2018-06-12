@@ -52,11 +52,13 @@ install:
     - if [[ "$TRAVIS_PYTHON_VERSION" == "3.6" ]] && [[ "${MKL}" == "1" ]]; then
           conda install mkl blas=*=mkl numpy scipy nose cython;
       fi
-      
+     
+    # dnorm tests are currently unreliable. They won't be run without cvxpy
+    # see issue #880
     # yml does not work well with multiple ifs
-    - if [[ "${MKL}" == "0" ]]; then
-          pip install cvxopt scs cvxpy;
-      fi     
+    #- if [[ "${MKL}" == "0" ]]; then
+    #      pip install cvxopt scs cvxpy;
+    #  fi     
     - pip install coverage coveralls
     # Finally, install ourselves.
     - if [[ "${OPENMP}" == "1" ]]; then
