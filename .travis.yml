@@ -61,10 +61,6 @@ install:
     #      pip install cvxopt scs cvxpy;
     #  fi     
     - pip install coverage coveralls
-    # Also get optional dependencies (CVXPY, which depends on CVXOPT and SCS).
-    - pip install cvxopt==1.1.8
-    - pip install scs
-    - pip install cvxpy
     # Finally, install ourselves.
     - if [[ "${OPENMP}" == "1" ]]; then
           python setup.py install --with-openmp;
