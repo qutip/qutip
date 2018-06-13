@@ -61,7 +61,7 @@ class TestDicke:
 
     def test_num_dicke_states(self):
         """
-        Test the `num_dicke_state` function.
+        PIQS: Test the `num_dicke_state` function.
         """
         N_list = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
         dicke_states = [num_dicke_states(i) for i in N_list]
@@ -74,7 +74,7 @@ class TestDicke:
 
     def test_num_tls(self):
         """
-        Test the `num_two_level` function.
+        PIQS: Test the `num_two_level` function.
         """
         N_dicke = [2, 4, 6, 9, 12, 16, 30, 36, 121, 2601, 3906]
         N = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
@@ -83,7 +83,7 @@ class TestDicke:
 
     def test_num_dicke_ladders(self):
         """
-        Test the `_num_dicke_ladders` function.
+        PIQS: Test the `_num_dicke_ladders` function.
         """
         ndl_true = [1, 2, 2, 3, 3, 4, 4, 5, 5]
         ndl = [num_dicke_ladders(N) for N in range(1, 10)]
@@ -91,7 +91,7 @@ class TestDicke:
 
     def test_get_blocks(self):
         """
-        Test the function to get blocks.
+        PIQS: Test the function to get blocks.
         """
         N_list = [1, 2, 5, 7]
         blocks = [np.array([2]), np.array([3, 4]), np.array([6, 10, 12]),
@@ -102,7 +102,7 @@ class TestDicke:
 
     def test_j_vals(self):
         """
-        Test calculation of j values for given N.
+        PIQS: Test calculation of j values for given N.
         """
         N_list = [1, 2, 3, 4, 7]
         j_vals_real = [np.array([0.5]), np.array([0., 1.]),
@@ -116,7 +116,7 @@ class TestDicke:
 
     def test_m_vals(self):
         """
-        Test calculation of m values for a particular j.
+        PIQS: Test calculation of m values for a particular j.
         """
         j_list = [0.5, 1, 1.5, 2, 2.5]
         m_real = [np.array([-0.5, 0.5]), np.array([-1, 0, 1]),
@@ -130,7 +130,7 @@ class TestDicke:
 
     def test_get_index(self):
         """
-        Test the index fetching function for given j, m, m1 value.
+        PIQS: Test the index fetching function for given j, m, m1 value.
         """
         N = 1
         jmm1_list = [(0.5, 0.5, 0.5), (0.5, 0.5, -0.5),
@@ -176,7 +176,7 @@ class TestDicke:
 
     def test_jmm1_dictionary(self):
         """
-        Test the function to generate the mapping from jmm1 to ik matrix.
+        PIQS: Test the function to generate the mapping from jmm1 to ik matrix.
         """
         d1, d2, d3, d4 = jmm1_dictionary(1)
 
@@ -232,7 +232,7 @@ class TestDicke:
 
     def test_lindbladian(self):
         """
-        Test the generation of the Lindbladian matrix.
+        PIQS: Test the generation of the Lindbladian matrix.
         """
         N = 1
         gCE = 0.5
@@ -290,7 +290,7 @@ class TestDicke:
 
     def test_gamma(self):
         """
-        Test the calculation of various gamma values for diagonal system.
+        PIQS: Test the calculation of various gamma values for diagonal system.
 
         For N = 6 |j, m> would be :
 
@@ -327,7 +327,7 @@ class TestDicke:
 
     def test_jspin(self):
         """
-        Test calculation of the j algebra relation for the total operators.
+        PIQS: Test calculation of the j algebra relation for the total operators.
 
         The jx, jy, jz, jp and jm for a given N in the (j, m, m1)
         basis should follow the following algebra
@@ -367,7 +367,7 @@ class TestDicke:
 
     def test_j_min_(self):
         """
-        Test the `j_min` function.
+        PIQS: Test the `j_min` function.
         """
         even = [2, 4, 6, 8]
         odd = [1, 3, 5, 7]
@@ -380,7 +380,7 @@ class TestDicke:
 
     def test_energy_degeneracy(self):
         """
-        Test the energy degeneracy (m) of Dicke state | j, m >.
+        PIQS: Test the energy degeneracy (m) of Dicke state | j, m >.
         """
         true_en_deg = [1, 1, 1, 1, 1]
         true_en_deg_even = [2, 6, 20]
@@ -405,7 +405,7 @@ class TestDicke:
 
     def test_state_degeneracy(self):
         """
-        Test the calculation of the degeneracy of the Dicke state |j, m>,
+        PIQS: Test the calculation of the degeneracy of the Dicke state |j, m>,
         state_degeneracy(N, j).
         """
         true_state_deg = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 14, 14, 42, 42]
@@ -423,7 +423,7 @@ class TestDicke:
 
     def test_m_degeneracy(self):
         """
-        Test the degeneracy of TLS states with same m eigenvalue.
+        PIQS: Test the degeneracy of TLS states with same m eigenvalue.
         """
         true_m_deg = [1, 2, 2, 3, 4, 5, 5, 6]
         m_deg = []
@@ -436,7 +436,7 @@ class TestDicke:
 
     def test_ap(self):
         """
-        Tests the calculation of the real coefficient A_{+}(j,m).
+        PIQS: Test the calculation of the real coefficient A_{+}(j,m).
 
         For given values of j, m. For a Dicke state,
         J_{+} |j, m> = A_{+}(j,m) |j, m + 1>.
@@ -450,7 +450,7 @@ class TestDicke:
 
     def test_am(self):
         """
-        Tests the calculation of the real coefficient A_{-}(j,m).
+        PIQS: Test the calculation of the real coefficient A_{-}(j,m).
 
         For a Dicke state,  J_{-} |j, m> = A_{+}(j,m) |j, m - 1>.
         """
@@ -463,7 +463,7 @@ class TestDicke:
 
     def test_spin_algebra(self):
         """
-        Tests the function that creates the SU2 algebra in uncoupled basis.
+        PIQS: Test the function that creates the SU2 algebra in uncoupled basis.
         The list [sx, sy, sz, sp, sm] is checked for N = 2.
         """
         sx1 = [[0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j],
@@ -532,7 +532,7 @@ class TestDicke:
 
     def test_collective_algebra(self):
         """
-        Tests the generation of the collective algebra in uncoupled basis.
+        PIQS: Test the generation of the collective algebra in uncoupled basis.
 
         The list [jx, jy, jz] created in the 2^N Hilbert space is
         checked for N = 2.
@@ -574,7 +574,7 @@ class TestDicke:
 
     def test_block_matrix(self):
         """
-        Tests the calculation of the block-diagonal matrix for given N.
+        PIQS: Test the calculation of the block-diagonal matrix for given N.
         
         If the matrix element |j,m><j,m'| is allowed it is 1, otherwise 0.
         """
@@ -599,7 +599,7 @@ class TestDicke:
 
     def test_dicke_basis(self):
         """
-        Test if the Dicke basis (j, m, m') is constructed correctly.
+        PIQS: Test if the Dicke basis (j, m, m') is constructed correctly.
 
         We test the state with for N = 2,
 
@@ -631,7 +631,7 @@ class TestDicke:
 
     def test_dicke(self):
         """
-        Test the calculation of the Dicke state as a pure state.
+        PIQS: Test the calculation of the Dicke state as a pure state.
         """
         true_excited = np.zeros((4, 4))
         true_excited[0, 0] = 1
@@ -652,7 +652,7 @@ class TestDicke:
 
     def test_excited(self):
         """
-        Tests the calculation of the totally excited state density matrix.
+        PIQS: Test the calculation of the totally excited state density matrix.
 
         The matrix has size (O(N^2), O(N^2)) in Dicke basis ('dicke').
         The matrix has size (2^N, 2^N) in the uncoupled basis ('uncoupled').
@@ -681,7 +681,7 @@ class TestDicke:
 
     def test_superradiant(self):
         """
-        Test the calculation of the superradiant state density matrix.
+        PIQS: Test the calculation of the superradiant state density matrix.
 
         The state is |N/2, 0> for N even and |N/2, 0.5> for N odd.
         The matrix has size (O(N^2), O(N^2)) in Dicke basis ('dicke').
@@ -708,9 +708,9 @@ class TestDicke:
 
     def test_ghz(self):
         """
-        Test the calculation of the density matrix of the GHZ state.
+        PIQS: Test the calculation of the density matrix of the GHZ state.
 
-        Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
+        PIQS: Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
         """
         ghz_dicke = Qobj([[0.5, 0, 0.5, 0], [0, 0, 0, 0],
                           [0.5, 0, 0.5, 0], [0, 0, 0, 0]])
@@ -722,9 +722,9 @@ class TestDicke:
 
     def test_ground(self):
         """
-        Test the calculation of the density matrix of the ground state.
+        PIQS: Test the calculation of the density matrix of the ground state.
 
-        Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
+        PIQS: Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
         """
         zeros = np.zeros((4, 4), dtype=np.complex)
         gdicke = zeros.copy()
@@ -745,7 +745,7 @@ class TestDicke:
 
     def test_identity_uncoupled(self):
         """
-        Test the calculation of the identity in a 2^N dim Hilbert space.
+        PIQS: Test the calculation of the identity in a 2^N dim Hilbert space.
         """
         test_identity = identity_uncoupled(4)
         assert_equal(test_identity.dims, [[2, 2, 2, 2], [2, 2, 2, 2]])
@@ -754,7 +754,7 @@ class TestDicke:
 
     def test_css(self):
         """
-        Test the calculation of the CSS state.
+        PIQS: Test the calculation of the CSS state.
         """
         test_css_uncoupled = css(2, basis='uncoupled')
         test_css_dicke = css(2)
@@ -772,7 +772,7 @@ class TestDicke:
 
     def test_collapse_uncoupled(self):
         """
-        Test the calculation of the correct collapse operators (c_ops) list.
+        PIQS: Test the calculation of the correct collapse operators (c_ops) list.
 
         In the "uncoupled" basis of N two-level system (TLS).
         The test is performed for N = 2 and emission = 1.
@@ -788,7 +788,7 @@ class TestDicke:
 
     def test_get_blocks(self):
         """
-        Test the calculation of list of cumulative elements at each block.
+        PIQS: Test the calculation of list of cumulative elements at each block.
 
         For N = 4
 
@@ -820,7 +820,7 @@ class TestDicke:
 
     def test_lindbladian_dims(self):
         """
-        Test the calculation of the lindbladian matrix.
+        PIQS: Test the calculation of the lindbladian matrix.
         """
         true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
                   [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
@@ -836,7 +836,7 @@ class TestDicke:
 
     def test_liouvillian(self):
         """
-        Test the calculation of the liouvillian matrix.
+        PIQS: Test the calculation of the liouvillian matrix.
         """
         true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
                   [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
@@ -873,7 +873,7 @@ class TestDicke:
 
     def test_gamma1(self):
         """
-        Test the calculation of gamma1.
+        PIQS: Test the calculation of gamma1.
         """
         true_gamma_1 = -2
         true_gamma_2 = -3
@@ -905,7 +905,7 @@ class TestDicke:
 
     def test_gamma2(self):
         """
-        Test the calculation of gamma2. Test performed for N = 4.
+        PIQS: Test the calculation of gamma2. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 2
         true_gamma_2 = 1.5
@@ -937,7 +937,7 @@ class TestDicke:
 
     def test_gamma3(self):
         """
-        Test the calculation of gamma3. Test performed for N = 4.
+        PIQS: Test the calculation of gamma3. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 0
         true_gamma_2 = 1.3333333730697632
@@ -969,7 +969,7 @@ class TestDicke:
 
     def test_gamma4(self):
         """
-        Test the calculation of gamma4. Test performed for N = 4.
+        PIQS: Test the calculation of gamma4. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 0.1666666716337204
         true_gamma_2 = 2
@@ -990,7 +990,7 @@ class TestDicke:
 
     def test_gamma5(self):
         """
-        Test the calculation of gamma5. Test performed for N = 4.
+        PIQS: Test the calculation of gamma5. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 0
         true_gamma_2 = 0
@@ -1011,7 +1011,7 @@ class TestDicke:
 
     def test_gamma6(self):
         """
-        Test the calculation of gamma6. Test performed for N = 4.
+        PIQS: Test the calculation of gamma6. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 0.25
         true_gamma_2 = 1
@@ -1032,7 +1032,7 @@ class TestDicke:
 
     def test_gamma7(self):
         """
-        Test the calculation of gamma7. Test performed for N = 4.
+        PIQS: Test the calculation of gamma7. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 0
         true_gamma_2 = 0.5
@@ -1053,7 +1053,7 @@ class TestDicke:
 
     def test_gamma8(self):
         """
-        Test the calculation of gamma8. Test performed for N = 4.
+        PIQS: Test the calculation of gamma8. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 0
         true_gamma_2 = 13.5
@@ -1074,7 +1074,7 @@ class TestDicke:
 
     def test_gamma9(self):
         """
-        Test the calculation of gamma9. Test performed for N = 4.
+        PIQS: Test the calculation of gamma9. PIQS: Test performed for N = 4.
         """
         true_gamma_1 = 1
         true_gamma_2 = 0
@@ -1093,7 +1093,7 @@ class TestDicke:
 
     def test_prune_eigenstates(self):
         """
-        Test the eigenstate pruning
+        PIQS: Test the eigenstate pruning
         """
         N = 2
         w0 = 1
@@ -1130,11 +1130,11 @@ class TestDicke:
 
 class TestPim:
     """
-    Test for the `qutip.piqs.Pim` class.
+    Tests for the `qutip.piqs.Pim` class.
     """
     def test_gamma(self):
         """
-        Test the calculation of various gamma values for diagonal system.
+        PIQS: Test the calculation of various gamma values for diagonal system.
 
         For N = 6 |j, m> would be :
 
@@ -1171,7 +1171,7 @@ class TestPim:
 
     def test_isdicke(self):
         """
-        Tests the `isdicke` function
+        PIQS: Test the `isdicke` function
         """
         N1 = 1
         g0=.01
@@ -1196,7 +1196,7 @@ class TestPim:
 
     def test_isdiagonal(self):
         """
-        Test the isdiagonal function.
+        PIQS: Test the isdiagonal function.
         """
         mat1 = np.array([[1, 2], [3, 4]])
         mat2 = np.array([[1, 0.], [0., 2]])
@@ -1209,14 +1209,14 @@ class TestPim:
 
     def test_pisolve(self):
         """
-        Test the warning for diagonal Hamiltonians to use internal solver
+        PIQS: Test the warning for diagonal Hamiltonians to use internal solver
         """
         jx, jy, jz = jspin(4)
         jp, jm = jspin(4, "+"), jspin(4, "-")
 
     def test_coefficient_matrix(self):
         """
-        Test the coefficient matrix used by 'pisolve' for diagonal problems.
+        PIQS: Test the coefficient matrix used by 'pisolve' for diagonal problems.
         """
         N = 2
         ensemble = Pim(N, emission=1)
@@ -1230,7 +1230,7 @@ class TestPim:
 
     def test_pisolve(self):
         """
-        Test the warning for diagonal Hamiltonians to use internal solver.
+        PIQS: Test the warning for diagonal Hamiltonians to use internal solver.
         """
         jx, jy, jz = jspin(4)
         jp, jm = jspin(4, "+"), jspin(4, "-")
