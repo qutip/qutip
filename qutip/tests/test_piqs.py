@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
-Tests for Permutation Invariance methods
+Tests for Permutational Invariant Quantum solver (PIQS).
 """
 import numpy as np
 from numpy.testing import (assert_, run_module_suite, assert_raises,
@@ -45,10 +45,18 @@ from qutip.cy.piqs import (get_blocks, j_min, j_vals, m_vals,
 from qutip.cy.piqs import Dicke as _Dicke
 from qutip.piqs import *
 
+import sys
+import unittest
+
+
+# Disable tests for python2 as qutip.piqs does not support python2.
+if sys.version_info[0] < 3:
+    raise unittest.SkipTest("qutip.piqs module is not tested for Python 2")
+
 
 class TestDicke:
     """
-    A test class for the Permutational Invariant Quantum Solver.
+    Tests for `qutip.piqs.Dicke` class.
     """
 
     def test_num_dicke_states(self):
@@ -1122,7 +1130,7 @@ class TestDicke:
 
 class TestPim:
     """
-    A test class for the Permutation invariance matrix generation
+    Test for the `qutip.piqs.Pim` class.
     """
     def test_gamma(self):
         """
