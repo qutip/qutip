@@ -38,7 +38,7 @@ processes by exploiting permutational symmetry and using the Dicke basis.
 """
 
 # Authors: Nathan Shammah, Shahnawaz Ahmed
-# Contact: shahnawaz.ahmed95@gmail.com
+# Contact: nathan.shammah@gmail.com, shahnawaz.ahmed95@gmail.com
 
 from math import factorial
 from decimal import Decimal
@@ -114,7 +114,7 @@ def num_tls(nds):
 
 def isdiagonal(mat):
     """
-    Check if the input matrix is diagonal
+    Check if the input matrix is diagonal.
 
     Parameters
     ==========
@@ -124,7 +124,7 @@ def isdiagonal(mat):
     Returns
     =======
     diag: bool
-        True/False depending on whether the input matrix is diagonal
+        True/False depending on whether the input matrix is diagonal.
     """
     if isinstance(mat, Qobj):
         mat = mat.full()
@@ -464,9 +464,10 @@ def energy_degeneracy(N, m):
 def state_degeneracy(N, j):
     """Calculate the degeneracy of the Dicke state.
 
-    Each state |j, m> includes D(N,j) irreducible representations
-    |j, m,alpha>. Uses Decimals to calculate higher numerator and
-    denominators numbers.
+    Each state :math:`|j, m\\rangle` includes D(N,j) irreducible
+    representations :math:`|j, m, \\alpha\\rangle`.
+
+    Uses Decimals to calculate higher numerator and denominators numbers.
 
     Parameters
     ----------
@@ -491,7 +492,8 @@ def state_degeneracy(N, j):
     return degeneracy
 
 def m_degeneracy(N, m):
-    """Calculate the number of Dicke states |j, m> with same energy.
+    """Calculate the number of Dicke states :math:`|j, m\\rangle` with
+    same energy.
 
     Parameters
     ----------
@@ -517,9 +519,10 @@ def m_degeneracy(N, m):
     return int(degeneracy)
 
 def ap(j, m):
-    """Calculate the operator `ap` used later.
+    """Calculate the coefficient `ap` by applying J_+ |j, m>.
 
-    The action of ap is given by: J_{+}|j, m> = A_{+}(jm)|j, m+1>
+    The action of ap is given by:
+    :math:`J_{+}|j, m\\rangle = A_{+}(j, m)|j, m+1\\rangle`
 
     Parameters
     ----------
@@ -529,7 +532,7 @@ def ap(j, m):
     Returns
     -------
     a_plus: float
-        The value of `a_plus`.
+        The value of :math:`a_{+}`.
     """
     a_plus = np.sqrt((j-m) * (j+m+1))
     return a_plus
@@ -541,13 +544,16 @@ def am(j, m):
 
     Parameters
     ----------
-    j, m: float
-        The value for j and m in the dicke basis |j, m>.
+    j: float
+        The value for j.
+
+    m: float
+        The value for m.
 
     Returns
     -------
     a_minus: float
-        The value of `a_minus`.
+        The value of :math:`a_{-}`.
     """
     a_minus = np.sqrt((j+m) * (j-m+1))
     return a_minus
@@ -559,11 +565,11 @@ def spin_algebra(N, op=None):
     (TLSs). Each element of the list, i.e., sx, is a vector of `qutip.Qobj`
     objects (spin matrices), as it cointains the list of the SU(2) Pauli
     matrices for the N TLSs. Each TLS operator sx[i], with i = 0, ..., (N-1),
-    is placed in a 2^N-dimensional Hilbert space.
+    is placed in a :math:`2^N`-dimensional Hilbert space.
 
     Notes
     -----
-    sx[i] is sigmax()/2 in the composite Hilbert space.
+    sx[i] is :math:`\\frac{\\sigma_x}{2}` in the composite Hilbert space.
 
     Parameters
     ----------
@@ -683,8 +689,9 @@ def jspin(N, op=None, basis="dicke"):
     """
     Calculate the list of collective operators of the total algebra.
 
-    The Dicke basis |j,m><j,m'| is used by default. Otherwise with "uncoupled"
-    the operators are in a 2^N space.
+    The Dicke basis :math:`|j,m\\rangle\\langle j,m'|` is used by
+    default. Otherwise with "uncoupled" the operators are in a
+    :math:`2^N` space.
 
     Parameters
     ----------
@@ -755,7 +762,8 @@ def collapse_uncoupled(N, emission=0., dephasing=0., pumping=0.,
               collective_emission=0., collective_dephasing=0.,
               collective_pumping=0.):
     """
-    Create the collapse operators (c_ops) of the Lindbladian.
+    Create the collapse operators (c_ops) of the Lindbladian in the
+    uncoupled basis
 
     These operators are in the uncoupled basis of the two-level
     system (TLS) SU(2) Pauli matrices.
@@ -764,8 +772,8 @@ def collapse_uncoupled(N, emission=0., dephasing=0., pumping=0.,
     -----
     The collapse operator list can be given to `qutip.mesolve`.
     Notice that the operators are placed in a Hilbert space of
-    dimension 2^N. Thus the method is suitable only for small
-    N (of the order of 10).
+    dimension :math:`2^N`. Thus the method is suitable only for
+    small N (of the order of 10).
 
     Parameters
     ----------
@@ -846,19 +854,11 @@ def dicke_basis(N, jmm1=None):
     Initialize the density matrix of a Dicke state for several (j, m, m1).
 
     This function can be used to build arbitrary states in the Dicke basis
-    |j, m><j, m1|. We create coefficients for each (j, m, m1) value in the
-    dictionary jmm1. For instance, if we start from the most excited state for
-    N = 2, we have the following state represented as a density matrix of size
-    (nds, nds) or
-    (4, 4).
-
-    1 0 0 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-
-    The mapping for the (i, k) index of the density matrix to the |j, m>
-    values is given by the cythonized function `jmm1_dictionary`.
+    :math:`|j, m\\rangle \\langle j, m^{\\prime}|`. We create coefficients for each
+    (j, m, m1) value in the dictionary jmm1. The mapping for the (i, k)
+    index of the density matrix to the |j, m> values is given by the
+    cythonized function `jmm1_dictionary`. A density matrix is created from
+    the given dictionary of coefficients for each (j, m, m1).
 
     Parameters
     ----------
@@ -892,13 +892,11 @@ def dicke(N, j, m):
     """
     Generate a Dicke state as a pure density matrix in the Dicke basis.
 
-    For instance, if the superradiant state is given |j, m> = |1, 0> for N = 2,
-    the state is represented as a density matrix of size (nds, nds) or (4, 4),
+    For instance, the superradiant state given by
+    :math:`|j, m\\rangle = |1, 0\\rangle` for N = 2,
+    and the state is represented as a density matrix of size (nds, nds) or
+    (4, 4), with the (1, 1) element set to 1.
 
-    0 0 0 0
-    0 1 0 0
-    0 0 0 0
-    0 0 0 0
 
     Parameters
     ----------
@@ -906,10 +904,10 @@ def dicke(N, j, m):
         The number of two-level systems.
 
     j: float
-        The eigenvalue j of the Dicke state |j, m>.
+        The eigenvalue j of the Dicke state (j, m).
 
     m: float
-        The eigenvalue m of the Dicke state |j, m>.
+        The eigenvalue m of the Dicke state (j, m).
 
     Returns
     -------
@@ -930,7 +928,7 @@ def dicke(N, j, m):
 def _uncoupled_excited(N):
     """
     Generate the density matrix of the excited Dicke state in the full
-    2^N dimensional Hilbert space.
+    :math:`2^N` dimensional Hilbert space.
 
     Parameters
     ----------
@@ -950,8 +948,8 @@ def _uncoupled_excited(N):
 
 def _uncoupled_superradiant(N):
     """
-    Generate the density matrix of a superradiant state in the full 2^N
-    dimensional Hilbert space.
+    Generate the density matrix of a superradiant state in the full
+    :math:`2^N`-dimensional Hilbert space.
 
     Parameters
     ----------
@@ -972,8 +970,8 @@ def _uncoupled_superradiant(N):
 
 def _uncoupled_ground(N):
     """
-    Generate the density matrix of the ground state in the full 2^N
-    dimensional Hilbert space.
+    Generate the density matrix of the ground state in the full\
+    :math:`2^N`-dimensional Hilbert space.
 
     Parameters
     ----------
@@ -1023,7 +1021,7 @@ def _uncoupled_css(N, a, b):
     dimensional Hilbert space.
 
     The CSS states are non-entangled states given by
-    |a, b> =  \Prod_i (a|1>_i + b|0>_i).
+    :math:`|a, b\\rangle = \\prod_i (a|1\\rangle_i + b|0\\rangle_i)`.
 
     Parameters
     ----------
@@ -1031,10 +1029,10 @@ def _uncoupled_css(N, a, b):
         The number of two-level systems.
 
     a: complex
-        The coefficient of the |1_i> state.
+        The coefficient of the :math:`|1_i\rangle` state.
 
     b: complex
-        The coefficient of the |0_i> state.
+        The coefficient of the :math:`|0_i\rangle` state.
 
     Returns
     -------
@@ -1072,7 +1070,7 @@ def excited(N, basis="dicke"):
     """
     Generate the density matrix for the excited state.
 
-    This state is given by |N/2, N/2> in the default Dicke basis. If the
+    This state is given by (N/2, N/2) in the default Dicke basis. If the
     argument `basis` is "uncoupled" then it generates the state in a
     2**N dim Hilbert space.
 
@@ -1100,7 +1098,7 @@ def superradiant(N, basis="dicke"):
     """
     Generate the density matrix of the superradiant state.
 
-    This state is given by |N/2, 0> or |N/2, 0.5> in the Dicke basis.
+    This state is given by (N/2, 0) or (N/2, 0.5) in the Dicke basis.
     If the argument `basis` is "uncoupled" then it generates the state
     in a 2**N dim Hilbert space.
 
@@ -1133,10 +1131,14 @@ def css(N, x=1/np.sqrt(2), y=1/np.sqrt(2),
     """
     Generate the density matrix of the Coherent Spin State (CSS).
 
-    It can be defined as |CSS>= Prod_i^N(a|1>_i + b|0>_i)
-    with a = sin(theta/2), b = exp(1j*phi) * cos(theta/2).
-    The default basis is that of Dicke space |j, m> < j, m'|.
-    The default state is the symmetric CSS, |CSS> = |+>.
+    It can be defined as,
+    :math:`|CSS \\rangle = \\prod_i^N(a|1\\rangle_i + b|0\\rangle_i)`
+    with :math:`a = sin(\\frac{\\theta}{2})`,
+    :math:`b = e^{i \\phi}\\cos(\\frac{\\theta}{2})`.
+    The default basis is that of Dicke space
+    :math:`|j, m\\rangle \\langle j, m'|`.
+    The default state is the symmetric CSS,
+    :math:`|CSS\\rangle = |+\\rangle`.
 
     Parameters
     ----------
@@ -1192,7 +1194,7 @@ def ghz(N, basis="dicke"):
     Generate the density matrix of the GHZ state.
 
     If the argument `basis` is "uncoupled" then it generates the state
-    in a 2**N dim Hilbert space.
+    in a :math:`2^N`-dimensional Hilbert space.
 
     Parameters
     ----------
@@ -1221,9 +1223,9 @@ def ground(N, basis="dicke"):
     """
     Generate the density matrix of the ground state.
 
-    This state is given by |N/2, -N/2> in the Dicke basis. If the argument
-    `basis` is "uncoupled" then it generates the state in a 2**N dim Hilbert
-    space.
+    This state is given by (N/2, -N/2) in the Dicke basis. If the argument
+    `basis` is "uncoupled" then it generates the state in a
+    :math:`2^N`-dimensional Hilbert space.
 
     Parameters
     ----------
@@ -1248,7 +1250,7 @@ def ground(N, basis="dicke"):
 
 def identity_uncoupled(N):
     """
-    Generate the identity in a 2**N dimensional Hilbert space.
+    Generate the identity in a :math:`2^N`-dimensional Hilbert space.
 
     The identity matrix is formed from the tensor product of N TLSs.
 
@@ -1526,7 +1528,7 @@ class Pim(object):
 
     def coefficient_matrix(self):
         """
-        Generate the matrix M governing the dynamics.
+        Generate the matrix M governing the dynamics for diagonal cases.
 
         If the initial density matrix and the Hamiltonian is diagonal, the
         evolution of the system is given by the simple ODE: dp/dt = Mp.
@@ -1574,7 +1576,7 @@ class Pim(object):
 
     def tau1(self, j, m):
         """
-        Calculate tau1 for value of j and m.
+        Calculate coefficient matrix element relative to (j, m, m).
         """
         yS = self.collective_emission
         yL = self.emission
@@ -1595,7 +1597,7 @@ class Pim(object):
 
     def tau2(self, j, m):
         """
-        Calculate tau2 for given j and m
+        Calculate coefficient matrix element relative to (j, m+1, m+1).
         """
         yS = self.collective_emission
         yL = self.emission
@@ -1607,7 +1609,7 @@ class Pim(object):
 
     def tau3(self, j, m):
         """
-        Calculate tau3.
+        Calculate coefficient matrix element relative to (j+1, m+1, m+1).
         """
         yL = self.emission
         N = float(self.N)
@@ -1618,7 +1620,7 @@ class Pim(object):
 
     def tau4(self, j, m):
         """
-        Calculate tau4.
+        Calculate coefficient matrix element relative to (j-1, m+1, m+1).
         """
         yL = self.emission
         N = float(self.N)
@@ -1629,7 +1631,7 @@ class Pim(object):
 
     def tau5(self, j, m):
         """
-        Calculate tau5.
+        Calculate coefficient matrix element relative to (j+1, m, m).
         """
         yD = self.dephasing
         N = float(self.N)
@@ -1640,7 +1642,7 @@ class Pim(object):
 
     def tau6(self, j, m):
         """
-        Calculate tau6.
+        Calculate coefficient matrix element relative to (j-1, m, m).
         """
         yD = self.dephasing
         N = float(self.N)
@@ -1651,7 +1653,7 @@ class Pim(object):
 
     def tau7(self, j, m):
         """
-        Calculate tau7.
+        Calculate coefficient matrix element relative to (j+1, m-1, m-1).
         """
         yP = self.pumping
         N = float(self.N)
@@ -1662,7 +1664,7 @@ class Pim(object):
 
     def tau8(self, j, m):
         """
-        Calculate tau8.
+        Calculate coefficient matrix element relative to (j, m-1, m-1).
         """
         yP = self.pumping
         yCP = self.collective_pumping
@@ -1677,7 +1679,7 @@ class Pim(object):
 
     def tau9(self, j, m):
         """
-        Calculate tau9.
+        Calculate coefficient matrix element relative to (j-1, m-1, m-1).
         """
         yP = self.pumping
         N = float(self.N)
