@@ -18,6 +18,7 @@ matrix:
           env: MKL=1 OPENMP=1
         - python: 3.6
           env: MKL=0 OPENMP=1
+
 addons:
     apt:
         packages:
