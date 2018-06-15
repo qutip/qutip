@@ -48,10 +48,9 @@ from qutip.dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove,
     dims_to_tensor_shape, dims_idxs_to_tensor_idxs
 )
-
+#from qutip.cy.tc import _merge
 import qutip.settings
 import qutip.superop_reps  # Avoid circular dependency here.
-from collections import deque
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -337,8 +336,8 @@ def tensor_contract(qobj, *pairs):
     for k in pairs: 
         if t_dims[k[0]] != t_dims[k[1]]:
             raise ValueError("Cannot contract over indices of different length.")
-    oldk = None
-    for k in allidx:
+    oldk = allidx[0]
+    for k in allidx[1:]:
         if k == oldk:#check that pairs does not contain overlapping indicies like [(i,j),(k,j)]. 
             raise ValueError("Cannot contract over overlapping pairs of indices (eg [(i,j),(k,j)]) or invalid pair (eg [(i,i)])")
         oldk = k
@@ -399,30 +398,27 @@ def tensor_contract(qobj, *pairs):
     
     #fifth and final step is to move everything back to a qobj before returning
     return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
-    
 
-def _merge(lol, ascend = True): #think of this as the merge step in a generalized merge-sort
-    if len(lol) == 1: #lol = list of lists
-        if not ascend: #this is a trick take advantage of the fact that poping from a list is faster
-            lol[0].reverse()#than other list operations. Also I can avoid making redundant data copies
-        return lol[0]
-    else:
-        pivot = len(lol)//2
-        A = _merge(lol[:pivot],not ascend)
-        B = _merge(lol[pivot:],not ascend)
-        res = []
-        while len(A)*len(B) > 0:
-            if (A[-1] < B[-1] and ascend) or (A[-1] > B[-1] and not ascend):
-                res.append(A.pop())
-            else:
-                res.append(B.pop())
-        while len(A) > 0:
-            res.append(A.pop())
-        while len(B) >0:
-            res.append(B.pop())
-        return res
-        
-        
+##def _merge(lol, ascend = True): #think of this as the merge step in a generalized merge-sort
+##    if len(lol) == 1: #lol = list of lists
+##        if not ascend: #this is a trick take advantage of the fact that poping from a list is faster
+##            lol[0].reverse()#than other list operations. Also I can avoid making redundant data copies
+##        return lol[0]
+##    else:
+##        pivot = len(lol)//2
+##        A = _merge(lol[:pivot],not ascend)
+##        B = _merge(lol[pivot:],not ascend)
+##        res = []
+##        while len(A)*len(B) > 0:
+##            if (A[-1] < B[-1] and ascend) or (A[-1] > B[-1] and not ascend):
+##                res.append(A.pop())
+##            else:
+##                res.append(B.pop())
+##        while len(A) > 0:
+##            res.append(A.pop())
+##        while len(B) >0:
+##            res.append(B.pop())
+##        return res
 
 #below here is depreciated 
 def _tensor_contract_single(arr, i, j):
