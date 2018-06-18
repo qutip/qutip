@@ -59,9 +59,9 @@ logger = get_logger()
 
 def complex_var(rows=1, cols=1, name=None):
     return Complex(
-        re=cvxpy.Variable(rows, cols, name=(name + "_re") if name else None),
-        im=cvxpy.Variable(rows, cols, name=(name + "_im") if name else None)
-    )    
+        re=cvxpy.Variable((rows, cols), name=(name + "_re") if name else None),
+        im=cvxpy.Variable((rows, cols), name=(name + "_im") if name else None)
+    )
 
 
 def herm(*Xs):
@@ -105,7 +105,7 @@ def kron(A, B):
         A = _arr_to_complex(A)
     if isinstance(B, np.ndarray):
         B = _arr_to_complex(B)
-        
+
     return Complex(
         re=(cvxpy.kron(A.re, B.re) - cvxpy.kron(A.im, B.im)),
         im=(cvxpy.kron(A.im, B.re) + cvxpy.kron(A.re, B.im)),
@@ -132,7 +132,7 @@ def dag(X):
 
 def memoize(fn):
     cache = {}
-        
+
     @wraps(fn)
     def memoized(*args):
         if args in cache:
@@ -141,7 +141,7 @@ def memoize(fn):
             ret = fn(*args)
             cache[args] = ret
             return ret
-    
+
     memoized.reset_cache = cache.clear
     return memoized
 
@@ -155,15 +155,15 @@ def qudit_swap(dim):
 def dnorm_problem(dim):
     # Start assembling constraints and variables.
     constraints = []
-    
+
     # Make a complex variable for X.
     X = complex_var(dim ** 2, dim ** 2, "X")
-    
+
     # Make complex variables for rho0 and rho1.
     rho0 = complex_var(dim, dim, "rho0")
     rho1 = complex_var(dim, dim, "rho1")
     constraints += dens(rho0, rho1)
-    
+
     # Finally, add the tricky positive semidefinite constraint.
     # Since we're using column-stacking, but Watrous used row-stacking,
     # we need to swap the order in Rho0 and Rho1. This is not straightforward,
@@ -173,27 +173,27 @@ def dnorm_problem(dim):
     W = Complex(re=W.real, im=W.imag)
     Rho0 = conj(W, kron(np.eye(dim), rho0))
     Rho1 = conj(W, kron(np.eye(dim), rho1))
-    
+
     Y = cvxpy.bmat([
         [Rho0.re, X.re,      -Rho0.im, -X.im],
         [X.re.T, Rho1.re,    X.im.T, -Rho1.im],
-            
+
         [Rho0.im, X.im,      Rho0.re, X.re],
         [-X.im.T, Rho1.im,   X.re.T, Rho1.re],
     ])
     constraints += [Y >> 0]
 
     logger.debug("Using {} constraints.".format(len(constraints)))
-    
-    Jr = cvxpy.Parameter(dim ** 2, dim ** 2)
-    Ji = cvxpy.Parameter(dim ** 2, dim ** 2)
-    
+
+    Jr = cvxpy.Parameter((dim**2, dim**2))
+    Ji = cvxpy.Parameter((dim**2, dim**2))
+
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
         Jr.T * X.re + Ji.T * X.im
     ))
-    
+
     problem = cvxpy.Problem(objective, constraints)
-    
+
     return problem, Jr, Ji, X, rho0, rho1
 

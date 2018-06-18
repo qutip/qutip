@@ -58,11 +58,13 @@ cpdef double interp(double x, double a, double b, double[::1] c):
     cdef int l = <int>((x-a)/h) + 1
     cdef int m = <int>(fmin(l+3, n+3))
     cdef size_t ii
-    cdef double s = 0
+    cdef double s = 0, _tmp
     cdef double pos = (x-a)/h + 2
     
     for ii in range(l, m+1):
-        s += c[ii-1] * phi(pos - ii)
+        _tmp = phi(pos - ii)
+        if _tmp:
+            s += c[ii-1] * _tmp
     return s    
 
 
@@ -76,10 +78,12 @@ cpdef complex zinterp(double x, double a, double b, complex[::1] c):
     cdef int m = <int>(fmin(l+3, n+3))
     cdef size_t ii
     cdef complex s = 0
-    cdef double pos = (x-a)/h + 2
+    cdef double _tmp, pos = (x-a)/h + 2
 
     for ii in range(l, m+1):
-        s += c[ii-1] * phi(pos - ii)
+        _tmp = phi(pos - ii)
+        if _tmp:
+            s += c[ii-1] * _tmp
     return s  
 
 
@@ -93,7 +97,7 @@ def arr_interp(double[::1] x, double a, double b, double[::1] c):
     cdef double h = (b-a) / n
     cdef size_t ii, jj
     cdef int l, m
-    cdef double pos
+    cdef double pos, _tmp
     cdef cnp.ndarray[double, ndim=1, mode="c"] out = np.zeros(lenx, dtype=float)
     
     for jj in range(lenx):
@@ -102,7 +106,9 @@ def arr_interp(double[::1] x, double a, double b, double[::1] c):
         pos = (x[jj]-a)/h + 2
         
         for ii in range(l, m+1):
-            out[jj] += c[ii-1] * phi(pos - ii)
+            _tmp = phi(pos - ii)
+            if _tmp:
+                out[jj] += c[ii-1] * _tmp
     
     return out
 
@@ -117,7 +123,7 @@ def arr_zinterp(double[::1] x, double a, double b, complex[::1] c):
     cdef double h = (b-a) / n
     cdef size_t ii, jj
     cdef int l, m
-    cdef double pos
+    cdef double pos, _tmp
     cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros(lenx, dtype=complex)
 
     for jj in range(lenx):
@@ -126,7 +132,9 @@ def arr_zinterp(double[::1] x, double a, double b, complex[::1] c):
         pos = (x[jj]-a)/h + 2
     
         for ii in range(l, m+1):
-            out[jj] = out[jj] + c[ii-1] * phi(pos - ii)
+            _tmp = phi(pos - ii)
+            if _tmp:
+                out[jj] = out[jj] + c[ii-1] * _tmp
 
     return out
 
