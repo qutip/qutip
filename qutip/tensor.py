@@ -52,9 +52,7 @@ import qutip.settings
 import qutip.superop_reps  # Avoid circular dependency here.
 
 import pyximport; pyximport.install() #temp until I have cythonized tc to my content
-import qutip.cy.tensor
-_merge = qutip.cy.tensor._merge
-_tensor_contract_mainloop = qutip.cy.tensor._tensor_contract_mainloop
+from qutip.cy.tensor import _tensor_contract_mainloop
 
 def tensor(*args):
     """Calculates the tensor product of input operators.

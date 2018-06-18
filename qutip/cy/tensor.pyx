@@ -1,5 +1,14 @@
-def _merge(lol, ascend = True): #think of this as the merge step in a generalized merge-sort
+from cpython cimport bool
+
+cdef struct pair: #if we every try to optimize the tensor contract, replace the index,value tuple pairs
+    int index     #with this struct. should be good for a slight speed boost
+    double complex value 
+
+cdef _merge(list lol, bool ascend = True): #think of this as the merge step in a generalized merge-sort
     cdef int pivot
+    cdef list res = []
+    cdef list A = []
+    cdef list B = []
     if len(lol) == 1: #lol = list of lists
         if not ascend: #this is a trick take advantage of the fact that poping from a list is faster
             lol[0].reverse()#than other list operations. Also I can avoid making redundant data copies
@@ -20,28 +29,27 @@ def _merge(lol, ascend = True): #think of this as the merge step in a generalize
             res.append(B.pop())
         return res
 
-
-
-def _tensor_contract_mainloop(data,pairs,adj_dims,t_dims,allidx,new_h,new_w):
-    h,w = data.get_shape()
-    #new_h, new_w = map(np.product, map(flatten, contracted_dims))
-
-    #second we check that the indices passed are valid
-    for k in pairs: 
-        if t_dims[k[0]] != t_dims[k[1]]:
-            raise ValueError("Cannot contract over indices of different length.")
-    oldk = allidx[0]
-    for k in allidx[1:]:
-        if k == oldk:#check that pairs does not contain overlapping indicies like [(i,j),(k,j)]. 
-            raise ValueError("Cannot contract over overlapping pairs of indices (eg [(i,j),(k,j)]) or invalid pair (eg [(i,i)])")
-        oldk = k
-        
-    #third we will loop through the sparse matrix data itself, mapping and adding data to a temporary data structure
+def _tensor_contract_mainloop(data,tuple pairs,list adj_dims,tuple t_dims,list allidx,int new_h,int new_w):
     cdef int row = 0
     cdef int col
     cdef int idx
+    cdef int newidx
     cdef int k
-    lol = [[(-1,0)]] #a list of lists of (flat index, value) pairs. Each sub list is sorted by index
+    cdef list lol = [[(-1,0)]] #a list of lists of (flat index, value) pairs. Each sub list is sorted by index
+    cdef int w
+    cdef int h
+    h,w = data.get_shape()
+    #second we check that the indices passed are valid
+    for p in pairs: 
+        if t_dims[p[0]] != t_dims[p[1]]:
+            raise ValueError("Cannot contract over indices of different length.")
+    oldp = allidx[0]
+    for p in allidx[1:]:
+        if p == oldp:#check that pairs does not contain overlapping indicies like [(i,j),(k,j)]. 
+            raise ValueError("Cannot contract over overlapping pairs of indices (eg [(i,j),(k,j)]) or invalid pair (eg [(i,i)])")
+        oldp = p
+        
+    #third we will loop through the sparse matrix data itself, mapping and adding data to a temporary data structure
     for dat_idx in range(len(data.data)):#this is efficent because incoming indices are already somewhat sorted.
         col = data.indices[dat_idx] #deduce the column value
         while dat_idx + 1 > data.indptr[row+1]: #and row value
@@ -71,10 +79,10 @@ def _tensor_contract_mainloop(data,pairs,adj_dims,t_dims,allidx,new_h,new_w):
     lol = _merge(lol)
     
     #fourth we convert the temporary data structure back to CSR
-    A = []
-    IA = [0]
-    JA = []
-    prev_idx = -1
+    cdef list A = []
+    cdef list IA = [0]
+    cdef list JA = []
+    cdef int prev_idx = -1
     for idx_val in lol[1:]:
         #fill in the CSR data
         if idx_val[0] == prev_idx:
@@ -85,10 +93,10 @@ def _tensor_contract_mainloop(data,pairs,adj_dims,t_dims,allidx,new_h,new_w):
                 IA[-1] += -1
                 prev_idx = -1
         else:
-            A += [idx_val[1]]
-            JA += [idx_val[0]%new_w]
-            IA += [IA[-1]]*((idx_val[0]//new_w) - len(IA) + 2)
+            A.append(idx_val[1])
+            JA.append(idx_val[0]%new_w)
+            IA.extend([IA[-1]]*((idx_val[0]//new_w) - len(IA) + 2))
             IA[-1] += 1
-            prev_idx = idx_val[0]   
-    IA += [IA[-1]]*(new_h+1-len(IA)) #fill remaining rows so dims match
+            prev_idx = idx_val[0]
+    IA.extend([IA[-1]]*(new_h+1-len(IA))) #fill remaining rows so dims match
     return (A,JA,IA)

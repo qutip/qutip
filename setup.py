@@ -148,7 +148,7 @@ write_version_py()
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
-        'brtools_testing']
+        'brtools_testing','tensor']
 
 # If on Win and Python version >= 3.5 (i.e. Visual studio compile)
 if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
