@@ -975,7 +975,10 @@ class QubitCircuit(object):
                 if gate.targets and n in gate.targets:
 
                     if len(gate.targets) > 1:
-                        if ((self.reverse_states and n == max(gate.targets)) or
+                        if gate.name == "SWAP":
+                            col.append(r" \qswap \qwx ")
+ 
+                        elif ((self.reverse_states and n == max(gate.targets)) or
                             (not self.reverse_states
                              and n == min(gate.targets))):
                             col.append(r" \multigate{%d}{%s} " %
@@ -989,8 +992,8 @@ class QubitCircuit(object):
 
                     elif gate.name == "CNOT":
                         col.append(r" \targ ")
-                    elif gate.name == "SWAP":
-                        col.append(r" \qswap ")
+                    elif gate.name == "TOFFOLI":
+                        col.append(r" \targ ")
                     else:
                         col.append(r" \gate{%s} " %
                                    _gate_label(gate.name, gate.arg_label))
@@ -998,10 +1001,7 @@ class QubitCircuit(object):
                 elif gate.controls and n in gate.controls:
                     m = (gate.targets[0] - n) * (-1 if self.reverse_states
                                                  else 1)
-                    if gate.name == "SWAP":
-                        col.append(r" \qswap \ctrl{%d} " % m)
-                    else:
-                        col.append(r" \ctrl{%d} " % m)
+                    col.append(r" \ctrl{%d} " % m)
 
                 elif (not gate.controls and not gate.targets):
                     # global gate

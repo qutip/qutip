@@ -148,10 +148,11 @@ write_version_py()
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
-        'brtools_testing']
+        'brtools_testing', 'br_tensor', 'piqs']
 
-# If on Win and Python version >= 3.5 (i.e. Visual studio compile)
-if sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35:
+# If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
+if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
+    and os.environ.get('MSYSTEM') is None):
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
@@ -256,3 +257,11 @@ setup(
     install_requires=INSTALL_REQUIRES,
     **EXTRA_KWARGS
 )
+_cite = """\
+==============================================================================
+Installation complete
+Please cite QuTiP in your publication.
+==============================================================================
+For your convenience a bibtex file can be easily generated using
+`qutip.cite()`"""
+print(_cite)
