@@ -82,9 +82,17 @@ def about():
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
     print("Installation path:  %s" % qutip_install_path)
-    print("")
+
+    # citation
+    longbar = "=============================================================="
+    longbar += "================"
+    cite_msg = "For your convenience a bibtex file can be easily generated"
+    cite_msg += " using `qutip.cite()`"
+    print(longbar)
+    print("Please cite QuTiP in your publication.")
+    print(longbar)
+    print(cite_msg)
+
 
 if __name__ == "__main__":
     about()
-
-

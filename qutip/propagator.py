@@ -56,7 +56,8 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 def propagator(H, t, c_op_list=[], args={}, options=None,
                unitary_mode='batch', parallel=False, 
-               progress_bar=None, **kwargs):
+               progress_bar=None, _safe_mode=True, 
+               **kwargs):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -124,6 +125,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
     else:
         tlist = t
 
+    if _safe_mode:
+        _solver_safety_check(H, None, c_ops=c_op_list, e_ops=[], args=args)
+    
     td_type = _td_format_check(H, c_op_list, solver='me')
         
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
@@ -178,9 +182,10 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                             H2.append(tensor(qeye(N), H[k]))
                 else:
                     H2 = tensor(qeye(N), H)
+                options.normalize_output = False
                 output = sesolve(H2, psi0, tlist, [],
-                                 args=args, _safe_mode=False,
-                                 options=Options(normalize_output=False))
+                                 args=args, options=options,
+                                 _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[k] = sp_reshape(output.states[k].data, (N, N))
                     unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])

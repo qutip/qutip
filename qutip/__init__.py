@@ -210,12 +210,14 @@ from qutip.eseries import *
 from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
+from qutip.cy.br_tensor import bloch_redfield_tensor
 from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.countstat import *
 from qutip.rcsolve import *
 from qutip.nonmarkov import *
 from qutip.interpolate import *
+from qutip.scattering import *
 
 # quantum information
 from qutip.qip import *
@@ -225,6 +227,7 @@ from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
+from qutip.cite import *
 
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig

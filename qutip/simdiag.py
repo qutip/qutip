@@ -39,7 +39,7 @@ from qutip.qobj import Qobj
 
 
 def simdiag(ops, evals=True):
-    """Simulateous diagonalization of communting Hermitian matrices..
+    """Simultaneous diagonalization of commuting Hermitian matrices.
 
     Parameters
     ----------
@@ -80,7 +80,7 @@ def simdiag(ops, evals=True):
 
     A = ops[0]
     eigvals, eigvecs = la.eig(A.full())
-    zipped = zip(-eigvals, range(len(eigvals)))
+    zipped = list(zip(-eigvals, range(len(eigvals))))
     zipped.sort()
     ds, perm = zip(*zipped)
     ds = -np.real(np.array(ds))
@@ -127,7 +127,7 @@ def degen(tol, in_vecs, ops):
     A = ops[0]
     vecs = np.column_stack(in_vecs)
     eigvals, eigvecs = la.eig(np.dot(vecs.conj().T, A.data.dot(vecs)))
-    zipped = zip(-eigvals, range(len(eigvals)))
+    zipped = list(zip(-eigvals, range(len(eigvals))))
     zipped.sort()
     ds, perm = zip(*zipped)
     ds = -np.real(np.array(ds))

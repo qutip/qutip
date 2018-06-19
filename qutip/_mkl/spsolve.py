@@ -48,20 +48,23 @@ if sys.maxsize > 2**32: #Running 64-bit
     pardiso_delete_64 = qset.mkl_lib.pardiso_handle_delete_64
 
 
-def _pardiso_parameters(hermitian=False, has_perm=False):
+def _pardiso_parameters(hermitian, has_perm,
+                        max_iter_refine,
+                        scaling_vectors,
+                        weighted_matching):
     iparm = np.zeros(64, dtype=np.int32)
     iparm[0] = 1 # Do not use default values
     iparm[1] = 3 # Use openmp nested dissection
     if has_perm:
         iparm[4] = 1
-    iparm[7] = 10 # Max number of iterative refinements
+    iparm[7] = max_iter_refine # Max number of iterative refinements
     if hermitian:
         iparm[9] = 8
     else:
         iparm[9] = 13 
     if not hermitian:
-        iparm[10] = 1 # Scaling vectors
-        iparm[12] = 1 # Use non-symmetric weighted matching
+        iparm[10] = int(scaling_vectors) # Scaling vectors
+        iparm[12] = int(weighted_matching) # Use non-symmetric weighted matching
     iparm[17] = -1
     iparm[20] = 1
     iparm[23] = 1 # Parallel factorization
@@ -80,8 +83,11 @@ pardiso_error_msgs = {'-1': 'Input inconsistant', '-2': 'Out of memory', '-3': '
                 '-11': 'Read/write error with OOC files', 
                 '-12': 'Pardiso-64 called from 32-bit library'}
                 
+
 def _default_solver_args():
-    def_args = {'hermitian': False, 'posdef': False, 'return_info': False}
+    def_args = {'hermitian': False, 'posdef': False, 'max_iter_refine': 10,
+    'scaling_vectors': True, 'weighted_matching': True,
+    'return_info': False}
     return def_args
 
 
@@ -273,7 +279,10 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     np_perm = perm.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     
     # setup iparm 
-    iparm = _pardiso_parameters(solver_args['hermitian'], has_perm)
+    iparm = _pardiso_parameters(solver_args['hermitian'], has_perm,
+            solver_args['max_iter_refine'],
+            solver_args['scaling_vectors'], 
+            solver_args['weighted_matching'])
     np_iparm = iparm.ctypes.data_as(ctypeslib.ndpointer(np.int32, ndim=1, flags='C'))
     
     # setup call parameters
