@@ -70,7 +70,7 @@ from qutip import settings
 
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area, cmap=None):
+def _blob(x, y, w, w_max, area, cmap=None, ax=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -79,7 +79,12 @@ def _blob(x, y, w, w_max, area, cmap=None):
     xcorners = array([x - hs, x + hs, x + hs, x - hs])
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
-    plt.fill(xcorners, ycorners,
+    if ax is not None:
+        handle = ax
+    else:
+        handle = plt
+
+    handle.fill(xcorners, ycorners,
              color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
 
@@ -226,10 +231,10 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             _y = y + 1
             if np.real(W[x, y]) > 0.0:
                 _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
             else:
                 _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
 
     # color axis
     norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
@@ -592,7 +597,7 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
     yticks = []
 
     x = 0
-    evals0 = H.eigenenergies(eigvals=N) / (2 * np.pi)
+    evals0 = H.eigenenergies(eigvals=N)
     for e_idx, e in enumerate(evals0[:N]):
         ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
         yticks.append(e)
@@ -602,7 +607,7 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
     for H1 in H_list[1:]:
 
         H = H + H1
-        evals1 = H.eigenenergies() / (2 * np.pi)
+        evals1 = H.eigenenergies()
 
         for e_idx, e in enumerate(evals1[:N]):
             ax.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')

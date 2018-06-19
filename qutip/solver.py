@@ -789,7 +789,7 @@ class _StatsSection(object):
 
 
 
-def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
+def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
     # Input is std Qobj (Hamiltonian or Liouvillian)
     if isinstance(H, Qobj):
         Hdims = H.dims
@@ -864,28 +864,29 @@ def _solver_safety_check(H, state, c_ops=[], e_ops=[], args={}):
         raise Exception('Invalid e_ops specification.')
 
 def _structure_check(Hdims, Htype, state):
-    # Input state is a ket vector
-    if state.type == 'ket':
-        # Input is Hamiltonian
-        if Htype == 'oper':
-            if Hdims[1] != state.dims[0]:
-                raise Exception('Input operator and ket do not share same structure.')
-        # Input is super and state is ket
-        elif Htype == 'super':
-            if Hdims[1][1] != state.dims[0]:
-                raise Exception('Input operator and ket do not share same structure.')
-        else:
-            raise Exception('Invalid input operator.')
-    # Input state is a density matrix
-    elif state.type == 'oper':
-        # Input is Hamiltonian and state is density matrix
-        if Htype == 'oper':
-            if Hdims[1] != state.dims[0]:
-                raise Exception('Input operators do not share same structure.')
-        # Input is super op. and state is density matrix
-        elif Htype == 'super':
-            if Hdims[1] != state.dims:
-                raise Exception('Input operators do not share same structure.')
+    if state is not None:
+        # Input state is a ket vector
+        if state.type == 'ket':
+            # Input is Hamiltonian
+            if Htype == 'oper':
+                if Hdims[1] != state.dims[0]:
+                    raise Exception('Input operator and ket do not share same structure.')
+            # Input is super and state is ket
+            elif Htype == 'super':
+                if Hdims[1][1] != state.dims[0]:
+                    raise Exception('Input operator and ket do not share same structure.')
+            else:
+                raise Exception('Invalid input operator.')
+        # Input state is a density matrix
+        elif state.type == 'oper':
+            # Input is Hamiltonian and state is density matrix
+            if Htype == 'oper':
+                if Hdims[1] != state.dims[0]:
+                    raise Exception('Input operators do not share same structure.')
+            # Input is super op. and state is density matrix
+            elif Htype == 'super':
+                if Hdims[1] != state.dims:
+                    raise Exception('Input operators do not share same structure.')
 
  
 #

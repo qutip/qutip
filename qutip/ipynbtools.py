@@ -42,14 +42,14 @@ import IPython
 if IPython.version_info[0] >= 4:
     try:
         from ipyparallel import Client
-        __all__ = ['version_table', 'parfor', 'plot_animation', 
+        __all__ = ['version_table', 'parfor', 'plot_animation',
                     'parallel_map', 'HTMLProgressBar']
     except:
          __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
 else:
     try:
         from IPython.parallel import Client
-        __all__ = ['version_table', 'parfor', 'plot_animation', 
+        __all__ = ['version_table', 'parfor', 'plot_animation',
                     'parallel_map', 'HTMLProgressBar']
     except:
          __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
@@ -384,7 +384,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
     fig, axes = plot_setup_func(result)
 
     def update(n):
-        plot_func(result, n, fig=fig, axes=axes)
+        return plot_func(result, n, fig=fig, axes=axes)
 
     anim = animation.FuncAnimation(
         fig, update, frames=len(result.times), blit=True)
