@@ -487,8 +487,9 @@ class Qobj(object):
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
                 if settings.auto_tidyup: out.tidyup()
-                if (not isinstance(dims[0][0], list) and
-                        not isinstance(dims[1][0], list)):
+                if (settings.auto_tidyup_dims 
+                        and not isinstance(dims[0][0], list)
+                        and not isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
                     # we should implicitly partial trace over
                     # matching dimensions of 1.
