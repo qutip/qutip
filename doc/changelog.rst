@@ -12,7 +12,7 @@ Version 4.3.0 ()
 
 Improvements
 ------------
-- **MAJOR FEATURE**: Added the Permutational Invariant Quantum Solver (PIQS) module (**by Nathan Shammah** and **Shahnawaz Ahmed**) which allows the simluation of TLSs ensembles exploiting permutational symmetry of Dicke state basis. A number of phenomenon such as superradiance, spin-squeezing can be investigated for large TLS ensembles.
+- **MAJOR FEATURE**: Added the Permutational Invariant Quantum Solver (PIQS) module (**by Nathan Shammah** and **Shahnawaz Ahmed**) which allows the simluation of large TLSs ensembles including collective and local Lindblad dissipation. Applications range from superradiance to spin squeezing.
 
 - **MAJOR FEATURE**: Added a photon scattering module (**by Ben Bartlett**) which can be used to study scattering in arbitrary driven systems coupled to some configuration of output waveguides.
 
