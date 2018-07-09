@@ -12,8 +12,17 @@ Version 4.3.0 ()
 
 Improvements
 ------------
+- **MAJOR FEATURE**: Added the Permutational Invariant Quantum Solver (PIQS) module (**by Nathan Shammah** and **Shahnawaz Ahmed**) which allows the simluation of TLSs ensembles exploiting permutational symmetry of Dicke state basis. A number of phenomenon such as superradiance, spin-squeezing can be investigated for large TLS ensembles.
 
-- Added API reference for ``qutip.scattering`` module
+- **MAJOR FEATURE**: Added a photon scattering module (**by Ben Bartlett**) which can be used to study scattering in arbitrary driven systems coupled to some configuration of output waveguides.
+
+- Cubic_Spline functions as time-dependent arguments for the collapse operators in mesolve are now allowed.
+
+- Added a faster version of bloch_redfield_tensor, using components from the time-dependent version. About 3x+ faster for secular tensors, and 10x+ faster for non-secular tensors.
+
+- Computing Q.overlap() [inner product] is now ~30x faster.
+
+- Added projector method to Qobj class.
 
 - Added fast projector method, ``Q.proj()``.
 
