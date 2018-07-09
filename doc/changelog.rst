@@ -32,6 +32,8 @@ Improvements
 
 - ``Q.tr()`` is now faster for small Hilbert space dimensions.
 
+- Unitary operator evolution added to sesolve
+
 
 Bug Fixes
 ---------
