@@ -34,11 +34,35 @@ Improvements
 
 - Unitary operator evolution added to sesolve
 
+- Use OPENMP for tidyup if installed.
+
 
 Bug Fixes
 ---------
 
+- Fixed bug that stopped simdiag working for python 3.
+
+- Fixed semidefinite cvxpy Variable and Parameter.
+
+- Fixed iterative lu solve atol keyword issue.
+
+- Fixed unitary op evolution rhs matrix in ssesolve.
+
+- Fixed interpolating function to return zero outside range.
+
+- Fixed dnorm complex casting bug.
+
+- Fixed control.io path checking issue.
+
+- Fixed ENR fock dimension.
+
+- Fixed hard coded options in propagator 'batch' mode
+
 - Fixed bug in trace-norm for non-Hermitian operators.
+
+- Fixed bug related to args not being passed to coherence_function_g2
+
+- Fixed MKL error checking dict key error
 
 
 Version 4.2.0 (July 28, 2017)
