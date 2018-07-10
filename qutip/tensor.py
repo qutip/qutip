@@ -50,9 +50,8 @@ from qutip.dimensions import (
 )
 import qutip.settings
 import qutip.superop_reps  # Avoid circular dependency here.
-
-import pyximport; pyximport.install() #temp until I have cythonized tc to my content
 from qutip.cy.tensor import _tensor_contract_mainloop
+
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -114,15 +113,11 @@ shape = [4, 4], type = oper, isHerm = True
             out.data = q.data
             out.dims = q.dims
         else:
-            out.data  = zcsr_kron(out.data, q.data)
-            
+            out.data = zcsr_kron(out.data, q.data)
             out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
-
         out.isherm = out.isherm and q.isherm
-
     if not out.isherm:
         out._isherm = None
-
     return out.tidyup() if qutip.settings.auto_tidyup else out
 
 
@@ -255,6 +250,7 @@ def composite(*args):
             ", ".join(arg.type for arg in args)
         ))
 
+import qutip.states
 
 def tensor_swap(q_oper, *pairs):
     """Transposes one or more pairs of indices of a Qobj.
@@ -301,8 +297,6 @@ def tensor_swap(q_oper, *pairs):
     return Qobj(inpt=data, dims=dims, superrep=q_oper.superrep)
 
 
-import qutip.states
-
 def tensor_contract(qobj, *pairs):
     """Contracts a qobj along one or more index pairs.
     Note that this uses dense representations and thus
@@ -319,28 +313,37 @@ def tensor_contract(qobj, *pairs):
         The original Qobj with all named index pairs contracted
         away.
     """
-    #first the setup of values we will need later
-    contracted_idxs = deep_remove(enumerate_flat(qobj.dims), *flatten(list(map(list, pairs))))# Record and label the original dims.
+    # first the setup of values we will need later
+    # Record and label the original dims.
+    contracted_idxs = deep_remove(enumerate_flat(qobj.dims),
+                                  *flatten(list(map(list, pairs))))
     contracted_dims = unflatten(flatten(qobj.dims), contracted_idxs)
     data = qobj.data
     new_h, new_w = map(np.product, map(flatten, contracted_dims))
-    pairs = dims_idxs_to_tensor_idxs(qobj.dims, pairs) #keep the contraction index convention consistent
-    t_dims = dims_to_tensor_shape(qobj.dims) #setup dims and adjacent dims
-    adj_dims = list(t_dims)                 #which will be needed for later bookkeeping
+    # keep the contraction index convention consistent
+    pairs = dims_idxs_to_tensor_idxs(qobj.dims, pairs)
+
+    # setup dims and adjacent dims which will be needed for later bookkeeping
+    t_dims = dims_to_tensor_shape(qobj.dims)
+    adj_dims = list(t_dims)
     adj_dims[-1] = 1
-    for k in range(len(t_dims)-1,0,-1):
+    for k in range(len(t_dims)-1, 0, -1):
         adj_dims[k-1] = adj_dims[k]*t_dims[k]
     allidx = flatten(list(map(list, pairs)))
-    allidx.sort() #we will need a sorted list of all the indicies (irrespective of pair) for latter flat index reassignment
-        
-    res = _tensor_contract_mainloop(data,pairs,adj_dims,t_dims,allidx,new_h,new_w)
-    qmtx = sp.csr_matrix(res,(new_h,new_w))
-    
-    #fifth and final step is to move everything back to a qobj before returning
+    # we will need a sorted list of all the indicies (irrespective of pair)
+    # for latter flat index reassignment
+    allidx.sort()
+
+    # steps 2-4 have been moved to the cythonized _tensor_contract_mainloop
+    res = _tensor_contract_mainloop(data, pairs, adj_dims, t_dims,
+                                    allidx, new_h, new_w)
+    qmtx = sp.csr_matrix(res, (new_h, new_w))
+
+    # fifth and final step is to move everything back to a qobj
     return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
 
 
-#below here is depreciated 
+# below here is depreciated
 def _tensor_contract_single(arr, i, j):
     """
     Contracts a dense tensor along a single index pair.
@@ -368,34 +371,36 @@ def _tensor_contract_dense(arr, *pairs):
         list(map(axis_idxs.remove, pair))
     return arr
 
+
 def _tensor_contract_debug(qobj, *pairs):
-    #this is the old tensor_contract code which used to convert everything to a
-    #dense matrix.
-    #for future debugging it may be worthwhile to see if the bug exists in the
-    #older code as well. Thus I left this code here.
-    
+    # this is the old tensor_contract code which used to convert everything to
+    # a dense matrix.
+    # for future debugging it may be worthwhile to see if the bug exists in the
+    # older code as well. Thus I left this code here.
+
     # Record and label the original dims.
     dims = qobj.dims
     dims_idxs = enumerate_flat(dims)
     tensor_dims = dims_to_tensor_shape(dims)
 
-    # Convert to dense first, since sparse won't support the reshaping we need.
+    # Convert to dense first, since sparse won't support the reshaping we need
     qtens = qobj.data.toarray()
 
     # Reshape by the flattened dims.
     qtens = qtens.reshape(tensor_dims)
-    
+
     # Contract out the indices from the flattened object.
     # Note that we need to feed pairs through dims_idxs_to_tensor_idxs
     # to ensure that we are contracting the right indices.
-    qtens = _tensor_contract_dense(qtens, *dims_idxs_to_tensor_idxs(dims, pairs))
+    qtens = _tensor_contract_dense(qtens,
+                                   *dims_idxs_to_tensor_idxs(dims, pairs))
 
     # Remove the contracted indexes from dims so we know how to
     # reshape back.
     # This concerns dims, and not the tensor indices, so we need
     # to make sure to use the original dims indices and not the ones
     # generated by dims_to_* functions.
-    
+
     contracted_idxs = deep_remove(dims_idxs, *flatten(list(map(list, pairs))))
 
     contracted_dims = unflatten(flatten(dims), contracted_idxs)
