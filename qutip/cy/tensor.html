@@ -385,8 +385,8 @@ body.cython { font-family: courier; font-size: 12; }
 <pre class="cython line score-0">&#xA0;<span class="">008</span>:     <span class="n">double</span> <span class="nb">complex</span> <span class="n">value</span></pre>
 <pre class="cython line score-0">&#xA0;<span class="">009</span>: </pre>
 <pre class="cython line score-0">&#xA0;<span class="">010</span>: <span class="c"># think of this as the merge step in a generalized merge-sort</span></pre>
-<pre class="cython line score-9" onclick='toggleDiv(this)'>+<span class="">011</span>: <span class="k">cdef</span> <span class="nf">_merge</span><span class="p">(</span><span class="nb">list</span> <span class="n">lol</span><span class="p">,</span> <span class="nb">bool</span> <span class="n">ascend</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span></pre>
-<pre class='cython code score-9 '>static PyObject *__pyx_f_5qutip_2cy_6tensor__merge(PyObject *__pyx_v_lol, struct __pyx_opt_args_5qutip_2cy_6tensor__merge *__pyx_optional_args) {
+<pre class="cython line score-8" onclick='toggleDiv(this)'>+<span class="">011</span>: <span class="k">cdef</span> <span class="nf">_merge</span><span class="p">(</span><span class="nb">list</span> <span class="n">lol</span><span class="p">,</span> <span class="nb">bool</span> <span class="n">ascend</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span></pre>
+<pre class='cython code score-8 '>static PyObject *__pyx_f_5qutip_2cy_6tensor__merge(PyObject *__pyx_v_lol, struct __pyx_opt_args_5qutip_2cy_6tensor__merge *__pyx_optional_args) {
   PyBoolObject *__pyx_v_ascend = ((PyBoolObject *)Py_True);
   int __pyx_v_pivot;
   PyObject *__pyx_v_res = 0;
@@ -402,8 +402,6 @@ body.cython { font-family: courier; font-size: 12; }
   }
 /* … */
   /* function exit code */
-  __pyx_r = Py_None; <span class='pyx_macro_api'>__Pyx_INCREF</span>(Py_None);
-  goto __pyx_L0;
   __pyx_L1_error:;
   <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_1);
   <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_5);
@@ -443,7 +441,6 @@ body.cython { font-family: courier; font-size: 12; }
   __pyx_t_3 = ((__pyx_t_2 == 1) != 0);
   if (__pyx_t_3) {
 /* … */
-    goto __pyx_L3;
   }
 </pre><pre class="cython line score-0">&#xA0;<span class="">017</span>:         <span class="c"># this is a trick take advantage of the fact</span></pre>
 <pre class="cython line score-0">&#xA0;<span class="">018</span>:         <span class="c"># that poping from a list is faster</span></pre>
@@ -484,17 +481,17 @@ body.cython { font-family: courier; font-size: 12; }
       <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
       <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_6); __pyx_t_6 = 0;
       <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
-</pre><pre class="cython line score-8" onclick='toggleDiv(this)'>+<span class="">023</span>:             <span class="k">return</span> <span class="n">lol</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span></pre>
-<pre class='cython code score-8 '>      <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
-      if (unlikely(__pyx_v_lol == Py_None)) {
-        <span class='py_c_api'>PyErr_SetString</span>(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        <span class='error_goto'>__PYX_ERR(0, 23, __pyx_L1_error)</span>
-      }
-      __pyx_t_1 = <span class='pyx_c_api'>__Pyx_GetItemInt_List</span>(__pyx_v_lol, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)</span>
-      <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
-      __pyx_r = __pyx_t_1;
-      __pyx_t_1 = 0;
-      goto __pyx_L0;
+</pre><pre class="cython line score-8" onclick='toggleDiv(this)'>+<span class="">023</span>:         <span class="k">return</span> <span class="n">lol</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span></pre>
+<pre class='cython code score-8 '>    <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
+    if (unlikely(__pyx_v_lol == Py_None)) {
+      <span class='py_c_api'>PyErr_SetString</span>(PyExc_TypeError, "'NoneType' object is not subscriptable");
+      <span class='error_goto'>__PYX_ERR(0, 23, __pyx_L1_error)</span>
+    }
+    __pyx_t_1 = <span class='pyx_c_api'>__Pyx_GetItemInt_List</span>(__pyx_v_lol, 0, long, 1, __Pyx_PyInt_From_long, 1, 0, 1);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)</span>
+    <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
+    __pyx_r = __pyx_t_1;
+    __pyx_t_1 = 0;
+    goto __pyx_L0;
 </pre><pre class="cython line score-0">&#xA0;<span class="">024</span>:     <span class="k">else</span><span class="p">:</span></pre>
 <pre class="cython line score-6" onclick='toggleDiv(this)'>+<span class="">025</span>:         <span class="n">pivot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lol</span><span class="p">)</span><span class="o">//</span><span class="mf">2</span></pre>
 <pre class='cython code score-6 '>  /*else*/ {
@@ -689,7 +686,6 @@ body.cython { font-family: courier; font-size: 12; }
     __pyx_r = __pyx_v_res;
     goto __pyx_L0;
   }
-  __pyx_L3:;
 </pre><pre class="cython line score-0">&#xA0;<span class="">039</span>: </pre>
 <pre class="cython line score-0">&#xA0;<span class="">040</span>: </pre>
 <pre class="cython line score-126" onclick='toggleDiv(this)'>+<span class="">041</span>: <span class="k">def</span> <span class="nf">_tensor_contract_mainloop</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">tuple</span> <span class="n">pairs</span><span class="p">,</span> <span class="nb">list</span> <span class="n">adj_dims</span><span class="p">,</span> <span class="nb">tuple</span> <span class="n">t_dims</span><span class="p">,</span></pre>

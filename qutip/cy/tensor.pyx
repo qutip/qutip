@@ -20,7 +20,7 @@ cdef _merge(list lol, bool ascend=True):
         # data copies
         if not ascend:
             lol[0].reverse()
-            return lol[0]
+        return lol[0]
     else:
         pivot = len(lol)//2
         A = _merge(lol[:pivot], not ascend)
