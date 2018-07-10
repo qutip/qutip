@@ -12,8 +12,17 @@ Version 4.3.0 ()
 
 Improvements
 ------------
+- **MAJOR FEATURE**: Added the Permutational Invariant Quantum Solver (PIQS) module (**by Nathan Shammah** and **Shahnawaz Ahmed**) which allows the simluation of large TLSs ensembles including collective and local Lindblad dissipation. Applications range from superradiance to spin squeezing.
 
-- Added API reference for ``qutip.scattering`` module
+- **MAJOR FEATURE**: Added a photon scattering module (**by Ben Bartlett**) which can be used to study scattering in arbitrary driven systems coupled to some configuration of output waveguides.
+
+- Cubic_Spline functions as time-dependent arguments for the collapse operators in mesolve are now allowed.
+
+- Added a faster version of bloch_redfield_tensor, using components from the time-dependent version. About 3x+ faster for secular tensors, and 10x+ faster for non-secular tensors.
+
+- Computing Q.overlap() [inner product] is now ~30x faster.
+
+- Added projector method to Qobj class.
 
 - Added fast projector method, ``Q.proj()``.
 
@@ -23,11 +32,37 @@ Improvements
 
 - ``Q.tr()`` is now faster for small Hilbert space dimensions.
 
+- Unitary operator evolution added to sesolve
+
+- Use OPENMP for tidyup if installed.
+
 
 Bug Fixes
 ---------
 
+- Fixed bug that stopped simdiag working for python 3.
+
+- Fixed semidefinite cvxpy Variable and Parameter.
+
+- Fixed iterative lu solve atol keyword issue.
+
+- Fixed unitary op evolution rhs matrix in ssesolve.
+
+- Fixed interpolating function to return zero outside range.
+
+- Fixed dnorm complex casting bug.
+
+- Fixed control.io path checking issue.
+
+- Fixed ENR fock dimension.
+
+- Fixed hard coded options in propagator 'batch' mode
+
 - Fixed bug in trace-norm for non-Hermitian operators.
+
+- Fixed bug related to args not being passed to coherence_function_g2
+
+- Fixed MKL error checking dict key error
 
 
 Version 4.2.0 (July 28, 2017)
