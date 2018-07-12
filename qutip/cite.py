@@ -39,12 +39,15 @@ import os
 __all__ = ['cite']
 
 
-def cite(path=None, verbose=True):
+def cite(save=False, path=None):
     """
     Citation information and bibtex generator for QuTiP
 
     Parameters
     ----------
+    save: bool
+        The flag specifying whether to save the .bib file.
+
     path: str
         The complete directory path to generate the bibtex file.
         If not specified then the citation will be generated in cwd
@@ -58,8 +61,8 @@ def cite(path=None, verbose=True):
                 "volume = {184},",
                 "number = {4},",
                 "pages = {1234--1240},",
-                "author = {J.R. Johansson and P.D. Nation and Franco Nori},",
-                "title = {{QuTiP} 2: A Python framework for the dynamics of open quantum systems},",
+                "author = {J.R. Johansson and P.D. Nation and F. Nori},",
+                "title = {{QuTiP} 2: A {P}ython framework for the dynamics of open quantum systems},",
                 "journal = {Computer Physics Communications}",
                 "}",
                 "@article{qutip1,",
@@ -71,20 +74,19 @@ def cite(path=None, verbose=True):
                 "volume = {183},",
                 "number = {8},",
                 "pages = {1760--1772},",
-                "author = {J.R. Johansson and P.D. Nation and Franco Nori},",
-                "title = {{QuTiP}: An open-source Python framework for the dynamics of open quantum systems},",
+                "author = {J.R. Johansson and P.D. Nation and F. Nori},",
+                "title = {{QuTiP}: An open-source {P}ython framework for the dynamics of open quantum systems},",
                 "journal = {Computer Physics Communications}",
                 "}"]
-
-    if verbose:
-        print("\n".join(citation))
+    print("\n".join(citation))
 
     if not path:
         path = os.getcwd()
 
-    filename = "qutip.bib"
-    with open(os.path.join(path, filename), 'w') as f:
-        f.write("\n".join(citation))
+    if save:
+        filename = "qutip.bib"
+        with open(os.path.join(path, filename), 'w') as f:
+            f.write("\n".join(citation))
 
 
 if __name__ == "__main__":
