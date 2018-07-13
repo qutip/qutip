@@ -34,7 +34,7 @@
 ###############################################################################
 import numpy as np
 import scipy.sparse as sp
-from qutip.cy.stochastic import sme, sse, psme, psse, generic
+from qutip.cy.stochastic import sme, sse, psme, psse, pmsme, generic
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import ket2dm
 from qutip.solver import Result
@@ -84,7 +84,7 @@ def stochastic_solvers():
             -Code: 'pred-corr', 'predictor-corrector', 'pc-euler'
         Both the deterministic and stochastic part corrected.
             (alpha = 1/2, eta = 1/2)
-            -Code: 'pred-corr-2', 'pc-euler-2'
+            -Code: 'pc-euler-imp', 'pc-euler-2', 'pred-corr-2'
         Numerical Solution of Stochastic Differential Equations
         Chapter 15.5 Eq. (5.4), By Peter E. Kloeden, Eckhard Platen
 
@@ -98,6 +98,14 @@ def stochastic_solvers():
         -Code: 'platen', 'platen1', 'explicit1'
         The Theory of Open Quantum Systems
         Chapter 7 Eq. (7.47), H.-P Breuer, F. Petruccione
+
+    rouchon:
+        Scheme keeping the positivity of the density matrix. (smesolve only)
+        -Order strong 1.0?
+        -Code: 'rouchon', 'Rouchon'
+        Efficient Quantum Filtering for Quantum Feedback Control
+        Pierre Rouchon, Jason F. Ralph
+        arXiv:1410.5345 [quant-ph]
 
     taylor1.5, Order 1.5 strong Taylor scheme:
         Solver with more terms of the Ito-Taylor expansion.
@@ -200,8 +208,8 @@ class StochasticSolverOptions:
     solver : string
         Name of the solver method to use for solving the stochastic
         equations. Valid values are:
-        order 1/2 algorithms: 'euler-maruyama', 'pc-euler', 'pc-euler-2'
-        order 1 algorithms: 'milstein', 'platen', 'milstein-imp'
+        order 1/2 algorithms: 'euler-maruyama', 'pc-euler', 'pc-euler-imp'
+        order 1 algorithms: 'milstein', 'platen', 'milstein-imp', 'rouchon'
         order 3/2 algorithms: 'taylor1.5', 'taylor1.5-imp', 'explicit1.5'
         order 2 algorithms: 'taylor2.0'
         call :func:`qutip.stochastic.stochastic_solver_info` for a description
@@ -317,7 +325,6 @@ class StochasticSolverOptions:
 
         self.state0 = state0
         self.rho0 = mat2vec(state0.full()).ravel()
-        #print(self.rho0.shape)
 
         # Observation
         self.e_ops = e_ops
@@ -408,9 +415,14 @@ class StochasticSolverOptions:
         elif self.solver in ['milstein-imp', 103]:
             self.solver_code = 103
             self.solver = 'milstein-imp'
-        elif self.solver in ['pred-corr-2', 'pc-euler-2', 104]:
+        elif self.solver in ['pred-corr-2', 'pc-euler-2', 'pc-euler-imp', 104]:
             self.solver_code = 104
             self.solver = 'pred-corr-2'
+        elif self.solver in ['Rouchon', 'rouchon', 110]:
+            self.solver_code = 110
+            self.solver = 'rouchon'
+            if not all((op.const for op in self.sc_ops)):
+                raise Exception("Rouchon only work with constant sc_ops")
         elif self.solver in ['platen15', 'explicit1.5', 'explicit15', 150]:
             self.solver_code = 150
             self.solver = 'explicit1.5'
@@ -433,8 +445,9 @@ class StochasticSolverOptions:
         else:
             raise Exception("The solver should be one of "+\
                             "[None, 'euler-maruyama', 'platen', 'pc-euler', "+\
-                            "'pc-euler-2', 'milstein', 'milstein-imp', "+\
-                            "'taylor1.5', 'taylor1.5-imp', 'explicit15' "+\
+                            "'pc-euler-imp', 'milstein', 'milstein-imp', "+\
+                            "'rouchon', "+\
+                            "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "+\
                             "'taylor2.0']")
 
 
@@ -503,6 +516,9 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     if _safe_mode:
         _safety_checks(sso)
 
+    if sso.solver_code == 110:
+        return _positive_map(sso, e_ops_dict)
+
     sso.LH = liouvillian(sso.H, c_ops = sso.sc_ops + sso.c_ops) * sso.dt
     #sso.d1 = 1 + sso.LH * sso.dt
     if sso.method == 'homodyne' or sso.method is None:
@@ -535,7 +551,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
             raise Exception("The len of dW_factors is not the same as sc_ops")
 
     elif sso.method == "photocurrent":
-        raise NotImplementedError("Not yet")
+        raise NotImplementedError("Moved to 'photocurrentmesolve'")
 
     else:
         raise Exception("The method must be one of None, homodyne, heterodyne")
@@ -618,6 +634,9 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     if _safe_mode:
         _safety_checks(sso)
 
+    if sso.solver_code == 110:
+        raise Exception("rouchon only work with smesolve")
+
     if sso.method == 'homodyne' or sso.method is None:
         if sso.m_ops is None:
             sso.m_ops = [op + op.dag() for op in sso.sc_ops]
@@ -650,7 +669,7 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
             raise Exception("The len of dW_factors is not the same as sc_ops")
 
     elif sso.method == "photocurrent":
-        raise NotImplementedError("Not yet")
+        NotImplementedError("Moved to 'photocurrentsesolve'")
 
     else:
         raise Exception("The method must be one of None, homodyne, heterodyne")
@@ -677,6 +696,101 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
                       for n, e in enumerate(e_ops_dict.keys())}
 
     return res
+
+
+def _positive_map(sso, e_ops_dict):
+    #sso.LH = liouvillian(sso.H, c_ops = sso.sc_ops + sso.c_ops) * sso.dt
+    #sso.d1 = 1 + sso.LH * sso.dt
+
+
+    if sso.method == 'homodyne' or sso.method is None:
+        sops = sso.sc_ops
+        if sso.m_ops is None:
+            sso.m_ops = [op + op.dag() for op in sso.sc_ops]
+        if not isinstance(sso.dW_factors, list):
+            sso.dW_factors = [1] * len(sops)
+        elif len(sso.dW_factors) != len(sops):
+            raise Exception("The len of dW_factors is not the same as sc_ops")
+        #for op in  sso.sc_ops:
+            #LH -= op.dag() * op * sso.dt *0.5
+            #sso.pp += spre(op) * spost(op.dag()) * sso.dt *0
+            #sso.sops += [[op, (spre(op) + spost(op.dag())) * sso.dt]]
+
+    elif sso.method == 'heterodyne':
+        if sso.m_ops is None:
+            m_ops = []
+        sops = []
+        for c in sso.sc_ops:
+            if sso.m_ops is None:
+                m_ops += [c + c.dag(), -1j * c - c.dag() ]
+            sops += [c / np.sqrt(2), -1j / np.sqrt(2) * c]
+        sso.m_ops = m_ops
+        if not isinstance(sso.dW_factors, list):
+            sso.dW_factors = [np.sqrt(2)] * len(sops)
+        elif len(sso.dW_factors) == len(sso.sc_ops):
+            dW_factors = []
+            for fact in sso.dW_factors:
+                dW_factors += [np.sqrt(2) * fact, np.sqrt(2) * fact]
+            sso.dW_factors = dW_factors
+        elif len(sso.dW_factors) != len(sops):
+            raise Exception("The len of dW_factors is not the same as sc_ops")
+
+    else:
+        raise Exception("The method must be one of None or homodyne")
+
+    LH = 1 - (sso.H * 1j * sso.dt)
+    sso.pp = spre(sso.H)*0
+    sso.sops = []
+    sso.preops = []
+    sso.postops = []
+    sso.preops2 = []
+    sso.postops2 = []
+
+    def _prespostdag(op):
+        return spre(op) * spost(op.dag())
+
+    for op in sso.c_ops:
+        LH -= op.norm() * sso.dt *0.5
+        #sso.pp += spre(op) * spost(op.dag()) * sso.dt
+        sso.pp += op.apply(_prespostdag)._f_norm2() * sso.dt
+
+    for i, op in enumerate(sops):
+        #sso.pp += spre(op) * spost(op.dag()) * sso.dt *0
+        LH -= op.norm() * sso.dt *0.5
+        sso.sops += [(spre(op) + spost(op.dag())) * sso.dt]
+        sso.preops += [spre(op)]
+        sso.postops += [spost(op.dag())]
+        for op2 in sops[i:]:
+            sso.preops2 += [spre(op * op2)]
+            sso.postops2 += [spost(op.dag() * op2.dag())]
+
+    sso.ce_ops = [td_Qobj(spre(op)) for op in sso.e_ops]
+    sso.cm_ops = [td_Qobj(spre(op)) for op in sso.m_ops]
+    sso.preLH = spre(LH)
+    sso.postLH = spost(LH.dag())
+
+    sso.preLH.compile()
+    sso.postLH.compile()
+    sso.pp.compile()
+    [op.compile() for op in sso.sops]
+    [op.compile() for op in sso.preops]
+    [op.compile() for op in sso.postops]
+    [op.compile() for op in sso.preops2]
+    [op.compile() for op in sso.postops2]
+    [op.compile() for op in sso.cm_ops]
+    [op.compile() for op in sso.ce_ops]
+
+    sso.solver_obj = pmsme
+    sso.solver_name = "smesolve_" + sso.solver
+
+    res = _sesolve_generic(sso, sso.options, sso.progress_bar)
+
+    if e_ops_dict:
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
+
+    return res
+
 
 
 def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],

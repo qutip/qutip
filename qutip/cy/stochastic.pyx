@@ -266,6 +266,8 @@ cdef class ssolvers:
             nb_solver = [1,1,1,0]
         elif self.solver == 104:
             nb_solver = [5,1,1,0]
+        elif self.solver == 110:
+            nb_solver = [2,0,0,0]
         elif self.solver == 150:
             nb_solver = [5,8,3,0]
         elif self.solver == 152:
@@ -289,6 +291,8 @@ cdef class ssolvers:
           else:
             nb_func = [14,0,0]
             nb_expect = [0,0,0]
+        elif self.solver in [110]:
+            nb_expect = [1,0,0]
         else:
           if not sso.me:
             nb_func = [1,0,0]
@@ -417,6 +421,11 @@ cdef class ssolvers:
                 self.pred_corr_a(t + i*dt, dt, noise[i, :], vec, out)
                 out, vec = vec, out
 
+        elif self.solver == 110:
+            for i in range(N_substeps):
+                self.rouchon(t + i*dt, dt, noise[i, :], vec, out)
+                out, vec = vec, out
+
         elif self.solver == 150:
             for i in range(N_substeps):
                 self.platen15(t + i*dt, dt, noise[i, :], vec, out)
@@ -472,6 +481,10 @@ cdef class ssolvers:
 
     cdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
+        pass
+
+    cdef void rouchon(self, double t, double dt, double[:] noise,
+                      complex[::1] vec, complex[::1] out):
         pass
 
     @cython.boundscheck(False)
@@ -1833,6 +1846,103 @@ cdef class psme(ssolvers):
                 zero(out[i,:])
             axpy(-1, rho, out[i,:])
 
+
+cdef class pmsme(ssolvers):
+    cdef object L
+    cdef cy_qobj pp_ops
+    cdef cy_qobj preLH
+    cdef cy_qobj postLH
+    cdef object sops
+    cdef object preops
+    cdef object postops
+    cdef object preops2
+    cdef object postops2
+    cdef int N_root
+
+    def set_data(self, sso):
+        c_ops = sso.sops
+        self.l_vec = sso.pp.cte.shape[0]
+        self.N_ops = len(c_ops)
+        self.preLH = sso.preLH.compiled_Qobj
+        self.postLH = sso.postLH.compiled_Qobj
+        self.pp_ops = sso.pp.compiled_Qobj
+        self.sops = [op.compiled_Qobj for op in sso.sops]
+        self.preops = [op.compiled_Qobj for op in sso.preops]
+        self.postops = [op.compiled_Qobj for op in sso.postops]
+        self.preops2 = [op.compiled_Qobj for op in sso.preops2]
+        self.postops2 = [op.compiled_Qobj for op in sso.postops2]
+        self.N_root = np.sqrt(self.l_vec)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void rouchon(self, double t, double dt, double[:] noise,
+                           complex[::1] vec, complex[::1] out):
+        cdef complex[::1] dy = self.expect_buffer_1d[0,:]
+        cdef complex[::1] temp = self.buffer_1d[0,:]
+        cdef complex[::1] temp2 = self.buffer_1d[1,:]
+        cdef int i, j, k
+        cdef cy_qobj c_op, c_opj
+        cdef complex ddw, tr
+        zero(out)
+        zero(temp)
+        self.preLH._rhs_mat(t, &vec[0], &temp[0])
+        for i in range(self.N_ops):
+            c_op = self.sops[i]
+            dy[i] = c_op._expect_mat_super(t, &vec[0], 0) + noise[i]
+            c_op = self.preops[i]
+            zero(temp2)
+            c_op._rhs_mat(t, &vec[0], &temp2[0])
+            axpy(dy[i], temp2, temp)
+
+        k = 0
+        for i in range(self.N_ops):
+            for j in range(i, self.N_ops):
+                c_op = self.preops2[k]
+                if i == j:
+                    ddw = (dy[i]*dy[j] - dt) *0.5
+                else:
+                    ddw = (dy[i]*dy[j])
+
+                zero(temp2)
+                c_op._rhs_mat(t, &vec[0], &temp2[0])
+                axpy(ddw, temp2, temp)
+                k += 1
+
+        self.postLH._rhs_mat(t, &temp[0], &out[0])
+        for i in range(self.N_ops):
+            dy[i] = conj(dy[i])
+            c_op = self.postops[i]
+            zero(temp2)
+            c_op._rhs_mat(t, &temp[0], &temp2[0])
+            axpy(dy[i], temp2, out)
+
+        k = 0
+        for i in range(self.N_ops):
+            for j in range(i, self.N_ops):
+                c_op = self.postops2[k]
+                if i == j:
+                    ddw = (dy[i]*dy[j] - dt) *0.5
+                else:
+                    ddw = (dy[i]*dy[j])
+                zero(temp2)
+                c_op._rhs_mat(t, &temp[0], &temp2[0])
+                axpy(ddw, temp2, out)
+                k += 1
+
+        self.pp_ops._rhs_mat(t, &vec[0], &out[0])
+        tr = self.expect(out)
+        zscale(1./tr, out)
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef complex expect(self, complex[::1] rho):
+        cdef complex e = 0.
+        cdef int k
+        for k in range(self.N_root):
+            e += rho[k*(self.N_root+1)]
+        return e
 
 cdef class generic(ssolvers):
     cdef object d1_func, d2_func

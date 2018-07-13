@@ -83,6 +83,7 @@ def test_smesolve_homodyne_methods():
                         ['platen', 1e-3],
                         ['milstein', 1e-3],
                         ['milstein-imp', 1e-3],
+                        ['rouchon', 1e-3],
                         ['taylor1.5', 1e-4],
                         ['taylor1.5-imp', 1e-4],
                         ['explicit1.5', 1e-4],
@@ -179,6 +180,7 @@ def test_smesolve_homodyne():
                         'platen',
                         'milstein',
                         'milstein-imp',
+                        'rouchon',
                         'taylor15',
                         'taylor15-imp',
                         'explicit15']
@@ -216,6 +218,7 @@ def test_smesolve_heterodyne():
                         'platen',
                         'milstein',
                         'milstein-imp',
+                        'rouchon',
                         'taylor15',
                         'taylor15-imp',
                         'explicit15']
