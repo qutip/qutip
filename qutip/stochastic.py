@@ -212,8 +212,8 @@ class StochasticSolverOptions:
         order 1 algorithms: 'milstein', 'platen', 'milstein-imp', 'rouchon'
         order 3/2 algorithms: 'taylor1.5', 'taylor1.5-imp', 'explicit1.5'
         order 2 algorithms: 'taylor2.0'
-        call :func:`qutip.stochastic.stochastic_solver_info` for a description
-        of the solvers.
+        call help of :func:`qutip.stochastic.stochastic_solvers`
+        for a description of the solvers.
         Implicit methods can adjust tolerance via the kw 'tol'
         default is {'tol':1e-6}
 
