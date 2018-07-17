@@ -57,7 +57,7 @@ from Cython.Distutils import build_ext
 # all information about QuTiP goes here
 MAJOR = 4
 MINOR = 3
-MICRO = 1
+MICRO = 2
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.8)', 'scipy (>=0.15)', 'cython (>=0.21)']
