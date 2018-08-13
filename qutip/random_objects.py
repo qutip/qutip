@@ -559,10 +559,10 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None):
         # and back.
         Y = np.einsum('ijik->jk', XXdag.reshape((N, N, N, N)))
 
-        # Now we have the matrix 1 (x) Y^{-1/2}, which we can find by doing
-        # the square root and the inverse separately. As a possible improvement,
-        # iterative methods exist to find inverse square root matrices directly,
-        # as this is important in statistics.
+        # Now we have the matrix :math: 'I \otimes Y^{-1/2}', which we can find
+        # by doing the square root and the inverse separately. As a possible
+        # improvement, iterative methods exist to find inverse square root
+        # matrices directly, as this is important in statistics.
         Z = np.kron(
             np.eye(N),
             sqrtm(la.inv(Y))
