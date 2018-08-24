@@ -69,6 +69,82 @@ from qutip.tensor import flatten
 from qutip import settings
 
 
+def plot_wigner_sphere(fig, ax, wigner, reflections):
+    """Plots a coloured Bloch sphere.
+
+    Parameters
+    ----------
+        fig
+            An instance of matplotlib.pyplot.figure.
+        ax
+            An axes instance in fig.
+        wigner : list of float
+            the wigner transformation at `steps` different theta and phi.
+        reflections : bool
+            If the reflections of the sphere should be plotted as well.
+
+    Notes
+    ------
+    Special thanks to Russell P Rundle for writing this function.
+    """
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+
+    steps = len(wigner)
+
+    theta = np.linspace(0, np.pi, steps)
+    phi = np.linspace(0, 2 * np.pi, steps)
+    x = np.outer(np.sin(theta), np.cos(phi))
+    y = np.outer(np.sin(theta), np.sin(phi))
+    z = np.outer(np.cos(theta), np.ones(steps))
+    wigner = np.real(wigner)
+    wigner_max = np.real(np.amax(np.abs(wigner)))
+
+    wigner_c1 = cm.seismic_r((wigner + wigner_max) / (2 * wigner_max))
+
+    # Plot coloured Bloch sphere:
+    ax.plot_surface(x, y, z, facecolors=wigner_c1, vmin=-wigner_max,
+                    vmax=wigner_max, rcount=steps, ccount=steps, linewidth=0,
+                    zorder=0.5, antialiased=None)
+
+    if reflections:
+        wigner_c2 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+                                 (2*wigner_max))  # bottom
+        wigner_c3 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+                                 (2*wigner_max))  # side
+        wigner_c4 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+                                 (2*wigner_max))  # back
+
+        # Plot bottom reflection:
+        ax.plot_surface(x[0:steps, 0:steps], y[0:steps, 0:steps],
+                        -1.5*np.ones((steps, steps)), facecolors=wigner_c2,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
+                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        antialiased=False)
+
+        # Plot side reflection:
+        ax.plot_surface(-1.5*np.ones((steps, steps)), y[0:steps, 0:steps],
+                        z[0:steps, 0:steps], facecolors=wigner_c3,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
+                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        antialiased=False)
+
+        # Plot back reflection:
+        ax.plot_surface(x[0:steps, 0:steps], 1.5*np.ones((steps, steps)),
+                        z[0:steps, 0:steps], facecolors=wigner_c4,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
+                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        antialiased=False)
+
+    # Create colourbar:
+    m = cm.ScalarMappable(cmap=cm.seismic_r)
+    m.set_array([-wigner_max, wigner_max])
+    plt.colorbar(m, shrink=0.5, aspect=10)
+
+    plt.show()
+
+
 # Adopted from the SciPy Cookbook.
 def _blob(x, y, w, w_max, area, cmap=None, ax=None):
     """
@@ -86,7 +162,6 @@ def _blob(x, y, w, w_max, area, cmap=None, ax=None):
 
     handle.fill(xcorners, ycorners,
              color=cmap(int((w + w_max) * 256 / (2 * w_max))))
-
 
 
 def _cb_labels(left_dims):

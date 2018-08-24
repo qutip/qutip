@@ -50,6 +50,179 @@ from qutip.parallel import parfor
 from qutip.utilities import clebsch
 from scipy.special import factorial
 from qutip.cy.sparse_utils import _csr_get_diag
+import qutip as qt
+
+
+def wigner_transformation(psi, j, fullparity, steps, slicearray):
+    """Calculates the wigner function of a quantum state at each theta, phi.
+
+    Parameters
+    ----------
+        psi : qobj
+              a state vector or density matrix.
+        j : int
+            the total angular momentum of the quantum state.
+        sun : int
+              the order of the special unitary group 2 or 3.
+        fullparity : bool
+                     should the parity of the full SU space be used?
+        steps : int
+                number of points at which the Wigner transform is calculated.
+        slicearray : list of str
+                     the angle slice to be used for each particle in case of a
+                     multi-particle quantum state. 'l' yields an equal angle
+                     slice. 'x', 'y' and 'z' angle slices can also be chosen.
+
+    Returns
+    ----------
+        wigner : list of float
+                 the wigner transformation at `steps` different theta and phi.
+
+    Raises
+    ------
+    ComplexWarning
+        This can be ignored as it is caused due to rounding errors.
+
+    Notes
+    ------
+    See example notebook wigner_visualisation.
+
+    References
+    ------
+    [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
+        and K. Nemoto, Phys. Rev. Lett. 117, 180401 (2016).
+    [2] R. P. Rundle, P. W. Mills, T. Tilma, J. H. Samson, and
+        M. J. Everitt, Phys. Rev. A 96, 022117 (2017).
+    """
+    if not (psi.type == 'ket' or psi.type == 'operator' or psi.type == 'bra'):
+        raise TypeError('Input state is not a valid operator.')
+
+    if psi.type == 'ket' or psi.type == 'bra':
+        rho = ket2dm(psi)
+    else:
+        rho = psi
+
+    sun = 2   # The order of the SU group
+
+    # calculate total number of particles in quantum state:
+    N = np.int32(np.log(np.shape(rho)[0]) / np.log(2 * j + 1))
+
+    theta = np.zeros((N, steps))
+    phi = np.zeros((N, steps))
+
+    for i in range(N):
+        theta[i, :] = np.linspace(0, np.pi, steps)
+        phi[i, :] = np.linspace(0, 2 * np.pi, steps)
+
+    theta, phi = _angle_slice(np.array(slicearray, dtype=str), theta, phi)
+
+    wigner = np.zeros((steps, steps))
+    if fullparity:
+        pari = _parity(sun**N, j)
+    else:
+        pari = _parity(sun, j)
+    for t in range(steps):
+        for p in range(steps):
+            wigner[t, p] = np.trace(rho.data @ _kernelsu2(
+                theta[:, t], phi[:, p], N, j, pari, fullparity))
+    return wigner
+
+
+def _parity(N, j):
+    """Private function to calculate the parity of the quantum system.
+    """
+    if j == 0.5:
+        pi = np.identity(N) - np.sqrt((N - 1) * N * (N + 1) / 2) * _lambda_f(N)
+        return pi / N
+    elif j > 0.5:
+        mult = np.int32(2 * j + 1)
+        matrix = np.zeros((mult, mult))
+        foo = np.ones(mult)
+        for n in np.arange(-j, j + 1, 1):
+            for l in np.arange(0, mult, 1):
+                foo[l] = (2 * l + 1) * qt.clebsch(j, l, j, n, 0, n)
+            matrix[np.int32(n + j), np.int32(n + j)] = np.sum(foo)
+        return matrix / mult
+
+
+def _lambda_f(N):
+    """Private function needed for the calculation of the parity.
+    """
+    matrix = np.sqrt(2 / (N * (N - 1))) * np.identity(N)
+    matrix[-1, -1] = - np.sqrt(2 * (N - 1) / N)
+    return matrix
+
+
+def _kernelsu2(theta, phi, N, j, parity, fullparity):
+    """Private function that calculates the kernel for the SU2 unitary group.
+    """
+    U = np.ones(1)
+    # calculate the total rotation matrix (tensor product for each particle):
+    for i in range(0, N):
+        U = np.kron(U, _rotation_matrix(theta[i], phi[i], j))
+    if not fullparity:
+        op_parity = parity   # The parity for a one particle system
+        for i in range(1, N):
+            parity = np.kron(parity, op_parity)
+    matrix = U @ parity @ U.conj().T
+    return matrix
+
+
+def _rotation_matrix(theta, phi, j, h=1):
+    """Private function to calculate the rotation operator for the SU2 kernel.
+    """
+    return la.expm(1j * phi * _j_z(j, h)) @ la.expm(1j * theta * _j_y(j, h))
+
+
+def _j_y(j, h=1):
+    """Private function to calculate the y angular momentum operator matrix.
+    """
+    return (_j_plus(j, h) - _j_minus(j, h)) / 2j
+
+
+def _j_z(j, h=1):
+    """Private function to calculate the z angular momentum operator matrix.
+    """
+    mult = np.int32(2 * j + 1)
+    matrix = np.zeros((mult, mult))
+    np.fill_diagonal(matrix, h * np.linspace(-j, j, 2 * j + 1))
+    return matrix
+
+
+def _j_plus(j, h=1):
+    """Private function to calculate the J plus operator matrix.
+    """
+    mult = np.int32(2 * j + 1)
+    matrix = np.zeros((mult, mult))
+    for m in np.arange(-j, j):
+        matrix[np.int32(j + m), np.int32(j + m + 1)] = h * \
+            np.sqrt(j * (j + 1) - m * (m + 1))
+    return matrix
+
+
+def _j_minus(j, h=1):
+    """Private function to calculate the J minus operator matrix.
+    """
+    mult = np.int32(2 * j + 1)
+    matrix = np.zeros((mult, mult))
+    for m in np.arange(-j, j):
+        matrix[np.int32(j + m + 1), np.int32(j + m)] = h * \
+            np.sqrt(j * (j + 1) - m * (m + 1))  # TODO: +-1
+    return matrix
+
+
+def _angle_slice(slicearray, theta, phi):
+    """Private function to modify theta and phi for angle slicing.
+    """
+    xind = np.where(slicearray == 'x')
+    theta[xind, :] = np.pi - theta[xind, :]
+    phi[xind, :] = -phi[xind, :]
+    yind = np.where(slicearray == 'y')
+    theta[yind, :] = np.pi - theta[yind, :]
+    phi[yind, :] = np.pi - phi[yind, :]
+    zind = np.where(slicearray == 'z')
+    phi[zind, :] = phi[zind, :] + np.pi
+    return theta, phi
 
 
 def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), 
