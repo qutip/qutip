@@ -863,7 +863,7 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         raise Exception("The len of dW_factors is not the same as sc_ops")
 
     sso.solver_obj = psme
-    sso.solver_name = "photocurrent_mesolve_" + sso.solver
+    sso.solver_name = "photocurrent_mesolve"
     sso.LH = liouvillian(sso.H, c_ops = sso.c_ops) * sso.dt
     def _prespostdag(op):
         return spre(op) * spost(op.dag())
@@ -879,6 +879,7 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     [op.compile() for op in sso.ce_ops]
 
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
+    res.num_collapse = [np.count_nonzero(noise) for noise in res.noise]
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -948,7 +949,7 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
         raise Exception("The len of dW_factors is not the same as sc_ops")
 
     sso.solver_obj = psse
-    sso.solver_name = "photocurrent_sesolve_" + sso.solver
+    sso.solver_name = "photocurrent_sesolve"
     sso.sops = [[op, op.norm()] for op in sso.sc_ops]
     sso.LH = sso.H * (-1j*sso.dt )
     for ops in sso.sops:
@@ -962,6 +963,7 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     [op.compile() for op in sso.ce_ops]
 
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
+    res.num_collapse = [np.count_nonzero(noise) for noise in res.noise]
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -1181,6 +1183,8 @@ def _sesolve_generic(sso, options, progress_bar):
     data.ss = np.zeros((len(sso.e_ops), len(sso.times)), dtype=complex)
     data.measurement = []
     data.solver = sso.solver_name
+    data.ntraj = sso.ntraj
+    data.num_expect = len(sso.e_ops)
 
     nt = sso.ntraj
     task = _single_trajectory
