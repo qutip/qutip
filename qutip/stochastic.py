@@ -1819,45 +1819,72 @@ def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 # Platen method
 #
 def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
-    """
-    TODO: support multiple stochastic increments
-
-    .. note::
-
-        Experimental.
-
-    """
 
     sqrt_dt = np.sqrt(dt)
+    n_A_ops = len(A_ops)
+    d2_len = dW.shape[1]
+    psi_len = len(psi_t)
+    n_noises = d2_len * n_A_ops
 
-    dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
+    V = np.zeros([n_noises, n_noises])
+    for i in range(n_noises):
+        for j in range(i):
+            V[i, j] = dt*(2*np.random.randint(0, 2) - 1)
+    for i in range(n_noises):
+        for j in range(i, n_noises):
+            V[i, j] = -V[j, i]
+    V = np.reshape(V, [n_A_ops, d2_len, n_A_ops, d2_len])
+
+    mask = np.ones([n_A_ops, d2_len, n_A_ops, d2_len])
+    for i in range(n_A_ops):
+        for j in range(d2_len):
+            mask[i, j, i, j] = 0
+
+    d1psi = _rhs_psi_deterministic(H, psi_t, t, dt, args)
+    d2psi = np.zeros([n_A_ops, d2_len, psi_len], dtype=np.complex)
 
     for a_idx, A in enumerate(A_ops):
-        # XXX: This needs to be revised now that
-        # dpsi_t is the change for all stochastic collapse operators
+        d1psi += d1(t, psi_t, A, args)*dt
+        d2psi[a_idx, :, :] = d2(t, psi_t, A, args)
 
-        # TODO: needs to be updated to support mutiple Weiner increments
-        dpsi_t_H = (-1.0j * dt) * spmv(H, psi_t)
+    psi_t_1 = psi_t + d1psi
+    psi_t_p = psi_t_1[np.newaxis, np.newaxis, :] + sqrt_dt*d2psi
+    psi_t_m = psi_t_1[np.newaxis, np.newaxis, :] - sqrt_dt*d2psi
+    chi_t_p = psi_t[np.newaxis, np.newaxis, :] + sqrt_dt*d2psi
+    chi_t_m = psi_t[np.newaxis, np.newaxis, :] - sqrt_dt*d2psi
+    psi_t_1 += np.sum(dW[:, :, np.newaxis]*d2psi, axis=(0, 1))
+    d1psi_1 = _rhs_psi_deterministic(H, psi_t_1, t, dt, args)
 
-        psi_t_1 = (psi_t + dpsi_t_H +
-                   d1(A, psi_t) * dt +
-                   d2(A, psi_t)[0] * dW[a_idx, 0])
-        psi_t_p = (psi_t + dpsi_t_H +
-                   d1(A, psi_t) * dt +
-                   d2(A, psi_t)[0] * sqrt_dt)
-        psi_t_m = (psi_t + dpsi_t_H +
-                   d1(A, psi_t) * dt -
-                   d2(A, psi_t)[0] * sqrt_dt)
+    for a_idx, A in enumerate(A_ops):
+        d1psi_1 += d1(t, psi_t_1, A, args)*dt
 
-        dpsi_t += (
-            0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt +
-            0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] +
-                    2 * d2(A, psi_t)[0]) * dW[a_idx, 0] +
-            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) *
-            (dW[a_idx, 0] ** 2 - dt) / sqrt_dt
-            )
+    d2psi_p = np.zeros([n_A_ops, d2_len, psi_len], dtype=np.complex)
+    d2psi_m = np.zeros([n_A_ops, d2_len, psi_len], dtype=np.complex)
 
-    return dpsi_t
+    for a_idx, A in enumerate(A_ops):
+        for d2_idx in range(d2_len):
+            d2psi_p[a_idx, d2_idx, :] = d2(t, psi_t_p[a_idx, d2_idx], A, args)[d2_idx]
+            d2psi_m[a_idx, d2_idx, :] = d2(t, psi_t_m[a_idx, d2_idx], A, args)[d2_idx]
+
+    d2chi_p = np.zeros([n_A_ops, d2_len, n_A_ops, d2_len, psi_len], dtype=np.complex)
+    d2chi_m = np.zeros([n_A_ops, d2_len, n_A_ops, d2_len, psi_len], dtype=np.complex)
+
+    for a_idx, A in enumerate(A_ops):
+        for b_idx, B in enumerate(A_ops):
+            for e2_idx in range(d2_len):
+                d2chi_p[a_idx, :, b_idx, e2_idx, :] = d2(t, chi_t_p[b_idx, e2_idx], A, args)
+                d2chi_m[a_idx, :, b_idx, e2_idx, :] = d2(t, chi_t_m[b_idx, e2_idx], A, args)
+
+    psi_new = psi_t + 0.5*(d1psi_1 + d1psi)
+    psi_new += 0.25*np.sum(dW[:, :, np.newaxis]*(d2psi_p + d2psi_m + 2.0*d2psi), axis=(0, 1))
+    psi_new += 0.25*np.sum((dW[:, :, np.newaxis]**2 - dt)*(d2psi_p - d2psi_m), axis=(0, 1)) / sqrt_dt
+    psi_new += 0.25*np.sum(mask[:, :, :, :, np.newaxis]*dW[:, :, np.newaxis, np.newaxis, np.newaxis]*(
+                d2chi_p + d2chi_m - 2.0*d2psi[:, :, np.newaxis, np.newaxis, :]), axis=(0, 1, 2, 3))
+    psi_new += 0.25*np.sum(mask[:, :, :, :, np.newaxis]*(
+                dW[:, :, np.newaxis, np.newaxis, np.newaxis]*dW[np.newaxis, np.newaxis, :, :, np.newaxis]
+                + V[:, :, :, :, np.newaxis])*(d2chi_p - d2chi_m), axis=(0, 1, 2, 3))/sqrt_dt
+
+    return psi_new
 
 
 # -----------------------------------------------------------------------------
