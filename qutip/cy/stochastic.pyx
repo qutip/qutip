@@ -81,6 +81,56 @@ cpdef void normalize_inplace(complex[::1] vec):
     cdef double norm = 1.0/dznrm2(vec)
     zdscal(&l, &norm, <complex*>&vec[0], &ONE)
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+cpdef void normalize_rho(complex[::1] rho):
+    # To speedcheck
+    cdef int l = rho.shape[0]
+    cdef int N = np.sqrt(l)
+    cdef complex[::1] rho_now = np.zeros(l, dtype=complex)
+    cdef complex[::1] slice = np.zeros(N, dtype=complex)
+    cdef complex[:, ::1] rhos = np.zeros((N,l), dtype=complex)
+    cdef double[::1] prob = np.zeros(N)
+    copy(rho, rho_now)
+    cdef int i, j, k, line_now, good
+    cdef double ap, sum, maxnow
+
+    for i in range(N):
+      line_now = 0
+      maxnow = 0.
+      for j in range(N):
+          if rho_now[(N+1)*j].real >= maxnow:
+              line_now = j
+              maxnow = rho_now[(N+1)*j].real
+      ap = dznrm2(rho_now[line_now*N:(line_now+1)*N])
+      if ap < 1e-7:
+          prob[i] = 0.
+      else:
+          copy(rho_now[line_now*N:(line_now+1)*N],slice)
+          scale(1/ap, slice)
+          prob[i] = ap/slice[line_now].real
+          for j in range(N):
+            for k in range(N):
+              rhos[i,j+N*k] = conj(slice[k])*slice[j]
+          axpy(-prob[i],rhos[i,:],rho_now)
+
+    sum = 0.
+    good = 1
+    for i in range(N):
+        if prob[i] < 0:
+            prob[i] = 0.
+            good = 0
+        sum += prob[i]
+    if sum != 1.:
+        good = 0
+        for i in range(N):
+            prob[i] /= sum
+
+    if good == 0:
+        zero(rho)
+        for i in range(N):
+            axpy(prob[i],rhos[i,:],rho)
+
 @cython.boundscheck(False)
 cdef void scale(double a, complex[::1] x):
     cdef int l = x.shape[0]
@@ -130,6 +180,12 @@ Solver:
     explicit2.0       200
     taylor2.0         202
     taylor2.0-imp     203
+
+Special solvers
+    photocurrent       60
+    photocurrent_pc   110
+    rouchon           120
+
 """
 
 cdef class taylorNoise:
@@ -238,7 +294,7 @@ cdef class ssolvers:
         self.solver = sso.solver_code
         self.dt = sso.dt
         self.N_substeps = sso.nsubsteps
-        self.normalize = sso.normalize and not sso.me
+        self.normalize = sso.normalize
         self.N_step = len(sso.times)
         self.N_dw = len(sso.sops)
         if self.solver in [150, 152, 153]:
@@ -267,6 +323,9 @@ cdef class ssolvers:
         elif self.solver == 104:
             nb_solver = [5,1,1,0]
         elif self.solver == 110:
+            nb_solver = [1,1,0,0]
+            nb_func = [1,0,0]
+        elif self.solver == 120:
             nb_solver = [2,0,0,0]
         elif self.solver == 150:
             nb_solver = [5,8,3,0]
@@ -291,7 +350,7 @@ cdef class ssolvers:
           else:
             nb_func = [14,0,0]
             nb_expect = [0,0,0]
-        elif self.solver in [110]:
+        elif self.solver in [120]:
             nb_expect = [1,0,0]
         else:
           if not sso.me:
@@ -423,6 +482,11 @@ cdef class ssolvers:
 
         elif self.solver == 110:
             for i in range(N_substeps):
+                self.photocurrent_pc(t + i*dt, dt, noise[i, :], vec, out)
+                out, vec = vec, out
+
+        elif self.solver == 120:
+            for i in range(N_substeps):
                 self.rouchon(t + i*dt, dt, noise[i, :], vec, out)
                 out, vec = vec, out
 
@@ -446,8 +510,10 @@ cdef class ssolvers:
                 self.taylor20(t + i*dt, dt, noise[i, :], vec, out)
                 out, vec = vec, out
 
-        if self.normalize:
+        if self.normalize == 1:
             normalize_inplace(vec)
+        elif self.normalize == 2:
+            normalize_rho(vec)
         return vec
 
     # Dummy functions
@@ -480,6 +546,10 @@ cdef class ssolvers:
         pass
 
     cdef void photocurrent(self, double t, double dt, double[:] noise,
+                           complex[::1] vec, complex[::1] out):
+        pass
+
+    cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         pass
 
@@ -1730,6 +1800,32 @@ cdef class psse(ssolvers):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
+                           complex[::1] vec, complex[::1] out):
+        cdef cy_qobj
+        cdef double expect
+        cdef int i
+        cdef complex[::1] tmp = self.buffer_1d[0,:]
+        cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
+        zero_2d(d2)
+        copy(vec,tmp)
+        copy(vec,out)
+        self.d1(t, vec, tmp)
+        self.d1(t+dt, tmp, out)
+        scale(0.5, out)
+        axpy(0.5, tmp, out)
+        self.d2(t, vec, d2)
+        for i in range(self.N_ops):
+            c_op = self.cdc_ops[i]
+            expect = c_op.expect(t, vec, 1).real * dt
+            if expect > 0:
+              noise[i] = np.random.poisson(expect)
+            else:
+              noise[i] = 0.
+            axpy(noise[i], d2[i,:], out)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void d1(self, double t, complex[::1] vec, complex[::1] out):
         self.L._rhs_mat(t, &vec[0], &out[0])
@@ -1793,6 +1889,31 @@ cdef class psme(ssolvers):
         zero_2d(d2)
         copy(vec,out)
         self.d1(t, vec, out)
+        self.d2(t, vec, d2)
+        for i in range(self.N_ops):
+            c_op = self.cdcl_ops[i]
+            expect = c_op.expect(t, vec, 1).real * dt
+            if expect > 0:
+              noise[i] = np.random.poisson(expect)
+            else:
+              noise[i] = 0.
+            axpy(noise[i], d2[i,:], out)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void photocurrent_pc(self, double t, double dt,  double[:] noise,
+                           complex[::1] vec, complex[::1] out):
+        cdef double expect
+        cdef int i
+        cdef complex[::1] tmp = self.buffer_1d[0,:]
+        cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
+        zero_2d(d2)
+        copy(vec,tmp)
+        copy(vec,out)
+        self.d1(t, vec, tmp)
+        self.d1(t+dt, tmp, out)
+        scale(0.5, out)
+        axpy(0.5, tmp, out)
         self.d2(t, vec, d2)
         for i in range(self.N_ops):
             c_op = self.cdcl_ops[i]

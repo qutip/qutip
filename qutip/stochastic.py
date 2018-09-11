@@ -280,7 +280,7 @@ class StochasticSolverOptions:
     def __init__(self, H=None, c_ops=[], sc_ops=[], state0=None,
                  e_ops=[], m_ops=None, store_all_expect=False,
                  store_measurement=False, dW_factors=None,
-                 solver=None, method="homodyne", normalize=1,
+                 solver=None, method="homodyne", normalize=None,
                  times=None, nsubsteps=1, ntraj=1, tol=None,
                  generate_noise=None, noise=None,
                  progress_bar=None, map_func=None, map_kwargs=None,
@@ -418,8 +418,8 @@ class StochasticSolverOptions:
         elif self.solver in ['pred-corr-2', 'pc-euler-2', 'pc-euler-imp', 104]:
             self.solver_code = 104
             self.solver = 'pred-corr-2'
-        elif self.solver in ['Rouchon', 'rouchon', 110]:
-            self.solver_code = 110
+        elif self.solver in ['Rouchon', 'rouchon', 120]:
+            self.solver_code = 120
             self.solver = 'rouchon'
             if not all((op.const for op in self.sc_ops)):
                 raise Exception("Rouchon only work with constant sc_ops")
@@ -511,7 +511,10 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
                                   sc_ops=sc_ops, e_ops=e_ops, args= args,
                                   **kwargs)
-
+    if sso.normalize is not None and sso.normalize:
+        sso.normalize = 2
+    else:
+        sso.normalize = 0
     sso.me = True
     if _safe_mode:
         _safety_checks(sso)
@@ -629,7 +632,10 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
 
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times, sc_ops=sc_ops,
                                   e_ops=e_ops, args= args, **kwargs)
-
+    if sso.normalize is None or sso.normalize:
+        sso.normalize = 1
+    else:
+        sso.normalize = 0
     sso.me = False
     if _safe_mode:
         _safety_checks(sso)
@@ -850,7 +856,14 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times,
                                   c_ops=c_ops, sc_ops=sc_ops, e_ops=e_ops,
                                   args=args, **kwargs)
-    sso.solver_code = 60
+    if sso.solver_code == 101:
+        sso.solver_code = 110
+    else:
+        sso.solver_code = 60
+    if sso.normalize is not None and sso.normalize:
+        sso.normalize = 2
+    else:
+        sso.normalize = 0
     sso.me = True
     if _safe_mode:
         _safety_checks(sso)
@@ -936,7 +949,14 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times,
                                   sc_ops=sc_ops, e_ops=e_ops,
                                   args=args, **kwargs)
-    sso.solver_code = 60
+    if sso.solver_code == 101:
+        sso.solver_code = 110
+    else:
+        sso.solver_code = 60
+    if sso.normalize is None or sso.normalize:
+        sso.normalize = 1
+    else:
+        sso.normalize = 0
     sso.me = False
     if _safe_mode:
         _safety_checks(sso)
