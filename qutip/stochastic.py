@@ -277,7 +277,7 @@ class StochasticSolverOptions:
     where, c_opN = Qobj or [Qobj,coeff]
     The coeff format is the same as for the Hamiltonian.
     """
-    def __init__(self, H=None, c_ops=[], sc_ops=[], state0=None,
+    def __init__(self, me, H=None, c_ops=[], sc_ops=[], state0=None,
                  e_ops=[], m_ops=None, store_all_expect=False,
                  store_measurement=False, dW_factors=None,
                  solver=None, method="homodyne", normalize=None,
@@ -295,6 +295,7 @@ class StochasticSolverOptions:
         # System
         # Cast to td_Qobj so the code has only one version for both the
         # constant and time-dependent case.
+        self.me = me
         if H is not None:
             try:
                 self.H = td_Qobj(H, args=args, tlist=times, raw_str=True)
@@ -337,7 +338,15 @@ class StochasticSolverOptions:
         # Solver
         self.solver = solver
         self.method = method
-        self.normalize = normalize
+        if normalize is None and me:
+            self.normalize = 0
+        elif normalize is None and not me:
+            self.normalize = 1
+        elif normalize:
+            self.normalize = 1
+        else:
+            self.normalize = 0
+
         self.times = times
         self.nsubsteps = nsubsteps
         self.dt = (times[1] - times[0]) / self.nsubsteps
@@ -399,7 +408,10 @@ class StochasticSolverOptions:
         # Other
         self.options = options
         self.args = args
+        self.set_solver()
+        self.p = noiseDepth
 
+    def set_solver(self):
         if self.solver in ['euler-maruyama', 'euler', 50, 0.5]:
             self.solver_code = 50
             self.solver = 'euler-maruyama'
@@ -435,13 +447,11 @@ class StochasticSolverOptions:
         elif self.solver in ['taylor2.0', 'taylor20', 2.0, 202]:
             self.solver_code = 202
             self.solver = 'taylor2.0'
-            self.p = noiseDepth
             if not len(self.sc_ops) == 1 or \
                 not self.sc_ops[0].const or \
                 not self.method=="homodyne":
                 raise Exception("Taylor2.0 only work with 1 constant sc_ops " +\
                                 "and for homodyne method")
-
         else:
             raise Exception("The solver should be one of "+\
                             "[None, 'euler-maruyama', 'platen', 'pc-euler', "+\
@@ -449,6 +459,19 @@ class StochasticSolverOptions:
                             "'rouchon', "+\
                             "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "+\
                             "'taylor2.0']")
+
+class StochasticSolverOptionsPhoto(StochasticSolverOptions):
+    def set_solver(self):
+        if self.solver in [None, 'euler', 1, 60]:
+            self.solver_code = 60
+            self.solver = 'euler'
+        elif self.solver in ['pred-corr', 'predictor-corrector', 110, 2]:
+            self.solver_code = 110
+            self.solver = 'pred-corr'
+        else:
+            raise Exception("The solver should be one of "+\
+                            "[None, 'euler', 'predictor-corrector']")
+
 
 
 def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
@@ -508,18 +531,14 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
-                                  sc_ops=sc_ops, e_ops=e_ops, args= args,
-                                  **kwargs)
-    if sso.normalize is not None and sso.normalize:
-        sso.normalize = 2
-    else:
-        sso.normalize = 0
-    sso.me = True
+    sso = StochasticSolverOptions(True, H=H, state0=rho0, times=times,
+                                  c_ops=c_ops, sc_ops=sc_ops, e_ops=e_ops,
+                                  args= args, **kwargs)
+
     if _safe_mode:
         _safety_checks(sso)
 
-    if sso.solver_code == 110:
+    if sso.solver_code == 120:
         return _positive_map(sso, e_ops_dict)
 
     sso.LH = liouvillian(sso.H, c_ops = sso.sc_ops + sso.c_ops) * sso.dt
@@ -630,13 +649,10 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(H=H, state0=rho0, times=times, sc_ops=sc_ops,
-                                  e_ops=e_ops, args= args, **kwargs)
-    if sso.normalize is None or sso.normalize:
-        sso.normalize = 1
-    else:
-        sso.normalize = 0
-    sso.me = False
+    sso = StochasticSolverOptions(False, H=H, state0=rho0, times=times,
+                                  sc_ops=sc_ops, e_ops=e_ops,
+                                  args= args, **kwargs)
+
     if _safe_mode:
         _safety_checks(sso)
 
@@ -853,18 +869,10 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(H=H, state0=rho0, times=times,
+    sso = StochasticSolverOptionsPhoto(True, H=H, state0=rho0, times=times,
                                   c_ops=c_ops, sc_ops=sc_ops, e_ops=e_ops,
                                   args=args, **kwargs)
-    if sso.solver_code == 101:
-        sso.solver_code = 110
-    else:
-        sso.solver_code = 60
-    if sso.normalize is not None and sso.normalize:
-        sso.normalize = 2
-    else:
-        sso.normalize = 0
-    sso.me = True
+
     if _safe_mode:
         _safety_checks(sso)
 
@@ -946,18 +954,10 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(H=H, state0=rho0, times=times,
+    sso = StochasticSolverOptionsPhoto(False, H=H, state0=rho0, times=times,
                                   sc_ops=sc_ops, e_ops=e_ops,
                                   args=args, **kwargs)
-    if sso.solver_code == 101:
-        sso.solver_code = 110
-    else:
-        sso.solver_code = 60
-    if sso.normalize is None or sso.normalize:
-        sso.normalize = 1
-    else:
-        sso.normalize = 0
-    sso.me = False
+
     if _safe_mode:
         _safety_checks(sso)
 

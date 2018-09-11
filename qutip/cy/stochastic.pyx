@@ -510,11 +510,12 @@ cdef class ssolvers:
                 self.taylor20(t + i*dt, dt, noise[i, :], vec, out)
                 out, vec = vec, out
 
-        if self.normalize == 1:
-            normalize_inplace(vec)
-        elif self.normalize == 2:
-            normalize_rho(vec)
+        if self.normalize:
+            self.normalize_inplace(vec)
         return vec
+
+    cdef void normalize_inplace(self, complex[::1] vec):
+        normalize_inplace(vec)
 
     # Dummy functions
     cdef void d1(self, double t, complex[::1] v, complex[::1] out):
@@ -1517,6 +1518,9 @@ cdef class sme(ssolvers):
             self.tol = sso.tol
             self.imp = sso.imp
 
+    cdef void normalize_inplace(self, complex[::1] vec):
+        normalize_rho(vec)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1879,6 +1883,9 @@ cdef class psme(ssolvers):
             self.cdcl_ops.append(op[1].compiled_Qobj)
             self.clcdr_ops.append(op[2].compiled_Qobj)
 
+    cdef void normalize_inplace(self, complex[::1] vec):
+        normalize_rho(vec)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void photocurrent(self, double t, double dt,  double[:] noise,
@@ -1993,6 +2000,9 @@ cdef class pmsme(ssolvers):
         self.preops2 = [op.compiled_Qobj for op in sso.preops2]
         self.postops2 = [op.compiled_Qobj for op in sso.postops2]
         self.N_root = np.sqrt(self.l_vec)
+
+    cdef void normalize_inplace(self, complex[::1] vec):
+        normalize_rho(vec)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
