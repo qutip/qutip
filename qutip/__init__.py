@@ -218,6 +218,7 @@ from qutip.countstat import *
 from qutip.rcsolve import *
 from qutip.nonmarkov import *
 from qutip.interpolate import *
+from qutip.scattering import *
 
 # quantum information
 from qutip.qip import *

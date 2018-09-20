@@ -56,7 +56,7 @@ from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 3
+MINOR = 4
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -66,8 +66,7 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
-            'qutip/cy/openmp', 'qutip/cy/openmp/src',
-            'qutip/models']
+            'qutip/cy/openmp', 'qutip/cy/openmp/src']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
@@ -75,8 +74,7 @@ PACKAGE_DATA = {
     'qutip/cy/src': ['*.cpp', '*.hpp'],
     'qutip/control': ['*.pyx'],
     'qutip/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/cy/openmp/src': ['*.cpp', '*.hpp'],
-    'qutip/models/cy': ['*.pxi', '*.pxd', '*.pyx']
+    'qutip/cy/openmp/src': ['*.cpp', '*.hpp']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
@@ -149,8 +147,8 @@ write_version_py()
 
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
-        'brtools_testing', 'br_tensor', 'inter', 'td_qobj_cy', 'piqs']
+           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
+           'brtools_testing', 'br_tensor', 'inter', 'td_qobj_cy', 'piqs']
 
 
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
