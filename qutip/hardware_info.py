@@ -85,6 +85,13 @@ def _linux_hardware_info():
     results.update({'os': 'Linux'})
     return results
 
+def _freebsd_hardware_info():
+    results = {}
+    results.update({'cpus': int(os.popen('sysctl -n hw.ncpu').readlines()[0])})
+    results.update({'cpu_freq': int(os.popen('sysctl -n dev.cpu.0.freq').readlines()[0])})
+    results.update({'memsize': int(os.popen('sysctl -n hw.realmem').readlines()[0]) / 1024})
+    results.update({'os': 'FreeBSD'})
+    return results
 
 def _win_hardware_info():
     try:
@@ -118,6 +125,8 @@ def hardware_info():
         out = _win_hardware_info()
     elif sys.platform in ['linux', 'linux2']:
         out = _linux_hardware_info()
+    elif sys.platform.startswith('freebsd'):
+        out = _freebsd_hardware_info()
     else:
         out = {}
     return out

@@ -122,6 +122,8 @@ class Qobj(object):
         (Liouville form) or 'choi' (Choi matrix with tr = dimension).
     isherm : bool
         Indicates if quantum object represents Hermitian operator.
+    isunitary : bool
+        Indictaes if quantum object represents unitary operator.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
@@ -208,13 +210,14 @@ class Qobj(object):
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
                  type=None, isherm=None, copy=True,
-                 fast=False, superrep=None):
+                 fast=False, superrep=None, isunitary=None):
         """
         Qobj constructor.
         """
         self._isherm = isherm
         self._type = type
         self.superrep = superrep
+        self._isunitary = isunitary
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
@@ -245,6 +248,7 @@ class Qobj(object):
                 self.dims = dims
 
             self.superrep = inpt.superrep
+            self._isunitary = inpt._isunitary
 
         elif inpt is None:
             # initialize an empty Qobj with correct dimensions and shape
@@ -357,6 +361,8 @@ class Qobj(object):
         """
         ADDITION with Qobj on LEFT [ ex. Qobj+4 ]
         """
+        self._isunitary = None
+
         if isinstance(other, eseries):
             return other.__radd__(self)
 
@@ -477,6 +483,8 @@ class Qobj(object):
         """
         MULTIPLICATION with Qobj on LEFT [ ex. Qobj*4 ]
         """
+        self._isunitary = None
+
         if isinstance(other, Qobj):
             if self.dims[1] == other.dims[0]:
                 out = Qobj()
@@ -484,8 +492,9 @@ class Qobj(object):
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
                 if settings.auto_tidyup: out.tidyup()
-                if (not isinstance(dims[0][0], list) and
-                        not isinstance(dims[1][0], list)):
+                if (settings.auto_tidyup_dims 
+                        and not isinstance(dims[0][0], list)
+                        and not isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
                     # we should implicitly partial trace over
                     # matching dimensions of 1.
@@ -644,6 +653,7 @@ class Qobj(object):
         out.superrep = self.superrep
         if settings.auto_tidyup: out.tidyup()
         out._isherm = self._isherm
+        out._isunitary = self._isunitary
         return out
 
     def __getitem__(self, ind):
@@ -1887,6 +1897,38 @@ class Qobj(object):
     @isherm.setter
     def isherm(self, isherm):
         self._isherm = isherm
+
+    def check_isunitary(self):
+        """
+        Checks whether qobj is a unitary matrix
+        """
+        if self.isoper:
+            eye_data = fast_identity(self.shape[0])
+            return not (np.any(np.abs((self.data*self.dag().data
+                                       - eye_data).data)
+                                > settings.atol)
+                        or
+                        np.any(np.abs((self.dag().data*self.data
+                                       - eye_data).data) >
+                              settings.atol)
+                        )
+
+        else:
+            return False
+
+    @property
+    def isunitary(self):
+        if self._isunitary is not None:
+            # used previously computed value
+            return self._isunitary
+
+        self._isunitary = self.check_isunitary()
+
+        return self._isunitary
+
+    @isunitary.setter
+    def isunitary(self, isunitary):
+        self._isunitary = isunitary
 
     @property
     def type(self):

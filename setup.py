@@ -56,7 +56,7 @@ from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 3
+MINOR = 4
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -147,8 +147,8 @@ write_version_py()
 
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
-        'brtools_testing', 'br_tensor', 'inter', 'td_qobj_cy']
+           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
+           'brtools_testing', 'br_tensor', 'inter', 'td_qobj_cy', 'piqs']
 
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
 if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
@@ -263,5 +263,5 @@ Installation complete
 Please cite QuTiP in your publication.
 ==============================================================================
 For your convenience a bibtex file can be easily generated using
-`qutip.about.cite()`"""
+`qutip.cite()`"""
 print(_cite)

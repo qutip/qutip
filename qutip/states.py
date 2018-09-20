@@ -927,7 +927,7 @@ def enr_fock(dims, excitations, state):
         raise ValueError("The state tuple %s is not in the restricted "
                          "state space" % str(tuple(state)))
 
-    return Qobj(data, dims=[dims, 1])
+    return Qobj(data, dims=[dims, [1]*len(dims)])
 
 
 def enr_thermal_dm(dims, excitations, n):
@@ -1060,8 +1060,7 @@ def spin_state(j, m, type='ket'):
 
 
 def spin_coherent(j, theta, phi, type='ket'):
-    """Generates the spin state |j, m>, i.e.  the eigenstate
-    of the spin-j Sz operator with eigenvalue m.
+    """Generate the coherent spin state |theta, phi>.
 
     Parameters
     ----------

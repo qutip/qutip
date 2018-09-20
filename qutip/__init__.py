@@ -218,6 +218,7 @@ from qutip.countstat import *
 from qutip.rcsolve import *
 from qutip.nonmarkov import *
 from qutip.interpolate import *
+from qutip.scattering import *
 
 # quantum information
 from qutip.qip import *
@@ -227,6 +228,7 @@ from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
+from qutip.cite import *
 
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig
