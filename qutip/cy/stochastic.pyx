@@ -384,7 +384,7 @@ cdef class ssolvers:
             self.seed = sso.noise
 
     cdef np.ndarray[double, ndim=3] make_noise(self, int n):
-        if self.solver == 60 and self.noise_type == 0:
+        if self.solver in [60, 110] and self.noise_type == 0:
             # photocurrent, just seed,
             np.random.seed(self.seed[n])
             return np.zeros((self.N_step, self.N_substeps, self.N_dw))
