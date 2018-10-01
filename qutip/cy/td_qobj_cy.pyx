@@ -254,6 +254,19 @@ cdef class cy_qobj:
     def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
         return None
 
+    def set_factor(self, func=None, ptr=False):
+        pass
+
+    def set_data(self, cte):
+        pass
+
+    def __getstate__(self):
+        return None
+
+    def __setstate__(self, state):
+        pass
+
+
 cdef class cy_cte_qobj(cy_qobj):
     def set_data(self, cte):
         self.shape0 = cte.shape[0]

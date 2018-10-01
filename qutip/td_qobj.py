@@ -47,9 +47,9 @@ from qutip.cy.td_qobj_cy import (cy_cte_qobj, cy_cte_qobj_dense, cy_td_qobj,
 import pickle
 import sys
 
-safe = False
+safePickle = False
 if sys.platform == 'win32':
-    safe = True
+    safePickle = True
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,
@@ -241,6 +241,7 @@ class td_Qobj:
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
+        self.coeff_get = None
         self.raw_str = raw_str
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
@@ -1100,22 +1101,47 @@ class td_Qobj:
                   for key in self.__dict__ if key is not "compiled_Qobj"}
         if self.compiled:
             return (_dict_, self.compiled_Qobj.__getstate__())
-            #return (_dict_, pickle.dumps(self.compiled_Qobj))
         else:
             return (_dict_,)
 
     def __setstate__(self, state):
         self.__dict__ = state[0]
-        if not self.compiled:
-            self.compiled_Qobj = None
-        elif self.compiled == 1:
-            self.compiled_Qobj = cy_cte_qobj.__new__(cy_cte_qobj)
-            self.compiled_Qobj.__setstate__(state[1])
-            #self.compiled_Qobj = pickle.loads(state[1])
-        elif self.compiled in (2,3,4):
-            self.compiled_Qobj = cy_td_qobj.__new__(cy_td_qobj)
-            self.compiled_Qobj.__setstate__(state[1])
-            #self.compiled_Qobj = pickle.loads(state[1])
+        self.compiled_Qobj = None
+        if self.compiled:
+            if safePickle:
+                # __getstate__ and __setstate__ of compiled_Qobj pass pointers
+                # In 'safe' mod, these pointers are not used.
+                if self.compiled == 1:
+                    self.compiled_Qobj = cy_cte_qobj()
+                    self.compiled_Qobj.set_data(self.cte)
+                elif self.compiled == 21:
+                    self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
+                    self.compiled_Qobj.__setstate__(state[1])
+                elif self.compiled in (2,3,4):
+                    self.compiled_Qobj = cy_td_qobj()
+                    self.compiled_Qobj.set_data(self.cte, self.ops)
+                elif self.compiled in (22,23,24):
+                    self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
+                    self.compiled_Qobj.__setstate__(state[1])
+                elif self.compiled in (12,13,14):
+                    self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
+                    self.compiled_Qobj.__setstate__(state[1])
+                if self.fast:
+                    self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+                else:
+                    self.compiled_Qobj.set_factor(func=self.coeff_get)
+            else:
+                if self.compiled == 1:
+                    self.compiled_Qobj = cy_cte_qobj.__new__(cy_cte_qobj)
+                elif self.compiled == 21:
+                    self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
+                elif self.compiled in (2,3,4):
+                    self.compiled_Qobj = cy_td_qobj.__new__(cy_td_qobj)
+                elif self.compiled in (22,23,24):
+                    self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
+                elif self.compiled in (12,13,14):
+                    self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
+                self.compiled_Qobj.__setstate__(state[1])
 
 
 #Function defined inside another function cannot be pickle,
