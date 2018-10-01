@@ -51,7 +51,7 @@ __all__ = ['ssesolve', 'photocurrentsesolve', 'smepdpsolve',
            'stochastic_solvers', 'general_stochastic']
 
 def stochastic_solvers():
-    """Available solvers
+    """Available solvers for ssesolve and smesolve
     euler-maruyama:
         A simple generalization of the Euler method for ordinary
         differential equations to stochastic differential equations.
@@ -143,6 +143,20 @@ def stochastic_solvers():
     operator not dependent of time with the homodyne method.
     The :func:`qutip.stochastic.general_stochastic` only accept derivatives free
     solvers: ['euler', 'platen', 'explicit1.5'].
+
+Available solver for photocurrentsesolve and photocurrentmesolve:
+        Photocurrent use ordinary differential equations between
+        stochastic "jump/collapse".
+    euler:
+        Euler method for ordinary differential equations.
+        Default solver
+        -Order 1.0
+        -Code: 'euler'
+
+    predictor–corrector:
+        predictor–corrector method (PECE) for ordinary differential equations.
+        -Order 2.0
+        -Code: 'pred-corr'
     """
     pass
 
@@ -239,7 +253,7 @@ class StochasticSolverOptions:
         Number of terms kept of the truncated series used to create the
         noise used by taylor2.0 solver.
 
-    normalize : bool (default True for ssesolve)
+    normalize : bool (default True for (photo)ssesolve, False for (photo)smesolve)
         Whether or not to normalize the wave function during the evolution.
 
     options : :class:`qutip.solver.Options`
@@ -461,6 +475,14 @@ class StochasticSolverOptions:
                             "'taylor2.0']")
 
 class StochasticSolverOptionsPhoto(StochasticSolverOptions):
+    """
+    solver : string
+        Name of the solver method to use for solving the evolution
+        of the system.*
+        order 1 algorithms: 'euler'
+        order 2 algorithms: 'pred-corr'
+        In photocurrent evolution
+    """
     def set_solver(self):
         if self.solver in [None, 'euler', 1, 60]:
             self.solver_code = 60

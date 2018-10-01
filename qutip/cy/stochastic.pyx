@@ -35,6 +35,7 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 from qutip.cy.td_qobj_cy cimport cy_qobj
+from qutip.cy.brtools cimport ZHEEVR
 from qutip.qobj import Qobj
 from qutip.superoperator import vec2mat
 include "parameters.pxi"
@@ -84,52 +85,30 @@ cpdef void normalize_inplace(complex[::1] vec):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 cpdef void normalize_rho(complex[::1] rho):
-    # To speedcheck
     cdef int l = rho.shape[0]
     cdef int N = np.sqrt(l)
-    cdef complex[::1] rho_now = np.zeros(l, dtype=complex)
-    cdef complex[::1] slice = np.zeros(N, dtype=complex)
-    cdef complex[:, ::1] rhos = np.zeros((N,l), dtype=complex)
-    cdef double[::1] prob = np.zeros(N)
-    copy(rho, rho_now)
-    cdef int i, j, k, line_now, good
-    cdef double ap, sum, maxnow
-
-    for i in range(N):
-      line_now = 0
-      maxnow = 0.
-      for j in range(N):
-          if rho_now[(N+1)*j].real >= maxnow:
-              line_now = j
-              maxnow = rho_now[(N+1)*j].real
-      ap = dznrm2(rho_now[line_now*N:(line_now+1)*N])
-      if ap < 1e-7:
-          prob[i] = 0.
-      else:
-          copy(rho_now[line_now*N:(line_now+1)*N],slice)
-          scale(1/ap, slice)
-          prob[i] = ap/slice[line_now].real
-          for j in range(N):
-            for k in range(N):
-              rhos[i,j+N*k] = conj(slice[k])*slice[j]
-          axpy(-prob[i],rhos[i,:],rho_now)
+    cdef complex[::1,:] mat = np.reshape(rho, (N,N), order="F")
+    cdef complex[::1,:] eivec = np.zeros((N,N), dtype=complex, order="F")
+    cdef double[::1] eival = np.zeros(N)
+    ZHEEVR(mat, &eival[0], eivec, N)
+    zero(rho)
+    cdef int i, j, k
+    cdef double sum
 
     sum = 0.
-    good = 1
     for i in range(N):
-        if prob[i] < 0:
-            prob[i] = 0.
-            good = 0
-        sum += prob[i]
+        normalize_inplace(eivec[:,i])
+        if eival[i] < 0:
+            eival[i] = 0.
+        sum += eival[i]
     if sum != 1.:
-        good = 0
         for i in range(N):
-            prob[i] /= sum
+            eival[i] /= sum
 
-    if good == 0:
-        zero(rho)
-        for i in range(N):
-            axpy(prob[i],rhos[i,:],rho)
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                rho[j+N*k] += conj(eivec[k,i])*eivec[j,i]*eival[i]
 
 @cython.boundscheck(False)
 cdef void scale(double a, complex[::1] x):
