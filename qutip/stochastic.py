@@ -543,7 +543,12 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         An instance of the class :class:`qutip.solver.SolverResult`.
 
     """
-
+    if kwargs["method"] == "photocurrent":
+        print("stochastic solver with photocurrent method has been moved to "
+              "it's own function: photocurrentmesolve")
+        return photocurrentmesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
+                                   e_ops=e_ops, _safe_mode=_safe_mode,
+                                   args=args, **kwargs)
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -664,6 +669,12 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
 
         An instance of the class :class:`qutip.solver.SolverResult`.
     """
+    if kwargs["method"] == "photocurrent":
+        print("stochastic solver with photocurrent method has been moved to "
+              "it's own function: photocurrentsesolve")
+        return photocurrentsesolve(H, rho0, times, c_ops=c_ops,
+                                   e_ops=e_ops, _safe_mode=_safe_mode,
+                                   args=args, **kwargs)
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
