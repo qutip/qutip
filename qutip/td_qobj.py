@@ -32,7 +32,7 @@
 ###############################################################################
 """Time-dependent Quantum Object (Qobj) class.
 """
-__all__ = ['td_Qobj']#, 'td_liouvillian', 'td_lindblad_dissipator']
+__all__ = ['td_Qobj']
 
 from qutip.qobj import Qobj
 from scipy.interpolate import CubicSpline
@@ -194,8 +194,13 @@ class td_Qobj:
     compress():
         Merge ops which are based on the same quantum object and coeff type.
 
-    compile():
+    compile(code=False, matched=False, dense=False):
         Create the associated cython object for faster usage.
+        code: return the code generated for compilation of the strings.
+        matched: the compiled object use sparse matrix with matching indices.
+                    (experimental, no real advantage)
+        dense: the compiled object use dense matrix.
+                    (experimental, no real advantage)
     __call__(t):
         Return the Qobj at time t.
         *Faster after compilation
@@ -208,7 +213,10 @@ class td_Qobj:
         Return the Qobj at time t, with the new_args if defined.
         *Mixing both definition types of coeff will make the td_Qobj fail on
             call
-    rhs(t, psi):
+    mul_mat(t, mat):
+        Product of this at t time with the dense matrix mat.
+        *Faster after compilation
+    mul_vec(t, psi):
         Apply the quantum object (if operator, no check) to psi.
         More generaly, return the product of the object at t with psi.
         *Faster after compilation
@@ -217,10 +225,6 @@ class td_Qobj:
             no check) and state psi.
         Return only the real part if herm.
         *Faster after compilation
-    get_compiled_call, get_rhs_func, get_expect_func:
-        Compile and return the corresponding function of the cython object.
-        Was useful before the python function was set to call the cython version
-            after compilation.
     to_list():
         Return the time-dependent quantum object as a list
     """
@@ -287,7 +291,7 @@ class td_Qobj:
                     N = len(self.tlist)
                     dt = self.tlist[-1] / (N - 1)
                     self.ops.append([op[0], CubicSpline(tlist, op[1]),
-                                     op[1].copy(), 3, None])
+                                     op[1].copy(), 3, {}])
 
                 else:
                     raise Exception("Should never be here")
@@ -699,15 +703,41 @@ class td_Qobj:
             elif self.const:
                 cte = self.cte.copy()
                 self = other.copy()
-                self.cte *= cte
+                self.cte = cte * self.cte
                 for op in self.ops:
-                    op[0] *= cte
+                    op[0] = cte*op[0]
             else:
-                raise Exception("When multiplying td_qobj, one " +
-                                "of them must be constant")
+                cte = self.cte.copy()
+                self.cte *= other.cte
+                new_terms = []
+                old_ops = self.ops
+                if not other.dummy_cte:
+                    for op in old_ops:
+                        new_terms.append(self._ops_mul_cte(op,
+                                                        other.cte, "R"))
+                else:
+                    self.ops = []
+                if not self.dummy_cte:
+                    for op in other.ops:
+                        #new_term = op
+                        #new_term[0] = op[0] * cte
+                        #self.ops.append(new_term)
+                        new_terms.append(self._ops_mul_cte(op, cte, "L"))
+
+                for op_left in old_ops:
+                    for op_right in other.ops:
+                        new_terms.append(self._ops_mul_(op_left,
+                                                        op_right, other))
+                self.ops +=  new_terms
+                self.args.update(other.args)
+                self.dummy_cte = self.dummy_cte and other.dummy_cte
+                self.N_obj = (len(self.ops) if \
+                              self.dummy_cte else len(self.ops) + 1)
+                #raise Exception("When multiplying td_qobj, one " +
+                #                "of them must be constant")
         else:
             raise TypeError("td_qobj can only be multiplied" +
-                            " with Qobj or numbers")
+                            " with td_Qobj, Qobj or numbers")
         return self
 
     def __div__(self, other):
@@ -737,6 +767,51 @@ class td_Qobj:
             op[0] = -op[0]
         return res
 
+    def _ops_mul_(self, opL, opR, other):
+        new_args = opL[4].copy()
+        new_args.update(opR[4])
+        new_f = _prod(opL[1], opR[1])
+        new_op = [opL[0]*opR[0], new_f, None, 0, new_args]
+        if opL[3] == opR[3] and opL[3] == 1:
+            new_op[2] = new_f
+            new_op[3] = 1
+        elif opL[3] == opR[3] and opL[3] == 2:
+            new_op[2] = "("+opL[2]+") * ("+opR[2]+")"
+            new_op[3] = 2
+            if not self.raw_str:
+                new_op[1] = _compile_str_single([[new_op[2], new_op[4], 0]])[0]
+        elif opL[3] == opR[3] and opL[3] == 3:
+            new_op[2] = opL[2]*opR[2]
+            new_op[3] = 3
+        else:
+            # Cross product of 2 different kinds of coeffients...
+            # forcing coeff as function
+            oL = opL[1]
+            oR = opR[1]
+            if opL[3] == 2:
+                if self.raw_str:
+                    opL[1] = _compile_str_single([[opL[2], opL[4], 0]])[0]
+                oL = _str2func(opL[1],opL[4])
+            if opR[3] == 2:
+                if other.raw_str:
+                    opR[1] = _compile_str_single([[opR[2], opR[4], 0]])[0]
+                oR = _str2func(opR[1],opR[4])
+            new_f = _prod(oL, oR)
+            new_op[1] = new_f
+            new_op[2] = new_f
+            new_op[3] = 1
+            self.fast = False
+        return new_op
+
+    def _ops_mul_cte(self, op, cte, side):
+        new_op = [None, op[1], op[2], op[3], op[4]]
+        if side == "R":
+            new_op[0] = op[0] * cte
+        if side == "L":
+            new_op[0] = cte * op[0]
+        return new_op
+
+
     # Transformations
     def trans(self):
         res = self.copy()
@@ -765,12 +840,14 @@ class td_Qobj:
     def norm(self):
         """return a.dag * a """
         if not self.N_obj == 1:
-            raise NotImplementedError("Only possible with one composing Qobj")
-        res = self.copy()
-        res.cte = res.cte.dag() * res.cte
-        for op in res.ops:
-            op[0] = op[0].dag() * op[0]
-        res._f_norm2()
+            res = self.dag()
+            res *= self
+        else:
+            res = self.copy()
+            res.cte = res.cte.dag() * res.cte
+            for op in res.ops:
+                op[0] = op[0].dag() * op[0]
+            res._f_norm2()
         return res
 
     # Unitary function of Qobj
@@ -1055,29 +1132,10 @@ class td_Qobj:
             for part in self.ops:
                 self.funclist.append(part[1])
             united_f_call = _united_f_caller(self.funclist, self.args)
-            """def united_f_call(t):
-                out = []
-                for func in self.funclist:
-                    out.append(func(t, self.args))
-                return out"""
             all_function = 3
         else:
             # Must be mixed, would be fast otherwise
             united_f_call  = self._get_coeff
-            """def united_f_call(t):
-                out = []
-                for part in self.ops:
-                    if part[3] == 1:  # func: f(t,args)
-                        out.append(part[1](t, part[4]))
-                    elif part[3] == 2:  # str: f(t,w=2)
-                        if self.raw_str:
-                            # Must compile the str here
-                            part[1] = \
-                                _compile_str_single([[part[2], part[4], 0]])[0]
-                        out.append(part[1](t, **part[4]))
-                    elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
-                        out.append(part[1](np.array([t]))[0])
-                return out"""
             all_function = 4
         return united_f_call, all_function
 
@@ -1094,6 +1152,7 @@ class td_Qobj:
                 out.append(part[1](t, **part[4]))
             elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                 out.append(part[1](np.array([t]))[0])
+        self.raw_str = False
         return out
 
     def __getstate__(self):
@@ -1144,31 +1203,28 @@ class td_Qobj:
                 self.compiled_Qobj.__setstate__(state[1])
 
 
-#Function defined inside another function cannot be pickle,
-#Using class instead
+# Function defined inside another function cannot be pickle,
+# Using class instead
 class _united_f_caller:
     def __init__(self, funclist, args):
         self.funclist = funclist
         self.args = args
 
-    def __call__ (self,t):
+    def __call__(self,t):
         out = []
         for func in self.funclist:
             out.append(func(t, self.args))
         return out
 
-
 class _compress_f_caller:
     def __init__(self, funclist):
         self.funclist = funclist
 
-    def __call__ (self, t, *args):
+    def __call__(self, t, *args):
         return sum((f(t, *args) for f in self.funclist))
-
 
 def _dummy(t, *args, **kwargs):
     return 0.
-
 
 class _norm2():
     def __init__(self, f):
@@ -1177,10 +1233,34 @@ class _norm2():
     def __call__(self, t, args):
         return self.func(t, args)*np.conj(self.func(t, args))
 
-
 class _conj():
     def __init__(self, f):
         self.func = f
 
     def __call__(self, t, args):
         return np.conj(self.func(t, args))
+
+class _str2func():
+    def __init__(self, func, args):
+        self.f = func
+        self.args = args
+
+    def __call__(self, t, args):
+        args_used = {key:args[key] for key in args if key in self.args}
+        return self.f(t, **args_used)
+
+class _prod_dag():
+    def __init__(self, f, g):
+        self.func = f
+        self.func_conj = g
+
+    def __call__(self, t, args):
+        return self.func(t, args)*np.conj(self.func_conj(t, args))
+
+class _prod():
+    def __init__(self, f, g):
+        self.func_1 = f
+        self.func_2 = g
+
+    def __call__(self, t, args):
+        return self.func_1(t, args)*self.func_2(t, args)
