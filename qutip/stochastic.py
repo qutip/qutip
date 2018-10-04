@@ -1080,13 +1080,13 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     if not "solver" in kwargs:
         kwargs["solver"] = 50
 
-    sso = StochasticSolverOptions(H=None, state0=state0, times=times,
+    sso = StochasticSolverOptions(False, H=None, state0=state0, times=times,
                                   e_ops=e_ops, args=args, **kwargs)
     if sso.solver_code not in [50, 100, 150]:
         raise Exception("Only Euler, platen, platen15 can be " +
                         "used for the general stochastic solver")
 
-    sso.me = False
+    #sso.me = False
     sso.d1 = d1
     sso.d2 = d2
     if _safe_mode:

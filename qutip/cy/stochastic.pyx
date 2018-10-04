@@ -1105,7 +1105,7 @@ cdef class sse(ssolvers):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void d1(self, double t, complex[::1] vec, complex[::1] out):
-        self.L._rhs_mat(t, &vec[0], &out[0])
+        self.L._mul_vec(t, &vec[0], &out[0])
         cdef int i
         cdef complex e
         cdef cy_qobj c_op
@@ -1113,10 +1113,10 @@ cdef class sse(ssolvers):
         zero(temp)
         for i in range(self.N_ops):
             c_op = self.cpcd_ops[i]
-            e = c_op._expect_mat(t, &vec[0], 0)
+            e = c_op._expect(t, &vec[0], 0)
             zero(temp)
             c_op = self.c_ops[i]
-            c_op._rhs_mat(t, &vec[0], &temp[0])
+            c_op._mul_vec(t, &vec[0], &temp[0])
             axpy(-0.125 * e * e * self.dt, vec, out)
             axpy(0.5 * e * self.dt, temp, out)
 
@@ -1129,9 +1129,9 @@ cdef class sse(ssolvers):
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
-            c_op._rhs_mat(t, &vec[0], &out[i,0])
+            c_op._mul_vec(t, &vec[0], &out[i,0])
             c_op = self.cpcd_ops[i]
-            expect = c_op._expect_mat(t, &vec[0], 0)
+            expect = c_op._expect(t, &vec[0], 0)
             axpy(-0.5*expect,vec,out[i,:])
 
     @cython.boundscheck(False)
@@ -1178,10 +1178,10 @@ cdef class sse(ssolvers):
         zero_3d(Cb)
 
         # a b
-        self.L._rhs_mat(t, &vec[0], &a[0])
+        self.L._mul_vec(t, &vec[0], &a[0])
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
-            c_op._rhs_mat(t, &vec[0], &Cvec[i,0])
+            c_op._mul_vec(t, &vec[0], &Cvec[i,0])
             e = dotc(vec,Cvec[i,:])
             e_real[i] = real(e)
             axpy(1., Cvec[i,:], b[i,:])
@@ -1194,11 +1194,11 @@ cdef class sse(ssolvers):
           for i in range(self.N_ops):
             c_op = self.c_ops[i]
             for j in range(self.N_ops):
-              c_op._rhs_mat(t, &b[j,0], &Cb[i,j,0])
+              c_op._mul_vec(t, &b[j,0], &Cb[i,j,0])
               for k in range(self.l_vec):
                   temp[k] = conj(b[j,k])
                   temp2[k] = 0.
-              c_op._rhs_mat(t, &temp[0], &temp2[0])
+              c_op._mul_vec(t, &temp[0], &temp2[0])
               de_b[i,j] = (dotc(vec, Cb[i,j,:]) + dot(b[j,:], Cvec[i,:]) + \
                           conj(dotc(b[j,:], Cvec[i,:]) + dotc(vec, temp2))) * 0.5
               axpy(1., Cb[i,j,:], Lb[i,j,:])
@@ -1215,7 +1215,7 @@ cdef class sse(ssolvers):
         if deg >= 2:
           for i in range(self.N_ops):
               #ba'
-              self.L._rhs_mat(t, &b[i,0], &La[i,0])
+              self.L._mul_vec(t, &b[i,0], &La[i,0])
               for j in range(self.N_ops):
                   axpy(-0.5 * e_real[j] * e_real[j] * dt, b[i,:], La[i,:])
                   axpy(-e_real[j] * de_b[i,j] * dt, vec, La[i,:])
@@ -1224,18 +1224,18 @@ cdef class sse(ssolvers):
 
               #ab' + db/dt + bbb"/2
               c_op = self.c_ops[i]
-              c_op._rhs_mat(t, &a[0], &L0b[i,0])
+              c_op._mul_vec(t, &a[0], &L0b[i,0])
               for k in range(self.l_vec):
                   temp[k] = conj(a[k])
                   temp2[k] = 0.
-              c_op._rhs_mat(t, &temp[0], &temp2[0])
+              c_op._mul_vec(t, &temp[0], &temp2[0])
               de_a[i] = (dotc(vec, L0b[i,:]) + dot(a, Cvec[i,:]) + \
                         conj(dotc(a, Cvec[i,:]) + dotc(vec, temp2))) * 0.5
               axpy(-e_real[i], a, L0b[i,:])
               axpy(-de_a[i], vec, L0b[i,:])
 
               temp = np.zeros(self.l_vec, dtype=complex)
-              c_op._rhs_mat(t + self.dt, &vec[0], &temp[0])
+              c_op._mul_vec(t + self.dt, &vec[0], &temp[0])
               e = dotc(vec,temp)
               axpy(1., temp, L0b[i,:])
               axpy(-real(e), vec, L0b[i,:])
@@ -1248,11 +1248,11 @@ cdef class sse(ssolvers):
               #b(bb"+b'b')
               for j in range(i,self.N_ops):
                   for k in range(j, self.N_ops):
-                      c_op._rhs_mat(t, &Lb[j,k,0], &LLb[i,j,k,0])
+                      c_op._mul_vec(t, &Lb[j,k,0], &LLb[i,j,k,0])
                       for l in range(self.l_vec):
                           temp[l] = conj(Lb[j,k,l])
                           temp2[l] = 0.
-                      c_op._rhs_mat(t, &temp[0], &temp2[0])
+                      c_op._mul_vec(t, &temp[0], &temp2[0])
                       de_bb = (dotc(vec, LLb[i,j,k,:]) + \
                                dot(Lb[j,k,:], Cvec[i,:]) + \
                                conj(dotc(Lb[j,k,:], Cvec[i,:]) +\
@@ -1267,11 +1267,11 @@ cdef class sse(ssolvers):
         if deg == 2:
           self.d1(t + dt, vec, L0a)
           axpy(-1.0, a, L0a)
-          self.L._rhs_mat(t, &a[0], &L0a[0])
+          self.L._mul_vec(t, &a[0], &L0a[0])
           for j in range(self.N_ops):
               c_op = self.c_ops[j]
               temp = np.zeros(self.l_vec, dtype=complex)
-              c_op._rhs_mat(t, &a[0], &temp[0])
+              c_op._mul_vec(t, &a[0], &temp[0])
               axpy(-0.5 * e_real[j] * e_real[j] * dt, a[:], L0a[:])
               axpy(-e_real[j] * de_a[j] * dt, vec, L0a[:])
               axpy(e_real[j] * dt, temp, L0a[:])
@@ -1292,7 +1292,7 @@ cdef class sse(ssolvers):
         for k in range(self.l_vec):
             temp[k] = conj(vec[k])
             out[k] = 0.
-        c_op._rhs_mat(t, &temp[0], &out[0])
+        c_op._mul_vec(t, &temp[0], &out[0])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1349,13 +1349,13 @@ cdef class sse(ssolvers):
         zero(CL0b)
 
         # b
-        c_op._rhs_mat(t, &psi[0], &Cpsi[0])
+        c_op._mul_vec(t, &psi[0], &Cpsi[0])
         e = real(dotc(psi, Cpsi))
         axpy(1., Cpsi, b)
         axpy(-e, psi, b)
 
         # Lb
-        c_op._rhs_mat(t, &b[0], &Cb[0])
+        c_op._mul_vec(t, &b[0], &Cb[0])
         self.C_vec_conj(t, c_op, b, Cbc)
         de_b = (dotc(psi, Cb) + dot(b, Cpsi) + \
                 conj(dotc(b, Cpsi) + dotc(psi, Cbc))) * 0.5
@@ -1364,7 +1364,7 @@ cdef class sse(ssolvers):
         axpy(-de_b, psi, Lb)
 
         # LLb = b'b'b + b"bb
-        c_op._rhs_mat(t, &Lb[0], &CLb[0])
+        c_op._mul_vec(t, &Lb[0], &CLb[0])
         self.C_vec_conj(t, c_op, Lb, CLbc)
         de_Lb = (dotc(psi, CLb) + dot(Lb, Cpsi) + \
                  conj(dotc(Lb, Cpsi) + dotc(psi, CLbc)))*0.5
@@ -1376,7 +1376,7 @@ cdef class sse(ssolvers):
         axpy(-de_b*2, b, LLb)   # b"bb
 
         # LLLb = b"'bbb + 3* b"b'bb + b'(b"bb + b'b'b)
-        c_op._rhs_mat(t, &LLb[0], &CLLb[0])
+        c_op._mul_vec(t, &LLb[0], &CLLb[0])
         self.C_vec_conj(t, c_op, LLb, CLLbc)
         de_LLb = (dotc(psi, CLLb) + dot(LLb, Cpsi) + \
                   conj(dotc(LLb, Cpsi) + dotc(psi, CLLbc)))*0.5
@@ -1391,13 +1391,13 @@ cdef class sse(ssolvers):
         axpy(-dde_bb*3, b, LLLb)       # b"'bbb
 
         # a
-        self.L._rhs_mat(t, &psi[0], &a[0])
+        self.L._mul_vec(t, &psi[0], &a[0])
         axpy(-0.5 * e * e * dt, psi, a)
         axpy(e * dt, Cpsi, a)
         axpy(-0.5 * dt, Lb, a)
 
         #La
-        self.L._rhs_mat(t, &b[0], &La[0])
+        self.L._mul_vec(t, &b[0], &La[0])
         axpy(-0.5 * e * e * dt, b, La)
         axpy(-e * de_b * dt, psi, La)
         axpy(e * dt, Cb, La)
@@ -1411,7 +1411,7 @@ cdef class sse(ssolvers):
         axpy( 2 * de_b * dt, Cb, LLa)
         axpy( dde_bb * dt, Cpsi, LLa)
 
-        self.L._rhs_mat(t, &Lb[0], &LLa[0])
+        self.L._mul_vec(t, &Lb[0], &LLa[0])
         axpy(-de_Lb * e * dt, psi, LLa)
         axpy(-0.5 * e * e * dt, Lb, LLa)
         axpy( de_Lb * dt, Cpsi, LLa)
@@ -1420,7 +1420,7 @@ cdef class sse(ssolvers):
         axpy(-0.5 * dt, LLLb, LLa)
 
         # L0b = b'a
-        c_op._rhs_mat(t, &a[0], &Ca[0])
+        c_op._mul_vec(t, &a[0], &Ca[0])
         self.C_vec_conj(t, c_op, a, Cac)
         de_a = (dotc(psi, Ca) + dot(a, Cpsi) + \
                 conj(dotc(a, Cpsi) + dotc(psi, Cac))) * 0.5
@@ -1434,7 +1434,7 @@ cdef class sse(ssolvers):
         axpy(-dde_ba, psi, LL0b)
         axpy(-de_a, b, LL0b)
         axpy(-de_b, a, LL0b)
-        c_op._rhs_mat(t, &La[0], &CLa[0])
+        c_op._mul_vec(t, &La[0], &CLa[0])
         self.C_vec_conj(t, c_op, La, CLac)
         de_La = (dotc(psi, CLa) + dot(La, Cpsi) + \
                 conj(dotc(La, Cpsi) + dotc(psi, CLac))) * 0.5
@@ -1446,7 +1446,7 @@ cdef class sse(ssolvers):
         axpy(-dde_ba, psi, L0Lb)
         axpy(-de_a, b, L0Lb)
         axpy(-de_b, a, L0Lb)
-        c_op._rhs_mat(t, &L0b[0], &CL0b[0])
+        c_op._mul_vec(t, &L0b[0], &CL0b[0])
         self.C_vec_conj(t, c_op, L0b, CL0bc)
         de_L0b = (dotc(psi, CL0b) + dot(L0b, Cpsi) + \
                   conj(dotc(L0b, Cpsi) + dotc(psi, CL0bc))) * 0.5
@@ -1458,7 +1458,7 @@ cdef class sse(ssolvers):
         self.d1(t + dt, psi, L0a) # da/dt
         axpy(-0.5 * dt, Lb, L0a)  # da/dt
         axpy(-1.0, a, L0a)        # da/dt
-        self.L._rhs_mat(t, &a[0], &L0a[0]) # a'_a_
+        self.L._mul_vec(t, &a[0], &L0a[0]) # a'_a_
         axpy(-0.5 * e * e * dt, a, L0a)    # a'_a_
         axpy(-e * de_a * dt, psi, L0a)     # a'_a_
         axpy(e * dt, Ca, L0a)              # a'_a_
@@ -1471,8 +1471,8 @@ cdef class sse(ssolvers):
         # np.ndarray to memoryview is OK but not the reverse
         # scipy function only take np array, not memoryview
         self.imp_t = t
-        spout, check = sp.linalg.bicgstab(self.imp,
-                                        dvec, x0 = guess, tol=self.tol)
+        spout, check = sp.linalg.bicgstab(self.imp, dvec, x0 = guess,
+                                          tol=self.tol, atol=1e-12)
         cdef int i
         copy(spout, out)
 
@@ -1512,7 +1512,7 @@ cdef class sme(ssolvers):
 
     @cython.boundscheck(False)
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
-        self.L._rhs_mat(t, &rho[0], &out[0])
+        self.L._mul_vec(t, &rho[0], &out[0])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1523,7 +1523,7 @@ cdef class sme(ssolvers):
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
-            c_op._rhs_mat(t, &rho[0], &out[i,0])
+            c_op._mul_vec(t, &rho[0], &out[i,0])
             expect = self.expect(out[i,:])
             axpy(-expect, rho, out[i,:])
 
@@ -1560,13 +1560,13 @@ cdef class sme(ssolvers):
         #zero(temp)
 
         # a
-        self.L._rhs_mat(t, &rho[0], &a[0])
+        self.L._mul_vec(t, &rho[0], &a[0])
 
         # b
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
             # bi
-            c_op._rhs_mat(t, &rho[0], &b[i,0])
+            c_op._mul_vec(t, &rho[0], &b[i,0])
             trAp[i] = self.expect(b[i,:])
             axpy(-trAp[i], rho, b[i,:])
 
@@ -1576,7 +1576,7 @@ cdef class sme(ssolvers):
           for i in range(self.N_ops):
             c_op = self.c_ops[i]
             for j in range(i, self.N_ops):
-                c_op._rhs_mat(t, &b[j,0], &Lb[i,j,0])
+                c_op._mul_vec(t, &b[j,0], &Lb[i,j,0])
                 trAb[i,j] = self.expect(Lb[i,j,:])
                 axpy(-trAp[j], b[i,:], Lb[i,j,:])
                 axpy(-trAb[i,j], rho, Lb[i,j,:])
@@ -1586,17 +1586,17 @@ cdef class sme(ssolvers):
           for i in range(self.N_ops):
             c_op = self.c_ops[i]
             # Lia = bia'
-            self.L._rhs_mat(t, &b[i,0], &La[i,0])
+            self.L._mul_vec(t, &b[i,0], &La[i,0])
 
             # L0bi = abi' + dbi/dt + Sum_j bjbjbi"/2
             # db/dt
-            c_op._rhs_mat(t + self.dt, &rho[0], &L0b[i,0])
+            c_op._mul_vec(t + self.dt, &rho[0], &L0b[i,0])
             trApp = self.expect(L0b[i,:])
             axpy(-trApp, rho, L0b[i,:])
             axpy(-1, b[i,:], L0b[i,:])
             # ab'
             zero(temp) # = np.zeros((self.l_vec, ), dtype=complex)
-            c_op._rhs_mat(t, &a[0], &temp[0])
+            c_op._mul_vec(t, &a[0], &temp[0])
             trAa = self.expect(temp)
             axpy(1., temp, L0b[i,:])
             axpy(-trAp[i], a[:], L0b[i,:])
@@ -1612,7 +1612,7 @@ cdef class sme(ssolvers):
             # sc_ops must commute (LiLjbk = LjLibk = LkLjbi)
             for j in range(i,self.N_ops):
               for k in range(j,self.N_ops):
-                c_op._rhs_mat(t, &Lb[j,k,0], &LLb[i,j,k,0])
+                c_op._mul_vec(t, &Lb[j,k,0], &LLb[i,j,k,0])
                 trAbb = self.expect(LLb[i,j,k,:])
                 axpy(-trAp[i], Lb[j,k,:], LLb[i,j,k,:])
                 axpy(-trAbb, rho, LLb[i,j,k,:])
@@ -1621,8 +1621,8 @@ cdef class sme(ssolvers):
 
         # L0a = a'a + da/dt + bba"/2  (a" = 0)
         if deg == 2:
-            self.L._rhs_mat(t, &a[0], &L0a[0])
-            self.L._rhs_mat(t+self.dt, &rho[0], &L0a[0])
+            self.L._mul_vec(t, &a[0], &L0a[0])
+            self.L._mul_vec(t+self.dt, &rho[0], &L0a[0])
             axpy(-1, a, L0a)
 
     @cython.boundscheck(False)
@@ -1665,25 +1665,25 @@ cdef class sme(ssolvers):
         cdef complex[::1] temp2 = self.func_buffer_1d[1,:]
 
         # b
-        c_op._rhs_mat(t, &rho[0], &b[0])
+        c_op._mul_vec(t, &rho[0], &b[0])
         trAp = self.expect(b)
         axpy(-trAp, rho, b)
 
         # Lb = b'b
-        c_op._rhs_mat(t, &b[0], &Lb[0])
+        c_op._mul_vec(t, &b[0], &Lb[0])
         trAb = self.expect(Lb)
         axpy(-trAp, b, Lb)
         axpy(-trAb, rho, Lb)
 
         # LLb = b'Lb+b"bb
-        c_op._rhs_mat(t, &Lb[0], &LLb[0])
+        c_op._mul_vec(t, &Lb[0], &LLb[0])
         trALb = self.expect(LLb)
         axpy(-trAp, Lb, LLb)
         axpy(-trALb, rho, LLb)
         axpy(-trAb*2, b, LLb)
 
         # LLLb = b'LLb + 3 b"bLb + b"'bbb
-        c_op._rhs_mat(t, &LLb[0], &LLLb[0])
+        c_op._mul_vec(t, &LLb[0], &LLLb[0])
         trALLb = self.expect(LLLb)
         axpy(-trAp, LLb, LLLb)
         axpy(-trALLb, rho, LLLb)
@@ -1691,25 +1691,25 @@ cdef class sme(ssolvers):
         axpy(-trAb*3, Lb, LLLb)
 
         # _a_ = a - Lb/2
-        self.L._rhs_mat(t, &rho[0], &a[0])
+        self.L._mul_vec(t, &rho[0], &a[0])
         axpy(-0.5*self.dt, Lb, a)
 
         # L_a_ = ba' - LLb/2
-        self.L._rhs_mat(t, &b[0], &La[0])
+        self.L._mul_vec(t, &b[0], &La[0])
         axpy(-0.5*self.dt, LLb, La)
 
         # LL_a_ = b(La)' - LLLb/2
-        self.L._rhs_mat(t, &Lb[0], &LLa[0])
+        self.L._mul_vec(t, &Lb[0], &LLa[0])
         axpy(-0.5*self.dt, LLLb, LLa)
 
         # _L0_b = b'(_a_)
-        c_op._rhs_mat(t, &a[0], &L0b[0])
+        c_op._mul_vec(t, &a[0], &L0b[0])
         trAa = self.expect(L0b)
         axpy(-trAp, a, L0b)
         axpy(-trAa, rho, L0b)
 
         # _L0_Lb = b'(b'(_a_))+b"(_a_,b)
-        c_op._rhs_mat(t, &L0b[0], &L0Lb[0])
+        c_op._mul_vec(t, &L0b[0], &L0Lb[0])
         trAL0b = self.expect(L0Lb)
         axpy(-trAp, L0b, L0Lb)
         axpy(-trAL0b, rho, L0Lb)
@@ -1717,7 +1717,7 @@ cdef class sme(ssolvers):
         axpy(-trAb, a, L0Lb)
 
         # L_L0_b = b'(_a_'(b))+b"(_a_,b)
-        c_op._rhs_mat(t, &La[0], &LL0b[0])
+        c_op._mul_vec(t, &La[0], &LL0b[0])
         trAL0b = self.expect(LL0b)
         axpy(-trAp, La, LL0b)
         axpy(-trAL0b, rho, LL0b)
@@ -1725,8 +1725,8 @@ cdef class sme(ssolvers):
         axpy(-trAb, a, LL0b)
 
         # _L0_ _a_ = _L0_a - _L0_Lb/2 + da/dt
-        self.L._rhs_mat(t, &a[0], &L0a[0])
-        self.L._rhs_mat(t+self.dt, &rho[0], &L0a[0])
+        self.L._mul_vec(t, &a[0], &L0a[0])
+        self.L._mul_vec(t+self.dt, &rho[0], &L0a[0])
         axpy(-0.5*self.dt, Lb, L0a) # _a_(t+dt) = a(t+dt)-0.5*Lb
         axpy(-1, a, L0a)
         axpy(-self.dt*0.5, L0Lb, L0a)
@@ -1737,8 +1737,8 @@ cdef class sme(ssolvers):
                                         np.ndarray[complex, ndim=1] guess):
         # np.ndarray to memoryview is OK but not the reverse
         # scipy function only take np array, not memoryview
-        spout, check = sp.linalg.bicgstab(self.imp(t, data=1),
-                                        dvec, x0 = guess, tol=self.tol)
+        spout, check = sp.linalg.bicgstab(self.imp(t, data=1), dvec, x0=guess,
+                                          tol=self.tol, atol=1e-12)
         cdef int i
         copy(spout,out)
 
@@ -1811,7 +1811,7 @@ cdef class psse(ssolvers):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void d1(self, double t, complex[::1] vec, complex[::1] out):
-        self.L._rhs_mat(t, &vec[0], &out[0])
+        self.L._mul_vec(t, &vec[0], &out[0])
         cdef int i
         cdef complex e
         cdef cy_qobj c_op
@@ -1819,7 +1819,7 @@ cdef class psse(ssolvers):
         for i in range(self.N_ops):
             zero(temp)
             c_op = self.c_ops[i]
-            c_op._rhs_mat(t, &vec[0], &temp[0])
+            c_op._mul_vec(t, &vec[0], &temp[0])
             e = dznrm2(temp)
             axpy(0.5 * e * e * self.dt, vec, out)
 
@@ -1832,7 +1832,7 @@ cdef class psse(ssolvers):
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
-            c_op._rhs_mat(t, &vec[0], &out[i,0])
+            c_op._mul_vec(t, &vec[0], &out[i,0])
             expect = dznrm2(out[i,:])
             if expect.real >= 1e-15:
                 zscale(1/expect, out[i,:])
@@ -1927,11 +1927,11 @@ cdef class psme(ssolvers):
         cdef cy_qobj c_op
         cdef complex[::1] Crho = self.func_buffer_1d[0,:]
         cdef complex expect
-        self.L._rhs_mat(t, &rho[0], &out[0])
+        self.L._mul_vec(t, &rho[0], &out[0])
         for i in range(self.N_ops):
             c_op = self.cdcr_cdcl_ops[i]
             zero(Crho)
-            c_op._rhs_mat(t, &rho[0], &Crho[0])
+            c_op._mul_vec(t, &rho[0], &Crho[0])
             expect = self.expect(Crho)
             axpy(0.5*expect* self.dt, rho, out)
             axpy(-0.5* self.dt, Crho, out)
@@ -1945,7 +1945,7 @@ cdef class psme(ssolvers):
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.clcdr_ops[i]
-            c_op._rhs_mat(t, &rho[0], &out[i,0])
+            c_op._mul_vec(t, &rho[0], &out[i,0])
             expect = self.expect(out[i,:])
             if expect.real >= 1e-15:
                 zscale((1.+0j)/expect, out[i,:])
@@ -1995,13 +1995,13 @@ cdef class pmsme(ssolvers):
         cdef complex ddw, tr
         zero(out)
         zero(temp)
-        self.preLH._rhs_mat(t, &vec[0], &temp[0])
+        self.preLH._mul_vec(t, &vec[0], &temp[0])
         for i in range(self.N_ops):
             c_op = self.sops[i]
-            dy[i] = c_op._expect_mat_super(t, &vec[0], 0) + noise[i]
+            dy[i] = c_op._expect_super(t, &vec[0], 0) + noise[i]
             c_op = self.preops[i]
             zero(temp2)
-            c_op._rhs_mat(t, &vec[0], &temp2[0])
+            c_op._mul_vec(t, &vec[0], &temp2[0])
             axpy(dy[i], temp2, temp)
 
         k = 0
@@ -2014,16 +2014,16 @@ cdef class pmsme(ssolvers):
                     ddw = (dy[i]*dy[j])
 
                 zero(temp2)
-                c_op._rhs_mat(t, &vec[0], &temp2[0])
+                c_op._mul_vec(t, &vec[0], &temp2[0])
                 axpy(ddw, temp2, temp)
                 k += 1
 
-        self.postLH._rhs_mat(t, &temp[0], &out[0])
+        self.postLH._mul_vec(t, &temp[0], &out[0])
         for i in range(self.N_ops):
             dy[i] = conj(dy[i])
             c_op = self.postops[i]
             zero(temp2)
-            c_op._rhs_mat(t, &temp[0], &temp2[0])
+            c_op._mul_vec(t, &temp[0], &temp2[0])
             axpy(dy[i], temp2, out)
 
         k = 0
@@ -2035,11 +2035,11 @@ cdef class pmsme(ssolvers):
                 else:
                     ddw = (dy[i]*dy[j])
                 zero(temp2)
-                c_op._rhs_mat(t, &temp[0], &temp2[0])
+                c_op._mul_vec(t, &temp[0], &temp2[0])
                 axpy(ddw, temp2, out)
                 k += 1
 
-        self.pp_ops._rhs_mat(t, &vec[0], &out[0])
+        self.pp_ops._mul_vec(t, &vec[0], &out[0])
         tr = self.expect(out)
         zscale(1./tr, out)
 

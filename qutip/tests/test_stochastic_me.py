@@ -63,9 +63,9 @@ def test_smesolve_homodyne_methods():
     e_op = [x, x*x]
     rho0 = fock_dm(N,0)      # initial vacuum state
 
-    T = 6.                   # final time
+    T = 3.                   # final time
     # number of time steps for which we save the expectation values
-    N_store = 200
+    N_store = 121
     Nsub = 10
     tlist = np.linspace(0, T, N_store)
     ddt = (tlist[1]-tlist[0])
@@ -136,7 +136,7 @@ def test_smesolve_photocurrent():
 
     N = 4
     gamma = 0.25
-    ntraj = 25
+    ntraj = 20
     nsubsteps = 100
     a = destroy(N)
 
@@ -145,7 +145,7 @@ def test_smesolve_photocurrent():
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a * 0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
-    times = np.linspace(0, 2.5, 50)
+    times = np.linspace(0, 1.0, 21)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
     res = photocurrentmesolve(H, psi0, times, [], sc_ops, e_ops, args={"a":2},
                    ntraj=ntraj, nsubsteps=nsubsteps,  store_measurement=True,
@@ -163,7 +163,7 @@ def test_smesolve_homodyne():
 
     N = 4
     gamma = 0.25
-    ntraj = 25
+    ntraj = 20
     nsubsteps = 100
     a = destroy(N)
 
@@ -172,7 +172,7 @@ def test_smesolve_homodyne():
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a * 0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
-    times = np.linspace(0, 2.5, 50)
+    times = np.linspace(0, 1.0, 21)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
     list_methods_tol = ['euler-maruyama',
                         'pc-euler',
@@ -201,7 +201,7 @@ def test_smesolve_heterodyne():
 
     N = 4
     gamma = 0.25
-    ntraj = 25
+    ntraj = 20
     nsubsteps = 100
     a = destroy(N)
 
@@ -210,7 +210,7 @@ def test_smesolve_heterodyne():
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a * 0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
-    times = np.linspace(0, 2.5, 50)
+    times = np.linspace(0, 1.0, 21)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
     list_methods_tol = ['euler-maruyama',
                         'pc-euler',
@@ -236,11 +236,11 @@ def test_smesolve_heterodyne():
 def test_general_stochastic():
     "Stochastic: general_stochastic"
     "Reproduce smesolve homodyne"
-    tol = 0.015
+    tol = 0.025
     N = 4
     gamma = 0.25
     ntraj = 20
-    nsubsteps = 100
+    nsubsteps = 50
     a = destroy(N)
 
     H = [[a.dag() * a,f]]
@@ -255,15 +255,15 @@ def test_general_stochastic():
     e_opsM = [spre(op) for op in e_ops]
 
     def d1(t, vec):
-        return L.rhs(t,vec)
+        return L.mul_vec(t,vec)
 
     def d2(t, vec):
         out = []
         for op in sc_opsM:
-            out.append(op.rhs(t,vec)-op.expect(t,vec)*vec)
+            out.append(op.mul_vec(t,vec)-op.expect(t,vec)*vec)
         return np.stack(out)
 
-    times = np.linspace(0, 1.0, 25)
+    times = np.linspace(0, 0.5, 13)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
     list_methods_tol = ['euler-maruyama',
                         'platen',
