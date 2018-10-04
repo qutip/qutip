@@ -633,22 +633,25 @@ class td_Qobj:
             self.cte += other.cte
             l = len(self.ops)
             for op in other.ops:
-                self.ops.append([None, None, None, None, None])
+                self.ops.append([None, None, None, None])
                 self.ops[l][0] = op[0].copy()
                 self.ops[l][3] = op[3]
                 self.ops[l][1] = op[1]
-                if self.ops[l][3] in [1, 2]:
-                    self.ops[l][2] = op[2]
-                    self.ops[l][4] = op[4].copy()
-                elif self.ops[l][3] == 3:
+                if self.ops[l][3] == 3:
                     self.ops[l][2] = op[2].copy()
-                    self.ops[l][4] = None
+                else:
+                    self.ops[l][2] = op[2]
                 l += 1
             self.args.update(**other.args)
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
-            self.fast = self.fast and other.fast
-            self.raw_str = self.raw_str and other.raw_str
+            #self.fast = self.fast and other.fast
+            #self.raw_str = self.raw_str and other.raw_str
+            if self.type != other.type:
+                if self.type in [1,5] or other.type in [1,5]:
+                    self.type = 5
+                else:
+                    self.type = 6
             self.compiled = False
             self.compiled_Qobj = None
             self.compiled_ptr = None
@@ -722,22 +725,16 @@ class td_Qobj:
                 old_ops = self.ops
                 if not other.dummy_cte:
                     for op in old_ops:
-                        new_terms.append(self._ops_mul_cte(op,
-                                                        other.cte, "R"))
-                else:
-                    self.ops = []
+                        new_terms.append(self._ops_mul_cte(op, other.cte, "R"))
                 if not self.dummy_cte:
                     for op in other.ops:
-                        #new_term = op
-                        #new_term[0] = op[0] * cte
-                        #self.ops.append(new_term)
                         new_terms.append(self._ops_mul_cte(op, cte, "L"))
 
                 for op_left in old_ops:
                     for op_right in other.ops:
                         new_terms.append(self._ops_mul_(op_left,
-                                                        op_right, other))
-                self.ops +=  new_terms
+                                                        op_right))
+                self.ops = new_terms
                 self.args.update(other.args)
                 self.dummy_cte = self.dummy_cte and other.dummy_cte
                 self.N_obj = (len(self.ops) if \
@@ -776,40 +773,20 @@ class td_Qobj:
             op[0] = -op[0]
         return res
 
-    def _ops_mul_(self, opL, opR, other):
+    def _ops_mul_(self, opL, opR):
         new_args = opL[4].copy()
         new_args.update(opR[4])
         new_f = _prod(opL[1], opR[1])
         new_op = [opL[0]*opR[0], new_f, None, 0, new_args]
-        if opL[3] == opR[3] and opL[3] == 1:
-            new_op[2] = new_f
-            new_op[3] = 1
-        elif opL[3] == opR[3] and opL[3] == 2:
+        if opL[3] == opR[3] and opL[3] == 2:
             new_op[2] = "("+opL[2]+") * ("+opR[2]+")"
             new_op[3] = 2
-            if not self.raw_str:
-                new_op[1] = _compile_str_single([[new_op[2], new_op[4], 0]])[0]
         elif opL[3] == opR[3] and opL[3] == 3:
             new_op[2] = opL[2]*opR[2]
             new_op[3] = 3
         else:
-            # Cross product of 2 different kinds of coeffients...
-            # forcing coeff as function
-            oL = opL[1]
-            oR = opR[1]
-            if opL[3] == 2:
-                if self.raw_str:
-                    opL[1] = _compile_str_single([[opL[2], opL[4], 0]])[0]
-                oL = _str2func(opL[1],opL[4])
-            if opR[3] == 2:
-                if other.raw_str:
-                    opR[1] = _compile_str_single([[opR[2], opR[4], 0]])[0]
-                oR = _str2func(opR[1],opR[4])
-            new_f = _prod(oL, oR)
-            new_op[1] = new_f
             new_op[2] = new_f
             new_op[3] = 1
-            self.fast = False
         return new_op
 
     def _ops_mul_cte(self, op, cte, side):
@@ -963,23 +940,17 @@ class td_Qobj:
             del kw_args["inplace_np"]
         else:
             inplace_np = None
-        self.compiled = False
         res = self.copy()
-        raw_str = self.raw_str
         for op in res.ops:
-            if op[3] == 1:
-                op[1] = function(op[1], *args, **kw_args)
+            op[1] = function(op[1], *args, **kw_args)
+            if op[3] == [1,4]:
                 op[2] = function(op[1], *args, **kw_args)
-            if op[3] == 2:
+                op[3] = 1
+            elif op[3] == 2:
                 if str_mod is None:
-                    if self.raw_str:
-                        op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
-                        raw_str = False
-                    op[1] = function(op[1], *args, **kw_args)
-                    res.fast = False
+                    op[2] = op[1]
+                    op[3] = 1
                 else:
-                    if not self.raw_str:
-                        op[1] = function(op[1], *args, **kw_args)
                     op[2] = str_mod[0] + op[2] + str_mod[1]
             elif op[3] == 3:
                 if inplace_np:
@@ -989,11 +960,20 @@ class td_Qobj:
                     ff = function(f, *args, **kw_args)
                     for i, v in enumerate(op[2]):
                         op[2][i] = ff(v)
-                    op[1] = CubicSpline(self.tlist, op[2])
+                    op[1] = _CubicSpline_wrapper(self.tlist, op[2])
                 else:
                     op[1] = function(op[1], *args, **kw_args)
-                    res.fast = False
-        self.raw_str = raw_str
+                    op[3] = 1
+        if self.type == 2  and str_mod is None:
+            res.type = 5
+        elif self.type == 3  and not inplace_np:
+            res.type = 5
+        elif self.type == 4:
+            res.type = 5
+        elif self.type == 6:
+            for op in res.ops:
+                if op[3] == 1:
+                    res.type = 5
         return res
 
     def _f_norm2(self):
@@ -1003,11 +983,14 @@ class td_Qobj:
                 op[2] = op[1]
             elif op[3] == 2:
                 op[2] = "norm(" + op[2] + ")"
-                if not self.raw_str:
-                    op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
+                op[1] = _str_wrapper(op[2])
             elif op[3] == 3:
                 op[2] = np.abs(op[2])**2
-                op[1] = CubicSpline(self.tlist, op[2])
+                op[1] = _CubicSpline_wrapper(self.tlist, op[2])
+            elif op[3] == 4:
+                op[1] = _norm2(op[1])
+                op[2] = op[1]
+                self.type = 5
         return self
 
     def _f_conj(self):
@@ -1017,11 +1000,14 @@ class td_Qobj:
                 op[2] = op[1]
             elif op[3] == 2:
                 op[2] = "conj(" + op[2] + ")"
-                if not self.raw_str:
-                    op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
+                op[1] = _str_wrapper(op[2])
             elif op[3] == 3:
                 op[2] = np.conj(op[2])
-                op[1] = CubicSpline(self.tlist, op[2])
+                op[1] = _CubicSpline_wrapper(self.tlist, op[2])
+            elif op[3] == 4:
+                op[1] = _conj(op[1])
+                op[2] = op[1]
+                self.type = 5
         return self
 
     def expect(self, t, vec, herm=0):
