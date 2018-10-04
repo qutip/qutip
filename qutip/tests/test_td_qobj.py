@@ -583,8 +583,8 @@ def test_td_Qobj_compile():
     assert_allclose(np.array(td_obj_ac(t,data=True).todense()), np.array(td_obj_a(t,data=True).todense()), rtol=3e-07, atol=0)
 
 
-def test_td_Qobj_rhs():
-    "td_Qobj rhs"
+def test_td_Qobj_mul_vec():
+    "td_Qobj mul_vec"
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2}
     td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
@@ -599,8 +599,8 @@ def test_td_Qobj_rhs():
 
     td_obj_cc = td_obj_c.copy()
     td_obj_cc.compile()
-    v1 = td_obj_c.rhs(t,vec)
-    v2 = td_obj_cc.rhs(t,vec)
+    v1 = td_obj_c.mul_vec(t,vec)
+    v2 = td_obj_cc.mul_vec(t,vec)
     v3 = spmv(td_obj_c(t, data=True), vec)
     # check not compiled rhs const
     assert_allclose(v1, v3)
@@ -609,8 +609,8 @@ def test_td_Qobj_rhs():
 
     td_obj_fc = td_obj_f.copy()
     td_obj_fc.compile()
-    v1 = td_obj_f.rhs(t,vec)
-    v2 = td_obj_fc.rhs(t,vec)
+    v1 = td_obj_f.mul_vec(t,vec)
+    v2 = td_obj_fc.mul_vec(t,vec)
     v3 = spmv(td_obj_f(t, data=True), vec)
     # check not compiled rhs func
     assert_allclose(v1, v3)
@@ -619,8 +619,8 @@ def test_td_Qobj_rhs():
 
     td_obj_sac = td_obj_sa.copy()
     td_obj_sac.compile()
-    v1 = td_obj_sa.rhs(t,vec)
-    v2 = td_obj_sac.rhs(t,vec)
+    v1 = td_obj_sa.mul_vec(t,vec)
+    v2 = td_obj_sac.mul_vec(t,vec)
     v3 = spmv(td_obj_sa(t, data=True), vec)
     # check not compiled rhs array str
     assert_allclose(v1, v3)
@@ -629,9 +629,64 @@ def test_td_Qobj_rhs():
 
     td_obj_mc = td_obj_m.copy()
     td_obj_mc.compile()
-    v1 = td_obj_m.rhs(t,vec)
-    v2 = td_obj_mc.rhs(t,vec)
+    v1 = td_obj_m.mul_vec(t,vec)
+    v2 = td_obj_mc.mul_vec(t,vec)
     v3 = spmv(td_obj_m(t, data=True), vec)
+    # check not compiled rhs mixed
+    assert_allclose(v1, v3)
+    # check compiled rhs mixed
+    assert_allclose(v3, v2)
+
+
+def test_td_Qobj_mul_mat():
+    "td_Qobj mul_mat"
+    tlist = np.linspace(0,1,300)
+    args={"w1":1, "w2":2}
+    td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
+    td_obj_f = td_Qobj(_random_td_Qobj((5,5), [1,0,0], tlist=tlist),
+                       args=args, tlist=tlist)
+    td_obj_sa = td_Qobj(_random_td_Qobj((5,5), [2,3,0], tlist=tlist),
+                       args=args, tlist=tlist)
+    td_obj_m = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
+                       args=args, tlist=tlist)
+    t = np.random.random()
+    mat = np.arange(25).reshape((5,5))*.5+.5j
+
+    td_obj_cc = td_obj_c.copy()
+    td_obj_cc.compile()
+    v1 = td_obj_c.mul_mat(t,mat)
+    v2 = td_obj_cc.mul_mat(t,mat)
+    v3 = td_obj_c(t, data=True) * mat
+    # check not compiled rhs const
+    assert_allclose(v1, v3)
+    # check compiled rhs
+    assert_allclose(v3, v2)
+
+    td_obj_fc = td_obj_f.copy()
+    td_obj_fc.compile()
+    v1 = td_obj_f.mul_mat(t,mat)
+    v2 = td_obj_fc.mul_mat(t,mat)
+    v3 = td_obj_f(t, data=True) * mat
+    # check not compiled rhs func
+    assert_allclose(v1, v3)
+    # check compiled rhs func
+    assert_allclose(v3, v2)
+
+    td_obj_sac = td_obj_sa.copy()
+    td_obj_sac.compile()
+    v1 = td_obj_sa.mul_mat(t,mat)
+    v2 = td_obj_sac.mul_mat(t,mat)
+    v3 = td_obj_sa(t, data=True) * mat
+    # check not compiled rhs array str
+    assert_allclose(v1, v3)
+    # check compiled rhs array str
+    assert_allclose(v3, v2)
+
+    td_obj_mc = td_obj_m.copy()
+    td_obj_mc.compile()
+    v1 = td_obj_m.mul_mat(t,mat)
+    v2 = td_obj_mc.mul_mat(t,mat)
+    v3 = td_obj_m(t, data=True) * mat
     # check not compiled rhs mixed
     assert_allclose(v1, v3)
     # check compiled rhs mixed

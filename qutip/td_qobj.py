@@ -707,37 +707,11 @@ class td_Qobj:
                 for op in self.ops:
                     op[0] = cte*op[0]
             else:
-                cte = self.cte.copy()
-                self.cte *= other.cte
-                new_terms = []
-                old_ops = self.ops
-                if not other.dummy_cte:
-                    for op in old_ops:
-                        new_terms.append(self._ops_mul_cte(op,
-                                                        other.cte, "R"))
-                else:
-                    self.ops = []
-                if not self.dummy_cte:
-                    for op in other.ops:
-                        #new_term = op
-                        #new_term[0] = op[0] * cte
-                        #self.ops.append(new_term)
-                        new_terms.append(self._ops_mul_cte(op, cte, "L"))
-
-                for op_left in old_ops:
-                    for op_right in other.ops:
-                        new_terms.append(self._ops_mul_(op_left,
-                                                        op_right, other))
-                self.ops +=  new_terms
-                self.args.update(other.args)
-                self.dummy_cte = self.dummy_cte and other.dummy_cte
-                self.N_obj = (len(self.ops) if \
-                              self.dummy_cte else len(self.ops) + 1)
-                #raise Exception("When multiplying td_qobj, one " +
-                #                "of them must be constant")
+                raise Exception("When multiplying td_qobj, one " +
+                                "of them must be constant")
         else:
             raise TypeError("td_qobj can only be multiplied" +
-                            " with td_Qobj, Qobj or numbers")
+                            " with Qobj or numbers")
         return self
 
     def __div__(self, other):
@@ -766,50 +740,6 @@ class td_Qobj:
         for op in res.ops:
             op[0] = -op[0]
         return res
-
-    def _ops_mul_(self, opL, opR, other):
-        new_args = opL[4].copy()
-        new_args.update(opR[4])
-        new_f = _prod(opL[1], opR[1])
-        new_op = [opL[0]*opR[0], new_f, None, 0, new_args]
-        if opL[3] == opR[3] and opL[3] == 1:
-            new_op[2] = new_f
-            new_op[3] = 1
-        elif opL[3] == opR[3] and opL[3] == 2:
-            new_op[2] = "("+opL[2]+") * ("+opR[2]+")"
-            new_op[3] = 2
-            if not self.raw_str:
-                new_op[1] = _compile_str_single([[new_op[2], new_op[4], 0]])[0]
-        elif opL[3] == opR[3] and opL[3] == 3:
-            new_op[2] = opL[2]*opR[2]
-            new_op[3] = 3
-        else:
-            # Cross product of 2 different kinds of coeffients...
-            # forcing coeff as function
-            oL = opL[1]
-            oR = opR[1]
-            if opL[3] == 2:
-                if self.raw_str:
-                    opL[1] = _compile_str_single([[opL[2], opL[4], 0]])[0]
-                oL = _str2func(opL[1],opL[4])
-            if opR[3] == 2:
-                if other.raw_str:
-                    opR[1] = _compile_str_single([[opR[2], opR[4], 0]])[0]
-                oR = _str2func(opR[1],opR[4])
-            new_f = _prod(oL, oR)
-            new_op[1] = new_f
-            new_op[2] = new_f
-            new_op[3] = 1
-            self.fast = False
-        return new_op
-
-    def _ops_mul_cte(self, op, cte, side):
-        new_op = [None, op[1], op[2], op[3], op[4]]
-        if side == "R":
-            new_op[0] = op[0] * cte
-        if side == "L":
-            new_op[0] = cte * op[0]
-        return new_op
 
 
     # Transformations
@@ -840,8 +770,7 @@ class td_Qobj:
     def norm(self):
         """return a.dag * a """
         if not self.N_obj == 1:
-            res = self.dag()
-            res *= self
+            raise Exception("td_Qobj must be composed of only one Qobj")
         else:
             res = self.copy()
             res.cte = res.cte.dag() * res.cte
@@ -1074,7 +1003,7 @@ class td_Qobj:
         if self.compiled:
             out = self.compiled_Qobj.mul_mat(t, mat)
         else:
-            out = self.__call__(t, data=True) * vec
+            out = self.__call__(t, data=True) * mat
         return out
 
     def compile(self, code=False, matched=False, dense=False):
