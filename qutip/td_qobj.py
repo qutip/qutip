@@ -32,7 +32,7 @@
 ###############################################################################
 """Time-dependent Quantum Object (Qobj) class.
 """
-__all__ = ['td_Qobj']#, 'td_liouvillian', 'td_lindblad_dissipator']
+__all__ = ['td_Qobj']
 
 from qutip.qobj import Qobj
 from scipy.interpolate import CubicSpline
@@ -42,8 +42,14 @@ import numpy as np
 from numbers import Number
 from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
-from qutip.cy.td_qobj_cy import cy_cte_qobj, cy_td_qobj
+from qutip.cy.td_qobj_cy import (cy_cte_qobj, cy_cte_qobj_dense, cy_td_qobj,
+                                 cy_td_qobj_matched, cy_td_qobj_dense)
 import pickle
+import sys
+
+safePickle = False
+if sys.platform == 'win32':
+    safePickle = True
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,
@@ -188,8 +194,13 @@ class td_Qobj:
     compress():
         Merge ops which are based on the same quantum object and coeff type.
 
-    compile():
+    compile(code=False, matched=False, dense=False):
         Create the associated cython object for faster usage.
+        code: return the code generated for compilation of the strings.
+        matched: the compiled object use sparse matrix with matching indices.
+                    (experimental, no real advantage)
+        dense: the compiled object use dense matrix.
+                    (experimental, no real advantage)
     __call__(t):
         Return the Qobj at time t.
         *Faster after compilation
@@ -200,9 +211,12 @@ class td_Qobj:
         Allow to use function coefficients that use states:
             "def coeff(t,psi,args):" instead of "def coeff(t,args):"
         Return the Qobj at time t, with the new_args if defined.
-        *Mixing both definition types of coeff will make the td_Qobj crach on
+        *Mixing both definition types of coeff will make the td_Qobj fail on
             call
-    rhs(t, psi):
+    mul_mat(t, mat):
+        Product of this at t time with the dense matrix mat.
+        *Faster after compilation
+    mul_vec(t, psi):
         Apply the quantum object (if operator, no check) to psi.
         More generaly, return the product of the object at t with psi.
         *Faster after compilation
@@ -211,10 +225,6 @@ class td_Qobj:
             no check) and state psi.
         Return only the real part if herm.
         *Faster after compilation
-    get_compiled_call, get_rhs_func, get_expect_func:
-        Compile and return the corresponding function of the cython object.
-        Was useful before the python function was set to call the cython version
-            after compilation.
     to_list():
         Return the time-dependent quantum object as a list
     """
@@ -235,6 +245,7 @@ class td_Qobj:
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
+        self.coeff_get = None
         self.raw_str = raw_str
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
@@ -280,7 +291,7 @@ class td_Qobj:
                     N = len(self.tlist)
                     dt = self.tlist[-1] / (N - 1)
                     self.ops.append([op[0], CubicSpline(tlist, op[1]),
-                                     op[1].copy(), 3, None])
+                                     op[1].copy(), 3, {}])
 
                 else:
                     raise Exception("Should never be here")
@@ -322,8 +333,9 @@ class td_Qobj:
                     if not isinstance(op_k[0], Qobj):
                         raise TypeError("Incorrect Q_object specification")
                     elif len(op_k) == 2:
-                        if isinstance(op_k[1], (FunctionType,
-                                                BuiltinFunctionType, partial)):
+                        #if isinstance(op_k[1], (FunctionType,
+                        #                        BuiltinFunctionType, partial)):
+                        if callable(op_k[1]):
                             op_type.append(1)
                         elif isinstance(op_k[1], str):
                             op_type.append(2)
@@ -347,9 +359,14 @@ class td_Qobj:
     def __call__(self, t, data=False):
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
-        if self.compiled:
-            return self.compiled_Qobj.call(t, data)
-        if data:
+        if self.const:
+            if data:
+                op_t = self.cte.data.copy()
+            else:
+                op_t = self.cte.copy()
+        elif self.compiled and self.compiled<20:
+            op_t = self.compiled_Qobj.call(t, data)
+        elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
                 if part[3] == 1:  # func: f(t,args)
@@ -377,7 +394,7 @@ class td_Qobj:
         coeff = np.zeros(len(self.ops), dtype=complex)
         new_args = self.args.copy()
         new_args.update(args)
-        if self.compiled:
+        if self.compiled and self.compiled<20:
             for i, part in enumerate(self.ops):
                 if part[3] == 1:  # func: f(t,args)
                     coeff[i] = part[1](t, new_args)
@@ -434,7 +451,7 @@ class td_Qobj:
                 for i, part in enumerate(self.ops):
                     coeff[i] = part[1](t, psi, part[4])
             op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
-        elif self.compiled:
+        elif self.compiled and self.compiled<20:
             coeff = np.zeros(len(self.ops), dtype=complex)
             if args:
                 new_args = self.args.copy()
@@ -568,7 +585,7 @@ class td_Qobj:
         if not isinstance(args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(args)
-        if self.compiled == 2:
+        if self.compiled in [2,12,22]:
             self.coeff_get(True).set_args(self.args)
         for op in self.ops:
             if op[3] == 1:
@@ -686,9 +703,9 @@ class td_Qobj:
             elif self.const:
                 cte = self.cte.copy()
                 self = other.copy()
-                self.cte *= cte
+                self.cte = cte * self.cte
                 for op in self.ops:
-                    op[0] *= cte
+                    op[0] = cte*op[0]
             else:
                 raise Exception("When multiplying td_qobj, one " +
                                 "of them must be constant")
@@ -724,6 +741,7 @@ class td_Qobj:
             op[0] = -op[0]
         return res
 
+
     # Transformations
     def trans(self):
         res = self.copy()
@@ -752,12 +770,13 @@ class td_Qobj:
     def norm(self):
         """return a.dag * a """
         if not self.N_obj == 1:
-            raise NotImplementedError("Only possible with one composing Qobj")
-        res = self.copy()
-        res.cte = res.cte.dag() * res.cte
-        for op in res.ops:
-            op[0] = op[0].dag() * op[0]
-        res._f_norm2()
+            raise Exception("td_Qobj must be composed of only one Qobj")
+        else:
+            res = self.copy()
+            res.cte = res.cte.dag() * res.cte
+            for op in res.ops:
+                op[0] = op[0].dag() * op[0]
+            res._f_norm2()
         return res
 
     # Unitary function of Qobj
@@ -925,21 +944,6 @@ class td_Qobj:
                 op[1] = CubicSpline(self.tlist, op[2])
         return self
 
-    def get_compiled_call(self):
-        if not self.compiled:
-            self.compile()
-        return self.compiled_Qobj.call
-
-    def get_rhs_func(self):
-        if not self.compiled:
-            self.compile()
-        return self.compiled_Qobj.rhs
-
-    def get_expect_func(self):
-        if not self.compiled:
-            self.compile()
-        return self.compiled_Qobj.expect
-
     def expect(self, t, vec, herm=0):
         if not isinstance(t, (int, float)):
             raise TypeError("The time need to be a real scalar")
@@ -962,12 +966,15 @@ class td_Qobj:
         else:
             return cy_expect_psi(self.__call__(t, data=True), vec, herm)
 
-    def rhs(self, t, vec):
+    def mul_vec(self, t, vec):
+        was_Qobj=False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
                 raise Exception("Dimensions do not fit")
+            was_Qobj = True
+            dims = vec.dims
             vec = vec.full().ravel()
         elif not isinstance(vec, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
@@ -976,34 +983,68 @@ class td_Qobj:
         if vec.shape[0] != self.cte.shape[1]:
             raise Exception("The length do not match")
         if self.compiled:
-            return self.compiled_Qobj.rhs(t, vec)
-        return spmv(self.__call__(t, data=True), vec)
+            out = self.compiled_Qobj.mul_vec(t, vec)
+        else:
+            out = spmv(self.__call__(t, data=True), vec)
+        if was_Qobj:
+            return Qobj(out, dims=dims)
+        else:
+            return out
 
-    def compile(self, code=False):
+    def mul_mat(self, t, mat):
+        if not isinstance(t, (int, float)):
+            raise TypeError("the time need to be a real scalar")
+        if not isinstance(mat, np.ndarray):
+            raise TypeError("The vector must be an array")
+        if mat.ndim != 2:
+            raise Exception("The matrice must be 2d")
+        if mat.shape[0] != self.cte.shape[1]:
+            raise Exception("The length do not match")
+        if self.compiled:
+            out = self.compiled_Qobj.mul_mat(t, mat)
+        else:
+            out = self.__call__(t, data=True) * mat
+        return out
+
+    def compile(self, code=False, matched=False, dense=False):
         self.tidyup()
         if self.const:
-            self.compiled_Qobj = cy_cte_qobj()
-            self.compiled_Qobj.set_data(self.cte)
-            self.compiled = 1
-        elif self.fast:
-            self.compiled_Qobj = cy_td_qobj()
-            self.compiled_Qobj.set_data(self.cte, self.ops)
-            if code:
-                self.coeff_get, Code = make_united_f_ptr(self.ops,
-                                                    self.args, self.tlist,
-                                                    True)
+            if dense:
+                self.compiled_Qobj = cy_cte_qobj_dense()
+                self.compiled = 21
             else:
-                self.coeff_get = make_united_f_ptr(self.ops, self.args,
-                                                          self.tlist, False)
-                Code = None
-            self.compiled_Qobj.set_factor(ptr=self.coeff_get())
-            self.compiled = 2
-            return Code
+                self.compiled_Qobj = cy_cte_qobj()
+                self.compiled = 1
+            self.compiled_Qobj.set_data(self.cte)
         else:
-            self.compiled_Qobj = cy_td_qobj()
+            Code = None
+            if matched:
+                self.compiled_Qobj = cy_td_qobj_matched()
+                self.compiled = 10
+            elif dense:
+                self.compiled_Qobj = cy_td_qobj_dense()
+                self.compiled = 20
+            else:
+                self.compiled_Qobj = cy_td_qobj()
+                self.compiled = 0
             self.compiled_Qobj.set_data(self.cte, self.ops)
-            self.coeff_get, self.compiled = self._make_united_f_call()
-            self.compiled_Qobj.set_factor(func=self.coeff_get)
+            if self.fast:
+                # All factor can be compiled
+                if code:
+                    self.coeff_get, Code = make_united_f_ptr(self.ops,
+                                                        self.args, self.tlist,
+                                                        True)
+                else:
+                    self.coeff_get = make_united_f_ptr(self.ops, self.args,
+                                                              self.tlist, False)
+                    Code = None
+                self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+                self.compiled += 2
+            else:
+                self.coeff_get, compiled_code = self._make_united_f_call()
+                self.compiled += compiled_code
+                self.compiled_Qobj.set_factor(func=self.coeff_get)
+            return Code
 
     def _make_united_f_call(self):
         types = [0, 0, 0]
@@ -1020,29 +1061,10 @@ class td_Qobj:
             for part in self.ops:
                 self.funclist.append(part[1])
             united_f_call = _united_f_caller(self.funclist, self.args)
-            """def united_f_call(t):
-                out = []
-                for func in self.funclist:
-                    out.append(func(t, self.args))
-                return out"""
             all_function = 3
         else:
             # Must be mixed, would be fast otherwise
             united_f_call  = self._get_coeff
-            """def united_f_call(t):
-                out = []
-                for part in self.ops:
-                    if part[3] == 1:  # func: f(t,args)
-                        out.append(part[1](t, part[4]))
-                    elif part[3] == 2:  # str: f(t,w=2)
-                        if self.raw_str:
-                            # Must compile the str here
-                            part[1] = \
-                                _compile_str_single([[part[2], part[4], 0]])[0]
-                        out.append(part[1](t, **part[4]))
-                    elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
-                        out.append(part[1](np.array([t]))[0])
-                return out"""
             all_function = 4
         return united_f_call, all_function
 
@@ -1059,6 +1081,7 @@ class td_Qobj:
                 out.append(part[1](t, **part[4]))
             elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                 out.append(part[1](np.array([t]))[0])
+        self.raw_str = False
         return out
 
     def __getstate__(self):
@@ -1066,49 +1089,71 @@ class td_Qobj:
                   for key in self.__dict__ if key is not "compiled_Qobj"}
         if self.compiled:
             return (_dict_, self.compiled_Qobj.__getstate__())
-            #return (_dict_, pickle.dumps(self.compiled_Qobj))
         else:
             return (_dict_,)
 
     def __setstate__(self, state):
         self.__dict__ = state[0]
-        if not self.compiled:
-            self.compiled_Qobj = None
-        elif self.compiled == 1:
-            self.compiled_Qobj = cy_cte_qobj.__new__(cy_cte_qobj)
-            self.compiled_Qobj.__setstate__(state[1])
-            #self.compiled_Qobj = pickle.loads(state[1])
-        elif self.compiled in (2,3,4):
-            self.compiled_Qobj = cy_td_qobj.__new__(cy_td_qobj)
-            self.compiled_Qobj.__setstate__(state[1])
-            #self.compiled_Qobj = pickle.loads(state[1])
+        self.compiled_Qobj = None
+        if self.compiled:
+            if safePickle:
+                # __getstate__ and __setstate__ of compiled_Qobj pass pointers
+                # In 'safe' mod, these pointers are not used.
+                if self.compiled == 1:
+                    self.compiled_Qobj = cy_cte_qobj()
+                    self.compiled_Qobj.set_data(self.cte)
+                elif self.compiled == 21:
+                    self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
+                    self.compiled_Qobj.__setstate__(state[1])
+                elif self.compiled in (2,3,4):
+                    self.compiled_Qobj = cy_td_qobj()
+                    self.compiled_Qobj.set_data(self.cte, self.ops)
+                elif self.compiled in (22,23,24):
+                    self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
+                    self.compiled_Qobj.__setstate__(state[1])
+                elif self.compiled in (12,13,14):
+                    self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
+                    self.compiled_Qobj.__setstate__(state[1])
+                if self.fast:
+                    self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+                else:
+                    self.compiled_Qobj.set_factor(func=self.coeff_get)
+            else:
+                if self.compiled == 1:
+                    self.compiled_Qobj = cy_cte_qobj.__new__(cy_cte_qobj)
+                elif self.compiled == 21:
+                    self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
+                elif self.compiled in (2,3,4):
+                    self.compiled_Qobj = cy_td_qobj.__new__(cy_td_qobj)
+                elif self.compiled in (22,23,24):
+                    self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
+                elif self.compiled in (12,13,14):
+                    self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
+                self.compiled_Qobj.__setstate__(state[1])
 
 
-#Function defined inside another function cannot be pickle,
-#Using class instead
+# Function defined inside another function cannot be pickle,
+# Using class instead
 class _united_f_caller:
     def __init__(self, funclist, args):
         self.funclist = funclist
         self.args = args
 
-    def __call__ (self,t):
+    def __call__(self,t):
         out = []
         for func in self.funclist:
             out.append(func(t, self.args))
         return out
 
-
 class _compress_f_caller:
     def __init__(self, funclist):
         self.funclist = funclist
 
-    def __call__ (self, t, *args):
+    def __call__(self, t, *args):
         return sum((f(t, *args) for f in self.funclist))
-
 
 def _dummy(t, *args, **kwargs):
     return 0.
-
 
 class _norm2():
     def __init__(self, f):
@@ -1117,10 +1162,34 @@ class _norm2():
     def __call__(self, t, args):
         return self.func(t, args)*np.conj(self.func(t, args))
 
-
 class _conj():
     def __init__(self, f):
         self.func = f
 
     def __call__(self, t, args):
         return np.conj(self.func(t, args))
+
+class _str2func():
+    def __init__(self, func, args):
+        self.f = func
+        self.args = args
+
+    def __call__(self, t, args):
+        args_used = {key:args[key] for key in args if key in self.args}
+        return self.f(t, **args_used)
+
+class _prod_dag():
+    def __init__(self, f, g):
+        self.func = f
+        self.func_conj = g
+
+    def __call__(self, t, args):
+        return self.func(t, args)*np.conj(self.func_conj(t, args))
+
+class _prod():
+    def __init__(self, f, g):
+        self.func_1 = f
+        self.func_2 = g
+
+    def __call__(self, t, args):
+        return self.func_1(t, args)*self.func_2(t, args)
