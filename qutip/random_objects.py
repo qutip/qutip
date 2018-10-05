@@ -111,7 +111,7 @@ def randnz(shape, norm=1 / np.sqrt(2), seed=None):
     return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
 
 
-def rand_herm(N, density=0.75, dims=None, pos_def=False):
+def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     """Creates a random NxN sparse Hermitian quantum object.
 
     If 'N' is an integer, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
