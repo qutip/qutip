@@ -847,7 +847,6 @@ def _positive_map(sso, e_ops_dict):
     return res
 
 
-
 def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
                         _safe_mode=True, args={}, **kwargs):
     """
@@ -1157,7 +1156,6 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
 
     return res
 
-
 def _safety_checks(sso):
     l_vec = sso.rho0.shape[0]
     if sso.H.cte.issuper:
@@ -1285,15 +1283,12 @@ def _sesolve_generic(sso, options, progress_bar):
 
     return data
 
-
 def _single_trajectory(i, sso):
     ssolver = sso.solver_obj()
     ssolver.set_data(sso)
     ssolver.set_solver(sso)
     result = ssolver.cy_sesolve_single_trajectory(i, sso)
     return result
-
-
 
 # The code for ssepdpsolve have been moved to the file pdpsolve.
 # The call is still in stochastic for consistance.
