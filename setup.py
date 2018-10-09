@@ -150,6 +150,9 @@ cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpola
         'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
         'brtools_testing', 'br_tensor', 'piqs']
 
+# Extra link args
+_link_flags = []
+
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
 if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
     and os.environ.get('MSYSTEM') is None):
@@ -157,6 +160,12 @@ if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_inf
 # Everything else
 else:
     _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops']
+    if sys.platform == 'darwin':
+        # These are needed for compiling on OSX 10.14+
+        _compiler_flags.append('-mmacosx-version-min=10.9')
+        _link_flags.append('-mmacosx-version-min=10.9')
+
+
 
 EXT_MODULES =[]
 # Add Cython files from qutip/cy
@@ -165,7 +174,7 @@ for ext in cy_exts:
             sources = ['qutip/cy/'+ext+'.pyx', 'qutip/cy/src/zspmv.cpp'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[],
+            extra_link_args=_link_flags,
             language='c++')
     EXT_MODULES.append(_mod)
 
@@ -174,7 +183,7 @@ _mod = Extension('qutip.control.cy_grape',
             sources = ['qutip/control/cy_grape.pyx'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[],
+            extra_link_args=_link_flags,
             language='c++')
 EXT_MODULES.append(_mod)
 
@@ -194,7 +203,7 @@ if "--with-openmp" in sys.argv:
                        'qutip/cy/openmp/src/zspmv_openmp.cpp'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args,
+            extra_link_args=omp_args+_link_flags,
             language='c++')
     EXT_MODULES.append(_mod)
     # Add benchmark pyx
@@ -202,7 +211,7 @@ if "--with-openmp" in sys.argv:
             sources = ['qutip/cy/openmp/benchmark.pyx'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[],
+            extra_link_args=_link_flags,
             language='c++')
     EXT_MODULES.append(_mod)
     
@@ -211,7 +220,7 @@ if "--with-openmp" in sys.argv:
             sources = ['qutip/cy/openmp/br_omp.pyx'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags,
-            extra_link_args=[],
+            extra_link_args=_link_flags,
             language='c++')
     EXT_MODULES.append(_mod)
     
@@ -220,7 +229,7 @@ if "--with-openmp" in sys.argv:
             sources = ['qutip/cy/openmp/omp_sparse_utils.pyx'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args,
+            extra_link_args=omp_args+_link_flags,
             language='c++')
     EXT_MODULES.append(_mod)
 
