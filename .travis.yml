@@ -5,9 +5,9 @@ language: python
 matrix:
     include:
         - python: 2.7
-          env: MKL=1 OPENMP=0
+          env: MKL=0 OPENMP=0
         - python: 2.7
-          env: MKL=1 OPENMP=1
+          env: MKL=0 OPENMP=1
         - python: 3.6
           env: MKL=1 OPENMP=0
         - python: 3.6
@@ -25,6 +25,7 @@ addons:
             - libatlas-dev
             - libatlas-base-dev
             - liblapack-dev
+            - gfortran
 
 # command to install dependencies
 install:
@@ -42,8 +43,9 @@ install:
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] && [[ "${MKL}" == "0" ]]; then
-          conda install nomkl numpy scipy nose cython;
+          pip install numpy scipy nose cython;
       fi
+    # conda for python2.7 have a problem with librairies (mkl + scipy?)
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] && [[ "${MKL}" == "1" ]]; then
           conda install mkl numpy scipy nose cython;
       fi
@@ -53,13 +55,13 @@ install:
     - if [[ "$TRAVIS_PYTHON_VERSION" == "3.6" ]] && [[ "${MKL}" == "1" ]]; then
           conda install mkl blas=*=mkl numpy scipy nose cython;
       fi
-     
+
     # dnorm tests are currently unreliable. They won't be run without cvxpy
     # see issue #880
     # yml does not work well with multiple ifs
     #- if [[ "${MKL}" == "0" ]]; then
     #      pip install cvxopt scs cvxpy;
-    #  fi     
+    #  fi
     - pip install coverage coveralls
     # Finally, install ourselves.
     - if [[ "${OPENMP}" == "1" ]]; then
@@ -72,9 +74,9 @@ install:
 before_script:
     - mkdir qutip_testing
     - cd qutip_testing
- 
+
 # command to run tests
-script: 
+script:
     - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
 
