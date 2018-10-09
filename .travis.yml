@@ -25,6 +25,7 @@ addons:
             - libatlas-dev
             - libatlas-base-dev
             - liblapack-dev
+            - gfortran
 
 # command to install dependencies
 install:
@@ -42,10 +43,11 @@ install:
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] && [[ "${MKL}" == "0" ]]; then
-          conda install nomkl blas=*=openblas numpy scipy nose cython;
+          #conda install nomkl numpy scipy nose cython;
+          pip install numpy scipy nose cython;
       fi
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] && [[ "${MKL}" == "1" ]]; then
-          conda install mkl blas=*=mkl numpy scipy nose cython;
+          conda install mkl numpy scipy nose cython;
       fi
     - if [[ "$TRAVIS_PYTHON_VERSION" == "3.6" ]] && [[ "${MKL}" == "0" ]]; then
           conda install nomkl blas=*=openblas numpy scipy nose cython;
