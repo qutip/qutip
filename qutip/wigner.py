@@ -185,7 +185,7 @@ def _j_z(j, h=1):
     """
     mult = np.int32(2 * j + 1)
     matrix = np.zeros((mult, mult))
-    np.fill_diagonal(matrix, np.int32(h * np.linspace(-j, j, 2 * j + 1)))
+    np.fill_diagonal(matrix, np.int32(h * np.linspace(-j, j, mult)))
     return matrix
 
 
