@@ -1,12 +1,10 @@
 sudo: required
-dist: trusty
+dist: xenial
 language: python
 
 matrix:
     include:
-        - python: 3.5
-          env: MKL=1 OPENMP=0
-        - python: 3.6
+        - python: 3.7
           env: MKL=1 OPENMP=0
         - python: 3.7
           env: CC=clang CXX=clang++ MKL=1 OPENMP=0
