@@ -61,7 +61,7 @@ install:
     # Finally, install ourselves.
     - if [[ "${OPENMP}" == "1" ]]; then
           python setup.py install --with-openmp;
-        else
+      else
           python setup.py install;
       fi
 
