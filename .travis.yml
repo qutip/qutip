@@ -59,7 +59,7 @@ stage_linux_37_omp: &stage_linux_37_omp
   after_success:
     - coveralls
 
-  stage_osx: &stage_osx
+stage_osx: &stage_osx
   os: osx
   osx_image: xcode10
   language: generic
@@ -85,17 +85,8 @@ stage_linux_37_omp: &stage_linux_37_omp
 
 stages:
   - linux
-  - osx
 
 jobs:
   include:
     - stage: linux
-      <<: *stage_linux_35
-    - stage: linux
-      <<: *stage_linux_36
-    - stage: linux
       <<: *stage_linux_37
-    - stage: linux
-      <<: *stage_linux_37_omp
-    - stage: osx
-      <<: *stage_osx
