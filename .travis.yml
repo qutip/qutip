@@ -23,12 +23,6 @@ stage_generic_linux: &stage_generic_linux
     - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
     - python setup.py install
 
-stage_linux_35: &stage_linux_35
-  <<: *stage_generic_linux
-  name: "Python 3.5"
-  dist: trusty
-  python: 3.5
-
 stage_linux_36: &stage_linux_36
   <<: *stage_generic_linux
   name: "Python 3.6"
@@ -103,20 +97,17 @@ stage_osx: &stage_osx
     - python setup.py install
 
 stages:
-  - linux
-  - mac
+  - test
 
 jobs:
   include:
-    - stage: linux
-      <<: *stage_linux_35
-    - stage: linux
+    - stage: test
       <<: *stage_linux_36
-    - stage: linux
+    - stage: test
       <<: *stage_linux_37
-    - stage: linux
+    - stage: test
       <<: *stage_linux_37_omp
-    - stage: linux
+    - stage: test
       <<: *stage_linux_37_openblas
-    - stage: mac
+    - stage: test
       <<: *stage_osx
