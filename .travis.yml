@@ -4,6 +4,11 @@ language: python
 
 matrix:
     include:
+        - os: osx
+          python: 3.7
+          env: MKL=1 OPENMP=0
+          osx_image: xcode10
+          language: generic
         - python: 3.7
           env: MKL=1 OPENMP=0
         - python: 3.7
@@ -14,10 +19,6 @@ matrix:
           env: MKL=1 OPENMP=1
         - python: 3.7
           env: MKL=0 OPENMP=1
-        - os: osx
-          env: MKL=1 OPENMP=0
-          osx_image: xcode9.2
-          language: generic
 
 # command to install dependencies
 install:
@@ -49,7 +50,7 @@ install:
     #  fi     
     - pip install coverage coveralls
     # Finally, install ourselves.
-    - if [[ "${OPENMP}" == "1" ]]; then
+    - if [[ "${OPENMP}" == "1" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
           python setup.py install --with-openmp;
         else
           python setup.py install;
