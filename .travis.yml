@@ -2,6 +2,7 @@ sudo: required
 
 stage_generic_linux: &stage_generic_linux
   os: linux
+  language: python
   # change dir
   before_script:
     - mkdir qutip_testing
@@ -25,19 +26,16 @@ stage_generic_linux: &stage_generic_linux
 stage_linux_35: &stage_linux_35
   <<: *stage_generic_linux
   dist: trusty
-  language: python
   python: 3.5
 
 stage_linux_36: &stage_linux_36
   <<: *stage_generic_linux
   dist: trusty
-  language: python
   python: 3.6
 
 stage_linux_37: &stage_linux_37
   <<: *stage_generic_linux
   dist: xenial
-  language: python
   python: 3.7
 
 stage_linux_37_openblas: &stage_linux_37_openblas
