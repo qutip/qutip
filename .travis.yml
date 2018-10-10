@@ -1,10 +1,8 @@
 sudo: required
 
 stage_generic_linux: &stage_generic_linux
-  dist: xenial
   os: linux
   language: python
-  python: 3.7
   # change dir
   before_script:
     - mkdir qutip_testing
@@ -25,13 +23,23 @@ stage_generic_linux: &stage_generic_linux
     - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
     - python setup.py install
 
+stage_linux_36: &stage_linux_36
+  <<: *stage_generic_linux
+  name: "Python 3.6"
+  dist: trusty
+  python: 3.6
+
 stage_linux_37: &stage_linux_37
   <<: *stage_generic_linux
   name: "Python 3.7"
+  dist: xenial
+  python: 3.7
 
 stage_linux_37_openblas: &stage_linux_37_openblas
   <<: *stage_generic_linux
   name: "Python 3.7 OpenBLAS"
+  dist: xenial
+  python: 3.7
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -47,6 +55,8 @@ stage_linux_37_openblas: &stage_linux_37_openblas
 stage_linux_37_omp: &stage_linux_37_omp
   <<: *stage_generic_linux
   name: "Python 3.7 OpenMP"
+  dist: xenial
+  python: 3.7
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -91,6 +101,8 @@ stages:
 
 jobs:
   include:
+    - stage: test
+      <<: *stage_linux_36
     - stage: test
       <<: *stage_linux_37
     - stage: test
