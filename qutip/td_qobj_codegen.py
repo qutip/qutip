@@ -121,6 +121,8 @@ def _get_arg_str(args):
     return ret
 
 
+
+
 def make_united_f_ptr(ops, args, tlist, return_code=False):
     """Create a cython function which return the coefficients of the
 time-dependent parts of an Qobj.
@@ -172,6 +174,22 @@ array_like coefficients become cubic spline (see qutip.cy.inter.pyx)
 
             compile_list.append(string)
             N_np += 1
+        elif op[3] == 4:
+            spline, dt_cte = prep_cubic_spline(op[2], tlist)
+            spline_list.append(spline)
+            y_str = "str_array_" + str(N_np)
+            if isinstance(op[1].is_complex):
+                string = "zinterp(t, _CSstart, _CSend, "+ y_str +")"
+                args_np += [[1,dt_cte]]
+            else:
+                string = "interp(t, _CSstart, _CSend, "+ y_str +")"
+                args_np += [[0,dt_cte]]
+
+            compile_list.append(string)
+            N_np += 1
+            args["_CSstart"] = op[1].a
+            args["_CSend"] = op[1].b
+
     all_str = "" + str(np.random.random())
     for op in compile_list:
         all_str += op[0]
@@ -190,6 +208,7 @@ cdef extern from "numpy/arrayobject.h" nogil:
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.inter cimport spline_complex_t_second, spline_complex_cte_second
 from qutip.cy.inter cimport spline_float_t_second, spline_float_cte_second
+from qutip.cy.interpolate cimport (interp, zinterp)
 from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 
@@ -248,7 +267,7 @@ include """ + _include_string + "\n\n"
     code += "        else:\n"
     code += "            raise Exception('Bad classification real')\n"
     code += "\n"
-    code += "    def set_args(self, args):\n"
+    code += "    def set_args(self, args):\n"op[2]
     if not args:
         code += "        pass\n"
     else:
@@ -321,6 +340,16 @@ def get_ptr(set_np_obj = False):
                 elif isinstance(op[2][0], (complex, np.complex128)):
                     op[4] = spline_list[n_op]
                     np_obj.set_array_imag(n_op, tlist, op[2], spline_list[n_op])
+                n_op += 1
+            elif op[3] == 4:
+                if isinstance(not op[2].is_complex):
+                    op[4] = spline_list[n_op]
+                    np_obj.set_array_real(n_op, np.zeros(0),
+                                          op[2].coeffs, op[2].coeffs)
+                else:
+                    op[4] = spline_list[n_op]
+                    np_obj.set_array_imag(n_op, np.zeros(0),
+                                          op[2].coeffs, op[2].coeffs)
                 n_op += 1
     if args:
         np_obj.set_args(args)

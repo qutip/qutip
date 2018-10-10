@@ -301,7 +301,7 @@ class td_Qobj:
         self.args = args
         self.cte = None
         self.tlist = tlist
-        self.fast = True
+        #self.fast = True
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
@@ -350,29 +350,9 @@ class td_Qobj:
                                      op[1].copy(), 3])
                 elif type_ == 4:
                     op_type_count[3] += 1
-                    """
-                    tag = str(count_C_S)
-                    args["_CSstart"] = op[1].a
-                    args["_CSend"] = op[1].b
-                    args["_CScoeff"+tag] = op[1].coeffs
-                    if op[1].is_complex:
-                        code = "zinterp(t, _CSstart, _CSend, "
-                               "_CScoeff" +tag +")"
-                    else :
-                        code = "zinterp(t, _CSstart, _CSend, "
-                               "_CScoeff" +tag +")"
-                    """
                     self.ops.append([op[0], op[1], op[1], 4])
                 else:
                     raise Exception("Should never be here")
-
-            """if compile_count and not self.raw_str:
-                str_funcs = _compile_str_single(compile_list)
-                count = 0
-                for op in self.ops:
-                    if op[3] == 2:
-                        op[1] = str_funcs[count]
-                        count += 1"""
 
             nops = sum(op_type_count)
             if op_type_count[0] == nops:
@@ -549,7 +529,7 @@ class td_Qobj:
         new.tlist = self.tlist
         new.dummy_cte = self.dummy_cte
         new.N_obj = self.N_obj
-        new.fast = self.fast
+        #new.fast = self.fast
         new.type = self.type
         new.compiled = False
         new.compiled_Qobj = None
@@ -575,7 +555,7 @@ class td_Qobj:
         self.tlist = other.tlist
         self.dummy_cte = other.dummy_cte
         self.N_obj = other.N_obj
-        self.fast = other.fast
+        #self.fast = other.fast
         self.type = other.type
         self.compiled = False
         self.compiled_Qobj = None
@@ -1094,7 +1074,27 @@ class td_Qobj:
                 self.compiled_Qobj = cy_td_qobj()
                 self.compiled = 0
             self.compiled_Qobj.set_data(self.cte, self.ops)
-            if self.fast:
+            if self.type in [1,5]:
+                self.coeff_get, compiled_code = self._make_united_f_call()
+                self.compiled += compiled_code
+                self.compiled_Qobj.set_factor(func=self.coeff_get)
+            elif self.type = 2:
+                # All factor can be compiled
+                if code:
+                    self.coeff_get, Code = make_united_f_ptr(self.ops,
+                                                        self.args, self.tlist,
+                                                        True)
+                else:
+                    self.coeff_get = make_united_f_ptr(self.ops, self.args,
+                                                              self.tlist, False)
+                    Code = None
+                self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+                self.compiled += 2
+            elif self.type = 3:
+                pass
+            elif self.type = 4:
+                pass
+            elif self.type = 6:
                 # All factor can be compiled
                 if code:
                     self.coeff_get, Code = make_united_f_ptr(self.ops,
@@ -1107,9 +1107,6 @@ class td_Qobj:
                 self.compiled_Qobj.set_factor(ptr=self.coeff_get())
                 self.compiled += 2
             else:
-                self.coeff_get, compiled_code = self._make_united_f_call()
-                self.compiled += compiled_code
-                self.compiled_Qobj.set_factor(func=self.coeff_get)
             return Code
 
     def _make_united_f_call(self):
