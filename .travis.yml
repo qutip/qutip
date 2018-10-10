@@ -25,21 +25,25 @@ stage_generic_linux: &stage_generic_linux
 
 stage_linux_35: &stage_linux_35
   <<: *stage_generic_linux
+  name: "Python 3.5"
   dist: trusty
   python: 3.5
 
 stage_linux_36: &stage_linux_36
   <<: *stage_generic_linux
+  name: "Python 3.6"
   dist: trusty
   python: 3.6
 
 stage_linux_37: &stage_linux_37
   <<: *stage_generic_linux
+  name: "Python 3.7"
   dist: xenial
   python: 3.7
 
 stage_linux_37_openblas: &stage_linux_37_openblas
   <<: *stage_generic_linux
+  name: "Python 3.7 OpenBLAS"
   dist: xenial
   python: 3.7
   install:
@@ -56,6 +60,7 @@ stage_linux_37_openblas: &stage_linux_37_openblas
 
 stage_linux_37_omp: &stage_linux_37_omp
   <<: *stage_generic_linux
+  name: "Python 3.7 OpenMP"
   dist: xenial
   python: 3.7
   install:
@@ -74,6 +79,7 @@ stage_linux_37_omp: &stage_linux_37_omp
 
 stage_osx: &stage_osx
   os: osx
+  name: "Python 3.7, OSX 10.13, XCode 10"
   osx_image: xcode10
   language: generic
   # change dir
