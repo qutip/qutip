@@ -19,7 +19,6 @@ CLASSIFIERS = """\
 Development Status :: 4 - Beta
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
-Programming Language :: Python
 Programming Language :: Python :: 3
 Topic :: Scientific/Engineering
 Operating System :: MacOS
