@@ -98,7 +98,7 @@ stage_osx: &stage_osx
 
 stages:
   - linux
-  - osx
+  - mac
 
 jobs:
   include:
@@ -112,5 +112,5 @@ jobs:
       <<: *stage_linux_37_omp
     - stage: linux
       <<: *stage_linux_37_openblas
-    - stage: osx
+    - stage: mac
       <<: *stage_osx
