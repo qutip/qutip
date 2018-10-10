@@ -17,7 +17,7 @@ matrix:
         - python: 3.7
           env: MKL=0 OPENMP=1
         - os: osx
-        ``env: MKL=1 OPENMP=0
+          env: MKL=1 OPENMP=0
           osx_image: xcode9.2
           language: generic
 
