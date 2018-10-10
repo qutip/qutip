@@ -1,6 +1,7 @@
 sudo: required
 
 stage_generic_linux: &stage_generic_linux
+  os: linux
   # change dir
   before_script:
     - mkdir qutip_testing
@@ -23,24 +24,36 @@ stage_generic_linux: &stage_generic_linux
 
 stage_linux_35: &stage_linux_35
   <<: *stage_generic_linux
-  os: linux
   dist: trusty
   language: python
   python: 3.5
 
 stage_linux_36: &stage_linux_36
   <<: *stage_generic_linux
-  os: linux
   dist: trusty
   language: python
   python: 3.6
 
 stage_linux_37: &stage_linux_37
   <<: *stage_generic_linux
-  os: linux
   dist: xenial
   language: python
   python: 3.7
+
+stage_linux_37_openblas: &stage_linux_37_openblas
+  <<: *stage_generic_linux
+  dist: xenial
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install nomkl blas=*=openblas numpy scipy nose cython
+    - python setup.py install
 
 stage_linux_37_omp: &stage_linux_37_omp
   <<: *stage_generic_linux
@@ -85,8 +98,19 @@ stage_osx: &stage_osx
 
 stages:
   - linux
+  - osx
 
 jobs:
   include:
     - stage: linux
+      <<: *stage_linux_35
+    - stage: linux
+      <<: *stage_linux_36
+    - stage: linux
       <<: *stage_linux_37
+    - stage: linux
+      <<: *stage_linux_37_omp
+    - stage: linux
+      <<: *stage_linux_37_openblas
+    - stage: osx
+      <<: *stage_osx
