@@ -45,6 +45,7 @@ from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import (cy_cte_qobj, cy_cte_qobj_dense, cy_td_qobj,
                                  cy_td_qobj_matched, cy_td_qobj_dense)
+from qutip.cy.td_qobj_factor import (inter_coeff_t, inter_coeff_cte, interpolate_coeff)
 import pickle
 import sys
 import scipy
@@ -754,10 +755,8 @@ class td_Qobj:
         return res
 
     def _ops_mul_(self, opL, opR):
-        new_args = opL[4].copy()
-        new_args.update(opR[4])
         new_f = _prod(opL[1], opR[1])
-        new_op = [opL[0]*opR[0], new_f, None, 0, new_args]
+        new_op = [opL[0]*opR[0], new_f, None, 0]
         if opL[3] == opR[3] and opL[3] == 2:
             new_op[2] = "("+opL[2]+") * ("+opR[2]+")"
             new_op[3] = 2
@@ -770,7 +769,7 @@ class td_Qobj:
         return new_op
 
     def _ops_mul_cte(self, op, cte, side):
-        new_op = [None, op[1], op[2], op[3], op[4]]
+        new_op = [None, op[1], op[2], op[3]]
         if side == "R":
             new_op[0] = op[0] * cte
         if side == "L":
@@ -1078,7 +1077,7 @@ class td_Qobj:
                 self.coeff_get, compiled_code = self._make_united_f_call()
                 self.compiled += compiled_code
                 self.compiled_Qobj.set_factor(func=self.coeff_get)
-            elif self.type = 2:
+            elif self.type == 2:
                 # All factor can be compiled
                 if code:
                     self.coeff_get, Code = make_united_f_ptr(self.ops,
@@ -1090,11 +1089,19 @@ class td_Qobj:
                     Code = None
                 self.compiled_Qobj.set_factor(ptr=self.coeff_get())
                 self.compiled += 2
-            elif self.type = 3:
-                pass
-            elif self.type = 4:
-                pass
-            elif self.type = 6:
+            elif self.type == 3:
+                if np.allclose(np.diff(self.tlist),
+                               self.tlist[1] - self.tlist[0]):
+                    self.coeff_get = inter_coeff_cte(self.ops, None, self.tlist)
+                else:
+                    self.coeff_get = inter_coeff_t(self.ops, None, self.tlist)
+                self.compiled += 3
+                self.compiled_Qobj.set_factor(obj=self.coeff_get)
+            elif self.type == 4:
+                self.coeff_get = interpolate_coeff(self.ops, None, None)
+                self.compiled += 3
+                self.compiled_Qobj.set_factor(obj=self.coeff_get)
+            elif self.type == 6:
                 # All factor can be compiled
                 if code:
                     self.coeff_get, Code = make_united_f_ptr(self.ops,
@@ -1107,6 +1114,7 @@ class td_Qobj:
                 self.compiled_Qobj.set_factor(ptr=self.coeff_get())
                 self.compiled += 2
             else:
+                pass
             return Code
 
     def _make_united_f_call(self):

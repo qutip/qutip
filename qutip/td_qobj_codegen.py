@@ -267,7 +267,7 @@ include """ + _include_string + "\n\n"
     code += "        else:\n"
     code += "            raise Exception('Bad classification real')\n"
     code += "\n"
-    code += "    def set_args(self, args):\n"op[2]
+    code += "    def set_args(self, args):\n"
     if not args:
         code += "        pass\n"
     else:
@@ -290,7 +290,7 @@ include """ + _include_string + "\n\n"
                 code += "    cdef complex[::1] str_spline_" + str(i) +\
                         "= np_obj.str_spline_" + str(i) + "\n"
             else:
-                code += "    cdef double[::1] str_tlist_" + str(i) +\
+                code += "    cdehttp://dilbert.com/f double[::1] str_tlist_" + str(i) +\
                         "= np_obj.str_tlist_" + str(i) + "\n"
                 code += "    cdef double[::1] str_array_" + str(i) +\
                         "= np_obj.str_array_" + str(i) + "\n"

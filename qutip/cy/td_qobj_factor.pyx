@@ -3,7 +3,7 @@ cimport numpy as np
 import cython
 cimport cython
 cimport libc.math
-from qutip.cy.inter import prep_cubic_spline,
+from qutip.cy.inter import prep_cubic_spline
 from qutip.cy.inter cimport (spline_complex_cte_second,
                             spline_complex_t_second)
 from qutip.cy.interpolate cimport (interp, zinterp)
@@ -15,7 +15,7 @@ cdef class coeffFunc:
     def __init__(self, ops, args, tlist):
         pass
 
-    def __call__(self, t, args={}):
+    def __call__(self, double t, args={}):
         cdef np.ndarray[ndim=1, dtype=complex] coeff = \
                                             np.zeros(self.N_ops, dtype=complex)
         self._call_core(t, &coeff[0])
@@ -24,7 +24,7 @@ cdef class coeffFunc:
     def set_args(self, args):
         pass
 
-    cdef _call_core(self, t, *coeff):
+    cdef void _call_core(self, double t, complex * coeff):
         pass
 
     def __getstate__(self):
@@ -43,7 +43,7 @@ cdef class interpolate_coeff(coeffFunc):
         self.N_ops = len(ops)
         self.a = ops[0][2].a
         self.b = ops[0][2].b
-        l =  = len(ops[0][2].coeffs)
+        l = len(ops[0][2].coeffs)
         self.c = np.zeros((self.N_ops,l), dtype=complex)
         for i in range(self.N_ops):
             for j in range(l):
@@ -55,7 +55,7 @@ cdef class interpolate_coeff(coeffFunc):
         self._call_core(t, &coeff[0])
         return coeff
 
-    cdef _call_core(self, t, *coeff):
+    cdef void _call_core(self, double t, complex * coeff):
         for i in range(self.N_ops):
             coeff[i] = zinterp(t, self.a, self.b, self.c[i,:])
 
@@ -73,9 +73,10 @@ cdef class interpolate_coeff(coeffFunc):
 
 
 cdef class inter_coeff_cte(coeffFunc):
-    cdef int N_ops
-    cdef double a, b
-    cdef complex[:,::1] c
+    cdef int N_ops, l
+    cdef double dt
+    cdef double[::1] tlist
+    cdef complex[:,::1] y, M
 
     def __init__(self, ops, args, tlist):
         self.N_ops = len(ops)
@@ -89,11 +90,11 @@ cdef class inter_coeff_cte(coeffFunc):
             m, cte = prep_cubic_spline(ops[i][2], tlist)
             if not cte:
                 raise Exception("tlist not sampled uniformly")
-            for j in range(l):
+            for j in range(self.l):
                 self.y[i,j] = ops[i][2][j]
                 self.M[i,j] = m[j]
 
-    cdef _call_core(self, t, *coeff):
+    cdef void _call_core(self, double t, complex * coeff):
         for i in range(self.N_ops):
             coeff[i] = spline_complex_cte_second(t, self.tlist,
                                     self.y[i,:], self.M[i,:], self.l, self.dt)
@@ -115,6 +116,11 @@ cdef class inter_coeff_cte(coeffFunc):
 
 
 cdef class inter_coeff_t(coeffFunc):
+    cdef int N_ops, l
+    cdef double dt
+    cdef double[::1] tlist
+    cdef complex[:,::1] y, M
+
     def __init__(self, ops, args, tlist):
         self.N_ops = len(ops)
         self.tlist = tlist
@@ -125,11 +131,11 @@ cdef class inter_coeff_t(coeffFunc):
             m, cte = prep_cubic_spline(ops[i][2], tlist)
             if cte:
                 print("tlist not uniformly?")
-            for j in range(l):
+            for j in range(self.l):
                 self.y[i,j] = ops[i][2][j]
                 self.M[i,j] = m[j]
 
-    cdef _call_core(self, t, *coeff):
+    cdef void _call_core(self, double t, complex * coeff):
         for i in range(self.N_ops):
             coeff[i] = spline_complex_t_second(t, self.tlist,
                                     self.y[i,:], self.M[i,:], self.l)
@@ -149,7 +155,7 @@ cdef class inter_coeff_t(coeffFunc):
         self.M = state[5]
 
 
-cdef class str_coeff(coeffFunc):
+"""cdef class str_coeff(coeffFunc):
     def __init__(self, ops, args, tlist):
         self.N_ops = len(ops)
         list_keys = np.sort(list(args.keys()))
@@ -187,8 +193,8 @@ cdef class str_coeff(coeffFunc):
         self.N_ops = len(ops)
         self.a = ops[0][2].a
         self.b = ops[0][2].b
-        l =  = len(ops[0][2].coeffs)
+        l = len(ops[0][2].coeffs)
         self.c = np.zeros((self.N_ops,l), dtype=complex)
         for i in range(self.N_ops):
             for j in range(l):
-                self.c[i,j] = ops[i][2].coeffs[j]
+                self.c[i,j] = ops[i][2].coeffs[j]"""

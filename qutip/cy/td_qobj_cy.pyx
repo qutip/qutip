@@ -41,6 +41,7 @@ from qutip.qobj import Qobj
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.spmath import zcsr_add
+from qutip.cy.td_qobj_factor cimport coeffFunc
 #from libc.stdlib cimport malloc, free
 cimport libc.math
 
@@ -217,6 +218,35 @@ cdef class cy_qobj:
         """tr( self * rho )"""
         return 0.
 
+    def set_factor(self, func=None, ptr=False, obj=None):
+        cdef void* f_ptr
+        self.factor_use_ptr = 0
+        self.factor_use_cobj = 0
+        if ptr:
+            self.factor_use_ptr = 1
+            f_ptr = PyLong_AsVoidPtr(ptr)
+            self.factor_ptr = <void(*)(double, complex*)> f_ptr
+        elif func is not None:
+            self.factor_func = func
+        elif obj is not None:
+            self.factor_use_cobj = 1
+            self.factor_cobj = obj
+        else:
+            raise Exception("Could not set coefficient function")
+
+    cdef void factor(self, double t):
+        cdef int i
+        if self.factor_use_ptr:
+            self.factor_ptr(t, self.coeff_ptr)
+        elif self.factor_use_cobj:
+            self.factor_cobj._call_core(t, self.coeff_ptr)
+        else:
+            coeff = self.factor_func(t)
+            for i in range(self.N_ops):
+                self.coeff_ptr[i] = coeff[i]
+
+
+
     def mul_vec(self, double t, complex[::1] vec):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
                                                         dtype=complex)
@@ -254,8 +284,8 @@ cdef class cy_qobj:
     def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
         return None
 
-    def set_factor(self, func=None, ptr=False):
-        pass
+    """def set_factor(self, func=None, ptr=False):
+        pass"""
 
     def set_data(self, cte):
         pass
@@ -504,15 +534,7 @@ cdef class cy_td_qobj(cy_qobj):
 
         self.total_elem = self.sum_elem[self.N_ops-1]
 
-    def set_factor(self, func=None, ptr=False):
-        cdef void* f_ptr
-        if ptr:
-            self.factor_use_ptr = 1
-            f_ptr = PyLong_AsVoidPtr(ptr)
-            self.factor_ptr = <void(*)(double, complex*)> f_ptr
-        else:
-            self.factor_use_ptr = 0
-            self.factor_func = func
+
 
     def __getstate__(self):
         cte_info = shallow_get_state(&self.cte)
@@ -548,14 +570,7 @@ cdef class cy_td_qobj(cy_qobj):
         self.coeff = np.empty((self.N_ops,), dtype=complex)
         self.coeff_ptr = &self.coeff[0]
 
-    cdef void factor(self, double t):
-        cdef int i
-        if self.factor_use_ptr:
-            self.factor_ptr(t, self.coeff_ptr)
-        else:
-            coeff = self.factor_func(t)
-            for i in range(self.N_ops):
-                self.coeff_ptr[i] = coeff[i]
+
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -730,7 +745,7 @@ cdef class cy_td_qobj_dense(cy_qobj):
             for k in range(self.shape1):
               self.ops[i,j,k] = oparray[j,k]
 
-    def set_factor(self, func=None, ptr=False):
+    """def set_factor(self, func=None, ptr=False):
         cdef void* f_ptr
         if ptr:
             self.factor_use_ptr = 1
@@ -738,7 +753,7 @@ cdef class cy_td_qobj_dense(cy_qobj):
             self.factor_ptr = <void(*)(double, complex*)> f_ptr
         else:
             self.factor_use_ptr = 0
-            self.factor_func = func
+            self.factor_func = func"""
 
     def __getstate__(self):
         factor_ptr = PyLong_FromVoidPtr(<void*>self.factor_ptr)
@@ -763,14 +778,14 @@ cdef class cy_td_qobj_dense(cy_qobj):
         self.coeff = np.empty((self.N_ops,), dtype=complex)
         self.coeff_ptr = &self.coeff[0]
 
-    cdef void factor(self, double t):
+    """cdef void factor(self, double t):
         cdef int i
         if self.factor_use_ptr:
             self.factor_ptr(t, self.coeff_ptr)
         else:
             coeff = self.factor_func(t)
             for i in range(self.N_ops):
-                self.coeff_ptr[i] = coeff[i]
+                self.coeff_ptr[i] = coeff[i]"""
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -912,7 +927,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
           for j in range(self.nnz):
             self.ops[i,j] = op.data[j]
 
-    def set_factor(self, func=None, ptr=False):
+    """def set_factor(self, func=None, ptr=False):
         cdef void* f_ptr
         if ptr:
             self.factor_use_ptr = 1
@@ -920,7 +935,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
             self.factor_ptr = <void(*)(double, complex*)> f_ptr
         else:
             self.factor_use_ptr = 0
-            self.factor_func = func
+            self.factor_func = func"""
 
     def __getstate__(self):
         factor_ptr = PyLong_FromVoidPtr(<void*>self.factor_ptr)
@@ -950,14 +965,14 @@ cdef class cy_td_qobj_matched(cy_qobj):
         self.data_t = np.zeros((self.nnz), dtype=complex)
         self.data_ptr = &self.data_t[0]
 
-    cdef void factor(self, double t):
+    """cdef void factor(self, double t):
         cdef int i
         if self.factor_use_ptr:
             self.factor_ptr(t, self.coeff_ptr)
         else:
             coeff = self.factor_func(t)
             for i in range(self.N_ops):
-                self.coeff_ptr[i] = coeff[i]
+                self.coeff_ptr[i] = coeff[i]"""
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
