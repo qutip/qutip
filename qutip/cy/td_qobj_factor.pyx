@@ -35,7 +35,6 @@ cdef class coeffFunc:
 
 
 cdef class interpolate_coeff(coeffFunc):
-    cdef int N_ops
     cdef double a, b
     cdef complex[:,::1] c
 
@@ -73,7 +72,7 @@ cdef class interpolate_coeff(coeffFunc):
 
 
 cdef class inter_coeff_cte(coeffFunc):
-    cdef int N_ops, l
+    cdef int l
     cdef double dt
     cdef double[::1] tlist
     cdef complex[:,::1] y, M
@@ -116,7 +115,7 @@ cdef class inter_coeff_cte(coeffFunc):
 
 
 cdef class inter_coeff_t(coeffFunc):
-    cdef int N_ops, l
+    cdef int l
     cdef double dt
     cdef double[::1] tlist
     cdef complex[:,::1] y, M
