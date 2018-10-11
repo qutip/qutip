@@ -1048,7 +1048,7 @@ class td_Qobj:
         if self.compiled:
             out = self.compiled_Qobj.mul_mat(t, mat)
         else:
-            out = self.__call__(t, data=True) * vec
+            out = self.__call__(t, data=True) * mat
         return out
 
     def compile(self, code=False, matched=False, dense=False):

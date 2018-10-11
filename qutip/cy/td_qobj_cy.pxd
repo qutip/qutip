@@ -38,6 +38,7 @@ cdef class cy_qobj:
     cdef int shape0, shape1
     cdef object dims
     cdef int super
+    cdef int N_ops
 
     cdef void (*factor_ptr)(double, complex*)
     cdef object factor_func
@@ -80,7 +81,7 @@ cdef class cy_td_qobj(cy_qobj):
     cdef CSR_Matrix cte
     cdef CSR_Matrix ** ops
     cdef long[::1] sum_elem
-    cdef int N_ops
+    #cdef int N_ops
 
 
     cdef void factor(self, double t)
@@ -95,7 +96,7 @@ cdef class cy_td_qobj_dense(cy_qobj):
     # data as array
     cdef complex[:, ::1] cte
     cdef complex[:, :, ::1] ops
-    cdef int N_ops
+    #cdef int N_ops
 
     # prepared buffer
     cdef complex[:, ::1] data_t
@@ -116,7 +117,6 @@ cdef class cy_td_qobj_matched(cy_qobj):
     cdef int[::1] indices
     cdef complex[::1] cte
     cdef complex[:, ::1] ops
-    cdef int N_ops
 
     # prepared buffer
     cdef complex[::1] data_t

@@ -275,7 +275,7 @@ cdef class cy_qobj:
     def ode_mul_mat_F_vec(self, double t, complex[::1] vec):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape1*self.shape1,
                                                       dtype=complex)
-        self._mul_matf(t,&vec[0],&out[0],self.shape1,self.shape1)
+        self._mul_matf(t, &vec[0], &out[0], self.shape1, self.shape1)
         return out
 
     def call(self, double t, int data=0):
