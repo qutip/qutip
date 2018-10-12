@@ -419,7 +419,7 @@ cdef class cy_cte_qobj_dense(cy_qobj):
         self.shape1 = state[1]
         self.dims = state[2]
         self.super = state[3]
-        self.cte = state[5]
+        self.cte = state[4]
 
     def call(self, double t, int data=0):
         if data:
@@ -910,9 +910,10 @@ cdef class cy_td_qobj_matched(cy_qobj):
         self.coeff = np.zeros((self.N_ops), dtype=complex)
         self.coeff_ptr = &self.coeff[0]
 
-        sparse_list = [cte.data]
+        sparse_list = []
         for op in ops:
             sparse_list.append(op[0].data)
+        sparse_list += [cte.data]
         matched = zcsr_match(sparse_list)
 
         self.indptr = matched[0].indptr

@@ -41,11 +41,12 @@ from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
-from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
+from qutip.td_qobj_codegen import _compile_str_single, compiled_coeffs
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import (cy_cte_qobj, cy_cte_qobj_dense, cy_td_qobj,
                                  cy_td_qobj_matched, cy_td_qobj_dense)
-from qutip.cy.td_qobj_factor import (inter_coeff_t, inter_coeff_cte, interpolate_coeff)
+from qutip.cy.td_qobj_factor import (inter_coeff_t, inter_coeff_cte,
+                                     interpolate_coeff)
 import pickle
 import sys
 import scipy
@@ -53,7 +54,6 @@ import scipy
 safePickle = False
 if sys.platform == 'win32':
     safePickle = True
-
 
 def proj(x):
     if np.isfinite(x):
@@ -302,7 +302,6 @@ class td_Qobj:
         self.args = args
         self.cte = None
         self.tlist = tlist
-        #self.fast = True
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
@@ -329,8 +328,6 @@ class td_Qobj:
                 pass
 
         else:
-            # compile_list = []
-            # compile_count = 0
             op_type_count = [0,0,0,0]
             count_C_S = 0
             for type_, op in zip(op_type, Q_object):
@@ -405,7 +402,9 @@ class td_Qobj:
                     if not isinstance(op_k[0], Qobj):
                         raise TypeError("Incorrect Q_object specification")
                     elif len(op_k) == 2:
-                        if callable(op_k[1]):
+                        if isinstance(op_k[1], Cubic_Spline):
+                            op_type.append(4)
+                        elif callable(op_k[1]):
                             op_type.append(1)
                         elif isinstance(op_k[1], str):
                             op_type.append(2)
@@ -414,8 +413,6 @@ class td_Qobj:
                                         len(op_k[1]) == len(tlist):
                                 raise TypeError("Time list does not match")
                             op_type.append(3)
-                        elif isinstance(op_k[1], Cubic_Spline):
-                            op_type.append(4)
                         else:
                             raise TypeError("Incorrect Q_object specification")
                     else:
@@ -776,7 +773,6 @@ class td_Qobj:
             new_op[0] = cte * op[0]
         return new_op
 
-
     # Transformations
     def trans(self):
         res = self.copy()
@@ -1053,6 +1049,7 @@ class td_Qobj:
 
     def compile(self, code=False, matched=False, dense=False):
         self.tidyup()
+        Code = None
         if self.const:
             if dense:
                 self.compiled_Qobj = cy_cte_qobj_dense()
@@ -1062,7 +1059,6 @@ class td_Qobj:
                 self.compiled = 1
             self.compiled_Qobj.set_data(self.cte)
         else:
-            Code = None
             if matched:
                 self.compiled_Qobj = cy_td_qobj_matched()
                 self.compiled = 10
@@ -1073,22 +1069,28 @@ class td_Qobj:
                 self.compiled_Qobj = cy_td_qobj()
                 self.compiled = 0
             self.compiled_Qobj.set_data(self.cte, self.ops)
-            if self.type in [1,5]:
-                self.coeff_get, compiled_code = self._make_united_f_call()
-                self.compiled += compiled_code
-                self.compiled_Qobj.set_factor(func=self.coeff_get)
-            elif self.type == 2:
-                # All factor can be compiled
-                if code:
-                    self.coeff_get, Code = make_united_f_ptr(self.ops,
-                                                        self.args, self.tlist,
-                                                        True)
-                else:
-                    self.coeff_get = make_united_f_ptr(self.ops, self.args,
-                                                              self.tlist, False)
-                    Code = None
-                self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+            if self.type in [1]:
+                funclist = []
+                for part in self.ops:
+                    funclist.append(part[1])
+                self.coeff_get = _united_f_caller(funclist, self.args)
                 self.compiled += 2
+                self.compiled_Qobj.set_factor(func=self.coeff_get)
+            elif self.type in [5]:
+                funclist = []
+                for part in self.ops:
+                    if isinstance(part[1], _str_wrapper):
+                        part[1] = _compile_str_single(part[2], self.args)
+                    funclist.append(part[1])
+                self.coeff_get = _united_f_caller(funclist, self.args)
+                self.compiled += 2
+                self.compiled_Qobj.set_factor(func=self.coeff_get)
+            elif self.type in [2,6]:
+                # All factor can be compiled
+                self.coeff_get, Code = compiled_coeffs(self.ops,
+                                                        self.args, self.tlist)
+                self.compiled_Qobj.set_factor(obj=self.coeff_get)
+                self.compiled += 3
             elif self.type == 3:
                 if np.allclose(np.diff(self.tlist),
                                self.tlist[1] - self.tlist[0]):
@@ -1101,23 +1103,12 @@ class td_Qobj:
                 self.coeff_get = interpolate_coeff(self.ops, None, None)
                 self.compiled += 3
                 self.compiled_Qobj.set_factor(obj=self.coeff_get)
-            elif self.type == 6:
-                # All factor can be compiled
-                if code:
-                    self.coeff_get, Code = make_united_f_ptr(self.ops,
-                                                        self.args, self.tlist,
-                                                        True)
-                else:
-                    self.coeff_get = make_united_f_ptr(self.ops, self.args,
-                                                              self.tlist, False)
-                    Code = None
-                self.compiled_Qobj.set_factor(ptr=self.coeff_get())
-                self.compiled += 2
             else:
                 pass
-            return Code
+            if code:
+                return Code
 
-    def _make_united_f_call(self):
+    """def _make_united_f_call(self):
         types = [0, 0, 0]
         for part in self.ops:
             types[part[3]-1] += 1
@@ -1137,23 +1128,25 @@ class td_Qobj:
             # Must be mixed, would be fast otherwise
             united_f_call  = self._get_coeff
             all_function = 4
-        return united_f_call, all_function
+        return united_f_call, all_function"""
 
     def _get_coeff(self, t):
         out = []
         for part in self.ops:
-            if part[3] == 1:  # func: f(t,args)
-                out.append(part[1](t, part[4]))
+            out.append(part[1](t, self.args))
+        return out
+        """    if part[3] == 1:  # func: f(t,args)
+                out.append(part[1](t, self.args))
             elif part[3] == 2:  # str: f(t,w=2)
                 if self.raw_str:
                     # Must compile the str here
                     part[1] = \
                         _compile_str_single([[part[2], part[4], 0]])[0]
-                out.append(part[1](t, **part[4]))
+                out.append(part[1](t, self.args))
             elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
                 out.append(part[1](np.array([t]))[0])
-        self.raw_str = False
-        return out
+        self.raw_str = False"""
+
 
     def __getstate__(self):
         _dict_ = {key: self.__dict__[key]
@@ -1176,29 +1169,29 @@ class td_Qobj:
                 elif self.compiled == 21:
                     self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
                     self.compiled_Qobj.__setstate__(state[1])
-                elif self.compiled in (2,3,4):
+                elif self.compiled in (2,3):
                     self.compiled_Qobj = cy_td_qobj()
                     self.compiled_Qobj.set_data(self.cte, self.ops)
-                elif self.compiled in (22,23,24):
+                elif self.compiled in (22,23):
                     self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
                     self.compiled_Qobj.__setstate__(state[1])
-                elif self.compiled in (12,13,14):
+                elif self.compiled in (12,13):
                     self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
                     self.compiled_Qobj.__setstate__(state[1])
-                if self.fast:
-                    self.compiled_Qobj.set_factor(ptr=self.coeff_get())
-                else:
+                if self.compiled % 10 == 3:
+                    self.compiled_Qobj.set_factor(obj=self.coeff_get)
+                elif self.compiled % 10 == 2:
                     self.compiled_Qobj.set_factor(func=self.coeff_get)
             else:
                 if self.compiled == 1:
                     self.compiled_Qobj = cy_cte_qobj.__new__(cy_cte_qobj)
                 elif self.compiled == 21:
                     self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
-                elif self.compiled in (2,3,4):
+                elif self.compiled in (2,3):
                     self.compiled_Qobj = cy_td_qobj.__new__(cy_td_qobj)
-                elif self.compiled in (22,23,24):
+                elif self.compiled in (22,23):
                     self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
-                elif self.compiled in (12,13,14):
+                elif self.compiled in (12,13):
                     self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
                 self.compiled_Qobj.__setstate__(state[1])
 

@@ -154,46 +154,29 @@ cdef class inter_coeff_t(coeffFunc):
         self.M = state[5]
 
 
-"""cdef class str_coeff(coeffFunc):
+cdef class str_coeff(coeffFunc):
     def __init__(self, ops, args, tlist):
         self.N_ops = len(ops)
-        list_keys = np.sort(list(args.keys()))
-        self.obj_list = []
-        self.obj_name = []
-        cpx_list = []
-        self.cpx_name = []
-        for key in list_keys:
-            if isinstance(args[key], (int, float, complex)):
-                cpx_list.append(args[key])
-                self.cpx_name.append(key)
-            else:
-                self.obj_list.append(args[key])
-                self.obj_name.append(key)
-        self.cpx_list = np.array(cpx_list)
+        self.args = args
+        self.set_args(args)
 
-    def set_args(self, args):
-        for i, key in enumerate(self.obj_name):
-            self.obj_list[i] = args[key]
-        for i, key in enumerate(self.cpx_name):
-            self.cpx_list[i] = args[key]
+    def __call__(self, double t, args={}):
+        cdef np.ndarray[ndim=1, dtype=complex] coeff = \
+                                            np.zeros(self.N_ops, dtype=complex)
+        if args:
+            now_args = self.args.copy()
+            now_args.update(args)
+            self.set_args(now_args)
+            self._call_core(t, &coeff[0])
+            self.set_args(self.args)
+        else:
+            self._call_core(t, &coeff[0])
+        return coeff
 
     def __getstate__(self):
-        return (self.N_ops, self.obj_name, self.obj_list,
-                self.cpx_name, np.array(self.cpx_list))
+        return (self.N_ops, self.args)
 
     def __setstate__(self, state):
         self.N_ops = state[0]
-        self.obj_name = state[1]
-        self.obj_list = state[2]
-        self.cpx_name = state[3]
-        self.cpx_list = state[4]
-
-
-        self.N_ops = len(ops)
-        self.a = ops[0][2].a
-        self.b = ops[0][2].b
-        l = len(ops[0][2].coeffs)
-        self.c = np.zeros((self.N_ops,l), dtype=complex)
-        for i in range(self.N_ops):
-            for j in range(l):
-                self.c[i,j] = ops[i][2].coeffs[j]"""
+        self.args = state[1]
+        self.set_args(self.args)
