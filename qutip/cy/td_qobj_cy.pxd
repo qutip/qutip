@@ -40,10 +40,10 @@ cdef class cy_qobj:
     cdef int super
     cdef int N_ops
 
-    cdef void (*factor_ptr)(double, complex*)
+    #cdef void (*factor_ptr)(double, complex*)
     cdef object factor_func
     cdef coeffFunc factor_cobj
-    cdef int factor_use_ptr, factor_use_cobj
+    cdef int factor_use_cobj
     # prepared buffer
     cdef complex[::1] coeff
     cdef complex * coeff_ptr
@@ -69,19 +69,12 @@ cdef class cy_cte_qobj_dense(cy_qobj):
     cdef complex[:, ::1] cte
 
 
-
 cdef class cy_td_qobj(cy_qobj):
     cdef long total_elem
-
-    """cdef void (*factor_ptr)(double, complex*)
-    cdef object factor_func
-    cdef int factor_use_ptr"""
-
     # pointer to data
     cdef CSR_Matrix cte
     cdef CSR_Matrix ** ops
     cdef long[::1] sum_elem
-    #cdef int N_ops
 
 
     cdef void factor(self, double t)
@@ -89,14 +82,9 @@ cdef class cy_td_qobj(cy_qobj):
 
 
 cdef class cy_td_qobj_dense(cy_qobj):
-    """cdef void (*factor_ptr)(double, complex*)
-    cdef object factor_func
-    cdef int factor_use_ptr"""
-
     # data as array
     cdef complex[:, ::1] cte
     cdef complex[:, :, ::1] ops
-    #cdef int N_ops
 
     # prepared buffer
     cdef complex[:, ::1] data_t
@@ -108,9 +96,6 @@ cdef class cy_td_qobj_dense(cy_qobj):
 
 cdef class cy_td_qobj_matched(cy_qobj):
     cdef int nnz
-    """cdef void (*factor_ptr)(double, complex*)
-    cdef object factor_func
-    cdef int factor_use_ptr"""
 
     # data as array
     cdef int[::1] indptr
