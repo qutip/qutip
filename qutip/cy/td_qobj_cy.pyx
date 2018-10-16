@@ -895,7 +895,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
         for i in range(self.N_ops):
             ptr = &self.ops[i,0]
             for j in range(self.nnz):
-                out[j] += ptr[j]*coeff[i]
+                out[j] += ptr[j] * coeff[i]
 
     def call(self, double t, int data=0):
         cdef int i
@@ -982,7 +982,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef complex _expect_super(self, double t, complex* vec, int isherm):
-        cdef int row, i
+        cdef int row
         cdef int jj, row_start, row_end
         cdef int num_rows = self.shape0
         cdef int n = <int>libc.math.sqrt(num_rows)

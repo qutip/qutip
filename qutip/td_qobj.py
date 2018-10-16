@@ -308,6 +308,7 @@ class td_Qobj:
         self.compiled_ptr = None
         self.coeff_get = None
         self.type = -1
+        self.omp = 0
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
