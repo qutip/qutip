@@ -710,7 +710,7 @@ class td_Qobj:
 
         else:
             raise TypeError("td_qobj can only be multiplied" +
-                            " with Qobj or numbers")
+                            " with td_qobj, Qobj or numbers")
         return self
 
     def __div__(self, other):
@@ -791,7 +791,8 @@ class td_Qobj:
     def norm(self):
         """return a.dag * a """
         if not self.N_obj == 1:
-            raise Exception("td_Qobj must be composed of only one Qobj")
+            res = self.dag()
+            res *= self
         else:
             res = self.copy()
             res.cte = res.cte.dag() * res.cte
