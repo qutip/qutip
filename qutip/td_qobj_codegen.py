@@ -33,19 +33,82 @@
 import numpy as np
 from qutip.cy.inter import prep_cubic_spline
 
-
-def _compile_str_single(compile_list):
+def _compile_str_single(string, args):
     import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
                     "\\", "/")
     _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
 
-    all_str = ""
-    for op in compile_list:
-        all_str += op[0]
-    filename = "td_Qobj_"+str(hash(all_str))[1:]
-
     Code = """
+# This file is generated automatically by QuTiP.
+
+import numpy as np
+cimport numpy as np
+cimport cython
+from qutip.cy.math cimport erf
+cdef double pi = 3.14159265358979323
+include """+_include_string+"""
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def f(double t, args):
+"""
+    for name, value in args.items():
+        if name in string:
+            Code += "    " + name + " = args['" + name + "']\n"
+    Code += "    return " + string + "\n"
+
+
+
+    filename = "td_Qobj_single_str"+str(hash(Code))[1:]
+    file = open(filename+".pyx", "w")
+    file.writelines(Code)
+    file.close()
+    str_func = []
+    import_code = compile('from ' + filename + ' import f\n'
+                          "str_func.append(f)",
+                          '<string>', 'exec')
+    exec(import_code, locals())
+
+    try:
+        os.remove(filename+".pyx")
+    except:
+        pass
+
+    return str_func[0]
+
+def compiled_coeffs(ops, args, tlist):
+    code = make_code_4_cimport(ops, args, tlist)
+    filename = "td_Qobj_compiled_coeff_"+str(hash(code))[1:]
+
+    file = open(filename+".pyx", "w")
+    file.writelines(code)
+    file.close()
+    import_list = []
+
+    import_code = compile('from ' + filename + ' import compiled_str_coeff\n' +
+                          "import_list.append(compiled_str_coeff)",
+                          '<string>', 'exec')
+    exec(import_code, locals())
+    coeff_obj = import_list[0](ops, args, tlist)
+
+    try:
+        os.remove(filename+".pyx")
+    except:
+        pass
+
+    return coeff_obj, code
+
+def make_code_4_cimport(ops, args, tlist):
+    """
+    Create the code for a coeffFunc cython class the wraps
+    the string coefficients, array_like coefficients and Cubic_Spline.
+    """
+    import os
+    _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
+    _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
+
+    code = """
 # This file is generated automatically by QuTiP.
 
 import numpy as np
@@ -56,78 +119,120 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
 from qutip.cy.spmatfuncs cimport spmvpy
+from qutip.cy.inter cimport spline_complex_t_second, spline_complex_cte_second
+from qutip.cy.inter cimport spline_float_t_second, spline_float_cte_second
+from qutip.cy.interpolate cimport (interp, zinterp)
+from qutip.cy.td_qobj_factor cimport str_coeff
 from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 
-include """+_include_string+"\n"
+include """ + _include_string + "\n\n"
 
-    for str_coeff in compile_list:
-        Code += _str_2_code(str_coeff)
+    compile_list = []
+    N_np = 0
+    #args_np = []
 
-    file = open(filename+".pyx", "w")
-    file.writelines(Code)
-    file.close()
-    str_func = []
-    for i in range(len(compile_list)):
-        func_name = '_str_factor_' + str(i)
-        import_code = compile('from ' + filename + ' import ' + func_name +
-                              "\nstr_func.append(" + func_name + ")",
-                              '<string>', 'exec')
-        exec(import_code, locals())
+    for op in ops:
+        if op[3] == 2:
+            compile_list.append(op[2])
 
-    try:
-        os.remove(filename+".pyx")
-    except:
-        pass
+        elif op[3] == 3:
+            spline, dt_cte = prep_cubic_spline(op[2], tlist)
+            t_str = "_tlist"
+            y_str = "_array_" + str(N_np)
+            s_str = "_spline_" + str(N_np)
+            N_times = str(len(tlist))
+            dt_times = str(tlist[1]-tlist[0])
+            if dt_cte:
+                if isinstance(op[2][0], (float, np.float32, np.float64)):
+                    string = "spline_float_cte_second(t, " + t_str +", " +\
+                             y_str +", " + s_str +", " + N_times + ", " + dt_times + ")"
+                    #args_np += [[0,dt_cte]]
+                elif isinstance(op[2][0], (complex, np.complex128)):
+                    string = "spline_complex_cte_second(t, " + t_str +", " +\
+                             y_str +", " + s_str +", " + N_times + ", " + dt_times + ")"
+                    #args_np += [[1,dt_cte]]
+            else:
+                if isinstance(op[2][0], (float, np.float32, np.float64)):
+                    string = "spline_float_t_second(t, " + t_str +", " +\
+                             y_str +", " + s_str +", " + N_times + ")"
+                    #args_np += [[0,dt_cte]]
+                elif isinstance(op[2][0], (complex, np.complex128)):
+                    string = "spline_complex_t_second(t, " + t_str +", " +\
+                             y_str +", " + s_str +", " + N_times + ")"
+                    #args_np += [[1,dt_cte]]
+            compile_list.append(string)
+            args[t_str] = tlist
+            args[y_str] = op[2]
+            args[s_str] = spline
+            N_np += 1
 
-    return str_func
+        elif op[3] == 4:
+            y_str = "_array_" + str(N_np)
+            if op[1].is_complex:
+                string = "zinterp(t, _CSstart, _CSend, "+ y_str +")"
+                #args_np += [[1,0]]
+            else:
+                string = "interp(t, _CSstart, _CSend, "+ y_str +")"
+                #args_np += [[0,0]]
+            compile_list.append(string)
+            args["_CSstart"] = op[1].a
+            args["_CSend"] = op[1].b
+            args[y_str] = op[1].coeffs
+            N_np += 1
 
-
-def _str_2_code(str_coeff):
-
-    func_name = '_str_factor_' + str(str_coeff[2])
-
-    Code = """
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-
-def """ + func_name + "(double t"
-    # used arguments
-    Code += _get_arg_str(str_coeff[1])
-    Code += "):\n"
-    Code += "    return " + str_coeff[0] + "\n"
-
-    return Code
-
-
-def _get_arg_str(args):
-    if len(args) == 0:
-        return ''
-
-    ret = ''
+    code += "cdef class compiled_str_coeff(str_coeff):\n"
     for name, value in args.items():
-        if isinstance(value, np.ndarray):
-            ret += ",\n        np.ndarray[np.%s_t, ndim=1] %s" % \
-                (value.dtype.name, name)
+        if not isinstance(name, str):
+            raise Exception("All arguments key must be string " +
+                            "and valid variables name")
+        if isinstance(value, np.ndarray) and \
+             isinstance(value[0], (float, np.float32, np.float64)):
+            code += "    cdef double[::1] " + name + "\n"
+        elif isinstance(value, np.ndarray) and \
+             isinstance(value[0], (complex, np.complex128)):
+            code += "    cdef complex[::1] " + name + "\n"
+        elif isinstance(value, (complex, np.complex128)):
+            code += "    cdef complex " + name + "\n"
         else:
-            if isinstance(value, (int, np.int32, np.int64)):
-                kind = 'int'
-            elif isinstance(value, (float, np.float32, np.float64)):
-                kind = 'float'
-            elif isinstance(value, (complex, np.complex128)):
-                kind = 'complex'
-            ret += ",\n        " + kind + " " + name
-    return ret
+            code += "    cdef double " + name + "\n"
+
+    code += "\n"
+    if args:
+        code += "    def set_args(self, args):\n"
+        for name, value in args.items():
+            code += "        self." + name + "=args['"+ name + "']\n"
+        code += "\n"
+    code += "    cdef void _call_core(self, double t, complex * coeff):\n"
+
+    for name, value in args.items():
+        if isinstance(value, np.ndarray) and \
+             isinstance(value[0], (float, np.float32, np.float64)):
+            code += "        cdef double[::1] " + name + " = self." + name + "\n"
+        elif isinstance(value, np.ndarray) and \
+             isinstance(value[0], (complex, np.complex128)):
+            code += "        cdef complex[::1] " + name + " = self." + name + "\n"
+        elif isinstance(value, (complex, np.complex128)):
+            code += "        cdef complex " + name + " = self." + name + "\n"
+        else:
+            code += "        cdef double " + name + " = self." + name + "\n"
+
+    code += "\n"
+    for i, str_coeff in enumerate(compile_list):
+        code += "        coeff[" + str(i) + "] = " + str_coeff + "\n"
+
+    return code
+
+# Old code no longer used
 
 
 def make_united_f_ptr(ops, args, tlist, return_code=False):
     """Create a cython function which return the coefficients of the
-time-dependent parts of an Qobj.
-string coefficients are compiled
-array_like coefficients become cubic spline (see qutip.cy.inter.pyx)
+    time-dependent parts of an Qobj.
+    string coefficients are compiled
+    array_like coefficients become cubic spline (see qutip.cy.inter.pyx)
 
-??? I don't know if it will be useful, but the code is written in a way
+    ??? I don't know if it will be useful, but the code is written in a way
     it would be easy to have different tlist for each array_like coefficients
     """
     import os
@@ -172,6 +277,22 @@ array_like coefficients become cubic spline (see qutip.cy.inter.pyx)
 
             compile_list.append(string)
             N_np += 1
+        elif op[3] == 4:
+            spline, dt_cte = prep_cubic_spline(op[2], tlist)
+            spline_list.append(spline)
+            y_str = "str_array_" + str(N_np)
+            if isinstance(op[1].is_complex):
+                string = "zinterp(t, _CSstart, _CSend, "+ y_str +")"
+                args_np += [[1,dt_cte]]
+            else:
+                string = "interp(t, _CSstart, _CSend, "+ y_str +")"
+                args_np += [[0,dt_cte]]
+
+            compile_list.append(string)
+            N_np += 1
+            args["_CSstart"] = op[1].a
+            args["_CSend"] = op[1].b
+
     all_str = "" + str(np.random.random())
     for op in compile_list:
         all_str += op[0]
@@ -190,6 +311,7 @@ cdef extern from "numpy/arrayobject.h" nogil:
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.inter cimport spline_complex_t_second, spline_complex_cte_second
 from qutip.cy.inter cimport spline_float_t_second, spline_float_cte_second
+from qutip.cy.interpolate cimport (interp, zinterp)
 from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 
@@ -322,6 +444,16 @@ def get_ptr(set_np_obj = False):
                     op[4] = spline_list[n_op]
                     np_obj.set_array_imag(n_op, tlist, op[2], spline_list[n_op])
                 n_op += 1
+            elif op[3] == 4:
+                if isinstance(not op[2].is_complex):
+                    op[4] = spline_list[n_op]
+                    np_obj.set_array_real(n_op, np.zeros(0),
+                                          op[2].coeffs, op[2].coeffs)
+                else:
+                    op[4] = spline_list[n_op]
+                    np_obj.set_array_imag(n_op, np.zeros(0),
+                                          op[2].coeffs, op[2].coeffs)
+                n_op += 1
     if args:
         np_obj.set_args(args)
 
@@ -334,3 +466,90 @@ def get_ptr(set_np_obj = False):
         return compile_f_ptr[0], code
     else:
         return compile_f_ptr[0]
+
+
+def _compile_str_single_old(compile_list):
+    import os
+    _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
+                    "\\", "/")
+    _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
+
+    all_str = ""
+    for op in compile_list:
+        all_str += op[0]
+    filename = "td_Qobj_"+str(hash(all_str))[1:]
+
+    Code = """
+# This file is generated automatically by QuTiP.
+
+import numpy as np
+cimport numpy as np
+cimport cython
+np.import_array()
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+from qutip.cy.spmatfuncs cimport spmvpy
+from qutip.cy.math cimport erf
+cdef double pi = 3.14159265358979323
+
+include """+_include_string+"\n"
+
+    for str_coeff in compile_list:
+        Code += _str_2_code(str_coeff)
+
+    file = open(filename+".pyx", "w")
+    file.writelines(Code)
+    file.close()
+    str_func = []
+    for i in range(len(compile_list)):
+        func_name = '_str_factor_' + str(i)
+        import_code = compile('from ' + filename + ' import ' + func_name +
+                              "\nstr_func.append(" + func_name + ")",
+                              '<string>', 'exec')
+        exec(import_code, locals())
+
+    try:
+        os.remove(filename+".pyx")
+    except:
+        pass
+
+    return str_func
+
+
+def _str_2_code(str_coeff):
+
+    func_name = '_str_factor_' + str(str_coeff[2])
+
+    Code = """
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+
+def """ + func_name + "(double t"
+    # used arguments
+    Code += _get_arg_str(str_coeff[1])
+    Code += "):\n"
+    Code += "    return " + str_coeff[0] + "\n"
+
+    return Code
+
+
+def _get_arg_str(args):
+    if len(args) == 0:
+        return ''
+
+    ret = ''
+    for name, value in args.items():
+        if isinstance(value, np.ndarray):
+            ret += ",\n        np.ndarray[np.%s_t, ndim=1] %s" % \
+                (value.dtype.name, name)
+        else:
+            if isinstance(value, (int, np.int32, np.int64)):
+                kind = 'int'
+            elif isinstance(value, (float, np.float32, np.float64)):
+                kind = 'float'
+            elif isinstance(value, (complex, np.complex128)):
+                kind = 'complex'
+            ret += ",\n        " + kind + " " + name
+    return ret

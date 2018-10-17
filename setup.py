@@ -148,7 +148,7 @@ write_version_py()
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
            'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
-           'brtools_testing', 'br_tensor', 'inter', 'td_qobj_cy', 'piqs']
+           'brtools_testing', 'br_tensor', 'inter', 'td_qobj_cy', 'td_qobj_factor', 'piqs']
 
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
 if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
@@ -218,6 +218,15 @@ if "--with-openmp" in sys.argv:
     # Add omp_sparse_utils
     _mod = Extension('qutip.cy.openmp.omp_sparse_utils',
             sources = ['qutip/cy/openmp/omp_sparse_utils.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags+omp_flags,
+            extra_link_args=omp_args,
+            language='c++')
+    EXT_MODULES.append(_mod)
+
+    # Add td_qobj_omp
+    _mod = Extension('qutip.cy.openmp.td_qobj_omp',
+            sources = ['qutip/cy/openmp/td_qobj_omp.pyx'],
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags+omp_flags,
             extra_link_args=omp_args,
