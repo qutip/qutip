@@ -98,7 +98,7 @@ class _str_wrapper:
     def __init__(self, code):
         self.code =  "_out = " + code
 
-    def __call__(self, t, args):
+    def __call__(self, t, args={}):
         env = {"t":t}
         env.update(args)
         exec(self.code,str_env,env)
@@ -112,7 +112,7 @@ class _CubicSpline_wrapper:
         self.tlist = tlist
         self.func = CubicSpline(self.tlist, self.coeff)
 
-    def __call__(self, t, args):
+    def __call__(self, t, args={}):
         return self.func([t])[0]
 
 
@@ -508,7 +508,7 @@ class td_Qobj:
                 else:
                     coeff[i] = part[1](t, new_args)
             if self.compiled and self.compiled//10 != 2:
-                op_t = self.compileid_Qobj.call_with_coeff(t, coeff, data=data)
+                op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
             else:
                 if data:
                     op_t = self.cte.data.copy()
@@ -1005,7 +1005,7 @@ class td_Qobj:
                         op[2][i] = ff(v)
                     op[1] = _CubicSpline_wrapper(self.tlist, op[2])
                 else:
-                    op[1] = function(op[1], *args, **kw_args)
+                    op[2] = function(op[1], *args, **kw_args)
                     op[3] = 1
         if self.type == 2  and str_mod is None:
             res.type = 5
