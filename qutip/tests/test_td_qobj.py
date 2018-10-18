@@ -57,10 +57,12 @@ def _rand_td_qobj(N=5):
     cte = [td_Qobj([O0])]
 
     wargs = [td_Qobj([O0,[O1,_f1],[O2,_f2]], args={"w1":1,"w2":2}),
-             td_Qobj([O0,[O1,"sin(w1*t)"],[O2,"cos(w2*t)"]], args={"w1":1,"w2":2})]
+             td_Qobj([O0,[O1,"sin(w1*t)"],[O2,"cos(w2*t)"]],
+                     args={"w1":1,"w2":2})]
 
     nargs = [td_Qobj([O0,[O1,np.sin(tlist)],[O2,np.cos(2*tlist)]],tlist=tlist),
-             td_Qobj([O0,[O1,np.sin(tlistlog)],[O2,np.cos(2*tlistlog)]],tlist=tlistlog),
+             td_Qobj([O0,[O1,np.sin(tlistlog)],[O2,np.cos(2*tlistlog)]],
+                     tlist=tlistlog),
              td_Qobj([O0,[O1, Cubic_Spline(0,10,np.sin(tlist))  ],
                          [O2, Cubic_Spline(0,10,np.cos(2*tlist))]])]
     td_qobjs = cte + wargs + nargs
@@ -239,7 +241,7 @@ def test_td_Qobj_to_list():
 
 
 def test_td_Qobj_math_arithmetic():
-    "test arithmetic"
+    "td_Qobj arithmetic"
     N = 5
     t = np.random.rand()+1
     td_qobjs1, base_qobjs1 = _rand_td_qobj(N)
@@ -528,7 +530,7 @@ def test_td_Qobj_expect_rho():
 
 
 def test_td_Qobj_with_state():
-    "td_Qobj args: with_state"
+    "td_Qobj with_state"
     def coeff_state(t,psi,args):
         return np.mean(psi) * args["w1"]
     N = 5
@@ -589,7 +591,7 @@ def test_td_Qobj_with_state():
     assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), data_at_t_args)
 
 
-def test_td_Qobj_pickle_cy_td_Qobj():
+def test_td_Qobj_pickle():
     "td_Qobj pickle"
     #used in parallel_map
     import pickle
@@ -624,3 +626,18 @@ def test_td_Qobj_pickle_cy_td_Qobj():
     td_pick = pickle.loads(pickled)
     # Check for ct_td_qobj
     assert_equal(td_obj_m(t) == td_pick(t), True)
+
+
+def test_td_Qobj_superoperator():
+    "td_Qobj superoperator"
+    td_qobjs1, _ = _rand_td_qobj(3)
+    td_qobjs2, _ = _rand_td_qobj(3)
+    td_qobjs3, _ = _rand_td_qobj(3)
+    t = np.random.rand()+1
+    for op1, op2 in zip(td_qobjs1, td_qobjs2):
+        Q1 = op1(t)
+        Q2 = op2(t)
+        assert_equal(lindblad_dissipator(Q1, Q2, chi=0.5),
+                     lindblad_dissipator(op1, op2, chi=0.5)(t))
+        assert_equal(sprepost(Q1, Q2), sprepost(op1, op2)(t))
+        assert_equal( liouvillian(Q1, [Q2]), liouvillian(op1, [op2])(t))

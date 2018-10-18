@@ -315,7 +315,7 @@ class StochasticSolverOptions:
         self.me = me
         if H is not None:
             try:
-                self.H = td_Qobj(H, args=args, tlist=times, raw_str=True)
+                self.H = td_Qobj(H, args=args, tlist=times)
             except:
                 raise Exception("The hamiltonian format is not valid")
         else:
@@ -323,8 +323,8 @@ class StochasticSolverOptions:
 
         if sc_ops:
             try:
-                self.sc_ops = [td_Qobj(op, args=args, tlist=times,
-                               raw_str=True) for op in sc_ops]
+                self.sc_ops = [td_Qobj(op, args=args, tlist=times)
+                               for op in sc_ops]
             except:
                 raise Exception("The sc_ops format is not valid.\n" +
                                 "[ Qobj / td_Qobj / [Qobj,coeff]]")
@@ -333,8 +333,8 @@ class StochasticSolverOptions:
 
         if c_ops:
             try:
-                self.c_ops = [td_Qobj(op, args=args, tlist=times,
-                              raw_str=True) for op in c_ops]
+                self.c_ops = [td_Qobj(op, args=args, tlist=times)
+                              for op in c_ops]
             except:
                 raise Exception("The c_ops format is not valid.\n" +
                                 "[ Qobj / td_Qobj / [Qobj,coeff]]")
@@ -548,7 +548,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         An instance of the class :class:`qutip.solver.SolverResult`.
 
     """
-    if kwargs["method"] == "photocurrent":
+    if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrentmesolve")
         return photocurrentmesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
@@ -673,7 +673,7 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
 
         An instance of the class :class:`qutip.solver.SolverResult`.
     """
-    if kwargs["method"] == "photocurrent":
+    if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrentsesolve")
         return photocurrentsesolve(H, rho0, times, c_ops=c_ops,

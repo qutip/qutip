@@ -111,11 +111,13 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     L = None
     if isinstance(H, td_Qobj):
         td = True
+
         def H2L(H):
             if H.isoper:
                 return -1.0j * (spre(H) - spost(H))
             else:
                 return H
+
         L = H.apply(H2L)
         data = L.cte.data
     elif isinstance(H, Qobj):
@@ -235,53 +237,18 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
         Lindblad dissipator superoperator.
     """
     if b is None:
-        if isinstance(a, td_Qobj):
-            if not a.N_obj == 1:
-                raise Exception("Single collapse operator as a Td_Qobj " +\
-                                "must be composed of only 1 Qobj")
-            else:
-                def partial_lindblad_dissipator(A):
-                    return lindblad_dissipator(A, chi=chi)
-                return a.apply(partial_lindblad_dissipator)._f_norm2()
-        else:
-            b = a
-
-    td = False
-    #colapse constant td_Qobj
-    if isinstance(a, td_Qobj) and a.const:
-        a = a.cte
-        td = True
-    if isinstance(b, td_Qobj) and b.const:
-        b = b.cte
-        td = True
-
-    if isinstance(a, td_Qobj):
-        if isinstance(b, td_Qobj):
-            # No td coeff crossterm
-            raise NotImplementedError("lindblad_dissipator do not support 2 td_Qobj")
-        else:
-            def partial_lindblad_dissipator(A):
-                return lindblad_dissipator(A, b, chi=chi)
-            return a.apply(partial_lindblad_dissipator)
-
-    elif isinstance(b, td_Qobj):
-        def partial_lindblad_dissipator(B):
-            return lindblad_dissipator(a, B, chi=chi)
-        return b.apply(partial_lindblad_dissipator)
-
+        b = a
+    ad_b = a.dag() * b
+    if chi:
+        D = spre(a) * spost(b.dag()) * np.exp(1j * chi) \
+            - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
     else:
-        #both Qobj
-        ad_b = a.dag() * b
-        if chi:
-            D = spre(a) * spost(b.dag()) *np.exp(1j * chi) \
-                - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
-        else:
-            D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
-        td_Qobj(D) if td else D.data if data_only else D
-        if td:
-            return td_Qobj(D)
-        else:
-            return D.data if data_only else D
+        D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
+
+    if isinstance(a, td_Qobj) or isinstance(b, td_Qobj):
+        return D
+    else:
+        return D.data if data_only else D
 
 
 def operator_to_vector(op):
@@ -371,7 +338,7 @@ def spost(A):
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
     S.data = zcsr_kron(A.data.T,
-                fast_identity(np.prod(A.shape[0])))
+                       fast_identity(np.prod(A.shape[0])))
     return S
 
 
@@ -428,35 +395,13 @@ def sprepost(A, B):
     super : Qobj
         Superoperator formed from input quantum objects.
     """
-    # reduce false td
-    td = False
-    if isinstance(A, td_Qobj) and A.const:
-        A = A.cte
-        td = True
-    if isinstance(B, td_Qobj) and B.const:
-        B = B.cte
-        td = True
-
-    # A is time-dependent
-    if isinstance(A, td_Qobj):
-        if isinstance(B, td_Qobj):
-            # No td coeff crossterm
-            raise NotImplementedError("sprepost: do not support 2 td_Qobj")
-        else:
-            def partial_sprepost(a):
-                return sprepost(a, B)
-            return A.apply(partial_sprepost)
-
-    elif isinstance(B, td_Qobj):
-        def partial_sprepost(b):
-            return sprepost(A, b)
-        return B.apply(partial_sprepost)
+    if isinstance(A, td_Qobj) or isinstance(B, td_Qobj):
+        return spre(A) * spost(B)
 
     else:
-        dims = [[_drop_projected_dims(A.dims[0]), _drop_projected_dims(B.dims[1])],
-                [_drop_projected_dims(A.dims[1]), _drop_projected_dims(B.dims[0])]]
+        dims = [[_drop_projected_dims(A.dims[0]),
+                 _drop_projected_dims(B.dims[1])],
+                [_drop_projected_dims(A.dims[1]),
+                 _drop_projected_dims(B.dims[0])]]
         data = zcsr_kron(B.data.T, A.data)
-        if not td:
-            return Qobj(data, dims=dims, superrep='super')
-        else:
-            return td_Qobj(Qobj(data, dims=dims, superrep='super'))
+        return Qobj(data, dims=dims, superrep='super')

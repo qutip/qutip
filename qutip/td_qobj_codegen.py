@@ -33,6 +33,7 @@
 import numpy as np
 from qutip.cy.inter import prep_cubic_spline
 
+
 def _compile_str_single(string, args):
     import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
@@ -57,10 +58,7 @@ def f(double t, args):
         if name in string:
             Code += "    " + name + " = args['" + name + "']\n"
     Code += "    return " + string + "\n"
-
-
-
-    filename = "td_Qobj_single_str"+str(hash(Code))[1:]
+    filename = "td_Qobj_single_str" + str(hash(Code))[1:]
     file = open(filename+".pyx", "w")
     file.writelines(Code)
     file.close()
@@ -76,6 +74,7 @@ def f(double t, args):
         pass
 
     return str_func[0]
+
 
 def compiled_coeffs(ops, args, tlist):
     code = make_code_4_cimport(ops, args, tlist)
@@ -98,6 +97,7 @@ def compiled_coeffs(ops, args, tlist):
         pass
 
     return coeff_obj, code
+
 
 def make_code_4_cimport(ops, args, tlist):
     """
@@ -130,7 +130,6 @@ include """ + _include_string + "\n\n"
 
     compile_list = []
     N_np = 0
-    #args_np = []
 
     for op in ops:
         if op[3] == 2:
@@ -145,22 +144,20 @@ include """ + _include_string + "\n\n"
             dt_times = str(tlist[1]-tlist[0])
             if dt_cte:
                 if isinstance(op[2][0], (float, np.float32, np.float64)):
-                    string = "spline_float_cte_second(t, " + t_str +", " +\
-                             y_str +", " + s_str +", " + N_times + ", " + dt_times + ")"
-                    #args_np += [[0,dt_cte]]
+                    string = "spline_float_cte_second(t, " + t_str + ", " +\
+                              y_str + ", " + s_str + ", " + N_times + ", " +\
+                              dt_times + ")"
                 elif isinstance(op[2][0], (complex, np.complex128)):
-                    string = "spline_complex_cte_second(t, " + t_str +", " +\
-                             y_str +", " + s_str +", " + N_times + ", " + dt_times + ")"
-                    #args_np += [[1,dt_cte]]
+                    string = "spline_complex_cte_second(t, " + t_str + ", " +\
+                              y_str + ", " + s_str + ", " + N_times + ", " +\
+                              dt_times + ")"
             else:
                 if isinstance(op[2][0], (float, np.float32, np.float64)):
-                    string = "spline_float_t_second(t, " + t_str +", " +\
-                             y_str +", " + s_str +", " + N_times + ")"
-                    #args_np += [[0,dt_cte]]
+                    string = "spline_float_t_second(t, " + t_str + ", " +\
+                             y_str + ", " + s_str + ", " + N_times + ")"
                 elif isinstance(op[2][0], (complex, np.complex128)):
-                    string = "spline_complex_t_second(t, " + t_str +", " +\
-                             y_str +", " + s_str +", " + N_times + ")"
-                    #args_np += [[1,dt_cte]]
+                    string = "spline_complex_t_second(t, " + t_str + ", " +\
+                             y_str + ", " + s_str + ", " + N_times + ")"
             compile_list.append(string)
             args[t_str] = tlist
             args[y_str] = op[2]
@@ -170,11 +167,9 @@ include """ + _include_string + "\n\n"
         elif op[3] == 4:
             y_str = "_array_" + str(N_np)
             if op[1].is_complex:
-                string = "zinterp(t, _CSstart, _CSend, "+ y_str +")"
-                #args_np += [[1,0]]
+                string = "zinterp(t, _CSstart, _CSend, " + y_str + ")"
             else:
-                string = "interp(t, _CSstart, _CSend, "+ y_str +")"
-                #args_np += [[0,0]]
+                string = "interp(t, _CSstart, _CSend, " + y_str + ")"
             compile_list.append(string)
             args["_CSstart"] = op[1].a
             args["_CSend"] = op[1].b
@@ -187,10 +182,10 @@ include """ + _include_string + "\n\n"
             raise Exception("All arguments key must be string " +
                             "and valid variables name")
         if isinstance(value, np.ndarray) and \
-             isinstance(value[0], (float, np.float32, np.float64)):
+                isinstance(value[0], (float, np.float32, np.float64)):
             code += "    cdef double[::1] " + name + "\n"
         elif isinstance(value, np.ndarray) and \
-             isinstance(value[0], (complex, np.complex128)):
+                isinstance(value[0], (complex, np.complex128)):
             code += "    cdef complex[::1] " + name + "\n"
         elif isinstance(value, (complex, np.complex128)):
             code += "    cdef complex " + name + "\n"
@@ -201,17 +196,19 @@ include """ + _include_string + "\n\n"
     if args:
         code += "    def set_args(self, args):\n"
         for name, value in args.items():
-            code += "        self." + name + "=args['"+ name + "']\n"
+            code += "        self." + name + "=args['" + name + "']\n"
         code += "\n"
     code += "    cdef void _call_core(self, double t, complex * coeff):\n"
 
     for name, value in args.items():
         if isinstance(value, np.ndarray) and \
-             isinstance(value[0], (float, np.float32, np.float64)):
-            code += "        cdef double[::1] " + name + " = self." + name + "\n"
+                isinstance(value[0], (float, np.float32, np.float64)):
+            code += "        cdef double[::1] " + name + " = self." +\
+                    name + "\n"
         elif isinstance(value, np.ndarray) and \
-             isinstance(value[0], (complex, np.complex128)):
-            code += "        cdef complex[::1] " + name + " = self." + name + "\n"
+                isinstance(value[0], (complex, np.complex128)):
+            code += "        cdef complex[::1] " + name + " = self." +\
+                    name + "\n"
         elif isinstance(value, (complex, np.complex128)):
             code += "        cdef complex " + name + " = self." + name + "\n"
         else:
@@ -251,29 +248,29 @@ def make_united_f_ptr(ops, args, tlist, return_code=False):
             spline, dt_cte = prep_cubic_spline(op[2], tlist)
             spline_list.append(spline)
 
-            t_str = "str_tlist_" + str(N_np) +", "
-            y_str = "str_array_" + str(N_np) +", "
-            s_str = "str_spline_" + str(N_np) +", "
+            t_str = "str_tlist_" + str(N_np) + ", "
+            y_str = "str_array_" + str(N_np) + ", "
+            s_str = "str_spline_" + str(N_np) + ", "
             N_times = str(len(tlist))
             dt_times = str(tlist[1]-tlist[0])
             if dt_cte:
                 if isinstance(op[2][0], (float, np.float32, np.float64)):
                     string = "spline_float_cte_second(t, " + t_str +\
                              y_str + s_str + N_times + ", " + dt_times + ")"
-                    args_np += [[0,dt_cte]]
+                    args_np += [[0, dt_cte]]
                 elif isinstance(op[2][0], (complex, np.complex128)):
                     string = "spline_complex_cte_second(t, " + t_str +\
                              y_str + s_str + N_times + ", " + dt_times + ")"
-                    args_np += [[1,dt_cte]]
+                    args_np += [[1, dt_cte]]
             else:
                 if isinstance(op[2][0], (float, np.float32, np.float64)):
                     string = "spline_float_t_second(t, " + t_str +\
                              y_str + s_str + N_times + ")"
-                    args_np += [[0,dt_cte]]
+                    args_np += [[0, dt_cte]]
                 elif isinstance(op[2][0], (complex, np.complex128)):
                     string = "spline_complex_t_second(t, " + t_str +\
                              y_str + s_str + N_times + ")"
-                    args_np += [[1,dt_cte]]
+                    args_np += [[1, dt_cte]]
 
             compile_list.append(string)
             N_np += 1
@@ -282,11 +279,11 @@ def make_united_f_ptr(ops, args, tlist, return_code=False):
             spline_list.append(spline)
             y_str = "str_array_" + str(N_np)
             if isinstance(op[1].is_complex):
-                string = "zinterp(t, _CSstart, _CSend, "+ y_str +")"
-                args_np += [[1,dt_cte]]
+                string = "zinterp(t, _CSstart, _CSend, " + y_str + ")"
+                args_np += [[1, dt_cte]]
             else:
-                string = "interp(t, _CSstart, _CSend, "+ y_str +")"
-                args_np += [[0,dt_cte]]
+                string = "interp(t, _CSstart, _CSend, " + y_str + ")"
+                args_np += [[0, dt_cte]]
 
             compile_list.append(string)
             N_np += 1
@@ -382,8 +379,6 @@ include """ + _include_string + "\n\n"
 
     code += "cdef void coeff(double t, complex* out):\n"
     if N_np:
-        #code += "    cdef int N_times = " + str(len(tlist)) + "\n"
-        #code += "    cdef double dt_times = " + str(tlist[1]-tlist[0]) + "\n"
         for i, iscplx in enumerate(args_np):
             if iscplx[0]:
                 code += "    cdef double[::1] str_tlist_" + str(i) +\
@@ -439,10 +434,12 @@ def get_ptr(set_np_obj = False):
             if op[3] == 3:
                 if isinstance(op[2][0], (float, np.float32, np.float64)):
                     op[4] = spline_list[n_op]
-                    np_obj.set_array_real(n_op, tlist, op[2], spline_list[n_op])
+                    np_obj.set_array_real(n_op, tlist, op[2],
+                                          spline_list[n_op])
                 elif isinstance(op[2][0], (complex, np.complex128)):
                     op[4] = spline_list[n_op]
-                    np_obj.set_array_imag(n_op, tlist, op[2], spline_list[n_op])
+                    np_obj.set_array_imag(n_op, tlist, op[2],
+                                          spline_list[n_op])
                 n_op += 1
             elif op[3] == 4:
                 if isinstance(not op[2].is_complex):
