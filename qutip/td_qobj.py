@@ -35,21 +35,86 @@
 __all__ = ['td_Qobj']
 
 from qutip.qobj import Qobj
+import qutip.settings as qset
+from qutip.interpolate import Cubic_Spline
 from scipy.interpolate import CubicSpline
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
-from qutip.td_qobj_codegen import _compile_str_single, make_united_f_ptr
+from qutip.td_qobj_codegen import _compile_str_single, compiled_coeffs
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.td_qobj_cy import (cy_cte_qobj, cy_cte_qobj_dense, cy_td_qobj,
                                  cy_td_qobj_matched, cy_td_qobj_dense)
+from qutip.cy.td_qobj_factor import (inter_coeff_t, inter_coeff_cte,
+                                     interpolate_coeff)
 import pickle
 import sys
+import scipy
+
+if qset.has_openmp:
+    from qutip.cy.openmp.td_qobj_omp import (cy_cte_qobj_omp, cy_td_qobj_omp,
+                                            cy_td_qobj_matched_omp)
 
 safePickle = False
 if sys.platform == 'win32':
     safePickle = True
+
+def proj(x):
+    if np.isfinite(x):
+        return (x)
+    else:
+        return np.inf+0j
+
+str_env = {
+    "sin":np.sin,
+    "cos":np.cos,
+    "tan":np.tan,
+    "asin":np.arcsin,
+    "acos":np.arccos,
+    "atan":np.arctan,
+    "pi":np.pi,
+    "sinh":np.sinh,
+    "cosh":np.cosh,
+    "tanh":np.tanh,
+    "asinh":np.arcsinh,
+    "acosh":np.arccosh,
+    "atanh":np.arctanh,
+    "exp":np.exp,
+    "log":np.log,
+    "log10":np.log10,
+    "erf":scipy.special.erf,
+    "sqrt":np.sqrt,
+    "real":np.real,
+    "imag":np.imag,
+    "conj":np.conj,
+    "abs":np.abs,
+    "norm":lambda x:np.abs(x)**2,
+    "arg":np.angle,
+    "proj":proj,
+    "np":np}
+
+class _str_wrapper:
+    def __init__(self, code):
+        self.code =  "_out = " + code
+
+    def __call__(self, t, args={}):
+        env = {"t":t}
+        env.update(args)
+        exec(self.code,str_env,env)
+        return env["_out"]
+
+class _CubicSpline_wrapper:
+    # Using scipy CubicSpline since Qutip's one
+    # only accept linearly distributed tlist
+    def __init__(self, tlist, coeff):
+        self.coeff = coeff
+        self.tlist = tlist
+        self.func = CubicSpline(self.tlist, self.coeff)
+
+    def __call__(self, t, args={}):
+        return self.func([t])[0]
+
 
 class td_Qobj:
     """A class for representing time-dependent quantum objects,
@@ -96,19 +161,17 @@ class td_Qobj:
                     tlist=tlist)
 
     Mixing the formats is possible, but not recommended.
+    Mixing tlist will cause problem.
 
     Parameters
     ----------
-    td_Qobj(Q_object=[], args={}, tlist=None, raw_str=False)
+    td_Qobj(Q_object=[], args={}, tlist=None)
     Q_object : array_like
         Data for vector/matrix representation of the quantum object.
     args : dictionary that contain the arguments for
     tlist : array_like
         List of times at which the numpy-array coefficients are applied. Times
         must be equidistant and start from 0.
-    raw_str : delay the compilation of str based coefficient until the "compile"
-        method is called.
-
 
     Attributes
     ----------
@@ -122,6 +185,7 @@ class td_Qobj:
             1: function
             2: string
             3: np.array
+            4: Cubic_Spline
     args : map
         arguments of the coefficients
     tlist : array_like
@@ -135,10 +199,8 @@ class td_Qobj:
         is self.cte a dummy Qobj
     const : bool
         Indicates if quantum object is Constant
-    raw_str : bool
-        compile the str coefficient only at the cration of the cy_qobj
-    fast : bool
-        Use a cython function for the coefficient of the cy_qobj? (str/array)
+    type : int
+        todo
     N_obj : int
         number of Qobj in the td_Qobj : len(ops) + (1 if not dummy_cte)
 
@@ -229,7 +291,7 @@ class td_Qobj:
         Return the time-dependent quantum object as a list
     """
 
-    def __init__(self, Q_object=[], args={}, tlist=None, raw_str=False):
+    def __init__(self, Q_object=[], args={}, tlist=None):
         if isinstance(Q_object, td_Qobj):
             self._inplace_copy(Q_object)
             if args:
@@ -241,12 +303,12 @@ class td_Qobj:
         self.args = args
         self.cte = None
         self.tlist = tlist
-        self.fast = True
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
         self.coeff_get = None
-        self.raw_str = raw_str
+        self.type = -1
+        self.omp = 0
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
@@ -261,14 +323,14 @@ class td_Qobj:
             if op_type == 0:
                 self.cte = Q_object
                 self.const = True
+                self.type = 0
             elif op_type == 1:
                 raise Exception("The Qobj must not already be a function")
             elif op_type == -1:
                 pass
 
         else:
-            compile_list = []
-            compile_count = 0
+            op_type_count = [0,0,0,0]
             for type_, op in zip(op_type, Q_object):
                 if type_ == 0:
                     if self.cte is None:
@@ -276,40 +338,48 @@ class td_Qobj:
                     else:
                         self.cte += op
                 elif type_ == 1:
-                    self.ops.append([op[0], op[1], op[1], 1, args])
-                    self.fast = False
+                    op_type_count[0] += 1
+                    self.ops.append([op[0], op[1], op[1], 1])
                 elif type_ == 2:
-                    local_args = {}
-                    for i in args:
-                        if i in op[1]:
-                            local_args[i] = args[i]
-                    self.ops.append([op[0], _dummy, op[1], 2, local_args])
-                    compile_list.append((op[1], local_args, compile_count))
-                    compile_count += 1
+                    op_type_count[1] += 1
+                    self.ops.append([op[0], _str_wrapper(op[1]), op[1], 2])
                 elif type_ == 3:
-                    l = len(self.ops)
-                    N = len(self.tlist)
-                    dt = self.tlist[-1] / (N - 1)
-                    self.ops.append([op[0], CubicSpline(tlist, op[1]),
-                                     op[1].copy(), 3, {}])
-
+                    op_type_count[2] += 1
+                    self.ops.append([op[0], _CubicSpline_wrapper(tlist, op[1]),
+                                     op[1].copy(), 3])
+                elif type_ == 4:
+                    op_type_count[3] += 1
+                    self.ops.append([op[0], op[1], op[1], 4])
                 else:
                     raise Exception("Should never be here")
 
-            if compile_count and not self.raw_str:
-                str_funcs = _compile_str_single(compile_list)
-                count = 0
-                for op in self.ops:
-                    if op[3] == 2:
-                        op[1] = str_funcs[count]
-                        count += 1
+            nops = sum(op_type_count)
+            if op_type_count[0] == nops:
+                self.type = 1
+            elif op_type_count[1] == nops:
+                self.type = 2
+            elif op_type_count[2] == nops:
+                self.type = 3
+            elif op_type_count[3] == nops:
+                self.type = 4
+            elif op_type_count[0]:
+                self.type = 5
+            else:
+                self.type = 6
 
-            if not self.cte:
-                self.cte = self.ops[0][0]
-                for op in self.ops[1:]:
-                    self.cte += op[0]
-                self.cte *= 0.
-                self.dummy_cte = True
+            try:
+                if not self.cte:
+                    self.cte = self.ops[0][0]
+                    for op in self.ops[1:]:
+                        self.cte += op[0]
+                    self.cte *= 0.
+                    self.dummy_cte = True
+                else:
+                    cte_copy = self.cte.copy()
+                    for op in self.ops:
+                        cte_copy += op[0]
+            except Exception as err:
+                raise Exception("Qobj not compatible:\n" + err)
 
             if not self.ops:
                 self.const = True
@@ -333,21 +403,17 @@ class td_Qobj:
                     if not isinstance(op_k[0], Qobj):
                         raise TypeError("Incorrect Q_object specification")
                     elif len(op_k) == 2:
-                        #if isinstance(op_k[1], (FunctionType,
-                        #                        BuiltinFunctionType, partial)):
-                        if callable(op_k[1]):
+                        if isinstance(op_k[1], Cubic_Spline):
+                            op_type.append(4)
+                        elif callable(op_k[1]):
                             op_type.append(1)
                         elif isinstance(op_k[1], str):
                             op_type.append(2)
                         elif isinstance(op_k[1], np.ndarray):
                             if not isinstance(tlist, np.ndarray) or not \
                                         len(op_k[1]) == len(tlist):
-                                raise TypeError("Time list do not match")
+                                raise TypeError("Time list does not match")
                             op_type.append(3)
-                        elif isinstance(op_k[1], CubicSpline):
-                            raise NotImplementedError(
-                                    "Cubic_Spline not supported")
-                        #    h_obj.append(k)
                         else:
                             raise TypeError("Incorrect Q_object specification")
                     else:
@@ -364,26 +430,16 @@ class td_Qobj:
                 op_t = self.cte.data.copy()
             else:
                 op_t = self.cte.copy()
-        elif self.compiled and self.compiled<20:
+        elif self.compiled and self.compiled//10 != 2:
             op_t = self.compiled_Qobj.call(t, data)
         elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
-                if part[3] == 1:  # func: f(t,args)
-                    op_t += part[0].data * part[1](t, part[4])
-                elif part[3] == 2:  # str: f(t,w=2)
-                    op_t += part[0].data * part[1](t, **part[4])
-                elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
-                    op_t += part[0].data * part[1](np.array([t]))[0]
+                op_t += part[0].data * part[1](t, self.args)
         else:
             op_t = self.cte.copy()
             for part in self.ops:
-                if part[3] == 1:  # func: f(t,args)
-                    op_t += part[0] * part[1](t, part[4])
-                elif part[3] == 2:  # str: f(t,w=2)
-                    op_t += part[0] * part[1](t, **part[4])
-                elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
-                    op_t += part[0] * part[1](np.array([t]))[0]
+                op_t += part[0] * part[1](t, self.args)
         return op_t
 
     def with_args(self, t, args, data=False):
@@ -391,48 +447,26 @@ class td_Qobj:
             raise TypeError("the time need to be a real scalar")
         if not isinstance(args, dict):
             raise TypeError("The new args must be in a dict")
-        coeff = np.zeros(len(self.ops), dtype=complex)
         new_args = self.args.copy()
         new_args.update(args)
-        if self.compiled and self.compiled<20:
+        if self.const:
+            if data:
+                op_t =  self.cte.data.copy()
+            else:
+                op_t =  self.cte.copy()
+        elif self.compiled and self.compiled//10 != 2:
+            coeff = np.zeros(len(self.ops), dtype=complex)
             for i, part in enumerate(self.ops):
-                if part[3] == 1:  # func: f(t,args)
-                    coeff[i] = part[1](t, new_args)
-                elif part[3] == 2:  # str: f(t,w=2)
-                    part_args = part[4].copy()
-                    for pa in part_args:
-                        if pa in args:
-                            part_args[pa] = new_args[pa]
-                    coeff[i] = part[1](t, **part_args)
-                elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
-                    coeff[i] = part[1](np.array([t]))[0]
+                coeff[i] = part[1](t, new_args)
             op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
         elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
-                if part[3] == 1:
-                    op_t += part[0].data * part[1](t, new_args)
-                elif part[3] == 2:
-                    part_args = part[4].copy()
-                    for pa in part_args:
-                        if pa in args:
-                            part_args[pa] = new_args[pa]
-                    op_t += part[0].data * part[1](t, **part_args)
-                elif part[3] == 3:
-                    op_t += part[0].data * part[1](np.array([t]))[0]
+                op_t += part[0].data * part[1](t, new_args)
         else:
             op_t = self.cte.copy()
             for part in self.ops:
-                if part[3] == 1:
-                    op_t += part[0] * part[1](t, new_args)
-                elif part[3] == 2:
-                    part_args = part[4].copy()
-                    for pa in part_args:
-                        if pa in args:
-                            part_args[pa] = new_args[pa]
-                    op_t += part[0] * part[1](t, **part_args)
-                elif part[3] == 3:
-                    op_t += part[0] * part[1](np.array([t]))[0]
+                op_t += part[0] * part[1](t, new_args)
         return op_t
 
     def with_state(self, t, psi, args={}, data=False):
@@ -440,90 +474,51 @@ class td_Qobj:
             raise TypeError("the time need to be a real scalar")
         if not isinstance(args, dict):
             raise TypeError("The new args must be in a dict")
-        if self.compiled == 3:
-            coeff = np.zeros(len(self.ops), dtype=complex)
-            if args:
-                new_args = self.args.copy()
-                new_args.update(args)
-                for i, part in enumerate(self.ops):
-                    coeff[i] = part[1](t, psi, new_args)
-            else:
-                for i, part in enumerate(self.ops):
-                    coeff[i] = part[1](t, psi, part[4])
-            op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
-        elif self.compiled and self.compiled<20:
-            coeff = np.zeros(len(self.ops), dtype=complex)
-            if args:
-                new_args = self.args.copy()
-                new_args.update(args)
-                for i, part in enumerate(self.ops):
-                    if part[3] == 1:  # func: f(t, psi, args)
-                        coeff[i] = part[1](t, psi, new_args)
-                    elif part[3] == 2:  # str: f(t,w=2)
-                        part_args = part[4].copy()
-                        for pa in part_args:
-                            if pa in new_args:
-                                part_args[pa] = new_args[pa]
-                        coeff[i] = part[1](t, **part_args)
-                    elif part[3] == 3:  # numpy: scipy's cubic spline
-                        coeff[i] = part[1](np.array([t]))[0]
-            else:
-                for i, part in enumerate(self.ops):
-                    if part[3] == 1:
-                        coeff[i] = part[1](t, psi, part[4])
-                    elif part[3] == 2:
-                        coeff[i] = part[1](t, **part[4])
-                    elif part[3] == 3:
-                        coeff[i] = part[1](np.array([t]))[0]
-            op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
-        elif args:
+        if args:
             new_args = self.args.copy()
             new_args.update(args)
-            if data:
-                op_t = self.cte.data.copy()
-                for part in self.ops:
-                    if part[3] == 1:
-                        op_t += part[0].data * part[1](t, psi, new_args)
-                    elif part[3] == 2:
-                        part_args = part[4].copy()
-                        for pa in part_args:
-                            if pa in args:
-                                part_args[pa] = args[pa]
-                        op_t += part[0].data * part[1](t, **part_args)
-                    elif part[3] == 3:
-                        op_t += part[0].data * part[1](np.array([t]))[0]
-            else:
-                op_t = self.cte.copy()
-                for part in self.ops:
-                    if part[3] == 1:
-                        op_t += part[0] * part[1](t, psi, new_args)
-                    elif part[3] == 2:
-                        part_args = part[4].copy()
-                        for pa in part_args:
-                            if pa in args:
-                                part_args[pa] = args[pa]
-                        op_t += part[0] * part[1](t, **part_args)
-                    elif part[3] == 3:
-                        op_t += part[0] * part[1](np.array([t]))[0]
         else:
-            if data:
-                op_t = self.cte.data.copy()
-                for part in self.ops:
-                    if part[3] == 1:
-                        op_t += part[0].data * part[1](t, psi, part[4])
-                    elif part[3] == 2:
-                        op_t += part[0].data * part[1](t, **part[4])
-                    elif part[3] == 3:
-                        op_t += part[0].data * part[1](np.array([t]))[0]
+            new_args = self.args
+        if not self.type in [1,5]:
+            # no pure function than can accept state
+            if args:
+                op_t = self.with_args(t, args, data)
             else:
-                op_t = self.cte.copy()
-                for part in self.ops:
-                    if part[3] == 1:
-                        op_t += part[0] * part[1](t, psi, part[4])
-                    elif part[3] == 2:
-                        op_t += part[0] * part[1](t, **part[4])
-                    elif part[3] == 3:
-                        op_t += part[0] * part[1](np.array([t]))[0]
+                op_t = self.__call__(t, data)
+        elif self.type == 1:
+            if self.compiled:
+                coeff = np.zeros(len(self.ops), dtype=complex)
+                for i, part in enumerate(self.ops):
+                    coeff[i] = part[1](t, psi, new_args)
+                op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+            else:
+                if data:
+                    op_t = self.cte.data.copy()
+                    for part in self.ops:
+                        op_t += part[0].data * part[1](t, psi, new_args)
+                else:
+                    op_t = self.cte.copy()
+                    for part in self.ops:
+                        op_t += part[0] * part[1](t, psi, new_args)
+        else:
+            coeff = np.zeros(len(self.ops), dtype=complex)
+            for i, part in enumerate(self.ops):
+                if part[3] == 1:  # func: f(t, psi, args)
+                    coeff[i] = part[1](t, psi, new_args)
+                else:
+                    coeff[i] = part[1](t, new_args)
+            if self.compiled and self.compiled//10 != 2:
+                op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+            else:
+                if data:
+                    op_t = self.cte.data.copy()
+                    for c, part in zip(coeff, self.ops):
+                        op_t += part[0].data * c
+                else:
+                    op_t = self.cte.copy()
+                    for c, part in zip(coeff, self.ops):
+                        op_t += part[0] * c
+
         return op_t
 
     def copy(self):
@@ -533,24 +528,21 @@ class td_Qobj:
         new.tlist = self.tlist
         new.dummy_cte = self.dummy_cte
         new.N_obj = self.N_obj
-        new.fast = self.fast
-        new.raw_str = self.raw_str
+        new.type = self.type
         new.compiled = False
         new.compiled_Qobj = None
         new.compiled_ptr = None
         new.coeff_get = None
 
         for l, op in enumerate(self.ops):
-            new.ops.append([None, None, None, None, None])
+            new.ops.append([None, None, None, None])
             new.ops[l][0] = op[0].copy()
-            new.ops[l][3] = op[3]
             new.ops[l][1] = op[1]
-            if new.ops[l][3] in [1, 2]:
-                new.ops[l][2] = op[2]
-                new.ops[l][4] = op[4].copy()
-            elif new.ops[l][3] == 3:
+            new.ops[l][3] = op[3]
+            if new.ops[l][3] == 3:
                 new.ops[l][2] = op[2].copy()
-                new.ops[l][4] = None
+            else:
+                new.ops[l][2] = op[2]
 
         return new
 
@@ -561,8 +553,7 @@ class td_Qobj:
         self.tlist = other.tlist
         self.dummy_cte = other.dummy_cte
         self.N_obj = other.N_obj
-        self.fast = other.fast
-        self.raw_str = other.raw_str
+        self.type = other.type
         self.compiled = False
         self.compiled_Qobj = None
         self.compiled_ptr = None
@@ -570,42 +561,28 @@ class td_Qobj:
         self.ops = []
 
         for l, op in enumerate(other.ops):
-            self.ops.append([None, None, None, None, None])
+            self.ops.append([None, None, None, None])
             self.ops[l][0] = op[0].copy()
             self.ops[l][3] = op[3]
             self.ops[l][1] = op[1]
-            if self.ops[l][3] in [1, 2]:
-                self.ops[l][2] = op[2]
-                self.ops[l][4] = op[4].copy()
-            elif self.ops[l][3] == 3:
+            if self.ops[l][3] == 3:
                 self.ops[l][2] = op[2].copy()
-                self.ops[l][4] = None
+            else:
+                self.ops[l][2] = op[2]
 
     def arguments(self, args):
         if not isinstance(args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(args)
-        if self.compiled in [2,12,22]:
-            self.coeff_get(True).set_args(self.args)
-        for op in self.ops:
-            if op[3] == 1:
-                op[4] = self.args
-            elif op[3] == 2:
-                local_args = {}
-                for i in self.args:
-                    if i in op[2]:
-                        local_args[i] = self.args[i]
-                op[4] = local_args
+        if self.compiled in [2,12,22,32,42, 3,13,23,33,43 ]:
+            self.coeff_get.set_args(self.args)
 
     def to_list(self):
         list_Qobj = []
         if not self.dummy_cte:
             list_Qobj.append(self.cte)
         for op in self.ops:
-            if op[3] == 1:
-                list_Qobj.append([op[0], op[1]])
-            else:
-                list_Qobj.append([op[0], op[2]])
+            list_Qobj.append([op[0], op[2]])
         return list_Qobj
 
     # Math function
@@ -624,22 +601,23 @@ class td_Qobj:
             self.cte += other.cte
             l = len(self.ops)
             for op in other.ops:
-                self.ops.append([None, None, None, None, None])
+                self.ops.append([None, None, None, None])
                 self.ops[l][0] = op[0].copy()
                 self.ops[l][3] = op[3]
                 self.ops[l][1] = op[1]
-                if self.ops[l][3] in [1, 2]:
-                    self.ops[l][2] = op[2]
-                    self.ops[l][4] = op[4].copy()
-                elif self.ops[l][3] == 3:
+                if self.ops[l][3] == 3:
                     self.ops[l][2] = op[2].copy()
-                    self.ops[l][4] = None
+                else:
+                    self.ops[l][2] = op[2]
                 l += 1
             self.args.update(**other.args)
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
-            self.fast = self.fast and other.fast
-            self.raw_str = self.raw_str and other.raw_str
+            if self.type != other.type:
+                if self.type in [1,5] or other.type in [1,5]:
+                    self.type = 5
+                else:
+                    self.type = 6
             self.compiled = False
             self.compiled_Qobj = None
             self.compiled_ptr = None
@@ -658,6 +636,7 @@ class td_Qobj:
             self.dummy_cte = False
 
         self.N_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
+        self._reset_type()
         return self
 
     def __sub__(self, other):
@@ -707,11 +686,31 @@ class td_Qobj:
                 for op in self.ops:
                     op[0] = cte*op[0]
             else:
-                raise Exception("When multiplying td_qobj, one " +
-                                "of them must be constant")
+                cte = self.cte.copy()
+                self.cte *= other.cte
+                new_terms = []
+                old_ops = self.ops
+                if not other.dummy_cte:
+                    for op in old_ops:
+                        new_terms.append(self._ops_mul_cte(op, other.cte, "R"))
+                if not self.dummy_cte:
+                    for op in other.ops:
+                        new_terms.append(self._ops_mul_cte(op, cte, "L"))
+
+                for op_left in old_ops:
+                    for op_right in other.ops:
+                        new_terms.append(self._ops_mul_(op_left,
+                                                        op_right))
+                self.ops = new_terms
+                self.args.update(other.args)
+                self.dummy_cte = self.dummy_cte and other.dummy_cte
+                self.N_obj = (len(self.ops) if \
+                              self.dummy_cte else len(self.ops) + 1)
+            self._reset_type()
+
         else:
             raise TypeError("td_qobj can only be multiplied" +
-                            " with Qobj or numbers")
+                            " with td_qobj, Qobj or numbers")
         return self
 
     def __div__(self, other):
@@ -741,6 +740,29 @@ class td_Qobj:
             op[0] = -op[0]
         return res
 
+    def _ops_mul_(self, opL, opR):
+        new_f = _prod(opL[1], opR[1])
+        new_op = [opL[0]*opR[0], new_f, None, 0]
+        if opL[3] == opR[3] and opL[3] == 2:
+            new_op[2] = "("+opL[2]+") * ("+opR[2]+")"
+            new_op[3] = 2
+        elif opL[3] == opR[3] and opL[3] == 3:
+            new_op[2] = opL[2]*opR[2]
+            new_op[3] = 3
+        else:
+            new_op[2] = new_f
+            new_op[3] = 1
+            if self.type not in [1,5]:
+                self.type = 5
+        return new_op
+
+    def _ops_mul_cte(self, op, cte, side):
+        new_op = [None, op[1], op[2], op[3]]
+        if side == "R":
+            new_op[0] = op[0] * cte
+        if side == "L":
+            new_op[0] = cte * op[0]
+        return new_op
 
     # Transformations
     def trans(self):
@@ -766,11 +788,11 @@ class td_Qobj:
         res._f_conj()
         return res
 
-    # When name fixed, put in stochastic/ mcsolve
     def norm(self):
         """return a.dag * a """
         if not self.N_obj == 1:
-            raise Exception("td_Qobj must be composed of only one Qobj")
+            res = self.dag()
+            res *= self
         else:
             res = self.copy()
             res.cte = res.cte.dag() * res.cte
@@ -786,7 +808,7 @@ class td_Qobj:
             op[0] = op[0].tidyup(atol)
         return self
 
-    def compress(self):
+    def _compress_make_set(self):
         sets = []
         for i, op1 in enumerate(self.ops):
             already_matched = False
@@ -795,56 +817,134 @@ class td_Qobj:
             if not already_matched:
                 this_set = [i]
                 for j, op2 in enumerate(self.ops[i+1:]):
-                    if op1[0] == op2[0] and op1[3] == op2[3]:
+                    if op1[0] == op2[0] and (op1[3] == op2[3] or
+                         (op1[3] in [1,4] and op2[3] in [1,4])):
                         this_set.append(j+i+1)
                 sets.append(this_set)
-        if len(self.ops) != len(sets):
-            # found 2 td part with the same Qobj
+
+        fsets = []
+        for i, op1 in enumerate(self.ops):
+            already_matched = False
+            for _set in fsets:
+                already_matched = already_matched or i in _set
+            if not already_matched:
+                this_set = [i]
+                for j, op2 in enumerate(self.ops[i+1:]):
+                    if op1[3] in [1,2,4] and op2[3] == op1[3]:
+                        if op1[2] is op2[2]:
+                            this_set.append(j+i+1)
+                    elif op1[3] in [3] and op2[3] == op1[3]:
+                        if np.allclose(op1[2], op2[2]):
+                            this_set.append(j+i+1)
+                fsets.append(this_set)
+        return sets, fsets
+
+    def _compress_merge_Qobj(self, sets):
+        new_ops = []
+        for _set in sets:
+            if len(_set) == 1:
+                new_op = self.ops[_set[0]]
+
+            elif self.ops[_set[0]][3] in [1,4]:
+                new_op = [self.ops[_set[0]][0], None, None, 1]
+                fs = []
+                for i in _set:
+                    fs += [self.ops[i][1]]
+                new_op[1] = _add(fs)
+                new_op[2] = new_op[1]
+
+            elif self.ops[_set[0]][3] == 2:
+                new_op = [self.ops[_set[0]][0], None, None, 2]
+                new_str = "(" + self.ops[0][2] + ")"
+                for i in _set[1:]:
+                    new_str += " + (" + self.ops[i][2] + ")"
+                new_op[1] = _str_wrapper(new_str)
+                new_op[2] = new_str
+
+            elif self.ops[_set[0]][3] == 3:
+                new_op = [self.ops[_set[0]][0], None, None, 2]
+                new_array = (self.ops[_set[0]][2]).copy()
+                for i in _set[1:]:
+                    new_array += self.ops[i][2]
+                new_op[2] = new_array
+                new_op[1] = _CubicSpline_wrapper(self.tlist, new_array)
+
+            new_ops.append(new_op)
+        self.ops = new_ops
+
+    def _compress_merge_func(self, fsets):
+        new_ops = []
+        for _set in fsets:
+            if len(_set) == 1:
+                new_op = self.ops[_set[0]]
+            else:
+                new_op = self.ops[_set[0]]
+                new_op[0] = self.ops[_set[0]][0].copy()
+                for i in _set[1:]:
+                    new_op[0] += self.ops[i][0]
+            new_ops.append(new_op)
+        self.ops = new_ops
+
+    def compress(self):
+        self.tidyup()
+        sets, fsets = self._compress_make_set()
+        N_sets = len(sets)
+        N_fsets = len(fsets)
+        N_ops = len(self.ops)
+
+        if N_sets < N_ops and N_fsets < N_ops:
+            # Both could be better
             self.compiled = False
             self.compiled_Qobj = None
-            self.compiled_ptr = None
             self.coeff_get = None
-            new_ops = []
-            for _set in sets:
-                if len(_set) == 1:
-                    new_ops.append(self.ops[_set[0]])
-                elif self.ops[_set[0]][3] == 1:
-                    new_fs = [self.ops[_set[0]][1]]
-                    new_args = self.ops[_set[0]][4].copy()
-                    for i in _set[1:]:
-                        new_fs += [self.ops[i][1]]
-                        new_args.update(self.ops[i][4])
-                    new_op = [self.ops[_set[0]][0], None, new_fs, 1, new_args]
-                    def _new_f(t, *args):
-                        return sum((f(t, *args) for f in new_fs))
-                    new_op[1] = _new_f
-                    new_ops.append(new_op)
+            if N_sets < N_fsets:
+                self._compress_merge_Qobj(sets)
+            else:
+                self._compress_merge_func(fsets)
+            sets, fsets = self._compress_make_set()
+            N_sets = len(sets)
+            N_fsets = len(fsets)
+            N_ops = len(self.ops)
 
-                elif self.ops[_set[0]][3] == 2:
-                    new_op = self.ops[_set[0]]
-                    new_str = self.ops[_set[0]][2]
-                    for i in _set[1:]:
-                        if self.ops[i][4]:
-                            new_op[4].update(self.ops[i][4])
-                        new_str = "(" + new_str + ") + (" + \
-                                  self.ops[i][2] + ")"
-                    if self.raw_str:
-                        new_op[1] = _dummy
-                    else:
-                        new_op[1] = \
-                            _compile_str_single([[new_str, new_op[4], 0]])[0]
-                    new_op[2] = new_str
-                    new_ops.append(new_op)
-                elif self.ops[_set[0]][3] == 3:
-                    new_op = self.ops[_set[0]]
-                    new_array = (self.ops[_set[0]][2]).copy()
-                    for i in _set[1:]:
-                        new_array += self.ops[i][2]
-                    new_op[2] = new_array
-                    new_op[1] = CubicSpline(self.tlist, new_array)
-                    new_op[4] = None
-                    new_ops.append(new_op)
-            self.ops = new_ops
+        if N_sets < N_ops:
+            self.compiled = False
+            self.compiled_Qobj = None
+            self.coeff_get = None
+            self._compress_merge_Qobj(sets)
+        elif N_fsets < N_ops:
+            self.compiled = False
+            self.compiled_Qobj = None
+            self.coeff_get = None
+            self._compress_merge_func(fsets)
+        self._reset_type()
+
+    def _reset_type(self):
+        op_type_count = [0, 0, 0, 0]
+        for op in self.ops:
+            if op[3] == 1:
+                op_type_count[0] += 1
+            elif op[3] == 2:
+                op_type_count[1] += 1
+            elif op[3] == 3:
+                op_type_count[2] += 1
+            elif op[3] == 4:
+                op_type_count[3] += 1
+
+        nops = sum(op_type_count)
+        if op_type_count[0] == nops:
+            self.type = 1
+        elif op_type_count[1] == nops:
+            self.type = 2
+        elif op_type_count[2] == nops:
+            self.type = 3
+        elif op_type_count[3] == nops:
+            self.type = 4
+        elif op_type_count[0]:
+            self.type = 5
+        else:
+            self.type = 6
+
+        self.N_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
 
     def permute(self, order):
         res = self.copy()
@@ -883,23 +983,17 @@ class td_Qobj:
             del kw_args["inplace_np"]
         else:
             inplace_np = None
-        self.compiled = False
         res = self.copy()
-        raw_str = self.raw_str
         for op in res.ops:
-            if op[3] == 1:
-                op[1] = function(op[1], *args, **kw_args)
+            op[1] = function(op[1], *args, **kw_args)
+            if op[3] == [1,4]:
                 op[2] = function(op[1], *args, **kw_args)
-            if op[3] == 2:
+                op[3] = 1
+            elif op[3] == 2:
                 if str_mod is None:
-                    if self.raw_str:
-                        op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
-                        raw_str = False
-                    op[1] = function(op[1], *args, **kw_args)
-                    res.fast = False
+                    op[2] = op[1]
+                    op[3] = 1
                 else:
-                    if not self.raw_str:
-                        op[1] = function(op[1], *args, **kw_args)
                     op[2] = str_mod[0] + op[2] + str_mod[1]
             elif op[3] == 3:
                 if inplace_np:
@@ -909,11 +1003,20 @@ class td_Qobj:
                     ff = function(f, *args, **kw_args)
                     for i, v in enumerate(op[2]):
                         op[2][i] = ff(v)
-                    op[1] = CubicSpline(self.tlist, op[2])
+                    op[1] = _CubicSpline_wrapper(self.tlist, op[2])
                 else:
-                    op[1] = function(op[1], *args, **kw_args)
-                    res.fast = False
-        self.raw_str = raw_str
+                    op[2] = function(op[1], *args, **kw_args)
+                    op[3] = 1
+        if self.type == 2  and str_mod is None:
+            res.type = 5
+        elif self.type == 3  and not inplace_np:
+            res.type = 5
+        elif self.type == 4:
+            res.type = 5
+        elif self.type == 6:
+            for op in res.ops:
+                if op[3] == 1:
+                    res.type = 5
         return res
 
     def _f_norm2(self):
@@ -923,11 +1026,15 @@ class td_Qobj:
                 op[2] = op[1]
             elif op[3] == 2:
                 op[2] = "norm(" + op[2] + ")"
-                if not self.raw_str:
-                    op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
+                op[1] = _str_wrapper(op[2])
             elif op[3] == 3:
                 op[2] = np.abs(op[2])**2
-                op[1] = CubicSpline(self.tlist, op[2])
+                op[1] = _CubicSpline_wrapper(self.tlist, op[2])
+            elif op[3] == 4:
+                op[1] = _norm2(op[1])
+                op[2] = op[1]
+                op[3] = 1
+                self.type = 5
         return self
 
     def _f_conj(self):
@@ -937,11 +1044,15 @@ class td_Qobj:
                 op[2] = op[1]
             elif op[3] == 2:
                 op[2] = "conj(" + op[2] + ")"
-                if not self.raw_str:
-                    op[1] = _compile_str_single([[op[2], op[4], 0]])[0]
+                op[1] = _str_wrapper(op[2])
             elif op[3] == 3:
                 op[2] = np.conj(op[2])
-                op[1] = CubicSpline(self.tlist, op[2])
+                op[1] = _CubicSpline_wrapper(self.tlist, op[2])
+            elif op[3] == 4:
+                op[1] = _conj(op[1])
+                op[2] = op[1]
+                op[3] = 1
+                self.type = 5
         return self
 
     def expect(self, t, vec, herm=0):
@@ -1006,82 +1117,89 @@ class td_Qobj:
             out = self.__call__(t, data=True) * mat
         return out
 
-    def compile(self, code=False, matched=False, dense=False):
+    def compile(self, code=False, matched=False, dense=False, omp=0):
         self.tidyup()
+        Code = None
+        if not qset.has_openmp:
+            omp = 0
         if self.const:
             if dense:
                 self.compiled_Qobj = cy_cte_qobj_dense()
                 self.compiled = 21
+            elif omp:
+                self.compiled_Qobj = cy_cte_qobj_omp()
+                self.compiled = 31
+                self.compiled_Qobj.set_threads(omp)
+                self.omp = omp
             else:
                 self.compiled_Qobj = cy_cte_qobj()
                 self.compiled = 1
             self.compiled_Qobj.set_data(self.cte)
         else:
-            Code = None
             if matched:
-                self.compiled_Qobj = cy_td_qobj_matched()
-                self.compiled = 10
+                if omp:
+                    self.compiled_Qobj = cy_td_qobj_matched_omp()
+                    self.compiled = 40
+                    self.compiled_Qobj.set_threads(omp)
+                    self.omp = omp
+                else:
+                    self.compiled_Qobj = cy_td_qobj_matched()
+                    self.compiled = 10
             elif dense:
                 self.compiled_Qobj = cy_td_qobj_dense()
                 self.compiled = 20
+            elif omp:
+                self.compiled_Qobj = cy_td_qobj_omp()
+                self.compiled = 30
+                self.compiled_Qobj.set_threads(omp)
+                self.omp = omp
             else:
                 self.compiled_Qobj = cy_td_qobj()
                 self.compiled = 0
             self.compiled_Qobj.set_data(self.cte, self.ops)
-            if self.fast:
-                # All factor can be compiled
-                if code:
-                    self.coeff_get, Code = make_united_f_ptr(self.ops,
-                                                        self.args, self.tlist,
-                                                        True)
-                else:
-                    self.coeff_get = make_united_f_ptr(self.ops, self.args,
-                                                              self.tlist, False)
-                    Code = None
-                self.compiled_Qobj.set_factor(ptr=self.coeff_get())
+            if self.type in [1]:
+                funclist = []
+                for part in self.ops:
+                    funclist.append(part[1])
+                self.coeff_get = _united_f_caller(funclist, self.args)
                 self.compiled += 2
-            else:
-                self.coeff_get, compiled_code = self._make_united_f_call()
-                self.compiled += compiled_code
                 self.compiled_Qobj.set_factor(func=self.coeff_get)
-            return Code
-
-    def _make_united_f_call(self):
-        types = [0, 0, 0]
-        for part in self.ops:
-            types[part[3]-1] += 1
-        if sum(types) == 0:
-            if len(self.ops) == 0:
-                raise Exception("No td operator but constant flag missing")
+            elif self.type in [5]:
+                funclist = []
+                for part in self.ops:
+                    if isinstance(part[1], _str_wrapper):
+                        part[1] = _compile_str_single(part[2], self.args)
+                    funclist.append(part[1])
+                self.coeff_get = _united_f_caller(funclist, self.args)
+                self.compiled += 2
+                self.compiled_Qobj.set_factor(func=self.coeff_get)
+            elif self.type in [2,6]:
+                # All factor can be compiled
+                self.coeff_get, Code = compiled_coeffs(self.ops,
+                                                        self.args, self.tlist)
+                self.compiled_Qobj.set_factor(obj=self.coeff_get)
+                self.compiled += 3
+            elif self.type == 3:
+                if np.allclose(np.diff(self.tlist),
+                               self.tlist[1] - self.tlist[0]):
+                    self.coeff_get = inter_coeff_cte(self.ops, None, self.tlist)
+                else:
+                    self.coeff_get = inter_coeff_t(self.ops, None, self.tlist)
+                self.compiled += 3
+                self.compiled_Qobj.set_factor(obj=self.coeff_get)
+            elif self.type == 4:
+                self.coeff_get = interpolate_coeff(self.ops, None, None)
+                self.compiled += 3
+                self.compiled_Qobj.set_factor(obj=self.coeff_get)
             else:
-                raise Exception("Type of td_operator not supported")
-        elif types[1] == 0 and types[2] == 0:
-            # Only functions
-            self.funclist = []
-            for part in self.ops:
-                self.funclist.append(part[1])
-            united_f_call = _united_f_caller(self.funclist, self.args)
-            all_function = 3
-        else:
-            # Must be mixed, would be fast otherwise
-            united_f_call  = self._get_coeff
-            all_function = 4
-        return united_f_call, all_function
+                pass
+            if code:
+                return Code
 
     def _get_coeff(self, t):
         out = []
         for part in self.ops:
-            if part[3] == 1:  # func: f(t,args)
-                out.append(part[1](t, part[4]))
-            elif part[3] == 2:  # str: f(t,w=2)
-                if self.raw_str:
-                    # Must compile the str here
-                    part[1] = \
-                        _compile_str_single([[part[2], part[4], 0]])[0]
-                out.append(part[1](t, **part[4]))
-            elif part[3] == 3:  # numpy: _interpolate(t,arr,N,dt)
-                out.append(part[1](np.array([t]))[0])
-        self.raw_str = False
+            out.append(part[1](t, self.args))
         return out
 
     def __getstate__(self):
@@ -1105,30 +1223,51 @@ class td_Qobj:
                 elif self.compiled == 21:
                     self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
                     self.compiled_Qobj.__setstate__(state[1])
-                elif self.compiled in (2,3,4):
+                elif self.compiled == 31:
+                    self.compiled_Qobj = cy_cte_qobj_omp()
+                    self.compiled_Qobj.set_data(self.cte)
+                    self.compiled_Qobj.set_threads(self.omp)
+                elif self.compiled in (2,3):
                     self.compiled_Qobj = cy_td_qobj()
                     self.compiled_Qobj.set_data(self.cte, self.ops)
-                elif self.compiled in (22,23,24):
+                elif self.compiled in (22,23):
                     self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
                     self.compiled_Qobj.__setstate__(state[1])
-                elif self.compiled in (12,13,14):
+                elif self.compiled in (12,13):
                     self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
                     self.compiled_Qobj.__setstate__(state[1])
-                if self.fast:
-                    self.compiled_Qobj.set_factor(ptr=self.coeff_get())
-                else:
+                elif self.compiled in (32,33):
+                    self.compiled_Qobj = cy_td_qobj_omp()
+                    self.compiled_Qobj.set_data(self.cte, self.ops)
+                    self.compiled_Qobj.set_threads(self.omp)
+                elif self.compiled in (42,43):
+                    self.compiled_Qobj = cy_td_qobj_matched_omp.__new__(cy_td_qobj_matched_omp)
+                    self.compiled_Qobj.__setstate__(state[1])
+                    self.compiled_Qobj.set_threads(self.omp)
+                if self.compiled % 10 == 3:
+                    self.compiled_Qobj.set_factor(obj=self.coeff_get)
+                elif self.compiled % 10 == 2:
                     self.compiled_Qobj.set_factor(func=self.coeff_get)
             else:
                 if self.compiled == 1:
                     self.compiled_Qobj = cy_cte_qobj.__new__(cy_cte_qobj)
                 elif self.compiled == 21:
                     self.compiled_Qobj = cy_cte_qobj_dense.__new__(cy_cte_qobj_dense)
-                elif self.compiled in (2,3,4):
+                elif self.compiled == 31:
+                    self.compiled_Qobj = cy_cte_qobj_omp.__new__(cy_cte_qobj_omp)
+                    self.compiled_Qobj.set_threads(self.omp)
+                elif self.compiled in (2,3):
                     self.compiled_Qobj = cy_td_qobj.__new__(cy_td_qobj)
-                elif self.compiled in (22,23,24):
+                elif self.compiled in (22,23):
                     self.compiled_Qobj = cy_td_qobj_dense.__new__(cy_td_qobj_dense)
-                elif self.compiled in (12,13,14):
+                elif self.compiled in (12,13):
                     self.compiled_Qobj = cy_td_qobj_matched.__new__(cy_td_qobj_matched)
+                elif self.compiled in (32,33):
+                    self.compiled_Qobj = cy_td_qobj_omp.__new__(cy_td_qobj_omp)
+                    self.compiled_Qobj.set_threads(self.omp)
+                elif self.compiled in (42,43):
+                    self.compiled_Qobj = cy_td_qobj_matched_omp.__new__(cy_td_qobj_matched_omp)
+                    self.compiled_Qobj.set_threads(self.omp)
                 self.compiled_Qobj.__setstate__(state[1])
 
 
@@ -1139,10 +1278,18 @@ class _united_f_caller:
         self.funclist = funclist
         self.args = args
 
-    def __call__(self,t):
+    def set_args(self, args):
+        self.args = args
+
+    def __call__(self, t, args=None):
+        if args:
+            now_args = self.args.copy()
+            now_args.update(args)
+        else:
+            now_args = self.args
         out = []
         for func in self.funclist:
-            out.append(func(t, self.args))
+            out.append(func(t, now_args))
         return out
 
 class _compress_f_caller:
@@ -1151,9 +1298,6 @@ class _compress_f_caller:
 
     def __call__(self, t, *args):
         return sum((f(t, *args) for f in self.funclist))
-
-def _dummy(t, *args, **kwargs):
-    return 0.
 
 class _norm2():
     def __init__(self, f):
@@ -1168,15 +1312,6 @@ class _conj():
 
     def __call__(self, t, args):
         return np.conj(self.func(t, args))
-
-class _str2func():
-    def __init__(self, func, args):
-        self.f = func
-        self.args = args
-
-    def __call__(self, t, args):
-        args_used = {key:args[key] for key in args if key in self.args}
-        return self.f(t, **args_used)
 
 class _prod_dag():
     def __init__(self, f, g):
@@ -1193,3 +1328,10 @@ class _prod():
 
     def __call__(self, t, args):
         return self.func_1(t, args)*self.func_2(t, args)
+
+class _add():
+    def __init__(self, fs):
+        self.funcs = fs
+
+    def __call__(self, t, args):
+        return np.sum([f(t, args) for f in self.funcs])

@@ -32,13 +32,23 @@
 ###############################################################################
 
 from qutip.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
-
+from qutip.cy.td_qobj_factor cimport coeffFunc
 
 cdef class cy_qobj:
     cdef int shape0, shape1
     cdef object dims
     cdef int super
+    cdef int N_ops
 
+    #cdef void (*factor_ptr)(double, complex*)
+    cdef object factor_func
+    cdef coeffFunc factor_cobj
+    cdef int factor_use_cobj
+    # prepared buffer
+    cdef complex[::1] coeff
+    cdef complex * coeff_ptr
+
+    cdef void factor(self, double t)
     cdef void _mul_vec(self, double t, complex* vec, complex* out)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                     int nrow, int ncols)
@@ -59,43 +69,26 @@ cdef class cy_cte_qobj_dense(cy_qobj):
     cdef complex[:, ::1] cte
 
 
-
 cdef class cy_td_qobj(cy_qobj):
     cdef long total_elem
-
-    cdef void (*factor_ptr)(double, complex*)
-    cdef object factor_func
-    cdef int factor_use_ptr
-
     # pointer to data
     cdef CSR_Matrix cte
     cdef CSR_Matrix ** ops
     cdef long[::1] sum_elem
-    cdef int N_ops
 
-    # prepared buffer
-    cdef complex[::1] coeff
-    cdef complex * coeff_ptr
 
     cdef void factor(self, double t)
     cdef void _call_core(self, double t, CSR_Matrix * out, complex* coeff)
 
 
 cdef class cy_td_qobj_dense(cy_qobj):
-    cdef void (*factor_ptr)(double, complex*)
-    cdef object factor_func
-    cdef int factor_use_ptr
-
     # data as array
     cdef complex[:, ::1] cte
     cdef complex[:, :, ::1] ops
-    cdef int N_ops
 
     # prepared buffer
     cdef complex[:, ::1] data_t
     cdef complex * data_ptr
-    cdef complex[::1] coeff
-    cdef complex * coeff_ptr
 
     cdef void factor(self, double t)
     cdef void _call_core(self, double t, complex[:,::1] out, complex* coeff)
@@ -103,22 +96,16 @@ cdef class cy_td_qobj_dense(cy_qobj):
 
 cdef class cy_td_qobj_matched(cy_qobj):
     cdef int nnz
-    cdef void (*factor_ptr)(double, complex*)
-    cdef object factor_func
-    cdef int factor_use_ptr
 
     # data as array
     cdef int[::1] indptr
     cdef int[::1] indices
     cdef complex[::1] cte
     cdef complex[:, ::1] ops
-    cdef int N_ops
 
     # prepared buffer
     cdef complex[::1] data_t
     cdef complex * data_ptr
-    cdef complex[::1] coeff
-    cdef complex * coeff_ptr
 
     cdef void factor(self, double t)
     cdef void _call_core(self, double t, complex[::1] out, complex* coeff)
