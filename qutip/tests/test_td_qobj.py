@@ -239,7 +239,7 @@ def test_td_Qobj_to_list():
 
 
 def test_td_Qobj_math_arithmetic():
-    "test __add__, __sub__, __neg__, __mul__, __div__."
+    "test arithmetic"
     N = 5
     t = np.random.rand()+1
     td_qobjs1, base_qobjs1 = _rand_td_qobj(N)
