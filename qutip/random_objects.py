@@ -72,7 +72,8 @@ def rand_jacobi_rotation(A, seed=None):
     spmatrix
         Rotated sparse matrix.
     """
-    np.random.seed(seed=seed)
+    if seed is not None:
+        np.random.seed(seed=seed)
     if A.shape[0]!=A.shape[1]:
         raise Exception('Input matrix must be square.')
     n = A.shape[0]
@@ -105,7 +106,8 @@ def randnz(shape, norm=1 / np.sqrt(2), seed=None):
         Scale of the returned random variates, or 'ginibre' to draw
         from the Ginibre ensemble.
     """
-    np.random.seed(seed=seed)
+    if seed is not None:
+        np.random.seed(seed=seed)
     if norm == 'ginibre':
         norm = 1
     return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
@@ -154,7 +156,8 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
         while M.nnz < 0.95*nvals:
             M = rand_jacobi_rotation(M, seed=seed)
     elif isinstance(N, (int, np.int32, np.int64)):
-        np.random.seed(seed=seed)
+        if seed is not None:
+            np.random.seed(seed=seed)
         if dims:
             _check_dims(dims, N, N)
         num_elems = np.int(np.ceil(N*(N+1)*density)/2)
@@ -277,7 +280,8 @@ def rand_ket(N, density=1, dims=None, seed=None):
         Nx1 ket state quantum operator.
 
     """
-    np.random.seed(seed=seed)
+    if seed is not None:
+        np.random.seed(seed=seed)
     if dims:
         _check_ket_dims(dims, N)
     X = sp.rand(N, 1, density, format='csr')
@@ -499,7 +503,8 @@ def rand_super(N=5, dims=None, seed=None):
     else:
         dims = [[[N],[N]], [[N],[N]]]
     H = rand_herm(N, seed=seed)
-    np.random.seed(seed=seed)
+    if seed is not None:
+        np.random.seed(seed=seed)
     S = propagator(H, np.random.rand(), [
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
     ])
@@ -620,7 +625,8 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
-    np.random.seed(seed=seed)
+    if seed is not None:
+        np.random.seed(seed=seed)
     if dims:
         _check_dims(dims, N, N)
     num_elems = np.int(np.ceil(N*(N+1)*density)/2)
