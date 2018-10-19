@@ -45,7 +45,7 @@ class Codegen():
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
                  c_td_splines=[], c_td_spline_flags=[],
-                 type='me', config=None, 
+                 type='me', config=None,
                  use_openmp=False, omp_components=None, omp_threads=None):
         import sys
         import os
@@ -72,7 +72,7 @@ class Codegen():
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
         self.config = config
-        
+
         #openmp settings
         self.use_openmp = use_openmp
         self.omp_components = omp_components
@@ -166,14 +166,14 @@ class Codegen():
                            "complex[::1] data%d," % k +
                            "int[::1] idx%d," % k +
                            "int[::1] ptr%d" % k)
-                           
+
         kk = len(self.h_tdterms)
         for jj in range(len(self.c_td_splines)):
             input_vars += (",\n        " +
                            "complex[::1] data%d," % (jj+kk) +
                            "int[::1] idx%d," % (jj+kk) +
                            "int[::1] ptr%d" % (jj+kk))
-            
+
         if any(self.c_tdterms):
             for k in range(len(self.h_terms),
                            len(self.h_terms) + len(self.c_tdterms)):
@@ -181,7 +181,7 @@ class Codegen():
                                "complex[::1] data%d," % k +
                                "int[::1] idx%d," % k +
                                "int[::1] ptr%d" % k)
-        
+
         #Add array for each Cubic_Spline term
         spline = 0
         for htd in (self.h_tdterms+self.c_td_splines):
@@ -193,7 +193,7 @@ class Codegen():
                     input_vars += (",\n        " +
                                    "complex[::1] spline%d" % spline)
                 spline += 1
-        
+
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
@@ -259,7 +259,7 @@ class Codegen():
                     if self.use_openmp and self.omp_components[ht]:
                         str_out = "spmvpy_openmp(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, out, num_rows, %s)" % (
                             ht, ht, ht, self.omp_threads)
-                    else:    
+                    else:
                         str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], 1.0, out, num_rows)" % (
                                 ht, ht, ht)
                 else:
@@ -302,7 +302,7 @@ class Codegen():
                         cstr, cstr, cstr, " (" + tdterms[ct] + ")**2")
                 cinds += 1
                 func_vars.append(str_out)
-        
+
         #Collapse operators have cubic spline td-coeffs
         if len(self.c_td_splines) > 0:
             func_vars.append(" ")
@@ -314,7 +314,7 @@ class Codegen():
                 else:
                     interp_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, spline)
                 spline += 1
-                
+
                 #check if need to wrap string with ()**2
                 if c_idx > 0:
                     interp_str = "("+interp_str+")**2"
@@ -326,8 +326,8 @@ class Codegen():
                     str_out = "spmvpy(&data%s[0], &idx%s[0], &ptr%s[0], &vec[0], %s, out, num_rows)" % (
                         c_idx, c_idx, c_idx, interp_str)
                 func_vars.append(str_out)
-                
-        
+
+
         return func_vars
 
     def func_which(self):
@@ -361,7 +361,7 @@ class Codegen():
 cdef np.npy_intp dims = num_rows
     cdef np.ndarray[complex, ndim=1, mode='c'] arr_out = np.PyArray_SimpleNewFromData(1, &dims, np.NPY_COMPLEX128, out)
     PyArray_ENABLEFLAGS(arr_out, np.NPY_OWNDATA)
-    return arr_out   
+    return arr_out
 """
 
     def func_end_real(self):
@@ -376,8 +376,9 @@ def cython_preamble(use_openmp=False):
         openmp_string='from qutip.cy.openmp.parfuncs cimport spmvpy_openmp'
     else:
         openmp_string=''
-    
-    return ["""\
+
+    return ["""#!python
+#cython: language_level=3
 # This file is generated automatically by QuTiP.
 # (C) 2011 and later, QuSTaR
 

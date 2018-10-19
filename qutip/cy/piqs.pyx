@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, The QuTiP Project.
@@ -233,7 +235,7 @@ cpdef list jmm1_dictionary(int N):
 cdef class Dicke(object):
     """
     A faster Cythonized Dicke state class to build the Lindbladian.
-    
+
     Parameters
     ----------
     N: int
@@ -262,7 +264,7 @@ cdef class Dicke(object):
     collective_dephasing: float
         Collective dephasing coefficient.
         default: 0.0
-        
+
     Attributes
     ----------
     N: int

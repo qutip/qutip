@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -47,7 +49,7 @@ def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int inse
     cdef int[::1] ind = A.indices
     cdef int[::1] ptr_in = A.indptr
     cdef cnp.ndarray[int, ndim=1, mode='c'] ptr_out = np.zeros(nrowout+1,dtype=np.int32)
-    
+
     A._shape = (nrowout, ncolout)
     if insertcol == 0:
         pass
@@ -57,8 +59,8 @@ def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int inse
             ind[kk] += temp
     else:
         raise ValueError("insertcol must be >= 0 and < col_scale")
-        
-    
+
+
     if insertrow == 0:
         temp = ptr_in[nrowin]
         for kk in range(nrowin):
@@ -70,7 +72,7 @@ def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int inse
         temp = (row_scale - 1) * nrowin
         for kk in range(temp, nrowout+1):
             ptr_out[kk] = ptr_in[kk-temp]
-    
+
     elif insertrow > 0 and insertrow < row_scale - 1:
         temp = insertrow*nrowin
         for kk in range(temp, temp+nrowin):
@@ -78,10 +80,10 @@ def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int inse
         temp = kk+1
         temp2 = ptr_in[nrowin]
         for kk in range(temp, nrowout+1):
-            ptr_out[kk] = temp2     
+            ptr_out[kk] = temp2
     else:
         raise ValueError("insertrow must be >= 0 and < row_scale")
 
     A.indptr = ptr_out
-    
+
     return A
