@@ -685,7 +685,7 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
 
     N = rho.shape[0]
 
-    ax.bar(np.arange(offset, offset + N) - .4, np.real(rho.diag()),
+    ax.bar(np.arange(offset, offset + N), np.real(rho.diag()),
            color="green", alpha=0.6, width=0.8)
     if unit_y_range:
         ax.set_ylim(0, 1)
