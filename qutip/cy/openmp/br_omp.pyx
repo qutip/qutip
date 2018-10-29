@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, The QuTiP Project.
@@ -31,7 +33,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from scipy.linalg.cython_blas cimport zgemv
-from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron, 
+from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron,
                     _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
                     _zcsr_mult)
 from qutip.cy.spconvert cimport fdense2D_to_CSR
@@ -52,9 +54,9 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void ZGEMV(double complex * A, double complex * vec, 
+cdef void ZGEMV(double complex * A, double complex * vec,
                         double complex * out,
-                       int Arows, int Acols, int transA = 0, 
+                       int Arows, int Acols, int transA = 0,
                        double complex alpha=1, double complex beta=1):
     cdef char tA
     cdef int idx = 1, idy = 1
@@ -71,10 +73,10 @@ cdef void ZGEMV(double complex * A, double complex * vec,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs, 
+cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,
                      double complex * vec,
-                     double complex alpha, 
-                     double complex * out, 
+                     double complex alpha,
+                     double complex * out,
                      unsigned int nrows,
                      unsigned int omp_thresh,
                      unsigned int nthr,
@@ -86,7 +88,7 @@ cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,
 
     #Mat1 holds cop_eig in CSR format
     fdense2D_to_CSR(cop_eig, &mat1, nrows, nrows)
-    
+
     #Multiply by alpha for time-dependence
     for kk in range(mat1.nnz):
         mat1.data[kk] *= alpha
@@ -104,8 +106,8 @@ cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,
     _zcsr_kron_core(conj_data, mat1.indices, mat1.indptr,
                    mat1.data, mat1.indices, mat1.indptr,
                    &mat2,
-                   mat1.nrows, mat1.nrows, mat1.ncols)            
-    
+                   mat1.nrows, mat1.nrows, mat1.ncols)
+
     #Do spmv with kron(cop.dag(), c)
     if mat2.nnz >= omp_thresh:
         spmvpy_openmp(mat2.data,mat2.indices,mat2.indptr,
@@ -113,28 +115,28 @@ cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,
     else:
         spmvpy(mat2.data,mat2.indices,mat2.indptr,
                 &vec[0], 1, out, nrows**2)
-    
+
     #Free temp conj_data array
     PyDataMem_FREE(conj_data)
     #Free mat2
     free_CSR(&mat2)
-    
+
     #Create identity in mat3
     identity_CSR(&mat3, nrows)
-    
+
     #Take adjoint of cop (mat1) -> mat2
     _zcsr_adjoint(&mat1, &mat2)
-    
+
     #multiply cop.dag() * c (cdc) -> mat4
     _zcsr_mult(&mat2, &mat1, &mat4)
-    
+
     #Free mat1 and mat2
     free_CSR(&mat1)
     free_CSR(&mat2)
-    
+
     # kron(eye, cdc) -> mat1
     _zcsr_kron(&mat3, &mat4, &mat1)
-    
+
     #Do spmv with -0.5*kron(eye, cdc)
     if mat1.nnz >= omp_thresh:
         spmvpy_openmp(mat1.data,mat1.indices,mat1.indptr,
@@ -142,19 +144,19 @@ cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,
     else:
         spmvpy(mat1.data,mat1.indices,mat1.indptr,
             vec, -0.5, &out[0], nrows**2)
-    
+
     #Free mat1 (mat1 and mat2 are currently free)
     free_CSR(&mat1)
-    
+
     #Take traspose of cdc (mat4) -> mat1
     _zcsr_transpose(&mat4, &mat1)
-    
+
     #Free mat4 (mat2 and mat4 currently free)
     free_CSR(&mat4)
-    
+
     # kron(cdct, eye) -> mat2
     _zcsr_kron(&mat1, &mat3, &mat2)
-    
+
     #Do spmv with -0.5*kron(cdct, eye)
     if mat2.nnz >= omp_thresh:
         spmvpy_openmp(mat2.data,mat2.indices,mat2.indptr,
@@ -162,7 +164,7 @@ cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,
     else:
         spmvpy(mat2.data,mat2.indices,mat2.indptr,
             vec, -0.5, &out[0], nrows**2)
-    
+
     #Free mat1, mat2, and mat3
     free_CSR(&mat1)
     free_CSR(&mat2)
@@ -175,11 +177,11 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, spec_func spectral,
                 double complex * vec, double complex * out,
                 unsigned int nrows, int use_secular,
-                double sec_cutoff, 
+                double sec_cutoff,
                 unsigned int omp_thresh,
                 unsigned int nthr,
                 double atol):
-                
+
     cdef size_t kk
     cdef size_t I, J # vector index variables
     cdef int[2] ab, cd #matrix indexing variables
@@ -191,35 +193,35 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
     cdef COO_Matrix coo
     cdef CSR_Matrix csr
     cdef complex[:,::1] non_sec_mat
-    
+
     for I in range(nrows**2):
         vec2mat_index(nrows, I, ab)
         for J in range(nrows**2):
             vec2mat_index(nrows, J, cd)
-            
+
             if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min * sec_cutoff)):
                 elem = (A_eig[ab[0],cd[0]]*A_eig[cd[1],ab[1]]) * 0.5
                 elem *= (spectral(skew[cd[0],ab[0]],t)+spectral(skew[cd[1],ab[1]],t))
-            
+
                 if (ab[0]==cd[0]):
                     ac_elem = 0
                     for kk in range(nrows):
                         ac_elem += A_eig[cd[1],kk]*A_eig[kk,ab[1]] * spectral(skew[cd[1],kk],t)
                     elem -= 0.5*ac_elem
-                    
+
                 if (ab[1]==cd[1]):
                     bd_elem = 0
                     for kk in range(nrows):
                         bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk],t)
                     elem -= 0.5*bd_elem
-                    
+
                 if (elem != 0):
                     coo_rows.push_back(I)
                     coo_cols.push_back(J)
                     coo_data.push_back(elem)
-    
+
     PyDataMem_FREE(&A_eig[0,0])
-    
+
     #Number of elements in BR tensor
     nnz = coo_rows.size()
     coo.nnz = nnz
@@ -228,7 +230,7 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
     coo.data = coo_data.data()
     coo.nrows = nrows**2
     coo.ncols = nrows**2
-    coo.is_set = 1 
+    coo.is_set = 1
     coo.max_length = nnz
     COO_to_CSR(&csr, &coo)
     if csr.nnz > omp_thresh:
@@ -236,7 +238,3 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
     else:
         spmvpy(csr.data, csr.indices, csr.indptr, vec, 1, out, nrows**2)
     free_CSR(&csr)
- 
-
- 
-   

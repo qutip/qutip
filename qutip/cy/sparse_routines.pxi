@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, The QuTiP Project.
@@ -573,11 +575,12 @@ cdef CSR_Matrix CSR_from_scipy(object A):
     mat.max_length = nnz
     mat.is_set = 1
     mat.numpy_lock = 1
-    
+
     return mat
 
 
 @cython.boundscheck(False)
+<<<<<<< HEAD
 @cython.wraparound(False)
 cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
     """

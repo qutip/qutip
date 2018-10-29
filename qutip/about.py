@@ -86,7 +86,7 @@ def about():
     # citation
     longbar = "=============================================================="
     longbar += "================"
-    cite_msg = "For your convenience a bibtex file can be easily generated"
+    cite_msg = "For your convenience a bibtex reference can be easily generated"
     cite_msg += " using `qutip.cite()`"
     print(longbar)
     print("Please cite QuTiP in your publication.")

@@ -1,4 +1,5 @@
-
+#!python
+#cython: language_level=3
 
 cdef class coeffFunc:
     cdef int N_ops

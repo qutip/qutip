@@ -147,9 +147,8 @@ write_version_py()
 
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'testing', 'brtools',
-           'brtools_testing', 'br_tensor', 'inter', 'td_qobj_cy', 'td_qobj_factor', 'piqs']
-
+           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'checks', 'brtools',
+           'brtools_checks', 'br_tensor', 'inter', 'td_qobj_cy', 'td_qobj_factor', 'piqs']
 
 # Extra link args
 _link_flags = []
@@ -281,6 +280,6 @@ _cite = """\
 Installation complete
 Please cite QuTiP in your publication.
 ==============================================================================
-For your convenience a bibtex file can be easily generated using
+For your convenience a bibtex reference can be easily generated using
 `qutip.cite()`"""
 print(_cite)
