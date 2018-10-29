@@ -2152,7 +2152,7 @@ def _rhs_rho_pred_corr_homodyne_single(L, rho_t, t, A, dt, ddW, d1, d2,
     """
     dW = ddW[:, 0]
 
-    #predictor
+    #predictor:
 
     d_vec = (A[0][0] * rho_t).reshape(-1, len(rho_t))
     e = np.real(
