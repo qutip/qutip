@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, The QuTiP Project.
@@ -40,35 +42,35 @@ cdef double erf(double x):
     A Cython version of the erf function from the cdflib in SciPy.
     """
     cdef double c = 0.564189583547756
-    
-    cdef double a[5] 
+
+    cdef double a[5]
     a[:] = [0.771058495001320e-4, -0.133733772997339e-2, 0.323076579225834e-1,
                      0.479137145607681e-1, 0.128379167095513]
-    
-    cdef double b[3] 
+
+    cdef double b[3]
     b[:] = [0.301048631703895e-2, 0.538971687740286e-1, .375795757275549]
-    
-    cdef double p[8] 
+
+    cdef double p[8]
     p[:] = [-1.36864857382717e-7, 5.64195517478974e-1, 7.21175825088309,
                      4.31622272220567e1, 1.52989285046940e2, 3.39320816734344e2,
                      4.51918953711873e2, 3.00459261020162e2]
-    
-    cdef double q[8] 
+
+    cdef double q[8]
     q[:]= [1.0, 1.27827273196294e1, 7.70001529352295e1, 2.77585444743988e2,
                      6.38980264465631e2, 9.31354094850610e2, 7.90950925327898e2,
                      3.00459260956983e2]
-    
-    cdef double r[5] 
-    r[:] = [2.10144126479064, 2.62370141675169e1, 2.13688200555087e1, 
+
+    cdef double r[5]
+    r[:] = [2.10144126479064, 2.62370141675169e1, 2.13688200555087e1,
                       4.65807828718470, 2.82094791773523e-1]
-    
-    cdef double s[4] 
+
+    cdef double s[4]
     s[:] = [9.41537750555460e1, 1.87114811799590e2, 9.90191814623914e1,
                      1.80124575948747e1]
-    
+
     cdef double ax = fabs(x)
     cdef double t, x2, top, bot, erf
-    
+
     if ax <= 0.5:
         t = x*x
         top = ((((a[0]*t+a[1])*t+a[2])*t+a[3])*t+a[4]) + 1.0

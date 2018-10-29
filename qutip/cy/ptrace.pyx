@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, The QuTiP Project.
@@ -47,18 +49,18 @@ def _ptrace(object rho, _sel):
     """
     if np.prod(rho.dims[1]) == 1:
         rho = rho * rho.dag()
-    
+
     cdef size_t mm, ii
     cdef int _tmp
     cdef cnp.ndarray[int, ndim=1, mode='c'] drho = np.asarray(rho.dims[0], dtype=np.int32).ravel()
-    
+
     if isinstance(_sel, int):
         _sel = np.array([_sel], dtype=np.int32)
     else:
         _sel = np.asarray(_sel, dtype = np.int32)
-    
+
     cdef int[::1] sel = _sel
-    
+
     for mm in range(sel.shape[0]):
         if (sel[mm] < 0) or (sel[mm] >= drho.shape[0]):
             raise TypeError("Invalid selection index in ptrace.")
@@ -67,23 +69,23 @@ def _ptrace(object rho, _sel):
     cdef int N = np.prod(drho)
     cdef int M = np.prod(drho.take(sel))
     cdef int R = np.prod(drho.take(rest))
-    
+
     cdef int[:,::1] ilistsel = _select(sel, drho, M)
     cdef int[::1] indsel = _list2ind(ilistsel, drho)
     cdef int[:,::1] ilistrest = _select(rest, drho, R)
     cdef int[::1] indrest = _list2ind(ilistrest, drho)
-    
+
     for mm in range(indrest.shape[0]):
         _tmp = indrest[mm] * N + indrest[mm]-1
         indrest[mm] = _tmp
-    
+
     cdef cnp.ndarray[int, ndim=1, mode='c'] ind = np.zeros(M**2*indrest.shape[0],dtype=np.int32)
     for mm in range(M**2):
         for ii in range(indrest.shape[0]):
             ind[mm*indrest.shape[0]+ii] = indrest[ii] + \
                     N*indsel[<int>floor(mm / M)] + \
                     indsel[<int>(mm % M)]+1
-    
+
     data = np.ones_like(ind,dtype=complex)
     ptr = np.arange(0,(M**2+1)*indrest.shape[0],indrest.shape[0], dtype=np.int32)
     perm = fast_csr_matrix((data,ind,ptr),shape=(M * M, N * N))
