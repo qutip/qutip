@@ -580,7 +580,6 @@ cdef CSR_Matrix CSR_from_scipy(object A):
 
 
 @cython.boundscheck(False)
-<<<<<<< HEAD
 @cython.wraparound(False)
 cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
     """
