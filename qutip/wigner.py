@@ -35,6 +35,7 @@ __all__ = ['wigner', 'qfunc', 'spin_q_function',
            'spin_wigner', 'wigner_transform']
 
 import numpy as np
+import warnings
 from numpy import (
     zeros, array, arange, exp, real, conj, pi, copy, sqrt, meshgrid, size,
     conjugate, cos, sin, polyval, fliplr,
@@ -487,7 +488,6 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
     :math:`W = e^(-0.5*x^2)/pi * \sum_{L} c_L (2x)^L / \sqrt(L!)` where
     :math:`c_L = \sum_n \rho_{n,L+n} LL_n^L` where
     :math:`LL_n^L = (-1)^n \sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]`
-
     """
 
     M = np.prod(rho.shape[0])
@@ -524,10 +524,16 @@ def _wig_laguerre_val(L, x, c):
     r"""
     this is evaluation of polynomial series inspired by hermval from numpy.
     Returns polynomial series
-    \sum_n b_n LL_n^L,
+
+    .. math:
+        \sum_n b_n LL_n^L,
+
     where
+
+    .. math:
     LL_n^L = (-1)^n \sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]
-    The evaluation uses Clenshaw recursion
+
+    The evaluation uses Clenshaw recursion.
     """
 
     if len(c) == 1:
@@ -548,11 +554,10 @@ def _wig_laguerre_val(L, x, c):
     return y0 - y1 * ((L + 1) - x) * (L + 1)**-0.5
 
 
-
 # -----------------------------------------------------------------------------
 # Q FUNCTION
 #
-def qfunc(state, xvec, yvec, g=sqrt(2)):
+def qfunc(state, xvec, yvec, g=sqrt(2), precompute=None):
     """Q-function of a given state vector or density matrix
     at points `xvec + i * yvec`.
 
@@ -574,6 +579,18 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
         value `hbar=1`.
 
 
+    precompute : None (default), bool or array
+        Use precomputation to speed up the Husimi Q func.
+
+        None (default): True for density matrices, False for bras/kets
+        True / False: Always/Never use precomputation
+        array: The result of the precomputation can be given explicitly.
+               Useful if qfunc is called many times with the same
+               xvec, yvec and dimensions. The precomputed array is returned by
+               qfunc_precompute(xvec, yvec, n, g),
+               where xvec, yvec and g need to be the same as for qfunc,
+               and n is the dim of the chosen system.
+
     Returns
     --------
     Q : array
@@ -589,8 +606,25 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 
     qmat = zeros(size(amat))
 
+    if precompute is None:
+        # Decide whether precomputation should be used, if not already set
+        precompute = isoper(state)
+
+    memory = len(xvec) * len(yvec) * state.shape[0] * 16 / 1024**2
+    if (precompute is True) and (memory > 1024):
+        # If too much memory would be used, do not precompute
+        warnings.warn(
+            f"Precomputation uses {memory} MB memory, with a max of "
+            "1024 MB. Falling back to iterative Husimi function"
+        )
+        precompute = False
+
+    if precompute is True:
+        # If precomputation should be used but result not given, do it now
+        precompute = qfunc_precompute(xvec, yvec, state.shape[0], g)
+
     if isket(state):
-        qmat = _qfunc_pure(state, amat)
+        qmat = _qfunc_pure(state, amat, precompute)
     elif isoper(state):
         d, v = la.eig(state.full())
         # d[i]   = eigenvalue i
@@ -598,7 +632,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 
         qmat = zeros(np.shape(amat))
         for k in arange(0, len(d)):
-            qmat1 = _qfunc_pure(v[:, k], amat)
+            qmat1 = _qfunc_pure(v[:, k], amat, precompute)
             qmat += real(d[k] * qmat1)
 
     qmat = 0.25 * qmat * g ** 2
@@ -611,9 +645,14 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 # |psi>   = the state in fock basis
 # |alpha> = the coherent state with amplitude alpha
 #
-def _qfunc_pure(psi, alpha_mat):
+def _qfunc_pure(psi, alpha_mat, precompute=False):
     """
     Calculate the Q-function for a pure state.
+
+    If provided, precompute needs to be computed with
+    qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
+    need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
+    of a pure state in the chosen system. This gives 3-10x speedup per call
     """
     n = np.prod(psi.shape)
     if isinstance(psi, Qobj):
@@ -621,10 +660,71 @@ def _qfunc_pure(psi, alpha_mat):
     else:
         psi = psi.T
 
-    qmat = abs(polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
-                       conjugate(alpha_mat))) ** 2
+    if isinstance(precompute, np.ndarray):
+        qmat = np.dot(precompute, psi)
+    else:
+        qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
+                       conjugate(alpha_mat))
 
-    return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
+    # faster than np.abs()**2 if len(xvec) >~ 10
+    qmat = qmat.real**2 + qmat.imag**2
+    if not isinstance(precompute, np.ndarray):
+        qmat *= exp(-abs(alpha_mat) ** 2)
+    return qmat / pi
+
+
+def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
+    """Helper matrix for fast Q-function at points `xvec + i * yvec`.
+
+    Explanation: A lot of the cost of the Husimi Q function does not depend on
+    the state. If it is called many times (e.g. for a density matrix or when
+    doing multiple states), this can be used for a speedup. This function
+    precomputes everything that does not depend on the state and stores it as
+    a 3d array. The Q function itself is then a dot product between the last
+    axis of the precomputed array and a pure state.
+
+    Warning: The returned array has size
+             len(xvec) * len(yvec) * n * 16 Byte, can be large
+
+    Parameters
+    ----------
+    xvec : array_like
+        x-coordinates at which to calculate the Wigner function.
+
+    yvec : array_like
+        y-coordinates at which to calculate the Wigner function.
+
+    n : int
+        Dimension of the pure states of which the Q func will be evaluated
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+
+    max_memory : float
+        Maximal memory size in MB, default 1GB.
+
+    Returns
+    --------
+    precomputed : array
+        Precomputed array that contains everything in _qfunc_pure that is not
+        dependent on the state.
+
+    """
+    memory = len(xvec) * len(yvec) * n * 16 / 1024**2
+    if memory > max_memory:
+        raise MemoryError(
+            f"Precomputation uses {memory} MB memory, with a max of "
+            f"{max_memory} MB.Turn precomputation off with precompute=False "
+            "or use a larger max."
+        )
+    X, Y = meshgrid(xvec, yvec)
+    amat = 0.5 * g * (X - Y * 1j)
+
+    powers = np.arange(n)
+    precomputed = np.power(np.expand_dims(amat, axis=-1), powers)
+    precomputed /= sqrt(factorial(arange(n)))
+    precomputed *= np.expand_dims(exp(-abs(amat) ** 2 / 2), axis=-1)
+    return precomputed
 
 
 # -----------------------------------------------------------------------------
