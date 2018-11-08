@@ -406,7 +406,7 @@ def _wig_laguerre_val(L, x, c):
 # -----------------------------------------------------------------------------
 # Q FUNCTION
 #
-def qfunc(state, xvec, yvec, g=sqrt(2)):
+def qfunc(state, xvec, yvec, g=sqrt(2), amat_pwr=None):
     """Q-function of a given state vector or density matrix
     at points `xvec + i * yvec`.
 
@@ -424,6 +424,14 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
+    amat_pwr : array
+        The matrix provided by qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
+        need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
+        of a pure state in the chosen system.
+        If provided, the pure qfunc is computed with _qfunc_pure_fast, which has
+        significant speedup over _qfunc_pure. Useful if Q is computed for density
+        matrices or many times.
+
     Returns
     --------
     Q : array
@@ -440,7 +448,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     qmat = zeros(size(amat))
 
     if isket(state):
-        qmat = _qfunc_pure(state, amat)
+        qmat = _qfunc_pure(state, amat, amat_pwr)
     elif isoper(state):
         d, v = la.eig(state.full())
         # d[i]   = eigenvalue i
@@ -448,7 +456,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 
         qmat = zeros(np.shape(amat))
         for k in arange(0, len(d)):
-            qmat1 = _qfunc_pure(v[:, k], amat)
+            qmat1 = _qfunc_pure(v[:, k], amat, amat_pwr)
             qmat += real(d[k] * qmat1)
 
     qmat = 0.25 * qmat * g ** 2
@@ -461,9 +469,13 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 # |psi>   = the state in fock basis
 # |alpha> = the coherent state with amplitude alpha
 #
-def _qfunc_pure(psi, alpha_mat):
+def _qfunc_pure(psi, alpha_mat, amat_pwr=None):
     """
     Calculate the Q-function for a pure state.
+
+    If provided, amat_pwr needs to be computed with qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
+    need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
+    of a pure state in the chosen system. This gives 3-10x speedup for each call
     """
     n = np.prod(psi.shape)
     if isinstance(psi, Qobj):
@@ -471,11 +483,51 @@ def _qfunc_pure(psi, alpha_mat):
     else:
         psi = psi.T
 
-    qmat = abs(polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
-                       conjugate(alpha_mat))) ** 2
+    if amat_pwr is None:
+        qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
+                           conjugate(alpha_mat))
+    else:
+        qmat = np.dot(amat_pwr, psi)
+    # faster than np.abs()**2 if len(xvec) >~ 10
+    qmat = qmat.real**2 + qmat.imag**2
+    if amat_pwr is None:
+        qmat *= exp(-abs(alpha_mat) ** 2)
+    return qmat / pi
 
-    return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
+def qfunc_amat(xvec, yvec, n, g=sqrt(2)):
+    """Helper matrix for fast Q-function at points `xvec + i * yvec`.
 
+    Warning: The returned array has size len(xvec) * len(yvec) * n, can be large
+
+    Parameters
+    ----------
+    xvec : array_like
+        x-coordinates at which to calculate the Wigner function.
+
+    yvec : array_like
+        y-coordinates at which to calculate the Wigner function.
+        
+    n : int
+        Dimension of the pure states of which the Q func will be evaluated
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+
+    Returns
+    --------
+    amat_pwr : array
+        Precomputed array that contains everything in _qfunc_pure that is not dependent on
+        the state.
+
+    """
+    X, Y = meshgrid(xvec, yvec)
+    amat = 0.5 * g * (X - Y * 1j)
+
+    powers = np.arange(n)
+    amat_pwr = np.power(np.expand_dims(amat, axis=-1), powers)
+    amat_pwr /= sqrt(factorial(arange(n)))
+    amat_pwr *= np.expand_dims(exp(-abs(amat) ** 2 / 2), axis=-1)
+    return amat_pwr
 
 # -----------------------------------------------------------------------------
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
