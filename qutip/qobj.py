@@ -487,7 +487,7 @@ class Qobj(object):
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
                 if settings.auto_tidyup: out.tidyup()
-                if (settings.auto_tidyup_dims 
+                if (settings.auto_tidyup_dims
                         and not isinstance(dims[0][0], list)
                         and not isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
@@ -1051,6 +1051,12 @@ class Qobj(object):
             return self.data.toarray(order=order).squeeze()
         else:
             return self.data.toarray(order=order)
+
+    def __array__(self):
+        """Numpy array from Qobj
+        For compatibility with np.array
+        """
+        return self.full()
 
     def diag(self):
         """Diagonal elements of quantum object.
