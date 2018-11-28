@@ -344,8 +344,8 @@ class TestDicke:
             test_jpjm = jp * jm - jm * jp
             true_jpjm = 2 * jz
 
-            assert_array_equal(test_jxjy, true_jxjy)
-            assert_array_equal(test_jpjm, true_jpjm)
+            assert_array_almost_equal(test_jxjy, true_jxjy)
+            assert_array_almost_equal(test_jpjm, true_jpjm)
 
             # tests 2
             [jx, jy, jz] = jspin(nn)
@@ -355,14 +355,14 @@ class TestDicke:
             test_jpjm = jp * jm - jm * jp
             true_jpjm = 2 * jz
 
-            assert_array_equal(test_jxjy, true_jxjy)
-            assert_array_equal(test_jpjm, true_jpjm)
+            assert_array_almost_equal(test_jxjy, true_jxjy)
+            assert_array_almost_equal(test_jpjm, true_jpjm)
 
-            assert_array_equal(jspin(nn, "x"), jx)
-            assert_array_equal(jspin(nn, "y"), jy)
-            assert_array_equal(jspin(nn, "z"), jz)
-            assert_array_equal(jspin(nn, "+"), jp)
-            assert_array_equal(jspin(nn, "-"), jm)
+            assert_array_almost_equal(jspin(nn, "x"), jx)
+            assert_array_almost_equal(jspin(nn, "y"), jy)
+            assert_array_almost_equal(jspin(nn, "z"), jz)
+            assert_array_almost_equal(jspin(nn, "+"), jp)
+            assert_array_almost_equal(jspin(nn, "-"), jm)
             assert_raises(TypeError, jspin, nn, "q")
 
     def test_j_min_(self):
@@ -575,7 +575,7 @@ class TestDicke:
     def test_block_matrix(self):
         """
         PIQS: Test the calculation of the block-diagonal matrix for given N.
-        
+
         If the matrix element |j,m><j,m'| is allowed it is 1, otherwise 0.
         """
         # N = 1 TLSs
@@ -1107,7 +1107,7 @@ class TestDicke:
 
         ensemble = Dicke(N=N, hamiltonian=H, collective_emission=gCE,
                          emission=gE, dephasing=gD)
-        liouv = ensemble.liouvillian() 
+        liouv = ensemble.liouvillian()
         pruned_eig_values, pruned_eig_states = ensemble.prune_eigenstates(liouv)
         estate_last = np.array([[-0.00510544+0.j],
                                 [0.00000000-0.01614514j],
