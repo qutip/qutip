@@ -1052,7 +1052,7 @@ class Qobj(object):
         else:
             return self.data.toarray(order=order)
 
-    def __array__(self):
+    def __array__(self, *arg, **kwarg):
         """Numpy array from Qobj
         For compatibility with np.array
         """
