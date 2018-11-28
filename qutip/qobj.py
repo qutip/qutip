@@ -1052,6 +1052,12 @@ class Qobj(object):
         else:
             return self.data.toarray(order=order)
 
+    def __array__(self):
+        """Numpy array from Qobj
+        For compatibility with np.array
+        """
+        return self.full()
+
     def diag(self):
         """Diagonal elements of quantum object.
 
