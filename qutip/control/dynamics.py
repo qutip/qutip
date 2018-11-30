@@ -93,7 +93,7 @@ def _is_string(var):
         return False
 
     return False
-    
+
 def _check_ctrls_container(ctrls):
     """
     Check through the controls container.
@@ -105,10 +105,10 @@ def _check_ctrls_container(ctrls):
         # Check to see if list of lists
         try:
             if isinstance(ctrls[0], (list, tuple)):
-                ctrls = np.array(ctrls)
+                ctrls = np.array(ctrls, dtype=object)
         except:
             pass
-        
+
     if isinstance(ctrls, np.ndarray):
         if len(ctrls.shape) != 2:
             raise TypeError("Incorrect shape for ctrl dyn gen array")
@@ -119,12 +119,12 @@ def _check_ctrls_container(ctrls):
     elif isinstance(ctrls, (list, tuple)):
         for ctrl in ctrls:
             if not isinstance(ctrl, Qobj):
-                raise TypeError("All control dyn gen must be Qobj") 
+                raise TypeError("All control dyn gen must be Qobj")
     else:
         raise TypeError("Controls list or array not set correctly")
-    
+
     return ctrls
-    
+
 def _check_drift_dyn_gen(drift):
     if not isinstance(drift, Qobj):
         if not isinstance(drift, (list, tuple)):
@@ -209,7 +209,7 @@ class Dynamics(object):
         taken, for instance using Qobj (and hence sparse arrays) as the
         the internal operator data type, and not caching some operators
         Potentially further memory saving maybe made with
-        memory_optimization > 1. 
+        memory_optimization > 1.
         The options are processed in _set_memory_optimizations, see
         this for more information. Individual memory saving  options can be
         switched by settting them directly (see below)
@@ -223,26 +223,26 @@ class Dynamics(object):
         perform better when (custom) fidelity measures use Qobj methods
         such as partial trace.
         See _choose_oper_dtype for how this is chosen when not specified
-        
+
     cache_phased_dyn_gen : bool
-        If True then the dynamics generators will be saved with and 
+        If True then the dynamics generators will be saved with and
         without the propagation prefactor (if there is one)
         Defaults to True when memory_optimization=0, otherwise False
-        
+
     cache_prop_grad : bool
         If the True then the propagator gradients (for exact gradients) will
         be computed when the propagator are computed and cache until
-        the are used by the fidelity computer. If False then the 
+        the are used by the fidelity computer. If False then the
         fidelity computer will calculate them as needed.
         Defaults to True when memory_optimization=0, otherwise False
-           
+
     cache_dyn_gen_eigenvectors_adj: bool
-        If True then DynamicsUnitary will cached the adjoint of 
+        If True then DynamicsUnitary will cached the adjoint of
         the Hamiltion eignvector matrix
         Defaults to True when memory_optimization=0, otherwise False
-        
+
     sparse_eigen_decomp: bool
-        If True then DynamicsUnitary will use the sparse eigenvalue 
+        If True then DynamicsUnitary will use the sparse eigenvalue
         decomposition.
         Defaults to True when memory_optimization<=1, otherwise False
 
@@ -379,7 +379,7 @@ class Dynamics(object):
         dyn_params.
         If dump is None then will return None or will set dumping to SUMMARY
         when setting a path
-    
+
     """
     def __init__(self, optimconfig, params=None):
         self.config = optimconfig
@@ -641,17 +641,17 @@ class Dynamics(object):
             self.time[t+1] = self.time[t] + self._tau[t]
 
         self._timeslots_initialized = True
-        
+
     def _set_memory_optimizations(self):
         """
-        Set various memory optimisation attributes based on the 
+        Set various memory optimisation attributes based on the
         memory_optimization attribute
         If they have been set already, e.g. in apply_params
         then they will not be overridden here
         """
         logger.info("Setting memory optimisations for level {}".format(
                     self.memory_optimization))
-                    
+
         if self.oper_dtype is None:
             self._choose_oper_dtype()
             logger.info("Internal operator data type choosen to be {}".format(
@@ -659,7 +659,7 @@ class Dynamics(object):
         else:
             logger.info("Using operator data type {}".format(
                             self.oper_dtype))
-        
+
         if self.cache_phased_dyn_gen is None:
             if self.memory_optimization > 0:
                 self.cache_phased_dyn_gen = False
@@ -667,31 +667,31 @@ class Dynamics(object):
                 self.cache_phased_dyn_gen = True
         logger.info("phased dynamics generator caching {}".format(
                             self.cache_phased_dyn_gen))
-        
+
         if self.cache_prop_grad is None:
             if self.memory_optimization > 0:
                 self.cache_prop_grad = False
             else:
-                self.cache_prop_grad = True       
+                self.cache_prop_grad = True
         logger.info("propagator gradient caching {}".format(
                             self.cache_prop_grad))
-                            
+
         if self.cache_dyn_gen_eigenvectors_adj is None:
             if self.memory_optimization > 0:
                 self.cache_dyn_gen_eigenvectors_adj = False
             else:
-                self.cache_dyn_gen_eigenvectors_adj = True       
+                self.cache_dyn_gen_eigenvectors_adj = True
         logger.info("eigenvector adjoint caching {}".format(
                             self.cache_dyn_gen_eigenvectors_adj))
-                            
+
         if self.sparse_eigen_decomp is None:
             if self.memory_optimization > 1:
                 self.sparse_eigen_decomp = True
             else:
-                self.sparse_eigen_decomp = False       
+                self.sparse_eigen_decomp = False
         logger.info("use sparse eigen decomp {}".format(
                             self.sparse_eigen_decomp))
-                            
+
     def _choose_oper_dtype(self):
         """
         Attempt select most efficient internal operator data type
@@ -775,7 +775,7 @@ class Dynamics(object):
                         self._ctrl_dyn_gen[k, j] = \
                                     self.ctrl_dyn_gen[k, j].full()
             else:
-                self._ctrl_dyn_gen = [ctrl.full() 
+                self._ctrl_dyn_gen = [ctrl.full()
                                         for ctrl in self.ctrl_dyn_gen]
         elif self.oper_dtype == sp.csr_matrix:
             self._initial = self.initial.data
@@ -784,7 +784,7 @@ class Dynamics(object):
                 self._drift_dyn_gen = [d.data for d in self.drift_dyn_gen]
             else:
                 self._drift_dyn_gen = self.drift_dyn_gen.data
-                
+
             if self.time_depend_ctrl_dyn_gen:
                 self._ctrl_dyn_gen = np.empty([n_ts, n_ctrls], dtype=object)
                 for k in range(n_ts):
@@ -800,7 +800,7 @@ class Dynamics(object):
 
         if self.cache_phased_dyn_gen:
             if self.time_depend_ctrl_dyn_gen:
-                self._phased_ctrl_dyn_gen = np.empty([n_ts, n_ctrls], 
+                self._phased_ctrl_dyn_gen = np.empty([n_ts, n_ctrls],
                                                      dtype=object)
                 for k in range(n_ts):
                     for j in range(n_ctrls):
@@ -809,7 +809,7 @@ class Dynamics(object):
             else:
                 self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
                                                 for ctrl in self._ctrl_dyn_gen]
-                                                
+
         self._dyn_gen = [object for x in range(self.num_tslots)]
         if self.cache_phased_dyn_gen:
             self._phased_dyn_gen = [object for x in range(self.num_tslots)]
@@ -827,7 +827,7 @@ class Dynamics(object):
             # Onward propagation overlap with inverse target
             self._onto_evo = [object for x in range(self.num_tslots+1)]
             self._onto_evo[self.num_tslots] = self._get_onto_evo_target()
-            
+
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
 
@@ -842,7 +842,7 @@ class Dynamics(object):
             self.dump.create_dump_dir()
             logger.info("Dynamics dump will be written to:\n{}".format(
                             self.dump.dump_dir))
-            
+
         self._evo_initialized = True
 
     @property
@@ -855,11 +855,11 @@ class Dynamics(object):
         # Note that if this returns None then _apply_phase will never be
         # called
         return self._dyn_gen_phase
-    
+
     @dyn_gen_phase.setter
     def dyn_gen_phase(self, value):
         self._dyn_gen_phase = value
-    
+
     @property
     def phase_application(self):
         """
@@ -876,7 +876,7 @@ class Dynamics(object):
     @phase_application.setter
     def phase_application(self, value):
         self._set_phase_application(value)
-        
+
     def _set_phase_application(self, value):
         self._config_phase_application(value)
         self._phase_application = value
@@ -887,10 +887,10 @@ class Dynamics(object):
         """
         err_msg = ("Invalid value '{}' for phase application. Must be either "
                    "'preop', 'postop' or 'custom'".format(ph_app))
-        
+
         if ph_app is None:
             ph_app = self._phase_application
-            
+
         try:
             ph_app = ph_app.lower()
         except:
@@ -911,7 +911,7 @@ class Dynamics(object):
             self._config_phase_application()
         else:
             self.cache_phased_dyn_gen = False
-            
+
     def _apply_phase(self, dg):
         """
         This default method does nothing.
@@ -921,7 +921,7 @@ class Dynamics(object):
         It will never be called if `dyn_gen_phase` is None
         """
         return dg
-            
+
     def _apply_phase_preop(self, dg):
         """
         Apply phasing operator to dynamics generator.
@@ -945,7 +945,7 @@ class Dynamics(object):
         else:
             phased_dg = dg*self._dyn_gen_phase
         return phased_dg
-        
+
     def _create_decomp_lists(self):
         """
         Create lists that will hold the eigen decomposition
@@ -1091,10 +1091,10 @@ class Dynamics(object):
         if self.dyn_shape is None:
             self.refresh_drift_attribs()
         return self.dyn_shape[0]
-        
+
     def refresh_drift_attribs(self):
         """Reset the dyn_shape, dyn_dims and time_depend_drift attribs"""
-            
+
         if isinstance(self.drift_dyn_gen, (list, tuple)):
             d0 = self.drift_dyn_gen[0]
             self.time_depend_drift = True
@@ -1105,10 +1105,10 @@ class Dynamics(object):
         if not isinstance(d0, Qobj):
             raise TypeError("Unable to determine drift attributes, "
                     "because drift_dyn_gen is not Qobj (nor list of)")
-                        
+
         self.dyn_shape = d0.shape
         self.dyn_dims = d0.dims
-            
+
     def get_num_ctrls(self):
         """
         calculate the of controls from the length of the control list
@@ -1118,7 +1118,7 @@ class Dynamics(object):
         _func_deprecation("'get_num_ctrls' has been replaced by "
                          "'num_ctrls' property")
         return self.num_ctrls
-        
+
     def _get_num_ctrls(self):
         if not self._ctrl_dyn_gen_checked:
             self.ctrl_dyn_gen = _check_ctrls_container(self.ctrl_dyn_gen)
@@ -1127,8 +1127,8 @@ class Dynamics(object):
             self._num_ctrls = self.ctrl_dyn_gen.shape[1]
             self.time_depend_ctrl_dyn_gen = True
         else:
-            self._num_ctrls = len(self.ctrl_dyn_gen)    
-        
+            self._num_ctrls = len(self.ctrl_dyn_gen)
+
         return self._num_ctrls
 
     @property
@@ -1226,7 +1226,7 @@ class Dynamics(object):
         self._dyn_gen[k] = dg
         if self.cache_phased_dyn_gen:
             self._phased_dyn_gen[k] = self._apply_phase(dg)
-   
+
     def get_dyn_gen(self, k):
         """
         Get the combined dynamics generator for the timeslot
@@ -1319,12 +1319,12 @@ class Dynamics(object):
                                                     self._prop_grad[k, j],
                                                     dims=self.dyn_dims)
         return self._prop_grad_qobj
-        
+
     def _get_prop_grad(self, k, j):
         if self.cache_prop_grad:
             prop_grad = self._prop_grad[k, j]
         else:
-            prop_grad = self.prop_computer._compute_prop_grad(k, j, 
+            prop_grad = self.prop_computer._compute_prop_grad(k, j,
                                                        compute_prop = False)
         return prop_grad
 
@@ -1594,7 +1594,7 @@ class DynamicsUnitary(Dynamics):
             H = self._dyn_gen[k]
             # Returns eigenvalues as array (row)
             # and eigenvectors as rows of an array
-            eig_val, eig_vec = sp_eigs(H.data, H.isherm, 
+            eig_val, eig_vec = sp_eigs(H.data, H.isherm,
                                        sparse=self.sparse_eigen_decomp)
             eig_vec = eig_vec.T
 
@@ -1721,7 +1721,7 @@ class DynamicsSymplectic(Dynamics):
     omega : array[drift_dyn_gen.shape]
         matrix used in the calculation of propagators (time evolution)
         with symplectic systems.
-    
+
     """
 
     def reset(self):
@@ -1768,7 +1768,7 @@ class DynamicsSymplectic(Dynamics):
             else:
                  self._omega = omg
         return self._omega
-        
+
     def _set_phase_application(self, value):
         Dynamics._set_phase_application(self, value)
         if self._evo_initialized:
@@ -1788,7 +1788,7 @@ class DynamicsSymplectic(Dynamics):
             raise ValueError("No option for phase_application "
                              "'{}'".format(self._phase_application))
         return phase
-                
+
     @property
     def dyn_gen_phase(self):
         """
