@@ -33,18 +33,18 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-cpdef complex spline_complex_t_second(double x, double[::1] t,
+cdef complex _spline_complex_t_second(double x, double[::1] t,
                                       complex[::1] y, complex[::1] M,
                                       int N)
 
-cpdef complex spline_complex_cte_second(double x, double[::1] t,
+cdef complex _spline_complex_cte_second(double x, double[::1] t,
                                         complex[::1] y, complex[::1] M,
                                         int N, double dt)
 
-cpdef double spline_float_t_second(double x, double[::1] t,
+cdef double _spline_float_t_second(double x, double[::1] t,
                                    double[::1] y, double[::1] M,
                                    int N)
 
-cpdef double spline_float_cte_second(double x, double[::1] t,
+cdef double _spline_float_cte_second(double x, double[::1] t,
                                      double[::1] y, double[::1] M,
                                      int N, double dt)

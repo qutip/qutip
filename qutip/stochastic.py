@@ -38,7 +38,7 @@ from qutip.cy.stochastic import sme, sse, psme, psse, pmsme, generic
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import ket2dm
 from qutip.solver import Result
-from qutip.td_qobj import td_Qobj
+from qutip.qobjevo import QobjEvo
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian, lindblad_dissipator)
 from qutip.solver import Options, _solver_safety_check
@@ -187,10 +187,10 @@ class StochasticSolverOptions:
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.Qobj`, :class:`qutip.td_Qobj` or [Qobj, coeff*]
+    c_ops : list of :class:`qutip.Qobj`, :class:`qutip.QobjEvo` or [Qobj, coeff*]
         List of deterministic collapse operators.
 
-    sc_ops : list of :class:`qutip.Qobj`, :class:`qutip.td_Qobj` or [Qobj, coeff*]
+    sc_ops : list of :class:`qutip.Qobj`, :class:`qutip.QobjEvo` or [Qobj, coeff*]
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the equation of motion according to how the d1 and d2 functions
@@ -310,12 +310,12 @@ class StochasticSolverOptions:
             progress_bar = TextProgressBar()
 
         # System
-        # Cast to td_Qobj so the code has only one version for both the
+        # Cast to QobjEvo so the code has only one version for both the
         # constant and time-dependent case.
         self.me = me
         if H is not None:
             try:
-                self.H = td_Qobj(H, args=args, tlist=times)
+                self.H = QobjEvo(H, args=args, tlist=times)
             except:
                 raise Exception("The hamiltonian format is not valid")
         else:
@@ -323,21 +323,21 @@ class StochasticSolverOptions:
 
         if sc_ops:
             try:
-                self.sc_ops = [td_Qobj(op, args=args, tlist=times)
+                self.sc_ops = [QobjEvo(op, args=args, tlist=times)
                                for op in sc_ops]
             except:
                 raise Exception("The sc_ops format is not valid.\n" +
-                                "[ Qobj / td_Qobj / [Qobj,coeff]]")
+                                "[ Qobj / QobjEvo / [Qobj,coeff]]")
         else:
             self.sc_ops = sc_ops
 
         if c_ops:
             try:
-                self.c_ops = [td_Qobj(op, args=args, tlist=times)
+                self.c_ops = [QobjEvo(op, args=args, tlist=times)
                               for op in c_ops]
             except:
                 raise Exception("The c_ops format is not valid.\n" +
-                                "[ Qobj / td_Qobj / [Qobj,coeff]]")
+                                "[ Qobj / QobjEvo / [Qobj,coeff]]")
         else:
             self.c_ops = c_ops
 
@@ -609,8 +609,8 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     else:
         raise Exception("The method must be one of None, homodyne, heterodyne")
 
-    sso.ce_ops = [td_Qobj(spre(op)) for op in sso.e_ops]
-    sso.cm_ops = [td_Qobj(spre(op)) for op in sso.m_ops]
+    sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
+    sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
 
     sso.LH.compile()
     [op.compile() for op in sso.sops]
@@ -737,8 +737,8 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     for ops in sso.sops:
         sso.LH -= ops[0].norm()*0.5*sso.dt
 
-    sso.ce_ops = [td_Qobj(op) for op in sso.e_ops]
-    sso.cm_ops = [td_Qobj(op) for op in sso.m_ops]
+    sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
+    sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
 
     sso.LH.compile()
     [[op.compile() for op in ops] for ops in sso.sops]
@@ -812,8 +812,8 @@ def _positive_map(sso, e_ops_dict):
             sso.preops2 += [spre(op * op2)]
             sso.postops2 += [spost(op.dag() * op2.dag())]
 
-    sso.ce_ops = [td_Qobj(spre(op)) for op in sso.e_ops]
-    sso.cm_ops = [td_Qobj(spre(op)) for op in sso.m_ops]
+    sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
+    sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
     sso.preLH = spre(LH)
     sso.postLH = spost(LH.dag())
     sso.preLH.compile()
@@ -916,8 +916,8 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso.sops = [[spre(op.norm()) + spost(op.norm()),
                  spre(op.norm()),
                  op.apply(_prespostdag)._f_norm2()] for op in sso.sc_ops]
-    sso.ce_ops = [td_Qobj(spre(op)) for op in sso.e_ops]
-    sso.cm_ops = [td_Qobj(spre(op)) for op in sso.m_ops]
+    sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
+    sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
 
     sso.LH.compile()
     [[op.compile() for op in ops] for ops in sso.sops]
@@ -1000,8 +1000,8 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     sso.LH = sso.H * (-1j*sso.dt)
     for ops in sso.sops:
         sso.LH -= ops[0].norm()*0.5*sso.dt
-    sso.ce_ops = [td_Qobj(op) for op in sso.e_ops]
-    sso.cm_ops = [td_Qobj(op) for op in sso.m_ops]
+    sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
+    sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
 
     sso.LH.compile()
     [[op.compile() for op in ops] for ops in sso.sops]
@@ -1126,12 +1126,12 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
             raise Exception("General stochastic need explicit " +
                             "m_ops to store measurement")
         sso.m_ops = m_ops
-        sso.cm_ops = [td_Qobj(op) for op in sso.m_ops]
+        sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
         [op.compile() for op in sso.cm_ops]
 
     sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
-    sso.ce_ops = [td_Qobj(op) for op in sso.e_ops]
+    sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     [op.compile() for op in sso.ce_ops]
 
     sso.solver_obj = generic

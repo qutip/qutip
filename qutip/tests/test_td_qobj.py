@@ -49,33 +49,33 @@ def _f3(t,args):
     return np.exp(1j*t*args['w3'])
 
 
-def _rand_td_qobj(N=5):
+def _rand_cqobjevo(N=5):
     tlist=np.linspace(0,10,10001)
     tlistlog=np.logspace(-3,1,10001)
     O0, O1, O2 = rand_herm(N), rand_herm(N), rand_herm(N)
 
-    cte = [td_Qobj([O0])]
+    cte = [QobjEvo([O0])]
 
-    wargs = [td_Qobj([O0,[O1,_f1],[O2,_f2]], args={"w1":1,"w2":2}),
-             td_Qobj([O0,[O1,"sin(w1*t)"],[O2,"cos(w2*t)"]],
+    wargs = [QobjEvo([O0,[O1,_f1],[O2,_f2]], args={"w1":1,"w2":2}),
+             QobjEvo([O0,[O1,"sin(w1*t)"],[O2,"cos(w2*t)"]],
                      args={"w1":1,"w2":2})]
 
-    nargs = [td_Qobj([O0,[O1,np.sin(tlist)],[O2,np.cos(2*tlist)]],tlist=tlist),
-             td_Qobj([O0,[O1,np.sin(tlistlog)],[O2,np.cos(2*tlistlog)]],
+    nargs = [QobjEvo([O0,[O1,np.sin(tlist)],[O2,np.cos(2*tlist)]],tlist=tlist),
+             QobjEvo([O0,[O1,np.sin(tlistlog)],[O2,np.cos(2*tlistlog)]],
                      tlist=tlistlog),
-             td_Qobj([O0,[O1, Cubic_Spline(0,10,np.sin(tlist))  ],
+             QobjEvo([O0,[O1, Cubic_Spline(0,10,np.sin(tlist))  ],
                          [O2, Cubic_Spline(0,10,np.cos(2*tlist))]])]
-    td_qobjs = cte + wargs + nargs
+    cqobjevos = cte + wargs + nargs
     base_qobjs = [O0, O1, O2]
-    return td_qobjs, base_qobjs
+    return cqobjevos, base_qobjs
 
 
 def _sp_eq(sp1, sp2):
     return not np.any(np.abs( (sp1 -sp2).data)> 1e-4)
 
 
-def _random_td_Qobj(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
-    """Create a list to make a td_Qobj with up to 3 coefficients"""
+def _random_QobjEvo(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
+    """Create a list to make a QobjEvo with up to 3 coefficients"""
     if tlist is None:
         tlist = np.linspace(0,1,301)
 
@@ -96,22 +96,22 @@ def _random_td_Qobj(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
     return Qobj_list
 
 
-def test_td_Qobj_call():
-    "td_Qobj call"
+def test_QobjEvo_call():
+    "QobjEvo call"
     N = 5
     t = np.random.rand()+1
-    td_qobjs, base_qobjs = _rand_td_qobj(N)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
     O0, O1, O2 = base_qobjs
     O_target1 = O0+np.sin(t)*O1+np.cos(2*t)*O2
 
     # Check the constant flag
-    assert_equal(td_qobjs[0].const, True)
+    assert_equal(cqobjevos[0].const, True)
     # Check that the call return the Qobj
-    assert_equal(td_qobjs[0](t) == O0, True)
+    assert_equal(cqobjevos[0](t) == O0, True)
     # Check that the call for the data return the data
-    assert_equal(_sp_eq(td_qobjs[0](t, data=True), O0.data), True)
+    assert_equal(_sp_eq(cqobjevos[0](t, data=True), O0.data), True)
 
-    for op in td_qobjs[1:]:
+    for op in cqobjevos[1:]:
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
@@ -136,16 +136,16 @@ def test_td_Qobj_call():
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
 
-def test_td_Qobj_call_args():
-    "td_Qobj with_args"
+def test_QobjEvo_call_args():
+    "QobjEvo with_args"
     N = 5
     t = np.random.rand()+1
-    td_qobjs, base_qobjs = _rand_td_qobj(N)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
     O0, O1, O2 = base_qobjs
     O_target1 = O0+np.sin(t)*O1+np.cos(2*t)*O2
     O_target2 = O0+np.sin(t)*O1+np.cos(4*t)*O2
 
-    for op in td_qobjs[1:3]:
+    for op in cqobjevos[1:3]:
         assert_equal(len((op.with_args(t,{"w2":4})
                           -O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":4})
@@ -194,10 +194,10 @@ def test_td_Qobj_call_args():
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
 
-def test_td_Qobj_copy():
-    "td_Qobj copy"
+def test_QobjEvo_copy():
+    "QobjEvo copy"
     tlist = np.linspace(0,1,300)
-    td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
+    td_obj_1 = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random()
     td_obj_copy = td_obj_1.copy()
@@ -205,20 +205,20 @@ def test_td_Qobj_copy():
     assert_equal(td_obj_1 is td_obj_copy, False)
     #Check that the copy has the same data
     assert_equal(td_obj_1(t) == td_obj_copy(t), True)
-    td_obj_copy = td_Qobj(td_obj_1)
+    td_obj_copy = QobjEvo(td_obj_1)
     #Check that the copy is independent
     assert_equal(td_obj_1 is td_obj_copy, False)
     #Check that the copy has the same data
     assert_equal(td_obj_1(t) == td_obj_copy(t), True)
 
 
-def test_td_Qobj_to_list():
-    "td_Qobj to_list"
-    td_as_list_1 = _random_td_Qobj((5,5), [0,2,3], tlist=np.linspace(0,1,100))
-    td_as_list_2 = _random_td_Qobj((5,5), [1,0,0], tlist=np.linspace(0,1,100))
+def test_QobjEvo_to_list():
+    "QobjEvo to_list"
+    td_as_list_1 = _random_QobjEvo((5,5), [0,2,3], tlist=np.linspace(0,1,100))
+    td_as_list_2 = _random_QobjEvo((5,5), [1,0,0], tlist=np.linspace(0,1,100))
     args={"w1":1, "w2":2}
-    td_obj_1 = td_Qobj(td_as_list_1, args=args, tlist=np.linspace(0,1,100))
-    td_obj_2 = td_Qobj(td_as_list_2, args=args, tlist=np.linspace(0,1,100))
+    td_obj_1 = QobjEvo(td_as_list_1, args=args, tlist=np.linspace(0,1,100))
+    td_obj_2 = QobjEvo(td_as_list_2, args=args, tlist=np.linspace(0,1,100))
     td_as_list_back = (td_obj_1 + td_obj_2).to_list()
 
     all_match = True
@@ -240,16 +240,16 @@ def test_td_Qobj_to_list():
     assert_equal(all_match, True)
 
 
-def test_td_Qobj_math_arithmetic():
-    "td_Qobj arithmetic"
+def test_QobjEvo_math_arithmetic():
+    "QobjEvo arithmetic"
     N = 5
     t = np.random.rand()+1
-    td_qobjs1, base_qobjs1 = _rand_td_qobj(N)
-    td_qobjs2, base_qobjs2 = _rand_td_qobj(N)
-    cte = td_qobjs2[0]
+    cqobjevos1, base_qobjs1 = _rand_cqobjevo(N)
+    cqobjevos2, base_qobjs2 = _rand_cqobjevo(N)
+    cte = cqobjevos2[0]
     O1 = base_qobjs2[0]
 
-    for op, op_2 in zip(td_qobjs1, td_qobjs2):
+    for op, op_2 in zip(cqobjevos1, cqobjevos2):
         assert_equal(op(t)*-1, (-op)(t))
 
         assert_equal(op(t) +O1, (op +O1)(t))
@@ -297,24 +297,24 @@ def test_td_Qobj_math_arithmetic():
         assert_equal(op(t)/2, opp(t))
 
 
-def test_td_Qobj_unitary():
-    "td_Qobj trans, dag, conj, norm"
+def test_QobjEvo_unitary():
+    "QobjEvo trans, dag, conj, norm"
     N = 5
     t = np.random.rand()+1
-    td_qobjs, base_qobjs = _rand_td_qobj(N)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
-    for op in td_qobjs:
+    for op in cqobjevos:
         assert_equal((op.trans())(t), op(t).trans())
         assert_equal((op.dag())(t), op(t).dag())
         assert_equal((op.conj())(t), op(t).conj())
         assert_equal((op.norm())(t), op(t).dag()*op(t))
 
 
-def test_td_Qobj_tidyup():
-    "td_Qobj tidyup"
+def test_QobjEvo_tidyup():
+    "QobjEvo tidyup"
     tlist = np.linspace(0,1,300)
     args={"w1":1}
-    td_obj = td_Qobj(_random_td_Qobj((5,5), [1,0,0], tlist=tlist),
+    td_obj = QobjEvo(_random_QobjEvo((5,5), [1,0,0], tlist=tlist),
                      args=args, tlist=tlist)
     td_obj *= 1e-10 * np.random.random()
     td_obj.tidyup(atol=1e-8)
@@ -323,10 +323,10 @@ def test_td_Qobj_tidyup():
     assert_equal(np.max(td_obj(t, data=True)), 0.)
 
 
-def test_td_Qobj_compress():
-    "td_Qobj compress"
+def test_QobjEvo_compress():
+    "QobjEvo compress"
     tlist = np.linspace(0, 1, 300)
-    td_obj_1 = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
+    td_obj_1 = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist),
                        args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_2 = (td_obj_1 + td_obj_1)/2.
     t = np.random.random()
@@ -337,12 +337,12 @@ def test_td_Qobj_compress():
     assert_equal(td_obj_2(t), td_obj_1(t))
 
 
-def test_td_Qobj_apply():
-    "td_Qobj apply"
+def test_QobjEvo_apply():
+    "QobjEvo apply"
     def multiply(qobj,b,factor = 3.):
         return qobj*b*factor
     tlist = np.linspace(0, 1, 300)
-    td_obj = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
+    td_obj = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist),
                      args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random()
     # check that the number of part is decreased
@@ -351,15 +351,15 @@ def test_td_Qobj_apply():
     assert_equal(td_obj.apply(multiply,2,factor=2)(t) == td_obj(t)*4, True)
 
 
-def test_td_Qobj_apply_decorator():
-    "td_Qobj apply_decorator"
+def test_QobjEvo_apply_decorator():
+    "QobjEvo apply_decorator"
     def rescale_time_and_scale(f_original, time_scale, factor=1.):
         def f(t, *args, **kwargs):
             return f_original(time_scale*t, *args, **kwargs)*factor
         return f
 
     tlist = np.linspace(0, 1, 300)
-    td_obj = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist, cte=False),
+    td_obj = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist, cte=False),
                      args={"w1":1, "w2":2}, tlist=tlist)
     t = np.random.random() / 2.
     td_obj_scaled = td_obj.apply_decorator(rescale_time_and_scale,2)
@@ -370,14 +370,14 @@ def test_td_Qobj_apply_decorator():
             return f_original(t, *args, **kwargs)**2
         return f
 
-    td_list = _random_td_Qobj((5,5), [2,0,0], tlist=tlist, cte=False)
-    td_obj_str = td_Qobj(td_list, args={"w1":1, "w2":2}, tlist=tlist)
+    td_list = _random_QobjEvo((5,5), [2,0,0], tlist=tlist, cte=False)
+    td_obj_str = QobjEvo(td_list, args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_str_2 = td_obj_str.apply_decorator(square_f, str_mod=["(",")**2"])
     #Check that it can only be compiled to cython
     assert_equal(td_obj_str_2(t) == td_list[0][0] * np.sin(t)**2, True)
 
-    td_list = _random_td_Qobj((5,5), [3,0,0], tlist=tlist, cte=False)
-    td_obj_array = td_Qobj(td_list, tlist=tlist)
+    td_list = _random_QobjEvo((5,5), [3,0,0], tlist=tlist, cte=False)
+    td_obj_array = QobjEvo(td_list, tlist=tlist)
     td_obj_array_2 = td_obj_array.apply_decorator(square_f, inplace_np=True)
     #Check that it can only be compiled to cython
     assert_allclose(np.array(td_obj_array_2(t, data=True).todense()),
@@ -385,14 +385,14 @@ def test_td_Qobj_apply_decorator():
                     rtol=3e-7)
 
 
-def test_td_Qobj_mul_vec():
-    "td_Qobj mul_vec"
+def test_QobjEvo_mul_vec():
+    "QobjEvo mul_vec"
     N = 5
     t = np.random.rand()+1
     vec = np.arange(N)*.5+.5j
-    td_qobjs, base_qobjs = _rand_td_qobj(N)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
-    for op in td_qobjs:
+    for op in cqobjevos:
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
         op.compile()
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
@@ -406,16 +406,16 @@ def test_td_Qobj_mul_vec():
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
 
 
-def test_td_Qobj_mul_mat():
-    "td_Qobj mul_mat"
+def test_QobjEvo_mul_mat():
+    "QobjEvo mul_mat"
     N = 5
     t = np.random.rand()+1
     mat = np.random.rand(N,N)+1 + 1j*np.random.rand(N,N)
     matF = np.asfortranarray(mat)
     matV = mat2vec(mat).flatten()
-    td_qobjs, base_qobjs = _rand_td_qobj(N)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
-    for op in td_qobjs:
+    for op in cqobjevos:
         Qo1 = op(t)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
@@ -446,14 +446,14 @@ def test_td_Qobj_mul_mat():
                         op.compiled_Qobj.ode_mul_mat_F_vec(t,matV))
 
 
-def test_td_Qobj_expect_psi():
-    "td_Qobj expect psi"
+def test_QobjEvo_expect_psi():
+    "QobjEvo expect psi"
     N = 5
     t = np.random.rand()+1
     vec = np.arange(N)*.5+.5j
-    td_qobjs, base_qobjs = _rand_td_qobj(N)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
-    for op in td_qobjs:
+    for op in cqobjevos:
         Qo1 = op(t)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
         op.compile()
@@ -468,14 +468,14 @@ def test_td_Qobj_expect_psi():
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
 
 
-def test_td_Qobj_expect_rho():
-    "td_Qobj expect rho"
+def test_QobjEvo_expect_rho():
+    "QobjEvo expect rho"
     N = 5
     t = np.random.rand()+1
     vec = np.random.rand(N*N)+1 + 1j*np.random.rand(N*N)
-    td_qobjs, base_qobjs = _rand_td_qobj(N)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
-    for op_ in td_qobjs:
+    for op_ in cqobjevos:
         op = liouvillian(op_)
         Qo1 = op(t)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
@@ -500,9 +500,9 @@ def test_td_Qobj_expect_rho():
     args={"w1":1, "w2":2, "w3":3}
     data1 = np.random.random((3,3))
     data2 = np.random.random((3,3))
-    td_obj_sa = td_Qobj(_random_td_Qobj((3,3), [0,3,2], tlist=tlist),
+    td_obj_sa = QobjEvo(_random_QobjEvo((3,3), [0,3,2], tlist=tlist),
                        args=args, tlist=tlist)
-    td_obj_m = td_Qobj(_random_td_Qobj((3,3), [1,2,3], tlist=tlist),
+    td_obj_m = QobjEvo(_random_QobjEvo((3,3), [1,2,3], tlist=tlist),
                        args=args, tlist=tlist)
     t = np.random.random()
     td_obj_sa = td_obj_sa.apply(spre)
@@ -529,8 +529,8 @@ def test_td_Qobj_expect_rho():
     assert_allclose(v3, v2, rtol=1e-6)
 
 
-def test_td_Qobj_with_state():
-    "td_Qobj with_state"
+def test_QobjEvo_with_state():
+    "QobjEvo with_state"
     def coeff_state(t,psi,args):
         return np.mean(psi) * args["w1"]
     N = 5
@@ -545,7 +545,7 @@ def test_td_Qobj_with_state():
     q4 = Qobj(data4)
     args={"w1":1}
     new_args={"w1":10}
-    td_data = td_Qobj([q1,[q2,coeff_state]], args=args)
+    td_data = QobjEvo([q1,[q2,coeff_state]], args=args)
     vec = np.arange(N)*.5+.5j
 
     t = np.random.random()
@@ -570,7 +570,7 @@ def test_td_Qobj_with_state():
     args={"w1":1, "w2":2}
     new_args={"w2":10}
     t = np.random.random()
-    td_data = td_Qobj([q1, [q2,coeff_state], [q3,"cos(w2*t)"],
+    td_data = QobjEvo([q1, [q2,coeff_state], [q3,"cos(w2*t)"],
                       [q4,np.exp(3*tlist)]], tlist=tlist, args=args)
     data_at_t = data1 + np.mean(vec) * args["w1"] * data2 +\
              np.cos(t*args["w2"]) * data3 + np.exp(3*t) * data4
@@ -591,25 +591,25 @@ def test_td_Qobj_with_state():
     assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), data_at_t_args)
 
 
-def test_td_Qobj_pickle():
-    "td_Qobj pickle"
+def test_QobjEvo_pickle():
+    "QobjEvo pickle"
     #used in parallel_map
     import pickle
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2}
     t = np.random.random()
 
-    td_obj_c = td_Qobj(_random_td_Qobj((5,5), [0,0,0]))
+    td_obj_c = QobjEvo(_random_QobjEvo((5,5), [0,0,0]))
     td_obj_c.compile()
     pickled = pickle.dumps(td_obj_c)
     td_pick = pickle.loads(pickled)
     # Check for const case
     assert_equal(td_obj_c(t) == td_pick(t), True)
 
-    td_obj_sa = td_Qobj(_random_td_Qobj((5,5), [2,3,0], tlist=tlist),
+    td_obj_sa = QobjEvo(_random_QobjEvo((5,5), [2,3,0], tlist=tlist),
                        args=args, tlist=tlist)
     td_obj_sa.compile()
-    td_obj_m = td_Qobj(_random_td_Qobj((5,5), [1,2,3], tlist=tlist),
+    td_obj_m = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist),
                        args=args, tlist=tlist)
 
     pickled = pickle.dumps(td_obj_sa, -1)
@@ -624,17 +624,17 @@ def test_td_Qobj_pickle():
     td_obj_m.compile()
     pickled = pickle.dumps(td_obj_m, -1)
     td_pick = pickle.loads(pickled)
-    # Check for ct_td_qobj
+    # Check for ct_cqobjevo
     assert_equal(td_obj_m(t) == td_pick(t), True)
 
 
-def test_td_Qobj_superoperator():
-    "td_Qobj superoperator"
-    td_qobjs1, _ = _rand_td_qobj(3)
-    td_qobjs2, _ = _rand_td_qobj(3)
-    td_qobjs3, _ = _rand_td_qobj(3)
+def test_QobjEvo_superoperator():
+    "QobjEvo superoperator"
+    cqobjevos1, _ = _rand_cqobjevo(3)
+    cqobjevos2, _ = _rand_cqobjevo(3)
+    cqobjevos3, _ = _rand_cqobjevo(3)
     t = np.random.rand()+1
-    for op1, op2 in zip(td_qobjs1, td_qobjs2):
+    for op1, op2 in zip(cqobjevos1, cqobjevos2):
         Q1 = op1(t)
         Q2 = op2(t)
         assert_equal(lindblad_dissipator(Q1, Q2, chi=0.5),

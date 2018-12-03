@@ -1,9 +1,9 @@
 #!python
 #cython: language_level=3
 
-cdef class coeffFunc:
+cdef class CoeffFunc:
     cdef int N_ops
     cdef void _call_core(self, double t, complex * coeff)
 
-cdef class str_coeff(coeffFunc):
+cdef class StrCoeff(CoeffFunc):
     cdef object args

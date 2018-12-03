@@ -34,9 +34,9 @@
 ###############################################################################
 
 from qutip.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
-from qutip.cy.td_qobj_factor cimport coeffFunc
+from qutip.cy.cqobjevo_factor cimport CoeffFunc
 
-cdef class cy_qobj:
+cdef class CQobjEvo:
     cdef int shape0, shape1
     cdef object dims
     cdef int super
@@ -44,7 +44,7 @@ cdef class cy_qobj:
 
     #cdef void (*factor_ptr)(double, complex*)
     cdef object factor_func
-    cdef coeffFunc factor_cobj
+    cdef CoeffFunc factor_cobj
     cdef int factor_use_cobj
     # prepared buffer
     cdef complex[::1] coeff
@@ -60,18 +60,18 @@ cdef class cy_qobj:
     cdef complex _expect_super(self, double t, complex* rho, int isherm)
 
 
-cdef class cy_cte_qobj(cy_qobj):
+cdef class CQobjCte(CQobjEvo):
     cdef int total_elem
     # pointer to data
     cdef CSR_Matrix cte
 
 
-cdef class cy_cte_qobj_dense(cy_qobj):
+cdef class CQobjCteDense(CQobjEvo):
     # pointer to data
     cdef complex[:, ::1] cte
 
 
-cdef class cy_td_qobj(cy_qobj):
+cdef class CQobjEvoTd(CQobjEvo):
     cdef long total_elem
     # pointer to data
     cdef CSR_Matrix cte
@@ -83,7 +83,7 @@ cdef class cy_td_qobj(cy_qobj):
     cdef void _call_core(self, double t, CSR_Matrix * out, complex* coeff)
 
 
-cdef class cy_td_qobj_dense(cy_qobj):
+cdef class CQobjEvoTdDense(CQobjEvo):
     # data as array
     cdef complex[:, ::1] cte
     cdef complex[:, :, ::1] ops
@@ -96,7 +96,7 @@ cdef class cy_td_qobj_dense(cy_qobj):
     cdef void _call_core(self, double t, complex[:,::1] out, complex* coeff)
 
 
-cdef class cy_td_qobj_matched(cy_qobj):
+cdef class CQobjEvoTdMatched(CQobjEvo):
     cdef int nnz
 
     # data as array

@@ -43,7 +43,7 @@ from qutip.qobj import Qobj
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.spmath import zcsr_add
-from qutip.cy.td_qobj_factor cimport coeffFunc
+from qutip.cy.cqobjevo_factor cimport CoeffFunc
 cimport libc.math
 
 include "complex_math.pxi"
@@ -63,7 +63,7 @@ cdef extern from "Python.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void spmmCpy(complex * data, int * ind, int * ptr,
+cdef void _spmm_c_py(complex * data, int * ind, int * ptr,
             complex * mat, complex a, complex * out,
             unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
     """
@@ -77,35 +77,38 @@ cdef void spmmCpy(complex * data, int * ind, int * ptr,
             for col in range(ncols):
                 out[row * ncols + col] += a*data[jj]*mat[ind[jj] * ncols + col]
 
-def spmmc(complex[::1] data, int[::1] ind, int[::1] ptr, complex[:,::1] A):
+"""def spmmc(complex[::1] data, int[::1] ind, int[::1] ptr, complex[:,::1] A):
     cdef unsigned int sp_rows = ptr.shape[0]-1
     cdef unsigned int nrows = A.shape[0]
     cdef unsigned int ncols = A.shape[1]
     cdef np.ndarray[complex, ndim=2, mode="c"] out = np.zeros((sp_rows,ncols), dtype=complex)
-    spmmCpy(&data[0], &ind[0], &ptr[0], &A[0,0], 1., &out[0,0], sp_rows, nrows, ncols)
-    return out
+    _spmm_c_py(&data[0], &ind[0], &ptr[0], &A[0,0], 1., &out[0,0], sp_rows, nrows, ncols)
+    return out"""
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void spmmFpy(complex * data, int * ind, int * ptr,
+cdef void _spmm_f_py(complex * data, int * ind, int * ptr,
             complex * mat, complex a, complex * out,
             unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
+    """
+    sparse*dense "F" ordered.
+    """
     cdef int col
     for col in range(ncols):
         spmvpy(data, ind, ptr, mat+nrows*col, a, out+sp_rows*col, sp_rows)
 
 
-def spmmf(complex[::1] data, int[::1] ind, int[::1] ptr, complex[::1,:] A):
+"""def spmmf(complex[::1] data, int[::1] ind, int[::1] ptr, complex[::1,:] A):
     cdef unsigned int sp_rows = ptr.shape[0]-1
     cdef unsigned int nrows = A.shape[0]
     cdef unsigned int ncols = A.shape[1]
     cdef np.ndarray[complex, ndim=2, mode="fortran"] out = np.zeros((sp_rows,ncols), dtype=complex, order="F")
-    spmmFpy(&data[0], &ind[0], &ptr[0], &A[0,0], 1., &out[0,0], sp_rows, nrows, ncols)
-    return out
+    _spmm_f_py(&data[0], &ind[0], &ptr[0], &A[0,0], 1., &out[0,0], sp_rows, nrows, ncols)
+    return out"""
 
 
-def zcsr_match(sparses_list):
+def _zcsr_match(sparses_list):
     """
     For a list of csr sparse matrice A,
     set them so the their indptr and indices be all equal.
@@ -134,9 +137,10 @@ def zcsr_match(sparses_list):
             out.append(full_shape.copy())
     return out
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef shallow_get_state(CSR_Matrix* mat):
+cdef _shallow_get_state(CSR_Matrix* mat):
     """
     Converts a CSR sparse matrix to a tuples for pickling.
     No deep copy of the data, pointer are passed.
@@ -148,9 +152,10 @@ cdef shallow_get_state(CSR_Matrix* mat):
             mat.nrows, mat.ncols, mat.nnz, mat.max_length,
             mat.is_set, mat.numpy_lock)
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef shallow_set_state(CSR_Matrix* mat, state):
+cdef _shallow_set_state(CSR_Matrix* mat, state):
     """
     Converts a CSR sparse matrix to a tuples for pickling.
     No deep copy of the data, pointer are passed.
@@ -166,7 +171,7 @@ cdef shallow_set_state(CSR_Matrix* mat, state):
     mat.numpy_lock = state[8]
 
 
-cdef class cy_qobj:
+cdef class CQobjEvo:
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
         """self * vec"""
         pass
@@ -255,7 +260,7 @@ cdef class cy_qobj:
         pass
 
 
-cdef class cy_cte_qobj(cy_qobj):
+cdef class CQobjCte(CQobjEvo):
     def set_data(self, cte):
         self.shape0 = cte.shape[0]
         self.shape1 = cte.shape[1]
@@ -265,7 +270,7 @@ cdef class cy_cte_qobj(cy_qobj):
         self.super = cte.issuper
 
     def __getstate__(self):
-        CSR_info = shallow_get_state(&self.cte)
+        CSR_info = _shallow_get_state(&self.cte)
         return (self.shape0, self.shape1, self.dims,
                 self.total_elem, self.super, CSR_info)
 
@@ -275,7 +280,7 @@ cdef class cy_cte_qobj(cy_qobj):
         self.dims = state[2]
         self.total_elem = state[3]
         self.super = state[4]
-        shallow_set_state(&self.cte, state[5])
+        _shallow_set_state(&self.cte, state[5])
 
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
@@ -311,7 +316,7 @@ cdef class cy_cte_qobj(cy_qobj):
     @cython.cdivision(True)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        spmmFpy(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmm_f_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol)
 
     @cython.boundscheck(False)
@@ -319,7 +324,7 @@ cdef class cy_cte_qobj(cy_qobj):
     @cython.cdivision(True)
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        spmmCpy(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmm_c_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol)
 
     @cython.boundscheck(False)
@@ -360,7 +365,7 @@ cdef class cy_cte_qobj(cy_qobj):
             return dot
 
 
-cdef class cy_cte_qobj_dense(cy_qobj):
+cdef class CQobjCteDense(CQobjEvo):
     def set_data(self, cte):
         self.shape0 = cte.shape[0]
         self.shape1 = cte.shape[1]
@@ -459,7 +464,7 @@ cdef class cy_cte_qobj_dense(cy_qobj):
             return dot
 
 
-cdef class cy_td_qobj(cy_qobj):
+cdef class CQobjEvoTd(CQobjEvo):
     def __init__(self):
         self.N_ops = 0
         self.ops = <CSR_Matrix**> PyDataMem_NEW(0 * sizeof(CSR_Matrix*))
@@ -493,11 +498,11 @@ cdef class cy_td_qobj(cy_qobj):
         self.total_elem = self.sum_elem[self.N_ops-1]
 
     def __getstate__(self):
-        cte_info = shallow_get_state(&self.cte)
+        cte_info = _shallow_get_state(&self.cte)
         ops_info = ()
         sum_elem = ()
         for i in range(self.N_ops):
-            ops_info += (shallow_get_state(self.ops[i]),)
+            ops_info += (_shallow_get_state(self.ops[i]),)
             sum_elem += (self.sum_elem[i],)
 
         return (self.shape0, self.shape1, self.dims, self.total_elem, self.super,
@@ -512,16 +517,16 @@ cdef class cy_td_qobj(cy_qobj):
         self.super = state[4]
         self.factor_use_cobj = state[5]
         if self.factor_use_cobj:
-            self.factor_cobj = <coeffFunc> state[6]
+            self.factor_cobj = <CoeffFunc> state[6]
         self.factor_func = state[7]
         self.N_ops = state[8]
-        shallow_set_state(&self.cte, state[10])
+        _shallow_set_state(&self.cte, state[10])
         self.sum_elem = np.zeros(self.N_ops, dtype=int)
         self.ops = <CSR_Matrix**> PyDataMem_NEW(self.N_ops * sizeof(CSR_Matrix*))
         for i in range(self.N_ops):
             self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
             self.sum_elem[i] = state[9][i]
-            shallow_set_state(self.ops[i], state[11][i])
+            _shallow_set_state(self.ops[i], state[11][i])
         self.coeff = np.empty((self.N_ops,), dtype=complex)
         self.coeff_ptr = &self.coeff[0]
 
@@ -610,10 +615,10 @@ cdef class cy_td_qobj(cy_qobj):
                         int nrow, int ncol):
         self.factor(t)
         cdef int i
-        spmmFpy(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmm_f_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol)
         for i in range(self.N_ops):
-             spmmFpy(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
+             _spmm_f_py(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol)
 
     @cython.boundscheck(False)
@@ -623,10 +628,10 @@ cdef class cy_td_qobj(cy_qobj):
                         int nrow, int ncol):
         self.factor(t)
         cdef int i
-        spmmCpy(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmm_c_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol)
         for i in range(self.N_ops):
-             spmmCpy(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
+             _spmm_c_py(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol)
 
     @cython.boundscheck(False)
@@ -673,7 +678,7 @@ cdef class cy_td_qobj(cy_qobj):
             return dot
 
 
-cdef class cy_td_qobj_dense(cy_qobj):
+cdef class CQobjEvoTdDense(CQobjEvo):
     def set_data(self, cte, ops):
         cdef int i,j,k
         self.shape0 = cte.shape[0]
@@ -707,7 +712,7 @@ cdef class cy_td_qobj_dense(cy_qobj):
         self.super = state[3]
         self.factor_use_cobj = state[4]
         if self.factor_use_cobj:
-            self.factor_cobj = <coeffFunc> state[5]
+            self.factor_cobj = <CoeffFunc> state[5]
         self.factor_func = state[6]
         self.N_ops = state[7]
         self.cte = state[8]
@@ -829,7 +834,7 @@ cdef class cy_td_qobj_dense(cy_qobj):
             return dot
 
 
-cdef class cy_td_qobj_matched(cy_qobj):
+cdef class CQobjEvoTdMatched(CQobjEvo):
     def set_data(self, cte, ops):
         cdef int i,j
         self.shape0 = cte.shape[0]
@@ -844,7 +849,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
         for op in ops:
             sparse_list.append(op[0].data)
         sparse_list += [cte.data]
-        matched = zcsr_match(sparse_list)
+        matched = _zcsr_match(sparse_list)
 
         self.indptr = matched[0].indptr
         self.indices = matched[0].indices
@@ -873,7 +878,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
         self.super = state[4]
         self.factor_use_cobj = state[5]
         if self.factor_use_cobj:
-            self.factor_cobj = <coeffFunc> state[6]
+            self.factor_cobj = <CoeffFunc> state[6]
         self.factor_func = state[7]
         self.N_ops = state[8]
         self.indptr = state[9]
@@ -952,7 +957,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
                         int nrow, int ncol):
         self.factor(t)
         self._call_core(t, self.data_t, self.coeff_ptr)
-        spmmFpy(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
+        _spmm_f_py(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol)
 
     @cython.boundscheck(False)
@@ -962,7 +967,7 @@ cdef class cy_td_qobj_matched(cy_qobj):
                         int nrow, int ncol):
         self.factor(t)
         self._call_core(t, self.data_t, self.coeff_ptr)
-        spmmCpy(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
+        _spmm_c_py(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol)
 
     @cython.boundscheck(False)

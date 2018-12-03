@@ -36,7 +36,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math
-from qutip.cy.td_qobj_cy cimport cy_qobj
+from qutip.cy.cqobjevo cimport CQobjEvo
 from qutip.cy.brtools cimport ZHEEVR
 from qutip.qobj import Qobj
 from qutip.superoperator import vec2mat
@@ -1073,7 +1073,7 @@ cdef class ssolvers:
 
 
 cdef class sse(ssolvers):
-    cdef cy_qobj L
+    cdef CQobjEvo L
     cdef object c_ops
     cdef object cpcd_ops
     cdef object imp
@@ -1110,7 +1110,7 @@ cdef class sse(ssolvers):
         self.L._mul_vec(t, &vec[0], &out[0])
         cdef int i
         cdef complex e
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
         zero(temp)
         for i in range(self.N_ops):
@@ -1127,7 +1127,7 @@ cdef class sse(ssolvers):
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
         cdef int i, k
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
@@ -1162,7 +1162,7 @@ cdef class sse(ssolvers):
         """
         cdef int i, j, k, l
         cdef double dt = self.dt
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex e, de_bb
 
         cdef complex[::1] e_real = self.expect_buffer_1d[0,:]
@@ -1287,7 +1287,7 @@ cdef class sse(ssolvers):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void C_vec_conj(self, double t, cy_qobj c_op,
+    cdef void C_vec_conj(self, double t, CQobjEvo c_op,
                          complex[::1] vec, complex[::1] out):
         cdef int k
         cdef complex[::1] temp = self.func_buffer_1d[13,:]
@@ -1325,7 +1325,7 @@ cdef class sse(ssolvers):
         LLLb[:]  ...                      taylor2.0   dt^2/2
         """
         cdef double dt = self.dt
-        cdef cy_qobj c_op = self.c_ops[0]
+        cdef CQobjEvo c_op = self.c_ops[0]
         cdef complex e, de_b, de_Lb, de_LLb, dde_bb, dde_bLb
         cdef complex de_a, dde_ba, de_La, de_L0b
 
@@ -1479,7 +1479,7 @@ cdef class sse(ssolvers):
         copy(spout, out)
 
 cdef class sme(ssolvers):
-    cdef cy_qobj L
+    cdef CQobjEvo L
     cdef object imp
     cdef object c_ops
     cdef int N_root
@@ -1521,7 +1521,7 @@ cdef class sme(ssolvers):
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef int i, k
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
@@ -1553,8 +1553,8 @@ cdef class sme(ssolvers):
         L0a[:]       aa' +da/dt +bba"/2    2    taylor15   dt^2/2
         """
         cdef int i, j, k
-        cdef cy_qobj c_op
-        cdef cy_qobj c_opj
+        cdef CQobjEvo c_op
+        cdef CQobjEvo c_opj
         cdef complex trApp, trAbb, trAa
         cdef complex[::1] trAp = self.expect_buffer_1d[0,:]
         cdef complex[:, ::1] trAb = self.expect_buffer_2d
@@ -1656,8 +1656,8 @@ cdef class sme(ssolvers):
         LLLb[:]  ...                      taylor2.0   dt^2/2
         """
         cdef int i, j, k
-        cdef cy_qobj c_op = self.c_ops[0]
-        cdef cy_qobj c_opj
+        cdef CQobjEvo c_op = self.c_ops[0]
+        cdef CQobjEvo c_opj
         cdef complex trAp, trApt
         cdef complex trAb, trALb, trALLb
         cdef complex trAa, trALa
@@ -1746,7 +1746,7 @@ cdef class sme(ssolvers):
 
 
 cdef class psse(ssolvers):
-    cdef cy_qobj L
+    cdef CQobjEvo L
     cdef object c_ops
     cdef object cdc_ops
 
@@ -1766,7 +1766,7 @@ cdef class psse(ssolvers):
     @cython.wraparound(False)
     cdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef cy_qobj
+        cdef CQobjEvo
         cdef double expect
         cdef int i
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
@@ -1787,7 +1787,7 @@ cdef class psse(ssolvers):
     @cython.wraparound(False)
     cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef cy_qobj
+        cdef CQobjEvo
         cdef double expect
         cdef int i
         cdef complex[::1] tmp = self.buffer_1d[0,:]
@@ -1816,7 +1816,7 @@ cdef class psse(ssolvers):
         self.L._mul_vec(t, &vec[0], &out[0])
         cdef int i
         cdef complex e
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
         for i in range(self.N_ops):
             zero(temp)
@@ -1830,7 +1830,7 @@ cdef class psse(ssolvers):
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
         cdef int i
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
@@ -1843,7 +1843,7 @@ cdef class psse(ssolvers):
             axpy(-1, vec, out[i,:])
 
 cdef class psme(ssolvers):
-    cdef cy_qobj L
+    cdef CQobjEvo L
     cdef object cdcr_cdcl_ops
     cdef object cdcl_ops
     cdef object clcdr_ops
@@ -1926,7 +1926,7 @@ cdef class psme(ssolvers):
     @cython.boundscheck(False)
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         cdef int i
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex[::1] Crho = self.func_buffer_1d[0,:]
         cdef complex expect
         self.L._mul_vec(t, &rho[0], &out[0])
@@ -1943,7 +1943,7 @@ cdef class psme(ssolvers):
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef int i
-        cdef cy_qobj c_op
+        cdef CQobjEvo c_op
         cdef complex expect
         for i in range(self.N_ops):
             c_op = self.clcdr_ops[i]
@@ -1958,9 +1958,9 @@ cdef class psme(ssolvers):
 
 cdef class pmsme(ssolvers):
     cdef object L
-    cdef cy_qobj pp_ops
-    cdef cy_qobj preLH
-    cdef cy_qobj postLH
+    cdef CQobjEvo pp_ops
+    cdef CQobjEvo preLH
+    cdef CQobjEvo postLH
     cdef object sops
     cdef object preops
     cdef object postops
@@ -1993,7 +1993,7 @@ cdef class pmsme(ssolvers):
         cdef complex[::1] temp = self.buffer_1d[0,:]
         cdef complex[::1] temp2 = self.buffer_1d[1,:]
         cdef int i, j, k
-        cdef cy_qobj c_op, c_opj
+        cdef CQobjEvo c_op, c_opj
         cdef complex ddw, tr
         zero(out)
         zero(temp)

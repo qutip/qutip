@@ -1,19 +1,50 @@
 #!python
 #cython: language_level=3
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2011 and later, The QuTiP Project.
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 import numpy as np
 cimport numpy as np
 import cython
 cimport cython
 cimport libc.math
-from qutip.cy.inter import prep_cubic_spline
-from qutip.cy.inter cimport (spline_complex_cte_second,
-                            spline_complex_t_second)
+from qutip.cy.inter import _prep_cubic_spline
+from qutip.cy.inter cimport (_spline_complex_cte_second,
+                             _spline_complex_t_second)
 from qutip.cy.interpolate cimport (interp, zinterp)
 include "complex_math.pxi"
 
 
-
-cdef class coeffFunc:
+cdef class CoeffFunc:
     def __init__(self, ops, args, tlist):
         pass
 
@@ -36,7 +67,7 @@ cdef class coeffFunc:
         pass
 
 
-cdef class interpolate_coeff(coeffFunc):
+cdef class InterpolateCoeff(CoeffFunc):
     cdef double a, b
     cdef complex[:,::1] c
 
@@ -73,7 +104,7 @@ cdef class interpolate_coeff(coeffFunc):
         self.c = state[3]
 
 
-cdef class inter_coeff_cte(coeffFunc):
+cdef class InterCoeffCte(CoeffFunc):
     cdef int l
     cdef double dt
     cdef double[::1] tlist
@@ -88,7 +119,7 @@ cdef class inter_coeff_cte(coeffFunc):
         self.M = np.zeros((self.N_ops,self.l), dtype=complex)
 
         for i in range(self.N_ops):
-            m, cte = prep_cubic_spline(ops[i][2], tlist)
+            m, cte = _prep_cubic_spline(ops[i][2], tlist)
             if not cte:
                 raise Exception("tlist not sampled uniformly")
             for j in range(self.l):
@@ -97,7 +128,7 @@ cdef class inter_coeff_cte(coeffFunc):
 
     cdef void _call_core(self, double t, complex * coeff):
         for i in range(self.N_ops):
-            coeff[i] = spline_complex_cte_second(t, self.tlist,
+            coeff[i] = _spline_complex_cte_second(t, self.tlist,
                                     self.y[i,:], self.M[i,:], self.l, self.dt)
 
     def set_args(self, args):
@@ -116,7 +147,7 @@ cdef class inter_coeff_cte(coeffFunc):
         self.M = state[5]
 
 
-cdef class inter_coeff_t(coeffFunc):
+cdef class InterCoeffT(CoeffFunc):
     cdef int l
     cdef double dt
     cdef double[::1] tlist
@@ -129,7 +160,7 @@ cdef class inter_coeff_t(coeffFunc):
         self.y = np.zeros((self.N_ops,self.l), dtype=complex)
         self.M = np.zeros((self.N_ops,self.l), dtype=complex)
         for i in range(self.N_ops):
-            m, cte = prep_cubic_spline(ops[i][2], tlist)
+            m, cte = _prep_cubic_spline(ops[i][2], tlist)
             if cte:
                 print("tlist not uniformly?")
             for j in range(self.l):
@@ -138,7 +169,7 @@ cdef class inter_coeff_t(coeffFunc):
 
     cdef void _call_core(self, double t, complex * coeff):
         for i in range(self.N_ops):
-            coeff[i] = spline_complex_t_second(t, self.tlist,
+            coeff[i] = _spline_complex_t_second(t, self.tlist,
                                     self.y[i,:], self.M[i,:], self.l)
 
     def set_args(self, args):
@@ -156,7 +187,7 @@ cdef class inter_coeff_t(coeffFunc):
         self.M = state[5]
 
 
-cdef class str_coeff(coeffFunc):
+cdef class StrCoeff(CoeffFunc):
     def __init__(self, ops, args, tlist):
         self.N_ops = len(ops)
         self.args = args

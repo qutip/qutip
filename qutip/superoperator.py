@@ -38,7 +38,7 @@ __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
 import scipy.sparse as sp
 import numpy as np
 from qutip.qobj import Qobj
-from qutip.td_qobj import td_Qobj
+from qutip.qobjevo import QobjEvo
 from qutip.fastsparse import fast_csr_matrix, fast_identity
 from qutip.sparse import sp_reshape
 from qutip.cy.spmath import zcsr_kron
@@ -53,26 +53,26 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     Parameters
     ----------
-    H : qobj
+    H : Qobj or QobjEvo
         System Hamiltonian.
 
-    c_ops : array_like
+    c_ops : array_like of Qobj or QobjEvo
         A ``list`` or ``array`` of collapse operators.
 
     Returns
     -------
-    L : qobj
+    L : Qobj or QobjEvo
         Liouvillian superoperator.
 
     """
-    if isinstance(c_ops, (Qobj, td_Qobj)):
+    if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
     if chi and len(chi) != len(c_ops):
         raise ValueError('chi must be a list with same length as c_ops')
 
     h = None
     if H is not None:
-        if isinstance(H, td_Qobj):
+        if isinstance(H, QobjEvo):
             h = H.cte
         else:
             h = H
@@ -87,7 +87,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     else:
         # no hamiltonian given, pick system size from a collapse operator
         if isinstance(c_ops, list) and len(c_ops) > 0:
-            if isinstance(c_ops[0], td_Qobj):
+            if isinstance(c_ops[0], QobjEvo):
                 c = c_ops[0].cte
             else:
                 c = c_ops[0]
@@ -109,7 +109,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     td = False
     L = None
-    if isinstance(H, td_Qobj):
+    if isinstance(H, QobjEvo):
         td = True
 
         def H2L(H):
@@ -132,7 +132,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     td_c_ops = []
     for idx, c_op in enumerate(c_ops):
-        if isinstance(c_op, td_Qobj):
+        if isinstance(c_op, QobjEvo):
             td = True
             if c_op.const:
                 c_ = c_op.cte
@@ -175,7 +175,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             l.dims = sop_dims
             l.data = data
             l.superrep = 'super'
-            L = td_Qobj(l)
+            L = QobjEvo(l)
         else:
             L.cte.data = data
         for c_op in td_c_ops:
@@ -225,15 +225,15 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
     Parameters
     ----------
-    a : qobj, td_qobj
+    a : Qobj or QobjEvo
         Left part of collapse operator.
 
-    b : qobj (optional), td_qobj
+    b : Qobj or QobjEvo (optional)
         Right part of collapse operator. If not specified, b defaults to a.
 
     Returns
     -------
-    D : qobj, td_qobj
+    D : qobj, QobjEvo
         Lindblad dissipator superoperator.
     """
     if b is None:
@@ -245,7 +245,7 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     else:
         D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
 
-    if isinstance(a, td_Qobj) or isinstance(b, td_Qobj):
+    if isinstance(a, QobjEvo) or isinstance(b, QobjEvo):
         return D
     else:
         return D.data if data_only else D
@@ -256,7 +256,7 @@ def operator_to_vector(op):
     Create a vector representation of a quantum operator given
     the matrix representation.
     """
-    if isinstance(op, td_Qobj):
+    if isinstance(op, QobjEvo):
         return op.apply(operator_to_vector)
 
     q = Qobj()
@@ -270,7 +270,7 @@ def vector_to_operator(op):
     Create a matrix representation given a quantum operator in
     vector form.
     """
-    if isinstance(op, td_Qobj):
+    if isinstance(op, QobjEvo):
         return op.apply(vector_to_operator)
 
     q = Qobj()
@@ -318,15 +318,15 @@ def spost(A):
 
     Parameters
     ----------
-    A : qobj
+    A : Qobj or QobjEvo
         Quantum operator for post multiplication.
 
     Returns
     -------
-    super : qobj
+    super : Qobj or QobjEvo
         Superoperator formed from input qauntum object.
     """
-    if isinstance(A, td_Qobj):
+    if isinstance(A, QobjEvo):
         return A.apply(spost)
 
     if not isinstance(A, Qobj):
@@ -347,15 +347,15 @@ def spre(A):
 
     Parameters
     ----------
-    A : qobj
+    A : Qobj or QobjEvo
         Quantum operator for pre-multiplication.
 
     Returns
     --------
-    super :qobj
+    super :Qobj or QobjEvo
         Superoperator formed from input quantum object.
     """
-    if isinstance(A, td_Qobj):
+    if isinstance(A, QobjEvo):
         return A.apply(spre)
 
     if not isinstance(A, Qobj):
@@ -384,18 +384,18 @@ def sprepost(A, B):
 
     Parameters
     ----------
-    A : Qobj
+    A : Qobj or QobjEvo
         Quantum operator for pre-multiplication.
 
-    B : Qobj
+    B : Qobj or QobjEvo
         Quantum operator for post-multiplication.
 
     Returns
     --------
-    super : Qobj
+    super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
-    if isinstance(A, td_Qobj) or isinstance(B, td_Qobj):
+    if isinstance(A, QobjEvo) or isinstance(B, QobjEvo):
         return spre(A) * spost(B)
 
     else:

@@ -35,7 +35,7 @@ import numpy as np
 from numpy.testing import assert_, run_module_suite
 
 from qutip import (smesolve, mesolve, photocurrentmesolve, liouvillian,
-                   td_Qobj, spre, spost, destroy, coherent, parallel_map,
+                   QobjEvo, spre, spost, destroy, coherent, parallel_map,
                    qeye, fock_dm, general_stochastic, ket2dm)
 
 def f(t, args):
@@ -248,9 +248,9 @@ def test_general_stochastic():
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a * 0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
-    L = liouvillian(td_Qobj([[a.dag() * a,f]], args={"a":2}), c_ops = sc_ops)
+    L = liouvillian(QobjEvo([[a.dag() * a,f]], args={"a":2}), c_ops = sc_ops)
     L.compile()
-    sc_opsM = [td_Qobj(spre(op) + spost(op.dag())) for op in sc_ops]
+    sc_opsM = [QobjEvo(spre(op) + spost(op.dag())) for op in sc_ops]
     [op.compile() for op in sc_opsM]
     e_opsM = [spre(op) for op in e_ops]
 

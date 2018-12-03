@@ -41,24 +41,23 @@ cimport numpy as cnp
 
 import scipy.linalg
 
-def prep_cubic_spline(array, tlist):
+def _prep_cubic_spline(array, tlist):
     """ Prepare coefficients for interpalation of array.
     boudary conditions assumed: second derivative null at the extremities.
 
-    Input:
-      array:
-        nd.array of double / complex
+    Parameters
+    ----------
+      array : nd.array of double / complex
         Array to interpolate
 
-      tlist:
-        nd.array of double
-        times or x of the array, must be inscreasing,
-          the step size do not need to be constant.
+      tlist : nd.array of double
+        times or x of the array, must be inscreasing.
+        The step size do not need to be constant.
 
-    Output:
+    Returns
+    -------
+    np.array
         the second derivative at each time
-        np.array [N]
-
     """
     N = len(tlist)
     M = np.zeros((3,N), dtype=array.dtype)
@@ -82,7 +81,7 @@ def prep_cubic_spline(array, tlist):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef int binary_search(double x, double[::1] t, int N):
+cdef int _binary_search(double x, double[::1] t, int N):
     #Binary search for the interval
     cdef int low = 0
     cdef int high = N
@@ -101,7 +100,7 @@ cdef int binary_search(double x, double[::1] t, int N):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef double spline_float_cte_second(double x,
+cdef double _spline_float_cte_second(double x,
                                      double[::1] t,
                                      double[::1] y,
                                      double[::1] M,
@@ -125,7 +124,7 @@ cpdef double spline_float_cte_second(double x,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef double spline_float_t_second(double x,
+cdef double _spline_float_t_second(double x,
                                    double[::1] t,
                                    double[::1] y,
                                    double[::1] M,
@@ -135,7 +134,7 @@ cpdef double spline_float_t_second(double x,
         return y[0]
     elif x > t[N-1]:
         return y[N-1]
-    cdef int p = binary_search(x, t, N)
+    cdef int p = _binary_search(x, t, N)
     cdef double dt = t[p+1] - t[p]
     cdef double tb = (x - t[p]) / dt
     cdef double te = 1 - tb
@@ -149,7 +148,7 @@ cpdef double spline_float_t_second(double x,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef complex spline_complex_cte_second(double x,
+cdef complex _spline_complex_cte_second(double x,
                                         double[::1] t,
                                         complex[::1] y,
                                         complex[::1] M,
@@ -173,7 +172,7 @@ cpdef complex spline_complex_cte_second(double x,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef complex spline_complex_t_second(double x,
+cdef complex _spline_complex_t_second(double x,
                                       double[::1] t,
                                       complex[::1] y,
                                       complex[::1] M,
@@ -183,7 +182,7 @@ cpdef complex spline_complex_t_second(double x,
         return y[0]
     elif x > t[N-1]:
         return y[N-1]
-    cdef int p = binary_search(x, t, N)
+    cdef int p = _binary_search(x, t, N)
     cdef double dt = t[p+1] - t[p]
     cdef double tb = (x - t[p]) / dt
     cdef double te = 1 - tb

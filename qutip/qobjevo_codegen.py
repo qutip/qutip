@@ -31,10 +31,12 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip.cy.inter import prep_cubic_spline
+from qutip.cy.inter import _prep_cubic_spline
 
 
 def _compile_str_single(string, args):
+    """Create and import a cython compiled function from text
+    """
     import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
                     "\\", "/")
@@ -77,17 +79,20 @@ def f(double t, args):
     return str_func[0]
 
 
-def compiled_coeffs(ops, args, tlist):
-    code = make_code_4_cimport(ops, args, tlist)
-    filename = "td_Qobj_compiled_coeff_"+str(hash(code))[1:]
+def _compiled_coeffs(ops, args, tlist):
+    """Create and import a cython compiled class for coeff that
+    need compilation.
+    """
+    code = _make_code_4_cimport(ops, args, tlist)
+    filename = "cqobjevo_compiled_coeff_"+str(hash(code))[1:]
 
     file = open(filename+".pyx", "w")
     file.writelines(code)
     file.close()
     import_list = []
 
-    import_code = compile('from ' + filename + ' import compiled_str_coeff\n' +
-                          "import_list.append(compiled_str_coeff)",
+    import_code = compile('from ' + filename + ' import CompiledStrCoeff\n' +
+                          "import_list.append(CompiledStrCoeff)",
                           '<string>', 'exec')
     exec(import_code, locals())
     coeff_obj = import_list[0](ops, args, tlist)
@@ -100,9 +105,9 @@ def compiled_coeffs(ops, args, tlist):
     return coeff_obj, code
 
 
-def make_code_4_cimport(ops, args, tlist):
+def _make_code_4_cimport(ops, args, tlist):
     """
-    Create the code for a coeffFunc cython class the wraps
+    Create the code for a CoeffFunc cython class the wraps
     the string coefficients, array_like coefficients and Cubic_Spline.
     """
     import os
@@ -121,10 +126,10 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
 from qutip.cy.spmatfuncs cimport spmvpy
-from qutip.cy.inter cimport spline_complex_t_second, spline_complex_cte_second
-from qutip.cy.inter cimport spline_float_t_second, spline_float_cte_second
+from qutip.cy.inter cimport _spline_complex_t_second, _spline_complex_cte_second
+from qutip.cy.inter cimport _spline_float_t_second, _spline_float_cte_second
 from qutip.cy.interpolate cimport (interp, zinterp)
-from qutip.cy.td_qobj_factor cimport str_coeff
+from qutip.cy.cqobjevo_factor cimport StrCoeff
 from qutip.cy.math cimport erf
 cdef double pi = 3.14159265358979323
 
@@ -138,7 +143,7 @@ include """ + _include_string + "\n\n"
             compile_list.append(op[2])
 
         elif op[3] == 3:
-            spline, dt_cte = prep_cubic_spline(op[2], tlist)
+            spline, dt_cte = _prep_cubic_spline(op[2], tlist)
             t_str = "_tlist"
             y_str = "_array_" + str(N_np)
             s_str = "_spline_" + str(N_np)
@@ -146,19 +151,19 @@ include """ + _include_string + "\n\n"
             dt_times = str(tlist[1]-tlist[0])
             if dt_cte:
                 if isinstance(op[2][0], (float, np.float32, np.float64)):
-                    string = "spline_float_cte_second(t, " + t_str + ", " +\
+                    string = "_spline_float_cte_second(t, " + t_str + ", " +\
                               y_str + ", " + s_str + ", " + N_times + ", " +\
                               dt_times + ")"
                 elif isinstance(op[2][0], (complex, np.complex128)):
-                    string = "spline_complex_cte_second(t, " + t_str + ", " +\
+                    string = "_spline_complex_cte_second(t, " + t_str + ", " +\
                               y_str + ", " + s_str + ", " + N_times + ", " +\
                               dt_times + ")"
             else:
                 if isinstance(op[2][0], (float, np.float32, np.float64)):
-                    string = "spline_float_t_second(t, " + t_str + ", " +\
+                    string = "_spline_float_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
                 elif isinstance(op[2][0], (complex, np.complex128)):
-                    string = "spline_complex_t_second(t, " + t_str + ", " +\
+                    string = "_spline_complex_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
             compile_list.append(string)
             args[t_str] = tlist
@@ -178,7 +183,7 @@ include """ + _include_string + "\n\n"
             args[y_str] = op[1].coeffs
             N_np += 1
 
-    code += "cdef class compiled_str_coeff(str_coeff):\n"
+    code += "cdef class CompiledStrCoeff(StrCoeff):\n"
     for name, value in args.items():
         if not isinstance(name, str):
             raise Exception("All arguments key must be string " +

@@ -33,7 +33,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip.cy.td_qobj_cy cimport cy_cte_qobj, cy_td_qobj, cy_td_qobj_matched
+from qutip.cy.cqobjevo cimport CQobjCte, CQobjEvoTd, CQobjEvoTdMatched
 from qutip.cy.openmp.parfuncs cimport spmvpy_openmp
 import numpy as np
 import scipy.sparse as sp
@@ -44,10 +44,11 @@ from cython.parallel import prange
 
 include "../complex_math.pxi"
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void spmmCpy_par(complex * data, int * ind, int * ptr, complex * mat,
+cdef void _spmmcpy_par(complex * data, int * ind, int * ptr, complex * mat,
                       complex a, complex * out, unsigned int sp_rows,
                       unsigned int nrows, unsigned int ncols, int nthr):
     """
@@ -61,18 +62,23 @@ cdef void spmmCpy_par(complex * data, int * ind, int * ptr, complex * mat,
             for col in range(ncols):
                 out[row * ncols + col] += a*data[jj]*mat[ind[jj] * ncols + col]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void spmmFpy_omp(complex * data, int * ind, int * ptr, complex * mat,
+cdef void _spmmfpy_omp(complex * data, int * ind, int * ptr, complex * mat,
                   complex a, complex * out, unsigned int sp_rows,
                   unsigned int nrows, unsigned int ncols, int nthr):
+    """
+    sparse*dense "F" ordered.
+    """
     cdef int col
     for col in range(ncols):
-        spmvpy_openmp(data, ind, ptr, mat+nrows*col, a, out+sp_rows*col, sp_rows, nthr)
+        spmvpy_openmp(data, ind, ptr, mat+nrows*col, a,
+                      out+sp_rows*col, sp_rows, nthr)
 
 
-cdef class cy_cte_qobj_omp(cy_cte_qobj):
+cdef class CQobjCteOmp(CQobjCte):
     cdef int nthr
 
     def set_threads(self, nthr):
@@ -106,7 +112,7 @@ cdef class cy_cte_qobj_omp(cy_cte_qobj):
     @cython.cdivision(True)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        spmmFpy_omp(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmmfpy_omp(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
 
     @cython.boundscheck(False)
@@ -114,10 +120,10 @@ cdef class cy_cte_qobj_omp(cy_cte_qobj):
     @cython.cdivision(True)
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        spmmCpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmmcpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
 
-cdef class cy_td_qobj_omp(cy_td_qobj):
+cdef class CQobjEvoTdOmp(CQobjEvoTd):
     cdef int nthr
 
     def set_threads(self, nthr):
@@ -142,10 +148,10 @@ cdef class cy_td_qobj_omp(cy_td_qobj):
                         int nrow, int ncol):
         self.factor(t)
         cdef int i
-        spmmFpy_omp(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmmfpy_omp(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
         for i in range(self.N_ops):
-             spmmFpy_omp(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
+             _spmmfpy_omp(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol, self.nthr)
 
     @cython.boundscheck(False)
@@ -155,13 +161,13 @@ cdef class cy_td_qobj_omp(cy_td_qobj):
                         int nrow, int ncol):
         self.factor(t)
         cdef int i
-        spmmCpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
+        _spmmcpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
         for i in range(self.N_ops):
-             spmmCpy_par(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
+             _spmmcpy_par(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol, self.nthr)
 
-cdef class cy_td_qobj_matched_omp(cy_td_qobj_matched):
+cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
     cdef int nthr
 
     def set_threads(self, nthr):
@@ -183,7 +189,7 @@ cdef class cy_td_qobj_matched_omp(cy_td_qobj_matched):
                         int nrow, int ncol):
         self.factor(t)
         self._call_core(t, self.data_t, self.coeff_ptr)
-        spmmFpy_omp(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
+        _spmmfpy_omp(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
 
     @cython.boundscheck(False)
@@ -193,5 +199,5 @@ cdef class cy_td_qobj_matched_omp(cy_td_qobj_matched):
                         int nrow, int ncol):
         self.factor(t)
         self._call_core(t, self.data_t, self.coeff_ptr)
-        spmmCpy_par(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
+        _spmmcpy_par(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)

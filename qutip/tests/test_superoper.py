@@ -39,7 +39,7 @@ import scipy
 from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
                    operator_to_vector, mat2vec, vec2mat, vec2mat_index,
                    mat2vec_index, tensor, sprepost, to_super, reshuffle,
-                   identity, destroy, create, qeye, td_Qobj)
+                   identity, destroy, create, qeye, QobjEvo)
 from qutip.superoperator import liouvillian, liouvillian_ref, \
                                 lindblad_dissipator
 
@@ -197,9 +197,9 @@ class TestSuper_td:
 
     def __init__(self):
         N = 3
-        self.t1 = td_Qobj([qeye(N)*(1.+0.1j),[create(N)*(1.-0.1j),f]])
-        self.t2 = td_Qobj([destroy(N)*(1.-0.2j)])
-        self.t3 = td_Qobj([[destroy(N)*create(N)*(1.+0.2j),f]])
+        self.t1 = QobjEvo([qeye(N)*(1.+0.1j),[create(N)*(1.-0.1j),f]])
+        self.t2 = QobjEvo([destroy(N)*(1.-0.2j)])
+        self.t3 = QobjEvo([[destroy(N)*create(N)*(1.+0.2j),f]])
         self.q1 = qeye(N)*(1.+0.3j)
         self.q2 = destroy(N)*(1.-0.3j)
         self.q3 = destroy(N)*create(N)*(1.+0.4j)
@@ -214,13 +214,13 @@ class TestSuper_td:
 
     def test_sprepost_td(self):
         "Superoperator: sprepost, time-dependent"
-        # left td_Qobj
+        # left QobjEvo
         assert_(sprepost(self.t1, self.q2)(.5) ==
                 sprepost(self.t1(.5), self.q2))
-        # left td_Qobj
+        # left QobjEvo
         assert_(sprepost(self.q2, self.t1)(.5) ==
                 sprepost(self.q2, self.t1(.5)))
-        # left 2 td_Qobj, one cte
+        # left 2 QobjEvo, one cte
         assert_(sprepost(self.t1, self.t2)(.5) ==
                 sprepost(self.t1(.5), self.t2(.5)))
 
