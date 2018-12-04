@@ -482,6 +482,9 @@ class StochasticSolverOptions:
 
 class StochasticSolverOptionsPhoto(StochasticSolverOptions):
     """
+    Attributes
+    ----------
+
     solver : string
         Name of the solver method to use for solving the evolution
         of the system.*
@@ -1138,7 +1141,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     sso.solver_name = "general_stochastic_solver_" + sso.solver
 
     ssolver = generic()
-    ssolver.set_data(sso)
+    # ssolver.set_data(sso)
     ssolver.set_solver(sso)
 
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
@@ -1256,12 +1259,12 @@ def _sesolve_generic(sso, options, progress_bar):
                            task_args, task_kwargs, **map_kwargs)
     noise = []
     for result in results:
-        states_list, dW, m, expect, ss = result
+        states_list, dW, m, expect = result
         data.states.append(states_list)
         noise.append(dW)
         data.measurement.append(m)
         data.expect += expect
-        data.ss += ss
+        data.ss += expect * expect
     data.noise = np.stack(noise)
 
     if sso.store_all_expect:
@@ -1293,10 +1296,11 @@ def _sesolve_generic(sso, options, progress_bar):
 
 
 def _single_trajectory(i, sso):
+    # Only one step?
     ssolver = sso.solver_obj()
-    ssolver.set_data(sso)
+    #ssolver.set_data(sso)
     ssolver.set_solver(sso)
-    result = ssolver.cy_sesolve_single_trajectory(i, sso)
+    result = ssolver.cy_sesolve_single_trajectory(i)#, sso)
     return result
 
 

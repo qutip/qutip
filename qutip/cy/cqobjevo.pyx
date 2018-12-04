@@ -41,7 +41,7 @@ import cython
 cimport cython
 from qutip.qobj import Qobj
 from qutip.cy.spmath cimport _zcsr_add_core
-from qutip.cy.spmatfuncs cimport spmvpy
+from qutip.cy.spmatfuncs cimport spmvpy, _spmm_c_py, _spmm_f_py
 from qutip.cy.spmath import zcsr_add
 from qutip.cy.cqobjevo_factor cimport CoeffFunc
 cimport libc.math
@@ -59,53 +59,6 @@ cdef extern from "numpy/arrayobject.h" nogil:
 cdef extern from "Python.h":
     object PyLong_FromVoidPtr(void *)
     void* PyLong_AsVoidPtr(object)
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void _spmm_c_py(complex * data, int * ind, int * ptr,
-            complex * mat, complex a, complex * out,
-            unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
-    """
-    sparse*dense "C" ordered.
-    """
-    cdef int row, col, ii, jj, row_start, row_end
-    for row from 0 <= row < sp_rows :
-        row_start = ptr[row]
-        row_end = ptr[row+1]
-        for jj from row_start <= jj < row_end:
-            for col in range(ncols):
-                out[row * ncols + col] += a*data[jj]*mat[ind[jj] * ncols + col]
-
-"""def spmmc(complex[::1] data, int[::1] ind, int[::1] ptr, complex[:,::1] A):
-    cdef unsigned int sp_rows = ptr.shape[0]-1
-    cdef unsigned int nrows = A.shape[0]
-    cdef unsigned int ncols = A.shape[1]
-    cdef np.ndarray[complex, ndim=2, mode="c"] out = np.zeros((sp_rows,ncols), dtype=complex)
-    _spmm_c_py(&data[0], &ind[0], &ptr[0], &A[0,0], 1., &out[0,0], sp_rows, nrows, ncols)
-    return out"""
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void _spmm_f_py(complex * data, int * ind, int * ptr,
-            complex * mat, complex a, complex * out,
-            unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
-    """
-    sparse*dense "F" ordered.
-    """
-    cdef int col
-    for col in range(ncols):
-        spmvpy(data, ind, ptr, mat+nrows*col, a, out+sp_rows*col, sp_rows)
-
-
-"""def spmmf(complex[::1] data, int[::1] ind, int[::1] ptr, complex[::1,:] A):
-    cdef unsigned int sp_rows = ptr.shape[0]-1
-    cdef unsigned int nrows = A.shape[0]
-    cdef unsigned int ncols = A.shape[1]
-    cdef np.ndarray[complex, ndim=2, mode="fortran"] out = np.zeros((sp_rows,ncols), dtype=complex, order="F")
-    _spmm_f_py(&data[0], &ind[0], &ptr[0], &A[0,0], 1., &out[0,0], sp_rows, nrows, ncols)
-    return out"""
 
 
 def _zcsr_match(sparses_list):

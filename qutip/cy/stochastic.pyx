@@ -52,54 +52,101 @@ cdef double DZERO=0
 cdef complex ZZERO=0j
 cdef int ONE=1
 
+"""Some of blas wrapper"""
 @cython.boundscheck(False)
-cpdef void axpy(complex a, complex[::1] x, complex[::1] y):
+cdef void _axpy(complex a, complex[::1] x, complex[::1] y):
+    """ y += a*x"""
     cdef int l = x.shape[0]
     zaxpy(&l, &a, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
 @cython.boundscheck(False)
-cpdef void copy(complex[::1] x, complex[::1] y):
+cdef void copy(complex[::1] x, complex[::1] y):
+    """ y = x """
     cdef int l = x.shape[0]
     zcopy(&l, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
 @cython.boundscheck(False)
-cpdef complex dot(complex[::1] x,complex[::1] y):
+cdef complex _dot(complex[::1] x, complex[::1] y):
+    """ = x_i * y_i """
     cdef int l = x.shape[0]
     return zdotu(&l, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
 @cython.boundscheck(False)
-cpdef complex dotc(complex[::1] x,complex[::1] y):
+cdef complex _dotc(complex[::1] x, complex[::1] y):
+    """ = conj(x_i) * y_i """
     cdef int l = x.shape[0]
     return zdotc(&l, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
 @cython.boundscheck(False)
-cpdef double dznrm2(complex[::1] vec):
+cdef double _dznrm2(complex[::1] vec):
+    """ = sqrt( x_i**2 ) """
     cdef int l = vec.shape[0]
     return raw_dznrm2(&l, <complex*>&vec[0], &ONE)
 
+@cython.boundscheck(False)
+cdef void _scale(double a, complex[::1] x):
+    """ x *= a """
+    cdef int l = x.shape[0]
+    zdscal(&l, &a, <complex*>&x[0], &ONE)
+
+@cython.boundscheck(False)
+cdef void _zscale(complex a, complex[::1] x):
+    """ x *= a """
+    cdef int l = x.shape[0]
+    zscal(&l, &a, <complex*>&x[0], &ONE)
+
+@cython.boundscheck(False)
+cdef void _zero(complex[::1] x):
+    """ x *= 0 """
+    cdef int l = x.shape[0]
+    zdscal(&l, &DZERO, <complex*>&x[0], &ONE)
+
+@cython.boundscheck(False)
+cdef void _zero_2d(complex[:,::1] x):
+    """ x *= 0 """
+    cdef int l = x.shape[0]*x.shape[1]
+    zdscal(&l, &DZERO, <complex*>&x[0,0], &ONE)
+
+@cython.boundscheck(False)
+cdef void _zero_3d(complex[:,:,::1] x):
+    """ x *= 0 """
+    cdef int l = x.shape[0]*x.shape[1]*x.shape[2]
+    zdscal(&l, &DZERO, <complex*>&x[0,0,0], &ONE)
+
+@cython.boundscheck(False)
+cdef void _zero_4d(complex[:,:,:,::1] x):
+    """ x *= 0 """
+    cdef int l = x.shape[0]*x.shape[1]*x.shape[2]*x.shape[3]
+    zdscal(&l, &DZERO, <complex*>&x[0,0,0,0], &ONE)
+
+"""functions for ensuring that the states stays physical"""
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cpdef void normalize_inplace(complex[::1] vec):
+cdef void _normalize_inplace(complex[::1] vec):
+    """ make norm of vec equal to 1"""
     cdef int l = vec.shape[0]
-    cdef double norm = 1.0/dznrm2(vec)
+    cdef double norm = 1.0/_dznrm2(vec)
     zdscal(&l, &norm, <complex*>&vec[0], &ONE)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cpdef void normalize_rho(complex[::1] rho):
+cdef void _normalize_rho(complex[::1] rho):
+    """ Ensure that the density matrix trace is one and
+    that the composing states are normalized.
+    """
     cdef int l = rho.shape[0]
     cdef int N = np.sqrt(l)
     cdef complex[::1,:] mat = np.reshape(rho, (N,N), order="F")
     cdef complex[::1,:] eivec = np.zeros((N,N), dtype=complex, order="F")
     cdef double[::1] eival = np.zeros(N)
     ZHEEVR(mat, &eival[0], eivec, N)
-    zero(rho)
+    _zero(rho)
     cdef int i, j, k
     cdef double sum
 
     sum = 0.
     for i in range(N):
-        normalize_inplace(eivec[:,i])
+        _normalize_inplace(eivec[:,i])
         if eival[i] < 0:
             eival[i] = 0.
         sum += eival[i]
@@ -112,35 +159,6 @@ cpdef void normalize_rho(complex[::1] rho):
             for k in range(N):
                 rho[j+N*k] += conj(eivec[k,i])*eivec[j,i]*eival[i]
 
-@cython.boundscheck(False)
-cdef void scale(double a, complex[::1] x):
-    cdef int l = x.shape[0]
-    zdscal(&l, &a, <complex*>&x[0], &ONE)
-
-@cython.boundscheck(False)
-cdef void zscale(complex a, complex[::1] x):
-    cdef int l = x.shape[0]
-    zscal(&l, &a, <complex*>&x[0], &ONE)
-
-@cython.boundscheck(False)
-cdef void zero(complex[::1] x):
-    cdef int l = x.shape[0]
-    zdscal(&l, &DZERO, <complex*>&x[0], &ONE)
-
-@cython.boundscheck(False)
-cdef void zero_2d(complex[:,::1] x):
-    cdef int l = x.shape[0]*x.shape[1]
-    zdscal(&l, &DZERO, <complex*>&x[0,0], &ONE)
-
-@cython.boundscheck(False)
-cdef void zero_3d(complex[:,:,::1] x):
-    cdef int l = x.shape[0]*x.shape[1]*x.shape[2]
-    zdscal(&l, &DZERO, <complex*>&x[0,0,0], &ONE)
-
-@cython.boundscheck(False)
-cdef void zero_4d(complex[:,:,:,::1] x):
-    cdef int l = x.shape[0]*x.shape[1]*x.shape[2]*x.shape[3]
-    zdscal(&l, &DZERO, <complex*>&x[0,0,0,0], &ONE)
 
 """
 Solver:
@@ -166,7 +184,6 @@ Special solvers
     photocurrent       60
     photocurrent_pc   110
     rouchon           120
-
 """
 
 cdef class taylorNoise:
@@ -226,7 +243,8 @@ cdef class taylorNoise:
             for l in range(p):
                 if r != l:
                     CC += (r+1.)/((r+1.)*(r+1.)-(l+1.)*(l+1.)) *\
-                         (1/(l+1.)*noise[3+r]*noise[3+l] -(l+1.)/(r+1.)*noise[3+r+p]*noise[3+l+p])
+                         (1/(l+1.)*noise[3+r]*noise[3+l] - \
+                         (l+1.)/(r+1.)*noise[3+r+p]*noise[3+l+p])
 
         a = self.aFactor * a + self.rho * noise[1]
         b = self.bFactor * b + self.alpha * noise[2]
@@ -242,6 +260,8 @@ cdef class taylorNoise:
 
 
 cdef class ssolvers:
+    """ generic stochastic solver class
+    """
     cdef int l_vec, N_ops
     cdef int solver#, noise_type
     cdef int N_step, N_substeps, N_dw
@@ -251,6 +271,7 @@ cdef class ssolvers:
     cdef object custom_noise
     cdef double[::1] dW_factor
     cdef unsigned int[::1] seed
+    cdef object sso
 
     # buffer to not redo the initialisation at each substep
     cdef complex[:, ::1] buffer_1d
@@ -272,6 +293,16 @@ cdef class ssolvers:
         self.solver = 0
 
     def set_solver(self, sso):
+        """ Prepare the solver from the info in StochasticSolverOptions
+
+        Parameters
+        ----------
+        sso : StochasticSolverOptions
+            Data of the stochastic system
+        """
+        self.set_data(sso)
+        self.sso = sso
+
         self.solver = sso.solver_code
         self.dt = sso.dt
         self.N_substeps = sso.nsubsteps
@@ -364,7 +395,12 @@ cdef class ssolvers:
         elif self.noise_type == 0:
             self.seed = sso.noise
 
+    def set_data(self, sso):
+        """Set solver specific operator"""
+        pass
+
     cdef np.ndarray[double, ndim=3] make_noise(self, int n):
+        """Create the random numbers for the stochastic process"""
         if self.solver in [60, 110] and self.noise_type == 0:
             # photocurrent, just seed,
             np.random.seed(self.seed[n])
@@ -378,7 +414,33 @@ cdef class ssolvers:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def cy_sesolve_single_trajectory(self, int n, sso):
+    def cy_sesolve_single_trajectory(self, int n):
+        """ Run the one of the trajectories of the stochastic system.
+
+        Parameters
+        ----------
+        n : int
+            Number of the iterations
+
+        sso : StochasticSolverOptions
+            Data of the stochastic system
+
+        Returns
+        -------
+        states_list : list of qobj
+            State of the system at each time
+
+        noise : array
+            noise at each step of the solver
+
+        measurements : array
+            measurements value at each timestep for each m_ops
+
+        expect : array
+            expectation value at each timestep for each e_ops
+
+        """
+        sso = self.sso
         cdef double[::1] times = sso.times
         cdef complex[::1] rho_t
         cdef double t
@@ -390,7 +452,6 @@ cdef class ssolvers:
         dims = sso.state0.dims
 
         expect = np.zeros((len(sso.ce_ops), len(sso.times)), dtype=complex)
-        ss = np.zeros((len(sso.ce_ops), len(sso.times)), dtype=complex)
         measurements = np.zeros((len(times), len(sso.cm_ops)), dtype=complex)
         states_list = []
         for t_idx, t in enumerate(times):
@@ -398,7 +459,6 @@ cdef class ssolvers:
                 for e_idx, e in enumerate(sso.ce_ops):
                     s = e.compiled_Qobj.expect(t, rho_t, 0)
                     expect[e_idx, t_idx] = s
-                    ss[e_idx, t_idx] = s ** 2
             if sso.store_states or not sso.ce_ops:
                 if sso.me:
                     states_list.append(Qobj(vec2mat(np.asarray(rho_t)),
@@ -419,11 +479,12 @@ cdef class ssolvers:
         if sso.method == 'heterodyne':
             measurements = measurements.reshape(len(times),len(sso.cm_ops)//2,2)
 
-        return states_list, noise, measurements, expect, ss
+        return states_list, noise, measurements, expect
 
     @cython.boundscheck(False)
     cdef complex[::1] run(self, double t, double dt, double[:, ::1] noise,
                           complex[::1] vec, int N_substeps):
+        """ Do one time full step"""
         cdef complex[::1] out = np.zeros(self.l_vec, dtype=complex)
         cdef int i
         if self.solver == 50:
@@ -492,21 +553,28 @@ cdef class ssolvers:
                 out, vec = vec, out
 
         if self.normalize:
-            self.normalize_inplace(vec)
+            self._normalize_inplace(vec)
         return vec
 
-    cdef void normalize_inplace(self, complex[::1] vec):
-        normalize_inplace(vec)
+    cdef void _normalize_inplace(self, complex[::1] vec):
+        _normalize_inplace(vec)
 
     # Dummy functions
     cdef void d1(self, double t, complex[::1] v, complex[::1] out):
+        """ deterministic part of the evolution
+        depend on schrodinger vs master vs photocurrent
+        """
         pass
 
     cdef void d2(self, double t, complex[::1] v, complex[:, ::1] out):
+        """ stochastic part of the evolution
+        depend on schrodinger vs master vs photocurrent
+        """
         pass
 
     cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
                        complex[::1] out, np.ndarray[complex, ndim=1] guess):
+        """ Do the step X(t+dt) = f(X(t+dt)) + g(X(t)) """
         pass
 
     cdef void derivatives(self, double t, int deg, complex[::1] rho,
@@ -514,6 +582,10 @@ cdef class ssolvers:
                               complex[:, :, ::1] Lb, complex[:,::1] La,
                               complex[:, ::1] L0b, complex[:, :, :, ::1] LLb,
                               complex[::1] L0a):
+        """ Obtain the multiple terms for stochastic taylor expension
+        Up to order 1.5
+        multiple sc_ops
+        """
         pass
 
     cdef void derivativesO2(self, double t, complex[::1] rho,
@@ -522,35 +594,53 @@ cdef class ssolvers:
                             complex[::1] L0a,
                             complex[::1] LLa, complex[::1] LL0b,
                             complex[::1] L0Lb, complex[::1] LLLb):
-        pass
-
-    def set_implicit(self, sso):
+        """ Obtain the multiple terms for stochastic taylor expension
+        Up to order 2.0
+        One sc_ops
+        """
         pass
 
     cdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
+        """Special integration scheme:
+        photocurrent collapse + euler evolution
+        """
         pass
 
     cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
+        """Special integration scheme:
+        photocurrent collapse + predictor-corrector evolution
+        """
         pass
 
     cdef void rouchon(self, double t, double dt, double[:] noise,
                       complex[::1] vec, complex[::1] out):
+        """Special integration scheme:
+        Force valid density matrix using positive map
+        Pierre Rouchon, Jason F. Ralph
+        arXiv:1410.5345 [quant-ph]
+        """
         pass
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void euler(self, double t, double dt, double[:] noise,
                     complex[::1] vec, complex[::1] out):
+        """Integration scheme:
+        Basic Euler order 0.5
+        dV = d1 dt + d2_i dW_i
+        Numerical Solution of Stochastic Differential Equations
+        By Peter E. Kloeden, Eckhard Platen
+        """
         cdef int i, j
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
-        zero_2d(d2)
+        _zero_2d(d2)
         copy(vec, out)
         self.d1(t, vec, out)
         self.d2(t, vec, d2)
         for i in range(self.N_ops):
-            axpy(noise[i], d2[i,:], out)
+            _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -565,6 +655,8 @@ cdef class ssolvers:
 
         Vt = V -iH*V*dt + d1*dt + d2_i*dW_i
         V+/- = V -iH*V*dt + d1*dt +/- d2_i*dt**.5
+        The Theory of Open Quantum Systems
+        Chapter 7 Eq. (7.47), H.-P Breuer, F. Petruccione
         """
         cdef int i, j, k
         cdef double sqrt_dt = np.sqrt(dt)
@@ -577,41 +669,41 @@ cdef class ssolvers:
         cdef complex[:, ::1] Vp = self.buffer_2d[2,:,:]
         cdef complex[:, ::1] d2p = self.buffer_2d[3,:,:]
         cdef complex[:, ::1] d2m = self.buffer_2d[4,:,:]
-        zero(d1)
-        zero_2d(d2)
+        _zero(d1)
+        _zero_2d(d2)
 
         self.d1(t, vec, d1)
         self.d2(t, vec, d2)
-        axpy(1.0,vec,d1)
+        _axpy(1.0,vec,d1)
         copy(d1,Vt)
         copy(d1,out)
-        scale(0.5,out)
+        _scale(0.5,out)
         for i in range(self.N_ops):
             copy(d1,Vp[i,:])
             copy(d1,Vm[i,:])
-            axpy( sqrt_dt,d2[i,:],Vp[i,:])
-            axpy(-sqrt_dt,d2[i,:],Vm[i,:])
-            axpy(noise[i],d2[i,:],Vt)
-        zero(d1)
+            _axpy( sqrt_dt,d2[i,:],Vp[i,:])
+            _axpy(-sqrt_dt,d2[i,:],Vm[i,:])
+            _axpy(noise[i],d2[i,:],Vt)
+        _zero(d1)
         self.d1(t, Vt, d1)
-        axpy(0.5,d1,out)
-        axpy(0.5,vec,out)
+        _axpy(0.5,d1,out)
+        _axpy(0.5,vec,out)
         for i in range(self.N_ops):
-            zero_2d(d2p)
-            zero_2d(d2m)
+            _zero_2d(d2p)
+            _zero_2d(d2m)
             self.d2(t, Vp[i,:], d2p)
             self.d2(t, Vm[i,:], d2m)
             dw = noise[i] * 0.25
-            axpy(dw,d2m[i,:],out)
-            axpy(2*dw,d2[i,:],out)
-            axpy(dw,d2p[i,:],out)
+            _axpy(dw,d2m[i,:],out)
+            _axpy(2*dw,d2[i,:],out)
+            _axpy(dw,d2p[i,:],out)
             for j in range(self.N_ops):
                 if i == j:
                     dw2 = sqrt_dt_inv * (noise[i]*noise[i] - dt)
                 else:
                     dw2 = sqrt_dt_inv * noise[i] * noise[j]
-                axpy(dw2,d2p[j,:],out)
-                axpy(-dw2,d2m[j,:],out)
+                _axpy(dw2,d2p[j,:],out)
+                _axpy(-dw2,d2m[j,:],out)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -630,24 +722,24 @@ cdef class ssolvers:
         cdef complex[::1] b_pred = self.buffer_1d[2,:]
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
         cdef complex[:, :, ::1] dd2 = self.buffer_3d[0,:,:,:]
-        zero(a_pred)
-        zero(b_pred)
-        zero_2d(d2)
-        zero_3d(dd2)
+        _zero(a_pred)
+        _zero(b_pred)
+        _zero_2d(d2)
+        _zero_3d(dd2)
         self.derivatives(t, 1, vec, a_pred, d2, dd2, None, None, None, None)
         copy(vec, euler)
         copy(vec, out)
-        axpy(1.0, a_pred, euler)
+        _axpy(1.0, a_pred, euler)
         for i in range(self.N_ops):
-            axpy(noise[i], d2[i,:], b_pred)
-            axpy(-dt_2, dd2[i,i,:], a_pred)
-        axpy(1.0, a_pred, out)
-        axpy(1.0, b_pred, euler)
-        axpy(0.5, b_pred, out)
-        zero_2d(d2)
+            _axpy(noise[i], d2[i,:], b_pred)
+            _axpy(-dt_2, dd2[i,i,:], a_pred)
+        _axpy(1.0, a_pred, out)
+        _axpy(1.0, b_pred, euler)
+        _axpy(0.5, b_pred, out)
+        _zero_2d(d2)
         self.d2(t + dt, euler, d2)
         for i in range(self.N_ops):
-            axpy(noise[i]*0.5, d2[i,:], out)
+            _axpy(noise[i]*0.5, d2[i,:], out)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -663,34 +755,34 @@ cdef class ssolvers:
         cdef int i, j, k
         cdef complex[::1] euler = self.buffer_1d[0,:]
         cdef complex[::1] a_pred = self.buffer_1d[1,:]
-        zero(a_pred)
+        _zero(a_pred)
         cdef complex[::1] a_corr = self.buffer_1d[2,:]
-        zero(a_corr)
+        _zero(a_corr)
         cdef complex[::1] b_pred = self.buffer_1d[3,:]
-        zero(b_pred)
+        _zero(b_pred)
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
-        zero_2d(d2)
+        _zero_2d(d2)
         cdef complex[:, :, ::1] dd2 = self.buffer_3d[0,:,:,:]
-        zero_3d(dd2)
+        _zero_3d(dd2)
 
         cdef double dt_2 = dt*0.5
         self.derivatives(t, 1, vec, a_pred, d2, dd2, None, None, None, None)
         copy(vec, euler)
-        axpy(1.0, a_pred, euler)
+        _axpy(1.0, a_pred, euler)
         for i in range(self.N_ops):
-            axpy(noise[i], d2[i,:], b_pred)
-            axpy(-dt_2, dd2[i,i,:], a_pred)
-        axpy(1.0, b_pred, euler)
+            _axpy(noise[i], d2[i,:], b_pred)
+            _axpy(-dt_2, dd2[i,i,:], a_pred)
+        _axpy(1.0, b_pred, euler)
         copy(vec, out)
-        axpy(0.5, a_pred, out)
-        axpy(0.5, b_pred, out)
-        zero_2d(d2)
-        zero_3d(dd2)
+        _axpy(0.5, a_pred, out)
+        _axpy(0.5, b_pred, out)
+        _zero_2d(d2)
+        _zero_3d(dd2)
         self.derivatives(t, 1, euler, a_corr, d2, dd2, None, None, None, None)
         for i in range(self.N_ops):
-            axpy(noise[i]*0.5, d2[i,:], out)
-            axpy(-dt_2, dd2[i,i,:], a_corr)
-        axpy(0.5, a_corr, out)
+            _axpy(noise[i]*0.5, d2[i,:], out)
+            _axpy(-dt_2, dd2[i,i,:], a_corr)
+        _axpy(0.5, a_corr, out)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -709,19 +801,19 @@ cdef class ssolvers:
         cdef double dw
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
         cdef complex[:, :, ::1] dd2 = self.buffer_3d[0,:,:,:]
-        zero_2d(d2)
-        zero_3d(dd2)
+        _zero_2d(d2)
+        _zero_3d(dd2)
         copy(vec,out)
         self.derivatives(t, 1, vec, out, d2, dd2, None, None, None, None)
         for i in range(self.N_ops):
-            axpy(noise[i],d2[i,:],out)
+            _axpy(noise[i],d2[i,:],out)
         for i in range(self.N_ops):
             for j in range(i, self.N_ops):
                 if (i == j):
                     dw = (noise[i] * noise[i] - dt) * 0.5
                 else:
                     dw = (noise[i] * noise[j])
-                axpy(dw,dd2[i,j,:],out)
+                _axpy(dw,dd2[i,j,:],out)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -742,23 +834,23 @@ cdef class ssolvers:
         cdef complex[::1] a = self.buffer_1d[0,:]
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
         cdef complex[:, :, ::1] dd2 = self.buffer_3d[0,:,:,:]
-        zero(a)
-        zero_2d(d2)
-        zero_3d(dd2)
+        _zero(a)
+        _zero_2d(d2)
+        _zero_3d(dd2)
         self.derivatives(t, 1, vec, a, d2, dd2, None, None, None, None)
         copy(vec, dvec)
-        axpy(0.5, a, dvec)
+        _axpy(0.5, a, dvec)
         for i in range(self.N_ops):
-            axpy(noise[i], d2[i,:], dvec)
+            _axpy(noise[i], d2[i,:], dvec)
         for i in range(self.N_ops):
             for j in range(i, self.N_ops):
                 if (i == j):
                     dw = (noise[i] * noise[i] - dt) * 0.5
                 else:
                     dw = (noise[i] * noise[j])
-                axpy(dw, dd2[i,j,:], dvec)
+                _axpy(dw, dd2[i,j,:], dvec)
         copy(dvec, guess)
-        axpy(0.5, a, guess)
+        _axpy(0.5, a, guess)
         self.implicit(t+dt, dvec, out, guess)
 
     @cython.wraparound(False)
@@ -778,13 +870,13 @@ cdef class ssolvers:
         cdef complex[:, ::1] La = self.buffer_2d[2,:,:]
         cdef complex[:, :, :, ::1] LLb = self.buffer_4d[:, :, :, :]
         cdef complex[::1] L0a = self.buffer_1d[1, :]
-        zero(a)
-        zero_2d(b)
-        zero_3d(Lb)
-        zero_2d(L0b)
-        zero_2d(La)
-        zero_4d(LLb)
-        zero(L0a)
+        _zero(a)
+        _zero_2d(b)
+        _zero_3d(Lb)
+        _zero_2d(L0b)
+        _zero_2d(La)
+        _zero_4d(LLb)
+        _zero(L0a)
         self.derivatives(t, 2, vec, a, b, Lb, La, L0b, LLb, L0a)
 
         cdef int i,j,k
@@ -796,22 +888,22 @@ cdef class ssolvers:
             dw[i] = noise[i]
             dz[i] = 0.5 *(noise[i] + 1./np.sqrt(3) * noise[i+self.N_ops])
         copy(vec,out)
-        axpy(1.0, a, out)
-        axpy(0.5, L0a, out)
+        _axpy(1.0, a, out)
+        _axpy(0.5, L0a, out)
 
         for i in range(self.N_ops):
-            axpy(dw[i], b[i,:], out)
-            axpy(0.5*(dw[i]*dw[i]-dt), Lb[i,i,:], out)
-            axpy(dz[i], La[i,:], out)
-            axpy(dw[i]-dz[i], L0b[i,:], out)
-            axpy(0.5 * (0.3333333333333333 * dw[i] * dw[i] - dt) * dw[i],
+            _axpy(dw[i], b[i,:], out)
+            _axpy(0.5*(dw[i]*dw[i]-dt), Lb[i,i,:], out)
+            _axpy(dz[i], La[i,:], out)
+            _axpy(dw[i]-dz[i], L0b[i,:], out)
+            _axpy(0.5 * (0.3333333333333333 * dw[i] * dw[i] - dt) * dw[i],
                         LLb[i,i,i,:], out)
             for j in range(i+1,self.N_ops):
-                axpy((dw[i]*dw[j]), Lb[i,j,:], out)
-                axpy(0.5*(dw[j]*dw[j]-dt)*dw[i], LLb[i,j,j,:], out)
-                axpy(0.5*(dw[i]*dw[i]-dt)*dw[j], LLb[i,i,j,:], out)
+                _axpy((dw[i]*dw[j]), Lb[i,j,:], out)
+                _axpy(0.5*(dw[j]*dw[j]-dt)*dw[i], LLb[i,j,j,:], out)
+                _axpy(0.5*(dw[i]*dw[i]-dt)*dw[j], LLb[i,i,j,:], out)
                 for k in range(j+1,self.N_ops):
-                    axpy(dw[i]*dw[j]*dw[k], LLb[i,j,k,:], out)
+                    _axpy(dw[i]*dw[j]*dw[k], LLb[i,j,k,:], out)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -830,13 +922,13 @@ cdef class ssolvers:
         cdef complex[:, ::1] La = self.buffer_2d[2,:,:]
         cdef complex[:, :, :, ::1] LLb = self.buffer_4d[:, :, :, :]
         cdef complex[::1] L0a = self.buffer_1d[1, :]
-        zero(a)
-        zero_2d(b)
-        zero_3d(Lb)
-        zero_2d(L0b)
-        zero_2d(La)
-        zero_4d(LLb)
-        zero(L0a)
+        _zero(a)
+        _zero_2d(b)
+        _zero_3d(Lb)
+        _zero_2d(L0b)
+        _zero_2d(La)
+        _zero_4d(LLb)
+        _zero(L0a)
         cdef np.ndarray[complex, ndim=1] guess = np.zeros((self.l_vec, ),
                    dtype=complex)
         cdef np.ndarray[complex, ndim=1] vec_t = np.zeros((self.l_vec, ),
@@ -852,22 +944,22 @@ cdef class ssolvers:
             dw[i] = noise[i]
             dz[i] = 0.5 *(noise[i] + 1./np.sqrt(3) * noise[i+self.N_ops])
         copy(vec, vec_t)
-        axpy(0.5, a, vec_t)
+        _axpy(0.5, a, vec_t)
         for i in range(self.N_ops):
-            axpy(dw[i], b[i,:], vec_t)
-            axpy(0.5*(dw[i]*dw[i]-dt), Lb[i,i,:], vec_t)
-            axpy(dz[i]-dw[i]*0.5, La[i,:], vec_t)
-            axpy(dw[i]-dz[i] , L0b[i,:], vec_t)
-            axpy(0.5 * (0.3333333333333333 * dw[i] * dw[i] - dt) * dw[i],
+            _axpy(dw[i], b[i,:], vec_t)
+            _axpy(0.5*(dw[i]*dw[i]-dt), Lb[i,i,:], vec_t)
+            _axpy(dz[i]-dw[i]*0.5, La[i,:], vec_t)
+            _axpy(dw[i]-dz[i] , L0b[i,:], vec_t)
+            _axpy(0.5 * (0.3333333333333333 * dw[i] * dw[i] - dt) * dw[i],
                         LLb[i,i,i,:], vec_t)
             for j in range(i+1,self.N_ops):
-                axpy((dw[i]*dw[j]), Lb[i,j,:], vec_t)
-                axpy(0.5*(dw[j]*dw[j]-dt)*dw[i], LLb[i,j,j,:], vec_t)
-                axpy(0.5*(dw[i]*dw[i]-dt)*dw[j], LLb[i,i,j,:], vec_t)
+                _axpy((dw[i]*dw[j]), Lb[i,j,:], vec_t)
+                _axpy(0.5*(dw[j]*dw[j]-dt)*dw[i], LLb[i,j,j,:], vec_t)
+                _axpy(0.5*(dw[i]*dw[i]-dt)*dw[j], LLb[i,i,j,:], vec_t)
                 for k in range(j+1,self.N_ops):
-                    axpy(dw[i]*dw[j]*dw[k], LLb[i,j,k,:], vec_t)
+                    _axpy(dw[i]*dw[j]*dw[k], LLb[i,j,k,:], vec_t)
         copy(vec_t, guess)
-        axpy(0.5, a, guess)
+        _axpy(0.5, a, guess)
 
         self.implicit(t+dt, vec_t, out, guess)
 
@@ -907,56 +999,56 @@ cdef class ssolvers:
         cdef complex[:, :, ::1] p2p = self.buffer_3d[0,:,:,:]
         cdef complex[:, : ,::1] p2m = self.buffer_3d[1,:,:,:]
 
-        zero(d1)
-        zero_2d(d2)
-        zero_2d(dd2)
+        _zero(d1)
+        _zero_2d(d2)
+        _zero_2d(dd2)
         self.d1(t, vec, d1)
         self.d2(t, vec, d2)
         self.d2(t + dt, vec, dd2)
         # Euler part
         copy(vec,out)
-        axpy(1., d1, out)
+        _axpy(1., d1, out)
         for i in range(self.N_ops):
-            axpy(dw[i], d2[i,:], out)
+            _axpy(dw[i], d2[i,:], out)
 
-        zero(V)
-        axpy(1., vec, V)
-        axpy(1./self.N_ops, d1, V)
+        _zero(V)
+        _axpy(1., vec, V)
+        _axpy(1./self.N_ops, d1, V)
 
-        zero_2d(v2p)
-        zero_2d(v2m)
+        _zero_2d(v2p)
+        _zero_2d(v2m)
         for i in range(self.N_ops):
-            axpy(1., V, v2p[i,:])
-            axpy(sqrt_dt, d2[i,:], v2p[i,:])
-            axpy(1., V, v2m[i,:])
-            axpy(-sqrt_dt, d2[i,:], v2m[i,:])
+            _axpy(1., V, v2p[i,:])
+            _axpy(sqrt_dt, d2[i,:], v2p[i,:])
+            _axpy(1., V, v2m[i,:])
+            _axpy(-sqrt_dt, d2[i,:], v2m[i,:])
 
-        zero_3d(p2p)
-        zero_3d(p2m)
+        _zero_3d(p2p)
+        _zero_3d(p2m)
         for i in range(self.N_ops):
-            zero_2d(d2p)
-            zero_2d(d2m)
+            _zero_2d(d2p)
+            _zero_2d(d2m)
             self.d2(t, v2p[i,:], d2p)
             self.d2(t, v2m[i,:], d2m)
             ddw = (dw[i]*dw[i]-dt)*0.25/sqrt_dt  # 1.0
-            axpy( ddw, d2p[i,:], out)
-            axpy(-ddw, d2m[i,:], out)
+            _axpy( ddw, d2p[i,:], out)
+            _axpy(-ddw, d2m[i,:], out)
             for j in range(self.N_ops):
-                axpy(      1., v2p[i,:], p2p[i,j,:])
-                axpy( sqrt_dt, d2p[j,:], p2p[i,j,:])
-                axpy(      1., v2p[i,:], p2m[i,j,:])
-                axpy(-sqrt_dt, d2p[j,:], p2m[i,j,:])
+                _axpy(      1., v2p[i,:], p2p[i,j,:])
+                _axpy( sqrt_dt, d2p[j,:], p2p[i,j,:])
+                _axpy(      1., v2p[i,:], p2m[i,j,:])
+                _axpy(-sqrt_dt, d2p[j,:], p2m[i,j,:])
 
-        axpy(-0.5*(self.N_ops), d1, out)
+        _axpy(-0.5*(self.N_ops), d1, out)
         for i in range(self.N_ops):
             ddz = dz[i]*0.5/sqrt_dt  # 1.5
             ddd = 0.25*(dw[i]*dw[i]/3-dt)*dw[i]/dt  # 1.5
-            zero(d1p)
-            zero(d1m)
-            zero_2d(d2m)
-            zero_2d(d2p)
-            zero_2d(d2pp)
-            zero_2d(d2mm)
+            _zero(d1p)
+            _zero(d1m)
+            _zero_2d(d2m)
+            _zero_2d(d2p)
+            _zero_2d(d2pp)
+            _zero_2d(d2mm)
             self.d1(t + dt/self.N_ops, v2p[i,:], d1p)
             self.d1(t + dt/self.N_ops, v2m[i,:], d1m)
             self.d2(t, v2p[i,:], d2p)
@@ -964,55 +1056,55 @@ cdef class ssolvers:
             self.d2(t, p2p[i,i,:], d2pp)
             self.d2(t, p2m[i,i,:], d2mm)
 
-            axpy( ddz+0.25, d1p, out)
-            axpy(-ddz+0.25, d1m, out)
+            _axpy( ddz+0.25, d1p, out)
+            _axpy(-ddz+0.25, d1m, out)
 
-            axpy((dw[i]-dz[i]), dd2[i,:], out)
-            axpy((dz[i]-dw[i]), d2[i,:], out)
+            _axpy((dw[i]-dz[i]), dd2[i,:], out)
+            _axpy((dz[i]-dw[i]), d2[i,:], out)
 
-            axpy( ddd, d2pp[i,:], out)
-            axpy(-ddd, d2mm[i,:], out)
-            axpy(-ddd, d2p[i,:], out)
-            axpy( ddd, d2m[i,:], out)
+            _axpy( ddd, d2pp[i,:], out)
+            _axpy(-ddd, d2mm[i,:], out)
+            _axpy(-ddd, d2p[i,:], out)
+            _axpy( ddd, d2m[i,:], out)
 
             for j in range(self.N_ops):
               ddw = 0.5*(dw[j]-dz[j]) # 1.5
-              axpy(ddw, d2p[j,:], out)
-              axpy(-2*ddw, d2[j,:], out)
-              axpy(ddw, d2m[j,:], out)
+              _axpy(ddw, d2p[j,:], out)
+              _axpy(-2*ddw, d2[j,:], out)
+              _axpy(ddw, d2m[j,:], out)
 
               if j>i:
                 ddw = 0.5*(dw[i]*dw[j])/sqrt_dt # 1.0
-                axpy( ddw, d2p[j,:], out)
-                axpy(-ddw, d2m[j,:], out)
+                _axpy( ddw, d2p[j,:], out)
+                _axpy(-ddw, d2m[j,:], out)
 
                 ddw = 0.25*(dw[j]*dw[j]-dt)*dw[i]/dt # 1.5
-                zero_2d(d2pp)
-                zero_2d(d2mm)
+                _zero_2d(d2pp)
+                _zero_2d(d2mm)
                 self.d2(t, p2p[j,i,:], d2pp)
                 self.d2(t, p2m[j,i,:], d2mm)
-                axpy( ddw, d2pp[j,:], out)
-                axpy(-ddw, d2mm[j,:], out)
-                axpy(-ddw, d2p[j,:], out)
-                axpy( ddw, d2m[j,:], out)
+                _axpy( ddw, d2pp[j,:], out)
+                _axpy(-ddw, d2mm[j,:], out)
+                _axpy(-ddw, d2p[j,:], out)
+                _axpy( ddw, d2m[j,:], out)
 
                 for k in range(j+1,self.N_ops):
                     ddw = 0.5*dw[i]*dw[j]*dw[k]/dt # 1.5
-                    axpy( ddw, d2pp[k,:], out)
-                    axpy(-ddw, d2mm[k,:], out)
-                    axpy(-ddw, d2p[k,:], out)
-                    axpy( ddw, d2m[k,:], out)
+                    _axpy( ddw, d2pp[k,:], out)
+                    _axpy(-ddw, d2mm[k,:], out)
+                    _axpy(-ddw, d2p[k,:], out)
+                    _axpy( ddw, d2m[k,:], out)
 
               if j<i:
                 ddw = 0.25*(dw[j]*dw[j]-dt)*dw[i]/dt # 1.5
-                zero_2d(d2pp)
-                zero_2d(d2mm)
+                _zero_2d(d2pp)
+                _zero_2d(d2mm)
                 self.d2(t, p2p[j,i,:], d2pp)
                 self.d2(t, p2m[j,i,:], d2mm)
-                axpy( ddw, d2pp[j,:], out)
-                axpy(-ddw, d2mm[j,:], out)
-                axpy(-ddw, d2p[j,:], out)
-                axpy( ddw, d2m[j,:], out)
+                _axpy( ddw, d2pp[j,:], out)
+                _axpy(-ddw, d2mm[j,:], out)
+                _axpy(-ddw, d2p[j,:], out)
+                _axpy( ddw, d2m[j,:], out)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1038,41 +1130,42 @@ cdef class ssolvers:
         cdef complex[::1] LL0b = self.buffer_1d[8, :]
         cdef complex[::1] L0Lb = self.buffer_1d[9, :]
         cdef complex[::1] LLLb = self.buffer_1d[10, :]
-        zero(a)
-        zero(b)
-        zero(Lb)
-        zero(La)
-        zero(L0b)
-        zero(LLb)
-        zero(L0a)
-        zero(LLa)
-        zero(LL0b)
-        zero(L0Lb)
-        zero(LLLb)
+        _zero(a)
+        _zero(b)
+        _zero(Lb)
+        _zero(La)
+        _zero(L0b)
+        _zero(LLb)
+        _zero(L0a)
+        _zero(LLa)
+        _zero(LL0b)
+        _zero(L0Lb)
+        _zero(LLLb)
         self.derivativesO2(t, vec, a, b, Lb, La, L0b, LLb,
                            L0a, LLa, LL0b, L0Lb, LLLb)
 
         copy(vec,out)
-        axpy(1.0, a, out)
+        _axpy(1.0, a, out)
 
-        axpy(noises[0], b, out)
+        _axpy(noises[0], b, out)
         dwn = noises[0]*noises[0]*0.5
-        axpy(dwn, Lb, out)
+        _axpy(dwn, Lb, out)
 
-        axpy(noises[1], La, out)
-        axpy(noises[0]-noises[1], L0b, out)
+        _axpy(noises[1], La, out)
+        _axpy(noises[0]-noises[1], L0b, out)
         dwn *= noises[0]*0.3333333333333333333333
-        axpy(dwn, LLb, out)
-        axpy(0.5, L0a, out)
+        _axpy(dwn, LLb, out)
+        _axpy(0.5, L0a, out)
 
-        axpy(noises[2], L0Lb, out)
-        axpy(noises[3], LL0b, out)
-        axpy(noises[4], LLa, out)
+        _axpy(noises[2], L0Lb, out)
+        _axpy(noises[3], LL0b, out)
+        _axpy(noises[4], LLa, out)
         dwn *= noises[0]*0.25
-        axpy(dwn, LLLb, out)
+        _axpy(dwn, LLLb, out)
 
 
 cdef class sse(ssolvers):
+    """ ssolvers for stochastic system """
     cdef CQobjEvo L
     cdef object c_ops
     cdef object cpcd_ops
@@ -1099,8 +1192,8 @@ cdef class sse(ssolvers):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.l_vec, dtype=complex)
         self.d1(self.imp_t, vec, out)
         cdef int i
-        scale(-0.5,out)
-        axpy(1.,vec,out)
+        _scale(-0.5,out)
+        _axpy(1.,vec,out)
         return out
 
     @cython.boundscheck(False)
@@ -1112,15 +1205,15 @@ cdef class sse(ssolvers):
         cdef complex e
         cdef CQobjEvo c_op
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
-        zero(temp)
+        _zero(temp)
         for i in range(self.N_ops):
             c_op = self.cpcd_ops[i]
             e = c_op._expect(t, &vec[0], 0)
-            zero(temp)
+            _zero(temp)
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &temp[0])
-            axpy(-0.125 * e * e * self.dt, vec, out)
-            axpy(0.5 * e * self.dt, temp, out)
+            _axpy(-0.125 * e * e * self.dt, vec, out)
+            _axpy(0.5 * e * self.dt, temp, out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1134,7 +1227,7 @@ cdef class sse(ssolvers):
             c_op._mul_vec(t, &vec[0], &out[i,0])
             c_op = self.cpcd_ops[i]
             expect = c_op._expect(t, &vec[0], 0)
-            axpy(-0.5*expect,vec,out[i,:])
+            _axpy(-0.5*expect,vec,out[i,:])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1169,27 +1262,27 @@ cdef class sse(ssolvers):
         cdef complex[:, ::1] de_b = self.expect_buffer_2d[:,:]
         cdef complex[::1] de_a = self.expect_buffer_1d[1,:]
         cdef complex[:, :, ::1] dde_bb = self.expect_buffer_3d[:,:,:]
-        zero_3d(dde_bb)
+        _zero_3d(dde_bb)
         cdef complex[:, ::1] Cvec = self.func_buffer_2d[:,:]
         cdef complex[:, :, ::1] Cb = self.func_buffer_3d[:,:,:]
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
         cdef complex[::1] temp2 = self.func_buffer_1d[1,:]
-        zero(temp)
-        zero(temp2)
-        zero_2d(Cvec)
-        zero_3d(Cb)
+        _zero(temp)
+        _zero(temp2)
+        _zero_2d(Cvec)
+        _zero_3d(Cb)
 
         # a b
         self.L._mul_vec(t, &vec[0], &a[0])
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &Cvec[i,0])
-            e = dotc(vec,Cvec[i,:])
+            e = _dotc(vec,Cvec[i,:])
             e_real[i] = real(e)
-            axpy(1., Cvec[i,:], b[i,:])
-            axpy(-e_real[i], vec, b[i,:])
-            axpy(-0.5 * e_real[i] * e_real[i] * dt, vec, a[:])
-            axpy(e_real[i] * dt, Cvec[i,:], a[:])
+            _axpy(1., Cvec[i,:], b[i,:])
+            _axpy(-e_real[i], vec, b[i,:])
+            _axpy(-0.5 * e_real[i] * e_real[i] * dt, vec, a[:])
+            _axpy(e_real[i] * dt, Cvec[i,:], a[:])
 
         #Lb bb'
         if deg >= 1:
@@ -1201,17 +1294,17 @@ cdef class sse(ssolvers):
                   temp[k] = conj(b[j,k])
                   temp2[k] = 0.
               c_op._mul_vec(t, &temp[0], &temp2[0])
-              de_b[i,j] = (dotc(vec, Cb[i,j,:]) + dot(b[j,:], Cvec[i,:]) + \
-                          conj(dotc(b[j,:], Cvec[i,:]) + dotc(vec, temp2))) * 0.5
-              axpy(1., Cb[i,j,:], Lb[i,j,:])
-              axpy(-e_real[i], b[j,:], Lb[i,j,:])
-              axpy(-de_b[i,j], vec, Lb[i,j,:])
+              de_b[i,j] = (_dotc(vec, Cb[i,j,:]) + _dot(b[j,:], Cvec[i,:]) + \
+                          conj(_dotc(b[j,:], Cvec[i,:]) + _dotc(vec, temp2))) * 0.5
+              _axpy(1., Cb[i,j,:], Lb[i,j,:])
+              _axpy(-e_real[i], b[j,:], Lb[i,j,:])
+              _axpy(-de_b[i,j], vec, Lb[i,j,:])
 
               for k in range(self.N_ops):
-                dde_bb[i,j,k] += (dot(b[j,:], Cb[i,k,:]) + \
-                                  dot(b[k,:], Cb[i,j,:]) + \
-                                  conj(dotc(b[k,:], temp2)))*.5
-                dde_bb[i,k,j] += conj(dotc(b[k,:], temp2))*.5
+                dde_bb[i,j,k] += (_dot(b[j,:], Cb[i,k,:]) + \
+                                  _dot(b[k,:], Cb[i,j,:]) + \
+                                  conj(_dotc(b[k,:], temp2)))*.5
+                dde_bb[i,k,j] += conj(_dotc(b[k,:], temp2))*.5
 
         #L0b La LLb
         if deg >= 2:
@@ -1219,10 +1312,10 @@ cdef class sse(ssolvers):
               #ba'
               self.L._mul_vec(t, &b[i,0], &La[i,0])
               for j in range(self.N_ops):
-                  axpy(-0.5 * e_real[j] * e_real[j] * dt, b[i,:], La[i,:])
-                  axpy(-e_real[j] * de_b[i,j] * dt, vec, La[i,:])
-                  axpy(e_real[j] * dt, Cb[i,j,:], La[i,:])
-                  axpy(de_b[i,j] * dt, Cvec[i,:], La[i,:])
+                  _axpy(-0.5 * e_real[j] * e_real[j] * dt, b[i,:], La[i,:])
+                  _axpy(-e_real[j] * de_b[i,j] * dt, vec, La[i,:])
+                  _axpy(e_real[j] * dt, Cb[i,j,:], La[i,:])
+                  _axpy(de_b[i,j] * dt, Cvec[i,:], La[i,:])
 
               #ab' + db/dt + bbb"/2
               c_op = self.c_ops[i]
@@ -1231,21 +1324,21 @@ cdef class sse(ssolvers):
                   temp[k] = conj(a[k])
                   temp2[k] = 0.
               c_op._mul_vec(t, &temp[0], &temp2[0])
-              de_a[i] = (dotc(vec, L0b[i,:]) + dot(a, Cvec[i,:]) + \
-                        conj(dotc(a, Cvec[i,:]) + dotc(vec, temp2))) * 0.5
-              axpy(-e_real[i], a, L0b[i,:])
-              axpy(-de_a[i], vec, L0b[i,:])
+              de_a[i] = (_dotc(vec, L0b[i,:]) + _dot(a, Cvec[i,:]) + \
+                        conj(_dotc(a, Cvec[i,:]) + _dotc(vec, temp2))) * 0.5
+              _axpy(-e_real[i], a, L0b[i,:])
+              _axpy(-de_a[i], vec, L0b[i,:])
 
               temp = np.zeros(self.l_vec, dtype=complex)
               c_op._mul_vec(t + self.dt, &vec[0], &temp[0])
-              e = dotc(vec,temp)
-              axpy(1., temp, L0b[i,:])
-              axpy(-real(e), vec, L0b[i,:])
-              axpy(-1., b[i,:], L0b[i,:])
+              e = _dotc(vec,temp)
+              _axpy(1., temp, L0b[i,:])
+              _axpy(-real(e), vec, L0b[i,:])
+              _axpy(-1., b[i,:], L0b[i,:])
 
               for j in range(self.N_ops):
-                  axpy(-de_b[i,j]*dt, b[j,:], L0b[i,:])
-                  axpy(-dde_bb[i,j,j]*dt, vec, L0b[i,:])
+                  _axpy(-de_b[i,j]*dt, b[j,:], L0b[i,:])
+                  _axpy(-dde_bb[i,j,j]*dt, vec, L0b[i,:])
 
               #b(bb"+b'b')
               for j in range(i,self.N_ops):
@@ -1255,39 +1348,39 @@ cdef class sse(ssolvers):
                           temp[l] = conj(Lb[j,k,l])
                           temp2[l] = 0.
                       c_op._mul_vec(t, &temp[0], &temp2[0])
-                      de_bb = (dotc(vec, LLb[i,j,k,:]) + \
-                               dot(Lb[j,k,:], Cvec[i,:]) + \
-                               conj(dotc(Lb[j,k,:], Cvec[i,:]) +\
-                               dotc(vec, temp2)))*0.5
-                      axpy(-e_real[i], Lb[j,k,:], LLb[i,j,k,:])
-                      axpy(-de_bb, vec, LLb[i,j,k,:])
-                      axpy(-dde_bb[i,j,k], vec, LLb[i,j,k,:])
-                      axpy(-de_b[i,j], b[k,:], LLb[i,j,k,:])
-                      axpy(-de_b[i,k], b[j,:], LLb[i,j,k,:])
+                      de_bb = (_dotc(vec, LLb[i,j,k,:]) + \
+                               _dot(Lb[j,k,:], Cvec[i,:]) + \
+                               conj(_dotc(Lb[j,k,:], Cvec[i,:]) +\
+                               _dotc(vec, temp2)))*0.5
+                      _axpy(-e_real[i], Lb[j,k,:], LLb[i,j,k,:])
+                      _axpy(-de_bb, vec, LLb[i,j,k,:])
+                      _axpy(-dde_bb[i,j,k], vec, LLb[i,j,k,:])
+                      _axpy(-de_b[i,j], b[k,:], LLb[i,j,k,:])
+                      _axpy(-de_b[i,k], b[j,:], LLb[i,j,k,:])
 
         #da/dt + aa' + bba"
         if deg == 2:
           self.d1(t + dt, vec, L0a)
-          axpy(-1.0, a, L0a)
+          _axpy(-1.0, a, L0a)
           self.L._mul_vec(t, &a[0], &L0a[0])
           for j in range(self.N_ops):
               c_op = self.c_ops[j]
               temp = np.zeros(self.l_vec, dtype=complex)
               c_op._mul_vec(t, &a[0], &temp[0])
-              axpy(-0.5 * e_real[j] * e_real[j] * dt, a[:], L0a[:])
-              axpy(-e_real[j] * de_a[j] * dt, vec, L0a[:])
-              axpy(e_real[j] * dt, temp, L0a[:])
-              axpy(de_a[j] * dt, Cvec[j,:], L0a[:])
+              _axpy(-0.5 * e_real[j] * e_real[j] * dt, a[:], L0a[:])
+              _axpy(-e_real[j] * de_a[j] * dt, vec, L0a[:])
+              _axpy(e_real[j] * dt, temp, L0a[:])
+              _axpy(de_a[j] * dt, Cvec[j,:], L0a[:])
               for i in range(self.N_ops):
-                  axpy(-0.5*(e_real[i] * dde_bb[i,j,j] +
+                  _axpy(-0.5*(e_real[i] * dde_bb[i,j,j] +
                           de_b[i,j] * de_b[i,j]) * dt * dt, vec, L0a[:])
-                  axpy(-e_real[i] * de_b[i,j] * dt * dt, b[j,:], L0a[:])
-                  axpy(0.5*dde_bb[i,j,j] * dt * dt, Cvec[i,:], L0a[:])
-                  axpy(de_b[i,j] * dt * dt, Cb[i,j,:], L0a[:])
+                  _axpy(-e_real[i] * de_b[i,j] * dt * dt, b[j,:], L0a[:])
+                  _axpy(0.5*dde_bb[i,j,j] * dt * dt, Cvec[i,:], L0a[:])
+                  _axpy(de_b[i,j] * dt * dt, Cb[i,j,:], L0a[:])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void C_vec_conj(self, double t, CQobjEvo c_op,
+    cdef void _c_vec_conj(self, double t, CQobjEvo c_op,
                          complex[::1] vec, complex[::1] out):
         cdef int k
         cdef complex[::1] temp = self.func_buffer_1d[13,:]
@@ -1342,130 +1435,130 @@ cdef class sse(ssolvers):
         cdef complex[::1] CLac = self.func_buffer_1d[10,:]
         cdef complex[::1] CL0b = self.func_buffer_1d[11,:]
         cdef complex[::1] CL0bc = self.func_buffer_1d[12,:]
-        zero(Cpsi)
-        zero(Cb)
-        zero(CLb)
-        zero(CLLb)
-        zero(Ca)
-        zero(CLa)
-        zero(CL0b)
+        _zero(Cpsi)
+        _zero(Cb)
+        _zero(CLb)
+        _zero(CLLb)
+        _zero(Ca)
+        _zero(CLa)
+        _zero(CL0b)
 
         # b
         c_op._mul_vec(t, &psi[0], &Cpsi[0])
-        e = real(dotc(psi, Cpsi))
-        axpy(1., Cpsi, b)
-        axpy(-e, psi, b)
+        e = real(_dotc(psi, Cpsi))
+        _axpy(1., Cpsi, b)
+        _axpy(-e, psi, b)
 
         # Lb
         c_op._mul_vec(t, &b[0], &Cb[0])
-        self.C_vec_conj(t, c_op, b, Cbc)
-        de_b = (dotc(psi, Cb) + dot(b, Cpsi) + \
-                conj(dotc(b, Cpsi) + dotc(psi, Cbc))) * 0.5
-        axpy(1., Cb, Lb)
-        axpy(-e, b, Lb)
-        axpy(-de_b, psi, Lb)
+        self._c_vec_conj(t, c_op, b, Cbc)
+        de_b = (_dotc(psi, Cb) + _dot(b, Cpsi) + \
+                conj(_dotc(b, Cpsi) + _dotc(psi, Cbc))) * 0.5
+        _axpy(1., Cb, Lb)
+        _axpy(-e, b, Lb)
+        _axpy(-de_b, psi, Lb)
 
         # LLb = b'b'b + b"bb
         c_op._mul_vec(t, &Lb[0], &CLb[0])
-        self.C_vec_conj(t, c_op, Lb, CLbc)
-        de_Lb = (dotc(psi, CLb) + dot(Lb, Cpsi) + \
-                 conj(dotc(Lb, Cpsi) + dotc(psi, CLbc)))*0.5
-        axpy(1, CLb, LLb)      # b'b'b
-        axpy(-e, Lb, LLb)      # b'b'b
-        axpy(-de_Lb, psi, LLb) # b'b'b
-        dde_bb += (dot(b, Cb) + conj(dotc(b, Cbc)))
-        axpy(-dde_bb, psi, LLb) # b"bb
-        axpy(-de_b*2, b, LLb)   # b"bb
+        self._c_vec_conj(t, c_op, Lb, CLbc)
+        de_Lb = (_dotc(psi, CLb) + _dot(Lb, Cpsi) + \
+                 conj(_dotc(Lb, Cpsi) + _dotc(psi, CLbc)))*0.5
+        _axpy(1, CLb, LLb)      # b'b'b
+        _axpy(-e, Lb, LLb)      # b'b'b
+        _axpy(-de_Lb, psi, LLb) # b'b'b
+        dde_bb += (_dot(b, Cb) + conj(_dotc(b, Cbc)))
+        _axpy(-dde_bb, psi, LLb) # b"bb
+        _axpy(-de_b*2, b, LLb)   # b"bb
 
         # LLLb = b"'bbb + 3* b"b'bb + b'(b"bb + b'b'b)
         c_op._mul_vec(t, &LLb[0], &CLLb[0])
-        self.C_vec_conj(t, c_op, LLb, CLLbc)
-        de_LLb = (dotc(psi, CLLb) + dot(LLb, Cpsi) + \
-                  conj(dotc(LLb, Cpsi) + dotc(psi, CLLbc)))*0.5
-        dde_bLb += (dot(b, CLb) + dot(Lb, Cb) + conj(dotc(Lb, Cbc)) + \
-                    conj(dotc(b, CLbc)))*.5
-        axpy(1, CLLb, LLLb)          # b'(b"bb + b'b'b)
-        axpy(-e, LLb, LLLb)          # b'(b"bb + b'b'b)
-        axpy(-de_LLb, psi, LLLb)     # b'(b"bb + b'b'b)
-        axpy(-dde_bLb*3, psi, LLLb)  # b"bLb
-        axpy(-de_Lb*3, b, LLLb)      # b"bLb
-        axpy(-de_b*3, Lb, LLLb)      # b"bLb
-        axpy(-dde_bb*3, b, LLLb)       # b"'bbb
+        self._c_vec_conj(t, c_op, LLb, CLLbc)
+        de_LLb = (_dotc(psi, CLLb) + _dot(LLb, Cpsi) + \
+                  conj(_dotc(LLb, Cpsi) + _dotc(psi, CLLbc)))*0.5
+        dde_bLb += (_dot(b, CLb) + _dot(Lb, Cb) + conj(_dotc(Lb, Cbc)) + \
+                    conj(_dotc(b, CLbc)))*.5
+        _axpy(1, CLLb, LLLb)          # b'(b"bb + b'b'b)
+        _axpy(-e, LLb, LLLb)          # b'(b"bb + b'b'b)
+        _axpy(-de_LLb, psi, LLLb)     # b'(b"bb + b'b'b)
+        _axpy(-dde_bLb*3, psi, LLLb)  # b"bLb
+        _axpy(-de_Lb*3, b, LLLb)      # b"bLb
+        _axpy(-de_b*3, Lb, LLLb)      # b"bLb
+        _axpy(-dde_bb*3, b, LLLb)       # b"'bbb
 
         # a
         self.L._mul_vec(t, &psi[0], &a[0])
-        axpy(-0.5 * e * e * dt, psi, a)
-        axpy(e * dt, Cpsi, a)
-        axpy(-0.5 * dt, Lb, a)
+        _axpy(-0.5 * e * e * dt, psi, a)
+        _axpy(e * dt, Cpsi, a)
+        _axpy(-0.5 * dt, Lb, a)
 
         #La
         self.L._mul_vec(t, &b[0], &La[0])
-        axpy(-0.5 * e * e * dt, b, La)
-        axpy(-e * de_b * dt, psi, La)
-        axpy(e * dt, Cb, La)
-        axpy(de_b * dt, Cpsi, La)
-        axpy(-0.5 * dt, LLb, La)
+        _axpy(-0.5 * e * e * dt, b, La)
+        _axpy(-e * de_b * dt, psi, La)
+        _axpy(e * dt, Cb, La)
+        _axpy(de_b * dt, Cpsi, La)
+        _axpy(-0.5 * dt, LLb, La)
 
         #LLa
-        axpy(-2 * e * de_b * dt, b, LLa)
-        axpy(-de_b * de_b * dt, psi, LLa)
-        axpy(-e * dde_bb * dt, psi, LLa)
-        axpy( 2 * de_b * dt, Cb, LLa)
-        axpy( dde_bb * dt, Cpsi, LLa)
+        _axpy(-2 * e * de_b * dt, b, LLa)
+        _axpy(-de_b * de_b * dt, psi, LLa)
+        _axpy(-e * dde_bb * dt, psi, LLa)
+        _axpy( 2 * de_b * dt, Cb, LLa)
+        _axpy( dde_bb * dt, Cpsi, LLa)
 
         self.L._mul_vec(t, &Lb[0], &LLa[0])
-        axpy(-de_Lb * e * dt, psi, LLa)
-        axpy(-0.5 * e * e * dt, Lb, LLa)
-        axpy( de_Lb * dt, Cpsi, LLa)
-        axpy( e * dt, CLb, LLa)
+        _axpy(-de_Lb * e * dt, psi, LLa)
+        _axpy(-0.5 * e * e * dt, Lb, LLa)
+        _axpy( de_Lb * dt, Cpsi, LLa)
+        _axpy( e * dt, CLb, LLa)
 
-        axpy(-0.5 * dt, LLLb, LLa)
+        _axpy(-0.5 * dt, LLLb, LLa)
 
         # L0b = b'a
         c_op._mul_vec(t, &a[0], &Ca[0])
-        self.C_vec_conj(t, c_op, a, Cac)
-        de_a = (dotc(psi, Ca) + dot(a, Cpsi) + \
-                conj(dotc(a, Cpsi) + dotc(psi, Cac))) * 0.5
-        axpy(1.0, Ca, L0b)
-        axpy(-e, a, L0b)
-        axpy(-de_a, psi, L0b)
+        self._c_vec_conj(t, c_op, a, Cac)
+        de_a = (_dotc(psi, Ca) + _dot(a, Cpsi) + \
+                conj(_dotc(a, Cpsi) + _dotc(psi, Cac))) * 0.5
+        _axpy(1.0, Ca, L0b)
+        _axpy(-e, a, L0b)
+        _axpy(-de_a, psi, L0b)
 
         # LL0b = b"ba + b'La
-        dde_ba += (dot(b, Ca) + dot(a, Cb) + conj(dotc(a, Cbc)) + \
-                    conj(dotc(b, Cac)))*.5
-        axpy(-dde_ba, psi, LL0b)
-        axpy(-de_a, b, LL0b)
-        axpy(-de_b, a, LL0b)
+        dde_ba += (_dot(b, Ca) + _dot(a, Cb) + conj(_dotc(a, Cbc)) + \
+                    conj(_dotc(b, Cac)))*.5
+        _axpy(-dde_ba, psi, LL0b)
+        _axpy(-de_a, b, LL0b)
+        _axpy(-de_b, a, LL0b)
         c_op._mul_vec(t, &La[0], &CLa[0])
-        self.C_vec_conj(t, c_op, La, CLac)
-        de_La = (dotc(psi, CLa) + dot(La, Cpsi) + \
-                conj(dotc(La, Cpsi) + dotc(psi, CLac))) * 0.5
-        axpy(1., CLa, LL0b)
-        axpy(-e, La, LL0b)
-        axpy(-de_La, psi, LL0b)
+        self._c_vec_conj(t, c_op, La, CLac)
+        de_La = (_dotc(psi, CLa) + _dot(La, Cpsi) + \
+                conj(_dotc(La, Cpsi) + _dotc(psi, CLac))) * 0.5
+        _axpy(1., CLa, LL0b)
+        _axpy(-e, La, LL0b)
+        _axpy(-de_La, psi, LL0b)
 
         # L0Lb = b"ba + b'L0b
-        axpy(-dde_ba, psi, L0Lb)
-        axpy(-de_a, b, L0Lb)
-        axpy(-de_b, a, L0Lb)
+        _axpy(-dde_ba, psi, L0Lb)
+        _axpy(-de_a, b, L0Lb)
+        _axpy(-de_b, a, L0Lb)
         c_op._mul_vec(t, &L0b[0], &CL0b[0])
-        self.C_vec_conj(t, c_op, L0b, CL0bc)
-        de_L0b = (dotc(psi, CL0b) + dot(L0b, Cpsi) + \
-                  conj(dotc(L0b, Cpsi) + dotc(psi, CL0bc))) * 0.5
-        axpy(1., CL0b, L0Lb)
-        axpy(-e, L0b, L0Lb)
-        axpy(-de_L0b, psi, L0Lb)
+        self._c_vec_conj(t, c_op, L0b, CL0bc)
+        de_L0b = (_dotc(psi, CL0b) + _dot(L0b, Cpsi) + \
+                  conj(_dotc(L0b, Cpsi) + _dotc(psi, CL0bc))) * 0.5
+        _axpy(1., CL0b, L0Lb)
+        _axpy(-e, L0b, L0Lb)
+        _axpy(-de_L0b, psi, L0Lb)
 
         # _L0_ _a_ = da/dt + a'_a_ -_L0_Lb/2
         self.d1(t + dt, psi, L0a) # da/dt
-        axpy(-0.5 * dt, Lb, L0a)  # da/dt
-        axpy(-1.0, a, L0a)        # da/dt
+        _axpy(-0.5 * dt, Lb, L0a)  # da/dt
+        _axpy(-1.0, a, L0a)        # da/dt
         self.L._mul_vec(t, &a[0], &L0a[0]) # a'_a_
-        axpy(-0.5 * e * e * dt, a, L0a)    # a'_a_
-        axpy(-e * de_a * dt, psi, L0a)     # a'_a_
-        axpy(e * dt, Ca, L0a)              # a'_a_
-        axpy(de_a * dt, Cpsi, L0a)         # a'_a_
-        axpy(-0.5 * dt, L0Lb, L0a) # _L0_Lb/2
+        _axpy(-0.5 * e * e * dt, a, L0a)    # a'_a_
+        _axpy(-e * de_a * dt, psi, L0a)     # a'_a_
+        _axpy(e * dt, Ca, L0a)              # a'_a_
+        _axpy(de_a * dt, Cpsi, L0a)         # a'_a_
+        _axpy(-0.5 * dt, L0Lb, L0a) # _L0_Lb/2
 
     cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
                                         complex[::1] out,
@@ -1479,6 +1572,7 @@ cdef class sse(ssolvers):
         copy(spout, out)
 
 cdef class sme(ssolvers):
+    """ ssolvers for master equation """
     cdef CQobjEvo L
     cdef object imp
     cdef object c_ops
@@ -1499,8 +1593,8 @@ cdef class sme(ssolvers):
             self.tol = sso.tol
             self.imp = sso.imp
 
-    cdef void normalize_inplace(self, complex[::1] vec):
-        normalize_rho(vec)
+    cdef void _normalize_inplace(self, complex[::1] vec):
+        _normalize_rho(vec)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1527,7 +1621,7 @@ cdef class sme(ssolvers):
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &rho[0], &out[i,0])
             expect = self.expect(out[i,:])
-            axpy(-expect, rho, out[i,:])
+            _axpy(-expect, rho, out[i,:])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1559,7 +1653,7 @@ cdef class sme(ssolvers):
         cdef complex[::1] trAp = self.expect_buffer_1d[0,:]
         cdef complex[:, ::1] trAb = self.expect_buffer_2d
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
-        #zero(temp)
+        #_zero(temp)
 
         # a
         self.L._mul_vec(t, &rho[0], &a[0])
@@ -1570,7 +1664,7 @@ cdef class sme(ssolvers):
             # bi
             c_op._mul_vec(t, &rho[0], &b[i,0])
             trAp[i] = self.expect(b[i,:])
-            axpy(-trAp[i], rho, b[i,:])
+            _axpy(-trAp[i], rho, b[i,:])
 
         # Libj = bibj', i<=j
         # sc_ops must commute (Libj = Ljbi)
@@ -1580,8 +1674,8 @@ cdef class sme(ssolvers):
             for j in range(i, self.N_ops):
                 c_op._mul_vec(t, &b[j,0], &Lb[i,j,0])
                 trAb[i,j] = self.expect(Lb[i,j,:])
-                axpy(-trAp[j], b[i,:], Lb[i,j,:])
-                axpy(-trAb[i,j], rho, Lb[i,j,:])
+                _axpy(-trAp[j], b[i,:], Lb[i,j,:])
+                _axpy(-trAb[i,j], rho, Lb[i,j,:])
 
         # L0b La LLb
         if deg >= 2:
@@ -1594,20 +1688,20 @@ cdef class sme(ssolvers):
             # db/dt
             c_op._mul_vec(t + self.dt, &rho[0], &L0b[i,0])
             trApp = self.expect(L0b[i,:])
-            axpy(-trApp, rho, L0b[i,:])
-            axpy(-1, b[i,:], L0b[i,:])
+            _axpy(-trApp, rho, L0b[i,:])
+            _axpy(-1, b[i,:], L0b[i,:])
             # ab'
-            zero(temp) # = np.zeros((self.l_vec, ), dtype=complex)
+            _zero(temp) # = np.zeros((self.l_vec, ), dtype=complex)
             c_op._mul_vec(t, &a[0], &temp[0])
             trAa = self.expect(temp)
-            axpy(1., temp, L0b[i,:])
-            axpy(-trAp[i], a[:], L0b[i,:])
-            axpy(-trAa, rho, L0b[i,:])
+            _axpy(1., temp, L0b[i,:])
+            _axpy(-trAp[i], a[:], L0b[i,:])
+            _axpy(-trAa, rho, L0b[i,:])
             # bbb" : trAb[i,j] only defined for j>=i
             for j in range(i):
-                axpy(-trAb[j,i]*self.dt, b[j,:], L0b[i,:])  # L contain dt
+                _axpy(-trAb[j,i]*self.dt, b[j,:], L0b[i,:])  # L contain dt
             for j in range(i,self.N_ops):
-                axpy(-trAb[i,j]*self.dt, b[j,:], L0b[i,:])  # L contain dt
+                _axpy(-trAb[i,j]*self.dt, b[j,:], L0b[i,:])  # L contain dt
 
             # LLb
             # LiLjbk = bi(bj'bk'+bjbk"), i<=j<=k
@@ -1616,16 +1710,16 @@ cdef class sme(ssolvers):
               for k in range(j,self.N_ops):
                 c_op._mul_vec(t, &Lb[j,k,0], &LLb[i,j,k,0])
                 trAbb = self.expect(LLb[i,j,k,:])
-                axpy(-trAp[i], Lb[j,k,:], LLb[i,j,k,:])
-                axpy(-trAbb, rho, LLb[i,j,k,:])
-                axpy(-trAb[i,k], b[j,:], LLb[i,j,k,:])
-                axpy(-trAb[i,j], b[k,:], LLb[i,j,k,:])
+                _axpy(-trAp[i], Lb[j,k,:], LLb[i,j,k,:])
+                _axpy(-trAbb, rho, LLb[i,j,k,:])
+                _axpy(-trAb[i,k], b[j,:], LLb[i,j,k,:])
+                _axpy(-trAb[i,j], b[k,:], LLb[i,j,k,:])
 
         # L0a = a'a + da/dt + bba"/2  (a" = 0)
         if deg == 2:
             self.L._mul_vec(t, &a[0], &L0a[0])
             self.L._mul_vec(t+self.dt, &rho[0], &L0a[0])
-            axpy(-1, a, L0a)
+            _axpy(-1, a, L0a)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1669,69 +1763,69 @@ cdef class sme(ssolvers):
         # b
         c_op._mul_vec(t, &rho[0], &b[0])
         trAp = self.expect(b)
-        axpy(-trAp, rho, b)
+        _axpy(-trAp, rho, b)
 
         # Lb = b'b
         c_op._mul_vec(t, &b[0], &Lb[0])
         trAb = self.expect(Lb)
-        axpy(-trAp, b, Lb)
-        axpy(-trAb, rho, Lb)
+        _axpy(-trAp, b, Lb)
+        _axpy(-trAb, rho, Lb)
 
         # LLb = b'Lb+b"bb
         c_op._mul_vec(t, &Lb[0], &LLb[0])
         trALb = self.expect(LLb)
-        axpy(-trAp, Lb, LLb)
-        axpy(-trALb, rho, LLb)
-        axpy(-trAb*2, b, LLb)
+        _axpy(-trAp, Lb, LLb)
+        _axpy(-trALb, rho, LLb)
+        _axpy(-trAb*2, b, LLb)
 
         # LLLb = b'LLb + 3 b"bLb + b"'bbb
         c_op._mul_vec(t, &LLb[0], &LLLb[0])
         trALLb = self.expect(LLLb)
-        axpy(-trAp, LLb, LLLb)
-        axpy(-trALLb, rho, LLLb)
-        axpy(-trALb*3, b, LLLb)
-        axpy(-trAb*3, Lb, LLLb)
+        _axpy(-trAp, LLb, LLLb)
+        _axpy(-trALLb, rho, LLLb)
+        _axpy(-trALb*3, b, LLLb)
+        _axpy(-trAb*3, Lb, LLLb)
 
         # _a_ = a - Lb/2
         self.L._mul_vec(t, &rho[0], &a[0])
-        axpy(-0.5*self.dt, Lb, a)
+        _axpy(-0.5*self.dt, Lb, a)
 
         # L_a_ = ba' - LLb/2
         self.L._mul_vec(t, &b[0], &La[0])
-        axpy(-0.5*self.dt, LLb, La)
+        _axpy(-0.5*self.dt, LLb, La)
 
         # LL_a_ = b(La)' - LLLb/2
         self.L._mul_vec(t, &Lb[0], &LLa[0])
-        axpy(-0.5*self.dt, LLLb, LLa)
+        _axpy(-0.5*self.dt, LLLb, LLa)
 
         # _L0_b = b'(_a_)
         c_op._mul_vec(t, &a[0], &L0b[0])
         trAa = self.expect(L0b)
-        axpy(-trAp, a, L0b)
-        axpy(-trAa, rho, L0b)
+        _axpy(-trAp, a, L0b)
+        _axpy(-trAa, rho, L0b)
 
         # _L0_Lb = b'(b'(_a_))+b"(_a_,b)
         c_op._mul_vec(t, &L0b[0], &L0Lb[0])
         trAL0b = self.expect(L0Lb)
-        axpy(-trAp, L0b, L0Lb)
-        axpy(-trAL0b, rho, L0Lb)
-        axpy(-trAa, b, L0Lb)
-        axpy(-trAb, a, L0Lb)
+        _axpy(-trAp, L0b, L0Lb)
+        _axpy(-trAL0b, rho, L0Lb)
+        _axpy(-trAa, b, L0Lb)
+        _axpy(-trAb, a, L0Lb)
 
         # L_L0_b = b'(_a_'(b))+b"(_a_,b)
         c_op._mul_vec(t, &La[0], &LL0b[0])
         trAL0b = self.expect(LL0b)
-        axpy(-trAp, La, LL0b)
-        axpy(-trAL0b, rho, LL0b)
-        axpy(-trAa, b, LL0b)
-        axpy(-trAb, a, LL0b)
+        _axpy(-trAp, La, LL0b)
+        _axpy(-trAL0b, rho, LL0b)
+        _axpy(-trAa, b, LL0b)
+        _axpy(-trAb, a, LL0b)
 
         # _L0_ _a_ = _L0_a - _L0_Lb/2 + da/dt
         self.L._mul_vec(t, &a[0], &L0a[0])
         self.L._mul_vec(t+self.dt, &rho[0], &L0a[0])
-        axpy(-0.5*self.dt, Lb, L0a) # _a_(t+dt) = a(t+dt)-0.5*Lb
-        axpy(-1, a, L0a)
-        axpy(-self.dt*0.5, L0Lb, L0a)
+        _axpy(-0.5*self.dt, Lb, L0a) # _a_(t+dt) = a(t+dt)-0.5*Lb
+        _axpy(-1, a, L0a)
+        _axpy(-self.dt*0.5, L0Lb, L0a)
 
 
     cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
@@ -1746,6 +1840,7 @@ cdef class sme(ssolvers):
 
 
 cdef class psse(ssolvers):
+    """photocurrent for schrodinger equation"""
     cdef CQobjEvo L
     cdef object c_ops
     cdef object cdc_ops
@@ -1770,7 +1865,7 @@ cdef class psse(ssolvers):
         cdef double expect
         cdef int i
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
-        zero_2d(d2)
+        _zero_2d(d2)
         copy(vec,out)
         self.d1(t, vec, out)
         self.d2(t, vec, d2)
@@ -1781,7 +1876,7 @@ cdef class psse(ssolvers):
               noise[i] = np.random.poisson(expect)
             else:
               noise[i] = 0.
-            axpy(noise[i], d2[i,:], out)
+            _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1792,13 +1887,13 @@ cdef class psse(ssolvers):
         cdef int i
         cdef complex[::1] tmp = self.buffer_1d[0,:]
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
-        zero_2d(d2)
+        _zero_2d(d2)
         copy(vec,tmp)
         copy(vec,out)
         self.d1(t, vec, tmp)
         self.d1(t+dt, tmp, out)
-        scale(0.5, out)
-        axpy(0.5, tmp, out)
+        _scale(0.5, out)
+        _axpy(0.5, tmp, out)
         self.d2(t, vec, d2)
         for i in range(self.N_ops):
             c_op = self.cdc_ops[i]
@@ -1807,7 +1902,7 @@ cdef class psse(ssolvers):
               noise[i] = np.random.poisson(expect)
             else:
               noise[i] = 0.
-            axpy(noise[i], d2[i,:], out)
+            _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1819,11 +1914,11 @@ cdef class psse(ssolvers):
         cdef CQobjEvo c_op
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
         for i in range(self.N_ops):
-            zero(temp)
+            _zero(temp)
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &temp[0])
-            e = dznrm2(temp)
-            axpy(0.5 * e * e * self.dt, vec, out)
+            e = _dznrm2(temp)
+            _axpy(0.5 * e * e * self.dt, vec, out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1835,14 +1930,15 @@ cdef class psse(ssolvers):
         for i in range(self.N_ops):
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &out[i,0])
-            expect = dznrm2(out[i,:])
+            expect = _dznrm2(out[i,:])
             if expect.real >= 1e-15:
-                zscale(1/expect, out[i,:])
+                _zscale(1/expect, out[i,:])
             else:
-                zero(out[i,:])
-            axpy(-1, vec, out[i,:])
+                _zero(out[i,:])
+            _axpy(-1, vec, out[i,:])
 
 cdef class psme(ssolvers):
+    """photocurrent for master equation"""
     cdef CQobjEvo L
     cdef object cdcr_cdcl_ops
     cdef object cdcl_ops
@@ -1864,8 +1960,8 @@ cdef class psme(ssolvers):
             self.cdcl_ops.append(op[1].compiled_Qobj)
             self.clcdr_ops.append(op[2].compiled_Qobj)
 
-    cdef void normalize_inplace(self, complex[::1] vec):
-        normalize_rho(vec)
+    cdef void _normalize_inplace(self, complex[::1] vec):
+        _normalize_rho(vec)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1874,7 +1970,7 @@ cdef class psme(ssolvers):
         cdef double expect
         cdef int i
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
-        zero_2d(d2)
+        _zero_2d(d2)
         copy(vec,out)
         self.d1(t, vec, out)
         self.d2(t, vec, d2)
@@ -1885,7 +1981,7 @@ cdef class psme(ssolvers):
               noise[i] = np.random.poisson(expect)
             else:
               noise[i] = 0.
-            axpy(noise[i], d2[i,:], out)
+            _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1895,13 +1991,13 @@ cdef class psme(ssolvers):
         cdef int i
         cdef complex[::1] tmp = self.buffer_1d[0,:]
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
-        zero_2d(d2)
+        _zero_2d(d2)
         copy(vec,tmp)
         copy(vec,out)
         self.d1(t, vec, tmp)
         self.d1(t+dt, tmp, out)
-        scale(0.5, out)
-        axpy(0.5, tmp, out)
+        _scale(0.5, out)
+        _axpy(0.5, tmp, out)
         self.d2(t, vec, d2)
         for i in range(self.N_ops):
             c_op = self.cdcl_ops[i]
@@ -1910,7 +2006,7 @@ cdef class psme(ssolvers):
               noise[i] = np.random.poisson(expect)
             else:
               noise[i] = 0.
-            axpy(noise[i], d2[i,:], out)
+            _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1932,11 +2028,11 @@ cdef class psme(ssolvers):
         self.L._mul_vec(t, &rho[0], &out[0])
         for i in range(self.N_ops):
             c_op = self.cdcr_cdcl_ops[i]
-            zero(Crho)
+            _zero(Crho)
             c_op._mul_vec(t, &rho[0], &Crho[0])
             expect = self.expect(Crho)
-            axpy(0.5*expect* self.dt, rho, out)
-            axpy(-0.5* self.dt, Crho, out)
+            _axpy(0.5*expect* self.dt, rho, out)
+            _axpy(-0.5* self.dt, Crho, out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1950,13 +2046,14 @@ cdef class psme(ssolvers):
             c_op._mul_vec(t, &rho[0], &out[i,0])
             expect = self.expect(out[i,:])
             if expect.real >= 1e-15:
-                zscale((1.+0j)/expect, out[i,:])
+                _zscale((1.+0j)/expect, out[i,:])
             else:
-                zero(out[i,:])
-            axpy(-1, rho, out[i,:])
+                _zero(out[i,:])
+            _axpy(-1, rho, out[i,:])
 
 
 cdef class pmsme(ssolvers):
+    """positive map for master equation"""
     cdef object L
     cdef CQobjEvo pp_ops
     cdef CQobjEvo preLH
@@ -1982,8 +2079,8 @@ cdef class pmsme(ssolvers):
         self.postops2 = [op.compiled_Qobj for op in sso.postops2]
         self.N_root = np.sqrt(self.l_vec)
 
-    cdef void normalize_inplace(self, complex[::1] vec):
-        normalize_rho(vec)
+    cdef void _normalize_inplace(self, complex[::1] vec):
+        _normalize_rho(vec)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1995,16 +2092,16 @@ cdef class pmsme(ssolvers):
         cdef int i, j, k
         cdef CQobjEvo c_op, c_opj
         cdef complex ddw, tr
-        zero(out)
-        zero(temp)
+        _zero(out)
+        _zero(temp)
         self.preLH._mul_vec(t, &vec[0], &temp[0])
         for i in range(self.N_ops):
             c_op = self.sops[i]
             dy[i] = c_op._expect_super(t, &vec[0], 0) + noise[i]
             c_op = self.preops[i]
-            zero(temp2)
+            _zero(temp2)
             c_op._mul_vec(t, &vec[0], &temp2[0])
-            axpy(dy[i], temp2, temp)
+            _axpy(dy[i], temp2, temp)
 
         k = 0
         for i in range(self.N_ops):
@@ -2015,18 +2112,18 @@ cdef class pmsme(ssolvers):
                 else:
                     ddw = (dy[i]*dy[j])
 
-                zero(temp2)
+                _zero(temp2)
                 c_op._mul_vec(t, &vec[0], &temp2[0])
-                axpy(ddw, temp2, temp)
+                _axpy(ddw, temp2, temp)
                 k += 1
 
         self.postLH._mul_vec(t, &temp[0], &out[0])
         for i in range(self.N_ops):
             dy[i] = conj(dy[i])
             c_op = self.postops[i]
-            zero(temp2)
+            _zero(temp2)
             c_op._mul_vec(t, &temp[0], &temp2[0])
-            axpy(dy[i], temp2, out)
+            _axpy(dy[i], temp2, out)
 
         k = 0
         for i in range(self.N_ops):
@@ -2036,14 +2133,14 @@ cdef class pmsme(ssolvers):
                     ddw = (dy[i]*dy[j] - dt) *0.5
                 else:
                     ddw = (dy[i]*dy[j])
-                zero(temp2)
+                _zero(temp2)
                 c_op._mul_vec(t, &temp[0], &temp2[0])
-                axpy(ddw, temp2, out)
+                _axpy(ddw, temp2, out)
                 k += 1
 
         self.pp_ops._mul_vec(t, &vec[0], &out[0])
         tr = self.expect(out)
-        zscale(1./tr, out)
+        _zscale(1./tr, out)
 
 
     @cython.boundscheck(False)
@@ -2057,6 +2154,7 @@ cdef class pmsme(ssolvers):
         return e
 
 cdef class generic(ssolvers):
+    """ support for user defined system"""
     cdef object d1_func, d2_func
 
     def set_data(self, sso):
@@ -2072,7 +2170,7 @@ cdef class generic(ssolvers):
         in_np = np.zeros((self.l_vec, ), dtype=complex)
         copy(rho, in_np)
         out_np = self.d1_func(t, in_np)
-        axpy(self.dt, out_np, out) # d1 is += and * dt
+        _axpy(self.dt, out_np, out) # d1 is += and * dt
 
     @cython.boundscheck(False)
     cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
