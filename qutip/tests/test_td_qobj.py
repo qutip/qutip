@@ -96,6 +96,11 @@ def _random_QobjEvo(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
     return Qobj_list
 
 
+def _assert_qobj_almost_eq(obj1, obj2):
+    diff_data = (obj1 - obj2).tidyup(1e-10).data
+    assert_equal(len(diff_data.data),0)
+
+
 def test_QobjEvo_call():
     "QobjEvo call"
     N = 5
@@ -250,51 +255,51 @@ def test_QobjEvo_math_arithmetic():
     O1 = base_qobjs2[0]
 
     for op, op_2 in zip(cqobjevos1, cqobjevos2):
-        assert_equal(op(t)*-1, (-op)(t))
+        _assert_qobj_almost_eq(op(t)*-1, (-op)(t) )
 
-        assert_equal(op(t) +O1, (op +O1)(t))
-        assert_equal(op(t) +cte(t), (op +cte)(t))
-        assert_equal(op(t) +op_2(t), (op +op_2)(t))
+        _assert_qobj_almost_eq(op(t) +O1, (op +O1)(t))
+        _assert_qobj_almost_eq(op(t) +cte(t), (op +cte)(t))
+        _assert_qobj_almost_eq(op(t) +op_2(t), (op +op_2)(t))
         opp = op.copy()
         opp += O1
-        assert_equal(op(t) +O1, opp(t))
+        _assert_qobj_almost_eq(op(t) +O1, opp(t))
         opp = op.copy()
         opp += op_2
-        assert_equal(op(t) +op_2(t), opp(t))
+        _assert_qobj_almost_eq(op(t) +op_2(t), opp(t))
 
-        assert_equal(op(t) -O1, (op -O1)(t))
-        assert_equal(op(t) -cte(t), (op -cte)(t))
-        assert_equal(O1 -op(t), (O1 -op)(t))
-        assert_equal(cte(t) -op(t), (cte -op)(t))
-        assert_equal(op(t) -op_2(t), (op -op_2)(t))
+        _assert_qobj_almost_eq(op(t) -O1, (op -O1)(t))
+        _assert_qobj_almost_eq(op(t) -cte(t), (op -cte)(t))
+        _assert_qobj_almost_eq(O1 -op(t), (O1 -op)(t))
+        _assert_qobj_almost_eq(cte(t) -op(t), (cte -op)(t))
+        _assert_qobj_almost_eq(op(t) -op_2(t), (op -op_2)(t))
         opp = op.copy()
         opp -= O1
-        assert_equal(op(t) -O1, opp(t))
+        _assert_qobj_almost_eq(op(t) -O1, opp(t))
         opp = op.copy()
         opp -= op_2
-        assert_equal(op(t) -op_2(t), opp(t))
+        _assert_qobj_almost_eq(op(t) -op_2(t), opp(t))
 
-        assert_equal(op(t) * O1, (op * O1)(t))
-        assert_equal(O1 * op(t), (O1 * op)(t))
-        assert_equal(2 * op(t), (2 * op)(t))
-        assert_equal(op(t) * cte(t), (op * cte)(t))
-        assert_equal(cte(t) * op(t), (cte * op)(t))
-        assert_equal(op(t) * op_2(t), (op * op_2)(t))
-        assert_equal(op_2(t) * op(t), (op_2 * op)(t))
+        _assert_qobj_almost_eq(op(t) * O1, (op * O1)(t))
+        _assert_qobj_almost_eq(O1 * op(t), (O1 * op)(t))
+        _assert_qobj_almost_eq(2 * op(t), (2 * op)(t))
+        _assert_qobj_almost_eq(op(t) * cte(t), (op * cte)(t))
+        _assert_qobj_almost_eq(cte(t) * op(t), (cte * op)(t))
+        _assert_qobj_almost_eq(op(t) * op_2(t), (op * op_2)(t))
+        _assert_qobj_almost_eq(op_2(t) * op(t), (op_2 * op)(t))
         opp = op.copy()
         opp *= 2
-        assert_equal(2 * op(t), opp(t))
+        _assert_qobj_almost_eq(2 * op(t), opp(t))
         opp = op.copy()
         opp *= O1
-        assert_equal(op(t) * O1, opp(t))
+        _assert_qobj_almost_eq(op(t) * O1, opp(t))
         opp = op.copy()
         opp *= op_2
-        assert_equal(op(t) * op_2(t), opp(t))
+        _assert_qobj_almost_eq(op(t) * op_2(t), opp(t))
 
-        assert_equal(op(t)/2, (op/2)(t))
+        _assert_qobj_almost_eq(op(t)/2, (op/2)(t))
         opp = op.copy()
         opp /= 2
-        assert_equal(op(t)/2, opp(t))
+        _assert_qobj_almost_eq(op(t)/2, opp(t))
 
 
 def test_QobjEvo_unitary():
@@ -304,10 +309,10 @@ def test_QobjEvo_unitary():
     cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
     for op in cqobjevos:
-        assert_equal((op.trans())(t), op(t).trans())
-        assert_equal((op.dag())(t), op(t).dag())
-        assert_equal((op.conj())(t), op(t).conj())
-        assert_equal((op.norm())(t), op(t).dag()*op(t))
+        _assert_qobj_almost_eq((op.trans())(t), op(t).trans())
+        _assert_qobj_almost_eq((op.dag())(t), op(t).dag())
+        _assert_qobj_almost_eq((op.conj())(t), op(t).conj())
+        _assert_qobj_almost_eq((op.norm())(t), op(t).dag()*op(t))
 
 
 def test_QobjEvo_tidyup():
@@ -334,7 +339,7 @@ def test_QobjEvo_compress():
     # check that the number of part is decreased
     assert_equal(len(td_obj_2.to_list()), 4)
     # check that data is still valid
-    assert_equal(td_obj_2(t), td_obj_1(t))
+    _assert_qobj_almost_eq(td_obj_2(t), td_obj_1(t))
 
 
 def test_QobjEvo_apply():
@@ -637,7 +642,9 @@ def test_QobjEvo_superoperator():
     for op1, op2 in zip(cqobjevos1, cqobjevos2):
         Q1 = op1(t)
         Q2 = op2(t)
-        assert_equal(lindblad_dissipator(Q1, Q2, chi=0.5),
-                     lindblad_dissipator(op1, op2, chi=0.5)(t))
-        assert_equal(sprepost(Q1, Q2), sprepost(op1, op2)(t))
-        assert_equal( liouvillian(Q1, [Q2]), liouvillian(op1, [op2])(t))
+        _assert_qobj_almost_eq(lindblad_dissipator(Q1, Q2, chi=0.5),
+                               lindblad_dissipator(op1, op2, chi=0.5)(t))
+        _assert_qobj_almost_eq(sprepost(Q1, Q2),
+                               sprepost(op1, op2)(t))
+        _assert_qobj_almost_eq(liouvillian(Q1, [Q2]),
+                               liouvillian(op1, [op2])(t))
