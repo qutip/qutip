@@ -81,7 +81,7 @@ def f(double t, args):
     except:
         pass
 
-    return str_func[0]
+    return str_func[0], filename
 
 
 def _compiled_coeffs(ops, args, tlist):
@@ -107,7 +107,7 @@ def _compiled_coeffs(ops, args, tlist):
     except:
         pass
 
-    return coeff_obj, code
+    return coeff_obj, code, filename
 
 
 def _make_code_4_cimport(ops, args, tlist):

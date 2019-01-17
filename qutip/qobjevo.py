@@ -314,6 +314,7 @@ class QobjEvo:
         self.coeff_get = None
         self.type = -1
         self.omp = 0
+        self.coeff_files = []
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
@@ -426,6 +427,13 @@ class QobjEvo:
         else:
             raise TypeError("Incorrect Q_object specification")
         return op_type
+
+    def __del__(self):
+        for filename in self.coeff_files:
+            try:
+                os.remove(filename+".pyx")
+            except:
+                pass
 
     def __call__(self, t, data=False):
         if not isinstance(t, (int, float)):
@@ -860,7 +868,7 @@ class QobjEvo:
 
             elif self.ops[_set[0]][3] == 2:
                 new_op = [self.ops[_set[0]][0], None, None, 2]
-                new_str = "(" + self.ops[0][2] + ")"
+                new_str = "(" + self.ops[_set[0]][2] + ")"
                 for i in _set[1:]:
                     new_str += " + (" + self.ops[i][2] + ")"
                 new_op[1] = _StrWrapper(new_str)
@@ -1173,15 +1181,18 @@ class QobjEvo:
                 funclist = []
                 for part in self.ops:
                     if isinstance(part[1], _StrWrapper):
-                        part[1] = _compile_str_single(part[2], self.args)
+                        part[1], file = _compile_str_single(part[2], self.args)
+                        self.coeff_files.append(file)
                     funclist.append(part[1])
                 self.coeff_get = _UnitedFuncCaller(funclist, self.args)
                 self.compiled += 2
                 self.compiled_Qobj.set_factor(func=self.coeff_get)
             elif self.type in [2, 6]:
                 # All factor can be compiled
-                self.coeff_get, Code = _compiled_coeffs(self.ops,
-                                                       self.args, self.tlist)
+                self.coeff_get, Code, file = _compiled_coeffs(self.ops,
+                                                              self.args,
+                                                              self.tlist)
+                self.coeff_files.append(file)
                 self.compiled_Qobj.set_factor(obj=self.coeff_get)
                 self.compiled += 3
             elif self.type == 3:
