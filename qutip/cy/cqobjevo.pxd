@@ -50,7 +50,7 @@ cdef class CQobjEvo:
     cdef complex[::1] coeff
     cdef complex * coeff_ptr
 
-    cdef void factor(self, double t)
+    cdef void _factor(self, double t)
     cdef void _mul_vec(self, double t, complex* vec, complex* out)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                     int nrow, int ncols)
@@ -79,8 +79,8 @@ cdef class CQobjEvoTd(CQobjEvo):
     cdef long[::1] sum_elem
 
 
-    cdef void factor(self, double t)
-    cdef void _call_core(self, double t, CSR_Matrix * out, complex* coeff)
+    cdef void _factor(self, double t)
+    cdef void _call_core(self, CSR_Matrix * out, complex* coeff)
 
 
 cdef class CQobjEvoTdDense(CQobjEvo):
@@ -92,8 +92,8 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     cdef complex[:, ::1] data_t
     cdef complex * data_ptr
 
-    cdef void factor(self, double t)
-    cdef void _call_core(self, double t, complex[:,::1] out, complex* coeff)
+    cdef void _factor(self, double t)
+    cdef void _call_core(self, complex[:,::1] out, complex* coeff)
 
 
 cdef class CQobjEvoTdMatched(CQobjEvo):
@@ -109,5 +109,5 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     cdef complex[::1] data_t
     cdef complex * data_ptr
 
-    cdef void factor(self, double t)
-    cdef void _call_core(self, double t, complex[::1] out, complex* coeff)
+    cdef void _factor(self, double t)
+    cdef void _call_core(self, complex[::1] out, complex* coeff)

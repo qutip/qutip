@@ -176,9 +176,7 @@ Solver:
     taylor1.5         152
     taylor1.5-imp     153
   order 2.0
-    explicit2.0       200
     taylor2.0         202
-    taylor2.0-imp     203
 
 Special solvers
     photocurrent       60
@@ -260,7 +258,56 @@ cdef class taylorNoise:
 
 
 cdef class ssolvers:
-    """ generic stochastic solver class
+    """ stochastic solver class base
+    Does most of the initialisation, drive the simulation and contain the
+    stochastic integration algorythm that do not depend on the physics.
+
+    This class is not to be used as is, the function computing the evolution's
+    derivative are specified in it's child class which define the deterministic
+    and stochastic contributions.
+
+    PYTHON METHODS:
+    set_solver:
+      Receive the data for the integration.
+      Prepare buffers
+
+    cy_sesolve_single_trajectory:
+      Run one trajectory.
+
+
+    INTERNAL METHODS
+    make_noise:
+      create the stochastic noise
+    run:
+      evolution between timestep (substep)
+    solver's method:
+      stochastic integration algorithm
+        euler
+        milstein
+        taylor
+        ...
+
+    CHILD:
+    sse: stochastic schrodinger evolution
+    sme: stochastic master evolution
+    psse: photocurrent stochastic schrodinger evolution
+    psme: photocurrent stochastic master evolution
+    pmsme: positive map stochastic master evolution
+    generic: general (user defined) stochastic evolution
+
+    CHILD METHODS:
+    set_data:
+      Read data about the system
+    d1:
+      deterministic part
+    d2:
+      non-deterministic part
+    derivatives:
+      d1, d2 and their derivatives up to dt**1.5
+      multiple sc_ops
+    derivativesO2:
+      d1, d2 and there derivatives up to dt**2.0
+      one sc_ops
     """
     cdef int l_vec, N_ops
     cdef int solver#, noise_type
@@ -471,10 +518,10 @@ cdef class ssolvers:
                                  rho_t, self.N_substeps)
 
             if sso.store_measurement:
-                 for m_idx, m in enumerate(sso.cm_ops):
-                     m_expt = m.compiled_Qobj.expect(t, rho_t, 0)
-                     measurements[t_idx, m_idx] = m_expt + self.dW_factor[m_idx] * \
-                         sum(noise[t_idx, :, m_idx]) / (self.dt * self.N_substeps)
+                for m_idx, m in enumerate(sso.cm_ops):
+                    m_expt = m.compiled_Qobj.expect(t, rho_t, 0)
+                    measurements[t_idx, m_idx] = m_expt + self.dW_factor[m_idx] * \
+                        sum(noise[t_idx, :, m_idx]) / (self.dt * self.N_substeps)
 
         if sso.method == 'heterodyne':
             measurements = measurements.reshape(len(times),len(sso.cm_ops)//2,2)
@@ -1165,7 +1212,7 @@ cdef class ssolvers:
 
 
 cdef class sse(ssolvers):
-    """ ssolvers for stochastic system """
+    """stochastic schrodinger system"""
     cdef CQobjEvo L
     cdef object c_ops
     cdef object cpcd_ops
@@ -1572,7 +1619,7 @@ cdef class sse(ssolvers):
         copy(spout, out)
 
 cdef class sme(ssolvers):
-    """ ssolvers for master equation """
+    """stochastic master equation system"""
     cdef CQobjEvo L
     cdef object imp
     cdef object c_ops
@@ -2154,7 +2201,7 @@ cdef class pmsme(ssolvers):
         return e
 
 cdef class generic(ssolvers):
-    """ support for user defined system"""
+    """support for user defined system"""
     cdef object d1_func, d2_func
 
     def set_data(self, sso):

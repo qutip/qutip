@@ -463,7 +463,7 @@ class QobjEvo:
             coeff = np.zeros(len(self.ops), dtype=complex)
             for i, part in enumerate(self.ops):
                 coeff[i] = part[1](t, new_args)
-            op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+            op_t = self.compiled_Qobj.call_with_coeff(coeff, data=data)
         elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
@@ -495,7 +495,7 @@ class QobjEvo:
                 coeff = np.zeros(len(self.ops), dtype=complex)
                 for i, part in enumerate(self.ops):
                     coeff[i] = part[1](t, psi, new_args)
-                op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+                op_t = self.compiled_Qobj.call_with_coeff(coeff, data=data)
             else:
                 if data:
                     op_t = self.cte.data.copy()
@@ -513,7 +513,7 @@ class QobjEvo:
                 else:
                     coeff[i] = part[1](t, new_args)
             if self.compiled and self.compiled//10 != 2:
-                op_t = self.compiled_Qobj.call_with_coeff(t, coeff, data=data)
+                op_t = self.compiled_Qobj.call_with_coeff(coeff, data=data)
             else:
                 if data:
                     op_t = self.cte.data.copy()

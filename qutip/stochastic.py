@@ -258,6 +258,7 @@ class StochasticSolverOptions:
     normalize : bool
         (default True for (photo)ssesolve, False for (photo)smesolve)
         Whether or not to normalize the wave function during the evolution.
+        Normalizing density matrices introduce numerical errors.
 
     options : :class:`qutip.solver.Options`
         Generic solver options. Only options.average_states and
@@ -582,9 +583,9 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
             sso.m_ops = [op + op.dag() for op in sso.sc_ops]
         sso.sops = [spre(op) + spost(op.dag()) for op in sso.sc_ops]
         if not isinstance(sso.dW_factors, list):
-            sso.dW_factors = [1] * len(sso.sops)
-        elif len(sso.dW_factors) != len(sso.sops):
-            raise Exception("The len of dW_factors is not the same as sc_ops")
+            sso.dW_factors = [1] * len(sso.m_ops)
+        elif len(sso.dW_factors) != len(sso.m_ops):
+            raise Exception("The len of dW_factors is not the same as m_ops")
 
     elif sso.method == 'heterodyne':
         if sso.m_ops is None:
@@ -598,12 +599,14 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         sso.m_ops = m_ops
         if not isinstance(sso.dW_factors, list):
             sso.dW_factors = [np.sqrt(2)] * len(sso.sops)
+        elif len(sso.dW_factors) == len(sso.m_ops):
+            pass
         elif len(sso.dW_factors) == len(sso.sc_ops):
             dW_factors = []
             for fact in sso.dW_factors:
                 dW_factors += [np.sqrt(2) * fact, np.sqrt(2) * fact]
             sso.dW_factors = dW_factors
-        elif len(sso.dW_factors) != len(sso.sops):
+        elif len(sso.dW_factors) != len(sso.m_ops):
             raise Exception("The len of dW_factors is not the same as sc_ops")
 
     elif sso.method == "photocurrent":
@@ -789,7 +792,7 @@ def _positive_map(sso, e_ops_dict):
         elif len(sso.dW_factors) != len(sops):
             raise Exception("The len of dW_factors is not the same as sc_ops")
     else:
-        raise Exception("The method must be one of None or homodyne")
+        raise Exception("The method must be one of homodyne or heterodyne")
 
     LH = 1 - (sso.H * 1j * sso.dt)
     sso.pp = spre(sso.H) * 0
@@ -1090,7 +1093,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
             out_d1 = d1(0., sso.rho0)
         except Exception as e:
             raise Exception("d1(0., mat2vec(state0.full()).ravel()) failed:\n"+
-                            e)
+                            str(e))
         except:
             raise Exception("d1(0., mat2vec(state0.full()).ravel()) failed")
         try:
@@ -1131,8 +1134,16 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         sso.m_ops = m_ops
         sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
         [op.compile() for op in sso.cm_ops]
-
-    sso.dW_factors = [1.] * len_d2
+        if sso.dW_factors is None:
+            sso.dW_factors = [1.] * len(sso.m_ops)
+        elif len(sso.dW_factors) == 1:
+                sso.dW_factors = sso.dW_factors * len(sso.m_ops)
+        elif len(sso.dW_factors) != len(sso.m_ops):
+            raise Exception("The number of dW_factors must fit"
+                            " the number of m_ops")
+        
+    if sso.dW_factors is None:
+        sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     [op.compile() for op in sso.ce_ops]

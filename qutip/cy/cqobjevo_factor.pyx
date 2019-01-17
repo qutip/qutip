@@ -43,7 +43,12 @@ from qutip.cy.inter cimport (_spline_complex_cte_second,
 from qutip.cy.interpolate cimport (interp, zinterp)
 include "complex_math.pxi"
 
-
+"""
+Support cqobjevo's array and str based coefficient.
+By using inheritance, it is possible to 'cimport' coefficient compiled at
+runtime. Pure array based, (inter.pyx or interpolate.pyx) are defined here.
+str inherite from StrCoeff and just add the _call_core method.
+"""
 cdef class CoeffFunc:
     def __init__(self, ops, args, tlist):
         pass

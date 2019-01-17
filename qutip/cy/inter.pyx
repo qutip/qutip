@@ -32,7 +32,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+"""
+Second version of cublicspline interpolation. (in parallel with interpolate)
+- Accept non-uniformely sampled data.
+- Faster but use more memory than interpolate
+- No python interface, used by QobjEvo.
+"""
 import cython
 cimport cython
 

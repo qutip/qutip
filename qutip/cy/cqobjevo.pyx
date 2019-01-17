@@ -33,7 +33,44 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+"""
+Contain the cython interface of QobjEvo.
+The parent class "CQobjEvo" set the interface.
 
+CQobjCte:
+  QobjEvo that does not depend on times.
+  sparse matrix
+
+CQobjCteDense:
+  QobjEvo that does not depend on times.
+  dense matrix
+  - Hidden feature in the sense that it's not really documented and need to be
+    explicitly used. Does not seems to results in significant speedup.
+
+CQobjEvoTd:
+  QobjEvo that does depend on times.
+  sparse matrix
+
+CQobjEvoTdDense:
+  QobjEvo that does depend on times.
+  dense matrix
+  - Hidden feature in the sense that it's not really documented and need to be
+    explicitly used. Does not seems to results in significant speedup.
+
+CQobjEvoTdMatched:
+  QobjEvo that does depend on times.
+  sparse matrix with 0s
+  - Use sparce matrices that all have the same "filling". Therefore addition of
+    such matrices become a vector addition.
+  - Hidden feature/ experimental.
+    It reasult in a speedup in some rare cases.
+
+In omp/cqobjevo_omp:
+  Variantes which use parallel mat*vec and mat*mat product
+  - CQobjCteOmp
+  - CQobjEvoTdOmp
+  - CQobjEvoTdMatchedOmp
+"""
 import numpy as np
 import scipy.sparse as sp
 cimport numpy as np
@@ -125,6 +162,55 @@ cdef _shallow_set_state(CSR_Matrix* mat, state):
 
 
 cdef class CQobjEvo:
+    """
+    Interface for the CQobjEvo's variantes
+    Python Methods
+    --------------
+    mul_vec(double t, complex[::1] vec)
+      return self @ vec
+
+    mul_mat(double t, np.ndarray[complex, ndim=2] mat)
+      return self @ mat
+      mat can be both "C" or "F" continuous.
+
+    expect(double t, complex[::1] vec, int isherm)
+      return expectation value, knows to use the super version or not.
+
+    ode_mul_mat_F_vec(double t, complex[::1] mat)
+      return self @ mat
+      mat is in a 1d, F ordered form.
+      Used with scipy solver which only accept vector.
+
+    call(double t, int data=0)
+      return this at time t
+
+    call_with_coeff(complex[::1] coeff, int data=0)
+      return this with the given coefficients
+
+    set_data(cte, [ops])
+      build the object from data from QobjEvo
+
+    set_factor(self, func=None, ptr=False, obj=None)
+      get the coefficient function from QobjEvo
+
+    Cython Methods
+    --------------
+    _mul_vec(double t, complex* vec, complex* out):
+        out += self * vec
+
+    _mul_matf(double t, complex* mat, complex* out, int nrow, int ncols):
+        out += self * dense mat fortran ordered
+
+    _mul_matc(double t, complex* mat, complex* out, int nrow, int ncols):
+        out += self * dense mat c ordered
+
+    _expect(double t, complex* vec, int isherm):
+        return <vec| self |vec>
+
+    _expect_super(double t, complex* rho, int isherm):
+        return tr( self * rho )
+    """
+
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
         """self * vec"""
         pass
@@ -157,7 +243,7 @@ cdef class CQobjEvo:
         else:
             raise Exception("Could not set coefficient function")
 
-    cdef void factor(self, double t):
+    cdef void _factor(self, double t):
         cdef int i
         if self.factor_use_cobj:
             self.factor_cobj._call_core(t, self.coeff_ptr)
@@ -191,16 +277,16 @@ cdef class CQobjEvo:
         else:
             return self._expect(t, &vec[0], isherm)
 
-    def ode_mul_mat_F_vec(self, double t, complex[::1] vec):
+    def ode_mul_mat_F_vec(self, double t, complex[::1] mat):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape1*self.shape1,
                                                       dtype=complex)
-        self._mul_matf(t, &vec[0], &out[0], self.shape1, self.shape1)
+        self._mul_matf(t, &mat[0], &out[0], self.shape1, self.shape1)
         return out
 
     def call(self, double t, int data=0):
         return None
 
-    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+    def call_with_coeff(self, complex[::1] coeff, int data=0):
         return None
 
     def set_data(self, cte):
@@ -246,7 +332,7 @@ cdef class CQobjCte(CQobjEvo):
         else:
             return Qobj(scipy_obj,dims = self.dims)
 
-    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+    def call_with_coeff(self, complex[::1] coeff, int data=0):
         cdef CSR_Matrix out
         out.is_set = 0
         copy_CSR(&out, &self.cte)
@@ -343,7 +429,7 @@ cdef class CQobjCteDense(CQobjEvo):
         else:
             return Qobj(self.cte, dims = self.dims)
 
-    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+    def call_with_coeff(self, complex[::1] coeff, int data=0):
         if data:
             return sp.csr_matrix(self.cte, dtype=complex, copy=True)
         else:
@@ -486,8 +572,7 @@ cdef class CQobjEvoTd(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _call_core(self, double t, CSR_Matrix * out,
-                                    complex* coeff):
+    cdef void _call_core(self, CSR_Matrix * out, complex* coeff):
         cdef int i
         cdef CSR_Matrix previous, next
 
@@ -529,8 +614,8 @@ cdef class CQobjEvoTd(CQobjEvo):
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
         init_CSR(&out, self.total_elem, self.shape0, self.shape1)
-        self.factor(t)
-        self._call_core(t, &out, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(&out, self.coeff_ptr)
         scipy_obj = CSR_to_scipy(&out)
         # free_CSR(&out)? data is own by the scipy_obj?
         if data:
@@ -538,10 +623,10 @@ cdef class CQobjEvoTd(CQobjEvo):
         else:
             return Qobj(scipy_obj,dims = self.dims)
 
-    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+    def call_with_coeff(self, complex[::1] coeff, int data=0):
         cdef CSR_Matrix out
         init_CSR(&out, self.total_elem, self.shape0, self.shape1)
-        self._call_core(t, &out, &coeff[0])
+        self._call_core(&out, &coeff[0])
         scipy_obj = CSR_to_scipy(&out)
         # free_CSR(&out)? data is own by the scipy_obj?
         if data:
@@ -553,7 +638,7 @@ cdef class CQobjEvoTd(CQobjEvo):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
-        self.factor(t)
+        self._factor(t)
         cdef int i
         spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec,
                1., out, self.shape0)
@@ -566,7 +651,7 @@ cdef class CQobjEvoTd(CQobjEvo):
     @cython.cdivision(True)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self.factor(t)
+        self._factor(t)
         cdef int i
         _spmm_f_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol)
@@ -579,7 +664,7 @@ cdef class CQobjEvoTd(CQobjEvo):
     @cython.cdivision(True)
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self.factor(t)
+        self._factor(t)
         cdef int i
         _spmm_c_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol)
@@ -611,7 +696,7 @@ cdef class CQobjEvoTd(CQobjEvo):
         cdef int num_rows = self.shape0
         cdef int n = <int>libc.math.sqrt(num_rows)
         cdef complex dot = 0.0
-        self.factor(t)
+        self._factor(t)
 
         for row from 0 <= row < num_rows by n+1:
             row_start = self.cte.indptr[row]
@@ -678,7 +763,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _call_core(self, double t, complex[:,::1] out, complex* coeff):
+    cdef void _call_core(self, complex[:,::1] out, complex* coeff):
         cdef int i,j
         cdef complex* ptr
         cdef complex* out_ptr
@@ -695,18 +780,18 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     def call(self, double t, int data=0):
         cdef np.ndarray[complex, ndim=2] data_t = \
                   np.empty((self.shape0, self.shape1), dtype=complex)
-        self.factor(t)
-        self._call_core(t, data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(data_t, self.coeff_ptr)
 
         if data:
             return sp.csr_matrix(data_t, dtype=complex, copy=True)
         else:
             return Qobj(data_t, dims = self.dims)
 
-    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+    def call_with_coeff(self, complex[::1] coeff, int data=0):
         cdef np.ndarray[complex, ndim=2] data_t = \
                     np.empty((self.shape0, self.shape1), dtype=complex)
-        self._call_core(t, data_t, &coeff[0])
+        self._call_core(data_t, &coeff[0])
         if data:
             return sp.csr_matrix(data_t, dtype=complex, copy=True)
         else:
@@ -716,8 +801,8 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
 
         cdef int i,j
         for i in range(self.shape0):
@@ -730,8 +815,8 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
         cdef int i,j,k
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
         for i in range(self.shape0):
             for j in range(ncol):
                 for k in range(nrow):
@@ -743,8 +828,8 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
         cdef int i,j,k
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
         for i in range(self.shape0):
             for j in range(ncol):
                 for k in range(nrow):
@@ -756,8 +841,8 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     cdef complex _expect(self, double t, complex* vec, int isherm):
         cdef int row
         cdef complex dot = 0
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
         for i in range(self.shape0):
           for j in range(self.shape1):
             dot += conj(vec[i])*self.data_t[i,j]*vec[j]
@@ -774,8 +859,8 @@ cdef class CQobjEvoTdDense(CQobjEvo):
         cdef int num_rows = self.shape0
         cdef int n = <int>libc.math.sqrt(num_rows)
         cdef complex dot = 0.0
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
 
         for row from 0 <= row < num_rows by n+1:
           for i in range(self.shape1):
@@ -846,7 +931,7 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _call_core(self, double t, complex[::1] out, complex* coeff):
+    cdef void _call_core(self, complex[::1] out, complex* coeff):
         cdef int i,j
         cdef complex * ptr
         ptr = &self.cte[0]
@@ -860,8 +945,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     def call(self, double t, int data=0):
         cdef int i
         cdef complex[::1] data_t = np.empty(self.nnz, dtype=complex)
-        self.factor(t)
-        self._call_core(t, data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(data_t, self.coeff_ptr)
 
         cdef CSR_Matrix out_csr
         init_CSR(&out_csr, self.nnz, self.shape0, self.shape1)
@@ -877,9 +962,9 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         else:
             return Qobj(scipy_obj,dims = self.dims)
 
-    def call_with_coeff(self, double t, complex[::1] coeff, int data=0):
+    def call_with_coeff(self, complex[::1] coeff, int data=0):
         cdef complex[::1] out = np.empty(self.nnz, dtype=complex)
-        self._call_core(t, out, &coeff[0])
+        self._call_core(out, &coeff[0])
         cdef CSR_Matrix out_csr
         init_CSR(&out_csr, self.nnz, self.shape0, self.shape1)
         for i in range(self.nnz):
@@ -898,8 +983,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
         spmvpy(self.data_ptr, &self.indices[0], &self.indptr[0], vec,
                1., out, self.shape0)
 
@@ -908,8 +993,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     @cython.cdivision(True)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
         _spmm_f_py(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol)
 
@@ -918,8 +1003,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     @cython.cdivision(True)
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
         _spmm_c_py(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol)
 
@@ -948,8 +1033,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         cdef int n = <int>libc.math.sqrt(num_rows)
         cdef complex dot = 0.0
 
-        self.factor(t)
-        self._call_core(t, self.data_t, self.coeff_ptr)
+        self._factor(t)
+        self._call_core(self.data_t, self.coeff_ptr)
 
         for row from 0 <= row < num_rows by n+1:
             row_start = self.indptr[row]

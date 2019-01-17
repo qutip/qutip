@@ -33,6 +33,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+"""
+Parallel version of the cqobjevo's
+See ../cqobjevo.pyx for more details
+"""
 from qutip.cy.cqobjevo cimport CQobjCte, CQobjEvoTd, CQobjEvoTdMatched
 from qutip.cy.openmp.parfuncs cimport spmvpy_openmp
 import numpy as np
