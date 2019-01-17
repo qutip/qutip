@@ -546,6 +546,7 @@ class QobjEvo:
         new.compiled_Qobj = None
         new.compiled_ptr = None
         new.coeff_get = None
+        new.coeff_files = []
 
         for l, op in enumerate(self.ops):
             new.ops.append([None, None, None, None])
@@ -572,6 +573,7 @@ class QobjEvo:
         self.compiled_ptr = None
         self.coeff_get = None
         self.ops = []
+        self.coeff_files = []
 
         for l, op in enumerate(other.ops):
             self.ops.append([None, None, None, None])
