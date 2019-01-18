@@ -61,12 +61,12 @@ UNITS = np.array([1, 1j])
 
 def rand_jacobi_rotation(A):
     """Random Jacobi rotation of a sparse matrix.
-    
+
     Parameters
     ----------
     A : spmatrix
         Input sparse matrix.
-    
+
     Returns
     -------
     spmatrix
@@ -133,10 +133,10 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
     -------
     oper : qobj
         NxN Hermitian quantum operator.
-    
+
     Note
     ----
-    If given a list/ndarray as input 'N', this function returns a 
+    If given a list/ndarray as input 'N', this function returns a
     random Hermitian object with eigenvalues given in the list/ndarray.
     This is accomplished via complex Jacobi rotations.  While this method
     is ~50% faster than the corresponding (real only) Matlab code, it should
@@ -549,10 +549,10 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None):
     # We start with a Ginibre uniform matrix X of the appropriate rank,
     # and use it to construct a positive semidefinite matrix X X⁺.
     X = randnz((N**2, rank), norm='ginibre')
-    
+
     # Precompute X X⁺, as we'll need it in two different places.
     XXdag = np.dot(X, X.T.conj())
-    
+
     if enforce_tp:
         # We do the partial trace over the first index by using dense reshape
         # operations, so that we can avoid bouncing to a sparse representation
@@ -597,7 +597,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None):
 
 def rand_stochastic(N, density=0.75, kind='left', dims=None):
     """Generates a random stochastic matrix.
-    
+
     Parameters
     ----------
     N : int
@@ -609,7 +609,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None):
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
-    
+
     Returns
     -------
     oper : qobj
@@ -617,10 +617,13 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None):
     """
     if dims:
         _check_dims(dims, N, N)
-    num_elems = np.int(np.ceil(N*(N+1)*density)/2)
+    num_elems = max([np.int(np.ceil(N*(N+1)*density)/2), N])
     data = np.random.rand(num_elems)
-    row_idx = np.random.choice(N, num_elems)
-    col_idx = np.random.choice(N, num_elems)
+    # Ensure an element on every row and column
+    row_idx = np.hstack([np.random.permutation(N),
+                         np.random.choice(N, num_elems-N)])
+    col_idx = np.hstack([np.random.permutation(N),
+                         np.random.choice(N, num_elems-N)])
     if kind=='left':
         M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=float, shape=(N,N)).tocsc()
     else:
