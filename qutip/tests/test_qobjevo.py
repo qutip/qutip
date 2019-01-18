@@ -96,8 +96,8 @@ def _random_QobjEvo(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
     return Qobj_list
 
 
-def _assert_qobj_almost_eq(obj1, obj2):
-    diff_data = (obj1 - obj2).tidyup(1e-10).data
+def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
+    diff_data = (obj1 - obj2).tidyup(tol).data
     assert_equal(len(diff_data.data),0)
 
 
@@ -363,31 +363,35 @@ def test_QobjEvo_apply_decorator():
             return f_original(time_scale*t, *args, **kwargs)*factor
         return f
 
-    tlist = np.linspace(0, 1, 300)
+    tlist = np.linspace(0, 1, 501)
     td_obj = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist, cte=False),
                      args={"w1":1, "w2":2}, tlist=tlist)
-    t = np.random.random() / 2.
+    t = 0.10 + np.random.random() * 0.80
+    # cubicspline interpolation can be less precise
+    # at the limit of the time range.
     td_obj_scaled = td_obj.apply_decorator(rescale_time_and_scale,2)
     # check that the decorated took effect mixed
     assert_equal(td_obj_scaled(t) == td_obj(2*t), True)
+    for op in td_obj_scaled.ops:
+        assert_equal(op[3], 1)
+
     def square_f(f_original):
         def f(t, *args, **kwargs):
             return f_original(t, *args, **kwargs)**2
         return f
-
     td_list = _random_QobjEvo((5,5), [2,0,0], tlist=tlist, cte=False)
     td_obj_str = QobjEvo(td_list, args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_str_2 = td_obj_str.apply_decorator(square_f, str_mod=["(",")**2"])
-    #Check that it can only be compiled to cython
-    assert_equal(td_obj_str_2(t) == td_list[0][0] * np.sin(t)**2, True)
+    _assert_qobj_almost_eq(td_obj_str_2(t), td_list[0][0] * np.sin(t)**2)
+    assert_equal(td_obj_str_2.ops[0][3], 2)
 
     td_list = _random_QobjEvo((5,5), [3,0,0], tlist=tlist, cte=False)
     td_obj_array = QobjEvo(td_list, tlist=tlist)
     td_obj_array_2 = td_obj_array.apply_decorator(square_f, inplace_np=True)
-    #Check that it can only be compiled to cython
-    assert_allclose(np.array(td_obj_array_2(t, data=True).todense()),
-                    np.array((td_list[0][0] * np.sin(t)**2).data.todense()),
-                    rtol=3e-7)
+    _assert_qobj_almost_eq(td_obj_array_2(t),
+                           td_list[0][0] * np.sin(t)**2, tol=3e-7)
+    assert_equal(td_obj_array_2.ops[0][3], 3)
+
 
 
 def test_QobjEvo_mul_vec():
