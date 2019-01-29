@@ -40,7 +40,7 @@ cdef class CQobjEvo:
     cdef int shape0, shape1
     cdef object dims
     cdef int super
-    cdef int N_ops
+    cdef int num_ops
 
     #cdef void (*factor_ptr)(double, complex*)
     cdef object factor_func
@@ -48,7 +48,7 @@ cdef class CQobjEvo:
     cdef int factor_use_cobj
     # prepared buffer
     cdef complex[::1] coeff
-    cdef complex * coeff_ptr
+    cdef complex* coeff_ptr
 
     cdef void _factor(self, double t)
     cdef void _mul_vec(self, double t, complex* vec, complex* out)
@@ -90,7 +90,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
 
     # prepared buffer
     cdef complex[:, ::1] data_t
-    cdef complex * data_ptr
+    cdef complex* data_ptr
 
     cdef void _factor(self, double t)
     cdef void _call_core(self, complex[:,::1] out, complex* coeff)
@@ -107,7 +107,7 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
 
     # prepared buffer
     cdef complex[::1] data_t
-    cdef complex * data_ptr
+    cdef complex* data_ptr
 
     cdef void _factor(self, double t)
     cdef void _call_core(self, complex[::1] out, complex* coeff)

@@ -133,10 +133,10 @@ def spmvpy_csr(complex[::1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline void spmvpy(complex * data, int * ind, int * ptr,
-            complex * vec,
+cdef inline void spmvpy(complex* data, int* ind, int* ptr,
+            complex* vec,
             complex a,
-            complex * out,
+            complex* out,
             unsigned int nrows):
 
     zspmvpy(data, ind, ptr, vec, a, out, nrows)
@@ -144,8 +144,8 @@ cdef inline void spmvpy(complex * data, int * ind, int * ptr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _spmm_c_py(complex * data, int * ind, int * ptr,
-            complex * mat, complex a, complex * out,
+cdef void _spmm_c_py(complex* data, int* ind, int* ptr,
+            complex* mat, complex a, complex* out,
             unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
     """
     sparse*dense "C" ordered.
@@ -216,8 +216,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmc(object sparse,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _spmm_f_py(complex * data, int * ind, int * ptr,
-            complex * mat, complex a, complex * out,
+cdef void _spmm_f_py(complex* data, int* ind, int* ptr,
+            complex* mat, complex a, complex* out,
             unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
     """
     sparse*dense "F" ordered.

@@ -52,8 +52,8 @@ include "../complex_math.pxi"
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void _spmmcpy_par(complex * data, int * ind, int * ptr, complex * mat,
-                      complex a, complex * out, unsigned int sp_rows,
+cdef void _spmmcpy_par(complex* data, int* ind, int* ptr, complex* mat,
+                      complex a, complex* out, unsigned int sp_rows,
                       unsigned int nrows, unsigned int ncols, int nthr):
     """
     sparse*dense "C" ordered.
@@ -70,8 +70,8 @@ cdef void _spmmcpy_par(complex * data, int * ind, int * ptr, complex * mat,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void _spmmfpy_omp(complex * data, int * ind, int * ptr, complex * mat,
-                  complex a, complex * out, unsigned int sp_rows,
+cdef void _spmmfpy_omp(complex* data, int* ind, int* ptr, complex* mat,
+                  complex a, complex* out, unsigned int sp_rows,
                   unsigned int nrows, unsigned int ncols, int nthr):
     """
     sparse*dense "F" ordered.
@@ -127,6 +127,7 @@ cdef class CQobjCteOmp(CQobjCte):
         _spmmcpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
 
+
 cdef class CQobjEvoTdOmp(CQobjEvoTd):
     cdef int nthr
 
@@ -170,6 +171,7 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
         for i in range(self.N_ops):
              _spmmcpy_par(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol, self.nthr)
+
 
 cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
     cdef int nthr

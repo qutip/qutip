@@ -64,13 +64,13 @@ def _prep_cubic_spline(array, tlist):
     np.array
         the second derivative at each time
     """
-    N = len(tlist)
-    M = np.zeros((3,N), dtype=array.dtype)
-    x = np.zeros(N, dtype=array.dtype)
+    n_t = len(tlist)
+    M = np.zeros((3,n_t), dtype=array.dtype)
+    x = np.zeros(n_t, dtype=array.dtype)
     M[1,:] = 2.
     dt_cte = True
     dt0 = tlist[1]-tlist[0]
-    for i in range(1,N-1):
+    for i in range(1,n_t-1):
         dt1 = tlist[i]-tlist[i-1]
         dt2 = tlist[i+1]-tlist[i]
         if ((dt2 - dt0) > 10e-10):
@@ -86,10 +86,10 @@ def _prep_cubic_spline(array, tlist):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef int _binary_search(double x, double[::1] t, int N):
+cdef int _binary_search(double x, double[::1] t, int n):
     #Binary search for the interval
     cdef int low = 0
-    cdef int high = N
+    cdef int high = n
     cdef int middle
     cdef int count = 0
     while low+1 != high and count < 30:
@@ -109,13 +109,13 @@ cdef double _spline_float_cte_second(double x,
                                      double[::1] t,
                                      double[::1] y,
                                      double[::1] M,
-                                     int N,
+                                     int n_t,
                                      double dt):
     # inbound?
     if x < t[0]:
         return y[0]
-    elif x > t[N-1]:
-        return y[N-1]
+    elif x > t[n_t-1]:
+        return y[n_t-1]
     cdef int p = <int>(x/dt)
     cdef double tb = (x/dt - p)
     cdef double te = 1 - tb
@@ -133,13 +133,13 @@ cdef double _spline_float_t_second(double x,
                                    double[::1] t,
                                    double[::1] y,
                                    double[::1] M,
-                                   int N):
+                                   int n_t):
     # inbound?
     if x < t[0]:
         return y[0]
-    elif x > t[N-1]:
-        return y[N-1]
-    cdef int p = _binary_search(x, t, N)
+    elif x > t[n_t-1]:
+        return y[n_t-1]
+    cdef int p = _binary_search(x, t, n_t)
     cdef double dt = t[p+1] - t[p]
     cdef double tb = (x - t[p]) / dt
     cdef double te = 1 - tb
@@ -157,13 +157,13 @@ cdef complex _spline_complex_cte_second(double x,
                                         double[::1] t,
                                         complex[::1] y,
                                         complex[::1] M,
-                                        int N,
+                                        int n_t,
                                         double dt):
     # inbound?
     if x < t[0]:
         return y[0]
-    elif x > t[N-1]:
-        return y[N-1]
+    elif x > t[n_t-1]:
+        return y[n_t-1]
     cdef int p = <int>(x/dt)
     cdef double tb = (x/dt - p)
     cdef double te = 1 - tb
@@ -181,13 +181,13 @@ cdef complex _spline_complex_t_second(double x,
                                       double[::1] t,
                                       complex[::1] y,
                                       complex[::1] M,
-                                      int N):
+                                      int n_t):
     # inbound?
     if x < t[0]:
         return y[0]
-    elif x > t[N-1]:
-        return y[N-1]
-    cdef int p = _binary_search(x, t, N)
+    elif x > t[n_t-1]:
+        return y[n_t-1]
+    cdef int p = _binary_search(x, t, n_t)
     cdef double dt = t[p+1] - t[p]
     cdef double tb = (x - t[p]) / dt
     cdef double te = 1 - tb

@@ -492,7 +492,7 @@ class Qobj(object):
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
                 if settings.auto_tidyup: out.tidyup()
-                if (settings.auto_tidyup_dims 
+                if (settings.auto_tidyup_dims
                         and not isinstance(dims[0][0], list)
                         and not isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
@@ -576,7 +576,6 @@ class Qobj(object):
 
         else:
             return NotImplemented
-            #raise TypeError("Incompatible object for multiplication")
 
     def __rmul__(self, other):
         """
