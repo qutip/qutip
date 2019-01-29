@@ -198,7 +198,7 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmc(object sparse,
     ----------
     sparse : csr matrix
     mat : array 2d
-    Dense matrix for multiplication. Must be in c mode.
+        Dense matrix for multiplication. Must be in c mode.
 
     Returns
     -------
