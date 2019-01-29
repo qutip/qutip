@@ -198,12 +198,12 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmc(object sparse,
     ----------
     sparse : csr matrix
     mat : array 2d
-    Dense matrix for multiplication. Must be in c mode.
+        Dense matrix for multiplication. Must be in c mode.
 
     Returns
     -------
     out : array
-    Keep input ordering
+         Keep input ordering
     """
     cdef unsigned int sp_rows = sparse.indptr.shape[0]-1
     cdef unsigned int ncols = mat.shape[1]
@@ -266,7 +266,7 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmf(object sparse,
     ----------
     sparse : csr matrix
     mat : array 2d
-    Dense matrix for multiplication. Must be in fortran mode.
+        Dense matrix for multiplication. Must be in fortran mode.
 
     Returns
     -------

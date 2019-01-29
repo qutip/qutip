@@ -119,7 +119,8 @@ cdef void _zero_4d(complex[:,:,:,::1] x):
     cdef int l = x.shape[0]*x.shape[1]*x.shape[2]*x.shape[3]
     zdscal(&l, &DZERO, <complex*>&x[0,0,0,0], &ONE)
 
-"""functions for ensuring that the states stays physical"""
+# %%%%%%%%%%%%%%%%%%%%%%%%%
+# functions for ensuring that the states stay physical
 @cython.cdivision(True)
 @cython.boundscheck(False)
 cdef void _normalize_inplace(complex[::1] vec):
@@ -1220,7 +1221,7 @@ cdef class ssolvers:
 
 
 cdef class sse(ssolvers):
-    """stochastic schrodinger system"""
+    """stochastic Schrodinger system"""
     cdef CQobjEvo L
     cdef object c_ops
     cdef object cpcd_ops
@@ -1621,7 +1622,7 @@ cdef class sse(ssolvers):
         # np.ndarray to memoryview is OK but not the reverse
         # scipy function only take np array, not memoryview
         self.imp_t = t
-        spout, check = sp.linalg.bicgstab(self.imp, dvec, x0 = guess,
+        spout, check = sp.linalg.bicgstab(self.imp, dvec, x0=guess,
                                           tol=self.tol, atol=1e-12)
         cdef int i
         copy(spout, out)
