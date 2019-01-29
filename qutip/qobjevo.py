@@ -436,7 +436,10 @@ class QobjEvo:
                 pass
 
     def __call__(self, t, data=False):
-        if not isinstance(t, (int, float)):
+        try:
+            t = float(t)
+        except Exception as e:
+            raise TypeError("t should be a real scalar.") from e
             raise TypeError("the time need to be a real scalar")
         if self.const:
             if data:
@@ -724,7 +727,8 @@ class QobjEvo:
             self._reset_type()
 
         else:
-            raise TypeError("td_qobj can only be multiplied" +
+            raise TypeError("QobjEvo can only be multiplied"
+                            " with QobjEvo, Qobj or numbers")
                             " with td_qobj, Qobj or numbers")
         return self
 
@@ -750,7 +754,7 @@ class QobjEvo:
 
     def __neg__(self):
         res = self.copy()
-        res.cte = (-res.cte)
+        res.cte = -res.cte
         for op in res.ops:
             op[0] = -op[0]
         return res

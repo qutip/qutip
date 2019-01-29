@@ -266,7 +266,7 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmf(object sparse,
     ----------
     sparse : csr matrix
     mat : array 2d
-    Dense matrix for multiplication. Must be in fortran mode.
+        Dense matrix for multiplication. Must be in fortran mode.
 
     Returns
     -------
