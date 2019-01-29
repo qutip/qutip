@@ -203,7 +203,7 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmc(object sparse,
     Returns
     -------
     out : array
-    Keep input ordering
+         Keep input ordering
     """
     cdef unsigned int sp_rows = sparse.indptr.shape[0]-1
     cdef unsigned int ncols = mat.shape[1]
