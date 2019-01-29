@@ -960,7 +960,7 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         if data:
             return scipy_obj
         else:
-            return Qobj(scipy_obj,dims = self.dims)
+            return Qobj(scipy_obj, dims=self.dims)
 
     def call_with_coeff(self, complex[::1] coeff, int data=0):
         cdef complex[::1] out = np.empty(self.nnz, dtype=complex)
