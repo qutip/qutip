@@ -718,9 +718,9 @@ def jspin(N, op=None, basis="dicke"):
 
     nds = num_dicke_states(N)
     num_ladders = num_dicke_ladders(N)
-    jz_operator = dok_matrix((nds, nds))
-    jp_operator = dok_matrix((nds, nds))
-    jm_operator = dok_matrix((nds, nds))
+    jz_operator = dok_matrix((nds, nds), dtype=np.complex)
+    jp_operator = dok_matrix((nds, nds), dtype=np.complex)
+    jm_operator = dok_matrix((nds, nds), dtype=np.complex)
     s = 0
 
     for k in range(0, num_ladders):
@@ -1044,8 +1044,8 @@ def _uncoupled_css(N, a, b):
     rho_i = np.zeros((2, 2), dtype=complex)
     rho_i[0, 0] = a * np.conj(a)
     rho_i[1, 1] = b * np.conj(b)
-    rho_i[0, 1] = a * np.conj(a)
-    rho_i[1, 0] = b * np.conj(b)
+    rho_i[0, 1] = a * np.conj(b)
+    rho_i[1, 0] = b * np.conj(a)
     rho_i = Qobj(rho_i)
     rho = [0 for i in range(N)]
     rho[0] = rho_i
@@ -1170,7 +1170,7 @@ def css(N, x=1/np.sqrt(2), y=1/np.sqrt(2),
         return _uncoupled_css(N, a, b)
     nds = num_dicke_states(N)
     num_ladders = num_dicke_ladders(N)
-    rho = dok_matrix((nds, nds))
+    rho = dok_matrix((nds, nds), dtype=np.complex)
 
     # loop in the allowed matrix elements
     jmm1_dict = jmm1_dictionary(N)[1]
@@ -1212,7 +1212,7 @@ def ghz(N, basis="dicke"):
     if basis == "uncoupled":
         return _uncoupled_ghz(N)
     nds = _num_dicke_states(N)
-    rho = dok_matrix((nds, nds))
+    rho = dok_matrix((nds, nds), dtype=np.complex)
     rho[0, 0] = 1/2
     rho[N, N] = 1/2
     rho[N, 0] = 1/2
@@ -1244,7 +1244,7 @@ def ground(N, basis="dicke"):
         state = _uncoupled_ground(N)
         return state
     nds = _num_dicke_states(N)
-    rho = dok_matrix((nds, nds))
+    rho = dok_matrix((nds, nds), dtype=np.complex)
     rho[N, N] = 1
     return Qobj(rho)
 
