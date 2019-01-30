@@ -176,7 +176,7 @@ cdef class CQobjEvo:
     expect(double t, complex[::1] vec, int isherm)
       return expectation value, knows to use the super version or not.
 
-    ode_mul_mat_F_vec(double t, complex[::1] mat)
+    ode_mul_mat_f_vec(double t, complex[::1] mat)
       return self @ mat
       mat is in a 1d, F ordered form.
       Used with scipy solver which only accept vector.
@@ -277,7 +277,7 @@ cdef class CQobjEvo:
         else:
             return self._expect(t, &vec[0], isherm)
 
-    def ode_mul_mat_F_vec(self, double t, complex[::1] mat):
+    def ode_mul_mat_f_vec(self, double t, complex[::1] mat):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape1*self.shape1,
                                                       dtype=complex)
         self._mul_matf(t, &mat[0], &out[0], self.shape1, self.shape1)

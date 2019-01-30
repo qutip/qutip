@@ -34,7 +34,7 @@ import numpy as np
 from numpy.testing import assert_,  run_module_suite
 
 from qutip import (ssesolve, destroy, coherent, mesolve, fock, qeye,
-                   parallel_map, photocurrentsesolve)
+                   parallel_map, photocurrent_sesolve)
 
 def f(t, args):
     return args["a"] * t
@@ -127,7 +127,7 @@ def test_smesolve_homodyne_methods():
 
 
 def test_ssesolve_photocurrent():
-    "Stochastic: photocurrentsesolve"
+    "Stochastic: photocurrent_sesolve"
     tol = 0.01
 
     N = 4
@@ -143,7 +143,7 @@ def test_ssesolve_photocurrent():
 
     times = np.linspace(0, 2.5, 50)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
-    res = photocurrentsesolve(H, psi0, times, sc_ops, e_ops, ntraj=ntraj,
+    res = photocurrent_sesolve(H, psi0, times, sc_ops, e_ops, ntraj=ntraj,
                               nsubsteps=nsubsteps, store_measurement=True,
                               map_func=parallel_map, args={"a":2})
 

@@ -107,6 +107,37 @@ class _StrWrapper:
         exec(self.code, str_env, env)
         return env["_out"]
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# object for each time dependent element of the QobjEvo
+# qobj : the Qobj of element ([*Qobj*, f])
+# get_coeff : a callable that take (t, args) and return the coeff at that t
+# coeff : The coeff as a string, array or function as provided by the user.
+# type : flag for the type of coeff
+class EvoElement:
+    def __init__(self, qobj, get_coeff, coeff, type):
+        self.qobj = qobj
+        self.get_coeff = get_coeff
+        self.coeff = coeff
+        self.type = type
+
+    @classmethod
+    def make(cls, list_):
+        """self.qobj = list_[0]
+        self.get_coeff = list_[1]
+        self.coeff = list_[2]
+        self.type = list_[3]"""
+        return cls(*list_)
+
+    def __getitem__(self, i):
+        if i == 0:
+            return self.qobj
+        if i == 1:
+            return self.get_coeff
+        if i == 2:
+            return self.coeff
+        if i == 3:
+            return self.type
+
 
 class _CubicSplineWrapper:
     # Using scipy's CubicSpline since Qutip's one
@@ -308,11 +339,11 @@ class QobjEvo:
         self.args = args
         self.cte = None
         self.tlist = tlist
-        self.compiled = False
+        self.compiled = ""
         self.compiled_qobjevo = None
         self.compiled_ptr = None
         self.coeff_get = None
-        self.type = -1
+        self.type = "none"
         self.omp = 0
         self.coeff_files = []
 
@@ -329,7 +360,7 @@ class QobjEvo:
             if op_type == 0:
                 self.cte = Q_object
                 self.const = True
-                self.type = 0
+                self.type = "cte"
             elif op_type == 1:
                 raise Exception("The Qobj must not already be a function")
             elif op_type == -1:
@@ -345,43 +376,46 @@ class QobjEvo:
                         self.cte += op
                 elif type_ == 1:
                     op_type_count[0] += 1
-                    self.ops.append([op[0], op[1], op[1], 1])
+                    self.ops.append(EvoElement(op[0], op[1], op[1], "func"))
                 elif type_ == 2:
                     op_type_count[1] += 1
-                    self.ops.append([op[0], _StrWrapper(op[1]), op[1], 2])
+                    self.ops.append(EvoElement(op[0], _StrWrapper(op[1]),
+                                    op[1], "string"))
                 elif type_ == 3:
                     op_type_count[2] += 1
-                    self.ops.append([op[0], _CubicSplineWrapper(tlist, op[1]),
-                                     op[1].copy(), 3])
+                    self.ops.append(EvoElement(op[0], _CubicSplineWrapper(tlist, op[1]),
+                                     op[1].copy(), "array"))
                 elif type_ == 4:
                     op_type_count[3] += 1
-                    self.ops.append([op[0], op[1], op[1], 4])
+                    self.ops.append(EvoElement(op[0], op[1], op[1], "spline"))
 
             nops = sum(op_type_count)
             if op_type_count[0] == nops:
-                self.type = 1
+                self.type = "func"
             elif op_type_count[1] == nops:
-                self.type = 2
+                self.type = "string"
             elif op_type_count[2] == nops:
-                self.type = 3
+                self.type = "array"
             elif op_type_count[3] == nops:
-                self.type = 4
+                self.type = "spline"
             elif op_type_count[0]:
-                self.type = 5
+                self.type = "mixed_callable"
             else:
-                self.type = 6
+                self.type = "mixed_compilable"
 
             try:
                 if not self.cte:
-                    self.cte = self.ops[0][0]
+                    self.cte = self.ops[0].qobj
+                    # test is all qobj are compatible (shape, dims)
                     for op in self.ops[1:]:
-                        self.cte += op[0]
+                        self.cte += op.qobj
                     self.cte *= 0.
                     self.dummy_cte = True
                 else:
                     cte_copy = self.cte.copy()
+                    # test is all qobj are compatible (shape, dims)
                     for op in self.ops:
-                        cte_copy += op[0]
+                        cte_copy += op.qobj
             except Exception as e:
                 raise TypeError("Qobj not compatible.") from e
 
@@ -444,16 +478,16 @@ class QobjEvo:
                 op_t = self.cte.data.copy()
             else:
                 op_t = self.cte.copy()
-        elif self.compiled and self.compiled//10 != 2:
+        elif self.compiled and self.compiled.split()[0] != "dense":
             op_t = self.compiled_qobjevo.call(t, data)
         elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
-                op_t += part[0].data * part[1](t, self.args)
+                op_t += part.qobj.data * part.get_coeff(t, self.args)
         else:
             op_t = self.cte.copy()
             for part in self.ops:
-                op_t += part[0] * part[1](t, self.args)
+                op_t += part.qobj * part.get_coeff(t, self.args)
         return op_t
 
     def with_args(self, t, args, data=False):
@@ -468,19 +502,19 @@ class QobjEvo:
                 op_t = self.cte.data.copy()
             else:
                 op_t = self.cte.copy()
-        elif self.compiled and self.compiled//10 != 2:
+        elif self.compiled and self.compiled.split()[0] != "dense":
             coeff = np.zeros(len(self.ops), dtype=complex)
             for i, part in enumerate(self.ops):
-                coeff[i] = part[1](t, new_args)
+                coeff[i] = part.get_coeff(t, new_args)
             op_t = self.compiled_qobjevo.call_with_coeff(coeff, data=data)
         elif data:
             op_t = self.cte.data.copy()
             for part in self.ops:
-                op_t += part[0].data * part[1](t, new_args)
+                op_t += part.qobj.data * part.get_coeff(t, new_args)
         else:
             op_t = self.cte.copy()
             for part in self.ops:
-                op_t += part[0] * part[1](t, new_args)
+                op_t += part.qobj * part.get_coeff(t, new_args)
         return op_t
 
     def with_state(self, t, psi, args={}, data=False):
@@ -493,45 +527,45 @@ class QobjEvo:
             new_args.update(args)
         else:
             new_args = self.args
-        if self.type not in [1, 5]:
+        if self.type not in ["func", "mixed_callable"]:
             # no pure function than can accept state
             if args:
                 op_t = self.with_args(t, args, data)
             else:
                 op_t = self.__call__(t, data)
-        elif self.type == 1:
+        elif self.type == "func":
             if self.compiled:
                 coeff = np.zeros(len(self.ops), dtype=complex)
                 for i, part in enumerate(self.ops):
-                    coeff[i] = part[1](t, psi, new_args)
+                    coeff[i] = part.get_coeff(t, psi, new_args)
                 op_t = self.compiled_qobjevo.call_with_coeff(coeff, data=data)
             else:
                 if data:
                     op_t = self.cte.data.copy()
                     for part in self.ops:
-                        op_t += part[0].data * part[1](t, psi, new_args)
+                        op_t += part.qobj.data * part.get_coeff(t, psi, new_args)
                 else:
                     op_t = self.cte.copy()
                     for part in self.ops:
-                        op_t += part[0] * part[1](t, psi, new_args)
+                        op_t += part.qobj * part.get_coeff(t, psi, new_args)
         else:
             coeff = np.zeros(len(self.ops), dtype=complex)
             for i, part in enumerate(self.ops):
-                if part[3] == 1:  # func: f(t, psi, args)
-                    coeff[i] = part[1](t, psi, new_args)
+                if part.type == "func":  # func: f(t, psi, args)
+                    coeff[i] = part.get_coeff(t, psi, new_args)
                 else:
-                    coeff[i] = part[1](t, new_args)
-            if self.compiled and self.compiled//10 != 2:
+                    coeff[i] = part.get_coeff(t, new_args)
+            if self.compiled and self.compiled.split()[0] != "dense":
                 op_t = self.compiled_qobjevo.call_with_coeff(coeff, data=data)
             else:
                 if data:
                     op_t = self.cte.data.copy()
                     for c, part in zip(coeff, self.ops):
-                        op_t += part[0].data * c
+                        op_t += part.qobj.data * c
                 else:
                     op_t = self.cte.copy()
                     for c, part in zip(coeff, self.ops):
-                        op_t += part[0] * c
+                        op_t += part.qobj * c
 
         return op_t
 
@@ -549,15 +583,13 @@ class QobjEvo:
         new.coeff_get = None
         new.coeff_files = []
 
-        for l, op in enumerate(self.ops):
-            new.ops.append([None, None, None, None])
-            new.ops[l][0] = op[0].copy()
-            new.ops[l][1] = op[1]
-            new.ops[l][3] = op[3]
-            if new.ops[l][3] == 3:
-                new.ops[l][2] = op[2].copy()
+        for op in self.ops:
+            if op.type == "array":
+                new_coeff = op.coeff.copy()
             else:
-                new.ops[l][2] = op[2]
+                new_coeff = op.coeff
+            new.ops.append(EvoElement(op.qobj.copy(), op.get_coeff,
+                                      new_coeff, op.type))
 
         return new
 
@@ -569,28 +601,26 @@ class QobjEvo:
         self.dummy_cte = other.dummy_cte
         self.num_obj = other.num_obj
         self.type = other.type
-        self.compiled = False
+        self.compiled = ""
         self.compiled_qobjevo = None
         self.compiled_ptr = None
         self.coeff_get = None
         self.ops = []
         self.coeff_files = []
 
-        for l, op in enumerate(other.ops):
-            self.ops.append([None, None, None, None])
-            self.ops[l][0] = op[0].copy()
-            self.ops[l][3] = op[3]
-            self.ops[l][1] = op[1]
-            if self.ops[l][3] == 3:
-                self.ops[l][2] = op[2].copy()
+        for op in other.ops:
+            if op.type == "array":
+                new_coeff = op.coeff.copy()
             else:
-                self.ops[l][2] = op[2]
+                new_coeff = op.coeff
+            self.ops.append(EvoElement(op.qobj.copy(), op.get_coeff,
+                                       new_coeff, op.type))
 
     def arguments(self, args):
         if not isinstance(args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(args)
-        if self.compiled in [2, 12, 22, 32, 42, 3, 13, 23, 33, 43]:
+        if self.compiled and self.compiled.split()[2] is not "cte":
             self.coeff_get.set_args(self.args)
 
     def to_list(self):
@@ -598,7 +628,7 @@ class QobjEvo:
         if not self.dummy_cte:
             list_qobj.append(self.cte)
         for op in self.ops:
-            list_qobj.append([op[0], op[2]])
+            list_qobj.append([op.qobj, op.coeff])
         return list_qobj
 
     # Math function
@@ -617,24 +647,23 @@ class QobjEvo:
             self.cte += other.cte
             l = len(self.ops)
             for op in other.ops:
-                self.ops.append([None, None, None, None])
-                self.ops[l][0] = op[0].copy()
-                self.ops[l][3] = op[3]
-                self.ops[l][1] = op[1]
-                if self.ops[l][3] == 3:
-                    self.ops[l][2] = op[2].copy()
+                if op.type == "array":
+                    new_coeff = op.coeff.copy()
                 else:
-                    self.ops[l][2] = op[2]
+                    new_coeff = op.coeff
+                self.ops.append(EvoElement(op.qobj.copy(), op.get_coeff,
+                                           new_coeff, op.type))
                 l += 1
             self.args.update(**other.args)
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
             if self.type != other.type:
-                if self.type in [1, 5] or other.type in [1, 5]:
-                    self.type = 5
+                if self.type in ["func", "mixed_callable"] or \
+                        other.type in ["func", "mixed_callable"]:
+                    self.type = "mixed_callable"
                 else:
-                    self.type = 6
-            self.compiled = False
+                    self.type = "mixed_compilable"
+            self.compiled = ""
             self.compiled_qobjevo = None
             self.compiled_ptr = None
             self.coeff_get = None
@@ -679,7 +708,7 @@ class QobjEvo:
         if isinstance(other, Qobj):
             res.cte = other * res.cte
             for op in res.ops:
-                op[0] = other * op[0]
+                op.qobj = other * op.qobj
             return res
         else:
             res *= other
@@ -689,18 +718,18 @@ class QobjEvo:
         if isinstance(other, Qobj) or isinstance(other, Number):
             self.cte *= other
             for op in self.ops:
-                op[0] *= other
+                op.qobj *= other
         elif isinstance(other, QobjEvo):
             if other.const:
                 self.cte *= other.cte
                 for op in self.ops:
-                    op[0] *= other.cte
+                    op.qobj *= other.cte
             elif self.const:
                 cte = self.cte.copy()
                 self = other.copy()
                 self.cte = cte * self.cte
                 for op in self.ops:
-                    op[0] = cte*op[0]
+                    op.qobj = cte*op.qobj
             else:
                 cte = self.cte.copy()
                 self.cte *= other.cte
@@ -727,7 +756,6 @@ class QobjEvo:
         else:
             raise TypeError("QobjEvo can only be multiplied"
                             " with QobjEvo, Qobj or numbers")
-                            " with td_qobj, Qobj or numbers")
         return self
 
     def __div__(self, other):
@@ -754,46 +782,46 @@ class QobjEvo:
         res = self.copy()
         res.cte = -res.cte
         for op in res.ops:
-            op[0] = -op[0]
+            op.qobj = -op.qobj
         return res
 
     def _ops_mul_(self, opL, opR):
-        new_f = _Prod(opL[1], opR[1])
-        new_op = [opL[0]*opR[0], new_f, None, 0]
-        if opL[3] == opR[3] and opL[3] == 2:
-            new_op[2] = "("+opL[2]+") * ("+opR[2]+")"
-            new_op[3] = 2
-        elif opL[3] == opR[3] and opL[3] == 3:
+        new_f = _Prod(opL.get_coeff, opR.get_coeff)
+        new_op = [opL.qobj*opR.qobj, new_f, None, 0]
+        if opL.type == opR.type and opL.type == "string":
+            new_op[2] = "(" + opL.coeff + ") * (" + opR.coeff + ")"
+            new_op[3] = "string"
+        elif opL[3] == opR[3] and opL[3] == "array":
             new_op[2] = opL[2]*opR[2]
-            new_op[3] = 3
+            new_op[3] = "array"
         else:
             new_op[2] = new_f
-            new_op[3] = 1
-            if self.type not in [1, 5]:
-                self.type = 5
-        return new_op
+            new_op[3] = "func"
+            if self.type not in ["func", "mixed_callable"]:
+                self.type = "mixed_callable"
+        return EvoElement.make(new_op)
 
     def _ops_mul_cte(self, op, cte, side):
-        new_op = [None, op[1], op[2], op[3]]
+        new_op = [None, op.get_coeff, op.coeff, op.type]
         if side == "R":
-            new_op[0] = op[0] * cte
+            new_op[0] = op.qobj * cte
         if side == "L":
-            new_op[0] = cte * op[0]
-        return new_op
+            new_op[0] = cte * op.qobj
+        return EvoElement.make(new_op)
 
     # Transformations
     def trans(self):
         res = self.copy()
         res.cte = res.cte.trans()
         for op in res.ops:
-            op[0] = op[0].trans()
+            op.qobj = op.qobj.trans()
         return res
 
     def conj(self):
         res = self.copy()
         res.cte = res.cte.conj()
         for op in res.ops:
-            op[0] = op[0].conj()
+            op.qobj = op.qobj.conj()
         res._f_conj()
         return res
 
@@ -801,7 +829,7 @@ class QobjEvo:
         res = self.copy()
         res.cte = res.cte.dag()
         for op in res.ops:
-            op[0] = op[0].dag()
+            op.qobj = op.qobj.dag()
         res._f_conj()
         return res
 
@@ -814,7 +842,7 @@ class QobjEvo:
             res = self.copy()
             res.cte = res.cte.dag() * res.cte
             for op in res.ops:
-                op[0] = op[0].dag() * op[0]
+                op.qobj = op.qobj.dag() * op.qobj
             res._f_norm2()
         return res
 
@@ -822,11 +850,12 @@ class QobjEvo:
     def tidyup(self, atol=1e-12):
         self.cte = self.cte.tidyup(atol)
         for op in self.ops:
-            op[0] = op[0].tidyup(atol)
+            op.qobj = op.qobj.tidyup(atol)
         return self
 
     def _compress_make_set(self):
         sets = []
+        callable_flags = ["func", "spline"]
         for i, op1 in enumerate(self.ops):
             already_matched = False
             for _set in sets:
@@ -834,9 +863,12 @@ class QobjEvo:
             if not already_matched:
                 this_set = [i]
                 for j, op2 in enumerate(self.ops[i+1:]):
-                    if op1[0] == op2[0] and (op1[3] == op2[3] or
-                            (op1[3] in [1, 4] and op2[3] in [1, 4])):
-                        this_set.append(j+i+1)
+                    if op1.qobj == op2.qobj:
+                        same_flag = op1.type == op2.type
+                        callable_1 = op1.type in callable_flags
+                        callable_2 = op2.type in callable_flags
+                        if (same_flag or (callable_1 and callable_2)):
+                            this_set.append(j+i+1)
                 sets.append(this_set)
 
         fsets = []
@@ -847,59 +879,65 @@ class QobjEvo:
             if not already_matched:
                 this_set = [i]
                 for j, op2 in enumerate(self.ops[i+1:]):
-                    if op1[3] in [1, 2, 4] and op2[3] == op1[3]:
-                        if op1[2] is op2[2]:
+                    if op1.type != op2.type:
+                        pass
+                    elif op1.type is "array":
+                        if np.allclose(op1.coeff, op2.coeff):
                             this_set.append(j+i+1)
-                    elif op1[3] in [3] and op2[3] == op1[3]:
-                        if np.allclose(op1[2], op2[2]):
+                    else:
+                        if op1.coeff is op2.coeff:
                             this_set.append(j+i+1)
                 fsets.append(this_set)
         return sets, fsets
 
     def _compress_merge_qobj(self, sets):
+        callable_flags = ["func", "spline"]
         new_ops = []
         for _set in sets:
             if len(_set) == 1:
-                new_op = self.ops[_set[0]]
+                new_ops.append(self.ops[_set[0]])
 
-            elif self.ops[_set[0]][3] in [1, 4]:
-                new_op = [self.ops[_set[0]][0], None, None, 1]
+            elif self.ops[_set[0]].type in callable_flags:
+                new_op = [self.ops[_set[0]].qobj, None, None, "func"]
                 fs = []
                 for i in _set:
-                    fs += [self.ops[i][1]]
+                    fs += [self.ops[i].get_coeff]
                 new_op[1] = _Add(fs)
                 new_op[2] = new_op[1]
+                new_ops.append(EvoElement.make(new_op))
 
-            elif self.ops[_set[0]][3] == 2:
-                new_op = [self.ops[_set[0]][0], None, None, 2]
-                new_str = "(" + self.ops[_set[0]][2] + ")"
+            elif self.ops[_set[0]].type is "string":
+                new_op = [self.ops[_set[0]].qobj, None, None, "string"]
+                new_str = "(" + self.ops[_set[0]].coeff + ")"
                 for i in _set[1:]:
-                    new_str += " + (" + self.ops[i][2] + ")"
+                    new_str += " + (" + self.ops[i].coeff + ")"
                 new_op[1] = _StrWrapper(new_str)
                 new_op[2] = new_str
+                new_ops.append(EvoElement.make(new_op))
 
-            elif self.ops[_set[0]][3] == 3:
-                new_op = [self.ops[_set[0]][0], None, None, 2]
-                new_array = (self.ops[_set[0]][2]).copy()
+            elif self.ops[_set[0]].type is "array":
+                new_op = [self.ops[_set[0]].qobj, None, None, "array"]
+                new_array = (self.ops[_set[0]].coeff).copy()
                 for i in _set[1:]:
-                    new_array += self.ops[i][2]
+                    new_array += self.ops[i].coeff
                 new_op[2] = new_array
                 new_op[1] = _CubicSplineWrapper(self.tlist, new_array)
+                new_ops.append(EvoElement.make(new_op))
 
-            new_ops.append(new_op)
         self.ops = new_ops
 
     def _compress_merge_func(self, fsets):
         new_ops = []
         for _set in fsets:
+            base = self.ops[_set[0]]
+            new_op = [None, base.get_coeff, base.coeff, base.type]
             if len(_set) == 1:
-                new_op = self.ops[_set[0]]
+                new_op[0] = base.qobj
             else:
-                new_op = self.ops[_set[0]]
-                new_op[0] = self.ops[_set[0]][0].copy()
+                new_op[0] = base.qobj.copy()
                 for i in _set[1:]:
-                    new_op[0] += self.ops[i][0]
-            new_ops.append(new_op)
+                    new_op[0] += self.ops[i].qobj
+            new_ops.append(EvoElement.make(new_op))
         self.ops = new_ops
 
     def compress(self):
@@ -911,7 +949,7 @@ class QobjEvo:
 
         if N_sets < num_ops and N_fsets < num_ops:
             # Both could be better
-            self.compiled = False
+            self.compiled = ""
             self.compiled_qobjevo = None
             self.coeff_get = None
             if N_sets < N_fsets:
@@ -924,12 +962,12 @@ class QobjEvo:
             num_ops = len(self.ops)
 
         if N_sets < num_ops:
-            self.compiled = False
+            self.compiled = ""
             self.compiled_qobjevo = None
             self.coeff_get = None
             self._compress_merge_qobj(sets)
         elif N_fsets < num_ops:
-            self.compiled = False
+            self.compiled = ""
             self.compiled_qobjevo = None
             self.coeff_get = None
             self._compress_merge_func(fsets)
@@ -938,28 +976,28 @@ class QobjEvo:
     def _reset_type(self):
         op_type_count = [0, 0, 0, 0]
         for op in self.ops:
-            if op[3] == 1:
+            if op.type == "func":
                 op_type_count[0] += 1
-            elif op[3] == 2:
+            elif op.type == "string":
                 op_type_count[1] += 1
-            elif op[3] == 3:
+            elif op.type == "array":
                 op_type_count[2] += 1
-            elif op[3] == 4:
+            elif op.type == "spline":
                 op_type_count[3] += 1
 
         nops = sum(op_type_count)
         if op_type_count[0] == nops:
-            self.type = 1
+            self.type = "func"
         elif op_type_count[1] == nops:
-            self.type = 2
+            self.type = "string"
         elif op_type_count[2] == nops:
-            self.type = 3
+            self.type = "array"
         elif op_type_count[3] == nops:
-            self.type = 4
+            self.type = "spline"
         elif op_type_count[0]:
-            self.type = 5
+            self.type = "mixed_callable"
         else:
-            self.type = 6
+            self.type = "mixed_compilable"
 
         self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
 
@@ -967,26 +1005,26 @@ class QobjEvo:
         res = self.copy()
         res.cte = res.cte.permute(order)
         for op in res.ops:
-            op[0] = op[0].permute(order)
+            op.qobj = op.qobj.permute(order)
         return res
 
     def ptrace(self, sel):
         res = self.copy()
         res.cte = res.cte.ptrace(sel)
         for op in res.ops:
-            op[0] = op[0].ptrace(sel)
+            op.qobj = op.qobj.ptrace(sel)
         return res
 
     # function to apply custom transformations
     def apply(self, function, *args, **kw_args):
-        self.compiled = False
+        self.compiled = ""
         res = self.copy()
         cte_res = function(res.cte, *args, **kw_args)
         if not isinstance(cte_res, Qobj):
             raise TypeError("The function must return a Qobj")
         res.cte = cte_res
         for op in res.ops:
-            op[0] = function(op[0], *args, **kw_args)
+            op.qobj = function(op.qobj, *args, **kw_args)
         return res
 
     def apply_decorator(self, function, *args, **kw_args):
@@ -1002,74 +1040,82 @@ class QobjEvo:
             inplace_np = None
         res = self.copy()
         for op in res.ops:
-            op[1] = function(op[1], *args, **kw_args)
-            if op[3] == [1, 4]:
-                op[2] = function(op[1], *args, **kw_args)
-                op[3] = 1
-            elif op[3] == 2:
+            op.get_coeff = function(op.get_coeff, *args, **kw_args)
+            if op.type == ["func", "spline"]:
+                op.coeff = op.get_coeff
+                op.type = "func"
+            elif op.type == "string":
                 if str_mod is None:
-                    op[2] = op[1]
-                    op[3] = 1
+                    op.coeff = op.get_coeff
+                    op.type = "func"
                 else:
-                    op[2] = str_mod[0] + op[2] + str_mod[1]
-            elif op[3] == 3:
+                    op.coeff = str_mod[0] + op.coeff + str_mod[1]
+            elif op.type == "array":
                 if inplace_np:
                     # keep the original function, change the array
                     def f(a):
                         return a
                     ff = function(f, *args, **kw_args)
-                    for i, v in enumerate(op[2]):
-                        op[2][i] = ff(v)
-                    op[1] = _CubicSplineWrapper(self.tlist, op[2])
+                    for i, v in enumerate(op.coeff):
+                        op.coeff[i] = ff(v)
+                    op.get_coeff = _CubicSplineWrapper(self.tlist, op.coeff)
                 else:
-                    op[2] = function(op[1], *args, **kw_args)
-                    op[3] = 1
-        if self.type == 2 and str_mod is None:
-            res.type = 5
-        elif self.type == 3 and not inplace_np:
-            res.type = 5
-        elif self.type == 4:
-            res.type = 5
-        elif self.type == 6:
+                    op.coeff = op.get_coeff
+                    op.type = "func"
+        if self.type == "string" and str_mod is None:
+            res.type = "mixed_callable"
+        elif self.type == "array" and not inplace_np:
+            res.type = "mixed_callable"
+        elif self.type == "spline":
+            res.type = "mixed_callable"
+        elif self.type == "mixed_compilable":
             for op in res.ops:
-                if op[3] == 1:
-                    res.type = 5
+                if op.type == "func":
+                    res.type = "mixed_callable"
         return res
 
     def _f_norm2(self):
+        new_ops = []
         for op in self.ops:
-            if op[3] == 1:
-                op[1] = _Norm2(op[1])
-                op[2] = op[1]
-            elif op[3] == 2:
-                op[2] = "norm(" + op[2] + ")"
-                op[1] = _StrWrapper(op[2])
-            elif op[3] == 3:
-                op[2] = np.abs(op[2])**2
-                op[1] = _CubicSplineWrapper(self.tlist, op[2])
-            elif op[3] == 4:
-                op[1] = _Norm2(op[1])
-                op[2] = op[1]
-                op[3] = 1
-                self.type = 5
+            new_op = [op.qobj, None, None, op.type]
+            if op.type == "func":
+                new_op[1] = _Norm2(op.get_coeff)
+                new_op[2] = new_op[1]
+            elif op.type == "string":
+                new_op[2] = "norm(" + op.coeff + ")"
+                new_op[1] = _StrWrapper(new_op[2])
+            elif op.type == "array":
+                new_op[2] = np.abs(op.coeff)**2
+                new_op[1] = _CubicSplineWrapper(self.tlist, new_op[2])
+            elif op.type == "spline":
+                new_op[1] = _Norm2(op.get_coeff)
+                new_op[2] = new_op[1]
+                new_op[3] = "func"
+                self.type = "mixed_callable"
+            new_ops.append(EvoElement.make(new_op))
+        self.ops = new_ops
         return self
 
     def _f_conj(self):
+        new_ops = []
         for op in self.ops:
-            if op[3] == 1:
-                op[1] = _Conj(op[1])
-                op[2] = op[1]
-            elif op[3] == 2:
-                op[2] = "conj(" + op[2] + ")"
-                op[1] = _StrWrapper(op[2])
-            elif op[3] == 3:
-                op[2] = np.conj(op[2])
-                op[1] = _CubicSplineWrapper(self.tlist, op[2])
-            elif op[3] == 4:
-                op[1] = _Conj(op[1])
-                op[2] = op[1]
-                op[3] = 1
-                self.type = 5
+            new_op = [op.qobj, None, None, op.type]
+            if op.type == "func":
+                new_op[1] = _Conj(op.get_coeff)
+                new_op[2] = new_op[1]
+            elif op.type == "string":
+                new_op[2] = "conj(" + op.coeff + ")"
+                new_op[1] = _StrWrapper(new_op[2])
+            elif op.type == "array":
+                new_op[2] = np.conj(op.coeff)
+                new_op[1] = _CubicSplineWrapper(self.tlist, new_op[2])
+            elif op.type == "spline":
+                new_op[1] = _Conj(op.get_coeff)
+                new_op[2] = new_op[1]
+                new_op[3] = "func"
+                self.type = "mixed_callable"
+            new_ops.append(EvoElement.make(new_op))
+        self.ops = new_ops
         return self
 
     def expect(self, t, vec, herm=0):
@@ -1142,75 +1188,75 @@ class QobjEvo:
         if self.const:
             if dense:
                 self.compiled_qobjevo = CQobjCteDense()
-                self.compiled = 21
+                self.compiled = "dense single cte"
             elif omp:
                 self.compiled_qobjevo = CQobjCteOmp()
-                self.compiled = 31
+                self.compiled = "csr omp cte"
                 self.compiled_qobjevo.set_threads(omp)
                 self.omp = omp
             else:
                 self.compiled_qobjevo = CQobjCte()
-                self.compiled = 1
+                self.compiled = "csr single cte"
             self.compiled_qobjevo.set_data(self.cte)
         else:
             if matched:
                 if omp:
                     self.compiled_qobjevo = CQobjEvoTdMatchedOmp()
-                    self.compiled = 40
+                    self.compiled = "matched omp "
                     self.compiled_qobjevo.set_threads(omp)
                     self.omp = omp
                 else:
                     self.compiled_qobjevo = CQobjEvoTdMatched()
-                    self.compiled = 10
+                    self.compiled = "matched single "
             elif dense:
                 self.compiled_qobjevo = CQobjEvoTdDense()
-                self.compiled = 20
+                self.compiled = "dense single "
             elif omp:
                 self.compiled_qobjevo = CQobjEvoTdOmp()
-                self.compiled = 30
+                self.compiled = "csr omp "
                 self.compiled_qobjevo.set_threads(omp)
                 self.omp = omp
             else:
                 self.compiled_qobjevo = CQobjEvoTd()
-                self.compiled = 0
+                self.compiled = "csr single "
             self.compiled_qobjevo.set_data(self.cte, self.ops)
-            if self.type in [1]:
+            if self.type in ["func"]:
                 funclist = []
                 for part in self.ops:
-                    funclist.append(part[1])
+                    funclist.append(part.get_coeff)
                 self.coeff_get = _UnitedFuncCaller(funclist, self.args)
-                self.compiled += 2
+                self.compiled += "pyfunc"
                 self.compiled_qobjevo.set_factor(func=self.coeff_get)
-            elif self.type in [5]:
+            elif self.type in ["mixed_callable"]:
                 funclist = []
                 for part in self.ops:
-                    if isinstance(part[1], _StrWrapper):
-                        part[1], file = _compile_str_single(part[2], self.args)
+                    if isinstance(part.get_coeff, _StrWrapper):
+                        part.get_coeff, file = _compile_str_single(part.coeff, self.args)
                         self.coeff_files.append(file)
-                    funclist.append(part[1])
+                    funclist.append(part.get_coeff)
                 self.coeff_get = _UnitedFuncCaller(funclist, self.args)
-                self.compiled += 2
+                self.compiled += "pyfunc"
                 self.compiled_qobjevo.set_factor(func=self.coeff_get)
-            elif self.type in [2, 6]:
+            elif self.type in ["string", "mixed_compilable"]:
                 # All factor can be compiled
                 self.coeff_get, Code, file = _compiled_coeffs(self.ops,
                                                               self.args,
                                                               self.tlist)
                 self.coeff_files.append(file)
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
-                self.compiled += 3
-            elif self.type == 3:
+                self.compiled += "cyfactor"
+            elif self.type == "array":
                 if np.allclose(np.diff(self.tlist),
                                self.tlist[1] - self.tlist[0]):
                     self.coeff_get = InterCoeffCte(self.ops, None,
                                                      self.tlist)
                 else:
                     self.coeff_get = InterCoeffT(self.ops, None, self.tlist)
-                self.compiled += 3
+                self.compiled += "cyfactor"
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
-            elif self.type == 4:
+            elif self.type == "spline":
                 self.coeff_get = InterpolateCoeff(self.ops, None, None)
-                self.compiled += 3
+                self.compiled += "cyfactor"
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
             else:
                 pass
@@ -1220,7 +1266,7 @@ class QobjEvo:
     def _get_coeff(self, t):
         out = []
         for part in self.ops:
-            out.append(part[1](t, self.args))
+            out.append(part.get_coeff(t, self.args))
         return out
 
     def __getstate__(self):
@@ -1233,68 +1279,65 @@ class QobjEvo:
 
     def __setstate__(self, state):
         self.__dict__ = state[0]
+        self.coeff_files = []
         self.compiled_qobjevo = None
         if self.compiled:
-            if safePickle:
-                # __getstate__ and __setstate__ of compiled_qobjevo pass pointers
-                # In 'safe' mod, these pointers are not used.
-                if self.compiled == 1:
-                    self.compiled_qobjevo = CQobjCte()
-                    self.compiled_qobjevo.set_data(self.cte)
-                elif self.compiled == 21:
+            mat_type, threading, td =  self.compiled.split()
+            if mat_type == "csr":
+                if safePickle:
+                    # __getstate__ and __setstate__ of compiled_qobjevo pass pointers
+                    # In 'safe' mod, these pointers are not used.
+                    if td == "cte":
+                        if threading == "single":
+                            self.compiled_qobjevo = CQobjCte()
+                            self.compiled_qobjevo.set_data(self.cte)
+                        elif threading == "omp":
+                            self.compiled_qobjevo = CQobjCteOmp()
+                            self.compiled_qobjevo.set_data(self.cte)
+                            self.compiled_qobjevo.set_threads(self.omp)
+                    else:
+                        # time dependence is pyfunc or cyfactor
+                        if threading == "single":
+                            self.compiled_qobjevo = CQobjEvoTd()
+                            self.compiled_qobjevo.set_data(self.cte, self.ops)
+                        elif threading == "omp":
+                            self.compiled_qobjevo = CQobjEvoTdOmp()
+                            self.compiled_qobjevo.set_data(self.cte, self.ops)
+                            self.compiled_qobjevo.set_threads(self.omp)
+
+                        if td == "pyfunc":
+                            self.compiled_qobjevo.set_factor(obj=self.coeff_get)
+                        elif td == "cyfactor":
+                            self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                else:
+                    if td == "cte":
+                        if threading == "single":
+                            self.compiled_qobjevo = CQobjCte.__new__(CQobjCte)
+                        elif threading == "omp":
+                            self.compiled_qobjevo = CQobjCteOmp.__new__(CQobjCteOmp)
+                            self.compiled_qobjevo.set_threads(self.omp)
+                    else:
+                        # time dependence is pyfunc or cyfactor
+                        if threading == "single":
+                            self.compiled_qobjevo = CQobjEvoTd.__new__(CQobjEvoTd)
+                        elif threading == "omp":
+                            self.compiled_qobjevo = CQobjEvoTdOmp.__new__(CQobjEvoTdOmp)
+                            self.compiled_qobjevo.set_threads(self.omp)
+                    self.compiled_qobjevo.__setstate__(state[1])
+
+            elif mat_type == "dense":
+                if td == "cte":
                     self.compiled_qobjevo = \
                         CQobjCteDense.__new__(CQobjCteDense)
-                    self.compiled_qobjevo.__setstate__(state[1])
-                elif self.compiled == 31:
-                    self.compiled_qobjevo = CQobjCteOmp()
-                    self.compiled_qobjevo.set_data(self.cte)
-                    self.compiled_qobjevo.set_threads(self.omp)
-                elif self.compiled in (2, 3):
-                    self.compiled_qobjevo = CQobjEvoTd()
-                    self.compiled_qobjevo.set_data(self.cte, self.ops)
-                elif self.compiled in (22, 23):
-                    self.compiled_qobjevo = \
-                        CQobjEvoTdDense.__new__(CQobjEvoTdDense)
-                    self.compiled_qobjevo.__setstate__(state[1])
-                elif self.compiled in (12, 13):
+                else:
+                    CQobjEvoTdDense.__new__(CQobjEvoTdDense)
+                self.compiled_qobjevo.__setstate__(state[1])
+
+            elif mat_type == "matched":
+                if threading == "single":
                     self.compiled_qobjevo = \
                         CQobjEvoTdMatched.__new__(CQobjEvoTdMatched)
-                    self.compiled_qobjevo.__setstate__(state[1])
-                elif self.compiled in (32, 33):
-                    self.compiled_qobjevo = CQobjEvoTdOmp()
-                    self.compiled_qobjevo.set_data(self.cte, self.ops)
-                    self.compiled_qobjevo.set_threads(self.omp)
-                elif self.compiled in (42, 43):
-                    self.compiled_qobjevo = \
-                        CQobjEvoTdMatchedOmp.__new__(CQobjEvoTdMatchedOmp)
-                    self.compiled_qobjevo.__setstate__(state[1])
-                    self.compiled_qobjevo.set_threads(self.omp)
-                if self.compiled % 10 == 3:
-                    self.compiled_qobjevo.set_factor(obj=self.coeff_get)
-                elif self.compiled % 10 == 2:
-                    self.compiled_qobjevo.set_factor(func=self.coeff_get)
-            else:
-                if self.compiled == 1:
-                    self.compiled_qobjevo = CQobjCte.__new__(CQobjCte)
-                elif self.compiled == 21:
-                    self.compiled_qobjevo = \
-                        CQobjCteDense.__new__(CQobjCteDense)
-                elif self.compiled == 31:
-                    self.compiled_qobjevo = \
-                        CQobjCteOmp.__new__(CQobjCteOmp)
-                    self.compiled_qobjevo.set_threads(self.omp)
-                elif self.compiled in (2, 3):
-                    self.compiled_qobjevo = CQobjEvoTd.__new__(CQobjEvoTd)
-                elif self.compiled in (22, 23):
-                    self.compiled_qobjevo = \
-                        CQobjEvoTdDense.__new__(CQobjEvoTdDense)
-                elif self.compiled in (12, 13):
-                    self.compiled_qobjevo = \
-                        CQobjEvoTdMatched.__new__(CQobjEvoTdMatched)
-                elif self.compiled in (32, 33):
-                    self.compiled_qobjevo = CQobjEvoTdOmp.__new__(CQobjEvoTdOmp)
-                    self.compiled_qobjevo.set_threads(self.omp)
-                elif self.compiled in (42, 43):
+                elif threading == "omp":
                     self.compiled_qobjevo = \
                         CQobjEvoTdMatchedOmp.__new__(CQobjEvoTdMatchedOmp)
                     self.compiled_qobjevo.set_threads(self.omp)

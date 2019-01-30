@@ -144,10 +144,10 @@ include """ + _include_string + "\n\n"
     N_np = 0
 
     for op in ops:
-        if op[3] == 2:
-            compile_list.append(op[2])
+        if op.type == "string":
+            compile_list.append(op.coeff)
 
-        elif op[3] == 3:
+        elif op.type == "array":
             spline, dt_cte = _prep_cubic_spline(op[2], tlist)
             t_str = "_tlist"
             y_str = "_array_" + str(N_np)
@@ -155,37 +155,37 @@ include """ + _include_string + "\n\n"
             N_times = str(len(tlist))
             dt_times = str(tlist[1]-tlist[0])
             if dt_cte:
-                if isinstance(op[2][0], (float, np.float32, np.float64)):
+                if isinstance(op.coeff[0], (float, np.float32, np.float64)):
                     string = "_spline_float_cte_second(t, " + t_str + ", " +\
                               y_str + ", " + s_str + ", " + N_times + ", " +\
                               dt_times + ")"
-                elif isinstance(op[2][0], (complex, np.complex128)):
+                elif isinstance(op.coeff[0], (complex, np.complex128)):
                     string = "_spline_complex_cte_second(t, " + t_str + ", " +\
                               y_str + ", " + s_str + ", " + N_times + ", " +\
                               dt_times + ")"
             else:
-                if isinstance(op[2][0], (float, np.float32, np.float64)):
+                if isinstance(op.coeff[0], (float, np.float32, np.float64)):
                     string = "_spline_float_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
-                elif isinstance(op[2][0], (complex, np.complex128)):
+                elif isinstance(op.coeff[0], (complex, np.complex128)):
                     string = "_spline_complex_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
             compile_list.append(string)
             args[t_str] = tlist
-            args[y_str] = op[2]
+            args[y_str] = op.coeff
             args[s_str] = spline
             N_np += 1
 
-        elif op[3] == 4:
+        elif op.type == "spline":
             y_str = "_array_" + str(N_np)
             if op[1].is_complex:
                 string = "zinterp(t, _CSstart, _CSend, " + y_str + ")"
             else:
                 string = "interp(t, _CSstart, _CSend, " + y_str + ")"
             compile_list.append(string)
-            args["_CSstart"] = op[1].a
-            args["_CSend"] = op[1].b
-            args[y_str] = op[1].coeffs
+            args["_CSstart"] = op.coeff.a
+            args["_CSend"] = op.coeff.b
+            args[y_str] = op.coeff.coeffs
             N_np += 1
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"

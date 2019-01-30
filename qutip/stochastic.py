@@ -34,7 +34,8 @@
 ###############################################################################
 import numpy as np
 import scipy.sparse as sp
-from qutip.cy.stochastic import sme, sse, psme, psse, pmsme, generic
+from qutip.cy.stochastic import (SSESolver, SMESolver, PcSSESolver, PcSMESolver,
+                                 PmSMESolver, GenericSSolver, Solvers)
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import ket2dm
 from qutip.solver import Result
@@ -46,8 +47,8 @@ from qutip.parallel import serial_map
 from qutip.ui.progressbar import TextProgressBar
 from qutip.pdpsolve import main_ssepdpsolve, main_smepdpsolve
 
-__all__ = ['ssesolve', 'photocurrentsesolve', 'smepdpsolve',
-           'smesolve', 'photocurrentmesolve', 'ssepdpsolve',
+__all__ = ['ssesolve', 'photocurrent_sesolve', 'smepdpsolve',
+           'smesolve', 'photocurrent_mesolve', 'ssepdpsolve',
            'stochastic_solvers', 'general_stochastic']
 
 
@@ -145,7 +146,7 @@ def stochastic_solvers():
     The :func:`qutip.stochastic.general_stochastic` only accept derivatives
     free solvers: ['euler', 'platen', 'explicit1.5'].
 
-Available solver for photocurrentsesolve and photocurrentmesolve:
+Available solver for photocurrent_sesolve and photocurrent_mesolve:
         Photocurrent use ordinary differential equations between
         stochastic "jump/collapse".
     euler:
@@ -168,8 +169,8 @@ class StochasticSolverOptions:
 
     The stochastic solvers :func:`qutip.stochastic.general_stochastic`,
     :func:`qutip.stochastic.ssesolve`, :func:`qutip.stochastic.smesolve`,
-    :func:`qutip.stochastic.photocurrentsesolve` and
-    :func:`qutip.stochastic.photocurrentmesolve`
+    :func:`qutip.stochastic.photocurrent_sesolve` and
+    :func:`qutip.stochastic.photocurrent_mesolve`
     all take the same keyword arguments as
     the constructor of these class, and internally they use these arguments to
     construct an instance of this class, so it is rarely needed to explicitly
@@ -554,8 +555,8 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     """
     if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
-              "it's own function: photocurrentmesolve")
-        return photocurrentmesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
+              "it's own function: photocurrent_mesolve")
+        return photocurrent_mesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
                                    e_ops=e_ops, _safe_mode=_safe_mode,
                                    args=args, **kwargs)
     if isket(rho0):
@@ -610,7 +611,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
             raise Exception("The len of dW_factors is not the same as sc_ops")
 
     elif sso.method == "photocurrent":
-        raise NotImplementedError("Moved to 'photocurrentmesolve'")
+        raise NotImplementedError("Moved to 'photocurrent_mesolve'")
 
     else:
         raise Exception("The method must be one of None, homodyne, heterodyne")
@@ -627,7 +628,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         sso.imp = 1 - sso.LH * 0.5
         sso.imp.compile()
 
-    sso.solver_obj = sme
+    sso.solver_obj = SMESolver
     sso.solver_name = "smesolve_" + sso.solver
 
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
@@ -638,7 +639,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     return res
 
 
-def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
+def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
              _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic master equation. Dispatch to specific solvers
@@ -651,7 +652,7 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
         System Hamiltonian.
         Can depend on time, see StochasticSolverOptions help for format.
 
-    rho0 : :class:`qutip.Qobj`
+    psi0 : :class:`qutip.Qobj`
         State vector (ket).
 
     times : *list* / *array*
@@ -681,8 +682,8 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     """
     if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
-              "it's own function: photocurrentsesolve")
-        return photocurrentsesolve(H, rho0, times, c_ops=c_ops,
+              "it's own function: photocurrent_sesolve")
+        return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
                                    e_ops=e_ops, _safe_mode=_safe_mode,
                                    args=args, **kwargs)
 
@@ -692,7 +693,7 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(False, H=H, state0=rho0, times=times,
+    sso = StochasticSolverOptions(False, H=H, state0=psi0, times=times,
                                   sc_ops=sc_ops, e_ops=e_ops,
                                   args=args, **kwargs)
 
@@ -734,7 +735,7 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
             raise Exception("The len of dW_factors is not the same as sc_ops")
 
     elif sso.method == "photocurrent":
-        NotImplementedError("Moved to 'photocurrentsesolve'")
+        NotImplementedError("Moved to 'photocurrent_sesolve'")
 
     else:
         raise Exception("The method must be one of None, homodyne, heterodyne")
@@ -751,7 +752,7 @@ def ssesolve(H, rho0, times, sc_ops=[], e_ops=[],
     [op.compile() for op in sso.cm_ops]
     [op.compile() for op in sso.ce_ops]
 
-    sso.solver_obj = sse
+    sso.solver_obj = SSESolver
     sso.solver_name = "ssesolve_" + sso.solver
 
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
@@ -833,7 +834,7 @@ def _positive_map(sso, e_ops_dict):
     [op.compile() for op in sso.cm_ops]
     [op.compile() for op in sso.ce_ops]
 
-    sso.solver_obj = pmsme
+    sso.solver_obj = PmSMESolver
     sso.solver_name = "smesolve_" + sso.solver
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
 
@@ -844,7 +845,7 @@ def _positive_map(sso, e_ops_dict):
     return res
 
 
-def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
+def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic master equation using the photocurrent method.
@@ -856,7 +857,7 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         System Hamiltonian.
         Can depend on time, see StochasticSolverOptions help for format.
 
-    rho/psi : :class:`qutip.Qobj`
+    rho0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
 
     times : *list* / *array*
@@ -912,7 +913,7 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     elif len(sso.dW_factors) != len(sso.sc_ops):
         raise Exception("The len of dW_factors is not the same as sc_ops")
 
-    sso.solver_obj = psme
+    sso.solver_obj = PcSMESolver
     sso.solver_name = "photocurrent_mesolve"
     sso.LH = liouvillian(sso.H, c_ops=sso.c_ops) * sso.dt
 
@@ -940,7 +941,7 @@ def photocurrentmesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     return res
 
 
-def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
+def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic schrodinger equation using the photocurrent method.
@@ -952,8 +953,8 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
         System Hamiltonian.
         Can depend on time, see StochasticSolverOptions help for format.
 
-    rho/psi : :class:`qutip.Qobj`
-        Initial density matrix or state vector (ket).
+    psi0 : :class:`qutip.Qobj`
+        Initial state vector (ket).
 
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
@@ -986,7 +987,7 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptionsPhoto(False, H=H, state0=rho0, times=times,
+    sso = StochasticSolverOptionsPhoto(False, H=H, state0=psi0, times=times,
                                        sc_ops=sc_ops, e_ops=e_ops,
                                        args=args, **kwargs)
 
@@ -1000,7 +1001,7 @@ def photocurrentsesolve(H, rho0, times, sc_ops=[], e_ops=[],
     elif len(sso.dW_factors) != len(sso.sc_ops):
         raise Exception("The len of dW_factors is not the same as sc_ops")
 
-    sso.solver_obj = psse
+    sso.solver_obj = PcSSESolver
     sso.solver_name = "photocurrent_sesolve"
     sso.sops = [[op, op.norm()] for op in sso.sc_ops]
     sso.LH = sso.H * (-1j*sso.dt)
@@ -1141,17 +1142,17 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         elif len(sso.dW_factors) != len(sso.m_ops):
             raise Exception("The number of dW_factors must fit"
                             " the number of m_ops")
-        
+
     if sso.dW_factors is None:
         sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     [op.compile() for op in sso.ce_ops]
 
-    sso.solver_obj = generic
+    sso.solver_obj = GenericSSolver
     sso.solver_name = "general_stochastic_solver_" + sso.solver
 
-    ssolver = generic()
+    ssolver = GenericSSolver()
     # ssolver.set_data(sso)
     ssolver.set_solver(sso)
 

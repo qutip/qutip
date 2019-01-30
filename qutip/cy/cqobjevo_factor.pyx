@@ -77,6 +77,7 @@ cdef class InterpolateCoeff(CoeffFunc):
     cdef complex[:,::1] c
 
     def __init__(self, ops, args, tlist):
+        cdef int i, j, l
         self.num_ops = len(ops)
         self.a = ops[0][2].a
         self.b = ops[0][2].b
@@ -93,6 +94,7 @@ cdef class InterpolateCoeff(CoeffFunc):
         return coeff
 
     cdef void _call_core(self, double t, complex* coeff):
+        cdef int i
         for i in range(self.num_ops):
             coeff[i] = zinterp(t, self.a, self.b, self.c[i,:])
 
@@ -110,12 +112,13 @@ cdef class InterpolateCoeff(CoeffFunc):
 
 
 cdef class InterCoeffCte(CoeffFunc):
-    cdef int l
+    cdef int n_t
     cdef double dt
     cdef double[::1] tlist
     cdef complex[:,::1] y, M
 
     def __init__(self, ops, args, tlist):
+        cdef int i, j
         self.num_ops = len(ops)
         self.tlist = tlist
         self.n_t = len(tlist)
@@ -132,6 +135,7 @@ cdef class InterCoeffCte(CoeffFunc):
                 self.M[i,j] = m[j]
 
     cdef void _call_core(self, double t, complex* coeff):
+        cdef int i
         for i in range(self.num_ops):
             coeff[i] = _spline_complex_cte_second(t, self.tlist,
                                     self.y[i,:], self.M[i,:], self.n_t, self.dt)
@@ -153,12 +157,13 @@ cdef class InterCoeffCte(CoeffFunc):
 
 
 cdef class InterCoeffT(CoeffFunc):
-    cdef int l
+    cdef int n_t
     cdef double dt
     cdef double[::1] tlist
     cdef complex[:,::1] y, M
 
     def __init__(self, ops, args, tlist):
+        cdef int i, j
         self.num_ops = len(ops)
         self.tlist = tlist
         self.n_t = len(tlist)
@@ -173,6 +178,7 @@ cdef class InterCoeffT(CoeffFunc):
                 self.M[i,j] = m[j]
 
     cdef void _call_core(self, double t, complex* coeff):
+        cdef int i
         for i in range(self.num_ops):
             coeff[i] = _spline_complex_t_second(t, self.tlist,
                                     self.y[i,:], self.M[i,:], self.n_t)

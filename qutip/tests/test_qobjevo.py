@@ -373,7 +373,7 @@ def test_QobjEvo_apply_decorator():
     # check that the decorated took effect mixed
     assert_equal(td_obj_scaled(t) == td_obj(2*t), True)
     for op in td_obj_scaled.ops:
-        assert_equal(op[3], 1)
+        assert_equal(op[3], "func")
 
     def square_f(f_original):
         def f(t, *args, **kwargs):
@@ -383,14 +383,14 @@ def test_QobjEvo_apply_decorator():
     td_obj_str = QobjEvo(td_list, args={"w1":1, "w2":2}, tlist=tlist)
     td_obj_str_2 = td_obj_str.apply_decorator(square_f, str_mod=["(",")**2"])
     _assert_qobj_almost_eq(td_obj_str_2(t), td_list[0][0] * np.sin(t)**2)
-    assert_equal(td_obj_str_2.ops[0][3], 2)
+    assert_equal(td_obj_str_2.ops[0][3], "string")
 
     td_list = _random_QobjEvo((5,5), [3,0,0], tlist=tlist, cte=False)
     td_obj_array = QobjEvo(td_list, tlist=tlist)
     td_obj_array_2 = td_obj_array.apply_decorator(square_f, inplace_np=True)
     _assert_qobj_almost_eq(td_obj_array_2(t),
                            td_list[0][0] * np.sin(t)**2, tol=3e-7)
-    assert_equal(td_obj_array_2.ops[0][3], 3)
+    assert_equal(td_obj_array_2.ops[0][3], "array")
 
 
 
@@ -432,27 +432,27 @@ def test_QobjEvo_mul_mat():
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
-                        op.compiled_Qobj.ode_mul_mat_F_vec(t,matV))
+                        op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
         op.compile(dense=1)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
-                        op.compiled_Qobj.ode_mul_mat_F_vec(t,matV))
+                        op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
         op.compile(matched=1)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
-                        op.compiled_Qobj.ode_mul_mat_F_vec(t,matV))
+                        op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
         op.compile(omp=2)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
-                        op.compiled_Qobj.ode_mul_mat_F_vec(t,matV))
+                        op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
         op.compile(matched=1,omp=2)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
-                        op.compiled_Qobj.ode_mul_mat_F_vec(t,matV))
+                        op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
 
 
 def test_QobjEvo_expect_psi():

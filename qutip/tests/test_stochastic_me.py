@@ -34,7 +34,7 @@
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 
-from qutip import (smesolve, mesolve, photocurrentmesolve, liouvillian,
+from qutip import (smesolve, mesolve, photocurrent_mesolve, liouvillian,
                    QobjEvo, spre, spost, destroy, coherent, parallel_map,
                    qeye, fock_dm, general_stochastic, ket2dm)
 
@@ -131,7 +131,7 @@ def test_smesolve_homodyne_methods():
     assert_(np.all(sol.noise[1,:,:,:] == sol2.noise[0,:,:,:]))
 
 def test_smesolve_photocurrent():
-    "Stochastic: photocurrentmesolve"
+    "Stochastic: photocurrent_mesolve"
     tol = 0.01
 
     N = 4
@@ -147,7 +147,7 @@ def test_smesolve_photocurrent():
 
     times = np.linspace(0, 1.0, 21)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
-    res = photocurrentmesolve(H, psi0, times, [], sc_ops, e_ops, args={"a":2},
+    res = photocurrent_mesolve(H, psi0, times, [], sc_ops, e_ops, args={"a":2},
                    ntraj=ntraj, nsubsteps=nsubsteps,  store_measurement=True,
                    map_func=parallel_map)
 
