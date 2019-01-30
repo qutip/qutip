@@ -142,7 +142,7 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
         cdef int i
         spmvpy_openmp(self.cte.data, self.cte.indices, self.cte.indptr, vec,
                1., out, self.shape0, self.nthr)
-        for i in range(self.N_ops):
+        for i in range(self.num_ops):
             spmvpy_openmp(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                    vec, self.coeff_ptr[i], out, self.shape0, self.nthr)
 
@@ -155,7 +155,7 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
         cdef int i
         _spmmfpy_omp(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
-        for i in range(self.N_ops):
+        for i in range(self.num_ops):
              _spmmfpy_omp(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol, self.nthr)
 
@@ -168,7 +168,7 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
         cdef int i
         _spmmcpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
-        for i in range(self.N_ops):
+        for i in range(self.num_ops):
              _spmmcpy_par(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol, self.nthr)
 
