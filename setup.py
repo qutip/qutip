@@ -147,8 +147,8 @@ write_version_py()
 
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-        'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'checks', 'brtools',
-        'brtools_checks', 'br_tensor', 'piqs']
+           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'checks', 'brtools',
+           'brtools_checks', 'br_tensor', 'inter', 'cqobjevo', 'cqobjevo_factor', 'piqs']
 
 # Extra link args
 _link_flags = []
@@ -230,6 +230,15 @@ if "--with-openmp" in sys.argv:
             include_dirs = [np.get_include()],
             extra_compile_args=_compiler_flags+omp_flags,
             extra_link_args=omp_args+_link_flags,
+            language='c++')
+    EXT_MODULES.append(_mod)
+
+    # Add cqobjevo_omp
+    _mod = Extension('qutip.cy.openmp.cqobjevo_omp',
+            sources = ['qutip/cy/openmp/cqobjevo_omp.pyx'],
+            include_dirs = [np.get_include()],
+            extra_compile_args=_compiler_flags+omp_flags,
+            extra_link_args=omp_args,
             language='c++')
     EXT_MODULES.append(_mod)
 

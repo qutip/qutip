@@ -38,9 +38,12 @@ __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
 import scipy.sparse as sp
 import numpy as np
 from qutip.qobj import Qobj
+from qutip.qobjevo import QobjEvo
 from qutip.fastsparse import fast_csr_matrix, fast_identity
 from qutip.sparse import sp_reshape
 from qutip.cy.spmath import zcsr_kron
+from functools import partial
+
 
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
@@ -50,35 +53,44 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     Parameters
     ----------
-    H : qobj
+    H : Qobj or QobjEvo
         System Hamiltonian.
 
-    c_ops : array_like
+    c_ops : array_like of Qobj or QobjEvo
         A ``list`` or ``array`` of collapse operators.
 
     Returns
     -------
-    L : qobj
+    L : Qobj or QobjEvo
         Liouvillian superoperator.
 
     """
-
+    if isinstance(c_ops, (Qobj, QobjEvo)):
+        c_ops = [c_ops]
     if chi and len(chi) != len(c_ops):
         raise ValueError('chi must be a list with same length as c_ops')
 
+    h = None
     if H is not None:
-        if H.isoper:
-            op_dims = H.dims
-            op_shape = H.shape
-        elif H.issuper:
-            op_dims = H.dims[0]
+        if isinstance(H, QobjEvo):
+            h = H.cte
+        else:
+            h = H
+        if h.isoper:
+            op_dims = h.dims
+            op_shape = h.shape
+        elif h.issuper:
+            op_dims = h.dims[0]
             op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
         else:
             raise TypeError("Invalid type for Hamiltonian.")
     else:
         # no hamiltonian given, pick system size from a collapse operator
         if isinstance(c_ops, list) and len(c_ops) > 0:
-            c = c_ops[0]
+            if isinstance(c_ops[0], QobjEvo):
+                c = c_ops[0].cte
+            else:
+                c = c_ops[0]
             if c.isoper:
                 op_dims = c.dims
                 op_shape = c.shape
@@ -95,7 +107,20 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     spI = fast_identity(op_shape[0])
 
-    if H:
+    td = False
+    L = None
+    if isinstance(H, QobjEvo):
+        td = True
+
+        def H2L(H):
+            if H.isoper:
+                return -1.0j * (spre(H) - spost(H))
+            else:
+                return H
+
+        L = H.apply(H2L)
+        data = L.cte.data
+    elif isinstance(H, Qobj):
         if H.isoper:
             Ht = H.data.T
             data = -1j * zcsr_kron(spI, H.data)
@@ -105,12 +130,26 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     else:
         data = fast_csr_matrix(shape=(sop_shape[0], sop_shape[1]))
 
+    td_c_ops = []
     for idx, c_op in enumerate(c_ops):
-        if c_op.issuper:
-            data = data + c_op.data
+        if isinstance(c_op, QobjEvo):
+            td = True
+            if c_op.const:
+                c_ = c_op.cte
+            elif chi:
+                td_c_ops.append(lindblad_dissipator(c_op, chi=chi[idx]))
+                continue
+            else:
+                td_c_ops.append(lindblad_dissipator(c_op))
+                continue
         else:
-            cd = c_op.data.H
-            c = c_op.data
+            c_ = c_op
+
+        if c_.issuper:
+            data = data + c_.data
+        else:
+            cd = c_.data.H
+            c = c_.data
             if chi:
                 data = data + np.exp(1j * chi[idx]) * \
                                 zcsr_kron(c.conj(), c)
@@ -121,13 +160,26 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             data = data - 0.5 * zcsr_kron(spI, cdc)
             data = data - 0.5 * zcsr_kron(cdct, spI)
 
-    if data_only:
-        return data
+    if not td:
+        if data_only:
+            return data
+        else:
+            L = Qobj()
+            L.dims = sop_dims
+            L.data = data
+            L.superrep = 'super'
+            return L
     else:
-        L = Qobj()
-        L.dims = sop_dims
-        L.data = data
-        L.superrep = 'super'
+        if not L:
+            l = Qobj()
+            l.dims = sop_dims
+            l.data = data
+            l.superrep = 'super'
+            L = QobjEvo(l)
+        else:
+            L.cte.data = data
+        for c_op in td_c_ops:
+            L += c_op
         return L
 
 
@@ -161,7 +213,7 @@ def liouvillian_ref(H, c_ops=[]):
     return L
 
 
-def lindblad_dissipator(a, b=None, data_only=False):
+def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     """
     Lindblad dissipator (generalized) for a single pair of collapse operators
     (a, b), or for a single collapse operator (a) when b is not specified:
@@ -173,25 +225,30 @@ def lindblad_dissipator(a, b=None, data_only=False):
 
     Parameters
     ----------
-    a : qobj
+    a : Qobj or QobjEvo
         Left part of collapse operator.
 
-    b : qobj (optional)
+    b : Qobj or QobjEvo (optional)
         Right part of collapse operator. If not specified, b defaults to a.
 
     Returns
     -------
-    D : qobj
+    D : qobj, QobjEvo
         Lindblad dissipator superoperator.
     """
-
     if b is None:
         b = a
-
     ad_b = a.dag() * b
-    D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
+    if chi:
+        D = spre(a) * spost(b.dag()) * np.exp(1j * chi) \
+            - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
+    else:
+        D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
 
-    return D.data if data_only else D
+    if isinstance(a, QobjEvo) or isinstance(b, QobjEvo):
+        return D
+    else:
+        return D.data if data_only else D
 
 
 def operator_to_vector(op):
@@ -199,6 +256,9 @@ def operator_to_vector(op):
     Create a vector representation of a quantum operator given
     the matrix representation.
     """
+    if isinstance(op, QobjEvo):
+        return op.apply(operator_to_vector)
+
     q = Qobj()
     q.dims = [op.dims, [1]]
     q.data = sp_reshape(op.data.T, (np.prod(op.shape), 1))
@@ -210,6 +270,9 @@ def vector_to_operator(op):
     Create a matrix representation given a quantum operator in
     vector form.
     """
+    if isinstance(op, QobjEvo):
+        return op.apply(vector_to_operator)
+
     q = Qobj()
     q.dims = op.dims[0]
     n = int(np.sqrt(op.shape[0]))
@@ -255,14 +318,17 @@ def spost(A):
 
     Parameters
     ----------
-    A : qobj
+    A : Qobj or QobjEvo
         Quantum operator for post multiplication.
 
     Returns
     -------
-    super : qobj
+    super : Qobj or QobjEvo
         Superoperator formed from input qauntum object.
     """
+    if isinstance(A, QobjEvo):
+        return A.apply(spost)
+
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
 
@@ -271,8 +337,8 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = zcsr_kron(A.data.T, 
-                fast_identity(np.prod(A.shape[0])))
+    S.data = zcsr_kron(A.data.T,
+                       fast_identity(np.prod(A.shape[0])))
     return S
 
 
@@ -281,14 +347,17 @@ def spre(A):
 
     Parameters
     ----------
-    A : qobj
+    A : Qobj or QobjEvo
         Quantum operator for pre-multiplication.
 
     Returns
     --------
-    super :qobj
+    super :Qobj or QobjEvo
         Superoperator formed from input quantum object.
     """
+    if isinstance(A, QobjEvo):
+        return A.apply(spre)
+
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
 
@@ -315,19 +384,24 @@ def sprepost(A, B):
 
     Parameters
     ----------
-    A : Qobj
+    A : Qobj or QobjEvo
         Quantum operator for pre-multiplication.
 
-    B : Qobj
+    B : Qobj or QobjEvo
         Quantum operator for post-multiplication.
 
     Returns
     --------
-    super : Qobj
+    super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
+    if isinstance(A, QobjEvo) or isinstance(B, QobjEvo):
+        return spre(A) * spost(B)
 
-    dims = [[_drop_projected_dims(A.dims[0]), _drop_projected_dims(B.dims[1])],
-            [_drop_projected_dims(A.dims[1]), _drop_projected_dims(B.dims[0])]]
-    data = zcsr_kron(B.data.T, A.data)
-    return Qobj(data, dims=dims, superrep='super')
+    else:
+        dims = [[_drop_projected_dims(A.dims[0]),
+                 _drop_projected_dims(B.dims[1])],
+                [_drop_projected_dims(A.dims[1]),
+                 _drop_projected_dims(B.dims[0])]]
+        data = zcsr_kron(B.data.T, A.data)
+        return Qobj(data, dims=dims, superrep='super')

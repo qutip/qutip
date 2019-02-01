@@ -367,7 +367,12 @@ class Qobj(object):
             return other.__radd__(self)
 
         if not isinstance(other, Qobj):
-            other = Qobj(other)
+            if isinstance(other, (int, float, complex, np.integer, np.floating,
+                          np.complexfloating, np.ndarray, list, tuple)) \
+                          or sp.issparse(other):
+                other = Qobj(other)
+            else:
+                return NotImplemented
 
         if np.prod(other.shape) == 1 and np.prod(self.shape) != 1:
             # case for scalar quantum object
@@ -570,7 +575,7 @@ class Qobj(object):
             return out
 
         else:
-            raise TypeError("Incompatible object for multiplication")
+            return NotImplemented
 
     def __rmul__(self, other):
         """
