@@ -159,7 +159,7 @@ if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_inf
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
-    _compiler_flags = ['-w', '-O3', '-march=native', '-funroll-loops']
+    _compiler_flags = ['-w', '-O3', '-funroll-loops']
     if sys.platform == 'darwin':
         # These are needed for compiling on OSX 10.14+
         _compiler_flags.append('-mmacosx-version-min=10.9')
