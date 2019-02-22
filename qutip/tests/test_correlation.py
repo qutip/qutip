@@ -44,7 +44,7 @@ from qutip import (correlation, destroy, coherent_dm, correlation_2op_2t,
                    fock, correlation_2op_1t, tensor, qeye, spectrum_ss,
                    spectrum_pi, correlation_ss, spectrum_correlation_fft,
                    spectrum, correlation_3op_2t, mesolve, Options,
-                   Cubic_Spline,sigmax,sigmaz,basis,sigmam,ket2dm, Qobj,
+                   Cubic_Spline, sigmax, sigmaz, basis, sigmam, ket2dm, Qobj,
                    identity)
 
 # find Cython if it exists
