@@ -65,7 +65,7 @@ python setup.py develop
 ```
 
 ### other qutip repos
-You can fork and clone the other qutip repos in the same way. There in no need to run any install for them.
+You can fork and clone the other qutip repos in the same way. There is no need to run any install for them.
 
 ## Adding remotes
 You will need to add the parent repositories as 'remotes'. The standard is to use the name 'upstream'.
