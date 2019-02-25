@@ -53,7 +53,7 @@ include "../complex_math.pxi"
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void _spmmcpy_par(complex* data, int* ind, int* ptr, complex* mat,
-                      complex a, complex* out, unsigned int sp_rows,
+                      complex a, complex* out, int sp_rows,
                       unsigned int nrows, unsigned int ncols, int nthr):
     """
     sparse*dense "C" ordered.
