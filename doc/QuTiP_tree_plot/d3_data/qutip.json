@@ -3,101 +3,362 @@
         {
             "children": [
                 {
-                    "color": "#0B5FA5",
-                    "name": "brmesolve",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "bloch_redfield_solve",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "bloch_redfield_tensor",
+                    "color": "black",
+                    "name": "cite",
                     "size": 1000
                 }
             ],
-            "color": "#0B5FA5",
-            "idx": 0,
-            "name": "bloch_redfield"
+            "color": "black",
+            "idx": -1,
+            "name": "cite"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "fast_csr_matrix",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "csr2fast",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "fast_identity",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "fastsparse"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "complex_var",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "herm",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "pos_noherm",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "pos",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "dens",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "kron",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "conj",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "bmat",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "dag",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "memoize",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "qudit_swap",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "dnorm_problem",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "semidefinite"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "has_qutip_rc",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "generate_qutiprc",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "load_rc_config",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "has_rc_key",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "write_rc_key",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "configrc"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "f",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "qobjevo_codegen"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "Cubic_Spline",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "interpolate"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "proj",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "EvoElement:",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "QobjEvo:",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "qobjevo"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "parfor",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "serial_map",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "parallel_map",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "parallel"
+        },
+        {
+            "children": [
+                {
+                    "color": "black",
+                    "name": "StochasticSolverOptions:",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "main_ssepdpsolve",
+                    "size": 1000
+                },
+                {
+                    "color": "black",
+                    "name": "main_smepdpsolve",
+                    "size": 1000
+                }
+            ],
+            "color": "black",
+            "idx": -1,
+            "name": "pdpsolve"
         },
         {
             "children": [
                 {
                     "color": "#0B5FA5",
-                    "name": "correlation_2op_1t",
+                    "name": "Evolver:",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "correlation_2op_2t",
+                    "name": "set_partition",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "correlation_3op_1t",
+                    "name": "photon_scattering_operator",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "correlation_3op_2t",
+                    "name": "temporal_basis_vector",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "coherence_function_g1",
+                    "name": "temporal_scattered_state",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "coherence_function_g2",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "spectrum",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "spectrum_correlation_fft",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "correlation_ss",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "correlation",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "correlation_4op_1t",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "correlation_4op_2t",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "spectrum_ss",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "spectrum_pi",
+                    "name": "scattering_probability",
                     "size": 1000
                 }
             ],
             "color": "#0B5FA5",
             "idx": 0,
-            "name": "correlation"
+            "name": "scattering"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "mesolve",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "odesolve",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "mesolve"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "steadystate",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "steady",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "build_preconditioner",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "pseudo_inverse",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "steadystate"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "sesolve",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "sesolve"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "Options",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "Result",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "SolverConfiguration",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "Stats",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "solver"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "rhs_clear",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "rhs_generate",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "rhs_generate"
         },
         {
             "children": [
@@ -130,18 +391,87 @@
             "children": [
                 {
                     "color": "#0B5FA5",
-                    "name": "essolve",
+                    "name": "brmesolve",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "ode2es",
+                    "name": "bloch_redfield_solve",
                     "size": 1000
                 }
             ],
             "color": "#0B5FA5",
             "idx": 0,
-            "name": "essolve"
+            "name": "bloch_redfield"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "stochastic_solvers",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "StochasticSolverOptions:",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "StochasticSolverOptionsPhoto",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "smesolve",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "ssesolve",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "photocurrent_mesolve",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "photocurrent_sesolve",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "general_stochastic",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "ssepdpsolve",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "smepdpsolve",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "stochastic"
+        },
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5",
+                    "name": "rcsolve",
+                    "size": 1000
+                }
+            ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "rcsolve"
         },
         {
             "children": [
@@ -239,13 +569,128 @@
             "children": [
                 {
                     "color": "#0B5FA5",
-                    "name": "hsolve",
+                    "name": "num_dicke_states",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "num_dicke_ladders",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "num_tls",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "isdiagonal",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "Dicke",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "energy_degeneracy",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "state_degeneracy",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "m_degeneracy",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "ap",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "am",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "spin_algebra",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "jspin",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "collapse_uncoupled",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "dicke_basis",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "dicke",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "excited",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "superradiant",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "css",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "ghz",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "ground",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "identity_uncoupled",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "block_matrix",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "tau_column",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "Pim",
                     "size": 1000
                 }
             ],
             "color": "#0B5FA5",
             "idx": 0,
-            "name": "hsolve"
+            "name": "piqs"
         },
         {
             "children": [
@@ -268,18 +713,78 @@
             "children": [
                 {
                     "color": "#0B5FA5",
-                    "name": "mesolve",
+                    "name": "correlation_2op_1t",
                     "size": 1000
                 },
                 {
                     "color": "#0B5FA5",
-                    "name": "odesolve",
+                    "name": "correlation_2op_2t",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "correlation_3op_1t",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "correlation_3op_2t",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "coherence_function_g1",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "coherence_function_g2",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "spectrum",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "spectrum_correlation_fft",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "correlation_ss",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "correlation",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "correlation_4op_1t",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "correlation_4op_2t",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "spectrum_ss",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "spectrum_pi",
                     "size": 1000
                 }
             ],
             "color": "#0B5FA5",
             "idx": 0,
-            "name": "mesolve"
+            "name": "correlation"
         },
         {
             "children": [
@@ -302,193 +807,18 @@
             "children": [
                 {
                     "color": "#0B5FA5",
-                    "name": "rcsolve",
+                    "name": "essolve",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "ode2es",
                     "size": 1000
                 }
             ],
             "color": "#0B5FA5",
             "idx": 0,
-            "name": "rcsolve"
-        },
-        {
-            "children": [
-                {
-                    "color": "#0B5FA5",
-                    "name": "rhs_clear",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "rhs_generate",
-                    "size": 1000
-                }
-            ],
-            "color": "#0B5FA5",
-            "idx": 0,
-            "name": "rhs_generate"
-        },
-        {
-            "children": [
-                {
-                    "color": "#0B5FA5",
-                    "name": "sesolve",
-                    "size": 1000
-                }
-            ],
-            "color": "#0B5FA5",
-            "idx": 0,
-            "name": "sesolve"
-        },
-        {
-            "children": [
-                {
-                    "color": "#0B5FA5",
-                    "name": "Options",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "Result",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "SolverConfiguration",
-                    "size": 1000
-                }
-            ],
-            "color": "#0B5FA5",
-            "idx": 0,
-            "name": "solver"
-        },
-        {
-            "children": [
-                {
-                    "color": "#0B5FA5",
-                    "name": "steadystate",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "steady",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "build_preconditioner",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "pseudo_inverse",
-                    "size": 1000
-                }
-            ],
-            "color": "#0B5FA5",
-            "idx": 0,
-            "name": "steadystate"
-        },
-        {
-            "children": [
-                {
-                    "color": "#0B5FA5",
-                    "name": "StochasticSolverOptions:",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "ssesolve",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "smesolve",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "ssepdpsolve",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "smepdpsolve",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d1_psi_homodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d2_psi_homodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d1_psi_heterodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d2_psi_heterodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d1_psi_photocurrent",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d2_psi_photocurrent",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "sop_H",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "sop_G",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d1_rho_homodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d2_rho_homodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d1_rho_heterodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d2_rho_heterodyne",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d1_rho_photocurrent",
-                    "size": 1000
-                },
-                {
-                    "color": "#0B5FA5",
-                    "name": "d2_rho_photocurrent",
-                    "size": 1000
-                }
-            ],
-            "color": "#0B5FA5",
-            "idx": 0,
-            "name": "stochastic"
+            "name": "essolve"
         },
         {
             "children": [
@@ -522,14 +852,52 @@
         {
             "children": [
                 {
-                    "color": "#043C6B",
-                    "name": "load_rc_file",
+                    "color": "#0B5FA5",
+                    "name": "HEOMSolver",
+                    "size": 1000
+                },
+                {
+                    "color": "#0B5FA5",
+                    "name": "HSolverDL",
                     "size": 1000
                 }
             ],
+            "color": "#0B5FA5",
+            "idx": 0,
+            "name": "heom"
+        },
+        {
+            "children": [],
             "color": "#043C6B",
             "idx": 1,
             "name": "settings"
+        },
+        {
+            "children": [
+                {
+                    "color": "#3F8FD2",
+                    "name": "wigner",
+                    "size": 1000
+                },
+                {
+                    "color": "#3F8FD2",
+                    "name": "qfunc",
+                    "size": 1000
+                },
+                {
+                    "color": "#3F8FD2",
+                    "name": "spin_q_function",
+                    "size": 1000
+                },
+                {
+                    "color": "#3F8FD2",
+                    "name": "spin_wigner",
+                    "size": 1000
+                }
+            ],
+            "color": "#3F8FD2",
+            "idx": 2,
+            "name": "wigner"
         },
         {
             "children": [
@@ -542,89 +910,6 @@
             "color": "#3F8FD2",
             "idx": 2,
             "name": "bloch"
-        },
-        {
-            "children": [
-                {
-                    "color": "#3F8FD2",
-                    "name": "Bloch3d",
-                    "size": 1000
-                }
-            ],
-            "color": "#3F8FD2",
-            "idx": 2,
-            "name": "bloch3d"
-        },
-        {
-            "children": [
-                {
-                    "color": "#3F8FD2",
-                    "name": "Distribution:",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "WignerDistribution",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "QDistribution",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "TwoModeQuadratureCorrelation",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "HarmonicOscillatorWaveFunction",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "HarmonicOscillatorProbabilityFunction",
-                    "size": 1000
-                }
-            ],
-            "color": "#3F8FD2",
-            "idx": 2,
-            "name": "distributions"
-        },
-        {
-            "children": [
-                {
-                    "color": "#3F8FD2",
-                    "name": "orbital",
-                    "size": 1000
-                }
-            ],
-            "color": "#3F8FD2",
-            "idx": 2,
-            "name": "orbital"
-        },
-        {
-            "children": [
-                {
-                    "color": "#3F8FD2",
-                    "name": "qpt_plot",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "qpt_plot_combined",
-                    "size": 1000
-                },
-                {
-                    "color": "#3F8FD2",
-                    "name": "qpt",
-                    "size": 1000
-                }
-            ],
-            "color": "#3F8FD2",
-            "idx": 2,
-            "name": "tomography"
         },
         {
             "children": [
@@ -722,28 +1007,235 @@
             "children": [
                 {
                     "color": "#3F8FD2",
-                    "name": "wigner",
+                    "name": "Distribution:",
                     "size": 1000
                 },
                 {
                     "color": "#3F8FD2",
-                    "name": "qfunc",
+                    "name": "WignerDistribution",
                     "size": 1000
                 },
                 {
                     "color": "#3F8FD2",
-                    "name": "spin_q_function",
+                    "name": "QDistribution",
                     "size": 1000
                 },
                 {
                     "color": "#3F8FD2",
-                    "name": "spin_wigner",
+                    "name": "TwoModeQuadratureCorrelation",
+                    "size": 1000
+                },
+                {
+                    "color": "#3F8FD2",
+                    "name": "HarmonicOscillatorWaveFunction",
+                    "size": 1000
+                },
+                {
+                    "color": "#3F8FD2",
+                    "name": "HarmonicOscillatorProbabilityFunction",
                     "size": 1000
                 }
             ],
             "color": "#3F8FD2",
             "idx": 2,
-            "name": "wigner"
+            "name": "distributions"
+        },
+        {
+            "children": [
+                {
+                    "color": "#3F8FD2",
+                    "name": "orbital",
+                    "size": 1000
+                }
+            ],
+            "color": "#3F8FD2",
+            "idx": 2,
+            "name": "orbital"
+        },
+        {
+            "children": [
+                {
+                    "color": "#3F8FD2",
+                    "name": "qpt_plot",
+                    "size": 1000
+                },
+                {
+                    "color": "#3F8FD2",
+                    "name": "qpt_plot_combined",
+                    "size": 1000
+                },
+                {
+                    "color": "#3F8FD2",
+                    "name": "qpt",
+                    "size": 1000
+                }
+            ],
+            "color": "#3F8FD2",
+            "idx": 2,
+            "name": "tomography"
+        },
+        {
+            "children": [
+                {
+                    "color": "#3F8FD2",
+                    "name": "Bloch3d",
+                    "size": 1000
+                }
+            ],
+            "color": "#3F8FD2",
+            "idx": 2,
+            "name": "bloch3d"
+        },
+        {
+            "children": [
+                {
+                    "color": "#00AE68",
+                    "name": "super_to_choi",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "choi_to_super",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "choi_to_kraus",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "kraus_to_choi",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "kraus_to_super",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "choi_to_chi",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "chi_to_choi",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "choi_to_stinespring",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "to_choi",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "to_chi",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "to_super",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "to_kraus",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "to_stinespring",
+                    "size": 1000
+                }
+            ],
+            "color": "#00AE68",
+            "idx": 3,
+            "name": "superop_reps"
+        },
+        {
+            "children": [
+                {
+                    "color": "#00AE68",
+                    "name": "subsystem_apply",
+                    "size": 1000
+                }
+            ],
+            "color": "#00AE68",
+            "idx": 3,
+            "name": "subsystem_apply"
+        },
+        {
+            "children": [
+                {
+                    "color": "#00AE68",
+                    "name": "liouvillian",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "liouvillian_ref",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "lindblad_dissipator",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "operator_to_vector",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "vector_to_operator",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "mat2vec",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "vec2mat",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "vec2mat_index",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "mat2vec_index",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "spost",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "spre",
+                    "size": 1000
+                },
+                {
+                    "color": "#00AE68",
+                    "name": "sprepost",
+                    "size": 1000
+                }
+            ],
+            "color": "#00AE68",
+            "idx": 3,
+            "name": "superoperator"
         },
         {
             "children": [
@@ -910,153 +1402,19 @@
         {
             "children": [
                 {
-                    "color": "#00AE68",
-                    "name": "subsystem_apply",
+                    "color": "#007143",
+                    "name": "three_level_basis",
+                    "size": 1000
+                },
+                {
+                    "color": "#007143",
+                    "name": "three_level_ops",
                     "size": 1000
                 }
             ],
-            "color": "#00AE68",
-            "idx": 3,
-            "name": "subsystem_apply"
-        },
-        {
-            "children": [
-                {
-                    "color": "#00AE68",
-                    "name": "super_to_choi",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "choi_to_super",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "choi_to_kraus",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "kraus_to_choi",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "kraus_to_super",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "choi_to_chi",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "chi_to_choi",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "choi_to_stinespring",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "to_choi",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "to_chi",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "to_super",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "to_kraus",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "to_stinespring",
-                    "size": 1000
-                }
-            ],
-            "color": "#00AE68",
-            "idx": 3,
-            "name": "superop_reps"
-        },
-        {
-            "children": [
-                {
-                    "color": "#00AE68",
-                    "name": "liouvillian",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "liouvillian_ref",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "lindblad_dissipator",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "operator_to_vector",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "vector_to_operator",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "mat2vec",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "vec2mat",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "vec2mat_index",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "mat2vec_index",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "spost",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "spre",
-                    "size": 1000
-                },
-                {
-                    "color": "#00AE68",
-                    "name": "sprepost",
-                    "size": 1000
-                }
-            ],
-            "color": "#00AE68",
-            "idx": 3,
-            "name": "superoperator"
+            "color": "#007143",
+            "idx": 4,
+            "name": "three_level_atom"
         },
         {
             "children": [
@@ -1327,23 +1685,6 @@
         {
             "children": [
                 {
-                    "color": "#007143",
-                    "name": "three_level_basis",
-                    "size": 1000
-                },
-                {
-                    "color": "#007143",
-                    "name": "three_level_ops",
-                    "size": 1000
-                }
-            ],
-            "color": "#007143",
-            "idx": 4,
-            "name": "three_level_atom"
-        },
-        {
-            "children": [
-                {
                     "color": "#FF4500",
                     "name": "countstat_current",
                     "size": 1000
@@ -1357,6 +1698,58 @@
             "color": "#FF4500",
             "idx": 6,
             "name": "countstat"
+        },
+        {
+            "children": [
+                {
+                    "color": "#FF4500",
+                    "name": "fidelity",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "process_fidelity",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "average_gate_fidelity",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "tracedist",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "hilbert_dist",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "bures_dist",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "bures_angle",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "dnorm",
+                    "size": 1000
+                },
+                {
+                    "color": "#FF4500",
+                    "name": "unitarity",
+                    "size": 1000
+                }
+            ],
+            "color": "#FF4500",
+            "idx": 6,
+            "name": "metrics"
         },
         {
             "children": [
@@ -1408,53 +1801,6 @@
         {
             "children": [
                 {
-                    "color": "#FF4500",
-                    "name": "fidelity",
-                    "size": 1000
-                },
-                {
-                    "color": "#FF4500",
-                    "name": "process_fidelity",
-                    "size": 1000
-                },
-                {
-                    "color": "#FF4500",
-                    "name": "average_gate_fidelity",
-                    "size": 1000
-                },
-                {
-                    "color": "#FF4500",
-                    "name": "tracedist",
-                    "size": 1000
-                },
-                {
-                    "color": "#FF4500",
-                    "name": "hilbert_dist",
-                    "size": 1000
-                },
-                {
-                    "color": "#FF4500",
-                    "name": "bures_dist",
-                    "size": 1000
-                },
-                {
-                    "color": "#FF4500",
-                    "name": "bures_angle",
-                    "size": 1000
-                },
-                {
-                    "color": "#FF4500",
-                    "name": "unitarity",
-                    "size": 1000
-                }
-            ],
-            "color": "#FF4500",
-            "idx": 6,
-            "name": "metrics"
-        },
-        {
-            "children": [
-                {
                     "color": "#692102",
                     "name": "expect",
                     "size": 1000
@@ -1473,19 +1819,33 @@
             "children": [
                 {
                     "color": "#692102",
-                    "name": "partial_transpose",
+                    "name": "tensor",
+                    "size": 1000
+                },
+                {
+                    "color": "#692102",
+                    "name": "super_tensor",
+                    "size": 1000
+                },
+                {
+                    "color": "#692102",
+                    "name": "composite",
+                    "size": 1000
+                },
+                {
+                    "color": "#692102",
+                    "name": "tensor_swap",
+                    "size": 1000
+                },
+                {
+                    "color": "#692102",
+                    "name": "tensor_contract",
                     "size": 1000
                 }
             ],
             "color": "#692102",
             "idx": 7,
-            "name": "partial_transpose"
-        },
-        {
-            "children": [],
-            "color": "#692102",
-            "idx": 7,
-            "name": "ptrace"
+            "name": "tensor"
         },
         {
             "children": [
@@ -1568,67 +1928,31 @@
             "children": [
                 {
                     "color": "#692102",
-                    "name": "tensor",
-                    "size": 1000
-                },
-                {
-                    "color": "#692102",
-                    "name": "super_tensor",
-                    "size": 1000
-                },
-                {
-                    "color": "#692102",
-                    "name": "composite",
-                    "size": 1000
-                },
-                {
-                    "color": "#692102",
-                    "name": "tensor_contract",
+                    "name": "partial_transpose",
                     "size": 1000
                 }
             ],
             "color": "#692102",
             "idx": 7,
-            "name": "tensor"
+            "name": "partial_transpose"
         },
         {
             "children": [
                 {
                     "color": "#BF5730",
-                    "name": "about",
+                    "name": "reshuffle",
                     "size": 1000
                 }
             ],
             "color": "#BF5730",
             "idx": 8,
-            "name": "about"
+            "name": "permute"
         },
         {
-            "children": [
-                {
-                    "color": "#BF5730",
-                    "name": "file_data_store",
-                    "size": 1000
-                },
-                {
-                    "color": "#BF5730",
-                    "name": "file_data_read",
-                    "size": 1000
-                },
-                {
-                    "color": "#BF5730",
-                    "name": "qsave",
-                    "size": 1000
-                },
-                {
-                    "color": "#BF5730",
-                    "name": "qload",
-                    "size": 1000
-                }
-            ],
+            "children": [],
             "color": "#BF5730",
             "idx": 8,
-            "name": "fileio"
+            "name": "version"
         },
         {
             "children": [
@@ -1661,6 +1985,35 @@
             "color": "#BF5730",
             "idx": 8,
             "name": "graph"
+        },
+        {
+            "children": [
+                {
+                    "color": "#BF5730",
+                    "name": "simdiag",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
+                    "name": "degen",
+                    "size": 1000
+                }
+            ],
+            "color": "#BF5730",
+            "idx": 8,
+            "name": "simdiag"
+        },
+        {
+            "children": [
+                {
+                    "color": "#BF5730",
+                    "name": "about",
+                    "size": 1000
+                }
+            ],
+            "color": "#BF5730",
+            "idx": 8,
+            "name": "about"
         },
         {
             "children": [
@@ -1705,57 +2058,6 @@
             "color": "#BF5730",
             "idx": 8,
             "name": "ipynbtools"
-        },
-        {
-            "children": [
-                {
-                    "color": "#BF5730",
-                    "name": "parfor",
-                    "size": 1000
-                },
-                {
-                    "color": "#BF5730",
-                    "name": "serial_map",
-                    "size": 1000
-                },
-                {
-                    "color": "#BF5730",
-                    "name": "parallel_map",
-                    "size": 1000
-                }
-            ],
-            "color": "#BF5730",
-            "idx": 8,
-            "name": "parallel"
-        },
-        {
-            "children": [
-                {
-                    "color": "#BF5730",
-                    "name": "reshuffle",
-                    "size": 1000
-                }
-            ],
-            "color": "#BF5730",
-            "idx": 8,
-            "name": "permute"
-        },
-        {
-            "children": [
-                {
-                    "color": "#BF5730",
-                    "name": "simdiag",
-                    "size": 1000
-                },
-                {
-                    "color": "#BF5730",
-                    "name": "degen",
-                    "size": 1000
-                }
-            ],
-            "color": "#BF5730",
-            "idx": 8,
-            "name": "simdiag"
         },
         {
             "children": [
@@ -1817,6 +2119,11 @@
                 {
                     "color": "#BF5730",
                     "name": "sp_profile",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
+                    "name": "sp_isdiag",
                     "size": 1000
                 }
             ],
@@ -1897,10 +2204,31 @@
             "name": "utilities"
         },
         {
-            "children": [],
+            "children": [
+                {
+                    "color": "#BF5730",
+                    "name": "file_data_store",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
+                    "name": "file_data_read",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
+                    "name": "qsave",
+                    "size": 1000
+                },
+                {
+                    "color": "#BF5730",
+                    "name": "qload",
+                    "size": 1000
+                }
+            ],
             "color": "#BF5730",
             "idx": 8,
-            "name": "version"
+            "name": "fileio"
         }
     ],
     "name": "QuTiP",

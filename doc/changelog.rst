@@ -7,7 +7,7 @@
 Change Log
 **********
 
-Version 4.3.0 ()
+Version 4.3.0 (July 14, 2018)
 ++++++++++++++++++++++++++++++
 
 Improvements

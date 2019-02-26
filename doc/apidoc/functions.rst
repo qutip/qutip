@@ -96,7 +96,7 @@ Density Matrix Metrics
     :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist, average_gate_fidelity, process_fidelity
 
 
-Continous Variables
+Continuous Variables
 -------------------
 
 .. automodule:: qutip.continuous_variables
@@ -192,9 +192,14 @@ Scattering in Quantum Optical Systems
     :members: temporal_basis_vector, temporal_scattered_state, scattering_probability
     :undoc-members:
 
+Permutational Invariance
+-------------------------------------
+
+.. automodule:: qutip.piqs
+    :members: jspin, dicke, superradiant, ghz, css, excited, ground, num_dicke_states, num_dicke_ladders, num_tls, isdiagonal, state_degeneracy, m_degeneracy, ap, am, spin_algebra, collapse_uncoupled, dicke_basis, iden
+
 Visualization
 ===============
-
 	
 Pseudoprobability Functions
 ----------------------------
@@ -265,7 +270,7 @@ Optimal control
 .. automodule:: qutip.control.pulsegen
     :members: create_pulse_gen
 
-Utilitiy Functions
+Utility Functions
 ==================
 
 .. _functions-graph:

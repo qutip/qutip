@@ -16,6 +16,7 @@ Time Evolution and Quantum System Dynamics
    dynamics/dynamics-time.rst
    dynamics/dynamics-bloch-redfield.rst
    dynamics/dynamics-floquet.rst
+   dynamics/dynamics-piqs.rst
    dynamics/dynamics-options.rst
 
 

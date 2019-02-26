@@ -30,8 +30,8 @@ This document contains a user guide and automatically generated API documentatio
 :Author: Chris Grenade
 
 
-:version: 4.2
-:status: Released (July 28, 2017)
+:version: 4.3
+:status: Released (July 18, 2018)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:
@@ -58,12 +58,12 @@ QuTiP is developed under the auspice of the non-profit organization:
 
 .. _image-qustar:
 
-.. figure:: figures/qustar.png
-   :width: 4in
+.. figure:: figures/NumFocus_logo.png
+   :width: 3in
    :figclass: align-center
 
 
-Earlier development of QuTiP was partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from RIKEN, Kakenhi grant Nos. 2301202 (PDN), 2302501 (JRJ), and Korea University. 
+QuTiP was partially supported by 
 
 .. _image-jsps:
 
@@ -80,7 +80,7 @@ Earlier development of QuTiP was partially supported by the Japanese Society for
 .. _image-korea:
 
 .. figure:: figures/korea-logo.png
-	:width: 3in
+	:width: 2in
 	:figclass: align-center
 
 .. _about:

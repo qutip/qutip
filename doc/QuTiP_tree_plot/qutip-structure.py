@@ -37,6 +37,9 @@ module_cmap = {"mesolve":           0, # time evolution
                "eseries":           0,
                "hsolve":            0,
                "rcsolve":           0,
+               "heom":              0,               
+               "scattering":        0,
+               "piqs":              0,               
                "odeconfig":         1, # options and settings
                "settings":          1,
                "odechecks":         1,

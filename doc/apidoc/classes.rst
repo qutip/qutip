@@ -73,6 +73,17 @@ Solver Options and Results
 .. autoclass:: qutip.stochastic.StochasticSolverOptions
     :members:
 
+.. _classes-piqs:
+
+Permutational Invariance
+---------------
+
+.. autoclass:: qutip.piqs.Dicke
+    :members:
+
+.. autoclass:: qutip.piqs.Pim
+    :members:
+
 .. _classes-distributions:
 
 Distribution functions
@@ -252,3 +263,4 @@ Optimal control
     
 .. autoclass:: qutip.control.dump.DumpSummaryItem
     :members:
+

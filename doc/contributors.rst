@@ -45,6 +45,8 @@ Contributors
 
 **Ben Criger** (Waterloo IQC) - Code contributor
 
+**Ben Bartlett** (Stanford) - Code contributor
+
 **Bredan Abolins** (Berkeley) - Bug hunter
 
 **Chris Granade** - Code contributor
@@ -83,6 +85,8 @@ Contributors
 
 **Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
 
+**Nathan Shammah** (RIKEN) - Code contributor
+
 **Neill Lambert** (RIKEN) - Code contributor, Windows support
 
 **Nikolas Tezak** (Stanford) - Code contributor
@@ -96,6 +100,8 @@ Contributors
 **Robert Jördens** (NIST) - Linux packaging
 
 **Simon Whalen** - Code contributor
+
+**Shahnawaz Ahmed** (RIKEN, BITS Pilani) - Code contributor, Bug hunter
 
 **W.M. Witzel** - Bug hunter
 
