@@ -56,8 +56,8 @@ cdef class CQobjEvo:
                     int nrow, int ncols)
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                     int nrow, int ncols)
-    cdef complex _expect(self, double t, complex* vec, int isherm)
-    cdef complex _expect_super(self, double t, complex* rho, int isherm)
+    cdef complex _expect(self, double t, complex* vec)
+    cdef complex _expect_super(self, double t, complex* rho)
 
 
 cdef class CQobjCte(CQobjEvo):

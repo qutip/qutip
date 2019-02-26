@@ -303,6 +303,7 @@ class Result():
         (self.__dict__).update(state)
 
 
+# %%%%%%%%%%% mcsolve only?: TODO remove
 class SolverConfiguration():
 
     def __init__(self):

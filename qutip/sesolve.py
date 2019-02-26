@@ -38,27 +38,16 @@ __all__ = ['sesolve']
 
 import os
 import types
-from functools import partial
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm as la_norm
 import qutip.settings as qset
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
-from qutip.solver import (Result, Options, config,
-                          _solver_safety_check, solver_safe, SolverSystem)
+from qutip.solver import Result, Options, config, solver_safe, SolverSystem
 from qutip.superoperator import vec2mat
-from qutip.settings import debug
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
-
-if qset.has_openmp:
-    from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
-
-if debug:
-    import inspect
-
-
 
 def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
             progress_bar=BaseProgressBar(), _safe_mode=True):
@@ -133,122 +122,163 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
     if progress_bar is True:
         progress_bar = TextProgressBar()
 
-    #check if should use OPENMP
-    check_use_openmp(options)
-
-    if isinstance(H, (list, Qobj, QobjEvo, SolverSystem)) or options.rhs_reuse:
-        res = _sesolve_QobjEvo(H, psi0, tlist, e_ops, args, options,
-                               progress_bar, _safe_mode)
-    elif iscallable(H):
-        res = _sesolve_func_td(H, psi0, tlist, e_ops, args, options,
-                               progress_bar, _safe_mode)
-    else:
-        raise Exception("Invalid H type")
-
-    if e_ops_dict:
-        res.expect = {e: res.expect[n]
-                      for n, e in enumerate(e_ops_dict.keys())}
-
-    return res
-
-# -----------------------------------------------------------------------------
-# A time-dependent unitary wavefunction equation on the list-function format
-#
-def _sesolve_QobjEvo(H, psi0, tlist, e_ops, args, opt,
-                     progress_bar, _safe_mode=False):
-    """
-    Internal function for solving the master equation. See mesolve for usage.
-    """
-    if debug:
-        print(inspect.stack()[0][3])
-
-    if isinstance(H, SolverSystem):
-        H_td = H.H
-        H_td.arguments(args)
-    elif opt.rhs_reuse:
-        # TODO: to deprecate?
-        H_td = solver_safe["sesolve"]
-        H_td.arguments(args)
-    else:
-        H_td = -1.0j * td_Qobj(H, args, tlist)
-        if opt.rhs_with_state:
-            H._check_old_with_state()
-        H_td.compile()
-        ss = SolverSystem()
-        ss.type = "QobjEvo"
-        ss.H = H_td
-        solver_safe["sesolve"] = ss
-
-    # check initial state or oper and setup integrator
-    if psi0.isunitary:
-        func = H_td.compiled_Qobj.mul_mat
-        if _safe_mode:
-            H_td.mul_mat(0, psi0)
-    elif psi0.isket:
-        func = H_td.compiled_Qobj.mul_vec
-        if _safe_mode:
-            H_td.mul_vec(0, psi0)
-    else:
+    if not (psi0.isket or psi0.unitary):
         raise TypeError("The unitary solver requires psi0 to be"
                         " a ket as initial state"
                         " or a unitary as initial operator.")
 
-    # call generic ODE code
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
-                              dims=psi0.dims)
+    if opt.rhs_reuse and not isinstance(H, SolverSystem):
+        # TODO: to deprecate?
+        if "sesolve" in solver_safe:
+            # print(" ")
+            H = solver_safe["sesolve"]
+        else:
+            raise Exception("Could not find the Hamiltonian to reuse.")
+
+    #check if should use OPENMP
+    check_use_openmp(options)
+
+    if isinstance(H, SolverSystem):
+        ss = H
+    elif isinstance(H, (list, Qobj, QobjEvo)) or options.rhs_reuse:
+        ss = _sesolve_QobjEvo(H, args, options)
+        if _safe_mode:
+            if psi0.isket:
+                try:
+                    ss.H.mul_vec(0., psi0)
+                except Exception as e:
+                    raise Exception("Could not call the rhs function "
+                                    "for the integration") from e
+            else:
+                try:
+                    ss.H.mul_mat(0., psi0)
+                except Exception as e:
+                    raise Exception("Could not call the rhs function "
+                                    "for the integration") from e
+    elif iscallable(H):
+        ss = _sesolve_func_td(H, psi0, args, options)
+        if _safe_mode:
+            try:
+                if options.rhs_with_state:
+                    H_ = ss.H(0., args)
+                else:
+                    H_ = ss.H(0., psi0.full().ravel("F"), args)
+            except Exception as e:
+                raise Exception("Could not obtain the Hamiltonian "
+                                "from the function H") from e
+            if not isinstance(H_, Qobj) and H_.isoper:
+                raise Exception("H should return an operator in Qobj format")
+            try:
+                H_.data * psi0.full()
+            except Exception as e:
+                raise Exception("Could not call the rhs function "
+                                "for the integration") from e
+    else:
+        raise Exception("Invalid H type")
+
+    func, ode_args = ss.makefunc(ss, psi, args, options)
+
+        v = psi0.full().ravel('F')
+        func(0., v, *ode_args) + v
+
+    res = _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, options,
+                             progress_bar, dims=psi0.dims)
+    if e_ops_dict:
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
+    res.SolverSystem = ss
+    return res
+
+
+# -----------------------------------------------------------------------------
+# A time-dependent unitary wavefunction equation on the list-function format
+#
+def _sesolve_QobjEvo(H, args, opt):
+    """
+    Prepare the system for the solver, H can be an QobjEvo.
+    """
+    H_td = -1.0j * td_Qobj(H, args, tlist)
+    if opt.rhs_with_state:
+        H_td._check_old_with_state()
+    nthread = opt.openmp_threads if opt.use_openmp else 0
+    H_td.compile(omp=nthread)
+
+    ss = SolverSystem()
+    ss.H = H_td
+    ss.makefunc = _qobjevo_set
+    solver_safe["sesolve"] = ss
+    return ss
+
+def _qobjevo_set(HS, psi, args, opt):
+    """
+    From the system, get the ode function and args
+    """
+    H_td = HS.H
+    H_td.arguments(args)
+    if psi.isunitary:
+        func = H_td.compiled_Qobj.mul_mat
+    elif psi.isket:
+        func = H_td.compiled_Qobj.mul_vec
+    else:
+        raise TypeError("The unitary solver requires psi0 to be"
+                        " a ket as initial state"
+                        " or a unitary as initial operator.")
+    return func, ()
 
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians.
 #
-def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar,
-                     _safe_mode=False):
-    """!
-    Evolve the wave function using an ODE solver with time-dependent
-    Hamiltonian.
+def _sesolve_func_td(H_func, args, opt):
     """
-    if _safe_mode:
-        _solver_safety_check(H, psi0, c_ops=[], e_ops=e_ops, args=args)
+    Prepare the system for the solver, H is a function.
+    """
+    ss = SolverSystem()
+    ss.H = H_func
+    ss.makefunc = _Hfunc_set
+    solver_safe["sesolve"] = ss
+    return ss
 
-    if debug:
-        print(inspect.stack()[0][3])
-
+def _Hfunc_set(HS, psi, args, opt):
+    """
+    From the system, get the ode function and args
+    """
+    H_func = HS.H
     if psi0.isunitary:
         if not opt.rhs_with_state:
             func = _ode_oper_func_td
         else:
             func = _ode_oper_func_td_with_state
-
     else:
         if not opt.rhs_with_state:
             func = cy_ode_psi_func_td
         else:
             func = cy_ode_psi_func_td_with_state
 
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(func, psi0, tlist, e_ops, opt, progress_bar,
-                              dims=psi0.dims, ode_args=(H_func, args))
+    return func, (H_func, args)
 
-#
-# evaluate dU(t)/dt according to the master equation using the
-#
-# TODO cythonize these?
-def _ode_oper_func_td(t, y, H_func, args):
-    H = H_func(t, args)
-    return -1j * _ode_oper_func(t, y, H.data)
-
-def _ode_oper_func_td_with_state(t, y, H_func, args):
-    H = H_func(t, y, args)
-    return -1j * _ode_oper_func(t, y, H.data)
 
 # -----------------------------------------------------------------------------
-# Solve an ODE which solver parameters already setup (r). Calculate the
-# required expectation values or invoke callback function at each time step.
+# evaluate dU(t)/dt according to the schrodinger equation
 #
-def _generic_ode_solve(func, psi0, tlist, e_ops, opt, progress_bar, dims=None, ode_args=()):
+def _ode_oper_func_td(t, y, H_func, args):
+    H = H_func(t, args).data * -1j
+    ym = vec2mat(y)
+    return (H * ym).ravel("F")
+
+def _ode_oper_func_td_with_state(t, y, H_func, args):
+    H = H_func(t, y, args).data * -1j
+    ym = vec2mat(y)
+    return (H * ym).ravel("F")
+
+
+# -----------------------------------------------------------------------------
+# Solve an ODE for func.
+# Calculate the required expectation values or invoke callback
+# function at each time step.
+def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
+                       progress_bar, dims=None):
     """
     Internal function for solving ODEs.
     """
@@ -258,30 +288,26 @@ def _generic_ode_solve(func, psi0, tlist, e_ops, opt, progress_bar, dims=None, o
     output.solver = "sesolve"
     output.times = tlist
 
+    if psi0.isunitary:
+        initial_vector = psi0.full().ravel('F')
+        oper_evo = True
+        # oper_n = dims[0][0]
+        # norm_dim_factor = np.sqrt(oper_n)
+    elif psi0.isket:
+        initial_vector = psi0.full().ravel()
+        oper_evo = False
+        # norm_dim_factor = 1.0
+
     r = scipy.integrate.ode(func)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
     r.set_f_params(ode_args)
-
-    if psi0.isunitary:
-        initial_vector = psi0.full().ravel('F')
-        oper_evo = True
-        oper_n = dims[0][0]
-        norm_dim_factor = np.sqrt(oper_n)
-    elif psi0.isket:
-        initial_vector = psi0.full().ravel()
-        oper_evo = False
-        norm_dim_factor = 1.0
-    else:
-        raise TypeError("The unitary solver requires psi0 to be"
-                        " a ket as initial state"
-                        " or a unitary as initial operator.")
     r.set_initial_value(initial_vector, tlist[0])
 
     output.expect = []
-    if isinstance(e_ops, types.FunctionType):
+    if callable(e_ops):
         n_expt_op = 0
         expt_callback = True
         output.num_expect = 1
@@ -298,6 +324,13 @@ def _generic_ode_solve(func, psi0, tlist, e_ops, opt, progress_bar, dims=None, o
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
+        if oper_evo:
+            e_ops_data = []
+            for e in e_ops:
+                e_ops_data.append(e.dag().data)
+        else:
+            for e in e_ops:
+                e_ops_data.append(e.data)
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
@@ -305,29 +338,27 @@ def _generic_ode_solve(func, psi0, tlist, e_ops, opt, progress_bar, dims=None, o
         output.states = []
 
     if oper_evo:
-        def get_curr_state_data():
+        def get_curr_state_data(r):
             return vec2mat(r.y)
     else:
-        def get_curr_state_data():
+        def get_curr_state_data(r):
             return r.y
 
     #
     # start evolution
     #
-    progress_bar.start(n_tsteps)
-
     dt = np.diff(tlist)
     cdata = None
+    progress_bar.start(n_tsteps)
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
-
         if not r.successful():
             raise Exception("ODE integration error: Try to increase "
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
         # get the current state / oper data if needed
         if opt.store_states or opt.normalize_output or n_expt_op > 0 or expt_callback:
-            cdata = get_curr_state_data()
+            cdata = get_curr_state_data(r)
 
         if opt.normalize_output:
             # normalize per column
@@ -347,29 +378,22 @@ def _generic_ode_solve(func, psi0, tlist, e_ops, opt, progress_bar, dims=None, o
 
         if oper_evo:
             for m in range(n_expt_op):
-                output.expect[m][t_idx] = (e_ops[m].dag().data * cdata).trace()
+                output.expect[m][t_idx] = (e_ops_data[m] * cdata).trace()
         else:
             for m in range(n_expt_op):
-                output.expect[m][t_idx] = cy_expect_psi(e_ops[m].data,
-                                                        cdata, e_ops[m].isherm)
+                output.expect[m][t_idx] = cy_expect_psi(e_ops_data[m], cdata,
+                                                        e_ops[m].isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
 
     progress_bar.finished()
 
-    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% to remove
-    if not opt.rhs_reuse and config.tdname is not None:
-        try:
-            os.remove(config.tdname + ".pyx")
-        except:
-            pass
-    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% to remove
-
     if opt.store_final_state:
-        cdata = get_curr_state_data()
+        cdata = get_curr_state_data(r)
         if opt.normalize_output:
-            cdata *= norm_dim_factor / la_norm(cdata)
+            cdata /= la_norm(cdata, axis=0)
+            # cdata *= norm_dim_factor / la_norm(cdata)
         output.final_state = Qobj(cdata, dims=dims)
 
     return output

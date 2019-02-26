@@ -173,7 +173,7 @@ cdef class CQobjEvo:
       return self @ mat
       mat can be both "C" or "F" continuous.
 
-    expect(double t, complex[::1] vec, int isherm)
+    expect(double t, complex[::1] vec)
       return expectation value, knows to use the super version or not.
 
     ode_mul_mat_f_vec(double t, complex[::1] mat)
@@ -204,10 +204,10 @@ cdef class CQobjEvo:
     _mul_matc(double t, complex* mat, complex* out, int nrow, int ncols):
         out += self * dense mat c ordered
 
-    _expect(double t, complex* vec, int isherm):
+    _expect(double t, complex* vec):
         return <vec| self |vec>
 
-    _expect_super(double t, complex* rho, int isherm):
+    _expect_super(double t, complex* rho):
         return tr( self * rho )
     """
 
@@ -225,11 +225,11 @@ cdef class CQobjEvo:
         """self * dense mat c ordered"""
         pass
 
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         """<vec| self |vec>"""
         return 0.
 
-    cdef complex _expect_super(self, double t, complex* rho, int isherm):
+    cdef complex _expect_super(self, double t, complex* rho):
         """tr( self * rho )"""
         return 0.
 
@@ -271,11 +271,11 @@ cdef class CQobjEvo:
             self._mul_matc(t,&mat[0,0],&out[0,0],nrows,ncols)
         return out
 
-    def expect(self, double t, complex[::1] vec, int isherm):
+    def expect(self, double t, complex[::1] vec):
         if self.super:
-            return self._expect_super(t, &vec[0], isherm)
+            return self._expect_super(t, &vec[0])
         else:
-            return self._expect(t, &vec[0], isherm)
+            return self._expect(t, &vec[0])
 
     def ode_mul_mat_f_vec(self, double t, complex[::1] mat):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape1*self.shape1,
@@ -369,7 +369,7 @@ cdef class CQobjCte(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
                &y[0], self.shape0)
@@ -377,15 +377,12 @@ cdef class CQobjCte(CQobjEvo):
         cdef complex dot = 0
         for row from 0 <= row < self.shape0:
             dot += conj(vec[row])*y[row]
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect_super(self, double t, complex* vec, int isherm):
+    cdef complex _expect_super(self, double t, complex* vec):
         cdef int row
         cdef int jj, row_start, row_end
         cdef int num_rows = self.shape0
@@ -398,10 +395,7 @@ cdef class CQobjCte(CQobjEvo):
             for jj from row_start <= jj < row_end:
                 dot += self.cte.data[jj]*vec[self.cte.indices[jj]]
 
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
 
 cdef class CQobjCteDense(CQobjEvo):
@@ -473,22 +467,19 @@ cdef class CQobjCteDense(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         cdef int i, j
         cdef complex dot = 0
         for i in range(self.shape0):
           for j in range(self.shape1):
             dot += conj(vec[i])*self.cte[i,j]*vec[j]
 
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect_super(self, double t, complex* vec, int isherm):
+    cdef complex _expect_super(self, double t, complex* vec):
         cdef int row, i
         cdef int num_rows = self.shape0
         cdef int n = <int>libc.math.sqrt(num_rows)
@@ -497,10 +488,7 @@ cdef class CQobjCteDense(CQobjEvo):
           for i in range(self.shape1):
             dot += self.cte[row,i]*vec[i]
 
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
 
 cdef class CQobjEvoTd(CQobjEvo):
@@ -675,22 +663,19 @@ cdef class CQobjEvoTd(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         cdef complex [::1] y = np.zeros(self.shape0, dtype=complex)
         cdef int row
         cdef complex dot = 0
         self._mul_vec(t, &vec[0], &y[0])
         for row from 0 <= row < self.shape0:
             dot += conj(vec[row]) * y[row]
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect_super(self, double t, complex* vec, int isherm):
+    cdef complex _expect_super(self, double t, complex* vec):
         cdef int row, i
         cdef int jj, row_start, row_end
         cdef int num_rows = self.shape0
@@ -710,10 +695,7 @@ cdef class CQobjEvoTd(CQobjEvo):
                 for jj from row_start <= jj < row_end:
                     dot += self.ops[i].data[jj] * \
                           vec[self.ops[i].indices[jj]] * self.coeff_ptr[i]
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
 
 cdef class CQobjEvoTdDense(CQobjEvo):
@@ -839,7 +821,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         cdef int row
         cdef complex dot = 0
         self._factor(t)
@@ -847,15 +829,12 @@ cdef class CQobjEvoTdDense(CQobjEvo):
         for i in range(self.shape0):
           for j in range(self.shape1):
             dot += conj(vec[i])*self.data_t[i,j]*vec[j]
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect_super(self, double t, complex* vec, int isherm):
+    cdef complex _expect_super(self, double t, complex* vec):
         cdef int row, i
         cdef int num_rows = self.shape0
         cdef int n = <int>libc.math.sqrt(num_rows)
@@ -867,10 +846,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
           for i in range(self.shape1):
             dot += self.data_t[row,i]*vec[i]
 
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
 
 cdef class CQobjEvoTdMatched(CQobjEvo):
@@ -1012,22 +988,19 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         cdef complex [::1] y = np.zeros(self.shape0, dtype=complex)
         cdef int row
         cdef complex dot = 0
         self._mul_vec(t, &vec[0], &y[0])
         for row from 0 <= row < self.shape0:
             dot += conj(vec[row]) * y[row]
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect_super(self, double t, complex* vec, int isherm):
+    cdef complex _expect_super(self, double t, complex* vec):
         cdef int row
         cdef int jj, row_start, row_end
         cdef int num_rows = self.shape0
@@ -1043,7 +1016,4 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
             for jj from row_start <= jj < row_end:
                 dot += self.data_ptr[jj]*vec[self.indices[jj]]
 
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
