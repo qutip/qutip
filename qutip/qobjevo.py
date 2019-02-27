@@ -510,14 +510,29 @@ class QobjEvo:
             if "=" in key:
                 name, what = key.split()
                 if what in ["Qobj", "vec", "mat"]:
-                    self.dynamics_args += [(name, what, None)]
+                    # state first, expect last
+                    self.dynamics_args = [(name, what, None)] + self.dynamics_args
+                    if name not in self.args and isinstance(self.args[key], Qobj):
+                        if what == "Qobj":
+                            self.args[name] = self.args[key]
+                        elif what == "mat":
+                            self.args[name] = self.args[key].full()
+                        else:
+                            self.args[name] = self.args[key].full().ravel("F")
+
                 elif what == "expect":
                     expect_op = QovjEvo(self.args[key], copy=False)
                     self.dynamics_args += [(name, what, expect_op)]
+                    if name not in self.args:
+                        self.args[name] = 0.
                 else:
                     raise Exception("Could not understand dynamics args: " +
                                     what + "\nSupported dynamics args: "
                                     "Qobj, csr, vec, mat, expect")
+
+                del self.args[key]
+
+
 
     def _check_old_with_state(self):
         for op in self.ops:
@@ -604,7 +619,7 @@ class QobjEvo:
                 elif what == "Qobj":
                     self.args[name] = Qobj(mat, dims=[dim, dim])
                 elif what == "expect":
-                    self.args[name] = op.mul_vet(t, mat).trace()
+                    self.args[name] = op.mul_mat(t, mat).trace()
 
         elif type_ == "super_mat":
             for name, what, op in self.dynamics_args:
@@ -615,7 +630,7 @@ class QobjEvo:
                 elif what == "Qobj":
                     self.args[name] = Qobj(state, dims=self.cte.dims[1])
                 elif what == "expect":
-                    raise NotImplementedError
+                    self.args[name] = op.mul_mat(t, mat).trace()
 
     def with_state(self, t, psi, args={}, data=False):
         self.args["_state_vec"] = psi
@@ -1369,6 +1384,8 @@ class QobjEvo:
                 self.compiled_qobjevo = CQobjEvoTd()
                 self.compiled = "csr single "
             self.compiled_qobjevo.set_data(self.cte, self.ops)
+            self.compiled_qobjevo.has_dyn_args(bool(self.dynamics_args))
+
             if self.type in ["func"]:
                 funclist = []
                 for part in self.ops:
@@ -1496,12 +1513,35 @@ class QobjEvo:
 # Function defined inside another function cannot be pickled,
 # Using class instead
 class _UnitedFuncCaller:
-    def __init__(self, funclist, args):
+    def __init__(self, funclist, args, dynamics_args, cte):
         self.funclist = funclist
         self.args = args
+        self.dynamics_args = dynamics_args
+        self.dims = cte.dims
+        self.shape = cte.shape
 
     def set_args(self, args):
         self.args = args
+
+    def dyn_args(self, t, state, shape):
+        mat = state.reshape(shape).T
+        for name, what, op in self.dynamics_args:
+            if what == "vec":
+                self.args[name] = state
+            elif what == "mat":
+                self.args[name] = mat
+            elif what == "Qobj":
+                if self.shape[1] == shape[1]:  # oper
+                    self.args[name] = Qobj(mat, dims=self.dims)
+                elif shape[1] == 1:
+                    self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
+                else:  # rho
+                    self.args[name] = Qobj(mat, dims=self.dims[1])
+            elif what == "expect":  # ket
+                if shape[1] == op.cte.shape[1]: # same shape as object
+                    self.args[name] = op.mul_mat(t, mat).trace()
+                else:
+                    self.args[name] = op.expect(t, state)
 
     def __call__(self, t, args=None):
         if args:

@@ -80,7 +80,7 @@ from qutip.qobj import Qobj
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.spmatfuncs cimport spmvpy, _spmm_c_py, _spmm_f_py
 from qutip.cy.spmath import zcsr_add
-from qutip.cy.cqobjevo_factor cimport CoeffFunc
+from qutip.cy.cqobjevo_factor cimport CoeffFunc, zptr2array1d
 cimport libc.math
 
 include "complex_math.pxi"
@@ -92,11 +92,6 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_RENEW(void * ptr, size_t size)
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
-
-cdef extern from "Python.h":
-    object PyLong_FromVoidPtr(void *)
-    void* PyLong_AsVoidPtr(object)
-
 
 def _zcsr_match(sparses_list):
     """
@@ -210,7 +205,6 @@ cdef class CQobjEvo:
     _expect_super(double t, complex* rho):
         return tr( self * rho )
     """
-
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
         """self * vec"""
         pass
@@ -233,25 +227,6 @@ cdef class CQobjEvo:
         """tr( self * rho )"""
         return 0.
 
-    def set_factor(self, func=None, ptr=False, obj=None):
-        self.factor_use_cobj = 0
-        if func is not None:
-            self.factor_func = func
-        elif obj is not None:
-            self.factor_use_cobj = 1
-            self.factor_cobj = obj
-        else:
-            raise Exception("Could not set coefficient function")
-
-    cdef void _factor(self, double t):
-        cdef int i
-        if self.factor_use_cobj:
-            self.factor_cobj._call_core(t, self.coeff_ptr)
-        else:
-            coeff = self.factor_func(t)
-            for i in range(self.num_ops):
-                self.coeff_ptr[i] = coeff[i]
-
     def mul_vec(self, double t, complex[::1] vec):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
                                                         dtype=complex)
@@ -271,7 +246,7 @@ cdef class CQobjEvo:
             self._mul_matc(t,&mat[0,0],&out[0,0],nrows,ncols)
         return out
 
-    def expect(self, double t, complex[::1] vec):
+    cpdef complex expect(self, double t, complex[::1] vec):
         if self.super:
             return self._expect_super(t, &vec[0])
         else:
@@ -523,6 +498,37 @@ cdef class CQobjEvoTd(CQobjEvo):
             self.sum_elem[i] = cummulative_op.data.shape[0]
 
         self.total_elem = self.sum_elem[self.num_ops-1]
+
+    def has_dyn_args(self, int dyn_args):
+        self.dyn_args = dyn_args
+
+    def set_factor(self, func=None, ptr=False, obj=None):
+        self.factor_use_cobj = 0
+        if func is not None:
+            self.factor_func = func
+        elif obj is not None:
+            self.factor_use_cobj = 1
+            self.factor_cobj = obj
+        else:
+            raise Exception("Could not set coefficient function")
+
+    cdef void _factor(self, double t):
+        cdef int i
+        if self.factor_use_cobj:
+            self.factor_cobj._call_core(t, self.coeff_ptr)
+        else:
+            coeff = self.factor_func(t)
+            for i in range(self.num_ops):
+                self.coeff_ptr[i] = coeff[i]
+
+    cdef void _factor_dyn(self, double t, complex* state, int[:] shape):
+        if self.dyn_args:
+            if self.factor_use_cobj:
+                self.factor_cobj._dyn_args(t, state, shape)
+            else:
+                self.factor_func.dyn_args(t, zptr2array1d(state),
+                                             np.array(shape))
+        self._factor(t)
 
     def __getstate__(self):
         cte_info = _shallow_get_state(&self.cte)
