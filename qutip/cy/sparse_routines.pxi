@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, The QuTiP Project.
@@ -103,11 +105,11 @@ cdef inline int int_min(int a, int b) nogil:
     return b if b < a else a
 
 cdef inline int int_max(int a, int b) nogil:
-    return a if a > b else b 
-    
+    return a if a > b else b
+
 
 @cython.boundscheck(False)
-@cython.wraparound(False)        
+@cython.wraparound(False)
 cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int ncols = 0,
                 int max_length = 0, int init_zeros = 1):
     """
@@ -121,7 +123,7 @@ cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int ncols = 0,
     nnz : int
         Length of data and indices arrays. Also number of nonzero elements
     nrows : int
-        Number of rows in matrix. Also gives length 
+        Number of rows in matrix. Also gives length
         of indptr array (nrows+1).
     ncols : int (default = 0)
         Number of cols in matrix. Default is ncols = nrows.
@@ -157,7 +159,7 @@ cdef void init_CSR(CSR_Matrix * mat, int nnz, int nrows, int ncols = 0,
 
 
 @cython.boundscheck(False)
-@cython.wraparound(False)        
+@cython.wraparound(False)
 cdef void copy_CSR(CSR_Matrix * out, CSR_Matrix * mat):
     """
     Copy a CSR_Matrix.
@@ -176,10 +178,10 @@ cdef void copy_CSR(CSR_Matrix * out, CSR_Matrix * mat):
     for kk in range(mat.nrows+1):
         out.indptr[kk] = mat.indptr[kk]
 
-    
+
 @cython.boundscheck(False)
-@cython.wraparound(False)        
-cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int ncols = 0, 
+@cython.wraparound(False)
+cdef void init_COO(COO_Matrix * mat, int nnz, int nrows, int ncols = 0,
                 int max_length = 0, int init_zeros = 1):
     """
     Initialize COO_Matrix struct. Matrix is assumed to be square with
@@ -260,10 +262,10 @@ cdef void free_COO(COO_Matrix * mat):
         mat.is_set = 0
     else:
         raise_error_COO(-2)
-    
-    
+
+
 @cython.boundscheck(False)
-@cython.wraparound(False)       
+@cython.wraparound(False)
 cdef void shorten_CSR(CSR_Matrix * mat, int N):
     """
     Shortends the length of CSR data and indices arrays.
@@ -277,7 +279,7 @@ cdef void shorten_CSR(CSR_Matrix * mat, int N):
             raise_error_CSR(-4, mat)
         elif not mat.is_set:
             raise_error_CSR(-3, mat)
-    
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -300,7 +302,7 @@ cdef void expand_CSR(CSR_Matrix * mat, int init_zeros=0):
             if init_zeros == 1:
                 for ii in range(mat.nnz, new_size):
                     mat.data[ii] = 0
-                
+
         new_ind = <int *>PyDataMem_RENEW(mat.indices, new_size * sizeof(int))
         mat.indices = new_ind
         if init_zeros == 1:
@@ -320,7 +322,7 @@ cdef object CSR_to_scipy(CSR_Matrix * mat):
     """
     Converts a CSR_Matrix struct to a SciPy csr_matrix class object.
     The NumPy arrays are generated from the pointers, and the lifetime
-    of the pointer memory is tied to that of the NumPy array 
+    of the pointer memory is tied to that of the NumPy array
     (i.e. automatic garbage cleanup.)
 
     Parameters
@@ -357,7 +359,7 @@ cdef object COO_to_scipy(COO_Matrix * mat):
     """
     Converts a COO_Matrix struct to a SciPy coo_matrix class object.
     The NumPy arrays are generated from the pointers, and the lifetime
-    of the pointer memory is tied to that of the NumPy array 
+    of the pointer memory is tied to that of the NumPy array
     (i.e. automatic garbage cleanup.)
 
     Parameters
@@ -440,7 +442,7 @@ cdef void CSR_to_COO(COO_Matrix * out, CSR_Matrix * mat):
         k2 = mat.indptr[kk]
         for jj in range(k2, k1):
             out.rows[jj] = kk
-            
+
 
 
 @cython.boundscheck(False)
@@ -535,21 +537,21 @@ cdef void sort_indices(CSR_Matrix * mat):
         row_end = mat.indptr[ii+1]
         length = row_end - row_start
         pairs.resize(length)
-    
+
         for jj in range(length):
             pairs[jj].data = mat.data[row_start+jj]
             pairs[jj].ind = mat.indices[row_start+jj]
-        
+
         sort(pairs.begin(),pairs.end(),cfptr_)
-    
+
         for jj in range(length):
             mat.data[row_start+jj] = pairs[jj].data
             mat.indices[row_start+jj] = pairs[jj].ind
-        
-    
+
+
 
 @cython.boundscheck(False)
-@cython.wraparound(False)  
+@cython.wraparound(False)
 cdef CSR_Matrix CSR_from_scipy(object A):
     """
     Converts a SciPy CSR sparse matrix to a
@@ -561,9 +563,9 @@ cdef CSR_Matrix CSR_from_scipy(object A):
     cdef int nrows = A.shape[0]
     cdef int ncols = A.shape[1]
     cdef int nnz = ptr[nrows]
-    
+
     cdef CSR_Matrix mat
-    
+
     mat.data = &data[0]
     mat.indices = &ind[0]
     mat.indptr = &ptr[0]
@@ -573,12 +575,37 @@ cdef CSR_Matrix CSR_from_scipy(object A):
     mat.max_length = nnz
     mat.is_set = 1
     mat.numpy_lock = 1
-    
+
     return mat
-    
+
 
 @cython.boundscheck(False)
-@cython.wraparound(False)  
+@cython.wraparound(False)
+cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
+    """
+    Converts a SciPy CSR sparse matrix to a
+    CSR_Matrix struct.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+    cdef int nnz = ptr[nrows]
+
+    mat.data = &data[0]
+    mat.indices = &ind[0]
+    mat.indptr = &ptr[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.max_length = nnz
+    mat.is_set = 1
+    mat.numpy_lock = 1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef COO_Matrix COO_from_scipy(object A):
     """
     Converts a SciPy COO sparse matrix to a
@@ -590,7 +617,7 @@ cdef COO_Matrix COO_from_scipy(object A):
     cdef int nrows = A.shape[0]
     cdef int ncols = A.shape[1]
     cdef int nnz = data.shape[0]
-    
+
     cdef COO_Matrix mat
     mat.data = &data[0]
     mat.rows = &rows[0]
@@ -601,10 +628,10 @@ cdef COO_Matrix COO_from_scipy(object A):
     mat.max_length = nnz
     mat.is_set = 1
     mat.numpy_lock = 1
-    
+
     return mat
-     
-     
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void identity_CSR(CSR_Matrix * mat, unsigned int nrows):

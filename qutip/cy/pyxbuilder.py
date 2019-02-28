@@ -44,6 +44,9 @@ def new_get_distutils_extension(modname, pyxfilename, language_level=None):
         extension_mod.extra_compile_args = ['/w', '/O1']
     else:
         extension_mod.extra_compile_args = ['-w', '-O1']
+        if sys.platform == 'darwin':
+            extension_mod.extra_compile_args.append('-mmacosx-version-min=10.9')
+            extension_mod.extra_link_args = ['-mmacosx-version-min=10.9']
     return extension_mod,setup_args
 
 pyximport.pyximport.get_distutils_extension = new_get_distutils_extension

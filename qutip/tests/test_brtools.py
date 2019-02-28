@@ -37,7 +37,7 @@ import unittest
 from qutip import *
 import qutip.settings as qset
 from qutip.superoperator import mat2vec
-from qutip.cy.brtools_testing import (_test_zheevr, _test_diag_liou_mult,
+from qutip.cy.brtools_checks import (_test_zheevr, _test_diag_liou_mult,
                     _test_dense_to_eigbasis, _test_vec_to_eigbasis,
                     _test_eigvec_to_fockbasis, _test_vector_roundtrip,
                     _cop_super_mult, _test_br_term_mult)
@@ -53,7 +53,7 @@ def test_br_zheevr():
         assert_(np.allclose(ans_vals,eigvals))
         assert_(np.allclose(Z,ans_vecs))
 
-      
+
 def test_br_dense_to_eigbasis():
     "BR Tools : dense operator to eigenbasis"
     N = 10
@@ -169,7 +169,7 @@ def test_br_term_mult():
         evecs = _test_zheevr(Hf, evals)
         _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, 0.1, atol)
         assert_(np.allclose(ans,out))
-    
+
     #non-secular tests
     for kk in range(10):
         N = 10

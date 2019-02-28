@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -245,13 +247,13 @@ def _sparse_reverse_permute(
 
     return new_data, new_idx, new_ptr
 
-                    
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _isdiag(int[::1] idx,
         int[::1] ptr,
         int nrows):
-        
+
     cdef int row, num_elems
     for row in range(nrows):
         num_elems = ptr[row+1] - ptr[row]
@@ -265,9 +267,9 @@ def _isdiag(int[::1] idx,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cnp.ndarray[complex, ndim=1, mode='c'] _csr_get_diag(complex[::1] data, 
+cpdef cnp.ndarray[complex, ndim=1, mode='c'] _csr_get_diag(complex[::1] data,
     int[::1] idx, int[::1] ptr, int k=0):
-    
+
     cdef size_t row, jj
     cdef int num_rows = ptr.shape[0]-1
     cdef int abs_k = abs(k)
@@ -307,7 +309,7 @@ def unit_row_norm(complex[::1] data, int[::1] ptr, int nrows):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef double zcsr_one_norm(complex[::1] data, int[::1] ind, int[::1] ptr,       
+cpdef double zcsr_one_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
                      int nrows, int ncols):
 
     cdef int k
@@ -320,14 +322,14 @@ cpdef double zcsr_one_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
             col_sum[k] += cabs(data[jj])
     for ii in range(ncols):
         if col_sum[ii] > max_col:
-            max_col = col_sum[ii]        
+            max_col = col_sum[ii]
     PyDataMem_FREE(col_sum)
     return max_col
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,       
+cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
                      int nrows, int ncols):
 
     cdef int k
@@ -339,11 +341,11 @@ cpdef double zcsr_inf_norm(complex[::1] data, int[::1] ind, int[::1] ptr,
             row_sum[ii] += cabs(data[jj])
     for ii in range(nrows):
         if row_sum[ii] > max_row:
-            max_row = row_sum[ii]        
+            max_row = row_sum[ii]
     PyDataMem_FREE(row_sum)
     return max_row
-    
-    
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef bool cy_tidyup(complex[::1] data, double atol, unsigned int nnz):
@@ -364,13 +366,10 @@ cpdef bool cy_tidyup(complex[::1] data, double atol, unsigned int nnz):
         if fabs(im) < atol:
             im = 0
             im_flag = 1
-        
+
         if re_flag or im_flag:
             data[kk] = re + 1j*im
-            
+
         if re_flag and im_flag:
             out_flag = 1
     return out_flag
-        
-        
-        

@@ -629,10 +629,13 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
         np.random.seed(seed=seed)
     if dims:
         _check_dims(dims, N, N)
-    num_elems = np.int(np.ceil(N*(N+1)*density)/2)
+    num_elems = max([np.int(np.ceil(N*(N+1)*density)/2), N])
     data = np.random.rand(num_elems)
-    row_idx = np.random.choice(N, num_elems)
-    col_idx = np.random.choice(N, num_elems)
+    # Ensure an element on every row and column
+    row_idx = np.hstack([np.random.permutation(N),
+                         np.random.choice(N, num_elems-N)])
+    col_idx = np.hstack([np.random.permutation(N),
+                         np.random.choice(N, num_elems-N)])
     if kind=='left':
         M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=float, shape=(N,N)).tocsc()
     else:

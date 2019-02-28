@@ -1,13 +1,15 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +20,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
@@ -37,7 +39,7 @@ cimport libc.math
 from libcpp cimport bool
 
 cdef extern from "src/zspmv.hpp" nogil:
-    void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec, 
+    void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec,
                 double complex a, double complex *out, int nrows)
 
 include "complex_math.pxi"
@@ -48,21 +50,21 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv(
         object super_op,
         complex[::1] vec):
     """
-    Sparse matrix, dense vector multiplication.  
+    Sparse matrix, dense vector multiplication.
     Here the vector is assumed to have one-dimension.
     Matrix must be in CSR format and have complex entries.
-    
+
     Parameters
     ----------
     super_op : csr matrix
     vec : array
         Dense vector for multiplication.  Must be one-dimensional.
-    
+
     Returns
     -------
     out : array
         Returns dense array.
-    
+
     """
     return spmv_csr(super_op.data, super_op.indices, super_op.indptr, vec)
 
@@ -72,10 +74,10 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv(
 cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_csr(complex[::1] data,
             int[::1] ind, int[::1] ptr, complex[::1] vec):
     """
-    Sparse matrix, dense vector multiplication.  
+    Sparse matrix, dense vector multiplication.
     Here the vector is assumed to have one-dimension.
     Matrix must be in CSR format and have complex entries.
-    
+
     Parameters
     ----------
     data : array
@@ -86,25 +88,26 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_csr(complex[::1] data,
         Pointers for sparse matrix data.
     vec : array
         Dense vector for multiplication.  Must be one-dimensional.
-    
+
     Returns
     -------
     out : array
         Returns dense array.
-    
+
     """
     cdef unsigned int num_rows = ptr.shape[0] - 1
     cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros((num_rows), dtype=np.complex)
     zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows)
     return out
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def spmvpy_csr(complex[::1] data,
-            int[::1] ind, int[::1] ptr, complex[::1] vec, 
+            int[::1] ind, int[::1] ptr, complex[::1] vec,
             complex alpha, complex[::1] out):
     """
-    Sparse matrix, dense vector multiplication.  
+    Sparse matrix, dense vector multiplication.
     Here the vector is assumed to have one-dimension.
     Matrix must be in CSR format and have complex entries.
 
@@ -130,20 +133,182 @@ def spmvpy_csr(complex[::1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline void spmvpy(complex * data, int * ind, int * ptr,
-            complex * vec,
+cdef inline void spmvpy(complex* data, int* ind, int* ptr,
+            complex* vec,
             complex a,
-            complex * out,
+            complex* out,
             unsigned int nrows):
-    
+
     zspmvpy(data, ind, ptr, vec, a, out, nrows)
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _spmm_c_py(complex* data, int* ind, int* ptr,
+            complex* mat, complex a, complex* out,
+            unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
+    """
+    sparse*dense "C" ordered.
+    """
+    cdef int row, col, ii, jj, row_start, row_end
+    for row from 0 <= row < sp_rows :
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj from row_start <= jj < row_end:
+            for col in range(ncols):
+                out[row * ncols + col] += a*data[jj]*mat[ind[jj] * ncols + col]
+
+
+cpdef void spmmpy_c(complex[::1] data, int[::1] ind, int[::1] ptr,
+             complex[:,::1] M, complex a, complex[:,::1] out):
+    """
+    Sparse matrix, c ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    data : array
+        Data for sparse matrix.
+    idx : array
+        Indices for sparse matrix data.
+    ptr : array
+        Pointers for sparse matrix data.
+    mat : array 2d
+        Dense matrix for multiplication.  Must be in c mode.
+    alpha : complex
+        Numerical coefficient for sparse matrix.
+    out: array
+        Output array. Must be in c mode.
+
+    """
+    cdef unsigned int sp_rows = ptr.shape[0]-1
+    cdef unsigned int nrows = M.shape[0]
+    cdef unsigned int ncols = M.shape[1]
+    _spmm_c_py(&data[0], &ind[0], &ptr[0], &M[0,0], 1.,
+               &out[0,0], sp_rows, nrows, ncols)
+
+
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmc(object sparse,
+                                                   complex[:,::1] mat):
+    """
+    Sparse matrix, c ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    sparse : csr matrix
+    mat : array 2d
+        Dense matrix for multiplication. Must be in c mode.
+
+    Returns
+    -------
+    out : array
+         Keep input ordering
+    """
+    cdef unsigned int sp_rows = sparse.indptr.shape[0]-1
+    cdef unsigned int ncols = mat.shape[1]
+    cdef cnp.ndarray[complex, ndim=2, mode="c"] out = \
+                     np.zeros((sp_rows, ncols), dtype=complex)
+    spmmpy_c(sparse.data, sparse.indices, sparse.indptr,
+             mat, 1., out)
+    return out
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _spmm_f_py(complex* data, int* ind, int* ptr,
+            complex* mat, complex a, complex* out,
+            unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
+    """
+    sparse*dense "F" ordered.
+    """
+    cdef int col
+    for col in range(ncols):
+        spmvpy(data, ind, ptr, mat+nrows*col, a, out+sp_rows*col, sp_rows)
+
+
+cpdef void spmmpy_f(complex[::1] data, int[::1] ind, int[::1] ptr,
+         complex[::1,:] mat, complex a, complex[::1,:] out):
+    """
+    Sparse matrix, fortran ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    data : array
+        Data for sparse matrix.
+    idx : array
+        Indices for sparse matrix data.
+    ptr : array
+        Pointers for sparse matrix data.
+    mat : array 2d
+        Dense matrix for multiplication.  Must be in fortran mode.
+    alpha : complex
+        Numerical coefficient for sparse matrix.
+    out: array
+        Output array. Must be in fortran mode.
+
+    """
+    cdef unsigned int sp_rows = ptr.shape[0]-1
+    cdef unsigned int nrows = mat.shape[0]
+    cdef unsigned int ncols = mat.shape[1]
+    _spmm_f_py(&data[0], &ind[0], &ptr[0], &mat[0,0], 1.,
+               &out[0,0], sp_rows, nrows, ncols)
+
+
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmf(object sparse,
+                                                   complex[::1,:] mat):
+    """
+    Sparse matrix, fortran ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    sparse : csr matrix
+    mat : array 2d
+        Dense matrix for multiplication. Must be in fortran mode.
+
+    Returns
+    -------
+    out : array
+    Keep input ordering
+    """
+    cdef unsigned int sp_rows = sparse.indptr.shape[0]-1
+    cdef unsigned int ncols = mat.shape[1]
+    cdef cnp.ndarray[complex, ndim=2, mode="fortran"] out = \
+                     np.zeros((sp_rows, ncols), dtype=complex, order="F")
+    spmmpy_f(sparse.data, sparse.indices, sparse.indptr,
+             mat, 1., out)
+    return out
+
+
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmm(object sparse,
+                                            cnp.ndarray[complex, ndim=2] mat):
+    """
+    Sparse matrix, dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    sparse : csr matrix
+    mat : array 2d
+    Dense matrix for multiplication. Can be in c or fortran mode.
+
+    Returns
+    -------
+    out : array
+    Keep input ordering
+    """
+    if mat.flags["F_CONTIGUOUS"]:
+        return spmmf(sparse, mat)
+    else:
+        return spmmc(sparse, mat)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs(
-        double t, 
+        double t,
         complex[::1] rho,
         complex[::1] data,
         int[::1] ind,
@@ -160,8 +325,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td(
-        double t, 
-        cnp.ndarray[complex, ndim=1, mode="c"] psi, 
+        double t,
+        cnp.ndarray[complex, ndim=1, mode="c"] psi,
         object H_func,
         object args):
 
@@ -223,7 +388,7 @@ cpdef cy_expect_psi(object A, complex[::1] vec, bool isherm):
 @cython.wraparound(False)
 cpdef cy_expect_psi_csr(complex[::1] data,
                         int[::1] ind,
-                        int[::1] ptr, 
+                        int[::1] ptr,
                         complex[::1] vec,
                         bool isherm):
 
@@ -264,7 +429,7 @@ cpdef cy_expect_rho_vec_csr(complex[::1] data,
                              int[::1] ptr,
                              complex[::1] rho_vec,
                              int herm):
-    
+
     cdef size_t row
     cdef int jj,row_start,row_end
     cdef int num_rows = rho_vec.shape[0]
@@ -276,7 +441,7 @@ cpdef cy_expect_rho_vec_csr(complex[::1] data,
         row_end = ptr[row+1]
         for jj from row_start <= jj < row_end:
             dot += data[jj]*rho_vec[idx[jj]]
- 
+
     if herm == 0:
         return dot
     else:
@@ -287,7 +452,7 @@ cpdef cy_expect_rho_vec_csr(complex[::1] data,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cy_spmm_tr(object op1, object op2, int herm):
-    
+
     cdef size_t row
     cdef complex tr = 0.0
 
@@ -318,7 +483,7 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
                 if col2 == row:
                     tr += data1[row1_idx] * data2[row2_idx]
                     break
- 
+
     if herm == 0:
         return tr
     else:
@@ -328,11 +493,11 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def expect_csr_ket(object A, object B, int isherm):  
+def expect_csr_ket(object A, object B, int isherm):
 
-    cdef complex[::1] Adata = A.data 
+    cdef complex[::1] Adata = A.data
     cdef int[::1] Aind = A.indices
-    cdef int[::1] Aptr = A.indptr 
+    cdef int[::1] Aptr = A.indptr
     cdef complex[::1] Bdata = B.data
     cdef int[::1] Bptr = B.indptr
     cdef int nrows = A.shape[0]
@@ -403,5 +568,5 @@ cpdef double complex zcsr_mat_elem(object A, object left, object right, bool bra
                 if (Rptr[j] - Rptr[j+1]) != 0:
                     row_sum += Adata[jj]*Rdata[Rptr[j]]
             mat_elem += cval*row_sum
-    
+
     return mat_elem

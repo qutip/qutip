@@ -66,36 +66,36 @@ class eseries():
     """
     __array_priority__ = 101
 
-    def __init__(self, q=np.array([], dtype=object), s=np.array([])):
+    def __init__(self, q=None, s=np.array([])):
 
         if isinstance(s, (int, float, complex)):
             s = np.array([s])
 
-        if (not np.any(np.asarray(q, dtype=object))) and (len(s) == 0):
+        if q is None:
             self.ampl = np.array([])
             self.rates = np.array([])
             self.dims = [[1, 1]]
             self.shape = [1, 1]
 
-        elif np.any(np.asarray(q, dtype=object)) and (len(s) == 0):
+        elif (len(s) == 0):
             if isinstance(q, eseries):
                 self.ampl = q.ampl
                 self.rates = q.rates
                 self.dims = q.dims
                 self.shape = q.shape
             elif isinstance(q, (np.ndarray, list)):
+                q = np.asarray(q, dtype=object)
                 ind = np.shape(q)
                 num = ind[0]  # number of elements in q
-                sh = np.array([Qobj(x).shape for x in q])
-                if any(sh != sh[0]):
+                if any([qt.Qobj(x).shape != qt.Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl = np.array([x for x in q])
+                self.ampl = np.array([x for x in q], dtype=object)
                 self.rates = np.zeros(ind)
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
             elif isinstance(q, Qobj):
                 qo = Qobj(q)
-                self.ampl = np.array([qo])
+                self.ampl = np.array([qo], dtype=object)
                 self.rates = np.array([0])
                 self.dims = qo.dims
                 self.shape = qo.shape
@@ -105,13 +105,12 @@ class eseries():
                 self.dims = [[1, 1]]
                 self.shape = [1, 1]
 
-        elif np.any(np.asarray(q, dtype=object)) and len(s) != 0:
+        elif len(s) != 0:
             if isinstance(q, (np.ndarray, list)):
                 q = np.asarray(q, dtype=object)
                 ind = np.shape(q)
                 num = ind[0]
-                sh = np.array([Qobj(q[x]).shape for x in range(0, num)])
-                if np.any(sh != sh[0]):
+                if any([qt.Qobj(x).shape != qt.Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
                 self.ampl = np.array([Qobj(q[x]) for x in range(0, num)],
                                      dtype=object)
@@ -122,6 +121,7 @@ class eseries():
                 self.ampl = np.array([Qobj(q)], dtype=object)
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
+
             if isinstance(s, (int, complex, float)):
                 if num != 1:
                     raise TypeError('Number of rates must match number ' +
@@ -140,6 +140,7 @@ class eseries():
             rates, ampl = list(zip(*zipped))  # get back rates and ampl
             self.ampl = np.array(ampl, dtype=object)
             self.rates = np.array(rates)
+
 
     def __str__(self):  # string of ESERIES information
         self.tidyup()
@@ -245,7 +246,6 @@ class eseries():
             Values of exponential at times in ``tlist``.
 
         """
-
         if self.ampl is None or len(self.ampl) == 0:
             # no terms, evalue to zero
             return np.zeros(np.shape(tlist))
@@ -353,7 +353,7 @@ class eseries():
                 if abs(total_ampl.full()).max() > ampl_tol:
                     self.rates = np.append(self.rates, unique_rates[ur_key])
                     self.ampl = np.append(self.ampl,
-                                          np.asarray(total_ampl,
+                                          np.asarray([total_ampl],
                                                      dtype=object))
 
         return self

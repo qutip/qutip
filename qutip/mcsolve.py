@@ -181,7 +181,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     if debug:
         print(inspect.stack()[0][3])
-    
+
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
 
@@ -193,10 +193,10 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
+
     if _safe_mode:
         _solver_safety_check(H, psi0, c_ops, e_ops, args)
-    
+
     if options is None:
         options = Options()
 
@@ -402,7 +402,7 @@ class _MC():
                         config.options.seeds[0:config.ntraj]
                 # if ntraj was increased but reusing seeds
                 elif seed_length < config.ntraj:
-                    newseeds = randint(1, 100000000.0 + 1, 
+                    newseeds = randint(1, 100000000.0 + 1,
                                 size=(config.ntraj - seed_length))
                     self.config.options.seeds = np.hstack(
                         (config.options.seeds, newseeds))
@@ -1087,7 +1087,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             for c_op in c_ops:
                 n_op = c_op.dag() * c_op
                 H -= 0.5j * \
-                    n_op 
+                    n_op
         # construct Hamiltonian data structures
         if options.tidy:
             H = H.tidyup(options.atol)
@@ -1149,7 +1149,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             # extract time-dependent coefficients (strings or functions)
             config.h_tdterms = [H[k][1] for k in H_td_inds]
             # combine time-INDEPENDENT terms into one.
-            H = np.array([np.sum(H[k] for k in H_const_inds)] +
+            H = np.array([sum([H[k] for k in H_const_inds])] +
                          [H[k][0] for k in H_td_inds], dtype=object)
             len_h = len(H)
             H_inds = np.arange(len_h)
@@ -1230,12 +1230,12 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                               "], config.h_ptr[" + str(k) + "]")
             if k != data_range[-1]:
                 config.string += ","
-        
+
         # Add objects to ode args string
         for k in range(len(config.h_tdterms)):
             if isinstance(config.h_tdterms[k], Cubic_Spline):
                 config.string += ", config.h_tdterms["+str(k)+"].coeffs"
-        
+
         # attach args to ode args string
         if len(config.c_args) > 0:
             for kk in range(len(config.c_args)):
@@ -1268,7 +1268,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             config.h_func_args = args
             Htd = np.array([H[k][0] for k in H_td_inds], dtype=object)
             config.h_td_inds = np.arange(len(Htd))
-            H = np.sum(H[k] for k in H_const_inds)
+            H = sum([H[k] for k in H_const_inds])
 
         # take care of collapse operators
         C_inds = np.arange(config.c_num)

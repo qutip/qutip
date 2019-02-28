@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -70,7 +72,7 @@ cdef int * int_argsort(int * x, int nrows):
     for kk in range(nrows):
         pairs[kk].data = x[kk]
         pairs[kk].idx = kk
-    
+
     sort(pairs.begin(),pairs.end(),cfptr_)
     cdef int * out = <int *>PyDataMem_NEW(nrows *sizeof(int))
     for kk in range(nrows):
