@@ -224,23 +224,38 @@ cdef class StrCoeff(CoeffFunc):
     def __init__(self, ops, args, tlist, dyn_args=[]):
         self._num_ops = len(ops)
         self._args = args
+        self._dyn_args = dyn_args
         self.set_args(args)
+        self._set_dyn_args(dyn_args)
+
+    cdef _set_dyn_args(self, dyn_args):
         self._num_expect = 0
-        self._mat_shape[0] = 0
-        self._mat_shape[1] = 1
         self._expect_op = []
+        expect_def = []
+        self._mat_shape[0] = 0
+        self._mat_shape[1] = 0
         if dyn_args:
-            for _, what, op in dyn_args:
+            for name, what, op in dyn_args:
                 if what == "expect":
                     self._expect_op.append(op.compiled_qobjevo)
+                    expect_def.append(self._args[name])
                     self._num_expect += 1
-        self._expect_vec = np.zeros(self._num_expect, dtype=complex)
-        self._vec = np.zeros(0, dtype=complex)
+                elif what == "vec":
+                    self._vec = self._args[name]
+                elif what == "mat":
+                    self._vec = self._args[name].ravel("F")
+                    self._mat_shape[0] = self._args[name].shape[0]
+                    self._mat_shape[1] = self._args[name].shape[0]
+                elif what == "Qobj":
+                    self._vec = self._args[name].full().ravel("F")
+                    self._mat_shape[0] = self._args[name].shape[0]
+                    self._mat_shape[1] = self._args[name].shape[0]
+        self._expect_vec = np.array(expect_def, dtype=complex)
 
     cdef void _dyn_args(double t, complex* state, int[::1] shape):
         cdef int ii, nn = shape[0] * shape[1]
         self._vec = <complex[:nn]> state
-        self._mat_shape = shape
+        self._mat_shape = shape[:2]
         cdef CQobjEvo cop
         for ii in self._num_expect:
             cop = self._expect_op[ii]
@@ -251,9 +266,22 @@ cdef class StrCoeff(CoeffFunc):
             else:
                 self._expect_vec[ii] cop._expect(t, state)
 
-    def __call__(self, double t, args={}):
+    def __call__(self, double t, args={}, vec=None):
         cdef np.ndarray[ndim=1, dtype=complex] coeff = \
-                                            np.zeros(self._num_ops, dtype=complex)
+                                    np.zeros(self._num_ops, dtype=complex)
+        cdef int[2] shape
+        if vec is not None:
+            if isinstance(vec, np.ndarray):
+                self._vec = vec.ravel("F")
+                shape[0] = vec.shape[0]
+                shape[1] = vec.shape[1]
+            else:
+                full = vec.full()
+                self._vec = full.ravel("F")
+                shape[0] = full.shape[0]
+                shape[1] = full.shape[1]
+            self.dyn_args(t, &self._vec[0], shape)
+
         if args:
             now_args = self.args.copy()
             now_args.update(args)
@@ -262,12 +290,15 @@ cdef class StrCoeff(CoeffFunc):
             self.set_args(self.args)
         else:
             self._call_core(t, &coeff[0])
+
         return coeff
 
     def __getstate__(self):
-        return (self._num_ops, self.args)
+        return (self._num_ops, self.args, self._dyn_args)
 
     def __setstate__(self, state):
         self._num_ops = state[0]
-        self.args = state[1]
+        self._args = state[1]
+        self._dyn_args = state[2]
         self.set_args(self.args)
+        self._set_dyn_args(dyn_args)

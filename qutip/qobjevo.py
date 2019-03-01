@@ -380,8 +380,7 @@ class QobjEvo:
         self.const = False
         self.dummy_cte = False
         self.args = args
-        self.dynamics_args_vec = []
-        self.dynamics_args_mat = []
+        self.dynamics_args = []
         self.cte = None
         self.tlist = tlist
         self.compiled = ""
@@ -391,6 +390,8 @@ class QobjEvo:
         self.type = "none"
         self.omp = 0
         self.coeff_files = []
+
+        self._args_checks()
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
@@ -551,12 +552,14 @@ class QobjEvo:
             except:
                 pass
 
-    def __call__(self, t, data=False, args={}):
+    def __call__(self, t, data=False, state=None, args={}):
         try:
             t = float(t)
         except Exception as e:
             raise TypeError("t should be a real scalar.") from e
-            raise TypeError("the time need to be a real scalar")
+
+        if state is not None:
+            self._dynamics_args_update(t, state)
 
         if args:
             if not isinstance(args, dict):
@@ -583,61 +586,72 @@ class QobjEvo:
 
         return op_t
 
-    def _dynamics_args_update(self, t, state, type_):
-        if type_ == "vec":
-            vec = state
+    def _dynamics_args_update(self, t, state):
+        if isinstance(state, Qobj):
             for name, what, op in self.dynamics_args:
                 if what == "vec":
-                    self.args[name] = vec
+                    self.args[name] = state.full().ravel("F")
                 elif what == "mat":
-                    self.args[name] = vec.T
+                    self.args[name] = state.full()
                 elif what == "Qobj":
-                    self.args[name] = Qobj(vec.T, dims=[self.cte.dims[1],[1]])
-                elif what == "expect":
-                    self.args[name] = op.expect(t, vec)
-
-        elif type_ == "super":
-            rho = vec2mat(state)
-            for name, what, op in self.dynamics_args:
-                if what == "vec":
                     self.args[name] = state
-                elif what == "mat":
-                    self.args[name] = rho
-                elif what == "Qobj":
-                    self.args[name] = Qobj(rho, dims=self.cte.dims[1])
                 elif what == "expect":
                     self.args[name] = op.expect(t, state)
 
-        elif type_ == "mat":
-            mat = state
-            dim = self.cte.dims[1]
+        elif isinstance(state, np.ndarray) and state.ndim == 1:
+            s1 = self.cte.shape[1]
             for name, what, op in self.dynamics_args:
                 if what == "vec":
-                    self.args[name] = mat.ravel("F")
-                elif what == "mat":
-                    self.args[name] = mat
-                elif what == "Qobj":
-                    self.args[name] = Qobj(mat, dims=[dim, dim])
+                    self.args[name] = state
                 elif what == "expect":
-                    self.args[name] = op.mul_mat(t, mat).trace()
+                    self.args[name] = op.expect(t, state)
+                elif state.shape[0] == s1 and self.super:
+                    new_l = int(np.sqrt(s1))
+                    mat = state.reshape((new_l, new_l))
+                    if what == "mat":
+                        self.args[name] = mat
+                    elif what == "Qobj":
+                        self.args[name] = Qobj(mat, dims=self.dims[1])
+                elif state.shape[0] == s1:
+                    mat = state.T
+                    if what == "mat":
+                        self.args[name] = mat
+                    elif what == "Qobj":
+                        self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
+                elif state.shape[0] == s1*s1:
+                    new_l = int(np.sqrt(s1))
+                    mat = state.reshape((new_l, new_l))
+                    if what == "mat":
+                        self.args[name] = mat
+                    elif what == "Qobj":
+                        self.args[name] = Qobj(mat, dims=[self.dims[1], self.dims[1]])
 
-        elif type_ == "super_mat":
+        elif isinstance(state, np.ndarray) and state.ndim == 2:
+            s1 = self.cte.shape[1]
+            new_l = int(np.sqrt(s1))
             for name, what, op in self.dynamics_args:
                 if what == "vec":
                     self.args[name] = state.ravel("F")
                 elif what == "mat":
                     self.args[name] = state
-                elif what == "Qobj":
-                    self.args[name] = Qobj(state, dims=self.cte.dims[1])
                 elif what == "expect":
-                    self.args[name] = op.mul_mat(t, mat).trace()
+                    self.args[name] = op.expect(t, state)
+                elif state.shape[1] == 1:
+                    self.args[name] = Qobj(state, dims=[self.dims[1],[1]])
+                elif state.shape[1] == s1:
+                    self.args[name] = Qobj(state, dims=self.dims)
+                else:
+                    self.args[name] = Qobj(state)
 
-    def with_state(self, t, psi, args={}, data=False):
-        self.args["_state_vec"] = psi
-        return self.__call__(t, args=args, data=data)
+        else:
+            raise TypeError("state must be a Qobj or np.ndarray")
 
     def _(self):
         pass
+        """def with_state(self, t, psi, args={}, data=False):
+            self.args["_state_vec"] = psi
+            return self.__call__(t, args=args, data=data)"""
+
         """def _with_args(self, t, args, data=False):
             if not isinstance(args, dict):
                 raise TypeError("The new args must be in a dict")
@@ -766,6 +780,7 @@ class QobjEvo:
         if not isinstance(args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(args)
+        self._args_checks() # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% if compiled??????????
         if self.compiled and self.compiled.split()[2] is not "cte":
             self.coeff_get.set_args(self.args)
 
@@ -1267,26 +1282,28 @@ class QobjEvo:
     def expect(self, t, vec, herm=0):
         if not isinstance(t, (int, float)):
             raise TypeError("The time need to be a real scalar")
-
+        self._dynamics_args_update(t, vec)
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
                 raise Exception("Dimensions do not fit")
-            vec = vec.full().ravel()
+            vec = vec.full().ravel("F")
         elif not isinstance(vec, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
-        if vec.ndim != 1:
-            raise Exception("The vector must be 1d")
-        if vec.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
 
-        if self.compiled:
-            exp = self.compiled_qobjevo.expect(t, vec)
-        elif self.cte.issuper:
-            self._dynamics_args_update(t, vec, "super")
-            exp = cy_expect_rho_vec(self.__call__(t, data=True), vec)
+        if vec.shape[0] == self.cte.shape[1]:
+            if self.compiled:
+                exp = self.compiled_qobjevo.expect(t, vec)
+            elif self.cte.issuper:
+                exp = cy_expect_rho_vec(self.__call__(t, data=True), vec)
+            else:
+                exp = cy_expect_psi(self.__call__(t, data=True), vec)
+        elif vec.shape[0] == self.cte.shape[1]**2:
+            if self.compiled:
+                exp = self.compiled_qobjevo.ovelapse(t, vec)
+            else:
+                exp = cy_spmm_tr(self.__call__(t, data=True), vec)
         else:
-            self._dynamics_args_update(t, vec, "vec")
-            exp = cy_expect_psi(self.__call__(t, data=True), vec)
+            raise Exception("The shapes do not match")
 
         if herm:
             return exp.real
@@ -1297,6 +1314,7 @@ class QobjEvo:
         was_Qobj = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
+        self._dynamics_args_update(t, vec)
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
                 raise Exception("Dimensions do not fit")
@@ -1313,10 +1331,6 @@ class QobjEvo:
         if self.compiled:
             out = self.compiled_qobjevo.mul_vec(t, vec)
         else:
-            if self.cte.issuper:
-                self._dynamics_args_update(t, vec, "super")
-            else:
-                self._dynamics_args_update(t, vec, "vec")
             out = spmv(self.__call__(t, data=True), vec)
 
         if was_Qobj:
@@ -1327,6 +1341,7 @@ class QobjEvo:
     def mul_mat(self, t, mat):
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
+        self._dynamics_args_update(t, mat)
         if not isinstance(mat, np.ndarray):
             raise TypeError("The vector must be an array")
         if mat.ndim != 2:
@@ -1337,16 +1352,17 @@ class QobjEvo:
         if self.compiled:
             out = self.compiled_qobjevo.mul_mat(t, mat)
         else:
-            if self.cte.issuper:
-                self._dynamics_args_update(t, vec, "super_mat")
-            else:
-                self._dynamics_args_update(t, vec, "mat")
             out = self.__call__(t, data=True) * mat
         return out
 
     def compile(self, code=False, matched=False, dense=False, omp=0):
         self.tidyup()
         Code = None
+        if self.compiled:
+            return
+        for _, _, op in self.dynamics_args:
+            if isinstance(op QobjEvo):
+                op.compile(code, matched, dense, omp)
         if not qset.has_openmp:
             omp = 0
         if self.const:

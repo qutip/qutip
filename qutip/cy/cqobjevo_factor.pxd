@@ -13,9 +13,9 @@ cdef class CoeffFunc:
     cdef void _dyn_args(double t, complex* state, int[::1] shape)
 
 cdef class StrCoeff(CoeffFunc):
-    cdef dict _args
+    cdef dict _args, _dyn_args
     cdef int _num_expect
-    cdef int[::1] _mat_shape
+    cdef int[2] _mat_shape
     cdef list _expect_op
     cdef complex[::1] _expect_vec
     cdef complex[::1] _vec
