@@ -42,6 +42,8 @@ from qutip.random_objects import rand_dm, rand_ket
 
 
 def test_wigner_bell1_su2parity():
+    """wigner: testing the SU2 parity of the first Bell state.
+    """
     psi = bell_state('00')
 
     steps = 100
@@ -52,19 +54,22 @@ def test_wigner_bell1_su2parity():
     wigner_analyt = np.zeros((steps, steps))
     for t in range(steps):
         for p in range(steps):
-            wigner_analyt[t, p] = ((1 + np.sqrt(3) * np.cos(theta[0, t]))
-                                   * (1 + np.sqrt(3) * np.cos(theta[1, t]))
-                                   + 3 * (np.sin(theta[0, t])
-                                   * np.exp(-1j * phi[0, p])
-                                   * np.sin(theta[1, t])
-                                   * np.exp(-1j * phi[1, p])
-                                   + np.sin(theta[0, t])
-                                   * np.exp(1j * phi[0, p])
-                                   * np.sin(theta[1, t])
-                                   * np.exp(1j * phi[1, p]))
-                                   + (1 - np.sqrt(3) * np.cos(theta[0, t]))
-                                   * (1 - np.sqrt(3)
-                                   * np.cos(theta[1, t]))) / 8.
+            wigner_analyt[t, p] = np.real(((1 + np.sqrt(3)
+                                            * np.cos(theta[0, t]))
+                                           * (1 + np.sqrt(3)
+                                           * np.cos(theta[1, t]))
+                                           + 3 * (np.sin(theta[0, t])
+                                           * np.exp(-1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(-1j * phi[1, p])
+                                           + np.sin(theta[0, t])
+                                           * np.exp(1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(1j * phi[1, p]))
+                                           + (1 - np.sqrt(3)
+                                           * np.cos(theta[0, t]))
+                                           * (1 - np.sqrt(3)
+                                           * np.cos(theta[1, t]))) / 8.)
 
     wigner_theo = wigner_transformation(psi, 0.5, False, steps, slicearray)
 
@@ -72,6 +77,8 @@ def test_wigner_bell1_su2parity():
 
 
 def test_wigner_bell4_su2parity():
+    """wigner: testing the SU2 parity of the fourth Bell state.
+    """
     psi = bell_state('11')
 
     steps = 100
@@ -88,6 +95,9 @@ def test_wigner_bell4_su2parity():
 
 
 def test_wigner_bell4_fullparity():
+    """wigner: testing the parity of the fourth Bell state using the parity of
+    the full space.
+    """
     psi = bell_state('11')
 
     steps = 100
@@ -106,6 +116,8 @@ def test_wigner_bell4_fullparity():
 
 
 def test_parity():
+    """wigner: testing the parity function.
+    """
     j = 0.5
     assert_(_parity(2, j)[0, 0] - (1 - np.sqrt(3)) / 2. < 1e-11)
     assert_(_parity(2, j)[0, 1] < 1e-11)
@@ -114,6 +126,8 @@ def test_parity():
 
 
 def test_wigner_pure_su2():
+    """wigner: testing the SU2 wigner transformation of a pure state.
+    """
     psi = (ket([1]))
     steps = 100
     theta = np.linspace(0, np.pi, steps)
@@ -133,6 +147,8 @@ def test_wigner_pure_su2():
 
 
 def test_wigner_ghz_su2parity():
+    """wigner: testing the SU2 wigner transformation of the GHZ state.
+    """
     psi = (ket([0, 0, 0]) + ket([1, 1, 1])) / np.sqrt(2)
 
     steps = 100
@@ -144,24 +160,29 @@ def test_wigner_ghz_su2parity():
     wigner_analyt = np.zeros((steps, steps))
     for t in range(steps):
         for p in range(steps):
-            wigner_analyt[t, p] = ((1 + np.sqrt(3) * np.cos(theta[0, t]))
-                                   * (1 + np.sqrt(3) * np.cos(theta[1, t]))
-                                   * (1 + np.sqrt(3) * np.cos(theta[2, t]))
-                                   + 3**(3 / 2) * (np.sin(theta[0, t])
-                                   * np.exp(-1j * phi[0, p])
-                                   * np.sin(theta[1, t])
-                                   * np.exp(-1j * phi[1, p])
-                                   * np.sin(theta[2, t])
-                                   * np.exp(-1j * phi[2, p])
-                                   + np.sin(theta[0, t])
-                                   * np.exp(1j * phi[0, p])
-                                   * np.sin(theta[1, t])
-                                   * np.exp(1j * phi[1, p])
-                                   * np.sin(theta[2, t])
-                                   * np.exp(1j * phi[2, p])) + (1 - np.sqrt(3)
-                                   * np.cos(theta[0, t])) * (1 - np.sqrt(3)
-                                   * np.cos(theta[1, t])) * (1 - np.sqrt(3)
-                                   * np.cos(theta[2, t]))) / 16.
+            wigner_analyt[t, p] = np.real(((1 + np.sqrt(3)*np.cos(theta[0, t]))
+                                           * (1 + np.sqrt(3)
+                                           * np.cos(theta[1, t]))
+                                           * (1 + np.sqrt(3)
+                                           * np.cos(theta[2, t]))
+                                           + 3**(3 / 2) * (np.sin(theta[0, t])
+                                           * np.exp(-1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(-1j * phi[1, p])
+                                           * np.sin(theta[2, t])
+                                           * np.exp(-1j * phi[2, p])
+                                           + np.sin(theta[0, t])
+                                           * np.exp(1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(1j * phi[1, p])
+                                           * np.sin(theta[2, t])
+                                           * np.exp(1j * phi[2, p]))
+                                           + (1 - np.sqrt(3)
+                                           * np.cos(theta[0, t]))
+                                           * (1 - np.sqrt(3)
+                                           * np.cos(theta[1, t]))
+                                           * (1 - np.sqrt(3)
+                                           * np.cos(theta[2, t]))) / 16.)
 
     wigner_theo = wigner_transformation(psi, 0.5, False, steps, slicearray)
 
@@ -169,6 +190,8 @@ def test_wigner_ghz_su2parity():
 
 
 def test_angle_slicing():
+    """wigner: tests angle slicing.
+    """
     psi1 = bell_state('00')
     psi2 = bell_state('01')
     psi3 = bell_state('10')

@@ -48,6 +48,7 @@ from qutip.qobj import Qobj, isket, isoper
 from qutip.states import ket2dm
 from qutip.parallel import parfor
 from qutip.utilities import clebsch
+from qutip.operators import jmat
 from scipy.special import factorial
 from qutip.cy.sparse_utils import _csr_get_diag
 import qutip as qt
@@ -123,8 +124,8 @@ def wigner_transformation(psi, j, fullparity, steps, slicearray):
         pari = _parity(sun, j)
     for t in range(steps):
         for p in range(steps):
-            wigner[t, p] = np.trace(rho.data @ _kernelsu2(
-                theta[:, t], phi[:, p], N, j, pari, fullparity))
+            wigner[t, p] = np.real(np.trace(rho.data @ _kernelsu2(
+                theta[:, t], phi[:, p], N, j, pari, fullparity)))
     return wigner
 
 
@@ -168,47 +169,10 @@ def _kernelsu2(theta, phi, N, j, parity, fullparity):
     return matrix
 
 
-def _rotation_matrix(theta, phi, j, h=1):
+def _rotation_matrix(theta, phi, j):
     """Private function to calculate the rotation operator for the SU2 kernel.
     """
-    return la.expm(1j * phi * _j_z(j, h)) @ la.expm(1j * theta * _j_y(j, h))
-
-
-def _j_y(j, h=1):
-    """Private function to calculate the y angular momentum operator matrix.
-    """
-    return (_j_plus(j, h) - _j_minus(j, h)) / 2j
-
-
-def _j_z(j, h=1):
-    """Private function to calculate the z angular momentum operator matrix.
-    """
-    mult = np.int32(2 * j + 1)
-    matrix = np.zeros((mult, mult))
-    np.fill_diagonal(matrix, np.int32(h * np.linspace(-j, j, mult)))
-    return matrix
-
-
-def _j_plus(j, h=1):
-    """Private function to calculate the J plus operator matrix.
-    """
-    mult = np.int32(2 * j + 1)
-    matrix = np.zeros((mult, mult))
-    for m in np.arange(-j, j):
-        matrix[np.int32(j + m), np.int32(j + m + 1)] = h * \
-            np.sqrt(j * (j + 1) - m * (m + 1))
-    return matrix
-
-
-def _j_minus(j, h=1):
-    """Private function to calculate the J minus operator matrix.
-    """
-    mult = np.int32(2 * j + 1)
-    matrix = np.zeros((mult, mult))
-    for m in np.arange(-j, j):
-        matrix[np.int32(j + m + 1), np.int32(j + m)] = h * \
-            np.sqrt(j * (j + 1) - m * (m + 1))  # TODO: +-1
-    return matrix
+    return la.expm(1j * phi * jmat(j, 'z'))@ la.expm(1j * theta * jmat(j, 'y'))
 
 
 def _angle_slice(slicearray, theta, phi):
@@ -225,8 +189,8 @@ def _angle_slice(slicearray, theta, phi):
     return theta, phi
 
 
-def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), 
-            sparse=False, parfor=False):
+def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
+           sparse=False, parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
 
