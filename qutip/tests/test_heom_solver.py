@@ -42,10 +42,12 @@ import os
 import numpy as np
 from numpy import pi, real, cos, tanh
 from numpy.testing import (
-    assert_, assert_almost_equal, run_module_suite, assert_equal)
+    assert_, assert_almost_equal, run_module_suite, assert_equal,
+    assert_array_almost_equal, assert_raises)
 from scipy.integrate import quad, IntegrationWarning
 from qutip import Qobj, sigmaz, basis, expect
-from qutip.nonmarkov.heom import HSolverDL
+from qutip.nonmarkov.heom import (HSolverDL, underdamped_lorrentzian,
+                                  bath_correlation)
 from qutip.solver import Options
 import warnings
 warnings.simplefilter('ignore', IntegrationWarning)
@@ -132,4 +134,27 @@ class TestHSolver:
         assert_(max_resid < resid_tol, "Max residual {} outside tolerence {}, "
                 "for hsolve with {}".format(max_resid, resid_tol, test_desc))
         
-        
+
+def test_sd_function():
+    """
+    correlation: Test for bath correlation function.
+    """
+    tlist = [0., 0.5, 1., 1.5, 2.]
+    lam, gamma, w0 = 0.4, 0.4, 1.
+    beta = np.inf
+    w_cutoff = 10.
+    corr = bath_correlation(underdamped_lorrentzian, tlist,
+                            [lam, gamma, w0], beta, w_cutoff)
+
+    y = np.array([0.07108, 0.059188-0.03477j, 0.033282-0.055529j,
+                  0.003295-0.060187j, -0.022843-0.050641j])
+
+    assert_array_almost_equal(corr, y)
+
+    sd = np.arange(0, 10, 2)
+    assert_raises(TypeError, bath_correlation, [sd, tlist, [0.1], beta,
+                                                w_cutoff])
+
+
+if __name__ == "__main__":
+    run_module_suite()
