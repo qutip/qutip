@@ -266,7 +266,7 @@ def sigmap():
 
     Examples
     --------
-    >>> sigmam()
+    >>> sigmap()
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =
