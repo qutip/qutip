@@ -44,6 +44,8 @@ import numpy as np
 #from scipy.misc import factorial
 import scipy.sparse as sp
 import scipy.integrate
+from scipy.integrate import quad
+
 from copy import copy
 from qutip import Qobj, qeye
 from qutip.states import enr_state_dictionaries
@@ -624,3 +626,173 @@ def _pad_csr(A, row_scale, col_scale, insertrow=0, insertcol=0):
         raise ValueError("insertrow must be >= 0 and < row_scale")
 
     return A
+
+
+class HSolverUnderDampedLorrentzian(HEOMSolver):
+    """
+    HEOM solver based on the underdamped Lorrentzian spectral density.
+
+    Attributes
+    ----------
+    cut_freq : float
+        Bath spectral density cutoff frequency.
+
+    renorm : bool
+        Apply renormalisation to coupling terms
+        Can be useful if using SI units for planck and boltzmann.
+
+    bnd_cut_approx : bool
+        Use boundary cut off approximation
+        Can be
+    """
+    def __init__(self, H_sys, coup_op, coup_strength, temperature,
+                     N_cut, N_exp, cut_freq, planck=1.0, boltzmann=1.0,
+                     renorm=True, bnd_cut_approx=True,
+                     options=None, progress_bar=None, stats=None):
+
+        self.reset()
+
+        if options is None:
+            self.options = Options()
+        else:
+            self.options = options
+
+        self.progress_bar = False
+        if progress_bar is None:
+            self.progress_bar = BaseProgressBar()
+        elif progress_bar == True:
+            self.progress_bar = TextProgressBar()
+
+        # the other attributes will be set in the configure method
+        self.configure(H_sys, coup_op, coup_strength, temperature,
+                     N_cut, N_exp, cut_freq, planck=planck, boltzmann=boltzmann,
+                     renorm=renorm, bnd_cut_approx=bnd_cut_approx, stats=stats)
+
+    def reset(self):
+        """
+        Reset any attributes to default values
+        """
+        HEOMSolver.reset(self)
+        self.cut_freq = 1.0
+        self.renorm = False
+        self.bnd_cut_approx = False
+
+    def configure(self):
+        """
+        Configures the HEOM hierarchy.
+        """
+        pass
+
+    def run(self, rho0, tlist):
+        """
+        Runs the HEOM evolution for initial state `rho0` and time `tlist`
+        """
+        pass
+
+
+def underdamped_lorrentzian(w, lam, gamma, w0):
+    """
+    Calculates the underdamped lorrentzian spectral density.
+
+    Parameters
+    ----------
+    w: np.ndarray
+        A 1D numpy array of frequencies.
+
+    lam: float
+        The coupling strength parameter.
+
+    gamma: float
+        A parameter characterizing the FWHM of the spectral density.
+
+    w0: float
+        The qubit frequency.
+
+    Returns
+    -------
+    spectral_density: np.ndarray
+        The spectral density for specified parameters.
+    """
+    omega = np.sqrt(w0**2 - (gamma/2)**2)
+    a = omega + 1j*gamma/2.
+    aa = np.conjugate(a)
+    prefactor = (lam**2)*gamma
+    spectral_density = prefactor*(w/((w-a)*(w+a)*(w-aa)*(w+aa)))
+    return spectral_density
+
+
+def bath_correlation(spectral_density, tlist,
+                     params, beta, w_cutoff):
+    """
+    Calculates the bath correlation function (C) for a specific spectral
+    density (J(w)) for an environment modelled as a bath of harmonic
+    oscillators. If :math: `\beta` is the inverse temperature of the bath
+    then the correlation is:
+
+    :math:`C(t) = \frac{1}{\pi} \left[\int_{0}^{\infty} \coth
+    (\beta \omega /2) \cos(\omega t) - i\sin(\omega t) \right]`
+
+    where :math: `\beta = 1/kT` with T as the bath temperature and k as
+    the Boltzmann's constant.
+
+    Assumptions:
+        1. The bath is in a thermal state at a given temperature.
+        2. The initial state of the environment is Gaussian.
+        3. Bath operators are in a product state with the system intially.
+
+    The `spectral_density` function is a callable, for example the Ohmic
+    spectral density given as: `ohmic_sd = lambda w, eta: eta*w`
+
+    Parameters
+    ==========
+    spectral_density: callable
+        A function of the form f(w, *params) which calculates the spectral
+        densities for the given parameters, where w are the frequencies.
+
+    tlist : *list* / *array*
+        A 1D array/list of times to calculate the correlation.
+
+    params: ndarray
+        A 1D array of parameters for the spectral density function.
+
+    w_cutoff: float
+        The cutoff value for the angular frequencies
+        for integration.
+
+        In general the intergration is for all values but since at
+        higher frequencies, the spectral density is zero, we set
+        a finite limit to the numerical integration.
+
+    beta: float
+        The inverse temperature of the bath. If the temperature
+        is zero, `beta` goes to infinity and we can replace the coth(x)
+        term in the correlation function's real part with 1.
+        At higher temperatures the coth(x) function behaves poorly at
+        low frequencies.
+
+    Returns
+    =======
+    corr: ndarray
+        A 1D array giving the values of the correlation function for given
+        time.
+    """
+    if not callable(spectral_density):
+        raise TypeError("""Spectral density should be a callable function
+            f(w, args)""")
+
+    corrR = []
+    corrI = []
+
+    coth = lambda x: 1/np.tanh(x)
+    w_start = 0.
+
+    integrandR = lambda w, t: np.real(spectral_density(w, *params) \
+        *(coth(beta*(w/2)))*np.cos(w*t))
+    integrandI = lambda w, t: np.real(-spectral_density(w, *params) \
+        *np.sin(w*t))
+
+    for i in tlist:
+        corrR.append(np.real(quad(integrandR, w_start, w_cutoff, args=(i,))[0]))
+        corrI.append(quad(integrandI, w_start, w_cutoff, args=(i,))[0])
+    corr = (np.array(corrR) + 1j*np.array(corrI))/np.pi
+    return corr
