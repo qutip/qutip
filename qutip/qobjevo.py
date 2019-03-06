@@ -40,11 +40,10 @@ from qutip.interpolate import Cubic_Spline
 from scipy.interpolate import CubicSpline
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
-from qutip.superoperator import vec2mat
 import numpy as np
 from numbers import Number
 from qutip.qobjevo_codegen import _compile_str_single, _compiled_coeffs
-from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
+from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv, cy_spmm_tr)
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
                                  CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
@@ -507,31 +506,37 @@ class QobjEvo:
         return op_type
 
     def _args_checks(self):
+        to_remove = []
+        to_add = {}
         for key in self.args:
             if "=" in key:
-                name, what = key.split()
+                name, what = key.split("=")
                 if what in ["Qobj", "vec", "mat"]:
                     # state first, expect last
                     self.dynamics_args = [(name, what, None)] + self.dynamics_args
                     if name not in self.args and isinstance(self.args[key], Qobj):
                         if what == "Qobj":
-                            self.args[name] = self.args[key]
+                            to_add[name] = self.args[key]
                         elif what == "mat":
-                            self.args[name] = self.args[key].full()
+                            to_add[name] = self.args[key].full()
                         else:
-                            self.args[name] = self.args[key].full().ravel("F")
+                            to_add[name] = self.args[key].full().ravel("F")
 
                 elif what == "expect":
-                    expect_op = QovjEvo(self.args[key], copy=False)
+                    expect_op = QobjEvo(self.args[key], copy=False)
                     self.dynamics_args += [(name, what, expect_op)]
                     if name not in self.args:
-                        self.args[name] = 0.
+                        to_add[name] = 0.
                 else:
                     raise Exception("Could not understand dynamics args: " +
                                     what + "\nSupported dynamics args: "
                                     "Qobj, csr, vec, mat, expect")
+                to_remove.append(key)
 
-                del self.args[key]
+        for key in to_remove:
+            del self.args[key]
+
+        self.args.update(to_add)
 
 
 
@@ -1279,29 +1284,38 @@ class QobjEvo:
         self.ops = new_ops
         return self
 
-    def expect(self, t, vec, herm=0):
+    def expect(self, t, state, herm=0):
         if not isinstance(t, (int, float)):
             raise TypeError("The time need to be a real scalar")
-        self._dynamics_args_update(t, vec)
-        if isinstance(vec, Qobj):
-            if self.cte.dims[1] != vec.dims[0]:
+        if isinstance(state, Qobj):
+            if self.cte.dims[1] == state.dims[0]:
+                vec = state.full().ravel("F")
+            elif self.cte.dims[1] == state.dims:
+                vec = state.full().ravel("F")
+            else:
                 raise Exception("Dimensions do not fit")
-            vec = vec.full().ravel("F")
-        elif not isinstance(vec, np.ndarray):
+        elif isinstance(state, np.ndarray):
+            vec = state.reshape((-1))
+        else:
             raise TypeError("The vector must be an array or Qobj")
 
         if vec.shape[0] == self.cte.shape[1]:
             if self.compiled:
                 exp = self.compiled_qobjevo.expect(t, vec)
             elif self.cte.issuper:
-                exp = cy_expect_rho_vec(self.__call__(t, data=True), vec)
+                self._dynamics_args_update(t, state)
+                exp = cy_expect_rho_vec(self.__call__(t, data=True), vec, 0)
             else:
-                exp = cy_expect_psi(self.__call__(t, data=True), vec)
+                self._dynamics_args_update(t, state)
+                exp = cy_expect_psi(self.__call__(t, data=True), vec, 0)
         elif vec.shape[0] == self.cte.shape[1]**2:
             if self.compiled:
-                exp = self.compiled_qobjevo.ovelapse(t, vec)
+                exp = self.compiled_qobjevo.overlapse(t, vec)
             else:
-                exp = cy_spmm_tr(self.__call__(t, data=True), vec)
+                self._dynamics_args_update(t, state)
+                exp = (self.__call__(t, data=True) *
+                       vec.reshape((self.cte.shape[1],
+                                    self.cte.shape[1]))).trace()
         else:
             raise Exception("The shapes do not match")
 
@@ -1314,7 +1328,6 @@ class QobjEvo:
         was_Qobj = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
-        self._dynamics_args_update(t, vec)
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
                 raise Exception("Dimensions do not fit")
@@ -1331,6 +1344,7 @@ class QobjEvo:
         if self.compiled:
             out = self.compiled_qobjevo.mul_vec(t, vec)
         else:
+            self._dynamics_args_update(t, vec)
             out = spmv(self.__call__(t, data=True), vec)
 
         if was_Qobj:
@@ -1339,11 +1353,17 @@ class QobjEvo:
             return out
 
     def mul_mat(self, t, mat):
+        was_Qobj = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
-        self._dynamics_args_update(t, mat)
+        if isinstance(mat, Qobj):
+            if self.cte.dims[1] != vec.dims[0]:
+                raise Exception("Dimensions do not fit")
+            was_Qobj = True
+            dims = vec.dims
+            mat = mat.full()
         if not isinstance(mat, np.ndarray):
-            raise TypeError("The vector must be an array")
+            raise TypeError("The vector must be an array or Qobj")
         if mat.ndim != 2:
             raise Exception("The matrice must be 2d")
         if mat.shape[0] != self.cte.shape[1]:
@@ -1352,8 +1372,13 @@ class QobjEvo:
         if self.compiled:
             out = self.compiled_qobjevo.mul_mat(t, mat)
         else:
+            self._dynamics_args_update(t, mat)
             out = self.__call__(t, data=True) * mat
-        return out
+
+        if was_Qobj:
+            return Qobj(out, dims=dims)
+        else:
+            return out
 
     def compile(self, code=False, matched=False, dense=False, omp=0):
         self.tidyup()
@@ -1361,7 +1386,7 @@ class QobjEvo:
         if self.compiled:
             return
         for _, _, op in self.dynamics_args:
-            if isinstance(op QobjEvo):
+            if isinstance(op, QobjEvo):
                 op.compile(code, matched, dense, omp)
         if not qset.has_openmp:
             omp = 0
@@ -1406,7 +1431,8 @@ class QobjEvo:
                 funclist = []
                 for part in self.ops:
                     funclist.append(part.get_coeff)
-                self.coeff_get = _UnitedFuncCaller(funclist, self.args)
+                self.coeff_get = _UnitedFuncCaller(funclist, self.args,
+                                                   self.dynamics_args, self.cte)
                 self.compiled += "pyfunc"
                 self.compiled_qobjevo.set_factor(func=self.coeff_get)
             elif self.type in ["mixed_callable"]:
@@ -1416,7 +1442,8 @@ class QobjEvo:
                         part.get_coeff, file = _compile_str_single(part.coeff, self.args)
                         self.coeff_files.append(file)
                     funclist.append(part.get_coeff)
-                self.coeff_get = _UnitedFuncCaller(funclist, self.args)
+                self.coeff_get = _UnitedFuncCaller(funclist, self.args,
+                                                   self.dynamics_args, self.cte)
                 self.compiled += "pyfunc"
                 self.compiled_qobjevo.set_factor(func=self.coeff_get)
             elif self.type in ["string", "mixed_compilable"]:
@@ -1602,3 +1629,5 @@ class _Add():
 
     def __call__(self, t, args):
         return np.sum([f(t, args) for f in self.funcs])
+
+from qutip.superoperator import vec2mat

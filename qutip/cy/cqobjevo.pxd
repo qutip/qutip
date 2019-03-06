@@ -41,6 +41,7 @@ cdef class CQobjEvo:
     cdef object dims
     cdef int super
     cdef int num_ops
+    cdef int dyn_args
 
     #cdef void (*factor_ptr)(double, complex*)
     cdef object factor_func
@@ -50,7 +51,8 @@ cdef class CQobjEvo:
     cdef complex[::1] coeff
     cdef complex* coeff_ptr
 
-    # cdef void _factor(self, double t)
+    cdef void _factor(self, double t)
+    cdef void _factor_dyn(self, double t, complex* state, int[::1] state)
     cdef void _mul_vec(self, double t, complex* vec, complex* out)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                     int nrow, int ncols)
@@ -80,10 +82,6 @@ cdef class CQobjEvoTd(CQobjEvo):
     cdef CSR_Matrix cte
     cdef CSR_Matrix ** ops
     cdef long[::1] sum_elem
-    cdef int dyn_args
-
-    cdef void _factor(self, double t)
-    cdef void _factor_dyn(self, double t, complex* state, int[:] state)
     cdef void _call_core(self, CSR_Matrix * out, complex* coeff)
 
 
@@ -102,7 +100,6 @@ cdef class CQobjEvoTdDense(CQobjEvo):
 
 cdef class CQobjEvoTdMatched(CQobjEvo):
     cdef int nnz
-
     # data as array
     cdef int[::1] indptr
     cdef int[::1] indices

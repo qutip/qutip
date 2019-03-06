@@ -84,7 +84,7 @@ cdef class CoeffFunc:
     cdef void _call_core(self, double t, complex* coeff):
         pass
 
-    cdef void _dyn_args(double t, complex* state, int[::1] shape):
+    cdef void _dyn_args(self, double t, complex* state, int[::1] shape):
         pass
 
     def __getstate__(self):
@@ -224,11 +224,11 @@ cdef class StrCoeff(CoeffFunc):
     def __init__(self, ops, args, tlist, dyn_args=[]):
         self._num_ops = len(ops)
         self._args = args
-        self._dyn_args = dyn_args
+        self._dyn_args_list = dyn_args
         self.set_args(args)
         self._set_dyn_args(dyn_args)
 
-    cdef _set_dyn_args(self, dyn_args):
+    def _set_dyn_args(self, dyn_args):
         self._num_expect = 0
         self._expect_op = []
         expect_def = []
@@ -252,19 +252,20 @@ cdef class StrCoeff(CoeffFunc):
                     self._mat_shape[1] = self._args[name].shape[0]
         self._expect_vec = np.array(expect_def, dtype=complex)
 
-    cdef void _dyn_args(double t, complex* state, int[::1] shape):
+    cdef void _dyn_args(self, double t, complex* state, int[::1] shape):
         cdef int ii, nn = shape[0] * shape[1]
         self._vec = <complex[:nn]> state
-        self._mat_shape = shape[:2]
+        self._mat_shape[0] = shape[0]
+        self._mat_shape[1] = shape[1]
         cdef CQobjEvo cop
         for ii in self._num_expect:
             cop = self._expect_op[ii]
             if cop.shape1 != nn:
-                self.expect_vec[ii] cop._overlapse(t, state)
+                self.expect_vec[ii] = cop._overlapse(t, state)
             elif cop.super:
-                self._expect_vec[ii] cop._expect_super(t, state)
+                self._expect_vec[ii] = cop._expect_super(t, state)
             else:
-                self._expect_vec[ii] cop._expect(t, state)
+                self._expect_vec[ii] = cop._expect(t, state)
 
     def __call__(self, double t, args={}, vec=None):
         cdef np.ndarray[ndim=1, dtype=complex] coeff = \
@@ -280,7 +281,7 @@ cdef class StrCoeff(CoeffFunc):
                 self._vec = full.ravel("F")
                 shape[0] = full.shape[0]
                 shape[1] = full.shape[1]
-            self.dyn_args(t, &self._vec[0], shape)
+            self._dyn_args(t, &self._vec[0], shape)
 
         if args:
             now_args = self.args.copy()
@@ -294,11 +295,11 @@ cdef class StrCoeff(CoeffFunc):
         return coeff
 
     def __getstate__(self):
-        return (self._num_ops, self.args, self._dyn_args)
+        return (self._num_ops, self.args, self._dyn_args_list)
 
     def __setstate__(self, state):
         self._num_ops = state[0]
         self._args = state[1]
-        self._dyn_args = state[2]
+        self._dyn_args_list = state[2]
         self.set_args(self.args)
-        self._set_dyn_args(dyn_args)
+        self._set_dyn_args(self._dyn_args_list)

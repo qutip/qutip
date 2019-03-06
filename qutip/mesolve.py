@@ -59,8 +59,13 @@ from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
 
-from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
-                           _sesolve_list_td, _sesolve_func_td, _sesolve_const)
+#from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
+#                           _sesolve_list_td, _sesolve_func_td, _sesolve_const)
+_sesolve_list_func_td = None
+_sesolve_list_str_td = None
+_sesolve_list_td = None
+_sesolve_func_td = None
+_sesolve_const = None
 
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -220,10 +225,10 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
+
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
+
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
@@ -247,11 +252,11 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config collapse and time-dependence flags to default values
         config.reset()
-    
+
     #check if should use OPENMP
     check_use_openmp(options)
-    
-    
+
+
     res = None
 
     #
@@ -615,7 +620,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                             "Hamiltonian (expected string format)")
 
 
-    
+
     # loop over all collapse operators
     for c_spec in c_list:
         if isinstance(c_spec, Qobj):
@@ -636,7 +641,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
             n_not_const_terms +=1
             c = c_spec[0]
             c_coeff = c_spec[1]
-            
+
             if isoper(c):
                 cdc = c.dag() * c
                 L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) \
@@ -669,22 +674,22 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
         else:
             raise TypeError("Incorrect specification of time-dependent " +
                             "collapse operators (expected string format)")
-    
-    
+
+
     #prepend the constant part of the liouvillian
     if Lconst != 0:
        Ldata = [Lconst.data.data]+Ldata
        Linds = [Lconst.data.indices]+Linds
        Lptrs = [Lconst.data.indptr]+Lptrs
        Lcoeff = ["1.0"]+Lcoeff
-       
+
     else:
         me_cops_obj_flags = [kk-1 for kk in me_cops_obj_flags]
     # the total number of liouvillian terms (hamiltonian terms +
     # collapse operators)
     n_L_terms = len(Ldata)
     n_td_cops = len(me_cops_obj)
-    
+
     # Check which components should use OPENMP
     omp_components = None
     if qset.has_openmp:
@@ -698,22 +703,22 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     string_list = []
     for k in range(n_L_terms):
         string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
-    
+
     # Add H object terms to ode args string
     for k in range(len(Lobj)):
         string_list.append("Lobj[%d]" % k)
-        
+
     # Add cop object terms to end of ode args string
     for k in range(len(me_cops_obj)):
-        string_list.append("me_cops_obj[%d]" % k)    
-    
+        string_list.append("me_cops_obj[%d]" % k)
+
     for name, value in args.items():
         if isinstance(value, np.ndarray):
             string_list.append(name)
         else:
             string_list.append(str(value))
     parameter_string = ",".join(string_list)
-    
+
     #
     # generate and compile new cython code if necessary
     #
@@ -722,8 +727,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
             config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=len(Lcoeff), h_tdterms=Lcoeff, 
-                       c_td_splines=me_cops_coeff, 
+        cgen = Codegen(h_terms=len(Lcoeff), h_tdterms=Lcoeff,
+                       c_td_splines=me_cops_coeff,
                        c_td_spline_flags=me_cops_obj_flags, args=args,
                        config=config, use_openmp=opt.use_openmp,
                        omp_components=omp_components,
@@ -802,7 +807,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         H = H.tidyup(opt.atol)
 
     L = liouvillian(H, c_op_list)
-    
+
 
     #
     # setup integrator
@@ -814,7 +819,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
     else:
         if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
             r = scipy.integrate.ode(cy_ode_rhs_openmp)
-            r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
+            r.set_f_params(L.data.data, L.data.indices, L.data.indptr,
                             opt.openmp_threads)
         else:
             r = scipy.integrate.ode(cy_ode_rhs)
@@ -961,7 +966,7 @@ def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
     return L * rho
 
 #
-# evaluate dE(t)/dt according to the master equation, where E is a 
+# evaluate dE(t)/dt according to the master equation, where E is a
 # superoperator
 #
 def _ode_super_func_td(t, y, L0, L_func, args):
@@ -969,7 +974,7 @@ def _ode_super_func_td(t, y, L0, L_func, args):
     return _ode_super_func(t, y, L)
 
 #
-# evaluate dE(t)/dt according to the master equation, where E is a 
+# evaluate dE(t)/dt according to the master equation, where E is a
 # superoperator
 #
 def _ode_super_func_td_with_state(t, y, L0, L_func, args):

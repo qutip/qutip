@@ -239,14 +239,14 @@ include """ + _include_string + "\n\n"
         if what == "vec":
             code += "    cdef complex[::1] " + name + " = self._vec\n"
         if what == "mat":
-            code += "    cdef np.ndarray[complex, ndim=2] " + name +
-                    " = np.array(self._vec).rechape("
+            code += "    cdef np.ndarray[complex, ndim=2] " + name + \
+                    " = np.array(self._vec).rechape(" \
                     "(self._mat_shape[0], self._mat_shape[1]))\n"
         if what == "Qobj":
-            code += "    " + name + " = Qobj(np.array(self._vec).rechape("
+            code += "    " + name + " = Qobj(np.array(self._vec).rechape(" \
                     "(self._mat_shape[0], self._mat_shape[1])))\n"
         if what == "expect":
-            code += "    cdef complex " + name + = "self._expect_vec[" + str(expect_i) + "]\n"
+            code += "    cdef complex " + name + " = self._expect_vec[" + str(expect_i) + "]\n"
             expect_i += 1
 
     code += "\n"

@@ -178,6 +178,7 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
 
     func, ode_args = ss.makefunc(ss, psi, args, options)
 
+    if _safe_mode:
         v = psi0.full().ravel('F')
         func(0., v, *ode_args) + v
 

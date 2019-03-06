@@ -98,7 +98,7 @@ cdef class CQobjCteOmp(CQobjCte):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy_openmp(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
                &y[0], self.shape0, self.nthr)
@@ -106,10 +106,7 @@ cdef class CQobjCteOmp(CQobjCte):
         cdef complex dot = 0
         for row from 0 <= row < self.shape0:
             dot += conj(vec[row])*y[row]
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

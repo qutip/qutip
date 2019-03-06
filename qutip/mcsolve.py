@@ -45,8 +45,8 @@ from functools import partial
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.parallel import parfor, parallel_map, serial_map
-from qutip.cy.mcsolve import cy_mc_run_ode
-
+# from qutip.cy.mcsolve import cy_mc_run_ode
+cy_mc_run_ode = None
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result,
                           solver_safe, SolverSystem)
@@ -444,7 +444,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
     """if (mc.psi_out is not None and
             config.options.average_states and
             config.ntraj != 1):
-        
+
 
     elif mc.psi_out is not None:
         output.states = mc.psi_out"""

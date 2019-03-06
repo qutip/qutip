@@ -1269,7 +1269,7 @@ cdef class SSESolver(StochasticSolver):
         _zero(temp)
         for i in range(self.num_ops):
             c_op = self.cpcd_ops[i]
-            e = c_op._expect(t, &vec[0], 0)
+            e = c_op._expect(t, &vec[0])
             _zero(temp)
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &temp[0])
@@ -1287,7 +1287,7 @@ cdef class SSESolver(StochasticSolver):
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &out[i,0])
             c_op = self.cpcd_ops[i]
-            expect = c_op._expect(t, &vec[0], 0)
+            expect = c_op._expect(t, &vec[0])
             _axpy(-0.5*expect,vec,out[i,:])
 
     @cython.boundscheck(False)
@@ -2158,7 +2158,7 @@ cdef class PmSMESolver(StochasticSolver):
         self.preLH._mul_vec(t, &vec[0], &temp[0])
         for i in range(self.num_ops):
             c_op = self.sops[i]
-            dy[i] = c_op._expect_super(t, &vec[0], 0) + noise[i]
+            dy[i] = c_op._expect_super(t, &vec[0]) + noise[i]
             c_op = self.preops[i]
             _zero(temp2)
             c_op._mul_vec(t, &vec[0], &temp2[0])
