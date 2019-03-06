@@ -425,7 +425,7 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
     void PyDataMem_FREE(void * ptr)
 from qutip.cy.interpolate cimport interp, zinterp
-from qutip.cy.math cimport erf
+from qutip.cy.math cimport erf, zerf
 cdef double pi = 3.14159265358979323
 from qutip.cy.brtools cimport (dense_add_mult, ZHEEVR, dense_to_eigbasis,
         vec_to_eigbasis, vec_to_fockbasis, skew_and_dwmin,
