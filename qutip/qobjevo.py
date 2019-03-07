@@ -107,7 +107,7 @@ class _StrWrapper:
         exec(self.code, str_env, env)
         return env["_out"]
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # object for each time dependent element of the QobjEvo
 # qobj : the Qobj of element ([*Qobj*, f])
 # get_coeff : a callable that take (t, args) and return the coeff at that t
@@ -367,14 +367,13 @@ class QobjEvo:
 
     def __init__(self, Q_object=[], args={}, tlist=None, copy=True):
         if isinstance(Q_object, QobjEvo):
-            if copy or args:
+            if copy:
                 self._inplace_copy(Q_object)
-                if args:
-                    self.arguments(args)
-                return
             else:
-                self = Q_object
-                return
+                self.__dict__ = Q_object.__dict__
+            if args:
+                self.arguments(args)
+            return
 
         self.const = False
         self.dummy_cte = False
@@ -523,7 +522,10 @@ class QobjEvo:
                             to_add[name] = self.args[key].full().ravel("F")
 
                 elif what == "expect":
-                    expect_op = QobjEvo(self.args[key], copy=False)
+                    if isinstance(self.args[key], QobjEvo):
+                        expect_op = self.args[key]
+                    else:
+                        expect_op = QobjEvo(self.args[key], copy=False)
                     self.dynamics_args += [(name, what, expect_op)]
                     if name not in self.args:
                         to_add[name] = 0.
@@ -610,26 +612,26 @@ class QobjEvo:
                     self.args[name] = state
                 elif what == "expect":
                     self.args[name] = op.expect(t, state)
-                elif state.shape[0] == s1 and self.super:
+                elif state.shape[0] == s1 and self.cte.issuper:
                     new_l = int(np.sqrt(s1))
                     mat = state.reshape((new_l, new_l))
                     if what == "mat":
                         self.args[name] = mat
                     elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=self.dims[1])
+                        self.args[name] = Qobj(mat, dims=self.cte.dims[1])
                 elif state.shape[0] == s1:
-                    mat = state.T
+                    mat = state.reshape((-1,1))
                     if what == "mat":
                         self.args[name] = mat
                     elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
+                        self.args[name] = Qobj(mat, dims=[self.cte.dims[1],[1]])
                 elif state.shape[0] == s1*s1:
                     new_l = int(np.sqrt(s1))
                     mat = state.reshape((new_l, new_l))
                     if what == "mat":
                         self.args[name] = mat
                     elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=[self.dims[1], self.dims[1]])
+                        self.args[name] = Qobj(mat, dims=[self.cte.dims[1], self.cte.dims[1]])
 
         elif isinstance(state, np.ndarray) and state.ndim == 2:
             s1 = self.cte.shape[1]
@@ -999,7 +1001,7 @@ class QobjEvo:
         res._f_conj()
         return res
 
-    def norm(self):
+    def _cdc(self):
         """return a.dag * a """
         if not self.num_obj == 1:
             res = self.dag()
@@ -1357,10 +1359,10 @@ class QobjEvo:
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
         if isinstance(mat, Qobj):
-            if self.cte.dims[1] != vec.dims[0]:
+            if self.cte.dims[1] != mat.dims[0]:
                 raise Exception("Dimensions do not fit")
             was_Qobj = True
-            dims = vec.dims
+            dims = mat.dims
             mat = mat.full()
         if not isinstance(mat, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
