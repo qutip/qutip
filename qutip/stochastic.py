@@ -642,7 +642,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
 def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
              _safe_mode=True, args={}, **kwargs):
     """
-    Solve stochastic master equation. Dispatch to specific solvers
+    Solve stochastic schrodinger equation. Dispatch to specific solvers
     depending on the value of the `solver` keyword argument.
 
     Parameters
