@@ -147,7 +147,7 @@ Floquet States and Floquet-Markov Master Equation
 -------------------------------------------------
 
 .. automodule:: qutip.floquet
-    :members: fmmesolve, floquet_modes, floquet_modes_t, floquet_modes_table, floquet_modes_t_lookup, floquet_states_t, floquet_wavefunction_t, floquet_state_decomposition, fsesolve
+    :members: fmmesolve, floquet_modes, floquet_modes_t, floquet_modes_table, floquet_modes_t_lookup, floquet_states, floquet_states_t, floquet_wavefunction, floquet_wavefunction_t, floquet_state_decomposition, fsesolve, floquet_master_equation_rates, floquet_master_equation_steadystate, floquet_basis_transform, floquet_markov_mesolve
 
 
 Stochastic Schrödinger Equation and Master Equation
@@ -253,7 +253,7 @@ Algorithms
 
 .. _functions-non_markov:
 
-non-Markovian Solvers
+Non-Markovian Solvers
 =====================
 
 .. automodule:: qutip.nonmarkov.transfertensor
