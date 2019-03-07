@@ -55,7 +55,7 @@ import numpy as np
 import scipy.special as spe
 cimport numpy as np
 cimport cython
-from qutip.cy.math cimport erf
+from qutip.cy.math cimport erf, zerf
 cdef double pi = 3.14159265358979323
 include """+_include_string+"""
 
@@ -89,7 +89,7 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     """Create and import a cython compiled class for coeff that
     need compilation.
     """
-    code = _make_code_4_cimport(ops, args, tlist)
+    code = _make_code_4_cimport(ops, args, dyn_args, tlist)
     filename = "cqobjevo_compiled_coeff_"+str(hash(code))[1:]
 
     file = open(filename+".pyx", "w")
@@ -101,7 +101,7 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
                           "import_list.append(CompiledStrCoeff)",
                           '<string>', 'exec')
     exec(import_code, locals())
-    coeff_obj = import_list[0](ops, args, tlist)
+    coeff_obj = import_list[0](ops, args, tlist, dyn_args)
 
     try:
         os.remove(filename+".pyx")
@@ -137,8 +137,8 @@ from qutip.cy.inter cimport _spline_complex_t_second, _spline_complex_cte_second
 from qutip.cy.inter cimport _spline_float_t_second, _spline_float_cte_second
 from qutip.cy.interpolate cimport (interp, zinterp)
 from qutip.cy.cqobjevo_factor cimport StrCoeff
-from qutip.cy.cqobjevo cimport cQobjEvo
-from qutip.cy.math cimport erf
+from qutip.cy.cqobjevo cimport CQobjEvo
+from qutip.cy.math cimport erf, zerf
 from qutip.qobj import Qobj
 cdef double pi = 3.14159265358979323
 
@@ -237,16 +237,17 @@ include """ + _include_string + "\n\n"
     expect_i = 0
     for name, what, op in dyn_args:
         if what == "vec":
-            code += "    cdef complex[::1] " + name + " = self._vec\n"
+            code += "        cdef complex[::1] " + name + " = self._vec\n"
         if what == "mat":
-            code += "    cdef np.ndarray[complex, ndim=2] " + name + \
-                    " = np.array(self._vec).rechape(" \
-                    "(self._mat_shape[0], self._mat_shape[1]))\n"
+            code += "        cdef np.ndarray[complex, ndim=2] " + name + \
+                    " = np.array(self._vec).reshape(" \
+                    "(self._mat_shape[0], self._mat_shape[1]), order='F')\n"
         if what == "Qobj":
-            code += "    " + name + " = Qobj(np.array(self._vec).rechape(" \
-                    "(self._mat_shape[0], self._mat_shape[1])))\n"
+            code += "        " + name + " = Qobj(np.array(self._vec).reshape(" \
+                    "(self._mat_shape[0], self._mat_shape[1]), order='F'))\n"
         if what == "expect":
-            code += "    cdef complex " + name + " = self._expect_vec[" + str(expect_i) + "]\n"
+            code += "        cdef complex " + name + " = self._expect_vec[" \
+                    + str(expect_i) + "]\n"
             expect_i += 1
 
     code += "\n"

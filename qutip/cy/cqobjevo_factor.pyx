@@ -258,10 +258,10 @@ cdef class StrCoeff(CoeffFunc):
         self._mat_shape[0] = shape[0]
         self._mat_shape[1] = shape[1]
         cdef CQobjEvo cop
-        for ii in self._num_expect:
+        for ii in range(self._num_expect):
             cop = self._expect_op[ii]
             if cop.shape1 != nn:
-                self.expect_vec[ii] = cop._overlapse(t, state)
+                self._expect_vec[ii] = cop._overlapse(t, state)
             elif cop.super:
                 self._expect_vec[ii] = cop._expect_super(t, state)
             else:
