@@ -44,6 +44,7 @@ from scipy.linalg import norm as la_norm
 import qutip.settings as qset
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
+from qutip.cy.spmatfuncs import cy_expect_psi
 from qutip.solver import Result, Options, config, solver_safe, SolverSystem
 from qutip.superoperator import vec2mat
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
@@ -140,8 +141,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
 
     if isinstance(H, SolverSystem):
         ss = H
-    elif isinstance(H, (list, Qobj, QobjEvo)) or options.rhs_reuse:
-        ss = _sesolve_QobjEvo(H, args, options)
+    elif isinstance(H, (list, Qobj, QobjEvo)):
+        ss = _sesolve_QobjEvo(H, tlist, args, options)
         if _safe_mode:
             if psi0.isket:
                 try:
@@ -176,7 +177,7 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
     else:
         raise Exception("Invalid H type")
 
-    func, ode_args = ss.makefunc(ss, psi, args, options)
+    func, ode_args = ss.makefunc(ss, psi0, args, options)
 
     if _safe_mode:
         v = psi0.full().ravel('F')
@@ -283,6 +284,11 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     """
     Internal function for solving ODEs.
     """
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # This function is made similar to mesolve's one for futur merging in a
+    # solver class
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     # prepare output array
     n_tsteps = len(tlist)
     output = Result()
@@ -307,6 +313,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     r.set_f_params(ode_args)
     r.set_initial_value(initial_vector, tlist[0])
 
+    e_ops_data = []
     output.expect = []
     if callable(e_ops):
         n_expt_op = 0
@@ -326,7 +333,6 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
         if oper_evo:
-            e_ops_data = []
             for e in e_ops:
                 e_ops_data.append(e.dag().data)
         else:

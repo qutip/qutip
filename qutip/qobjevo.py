@@ -1418,7 +1418,8 @@ class QobjEvo:
             nnz = [self.cte.data.nnz]
             for part in self.ops:
                 nnz += [part.qobj.data.nnz]
-            if all(qset.openmp_thresh < nz for nz in nnz)
+            if all(qset.openmp_thresh < nz for nz in nnz):
+                omp = 0
         if self.const:
             if dense:
                 self.compiled_qobjevo = CQobjCteDense()

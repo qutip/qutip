@@ -42,9 +42,10 @@ from qutip.qobj import Qobj
 cimport numpy as np
 cimport cython
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
-from qutip.matrix.cy.cqobjevo cimport CQobjEvo
-from qutip.matrix.cy.cdata cimport Cdata
-from qutip.cy.complex_math cimport conj
+from qutip.cy.cqobjevo cimport CQobjEvo
+#from qutip.cy.complex_math cimport conj
+include "complex_math.pxi"
+from qutip.cy.spmatfuncs cimport cy_expect_psi
 
 cdef int ONE = 1
 
@@ -59,7 +60,6 @@ cdef complex[::1] normalize(complex[::1] psi):
     for i in range(l):
         out[i] = psi[i] / norm
     return out
-
 
 cdef void sumsteadystate(complex[:, ::1] mean, complex[::1] state):
     cdef int ii, jj, l_vec = state.shape[0]
@@ -84,8 +84,8 @@ def cy_mc_run_ode(ODE, config, prng):
 
     cdef CQobjEvo[::1] c_ops = config.td_c_ops
     cdef CQobjEvo[::1] n_ops = config.td_n_ops
-    cdef Cdata[::1] e_ops = config.e_ops_cdata
-    cdef Cdata cdat
+    cdef list e_ops = config.e_ops_cdata
+    cdef object cdat
 
     cdef np.ndarray[complex, ndim=2] states_out
     if config.options.steady_state_average:
@@ -105,7 +105,7 @@ def cy_mc_run_ode(ODE, config, prng):
 
     for ii in range(num_e):
         cdat = e_ops[ii]
-        expect_out[0, ii] = cdat.expect_psi_vec(out_psi)
+        expect_out[0, ii] = cy_expect_psi(cdat, out_psi, 0)
 
     # first rand is collapse norm, second is which operator
     rand_vals = prng.rand(2)
@@ -199,7 +199,6 @@ def cy_mc_run_ode(ODE, config, prng):
 
         for ii in range(num_e):
             cdat = e_ops[ii]
-            expect_out[k, ii] = cdat.expect_psi_vec(out_psi)
-
+            expect_out[0, ii] = cy_expect_psi(cdat, out_psi, 0)
 
     return states_out, expect_out, collapse_times, which_oper

@@ -45,8 +45,8 @@ from functools import partial
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.parallel import parfor, parallel_map, serial_map
-# from qutip.cy.mcsolve import cy_mc_run_ode
-cy_mc_run_ode = None
+from qutip.cy.mcsolve import cy_mc_run_ode
+# cy_mc_run_ode = None
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result,
                           solver_safe, SolverSystem)
