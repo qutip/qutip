@@ -44,7 +44,8 @@ from scipy.linalg import norm as la_norm
 import qutip.settings as qset
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
-from qutip.cy.spmatfuncs import cy_expect_psi
+from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
+                                cy_ode_psi_func_td_with_state)
 from qutip.solver import Result, Options, config, solver_safe, SolverSystem
 from qutip.superoperator import vec2mat
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
@@ -123,13 +124,13 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
     if progress_bar is True:
         progress_bar = TextProgressBar()
 
-    if not (psi0.isket or psi0.unitary):
+    if not (psi0.isket or psi0.isunitary):
         raise TypeError("The unitary solver requires psi0 to be"
                         " a ket as initial state"
                         " or a unitary as initial operator.")
 
-    if opt.rhs_reuse and not isinstance(H, SolverSystem):
-        # TODO: to deprecate?
+    if options.rhs_reuse and not isinstance(H, SolverSystem):
+        # TODO: deprecate when going to class based solver.
         if "sesolve" in solver_safe:
             # print(" ")
             H = solver_safe["sesolve"]
@@ -143,7 +144,7 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
         ss = H
     elif isinstance(H, (list, Qobj, QobjEvo)):
         ss = _sesolve_QobjEvo(H, tlist, args, options)
-        if _safe_mode:
+        """if _safe_mode:
             if psi0.isket:
                 try:
                     ss.H.mul_vec(0., psi0)
@@ -155,25 +156,23 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
                     ss.H.mul_mat(0., psi0)
                 except Exception as e:
                     raise Exception("Could not call the rhs function "
-                                    "for the integration") from e
-    elif iscallable(H):
-        ss = _sesolve_func_td(H, psi0, args, options)
-        if _safe_mode:
+                                    "for the integration") from e"""
+    elif callable(H):
+        ss = _sesolve_func_td(H, args, options)
+        """if _safe_mode:
             try:
-                if options.rhs_with_state:
-                    H_ = ss.H(0., args)
-                else:
-                    H_ = ss.H(0., psi0.full().ravel("F"), args)
+                func, ode_args = ss.makefunc(ss, psi0, args, options)
+                H_ = func(0., psi0.full().ravel("F"), *ode_args)
             except Exception as e:
                 raise Exception("Could not obtain the Hamiltonian "
                                 "from the function H") from e
-            if not isinstance(H_, Qobj) and H_.isoper:
+            if not isinstance(H_, Qobj):
                 raise Exception("H should return an operator in Qobj format")
             try:
                 H_.data * psi0.full()
             except Exception as e:
                 raise Exception("Could not call the rhs function "
-                                "for the integration") from e
+                                "for the integration") from e"""
     else:
         raise Exception("Invalid H type")
 
@@ -195,11 +194,11 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
 # -----------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
 #
-def _sesolve_QobjEvo(H, args, opt):
+def _sesolve_QobjEvo(H, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = -1.0j * td_Qobj(H, args, tlist)
+    H_td = -1.0j * QobjEvo(H, args, tlist)
     if opt.rhs_with_state:
         H_td._check_old_with_state()
     nthread = opt.openmp_threads if opt.use_openmp else 0
@@ -218,9 +217,9 @@ def _qobjevo_set(HS, psi, args, opt):
     H_td = HS.H
     H_td.arguments(args)
     if psi.isunitary:
-        func = H_td.compiled_Qobj.mul_mat
+        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
     elif psi.isket:
-        func = H_td.compiled_Qobj.mul_vec
+        func = H_td.compiled_qobjevo.mul_vec
     else:
         raise TypeError("The unitary solver requires psi0 to be"
                         " a ket as initial state"
@@ -247,15 +246,19 @@ def _Hfunc_set(HS, psi, args, opt):
     From the system, get the ode function and args
     """
     H_func = HS.H
-    if psi0.isunitary:
+    if psi.isunitary:
         if not opt.rhs_with_state:
+            print("_ode_oper_func_td")
             func = _ode_oper_func_td
         else:
+            print("_ode_oper_func_td_with_state")
             func = _ode_oper_func_td_with_state
     else:
         if not opt.rhs_with_state:
+            print("cy_ode_psi_func_td")
             func = cy_ode_psi_func_td
         else:
+            print("cy_ode_psi_func_td_with_state")
             func = cy_ode_psi_func_td_with_state
 
     return func, (H_func, args)
@@ -310,7 +313,8 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
-    r.set_f_params(ode_args)
+    if ode_args:
+        r.set_f_params(*ode_args)
     r.set_initial_value(initial_vector, tlist[0])
 
     e_ops_data = []

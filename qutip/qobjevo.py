@@ -379,7 +379,7 @@ class QobjEvo:
 
         self.const = False
         self.dummy_cte = False
-        self.args = args
+        self.args = args.copy() if copy else args
         self.dynamics_args = []
         self.cte = None
         self.tlist = tlist
@@ -562,7 +562,7 @@ class QobjEvo:
                 except TypeError as e:
                     nfunc = _StateAsArgs(self.coeff)
                     op = EvoElement((op.qobj, nfunc, nfunc, "func"))
-                    self.dynamics_args += [("_state_vec", "vec")]
+                    self.dynamics_args += [("_state_vec", "vec", None)]
 
     def __del__(self):
         for filename in self.coeff_files:
@@ -805,11 +805,11 @@ class QobjEvo:
         if self.compiled and self.compiled.split()[2] is not "cte":
             if isinstance(self.coeff_get, StrCoeff):
                 self.coeff_get.set_args(self.args)
-                self._set_dyn_args(self.dynamics_args)
+                self.coeff_get._set_dyn_args(self.dynamics_args)
             elif isinstance(self.coeff_get, _UnitedFuncCaller):
                 self.coeff_get.set_args(self.args, self.dynamics_args)
             else:
-                self.coeff_get.set_args(self.args)
+                pass
 
     def to_list(self):
         list_qobj = []

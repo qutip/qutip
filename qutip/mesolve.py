@@ -41,7 +41,7 @@ import numpy as np
 import scipy.integrate
 import warnings
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
+from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat, lindblad_dissipator
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, solver_safe, SolverSystem
 from qutip.cy.spmatfuncs import spmv
@@ -49,6 +49,7 @@ from qutip.states import ket2dm
 from qutip.settings import debug
 from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.qobjevo import QobjEvo
 
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
@@ -188,7 +189,7 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
     """
     # check whether c_ops or e_ops is is a single operator
     # if so convert it to a list containing only that operator
-    if isinstance(c_ops, Qobj, CQobjEvo):
+    if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
 
     if isinstance(e_ops, Qobj):
@@ -210,8 +211,8 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
         raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
                 " a superoperator.")
 
-    if opt.rhs_reuse and not isinstance(H, SolverSystem):
-        # TODO: to deprecate?
+    if options.rhs_reuse and not isinstance(H, SolverSystem):
+        # TODO: deprecate when going to class based solver.
         if "mesolve" in solver_safe:
             # print(" ")
             H = solver_safe["mesolve"]
@@ -222,14 +223,15 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
     check_use_openmp(options)
 
     use_mesolve = ((c_ops and len(c_ops) > 0)
-                   and (not isket(rho0))
-                   and (isinstance(H, QobjEvo) and issuper(H.cte))
-                   and (isinstance(H, Qobj) and issuper(H))
-                   and (isinstance(H, list) and isinstance(H[0], Qobj) and
+                   or (not isket(rho0))
+                   or (isinstance(H, Qobj) and issuper(H))
+                   or (isinstance(H, QobjEvo) and issuper(H.cte))
+                   or (isinstance(H, list) and isinstance(H[0], Qobj) and
                             issuper(H[0]))
-                   and (callable(H) and not options.rhs_with_state and
-                            issuper(H(t, args)))
-                   and (callable(H) and options.rhs_with_state))
+                   or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
+                            not options.rhs_with_state and issuper(H(0., args)))
+                   or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
+                            options.rhs_with_state))
 
     if not use_mesolve:
         print("not collapse operator, using sesolve")
@@ -256,8 +258,8 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
                     raise Exception("Could not call the rhs function "
                                     "for the integration") from e
             """
-    elif iscallable(H):
-        ss = _mesolve_func_td(H, rho0, args, options)
+    elif callable(H):
+        ss = _mesolve_func_td(H, c_ops, rho0, tlist, args, options)
         if _safe_mode:
             pass
             """
@@ -265,14 +267,14 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
                 if options.rhs_with_state:
                     H_ = ss.H(0., args)
                 else:
-                    H_ = ss.H(0., psi0.full().ravel("F"), args)
+                    H_ = ss.H(0., rho0.full().ravel("F"), args)
             except Exception as e:
                 raise Exception("Could not obtain the Hamiltonian "
                                 "from the function H") from e
             if not isinstance(H_, Qobj) and H_.isoper:
                 raise Exception("H should return an operator in Qobj format")
             try:
-                H_.data * psi0.full()
+                H_.data * rho0.full()
             except Exception as e:
                 raise Exception("Could not call the rhs function "
                                 "for the integration") from e
@@ -281,13 +283,13 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
         raise Exception("Invalid H type")
 
     func, ode_args = ss.makefunc(ss, rho0, args, options)
-
-    if _safe_mode:
-        v = psi0.full().ravel('F')
-        func(0., v, *ode_args) + v
-
     if isket(rho0):
         rho0 = ket2dm(rho0)
+
+    if _safe_mode:
+        v = rho0.full().ravel('F')
+        func(0., v, *ode_args) + v
+
     res = _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, options,
                              progress_bar, dims=rho0.dims)
 
@@ -300,30 +302,30 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
 
 # -----------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
-#
-def _mesolve_QobjEvo(H, c_ops, args, tlist, opt):
+#_mesolve_QobjEvo(H, c_ops, tlist, args, options)
+def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = td_Qobj(H, args, tlist, copy=False)
+    H_td = QobjEvo(H, args, tlist)
     if not issuper(H_td.cte):
         L_td = liouvillian(H_td)
     else:
         L_td = H_td
     for op in c_ops:
-        op_td = td_Qobj(op, args, tlist, copy=False)
+        op_td = QobjEvo(op, args, tlist)
         if not issuper(op_td.cte):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td
 
     if opt.rhs_with_state:
-        H_td._check_old_with_state()
+        L_td._check_old_with_state()
 
     nthread = opt.openmp_threads if opt.use_openmp else 0
-    H_td.compile(omp=nthread)
+    L_td.compile(omp=nthread)
 
     ss = SolverSystem()
-    ss.H = H_td
+    ss.H = L_td
     ss.makefunc = _qobjevo_set
     solver_safe["mesolve"] = ss
     return ss
@@ -335,13 +337,13 @@ def _qobjevo_set(HS, rho0, args, opt):
     H_td = HS.H
     H_td.arguments(args)
     if issuper(rho0):
-        func = H_td.compiled_Qobj.mul_mat
-    elif psi.isket:
-        func = H_td.compiled_Qobj.mul_vec
+        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
+    elif rho0.isket or rho0.isoper:
+        func = H_td.compiled_qobjevo.mul_vec
     else:
-        raise TypeError("The unitary solver requires psi0 to be"
-                        " a ket as initial state"
-                        " or a unitary as initial operator.")
+        raise TypeError("The unitary solver requires rho0 to be"
+                        " a ket or dm as initial state"
+                        " or a super operator as initial state.")
     return func, ()
 
 # -----------------------------------------------------------------------------
@@ -379,14 +381,13 @@ class _LiouvillianFromFunc:
         return Lt
 
 
-def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
-                     progress_bar):
+def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     """
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
     for op in c_op_list:
-        op_td = td_Qobj(op, args, tlist, copy=False)
+        op_td = QobjEvo(op, args, tlist, copy=False)
         if not issuper(op_td.cte):
             c_ops += [lindblad_dissipator(op_td)]
         else:
@@ -400,15 +401,15 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
         state0 = rho0.full().ravel("F")
         obj = L_func(0., state0, args)
         if not issuper(obj):
-            L_func = _LiouvillianFromFunc(L_func).H2L_with_state
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).H2L_with_state
         else:
-            L_func = _LiouvillianFromFunc(L_func).L_with_state
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).L_with_state
     else:
         obj = L_func(0., args)
         if not issuper(obj):
-            L_func = _LiouvillianFromFunc(L_func).H2L
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).H2L
         else:
-            L_func = _LiouvillianFromFunc(L_func).L
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).L
 
     ss = SolverSystem()
     ss.L = L_func
@@ -430,7 +431,7 @@ def _Lfunc_set(HS, rho0, args, opt):
     return func, (L_func, args)
 
 def _ode_rho_func_td(t, y, L_func, args):
-    L = _func(t, y, args).data
+    L = L_func(t, y, args).data
     return spmv(L, y)
 
 def _ode_super_func_td(t, y, L_func, args):
@@ -467,7 +468,8 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
-    r.set_f_params(ode_args)
+    if ode_args:
+        r.set_f_params(*ode_args)
     r.set_initial_value(initial_vector, tlist[0])
 
     e_ops_data = []

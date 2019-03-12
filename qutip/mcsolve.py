@@ -88,6 +88,7 @@ class SolverConfiguration():
 
         self.map_func = map_func
         self.map_kwargs = map_kwargs
+        self.options = options
         # set num_cpus to the value given in qutip.settings if none in Options
         if not self.options.num_cpus:
             self.options.num_cpus = qutip.settings.num_cpus
@@ -96,7 +97,6 @@ class SolverConfiguration():
                 # benefit of starting multiprocessing in this case
                 self.map_func = serial_map
 
-        self.options = options
         # set options on ouput states
         if self.options.steady_state_average:
             self.options.average_states = True
@@ -104,9 +104,9 @@ class SolverConfiguration():
             self.options.store_states = True
 
         # set norm finding constants
-        self.norm_tol = self.norm_tol
-        self.norm_t_tol = self.norm_t_tol
-        self.norm_steps = self.norm_steps
+        self.norm_tol = self.options.norm_tol
+        self.norm_t_tol = self.options.norm_t_tol
+        self.norm_steps = self.options.norm_steps
 
         if progress_bar:
             if progress_bar is True:
@@ -169,7 +169,7 @@ class SolverConfiguration():
             for c in c_ops:
                 cevo = QobjEvo(c, args, tlist)
                 cevo.compile()
-                cdc = cevo.norm()
+                cdc = cevo._cdc()
                 cdc.compile()
                 self.td_c_ops.append(cevo)
                 self.td_n_ops.append(cdc)
@@ -412,7 +412,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=None,
 
     if len(c_ops) == 0 and not options.rhs_reuse:
         warn("No c_ops, using sesolve")
-        return sesolve(Hlist, psi0, tlist, e_ops=e_ops, args=args,
+        return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
                        options=options, progress_bar=progress_bar,
                        _safe_mode=_safe_mode)
 

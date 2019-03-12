@@ -295,10 +295,11 @@ cdef class CQobjEvo:
         cdef int len_
         if self.dyn_args:
             if self.factor_use_cobj:
+                # print("factor_use_cobj")
                 self.factor_cobj._dyn_args(t, state, shape)
             else:
                 len_ = shape[0] * shape[1]
-                print(len_, shape.shape[0])
+                # print(len_, shape.shape[0])
                 self.factor_func.dyn_args(t, np.array(<complex[:len_]> state),
                                           np.array(shape))
         self._factor(t)

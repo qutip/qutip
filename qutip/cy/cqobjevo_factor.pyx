@@ -194,7 +194,7 @@ cdef class InterCoeffT(CoeffFunc):
         for i in range(self._num_ops):
             m, cte = _prep_cubic_spline(ops[i][2], tlist)
             if cte:
-                print("tlist not uniformly?")
+                print("tlist not uniform?")
             for j in range(self.n_t):
                 self.y[i,j] = ops[i][2][j]
                 self.M[i,j] = m[j]
