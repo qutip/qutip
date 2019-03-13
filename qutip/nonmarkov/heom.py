@@ -50,12 +50,17 @@ from copy import copy
 from qutip import Qobj, qeye
 from qutip.states import enr_state_dictionaries
 from qutip.superoperator import liouvillian, spre, spost
+from qutip import liouvillian, mat2vec, state_number_enumerate
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.cy.heom import cy_pad_csr
 from qutip.cy.spmath import zcsr_kron
 from qutip.fastsparse import fast_csr_matrix, fast_identity
+from functools import reduce
+from operator import mul
+from scipy.misc import factorial
+from copy import copy
 
 
 class HEOMSolver(object):
@@ -628,6 +633,82 @@ def _pad_csr(A, row_scale, col_scale, insertrow=0, insertcol=0):
     return A
 
 
+def _heom_state_dictionaries(dims, excitations):
+    """
+    Return the number of states, and lookup-dictionaries for translating
+    a state tuple to a state index, and vice versa, for a system with a given
+    number of components and maximum number of excitations.
+    Parameters
+    ----------
+    dims: list
+        A list with the number of states in each sub-system.
+    excitations : integer
+        The maximum numbers of dimension
+    Returns
+    -------
+    nstates, state2idx, idx2state: integer, dict, dict
+        The number of states `nstates`, a dictionary for looking up state
+        indices from a state tuple, and a dictionary for looking up state
+        state tuples from state indices.
+    """
+    nstates = 0
+    state2idx = {}
+    idx2state = {}
+
+    for state in state_number_enumerate(dims, excitations):
+        state2idx[state] = nstates
+        idx2state[nstates] = state
+        nstates += 1
+    return nstates, state2idx, idx2state
+
+
+def _heom_number_enumerate(dims, excitations=None, state=None, idx=0):
+    """
+    An iterator that enumerate all the state number arrays (quantum numbers on
+    the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
+    Example:
+        >>> for state in state_number_enumerate([2,2]):
+        >>>     print(state)
+        [ 0.  0.]
+        [ 0.  1.]
+        [ 1.  0.]
+        [ 1.  1.]
+    Parameters
+    ----------
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
+    state : list
+        Current state in the iteration. Used internally.
+    excitations : integer (None)
+        Restrict state space to states with excitation numbers below or
+        equal to this value.
+    idx : integer
+        Current index in the iteration. Used internally.
+    Returns
+    -------
+    state_number : list
+        Successive state number arrays that can be used in loops and other
+        iterations, using standard state enumeration *by definition*.
+    """
+
+    if state is None:
+        state = np.zeros(len(dims))
+
+    if excitations and sum(state[0:idx]) > excitations:
+        pass
+    elif idx == len(dims):
+        if excitations is None:
+            yield np.array(state)
+        else:
+            yield tuple(state)
+            
+    else:
+        for n in range(dims[idx]):
+            state[idx] = n
+            for s in state_number_enumerate(dims, excitations, state, idx + 1):
+                yield s
+
+
 class HSolverUnderdampedBrownian(HEOMSolver):
     """
     HEOM solver based on the underdamped Brownian motion spectral density.
@@ -646,10 +727,11 @@ class HSolverUnderdampedBrownian(HEOMSolver):
     bnd_cut_approx : bool
         Use boundary cut off approximation.
     """
-    def __init__(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=1.0, boltzmann=1.0,
-                     renorm=True, bnd_cut_approx=True,
-                     options=None, progress_bar=None, stats=None):
+    def __init__(self, H_sys, coup_op, coup_strength, ckA, vkA,
+                 ck_corr, vk_corr,
+                 temperature, N_cut, N_exp, cut_freq, planck=1.0,
+                 boltzmann=1.0, renorm=True, bnd_cut_approx=True,
+                 options=None, progress_bar=None, stats=None):
 
         self.reset()
 
@@ -665,9 +747,15 @@ class HSolverUnderdampedBrownian(HEOMSolver):
             self.progress_bar = TextProgressBar()
 
         # the other attributes will be set in the configure method
-        self.configure(H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=planck, boltzmann=boltzmann,
-                     renorm=renorm, bnd_cut_approx=bnd_cut_approx, stats=stats)
+        self.liouvillian = None
+        self.H_sys = H_sys
+        self.coup_op = coup_op
+        self.coup_strength = coup_strength
+        self.temperature = temperature
+        self.N_cut = N_cut
+        self.N_exp = N_exp
+        self.cut_freq = cut_freq
+        self.configure(ckA, vkA, ck_corr, vk_corr)
 
     def reset(self):
         """
@@ -678,17 +766,231 @@ class HSolverUnderdampedBrownian(HEOMSolver):
         self.renorm = False
         self.bnd_cut_approx = False
 
-    def configure(self):
+    def configure(self, ckA, vkA, ck_corr, vk_corr):
         """
         Configures the HEOM hierarchy.
+
+        Parameters
+        ----------
+        ckA: list
+            The list of coefficients for the non-Matsubara part of the
+            spectral density.
+
+        vkA: list
+            The list of frequencies for the non-Matsubara part of the
+            expansion of the spectral density.
+
+        ck_corr: list
+            The list of coefficients for the Matsubara part of the
+            spectral density.
+
+        vk_corr: list
+            The list of frequencies for the Matsubara part of the
+            expansion of the spectral density.
         """
-        pass
+        H = self.H_sys
+        Q = self.coup_op
+        lam = self.coup_strength
+        Nc = self.N_cut
+        N = self.N_exp
+        #Parameters and hamiltonian
+
+        hbar = self.planck
+        kb = self.boltzmann
+
+        N_temp = reduce(mul, H.dims[0], 1)
+        Nsup = N_temp**2
+        unit = qeye(N_temp)
+
+        #Ntot is the total number of ancillary elements in the hierarchy
+        Ntot = int(round(factorial(Nc+N) / (factorial(Nc) * factorial(N))))
+        LD1 = -2.* spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
+
+        c0=ckA[0]
+        pref=0.
+        L12=0.*LD1;
+        
+        #Setup liouvillian
+
+        L = liouvillian(H, [L12])
+        Ltot = L.data
+        unitthing=sp.identity(Ntot, dtype='complex', format='csr')
+        Lbig = sp.kron(unitthing,Ltot.tocsr())
+        
+        nstates, state2idx, idx2state =_heom_state_dictionaries([Nc+1]*(N),Nc)
+        for nlabelt in _heom_number_enumerate([Nc+1]*(N),Nc):
+            nlabel = list(nlabelt)                    
+            ntotalcheck = 0
+            for ncheck in range(N):
+                ntotalcheck = ntotalcheck + nlabel[ncheck]                            
+            current_pos = int(round(state2idx[tuple(nlabel)]))
+            Ltemp = sp.lil_matrix((Ntot, Ntot))
+            Ltemp[current_pos,current_pos] = 1.
+            Ltemp.tocsr()
+            Lbig = Lbig + sp.kron(Ltemp,(-nlabel[0] * vkA[0] * spre(unit).data))
+            Lbig = Lbig + sp.kron(Ltemp,(-nlabel[1] * vkA[1] * spre(unit).data))
+            #bi-exponential corrections:
+            if N==3:
+                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[2] * vk_corr[0] * spre(unit).data))
+            if N==4:
+                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[2] * vk_corr[0] * spre(unit).data))
+                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[3] * vk_corr[1] * spre(unit).data))
+            
+            for kcount in range(N):
+                if nlabel[kcount]>=1:
+                #find the position of the neighbour
+                    nlabeltemp = copy(nlabel)
+                    nlabel[kcount] = nlabel[kcount] -1
+                    current_pos2 = int(round(state2idx[tuple(nlabel)]))
+                    Ltemp = sp.lil_matrix(np.zeros((Ntot,Ntot)))
+                    Ltemp[current_pos, current_pos2] = 1
+                    Ltemp.tocsr()
+                # renormalized version:    
+                    #ci =  (4 * lam0 * gam * kb * Temperature * kcount
+                    #      * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
+                    if kcount==0:
+                        
+                        c0n=lam
+                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
+                                         * np.sqrt((nlabeltemp[kcount]
+                                            / abs(c0n)))
+                                         * (0.0*spre(Q).data
+                                         - (lam)
+                                         * spost(Q).data)))
+                    if kcount==1:     
+                        cin=lam
+                        ci =  ckA[kcount]
+                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
+                                         * np.sqrt((nlabeltemp[kcount]
+                                            / abs(cin)))
+                                         * ((lam) * spre(Q).data
+                                         - (0.0)
+                                         * spost(Q).data)))
+                        
+                    if kcount==2:     
+                        cin=ck_corr[0]                        
+                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
+                                             * np.sqrt((nlabeltemp[kcount]
+                                                / abs(cin)))
+                                             * cin*(spre(Q).data - spost(Q).data)))
+                    if kcount==3:     
+                        cin=ck_corr[1]                        
+                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
+                                             * np.sqrt((nlabeltemp[kcount]
+                                                / abs(cin)))
+                                             * cin*(spre(Q).data - spost(Q).data)))
+                    nlabel = copy(nlabeltemp)
+
+            for kcount in range(N):
+                if ntotalcheck<=(Nc-1):
+                    nlabeltemp = copy(nlabel)
+                    nlabel[kcount] = nlabel[kcount] + 1
+                    current_pos3 = int(round(state2idx[tuple(nlabel)]))
+                if current_pos3<=(Ntot):
+                    Ltemp = sp.lil_matrix(np.zeros((Ntot,Ntot)))
+                    Ltemp[current_pos, current_pos3] = 1
+                    Ltemp.tocsr()
+                #renormalized   
+                    if kcount==0:
+                        c0n=lam
+                        Lbig = Lbig + sp.kron(Ltemp,-1.j
+                                      * np.sqrt((nlabeltemp[kcount]+1)*((abs(c0n))))
+                                      * (spre(Q)- spost(Q)).data)
+                    if kcount==1:
+                        ci =ckA[kcount]
+                        cin=lam
+                        Lbig = Lbig + sp.kron(Ltemp,-1.j
+                                      * np.sqrt((nlabeltemp[kcount]+1)*(abs(cin)))
+                                      * (spre(Q)- spost(Q)).data)
+                    if kcount==2:
+                        cin=ck_corr[0]
+                        Lbig = Lbig + sp.kron(Ltemp,-1.j
+                                      * np.sqrt((nlabeltemp[kcount]+1)*(abs(cin)))
+                                      * (spre(Q)- spost(Q)).data)
+                    if kcount==3:
+                        cin=ck_corr[1]
+                        Lbig = Lbig + sp.kron(Ltemp,-1.j
+                                      * np.sqrt((nlabeltemp[kcount]+1)*(abs(cin)))
+                                      * (spre(Q)- spost(Q)).data)    
+                 
+                nlabel = copy(nlabeltemp)
+        self.liouvillian = Lbig
+        return Lbig
 
     def run(self, rho0, tlist):
         """
-        Runs the HEOM evolution for initial state `rho0` and time `tlist`
+        Function to solve for an open quantum system using the
+        HEOM model.
+
+        Parameters
+        ----------
+        rho0 : Qobj
+            Initial state (density matrix) of the system.
+
+        tlist : list
+            Time over which system evolves.
+
+        Returns
+        -------
+        results : :class:`qutip.solver.Result`
+            Object storing all results from the simulation.
         """
-        pass
+        options = self.options
+        stats = self.stats
+        Nc = self.N_cut
+        Nk = self.N_exp
+        self._N_he = int(factorial(Nc + Nk)/(factorial(Nc)*factorial(Nk)))
+        start_run = timeit.default_timer()
+        r = scipy.integrate.ode(cy_ode_rhs)
+        N_temp = 1
+        for i in self.H_sys.dims[0]:
+            N_temp *= i
+        sup_dim = N_temp**2
+
+        L_helems = self.liouvillian
+        r.set_f_params(L_helems.data, L_helems.indices, L_helems.indptr)
+        r.set_integrator('zvode', method=options.method, order=options.order,
+                         atol=options.atol, rtol=options.rtol,
+                         nsteps=options.nsteps, first_step=options.first_step,
+                         min_step=options.min_step, max_step=options.max_step)
+
+        # Set up terms of the matsubara and tanimura boundaries
+        output = Result()
+        output.solver = "hsolve"
+        output.times = tlist
+        output.states = []
+
+        if stats: start_init = timeit.default_timer()
+        output.states.append(Qobj(rho0))
+        rho0_flat = rho0.full().ravel('F') # Using 'F' effectively transposes
+        rho0_he = np.zeros([sup_dim*self._N_he], dtype=complex)
+        rho0_he[:sup_dim] = rho0_flat
+        r.set_initial_value(rho0_he, tlist[0])
+
+        if stats:
+            stats.add_timing('initialize',
+                             timeit.default_timer() - start_init, ss_run)
+            start_integ = timeit.default_timer()
+
+        dt = np.diff(tlist)
+        n_tsteps = len(tlist)
+        for t_idx, t in enumerate(tlist):
+            if t_idx < n_tsteps - 1:
+                r.integrate(r.t + dt[t_idx])
+                rho = Qobj(r.y[:sup_dim].reshape(rho0.shape), dims=rho0.dims)
+                output.states.append(rho)
+
+        if stats:
+            time_now = timeit.default_timer()
+            stats.add_timing('integrate',
+                             time_now - start_integ, ss_run)
+            if ss_run.total_time is None:
+                ss_run.total_time = time_now - start_run
+            else:
+                ss_run.total_time += time_now - start_run
+            stats.total_time = ss_conf.total_time + ss_run.total_time
+
+        return output
 
 
 def underdamped_brownian(w, lam, gamma, w0):
@@ -797,4 +1099,3 @@ def bath_correlation(spectral_density, tlist,
         corrI.append(quad(integrandI, w_start, w_cutoff, args=(i,))[0])
     corr = (np.array(corrR) + 1j*np.array(corrI))/np.pi
     return corr
-

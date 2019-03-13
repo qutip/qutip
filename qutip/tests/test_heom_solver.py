@@ -47,9 +47,12 @@ from numpy.testing import (
 from scipy.integrate import quad, IntegrationWarning
 from qutip import Qobj, sigmaz, basis, expect
 from qutip.nonmarkov.heom import (HSolverDL, underdamped_brownian,
-                                  bath_correlation)
+                                  bath_correlation,
+                                  HSolverUnderdampedBrownian)
 from qutip.solver import Options
 import warnings
+from qutip.operators import sigmax, sigmaz
+
 
 warnings.simplefilter('ignore', IntegrationWarning)
     
@@ -155,6 +158,32 @@ def test_sd_function():
     sd = np.arange(0, 10, 2)
     assert_raises(TypeError, bath_correlation, [sd, tlist, [0.1], beta,
                                                 w_cutoff])
+
+
+def test_heom():
+    """
+    Test the HEOM method.
+    """
+    Q = sigmax()
+    wq = 1.
+    Hsys = 0.5*wq*sigmaz()
+    initial_ket = basis(2, 1)
+    Nc = 2
+    rho0 = initial_ket*initial_ket.dag()
+    Nexp = 4
+    lam, gamma, w0 = 0.4, 0.4, 1.
+
+    ck1, vk1 = [0.00000000+0.j, 0.02000625+0.j], [-0.025+0.99968745j, -0.025-0.99968745j]
+    ck_mats, vk_mats = [-0.00011662, -0.00020182], [-0.34959062, -1.75226554]
+
+    options = Options(nsteps=150, store_states=True, atol=1e-3, rtol=1e-3)
+    solver = HSolverUnderdampedBrownian(Hsys, Q, lam,
+        ck1, vk1, ck_mats, vk_mats, 0., Nc, Nexp, 1)
+    tlist = np.linspace(0, 200, 1000)
+    output = solver.run(rho0, tlist)
+    result = expect(output.states, sigmaz())
+    expected = np.ones_like(result)
+    assert_array_almost_equal(result, expected)
 
 
 if __name__ == "__main__":
