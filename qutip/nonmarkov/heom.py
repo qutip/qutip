@@ -628,9 +628,11 @@ def _pad_csr(A, row_scale, col_scale, insertrow=0, insertcol=0):
     return A
 
 
-class HSolverUnderDampedLorrentzian(HEOMSolver):
+class HSolverUnderdampedBrownian(HEOMSolver):
     """
-    HEOM solver based on the underdamped Lorrentzian spectral density.
+    HEOM solver based on the underdamped Brownian motion spectral density.
+
+    :math:`J(\omega) = \frac{\gamma \lambda^2 \omega}{(\omega^2 - \omega_0^2)^2 + \gamma^2 \omega}`
 
     Attributes
     ----------
@@ -642,8 +644,7 @@ class HSolverUnderDampedLorrentzian(HEOMSolver):
         Can be useful if using SI units for planck and boltzmann.
 
     bnd_cut_approx : bool
-        Use boundary cut off approximation
-        Can be
+        Use boundary cut off approximation.
     """
     def __init__(self, H_sys, coup_op, coup_strength, temperature,
                      N_cut, N_exp, cut_freq, planck=1.0, boltzmann=1.0,
@@ -690,9 +691,9 @@ class HSolverUnderDampedLorrentzian(HEOMSolver):
         pass
 
 
-def underdamped_lorrentzian(w, lam, gamma, w0):
+def underdamped_brownian(w, lam, gamma, w0):
     """
-    Calculates the underdamped lorrentzian spectral density.
+    Calculates the underdamped Brownian motion spectral density.
 
     Parameters
     ----------
@@ -796,3 +797,4 @@ def bath_correlation(spectral_density, tlist,
         corrI.append(quad(integrandI, w_start, w_cutoff, args=(i,))[0])
     corr = (np.array(corrR) + 1j*np.array(corrI))/np.pi
     return corr
+

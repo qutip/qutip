@@ -46,10 +46,11 @@ from numpy.testing import (
     assert_array_almost_equal, assert_raises)
 from scipy.integrate import quad, IntegrationWarning
 from qutip import Qobj, sigmaz, basis, expect
-from qutip.nonmarkov.heom import (HSolverDL, underdamped_lorrentzian,
+from qutip.nonmarkov.heom import (HSolverDL, underdamped_brownian,
                                   bath_correlation)
 from qutip.solver import Options
 import warnings
+
 warnings.simplefilter('ignore', IntegrationWarning)
     
 class TestHSolver:
@@ -143,7 +144,7 @@ def test_sd_function():
     lam, gamma, w0 = 0.4, 0.4, 1.
     beta = np.inf
     w_cutoff = 10.
-    corr = bath_correlation(underdamped_lorrentzian, tlist,
+    corr = bath_correlation(underdamped_brownian, tlist,
                             [lam, gamma, w0], beta, w_cutoff)
 
     y = np.array([0.07108, 0.059188-0.03477j, 0.033282-0.055529j,
