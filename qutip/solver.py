@@ -49,6 +49,65 @@ solver_safe = {}
 class SolverSystem():
     pass
 
+class ExpectOps:
+    """
+        Contain and compute expectation values
+    """
+    def __init__(self, e_ops, super_=False):
+        # take care of expectation values, if any
+        self.isfunc = False
+        self.e_ops_dict = False
+        if isinstance(e_ops, (Qobj, QobjEvo)):
+            e_ops = [e_ops]
+        elif isinstance(e_ops, dict):
+            self.e_ops_dict = e_ops
+            e_ops = [e for e in e_ops.values()]
+
+        self.e_ops = e_ops
+        if isinstance(e_ops, list):
+            self.e_num = len(e_ops)
+            self.e_ops_isherm = [e.isherm for e in e_ops]
+            if not super_:
+                self.e_ops_qoevo = np.array([QobjEvo(e) for e in e_ops],
+                                            dtype=object)
+            else:
+                self.e_ops_qoevo = np.array([QobjEvo(spre(e)) for e in e_ops],
+                                            dtype=object)
+        elif callable(e_ops):
+            self.isfunc = True
+            self.e_num = 1
+
+    def init(self, tlist):
+        self.tlist = tlist
+        if self.isfunc:
+            self.raw_out = []
+        else:
+            self.raw_out = np.zeros((self.e_num, len(tlist)), dtype=complex)
+
+    def step(self, iter_, state):
+        if self.isfunc:
+            self.raw_out.append(self.e_ops(t, state))
+        else:
+            t = self.tlist[iter_]
+            for ii in range(self.e_num):
+                self.raw_out[ii, iter_] = self.e_ops[ii].expect(t, state)
+
+    def finish(self):
+        if self.isfunc:
+            result = self.raw_out
+        else:
+            result = []
+            for ii in range(self.e_num):
+                if self.e_ops_isherm[ii]:
+                    result.append(np.real(self.raw_out[ii, :]))
+                else:
+                    result.append(self.raw_out[ii, :])
+            if self.e_ops_dict:
+                result = {e: result[n]
+                          for n, e in enumerate(self.e_ops_dict.keys())}
+        return result
+
+
 class Options():
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
@@ -129,11 +188,12 @@ class Options():
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  average_expect=True, average_states=False, tidy=True,
-                 num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
-                 rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
-                 store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False, normalize_output=True,
-                 use_openmp=None, openmp_threads=None):
+                 num_cpus=0, norm_tol=1e-3, norm_t_tol=1e-6, norm_steps=5,
+                 rhs_reuse=False, rhs_filename=None, ntraj=500, gui=False,
+                 rhs_with_state=False, store_final_state=False,
+                 store_states=False, steady_state_average=False,
+                 seeds=None,
+                 normalize_output=True, use_openmp=None, openmp_threads=None):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -173,9 +233,11 @@ class Options():
         if num_cpus:
             self.num_cpus = num_cpus
         else:
-            self.num_cpus = 0
+            self.num_cpus = qset.num_cpus
         # Tolerance for wavefunction norm (mcsolve only)
         self.norm_tol = norm_tol
+        # Tolerance for collapse time precision (mcsolve only)
+        self.norm_t_tol = norm_t_tol
         # Max. number of steps taken to find wavefunction norm to within
         # norm_tol (mcsolve only)
         self.norm_steps = norm_steps
@@ -304,7 +366,7 @@ class Result():
 
 
 # %%%%%%%%%%% mcsolve only?: TODO remove
-class SolverConfiguration():
+"""class SolverConfiguration():
 
     def __init__(self):
 
@@ -382,7 +444,7 @@ class SolverConfiguration():
         self.colspmv = None    # Placeholder for TD col-spmv function.
         self.colexpect = None  # Placeholder for TD col_expect function.
         self.string = None     # Holds string of variables passed to td solver
-
+"""
 
 def _format_time(t, tt=None, ttt=None):
     time_str = str(datetime.timedelta(seconds=t))

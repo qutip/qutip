@@ -98,6 +98,7 @@ str_env = {
     "np": np,
     "spe": scipy.special}
 
+
 class _StrWrapper:
     def __init__(self, code):
         self.code = "_out = " + code
@@ -555,6 +556,7 @@ class QobjEvo:
         self.args.update(to_add)
 
     def _check_old_with_state(self):
+        add_vec = False
         for op in self.ops:
             if op.type == "func":
                 try:
@@ -562,7 +564,9 @@ class QobjEvo:
                 except TypeError as e:
                     nfunc = _StateAsArgs(self.coeff)
                     op = EvoElement((op.qobj, nfunc, nfunc, "func"))
-                    self.dynamics_args += [("_state_vec", "vec", None)]
+                    add_vec = True
+        if add_vec:
+            self.dynamics_args += [("_state_vec", "vec", None)]
 
     def __del__(self):
         for filename in self.coeff_files:
