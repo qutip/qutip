@@ -153,8 +153,9 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
         if dims:
             _check_dims(dims, N, N)
         nvals = N**2*density
+        M = rand_jacobi_rotation(M, seed=seed)
         while M.nnz < 0.95*nvals:
-            M = rand_jacobi_rotation(M, seed=seed)
+            M = rand_jacobi_rotation(M)
     elif isinstance(N, (int, np.int32, np.int64)):
         if seed is not None:
             np.random.seed(seed=seed)
@@ -359,8 +360,9 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
         if dims:
             _check_dims(dims, N, N)
         nvals = N**2*density
+        H = rand_jacobi_rotation(H, seed=seed)
         while H.nnz < 0.95*nvals:
-            H = rand_jacobi_rotation(H, seed=seed)
+            H = rand_jacobi_rotation(H)
         H.sort_indices()
     elif isinstance(N, (int, np.int32, np.int64)):
         if dims:
@@ -503,8 +505,6 @@ def rand_super(N=5, dims=None, seed=None):
     else:
         dims = [[[N],[N]], [[N],[N]]]
     H = rand_herm(N, seed=seed)
-    if seed is not None:
-        np.random.seed(seed=seed)
     S = propagator(H, np.random.rand(), [
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
     ])
