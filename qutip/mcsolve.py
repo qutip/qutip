@@ -187,17 +187,13 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=options.ntraj,
     except:
         num_traj = max(ntraj)
 
-    # set options on ouput states
-
-
     # set the physics
     if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
 
-    # dopri = (options.method == "dopri5")
 
     # load monte carlo class
-    mc = _MC()
+    mc = _MC(options)
 
     if isinstance(H, SolverSystem):
         mc.ss = H
@@ -206,88 +202,19 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=options.ntraj,
     else:
         mc.make_solver(H, c_ops, tlist, args, options)
 
+    mc.reset(0., psi0)
+
     mc.set_e_ops(e_ops)
 
     if _safe_mode:
         mc.run_test()
 
     # Run the simulation
-    mc.run(psi0, tlist, num_traj,
+    mc.run(num_traj=num_traj, tlist=tlist,
            progress_bar=progress_bar,
            map_func=map_func, map_kwargs=map_kwargs)
 
-    # AFTER MCSOLVER IS DONE
-    # ----------------------
-
-    # Store results in the Result object
-    output = Result()
-    output.solver = 'mcsolve'
-    output.seeds = config.options.seeds
-
-    # state vectors
-    """if (mc.psi_out is not None and
-            config.options.average_states and
-            config.ntraj != 1):
-
-
-    elif mc.psi_out is not None:
-        output.states = mc.psi_out"""
-
-    if mc.psi_out is not None:
-        if config.options.steady_state_average:
-            output.states = Qobj(np.mean(mc.psi_out, axis=0),
-                                 [config.psi0_dims[0], config.psi0_dims[0]],
-                                 [config.psi0_shape[0], config.psi0_shape[0]])
-
-        elif config.options.average_states:
-            psi_dm = np.empty((config.ntraj, len(config.tlist)), dtype=object)
-            for i in range(config.ntraj):
-                for j in range(len(config.tlist)):
-                    tmp = Qobj(mc.psi_out[i,j,:].reshape(-1,1))
-                    tmp = tmp*tmp.dag()
-                    tmp.dims = [config.psi0_dims[0], config.psi0_dims[0]]
-                    psi_dm[i,j] = tmp
-                output.states = parfor(_mc_dm_avg, psi_dm.T)
-
-        else:
-            psi = np.empty((config.ntraj, len(config.tlist)), dtype=object)
-            for i in range(config.ntraj):
-                for j in range(len(config.tlist)):
-                    tmp = Qobj(mc.psi_out[i,j,:].reshape(-1,1),
-                               dims = config.psi0_dims[0])
-                    psi[i,j] = tmp
-            output.states = psi
-
-    # expectation values
-    if mc.expect_out is not None:
-        _one_expects = np.empty((config.ntraj, len(config.tlist)), dtype=object)
-        expect = [None]*config.e_num
-        for i in range(config.e_num):
-            if config.e_ops_isherm[i]:
-                expect[i] = np.real(mc.expect_out[:,:,i])
-            else:
-                expect[i] = mc.expect_out[:,:,i]
-
-            if config.options.average_expect:
-                if isinstance(ntraj, int):
-                    expect[i] = np.mean(expect[i], axis=0)
-
-                else:
-                    expt_data = []
-                    for num in ntraj:
-                        expt_data.append(np.mean(expect[i][:num,:], axis=0))
-                    expect[i] = np.stack(expt_data)
-        output.expect = expect
-
-    # simulation parameters
-    output.times = config.tlist
-    output.num_expect = config.e_num
-    output.num_collapse = config.c_num
-    output.ntraj = config.ntraj
-    output.col_times = mc.collapse_times_out
-    output.col_which = mc.which_op_out
-
-    return output
+    return mc.result(ntraj)
 
 
 # -----------------------------------------------------------------------------
@@ -298,84 +225,47 @@ class _MC():
     Private class for solving Monte Carlo evolution from mcsolve
     """
     def __init__(self, options=Options()):
-        self.config = config
-        # set output variables, even if they are not used to simplify output
-        # code.
-        self.psi_out = None
-        self.expect_out = None
-        if config.options.store_states:
-            self.psi_out = [None] * config.ntraj
-        if config.e_num > 0:
-            self.expect_out = [None] * config.ntraj
-        self.collapse_times_out = np.zeros(config.ntraj, dtype=np.ndarray)
-        self.which_op_out = np.zeros(config.ntraj, dtype=np.ndarray)
-
-
+        self.options = options
         self.ss = None
         self.e_ops = None
+        self.ran = False
+        self.psi0 = None
+        self.seeds = []
+        self.t = 0.
 
-        self.seed(options.seeds)
+        self._psi_out = [None] * config.ntraj
+        self._expect_out = [None] * config.ntraj
+        self._collapses = [None] * config.ntraj
+        self._ss_out = (None, 0)
 
+    def reset(self, t=0., psi0=None):
+        if psi0 is not None:
+            self.psi0 = psi0
+        self.t = t
+        self.initial_vector = self.psi0.full().ravel("F")
 
-
-    def run(self, psi0, tlist, num_traj,
-            args=None, e_ops=None, options=None,
-            progress_bar=True,
-            map_func=parallel_map, map_kwargs={}):
-
-        options = options if options is not None else self.options
-        self.options = options
-
-        if e_ops:
-            self.set_e_ops(e_ops)
-
-        if not self.e_ops:
-            options.store_states = True
-        if options.steady_state_average:
-            options.average_states = True
-        if options.average_states:
-            options.store_states = True
-
-        if options.num_cpus == 1 or num_traj == 1:
-            map_func = serial_map
-
-        # set arguments for input to monte carlo
-        map_kwargs = {'progress_bar': progress_bar,
-                      'num_cpus': options.num_cpus}
-        map_kwargs.update(map_kwargs)
-
-        results = map_func(self._single_traj, list(range(num_traj)), **map_kwargs)
-
-        for n, result in enumerate(results):
-            state_out, expect_out, collapse_times, which_oper = result
-
-            if self.config.options.store_states:
-                self.psi_out[n] = state_out
-
-            if self.config.e_num > 0:
-                self.expect_out[n] = expect_out
-
-            self.collapse_times_out[n] = collapse_times
-            self.which_op_out[n] = which_oper
-
-        self.psi_out = np.stack(self.psi_out) # psi_out[traj, t, :] = psi
-        self.expect_out = np.stack(self.expect_out) # expect_out[traj, t, e_ops]
-
-    def seed(self, seeds=None):
+    def seed(self, ntraj, seeds=[]):
         # setup seeds array
-        if seeds is None:
-            step = 4294967295 // config.ntraj
+        try:
+            seed = int(seeds)
+            np.random.seed(seed)
+            seeds = []
+        except TypeError:
+            pass
+
+        if not seeds:
+            step = 4294967295 // ntraj
             self.seeds = \
-                randint(0, step-1, size=config.ntraj) + \
-                np.arange(config.ntraj) * step
+                randint(0, step-1, size=ntraj) + \
+                np.arange(ntraj) * step
         else:
             # if ntraj was reduced but reusing seeds
             seed_length = len(seeds)
-            if seed_length > config.ntraj:
+            if seed_length > ntraj:
                 self.seeds = \
-                    config.options.seeds[0:config.ntraj]
+                    config.options.seeds[0:ntraj]
             # if ntraj was increased but reusing seeds
-            elif seed_length < config.ntraj:
+            elif seed_length < ntraj:
                 len_new_seed = (config.ntraj - seed_length)
                 step = 4294967295 // len_new_seed
                 newseeds = randint(0, step - 1,
@@ -383,17 +273,16 @@ class _MC():
                                    np.arange(len_new_seed) * step
                 self.seeds = np.hstack((seeds, newseeds))
 
-    def set_e_ops(self, e_ops):
-        if e_ops:
-            self.e_ops = ExpectOps(e_ops)
-        else:
-            self.e_ops = None
+    #def _prepare_prng(self, ntraj):
+        #if continuing trajectories, keep same random generator state?
+        #self._prng = [RandomState(seed) for seed in self.seeds]
 
-    def make_solver(self, H, c_ops, tlist, args, options):
+    def make_system(self, H, c_ops, tlist, args, options):
         ss = SolverSystem()
         c_num = len(c_ops)
         ss.td_c_ops = []
         ss.td_n_ops = []
+        ss.args = args
         for c in c_ops:
             cevo = QobjEvo(c, args, tlist)
             cdc = cevo._cdc()
@@ -412,6 +301,7 @@ class _MC():
             H_td.compile()
             ss.H_td = H_td
             ss.makefunc = _qobjevo_set
+            ss.set_args = _qobjevo_args
 
         except:
             ss.h_func = H
@@ -419,9 +309,19 @@ class _MC():
             ss.Hc_td.compile()
             ss.with_state = options.rhs_with_state
             ss.makefunc = _func_set
+            ss.set_args = _func_args
 
         solver_safe["mcsolve"] = ss
         self.ss = ss
+
+    def set_e_ops(self, e_ops):
+        if e_ops:
+            self.e_ops = ExpectOps(e_ops)
+        else:
+            self.e_ops = None
+
+        if not self.e_ops:
+            self.options.store_states = True
 
     def run_test(self):
         try:
@@ -443,9 +343,215 @@ class _MC():
                 self.rhs(0, self.psi0, config)
         except:
             raise Exception("H is not consistant with psi0")
-    # -----------------------------------------------------------------------------
+
+    def run(self, num_traj=0, psi0=None, tlist=None,
+            args=None, e_ops=None, options=None,
+            progress_bar=True,
+            map_func=parallel_map, map_kwargs={}):
+        """
+
+        """
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # 4 situation for run:
+        # - first run
+        # - add  trajectories
+        # - continue from the last time and states
+        # - change parameters
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        options = options if options is not None else self.options
+
+        if self.ran and tlist[0] == self.t:
+            # psi0 is ignored since we restart from a
+            # different states for each trajectories
+            self.continue_runs(num_traj, tlist, args, e_ops, options,
+                               progress_bar, map_func, map_kwargs)
+            return
+
+        if args != self.ss.args:
+            self.ss.set_args(args)
+            self.reset()
+
+        if e_ops and e_ops != self.e_ops:
+            self.set_e_ops(e_ops)
+            self.reset()
+
+        if psi0 is not None and psi0 != self.psi0:
+            self.psi0 = psi0
+            self.reset()
+
+        if tlist is not None and np.all(tlist != self.tlist):
+            self.tlist = tlist
+            self.reset()
+
+        if self.ran:
+            if options.store_states and self._psi_out[0] is None:
+                self.reset()
+            else:
+                # if not reset here, add trajectories
+                self.add_traj(num_traj, progress_bar, map_func, map_kwargs)
+                return
+
+        if not self.num_traj:
+            num_traj = options.ntraj
+
+        if options.num_cpus == 1 or num_traj == 1:
+            map_func = serial_map
+
+        if len(self.seeds) != ntraj:
+            self.seed(ntraj, self.seeds)
+
+        # set arguments for input to monte carlo
+        map_kwargs = {'progress_bar': progress_bar,
+                      'num_cpus': options.num_cpus}
+        map_kwargs.update(map_kwargs)
+
+        results = map_func(self._single_traj, list(range(num_traj)), **map_kwargs)
+
+        self.t = self.tlist[-1]
+        self.num_traj = num_traj
+        self.ran = True
+
+        for result in results:
+            state_out, ss_out, expect, collapse = result
+            self._psi_out.append(state_out)
+            self._ss_out.append(ss_out)
+            self._expect_out.append(expect)
+            self._collapse.append(collapse)
+
+    def add_traj(self, num_traj,
+                 progress_bar=True,
+                 map_func=parallel_map, map_kwargs={}):
+        raise NotImplementedError
+
+    def continue_runs(self, num_traj, tlist, args={}, e_ops=[], options=None,
+                      progress_bar=True,
+                      map_func=parallel_map, map_kwargs={}):
+        raise NotImplementedError
+
+    # --------------------------------------------------------------------------
+    # results functions
+    # --------------------------------------------------------------------------
+    @property
+    def states(self):
+        if self._psi_out is None:
+            return None
+        else:
+            dims = self.psi.dims[0]
+            len_ = self.psi.shape[0]
+            psi_dm = np.empty((config.ntraj, len(config.tlist)), dtype=object)
+            for i in range(config.ntraj):
+                for j in range(len(config.tlist)):
+                    tmp = Qobj(mc.psi_out[i,j,:].reshape(-1,1))
+                    tmp = tmp*tmp.dag()
+                    tmp.dims = [config.psi0_dims[0], config.psi0_dims[0]]
+                    psi_dm[i,j] = tmp
+            output.states = parfor(_mc_dm_avg, psi_dm.T)
+
+    @property
+    def expect(self):
+        return self.expect_traj_avg()
+
+    @property
+    def runs_expect(self):
+        if self._expect is None:
+            return None
+        return [expt.finish() for expt in self._expect]
+
+    def expect_traj_avg(self, ntraj=0):
+        if self._expect is None:
+            return None
+        if not ntraj:
+            ntraj = len(self._expect)
+        expect = np.stack([expt.raw_out for expt in self._expect[:ntraj]])
+        expect = np.mean(expect, axis=0)
+
+        result = []
+        for ii in range(self.e_ops.e_num):
+            if self.e_ops.e_ops_isherm[ii]:
+                result.append(np.real(expect[ii, :]))
+            else:
+                result.append(expect[ii, :])
+        if self.e_ops.e_ops_dict:
+            expect = {e: result[n]
+                      for n, e in enumerate(self.e_ops.e_ops_dict.keys())}
+        return expect
+
+    @property
+    def steady_state(self):
+        if self._ss_out is not None:
+            dims = self.psi.dims[0]
+            len_ = self.psi.shape[0]
+            return Qobj(np.mean(self._ss_out, axis=0),
+                            [dims, dims], [len_, len_])
+        elif self._psi_out is not None:
+            return sum(self.state_average) / self.num_traj
+        else:
+            return None
+
+    @property
+    def runs_states(self):
+        psi = []
+        dims = self.psi.dims[0]
+        for i in range(self.num_traj):
+            one_run = []
+            for j in range(len(config.tlist)):
+                one_run.append(Qobj(mc.psi_out[i,j,:].reshape(-1,1),
+                                    dims = dims))
+            psi.append(one_run)
+        return psi
+
+    @property
+    def collapse(self):
+        return self._collapses
+
+    @property
+    def collapse_times(self):
+        return [list(zip(*coll_traj))[0] for coll_traj in self._collapses]
+
+    @property
+    def collapse_which(self):
+        return [list(zip(*coll_traj))[1] for coll_traj in self._collapses]
+
+    def get_result(self, ntraj=[]):
+        # Store results in the Result object
+        if not ntraj:
+            ntraj = [self.num_traj]
+        elif not isinstance(ntraj, list):
+            ntraj = [ntraj]
+
+        output = Result()
+        output.solver = 'mcsolve'
+        output.seeds = self.seeds
+
+        options = self.options
+
+        if options.steady_state_average:
+            output.states = self.steady_state
+        elif options.average_states:
+            output.states = self.states
+        else:
+            output.states = self.runs_states
+
+        if options.average_expect:
+            output.expect = [self.expect_traj_avg(n) for n in ntraj]
+            if len(output.expect) == 1:
+                output.expect = output.expect[0]
+        else:
+            output.expect = self.runs_expect
+
+        # simulation parameters
+        output.times = self.tlist
+        output.num_expect = self.e_num
+        output.num_collapse = len(self.ss.td_c_ops)
+        output.ntraj = self.ntraj
+        output.col_times = self.collapse_times
+        output.col_which = self.collapse_which
+
+        return output
+
+    # --------------------------------------------------------------------------
     # single-trajectory for monte carlo
-    # -----------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     def _single_traj(self, nt):
         """
         Monte Carlo algorithm returning state-vector or expectation values
@@ -453,50 +559,89 @@ class _MC():
         """
         # SEED AND RNG AND GENERATE
         prng = RandomState(self.seeds[nt])
-        if False:
+        opt = self.options
+
+        if False: # (config.h_tflag in (1,) and config.options.method == "dopri5"):
             pass
-            # (config.h_tflag in (1,) and config.options.method == "dopri5"):
             # dopri5 solver to add later
             # states_out, expect_out, collapse_times, which_oper = cy_mc_run_fast(
             #     config, prng)
         else:
             # set initial conditions
+            rhs, ode_args = self.ss.makefunc(ss)
             tlist = self.tlist
-            ODE = _build_integration_func(config)
+            ODE = self._build_integration_func(rhs, ode_args, opt)
             ODE.set_initial_value(self.initial_vector, tlist[0])
             e_ops = self.e_ops
             e_ops.init(tlist)
             opt = self.options
 
-            states_out, collapses = cy_mc_run_ode(ODE, tlist, e_ops, opt, prng)
+            states_out, ss_out, collapses = cy_mc_run_ode(ODE, tlist, e_ops, opt, prng)
 
         # Run at end of mc_alg function
         # -----------------------------
         if config.options.steady_state_average:
             states_out /= float(len(tlist))
 
-        return (states_out, e_ops, collapses)
+        return (states_out, ss_out, e_ops, collapses)
+
+    def _build_integration_func(rhs, ode_args, opt):
+        """
+        Create the integration function while fixing the parameters
+        """
+        ODE = ode(rhs)
+        if ode_args:
+            ODE.set_f_params(ode_args)
+        # initialize ODE solver for RHS
+        ODE.set_integrator('zvode', method="adams")
+        ODE._integrator = qutip_zvode(
+            method=opt.method, order=opt.order, atol=opt.atol,
+            rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step,
+            min_step=opt.min_step, max_step=opt.max_step)
+
+        #if not len(ODE._y):
+        #    ODE.t = 0.0
+        #    ODE._y = np.array([0.0], complex)
+        #ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
+        return ODE
 
 
-def _qobjevo_set(ss, psi0, args, opt):
+# -----------------------------------------------------------------------------
+# CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
+# -----------------------------------------------------------------------------
+def _qobjevo_set(ss, psi0=None, args={}, opt=None):
+    if args:
+        self.set_args(args)
+    rhs = ss.H_td.compiled_qobjevo.mul_vec
+    return rhs, ()
+
+def _qobjevo_args(ss, args):
+    ss.args = args
     ss.H_td.arguments(args)
     for c in ss.td_c_ops:
         c.arguments(args)
     for c in ss.td_n_ops:
         c.arguments(args)
-    rhs = ss.H_td.compiled_qobjevo.mul_vec
-    return rhs, ()
 
-def _func_set(HS, psi0, args, opt):
-    for c in ss.td_c_ops:
-        c.arguments(args)
-    for c in ss.td_n_ops:
-        c.arguments(args)
+def _func_set(HS, psi0=None, args={}, opt=None):
+    if args:
+        self.set_args(args)
+    else:
+        args = ss.args
     if ss.with_state:
         rhs = _funcrhs
     else:
         rhs = _funcrhs_with_state
     return rhs, (ss.h_func, ss.Hc_td, args)
+
+def _func_args(ss, args):
+    ss.args = args
+    for c in ss.td_c_ops:
+        c.arguments(args)
+    for c in ss.td_n_ops:
+        c.arguments(args)
+    return rhs, (ss.h_func, ss.Hc_td, args)
+
 
 # RHS of ODE for python function Hamiltonian
 def _funcrhs(t, psi, h_func, Hc_td, args):
@@ -504,37 +649,11 @@ def _funcrhs(t, psi, h_func, Hc_td, args):
     h_func_term = h_func_data * psi
     return h_func_term + Hc_td.mul_vec(t, psi)
 
+
 def _funcrhs_with_state(t, psi, h_func, Hc_td, args):
     h_func_data = - 1.0j * h_func(t, psi, args).data
     h_func_term = h_func_data * psi
     return h_func_term + Hc_td.mul_vec(t, psi)
-
-
-# -----------------------------------------------------------------------------
-# CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
-# -----------------------------------------------------------------------------
-def _build_integration_func(rhs, ode_args, opt):
-    """
-    Create the integration function while fixing the parameters
-    """
-    if debug:
-        print(inspect.stack()[0][3] + " in " + str(os.getpid()))
-
-    ODE = ode(rhs)
-    if ode_args:
-        ODE.set_f_params(ode_args)
-    # initialize ODE solver for RHS
-    ODE.set_integrator('zvode', method="adams")
-    ODE._integrator = qutip_zvode(
-        method=opt.method, order=opt.order, atol=opt.atol,
-        rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step,
-        min_step=opt.min_step, max_step=opt.max_step)
-
-    #if not len(ODE._y):
-    #    ODE.t = 0.0
-    #    ODE._y = np.array([0.0], complex)
-    #ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
-    return ODE
 
 
 def _mc_dm_avg(psi_list):

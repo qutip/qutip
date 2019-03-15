@@ -57,6 +57,7 @@ class ExpectOps:
         # take care of expectation values, if any
         self.isfunc = False
         self.e_ops_dict = False
+        self.raw_e_ops = e_ops
         if isinstance(e_ops, (Qobj, QobjEvo)):
             e_ops = [e_ops]
         elif isinstance(e_ops, dict):
@@ -106,6 +107,14 @@ class ExpectOps:
                 result = {e: result[n]
                           for n, e in enumerate(self.e_ops_dict.keys())}
         return result
+
+    def __eq__(self, other):
+        if isinstance(other, ExpectOps):
+            other = other.raw_e_ops
+        return self.raw_e_ops == other
+
+    def __ne__(self, other):
+        return not (self == other)
 
 
 class Options():

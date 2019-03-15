@@ -70,42 +70,34 @@ cdef void sumsteadystate(complex[:, ::1] mean, complex[::1] state):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cy_mc_run_ode(ODE, config, prng):
-    cdef int ii, j, jj, k
+def cy_mc_run_ode(ODE, ss, tlist, e_call, opt, prng):
+    cdef int ii, j, jj, k, steady_state, store_states
     cdef double norm2_psi, norm2_prev, norm2_guess, t_prev, t_final, t_guess
     cdef np.ndarray[double, ndim=1] rand_vals
-    cdef np.ndarray[complex, ndim=1] y_prev, out_psi = config.psi0
-    cdef np.ndarray[double, ndim=1] tlist = config.tlist
-    cdef int num_times = len(tlist), l_vec = config.psi0.shape[0]
-    cdef int num_e = config.e_num
+    cdef np.ndarray[double, ndim=1] tlist = np.array(tlist)
+    cdef np.ndarray[complex, ndim=1] y_prev, out_psi = ODE._y
+    cdef int num_times = tlist.shape[0], l_vec = ODE._y.shape[0]
 
     # make array for collapse operator inds
     cdef np.ndarray[long, ndim=1] cinds = np.arange(len(config.td_c_ops))
 
-    cdef CQobjEvo[::1] c_ops = config.td_c_ops
-    cdef CQobjEvo[::1] n_ops = config.td_n_ops
-    cdef list e_ops = config.e_ops_cdata
-    cdef object cdat
+    cdef CQobjEvo[::1] c_ops = ss.td_c_ops
+    cdef CQobjEvo[::1] n_ops = ss.td_n_ops
+
+    steady_state = opt.steady_state_average
+    store_states = opt.store_states or opt.average_states
 
     cdef np.ndarray[complex, ndim=2] states_out
-    if config.options.steady_state_average:
-        states_out = np.zeros((l_vec, l_vec), dtype=complex)
-    elif config.options.store_states:
+    cdef np.ndarray[complex, ndim=2] ss_out
+    if steady_state:
+        ss_out = np.zeros((l_vec, l_vec), dtype=complex)
+        sumsteadystate(ss_out, out_psi)
+    if store_states:
         states_out = np.zeros((num_times, l_vec), dtype=complex)
-
-    cdef np.ndarray[complex, ndim=2] expect_out = np.empty((num_times, num_e),
-                                                           dtype=complex)
-    collapse_times = []
-    which_oper = []
-
-    if config.options.steady_state_average:
-        sumsteadystate(states_out, out_psi)
-    elif config.options.store_states:
         states_out[0, :] = out_psi
 
-    for ii in range(num_e):
-        cdat = e_ops[ii]
-        expect_out[0, ii] = cy_expect_psi(cdat, out_psi, 0)
+    collapses = []
+    e_call.step(0, out_psi)
 
     # first rand is collapse norm, second is which operator
     rand_vals = prng.rand(2)
@@ -192,13 +184,12 @@ def cy_mc_run_ode(ODE, config, prng):
         # ----------------
         out_psi = normalize(ODE._y)
 
-        if config.options.steady_state_average:
-            sumsteadystate(states_out, out_psi)
-        elif config.options.store_states:
+        e_call.step(ii, out_psi)
+        if steady_state_average:
+            sumsteadystate(ss_out, out_psi)
+        if store_states:
             states_out[k, :] = out_psi
 
-        for ii in range(num_e):
-            cdat = e_ops[ii]
-            expect_out[0, ii] = cy_expect_psi(cdat, out_psi, 0)
+
 
     return states_out, expect_out, collapse_times, which_oper
