@@ -36,7 +36,8 @@ import numpy as np
 
 from qutip import _version2int
 from numpy import trapz, linspace, pi
-from numpy.testing import run_module_suite, assert_
+from numpy.testing import (run_module_suite, assert_,
+                           assert_array_almost_equal, assert_raises)
 import unittest
 import warnings
 
@@ -45,7 +46,7 @@ from qutip import (correlation, destroy, coherent_dm, correlation_2op_2t,
                    spectrum_pi, correlation_ss, spectrum_correlation_fft,
                    spectrum, correlation_3op_2t, mesolve, Options,
                    Cubic_Spline)
-
+from qutip.correlation import bath_correlation, underdamped_brownian 
 # find Cython if it exists
 try:
     import Cython
@@ -664,6 +665,27 @@ def test_fn_list_td_corr():
     )
 
     assert_(abs(g20 - 0.85) < 1e-2)
+
+
+def test_sd_function():
+    """
+    correlation: Test for bath correlation function.
+    """
+    tlist = [0., 0.5, 1., 1.5, 2.]
+    lam, gamma, w0 = 0.4, 0.4, 1.
+    beta = np.inf
+    w_cutoff = 10.
+    corr = bath_correlation(underdamped_brownian, tlist,
+                            [lam, gamma, w0], beta, w_cutoff)
+
+    y = np.array([0.07108, 0.059188-0.03477j, 0.033282-0.055529j,
+                  0.003295-0.060187j, -0.022843-0.050641j])
+
+    assert_array_almost_equal(corr, y)
+
+    sd = np.arange(0, 10, 2)
+    assert_raises(TypeError, bath_correlation, [sd, tlist, [0.1], beta,
+                                                w_cutoff])
 
 
 if __name__ == "__main__":
