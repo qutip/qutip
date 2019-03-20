@@ -46,8 +46,7 @@ from numpy.testing import (
     assert_array_almost_equal, assert_raises)
 from scipy.integrate import quad, IntegrationWarning
 from qutip import Qobj, sigmaz, basis, expect
-from qutip.nonmarkov.heom import (HSolverDL, underdamped_brownian,
-                                  bath_correlation,
+from qutip.nonmarkov.heom import (HSolverDL, Heom,
                                   HSolverUnderdampedBrownian)
 from qutip.solver import Options
 import warnings
@@ -139,27 +138,6 @@ class TestHSolver:
                 "for hsolve with {}".format(max_resid, resid_tol, test_desc))
         
 
-def test_sd_function():
-    """
-    correlation: Test for bath correlation function.
-    """
-    tlist = [0., 0.5, 1., 1.5, 2.]
-    lam, gamma, w0 = 0.4, 0.4, 1.
-    beta = np.inf
-    w_cutoff = 10.
-    corr = bath_correlation(underdamped_brownian, tlist,
-                            [lam, gamma, w0], beta, w_cutoff)
-
-    y = np.array([0.07108, 0.059188-0.03477j, 0.033282-0.055529j,
-                  0.003295-0.060187j, -0.022843-0.050641j])
-
-    assert_array_almost_equal(corr, y)
-
-    sd = np.arange(0, 10, 2)
-    assert_raises(TypeError, bath_correlation, [sd, tlist, [0.1], beta,
-                                                w_cutoff])
-
-
 def test_heom():
     """
     Test the HEOM method.
@@ -168,22 +146,32 @@ def test_heom():
     wq = 1.
     Hsys = 0.5*wq*sigmaz()
     initial_ket = basis(2, 1)
-    Nc = 2
+    Nc = 7
     rho0 = initial_ket*initial_ket.dag()
     Nexp = 4
-    lam, gamma, w0 = 0.4, 0.4, 1.
+    lam, gamma, w0 = 0.2, 0.05, 1.
+    omega = np.sqrt(w0**2 - (gamma/2.)**2)
+    a = omega + 1j*gamma/2.
+    wcav = omega
+    lamlam = lam**2/(2*wcav)
 
-    ck1, vk1 = [0.00000000+0.j, 0.02000625+0.j], [-0.025+0.99968745j, -0.025-0.99968745j]
-    ck_mats, vk_mats = [-0.00011662, -0.00020182], [-0.34959062, -1.75226554]
+    tlist = np.linspace(0, 20, 1000)
 
-    options = Options(nsteps=150, store_states=True, atol=1e-3, rtol=1e-3)
-    solver = HSolverUnderdampedBrownian(Hsys, Q, lam,
-        ck1, vk1, ck_mats, vk_mats, 0., Nc, Nexp, 1)
+    ck1, vk1 = np.array([0.00000000+0.j, 0.02000625+0.j]), np.array([-0.025+0.99968745j, -0.025-0.99968745j])
+    ck_mats, vk_mats = np.array([-0.00011662, -0.00020182]), np.array([-0.34959062, -1.75226554])
+
+    options = Options(nsteps=1500, store_states=True, atol=1e-6, rtol=1e-6)
+    solver1 = HSolverUnderdampedBrownian(Hsys, Q, lamlam,
+        ck1, -vk1, ck_mats, -vk_mats, 1e-10, Nc, Nexp, 10)
+
+    solver2 = Heom(Hsys, Q, np.concatenate([ck1, ck_mats]),
+        np.concatenate([-vk1, -vk_mats]), ncut=Nc, lam=lamlam)
     tlist = np.linspace(0, 200, 1000)
-    output = solver.run(rho0, tlist)
-    result = expect(output.states, sigmaz())
-    expected = np.ones_like(result)
-    assert_array_almost_equal(result, expected)
+    output1 = solver1.run(rho0, tlist)
+    result1 = expect(output1.states, sigmaz())
+    
+    output2 = solver2.run(rho0, tlist)
+    result2 = expect(output2.states, sigmaz())
 
 
 if __name__ == "__main__":
