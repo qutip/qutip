@@ -144,34 +144,38 @@ def test_heom():
     """
     Q = sigmax()
     wq = 1.
+    wrc = 1.
     Hsys = 0.5*wq*sigmaz()
     initial_ket = basis(2, 1)
-    Nc = 7
+    Nc = 9
     rho0 = initial_ket*initial_ket.dag()
     Nexp = 4
     lam, gamma, w0 = 0.2, 0.05, 1.
     omega = np.sqrt(w0**2 - (gamma/2.)**2)
     a = omega + 1j*gamma/2.
     wcav = omega
-    lamlam = lam**2/(2*wcav)
-
+    lam_renorm = ((1/np.pi)*(-gamma*lam**2*(4*np.arctan(0.5*gamma/wrc) \
+        -2*np.pi)/(8*0.5*gamma*wrc)))
     tlist = np.linspace(0, 20, 1000)
 
-    ck1, vk1 = np.array([0.00000000+0.j, 0.02000625+0.j]), np.array([-0.025+0.99968745j, -0.025-0.99968745j])
-    ck_mats, vk_mats = np.array([-0.00011662, -0.00020182]), np.array([-0.34959062, -1.75226554])
+    ck1 = np.array([0.0 + 0.j, 0.02000625])
+    vk1 = np.array([-0.025 + 0.99968745j, -0.025 - 0.99968745j])
+    ck_mats = np.array([-0.00011662, -0.00020182])
+    vk_mats = np.array([-0.34959062, -1.75226554])
 
-    options = Options(nsteps=1500, store_states=True, atol=1e-6, rtol=1e-6)
-    solver1 = HSolverUnderdampedBrownian(Hsys, Q, lamlam,
-        ck1, -vk1, ck_mats, -vk_mats, 1e-10, Nc, Nexp, 10)
+    options = Options(nsteps=1500, store_states=True, atol=1e-12, rtol=1e-12)
+    solver1 = HSolverUnderdampedBrownian(Hsys, Q, lam_renorm,
+        ck1, -vk1, ck_mats, -vk_mats, 0., Nc, 4, 1, options=options)
 
     solver2 = Heom(Hsys, Q, np.concatenate([ck1, ck_mats]),
-        np.concatenate([-vk1, -vk_mats]), ncut=Nc, lam=lamlam)
+        np.concatenate([-vk1, -vk_mats]), ncut=Nc, lam=lam_renorm)
     tlist = np.linspace(0, 200, 1000)
     output1 = solver1.run(rho0, tlist)
-    result1 = expect(output1.states, sigmaz())
+    result1 = np.real(expect(output1.states, sigmaz()))
     
     output2 = solver2.run(rho0, tlist)
-    result2 = expect(output2.states, sigmaz())
+    result2 = np.real(expect(output2.states, sigmaz()))
+    assert_array_almost_equal((result1+1)/2., (result2+1)/2)
 
 
 if __name__ == "__main__":
