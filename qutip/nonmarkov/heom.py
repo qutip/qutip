@@ -135,9 +135,10 @@ class HEOMSolver(object):
     exp_freq : list of complex
         Frequencies for the exponential series terms
     """
+
     def __init__(self):
         raise NotImplementedError("This is a abstract class only. "
-                "Use a subclass, for example HSolverDL")
+                                  "Use a subclass, for example HSolverDL")
 
     def reset(self):
         """
@@ -164,9 +165,9 @@ class HEOMSolver(object):
         self.configured = False
 
     def configure(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, planck=None, boltzmann=None,
-                     renorm=None, bnd_cut_approx=None,
-                     options=None, progress_bar=None, stats=None):
+                  N_cut, N_exp, planck=None, boltzmann=None,
+                  renorm=None, bnd_cut_approx=None,
+                  options=None, progress_bar=None, stats=None):
         """
         Configure the solver using the passed parameters
         The parameters are described in the class attributes, unless there
@@ -197,18 +198,21 @@ class HEOMSolver(object):
         self.temperature = temperature
         self.N_cut = N_cut
         self.N_exp = N_exp
-        if planck: self.planck = planck
-        if boltzmann: self.boltzmann = boltzmann
-        if isinstance(options, Options): self.options = options
+        if planck:
+            self.planck = planck
+        if boltzmann:
+            self.boltzmann = boltzmann
+        if isinstance(options, Options):
+            self.options = options
         if isinstance(progress_bar, BaseProgressBar):
             self.progress_bar = progress_bar
-        elif progress_bar == True:
+        elif progress_bar:
             self.progress_bar = TextProgressBar()
         elif progress_bar == False:
             self.progress_bar = None
         if isinstance(stats, Stats):
             self.stats = stats
-        elif stats == True:
+        elif stats:
             self.stats = self.create_new_stats()
         elif stats == False:
             self.stats = None
@@ -223,6 +227,7 @@ class HEOMSolver(object):
         stats = Stats(['config', 'run'])
         stats.header = "Hierarchy Solver Stats"
         return stats
+
 
 class HSolverDL(HEOMSolver):
     """
@@ -249,9 +254,9 @@ class HSolverDL(HEOMSolver):
     """
 
     def __init__(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=1.0, boltzmann=1.0,
-                     renorm=True, bnd_cut_approx=True,
-                     options=None, progress_bar=None, stats=None):
+                 N_cut, N_exp, cut_freq, planck=1.0, boltzmann=1.0,
+                 renorm=True, bnd_cut_approx=True,
+                 options=None, progress_bar=None, stats=None):
 
         self.reset()
 
@@ -263,13 +268,23 @@ class HSolverDL(HEOMSolver):
         self.progress_bar = False
         if progress_bar is None:
             self.progress_bar = BaseProgressBar()
-        elif progress_bar == True:
+        elif progress_bar:
             self.progress_bar = TextProgressBar()
 
         # the other attributes will be set in the configure method
-        self.configure(H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=planck, boltzmann=boltzmann,
-                     renorm=renorm, bnd_cut_approx=bnd_cut_approx, stats=stats)
+        self.configure(
+            H_sys,
+            coup_op,
+            coup_strength,
+            temperature,
+            N_cut,
+            N_exp,
+            cut_freq,
+            planck=planck,
+            boltzmann=boltzmann,
+            renorm=renorm,
+            bnd_cut_approx=bnd_cut_approx,
+            stats=stats)
 
     def reset(self):
         """
@@ -281,22 +296,33 @@ class HSolverDL(HEOMSolver):
         self.bnd_cut_approx = False
 
     def configure(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=None, boltzmann=None,
-                     renorm=None, bnd_cut_approx=None,
-                     options=None, progress_bar=None, stats=None):
+                  N_cut, N_exp, cut_freq, planck=None, boltzmann=None,
+                  renorm=None, bnd_cut_approx=None,
+                  options=None, progress_bar=None, stats=None):
         """
         Calls configure from :class:`HEOMSolver` and sets any attributes
         that are specific to this subclass
         """
         start_config = timeit.default_timer()
 
-        HEOMSolver.configure(self, H_sys, coup_op, coup_strength,
-                    temperature, N_cut, N_exp,
-                    planck=planck, boltzmann=boltzmann,
-                    options=options, progress_bar=progress_bar, stats=stats)
+        HEOMSolver.configure(
+            self,
+            H_sys,
+            coup_op,
+            coup_strength,
+            temperature,
+            N_cut,
+            N_exp,
+            planck=planck,
+            boltzmann=boltzmann,
+            options=options,
+            progress_bar=progress_bar,
+            stats=stats)
         self.cut_freq = cut_freq
-        if renorm is not None: self.renorm = renorm
-        if bnd_cut_approx is not None: self.bnd_cut_approx = bnd_cut_approx
+        if renorm is not None:
+            self.renorm = renorm
+        if bnd_cut_approx is not None:
+            self.bnd_cut_approx = bnd_cut_approx
 
         # Load local values for optional parameters
         # Constants and Hamiltonian.
@@ -304,7 +330,6 @@ class HSolverDL(HEOMSolver):
         options = self.options
         progress_bar = self.progress_bar
         stats = self.stats
-
 
         if stats:
             ss_conf = stats.sections.get('config')
@@ -324,37 +349,39 @@ class HSolverDL(HEOMSolver):
         sup_dim = N_temp**2
         unit_sys = qeye(N_temp)
 
-
         # Use shorthands (mainly as in referenced PRL)
         lam0 = self.coup_strength
         gam = self.cut_freq
         N_c = self.N_cut
         N_m = self.N_exp
-        Q = coup_op # Q as shorthand for coupling operator
-        beta = 1.0/(self.boltzmann*self.temperature)
+        Q = coup_op  # Q as shorthand for coupling operator
+        beta = 1.0 / (self.boltzmann * self.temperature)
 
         # Ntot is the total number of ancillary elements in the hierarchy
         # Ntot = factorial(N_c + N_m) / (factorial(N_c)*factorial(N_m))
         # Turns out to be the same as nstates from state_number_enumerate
-        N_he, he2idx, idx2he = enr_state_dictionaries([N_c + 1]*N_m , N_c)
+        N_he, he2idx, idx2he = enr_state_dictionaries([N_c + 1] * N_m, N_c)
 
         unit_helems = fast_identity(N_he)
         if self.bnd_cut_approx:
             # the Tanimura boundary cut off operator
             if stats:
                 stats.add_message('options', 'boundary cutoff approx', ss_conf)
-            op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+            op = -2 * spre(Q) * spost(Q.dag()) + \
+                spre(Q.dag() * Q) + spost(Q.dag() * Q)
 
-            approx_factr = ((2*lam0 / (beta*gam*hbar)) - 1j*lam0) / hbar
+            approx_factr = (
+                (2 * lam0 / (beta * gam * hbar)) - 1j * lam0) / hbar
             for k in range(N_m):
                 approx_factr -= (c[k] / nu[k])
-            L_bnd = -approx_factr*op.data
+            L_bnd = -approx_factr * op.data
             L_helems = zcsr_kron(unit_helems, L_bnd)
         else:
-            L_helems = fast_csr_matrix(shape=(N_he*sup_dim, N_he*sup_dim))
+            L_helems = fast_csr_matrix(shape=(N_he * sup_dim, N_he * sup_dim))
 
         # Build the hierarchy element interaction matrix
-        if stats: start_helem_constr = timeit.default_timer()
+        if stats:
+            start_helem_constr = timeit.default_timer()
 
         unit_sup = spre(unit_sys).data
         spreQ = spre(Q).data
@@ -370,9 +397,9 @@ class HSolverDL(HEOMSolver):
             # coeff for diagonal elements
             sum_n_m_freq = 0.0
             for k in range(N_m):
-                sum_n_m_freq += he_state[k]*nu[k]
+                sum_n_m_freq += he_state[k] * nu[k]
 
-            op = -sum_n_m_freq*unit_sup
+            op = -sum_n_m_freq * unit_sup
             L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx)
             L_helems += L_he
 
@@ -387,11 +414,11 @@ class HSolverDL(HEOMSolver):
                     he_state_neigh[k] = n_k - 1
                     he_idx_neigh = he2idx[tuple(he_state_neigh)]
 
-                    op = c[k]*spreQ - np.conj(c[k])*spostQ
+                    op = c[k] * spreQ - np.conj(c[k]) * spostQ
                     if renorm:
-                        op = -1j*norm_minus[n_k, k]*op
+                        op = -1j * norm_minus[n_k, k] * op
                     else:
-                        op = -1j*n_k*op
+                        op = -1j * n_k * op
 
                     L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems += L_he
@@ -407,9 +434,9 @@ class HSolverDL(HEOMSolver):
 
                     op = commQ
                     if renorm:
-                        op = -1j*norm_plus[n_k, k]*op
+                        op = -1j * norm_plus[n_k, k] * op
                     else:
-                        op = -1j*op
+                        op = -1j * op
 
                     L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems += L_he
@@ -420,14 +447,14 @@ class HSolverDL(HEOMSolver):
         if stats:
             stats.add_timing('hierarchy contruct',
                              timeit.default_timer() - start_helem_constr,
-                            ss_conf)
+                             ss_conf)
             stats.add_count('Num hierarchy elements', N_he, ss_conf)
             stats.add_count('Num he interactions', N_he_interact, ss_conf)
 
         # Setup Liouvillian
-        if stats: 
+        if stats:
             start_louvillian = timeit.default_timer()
-        
+
         H_he = zcsr_kron(unit_helems, liouvillian(H_sys).data)
 
         L_helems += H_he
@@ -435,9 +462,10 @@ class HSolverDL(HEOMSolver):
         if stats:
             stats.add_timing('Liouvillian contruct',
                              timeit.default_timer() - start_louvillian,
-                            ss_conf)
+                             ss_conf)
 
-        if stats: start_integ_conf = timeit.default_timer()
+        if stats:
+            start_integ_conf = timeit.default_timer()
 
         r = scipy.integrate.ode(cy_ode_rhs)
 
@@ -451,7 +479,7 @@ class HSolverDL(HEOMSolver):
             time_now = timeit.default_timer()
             stats.add_timing('Liouvillian contruct',
                              time_now - start_integ_conf,
-                            ss_conf)
+                             ss_conf)
             if ss_conf.total_time is None:
                 ss_conf.total_time = time_now - start_config
             else:
@@ -503,10 +531,11 @@ class HSolverDL(HEOMSolver):
         output.times = tlist
         output.states = []
 
-        if stats: start_init = timeit.default_timer()
+        if stats:
+            start_init = timeit.default_timer()
         output.states.append(Qobj(rho0))
-        rho0_flat = rho0.full().ravel('F') # Using 'F' effectively transposes
-        rho0_he = np.zeros([sup_dim*self._N_he], dtype=complex)
+        rho0_flat = rho0.full().ravel('F')  # Using 'F' effectively transposes
+        rho0_he = np.zeros([sup_dim * self._N_he], dtype=complex)
         rho0_he[:sup_dim] = rho0_flat
         r.set_initial_value(rho0_he, tlist[0])
 
@@ -549,19 +578,19 @@ class HSolverDL(HEOMSolver):
         lam0 = self.coup_strength
         gam = self.cut_freq
         hbar = self.planck
-        beta = 1.0/(self.boltzmann*self.temperature)
+        beta = 1.0 / (self.boltzmann * self.temperature)
         N_m = self.N_exp
 
-        g = 2*np.pi / (beta*hbar)
+        g = 2 * np.pi / (beta * hbar)
         for k in range(N_m):
             if k == 0:
                 nu.append(gam)
-                c.append(lam0*gam*
-                    (1.0/np.tan(gam*hbar*beta/2.0) - 1j) / hbar)
+                c.append(lam0 * gam *
+                         (1.0 / np.tan(gam * hbar * beta / 2.0) - 1j) / hbar)
             else:
-                nu.append(k*g)
-                c.append(4*lam0*gam*nu[k] /
-                      ((nu[k]**2 - gam**2)*beta*hbar**2))
+                nu.append(k * g)
+                c.append(4 * lam0 * gam * nu[k] /
+                         ((nu[k]**2 - gam**2) * beta * hbar**2))
 
         self.exp_coeff = c
         self.exp_freq = nu
@@ -579,12 +608,12 @@ class HSolverDL(HEOMSolver):
         N_m = self.N_exp
         N_c = self.N_cut
 
-        norm_plus = np.empty((N_c+1, N_m))
-        norm_minus = np.empty((N_c+1, N_m))
+        norm_plus = np.empty((N_c + 1, N_m))
+        norm_minus = np.empty((N_c + 1, N_m))
         for k in range(N_m):
-            for n in range(N_c+1):
-                norm_plus[n, k] = np.sqrt(abs(c[k])*(n + 1))
-                norm_minus[n, k] = np.sqrt(float(n)/abs(c[k]))
+            for n in range(N_c + 1):
+                norm_plus[n, k] = np.sqrt(abs(c[k]) * (n + 1))
+                norm_minus[n, k] = np.sqrt(float(n) / abs(c[k]))
 
         return norm_plus, norm_minus
 
@@ -605,32 +634,32 @@ def _pad_csr(A, row_scale, col_scale, insertrow=0, insertcol=0):
     # after much searching most threads suggest directly addressing
     # the underlying arrays, as done here.
     # This certainly proved more efficient than other methods such as stacking
-    #TODO: Perhaps cythonize and move to spmatfuncs
+    # TODO: Perhaps cythonize and move to spmatfuncs
 
     if not isinstance(A, sp.csr_matrix):
         raise TypeError("First parameter must be a csr matrix")
     nrowin = A.shape[0]
     ncolin = A.shape[1]
-    nrowout = nrowin*row_scale
-    ncolout = ncolin*col_scale
+    nrowout = nrowin * row_scale
+    ncolout = ncolin * col_scale
 
     A._shape = (nrowout, ncolout)
     if insertcol == 0:
         pass
     elif insertcol > 0 and insertcol < col_scale:
-        A.indices = A.indices + insertcol*ncolin
+        A.indices = A.indices + insertcol * ncolin
     else:
         raise ValueError("insertcol must be >= 0 and < col_scale")
 
     if insertrow == 0:
-        A.indptr = np.concatenate((A.indptr,
-                        np.array([A.indptr[-1]]*(row_scale-1)*nrowin)))
-    elif insertrow == row_scale-1:
-        A.indptr = np.concatenate((np.array([0]*(row_scale - 1)*nrowin),
+        A.indptr = np.concatenate(
+            (A.indptr, np.array([A.indptr[-1]] * (row_scale - 1) * nrowin)))
+    elif insertrow == row_scale - 1:
+        A.indptr = np.concatenate((np.array([0] * (row_scale - 1) * nrowin),
                                    A.indptr))
     elif insertrow > 0 and insertrow < row_scale - 1:
-         A.indptr = np.concatenate((np.array([0]*insertrow*nrowin), A.indptr,
-                np.array([A.indptr[-1]]*(row_scale - insertrow - 1)*nrowin)))
+        A.indptr = np.concatenate((np.array([0] * insertrow * nrowin), A.indptr, np.array(
+            [A.indptr[-1]] * (row_scale - insertrow - 1) * nrowin)))
     else:
         raise ValueError("insertrow must be >= 0 and < row_scale")
 
@@ -705,7 +734,7 @@ def _heom_number_enumerate(dims, excitations=None, state=None, idx=0):
             yield np.array(state)
         else:
             yield tuple(state)
-            
+
     else:
         for n in range(dims[idx]):
             state[idx] = n
@@ -717,7 +746,8 @@ class HSolverUnderdampedBrownian(HEOMSolver):
     """
     HEOM solver based on the underdamped Brownian motion spectral density.
 
-    :math:`J(\omega) = \frac{\gamma \lambda^2 \omega}{(\omega^2 - \omega_0^2)^2 + \gamma^2 \omega}`
+    :math:`J(\omega) = \frac{\gamma \lambda^2 \omega}{(\omega^2
+            - \omega_0^2)^2 + \gamma^2 \omega}`
 
     Attributes
     ----------
@@ -731,6 +761,7 @@ class HSolverUnderdampedBrownian(HEOMSolver):
     bnd_cut_approx : bool
         Use boundary cut off approximation.
     """
+
     def __init__(self, H_sys, coup_op, coup_strength, ckA, vkA,
                  ck_corr, vk_corr,
                  temperature, N_cut, N_exp, cut_freq, planck=1.0,
@@ -747,7 +778,7 @@ class HSolverUnderdampedBrownian(HEOMSolver):
         self.progress_bar = False
         if progress_bar is None:
             self.progress_bar = BaseProgressBar()
-        elif progress_bar == True:
+        elif progress_bar:
             self.progress_bar = TextProgressBar()
 
         # the other attributes will be set in the configure method
@@ -806,117 +837,125 @@ class HSolverUnderdampedBrownian(HEOMSolver):
         Nsup = N_temp**2
         unit = qeye(N_temp)
 
-        #Ntot is the total number of ancillary elements in the hierarchy
-        Ntot = int(round(factorial(Nc+N) / (factorial(Nc) * factorial(N))))
-        LD1 = -2.* spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
+        # Ntot is the total number of ancillary elements in the hierarchy
+        # Ntot = int(round(factorial(Nc + N) / (factorial(Nc) * factorial(N))))
+        Ntot = num_hierarchy(Nc, N)
+        # LD1 = -2.* spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
+        L12 = 0. * spre(Q)
 
-        c0=ckA[0]
-        pref=0.
-        L12=0.*LD1;
-        
-        #Setup liouvillian
+        # Setup liouvillian
 
         L = liouvillian(H, [L12])
         Ltot = L.data
-        unitthing=sp.identity(Ntot, dtype='complex', format='csr')
-        Lbig = sp.kron(unitthing,Ltot.tocsr())
-        
-        nstates, state2idx, idx2state =_heom_state_dictionaries([Nc+1]*(N),Nc)
-        for nlabelt in _heom_number_enumerate([Nc+1]*(N),Nc):
-            nlabel = list(nlabelt)                    
+        unitthing = sp.identity(Ntot, dtype='complex', format='csr')
+        Lbig = sp.kron(unitthing, Ltot.tocsr())
+
+        nstates, state2idx, idx2state = _heom_state_dictionaries(
+            [Nc + 1] * (N), Nc)
+        for nlabelt in _heom_number_enumerate([Nc + 1] * (N), Nc):
+            nlabel = list(nlabelt)
             ntotalcheck = 0
             for ncheck in range(N):
-                ntotalcheck = ntotalcheck + nlabel[ncheck]                            
+                ntotalcheck = ntotalcheck + nlabel[ncheck]
+
             current_pos = int(round(state2idx[tuple(nlabel)]))
+
             Ltemp = sp.lil_matrix((Ntot, Ntot))
-            Ltemp[current_pos,current_pos] = 1.
+            Ltemp[current_pos, current_pos] = 1.
             Ltemp.tocsr()
-            Lbig = Lbig + sp.kron(Ltemp,(-nlabel[0] * vkA[0] * spre(unit).data))
-            Lbig = Lbig + sp.kron(Ltemp,(-nlabel[1] * vkA[1] * spre(unit).data))
-            #bi-exponential corrections:
-            if N==3:
-                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[2] * vk_corr[0] * spre(unit).data))
-            if N==4:
-                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[2] * vk_corr[0] * spre(unit).data))
-                Lbig = Lbig + sp.kron(Ltemp,(-nlabel[3] * vk_corr[1] * spre(unit).data))
-            
+
+            Lbig = Lbig + sp.kron(Ltemp,
+                                  (-nlabel[0] * vkA[0] * spre(unit).data))
+            Lbig = Lbig + sp.kron(Ltemp,
+                                  (-nlabel[1] * vkA[1] * spre(unit).data))
+            # bi-exponential corrections:
+
+            if N == 3:
+                Lbig = Lbig + sp.kron(Ltemp,
+                                      (-nlabel[2] * vk_corr[0] * spre(unit).data))
+
+            if N == 4:
+                Lbig = Lbig + sp.kron(Ltemp,
+                                      (-nlabel[2] * vk_corr[0] * spre(unit).data))
+                Lbig = Lbig + sp.kron(Ltemp,
+                                      (-nlabel[3] * vk_corr[1] * spre(unit).data))
+
             for kcount in range(N):
-                if nlabel[kcount]>=1:
-                #find the position of the neighbour
+                if nlabel[kcount] >= 1:
+                    # find the position of the neighbour
                     nlabeltemp = copy(nlabel)
-                    nlabel[kcount] = nlabel[kcount] -1
+                    nlabel[kcount] = nlabel[kcount] - 1
                     current_pos2 = int(round(state2idx[tuple(nlabel)]))
-                    Ltemp = sp.lil_matrix(np.zeros((Ntot,Ntot)))
+                    Ltemp = sp.lil_matrix(np.zeros((Ntot, Ntot)))
                     Ltemp[current_pos, current_pos2] = 1
                     Ltemp.tocsr()
-                # renormalized version:    
-                    #ci =  (4 * lam0 * gam * kb * Temperature * kcount
+                # renormalized version:
+                    # ci =  (4 * lam0 * gam * kb * Temperature * kcount
                     #      * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
-                    if kcount==0:
-                        
-                        c0n=lam
-                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
-                                         * np.sqrt((nlabeltemp[kcount]
-                                            / abs(c0n)))
-                                         * (0.0*spre(Q).data
-                                         - (lam)
-                                         * spost(Q).data)))
-                    if kcount==1:     
-                        cin=lam
-                        ci =  ckA[kcount]
-                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
-                                         * np.sqrt((nlabeltemp[kcount]
-                                            / abs(cin)))
-                                         * ((lam) * spre(Q).data
-                                         - (0.0)
-                                         * spost(Q).data)))
-                        
-                    if kcount==2:     
-                        cin=ck_corr[0]                        
-                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
-                                             * np.sqrt((nlabeltemp[kcount]
-                                                / abs(cin)))
-                                             * cin*(spre(Q).data - spost(Q).data)))
-                    if kcount==3:     
-                        cin=ck_corr[1]                        
-                        Lbig = Lbig + sp.kron(Ltemp,(-1.j
-                                             * np.sqrt((nlabeltemp[kcount]
-                                                / abs(cin)))
-                                             * cin*(spre(Q).data - spost(Q).data)))
+                    if kcount == 0:
+                        c0n = lam
+                        Lbig = Lbig + sp.kron(Ltemp, (-1.j
+                                                      * np.sqrt((nlabeltemp[kcount]
+                                                                 / abs(c0n)))
+                                                      * (0.0 * spre(Q).data
+                                                          - (lam)
+                                                          * spost(Q).data)))
+                    if kcount == 1:
+                        cin = lam
+                        ci = ckA[kcount]
+                        Lbig = Lbig + sp.kron(Ltemp, (-1.j
+                                                      * np.sqrt((nlabeltemp[kcount]
+                                                                 / abs(cin)))
+                                                      * ((lam) * spre(Q).data
+                                                          - (0.0)
+                                                          * spost(Q).data)))
+
+                    if kcount == 2:
+                        cin = ck_corr[0]
+                        Lbig = Lbig + sp.kron(Ltemp, (-1.j
+                                                      * np.sqrt((nlabeltemp[kcount]
+                                                                 / abs(cin)))
+                                                      * cin * (spre(Q).data - spost(Q).data)))
+                    if kcount == 3:
+                        cin = ck_corr[1]
+                        Lbig = Lbig + sp.kron(Ltemp, (-1.j
+                                                      * np.sqrt((nlabeltemp[kcount]
+                                                                 / abs(cin)))
+                                                      * cin * (spre(Q).data - spost(Q).data)))
                     nlabel = copy(nlabeltemp)
 
             for kcount in range(N):
-                if ntotalcheck<=(Nc-1):
+                if ntotalcheck <= (Nc - 1):
                     nlabeltemp = copy(nlabel)
                     nlabel[kcount] = nlabel[kcount] + 1
                     current_pos3 = int(round(state2idx[tuple(nlabel)]))
-                if current_pos3<=(Ntot):
-                    Ltemp = sp.lil_matrix(np.zeros((Ntot,Ntot)))
+                if current_pos3 <= (Ntot):
+                    Ltemp = sp.lil_matrix(np.zeros((Ntot, Ntot)))
                     Ltemp[current_pos, current_pos3] = 1
                     Ltemp.tocsr()
-                #renormalized   
-                    if kcount==0:
-                        c0n=lam
-                        Lbig = Lbig + sp.kron(Ltemp,-1.j
-                                      * np.sqrt((nlabeltemp[kcount]+1)*((abs(c0n))))
-                                      * (spre(Q)- spost(Q)).data)
-                    if kcount==1:
-                        ci =ckA[kcount]
-                        cin=lam
-                        Lbig = Lbig + sp.kron(Ltemp,-1.j
-                                      * np.sqrt((nlabeltemp[kcount]+1)*(abs(cin)))
-                                      * (spre(Q)- spost(Q)).data)
-                    if kcount==2:
-                        cin=ck_corr[0]
-                        Lbig = Lbig + sp.kron(Ltemp,-1.j
-                                      * np.sqrt((nlabeltemp[kcount]+1)*(abs(cin)))
-                                      * (spre(Q)- spost(Q)).data)
-                    if kcount==3:
-                        cin=ck_corr[1]
-                        Lbig = Lbig + sp.kron(Ltemp,-1.j
-                                      * np.sqrt((nlabeltemp[kcount]+1)*(abs(cin)))
-                                      * (spre(Q)- spost(Q)).data)    
-                 
+                # renormalized
+                    if kcount == 0:
+                        c0n = lam
+                        Lbig = Lbig + sp.kron(Ltemp, -1.j
+                                              * np.sqrt((nlabeltemp[kcount] + 1) * ((abs(c0n))))
+                                              * (spre(Q) - spost(Q)).data)
+                    if kcount == 1:
+                        ci = ckA[kcount]
+                        cin = lam
+                        Lbig = Lbig + sp.kron(Ltemp, -1.j
+                                              * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
+                                              * (spre(Q) - spost(Q)).data)
+                    if kcount == 2:
+                        cin = ck_corr[0]
+                        Lbig = Lbig + sp.kron(Ltemp, -1.j
+                                              * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
+                                              * (spre(Q) - spost(Q)).data)
+                    if kcount == 3:
+                        cin = ck_corr[1]
+                        Lbig = Lbig + sp.kron(Ltemp, -1.j
+                                              * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
+                                              * (spre(Q) - spost(Q)).data)
+
                 nlabel = copy(nlabeltemp)
         self.liouvillian = Lbig
         return Lbig
@@ -943,7 +982,7 @@ class HSolverUnderdampedBrownian(HEOMSolver):
         stats = self.stats
         Nc = self.N_cut
         Nk = self.N_exp
-        self._N_he = int(factorial(Nc + Nk)/(factorial(Nc)*factorial(Nk)))
+        self._N_he = num_hierarchy(Nc, Nk)
         start_run = timeit.default_timer()
         r = scipy.integrate.ode(cy_ode_rhs)
         N_temp = 1
@@ -964,10 +1003,11 @@ class HSolverUnderdampedBrownian(HEOMSolver):
         output.times = tlist
         output.states = []
 
-        if stats: start_init = timeit.default_timer()
+        if stats:
+            start_init = timeit.default_timer()
         output.states.append(Qobj(rho0))
-        rho0_flat = rho0.full().ravel('F') # Using 'F' effectively transposes
-        rho0_he = np.zeros([sup_dim*self._N_he], dtype=complex)
+        rho0_flat = rho0.full().ravel('F')  # Using 'F' effectively transposes
+        rho0_he = np.zeros([sup_dim * self._N_he], dtype=complex)
         rho0_he[:sup_dim] = rho0_flat
         r.set_initial_value(rho0_he, tlist[0])
 
@@ -1005,6 +1045,7 @@ def add_at_idx(seq, k, val):
     lst[k] += val
     return tuple(lst)
 
+
 def prevhe(current_he, k, ncut):
     """
     Calculate the previous heirarchy index
@@ -1014,6 +1055,7 @@ def prevhe(current_he, k, ncut):
     if nprev[k] < 0:
         return False
     return nprev
+
 
 def nexthe(current_he, k, ncut):
     """
@@ -1025,26 +1067,41 @@ def nexthe(current_he, k, ncut):
         return False
     return nnext
 
-def num_hierarchy(kcut, ncut):
+
+def num_hierarchy(ncut, kcut):
     """
     Get the total number of auxiliary density matrices in the
-    Hierarchy
+    hierarchy.
+
+    Parameters
+    ==========
+    ncut: int
+        The Heirarchy cutoff
+
+    kcut: int
+        The cutoff in the correlation frequencies, i.e., how many
+        total exponents are used.
+
+    Returns
+    =======
+    num_hierarchy: int
+        The total number of auxiliary density matrices in the hierarchy.
     """
-    return int(factorial(ncut + kcut)/(factorial(ncut)*factorial(kcut)))
+    return int(factorial(ncut + kcut) / (factorial(ncut) * factorial(kcut)))
 
 
 class Heom(object):
     """
     The Heom class to tackle Heirarchy.
-    
+
     Parameters
     ==========
     hamiltonian: :class:`qutip.Qobj`
         The system Hamiltonian
-    
+
     coupling: :class:`qutip.Qobj`
         The coupling operator
-    
+
     ck: list
         The list of amplitudes in the expansion of the correlation function
 
@@ -1053,7 +1110,7 @@ class Heom(object):
 
     ncut: int
         The Heirarchy cutoff
-        
+
     kcut: int
         The cutoff in the Matsubara frequencies
 
@@ -1061,22 +1118,25 @@ class Heom(object):
         The cutoff for the maximum absolute value in an auxillary matrix
         which is used to remove it from the heirarchy
     """
+
     def __init__(self, hamiltonian, coupling, ck, vk,
                  ncut, rcut=None, renorm=False, lam=0.):
         self.hamiltonian = hamiltonian
-        self.coupling = coupling    
+        self.coupling = coupling
         self.ck, self.vk = ck, vk
         self.ncut = ncut
         self.renorm = renorm
         self.kcut = len(ck)
-        nhe, he2idx, idx2he =_heom_state_dictionaries([ncut+1]*(len(ck)), ncut)
+        nhe, he2idx, idx2he = _heom_state_dictionaries(
+            [ncut + 1] * (len(ck)), ncut)
         # he2idx, idx2he, nhe = self._initialize_he()
         self.nhe = nhe
         self.he2idx = he2idx
         self.idx2he = idx2he
         self.N = self.hamiltonian.shape[0]
-        
-        total_nhe = int(factorial(self.ncut + self.kcut)/(factorial(self.ncut)*factorial(self.kcut)))
+
+        total_nhe = int(factorial(self.ncut + self.kcut) /
+                        (factorial(self.ncut) * factorial(self.kcut)))
         self.total_nhe = total_nhe
         self.hshape = (total_nhe, self.N**2)
         self.weak_coupling = self.deltak()
@@ -1084,7 +1144,10 @@ class Heom(object):
         self.grad_shape = (self.N**2, self.N**2)
         self.spreQ = spre(coupling).data
         self.spostQ = spost(coupling).data
-        self.L_helems = lil_matrix((total_nhe*self.N**2, total_nhe*self.N**2), dtype=np.complex)
+        self.L_helems = lil_matrix(
+            (total_nhe * self.N**2,
+             total_nhe * self.N**2),
+            dtype=np.complex)
         self.lam = lam
 
     def _initialize_he(self):
@@ -1092,8 +1155,8 @@ class Heom(object):
         Initialize the hierarchy indices
         """
         zeroth = tuple([0 for i in range(self.kcut)])
-        he2idx = {zeroth:0}
-        idx2he = {0:zeroth}
+        he2idx = {zeroth: 0}
+        idx2he = {0: zeroth}
         nhe = 1
         return he2idx, idx2he, nhe
 
@@ -1132,7 +1195,7 @@ class Heom(object):
         else:
             dk = np.sum(np.divide(self.ck[self.kcut:], self.vk[self.kcut:]))
             return dk
-    
+
     def grad_n(self, he_n):
         """
         Get the gradient term for the Hierarchy ADM at
@@ -1142,14 +1205,14 @@ class Heom(object):
         nu = self.vk
         L = self.L.copy()
         gradient_sum = -np.sum(np.multiply(he_n, nu))
-        sum_op = gradient_sum*np.eye(L.shape[0])
+        sum_op = gradient_sum * np.eye(L.shape[0])
         L += sum_op
 
         # Fill in larger L
         nidx = self.he2idx[he_n]
         block = self.N**2
-        pos = int(nidx*(block))
-        self.L_helems[pos:pos+block, pos:pos+block] = L
+        pos = int(nidx * (block))
+        self.L_helems[pos:pos + block, pos:pos + block] = L
 
     def grad_prev(self, he_n, k, prev_he):
         """
@@ -1161,48 +1224,50 @@ class Heom(object):
         spostQ = self.spostQ
         nk = he_n[k]
         norm_prev = nk
-            
+
+        # Normalize
         if k == 0:
-            norm_prev = np.sqrt(float(nk)/abs(self.lam))
-            op1 = -1j*norm_prev*(-self.lam*spostQ)
-        elif k == 1 :
-            norm_prev = np.sqrt(float(nk)/abs(self.lam))
-            op1 = -1j*norm_prev*(self.lam*spreQ)
+            norm_prev = np.sqrt(float(nk) / abs(self.lam))
+            op1 = -1j * norm_prev * (-self.lam * spostQ)
+        elif k == 1:
+            norm_prev = np.sqrt(float(nk) / abs(self.lam))
+            op1 = -1j * norm_prev * (self.lam * spreQ)
         else:
-            norm_prev = np.sqrt(float(nk)/abs(c[k]))
-            op1 = -1j*norm_prev*(c[k]*(spreQ - spostQ))
+            norm_prev = np.sqrt(float(nk) / abs(c[k]))
+            op1 = -1j * norm_prev * (c[k] * (spreQ - spostQ))
 
         # Fill in larger L
         rowidx = self.he2idx[he_n]
         colidx = self.he2idx[prev_he]
         block = self.N**2
-        rowpos = int(rowidx*(block))
-        colpos = int(colidx*(block))
-        self.L_helems[rowpos:rowpos+block, colpos:colpos+block] = op1
+        rowpos = int(rowidx * (block))
+        colpos = int(colidx * (block))
+        self.L_helems[rowpos:rowpos + block, colpos:colpos + block] = op1
 
     def grad_next(self, he_n, k, next_he):
         c = self.ck
         nu = self.vk
         spreQ = self.spreQ
         spostQ = self.spostQ
-        
-        nk = he_n[k]            
-        
+
+        nk = he_n[k]
+
+        # Normalize
         if k < 2:
-            norm_next = np.sqrt(self.lam*(nk + 1))
-            op2 = -1j*norm_next*(spreQ - spostQ)
+            norm_next = np.sqrt(self.lam * (nk + 1))
+            op2 = -1j * norm_next * (spreQ - spostQ)
         else:
-            norm_next = np.sqrt(abs(c[k])*(nk + 1))
-            op2 = -1j*norm_next*(spreQ - spostQ)
+            norm_next = np.sqrt(abs(c[k]) * (nk + 1))
+            op2 = -1j * norm_next * (spreQ - spostQ)
 
         # Fill in larger L
         rowidx = self.he2idx[he_n]
         colidx = self.he2idx[next_he]
         block = self.N**2
-        rowpos = int(rowidx*(block))
-        colpos = int(colidx*(block))
-        self.L_helems[rowpos:rowpos+block, colpos:colpos+block] = op2
-    
+        rowpos = int(rowidx * (block))
+        colpos = int(colidx * (block))
+        self.L_helems[rowpos:rowpos + block, colpos:colpos + block] = op2
+
     def rhs(self, progress=None):
         """
         Make the RHS
@@ -1210,8 +1275,8 @@ class Heom(object):
         while self.nhe < self.total_nhe:
             heidxlist = copy(list(self.idx2he.keys()))
             self.populate(heidxlist)
-        if progress != None:
-            bar = progress(total = self.nhe*self.kcut)
+        if progress is not None:
+            bar = progress(total=self.nhe * self.kcut)
 
         for n in self.idx2he:
             he_n = self.idx2he[n]
@@ -1251,17 +1316,18 @@ class Heom(object):
                          atol=options.atol, rtol=options.rtol,
                          nsteps=options.nsteps, first_step=options.first_step,
                          min_step=options.min_step, max_step=options.max_step)
-                        
+
         r.set_initial_value(rho_he, tlist[0])
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
         if progress:
-            bar = progress(total=n_tsteps-1)
+            bar = progress(total=n_tsteps - 1)
         for t_idx, t in enumerate(tlist):
             if t_idx < n_tsteps - 1:
                 r.integrate(r.t + dt[t_idx])
                 r1 = r.y.reshape(self.hshape)
                 r0 = r1[0].reshape(self.N, self.N).T
                 output.states.append(Qobj(r0))
-                if progress: bar.update()
+                if progress:
+                    bar.update()
         return output
