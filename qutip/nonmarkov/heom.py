@@ -108,7 +108,7 @@ class HEOMSolver(object):
 
     N_exp : int
         Number of exponential terms used to approximate the bath correlation
-        functions
+        functions (Matsubara part)
 
     planck : float
         reduced Planck constant
@@ -827,7 +827,7 @@ class HSolverUB(HEOMSolver):
         Q = self.coup_op
         lam = self.coup_strength
         Nc = self.N_cut
-        N = self.N_exp
+        N = self.N_exp + 2
         #Parameters and hamiltonian
 
         hbar = self.planck
@@ -981,7 +981,7 @@ class HSolverUB(HEOMSolver):
         options = self.options
         stats = self.stats
         Nc = self.N_cut
-        Nk = self.N_exp
+        Nk = self.N_exp + 2
         self._N_he = num_hierarchy(Nc, Nk)
         start_run = timeit.default_timer()
         r = scipy.integrate.ode(cy_ode_rhs)

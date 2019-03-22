@@ -149,7 +149,7 @@ def test_heom():
     initial_ket = basis(2, 1)
     Nc = 9
     rho0 = initial_ket*initial_ket.dag()
-    Nexp = 4
+    Nexp = 2
     lam, gamma, w0 = 0.2, 0.05, 1.
     omega = np.sqrt(w0**2 - (gamma/2.)**2)
     a = omega + 1j*gamma/2.
@@ -165,7 +165,7 @@ def test_heom():
 
     options = Options(nsteps=1500, store_states=True, atol=1e-12, rtol=1e-12)
     solver1 = HSolverUB(Hsys, Q, lam_renorm,
-        ck1, -vk1, ck_mats, -vk_mats, 0., Nc, 4, 1, options=options)
+        ck1, -vk1, ck_mats, -vk_mats, 0., Nc, Nexp, 1, options=options)
 
     solver2 = Heom(Hsys, Q, np.concatenate([ck1, ck_mats]),
         np.concatenate([-vk1, -vk_mats]), ncut=Nc, lam=lam_renorm)
