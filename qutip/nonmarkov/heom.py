@@ -742,28 +742,28 @@ def _heom_number_enumerate(dims, excitations=None, state=None, idx=0):
                 yield s
 
 
-class HSolverUnderdampedBrownian(HEOMSolver):
+class HSolverUB(HEOMSolver):
     """
     HEOM solver based on the underdamped Brownian motion spectral density.
+    
+    We need to express the correlation funtion as a sum of exponentials.
+    Two types of exponentials can be constructed a non-Matsubara part
+    (two terms) and an infinite Matsubara sum. The non-Matsubara exponents
+    can be analytically computed from the parameters of the spectral density
+    and temperature while the Matsubara terms have to be approximated by
+    some numerical fitting which reduces the number of exponents.
+
+    In arXiv:1903.05892, we present a separation of the exponents which is
+    used in this specialised version of the HEOM method. You can use your
+    own decomposition for the exponents and use the `Heom` class directly
+    where you may supply the exponents directly
 
     :math:`J(\omega) = \frac{\gamma \lambda^2 \omega}{(\omega^2
             - \omega_0^2)^2 + \gamma^2 \omega}`
-
-    Attributes
-    ----------
-    cut_freq : float
-        Bath spectral density cutoff frequency.
-
-    renorm : bool
-        Apply renormalisation to coupling terms
-        Can be useful if using SI units for planck and boltzmann.
-
-    bnd_cut_approx : bool
-        Use boundary cut off approximation.
     """
 
-    def __init__(self, H_sys, coup_op, coup_strength, ckA, vkA,
-                 ck_corr, vk_corr,
+    def __init__(self, H_sys, coup_op, coup_strength, ck1, vk1,
+                 ck2, vk2,
                  temperature, N_cut, N_exp, cut_freq, planck=1.0,
                  boltzmann=1.0, renorm=True, bnd_cut_approx=True,
                  options=None, progress_bar=None, stats=None):
@@ -790,7 +790,7 @@ class HSolverUnderdampedBrownian(HEOMSolver):
         self.N_cut = N_cut
         self.N_exp = N_exp
         self.cut_freq = cut_freq
-        self.configure(ckA, vkA, ck_corr, vk_corr)
+        self.configure(ck1, vk1, ck2, vk2)
 
     def reset(self):
         """
@@ -801,25 +801,25 @@ class HSolverUnderdampedBrownian(HEOMSolver):
         self.renorm = False
         self.bnd_cut_approx = False
 
-    def configure(self, ckA, vkA, ck_corr, vk_corr):
+    def configure(self, ck1, vk1, ck2, vk2):
         """
         Configures the HEOM hierarchy.
 
         Parameters
         ----------
-        ckA: list
+        ck1: list
             The list of coefficients for the non-Matsubara part of the
             spectral density.
 
-        vkA: list
+        vk1: list
             The list of frequencies for the non-Matsubara part of the
             expansion of the spectral density.
 
-        ck_corr: list
+        ck2: list
             The list of coefficients for the Matsubara part of the
             spectral density.
 
-        vk_corr: list
+        vk2: list
             The list of frequencies for the Matsubara part of the
             expansion of the spectral density.
         """
@@ -865,20 +865,20 @@ class HSolverUnderdampedBrownian(HEOMSolver):
             Ltemp.tocsr()
 
             Lbig = Lbig + sp.kron(Ltemp,
-                                  (-nlabel[0] * vkA[0] * spre(unit).data))
+                                  (-nlabel[0] * vk1[0] * spre(unit).data))
             Lbig = Lbig + sp.kron(Ltemp,
-                                  (-nlabel[1] * vkA[1] * spre(unit).data))
+                                  (-nlabel[1] * vk1[1] * spre(unit).data))
             # bi-exponential corrections:
 
             if N == 3:
                 Lbig = Lbig + sp.kron(Ltemp,
-                                      (-nlabel[2] * vk_corr[0] * spre(unit).data))
+                                      (-nlabel[2] * vk2[0] * spre(unit).data))
 
             if N == 4:
                 Lbig = Lbig + sp.kron(Ltemp,
-                                      (-nlabel[2] * vk_corr[0] * spre(unit).data))
+                                      (-nlabel[2] * vk2[0] * spre(unit).data))
                 Lbig = Lbig + sp.kron(Ltemp,
-                                      (-nlabel[3] * vk_corr[1] * spre(unit).data))
+                                      (-nlabel[3] * vk2[1] * spre(unit).data))
 
             for kcount in range(N):
                 if nlabel[kcount] >= 1:
@@ -902,7 +902,7 @@ class HSolverUnderdampedBrownian(HEOMSolver):
                                                           * spost(Q).data)))
                     if kcount == 1:
                         cin = lam
-                        ci = ckA[kcount]
+                        ci = ck1[kcount]
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(cin)))
@@ -911,13 +911,13 @@ class HSolverUnderdampedBrownian(HEOMSolver):
                                                           * spost(Q).data)))
 
                     if kcount == 2:
-                        cin = ck_corr[0]
+                        cin = ck2[0]
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(cin)))
                                                       * cin * (spre(Q).data - spost(Q).data)))
                     if kcount == 3:
-                        cin = ck_corr[1]
+                        cin = ck2[1]
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(cin)))
@@ -940,18 +940,18 @@ class HSolverUnderdampedBrownian(HEOMSolver):
                                               * np.sqrt((nlabeltemp[kcount] + 1) * ((abs(c0n))))
                                               * (spre(Q) - spost(Q)).data)
                     if kcount == 1:
-                        ci = ckA[kcount]
+                        ci = ck1[kcount]
                         cin = lam
                         Lbig = Lbig + sp.kron(Ltemp, -1.j
                                               * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
                                               * (spre(Q) - spost(Q)).data)
                     if kcount == 2:
-                        cin = ck_corr[0]
+                        cin = ck2[0]
                         Lbig = Lbig + sp.kron(Ltemp, -1.j
                                               * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
                                               * (spre(Q) - spost(Q)).data)
                     if kcount == 3:
-                        cin = ck_corr[1]
+                        cin = ck2[1]
                         Lbig = Lbig + sp.kron(Ltemp, -1.j
                                               * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
                                               * (spre(Q) - spost(Q)).data)
