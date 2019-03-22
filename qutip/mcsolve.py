@@ -568,15 +568,16 @@ class _MC():
             #     config, prng)
         else:
             # set initial conditions
-            rhs, ode_args = self.ss.makefunc(ss)
+            ss = self.ss
             tlist = self.tlist
+            e_ops = self.e_ops
+            opt = self.options
+            rhs, ode_args = self.ss.makefunc(ss)
             ODE = self._build_integration_func(rhs, ode_args, opt)
             ODE.set_initial_value(self.initial_vector, tlist[0])
-            e_ops = self.e_ops
             e_ops.init(tlist)
-            opt = self.options
 
-            states_out, ss_out, collapses = cy_mc_run_ode(ODE, tlist, e_ops, opt, prng)
+            states_out, ss_out, collapses = cy_mc_run_ode(ODE, ss, tlist, e_ops, opt, prng)
 
         # Run at end of mc_alg function
         # -----------------------------

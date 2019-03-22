@@ -72,23 +72,25 @@ cdef void sumsteadystate(complex[:, ::1] mean, complex[::1] state):
 @cython.wraparound(False)
 def cy_mc_run_ode(ODE, ss, tlist, e_call, opt, prng):
     cdef int ii, j, jj, k, steady_state, store_states
+    cdef int num_times = tlist.shape[0], l_vec = ODE._y.shape[0]
     cdef double norm2_psi, norm2_prev, norm2_guess, t_prev, t_final, t_guess
     cdef np.ndarray[double, ndim=1] rand_vals
     cdef np.ndarray[double, ndim=1] tlist = np.array(tlist)
-    cdef np.ndarray[complex, ndim=1] y_prev, out_psi = ODE._y
-    cdef int num_times = tlist.shape[0], l_vec = ODE._y.shape[0]
+    cdef np.ndarray[complex, ndim=1] y_prev
+    cdef np.ndarray[complex, ndim=1] out_psi = ODE._y
 
-    # make array for collapse operator inds
-    cdef np.ndarray[long, ndim=1] cinds = np.arange(len(config.td_c_ops))
+    cdef np.ndarray[complex, ndim=2] states_out
+    cdef np.ndarray[complex, ndim=2] ss_out
+    cdef list collapses = []
 
     cdef CQobjEvo[::1] c_ops = ss.td_c_ops
     cdef CQobjEvo[::1] n_ops = ss.td_n_ops
+    # make array for collapse operator inds
+    cdef np.ndarray[long, ndim=1] cinds = np.arange(len(ss.td_c_ops))
 
     steady_state = opt.steady_state_average
     store_states = opt.store_states or opt.average_states
 
-    cdef np.ndarray[complex, ndim=2] states_out
-    cdef np.ndarray[complex, ndim=2] ss_out
     if steady_state:
         ss_out = np.zeros((l_vec, l_vec), dtype=complex)
         sumsteadystate(ss_out, out_psi)
@@ -96,10 +98,7 @@ def cy_mc_run_ode(ODE, ss, tlist, e_call, opt, prng):
         states_out = np.zeros((num_times, l_vec), dtype=complex)
         states_out[0, :] = out_psi
 
-    collapses = []
     e_call.step(0, out_psi)
-
-    # first rand is collapse norm, second is which operator
     rand_vals = prng.rand(2)
 
     # RUN ODE UNTIL EACH TIME IN TLIST
@@ -189,7 +188,5 @@ def cy_mc_run_ode(ODE, ss, tlist, e_call, opt, prng):
             sumsteadystate(ss_out, out_psi)
         if store_states:
             states_out[k, :] = out_psi
-
-
 
     return states_out, expect_out, collapse_times, which_oper
