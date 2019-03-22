@@ -145,6 +145,10 @@ def test_heom():
     Q = sigmax()
     wq = 1.
     wrc = 1.
+    w0 = 1.
+    temp = 1e-6
+    cut_freq = 0.5
+
     Hsys = 0.5*wq*sigmaz()
     initial_ket = basis(2, 1)
     Nc = 9
@@ -164,10 +168,13 @@ def test_heom():
     vk_mats = np.array([-0.34959062, -1.75226554])
 
     options = Options(nsteps=1500, store_states=True, atol=1e-12, rtol=1e-12)
-    solver1 = HSolverUB(Hsys, Q, lam_renorm,
-        ck1, -vk1, ck_mats, -vk_mats, 0., Nc, Nexp, 1, options=options)
+    solver1 = HSolverUB(Hsys, Q, lam_renorm, temp, Nc, Nexp,
+                        cut_freq, cav_freq = w0, cav_broad = gamma,
+                        options=options,
+                        ck2 = ck_mats, vk2 = -vk_mats)
 
-    solver2 = Heom(Hsys, Q, np.concatenate([ck1, ck_mats]),
+    solver2 = Heom(Hsys, Q,
+        np.concatenate([ck1, ck_mats]),
         np.concatenate([-vk1, -vk_mats]), ncut=Nc, lam=lam_renorm)
     tlist = np.linspace(0, 200, 1000)
     output1 = solver1.run(rho0, tlist)

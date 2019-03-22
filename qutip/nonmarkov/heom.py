@@ -747,7 +747,7 @@ class HSolverUB(HEOMSolver):
     HEOM solver based on the underdamped Brownian motion spectral density.
     
     We need to express the correlation funtion as a sum of exponentials.
-    Two types of exponentials can be constructed a non-Matsubara part
+    Two types of exponentials can be constructed - a non-Matsubara part
     (two terms) and an infinite Matsubara sum. The non-Matsubara exponents
     can be analytically computed from the parameters of the spectral density
     and temperature while the Matsubara terms have to be approximated by
@@ -760,13 +760,68 @@ class HSolverUB(HEOMSolver):
 
     :math:`J(\omega) = \frac{\gamma \lambda^2 \omega}{(\omega^2
             - \omega_0^2)^2 + \gamma^2 \omega}`
+
+    Parameters
+    ==========
+    H_sys: Qobj
+        The system hamiltonian.
+
+    coup_op: Qobj
+        The coupling between system and bath.
+
+    coup_strength: Float
+        Coupling strength.
+
+    temperature: float
+        The temperature of the bath.
+
+    lam0: Float
+        Coupling strength.
+
+    N_cut: Integer
+        Cutoff parameter for the Hierarchy.
+
+    N_exp: Integer
+        Number of Matsubara terms.
+
+    cut_freq: float
+        The cutoff frequency for the spectral density.
+
+    cav_freq: float
+        The frequency of the single cavity mode.
+
+    cav_broad: float
+        The broadening of the single cavity mode.
+
+    planck, boltzmann: float
+        The value of the planck and boltzmann constants used.
+
+    renorm: bool
+        Renormalize the coefficients of HEOM method.
+
+    band_cut_approx: bool
+        Approximation to cut off Hierarchy.
+
+    options : :class:`qutip.Options`
+        With options for the solver.
+
+    progress_bar:
+
+    stats:
+
+    ck2: array
+        A 1D array of the matsubara coefficients.
+
+    vk2: array
+        A 1D array of the matsubara frequencies.
     """
 
-    def __init__(self, H_sys, coup_op, coup_strength, ck1, vk1,
-                 ck2, vk2,
-                 temperature, N_cut, N_exp, cut_freq, planck=1.0,
-                 boltzmann=1.0, renorm=True, bnd_cut_approx=True,
-                 options=None, progress_bar=None, stats=None):
+    def __init__(self, H_sys, coup_op, coup_strength, temperature,
+                 N_cut, N_exp, cut_freq, cav_freq, cav_broad,
+                 planck=1.0, boltzmann=1.0,
+                 renorm=True, bnd_cut_approx=True,
+                 options=None, progress_bar=None, stats=None,
+                 ck2=None, vk2=None):
 
         self.reset()
 
@@ -790,7 +845,13 @@ class HSolverUB(HEOMSolver):
         self.N_cut = N_cut
         self.N_exp = N_exp
         self.cut_freq = cut_freq
-        self.configure(ck1, vk1, ck2, vk2)
+        self.cav_freq = cav_freq
+        self.configure(H_sys, coup_op, coup_strength, temperature,
+                       N_cut, N_exp, cut_freq, cav_freq, cav_broad,
+                       planck, boltzmann,
+                       renorm, bnd_cut_approx,
+                       options, progress_bar, stats,
+                       ck2, vk2)
 
     def reset(self):
         """
@@ -801,46 +862,48 @@ class HSolverUB(HEOMSolver):
         self.renorm = False
         self.bnd_cut_approx = False
 
-    def configure(self, ck1, vk1, ck2, vk2):
+    def configure(self, H_sys, coup_op, coup_strength, temperature,
+                  N_cut, N_exp, cut_freq, cav_freq, cav_broad, planck=None,
+                  boltzmann=None, renorm=None, bnd_cut_approx=None,
+                  options=None, progress_bar=None, stats=None,
+                  ck2=None, vk2=None):
         """
         Configures the HEOM hierarchy.
-
-        Parameters
-        ----------
-        ck1: list
-            The list of coefficients for the non-Matsubara part of the
-            spectral density.
-
-        vk1: list
-            The list of frequencies for the non-Matsubara part of the
-            expansion of the spectral density.
-
-        ck2: list
-            The list of coefficients for the Matsubara part of the
-            spectral density.
-
-        vk2: list
-            The list of frequencies for the Matsubara part of the
-            expansion of the spectral density.
         """
+        HEOMSolver.configure(
+            self,
+            H_sys,
+            coup_op,
+            coup_strength,
+            temperature,
+            N_cut,
+            N_exp,
+            planck=planck,
+            boltzmann=boltzmann,
+            options=options,
+            progress_bar=progress_bar,
+            stats=stats)
+
+        hbar = self.planck
+        kb = self.boltzmann
         H = self.H_sys
         Q = self.coup_op
         lam = self.coup_strength
         Nc = self.N_cut
         N = self.N_exp + 2
+        gamma = cav_broad
+        w0 = self.cav_freq
+        beta = 1/(kb*temperature)
         #Parameters and hamiltonian
 
-        hbar = self.planck
-        kb = self.boltzmann
+        ck1, vk1 = self._calc_nonmatsubara_params(lam, gamma, w0, beta)
 
         N_temp = reduce(mul, H.dims[0], 1)
         Nsup = N_temp**2
         unit = qeye(N_temp)
 
         # Ntot is the total number of ancillary elements in the hierarchy
-        # Ntot = int(round(factorial(Nc + N) / (factorial(Nc) * factorial(N))))
         Ntot = num_hierarchy(Nc, N)
-        # LD1 = -2.* spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
         L12 = 0. * spre(Q)
 
         # Setup liouvillian
@@ -1035,6 +1098,43 @@ class HSolverUB(HEOMSolver):
             stats.total_time = ss_conf.total_time + ss_run.total_time
 
         return output
+
+    def _calc_nonmatsubara_params(self, lam, gamma, w0, beta):
+        """
+        Get the exponentials for the correlation function for non-matsubara
+        terms for the underdamped Brownian motion spectral density . (t>=0)
+
+        Parameters
+        ----------
+        lam: float
+            The coupling strength parameter.
+
+        gamma: float
+            A parameter characterizing the FWHM of the spectral density.
+
+        w0: float
+            The qubit frequency.
+
+        beta: float
+            The inverse temperature.
+
+        Returns
+        -------
+        ck: ndarray
+            A 1D array with the prefactors for the exponentials
+
+        vk: ndarray
+            A 1D array with the frequencies
+        """
+        omega = np.sqrt(w0**2 - (gamma/2)**2)
+        a = omega + 1j*gamma/2.
+        aa = np.conjugate(a)
+        coeff = (1j*gamma*lam**2/2)*(1/(a**2 - aa**2))
+
+        vk = np.array([1j*a, -1j*aa])
+        ck = np.array([coth(beta*(a/2))-1, coth(beta*(aa/2))+1])
+
+        return coeff*ck, -vk
 
 
 def add_at_idx(seq, k, val):
@@ -1331,3 +1431,20 @@ class Heom(object):
                 if progress:
                     bar.update()
         return output
+
+
+def coth(x):
+    """
+    Calculates the coth function.
+
+    Parameters
+    ----------
+    x: np.ndarray
+        Any numpy array or list like input.
+
+    Returns
+    -------
+    cothx: ndarray
+        The coth function applied to the input.
+    """
+    return 1/np.tanh(x)
