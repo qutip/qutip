@@ -172,7 +172,7 @@ def _kernelsu2(theta, phi, N, j, parity, fullparity):
 def _rotation_matrix(theta, phi, j):
     """Private function to calculate the rotation operator for the SU2 kernel.
     """
-    return (1j * phi * jmat(j, 'z')).expm() @ (1j * theta * jmat(j, 'y')).expm()
+    return la.expm(1j * phi * jmat(j, 'z').full()) @ la.expm(1j * theta * jmat(j, 'y').full())
 
 
 def _angle_slice(slicearray, theta, phi):
