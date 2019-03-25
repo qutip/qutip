@@ -62,7 +62,7 @@ from operator import mul
 from scipy.misc import factorial
 from scipy.sparse import lil_matrix
 from scipy.integrate import ode
-
+from scipy.optimize import least_squares, leastsq, curve_fit
 
 from copy import copy
 
@@ -754,9 +754,10 @@ class HSolverUB(HEOMSolver):
     some numerical fitting which reduces the number of exponents.
 
     In arXiv:1903.05892, we present a separation of the exponents which is
-    used in this specialised version of the HEOM method. You can use your
-    own decomposition for the exponents and use the `Heom` class directly
-    where you may supply the exponents directly
+    used in this specialised version of the HEOM method. For practical
+    computation purposes an approximation must be used based
+    on a small number of Matsubara terms. We use a biexponential fitting
+    procedure to limit the number of exponents to 2.
 
     :math:`J(\omega) = \frac{\gamma \lambda^2 \omega}{(\omega^2
             - \omega_0^2)^2 + \gamma^2 \omega}`
@@ -893,7 +894,10 @@ class HSolverUB(HEOMSolver):
         N = self.N_exp + 2
         gamma = cav_broad
         w0 = self.cav_freq
-        beta = 1/(kb*temperature)
+        if temperature == 0.:
+            beta = np.inf
+        else:
+            beta = 1/(kb*temperature)
         #Parameters and hamiltonian
 
         ck1, vk1 = self._calc_nonmatsubara_params(lam, gamma, w0, beta)
@@ -960,18 +964,14 @@ class HSolverUB(HEOMSolver):
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(c0n)))
-                                                      * (0.0 * spre(Q).data
-                                                          - (lam)
-                                                          * spost(Q).data)))
+                                                      * (-lam * spost(Q).data)))
                     if kcount == 1:
                         cin = lam
                         ci = ck1[kcount]
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(cin)))
-                                                      * ((lam) * spre(Q).data
-                                                          - (0.0)
-                                                          * spost(Q).data)))
+                                                      * (lam * spre(Q).data)))
 
                     if kcount == 2:
                         cin = ck2[0]
@@ -997,16 +997,10 @@ class HSolverUB(HEOMSolver):
                     Ltemp[current_pos, current_pos3] = 1
                     Ltemp.tocsr()
                 # renormalized
-                    if kcount == 0:
+                    if kcount < 2:
                         c0n = lam
                         Lbig = Lbig + sp.kron(Ltemp, -1.j
                                               * np.sqrt((nlabeltemp[kcount] + 1) * ((abs(c0n))))
-                                              * (spre(Q) - spost(Q)).data)
-                    if kcount == 1:
-                        ci = ck1[kcount]
-                        cin = lam
-                        Lbig = Lbig + sp.kron(Ltemp, -1.j
-                                              * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
                                               * (spre(Q) - spost(Q)).data)
                     if kcount == 2:
                         cin = ck2[0]
@@ -1129,7 +1123,7 @@ class HSolverUB(HEOMSolver):
         omega = np.sqrt(w0**2 - (gamma/2)**2)
         a = omega + 1j*gamma/2.
         aa = np.conjugate(a)
-        coeff = (1j*gamma*lam**2/2)*(1/(a**2 - aa**2))
+        coeff = lam**2/(4*omega)
 
         vk = np.array([1j*a, -1j*aa])
         ck = np.array([coth(beta*(a/2))-1, coth(beta*(aa/2))+1])
