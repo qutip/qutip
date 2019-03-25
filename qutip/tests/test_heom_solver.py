@@ -146,7 +146,8 @@ def test_heom():
     wq = 1.
     wrc = 1.
     w0 = 1.
-    temp = 1e-6
+    temp = 0.
+    beta = np.inf
     cut_freq = 0.5
 
     Hsys = 0.5*wq*sigmaz()
@@ -158,31 +159,33 @@ def test_heom():
     omega = np.sqrt(w0**2 - (gamma/2.)**2)
     a = omega + 1j*gamma/2.
     wcav = omega
-    lam_renorm = ((1/np.pi)*(-gamma*lam**2*(4*np.arctan(0.5*gamma/wrc) \
-        -2*np.pi)/(8*0.5*gamma*wrc)))
-    tlist = np.linspace(0, 20, 1000)
 
-    ck1 = np.array([0.0 + 0.j, 0.02000625])
-    vk1 = np.array([-0.025 + 0.99968745j, -0.025 - 0.99968745j])
-    ck_mats = np.array([-0.00011662, -0.00020182])
-    vk_mats = np.array([-0.34959062, -1.75226554])
+    lam_coeff = lam**2/(2*(omega))
+
+    tlist = np.linspace(0, 200, 1000)
 
     options = Options(nsteps=1500, store_states=True, atol=1e-12, rtol=1e-12)
-    solver1 = HSolverUB(Hsys, Q, lam_renorm, temp, Nc, Nexp,
-                        cut_freq, cav_freq = w0, cav_broad = gamma,
-                        options=options,
-                        ck2 = ck_mats, vk2 = -vk_mats)
+    solver1 = HSolverUB(Hsys, Q, lam, temp, Nc, Nexp,
+                         cut_freq, cav_freq = w0, cav_broad = gamma,
+                         tlist=tlist, options=options)
 
-    solver2 = Heom(Hsys, Q,
-        np.concatenate([ck1, ck_mats]),
-        np.concatenate([-vk1, -vk_mats]), ncut=Nc, lam=lam_renorm)
-    tlist = np.linspace(0, 200, 1000)
+    ck1, vk1 = solver1._calc_nonmatsubara_params(lam, gamma, w0, beta)
+    ck2, vk2 = solver1._calc_matsubara_params(lam, gamma, w0, beta, Nexp, tlist)
+
+    solver2 = Heom(Hsys, Q, np.concatenate([ck1, ck2]),
+        np.concatenate([vk1, -vk2]),
+        ncut=Nc,
+        lam=lam_coeff)
+
     output1 = solver1.run(rho0, tlist)
     result1 = np.real(expect(output1.states, sigmaz()))
     
     output2 = solver2.run(rho0, tlist)
     result2 = np.real(expect(output2.states, sigmaz()))
-    assert_array_almost_equal((result1+1)/2., (result2+1)/2)
+    max_resid = np.max(np.abs((result1+1)/2. - (result2+1)/2))
+
+    resid_tol = 1e-2
+    assert_(max_resid < resid_tol)
 
 
 if __name__ == "__main__":

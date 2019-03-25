@@ -818,11 +818,10 @@ class HSolverUB(HEOMSolver):
     """
 
     def __init__(self, H_sys, coup_op, coup_strength, temperature,
-                 N_cut, N_exp, cut_freq, cav_freq, cav_broad,
+                 N_cut, N_exp, cut_freq, cav_freq, cav_broad, tlist,
                  planck=1.0, boltzmann=1.0,
                  renorm=True, bnd_cut_approx=True,
-                 options=None, progress_bar=None, stats=None,
-                 ck2=None, vk2=None):
+                 options=None, progress_bar=None, stats=None):
 
         self.reset()
 
@@ -847,12 +846,11 @@ class HSolverUB(HEOMSolver):
         self.N_exp = N_exp
         self.cut_freq = cut_freq
         self.cav_freq = cav_freq
-        self.configure(H_sys, coup_op, coup_strength, temperature,
-                       N_cut, N_exp, cut_freq, cav_freq, cav_broad,
-                       planck, boltzmann,
-                       renorm, bnd_cut_approx,
-                       options, progress_bar, stats,
-                       ck2, vk2)
+        self.tlist = tlist
+        self.configure(H_sys,
+            coup_op, coup_strength,
+            temperature, N_cut, N_exp, cut_freq, cav_freq,
+            cav_broad, tlist)
 
     def reset(self):
         """
@@ -864,10 +862,10 @@ class HSolverUB(HEOMSolver):
         self.bnd_cut_approx = False
 
     def configure(self, H_sys, coup_op, coup_strength, temperature,
-                  N_cut, N_exp, cut_freq, cav_freq, cav_broad, planck=None,
+                  N_cut, N_exp, cut_freq, cav_freq, cav_broad, tlist,
+                  planck=None,
                   boltzmann=None, renorm=None, bnd_cut_approx=None,
-                  options=None, progress_bar=None, stats=None,
-                  ck2=None, vk2=None):
+                  options=None, progress_bar=None, stats=None):
         """
         Configures the HEOM hierarchy.
         """
@@ -889,7 +887,6 @@ class HSolverUB(HEOMSolver):
         kb = self.boltzmann
         H = self.H_sys
         Q = self.coup_op
-        lam = self.coup_strength
         Nc = self.N_cut
         N = self.N_exp + 2
         gamma = cav_broad
@@ -899,9 +896,12 @@ class HSolverUB(HEOMSolver):
         else:
             beta = 1/(kb*temperature)
         #Parameters and hamiltonian
-
+        omega = np.sqrt(w0**2 - (gamma/2)**2)
+        lam = self.coup_strength**2/(2*(omega))
         ck1, vk1 = self._calc_nonmatsubara_params(lam, gamma, w0, beta)
-
+        if self.N_exp != 0:
+            ck2, vk2 = self._calc_matsubara_params(lam, gamma, w0, beta, self.N_exp, tlist)
+            vk2 = -vk2
         N_temp = reduce(mul, H.dims[0], 1)
         Nsup = N_temp**2
         unit = qeye(N_temp)
@@ -960,17 +960,14 @@ class HSolverUB(HEOMSolver):
                     # ci =  (4 * lam0 * gam * kb * Temperature * kcount
                     #      * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
                     if kcount == 0:
-                        c0n = lam
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
-                                                                 / abs(c0n)))
+                                                                 / abs(lam)))
                                                       * (-lam * spost(Q).data)))
                     if kcount == 1:
-                        cin = lam
-                        ci = ck1[kcount]
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
-                                                                 / abs(cin)))
+                                                                 / abs(lam)))
                                                       * (lam * spre(Q).data)))
 
                     if kcount == 2:
@@ -998,9 +995,8 @@ class HSolverUB(HEOMSolver):
                     Ltemp.tocsr()
                 # renormalized
                     if kcount < 2:
-                        c0n = lam
                         Lbig = Lbig + sp.kron(Ltemp, -1.j
-                                              * np.sqrt((nlabeltemp[kcount] + 1) * ((abs(c0n))))
+                                              * np.sqrt((nlabeltemp[kcount] + 1) * ((abs(lam))))
                                               * (spre(Q) - spost(Q)).data)
                     if kcount == 2:
                         cin = ck2[0]
@@ -1129,6 +1125,179 @@ class HSolverUB(HEOMSolver):
         ck = np.array([coth(beta*(a/2))-1, coth(beta*(aa/2))+1])
 
         return coeff*ck, -vk
+
+    def _calc_matsubara_params(self, lam, gamma, w0, beta, N_exp, tlist):
+        """
+        Calculates the Matsubara parameters
+        """
+        if (self.temperature <= 1e-3) and (self.temperature != 0.):
+            raise ValueError("""Low temperature detected. It may take
+                                `N_exp` > 10,000 terms in the Matsubara
+                                expansion to converge. Set temperature = 0 to
+                                use an analytical formula for the zero
+                                temperature case and fit a bi-exponential""")
+        if self.temperature == 0:
+            self.N_exp = 2
+            mats_data_zero = matsubara_zero_temp(tlist, lam, gamma, w0)
+            ck20, vk20 = biexp_fit(tlist, mats_data_zero)
+            return ck20, vk20
+
+        else:
+            ck2, vk2 = matsubara_exponentials(lam, gamma, w0, beta, N_exp)
+            return ck2, vk2
+
+
+def sum_of_exponentials(ck, vk, tlist):
+    """
+    Calculate the sum of exponentials for a set of `ck` and `vk` using
+    `sum(ck[i]e^{vk[i]*t}`
+
+    Parameters
+    ==========
+    ck: array
+        An array of coefficients for the exponentials `ck`.
+
+    vk: array
+        An array of frequencies `vk`.
+
+    tlist: array
+        A list of times.
+    """
+    y = np.multiply(ck[0], np.exp(vk[0]*tlist))
+    for p in range(1, len(ck)):
+        y += np.multiply(ck[p], np.exp(vk[p]*tlist))
+    return y
+
+
+def biexp_fit(tlist, ydata,
+              bounds=([0, -np.inf, 0, -np.inf], [10, 0, 10, 0]),
+              loss='cauchy'):
+    """
+    Fit a bi-exponential as A1e^(-w1 t) + A2 e^(-w2 t)
+    """
+    mindata = np.min(ydata)
+    data = ydata/mindata
+    fun = lambda x, t, y: np.power(x[0]*np.exp(x[1]*t) + (1-x[0])*np.exp(x[2]*t) - y, 2)
+    x0 = [mindata/2, -.01, -.03]
+    params = least_squares(fun, x0, loss=loss, args=(tlist, data))
+    c1, v1, v2 = params.x
+    ck = mindata*np.array([c1, (1-c1)])
+    vk = np.array([v1, v2])
+    return ck, vk
+
+
+def matsubara_exponentials(lam, gamma, w0, beta, N_exp):
+    """
+    Calculates the exponentials for the correlation function for matsubara
+    terms. (t>=0)
+
+    Parameters
+    ----------
+    lam: float
+        The coupling strength parameter.
+
+    gamma: float
+        A parameter characterizing the FWHM of the spectral density.
+
+    w0: float
+        The qubit frequency.
+
+    beta: float
+        The inverse temperature.
+
+    N_exp: int
+        The number of exponents to consider in the sum.
+
+    Returns
+    -------
+    ck: ndarray
+        A 1D array with the prefactors for the exponentials
+
+    vk: ndarray
+        A 1D array with the frequencies
+    """
+    if beta == np.inf:
+        raise ValueError("""Use the function
+            matsubara_zero_temp(tlist, gamma, lam)""")
+    omega = np.sqrt(w0**2 - (gamma/2)**2)
+    a = omega + 1j*gamma/2.
+    aa = np.conjugate(a)
+    coeff = (-4*gamma*lam**2/np.pi)*((np.pi/beta)**2)
+    vk = np.array([-2*np.pi*n/(beta) for n in range(1, N_exp)])
+    ck = np.array([n/((a**2 + (2*np.pi*n/beta)**2)
+                                   *(aa**2 + (2*np.pi*n/beta)**2)) for n in range(1, N_exp)])
+    return -coeff*ck, vk
+
+
+def _matsubara_zero_temp(t, lam, gamma, w0):
+    """
+    Calculates the analytical zero temperature value for Matsubara when T = 0
+    for a single time (t). Use the `matsubara_zero_temp` function for a list
+    of time.
+
+    Parameters
+    ----------
+    w: np.ndarray
+        A 1D numpy array of frequencies.
+
+    lam: float
+        The coupling strength parameter.
+
+    gamma: float
+        A parameter characterizing the FWHM of the spectral density.
+
+    w0: float
+        The qubit frequency.
+
+    beta: float
+        The inverse temperature.
+
+    cut_off: int
+        The number of terms to consider in the sum.
+
+    Returns
+    -------
+    integrated: float
+        The value of the integration at time "t".
+    """
+    omega = np.sqrt(w0**2 - (gamma/2)**2)
+    a = omega + 1j*gamma/2.
+    aa = np.conjugate(a)
+    prefactor = -(lam**2*gamma)/np.pi
+    integrand = lambda x: prefactor*((x*np.exp(-x*t))/((a**2 + x**2)*(aa**2 + x**2)))
+    return quad(integrand, 0.0, np.inf)[0]
+
+
+def matsubara_zero_temp(tlist, lam, gamma, w0):
+    """
+    Calculates the analytical zero temperature value for Matsubara when T = 0.
+
+    Parameters
+    ----------
+    tlist: array
+        A 1D array of times to calculate the correlation function.
+
+    lam: float
+        The coupling strength parameter.
+
+    gamma: float
+        A parameter characterizing the FWHM of the spectral density.
+
+    w0: float
+        The qubit frequency.
+
+    beta: float
+        The inverse temperature.
+
+    cut_off: int
+        The number of terms to consider in the sum.
+
+    Returns
+    -------
+    integrated: float
+        The value of the integration at time "t".
+    """
+    return np.array([_matsubara_zero_temp(t, lam, gamma, w0) for t in tlist])
 
 
 def add_at_idx(seq, k, val):
