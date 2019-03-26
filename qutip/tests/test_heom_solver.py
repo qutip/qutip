@@ -172,10 +172,9 @@ def test_heom():
     ck1, vk1 = solver1._calc_nonmatsubara_params(lam, gamma, w0, beta)
     ck2, vk2 = solver1._calc_matsubara_params(lam, gamma, w0, beta, Nexp, tlist)
 
-    solver2 = Heom(Hsys, Q, np.concatenate([ck1, ck2]),
+    solver2 = Heom(Hsys, Q, lam_coeff, np.concatenate([ck1, ck2]),
         np.concatenate([vk1, vk2]),
-        ncut=Nc,
-        lam=lam_coeff)
+        ncut=Nc)
 
     output1 = solver1.run(rho0, tlist)
     result1 = np.real(expect(output1.states, sigmaz()))

@@ -852,6 +852,7 @@ class HSolverUB(HEOMSolver):
             coup_op, coup_strength,
             temperature, N_cut, N_exp, cut_freq, cav_freq,
             cav_broad, tlist)
+        self.full_hierarchy = []
 
     def reset(self):
         """
@@ -864,9 +865,9 @@ class HSolverUB(HEOMSolver):
 
     def configure(self, H_sys, coup_op, coup_strength, temperature,
                   N_cut, N_exp, cut_freq, cav_freq, cav_broad, tlist,
-                  planck=None,
-                  boltzmann=None, renorm=None, bnd_cut_approx=None,
-                  options=None, progress_bar=None, stats=None):
+                  planck=None, boltzmann=None, renorm=None,
+                  bnd_cut_approx=None, options=None, progress_bar=None,
+                  stats=None):
         """
         Configures the HEOM hierarchy.
         """
@@ -1016,7 +1017,7 @@ class HSolverUB(HEOMSolver):
         self.liouvillian = Lbig
         return Lbig
 
-    def run(self, rho0, tlist):
+    def run(self, rho0, tlist, store_full=True):
         """
         Function to solve for an open quantum system using the
         HEOM model.
@@ -1028,6 +1029,10 @@ class HSolverUB(HEOMSolver):
 
         tlist : list
             Time over which system evolves.
+
+        store_full: bool
+            Store the full output including the dynamics of the auxilliary
+            density operators of the hierarchy.
 
         Returns
         -------
@@ -1074,11 +1079,23 @@ class HSolverUB(HEOMSolver):
 
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
+
+        hshape = (self._N_he, sup_dim)
+        if store_full:
+            full_hierarchy = []
+
         for t_idx, t in enumerate(tlist):
             if t_idx < n_tsteps - 1:
                 r.integrate(r.t + dt[t_idx])
                 rho = Qobj(r.y[:sup_dim].reshape(rho0.shape), dims=rho0.dims)
                 output.states.append(rho)
+
+                if store_full:
+                    r_heom = r.y.reshape(hshape)
+                    full_hierarchy.append(r_heom)
+
+        if store_full:
+            self.full_hierarchy = full_hierarchy
 
         if stats:
             time_now = timeit.default_timer()
@@ -1168,7 +1185,7 @@ class HSolverUB(HEOMSolver):
             beta = 1/self.boltzmann*self.temperature
         else:
             beta = np.inf
-        
+
         omega = np.sqrt(w0**2 - (gamma/2)**2)
         a = omega + 1j*gamma/2.
         aa = np.conjugate(a)
@@ -1395,8 +1412,8 @@ class Heom(object):
         which is used to remove it from the heirarchy
     """
 
-    def __init__(self, hamiltonian, coupling, ck, vk,
-                 ncut, rcut=None, renorm=False, lam=0.):
+    def __init__(self, hamiltonian, coupling, coup_strength,
+                 ck, vk, ncut, rcut=None, renorm=False):
         self.hamiltonian = hamiltonian
         self.coupling = coupling
         self.ck, self.vk = ck, vk
@@ -1424,7 +1441,7 @@ class Heom(object):
             (total_nhe * self.N**2,
              total_nhe * self.N**2),
             dtype=np.complex)
-        self.lam = lam
+        self.lam = coup_strength
 
     def _initialize_he(self):
         """
@@ -1565,7 +1582,7 @@ class Heom(object):
                 if prev_he and (prev_he in self.he2idx):
                     self.grad_prev(he_n, k, prev_he)
 
-    def run(self, rho0, tlist, options=None, progress=None):
+    def run(self, rho0, tlist, options=None, progress=None, store_full=True):
         """
         Solve the Hierarchy equations of motion for the given initial
         density matrix and time.
@@ -1596,6 +1613,8 @@ class Heom(object):
         r.set_initial_value(rho_he, tlist[0])
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
+        if store_full:
+            full_hierarchy = []
         if progress:
             bar = progress(total=n_tsteps - 1)
         for t_idx, t in enumerate(tlist):
@@ -1604,6 +1623,11 @@ class Heom(object):
                 r1 = r.y.reshape(self.hshape)
                 r0 = r1[0].reshape(self.N, self.N).T
                 output.states.append(Qobj(r0))
+
+                if store_full:
+                    r_heom = r.y.reshape(self.hshape)
+                    full_hierarchy.append(r_heom)
+
                 if progress:
                     bar.update()
         return output
