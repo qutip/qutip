@@ -846,6 +846,7 @@ class HSolverUB(HEOMSolver):
         self.N_exp = N_exp
         self.cut_freq = cut_freq
         self.cav_freq = cav_freq
+        self.cav_broad = cav_broad
         self.tlist = tlist
         self.configure(H_sys,
             coup_op, coup_strength,
@@ -898,10 +899,12 @@ class HSolverUB(HEOMSolver):
         #Parameters and hamiltonian
         omega = np.sqrt(w0**2 - (gamma/2)**2)
         lam = self.coup_strength**2/(2*(omega))
+
         ck1, vk1 = self._calc_nonmatsubara_params(lam, gamma, w0, beta)
+
         if self.N_exp != 0:
             ck2, vk2 = self._calc_matsubara_params(lam, gamma, w0, beta, self.N_exp, tlist)
-            vk2 = -vk2
+
         N_temp = reduce(mul, H.dims[0], 1)
         Nsup = N_temp**2
         unit = qeye(N_temp)
@@ -1126,6 +1129,130 @@ class HSolverUB(HEOMSolver):
 
         return coeff*ck, -vk
 
+    def matsubara_exponentials(self):
+        """
+        Calculates the exponentials for the correlation function for matsubara
+        terms. (t>=0)
+
+        Parameters
+        ----------
+        lam: float
+            The coupling strength parameter.
+
+        gamma: float
+            A parameter characterizing the FWHM of the spectral density.
+
+        w0: float
+            The qubit frequency.
+
+        beta: float
+            The inverse temperature.
+
+        N_exp: int
+            The number of exponents to consider in the sum.
+
+        Returns
+        -------
+        ck: ndarray
+            A 1D array with the prefactors for the exponentials
+
+        vk: ndarray
+            A 1D array with the frequencies
+        """
+        lam = self.coup_strength
+        gamma = self.cav_broad
+        w0 = self.cav_freq
+        N_exp = self.N_exp
+
+        if self.temperature != 0:
+            beta = 1/self.boltzmann*self.temperature
+        else:
+            beta = np.inf
+        
+        omega = np.sqrt(w0**2 - (gamma/2)**2)
+        a = omega + 1j*gamma/2.
+        aa = np.conjugate(a)
+        coeff = (-4*gamma*lam**2/np.pi)*((np.pi/beta)**2)
+        vk = np.array([-2*np.pi*n/(beta) for n in range(1, N_exp)])
+        ck = np.array([n/((a**2 + (2*np.pi*n/beta)**2)
+                                       *(aa**2 + (2*np.pi*n/beta)**2)) for n in range(1, N_exp)])
+        return -coeff*ck, vk
+
+
+    def _matsubara_zero_temp(self, t):
+        """
+        Calculates the analytical zero temperature value for Matsubara when T = 0
+        for a single time (t). Use the `matsubara_zero_temp` function for a list
+        of time.
+
+        Parameters
+        ----------
+        w: np.ndarray
+            A 1D numpy array of frequencies.
+
+        lam: float
+            The coupling strength parameter.
+
+        gamma: float
+            A parameter characterizing the FWHM of the spectral density.
+
+        w0: float
+            The qubit frequency.
+
+        beta: float
+            The inverse temperature.
+
+        cut_off: int
+            The number of terms to consider in the sum.
+
+        Returns
+        -------
+        integrated: float
+            The value of the integration at time "t".
+        """
+        lam = self.coup_strength
+        gamma = self.cav_broad
+        w0 = self.cav_freq
+        omega = np.sqrt(w0**2 - (gamma/2)**2)
+        a = omega + 1j*gamma/2.
+        aa = np.conjugate(a)
+        prefactor = -(lam**2*gamma)/np.pi
+        integrand = lambda x: prefactor*((x*np.exp(-x*t))/((a**2 + x**2)*(aa**2 + x**2)))
+        return quad(integrand, 0.0, np.inf)[0]
+
+
+    def matsubara_zero_temp(self, tlist):
+        """
+        Calculates the analytical zero temperature value for Matsubara when T = 0.
+
+        Parameters
+        ----------
+        tlist: array
+            A 1D array of times to calculate the correlation function.
+
+        lam: float
+            The coupling strength parameter.
+
+        gamma: float
+            A parameter characterizing the FWHM of the spectral density.
+
+        w0: float
+            The qubit frequency.
+
+        beta: float
+            The inverse temperature.
+
+        cut_off: int
+            The number of terms to consider in the sum.
+
+        Returns
+        -------
+        integrated: float
+            The value of the integration at time "t".
+        """
+        return np.array([self._matsubara_zero_temp(t) for t in tlist])
+
+
     def _calc_matsubara_params(self, lam, gamma, w0, beta, N_exp, tlist):
         """
         Calculates the Matsubara parameters
@@ -1138,13 +1265,13 @@ class HSolverUB(HEOMSolver):
                                 temperature case and fit a bi-exponential""")
         if self.temperature == 0:
             self.N_exp = 2
-            mats_data_zero = matsubara_zero_temp(tlist, lam, gamma, w0)
+            mats_data_zero = self.matsubara_zero_temp(tlist)
             ck20, vk20 = biexp_fit(tlist, mats_data_zero)
-            return ck20, vk20
+            return ck20, -vk20
 
         else:
-            ck2, vk2 = matsubara_exponentials(lam, gamma, w0, beta, N_exp)
-            return ck2, vk2
+            ck2, vk2 = self.matsubara_exponentials()
+            return ck2, -vk2
 
 
 def sum_of_exponentials(ck, vk, tlist):
@@ -1184,120 +1311,6 @@ def biexp_fit(tlist, ydata,
     ck = mindata*np.array([c1, (1-c1)])
     vk = np.array([v1, v2])
     return ck, vk
-
-
-def matsubara_exponentials(lam, gamma, w0, beta, N_exp):
-    """
-    Calculates the exponentials for the correlation function for matsubara
-    terms. (t>=0)
-
-    Parameters
-    ----------
-    lam: float
-        The coupling strength parameter.
-
-    gamma: float
-        A parameter characterizing the FWHM of the spectral density.
-
-    w0: float
-        The qubit frequency.
-
-    beta: float
-        The inverse temperature.
-
-    N_exp: int
-        The number of exponents to consider in the sum.
-
-    Returns
-    -------
-    ck: ndarray
-        A 1D array with the prefactors for the exponentials
-
-    vk: ndarray
-        A 1D array with the frequencies
-    """
-    if beta == np.inf:
-        raise ValueError("""Use the function
-            matsubara_zero_temp(tlist, gamma, lam)""")
-    omega = np.sqrt(w0**2 - (gamma/2)**2)
-    a = omega + 1j*gamma/2.
-    aa = np.conjugate(a)
-    coeff = (-4*gamma*lam**2/np.pi)*((np.pi/beta)**2)
-    vk = np.array([-2*np.pi*n/(beta) for n in range(1, N_exp)])
-    ck = np.array([n/((a**2 + (2*np.pi*n/beta)**2)
-                                   *(aa**2 + (2*np.pi*n/beta)**2)) for n in range(1, N_exp)])
-    return -coeff*ck, vk
-
-
-def _matsubara_zero_temp(t, lam, gamma, w0):
-    """
-    Calculates the analytical zero temperature value for Matsubara when T = 0
-    for a single time (t). Use the `matsubara_zero_temp` function for a list
-    of time.
-
-    Parameters
-    ----------
-    w: np.ndarray
-        A 1D numpy array of frequencies.
-
-    lam: float
-        The coupling strength parameter.
-
-    gamma: float
-        A parameter characterizing the FWHM of the spectral density.
-
-    w0: float
-        The qubit frequency.
-
-    beta: float
-        The inverse temperature.
-
-    cut_off: int
-        The number of terms to consider in the sum.
-
-    Returns
-    -------
-    integrated: float
-        The value of the integration at time "t".
-    """
-    omega = np.sqrt(w0**2 - (gamma/2)**2)
-    a = omega + 1j*gamma/2.
-    aa = np.conjugate(a)
-    prefactor = -(lam**2*gamma)/np.pi
-    integrand = lambda x: prefactor*((x*np.exp(-x*t))/((a**2 + x**2)*(aa**2 + x**2)))
-    return quad(integrand, 0.0, np.inf)[0]
-
-
-def matsubara_zero_temp(tlist, lam, gamma, w0):
-    """
-    Calculates the analytical zero temperature value for Matsubara when T = 0.
-
-    Parameters
-    ----------
-    tlist: array
-        A 1D array of times to calculate the correlation function.
-
-    lam: float
-        The coupling strength parameter.
-
-    gamma: float
-        A parameter characterizing the FWHM of the spectral density.
-
-    w0: float
-        The qubit frequency.
-
-    beta: float
-        The inverse temperature.
-
-    cut_off: int
-        The number of terms to consider in the sum.
-
-    Returns
-    -------
-    integrated: float
-        The value of the integration at time "t".
-    """
-    return np.array([_matsubara_zero_temp(t, lam, gamma, w0) for t in tlist])
 
 
 def add_at_idx(seq, k, val):
