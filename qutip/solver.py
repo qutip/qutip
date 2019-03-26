@@ -49,11 +49,13 @@ solver_safe = {}
 class SolverSystem():
     pass
 
+import numpy as np
+from qutip.qobjevo import QobjEvo
 class ExpectOps:
     """
         Contain and compute expectation values
     """
-    def __init__(self, e_ops, super_=False):
+    def __init__(self, e_ops=[], super_=False):
         # take care of expectation values, if any
         self.isfunc = False
         self.e_ops_dict = False
@@ -91,7 +93,7 @@ class ExpectOps:
         else:
             t = self.tlist[iter_]
             for ii in range(self.e_num):
-                self.raw_out[ii, iter_] = self.e_ops[ii].expect(t, state)
+                self.raw_out[ii, iter_] = self.e_ops_qoevo[ii].expect(t, state)
 
     def finish(self):
         if self.isfunc:
@@ -115,6 +117,9 @@ class ExpectOps:
 
     def __ne__(self, other):
         return not (self == other)
+
+    def __bool__(self):
+        return bool(self.e_num)
 
 
 class Options():
@@ -374,9 +379,8 @@ class Result():
         (self.__dict__).update(state)
 
 
-# %%%%%%%%%%% mcsolve only?: TODO remove
-"""class SolverConfiguration():
-
+# %%%%%%%%%%% remove ?
+class SolverConfiguration():
     def __init__(self):
 
         self.cgen_num = 0
@@ -453,7 +457,7 @@ class Result():
         self.colspmv = None    # Placeholder for TD col-spmv function.
         self.colexpect = None  # Placeholder for TD col_expect function.
         self.string = None     # Holds string of variables passed to td solver
-"""
+
 
 def _format_time(t, tt=None, ttt=None):
     time_str = str(datetime.timedelta(seconds=t))

@@ -1634,6 +1634,9 @@ class _UnitedFuncCaller:
             out.append(func(t, now_args))
         return out
 
+    def get_args(self):
+        return self.args
+
 
 class _Norm2():
     def __init__(self, f):

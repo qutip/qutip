@@ -70,7 +70,7 @@ cdef np.ndarray[int, ndim=1] iprt2array(int* ptr, int N):
 
 cdef class CoeffFunc:
     def __init__(self, ops, args, tlist):
-        pass
+        self._args = {}
 
     def __call__(self, double t, args={}):
         cdef np.ndarray[ndim=1, dtype=complex] coeff = \
@@ -93,6 +93,9 @@ cdef class CoeffFunc:
     def __setstate__(self, state):
         pass
 
+    def get_args(self):
+        return self._args
+
 
 cdef class InterpolateCoeff(CoeffFunc):
     cdef double a, b
@@ -100,6 +103,7 @@ cdef class InterpolateCoeff(CoeffFunc):
 
     def __init__(self, ops, args, tlist):
         cdef int i, j, l
+        self._args = {}
         self._num_ops = len(ops)
         self.a = ops[0][2].a
         self.b = ops[0][2].b
@@ -141,6 +145,7 @@ cdef class InterCoeffCte(CoeffFunc):
 
     def __init__(self, ops, args, tlist):
         cdef int i, j
+        self._args = {}
         self._num_ops = len(ops)
         self.tlist = tlist
         self.n_t = len(tlist)
@@ -186,6 +191,7 @@ cdef class InterCoeffT(CoeffFunc):
 
     def __init__(self, ops, args, tlist):
         cdef int i, j
+        self._args = {}
         self._num_ops = len(ops)
         self.tlist = tlist
         self.n_t = len(tlist)
