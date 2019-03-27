@@ -852,6 +852,11 @@ class HSolverUB(HEOMSolver):
             coup_op, coup_strength,
             temperature, N_cut, N_exp, cut_freq, cav_freq,
             cav_broad, tlist)
+        nhe, state2idx, idx2state = _heom_state_dictionaries(
+            [N_cut + 1] * (N_exp + 2), N_cut)
+        self.nhe = nhe
+        self.state2idx = state2idx
+        self.idx2state = idx2state
         self.full_hierarchy = []
 
     def reset(self):
@@ -1290,6 +1295,37 @@ class HSolverUB(HEOMSolver):
             ck2, vk2 = self.matsubara_exponentials()
             return ck2, -vk2
 
+    def get_aux_matrices(self, level):
+        """
+        Extracts the auxiliary matrices at a particular level
+        from the full hierarchy ADOs.
+
+        Parameters
+        ----------
+        level: int
+            The level of the hierarchy to get the ADOs.
+
+        Returns
+        -------
+        aux: dict
+            A dictionary with key as the HEOM multi-index and value as
+            the ADM evolution.
+        """
+        state2idx = self.state2idx
+        idx2state = self.idx2state
+
+        if len(self.full_hierarchy) == 0:
+            raise ValueError("Please run the hierarchy solver first.")
+
+        full = np.array(self.full_hierarchy)
+        aux = {}
+        for stateid in state2idx:
+            if np.sum(stateid) == level:
+                i = state2idx[stateid]
+                qlist = [Qobj(full[k, i, :].reshape(2, 2).T) for k in range(len(full))]
+                aux[stateid] = qlist
+        return aux
+
 
 def sum_of_exponentials(ck, vk, tlist):
     """
@@ -1394,6 +1430,9 @@ class Heom(object):
 
     coupling: :class:`qutip.Qobj`
         The coupling operator
+
+    coupling_strength: float
+        The coupling strength.
 
     ck: list
         The list of amplitudes in the expansion of the correlation function
