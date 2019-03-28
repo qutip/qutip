@@ -973,20 +973,13 @@ class HSolverUB(HEOMSolver):
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(lam)))
                                                       * (-lam * spost(Q).data)))
-                    if kcount == 1:
+                    elif kcount == 1:
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(lam)))
                                                       * (lam * spre(Q).data)))
-
-                    if kcount == 2:
-                        cin = ck2[0]
-                        Lbig = Lbig + sp.kron(Ltemp, (-1.j
-                                                      * np.sqrt((nlabeltemp[kcount]
-                                                                 / abs(cin)))
-                                                      * cin * (spre(Q).data - spost(Q).data)))
-                    if kcount == 3:
-                        cin = ck2[1]
+                    else:
+                        cin = ck2[kcount - 2]
                         Lbig = Lbig + sp.kron(Ltemp, (-1.j
                                                       * np.sqrt((nlabeltemp[kcount]
                                                                  / abs(cin)))
@@ -1007,13 +1000,8 @@ class HSolverUB(HEOMSolver):
                         Lbig = Lbig + sp.kron(Ltemp, -1.j
                                               * np.sqrt((nlabeltemp[kcount] + 1) * ((abs(lam))))
                                               * (spre(Q) - spost(Q)).data)
-                    if kcount == 2:
-                        cin = ck2[0]
-                        Lbig = Lbig + sp.kron(Ltemp, -1.j
-                                              * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
-                                              * (spre(Q) - spost(Q)).data)
-                    if kcount == 3:
-                        cin = ck2[1]
+                    else:
+                        cin = ck2[kcount - 2]
                         Lbig = Lbig + sp.kron(Ltemp, -1.j
                                               * np.sqrt((nlabeltemp[kcount] + 1) * (abs(cin)))
                                               * (spre(Q) - spost(Q)).data)
