@@ -237,6 +237,7 @@ class _MC():
         self.seeds = []
         self.t = 0.
         self.num_traj = 0
+        self.args_col = None
 
         self._psi_out = []
         self._expect_out = []
@@ -282,16 +283,49 @@ class _MC():
         #if continuing trajectories, keep same random generator state?
         #self._prng = [RandomState(seed) for seed in self.seeds]
 
-    def make_system(self, H, c_ops, tlist, args, options=None):
+    def make_diag_system(self, H, c_ops):
+        ss = SolverSystem()
+        ss.td_c_ops = []
+        ss.td_n_ops = []
+
+        H_ = H.copy()
+        H_ *= -1j
+        for c in c_ops:
+            H_ += -0.5 * c
+
+        w, v = np.linalg.eig(H_.full())
+        arg = np.argsort(w.real)
+        eig = w[arg]
+        U = v.T[arg].T
+        Ud = U.T.conj()
+
+        for c in c_ops:
+            cevo = Ud * QobjEvo(c) * U
+            cdc = cevo._cdc()
+            cevo.compile()
+            cdc.compile()
+            ss.td_c_ops.append(cevo)
+            ss.td_n_ops.append(cdc)
+
+        ss.H_diag = eig
+        ss.Ud = Ud
+        ss.U = U
+        ss.type = "Diagonal"
+        solver_safe["mcsolve"] = ss
+        self.ss = ss
+
+    def make_system(self, H, c_ops, tlist=None, args={}, options=None):
         if options is None:
             options = self.options
         else:
             self.options = options
+        var = _collapse_args(args)
+
         ss = SolverSystem()
-        c_num = len(c_ops)
         ss.td_c_ops = []
         ss.td_n_ops = []
         ss.args = args
+        ss.col_args = var
         for c in c_ops:
             cevo = QobjEvo(c, args, tlist)
             cdc = cevo._cdc()
@@ -324,13 +358,6 @@ class _MC():
 
         solver_safe["mcsolve"] = ss
         self.ss = ss
-
-    def _collapse_args(self, args):
-        to_rm = []
-        for k in args:
-            if "=" in k and k.split("=")[1].startswith("collapse"):
-                to_rm.append(k)
-                var, type_ = k.split("=")
 
     def set_e_ops(self, e_ops=[]):
         if e_ops:
@@ -395,12 +422,13 @@ class _MC():
             self.psi0 = psi0
             self.reset()
 
+        tlist = np.array(tlist)
         if tlist is not None and np.all(tlist != self.tlist):
             self.tlist = tlist
             self.reset()
 
         if self.ran:
-            if options.store_states and self._psi_out[0] is None:
+            if options.store_states and self._psi_out[0].shape[0] == 1:
                 self.reset()
             else:
                 # if not reset here, add trajectories
@@ -654,6 +682,8 @@ def _qobjevo_set(ss, psi0=None, args={}, opt=None):
     return rhs, ()
 
 def _qobjevo_args(ss, args):
+    var = _collapse_args(args)
+    ss.col_args = var
     ss.args = args
     ss.H_td.arguments(args)
     for c in ss.td_c_ops:
@@ -673,6 +703,8 @@ def _func_set(HS, psi0=None, args={}, opt=None):
     return rhs, (ss.h_func, ss.Hc_td, args)
 
 def _func_args(ss, args):
+    var = _collapse_args(args)
+    ss.col_args = var
     ss.args = args
     for c in ss.td_c_ops:
         c.arguments(args)
@@ -687,12 +719,10 @@ def _funcrhs(t, psi, h_func, Hc_td, args):
     h_func_term = h_func_data * psi
     return h_func_term + Hc_td.mul_vec(t, psi)
 
-
 def _funcrhs_with_state(t, psi, h_func, Hc_td, args):
     h_func_data = - 1.0j * h_func(t, psi, args).data
     h_func_term = h_func_data * psi
     return h_func_term + Hc_td.mul_vec(t, psi)
-
 
 def _mc_dm_avg(psi_list):
     """
@@ -704,3 +734,22 @@ def _mc_dm_avg(psi_list):
     shape = psi_list[0].shape
     out_data = sum([psi.data for psi in psi_list]) / ln
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
+
+def _collapse_args(args):
+    to_rm = ""
+    for k in args:
+        if "=" in k and k.split("=")[1] == "collapse":
+            to_rm.append(k)
+            var = k.split("=")[0]
+            if isinstance(args[k], list):
+                list_ = args[k]
+            else:
+                list_ = []
+            to_rm = k
+            break
+    if to_rm:
+        del args[k]
+        args[var] = list_
+        return var
+    else:
+        return ""

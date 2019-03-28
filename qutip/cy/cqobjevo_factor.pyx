@@ -294,18 +294,18 @@ cdef class StrCoeff(CoeffFunc):
             now_args.update(args)
             self.set_args(now_args)
             self._call_core(t, &coeff[0])
-            self.set_args(self.args)
+            self.set_args(self._args)
         else:
             self._call_core(t, &coeff[0])
 
         return coeff
 
     def __getstate__(self):
-        return (self._num_ops, self.args, self._dyn_args_list)
+        return (self._num_ops, self._args, self._dyn_args_list)
 
     def __setstate__(self, state):
         self._num_ops = state[0]
         self._args = state[1]
         self._dyn_args_list = state[2]
-        self.set_args(self.args)
+        self.set_args(self._args)
         self._set_dyn_args(self._dyn_args_list)
