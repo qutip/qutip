@@ -45,7 +45,7 @@ from functools import partial
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.parallel import parfor, parallel_map, serial_map
-from qutip.cy.mcsolve import cy_mc_run_ode
+from qutip.cy.mcsolve import CyMcOde
 # cy_mc_run_ode = None
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result, ExpectOps,
@@ -205,9 +205,12 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     else:
         mc.make_system(H, c_ops, tlist, args, options)
 
-    mc.reset(0., psi0)
+    mc.reset(tlist[0], psi0)
 
     mc.set_e_ops(e_ops)
+
+    if options.seeds is not None:
+        mc.seed(num_traj, options.seeds)
 
     if _safe_mode:
         mc.run_test()
@@ -249,9 +252,16 @@ class _MC():
             self.psi0 = psi0
         self.t = t
         self.initial_vector = self.psi0.full().ravel("F")
+        self.ran = False
+
+        self._psi_out = []
+        self._expect_out = []
+        self._collapse = []
+        self._ss_out = []
 
     def seed(self, ntraj, seeds=[]):
         # setup seeds array
+        np.random.seed()
         try:
             seed = int(seeds)
             np.random.seed(seed)
@@ -259,25 +269,10 @@ class _MC():
         except TypeError:
             pass
 
-        if not seeds:
-            step = 4294967295 // ntraj
-            self.seeds = \
-                randint(0, step-1, size=ntraj) + \
-                np.arange(ntraj) * step
+        if len(seeds) < ntraj:
+            self.seeds += list(randint(0, 2**32-1, size=ntraj-len(seeds)))
         else:
-            # if ntraj was reduced but reusing seeds
-            seed_length = len(seeds)
-            if seed_length > ntraj:
-                self.seeds = \
-                    self.options.seeds[0:ntraj]
-            # if ntraj was increased but reusing seeds
-            elif seed_length < ntraj:
-                len_new_seed = (self.ntraj - seed_length)
-                step = 4294967295 // len_new_seed
-                newseeds = randint(0, step - 1,
-                                   size=(len_new_seed)) + \
-                                   np.arange(len_new_seed) * step
-                self.seeds = np.hstack((seeds, newseeds))
+            self.seeds = self.seeds[:ntraj]
 
     #def _prepare_prng(self, ntraj):
         #if continuing trajectories, keep same random generator state?
@@ -449,6 +444,9 @@ class _MC():
                       'num_cpus': options.num_cpus}
         map_kwargs.update(map_kwargs)
 
+        if self.e_ops is None:
+            self.set_e_ops()
+
         results = map_func(self._single_traj, list(range(num_traj)), **map_kwargs)
 
         self.t = self.tlist[-1]
@@ -568,10 +566,22 @@ class _MC():
 
     @property
     def collapse_times(self):
+        out = []
+        for col_ in self._collapse:
+            col = list(zip(*col_))
+            col = ([] if len(col) == 0 else col[1])
+            out.append( np.array(col) )
+        return out
         return [np.array(list(zip(*col_))[0]) for col_ in self._collapse]
 
     @property
     def collapse_which(self):
+        out = []
+        for col_ in self._collapse:
+            col = list(zip(*col_))
+            col = ([] if len(col) == 0 else col[1])
+            out.append( np.array(col) )
+        return out
         return [np.array(list(zip(*col_))[1]) for col_ in self._collapse]
 
     def get_result(self, ntraj=[]):
@@ -642,7 +652,8 @@ class _MC():
             ODE.set_initial_value(self.initial_vector, tlist[0])
             e_ops.init(tlist)
 
-            states_out, ss_out, collapses = cy_mc_run_ode(ODE, ss, tlist, e_ops, opt, prng)
+            cymc = CyMcOde(ss, opt)
+            states_out, ss_out, collapses = cymc.run_ode(ODE, tlist, e_ops, prng)
 
         # Run at end of mc_alg function
         # -----------------------------

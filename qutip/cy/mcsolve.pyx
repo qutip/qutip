@@ -85,7 +85,7 @@ cdef class CyMcOde:
         self.norm_tol = opt.norm_tol
         self.steady_state = opt.steady_state_average
         self.store_states = opt.store_states or opt.average_states
-        self.collapse = []
+        self.collapses = []
         self.l_vec = self.c_ops[0].cte.shape[0]
         self.num_ops = len(ss.td_n_ops)
         self.n_dp = np.zeros(self.num_ops)
@@ -119,7 +119,7 @@ cdef class CyMcOde:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def cy_mc_run_ode(self, ODE, tlist_, e_call, prng):
+    def run_ode(self, ODE, tlist_, e_call, prng):
         cdef np.ndarray[double, ndim=1] rand_vals
         cdef np.ndarray[double, ndim=1] tlist = np.array(tlist_)
         cdef np.ndarray[complex, ndim=1] y_prev
@@ -129,7 +129,8 @@ cdef class CyMcOde:
         cdef double norm2_prev, norm2_psi
         cdef double t_prev
 
-        self.sumsteadystate(out_psi)
+        if self.steady_state:
+            self.sumsteadystate(out_psi)
 
         if self.store_states:
             self.states_out = np.zeros((num_times, self.l_vec), dtype=complex)
@@ -186,7 +187,8 @@ cdef class CyMcOde:
                 for ii in range(self.l_vec):
                     self.states_out[k, ii] = out_psi[ii]
         if not self.store_states:
-            self.states_out[0, ii] = out_psi[ii]
+            for ii in range(self.l_vec):
+                self.states_out[0, ii] = out_psi[ii]
         return np.array(self.states_out), np.array(self.ss_out), self.collapses
 
 
