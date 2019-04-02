@@ -504,7 +504,7 @@ class _MC():
                     tmp = tmp * tmp.dag()
                     tmp.dims = [dims, dims]
                     psi_dm[i,j] = tmp
-            states = parfor(_mc_dm_avg, psi_dm.T)
+            states = np.array(parfor(_mc_dm_avg, psi_dm.T), dtype=object)
             return states
 
     @property
@@ -552,21 +552,19 @@ class _MC():
             len_ = self.psi0.shape[0]
             return Qobj(np.mean(self._ss_out, axis=0),
                             [dims, dims], [len_, len_])
-        elif self._psi_out is not None:
-            return sum(self.state_average) / self.num_traj
+        # TO-DO rebuild steady_state from _psi_out if needed
+        # elif self._psi_out is not None:
+        #     return sum(self.state_average) / self.num_traj
         else:
             return None
 
     @property
     def runs_states(self):
-        psi = []
         dims = self.psi0.dims
+        psi = np.empty((self.num_traj, len(self.tlist)), dtype=object)
         for i in range(self.num_traj):
-            one_run = []
             for j in range(len(self.tlist)):
-                one_run.append(Qobj(self._psi_out[i,j,:].reshape((-1,1)),
-                                    dims = dims))
-            psi.append(one_run)
+                psi[i,j] = Qobj(self._psi_out[i,j,:].reshape((-1,1)), dims=dims)
         return psi
 
     @property
@@ -605,6 +603,7 @@ class _MC():
         output.seeds = self.seeds
 
         options = self.options
+        output.options = options
 
         if options.steady_state_average:
             output.states = self.steady_state

@@ -323,26 +323,26 @@ class _LiouvillianFromFunc:
 
     def H2L(self, t, rho, args):
         Ht = self.f(t, args)
-        Lt = -1.0j * (spre(Ht) - spost(Ht))
+        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
 
     def H2L_with_state(self, t, rho, args):
         Ht = self.f(t, rho, args)
-        Lt = -1.0j * (spre(Ht) - spost(Ht))
+        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
 
     def L(self, t, rho, args):
-        Lt = self.f(t, args)
+        Lt = self.f(t, args).data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
 
     def L_with_state(self, t, rho, args):
-        Lt = self.f(t, rho, args)
+        Lt = self.f(t, rho, args).data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
@@ -399,11 +399,11 @@ def _Lfunc_set(HS, rho0, args, opt):
     return func, (L_func, args)
 
 def _ode_rho_func_td(t, y, L_func, args):
-    L = L_func(t, y, args).data
+    L = L_func(t, y, args)
     return spmv(L, y)
 
 def _ode_super_func_td(t, y, L_func, args):
-    L = L_func(t, y, args).data
+    L = L_func(t, y, args)
     ym = vec2mat(y)
     return (L*ym).ravel('F')
 

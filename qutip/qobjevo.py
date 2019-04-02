@@ -51,6 +51,7 @@ from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
 import pickle
 import sys
 import scipy
+import os
 
 if qset.has_openmp:
     from qutip.cy.openmp.cqobjevo_omp import (CQobjCteOmp, CQobjEvoTdOmp,
@@ -97,6 +98,31 @@ str_env = {
     "proj": proj,
     "np": np,
     "spe": scipy.special}
+
+class _file_list:
+    """
+    Contain temp a list .pyx to clean
+    """
+    def __init__(self):
+        self.files = []
+
+    def add(self, file_):
+        self.files += [file_ + ".pyx"]
+
+    def clean(self):
+        for i, file_ in enumerate(self.files):
+            try:
+                os.remove(file_)
+            except:
+                pass
+            if not os.path.isfile(file_):
+                # Don't exist anymore
+                del self.files[i]
+
+    def __del__(self):
+        self.clean()
+
+coeff_files = _file_list()
 
 
 class _StrWrapper:
@@ -390,7 +416,6 @@ class QobjEvo:
         self.coeff_get = None
         self.type = "none"
         self.omp = 0
-        self.coeff_files = []
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
@@ -569,11 +594,8 @@ class QobjEvo:
             self.dynamics_args += [("_state_vec", "vec", None)]
 
     def __del__(self):
-        for filename in self.coeff_files:
-            try:
-                os.remove(filename+".pyx")
-            except:
-                pass
+        # sometime not called
+        coeff_files.clean()
 
     def __call__(self, t, data=False, state=None, args={}):
         try:
@@ -794,7 +816,6 @@ class QobjEvo:
         self.compiled_ptr = None
         self.coeff_get = None
         self.ops = []
-        self.coeff_files = []
 
         for op in other.ops:
             if op.type == "array":
@@ -1477,7 +1498,7 @@ class QobjEvo:
                 for part in self.ops:
                     if isinstance(part.get_coeff, _StrWrapper):
                         part.get_coeff, file = _compile_str_single(part.coeff, self.args)
-                        self.coeff_files.append(file)
+                        coeff_files.add(file)
                     funclist.append(part.get_coeff)
                 self.coeff_get = _UnitedFuncCaller(funclist, self.args,
                                                    self.dynamics_args, self.cte)
@@ -1489,7 +1510,7 @@ class QobjEvo:
                                                               self.args,
                                                               self.dynamics_args,
                                                               self.tlist)
-                self.coeff_files.append(file)
+                coeff_files.add(file)
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
                 self.compiled += "cyfactor"
             elif self.type == "array":
@@ -1507,6 +1528,7 @@ class QobjEvo:
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
             else:
                 pass
+            coeff_files.clean()
             if code:
                 return Code
 
@@ -1526,7 +1548,6 @@ class QobjEvo:
 
     def __setstate__(self, state):
         self.__dict__ = state[0]
-        self.coeff_files = []
         self.compiled_qobjevo = None
         if self.compiled:
             mat_type, threading, td =  self.compiled.split()
