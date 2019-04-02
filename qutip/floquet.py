@@ -222,7 +222,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     opt.rhs_reuse = True
 
     for n, f_mode in enumerate(f_modes_0):
-        output = mesolve(H, f_mode, tlist_period, [], [], args, opt)
+        output = mesolve(H, ket2dm(f_mode), tlist_period, [], [], args, opt)
         for t_idx, f_state_t in enumerate(output.states):
             f_modes_table_t[t_idx].append(
                 f_state_t * exp(1j * f_energies[n] * tlist_period[t_idx]))
@@ -934,10 +934,10 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
-    
+
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
+
     if T is None:
         T = max(tlist)
 

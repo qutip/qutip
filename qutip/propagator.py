@@ -55,8 +55,8 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
 def propagator(H, t, c_op_list=[], args={}, options=None,
-               unitary_mode='batch', parallel=False, 
-               progress_bar=None, _safe_mode=True, 
+               unitary_mode='batch', parallel=False,
+               progress_bar=None, _safe_mode=True,
                **kwargs):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
@@ -86,13 +86,13 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         with options for the ODE solver.
 
     unitary_mode = str ('batch', 'single')
-        Solve all basis vectors simulaneously ('batch') or individually 
+        Solve all basis vectors simulaneously ('batch') or individually
         ('single').
-    
+
     parallel : bool {False, True}
-        Run the propagator in parallel mode. This will override the 
+        Run the propagator in parallel mode. This will override the
         unitary_mode settings if set to True.
-    
+
     progress_bar: BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation. By default no progress bar
@@ -109,7 +109,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         num_cpus = kwargs['num_cpus']
     else:
         num_cpus = kw['num_cpus']
-    
+
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
@@ -127,9 +127,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
     if _safe_mode:
         _solver_safety_check(H, None, c_ops=c_op_list, e_ops=[], args=args)
-    
+
     td_type = _td_format_check(H, c_op_list, solver='me')
-        
+
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
         H0 = H(0.0, args)
@@ -137,13 +137,13 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         H0 = H[0][0] if isinstance(H[0], list) else H[0]
     else:
         H0 = H
-    
+
     if len(c_op_list) == 0 and H0.isoper:
         # calculate propagator for the wave function
 
         N = H0.shape[0]
         dims = H0.dims
-        
+
         if parallel:
             unitary_mode = 'single'
             u = np.zeros([N, N, len(tlist)], dtype=complex)
@@ -152,7 +152,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N):
                 for k, t in enumerate(tlist):
-                    u[:, n, k] = output[n].states[k].full().T 
+                    u[:, n, k] = output[n].states[k].full().T
         else:
             if unitary_mode == 'single':
                 u = np.zeros([N, N, len(tlist)], dtype=complex)
@@ -193,7 +193,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
             else:
                 raise Exception('Invalid unitary mode.')
-                        
+
 
     elif len(c_op_list) == 0 and H0.issuper:
         # calculate the propagator for the vector representation of the
@@ -202,7 +202,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         N = H0.shape[0]
         sqrt_N = int(np.sqrt(N))
         dims = H0.dims
-        
+
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
         if parallel:
@@ -236,7 +236,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         dims = [H0.dims, H0.dims]
 
         u = np.zeros([N * N, N * N, len(tlist)], dtype=complex)
-        
+
         if parallel:
             output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
@@ -300,7 +300,7 @@ def propagator_steadystate(U):
     """
 
     evals, evecs = la.eig(U.full())
-    
+
     shifted_vals = np.abs(evals - 1.0)
     ev_idx = np.argmin(shifted_vals)
     ev_min = shifted_vals[ev_idx]
@@ -324,4 +324,3 @@ def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
     output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                      _safe_mode=False)
     return output
-

@@ -217,7 +217,8 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
             # print(" ")
             H = solver_safe["mesolve"]
         else:
-            raise Exception("Could not find the Hamiltonian to reuse.")
+            pass
+            # raise Exception("Could not find the Hamiltonian to reuse.")
 
     #check if should use OPENMP
     check_use_openmp(options)
@@ -243,42 +244,8 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
         ss = H
     elif isinstance(H, (list, Qobj, QobjEvo)):
         ss = _mesolve_QobjEvo(H, c_ops, tlist, args, options)
-        if _safe_mode:
-            pass
-            """if rho0.isket:
-                try:
-                    ss.H.mul_vec(0., rho0.full().ravel('F'))
-                except Exception as e:
-                    raise Exception("Could not call the rhs function "
-                                    "for the integration") from e
-            else:
-                try:
-                    ss.H.mul_mat(0., rho0.full())
-                except Exception as e:
-                    raise Exception("Could not call the rhs function "
-                                    "for the integration") from e
-            """
     elif callable(H):
         ss = _mesolve_func_td(H, c_ops, rho0, tlist, args, options)
-        if _safe_mode:
-            pass
-            """
-            try:
-                if options.rhs_with_state:
-                    H_ = ss.H(0., args)
-                else:
-                    H_ = ss.H(0., rho0.full().ravel("F"), args)
-            except Exception as e:
-                raise Exception("Could not obtain the Hamiltonian "
-                                "from the function H") from e
-            if not isinstance(H_, Qobj) and H_.isoper:
-                raise Exception("H should return an operator in Qobj format")
-            try:
-                H_.data * rho0.full()
-            except Exception as e:
-                raise Exception("Could not call the rhs function "
-                                "for the integration") from e
-            """
     else:
         raise Exception("Invalid H type")
 
@@ -386,6 +353,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
+    c_ops = []
     for op in c_op_list:
         op_td = QobjEvo(op, args, tlist, copy=False)
         if not issuper(op_td.cte):

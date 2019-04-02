@@ -588,9 +588,12 @@ class QobjEvo:
             if not isinstance(args, dict):
                 raise TypeError("The new args must be in a dict")
             old_args = self.args.copy()
+            old_compiled = self.compiled
+            self.compiled = False
             self.args.update(args)
             op_t = self.__call__(t, data=data)
             self.args = old_args
+            self.compiled = old_compiled
         elif self.const:
             if data:
                 op_t = self.cte.data.copy()
@@ -660,9 +663,9 @@ class QobjEvo:
                 elif what == "expect":
                     self.args[name] = op.expect(t, state)
                 elif state.shape[1] == 1:
-                    self.args[name] = Qobj(state, dims=[self.dims[1],[1]])
+                    self.args[name] = Qobj(state, dims=[self.cte.dims[1],[1]])
                 elif state.shape[1] == s1:
-                    self.args[name] = Qobj(state, dims=self.dims)
+                    self.args[name] = Qobj(state, dims=self.cte.dims)
                 else:
                     self.args[name] = Qobj(state)
 

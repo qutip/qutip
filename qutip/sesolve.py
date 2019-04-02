@@ -135,7 +135,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
             # print(" ")
             H = solver_safe["sesolve"]
         else:
-            raise Exception("Could not find the Hamiltonian to reuse.")
+            pass
+            # raise Exception("Could not find the Hamiltonian to reuse.")
 
     #check if should use OPENMP
     check_use_openmp(options)
@@ -144,35 +145,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
         ss = H
     elif isinstance(H, (list, Qobj, QobjEvo)):
         ss = _sesolve_QobjEvo(H, tlist, args, options)
-        """if _safe_mode:
-            if psi0.isket:
-                try:
-                    ss.H.mul_vec(0., psi0)
-                except Exception as e:
-                    raise Exception("Could not call the rhs function "
-                                    "for the integration") from e
-            else:
-                try:
-                    ss.H.mul_mat(0., psi0)
-                except Exception as e:
-                    raise Exception("Could not call the rhs function "
-                                    "for the integration") from e"""
     elif callable(H):
         ss = _sesolve_func_td(H, args, options)
-        """if _safe_mode:
-            try:
-                func, ode_args = ss.makefunc(ss, psi0, args, options)
-                H_ = func(0., psi0.full().ravel("F"), *ode_args)
-            except Exception as e:
-                raise Exception("Could not obtain the Hamiltonian "
-                                "from the function H") from e
-            if not isinstance(H_, Qobj):
-                raise Exception("H should return an operator in Qobj format")
-            try:
-                H_.data * psi0.full()
-            except Exception as e:
-                raise Exception("Could not call the rhs function "
-                                "for the integration") from e"""
     else:
         raise Exception("Invalid H type")
 

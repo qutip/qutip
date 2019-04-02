@@ -173,8 +173,14 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
 
-    if isinstance(H, SolverSystem):
-        options.rhs_reuse = True
+    if options.rhs_reuse and not isinstance(H, SolverSystem):
+        # TODO: deprecate when going to class based solver.
+        if "mcsolve" in solver_safe:
+            # print(" ")
+            H = solver_safe["mcsolve"]
+        else:
+            pass
+            # raise Exception("Could not find the Hamiltonian to reuse.")
 
     if not ntraj:
         ntraj = options.ntraj
@@ -200,8 +206,6 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
 
     if isinstance(H, SolverSystem):
         mc.ss = H
-    elif options.rhs_reuse:
-        mc.ss = solver_safe["mcsolve"]
     else:
         mc.make_system(H, c_ops, tlist, args, options)
 
@@ -270,9 +274,9 @@ class _MC():
             pass
 
         if len(seeds) < ntraj:
-            self.seeds += list(randint(0, 2**32-1, size=ntraj-len(seeds)))
+            self.seeds = seeds + list(randint(0, 2**31-1, size=ntraj-len(seeds)))
         else:
-            self.seeds = self.seeds[:ntraj]
+            self.seeds = seeds[:ntraj]
 
     #def _prepare_prng(self, ntraj):
         #if continuing trajectories, keep same random generator state?
@@ -438,6 +442,11 @@ class _MC():
 
         if len(self.seeds) != num_traj:
             self.seed(num_traj, self.seeds)
+
+        if not progress_bar:
+            progress_bar = BaseProgressBar()
+        elif progress_bar is True:
+            progress_bar = TextProgressBar()
 
         # set arguments for input to monte carlo
         map_kwargs = {'progress_bar': progress_bar,

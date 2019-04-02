@@ -517,7 +517,7 @@ cdef class StochasticSolver:
         for t_idx, t in enumerate(times):
             if sso.ce_ops:
                 for e_idx, e in enumerate(sso.ce_ops):
-                    s = e.compiled_qobjevo.expect(t, rho_t, 0)
+                    s = e.compiled_qobjevo.expect(t, rho_t)
                     expect[e_idx, t_idx] = s
             if sso.store_states or not sso.ce_ops:
                 if sso.me:
@@ -532,7 +532,7 @@ cdef class StochasticSolver:
 
             if sso.store_measurement:
                 for m_idx, m in enumerate(sso.cm_ops):
-                    m_expt = m.compiled_qobjevo.expect(t, rho_t, 0)
+                    m_expt = m.compiled_qobjevo.expect(t, rho_t)
                     measurements[t_idx, m_idx] = m_expt + self.dW_factor[m_idx] * \
                         sum(noise[t_idx, :, m_idx]) / (self.dt * self.num_substeps)
 
@@ -1932,7 +1932,7 @@ cdef class PcSSESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
@@ -1958,7 +1958,7 @@ cdef class PcSSESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
@@ -2037,7 +2037,7 @@ cdef class PcSMESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
@@ -2062,7 +2062,7 @@ cdef class PcSMESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
