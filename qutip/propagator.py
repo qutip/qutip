@@ -155,6 +155,13 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     u[:, n, k] = output[n].states[k].full().T
         else:
             if unitary_mode == 'single':
+                output = sesolve(H, qeye(N), tlist, [], args, options,
+                                 _safe_mode=False)
+                if len(tlist) == 2:
+                    return output.states[-1]
+                else:
+                    return output.states
+                """
                 u = np.zeros([N, N, len(tlist)], dtype=complex)
                 progress_bar.start(N)
                 for n in range(0, N):
@@ -165,7 +172,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     for k, t in enumerate(tlist):
                         u[:, n, k] = output.states[k].full().T
                     progress_bar.finished()
-
+                """
 
             elif unitary_mode =='batch':
                 u = np.zeros(len(tlist), dtype=object)
@@ -215,6 +222,15 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
         else:
+            rho0 = qeye(N,N)
+            rho0.dims = [[sqrt_N, sqrt_N], [sqrt_N, sqrt_N]]
+            output = mesolve(H, psi0, tlist, [], args, options,
+                             _safe_mode=False)
+            if len(tlist) == 2:
+                return output.states[-1]
+            else:
+                return output.states
+            """
             progress_bar.start(N)
             for n in range(0, N):
                 progress_bar.update(n)
@@ -227,6 +243,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
+            """
 
     else:
         # calculate the propagator for the vector representation of the

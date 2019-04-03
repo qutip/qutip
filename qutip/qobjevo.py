@@ -213,13 +213,13 @@ class QobjEvo:
 
         H = QobjEvo([H0, [H1, f1_t], [H2, f2_t]], args={"w1":1., "w2":2.})
 
-    For string based, the string must be a compilable python code resulting in
-    a scalar. The following symbols are defined:
+    For string based coeffients, the string must be a compilable python code
+    resulting in a complex. The following symbols are defined:
         sin cos tan asin acos atan pi
         sinh cosh tanh asinh acosh atanh
         exp log log10 erf sqrt
         real imag conj abs norm arg proj
-    numpy is also imported as np.
+        numpy as np, and scipy.special as spe.
     *Examples*
         H = QobjEvo([H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
                     args={"w1":1.,"w2":2.})
@@ -232,6 +232,25 @@ class QobjEvo:
         tlist = np.logspace(-5,0,100)
         H = QobjEvo([H0, [H1, np.exp(-1j*tlist)], [H2, np.cos(2.*tlist)]],
                     tlist=tlist)
+
+    args is a dict of (name:object). The name must be a valid variables string.
+    Some solvers support arguments that update at each call:
+    sesolve, mesolve, mcsolve:
+        state can be obtained with:
+            name+"=vec":Qobj  => args[name] == state as 1D np.ndarray
+            name+"=mat":Qobj  => args[name] == state as 2D np.ndarray
+            name+"=Qobj":Qobj => args[name] == state as Qobj
+
+            This Qobj is the initial value.
+
+        expectation values:
+            name+"=expect":O (Qobj/QobjEvo)  => args[name] == expect(O, state)
+            expect is <phi|O|psi> or tr(state * O) depending on state dimensions
+
+    mcsolve:
+        collapse can be obtained with:
+            name+"=collapse":list => args[name] == list of collapse
+            each collapse will be appended to the list as (time, which c_ops)
 
     Mixing the formats is possible, but not recommended.
     Mixing tlist will cause problem.
@@ -360,20 +379,9 @@ class QobjEvo:
         dense: the compiled object use dense matrix.
         omp: (int) number of thread: the compiled object use spmvpy_openmp.
 
-    __call__(t):
+    __call__(t, data=False, state=None, args={}):
         Return the Qobj at time t.
         *Faster after compilation
-
-    # with_args(t, new_args):
-    #     Return the Qobj at time t with the new_args instead of the original
-    #     arguments. Do not change the args of the object.
-
-    #with_state(t, psi, args={}):
-    #    Allow to use function coefficients that use states:
-    #        "def coeff(t,psi,args):" instead of "def coeff(t,args):"
-    #    Return the Qobj at time t, with the new_args if defined.
-    #    *Mixing both definition types of coeff will make the QobjEvo fail on
-    #        call
 
     mul_mat(t, mat):
         Product of this at t time with the dense matrix mat.
@@ -693,89 +701,6 @@ class QobjEvo:
 
         else:
             raise TypeError("state must be a Qobj or np.ndarray")
-
-    def _(self):
-        pass
-        """def with_state(self, t, psi, args={}, data=False):
-            self.args["_state_vec"] = psi
-            return self.__call__(t, args=args, data=data)"""
-
-        """def _with_args(self, t, args, data=False):
-            if not isinstance(args, dict):
-                raise TypeError("The new args must be in a dict")
-            new_args = self.args.copy()
-            new_args.update(args)
-            if self.const:
-                if data:
-                    op_t = self.cte.data.copy()
-                else:
-                    op_t = self.cte.copy()
-            elif self.compiled and self.compiled.split()[0] != "dense":
-                coeff = np.zeros(len(self.ops), dtype=complex)
-                for i, part in enumerate(self.ops):
-                    coeff[i] = part.get_coeff(t, new_args)
-                op_t = self.compiled_qobjevo.call_with_coeff(coeff, data=data)
-            elif data:
-                op_t = self.cte.data.copy()
-                for part in self.ops:
-                    op_t += part.qobj.data * part.get_coeff(t, new_args)
-            else:
-                op_t = self.cte.copy()
-                for part in self.ops:
-                    op_t += part.qobj * part.get_coeff(t, new_args)
-            return op_t"""
-
-        """def _with_state(self, t, psi, args={}, data=False):
-            if not isinstance(t, (int, float)):
-                raise TypeError("the time need to be a real scalar")
-            if not isinstance(args, dict):
-                raise TypeError("The new args must be in a dict")
-            if args:
-                new_args = self.args.copy()
-                new_args.update(args)
-            else:
-                new_args = self.args
-            if self.type not in ["func", "mixed_callable"]:
-                # no pure function than can accept state
-                if args:
-                    op_t = self.with_args(t, args, data)
-                else:
-                    op_t = self.__call__(t, data)
-            elif self.type == "func":
-                if self.compiled:
-                    coeff = np.zeros(len(self.ops), dtype=complex)
-                    for i, part in enumerate(self.ops):
-                        coeff[i] = part.get_coeff(t, psi, new_args)
-                    op_t = self.compiled_qobjevo.call_with_coeff(coeff, data=data)
-                else:
-                    if data:
-                        op_t = self.cte.data.copy()
-                        for part in self.ops:
-                            op_t += part.qobj.data * part.get_coeff(t, psi, new_args)
-                    else:
-                        op_t = self.cte.copy()
-                        for part in self.ops:
-                            op_t += part.qobj * part.get_coeff(t, psi, new_args)
-            else:
-                coeff = np.zeros(len(self.ops), dtype=complex)
-                for i, part in enumerate(self.ops):
-                    if part.type == "func":  # func: f(t, psi, args)
-                        coeff[i] = part.get_coeff(t, psi, new_args)
-                    else:
-                        coeff[i] = part.get_coeff(t, new_args)
-                if self.compiled and self.compiled.split()[0] != "dense":
-                    op_t = self.compiled_qobjevo.call_with_coeff(coeff, data=data)
-                else:
-                    if data:
-                        op_t = self.cte.data.copy()
-                        for c, part in zip(coeff, self.ops):
-                            op_t += part.qobj.data * c
-                    else:
-                        op_t = self.cte.copy()
-                        for c, part in zip(coeff, self.ops):
-                            op_t += part.qobj * c
-
-            return op_t"""
 
     def copy(self):
         new = QobjEvo(self.cte.copy())

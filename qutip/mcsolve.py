@@ -45,7 +45,7 @@ from functools import partial
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.parallel import parfor, parallel_map, serial_map
-from qutip.cy.mcsolve import CyMcOde
+from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 # cy_mc_run_ode = None
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result, ExpectOps,
@@ -254,10 +254,13 @@ class _MC():
     def reset(self, t=0., psi0=None):
         if psi0 is not None:
             self.psi0 = psi0
-        self.t = t
-        self.initial_vector = self.psi0.full().ravel("F")
-        self.ran = False
+        if self.psi0 is not None:
+            self.initial_vector = self.psi0.full().ravel("F")
+            if self.ss is not None and self.ss.type == "Diagonal":
+                self.initial_vector = np.dot(self.ss.Ud, self.initial_vector)
 
+        self.t = t
+        self.ran = False
         self._psi_out = []
         self._expect_out = []
         self._collapse = []
@@ -277,41 +280,6 @@ class _MC():
             self.seeds = seeds + list(randint(0, 2**31-1, size=ntraj-len(seeds)))
         else:
             self.seeds = seeds[:ntraj]
-
-    #def _prepare_prng(self, ntraj):
-        #if continuing trajectories, keep same random generator state?
-        #self._prng = [RandomState(seed) for seed in self.seeds]
-
-    def make_diag_system(self, H, c_ops):
-        ss = SolverSystem()
-        ss.td_c_ops = []
-        ss.td_n_ops = []
-
-        H_ = H.copy()
-        H_ *= -1j
-        for c in c_ops:
-            H_ += -0.5 * c
-
-        w, v = np.linalg.eig(H_.full())
-        arg = np.argsort(w.real)
-        eig = w[arg]
-        U = v.T[arg].T
-        Ud = U.T.conj()
-
-        for c in c_ops:
-            cevo = Ud * QobjEvo(c) * U
-            cdc = cevo._cdc()
-            cevo.compile()
-            cdc.compile()
-            ss.td_c_ops.append(cevo)
-            ss.td_n_ops.append(cdc)
-
-        ss.H_diag = eig
-        ss.Ud = Ud
-        ss.U = U
-        ss.type = "Diagonal"
-        solver_safe["mcsolve"] = ss
-        self.ss = ss
 
     def make_system(self, H, c_ops, tlist=None, args={}, options=None):
         if options is None:
@@ -357,12 +325,18 @@ class _MC():
 
         solver_safe["mcsolve"] = ss
         self.ss = ss
+        self.reset()
 
     def set_e_ops(self, e_ops=[]):
         if e_ops:
             self.e_ops = ExpectOps(e_ops)
         else:
             self.e_ops = ExpectOps([])
+
+        ss = self.ss
+        if ss is not None and ss.type == "Diagonal" and not self.e_ops.isfunc:
+            e_op = [ss.Ud * e * ss.U for e in self.e_ops.e_ops]
+            self.e_ops = ExpectOps(e_ops)
 
         if not self.e_ops:
             self.options.store_states = True
@@ -390,15 +364,14 @@ class _MC():
             args={}, e_ops=None, options=None,
             progress_bar=True,
             map_func=parallel_map, map_kwargs={}):
-        """
-
-        """
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         # 4 situation for run:
         # - first run
-        # - add  trajectories
-        # - continue from the last time and states
         # - change parameters
+        # - add  trajectories
+        #       (self.add_traj)      Not Implemented
+        # - continue from the last time and states
+        #       (self.continue_runs) Not Implemented
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         options = options if options is not None else self.options
 
@@ -456,7 +429,10 @@ class _MC():
         if self.e_ops is None:
             self.set_e_ops()
 
-        results = map_func(self._single_traj, list(range(num_traj)), **map_kwargs)
+        if self.ss.type == "Diagonal":
+            results = map_func(self._single_traj_diag, list(range(num_traj)), **map_kwargs)
+        else:
+            results = map_func(self._single_traj, list(range(num_traj)), **map_kwargs)
 
         self.t = self.tlist[-1]
         self.num_traj = num_traj
@@ -644,24 +620,18 @@ class _MC():
         prng = RandomState(self.seeds[nt])
         opt = self.options
 
-        if False: # (self.h_tflag in (1,) and self.options.method == "dopri5"):
-            pass
-            # dopri5 solver to add later
-            # states_out, expect_out, collapse_times, which_oper = cy_mc_run_fast(
-            #     self, prng)
-        else:
-            # set initial conditions
-            ss = self.ss
-            tlist = self.tlist
-            e_ops = self.e_ops
-            opt = self.options
-            rhs, ode_args = self.ss.makefunc(ss)
-            ODE = self._build_integration_func(rhs, ode_args, opt)
-            ODE.set_initial_value(self.initial_vector, tlist[0])
-            e_ops.init(tlist)
+        # set initial conditions
+        ss = self.ss
+        tlist = self.tlist
+        e_ops = self.e_ops
+        opt = self.options
+        rhs, ode_args = self.ss.makefunc(ss)
+        ODE = self._build_integration_func(rhs, ode_args, opt)
+        ODE.set_initial_value(self.initial_vector, tlist[0])
+        e_ops.init(tlist)
 
-            cymc = CyMcOde(ss, opt)
-            states_out, ss_out, collapses = cymc.run_ode(ODE, tlist, e_ops, prng)
+        cymc = CyMcOde(ss, opt)
+        states_out, ss_out, collapses = cymc.run_ode(ODE, tlist, e_ops, prng)
 
         # Run at end of mc_alg function
         # -----------------------------
@@ -683,13 +653,73 @@ class _MC():
             method=opt.method, order=opt.order, atol=opt.atol,
             rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step,
             min_step=opt.min_step, max_step=opt.max_step)
-
-        #if not len(ODE._y):
-        #    ODE.t = 0.0
-        #    ODE._y = np.array([0.0], complex)
-        #ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
         return ODE
 
+    # --------------------------------------------------------------------------
+    # In development
+    # --------------------------------------------------------------------------
+    def make_diag_system(self, H, c_ops):
+        ss = SolverSystem()
+        ss.td_c_ops = []
+        ss.td_n_ops = []
+
+        H_ = H.copy()
+        H_ *= -1j
+        for c in c_ops:
+            H_ += -0.5 * c.dag() * c
+
+        w, v = np.linalg.eig(H_.full())
+        arg = np.argsort(w.real)
+        eig = w[arg]
+        U = v.T[arg].T
+        Ud = U.T.conj()
+
+        for c in c_ops:
+            c_diag = Qobj(Ud @ c.full() @ U, dims=c.dims)
+            cevo = QobjEvo(c_diag)
+            cdc = cevo._cdc()
+            cevo.compile()
+            cdc.compile()
+            ss.td_c_ops.append(cevo)
+            ss.td_n_ops.append(cdc)
+
+        ss.H_diag = eig
+        ss.Ud = Ud
+        ss.U = U
+        ss.args = {}
+        ss.type = "Diagonal"
+        solver_safe["mcsolve"] = ss
+
+        if self.e_ops and not self.e_ops.isfunc:
+            e_op = [Ud * e * U for e in self.e_ops.e_ops]
+            self.e_ops = ExpectOps(e_ops)
+        self.ss = ss
+        self.reset()
+
+    def _single_traj_diag(self, nt):
+        """
+        Monte Carlo algorithm returning state-vector or expectation values
+        at times tlist for a single trajectory.
+        """
+        # SEED AND RNG AND GENERATE
+        prng = RandomState(self.seeds[nt])
+        opt = self.options
+
+        ss = self.ss
+        tlist = self.tlist
+        e_ops = self.e_ops
+        opt = self.options
+        e_ops.init(tlist)
+
+        cymc = CyMcOdeDiag(ss, opt)
+        states_out, ss_out, collapses = cymc.run_ode(self.initial_vector, tlist,
+                                                     e_ops, prng)
+
+        ss_out = ss.U * ss_out * ss.Ud
+        states_out = np.inner(ss.U, states_out)
+        if opt.steady_state_average:
+            ss_out /= float(len(tlist))
+        return (states_out, ss_out, e_ops, collapses)
 
 # -----------------------------------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS

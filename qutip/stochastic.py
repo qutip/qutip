@@ -1283,7 +1283,7 @@ def _sesolve_generic(sso, options, progress_bar):
         paths_expect = []
         for result in results:
             paths_expect.append(result[3])
-        data.paths_expect = np.stack(paths_expect)
+        data.runs_expect = np.stack(paths_expect)
 
     # average density matrices
     if options.average_states and np.any(data.states):
