@@ -161,10 +161,8 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
         The Floquet modes as kets at time :math:`t`
 
     """
-
     # find t in [0,T] such that t_orig = t + n * T for integer n
     t = t - int(t / T) * T
-
     f_modes_t = []
 
     # get the unitary propagator from 0 to t
@@ -173,7 +171,6 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
 
         for n in np.arange(len(f_modes_0)):
             f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n] * t))
-
     else:
         f_modes_t = f_modes_0
 
@@ -214,7 +211,6 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
         A nested list of Floquet modes as kets for each time in `tlist`
 
     """
-
     # truncate tlist to the driving period
     tlist_period = tlist[np.where(tlist <= T)]
 
@@ -223,7 +219,6 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     opt = Options()
     opt.rhs_reuse = True
     rhs_clear()
-
 
     for n, f_mode in enumerate(f_modes_0):
         output = sesolve(H, f_mode, tlist_period, [], args, opt)
