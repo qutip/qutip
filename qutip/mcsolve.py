@@ -335,7 +335,7 @@ class _MC():
 
         ss = self.ss
         if ss is not None and ss.type == "Diagonal" and not self.e_ops.isfunc:
-            e_op = [ss.Ud * e * ss.U for e in self.e_ops.e_ops]
+            e_op = [Qobj(ss.Ud @ e.full() @ ss.U, dims=e.dims) for e in self.e_ops.e_ops]
             self.e_ops = ExpectOps(e_ops)
 
         if not self.e_ops:
@@ -552,7 +552,7 @@ class _MC():
         out = []
         for col_ in self._collapse:
             col = list(zip(*col_))
-            col = ([] if len(col) == 0 else col[1])
+            col = ([] if len(col) == 0 else col[0])
             out.append( np.array(col) )
         return out
         return [np.array(list(zip(*col_))[0]) for col_ in self._collapse]
@@ -656,7 +656,10 @@ class _MC():
         return ODE
 
     # --------------------------------------------------------------------------
-    # In development
+    # In development diagonalize the Hamiltonian before solving
+    # Same seeds give same evolution
+    # 3~5 time faster
+    # constant system only.
     # --------------------------------------------------------------------------
     def make_diag_system(self, H, c_ops):
         ss = SolverSystem()
@@ -669,7 +672,7 @@ class _MC():
             H_ += -0.5 * c.dag() * c
 
         w, v = np.linalg.eig(H_.full())
-        arg = np.argsort(w.real)
+        arg = np.argsort(np.abs(w))
         eig = w[arg]
         U = v.T[arg].T
         Ud = U.T.conj()
@@ -691,7 +694,7 @@ class _MC():
         solver_safe["mcsolve"] = ss
 
         if self.e_ops and not self.e_ops.isfunc:
-            e_op = [Ud * e * U for e in self.e_ops.e_ops]
+            e_op = [Qobj(Ud @ e.full() @ U, dims=e.dims) for e in self.e_ops.e_ops]
             self.e_ops = ExpectOps(e_ops)
         self.ss = ss
         self.reset()
@@ -715,8 +718,9 @@ class _MC():
         states_out, ss_out, collapses = cymc.run_ode(self.initial_vector, tlist,
                                                      e_ops, prng)
 
-        ss_out = ss.U * ss_out * ss.Ud
-        states_out = np.inner(ss.U, states_out)
+        if opt.steady_state_average:
+            ss_out = ss.U @ ss_out @ ss.Ud
+        states_out = np.inner(ss.U, states_out).T
         if opt.steady_state_average:
             ss_out /= float(len(tlist))
         return (states_out, ss_out, e_ops, collapses)
