@@ -133,6 +133,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
         H0 = H(0.0, args)
+        if unitary_mode =='batch':
+            # batch don't work with function Hamiltonian
+            unitary_mode =='single'
     elif isinstance(H, list):
         H0 = H[0][0] if isinstance(H[0], list) else H[0]
     else:
@@ -161,18 +164,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     return output.states[-1]
                 else:
                     return output.states
-                """
-                u = np.zeros([N, N, len(tlist)], dtype=complex)
-                progress_bar.start(N)
-                for n in range(0, N):
-                    progress_bar.update(n)
-                    psi0 = basis(N, n)
-                    output = sesolve(H, psi0, tlist, [], args, options,
-                                     _safe_mode=False)
-                    for k, t in enumerate(tlist):
-                        u[:, n, k] = output.states[k].full().T
-                    progress_bar.finished()
-                """
 
             elif unitary_mode =='batch':
                 u = np.zeros(len(tlist), dtype=object)
@@ -230,20 +221,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 return output.states[-1]
             else:
                 return output.states
-            """
-            progress_bar.start(N)
-            for n in range(0, N):
-                progress_bar.update(n)
-                col_idx, row_idx = np.unravel_index(n, (sqrt_N, sqrt_N))
-                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                                          shape=(sqrt_N,sqrt_N), dtype=complex)
-                            )
-                output = mesolve(H, rho0, tlist, [], [], args, options,
-                                 _safe_mode=False)
-                for k, t in enumerate(tlist):
-                    u[:, n, k] = mat2vec(output.states[k].full()).T
-            progress_bar.finished()
-            """
 
     else:
         # calculate the propagator for the vector representation of the
