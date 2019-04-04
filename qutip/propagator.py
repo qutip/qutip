@@ -135,7 +135,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         H0 = H(0.0, args)
         if unitary_mode =='batch':
             # batch don't work with function Hamiltonian
-            unitary_mode =='single'
+            unitary_mode = 'single'
     elif isinstance(H, list):
         H0 = H[0][0] if isinstance(H[0], list) else H[0]
     else:
