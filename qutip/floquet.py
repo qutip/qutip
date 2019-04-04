@@ -226,7 +226,6 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
 
 
     for n, f_mode in enumerate(f_modes_0):
-        print(H, f_mode)
         output = sesolve(H, f_mode, tlist_period, [], args, opt)
         for t_idx, f_state_t in enumerate(output.states):
             f_modes_table_t[t_idx].append(
