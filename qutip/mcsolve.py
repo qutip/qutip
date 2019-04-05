@@ -623,7 +623,7 @@ class _MC():
         # set initial conditions
         ss = self.ss
         tlist = self.tlist
-        e_ops = self.e_ops
+        e_ops = self.e_ops.copy()
         opt = self.options
         rhs, ode_args = self.ss.makefunc(ss)
         ODE = self._build_integration_func(rhs, ode_args, opt)
@@ -710,7 +710,7 @@ class _MC():
 
         ss = self.ss
         tlist = self.tlist
-        e_ops = self.e_ops
+        e_ops = self.e_ops.copy()
         opt = self.options
         e_ops.init(tlist)
 

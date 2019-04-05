@@ -60,6 +60,10 @@ class ExpectOps:
         self.isfunc = False
         self.e_ops_dict = False
         self.raw_e_ops = e_ops
+        self.e_ops_qoevo = []
+        self.e_num = 0
+        self.e_ops_isherm = []
+
         if isinstance(e_ops, (Qobj, QobjEvo)):
             e_ops = [e_ops]
         elif isinstance(e_ops, dict):
@@ -86,6 +90,17 @@ class ExpectOps:
             self.raw_out = []
         else:
             self.raw_out = np.zeros((self.e_num, len(tlist)), dtype=complex)
+
+    def copy(self):
+        out = ExpectOps.__new__(ExpectOps)
+        out.isfunc = self.isfunc
+        out.e_ops_dict = self.e_ops_dict
+        out.raw_e_ops = self.raw_e_ops
+        out.e_ops = self.e_ops
+        out.e_num = self.e_num
+        out.e_ops_isherm = self.e_ops_isherm
+        out.e_ops_qoevo = self.e_ops_qoevo
+        return out
 
     def step(self, iter_, state):
         if self.isfunc:
