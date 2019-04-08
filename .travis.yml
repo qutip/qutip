@@ -10,7 +10,7 @@ stage_generic_linux: &stage_generic_linux
   # command to run tests
   script: 
     - python -m qutip.about
-    - pytest --verbosity=1  --cov=qutip qutip
+    - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -20,7 +20,7 @@ stage_generic_linux: &stage_generic_linux
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy pytest cython coveralls pytest-cov
+    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
     - python setup.py install
 
 stage_linux_36: &stage_linux_36
@@ -49,7 +49,7 @@ stage_linux_37_openblas: &stage_linux_37_openblas
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install nomkl blas=*=openblas numpy scipy pytest cython coveralls pytest-cov
+    - conda install nomkl blas=*=openblas numpy scipy nose cython
     - python setup.py install
 
 stage_linux_37_omp: &stage_linux_37_omp
@@ -66,7 +66,7 @@ stage_linux_37_omp: &stage_linux_37_omp
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy pytest cython coveralls pytest-cov
+    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
     - python setup.py install --with-openmp
   after_success:
     - coveralls
@@ -83,7 +83,7 @@ stage_osx: &stage_osx
   # command to run tests
   script: 
     - python -m qutip.about
-    - pytest --verbosity=1  --cov=qutip qutip
+    - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -93,7 +93,7 @@ stage_osx: &stage_osx
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy pytest cython coveralls pytest-cov
+    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
     - python setup.py install
 
 stages:
