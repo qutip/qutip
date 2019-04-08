@@ -20,6 +20,7 @@ Build status and test coverage
 
 Download
 --------
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/qutip/badges/downloads.svg)](https://anaconda.org/conda-forge/qutip)
 
 The official releases of QuTiP can be downloaded at:
 
