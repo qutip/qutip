@@ -10,7 +10,7 @@ stage_generic_linux: &stage_generic_linux
   # command to run tests
   script: 
     - python -m qutip.about
-    - pytest --verbosity=1 --with-coverage --cover-package=qutip qutip
+    - pytest --verbosity=1  --cov=qutip qutip
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -83,7 +83,7 @@ stage_osx: &stage_osx
   # command to run tests
   script: 
     - python -m qutip.about
-    - pytest --verbosity=1 --with-coverage --cover-package=qutip qutip
+    - pytest --verbosity=1  --cov=qutip qutip
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
