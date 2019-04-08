@@ -150,7 +150,7 @@ class Dicke(object):
     N: int
         The number of two-level systems.
 
-    hamiltonian: :class: qutip.Qobj
+    hamiltonian : :class:`qutip.Qobj`
         A Hamiltonian in the Dicke basis.
 
         The matrix dimensions are (nds, nds),
@@ -187,7 +187,7 @@ class Dicke(object):
     N: int
         The number of two-level systems.
 
-    hamiltonian: :class: qutip.Qobj
+    hamiltonian : :class:`qutip.Qobj`
         A Hamiltonian in the Dicke basis.
 
         The matrix dimensions are (nds, nds),
@@ -271,7 +271,7 @@ class Dicke(object):
 
         Returns
         -------
-        lindbladian: :class: qutip.Qobj
+        lindbladian : :class:`qutip.Qobj`
             The Lindbladian matrix as a `qutip.Qobj`.
         """
         cythonized_dicke = _Dicke(int(self.N),
@@ -288,7 +288,7 @@ class Dicke(object):
 
         Returns
         -------
-        liouv: :class: qutip.Qobj
+        liouv : :class:`qutip.Qobj`
             The Liouvillian matrix for the system.
         """
         lindblad = self.lindbladian()
@@ -308,14 +308,14 @@ class Dicke(object):
 
         Parameters
         ==========
-        initial_state: :class: qutip.Qobj
+        initial_state : :class:`qutip.Qobj`
             An initial state specified as a density matrix of
             `qutip.Qbj` type.
 
         tlist: ndarray
             A 1D numpy array of list of timesteps to integrate
 
-        options: :class: qutip.solver.Options
+        options : :class:`qutip.solver.Options`
             The options for the solver.
 
         Returns
