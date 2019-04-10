@@ -209,8 +209,10 @@ include """ + _include_string + "\n\n"
             code += "    cdef complex[::1] " + name + "\n"
         elif isinstance(value, (complex, np.complex128)):
             code += "    cdef complex " + name + "\n"
-        else:
+        elif np.isscalar(value):
             code += "    cdef double " + name + "\n"
+        else:
+            code += "    cdef object " + name + "\n"
 
     code += "\n"
     if normal_args:
@@ -231,8 +233,10 @@ include """ + _include_string + "\n\n"
                     name + "\n"
         elif isinstance(value, (complex, np.complex128)):
             code += "        cdef complex " + name + " = self." + name + "\n"
-        else:
+        elif np.isscalar(value):
             code += "        cdef double " + name + " = self." + name + "\n"
+        else:
+            code += "        cdef object " + name + " = self." + name + "\n"
 
     expect_i = 0
     for name, what, op in dyn_args:

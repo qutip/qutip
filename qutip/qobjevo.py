@@ -217,7 +217,7 @@ class QobjEvo:
     resulting in a complex. The following symbols are defined:
         sin cos tan asin acos atan pi
         sinh cosh tanh asinh acosh atanh
-        exp log log10 erf sqrt
+        exp log log10 erf zerf sqrt
         real imag conj abs norm arg proj
         numpy as np, and scipy.special as spe.
     *Examples*

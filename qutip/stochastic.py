@@ -105,6 +105,7 @@ def stochastic_solvers():
         Scheme keeping the positivity of the density matrix. (smesolve only)
         -Order strong 1.0?
         -Code: 'rouchon', 'Rouchon'
+        Eq. 4 of arXiv:1410.5345 with eta=1 
         Efficient Quantum Filtering for Quantum Feedback Control
         Pierre Rouchon, Jason F. Ralph
         arXiv:1410.5345 [quant-ph]
@@ -700,7 +701,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     if _safe_mode:
         _safety_checks(sso)
 
-    if sso.solver_code == 110:
+    if sso.solver_code == 120:
         raise Exception("rouchon only work with smesolve")
 
     if sso.method == 'homodyne' or sso.method is None:
