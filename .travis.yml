@@ -9,6 +9,7 @@ stage_generic_linux: &stage_generic_linux
     - cd qutip_testing
   # command to run tests
   script:
+    - ls -a
     - python -m qutip.about
     - pytest --verbosity=1 --cov=qutip qutip
   install:
@@ -82,6 +83,7 @@ stage_osx: &stage_osx
     - cd qutip_testing
   # command to run tests
   script:
+    - ls -a
     - python -m qutip.about
     - pytest --verbosity=1 --cov=qutip qutip
   install:
