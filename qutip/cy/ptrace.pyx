@@ -35,15 +35,16 @@
 import numpy as np
 from qutip.cy.spconvert import zcsr_reshape
 from qutip.cy.spmath import zcsr_mult
-from qutip.fastsparse import fast_csr_matrix
+from qutip.fastsparse import fast_csr_matrix, csr2fast
 cimport numpy as cnp
 cimport cython
 from libc.math cimport floor, trunc
+import scipy.sparse as sp
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def _ptrace(object rho, _sel):
+def _ptrace_legacy(object rho, _sel):
     """
     Private function calculating the partial trace.
     """
@@ -132,3 +133,130 @@ cpdef cnp.ndarray[int, ndim=2, mode='c'] _select(int[::1] sel, int[::1] dims, in
         for ii in range(M):
             ilist[ii, _sel] = <int>(trunc(ii / _prd) % dims[_sel])
     return ilist
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int _in(int val, int[::1] vec):
+    # val in vec in pure cython
+    cdef int ii
+    for ii in range(vec.shape[0]):
+        if val == vec[ii]:
+            return 1
+    return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void _i2_k_t(int N,
+                 int[:, ::1] tensor_table,
+                 int[::1] out):
+    # indices determining function for ptrace
+    cdef int ii, t1, t2
+    out[0] = 0
+    out[1] = 0
+    for ii in range(tensor_table.shape[1]):
+        t1 = tensor_table[0, ii]
+        t2 = N / t1
+        N = N % t1
+        out[0] += tensor_table[1, ii] * t2
+        out[1] += tensor_table[2, ii] * t2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def _ptrace(object rho, sel): # work for N<= 26 on 16G Ram
+    cdef int[::1] _sel
+    cdef object _oper
+    cdef size_t ii
+    cdef size_t factor_keep = 1, factor_trace = 1, factor_tensor = 1
+    cdef cnp.ndarray[int, ndim=1, mode='c'] drho = np.asarray(rho.dims[0], dtype=np.int32).ravel()
+    cdef int num_dims = drho.shape[0]
+    cdef int[:, ::1] tensor_table = np.zeros((3, num_dims), dtype=np.int32)
+
+    if isinstance(sel, int):
+        _sel = np.array([sel], dtype=np.int32)
+    else:
+        _sel = np.asarray(sel, dtype=np.int32)
+
+    for ii in range(_sel.shape[0]):
+        if _sel[ii] < 0 or _sel[ii] >= num_dims:
+            raise TypeError("Invalid selection index in ptrace.")
+
+    if np.prod(rho.shape[1]) == 1:
+        _oper = (rho * rho.dag()).data
+    else:
+        _oper = rho.data
+
+    for ii in range(num_dims-1,-1,-1):
+        tensor_table[0, ii] = factor_tensor
+        factor_tensor *= drho[ii]
+        if _in(ii, _sel):
+            tensor_table[1, ii] = factor_keep
+            factor_keep *= drho[ii]
+        else:
+            tensor_table[2, ii] = factor_trace
+            factor_trace *= drho[ii]
+
+    dims_kept0 = drho.take(_sel).tolist()
+    rho1_dims = [dims_kept0, dims_kept0]
+    rho1_shape = [np.prod(dims_kept0), np.prod(dims_kept0)]
+
+    # Try to evaluate how sparse the result will be.
+    if factor_keep*factor_keep > _oper.nnz:
+        return csr2fast(_ptrace_core_sp(_oper, tensor_table, factor_keep)), rho1_dims, rho1_shape
+    else:
+        return csr2fast(_ptrace_core_dense(_oper, tensor_table, factor_keep)), rho1_dims, rho1_shape
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef object _ptrace_core_sp(rho, int[:, ::1] tensor_table, int num_sel_dims):
+    cdef int p = 0, nnz = rho.nnz, ii, jj, nrow = rho.shape[0]
+    cdef int[::1] pos_c = np.empty(2, dtype=np.int32)
+    cdef int[::1] pos_r = np.empty(2, dtype=np.int32)
+    cdef cnp.ndarray[complex, ndim=1, mode='c'] new_data = np.zeros(nnz, dtype=complex)
+    cdef cnp.ndarray[int, ndim=1, mode='c'] new_col = np.zeros(nnz, dtype=np.int32)
+    cdef cnp.ndarray[int, ndim=1, mode='c'] new_row = np.zeros(nnz, dtype=np.int32)
+    cdef cnp.ndarray[complex, ndim=1, mode='c'] data = rho.data
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ptr = rho.indptr
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ind = rho.indices
+
+    for ii in range(nrow):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            _i2_k_t(ind[jj], tensor_table, pos_c)
+            _i2_k_t(ii, tensor_table, pos_r)
+            if pos_c[1] == pos_r[1]:
+                new_data[p] = data[jj]
+                new_row[p] = (pos_r[0])
+                new_col[p] = (pos_c[0])
+                p += 1
+
+    return sp.coo_matrix((new_data, [new_row, new_col]),
+                         shape=(num_sel_dims,num_sel_dims)).tocsr()
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef object _ptrace_core_dense(rho, int[:, ::1] tensor_table, int num_sel_dims):
+    cdef int nnz = rho.nnz, ii, jj, nrow = rho.shape[0]
+    cdef int[::1] pos_c = np.empty(2, dtype=np.int32)
+    cdef int[::1] pos_r = np.empty(2, dtype=np.int32)
+    cdef cnp.ndarray[complex, ndim=1, mode='c'] data = rho.data
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ptr = rho.indptr
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ind = rho.indices
+    cdef complex[:, ::1] data_mat = np.zeros((num_sel_dims, num_sel_dims),
+                                          dtype=complex)
+
+    for ii in range(nrow):
+        for jj in range(ptr[ii], ptr[ii+1]):
+            _i2_k_t(ind[jj], tensor_table, pos_c)
+            _i2_k_t(ii, tensor_table, pos_r)
+            if pos_c[1] == pos_r[1]:
+                data_mat[pos_r[0], pos_c[0]] += data[jj]
+
+    return sp.coo_matrix(data_mat).tocsr()
