@@ -814,6 +814,16 @@ cdef class CQobjEvoTdDense(CQobjEvo):
             for k in range(self.shape1):
               self.ops[i,j,k] = oparray[j,k]
 
+    def set_factor(self, func=None, ptr=False, obj=None):
+        self.factor_use_cobj = 0
+        if func is not None:
+            self.factor_func = func
+        elif obj is not None:
+            self.factor_use_cobj = 1
+            self.factor_cobj = obj
+        else:
+            raise Exception("Could not set coefficient function")
+
     def __getstate__(self):
         return (self.shape0, self.shape1, self.dims, self.super,
                 self.factor_use_cobj, self.factor_cobj,
@@ -1004,6 +1014,16 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         for i, op in enumerate(matched[:-1]):
           for j in range(self.nnz):
             self.ops[i,j] = op.data[j]
+
+    def set_factor(self, func=None, ptr=False, obj=None):
+        self.factor_use_cobj = 0
+        if func is not None:
+            self.factor_func = func
+        elif obj is not None:
+            self.factor_use_cobj = 1
+            self.factor_cobj = obj
+        else:
+            raise Exception("Could not set coefficient function")
 
     def __getstate__(self):
         return (self.shape0, self.shape1, self.dims, self.nnz, self.super,
