@@ -220,6 +220,8 @@ class QubitCircuit(object):
             Argument value(phi).
         arg_label: String
             Label for gate representation.
+        index : List
+            Positions to add the gate.
         """
         if isinstance(gate, Gate):
             name = gate.name
@@ -237,8 +239,10 @@ class QubitCircuit(object):
 
         else:
             for position in index:
-                self.gates.insert(position, Gate(name, targets=targets, controls=controls,
-                                                 arg_value=arg_value, arg_label=arg_label))
+                self.gates.insert(position, Gate(name, targets=targets,
+                                                 controls=controls,
+                                                 arg_value=arg_value,
+                                                 arg_label=arg_label))
 
     def add_1q_gate(self, name, start=0, end=None, qubits=None,
                     arg_value=None, arg_label=None):
