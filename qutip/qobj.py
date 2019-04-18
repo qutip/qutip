@@ -1005,12 +1005,12 @@ class Qobj(object):
 
         Parameters
         ----------
-        Q : Qobj
+        Q : :class:`qutip.Qobj`
             Input bra or ket vector
 
         Returns
         -------
-        P : Qobj
+        P : :class:`qutip.Qobj`
             Projection operator.
         """
         if self.isket:
@@ -1094,7 +1094,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Exponentiated quantum operator.
 
         Raises
@@ -1145,7 +1145,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Matrix square root of operator.
 
         Raises
@@ -1184,7 +1184,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Matrix cosine of operator.
 
         Raises
@@ -1210,7 +1210,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Matrix sine of operator.
 
         Raises
@@ -1252,7 +1252,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Normalized quantum object if not in-place,
             else None.
 
@@ -1282,7 +1282,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Quantum object representing partial trace with selected components
             remaining.
 
@@ -1306,7 +1306,7 @@ class Qobj(object):
 
         Returns
         -------
-        P : qobj
+        P : :class:`qutip.Qobj`
             Permuted quantum object.
 
         """
@@ -1325,7 +1325,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Quantum object with small elements removed.
 
         """
@@ -1361,7 +1361,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Operator in new basis.
 
         Notes
@@ -1441,7 +1441,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             A valid density operator.
 
         """
@@ -1494,10 +1494,10 @@ class Qobj(object):
 
         Parameters
         -----------
-        bra : qobj
+        bra : :class:`qutip.Qobj`
             Quantum object of type 'bra' or 'ket'
 
-        ket : qobj
+        ket : :class:`qutip.Qobj`
             Quantum object of type 'ket'.
 
         Returns
@@ -1532,7 +1532,7 @@ class Qobj(object):
 
         Parameters
         -----------
-        other : qobj
+        other : :class:`qutip.Qobj`
             Quantum object for a state vector of type 'ket', 'bra' or density
             matrix.
 
@@ -1696,7 +1696,7 @@ class Qobj(object):
         -------
         eigval : float
             Eigenvalue for the ground state of quantum operator.
-        eigvec : qobj
+        eigvec : :class:`qutip.Qobj`
             Eigenket for the ground state of quantum operator.
 
         Notes
@@ -1726,7 +1726,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : qobj
+        oper : :class:`qutip.Qobj`
             Transpose of input operator.
 
         """
@@ -1752,7 +1752,7 @@ class Qobj(object):
 
         Returns
         -------
-        q : Qobj
+        q : :class:`qutip.Qobj`
             A new instance of :class:`qutip.Qobj` that contains only the states
             corresponding to the indices in `state_inds`.
 
@@ -1790,7 +1790,7 @@ class Qobj(object):
 
         Returns
         -------
-        q : Qobj
+        q : :class:`qutip.Qobj`
             A new instance of :class:`qutip.Qobj` that contains only the states
             corresponding to indices that are **not** in `state_inds`.
 
@@ -1810,7 +1810,7 @@ class Qobj(object):
 
         Parameters
         ----------
-        B : Qobj or None
+        B : :class:`qutip.Qobj` or None
             If B is not None, the diamond distance d(A, B) = dnorm(A - B) between
             this operator and B is returned instead of the diamond norm.
 
@@ -2020,7 +2020,7 @@ class Qobj(object):
 
         Returns
         -------
-        output : Qobj
+        output : :class:`qutip.Qobj`
             A Qobj instance that represents the value of qobj_list at time t.
 
         """
@@ -2078,12 +2078,12 @@ def dag(A):
 
     Parameters
     ----------
-    A : qobj
+    A : :class:`qutip.Qobj`
         Input quantum object.
 
     Returns
     -------
-    oper : qobj
+    oper : :class:`qutip.Qobj`
         Adjoint of input operator
 
     Notes
@@ -2103,14 +2103,14 @@ def ptrace(Q, sel):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Composite quantum object.
     sel : int/list
         An ``int`` or ``list`` of components to keep after partial trace.
 
     Returns
     -------
-    oper : qobj
+    oper : :class:`qutip.Qobj`
         Quantum object representing partial trace with selected components
         remaining.
 
@@ -2131,7 +2131,7 @@ def dims(inpt):
 
     Parameters
     ----------
-    inpt : qobj
+    inpt : :class:`qutip.Qobj`
         Input quantum object.
 
     Returns
@@ -2156,7 +2156,7 @@ def shape(inpt):
 
     Parameters
     ----------
-    inpt : qobj
+    inpt : :class:`qutip.Qobj`
         Input quantum object.
 
     Returns
@@ -2182,7 +2182,7 @@ def isket(Q):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Quantum object
 
     Returns
@@ -2210,7 +2210,7 @@ def isbra(Q):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Quantum object
 
     Returns
@@ -2239,7 +2239,7 @@ def isoperket(Q):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Quantum object
 
     Returns
@@ -2262,7 +2262,7 @@ def isoperbra(Q):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Quantum object
 
     Returns
@@ -2284,7 +2284,7 @@ def isoper(Q):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Quantum object
 
     Returns
@@ -2312,7 +2312,7 @@ def issuper(Q):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Quantum object
 
     Returns
@@ -2334,9 +2334,9 @@ def isequal(A, B, tol=None):
 
     Parameters
     ----------
-    A : qobj
+    A : :class:`qutip.Qobj`
         Qobj one
-    B : qobj
+    B : :class:`qutip.Qobj`
         Qobj two
     tol : float
         Tolerence for equality to be valid
@@ -2375,7 +2375,7 @@ def isherm(Q):
 
     Parameters
     ----------
-    Q : qobj
+    Q : :class:`qutip.Qobj`
         Quantum object
 
     Returns
