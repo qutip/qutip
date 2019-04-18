@@ -243,7 +243,7 @@ class StochasticSolverOptions:
 
     store_measurement : bool (default False)
         Whether or not to store the measurement results in the
-        :class:`qutip.solver.SolverResult` instance returned by the solver.
+        :class:`qutip.solver.Result` instance returned by the solver.
 
     noise : int, array[int, 1d], array[double, 4d]
         int : seed of the noise
@@ -548,9 +548,9 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
 
     """
     if "method" in kwargs and kwargs["method"] == "photocurrent":
@@ -676,9 +676,9 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
     """
     if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
@@ -886,9 +886,9 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
     """
     if isket(rho0):
         rho0 = ket2dm(rho0)
@@ -977,9 +977,9 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
     """
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -1067,8 +1067,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
-        An instance of the class :class:`qutip.solver.SolverResult`.
+    output: :class:`qutip.solver.Result`
+        An instance of the class :class:`qutip.solver.Result`.
     """
 
     if isinstance(e_ops, dict):
@@ -1351,9 +1351,9 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
 
     """
     return main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs)
@@ -1399,9 +1399,9 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
 
     """
     return main_smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs)
