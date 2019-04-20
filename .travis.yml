@@ -96,6 +96,33 @@ stage_osx: &stage_osx
     - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
     - python setup.py install
 
+stage_osx_xcode102: &stage_osx_xcode102
+  os: osx
+  name: "Python 3.6, OSX 10.14, XCode 10.2"
+  osx_image: xcode10.2
+  language: generic
+  env: PYTHON=3.6.2
+  # change dir
+  before_script:
+    - mkdir qutip_testing
+    - cd qutip_testing
+  # command to run tests
+  script: 
+    - python -m qutip.about
+    - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
+    - python setup.py install
+
+
 stages:
   - test
 
@@ -109,5 +136,7 @@ jobs:
       <<: *stage_linux_37_omp
     - stage: test
       <<: *stage_linux_37_openblas
+    - stage: test
+      <<: *stage_osx_xcode102
     - stage: test
       <<: *stage_osx
