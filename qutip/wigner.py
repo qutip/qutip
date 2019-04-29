@@ -54,7 +54,7 @@ from qutip.cy.sparse_utils import _csr_get_diag
 import qutip as qt
 
 
-def wigner_transformation(psi, j, fullparity, steps, slicearray):
+def wigner_transform(psi, j, fullparity, steps, slicearray):
     """takes the density matrix or state vector of any finite state and
     generates the Wigner function for that state on a sphere, generating a spin
     Wigner function useful for displaying the quasi-probability for a qubit or
@@ -176,7 +176,8 @@ def _kernelsu2(theta, phi, N, j, parity, fullparity):
 def _rotation_matrix(theta, phi, j):
     """Private function to calculate the rotation operator for the SU2 kernel.
     """
-    return la.expm(1j * phi * jmat(j, 'z').full()) @ la.expm(1j * theta * jmat(j, 'y').full())
+    return la.expm(1j * phi * jmat(j, 'z').full()) @ \
+           la.expm(1j * theta * jmat(j, 'y').full())
 
 
 def _angle_slice(slicearray, theta, phi):
