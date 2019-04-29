@@ -67,8 +67,6 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
               a state vector or density matrix.
         j : int
             the total angular momentum of the quantum state.
-        sun : int
-              the order of the special unitary group, e.g. 2 or 3.
         fullparity : bool
                      should the parity of the full SU space be used?
         steps : int
