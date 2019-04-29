@@ -55,7 +55,11 @@ import qutip as qt
 
 
 def wigner_transformation(psi, j, fullparity, steps, slicearray):
-    """Calculates the wigner function of a quantum state at each theta, phi.
+    """takes the density matrix or state vector of any finite state and
+    generates the Wigner function for that state on a sphere, generating a spin
+    Wigner function useful for displaying the quasi-probability for a qubit or
+    any qudit. For the standard, continuous-variable Wigner function for
+    position and momentum variables, wigner() should be used.
 
     Parameters
     ----------
@@ -64,7 +68,7 @@ def wigner_transformation(psi, j, fullparity, steps, slicearray):
         j : int
             the total angular momentum of the quantum state.
         sun : int
-              the order of the special unitary group 2 or 3.
+              the order of the special unitary group, e.g. 2 or 3.
         fullparity : bool
                      should the parity of the full SU space be used?
         steps : int

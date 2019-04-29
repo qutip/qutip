@@ -46,7 +46,7 @@ def test_wigner_bell1_su2parity():
     """
     psi = bell_state('00')
 
-    steps = 100
+    steps = 25
     theta = np.tile(np.linspace(0, np.pi, steps), 2).reshape(2, steps)
     phi = np.tile(np.linspace(0, 2 * np.pi, steps), 2).reshape(2, steps)
     slicearray = ['l', 'l']
