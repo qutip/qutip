@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['wigner', 'qfunc', 'spin_q_function', 'spin_wigner']
+__all__ = ['wigner', 'qfunc', 'spin_q_function', 'spin_wigner', 'wigner_transform']
 
 import numpy as np
 from scipy import (zeros, array, arange, exp, real, conj, pi,
