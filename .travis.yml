@@ -98,10 +98,9 @@ stage_osx: &stage_osx
 
 stage_osx_xcode102: &stage_osx_xcode102
   os: osx
-  name: "Python 3.6, OSX 10.14, XCode 10.2"
+  name: "Python 3.7, OSX 10.14, XCode 10.2"
   osx_image: xcode10.2
   language: generic
-  env: PYTHON=3.6.2
   # change dir
   before_script:
     - mkdir qutip_testing
