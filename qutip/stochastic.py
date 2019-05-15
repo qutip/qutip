@@ -105,6 +105,7 @@ def stochastic_solvers():
         Scheme keeping the positivity of the density matrix. (smesolve only)
         -Order strong 1.0?
         -Code: 'rouchon', 'Rouchon'
+        Eq. 4 of arXiv:1410.5345 with eta=1 
         Efficient Quantum Filtering for Quantum Feedback Control
         Pierre Rouchon, Jason F. Ralph
         arXiv:1410.5345 [quant-ph]
@@ -243,7 +244,7 @@ class StochasticSolverOptions:
 
     store_measurement : bool (default False)
         Whether or not to store the measurement results in the
-        :class:`qutip.solver.Result` instance returned by the solver.
+        :class:`qutip.solver.SolverResult` instance returned by the solver.
 
     noise : int, array[int, 1d], array[double, 4d]
         int : seed of the noise
@@ -382,7 +383,7 @@ class StochasticSolverOptions:
             if isinstance(noise, int):
                 # noise contain a seed
                 np.random.seed(noise)
-                noise = np.random.randint(0, np.iinfo(np.uint32).max, ntraj, dtype=np.uint32)
+                noise = np.random.randint(0, 2**32, ntraj)
             noise = np.array(noise)
             if len(noise.shape) == 1:
                 if noise.shape[0] < ntraj:
@@ -414,7 +415,7 @@ class StochasticSolverOptions:
                 self.noise = noise
 
         else:
-            self.noise = np.random.randint(0, np.iinfo(np.int32).max, ntraj, dtype=np.uint32)
+            self.noise = np.random.randint(0, 2**32, ntraj).astype("u4")
             self.noise_type = 0
 
         # Map
@@ -548,9 +549,9 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
+    output: :class:`qutip.solver.SolverResult`
 
-        An instance of the class :class:`qutip.solver.Result`.
+        An instance of the class :class:`qutip.solver.SolverResult`.
 
     """
     if "method" in kwargs and kwargs["method"] == "photocurrent":
@@ -676,9 +677,9 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
+    output: :class:`qutip.solver.SolverResult`
 
-        An instance of the class :class:`qutip.solver.Result`.
+        An instance of the class :class:`qutip.solver.SolverResult`.
     """
     if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
@@ -700,7 +701,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     if _safe_mode:
         _safety_checks(sso)
 
-    if sso.solver_code == 110:
+    if sso.solver_code == 120:
         raise Exception("rouchon only work with smesolve")
 
     if sso.method == 'homodyne' or sso.method is None:
@@ -742,7 +743,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
 
     sso.LH = sso.H * (-1j*sso.dt)
     for ops in sso.sops:
-        sso.LH -= ops[0].norm()*0.5*sso.dt
+        sso.LH -= ops[0]._cdc()*0.5*sso.dt
 
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
@@ -807,11 +808,11 @@ def _positive_map(sso, e_ops_dict):
         return spre(op) * spost(op.dag())
 
     for op in sso.c_ops:
-        LH -= op.norm() * sso.dt * 0.5
+        LH -= op._cdc() * sso.dt * 0.5
         sso.pp += op.apply(_prespostdag)._f_norm2() * sso.dt
 
     for i, op in enumerate(sops):
-        LH -= op.norm() * sso.dt * 0.5
+        LH -= op._cdc() * sso.dt * 0.5
         sso.sops += [(spre(op) + spost(op.dag())) * sso.dt]
         sso.preops += [spre(op)]
         sso.postops += [spost(op.dag())]
@@ -886,9 +887,9 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
+    output: :class:`qutip.solver.SolverResult`
 
-        An instance of the class :class:`qutip.solver.Result`.
+        An instance of the class :class:`qutip.solver.SolverResult`.
     """
     if isket(rho0):
         rho0 = ket2dm(rho0)
@@ -920,8 +921,8 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     def _prespostdag(op):
         return spre(op) * spost(op.dag())
 
-    sso.sops = [[spre(op.norm()) + spost(op.norm()),
-                 spre(op.norm()),
+    sso.sops = [[spre(op._cdc()) + spost(op._cdc()),
+                 spre(op._cdc()),
                  op.apply(_prespostdag)._f_norm2()] for op in sso.sc_ops]
     sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
@@ -977,9 +978,9 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
+    output: :class:`qutip.solver.SolverResult`
 
-        An instance of the class :class:`qutip.solver.Result`.
+        An instance of the class :class:`qutip.solver.SolverResult`.
     """
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -1003,10 +1004,10 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
 
     sso.solver_obj = PcSSESolver
     sso.solver_name = "photocurrent_sesolve"
-    sso.sops = [[op, op.norm()] for op in sso.sc_ops]
+    sso.sops = [[op, op._cdc()] for op in sso.sc_ops]
     sso.LH = sso.H * (-1j*sso.dt)
     for ops in sso.sops:
-        sso.LH -= ops[0].norm()*0.5*sso.dt
+        sso.LH -= ops[0]._cdc()*0.5*sso.dt
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
 
@@ -1067,8 +1068,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
-        An instance of the class :class:`qutip.solver.Result`.
+    output: :class:`qutip.solver.SolverResult`
+        An instance of the class :class:`qutip.solver.SolverResult`.
     """
 
     if isinstance(e_ops, dict):
@@ -1283,7 +1284,7 @@ def _sesolve_generic(sso, options, progress_bar):
         paths_expect = []
         for result in results:
             paths_expect.append(result[3])
-        data.paths_expect = np.stack(paths_expect)
+        data.runs_expect = np.stack(paths_expect)
 
     # average density matrices
     if options.average_states and np.any(data.states):
@@ -1351,9 +1352,9 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
+    output: :class:`qutip.solver.SolverResult`
 
-        An instance of the class :class:`qutip.solver.Result`.
+        An instance of the class :class:`qutip.solver.SolverResult`.
 
     """
     return main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs)
@@ -1399,9 +1400,9 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
+    output: :class:`qutip.solver.SolverResult`
 
-        An instance of the class :class:`qutip.solver.Result`.
+        An instance of the class :class:`qutip.solver.SolverResult`.
 
     """
     return main_smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs)

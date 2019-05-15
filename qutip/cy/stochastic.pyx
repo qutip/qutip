@@ -517,7 +517,7 @@ cdef class StochasticSolver:
         for t_idx, t in enumerate(times):
             if sso.ce_ops:
                 for e_idx, e in enumerate(sso.ce_ops):
-                    s = e.compiled_qobjevo.expect(t, rho_t, 0)
+                    s = e.compiled_qobjevo.expect(t, rho_t)
                     expect[e_idx, t_idx] = s
             if sso.store_states or not sso.ce_ops:
                 if sso.me:
@@ -532,7 +532,7 @@ cdef class StochasticSolver:
 
             if sso.store_measurement:
                 for m_idx, m in enumerate(sso.cm_ops):
-                    m_expt = m.compiled_qobjevo.expect(t, rho_t, 0)
+                    m_expt = m.compiled_qobjevo.expect(t, rho_t)
                     measurements[t_idx, m_idx] = m_expt + self.dW_factor[m_idx] * \
                         sum(noise[t_idx, :, m_idx]) / (self.dt * self.num_substeps)
 
@@ -1269,7 +1269,7 @@ cdef class SSESolver(StochasticSolver):
         _zero(temp)
         for i in range(self.num_ops):
             c_op = self.cpcd_ops[i]
-            e = c_op._expect(t, &vec[0], 0)
+            e = c_op._expect(t, &vec[0])
             _zero(temp)
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &temp[0])
@@ -1287,7 +1287,7 @@ cdef class SSESolver(StochasticSolver):
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &out[i,0])
             c_op = self.cpcd_ops[i]
-            expect = c_op._expect(t, &vec[0], 0)
+            expect = c_op._expect(t, &vec[0])
             _axpy(-0.5*expect,vec,out[i,:])
 
     @cython.boundscheck(False)
@@ -1932,7 +1932,7 @@ cdef class PcSSESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
@@ -1958,7 +1958,7 @@ cdef class PcSSESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
@@ -2037,7 +2037,7 @@ cdef class PcSMESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
@@ -2062,7 +2062,7 @@ cdef class PcSMESolver(StochasticSolver):
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
-            expect = c_op.expect(t, vec, 1).real * dt
+            expect = c_op.expect(t, vec).real * dt
             if expect > 0:
               noise[i] = np.random.poisson(expect)
             else:
@@ -2158,7 +2158,7 @@ cdef class PmSMESolver(StochasticSolver):
         self.preLH._mul_vec(t, &vec[0], &temp[0])
         for i in range(self.num_ops):
             c_op = self.sops[i]
-            dy[i] = c_op._expect_super(t, &vec[0], 0) + noise[i]
+            dy[i] = c_op._expect_super(t, &vec[0]) + noise[i]
             c_op = self.preops[i]
             _zero(temp2)
             c_op._mul_vec(t, &vec[0], &temp2[0])
