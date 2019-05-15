@@ -49,12 +49,32 @@ class TestRand:
         for u in U:
             assert_(u * u.dag() == qeye(5))
 
+    def testRandUnitarySeed(self):
+        "random Unitary with seed"
+
+        seed = 12345
+        U0 = rand_unitary(5, seed=seed)
+        U1 = rand_unitary(5, seed=None)
+        U2 = rand_unitary(5, seed=seed)
+        assert_(U0 != U1)
+        assert_(U0 == U2)
+
     def testRandherm(self):
         "random hermitian"
 
         H = [rand_herm(5) for k in range(5)]
         for h in H:
             assert_equal(h.isherm, True)
+
+    def testRandhermSeed(self):
+        "random hermitian with seed"
+
+        seed = 12345
+        U0 = rand_herm(5, seed=seed)
+        U1 = rand_herm(5, seed=None)
+        U2 = rand_herm(5, seed=seed)
+        assert_(U0 != U1)
+        assert_(U0 == U2)
 
     def testRandhermPosDef(self):
         "Random: Hermitian - Positive semi-def"
@@ -70,7 +90,7 @@ class TestRand:
         for h in H:
             eigs = sp_eigs(h.data, h.isherm, vecs=False)
             assert_(np.abs(np.sum(eigs)-15.0) < 1e-12)
-    
+
     def testRanddm(self):
         "random density matrix"
 
@@ -81,6 +101,16 @@ class TestRand:
             assert_(not any(sp_eigs(r.data, r.isherm, vecs=False)) < 0)
             # verify hermitian
             assert_(r.isherm)
+
+    def testRandDmSeed(self):
+        "random density matrix with seed"
+
+        seed = 12345
+        U0 = rand_dm(5, seed=seed)
+        U1 = rand_dm(5, seed=None)
+        U2 = rand_dm(5, seed=seed)
+        assert_(U0 != U1)
+        assert_(U0 == U2)
 
     def testRanddmEigs(self):
         "Random: Density matrix - Eigs given"
@@ -95,13 +125,23 @@ class TestRand:
             assert_(not any(sp_eigs(r.data, r.isherm, vecs=False)) < 0)
             # verify hermitian
             assert_(r.isherm)
-    
+
     def testRandket(self):
         "random ket"
         P = [rand_ket(5) for k in range(5)]
         for p in P:
             assert_equal(p.type == 'ket', True)
-            
+
+    def testRandketSeed(self):
+        "random ket with seed"
+
+        seed = 12345
+        U0 = rand_ket(5, seed=seed)
+        U1 = rand_ket(5, seed=None)
+        U2 = rand_ket(5, seed=seed)
+        assert_(U0 != U1)
+        assert_(U0 == U2)
+
     def testRandStochasticLeft(self):
         'Random: Stochastic - left'
         Q = [rand_stochastic(10) for k in range(5)]
@@ -109,7 +149,17 @@ class TestRand:
             A = Q[i].data.tocsc()
             for j in range(10):
                 assert_(np.abs(np.sum(A.getcol(j).todense().real)-1.0) < 1e-15)
-    
+
+    def testRandStochasticLeftSeed(self):
+        "Random: Stochastic - left with seed"
+
+        seed = 12345
+        U0 = rand_stochastic(10, seed=seed)
+        U1 = rand_stochastic(10, seed=None)
+        U2 = rand_stochastic(10, seed=seed)
+        assert_(U0 != U1)
+        assert_(U0 == U2)
+
     def testRandStochasticRight(self):
         'Random: Stochastic - right'
         Q = [rand_stochastic(10, kind='right') for k in range(5)]
@@ -117,6 +167,16 @@ class TestRand:
             A = Q[i].data
             for j in range(10):
                 assert_(np.abs(np.sum(A.getrow(j).todense().real)-1.0) < 1e-15)
+
+    def testRandStochasticRightSeed(self):
+        "Random: Stochastic - right with seed"
+
+        seed = 12345
+        U0 = rand_stochastic(10, kind='right', seed=seed)
+        U1 = rand_stochastic(10, kind='right', seed=None)
+        U2 = rand_stochastic(10, kind='right', seed=seed)
+        assert_(U0 != U1)
+        assert_(U0 == U2)
 
 if __name__ == "__main__":
     run_module_suite()

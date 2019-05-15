@@ -169,7 +169,7 @@ class StochasticSolverOptions:
 
     store_measurements : bool (default False)
         Whether or not to store the measurement results in the
-        :class:`qutip.solver.SolverResult` instance returned by the solver.
+        :class:`qutip.solver.Result` instance returned by the solver.
 
     noise : array
         Vector specifying the noise.
@@ -292,9 +292,9 @@ def main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
 
     """
     if debug:
@@ -354,9 +354,9 @@ def main_smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.solver.SolverResult`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`.
+        An instance of the class :class:`qutip.solver.Result`.
 
     """
     if debug:
