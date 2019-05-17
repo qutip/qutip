@@ -1091,43 +1091,6 @@ class TestDicke:
         assert_almost_equal(true_gamma_3, test_gamma_3)
         assert_almost_equal(true_gamma_4, test_gamma_4)
 
-    def test_prune_eigenstates(self):
-        """
-        PIQS: Test the eigenstate pruning
-        """
-        N = 2
-        w0 = 1
-        kappa = 2 * w0
-        gCE = kappa /(N/2)
-        gE = 1
-        gD = 1
-        [jx, jy, jz] = jspin(N)
-        jp, jm = jspin(N, "+"), jspin(N, "-")
-        H = w0 * jx
-
-        ensemble = Dicke(N=N, hamiltonian=H, collective_emission=gCE,
-                         emission=gE, dephasing=gD)
-        liouv = ensemble.liouvillian()
-        pruned_eig_values, pruned_eig_states = ensemble.prune_eigenstates(liouv)
-        estate_last = np.array([[-0.00510544+0.j],
-                                [0.00000000-0.01614514j],
-                                [0.08133350+0.j],
-                                [0.00000000+0.j],
-                                [0.00000000+0.01614514j],
-                                [-0.02588476+0.j],
-                                [0.00000000-0.30050737j],
-                                [0.00000000+0.j],
-                                [0.08133350+0.j],
-                                [0.00000000+0.30050737j],
-                                [-0.61872203+0.j],
-                                [0.00000000+0.j],
-                                [0.00000000+0.j],
-                                [0.00000000+0.j],
-                                [0.00000000+0.j],
-                                [0.64971224+0.j]])
-        assert_array_almost_equal(pruned_eig_states[-1].full(), estate_last)
-
-
 class TestPim:
     """
     Tests for the `qutip.piqs.Pim` class.
