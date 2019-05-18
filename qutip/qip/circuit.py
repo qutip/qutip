@@ -79,9 +79,6 @@ class Gate(object):
         else:
             self.controls = controls
 
-        self.arg_value = arg_value
-        self.arg_label = arg_label
-
         if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                     "SWAPalpha"]:
             if len(self.targets) != 2:
