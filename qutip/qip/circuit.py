@@ -31,8 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
+from collections.abc import Iterable
 import warnings
+
+import numpy as np
 
 from qutip.qip.circuit_latex import _latex_compile
 from qutip.qip.gates import *
@@ -50,9 +52,9 @@ class Gate(object):
     ----------
     name : String
         Gate name.
-    targets : List
+    targets : List or Integer
         Gate targets.
-    controls : List
+    controls : List or Integer
         Gate controls.
     arg_value : Float
         Argument value(phi).
@@ -69,19 +71,26 @@ class Gate(object):
         self.targets = None
         self.controls = None
 
-        if not isinstance(targets, list) and targets is not None:
+        if not isinstance(targets, Iterable) and targets is not None:
             self.targets = [targets]
         else:
             self.targets = targets
 
-        if not isinstance(controls, list) and controls is not None:
+        if not isinstance(controls, Iterable) and controls is not None:
             self.controls = [controls]
         else:
             self.controls = controls
 
+        if isinstance(self.targets, Iterable):
+            if not any([isinstance(input,np.int) for input in self.targets]):
+                raise ValueError("Index of target qubit must be an integer")
+        if isinstance(self.controls, Iterable):
+            if not any([isinstance(input,np.int) for input in self.controls]):
+                raise ValueError("Index of control qubit must be an integer")
+
         if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                     "SWAPalpha"]:
-            if len(self.targets) != 2:
+            if (self.targets is None) or (len(self.targets) != 2):
                 raise ValueError("Gate %s requires two targets" % name)
             if self.controls is not None:
                 raise ValueError("Gate %s cannot have a control" % name)
