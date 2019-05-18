@@ -45,25 +45,25 @@ class Gate(object):
     """
     Representation of a quantum gate, with its required parametrs, and target
     and control qubits.
+    
+    Parameters
+    ----------
+    name : String
+        Gate name.
+    targets : List
+        Gate targets.
+    controls : List
+        Gate controls.
+    arg_value : Float
+        Argument value(phi).
+    arg_label : String
+        Label for gate representation.
     """
 
     def __init__(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
         """
         Creates a gate with specified parameters.
-
-        Parameters
-        ----------
-        name : String
-            Gate name.
-        targets : List
-            Gate targets.
-        controls : List
-            Gate controls.
-        arg_value : Float
-            Argument value(phi).
-        arg_label : String
-            Label for gate representation.
         """
         self.name = name
         self.targets = None
