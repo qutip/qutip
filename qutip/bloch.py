@@ -208,7 +208,6 @@ class Bloch():
         else: 
             self._shown = True
         
-
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
 
