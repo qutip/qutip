@@ -58,6 +58,7 @@ from qutip.random_objects import (
 from qutip.qobj import Qobj
 from qutip.superop_reps import to_super, to_choi
 from qutip.qip.gates import hadamard_transform, swap
+from qutip.tensor import tensor
 from qutip.metrics import *
 
 import qutip.settings
@@ -235,6 +236,80 @@ def test_tracedist3():
         F = fidelity(rho1, rho2)
         D = tracedist(rho1, rho2)
         assert_(1-F**2 <= D)
+
+
+def test_hellinger_corner():
+    """
+    Metrics: Hellinger dist.: check corner cases:
+    same states, orthogonal states
+    """
+    orth1 = basis(40, 1)
+    orth2 = basis(40, 3)
+    orth3 = basis(40, 38)
+    s2 = np.sqrt(2.0)
+    assert_almost_equal(hellinger_dist(orth1, orth2), s2)
+    assert_almost_equal(hellinger_dist(orth2, orth3), s2)
+    assert_almost_equal(hellinger_dist(orth3, orth1), s2)
+    for _ in range(10):
+        ket = rand_ket(25, 0.25)
+        rho = rand_dm(18, 0.75)
+        assert_almost_equal(hellinger_dist(ket, ket), 0.)
+        assert_almost_equal(hellinger_dist(rho, rho), 0.)
+
+
+def test_hellinger_pure():
+    """
+    Metrics: Hellinger dist.: check against a simple
+    expression which applies to pure states
+    """
+    for _ in range(10):
+        ket1 = rand_ket(25, 0.25)
+        ket2 = rand_ket(25, 0.25)
+        hellinger = hellinger_dist(ket1, ket2)
+        sqr_overlap = np.square(np.abs(ket1.overlap(ket2)))
+        simple_expr = np.sqrt(2.0*(1.0-sqr_overlap))
+        assert_almost_equal(hellinger, simple_expr)
+
+
+def test_hellinger_inequality():
+    """
+    Metrics: Hellinger dist.: check whether Hellinger
+    distance is indeed larger than Bures distance
+    """
+    for _ in range(10):
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        hellinger = hellinger_dist(rho1, rho2)
+        bures = bures_dist(rho1, rho2)
+        assert_(hellinger >= bures)
+        ket1 = rand_ket(40, 0.25)
+        ket2 = rand_ket(40, 0.25)
+        hellinger = hellinger_dist(ket1, ket2)
+        bures = bures_dist(ket1, ket2)
+        assert_(hellinger >= bures)
+
+
+def test_hellinger_monotonicity():
+    """
+    Metrics: Hellinger dist.: check monotonicity
+    w.r.t. tensor product, see. Eq. (45) in
+    arXiv:1611.03449v2
+    """
+    for _ in range(10):
+        rhoA = rand_dm(8, 0.5)
+        sigmaA = rand_dm(8, 0.5)
+        rhoB = rand_dm(8, 0.5)
+        sigmaB = rand_dm(8, 0.5)
+        hellA = hellinger_dist(rhoA, sigmaA)
+        hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
+                                     tensor(sigmaA, sigmaB))
+        #inequality when sigmaB!=rhoB
+        assert_(hell_tensor >= hellA)
+        #equality iff sigmaB=rhoB
+        rhoB = sigmaB
+        hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
+                                     tensor(sigmaA, sigmaB))
+        assert_almost_equal(hell_tensor, hellA)
 
 
 def rand_super():
