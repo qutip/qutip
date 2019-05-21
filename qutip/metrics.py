@@ -341,7 +341,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     #np.maximum() is to avoid nan appearing sometimes due to numerical
     #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
     #when hellinger_dist(A, B) is called for A=B
-    return float(np.sqrt(2.0 * np.maximum(0., (1.0 - np.sum(eigs)))))
+    return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     """
