@@ -291,6 +291,7 @@ def bures_angle(A, B):
 
     return np.arccos(fidelity(A, B))
 
+
 def hellinger_dist(A, B, sparse=False, tol=0):
     """
     Calculates the quantum Hellinger distance between two density matrices.
@@ -342,6 +343,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
     #when hellinger_dist(A, B) is called for A=B
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
+
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     """
