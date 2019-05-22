@@ -295,15 +295,19 @@ def bures_angle(A, B):
 def hellinger_dist(A, B, sparse=False, tol=0):
     """
     Calculates the quantum Hellinger distance between two density matrices.
+
+    Formula:
+    hellinger_dist(A, B) = sqrt(2-2*Tr(sqrt(A)*sqrt(B)))
+
     See: D. Spehner, F. Illuminati, M. Orszag, and W. Roga, "Geometric
     measures of quantum correlations with Bures and Hellinger distances"
     arXiv:1611.03449
 
     Parameters
     ----------
-    A : qobj
+    A : :class:`qutip.Qobj`
         Density matrix or state vector.
-    B : qobj
+    B : :class:`qutip.Qobj`
         Density matrix or state vector with same dimensions as A.
     tol : float
         Tolerance used by sparse eigensolver, if used. (0=Machine precision)
@@ -313,7 +317,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     Returns
     -------
     hellinger_dist : float
-        Quantum Hellinger distance between A and B.
+        Quantum Hellinger distance between A and B. Ranges from 0 to sqrt(2).
 
     Examples
     --------
