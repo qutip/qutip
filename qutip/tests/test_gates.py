@@ -74,8 +74,9 @@ class TestGates:
         Returns True if and only if U is proportional to the
         identity.
         """
-        if U[0, 0] != 0:
-            norm_U = U / U[0, 0]
+        U0 = complex(U[0, 0]) #scipy 1.3 return 0 dims array.
+        if U0 != 0:
+            norm_U = U / U0
             return (qeye(U.dims[0]) - norm_U).norm() <= tol
         else:
             return False
@@ -85,7 +86,7 @@ class TestGates:
 
         for P in paulis:
             U_P = U * P * U.dag()
-            
+
             out = (np.any(
                 np.array([self._prop_identity(U_P * Q) for Q in paulis])
             ))
