@@ -81,12 +81,12 @@ class Gate(object):
         else:
             self.controls = controls
 
-        if isinstance(self.targets, Iterable):
-            if not all([isinstance(input, np.int) for input in self.targets]):
-                raise ValueError("Index of target qubit must be an integer")
-        if isinstance(self.controls, Iterable):
-            if not all([isinstance(input, np.int) for input in self.controls]):
-                raise ValueError("Index of control qubit must be an integer")
+        for ind_list in [self.targets, self.controls]:
+            if isinstance(ind_list, Iterable):
+                all_integer = all(
+                    [isinstance(ind, np.int) for ind in ind_list])
+                if not all_integer:
+                    raise ValueError("Index of a qubit must be an integer")
 
         if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                     "SWAPalpha"]:
