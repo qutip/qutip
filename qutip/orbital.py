@@ -34,7 +34,7 @@
 __all__ = ['orbital']
 
 import numpy as np
-from scipy.misc import factorial
+from scipy.special import factorial
 
 
 def orbital(theta, phi, *args):

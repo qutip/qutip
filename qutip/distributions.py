@@ -49,8 +49,7 @@ __all__ = ['Distribution', 'WignerDistribution', 'QDistribution',
 import numpy as np
 from numpy import pi, exp, sqrt
 
-from scipy.misc import factorial
-from scipy.special import hermite
+from scipy.special import hermite, factorial
 
 from qutip.qobj import isket
 from qutip.wigner import wigner, qfunc

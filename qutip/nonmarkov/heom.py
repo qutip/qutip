@@ -41,7 +41,7 @@ hierarchy equations of motion (HEOM).
 
 import timeit
 import numpy as np
-#from scipy.misc import factorial
+#from scipy.special import factorial
 import scipy.sparse as sp
 import scipy.integrate
 from copy import copy
@@ -414,9 +414,9 @@ class HSolverDL(HEOMSolver):
             stats.add_count('Num he interactions', N_he_interact, ss_conf)
 
         # Setup Liouvillian
-        if stats: 
+        if stats:
             start_louvillian = timeit.default_timer()
-        
+
         H_he = zcsr_kron(unit_helems, liouvillian(H_sys).data)
 
         L_helems += H_he
