@@ -60,9 +60,9 @@ MINOR = 4
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.12)', 'scipy (>=0.15)', 'cython (>=0.21)']
+REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
 EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
-INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=0.15', 'cython>=0.21']
+INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip', 'qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
