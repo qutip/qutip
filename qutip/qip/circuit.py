@@ -220,7 +220,7 @@ class QubitCircuit(object):
             Argument value(phi).
         arg_label: String
             Label for gate representation.
-        index : List
+        index : list
             Positions to add the gate.
         """
         if isinstance(gate, Gate):
