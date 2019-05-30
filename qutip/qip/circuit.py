@@ -56,9 +56,9 @@ class Gate(object):
         ----------
         name : String
             Gate name.
-        targets : List
+        targets : list
             Gate targets.
-        controls : List
+        controls : list
             Gate controls.
         arg_value : Float
             Argument value(phi).
@@ -212,15 +212,15 @@ class QubitCircuit(object):
         gate: String or `Gate`
             Gate name. If gate is an instance of `Gate`, parameters are
             unpacked and added.
-        targets: List
+        targets: list
             Gate targets.
-        controls: List
+        controls: list
             Gate controls.
         arg_value: Float
             Argument value(phi).
         arg_label: String
             Label for gate representation.
-        index : List
+        index : list
             Positions to add the gate.
         """
         if isinstance(gate, Gate):
@@ -259,7 +259,7 @@ class QubitCircuit(object):
             Starting location of qubits.
         end : Integer
             Last qubit for the gate.
-        qubits : List
+        qubits : list
             Specific qubits for applying gates.
         arg_value : Float
             Argument value(phi).
