@@ -463,11 +463,12 @@ class _MC():
     # --------------------------------------------------------------------------
     # results functions
     # --------------------------------------------------------------------------
-    #@property
+    @property
     def states(self):
         dims = self.psi0.dims[0]
         len_ = self._psi_out.shape[2]
         if self._psi_out.shape[1] == 1:
+            dm_t = np.zeros((len_, len_), dtype=complex)
             for i in range(self.num_traj):
                 vec = self._psi_out[i,0,:] # .reshape((-1,1))
                 dm_t += np.outer(vec, vec.conj())
@@ -485,7 +486,9 @@ class _MC():
     @property
     def final_state(self):
         dims = self.psi0.dims[0]
-        if not self._experimental and options.average_states:
+        len_ = self._psi_out.shape[2]
+        if not self._experimental or self.options.average_states:
+            dm_t = np.zeros((len_, len_), dtype=complex)
             for i in range(self.num_traj):
                 vec = self._psi_out[i,-1,:] # .reshape((-1,1))
                 dm_t += np.outer(vec, vec.conj())
@@ -585,7 +588,7 @@ class _MC():
         if options.steady_state_average:
             output.states = self.steady_state
         elif options.average_states:
-            output.states = self.states()
+            output.states = self.states
         elif options.store_states:
             output.states = self.runs_states
 
