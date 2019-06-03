@@ -1933,11 +1933,15 @@ cdef class PcSSESolver(StochasticSolver):
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
             expect = c_op.expect(t, vec).real * dt
-            if expect > 0:
-              noise[i] = np.random.poisson(expect)
-            else:
-              noise[i] = 0.
-            _axpy(noise[i], d2[i,:], out)
+            if expect >= np.random.random():
+                _axpy(1., d2[i,:], out)
+                noise[i] = 1.
+                return
+            # if expect > 0:
+            #   noise[i] = np.random.poisson(expect)
+            # else:
+            #   noise[i] = 0.
+            # _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1959,11 +1963,15 @@ cdef class PcSSESolver(StochasticSolver):
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
             expect = c_op.expect(t, vec).real * dt
-            if expect > 0:
-              noise[i] = np.random.poisson(expect)
-            else:
-              noise[i] = 0.
-            _axpy(noise[i], d2[i,:], out)
+            if expect >= np.random.random():
+                _axpy(1., d2[i,:], out)
+                noise[i] = 1.
+                return
+            # if expect > 0:
+            #   noise[i] = np.random.poisson(expect)
+            # else:
+            #   noise[i] = 0.
+            # _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2038,11 +2046,15 @@ cdef class PcSMESolver(StochasticSolver):
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
             expect = c_op.expect(t, vec).real * dt
-            if expect > 0:
-              noise[i] = np.random.poisson(expect)
-            else:
-              noise[i] = 0.
-            _axpy(noise[i], d2[i,:], out)
+            if expect >= np.random.random():
+                _axpy(1., d2[i,:], out)
+                noise[i] = 1.
+                return
+            # if expect > 0:
+            #   noise[i] = np.random.poisson(expect)
+            # else:
+            #   noise[i] = 0.
+            # _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2063,11 +2075,15 @@ cdef class PcSMESolver(StochasticSolver):
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
             expect = c_op.expect(t, vec).real * dt
-            if expect > 0:
-              noise[i] = np.random.poisson(expect)
-            else:
-              noise[i] = 0.
-            _axpy(noise[i], d2[i,:], out)
+            if expect >= np.random.random():
+                _axpy(1., d2[i,:], out)
+                noise[i] = 1.
+                return
+            # if expect > 0:
+            #   noise[i] = np.random.poisson(expect)
+            # else:
+            #   noise[i] = 0.
+            # _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
