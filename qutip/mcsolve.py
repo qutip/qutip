@@ -77,7 +77,7 @@ class qutip_zvode(zvode):
 def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
             args={}, options=Options(),
             progress_bar=True, map_func=parallel_map, map_kwargs={},
-            _safe_mode=True):
+            _safe_mode=True, _exp=False):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -189,7 +189,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
         warn("No c_ops, using sesolve")
         return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
                        options=options, progress_bar=progress_bar,
-                       _safe_mode=_safe_mode, _exp=False)
+                       _safe_mode=_safe_mode)
 
     try:
         num_traj = int(ntraj)
@@ -463,41 +463,33 @@ class _MC():
     # --------------------------------------------------------------------------
     # results functions
     # --------------------------------------------------------------------------
-    @property
+    #@property
     def states(self):
         dims = self.psi0.dims[0]
+        len_ = self._psi_out.shape[2]
         if self._psi_out.shape[1] == 1:
-            psi_dm = np.empty((self.num_traj, 1), dtype=object)
             for i in range(self.num_traj):
-                tmp = Qobj(self._psi_out[i,0,:].reshape((-1,1)))
-                tmp = tmp * tmp.dag()
-                tmp.dims = [dims, dims]
-                psi_dm[i,0] = tmp
-            states = parfor(_mc_dm_avg, psi_dm.T)
-            return states[0]
+                vec = self._psi_out[i,0,:] # .reshape((-1,1))
+                dm_t += np.outer(vec, vec.conj())
+            return Qobj(dm_t/self.num_traj, dims=[dims, dims])
         else:
-            psi_dm = np.empty((self.num_traj, len(self.tlist)), dtype=object)
-            for i in range(self.num_traj):
-                for j in range(len(self.tlist)):
-                    tmp = Qobj(self._psi_out[i,j,:].reshape((-1,1)))
-                    tmp = tmp * tmp.dag()
-                    tmp.dims = [dims, dims]
-                    psi_dm[i,j] = tmp
-            states = np.array(parfor(_mc_dm_avg, psi_dm.T), dtype=object)
+            states = np.empty((len(self.tlist)), dtype=object)
+            for j in range(len(self.tlist)):
+                dm_t = np.zeros((len_, len_), dtype=complex)
+                for i in range(self.num_traj):
+                    vec = self._psi_out[i,j,:] # .reshape((-1,1))
+                    dm_t += np.outer(vec, vec.conj())
+                states[j] = Qobj(dm_t/self.num_traj, dims=[dims, dims])
             return states
 
     @property
     def final_state(self):
         dims = self.psi0.dims[0]
         if not self._experimental and options.average_states:
-            psi_dm = np.empty((self.num_traj, 1), dtype=object)
             for i in range(self.num_traj):
-                tmp = Qobj(self._psi_out[i,-1,:].reshape((-1,1)))
-                tmp = tmp * tmp.dag()
-                tmp.dims = [dims, dims]
-                psi_dm[i,0] = tmp
-            states = parfor(_mc_dm_avg, psi_dm.T)
-            return states[0]
+                vec = self._psi_out[i,-1,:] # .reshape((-1,1))
+                dm_t += np.outer(vec, vec.conj())
+            return Qobj(dm_t/self.num_traj, dims=[dims, dims])
         else:
             psis = np.empty((self.num_traj), dtype=object)
             for i in range(self.num_traj):
@@ -593,7 +585,7 @@ class _MC():
         if options.steady_state_average:
             output.states = self.steady_state
         elif options.average_states:
-            output.states = self.states
+            output.states = self.states()
         elif options.store_states:
             output.states = self.runs_states
 
