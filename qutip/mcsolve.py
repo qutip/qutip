@@ -189,7 +189,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
         warn("No c_ops, using sesolve")
         return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
                        options=options, progress_bar=progress_bar,
-                       _safe_mode=_safe_mode)
+                       _safe_mode=_safe_mode, _exp=False)
 
     try:
         num_traj = int(ntraj)
@@ -202,7 +202,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
 
 
     # load monte carlo class
-    mc = _MC(options)
+    mc = _MC(options, _exp)
 
     if isinstance(H, SolverSystem):
         mc.ss = H
@@ -234,7 +234,7 @@ class _MC():
     """
     Private class for solving Monte Carlo evolution from mcsolve
     """
-    def __init__(self, options=Options()):
+    def __init__(self, options=Options(), _exp=False):
         self.options = options
         self.ss = None
         self.tlist = None
@@ -250,6 +250,9 @@ class _MC():
         self._expect_out = []
         self._collapse = []
         self._ss_out = []
+
+        # Flag
+        self._experimental = _exp
 
     def reset(self, t=0., psi0=None):
         if psi0 is not None:
@@ -486,14 +489,20 @@ class _MC():
     @property
     def final_state(self):
         dims = self.psi0.dims[0]
-        psi_dm = np.empty((self.num_traj, 1), dtype=object)
-        for i in range(self.num_traj):
-            tmp = Qobj(self._psi_out[i,-1,:].reshape((-1,1)))
-            tmp = tmp * tmp.dag()
-            tmp.dims = [dims, dims]
-            psi_dm[i,0] = tmp
-        states = parfor(_mc_dm_avg, psi_dm.T)
-        return states[0]
+        if not self._experimental and options.average_states:
+            psi_dm = np.empty((self.num_traj, 1), dtype=object)
+            for i in range(self.num_traj):
+                tmp = Qobj(self._psi_out[i,-1,:].reshape((-1,1)))
+                tmp = tmp * tmp.dag()
+                tmp.dims = [dims, dims]
+                psi_dm[i,0] = tmp
+            states = parfor(_mc_dm_avg, psi_dm.T)
+            return states[0]
+        else:
+            psis = np.empty((self.num_traj), dtype=object)
+            for i in range(self.num_traj):
+                psis[i] = Qobj(self._psi_out[i,-1,:].reshape((-1,1)))
+            return psis
 
     @property
     def expect(self):
