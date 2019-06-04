@@ -487,17 +487,19 @@ class _MC():
     def final_state(self):
         dims = self.psi0.dims[0]
         len_ = self._psi_out.shape[2]
-        if not self._experimental or self.options.average_states:
-            dm_t = np.zeros((len_, len_), dtype=complex)
-            for i in range(self.num_traj):
-                vec = self._psi_out[i,-1,:] # .reshape((-1,1))
-                dm_t += np.outer(vec, vec.conj())
-            return Qobj(dm_t/self.num_traj, dims=[dims, dims])
-        else:
-            psis = np.empty((self.num_traj), dtype=object)
-            for i in range(self.num_traj):
-                psis[i] = Qobj(self._psi_out[i,-1,:].reshape((-1,1)))
-            return psis
+        dm_t = np.zeros((len_, len_), dtype=complex)
+        for i in range(self.num_traj):
+            vec = self._psi_out[i,-1,:]
+            dm_t += np.outer(vec, vec.conj())
+        return Qobj(dm_t/self.num_traj, dims=[dims, dims])
+
+    @property
+    def runs_final_states(self):
+        dims = self.psi0.dims[0]
+        psis = np.empty((self.num_traj), dtype=object)
+        for i in range(self.num_traj):
+            psis[i] = Qobj(self._psi_out[i,-1,:].reshape((-1,1)), dims=dims)
+        return psis
 
     @property
     def expect(self):
@@ -587,13 +589,16 @@ class _MC():
 
         if options.steady_state_average:
             output.states = self.steady_state
-        elif options.average_states:
+        elif options.average_states and options.store_states:
             output.states = self.states
         elif options.store_states:
             output.states = self.runs_states
 
         if options.store_final_state:
-            output.final_state = self.final_state
+            if not self._experimental or options.average_states:
+                output.final_state = self.final_state
+            else:
+                output.final_state = self.runs_final_states
 
         if options.average_expect:
             output.expect = [self.expect_traj_avg(n) for n in ntraj]
