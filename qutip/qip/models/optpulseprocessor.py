@@ -88,11 +88,14 @@ class OptPulseProcessor(CircuitProcessor):
         row corresponds to the control pulse sequence for 
         one Hmiltonian.
     """
-    def __init__(self, N, drift, ctrls):
+    def __init__(self, N, drift=None, ctrls=[]):
         self.N = N
         self.ctrls = []
-        self.add_ctrl(drift) # just make use of existing method
-        self.drift = self.ctrls.pop(0)
+        if drift == None:
+            self.drift = tensor([identity(2)] * N)
+        else:
+            self.add_ctrl(drift) # just make use of existing method
+            self.drift = self.ctrls.pop(0)
         for H in ctrls:
             self.add_ctrl(H)
         self.tlist = np.empty(0)
@@ -355,7 +358,10 @@ class OptPulseProcessor(CircuitProcessor):
         else:
             tlist, amps = self.tlist, self.amps
 
-        H = [self.drift]
+        if self.drift is not None:
+            H = [self.drift]
+        else:
+            H = []
         for i in range(len(self.ctrls)):
             H.append([self.ctrls[i], amps[i]])
         

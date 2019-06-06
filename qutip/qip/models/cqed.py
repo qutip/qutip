@@ -32,7 +32,7 @@
 ###############################################################################
 import numpy as np
 import warnings
-from qutip.operators import sigmax, sigmay, sigmaz, identity
+from qutip.operators import destroy, sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
