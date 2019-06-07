@@ -32,9 +32,7 @@
 ###############################################################################
 import numpy as np
 import warnings
-from qutip.operators import destroy, sigmax, sigmay, sigmaz, identity
-from qutip.tensor import tensor
-from qutip.states import basis
+from qutip import tensor, identity, destroy, sigmax, sigmaz, basis
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 
