@@ -16,9 +16,23 @@ from qutip.qip.models.circuitprocessor import CircuitProcessor
 def expand_oper(oper, N, targets):
     """
     Expand an operator to dimension N acting on the targeting qubits.
-    This is equivalent to gate_expand_1toN, gate_expand_2toN,
-    gate_expand_3toN in `gate.py` but works for any dimension.
+
     Parameters
+    ----------
+    oper : `Qobj`
+        An operator acts on qubits, the type of the `Qobj` 
+        has to be an operator 
+        and the dimension matches the tensored qubit Hilbertspace
+        e.g. dims = [[2,2,2],[2,2,2]]
+    N : int
+        The number of qubits in the system.
+    targets : int or list of int
+        The indices of qubits that are acted on.
+
+    Note
+    ----
+    This is equivalent to gate_expand_1toN, gate_expand_2toN,
+    gate_expand_3toN in `qutip.qip.gate.py`, but works for any dimension.
     """
     req_num = len(oper.dims[0])
     if req_num > N:
@@ -388,7 +402,9 @@ class OptPulseProcessor(CircuitProcessor):
         fig, ax = plt.subplots(1, 1, **kwargs)
         ax.set_ylabel("Control amplitude")
         ax.set_xlabel("Time")
+        tlist = np.hstack([self.tlist, self.tlist[-1:0]])
+        amps = np.hstack([self.amps, self.amps[:,-1:0]])
         for i in range(self.amps.shape[0]):
-            ax.step(self.tlist, self.amps[i], where = 'post')
+            ax.step(tlist, amps[i], where = 'post')
         fig.tight_layout()
         return fig, ax
