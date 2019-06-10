@@ -37,8 +37,8 @@ This module contains a collection of functions for calculating metrics
 """
 
 __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
-           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity',
-           'unitarity', 'dnorm']
+           'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
+           'process_fidelity', 'unitarity', 'dnorm']
 
 import numpy as np
 from scipy import linalg as la
@@ -290,6 +290,63 @@ def bures_angle(A, B):
         raise TypeError('A and B do not have same dimensions.')
 
     return np.arccos(fidelity(A, B))
+
+
+def hellinger_dist(A, B, sparse=False, tol=0):
+    """
+    Calculates the quantum Hellinger distance between two density matrices.
+
+    Formula:
+    hellinger_dist(A, B) = sqrt(2-2*Tr(sqrt(A)*sqrt(B)))
+
+    See: D. Spehner, F. Illuminati, M. Orszag, and W. Roga, "Geometric
+    measures of quantum correlations with Bures and Hellinger distances"
+    arXiv:1611.03449
+
+    Parameters
+    ----------
+    A : :class:`qutip.Qobj`
+        Density matrix or state vector.
+    B : :class:`qutip.Qobj`
+        Density matrix or state vector with same dimensions as A.
+    tol : float
+        Tolerance used by sparse eigensolver, if used. (0=Machine precision)
+    sparse : {False, True}
+        Use sparse eigensolver.
+
+    Returns
+    -------
+    hellinger_dist : float
+        Quantum Hellinger distance between A and B. Ranges from 0 to sqrt(2).
+
+    Examples
+    --------
+    >>> x=fock_dm(5,3)
+    >>> y=coherent_dm(5,1)
+    >>> hellinger_dist(x,y)
+    1.3725145002591095
+
+    """
+    if A.dims != B.dims:
+        raise TypeError("A and B do not have same dimensions.")
+
+    if A.isket or A.isbra:
+        sqrtmA = ket2dm(A)
+    else:
+        sqrtmA = A.sqrtm(sparse=sparse, tol=tol)
+    if B.isket or B.isbra:
+        sqrtmB = ket2dm(B)
+    else:
+        sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
+
+    product = sqrtmA*sqrtmB
+
+    eigs = sp_eigs(product.data,
+                   isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
+    #np.maximum() is to avoid nan appearing sometimes due to numerical
+    #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
+    #when hellinger_dist(A, B) is called for A=B
+    return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):

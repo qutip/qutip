@@ -346,53 +346,6 @@ class Dicke(object):
         result = pim.solve(initial_state, tlist, options=None)
         return result
 
-    def prune_eigenstates(self, liouvillian):
-        """Remove spurious eigenvalues and eigenvectors of the Liouvillian.
-
-        Spurious means that the given eigenvector has elements outside of the
-        block-diagonal matrix.
-
-        Parameters
-        ----------
-        liouvillian_eigenstates: list
-            A list with the eigenvalues and eigenvectors of the Liouvillian
-            including spurious ones.
-
-        Returns
-        -------
-        correct_eigenstates: list
-            The list with the correct eigenvalues and eigenvectors of the
-            Liouvillian.
-        """
-        liouvillian_eigenstates = liouvillian.eigenstates()
-        N = self.N
-        block_mat = block_matrix(N)
-        nnz_tuple_bm = [(i, j) for i, j in zip(*block_mat.nonzero())]
-
-        # 0. Create  a copy of the eigenvalues to approximate values
-        eig_val, eig_vec = liouvillian_eigenstates
-        tol = 10
-        eig_val_round = np.round(eig_val, tol)
-
-        # 2. Use 'block_matrix(N)' to remove eigenvectors with matrix
-        # elements
-        # outside of the block matrix.
-        forbidden_eig_index = []
-        for k in range(0, len(eig_vec)):
-            dm = vector_to_operator(eig_vec[k])
-            nnz_tuple = [(i, j) for i, j in zip(*dm.data.nonzero())]
-            for i in nnz_tuple:
-                if i not in nnz_tuple_bm:
-                    if np.round(dm[i], tol) != 0:
-                        forbidden_eig_index.append(k)
-
-        forbidden_eig_index = np.array(list(set(forbidden_eig_index)))
-        # 3. Remove the forbidden eigenvalues and eigenvectors.
-        correct_eig_val = np.delete(eig_val, forbidden_eig_index)
-        correct_eig_vec = np.delete(eig_vec, forbidden_eig_index)
-        correct_eigenstates = correct_eig_val, correct_eig_vec
-        return correct_eigenstates
-
     def c_ops(self):
         """Build collapse operators in the full Hilbert space 2^N.
 

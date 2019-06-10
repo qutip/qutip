@@ -147,6 +147,9 @@ class TestQubitCircuit:
         test_gate = Gate("RZ", targets=[1], arg_value = 1.570796,
                          arg_label="P")
         qc.add_gate(test_gate)
+        qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
+        qc.add_gate("SNOT", targets=[3])
+        qc.add_gate(test_gate, index = [3])
 
         # Test explicit gate addition
         assert_(qc.gates[0].name == "CNOT")
@@ -157,6 +160,11 @@ class TestQubitCircuit:
         assert_(qc.gates[1].name == test_gate.name)
         assert_(qc.gates[1].targets == test_gate.targets)
         assert_(qc.gates[1].controls == test_gate.controls)
+
+        # Test specified position gate addition
+        assert_(qc.gates[3].name == test_gate.name)
+        assert_(qc.gates[3].targets == test_gate.targets)
+        assert_(qc.gates[3].controls == test_gate.controls)
 
     def test_add_state(self):
         """

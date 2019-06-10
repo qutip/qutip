@@ -77,7 +77,7 @@ class qutip_zvode(zvode):
 def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
             args={}, options=Options(),
             progress_bar=True, map_func=parallel_map, map_kwargs={},
-            _safe_mode=True):
+            _safe_mode=True, _exp=False):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -200,9 +200,9 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
 
-
     # load monte carlo class
-    mc = _MC(options)
+    mc = _MC(options, _exp)
+
 
     if isinstance(H, SolverSystem):
         mc.ss = H
@@ -234,7 +234,7 @@ class _MC():
     """
     Private class for solving Monte Carlo evolution from mcsolve
     """
-    def __init__(self, options=Options()):
+    def __init__(self, options=Options(), _exp=False):
         self.options = options
         self.ss = None
         self.tlist = None
@@ -250,6 +250,9 @@ class _MC():
         self._expect_out = []
         self._collapse = []
         self._ss_out = []
+
+        # Flag
+        self._experimental = _exp
 
     def reset(self, t=0., psi0=None):
         if psi0 is not None:
@@ -463,37 +466,40 @@ class _MC():
     @property
     def states(self):
         dims = self.psi0.dims[0]
+        len_ = self._psi_out.shape[2]
         if self._psi_out.shape[1] == 1:
-            psi_dm = np.empty((self.num_traj, 1), dtype=object)
+            dm_t = np.zeros((len_, len_), dtype=complex)
             for i in range(self.num_traj):
-                tmp = Qobj(self._psi_out[i,0,:].reshape((-1,1)))
-                tmp = tmp * tmp.dag()
-                tmp.dims = [dims, dims]
-                psi_dm[i,0] = tmp
-            states = parfor(_mc_dm_avg, psi_dm.T)
-            return states[0]
+                vec = self._psi_out[i,0,:] # .reshape((-1,1))
+                dm_t += np.outer(vec, vec.conj())
+            return Qobj(dm_t/self.num_traj, dims=[dims, dims])
         else:
-            psi_dm = np.empty((self.num_traj, len(self.tlist)), dtype=object)
-            for i in range(self.num_traj):
-                for j in range(len(self.tlist)):
-                    tmp = Qobj(self._psi_out[i,j,:].reshape((-1,1)))
-                    tmp = tmp * tmp.dag()
-                    tmp.dims = [dims, dims]
-                    psi_dm[i,j] = tmp
-            states = np.array(parfor(_mc_dm_avg, psi_dm.T), dtype=object)
+            states = np.empty((len(self.tlist)), dtype=object)
+            for j in range(len(self.tlist)):
+                dm_t = np.zeros((len_, len_), dtype=complex)
+                for i in range(self.num_traj):
+                    vec = self._psi_out[i,j,:] # .reshape((-1,1))
+                    dm_t += np.outer(vec, vec.conj())
+                states[j] = Qobj(dm_t/self.num_traj, dims=[dims, dims])
             return states
 
     @property
     def final_state(self):
         dims = self.psi0.dims[0]
-        psi_dm = np.empty((self.num_traj, 1), dtype=object)
+        len_ = self._psi_out.shape[2]
+        dm_t = np.zeros((len_, len_), dtype=complex)
         for i in range(self.num_traj):
-            tmp = Qobj(self._psi_out[i,-1,:].reshape((-1,1)))
-            tmp = tmp * tmp.dag()
-            tmp.dims = [dims, dims]
-            psi_dm[i,0] = tmp
-        states = parfor(_mc_dm_avg, psi_dm.T)
-        return states[0]
+            vec = self._psi_out[i,-1,:]
+            dm_t += np.outer(vec, vec.conj())
+        return Qobj(dm_t/self.num_traj, dims=[dims, dims])
+
+    @property
+    def runs_final_states(self):
+        dims = self.psi0.dims[0]
+        psis = np.empty((self.num_traj), dtype=object)
+        for i in range(self.num_traj):
+            psis[i] = Qobj(self._psi_out[i,-1,:].reshape((-1,1)), dims=dims)
+        return psis
 
     @property
     def expect(self):
@@ -583,13 +589,16 @@ class _MC():
 
         if options.steady_state_average:
             output.states = self.steady_state
-        elif options.average_states:
+        elif options.average_states and options.store_states:
             output.states = self.states
         elif options.store_states:
             output.states = self.runs_states
 
         if options.store_final_state:
-            output.final_state = self.final_state
+            if not self._experimental or options.average_states:
+                output.final_state = self.final_state
+            else:
+                output.final_state = self.runs_final_states
 
         if options.average_expect:
             output.expect = [self.expect_traj_avg(n) for n in ntraj]
