@@ -233,7 +233,7 @@ class OptPulseProcessor(CircuitProcessor):
             warnings.warn("{}".format(e))
         return self.tlist, self.amps
 
-    def load_circuit(self, qc, n_ts, evo_time, verbose=False, **kwargs):
+    def load_circuit(self, qc, n_ts, evo_time, min_fid_err=np.inf, verbose=False, **kwargs):
         """
         Translates an abstract quantum circuit to its corresponding 
         Hamiltonian with `optimize_pulse_unitary`.
@@ -277,20 +277,16 @@ class OptPulseProcessor(CircuitProcessor):
             U_targ = props[prop_ind]
             U_0 = identity(U_targ.dims[0])
 
-            # TODO: different settings for different gates?
+            # TODO: different settings for different gates? How?
             result = cpo.optimize_pulse_unitary(self.drift, self.ctrls, U_0, 
                 U_targ, n_ts[prop_ind], evo_time[prop_ind], **kwargs)
 
-            # TODO: To prevent repitition, pulse for certain gates can 
-            # be cached?
+            # TODO: To prevent repitition, pulse for the same can 
+            # be cached and reused?
 
-            # TODO: Give warning if the find pulse fails 
-            # might be useful:
-            # result.termination_reason
-            # result.fidelity
-            # result.goal_achieved
-            # result.final_amps
-            # result.evo_full_final
+            if result.fid_err > min_fid_err:
+                warnings.warn("The fidelity error of gate {} is higher "
+                    "than required limit".format(prop_ind))
 
             # append time_record to tlist but not time_record[-1] 
             # since len(time_record) = len(amps_record) + 1

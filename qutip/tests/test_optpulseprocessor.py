@@ -47,7 +47,7 @@ def test_simple_hadamard():
     n_ts = 10
     evo_time = 10
     test = OptPulseProcessor(N, H_d, H_c)
-    tlist, amps = test.load_circuit(qc, n_ts, evo_time,)
+    tlist, amps = test.load_circuit(qc, n_ts=n_ts, evo_time=evo_time, verbose=True)
 
     # test run_state
     rho0 = qubit_states(1, [0])
@@ -86,7 +86,7 @@ def test_multi_qubits():
 
     # test pulse genration for cnot gate
     qc = [tensor([identity(2), cnot()])]
-    test.load_circuit(qc, n_ts, evo_time)
+    test.load_circuit(qc, n_ts=n_ts, evo_time=evo_time, min_fid_err=1.0e-6)
     rho0 = qubit_states(3, [1,1,1])
     rho1 = qubit_states(3, [1,1,0])
     result = test.run_state(rho0, dt = 0.003)
@@ -120,7 +120,7 @@ def test_multi_gates():
     qc.add_gate("SNOT", 0)
     qc.add_gate("SWAP", targets = [0, 1])
     qc.add_gate('CNOT', controls = 1, targets = [0])
-    test.load_circuit(qc, n_ts, evo_time)
+    test.load_circuit(qc, n_ts=n_ts, evo_time=evo_time)
 
     rho0 = rand_ket(4) # use random generated ket state
     rho0.dims = [[2,2],[1,1]]
