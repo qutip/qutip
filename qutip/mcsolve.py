@@ -200,9 +200,9 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
 
-
     # load monte carlo class
     mc = _MC(options, _exp)
+
 
     if isinstance(H, SolverSystem):
         mc.ss = H
