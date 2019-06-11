@@ -98,7 +98,7 @@ cdef class CQobjCteOmp(CQobjCte):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec, int isherm):
+    cdef complex _expect(self, double t, complex* vec):
         cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy_openmp(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
                &y[0], self.shape0, self.nthr)
@@ -106,10 +106,7 @@ cdef class CQobjCteOmp(CQobjCte):
         cdef complex dot = 0
         for row from 0 <= row < self.shape0:
             dot += conj(vec[row])*y[row]
-        if isherm:
-            return real(dot)
-        else:
-            return dot
+        return dot
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -138,7 +135,10 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
-        self._factor(t)
+        cdef int[2] shape
+        shape[0] = self.shape1
+        shape[1] = 1
+        self._factor_dyn(t, vec, shape)
         cdef int i
         spmvpy_openmp(self.cte.data, self.cte.indices, self.cte.indptr, vec,
                1., out, self.shape0, self.nthr)
@@ -151,7 +151,10 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
     @cython.cdivision(True)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self._factor(t)
+        cdef int[2] shape
+        shape[0] = nrow
+        shape[1] = ncol
+        self._factor_dyn(t, mat, shape)
         cdef int i
         _spmmfpy_omp(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
@@ -164,7 +167,10 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
     @cython.cdivision(True)
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self._factor(t)
+        cdef int[2] shape
+        shape[0] = nrow
+        shape[1] = ncol
+        self._factor_dyn(t, mat, shape)
         cdef int i
         _spmmcpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
@@ -183,7 +189,10 @@ cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
-        self._factor(t)
+        cdef int[2] shape
+        shape[0] = self.shape1
+        shape[1] = 1
+        self._factor_dyn(t, vec, shape)
         self._call_core(self.data_t, self.coeff_ptr)
         spmvpy_openmp(self.data_ptr, &self.indices[0], &self.indptr[0], vec,
                1., out, self.shape0, self.nthr)
@@ -193,7 +202,10 @@ cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
     @cython.cdivision(True)
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self._factor(t)
+        cdef int[2] shape
+        shape[0] = nrow
+        shape[1] = ncol
+        self._factor_dyn(t, mat, shape)
         self._call_core(self.data_t, self.coeff_ptr)
         _spmmfpy_omp(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
@@ -203,7 +215,10 @@ cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
     @cython.cdivision(True)
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                         int nrow, int ncol):
-        self._factor(t)
+        cdef int[2] shape
+        shape[0] = nrow
+        shape[1] = ncol
+        self._factor_dyn(t, mat, shape)
         self._call_core(self.data_t, self.coeff_ptr)
         _spmmcpy_par(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
