@@ -730,12 +730,9 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
         Shape of operator.  If omitted, a square operator large enough
         to contain the diagonals is generated.
 
-    See Also
-    --------
-    scipy.sparse.diags for usage information.
-
     Notes
     -----
+    See also `scipy.sparse.diags` for usage information.
     This function requires SciPy 0.11+.
 
     Examples

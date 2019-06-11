@@ -36,6 +36,7 @@ __all__ = ['eseries', 'esval', 'esspec', 'estidy']
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
+import qutip as qt
 
 
 class eseries():
