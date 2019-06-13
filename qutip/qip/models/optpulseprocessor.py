@@ -7,113 +7,72 @@ import matplotlib.pyplot as plt
 
 from qutip.qobj import Qobj
 import qutip.control.pulseoptim as cpo
-from qutip.operators import identity
+from qutip.operators import identity, sigmax, sigmaz, destroy
+from qutip.qip.gates import expand_oper
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 
-def expand_oper(oper, N, targets):
-    """
-    Expand an operator to dimension N acting on the targeting qubits.
-
-    Parameters
-    ----------
-    oper : `Qobj`
-        An operator acts on qubits, the type of the `Qobj` 
-        has to be an operator 
-        and the dimension matches the tensored qubit Hilbertspace
-        e.g. dims = [[2,2,2],[2,2,2]]
-    N : int
-        The number of qubits in the system.
-    targets : int or list of int
-        The indices of qubits that are acted on.
-
-    Note
-    ----
-    This is equivalent to gate_expand_1toN, gate_expand_2toN,
-    gate_expand_3toN in `qutip.qip.gate.py`, but works for any dimension.
-    """
-    req_num = len(oper.dims[0])
-    if req_num > N:
-        raise ValueError("The dimension of the operator "
-            "cannot be larger than the system dimension "
-            "N={}.".format(N))
-
-    # Check validity of targets
-    if targets is None:
-        targets = list(range(len(oper.dims[0])))
-    elif isinstance(targets, numbers.Integral):
-        targets = [targets]
-    elif isinstance(targets, Iterable):  # correct type
-        if not all([isinstance(t, numbers.Integral) for t in targets]):
-            raise ValueError("targets should be "
-                "an integer or a list of integer, but {} "
-                "was given.".format(targets))
-        if len(targets) != req_num:  # correct number of targets
-            raise ValueError("The given Hamiltonian needs {} "
-                "target qutbis, "
-                "but {} qubits was given.".format(
-                    req_num, len(targets)))
-    else:
-        raise ValueError("targets should be "
-            "an integer or a list of integer, but {} "
-            "was given.".format(targets))
-
-    # Generate the correct order for qubits permutation, 
-    # eg. if N = 5, targets = [3,0], the order is [1,3,2,0,4]. 
-    # If the operator is cnot, 
-    # this order means that the 3rd qubit control the 0th qubit.
-    new_order = list(range(N))
-    old_ind = range(len(targets)) 
-    for i in old_ind:
-        new_order[targets[i]] = i
-    old_ind_set = set(old_ind)
-    targets_set = set(targets)
-    mod_value = targets_set.difference(old_ind_set)
-    mod_ind = old_ind_set.difference(targets_set)
-    for ind, value in zip(mod_ind, mod_value):
-        new_order[ind] = value
-    return tensor([oper] + [identity(2)]*(N-len(targets))).permute(new_order)
 
 class OptPulseProcessor(CircuitProcessor):
     """
-    A circuit processr, which takes the Hamiltonian available 
-    as dynamic generators, calls the `optimize_pulse` function 
-    to find an optimized pulse sequence. The proessor can then
-    calculate the state evolution under this defined dynamics 
+    A circuit processor, which takes the Hamiltonian available
+    as dynamic generators, calls the `optimize_pulse` function
+    to find an optimized pulse sequence. The processor can then
+    calculate the state evolution under this defined dynamics
     using 'mesolve'.
 
     Parameters
     ----------
     N : int
         The number of qubits in the system.
-    drift : Qobj
-        The drift Hamiltonian with no time dependent amplitude.
-    ctrls : list of Qobj
+    drift : :class:`Qobj`
+        The drift Hamiltonian with no time-dependent amplitude.
+    ctrls : list of :class:`Qobj`
         The control Hamiltonian whose amplitude will be optimized.
+    T1 : list or float
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+    T2 : list of float
+        Characterize the decoherence of dephase relaxation for
+        each qubit.
 
     Attributes
     ----------
     tlist : array like
         A NumPy array specifies the time steps.
     amps : array like
-        A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each 
-        row corresponds to the control pulse sequence for 
-        one Hmiltonian.
+        A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+        row corresponds to the control pulse sequence for
+        one Hamiltonian.
     """
-    def __init__(self, N, drift=None, ctrls=[]):
+    def __init__(self, N, drift=None, ctrls=None, T1=np.inf, T2=np.inf):
         self.N = N
         self.ctrls = []
-        if drift == None:
+        if drift is None:
             self.drift = tensor([identity(2)] * N)
         else:
-            self.add_ctrl(drift) # just make use of existing method
+            self.add_ctrl(drift)  # just make use of existing method
             self.drift = self.ctrls.pop(0)
-        for H in ctrls:
-            self.add_ctrl(H)
+        if ctrls is not None:
+            for H in ctrls:
+                self.add_ctrl(H)
         self.tlist = np.empty(0)
-        self.amps = np.empty(0)
+        self.amps = np.empty((0,0))
+
+        if isinstance(T1, numbers.Real) and T1>0:
+            self.T1 = [T1] * N
+        elif isinstance(T1, Iterable) and len(T1)==N:
+            self.T1 = T1
+        else:
+            raise ValueError("Invalid input T1={}".format(T1))
+        if isinstance(T2, numbers.Real) and T2>0:
+            self.T2 = [T2] * N
+        elif isinstance(T2, Iterable) and len(T2)==N:
+            self.T2 = T2
+        else:
+            raise ValueError("Invalid input T2={}".format(T2))
 
     def add_ctrl(self, ctrl, targets=None, expand_type=None):
         """
@@ -126,22 +85,22 @@ class OptPulseProcessor(CircuitProcessor):
         targets : list of int
             The indices of qubits that are acted on.
         expand_type : string
-            The tyoe of expantion
+            The tyoe of expansion
             None - only expand for the given target qubits
-            "periodic" - the hamiltonian is to be expanded for 
+            "periodic" - the Hamiltonian is to be expanded for
                 all cyclic permutation of target qubits
         """
         # Check validity of ctrl
         if not isinstance(ctrl, Qobj):
             raise TypeError("The Hamiltonian must be a qutip.Qobj.")
         if not ctrl.isherm:
-            raise ValueError("The Hamiltonian must be hermitian.")
+            raise ValueError("The Hamiltonian must be Hermitian.")
 
         d = len(ctrl.dims[0])
         if targets is None:
             targets = list(range(d))
 
-        if expand_type is None: 
+        if expand_type is None:
             if d == self.N:
                 self.ctrls.append(ctrl)
             else:
@@ -152,7 +111,8 @@ class OptPulseProcessor(CircuitProcessor):
                 self.ctrls.append(
                     expand_oper(ctrl, self.N, new_targets))
         else:
-            raise ValueError("expand_type can only be None or 'periodic', "
+            raise ValueError(
+                "expand_type can only be None or 'periodic', "
                 "not {}".format(expand_type))
 
     def remove_ctrl(self, indices):
@@ -175,13 +135,15 @@ class OptPulseProcessor(CircuitProcessor):
         amps_len = self.amps.shape[1]
         tlist_len = self.tlist.shape[0]
         if amps_len != tlist_len:
-            raise ValueError("tlist has length of {} while amps "
+            raise ValueError(
+                "tlist has length of {} while amps "
                 "has {}".format(tlist_len, amps_len))
 
     def _is_ctrl_amps_valid(self):
         if self.amps.shape[0] != len(self.ctrls):
-            raise ValueError("The control amplitudes does not match the " 
-            "number of control Hamiltonians")
+            raise ValueError(
+                "The control amplitude matrix do not match the "
+                "number of control Hamiltonians")
 
     def _is_amps_valid(self):
         self._is_time_amps_valid()
@@ -212,7 +174,7 @@ class OptPulseProcessor(CircuitProcessor):
 
     def read_amps(self, file_name, inctime=True):
         """
-        Read the pulse amplitudes save in the file by `save_amp`
+        Read the pulse amplitude matrix save in a file by `save_amp`
 
         Parameters
         ----------
@@ -225,17 +187,20 @@ class OptPulseProcessor(CircuitProcessor):
         if not inctime:
             self.amps = data.T
         else:
-            self.tlist = data[:,0]
-            self.amps = data[:,1:].T
+            self.tlist = data[:, 0]
+            self.amps = data[:, 1:].T
         try:
             self._is_amps_valid()
         except Exception as e:
             warnings.warn("{}".format(e))
         return self.tlist, self.amps
 
-    def load_circuit(self, qc, n_ts, evo_time, min_fid_err=np.inf, verbose=False, **kwargs):
+
+    def load_circuit(
+            self, qc, n_ts, evo_time,
+            min_fid_err=np.inf, verbose=False, **kwargs):
         """
-        Translates an abstract quantum circuit to its corresponding 
+        Translates an abstract quantum circuit to its corresponding
         Hamiltonian with `optimize_pulse_unitary`.
 
         Parameters
@@ -254,16 +219,17 @@ class OptPulseProcessor(CircuitProcessor):
         tlist : array like
             A NumPy array specifies the time steps.
         amps : array like
-            A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each 
-            row corresponds to the control pulse sequence for 
-            one Hmiltonian.
+            A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+            row corresponds to the control pulse sequence for
+            one Hamiltonian.
         """
         if isinstance(qc, QubitCircuit):
             props = qc.propagators()
         elif isinstance(qc, Iterable):
             props = qc
         else:
-            raise ValueError("qc should be a "
+            raise ValueError(
+                "qc should be a "
                 "QubitCircuit or a list of Qobj")
         if isinstance(n_ts, numbers.Integral):
             n_ts = [n_ts] * len(props)
@@ -277,34 +243,37 @@ class OptPulseProcessor(CircuitProcessor):
             U_targ = props[prop_ind]
             U_0 = identity(U_targ.dims[0])
 
-            # TODO: different settings for different gates? How?
-            result = cpo.optimize_pulse_unitary(self.drift, self.ctrls, U_0, 
+            # TODO: different settings for different oper in qc? How?
+            result = cpo.optimize_pulse_unitary(
+                self.drift, self.ctrls, U_0,
                 U_targ, n_ts[prop_ind], evo_time[prop_ind], **kwargs)
 
-            # TODO: To prevent repitition, pulse for the same can 
+            # TODO: To prevent repitition, pulse for the same oper can
             # be cached and reused?
 
             if result.fid_err > min_fid_err:
-                warnings.warn("The fidelity error of gate {} is higher "
+                warnings.warn(
+                    "The fidelity error of gate {} is higher "
                     "than required limit".format(prop_ind))
 
-            # append time_record to tlist but not time_record[-1] 
+            # append time_record to tlist but not time_record[-1]
             # since len(time_record) = len(amps_record) + 1
             if prop_ind == 0:
                 time_record.append(result.time[:-1])
             else:
                 time_record.append(result.time[:-1] + last_time)
-            
+
             last_time += result.time[-1]
             amps_record.append(result.final_amps.T)
 
             if verbose:
                 print("********** Gate {} **********".format(prop_ind))
                 print("Final fidelity error {}".format(result.fid_err))
-                print("Final gradient normal {}".format(result.grad_norm_final))
+                print("Final gradient normal {}".format(
+                                                result.grad_norm_final))
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
-        
+
         self.tlist = np.hstack(time_record)
         self.amps = np.hstack(amps_record)
         return self.tlist, self.amps
@@ -312,12 +281,8 @@ class OptPulseProcessor(CircuitProcessor):
     def _refine_step(self, tlist, amps, dt):
         """
         Refine the NumPy amplitude. It is useful if the amps
-        is given by analytical solution or the step size is 
-        too large
-
-        Parameters
-        ----------
-        amps = 
+        is given by analytical solution or the step size is
+        too large.
         """
         # For now it only works if tlist is equidistant
         origin_dt = tlist[1:]-tlist[:-1]
@@ -331,18 +296,16 @@ class OptPulseProcessor(CircuitProcessor):
             raise NotImplementedError(
                 "Works only for tlist with equal distance.")
 
-    def run_state(self, rho0, dt=None, **kwargs):
+    def run_state(self, rho0, **kwargs):
         """
-        Use mesolve to calculate the time of the state evolution 
-        and return the result. Other arguments of mesolve can be 
+        Use mesolve to calculate the time of the state evolution
+        and return the result. Other arguments of mesolve can be
         given as kwargs.
 
         Parameters
         ----------
         rho0 : Qobj
             Initial density matrix or state vector (ket).
-        dt : float
-            Time step for mesolve
         **kwargs
             Key word arguments for `mesolve`
 
@@ -350,33 +313,109 @@ class OptPulseProcessor(CircuitProcessor):
         -------
         evo_result : :class:`qutip.Result`
             An instance of the class :class:`qutip.Result`, which contains
-            either an *array* `result.expect` of expectation values for 
-            the times specified by `tlist`, or an *array* `result.states` 
-            of state vectors or density matrices corresponding to 
+            either an *array* `result.expect` of expectation values for
+            the times specified by `tlist`, or an *array* `result.states`
+            of state vectors or density matrices corresponding to
             the times in `tlist` [if `e_ops` is
-            an empty list], or nothing if a callback function was 
+            an empty list], or nothing if a callback function was
             given in place of
             operators for which to calculate the expectation values.
         """
+        if "H" in kwargs or "args" in kwargs:
+            raise ValueError(
+                "`H` and `args` are already specified by the processor "
+                "and can not be given as a key word argument")
         self._is_amps_valid()
-        if self.tlist.size==0:
-            return rho0
-        
-        # refine the time slice for mesolve with time step dt
-        if dt!=None: 
-            tlist, amps = self._refine_step(self.tlist, self.amps, dt)
-        else:
-            tlist, amps = self.tlist, self.amps
 
+        # refine the time slice for mesolve with time step dt
+        # if dt is not None and self.tlist.shape[0] != 0:
+        #     tlist, amps = self._refine_step(self.tlist, self.amps, dt)
+        # else:
+        #     tlist, amps = self.tlist, self.amps
+        amps = self.amps
+        tlist = self.tlist
+        
+        # if no control pulse specified (id evolution with c_ops)
+        if self.tlist.shape[0] == 0:
+            if "tlist" in kwargs:
+                tlist = kwargs["tlist"]
+                del kwargs["tlist"]
+            else:
+                raise ValueError (
+                    "`tlist` has to be given as a key word argument "
+                    "if there is no control pulse")
+        elif self.tlist.shape[0] != 0 and "tlist" in kwargs:
+            raise ValueError(
+                "`tlist` is already specified by the processor, "
+                "thus can not be given as a key word argument")
+            
+        # contruct time-dependent Hamiltonian
+        dt = tlist[-1]-tlist[-2]
+        tlist = np.hstack([tlist, dt+tlist[-1]])
+        if amps.shape[1]==0:
+            amps = np.ones(len(tlist)-1).reshape((1,len(tlist)-1))
+        else:
+            # amps = np.vstack([np.ones(len(tlist)), amps])
+            amps = np.vstack([np.ones(len(tlist)-1), amps])
+        # TODO modefy the structure so that 
+        # tlist does not have to be equaldistant
+        def get_amp_td_func(t, args, row_ind):
+            """
+            This is the func as it is implemented in
+            `qutip.rhs_generate._td_wrap_array_str`
+            """
+            print(row_ind)
+            times = args['times']
+            amps = args['amps'][row_ind]
+            n_t = len(times)
+            t_f = times[-1]
+            if t >= t_f:
+                return 0.0
+            else:
+                return amps[int(np.floor((n_t-1)*t/t_f))]
         if self.drift is not None:
-            H = [self.drift]
+            H = [[self.drift, lambda t,args: get_amp_td_func(t,args,0)]]
         else:
             H = []
-        for i in range(len(self.ctrls)):
-            H.append([self.ctrls[i], amps[i]])
+        for op_ind in range(len(self.ctrls)):
+            # row_ind=op_ind+1 cannot be deleted
+            # see Late Binding Closures for detail
+            H.append(
+                [self.ctrls[op_ind], 
+                lambda t,args,row_ind=op_ind+1: # +1 because 0 is drift
+                    get_amp_td_func(t,args,row_ind)])
+
+        # add collapse for T1 & T2 decay
+        sys_c_ops = []
+        for qu_ind in range(self.N):
+            T1 = self.T1[qu_ind]
+            T2 = self.T2[qu_ind]
+            if not np.isinf(T1):
+                sys_c_ops.append(
+                    expand_oper(
+                        1/np.sqrt(T1) * destroy(2), self.N, qu_ind))
+            if not np.isinf(T2):
+                # Keep the total dephasing ~ exp(-t/T2)
+                if not np.isinf(T1):
+                    if 2*T1<T2:
+                        raise ValueError(
+                            "T1={}, T2={} does not fulfill "
+                            "2*T1>T2".format(T1, T2))
+                    T2_eff = 1./(1./T2-1./2./T1)
+                else:
+                    T2_eff = T2
+                sys_c_ops.append(
+                    expand_oper(  
+                        1/np.sqrt(2*T2_eff) * sigmaz(), self.N, qu_ind))
+        if "c_ops" in kwargs:
+            kwargs["c_ops"] += sys_c_ops
+        else:
+            kwargs["c_ops"] = sys_c_ops
+
+        evo_result = mesolve(
+            H=H, rho0=rho0, tlist=tlist, 
+                args={'times': tlist, 'amps': amps}, **kwargs)
         
-        evo_result = mesolve(H, rho0, tlist, **kwargs)
-        # TODO: Is it possible to only save the last state instead of all?
         return evo_result
 
     def plot_pulses(self, **kwargs):
@@ -391,7 +430,7 @@ class OptPulseProcessor(CircuitProcessor):
         Returns
         -------
         fig : matplotlib.figure.Figure
-            The Figure object for the plot.
+            The `Figure` object for the plot.
         ax : matplotlib.axes._subplots.AxesSubplot
             The axes for the plot.
         """
@@ -399,8 +438,8 @@ class OptPulseProcessor(CircuitProcessor):
         ax.set_ylabel("Control amplitude")
         ax.set_xlabel("Time")
         tlist = np.hstack([self.tlist, self.tlist[-1:0]])
-        amps = np.hstack([self.amps, self.amps[:,-1:0]])
+        amps = np.hstack([self.amps, self.amps[:, -1:0]])
         for i in range(self.amps.shape[0]):
-            ax.step(tlist, amps[i], where = 'post')
+            ax.step(tlist, amps[i], where='post')
         fig.tight_layout()
         return fig, ax

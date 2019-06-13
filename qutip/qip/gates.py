@@ -31,6 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from __future__ import division
+from collections.abc import Iterable
+import numbers
 
 import numpy as np
 import scipy.sparse as sp
@@ -1045,3 +1047,71 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
         p = [p[p1[p2[k]]] for k in range(N)]
 
     return tensor([U] + [identity(2)] * (N - 3)).permute(p)
+
+
+def expand_oper(oper, N, targets):
+    """
+    Expand an operator to dimension N acting on the targeting qubits.
+
+    Parameters
+    ----------
+    oper : `Qobj`
+        An operator acts on qubits, the type of the `Qobj`
+        has to be an operator
+        and the dimension matches the tensored qubit Hilbertspace
+        e.g. dims = [[2,2,2],[2,2,2]]
+    N : int
+        The number of qubits in the system.
+    targets : int or list of int
+        The indices of qubits that are acted on.
+
+    Note
+    ----
+    This is equivalent to gate_expand_1toN, gate_expand_2toN,
+    gate_expand_3toN in `qutip.qip.gate.py`, but works for any dimension.
+    """
+    req_num = len(oper.dims[0])
+    if req_num > N:
+        raise ValueError(
+            "The dimension of the operator "
+            "cannot be larger than the system dimension "
+            "N={}.".format(N))
+
+    # Check validity of targets
+    if targets is None:
+        targets = list(range(len(oper.dims[0])))
+    elif isinstance(targets, numbers.Integral):
+        targets = [targets]
+    elif isinstance(targets, Iterable):  # correct type
+        if not all([isinstance(t, numbers.Integral) for t in targets]):
+            raise ValueError(
+                "targets should be "
+                "an integer or a list of integer, but {} "
+                "was given.".format(targets))
+        if len(targets) != req_num:  # correct number of targets
+            raise ValueError(
+                "The given Hamiltonian needs {} "
+                "target qutbis, "
+                "but {} qubits was given.".format(
+                    req_num, len(targets)))
+    else:
+        raise ValueError(
+            "targets should be "
+            "an integer or a list of integer, but {} "
+            "was given.".format(targets))
+
+    # Generate the correct order for qubits permutation,
+    # eg. if N = 5, targets = [3,0], the order is [1,3,2,0,4].
+    # If the operator is cnot,
+    # this order means that the 3rd qubit control the 0th qubit.
+    new_order = list(range(N))
+    old_ind = range(len(targets))
+    for i in old_ind:
+        new_order[targets[i]] = i
+    old_ind_set = set(old_ind)
+    targets_set = set(targets)
+    mod_value = targets_set.difference(old_ind_set)
+    mod_ind = old_ind_set.difference(targets_set)
+    for ind, value in zip(mod_ind, mod_value):
+        new_order[ind] = value
+    return tensor([oper] + [identity(2)]*(N-len(targets))).permute(new_order)
