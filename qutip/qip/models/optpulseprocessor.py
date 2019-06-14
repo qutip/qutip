@@ -33,10 +33,10 @@ class OptPulseProcessor(CircuitProcessor):
         The control Hamiltonian whose amplitude will be optimized.
     T1 : list or float
         Characterize the decoherence of amplitude damping for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits
     T2 : list of float
         Characterize the decoherence of dephase relaxation for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits
 
     Attributes
     ----------
@@ -47,9 +47,8 @@ class OptPulseProcessor(CircuitProcessor):
         row corresponds to the control pulse sequence for
         one Hamiltonian.
     """
-    def __init__(self, N, drift=None, ctrls=None, T1=np.inf, T2=np.inf):
-        self.N = N
-        self.ctrls = []
+    def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None):
+        super(OptPulseProcessor, self).__init__(N, T1=T1, T2=T2)
         if drift is None:
             self.drift = tensor([identity(2)] * N)
         else:
@@ -58,143 +57,6 @@ class OptPulseProcessor(CircuitProcessor):
         if ctrls is not None:
             for H in ctrls:
                 self.add_ctrl(H)
-        self.tlist = np.empty(0)
-        self.amps = np.empty((0,0))
-
-        if isinstance(T1, numbers.Real) and T1>0:
-            self.T1 = [T1] * N
-        elif isinstance(T1, Iterable) and len(T1)==N:
-            self.T1 = T1
-        else:
-            raise ValueError("Invalid input T1={}".format(T1))
-        if isinstance(T2, numbers.Real) and T2>0:
-            self.T2 = [T2] * N
-        elif isinstance(T2, Iterable) and len(T2)==N:
-            self.T2 = T2
-        else:
-            raise ValueError("Invalid input T2={}".format(T2))
-
-    def add_ctrl(self, ctrl, targets=None, expand_type=None):
-        """
-        Add a ctrl Hamiltonian to the processor
-
-        Parameters
-        ----------
-        ctrl : Qobj
-            A hermitian Qobj representation of the driving Hamiltonian
-        targets : list of int
-            The indices of qubits that are acted on.
-        expand_type : string
-            The tyoe of expansion
-            None - only expand for the given target qubits
-            "periodic" - the Hamiltonian is to be expanded for
-                all cyclic permutation of target qubits
-        """
-        # Check validity of ctrl
-        if not isinstance(ctrl, Qobj):
-            raise TypeError("The Hamiltonian must be a qutip.Qobj.")
-        if not ctrl.isherm:
-            raise ValueError("The Hamiltonian must be Hermitian.")
-
-        d = len(ctrl.dims[0])
-        if targets is None:
-            targets = list(range(d))
-
-        if expand_type is None:
-            if d == self.N:
-                self.ctrls.append(ctrl)
-            else:
-                self.ctrls.append(expand_oper(ctrl, self.N, targets))
-        elif expand_type == "periodic":
-            for i in range(self.N):
-                new_targets = np.mod(np.array(targets)+i, self.N)
-                self.ctrls.append(
-                    expand_oper(ctrl, self.N, new_targets))
-        else:
-            raise ValueError(
-                "expand_type can only be None or 'periodic', "
-                "not {}".format(expand_type))
-
-    def remove_ctrl(self, indices):
-        """
-        Remove the ctrl Hamiltonian with given indices
-
-        Parameters
-        ----------
-        indices : int or list of int
-        """
-        if not isinstance(indices, Iterable):
-            indices = [indices]
-        for ind in indices:
-            if not isinstance(ind, numbers.Integral):
-                raise TypeError("Index must in an integer")
-            else:
-                del self.ctrls[ind]
-
-    def _is_time_amps_valid(self):
-        amps_len = self.amps.shape[1]
-        tlist_len = self.tlist.shape[0]
-        if amps_len != tlist_len:
-            raise ValueError(
-                "tlist has length of {} while amps "
-                "has {}".format(tlist_len, amps_len))
-
-    def _is_ctrl_amps_valid(self):
-        if self.amps.shape[0] != len(self.ctrls):
-            raise ValueError(
-                "The control amplitude matrix do not match the "
-                "number of control Hamiltonians")
-
-    def _is_amps_valid(self):
-        self._is_time_amps_valid()
-        self._is_ctrl_amps_valid()
-
-    def save_amps(self, file_name, inctime=True):
-        """
-        Save a file with the current control amplitudes in each timeslot
-
-        Parameters
-        ----------
-        file_name : string
-            Name of the file
-        inctime : boolean
-            True if the time list in included in the first column
-        """
-        self._is_amps_valid()
-
-        if inctime:
-            shp = self.amps.T.shape
-            data = np.empty([shp[0], shp[1] + 1], dtype=np.float)
-            data[:, 0] = self.tlist
-            data[:, 1:] = self.amps.T
-        else:
-            data = self.amps.T
-
-        np.savetxt(file_name, data, delimiter='\t', fmt='%1.16f')
-
-    def read_amps(self, file_name, inctime=True):
-        """
-        Read the pulse amplitude matrix save in a file by `save_amp`
-
-        Parameters
-        ----------
-        file_name : string
-            Name of the file
-        inctime : boolean
-            True if the time list in included in the first column
-        """
-        data = np.loadtxt(file_name, delimiter='\t')
-        if not inctime:
-            self.amps = data.T
-        else:
-            self.tlist = data[:, 0]
-            self.amps = data[:, 1:].T
-        try:
-            self._is_amps_valid()
-        except Exception as e:
-            warnings.warn("{}".format(e))
-        return self.tlist, self.amps
-
 
     def load_circuit(
             self, qc, n_ts, evo_time,
@@ -256,11 +118,10 @@ class OptPulseProcessor(CircuitProcessor):
                     "The fidelity error of gate {} is higher "
                     "than required limit".format(prop_ind))
 
-            # append time_record to tlist but not time_record[-1]
-            # since len(time_record) = len(amps_record) + 1
-            if prop_ind == 0:
-                time_record.append(result.time[:-1])
+            if prop_ind == len(props)-1:  # last
+                time_record.append(result.time + last_time)
             else:
+                # append time_record to tlist but not time_record[-1]
                 time_record.append(result.time[:-1] + last_time)
 
             last_time += result.time[-1]
@@ -332,11 +193,9 @@ class OptPulseProcessor(CircuitProcessor):
         #     tlist, amps = self._refine_step(self.tlist, self.amps, dt)
         # else:
         #     tlist, amps = self.tlist, self.amps
-        amps = self.amps
-        tlist = self.tlist
         
         # if no control pulse specified (id evolution with c_ops)
-        if self.tlist.shape[0] == 0:
+        if self.tlist is None:
             if "tlist" in kwargs:
                 tlist = kwargs["tlist"]
                 del kwargs["tlist"]
@@ -344,19 +203,18 @@ class OptPulseProcessor(CircuitProcessor):
                 raise ValueError (
                     "`tlist` has to be given as a key word argument "
                     "if there is no control pulse")
-        elif self.tlist.shape[0] != 0 and "tlist" in kwargs:
+        elif self.tlist is not None and "tlist" in kwargs:
             raise ValueError(
                 "`tlist` is already specified by the processor, "
                 "thus can not be given as a key word argument")
+        else:
+            tlist = self.tlist
             
         # contruct time-dependent Hamiltonian
-        dt = tlist[-1]-tlist[-2]
-        tlist = np.hstack([tlist, dt+tlist[-1]])
-        if amps.shape[1]==0:
+        if self.amps is None:
             amps = np.ones(len(tlist)-1).reshape((1,len(tlist)-1))
         else:
-            # amps = np.vstack([np.ones(len(tlist)), amps])
-            amps = np.vstack([np.ones(len(tlist)-1), amps])
+            amps = np.vstack([np.ones(len(tlist)-1), self.amps])
         # TODO modefy the structure so that 
         # tlist does not have to be equaldistant
         def get_amp_td_func(t, args, row_ind):
@@ -364,7 +222,6 @@ class OptPulseProcessor(CircuitProcessor):
             This is the func as it is implemented in
             `qutip.rhs_generate._td_wrap_array_str`
             """
-            print(row_ind)
             times = args['times']
             amps = args['amps'][row_ind]
             n_t = len(times)
@@ -390,13 +247,13 @@ class OptPulseProcessor(CircuitProcessor):
         for qu_ind in range(self.N):
             T1 = self.T1[qu_ind]
             T2 = self.T2[qu_ind]
-            if not np.isinf(T1):
+            if T1 is not None:
                 sys_c_ops.append(
                     expand_oper(
                         1/np.sqrt(T1) * destroy(2), self.N, qu_ind))
-            if not np.isinf(T2):
+            if T2 is not None:
                 # Keep the total dephasing ~ exp(-t/T2)
-                if not np.isinf(T1):
+                if T1 is not None:
                     if 2*T1<T2:
                         raise ValueError(
                             "T1={}, T2={} does not fulfill "
@@ -411,7 +268,6 @@ class OptPulseProcessor(CircuitProcessor):
             kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
-
         evo_result = mesolve(
             H=H, rho0=rho0, tlist=tlist, 
                 args={'times': tlist, 'amps': amps}, **kwargs)
@@ -437,9 +293,8 @@ class OptPulseProcessor(CircuitProcessor):
         fig, ax = plt.subplots(1, 1, **kwargs)
         ax.set_ylabel("Control amplitude")
         ax.set_xlabel("Time")
-        tlist = np.hstack([self.tlist, self.tlist[-1:0]])
-        amps = np.hstack([self.amps, self.amps[:, -1:0]])
+        amps = np.hstack([self.amps, self.amps[:, -1:]])
         for i in range(self.amps.shape[0]):
-            ax.step(tlist, amps[i], where='post')
+            ax.step(self.tlist, amps[i], where='post')
         fig.tight_layout()
         return fig, ax
