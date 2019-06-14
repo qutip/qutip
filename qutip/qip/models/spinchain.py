@@ -109,7 +109,7 @@ class SpinChain(CircuitProcessor):
         self.sx_u = np.zeros((len(gates), len(self.sx_ops)))
         self.sz_u = np.zeros((len(gates), len(self.sz_ops)))
         self.sxsy_u = np.zeros((len(gates), len(self.sxsy_ops)))
-        self.T_list = []
+        self.tlist = []
 
         n = 0
         for gate in gates:
@@ -121,7 +121,7 @@ class SpinChain(CircuitProcessor):
                 else:
                     self.sxsy_u[n, min(gate.targets)] = -g
                 T = np.pi / (4 * g)
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "SQRTISWAP":
@@ -131,21 +131,21 @@ class SpinChain(CircuitProcessor):
                 else:
                     self.sxsy_u[n, min(gate.targets)] = -g
                 T = np.pi / (8 * g)
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "RZ":
                 g = self.sz_coeff[gate.targets[0]]
                 self.sz_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "RX":
                 g = self.sx_coeff[gate.targets[0]]
                 self.sx_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "GLOBALPHASE":

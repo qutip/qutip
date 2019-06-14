@@ -270,9 +270,9 @@ class CircuitProcessor(object):
         U_list = []
         H_ops, H_u = self.get_ops_and_u()
 
-        for n in range(len(self.T_list)):
+        for n in range(len(self.tlist)):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
-            U = (-1j * H * self.T_list[n]).expm()
+            U = (-1j * H * self.tlist[n]).expm()
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
 
@@ -307,9 +307,9 @@ class CircuitProcessor(object):
         U_list = [states]
         H_ops, H_u = self.get_ops_and_u()
 
-        for n in range(len(self.T_list)):
+        for n in range(len(self.tlist)):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
-            U = (-1j * H * self.T_list[n]).expm()
+            U = (-1j * H * self.tlist[n]).expm()
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
 
@@ -330,7 +330,7 @@ class CircuitProcessor(object):
         dt = 0.01
         H_ops, H_u = self.get_ops_and_u()
 
-        t_tot = sum(self.T_list)
+        t_tot = sum(self.tlist)
         n_t = int(np.ceil(t_tot / dt))
         n_ops = len(H_ops)
 
@@ -338,9 +338,9 @@ class CircuitProcessor(object):
         u = np.zeros((n_ops, n_t))
 
         t_start = 0
-        for n in range(len(self.T_list)):
+        for n in range(len(self.tlist)):
 
-            t_idx_len = int(np.floor(self.T_list[n] / dt))
+            t_idx_len = int(np.floor(self.tlist[n] / dt))
 
             mm = 0
             for m in range(len(H_ops)):

@@ -260,7 +260,7 @@ class DispersivecQED(CircuitProcessor):
         self.sx_u = np.zeros((len(gates), len(self.sx_ops)))
         self.sz_u = np.zeros((len(gates), len(self.sz_ops)))
         self.g_u = np.zeros((len(gates), len(self.cavityqubit_ops)))
-        self.T_list = []
+        self.tlist = []
 
         n = 0
         for gate in gates:
@@ -275,7 +275,7 @@ class DispersivecQED(CircuitProcessor):
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
                 T = (4 * np.pi / abs(J)) / 4
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "SQRTISWAP":
@@ -288,21 +288,21 @@ class DispersivecQED(CircuitProcessor):
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
                 T = (4 * np.pi / abs(J)) / 8
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "RZ":
                 g = self.sz_coeff[gate.targets[0]]
                 self.sz_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "RX":
                 g = self.sx_coeff[gate.targets[0]]
                 self.sx_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.T_list.append(T)
+                self.tlist.append(T)
                 n += 1
 
             elif gate.name == "GLOBALPHASE":
