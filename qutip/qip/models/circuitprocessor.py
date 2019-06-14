@@ -30,28 +30,189 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+from collections.abc import Iterable
+import warnings
+import numbers
+
 import numpy as np
-from qutip.qip.gates import globalphase
+import matplotlib.pyplot as plt
+
+from qutip.qobj import Qobj
+import qutip.control.pulseoptim as cpo
+from qutip.operators import identity, sigmax, sigmaz, destroy
+from qutip.qip.gates import expand_oper
+from qutip.tensor import tensor
+from qutip.mesolve import mesolve
+from qutip.qip.circuit import QubitCircuit
+from qutip import globalphase
 
 
 class CircuitProcessor(object):
     """
-    Base class for representation of the physical implementation of a quantum
-    program/algorithm on a specified qubit system.
-    """
+    The base class for circuit processor, which is defined by the Hamiltonian available
+    as dynamic generators. It can find the the corresponding driving pulses,
+    either by analytical decomposition of by numerical method. 
+    The processor can then
+    calculate the state evolution under this defined dynamics
 
-    def __init__(self, N, correct_global_phase):
+    Parameters
+    ----------
+    N : int
+        The number of qubits in the system.
+    T1 : list or float
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+    T2 : list of float
+        Characterize the decoherence of dephase relaxation for
+        each qubit.
+
+    Attributes
+    ----------
+    tlist : array like
+        A NumPy array specifies the time steps.
+    amps : array like
+        A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+        row corresponds to the control pulse sequence for
+        one Hamiltonian.
+    """
+    def __init__(self, N, T1=None, T2=None):
+        self.N = N
+        self.tlist = np.empty(0)
+        self.amps = np.empty((0,0))
+        self.ctrls = []
+        
+        self.T1 = self._check_T_valid(T1, self.N)
+        self.T2 = self._check_T_valid(T2, self.N)
+
+    def _check_T_valid(self, T, N):
+        if (isinstance(T, numbers.Real) and T>0) or T is None:
+            return [T] * N
+        elif isinstance(T, Iterable) and len(T)==N:
+            if all([isinstance(t, numbers.Real) and t>0 for t in T]):
+                return T
+        else:
+            raise ValueError("Invalid relaxation time T={}".format(T))
+
+    def add_ctrl(self, ctrl, targets=None, expand_type=None):
         """
+        Add a ctrl Hamiltonian to the processor
+
         Parameters
         ----------
-        N: Integer
-            The number of qubits in the system.
-
-        correct_global_phase: Boolean
-            Check if the global phases should be included in the final result.
+        ctrl : Qobj
+            A hermitian Qobj representation of the driving Hamiltonian
+        targets : list of int
+            The indices of qubits that are acted on.
+        expand_type : string
+            The tyoe of expansion
+            None - only expand for the given target qubits
+            "periodic" - the Hamiltonian is to be expanded for
+                all cyclic permutation of target qubits
         """
-        self.N = N
-        self.correct_global_phase = correct_global_phase
+        # Check validity of ctrl
+        if not isinstance(ctrl, Qobj):
+            raise TypeError("The Hamiltonian must be a qutip.Qobj.")
+        if not ctrl.isherm:
+            raise ValueError("The Hamiltonian must be Hermitian.")
+
+        d = len(ctrl.dims[0])
+        if targets is None:
+            targets = list(range(d))
+
+        if expand_type is None:
+            if d == self.N:
+                self.ctrls.append(ctrl)
+            else:
+                self.ctrls.append(expand_oper(ctrl, self.N, targets))
+        elif expand_type == "periodic":
+            for i in range(self.N):
+                new_targets = np.mod(np.array(targets)+i, self.N)
+                self.ctrls.append(
+                    expand_oper(ctrl, self.N, new_targets))
+        else:
+            raise ValueError(
+                "expand_type can only be None or 'periodic', "
+                "not {}".format(expand_type))
+
+    def remove_ctrl(self, indices):
+        """
+        Remove the ctrl Hamiltonian with given indices
+
+        Parameters
+        ----------
+        indices : int or list of int
+        """
+        if not isinstance(indices, Iterable):
+            indices = [indices]
+        for ind in indices:
+            if not isinstance(ind, numbers.Integral):
+                raise TypeError("Index must in an integer")
+            else:
+                del self.ctrls[ind]
+
+    def _is_time_amps_valid(self):
+        amps_len = self.amps.shape[1]
+        tlist_len = self.tlist.shape[0]
+        if amps_len != tlist_len:
+            raise ValueError(
+                "tlist has length of {} while amps "
+                "has {}".format(tlist_len, amps_len))
+
+    def _is_ctrl_amps_valid(self):
+        if self.amps.shape[0] != len(self.ctrls):
+            raise ValueError(
+                "The control amplitude matrix do not match the "
+                "number of control Hamiltonians")
+
+    def _is_amps_valid(self):
+        self._is_time_amps_valid()
+        self._is_ctrl_amps_valid()
+
+    def save_amps(self, file_name, inctime=True):
+        """
+        Save a file with the current control amplitudes in each timeslot
+
+        Parameters
+        ----------
+        file_name : string
+            Name of the file
+        inctime : boolean
+            True if the time list in included in the first column
+        """
+        self._is_amps_valid()
+
+        if inctime:
+            shp = self.amps.T.shape
+            data = np.empty([shp[0], shp[1] + 1], dtype=np.float)
+            data[:, 0] = self.tlist
+            data[:, 1:] = self.amps.T
+        else:
+            data = self.amps.T
+
+        np.savetxt(file_name, data, delimiter='\t', fmt='%1.16f')
+
+    def read_amps(self, file_name, inctime=True):
+        """
+        Read the pulse amplitude matrix save in a file by `save_amp`
+
+        Parameters
+        ----------
+        file_name : string
+            Name of the file
+        inctime : boolean
+            True if the time list in included in the first column
+        """
+        data = np.loadtxt(file_name, delimiter='\t')
+        if not inctime:
+            self.amps = data.T
+        else:
+            self.tlist = data[:, 0]
+            self.amps = data[:, 1:].T
+        try:
+            self._is_amps_valid()
+        except Exception as e:
+            warnings.warn("{}".format(e))
+        return self.tlist, self.amps
 
     def optimize_circuit(self, qc):
         """

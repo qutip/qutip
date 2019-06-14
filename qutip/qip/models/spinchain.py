@@ -44,7 +44,7 @@ class SpinChain(CircuitProcessor):
     """
 
     def __init__(self, N, correct_global_phase=True,
-                 sx=None, sz=None, sxsy=None):
+                 sx=None, sz=None, sxsy=None, T1=None, T2=None):
         """
         Parameters
         ----------
@@ -57,8 +57,9 @@ class SpinChain(CircuitProcessor):
         sxsy: Integer/List
             The interaction strength for each of the qubit pair in the system.
         """
-
-        super(SpinChain, self).__init__(N, correct_global_phase)
+        super(SpinChain, self).__init__(N, T1=T1, T2=T2)
+        self.correct_global_phase = correct_global_phase
+        self.ctrls = []
 
         self.sx_ops = [tensor([sigmax() if m == n else identity(2)
                                for n in range(N)])
@@ -369,10 +370,11 @@ class LinearSpinChain(SpinChain):
     """
 
     def __init__(self, N, correct_global_phase=True,
-                 sx=None, sz=None, sxsy=None):
+                 sx=None, sz=None, sxsy=None, T1=None, T2=None):
 
         super(LinearSpinChain, self).__init__(N, correct_global_phase,
-                                              sx, sz, sxsy)
+                                              sx, sz, sxsy, T1, T2)
+        self.ctrls += self.sx_ops + self.sz_ops + self.sxsy_ops
 
     def get_ops_labels(self):
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
@@ -395,10 +397,10 @@ class CircularSpinChain(SpinChain):
     """
 
     def __init__(self, N, correct_global_phase=True,
-                 sx=None, sz=None, sxsy=None):
+                 sx=None, sz=None, sxsy=None, T1=None, T2=None):
 
         super(CircularSpinChain, self).__init__(N, correct_global_phase,
-                                                sx, sz, sxsy)
+                                                sx, sz, sxsy, T1, T2)
 
         x = [identity(2)] * N
         x[0] = x[N - 1] = sigmax()
@@ -412,6 +414,8 @@ class CircularSpinChain(SpinChain):
             self.sxsy_coeff = [sxsy * 2 * np.pi] * N
         else:
             self.sxsy_coeff = sxsy
+        # self.ctrls, self.amps = super(CircularSpinChain, self).get_ops_and_u()
+        self.ctrls += self.sx_ops + self.sz_ops + self.sxsy_ops
 
     def get_ops_labels(self):
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +

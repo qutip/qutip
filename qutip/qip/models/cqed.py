@@ -43,7 +43,7 @@ class DispersivecQED(CircuitProcessor):
     program/algorithm on a dispersive cavity-QED system.
     """
 
-    def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None,
+    def __init__(self, N, T1=None, T2=None, correct_global_phase=True, Nres=None, deltamax=None,
                  epsmax=None, w0=None, wq=None, eps=None, delta=None, g=None):
         """
         Parameters
@@ -73,7 +73,9 @@ class DispersivecQED(CircuitProcessor):
             The interaction strength for each of the qubit with the resonator.
         """
 
-        super(DispersivecQED, self).__init__(N, correct_global_phase)
+        super(DispersivecQED, self).__init__(N, T1=T1, T2=T2)
+        self.correct_global_phase = correct_global_phase
+        self.ctrls = []
 
         # user definable
         if Nres is None:
@@ -174,6 +176,8 @@ class DispersivecQED(CircuitProcessor):
 
         self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
+                               
+        self.ctrls = [self.a.dag() * self.a] + self.sx_ops + self.sz_ops + self.cavityqubit_ops
 
     def get_ops_and_u(self):
         H0 = self.a.dag() * self.a
