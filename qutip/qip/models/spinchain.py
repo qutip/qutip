@@ -34,10 +34,10 @@ import numpy as np
 from qutip.operators import sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.models.circuitprocessor import CircuitProcessor, ModelProcessor
 
 
-class SpinChain(CircuitProcessor):
+class SpinChain(ModelProcessor):
     """
     Representation of the physical implementation of a quantum
     program/algorithm on a spin chain qubit system.
@@ -57,7 +57,7 @@ class SpinChain(CircuitProcessor):
         sxsy: Integer/List
             The interaction strength for each of the qubit pair in the system.
         """
-        super(SpinChain, self).__init__(N, T1=T1, T2=T2)
+        super(SpinChain, self).__init__(N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
 

@@ -248,6 +248,23 @@ class CircuitProcessor(object):
         Returns the Hamiltonian operators and corresponding values by stacking
         them together.
         """
+        raise NotImplementedError("Use the function in the sub-class") 
+
+    def eliminate_auxillary_modes(self, U):
+        return U
+
+
+class ModelProcessor(CircuitProcessor):
+    def __init__(self, N, correct_global_phase=True, T1=None, T2=None):
+        super(ModelProcessor, self).__init__(N, T1=T1, T2=T2)
+        self.correct_global_phase = correct_global_phase
+        self.global_phase = 0.
+
+    def get_ops_labels(self):
+        """
+        Returns the Hamiltonian operators and corresponding labels by stacking
+        them together.
+        """
         raise NotImplementedError("Use the function in the sub-class")
 
     def run(self, qc=None):
@@ -289,10 +306,10 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc: :class:`qutip.qip.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
-        states: Qobj
+        states: :class:`qutip.Qobj`
             Initial state of the qubits in the register.
 
         Returns
@@ -300,6 +317,10 @@ class CircuitProcessor(object):
         U_list: list
             The propagator matrix obtained from the physical implementation.
         """
+        # TODO Here this variable was called states 
+        # in the old circuitprocessor,
+        # but there is actaully only one state,
+        # change to state? or rho0 like in the solver?
         if states is None:
             raise NotImplementedError("Qubit state not defined.")
         if qc:

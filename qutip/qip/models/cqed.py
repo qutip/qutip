@@ -34,17 +34,17 @@ import numpy as np
 import warnings
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.models.circuitprocessor import CircuitProcessor, ModelProcessor
 
 
-class DispersivecQED(CircuitProcessor):
+class DispersivecQED(ModelProcessor):
     """
     Representation of the physical implementation of a quantum
     program/algorithm on a dispersive cavity-QED system.
     """
 
-    def __init__(self, N, T1=None, T2=None, correct_global_phase=True, Nres=None, deltamax=None,
-                 epsmax=None, w0=None, wq=None, eps=None, delta=None, g=None):
+    def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None,
+                 epsmax=None, w0=None, wq=None, eps=None, delta=None, g=None, T1=None, T2=None):
         """
         Parameters
         ----------
@@ -73,7 +73,7 @@ class DispersivecQED(CircuitProcessor):
             The interaction strength for each of the qubit with the resonator.
         """
 
-        super(DispersivecQED, self).__init__(N, T1=T1, T2=T2)
+        super(DispersivecQED, self).__init__(N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
 
