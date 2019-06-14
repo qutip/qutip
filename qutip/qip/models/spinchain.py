@@ -361,6 +361,9 @@ class SpinChain(CircuitProcessor):
 
         return qc_t
 
+    def eliminate_auxillary_modes(self, U):
+        return U
+
 
 class LinearSpinChain(SpinChain):
     """

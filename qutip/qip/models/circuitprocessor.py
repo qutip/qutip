@@ -277,9 +277,6 @@ class CircuitProcessor(object):
         """
         pass
 
-    def eliminate_auxillary_modes(self, U):
-        return U
-
     def run(self, qc=None):
         """
         Generates the propagator matrix by running the Hamiltonian for the
