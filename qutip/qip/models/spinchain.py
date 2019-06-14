@@ -109,7 +109,7 @@ class SpinChain(ModelProcessor):
         self.sx_u = np.zeros((len(gates), len(self.sx_ops)))
         self.sz_u = np.zeros((len(gates), len(self.sz_ops)))
         self.sxsy_u = np.zeros((len(gates), len(self.sxsy_ops)))
-        self.tlist = []
+        dt_list = []
 
         n = 0
         for gate in gates:
@@ -121,7 +121,7 @@ class SpinChain(ModelProcessor):
                 else:
                     self.sxsy_u[n, min(gate.targets)] = -g
                 T = np.pi / (4 * g)
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "SQRTISWAP":
@@ -131,21 +131,21 @@ class SpinChain(ModelProcessor):
                 else:
                     self.sxsy_u[n, min(gate.targets)] = -g
                 T = np.pi / (8 * g)
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "RZ":
                 g = self.sz_coeff[gate.targets[0]]
                 self.sz_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "RX":
                 g = self.sx_coeff[gate.targets[0]]
                 self.sx_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "GLOBALPHASE":
@@ -153,7 +153,13 @@ class SpinChain(ModelProcessor):
 
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
-                
+        
+        self.tlist = np.zeros(len(dt_list)+1)
+        self.tlist[0] = 0.
+        t = 0
+        for temp_ind in range(len(dt_list)):
+            t += dt_list[temp_ind]
+            self.tlist[temp_ind+1] = t               
         self.tlist = np.array(self.tlist)
         self.amps = np.hstack([self.sx_u, self.sz_u, self.sxsy_u]).T
 

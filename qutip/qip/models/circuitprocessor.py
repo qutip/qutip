@@ -77,8 +77,8 @@ class CircuitProcessor(object):
     """
     def __init__(self, N, T1=None, T2=None):
         self.N = N
-        self.tlist = np.empty(0)
-        self.amps = np.empty((0,0))
+        self.tlist = None
+        self.amps = None
         self.ctrls = []
         
         self.T1 = self._check_T_valid(T1, self.N)
@@ -151,18 +151,27 @@ class CircuitProcessor(object):
                 del self.ctrls[ind]
 
     def _is_time_amps_valid(self):
-        amps_len = self.amps.shape[1]
-        tlist_len = self.tlist.shape[0]
-        if amps_len != tlist_len:
-            raise ValueError(
-                "tlist has length of {} while amps "
-                "has {}".format(tlist_len, amps_len))
+        if self.tlist is None and self.amps is None:
+            pass
+        elif self.tlist is None or self.amps is None:
+            raise ValueError("`tlist` or `amps` is not given.")
+        else:
+            amps_len = self.amps.shape[1]
+            tlist_len = self.tlist.shape[0]
+            if amps_len != tlist_len-1:
+                raise ValueError(
+                    "tlist has length of {} while amps "
+                    "has {}".format(tlist_len, amps_len))
 
     def _is_ctrl_amps_valid(self):
-        if self.amps.shape[0] != len(self.ctrls):
-            raise ValueError(
-                "The control amplitude matrix do not match the "
-                "number of control Hamiltonians")
+        if self.amps is None and len(self.ctrls)!=0:
+            raise ValueError("The control amplitude is Nono while "
+                "the number of ctrls is {}".format(len(self.ctrls)))
+        if self.amps is not None:
+            if self.amps.shape[0] != len(self.ctrls):
+                raise ValueError(
+                    "The control amplitude matrix do not match the "
+                    "number of control Hamiltonians")
 
     def _is_amps_valid(self):
         self._is_time_amps_valid()
@@ -184,7 +193,7 @@ class CircuitProcessor(object):
         if inctime:
             shp = self.amps.T.shape
             data = np.empty([shp[0], shp[1] + 1], dtype=np.float)
-            data[:, 0] = self.tlist
+            data[:, 0] = self.tlist[1:]
             data[:, 1:] = self.amps.T
         else:
             data = self.amps.T
@@ -206,7 +215,7 @@ class CircuitProcessor(object):
         if not inctime:
             self.amps = data.T
         else:
-            self.tlist = data[:, 0]
+            self.tlist = np.hstack([[0.], data[:, 0]])
             self.amps = data[:, 1:].T
         try:
             self._is_amps_valid()
@@ -287,9 +296,10 @@ class ModelProcessor(CircuitProcessor):
         U_list = []
         H_ops, H_u = self.get_ops_and_u()
 
-        for n in range(len(self.tlist)):
+        for n in range(len(self.tlist)-1):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
-            U = (-1j * H * self.tlist[n]).expm()
+            dt = self.tlist[n+1] - self.tlist[n]
+            U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
 
@@ -328,9 +338,10 @@ class ModelProcessor(CircuitProcessor):
         U_list = [states]
         H_ops, H_u = self.get_ops_and_u()
 
-        for n in range(len(self.tlist)):
+        for n in range(len(self.tlist)-1):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
-            U = (-1j * H * self.tlist[n]).expm()
+            dt = self.tlist[n+1] - self.tlist[n]
+            U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
 
@@ -351,7 +362,8 @@ class ModelProcessor(CircuitProcessor):
         dt = 0.01
         H_ops, H_u = self.get_ops_and_u()
 
-        t_tot = sum(self.tlist)
+        diff_tlist = self.tlist[1:] - self.tlist[:-1]
+        t_tot = sum(diff_tlist)
         n_t = int(np.ceil(t_tot / dt))
         n_ops = len(H_ops)
 
@@ -359,9 +371,9 @@ class ModelProcessor(CircuitProcessor):
         u = np.zeros((n_ops, n_t))
 
         t_start = 0
-        for n in range(len(self.tlist)):
+        for n in range(len(diff_tlist)):
 
-            t_idx_len = int(np.floor(self.tlist[n] / dt))
+            t_idx_len = int(np.floor(diff_tlist[n] / dt))
 
             mm = 0
             for m in range(len(H_ops)):

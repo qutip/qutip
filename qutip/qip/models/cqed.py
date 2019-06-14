@@ -260,7 +260,7 @@ class DispersivecQED(ModelProcessor):
         self.sx_u = np.zeros((len(gates), len(self.sx_ops)))
         self.sz_u = np.zeros((len(gates), len(self.sz_ops)))
         self.g_u = np.zeros((len(gates), len(self.cavityqubit_ops)))
-        self.tlist = []
+        dt_list = []
 
         n = 0
         phase_gate_num = 0
@@ -276,7 +276,7 @@ class DispersivecQED(ModelProcessor):
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
                 T = (4 * np.pi / abs(J)) / 4
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "SQRTISWAP":
@@ -289,21 +289,21 @@ class DispersivecQED(ModelProcessor):
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
                 T = (4 * np.pi / abs(J)) / 8
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "RZ":
                 g = self.sz_coeff[gate.targets[0]]
                 self.sz_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "RX":
                 g = self.sx_coeff[gate.targets[0]]
                 self.sx_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
-                self.tlist.append(T)
+                dt_list.append(T)
                 n += 1
 
             elif gate.name == "GLOBALPHASE":
@@ -313,7 +313,12 @@ class DispersivecQED(ModelProcessor):
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
 
-        self.tlist = np.array(self.tlist)
+        self.tlist = np.zeros(len(dt_list)+1)
+        self.tlist[0] = 0.
+        t = 0
+        for temp_ind in range(len(dt_list)):
+            t += dt_list[temp_ind]
+            self.tlist[temp_ind+1] = t
         self.amps = np.hstack(
             [self.w0 * np.zeros((self.sx_u.shape[0], 1)),
             self.sx_u, self.sz_u, self.g_u]).T
