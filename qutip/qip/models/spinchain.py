@@ -153,6 +153,9 @@ class SpinChain(ModelProcessor):
 
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
+                
+        self.tlist = np.array(self.tlist)
+        self.amps = np.hstack([self.sx_u, self.sz_u, self.sxsy_u]).T
 
     def adjacent_gates(self, qc, setup="linear"):
         """

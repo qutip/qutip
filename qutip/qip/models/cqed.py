@@ -263,6 +263,7 @@ class DispersivecQED(ModelProcessor):
         self.tlist = []
 
         n = 0
+        phase_gate_num = 0
         for gate in gates:
 
             if gate.name == "ISWAP":
@@ -307,6 +308,13 @@ class DispersivecQED(ModelProcessor):
 
             elif gate.name == "GLOBALPHASE":
                 self.global_phase += gate.arg_value
+                phase_gate_num += 1
 
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
+
+        self.tlist = np.array(self.tlist)
+        self.amps = np.hstack(
+            [self.w0 * np.zeros((self.sx_u.shape[0], 1)),
+            self.sx_u, self.sz_u, self.g_u]).T
+        self.amps = self.amps[:,:len(gates)-phase_gate_num]
