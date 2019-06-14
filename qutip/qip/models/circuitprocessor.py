@@ -231,26 +231,6 @@ class CircuitProcessor(object):
         """
         raise NotImplementedError("Use the function in the sub-class")
 
-    def adjacent_gates(self, qc, setup):
-        """
-        Function to take a quantum circuit/algorithm and convert it into the
-        optimal form/basis for the desired physical system.
-
-        Parameters
-        ----------
-        qc: QubitCircuit
-            Takes the quantum circuit to be implemented.
-
-        setup: String
-            Takes the nature of the spin chain; linear or circular.
-
-        Returns
-        --------
-        qc: QubitCircuit
-            The resolved circuit representation.
-        """
-        raise NotImplementedError("Use the function in the sub-class")
-
     def load_circuit(self, qc):
         """
         Translates an abstract quantum circuit to its corresponding Hamiltonian
@@ -269,13 +249,6 @@ class CircuitProcessor(object):
         them together.
         """
         raise NotImplementedError("Use the function in the sub-class")
-
-    def get_ops_labels(self):
-        """
-        Returns the Hamiltonian operators and corresponding labels by stacking
-        them together.
-        """
-        pass
 
     def run(self, qc=None):
         """

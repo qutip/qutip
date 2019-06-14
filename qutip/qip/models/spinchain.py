@@ -380,6 +380,10 @@ class LinearSpinChain(SpinChain):
         self.ctrls += self.sx_ops + self.sz_ops + self.sxsy_ops
 
     def get_ops_labels(self):
+        """
+        Returns the Hamiltonian operators and corresponding values by stacking
+        them together.
+        """
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
@@ -421,6 +425,10 @@ class CircularSpinChain(SpinChain):
         self.ctrls += self.sx_ops + self.sz_ops + self.sxsy_ops
 
     def get_ops_labels(self):
+        """
+        Returns the Hamiltonian operators and corresponding values by stacking
+        them together.
+        """
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"

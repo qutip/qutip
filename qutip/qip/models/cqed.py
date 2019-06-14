@@ -176,7 +176,7 @@ class DispersivecQED(CircuitProcessor):
 
         self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
-                               
+
         self.ctrls = [self.a.dag() * self.a] + self.sx_ops + self.sz_ops + self.cavityqubit_ops
 
     def get_ops_and_u(self):
@@ -186,6 +186,10 @@ class DispersivecQED(CircuitProcessor):
                           self.sx_u, self.sz_u, self.g_u)))
 
     def get_ops_labels(self):
+        """
+        Returns the Hamiltonian operators and corresponding values by stacking
+        them together.
+        """
         return ([r"$a^\dagger a$"] +
                 [r"$\sigma_x^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
