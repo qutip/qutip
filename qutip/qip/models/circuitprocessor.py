@@ -229,7 +229,7 @@ class CircuitProcessor(object):
         qc: QubitCircuit
             The optimal circuit representation.
         """
-        raise NotImplemented("Use the function in the sub-class")
+        raise NotImplementedError("Use the function in the sub-class")
 
     def adjacent_gates(self, qc, setup):
         """
@@ -249,7 +249,7 @@ class CircuitProcessor(object):
         qc: QubitCircuit
             The resolved circuit representation.
         """
-        raise NotImplemented("Use the function in the sub-class")
+        raise NotImplementedError("Use the function in the sub-class")
 
     def load_circuit(self, qc):
         """
@@ -261,14 +261,14 @@ class CircuitProcessor(object):
         qc: QubitCircuit
             Takes the quantum circuit to be implemented.
         """
-        raise NotImplemented("Use the function in the sub-class")
+        raise NotImplementedError("Use the function in the sub-class")
 
     def get_ops_and_u(self):
         """
         Returns the Hamiltonian operators and corresponding values by stacking
         them together.
         """
-        raise NotImplemented("Use the function in the sub-class")
+        raise NotImplementedError("Use the function in the sub-class")
 
     def get_ops_labels(self):
         """
