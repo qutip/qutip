@@ -1634,6 +1634,7 @@ cdef class SSESolver(StochasticSolver):
         cdef int i
         copy(spout, out)
 
+
 cdef class SMESolver(StochasticSolver):
     """stochastic master equation system"""
     cdef CQobjEvo L
@@ -1924,43 +1925,44 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.wraparound(False)
     cdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo
-        cdef double expect
-        cdef double[::1] expects = self.expect_buffer_1d[0,:]
-        cdef int i, which, n_coll=0
+        cdef CQobjEvo c_op
+        cdef double expect, n_coll=0
+        cdef complex[::1] expects = self.expect_buffer_1d[0,:]
+        cdef int i, which
         cdef complex[::1] d2 = self.buffer_2d[0,0,:]
         cdef np.ndarray[int, ndim=1] colls
         copy(vec, out)
         self.d1(t, vec, out)
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expects[i] = c_op.expect(t, vec).real * dt
-            if expects[i] > 0:
-                noise[i] = np.random.poisson(expects[i])
+            expects[i] = c_op.expect(t, vec)
+            if expects[i].real > 0:
+                noise[i] = np.random.poisson(expects[i].real*dt)
                 n_coll += noise[i]
                 if noise[i]:
                     which = i
             else:
                 noise[i] = 0.
-
         if n_coll == 1:
             # only compute d2 if needed
-            self.collapse(which, expects[i], vec, d2)
+            self.collapse(t, which, expects[i].real, vec, d2)
             _axpy(1, d2, out)
             _axpy(-1, vec, out)
         elif n_coll >= 2:
             # 2 or more collapse should be rare
+
             coll = []
             for i in range(self.num_ops):
-                coll += [i]*noise[i]
+                coll += [i]*int(noise[i])
             np.random.shuffle(coll)
-            colls = np.array(coll)
+            colls = np.array(coll, dtype=np.int32)
+            print(n_coll, "collapses: ", coll)
             for i in colls:
                 c_op = self.cdc_ops[i]
-                expect = c_op.expect(t, vec).real * dt
-                if expect >= 1e-15:
-                    self.collapse(which, expect, vec, d2)
-                    copy(d2,vec)
+                expect = c_op.expect(t, vec).real
+                if expect*dt >= 1e-15:
+                    self.collapse(t, which, expect, vec, d2)
+                    copy(d2, vec)
             _axpy(1, d2, out)
             _axpy(-1, vec, out)
 
@@ -1971,31 +1973,26 @@ cdef class PcSSESolver(StochasticSolver):
             # if expect > 0:
             #   noise[i] = np.random.poisson(expect)
             # else:
-            #   noise[i] = 0.
+            #   noise[i] = noise[i]0.
             # _axpy(noise[i], d2[i,:], out)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo
-        cdef double expect
-        cdef int i
+        cdef CQobjEvo c_op
+        cdef double expect, n_coll=0
+        cdef int i, which
         cdef complex[::1] tmp = self.buffer_1d[0,:]
         cdef complex[::1] d2 = self.buffer_2d[0,0,:]
+        cdef complex[::1] expects = self.expect_buffer_1d[0,:]
         # _zero_2d(d2)
-        copy(vec,tmp)
-        copy(vec,out)
-        self.d1(t, vec, tmp)
-        self.d1(t+dt, tmp, out)
-        _scale(0.5, out)
-        _axpy(0.5, tmp, out)
 
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expects[i] = c_op.expect(t, vec).real * dt
-            if expects[i] > 0:
-                noise[i] = np.random.poisson(expects[i])
+            expects[i] = c_op.expect(t, vec).real
+            if expects[i].real > 0:
+                noise[i] = np.random.poisson(expects[i].real* dt)
                 n_coll += noise[i]
                 if noise[i]:
                     which = i
@@ -2004,24 +2001,32 @@ cdef class PcSSESolver(StochasticSolver):
 
         if n_coll == 1:
             # only compute d2 if needed
-            self.collapse(which, expects[i], vec, d2)
-            _axpy(1, d2, out)
-            _axpy(-1, vec, out)
+            self.collapse(t, which, expects[i].real, vec, out)
+            copy(out,vec)
         elif n_coll >= 2:
             # 2 or more collapse should be rare
             coll = []
             for i in range(self.num_ops):
-                coll += [i]*noise[i]
+                coll += [i]*int(noise[i])
             np.random.shuffle(coll)
             colls = np.array(coll)
             for i in colls:
                 c_op = self.cdc_ops[i]
-                expect = c_op.expect(t, vec).real * dt
-                if expect >= 1e-15:
-                    self.collapse(which, expect, vec, d2)
-                    copy(d2,vec)
+                expect = c_op.expect(t, vec).real
+                if expect * dt >= 1e-15:
+                    self.collapse(t, which, expect, vec, out)
+                    copy(out,vec)
             _axpy(1, d2, out)
             _axpy(-1, vec, out)
+
+        copy(vec,tmp)
+        copy(vec,out)
+        self.d1(t, vec, tmp)
+        self.d1(t+dt, tmp, out)
+        _scale(0.5, out)
+        _axpy(0.5, tmp, out)
+
+
 
         """
         self.d2(t, vec, d2)
@@ -2075,12 +2080,13 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void collapse(self, int which, double expect, complex[::1] vec, complex[::1] out):
+    cdef void collapse(self, double t, int which, double expect,
+                       complex[::1] vec, complex[::1] out):
+        cdef CQobjEvo c_op
         c_op = self.c_ops[which]
         _zero(out)
-        c_op._mul_vec(t, &vec[0], &out[i])
+        c_op._mul_vec(t, &vec[0], &out[0])
         _zscale(1/expect, out)
-
 
 
 cdef class PcSMESolver(StochasticSolver):
@@ -2113,12 +2119,52 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.wraparound(False)
     cdef void photocurrent(self, double t, double dt,  double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef double expect
-        cdef int i
-        cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
-        _zero_2d(d2)
+        cdef double expect, n_coll=0
+        cdef complex[::1] expects = self.expect_buffer_1d[0,:]
+        cdef int i, which
+        cdef complex[::1] d2 = self.buffer_2d[0,0,:]
+        cdef np.ndarray[int, ndim=1] colls
+        cdef CQobjEvo c_op
+
+        #cdef int i, n_coll
+        #cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
+        #_zero_2d(d2)
         copy(vec,out)
         self.d1(t, vec, out)
+
+        for i in range(self.num_ops):
+            c_op = self.cdc_ops[i]
+            expects[i] = c_op.expect(t, vec).real
+            if expects[i].real > 0:
+                noise[i] = np.random.poisson(expects[i].real * dt)
+                n_coll += noise[i]
+                if noise[i]:
+                    which = i
+            else:
+                noise[i] = 0.
+
+        if n_coll == 1:
+            # only compute d2 if needed
+            self.collapse(t, which, expects[i].real, vec, d2)
+            _axpy(1, d2, out)
+            _axpy(-1, vec, out)
+        elif n_coll >= 2:
+            # 2 or more collapse should be rare
+            coll = []
+            for i in range(self.num_ops):
+                coll += [i]*int(noise[i])
+            np.random.shuffle(coll)
+            colls = np.array(coll)
+            for i in colls:
+                c_op = self.cdc_ops[i]
+                expect = c_op.expect(t, vec).real
+                if expect * dt >= 1e-15:
+                    self.collapse(t, which, expect, vec, d2)
+                    copy(d2,vec)
+            _axpy(1, d2, out)
+            _axpy(-1, vec, out)
+
+        """
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
@@ -2132,22 +2178,64 @@ cdef class PcSMESolver(StochasticSolver):
             # else:
             #   noise[i] = 0.
             # _axpy(noise[i], d2[i,:], out)
+        """
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void photocurrent_pc(self, double t, double dt,  double[:] noise,
                            complex[::1] vec, complex[::1] out):
+        cdef double expect, n_coll=0
+        cdef complex[::1] expects = self.expect_buffer_1d[0,:]
+        cdef complex[::1] tmp = self.buffer_1d[0,:]
+        cdef int i, which
+        cdef complex[::1] d2 = self.buffer_2d[0,0,:]
+        cdef np.ndarray[int, ndim=1] colls
+        cdef CQobjEvo c_op
+        """
         cdef double expect
         cdef int i
         cdef complex[::1] tmp = self.buffer_1d[0,:]
         cdef complex[:, ::1] d2 = self.buffer_2d[0,:,:]
         _zero_2d(d2)
+        """
+
+        for i in range(self.num_ops):
+            c_op = self.cdc_ops[i]
+            expects[i] = c_op.expect(t, vec).real
+            if expects[i].real > 0:
+                noise[i] = np.random.poisson(expects[i].real * dt)
+                n_coll += noise[i]
+                if noise[i]:
+                    which = i
+            else:
+                noise[i] = 0.
+
+        if n_coll == 1:
+            # only compute d2 if needed
+            self.collapse(t, which, expects[i].real, vec, out)
+            copy(out,vec)
+        elif n_coll >= 2:
+            # 2 or more collapse should be rare
+            coll = []
+            for i in range(self.num_ops):
+                coll += [i]*int(noise[i])
+            np.random.shuffle(coll)
+            colls = np.array(coll)
+            for i in colls:
+                c_op = self.cdc_ops[i]
+                expect = c_op.expect(t, vec).real
+                if expect * dt >= 1e-15:
+                    self.collapse(t, which, expect, vec, out)
+                    copy(out,vec)
+
         copy(vec,tmp)
         copy(vec,out)
         self.d1(t, vec, tmp)
         self.d1(t+dt, tmp, out)
         _scale(0.5, out)
         _axpy(0.5, tmp, out)
+
+        """
         self.d2(t, vec, d2)
         for i in range(self.num_ops):
             c_op = self.cdcl_ops[i]
@@ -2161,6 +2249,7 @@ cdef class PcSMESolver(StochasticSolver):
             # else:
             #   noise[i] = 0.
             # _axpy(noise[i], d2[i,:], out)
+        """
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2171,7 +2260,6 @@ cdef class PcSMESolver(StochasticSolver):
         for k in range(self.N_root):
             e += rho[k*(self.N_root+1)]
         return e
-
 
     @cython.boundscheck(False)
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
@@ -2205,6 +2293,16 @@ cdef class PcSMESolver(StochasticSolver):
                 _zero(out[i,:])
             _axpy(-1, rho, out[i,:])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void collapse(self, double t, int which, double expect,
+                       complex[::1] vec, complex[::1] out):
+        cdef CQobjEvo c_op
+        c_op = self.clcdr_ops[which]
+        _zero(out)
+        c_op._mul_vec(t, &vec[0], &out[0])
+        _zscale(1./expect, out)
 
 cdef class PmSMESolver(StochasticSolver):
     """positive map for master equation"""
@@ -2306,6 +2404,7 @@ cdef class PmSMESolver(StochasticSolver):
         for k in range(self.N_root):
             e += rho[k*(self.N_root+1)]
         return e
+
 
 cdef class GenericSSolver(StochasticSolver):
     """support for user defined system"""
