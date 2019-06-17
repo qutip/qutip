@@ -151,39 +151,39 @@ def test_QobjEvo_call_args():
     O_target2 = O0+np.sin(t)*O1+np.cos(4*t)*O2
 
     for op in cqobjevos[1:3]:
-        assert_equal(len((op.with_args(t,{"w2":4})
-                          -O_target2).tidyup(1e-10).data.data),0)
+        assert_equal(len((op(t, args={"w2":4})
+                          - O_target2).tidyup(1e-10).data.data), 0)
         op.arguments({"w2":4})
-        assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
+        assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data), 0)
         op.arguments({"w2":2})
-        assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data), 0)
 
         op.compile()
-        assert_equal(len((op.with_args(t,{"w2":4})
-                          -O_target2).tidyup(1e-10).data.data),0)
+        assert_equal(len((op(t, args={"w2":4})
+                          - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":4})
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
         op.compile(dense=1)
-        assert_equal(len((op.with_args(t,{"w2":4})
-                          -O_target2).tidyup(1e-10).data.data),0)
+        assert_equal(len((op(t, args={"w2":4})
+                          - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":4})
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
         op.compile(matched=1)
-        assert_equal(len((op.with_args(t,{"w2":4})
-                          -O_target2).tidyup(1e-10).data.data),0)
+        assert_equal(len((op(t, args={"w2":4})
+                          - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":4})
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
         op.compile(omp=2)
-        assert_equal(len((op.with_args(t,{"w2":4})
+        assert_equal(len((op(t, args={"w2":4})
                           -O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":4})
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
@@ -191,7 +191,7 @@ def test_QobjEvo_call_args():
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
         op.compile(matched=1, omp=2)
-        assert_equal(len((op.with_args(t,{"w2":4})
+        assert_equal(len((op(t, args={"w2":4})
                           -O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":4})
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
@@ -303,7 +303,7 @@ def test_QobjEvo_math_arithmetic():
 
 
 def test_QobjEvo_unitary():
-    "QobjEvo trans, dag, conj, norm"
+    "QobjEvo trans, dag, conj, _cdc"
     N = 5
     t = np.random.rand()+1
     cqobjevos, base_qobjs = _rand_cqobjevo(N)
@@ -312,7 +312,7 @@ def test_QobjEvo_unitary():
         _assert_qobj_almost_eq((op.trans())(t), op(t).trans())
         _assert_qobj_almost_eq((op.dag())(t), op(t).dag())
         _assert_qobj_almost_eq((op.conj())(t), op(t).conj())
-        _assert_qobj_almost_eq((op.norm())(t), op(t).dag()*op(t))
+        _assert_qobj_almost_eq((op._cdc())(t), op(t).dag()*op(t))
 
 
 def test_QobjEvo_tidyup():
@@ -391,7 +391,6 @@ def test_QobjEvo_apply_decorator():
     _assert_qobj_almost_eq(td_obj_array_2(t),
                            td_list[0][0] * np.sin(t)**2, tol=3e-7)
     assert_equal(td_obj_array_2.ops[0][3], "array")
-
 
 
 def test_QobjEvo_mul_vec():
@@ -539,65 +538,58 @@ def test_QobjEvo_expect_rho():
 
 
 def test_QobjEvo_with_state():
-    "QobjEvo with_state"
-    def coeff_state(t,psi,args):
-        return np.mean(psi) * args["w1"]
+    "QobjEvo dynamics_args"
+    def coeff_state(t, args):
+        return np.mean(args["vec"]) * args["w"] * args["e"]
     N = 5
-    tlist = np.linspace(0,1,300)
+    vec = np.arange(N)*.5+.5j
+    t = np.random.random()
     data1 = np.random.random((N, N))
     data2 = np.random.random((N, N))
-    data3 = np.random.random((N, N))
-    data4 = np.random.random((N, N))
     q1 = Qobj(data1)
     q2 = Qobj(data2)
-    q3 = Qobj(data3)
-    q4 = Qobj(data4)
-    args={"w1":1}
-    new_args={"w1":10}
-    td_data = QobjEvo([q1,[q2,coeff_state]], args=args)
-    vec = np.arange(N)*.5+.5j
+    args={"w":5, "vec=vec":None, "e=expect":2*qeye(N)}
 
-    t = np.random.random()
-    q_at_t = q1 + np.mean(vec) * args["w1"] * q2
-    q_at_t_new = q1 + np.mean(vec) * new_args["w1"] * q2
-
+    td_data = QobjEvo([q1, [q2, coeff_state]], args=args)
+    q_at_t = q1 + np.mean(vec) * args["w"] * expect(2*qeye(N), Qobj(vec.T)) * q2
     # Check that the with_state call
-    assert_equal(td_data.with_state(t,vec) == q_at_t, True)
-    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), np.array(q_at_t.data.todense()))
-    # Check that the with_state call with custom args
-    assert_equal(td_data.with_state(t, vec, new_args) == q_at_t_new, True)
-    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), np.array(q_at_t_new.data.todense()))
-
+    assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
     td_data.compile()
     # Check that the with_state call compiled
-    assert_equal(td_data.with_state(t,vec) == q_at_t, True)
-    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), np.array(q_at_t.data.todense()))
-    # Check that the with_state call with custom args compiled
-    assert_equal(td_data.with_state(t, vec, new_args) == q_at_t_new, True)
-    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), np.array(q_at_t_new.data.todense()))
+    assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
 
-    args={"w1":1, "w2":2}
-    new_args={"w2":10}
-    t = np.random.random()
-    td_data = QobjEvo([q1, [q2,coeff_state], [q3,"cos(w2*t)"],
-                      [q4,np.exp(3*tlist)]], tlist=tlist, args=args)
-    data_at_t = data1 + np.mean(vec) * args["w1"] * data2 +\
-             np.cos(t*args["w2"]) * data3 + np.exp(3*t) * data4
-    data_at_t_args = data1 + np.mean(vec) * args["w1"] * data2 +\
-             np.cos(t*new_args["w2"]) * data3 + np.exp(3*t) * data4
-
-    # Check that the with_state call for mixed format
-    assert_allclose(np.array(td_data.with_state(t, vec, data=True).todense()), data_at_t)
-    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), data_at_t)
-    assert_allclose(np.array(td_data.with_state(t, vec, new_args,data=True).todense()), data_at_t_args)
-    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), data_at_t_args)
-
+    td_data = QobjEvo([q1, [q2, "vec[0] * cos(w*e*t)"]], args=args)
+    data_at_t = q1 + q2 * vec[0] * np.cos(10 * t * expect(qeye(N), Qobj(vec.T)))
+    # Check that the with_state call for str format
+    assert_allclose(td_data.mul_vec(t, vec), data_at_t * vec)
     td_data.compile()
-    # Check that the with_state call for mixed format and compiled
-    assert_allclose(np.array(td_data.with_state(t, vec, data=True).todense()), data_at_t)
-    assert_allclose(np.array(td_data.with_state(t, vec).data.todense()), data_at_t)
-    assert_allclose(np.array(td_data.with_state(t, vec, new_args,data=True).todense()), data_at_t_args)
-    assert_allclose(np.array(td_data.with_state(t, vec, new_args).data.todense()), data_at_t_args)
+    # Check that the with_state call for str format and compiled
+    assert_allclose(td_data.mul_vec(t, vec), data_at_t * vec)
+
+    args={"mat=mat":None, "vec=vec":None, "qobj=Qobj":None}
+    mat = np.arange(N*N).reshape((N,N))
+    def check_dyn_args(t, args):
+        if not isinstance(args["qobj"], Qobj):
+            raise TypeError("args['qobj'], Qobj")
+        if not isinstance(args["vec"], np.ndarray):
+            raise TypeError("args['vec'], np.ndarray")
+        if not isinstance(args["mat"], np.ndarray):
+            raise TypeError("args['mat'], np.ndarray")
+
+        if len(args["vec"].shape) != 1:
+            raise TypeError
+        if len(args["mat"].shape) != 2:
+            raise TypeError
+
+        if not np.all(args["vec"] == args["qobj"].full().ravel("F")):
+            raise Exception
+        if not np.all(args["vec"] == args["mat"].ravel("F")):
+            raise Exception
+        if not np.all(args["mat"] == mat):
+            raise Exception
+        return 1
+    td_data = QobjEvo([q1, check_dyn_args], args=args)
+    td_data.mul_mat(0, mat)
 
 
 def test_QobjEvo_pickle():
