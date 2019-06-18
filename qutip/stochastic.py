@@ -262,7 +262,7 @@ class StochasticSolverOptions:
         Number of terms kept of the truncated series used to create the
         noise used by taylor2.0 solver.
 
-    normal * dtize : bool
+    normalize : bool
         (default True for (photo)ssesolve, False for (photo)smesolve)
         Whether or not to normalize the wave function during the evolution.
         Normalizing density matrices introduce numerical errors.
@@ -531,7 +531,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.Qobj`,  * dtor time dependent Qobjs.
+    c_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
         Can depend on time, see StochasticSolverOptions help for format.
