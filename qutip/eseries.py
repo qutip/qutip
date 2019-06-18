@@ -36,7 +36,6 @@ __all__ = ['eseries', 'esval', 'esspec', 'estidy']
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
-import qutip as qt
 
 
 class eseries():
@@ -88,7 +87,7 @@ class eseries():
                 q = np.asarray(q, dtype=object)
                 ind = np.shape(q)
                 num = ind[0]  # number of elements in q
-                if any([qt.Qobj(x).shape != qt.Qobj(q[0]).shape for x in q]):
+                if any([Qobj(x).shape != Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
                 self.ampl = np.array([x for x in q], dtype=object)
                 self.rates = np.zeros(ind)
@@ -111,7 +110,7 @@ class eseries():
                 q = np.asarray(q, dtype=object)
                 ind = np.shape(q)
                 num = ind[0]
-                if any([qt.Qobj(x).shape != qt.Qobj(q[0]).shape for x in q]):
+                if any([Qobj(x).shape != Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
                 self.ampl = np.array([Qobj(q[x]) for x in range(0, num)],
                                      dtype=object)
