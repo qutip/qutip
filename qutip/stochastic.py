@@ -109,7 +109,6 @@ def stochastic_solvers():
         Efficient Quantum Filtering for Quantum Feedback Control
         Pierre Rouchon, Jason F. Ralph
         arXiv:1410.5345 [quant-ph]
-        Phys. Rev. A 91, 012118, (2015)
 
     taylor1.5, Order 1.5 strong Taylor scheme:
         Solver with more terms of the Ito-Taylor expansion.
@@ -152,15 +151,20 @@ Available solver for photocurrent_sesolve and photocurrent_mesolve:
         Photocurrent use ordinary differential equations between
         stochastic "jump/collapse".
     euler:
-        Euler method for ordinary differential equations.
+        Euler method for ordinary differential equations between jumps.
+        Only 1 jumps per time interval.
         Default solver
         -Order 1.0
         -Code: 'euler'
+        Quantum measurement and control
+        Chapter 4, Eq 4.19, 4.40, By Howard M. Wiseman, Gerard J. Milburn
 
     predictor–corrector:
         predictor–corrector method (PECE) for ordinary differential equations.
+        Use poisson distribution to obtain the number of jump at each timestep.
         -Order 2.0
         -Code: 'pred-corr'
+
     """
     pass
 
@@ -258,7 +262,7 @@ class StochasticSolverOptions:
         Number of terms kept of the truncated series used to create the
         noise used by taylor2.0 solver.
 
-    normalize : bool
+    normal * dtize : bool
         (default True for (photo)ssesolve, False for (photo)smesolve)
         Whether or not to normalize the wave function during the evolution.
         Normalizing density matrices introduce numerical errors.
@@ -527,7 +531,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
+    c_ops : list of :class:`qutip.Qobj`,  * dtor time dependent Qobjs.
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
         Can depend on time, see StochasticSolverOptions help for format.
