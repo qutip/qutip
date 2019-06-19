@@ -45,9 +45,9 @@ In all cases, these functions can be called with a single parameter :math:`N` th
 
 .. ipython::
 	
-	In [3]: print rand_super_bcsz(7).dims
+	In [3]: print(rand_super_bcsz(7).dims)
 
-	In [4]: print rand_super_bcsz(6, dims=[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]).dims
+	In [4]: print(rand_super_bcsz(6, dims=[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]).dims)
 
 Several of the distributions supported by QuTiP support additional parameters as well, namely *density* and *rank*. In particular,
 the `rand_herm` and `rand_dm` functions return quantum objects such that a fraction of the elements are identically equal to zero.

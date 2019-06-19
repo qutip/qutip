@@ -15,7 +15,10 @@ Plotting on the Bloch Sphere
 
    In [1]: from qutip import *
    
-   In [2]: from scipy import *
+   In [1]: from scipy import *
+   
+   In [1]: import numpy as np
+
 
 .. _bloch-intro:
 
@@ -128,17 +131,17 @@ Notice that when we add more than a single vector (or data point), a different c
 
 .. ipython::
 
-	In [1]: b = Bloch()
-	
-    In [1]: pnt = [1/np.sqrt(3),1/np.sqrt(3),1/np.sqrt(3)]
+    In [1]: b = Bloch()
+
+    In [1]: pnt = [1./np.sqrt(3), 1./np.sqrt(3), 1./np.sqrt(3)]
 	
     In [1]: b.add_points(pnt)
 
-	In [1]: vec = [0,1,0]
-	
+    In [1]: vec = [0,1,0]
+
     In [1]: b.add_vectors(vec)
 
-	In [1]: up = basis(2,0)
+    In [1]: up = basis(2,0)
 	
     In [1]: b.add_states(up)
 	

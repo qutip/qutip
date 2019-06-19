@@ -91,19 +91,19 @@ As an example, let us consider changing the number of processors used, turn the 
 
 .. ipython::
 
-   In[1]: options = Options()
-
-   In[1]: options.num_cpus = 3
-
-   In[1]: options.gui = False
-
-   In[1]: options.atol = 1e-10
+   In [1]: options = Options()
+   
+   In [1]: options.num_cpus = 3
+   
+   In [1]: options.gui = False
+   
+   In [1]: options.atol = 1e-10
 
 or one can use an inline method,
 
 .. ipython::
 
-   In[1]: options = Options(num_cpus=4, gui=False, atol=1e-10)
+   In [1]: options = Options(num_cpus=4, gui=False, atol=1e-10)
 
 Note that the order in which you input the options does not matter.  Using either method, the resulting `options` variable is now:
 

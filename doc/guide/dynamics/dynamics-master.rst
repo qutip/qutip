@@ -45,7 +45,7 @@ For example, the time evolution of a quantum spin-1/2 system with tunneling rate
     
     In [1]: psi0 = basis(2, 0)
     
-    In [1]: times = np.linspace(0.0, 10.0, 20.0)
+    In [1]: times = np.linspace(0.0, 10.0, 20)
     
     In [1]: result = mesolve(H, psi0, times, [], [sigmaz()])
 
@@ -192,7 +192,7 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
     In [1]: ax.legend(("Sigma-Z", "Sigma-Y"));
 
 	@savefig guide-qubit-dynamics-dissip.png width=5.0in align=center
-    In [1]: show(fig)
+    In [1]: show()
 
 
 Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation 

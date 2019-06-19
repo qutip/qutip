@@ -32,7 +32,6 @@ needs_sphinx = '1.5'
 extensions = ['sphinx.ext.mathjax',
               'IPython.sphinxext.ipython_console_highlighting',
               'IPython.sphinxext.ipython_directive',
-              'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.autodoc',
               'sphinx.ext.todo',

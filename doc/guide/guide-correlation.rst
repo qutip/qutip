@@ -74,11 +74,11 @@ The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right
    
    In [1]: H = a.dag() * a
    
-   In [1]: corr1 = correlation_ss(H, times, [np.sqrt(0.5) * a], x, x)
+   In [1]: corr1 = correlation_2op_1t(H, None, times, [np.sqrt(0.5) * a], x, x)
    
-   In [1]: corr2 = correlation_ss(H, times, [np.sqrt(1.0) * a], x, x)
+   In [1]: corr2 = correlation_2op_1t(H, None, times, [np.sqrt(1.0) * a], x, x)
    
-   In [1]: corr3 = correlation_ss(H, times, [np.sqrt(2.0) * a], x, x)
+   In [1]: corr3 = correlation_2op_1t(H, None, times, [np.sqrt(2.0) * a], x, x)
    
    In [1]: figure()
    
