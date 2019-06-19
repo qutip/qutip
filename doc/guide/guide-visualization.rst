@@ -174,7 +174,7 @@ state is nonclassical, as indicated by negative values in the Wigner function.  
 making these negative values stand out in a figure is helpful for both analysis and publication
 purposes.  Unfortunately, all of the color schemes used in Matplotlib (or any other plotting software)
 are linear colormaps where small negative values tend to be near the same color as the zero values, and
-are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap function :func:`qutip.visualization.wigner_cmap`
+are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap function :func:`qutip.matplotlib_utilities.wigner_cmap`
 that colors all negative values differently than positive or zero values.  Below is a demonstration of how to use
 this function in your Wigner figures:
 
