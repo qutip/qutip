@@ -33,13 +33,16 @@
 
 import itertools
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, assert_allclose, run_module_suite
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
 from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
-                       sqrtswap, toffoli, fredkin, gate_expand_3toN, qubit_clifford_group)
-from qutip.random_objects import rand_ket, rand_herm
+                       sqrtswap, toffoli, fredkin, gate_expand_3toN, 
+                       qubit_clifford_group, expand_oper)
+from qutip.qip.circuit import QubitCircuit
+from qutip.random_objects import rand_ket, rand_herm, rand_unitary
 from qutip.tensor import tensor
+from qutip.qobj import Qobj
 
 
 class TestGates:
@@ -282,6 +285,58 @@ class TestGates:
                         o1 = psi_out.overlap(psi_in)
                         o2 = psi_ref_out.overlap(psi_ref_in)
                         assert_(abs(o1 - o2) < 1e-12)
+
+    def test_expand_oper(self):
+        # random single qubit gate test, integer as target
+        r = rand_unitary(2)
+        assert(expand_oper(r, 3, 0) == tensor([r, identity(2), identity(2)]))
+        assert(expand_oper(r, 3, 1) == tensor([identity(2), r, identity(2)]))
+        assert(expand_oper(r, 3, 2) == tensor([identity(2), identity(2), r]))
+
+        # random 2qubits gate test, list as target
+        r2 = rand_unitary(4)
+        r2.dims = [[2, 2], [2, 2]]
+        assert(expand_oper(r2, 3, [2, 1]) == tensor(
+            [identity(2), r2.permute([1, 0])]))
+        assert(expand_oper(r2, 3, [0, 1]) == tensor(
+            [r2, identity(2)]))
+        assert(expand_oper(r2, 3, [0, 2]) == tensor(
+            [r2, identity(2)]).permute([0, 2, 1]))
+
+        # cnot expantion, qubit 2 control qubit 0
+        assert(expand_oper(cnot(), 3, [2, 0]) == Qobj([
+            [1., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 1., 0., 0.],
+            [0., 0., 1., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 1.],
+            [0., 0., 0., 0., 1., 0., 0., 0.],
+            [0., 1., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 1., 0.],
+            [0., 0., 0., 1., 0., 0., 0., 0.]],
+            dims=[[2, 2, 2], [2, 2, 2]]))
+
+    def test_user_gate(self):
+        def customer_gate1(arg_values):
+            mat = np.zeros((4, 4), dtype=np.complex)
+            mat[0, 0] = mat[1, 1] = 1.
+            mat[2:4, 2:4] = rx(arg_values)
+            return Qobj(mat, dims=[[2, 2], [2, 2]])
+
+        def customer_gate2(arg_values):
+            mat = np.array([[1.,   0],
+                            [0., 1.j]])
+            return Qobj(mat, dims=[[2], [2]])
+
+        qc = QubitCircuit(3)
+        qc.user_gates = {"CTRLRX": customer_gate1,
+                         "T": customer_gate2}
+        qc.add_gate("CTRLRX", targets=[1, 2], arg_value=np.pi/2)
+        qc.add_gate("T", targets=[1])
+        props = qc.propagators()
+        result1 = tensor(identity(2), customer_gate1(np.pi/2))
+        assert_allclose(props[0], result1)
+        result2 = tensor(identity(2), customer_gate2(None), identity(2))
+        assert_allclose(props[1], result2)
 
 
 if __name__ == "__main__":
