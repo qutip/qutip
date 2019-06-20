@@ -33,6 +33,7 @@
 
 from collections.abc import Iterable
 import warnings
+import inspect
 
 import numpy as np
 
@@ -994,10 +995,16 @@ class QubitCircuit(object):
                                            gate.targets[0]))
             elif gate.name == "GLOBALPHASE":
                 self.U_list.append(globalphase(gate.arg_value, self.N))
-
             elif gate.name in self.user_gates:
                 func = self.user_gates[gate.name]
-                oper = func(gate.arg_value)
+                para_num = len(inspect.getfullargspec(func)[0])
+                if para_num == 0:
+                    oper = func()
+                elif para_num == 1:
+                    oper = func(gate.arg_value)
+                else:
+                    raise ValueError(
+                        "gate function takes at most one parameters.")
                 self.U_list.append(expand_oper(oper, self.N, gate.targets))
 
             else:
