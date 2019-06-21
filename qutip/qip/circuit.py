@@ -441,34 +441,28 @@ class QubitCircuit(object):
         qc_temp = QubitCircuit(self.N, self.reverse_states)
         temp_resolved = []
 
-        basis_1q = []
-        basis_2q = None
-
         basis_1q_valid = ["RX", "RY", "RZ"]
         basis_2q_valid = ["CNOT", "CSIGN", "ISWAP", "SQRTSWAP", "SQRTISWAP"]
 
         if isinstance(basis, list):
+            basis_1q = []
+            basis_2q = []
             for gate in basis:
-                if gate not in (basis_1q_valid + basis_2q_valid):
-                    raise ValueError("%s is not a valid basis gate" % gate)
-
                 if gate in basis_2q_valid:
-                    if basis_2q is not None:
-                        raise ValueError("At most one two-qubit gate allowed")
-                    basis_2q = gate
-
-                else:
+                    basis_2q.append(gate)
+                elif gate in basis_1q_valid:
                     basis_1q.append(gate)
-
+                else:
+                    raise NotImplementedError("%s is not a valid basis gate" % gate)
             if len(basis_1q) == 1:
                 raise ValueError("Not sufficient single-qubit gates in basis")
             elif len(basis_1q) == 0:
                 basis_1q = ["RX", "RY", "RZ"]
 
-        else:
+        else:  # only one 2q gate is given as basis
             basis_1q = ["RX", "RY", "RZ"]
             if basis in basis_2q_valid:
-                basis_2q = basis
+                basis_2q = [basis]
             else:
                 raise ValueError("%s is not a valid two-qubit basis gate"
                                  % basis)
@@ -502,13 +496,13 @@ class QubitCircuit(object):
                                           arg_label=gate.arg_label))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           gate.arg_value, gate.arg_label))
-            elif gate.name == basis_2q:
+            elif gate.name in basis_2q:  # ignore all gate in 2q basis
                 temp_resolved.append(gate)
             elif gate.name == "CPHASE":
                 raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "CNOT":
                 temp_resolved.append(gate)
-            elif gate.name == "CSIGN" and basis_2q is not "CSIGN":
+            elif gate.name == "CSIGN":
                 temp_resolved.append(Gate("RY", gate.targets, None,
                                           arg_value=np.pi / 2,
                                           arg_label=r"\pi/2"))
@@ -527,7 +521,7 @@ class QubitCircuit(object):
             elif gate.name == "SWAPalpha":
                 raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "SWAP":
-                if basis_2q is "ISWAP":  # dealed with separately
+                if "ISWAP" in basis_2q:  # dealed with separately
                     temp_resolved.append(gate)
                 else:
                     temp_resolved.append(Gate("CNOT", gate.targets[0],
@@ -536,7 +530,7 @@ class QubitCircuit(object):
                                             gate.targets[0]))
                     temp_resolved.append(Gate("CNOT", gate.targets[0],
                                             gate.targets[1]))
-            elif gate.name == "ISWAP" and basis_2q is not "ISWAP":
+            elif gate.name == "ISWAP":
                 temp_resolved.append(Gate("CNOT", gate.targets[0],
                                           gate.targets[1]))
                 temp_resolved.append(Gate("CNOT", gate.targets[1],
@@ -566,11 +560,9 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                           arg_value=np.pi / 2,
                                           arg_label=r"\pi/2"))
-            elif gate.name == "SQRTSWAP" and basis_2q not in ["SQRTSWAP",
-                                                              "ISWAP"]:
+            elif gate.name == "SQRTSWAP":
                 raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "SQRTISWAP" and basis_2q not in ["SQRTISWAP",
-                                                               "ISWAP"]:
+            elif gate.name == "SQRTISWAP":
                 raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "FREDKIN":
                 temp_resolved.append(Gate("CNOT", gate.targets[0],
@@ -705,7 +697,7 @@ class QubitCircuit(object):
                     "Gate {} "
                     "cannot be resolved.".format(gate.name))
 
-        if basis_2q == "CSIGN":
+        if "CSIGN" in basis_2q:
             for gate in temp_resolved:
                 if gate.name == "CNOT":
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
@@ -718,7 +710,7 @@ class QubitCircuit(object):
                                               arg_label=r"\pi/2"))
                 else:
                     qc_temp.gates.append(gate)
-        elif basis_2q == "ISWAP":
+        elif "ISWAP" in basis_2q:
             for gate in temp_resolved:
                 if gate.name == "CNOT":
                     qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
@@ -765,7 +757,7 @@ class QubitCircuit(object):
                                               arg_label=r"-\pi/2"))
                 else:
                     qc_temp.gates.append(gate)
-        elif basis_2q == "SQRTSWAP":
+        elif "SQRTSWAP" in basis_2q:
             for gate in temp_resolved:
                 if gate.name == "CNOT":
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
@@ -791,7 +783,7 @@ class QubitCircuit(object):
                                               arg_label=r"-\pi/2"))
                 else:
                     qc_temp.gates.append(gate)
-        elif basis_2q == "SQRTISWAP":
+        elif "SQRTISWAP" in basis_2q:
             for gate in temp_resolved:
                 if gate.name == "CNOT":
                     qc_temp.gates.append(Gate("RY", gate.controls, None,
