@@ -44,9 +44,11 @@ from qutip.tensor import tensor
 from qutip.states import fock_dm
 
 
-__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'cphase', 'cnot',
+__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot', 
+           'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
-           'sqrtiswap', 'fredkin', 'toffoli', 'rotation', 'controlled_gate',
+           'sqrtiswap', 'fredkin', 'ms_gate', 
+           'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
            'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
            'qubit_clifford_group', 'expand_oper']
@@ -509,7 +511,7 @@ shape = [4, 4], type = oper, isHerm = False
                               [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
 
 
-def MS_gate(theta, N=None, targets=(0, 1)):
+def ms_gate(theta, N=None, targets=(0, 1)):
     """
     Quantum obejct of a Mølmer–Sørensen gate
 
