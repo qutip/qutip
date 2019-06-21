@@ -236,7 +236,7 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
                             options.rhs_with_state))
 
     if not use_mesolve:
-        print("not collapse operator, using sesolve")
+        print("no collapse operator, using sesolve")
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
                     progress_bar=progress_bar, _safe_mode=_safe_mode)
 
@@ -489,8 +489,12 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             cdata = get_curr_state_data(r)
 
         if opt.store_states:
-            fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
-            output.states.append(Qobj(fdata, dims=dims, fast="mc-dm"))
+            if issuper(rho0):
+                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+                output.states.append(Qobj(fdata, dims=dims))
+            else:
+                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+                output.states.append(Qobj(fdata, dims=dims, fast="mc-dm"))
 
         if expt_callback:
             # use callback method
