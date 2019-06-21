@@ -77,7 +77,7 @@ class TestGates:
         Returns True if and only if U is proportional to the
         identity.
         """
-        U0 = complex(U[0, 0]) #scipy 1.3 return 0 dims array.
+        U0 = complex(U[0, 0])  # scipy 1.3 return 0 dims array.
         if U0 != 0:
             norm_U = U / U0
             return (qeye(U.dims[0]) - norm_U).norm() <= tol

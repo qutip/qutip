@@ -525,11 +525,11 @@ def MS_gate(theta, N=None, targets=(0, 1)):
     else:
         return Qobj(
             [
-                [np.cos(theta/2.), 0, 0, -1.j*sin(theta/2.)],
-                [0, np.cos(tehta/2.), -1.j*sin(theta/2.), 0],
-                [0, -1.j*sin(theta/2.), np.cos(tehta/2.), 0],
-                [-1.j*sin(theta/2.), 0, 0, np.cos(theta/2.)],
-                dims=[[2, 2], [2, 2]]])
+                [np.cos(theta/2.), 0, 0, -1.j*np.sin(theta/2.)],
+                [0, np.cos(theta/2.), -1.j*np.sin(theta/2.), 0],
+                [0, -1.j*np.sin(theta/2.), np.cos(theta/2.), 0],
+                [-1.j*np.sin(theta/2.), 0, 0, np.cos(theta/2.)]],
+                dims=[[2, 2], [2, 2]])
 
 
 #

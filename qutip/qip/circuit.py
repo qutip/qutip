@@ -107,16 +107,9 @@ class Gate(object):
                 raise ValueError("Gate %s does not take controls" % name)
 
         elif name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
-                    "GLOBALPHASE", "CRX", "CRY", "CRZ"]:
+                            "GLOBALPHASE", "CRX", "CRY", "CRZ"]:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
-
-        else:
-            if controls is not None:
-                raise ValueError(
-                    "{} is not a predfinded gate. "
-                    "If it is a user defined gate, "
-                    "please use the `targets` variable.".format(name))
 
         self.arg_value = arg_value
         self.arg_label = arg_label
@@ -177,10 +170,28 @@ class QubitCircuit(object):
     """
     Representation of a quantum program/algorithm, maintaining a sequence
     of gates.
+
+    Parameters
+    ----------
+    N : int
+        Number of qubits in the system.
+    user_gates : dict
+        Define a dictionary of the custom gates. See examples for detail.
+    input_states : list
+        A list of string such as `0`,'+', "A", "Y". Only used for latex.
+
+    Examples
+    --------
+    >>> def user_gate():
+    ...     mat = np.array([[1.,   0],
+    ...                     [0., 1.j]])
+    ...     return Qobj(mat, dims=[[2], [2]])
+    >>> qc.QubitCircuit(2, user_gates={"T":user_gate})
+    >>> qc.add_gate("T", targets=[1])
     """
 
     def __init__(self, N, input_states=None, output_states=None,
-                 reverse_states=True):
+                 reverse_states=True, user_gates=None):
         # number of qubits in the register
         self.N = N
         self.reverse_states = reverse_states
@@ -188,7 +199,16 @@ class QubitCircuit(object):
         self.U_list = []
         self.input_states = [None for i in range(N)]
         self.output_states = [None for i in range(N)]
-        self.user_gates = {}
+        if user_gates is None:
+            self.user_gates = {}
+        else:
+            if isinstance(user_gates, dict):
+                self.user_gates = user_gates
+            else:
+                raise ValueError(
+                    "`user_gate` takes a python dictionary of the form"
+                    "{{str: gate_function}}, not {}".format(user_gates))
+        
 
     def add_state(self, state, targets=None, state_type="input"):
         """
@@ -482,6 +502,8 @@ class QubitCircuit(object):
                                           arg_label=gate.arg_label))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           gate.arg_value, gate.arg_label))
+            elif gate.name == basis_2q:
+                temp_resolved.append(gate)
             elif gate.name == "CPHASE":
                 raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "CNOT":
@@ -504,13 +526,16 @@ class QubitCircuit(object):
                 raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "SWAPalpha":
                 raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "SWAP" and basis_2q is not "ISWAP":
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.targets[1]))
-                temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                          gate.targets[0]))
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.targets[1]))
+            elif gate.name == "SWAP":
+                if basis_2q is "ISWAP":  # dealed with separately
+                    temp_resolved.append(gate)
+                else:
+                    temp_resolved.append(Gate("CNOT", gate.targets[0],
+                                            gate.targets[1]))
+                    temp_resolved.append(Gate("CNOT", gate.targets[1],
+                                            gate.targets[0]))
+                    temp_resolved.append(Gate("CNOT", gate.targets[0],
+                                            gate.targets[1]))
             elif gate.name == "ISWAP" and basis_2q is not "ISWAP":
                 temp_resolved.append(Gate("CNOT", gate.targets[0],
                                           gate.targets[1]))
@@ -677,7 +702,7 @@ class QubitCircuit(object):
                                           gate.arg_value, gate.arg_label))
             else:
                 raise NotImplementedError(
-                    "User defined gate {} "
+                    "Gate {} "
                     "cannot be resolved.".format(gate.name))
 
         if basis_2q == "CSIGN":
@@ -852,7 +877,7 @@ class QubitCircuit(object):
             resolved non-adjacent gates.
 
         """
-        temp = QubitCircuit(self.N, self.reverse_states)
+        temp = QubitCircuit(self.N, reverse_states=self.reverse_states)
         swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                       "SWAPalpha"]
 
@@ -919,7 +944,7 @@ class QubitCircuit(object):
             else:
                 raise NotImplementedError(
                     "`adjacent_gates` is not defined for "
-                    "user defined gate {}.".format(gate.name))
+                    "gate {}.".format(gate.name))
 
         return temp
 
@@ -950,7 +975,7 @@ class QubitCircuit(object):
             elif gate.name == "PHASEGATE":
                 self.U_list.append(phasegate(gate.arg_value, self.N,
                                              gate.targets[0]))
-            if gate.name == "CRX":
+            elif gate.name == "CRX":
                 self.U_list.append(controlled_gate(rx(gate.arg_value),
                                                    N=self.N,
                                                    control=gate.controls[0],
@@ -996,6 +1021,10 @@ class QubitCircuit(object):
             elif gate.name == "GLOBALPHASE":
                 self.U_list.append(globalphase(gate.arg_value, self.N))
             elif gate.name in self.user_gates:
+                if gate.controls is not None:
+                    raise ValueError(
+                        "A user defined gate {} takes only  "
+                        "`targets` variable.".format(gate.name))
                 func = self.user_gates[gate.name]
                 para_num = len(inspect.getfullargspec(func)[0])
                 if para_num == 0:
