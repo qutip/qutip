@@ -39,7 +39,6 @@ from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
 from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
                        sqrtswap, toffoli, fredkin, gate_expand_3toN, 
                        qubit_clifford_group, expand_oper)
-from qutip.qip.circuit import QubitCircuit
 from qutip.random_objects import rand_ket, rand_herm, rand_unitary
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
@@ -314,29 +313,6 @@ class TestGates:
             [0., 0., 0., 0., 0., 0., 1., 0.],
             [0., 0., 0., 1., 0., 0., 0., 0.]],
             dims=[[2, 2, 2], [2, 2, 2]]))
-
-    def test_user_gate(self):
-        def customer_gate1(arg_values):
-            mat = np.zeros((4, 4), dtype=np.complex)
-            mat[0, 0] = mat[1, 1] = 1.
-            mat[2:4, 2:4] = rx(arg_values)
-            return Qobj(mat, dims=[[2, 2], [2, 2]])
-
-        def customer_gate2(arg_values):
-            mat = np.array([[1.,   0],
-                            [0., 1.j]])
-            return Qobj(mat, dims=[[2], [2]])
-
-        qc = QubitCircuit(3)
-        qc.user_gates = {"CTRLRX": customer_gate1,
-                         "T": customer_gate2}
-        qc.add_gate("CTRLRX", targets=[1, 2], arg_value=np.pi/2)
-        qc.add_gate("T", targets=[1])
-        props = qc.propagators()
-        result1 = tensor(identity(2), customer_gate1(np.pi/2))
-        assert_allclose(props[0], result1)
-        result2 = tensor(identity(2), customer_gate2(None), identity(2))
-        assert_allclose(props[1], result2)
 
 
 if __name__ == "__main__":
