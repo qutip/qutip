@@ -177,6 +177,27 @@ shape = [2, 2], type = oper, isHerm = False
                     dims=[[2], [2]])
 
 
+def qrot(theta, phi, N=None, target=0):
+    """
+    Single qubit rotation driving by Rabi oscillation with 0 detune.
+
+    Parameters
+    ----------
+    phi : float
+        The inital phase of the rabi pulse
+    theta : float
+        The duration of the rabi pulse
+    """
+    if N is not None:
+        return expand_oper(qrot(theta, phi), N=N, targets=target)
+    else:
+        return Qobj(
+            [
+                [np.cos(theta/2.), -1.j*np.exp(-1.j*phi)*np.sin(theta/2.)],
+                [-1.j*np.exp(1.j*phi)*np.sin(theta/2.), np.cos(theta/2.)]
+            ])
+
+
 #
 # 2 Qubit Gates
 #
@@ -486,6 +507,29 @@ shape = [4, 4], type = oper, isHerm = False
                               [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
                               [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
                               [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
+
+
+def MS_gate(theta, N=None, targets=(0, 1)):
+    """
+    Quantum obejct of a Mølmer–Sørensen gate
+
+    Parameters
+    ----------
+    theta : The duration of the interaction pulse
+    """
+    if targets != (0, 1) and N is None:
+        N = 2
+
+    if N is not None:
+        return expand_oper(MS_gate(theta), N, targets=targets)
+    else:
+        return Qobj(
+            [
+                [np.cos(theta/2.), 0, 0, -1.j*sin(theta/2.)],
+                [0, np.cos(tehta/2.), -1.j*sin(theta/2.), 0],
+                [0, -1.j*sin(theta/2.), np.cos(tehta/2.), 0],
+                [-1.j*sin(theta/2.), 0, 0, np.cos(theta/2.)],
+                dims=[[2, 2], [2, 2]]])
 
 
 #
