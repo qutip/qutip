@@ -274,7 +274,6 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     output.solver = "sesolve"
     output.times = tlist
 
-
     if psi0.isunitary:
         initial_vector = psi0.full().ravel('F')
         oper_evo = True
