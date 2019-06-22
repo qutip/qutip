@@ -118,12 +118,7 @@ class OptPulseProcessor(CircuitProcessor):
                     "The fidelity error of gate {} is higher "
                     "than required limit".format(prop_ind))
 
-            if prop_ind == len(props)-1:  # last
-                time_record.append(result.time + last_time)
-            else:
-                # append time_record to tlist but not time_record[-1]
-                time_record.append(result.time[:-1] + last_time)
-
+            time_record.append(result.time[1:] + last_time)
             last_time += result.time[-1]
             amps_record.append(result.final_amps.T)
 
@@ -198,6 +193,8 @@ class OptPulseProcessor(CircuitProcessor):
         if self.tlist is None:
             if "tlist" in kwargs:
                 tlist = kwargs["tlist"]
+                if tlist[0] != 0:
+                    tlist = np.hstack([[0],self.tlist])
                 del kwargs["tlist"]
             else:
                 raise ValueError (
@@ -208,9 +205,11 @@ class OptPulseProcessor(CircuitProcessor):
                 "`tlist` is already specified by the processor, "
                 "thus can not be given as a key word argument")
         else:
-            tlist = self.tlist
+            # add a 0 to match the input for the solvers
+            tlist = np.hstack([[0],self.tlist])
             
         # contruct time-dependent Hamiltonian
+        # The first row is all 1 for drift Ham
         if self.amps is None:
             amps = np.ones(len(tlist)-1).reshape((1,len(tlist)-1))
         else:
@@ -295,6 +294,6 @@ class OptPulseProcessor(CircuitProcessor):
         ax.set_xlabel("Time")
         amps = np.hstack([self.amps, self.amps[:, -1:]])
         for i in range(self.amps.shape[0]):
-            ax.step(self.tlist, amps[i], where='post')
+            ax.step(np.hstack([[0],self.tlist]), amps[i], where='post')
         fig.tight_layout()
         return fig, ax

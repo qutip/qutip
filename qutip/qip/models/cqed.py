@@ -313,12 +313,11 @@ class DispersivecQED(ModelProcessor):
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
 
-        self.tlist = np.zeros(len(dt_list)+1)
-        self.tlist[0] = 0.
+        self.tlist = np.zeros(len(dt_list))
         t = 0
         for temp_ind in range(len(dt_list)):
             t += dt_list[temp_ind]
-            self.tlist[temp_ind+1] = t
+            self.tlist[temp_ind] = t
         self.amps = np.hstack(
             [self.w0 * np.zeros((self.sx_u.shape[0], 1)),
             self.sx_u, self.sz_u, self.g_u]).T

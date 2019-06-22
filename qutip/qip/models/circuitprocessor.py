@@ -158,7 +158,7 @@ class CircuitProcessor(object):
         else:
             amps_len = self.amps.shape[1]
             tlist_len = self.tlist.shape[0]
-            if amps_len != tlist_len-1:
+            if amps_len != tlist_len:
                 raise ValueError(
                     "tlist has length of {} while amps "
                     "has {}".format(tlist_len, amps_len))
@@ -193,7 +193,7 @@ class CircuitProcessor(object):
         if inctime:
             shp = self.amps.T.shape
             data = np.empty([shp[0], shp[1] + 1], dtype=np.float)
-            data[:, 0] = self.tlist[1:]
+            data[:, 0] = self.tlist
             data[:, 1:] = self.amps.T
         else:
             data = self.amps.T
@@ -215,7 +215,7 @@ class CircuitProcessor(object):
         if not inctime:
             self.amps = data.T
         else:
-            self.tlist = np.hstack([[0.], data[:, 0]])
+            self.tlist = data[:, 0]
             self.amps = data[:, 1:].T
         try:
             self._is_amps_valid()
@@ -296,9 +296,10 @@ class ModelProcessor(CircuitProcessor):
         U_list = []
         H_ops, H_u = self.get_ops_and_u()
 
-        for n in range(len(self.tlist)-1):
+        tlist = np.hstack([[0.],self.tlist])
+        for n in range(len(tlist)-1):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
-            dt = self.tlist[n+1] - self.tlist[n]
+            dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
@@ -338,9 +339,10 @@ class ModelProcessor(CircuitProcessor):
         U_list = [states]
         H_ops, H_u = self.get_ops_and_u()
 
-        for n in range(len(self.tlist)-1):
+        tlist = np.hstack([[0.],self.tlist])
+        for n in range(len(tlist)):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
-            dt = self.tlist[n+1] - self.tlist[n]
+            dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
@@ -362,7 +364,7 @@ class ModelProcessor(CircuitProcessor):
         dt = 0.01
         H_ops, H_u = self.get_ops_and_u()
 
-        diff_tlist = self.tlist[1:] - self.tlist[:-1]
+        diff_tlist = self.tlist - np.hstack([[0],self.tlist[:-1]])
         t_tot = sum(diff_tlist)
         n_t = int(np.ceil(t_tot / dt))
         n_ops = len(H_ops)
