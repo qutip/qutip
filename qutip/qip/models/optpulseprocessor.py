@@ -74,7 +74,8 @@ class OptPulseProcessor(CircuitProcessor):
         elif isinstance(indices, Iterable) and 0 not in indices:
             pass
         else:
-            raise ValueError("ctrls 0 is the "
+            raise ValueError(
+                "ctrls 0 is the "
                 "drift Ham and cannot be removed")
         super(OptPulseProcessor, self).remove_ctrl(indices)
 
@@ -151,7 +152,8 @@ class OptPulseProcessor(CircuitProcessor):
                 print("Number of iterations {}".format(result.num_iter))
 
         self.tlist = np.hstack(time_record)
-        self.amps = np.vstack([np.ones(len(self.tlist)), np.hstack(amps_record)])
+        self.amps = np.vstack(
+            [np.ones(len(self.tlist)), np.hstack(amps_record)])
         return self.tlist, self.amps
 
     def _refine_step(self, tlist, amps, dt):
@@ -193,6 +195,6 @@ class OptPulseProcessor(CircuitProcessor):
         ax.set_xlabel("Time")
         amps = np.hstack([self.amps, self.amps[:, -1:]])
         for i in range(1, self.amps.shape[0]):
-            ax.step(np.hstack([[0],self.tlist]), amps[i], where='post')
+            ax.step(np.hstack([[0], self.tlist]), amps[i], where='post')
         fig.tight_layout()
         return fig, ax

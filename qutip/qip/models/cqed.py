@@ -44,7 +44,8 @@ class DispersivecQED(ModelProcessor):
     """
 
     def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None,
-                 epsmax=None, w0=None, wq=None, eps=None, delta=None, g=None, T1=None, T2=None):
+                 epsmax=None, w0=None, wq=None, eps=None,
+                 delta=None, g=None, T1=None, T2=None):
         """
         Parameters
         ----------
@@ -73,7 +74,8 @@ class DispersivecQED(ModelProcessor):
             The interaction strength for each of the qubit with the resonator.
         """
 
-        super(DispersivecQED, self).__init__(N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
+        super(DispersivecQED, self).__init__(
+            N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
 
@@ -177,7 +179,8 @@ class DispersivecQED(ModelProcessor):
         self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
 
-        self.ctrls = [self.a.dag() * self.a] + self.sx_ops + self.sz_ops + self.cavityqubit_ops
+        self.ctrls = [self.a.dag() * self.a] + (
+            self.sx_ops + self.sz_ops + self.cavityqubit_ops)
 
     def get_ops_and_u(self):
         H0 = self.a.dag() * self.a
@@ -320,5 +323,5 @@ class DispersivecQED(ModelProcessor):
             self.tlist[temp_ind] = t
         self.amps = np.hstack(
             [self.w0 * np.zeros((self.sx_u.shape[0], 1)),
-            self.sx_u, self.sz_u, self.g_u]).T
-        self.amps = self.amps[:,:len(gates)-phase_gate_num]
+                self.sx_u, self.sz_u, self.g_u]).T
+        self.amps = self.amps[:, :len(gates)-phase_gate_num]

@@ -116,17 +116,17 @@ def test_T1_T2():
     # setup
     a = destroy(2)
     Hadamard = hadamard_transform(1)
-    ex_state = basis(2,1)
-    mines_state = (basis(2,1)-basis(2,0)).unit()
+    ex_state = basis(2, 1)
+    mines_state = (basis(2, 1)-basis(2, 0)).unit()
     end_time = 2.
-    tlist = np.arange(0,end_time+0.02,0.02)
+    tlist = np.arange(0, end_time + 0.02, 0.02)
     H_d = 10.*sigmaz()
     T1 = 1.
     T2 = 0.5
 
     # test T1
     test = OptPulseProcessor(1, drift=H_d, T1=T1)
-    result = test.run_state(ex_state, e_ops=[a.dag()*a], tlist = tlist)
+    result = test.run_state(ex_state, e_ops=[a.dag()*a], tlist=tlist)
 
     assert_allclose(
         result.expect[0][-1], np.exp(-1./T1*end_time),
@@ -148,8 +148,9 @@ def test_T1_T2():
         rho0=mines_state, tlist=tlist, e_ops=[Hadamard*a.dag()*a*Hadamard])
     assert_allclose(
         result.expect[0][-1], np.exp(-1./T2*end_time)*0.5+0.5,
-        rtol=1e-5, err_msg="Error in T1 & T2 simulation, "
-            "with T1={} and T2={}".format(T1, T2))
+        rtol=1e-5,
+        err_msg="Error in T1 & T2 simulation, "
+                "with T1={} and T2={}".format(T1, T2))
 
 # TODO: Test for exceptions
 # test for no drift

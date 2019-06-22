@@ -57,7 +57,8 @@ class SpinChain(ModelProcessor):
         sxsy: Integer/List
             The interaction strength for each of the qubit pair in the system.
         """
-        super(SpinChain, self).__init__(N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
+        super(SpinChain, self).__init__(
+            N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
 
@@ -153,12 +154,12 @@ class SpinChain(ModelProcessor):
 
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
-        
+
         self.tlist = np.zeros(len(dt_list))
         t = 0
         for temp_ind in range(len(dt_list)):
             t += dt_list[temp_ind]
-            self.tlist[temp_ind] = t               
+            self.tlist[temp_ind] = t
         self.amps = np.hstack([self.sx_u, self.sz_u, self.sxsy_u]).T
 
     def adjacent_gates(self, qc, setup="linear"):
@@ -428,7 +429,6 @@ class CircularSpinChain(SpinChain):
             self.sxsy_coeff = [sxsy * 2 * np.pi] * N
         else:
             self.sxsy_coeff = sxsy
-        # self.ctrls, self.amps = super(CircularSpinChain, self).get_ops_and_u()
         self.ctrls += self.sx_ops + self.sz_ops + self.sxsy_ops
 
     def get_ops_labels(self):

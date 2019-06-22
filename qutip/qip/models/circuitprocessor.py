@@ -84,15 +84,14 @@ class CircuitProcessor(object):
         self.tlist = None
         self.amps = None
         self.ctrls = []
-        
         self.T1 = self._check_T_valid(T1, self.N)
         self.T2 = self._check_T_valid(T2, self.N)
 
     def _check_T_valid(self, T, N):
-        if (isinstance(T, numbers.Real) and T>0) or T is None:
+        if (isinstance(T, numbers.Real) and T > 0) or T is None:
             return [T] * N
-        elif isinstance(T, Iterable) and len(T)==N:
-            if all([isinstance(t, numbers.Real) and t>0 for t in T]):
+        elif isinstance(T, Iterable) and len(T) == N:
+            if all([isinstance(t, numbers.Real) and t > 0 for t in T]):
                 return T
         else:
             raise ValueError("Invalid relaxation time T={}".format(T))
@@ -168,8 +167,9 @@ class CircuitProcessor(object):
                     "has {}".format(tlist_len, amps_len))
 
     def _is_ctrl_amps_valid(self):
-        if self.amps is None and len(self.ctrls)!=0:
-            raise ValueError("The control amplitude is None while "
+        if self.amps is None and len(self.ctrls) != 0:
+            raise ValueError(
+                "The control amplitude is None while "
                 "the number of ctrls is {}".format(len(self.ctrls)))
         if self.amps is not None:
             if self.amps.shape[0] != len(self.ctrls):
@@ -268,7 +268,7 @@ class CircuitProcessor(object):
                     self.tlist = tlist[1:]
                 del kwargs["tlist"]
             else:
-                raise ValueError (
+                raise ValueError(
                     "`tlist` has to be given as a key word argument "
                     "since it's not defined.")
         elif self.tlist is not None and "tlist" in kwargs:
@@ -280,16 +280,16 @@ class CircuitProcessor(object):
         if not self.ctrls:
             self.ctrls.append(tensor([identity(2)] * self.N))
         if self.amps is None:  # only drift/identity and no amps given
-            self.amps = np.ones(len(self.tlist)).reshape((1,len(self.tlist)))
+            self.amps = np.ones(len(self.tlist)).reshape((1, len(self.tlist)))
 
         # check validity
         self._is_amps_valid()
 
-        tlist = np.hstack([[0],self.tlist])
+        tlist = np.hstack([[0], self.tlist])
         amps = self.amps
-            
+
         # contruct time-dependent Hamiltonian
-        # TODO modefy the structure so that 
+        # TODO modefy the structure so that
         # tlist does not have to be equaldistant
         def get_amp_td_func(t, args, row_ind):
             """
@@ -309,9 +309,9 @@ class CircuitProcessor(object):
             # row_ind=op_ind cannot be deleted
             # see Late Binding Closures for detail
             H.append(
-                [self.ctrls[op_ind], 
-                lambda t,args,row_ind=op_ind:
-                    get_amp_td_func(t,args,row_ind)])
+                [self.ctrls[op_ind],
+                    lambda t, args, row_ind=op_ind:
+                    get_amp_td_func(t, args, row_ind)])
 
         # add collapse for T1 & T2 decay
         sys_c_ops = []
@@ -325,7 +325,7 @@ class CircuitProcessor(object):
             if T2 is not None:
                 # Keep the total dephasing ~ exp(-t/T2)
                 if T1 is not None:
-                    if 2*T1<T2:
+                    if 2*T1 < T2:
                         raise ValueError(
                             "T1={}, T2={} does not fulfill "
                             "2*T1>T2".format(T1, T2))
@@ -333,16 +333,16 @@ class CircuitProcessor(object):
                 else:
                     T2_eff = T2
                 sys_c_ops.append(
-                    expand_oper(  
+                    expand_oper(
                         1/np.sqrt(2*T2_eff) * sigmaz(), self.N, qu_ind))
         if "c_ops" in kwargs:
             kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
         evo_result = mesolve(
-            H=H, rho0=rho0, tlist=tlist, 
-                args={'times': tlist, 'amps': amps}, **kwargs)
-        
+            H=H, rho0=rho0, tlist=tlist,
+            args={'times': tlist, 'amps': amps}, **kwargs)
+
         return evo_result
 
     def optimize_circuit(self, qc):
@@ -379,7 +379,7 @@ class CircuitProcessor(object):
         Returns the Hamiltonian operators and corresponding values by stacking
         them together.
         """
-        raise NotImplementedError("Use the function in the sub-class") 
+        raise NotImplementedError("Use the function in the sub-class")
 
     def eliminate_auxillary_modes(self, U):
         return U
@@ -418,7 +418,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = []
         H_ops, H_u = self.get_ops_and_u()
 
-        tlist = np.hstack([[0.],self.tlist])
+        tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)-1):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
             dt = tlist[n+1] - tlist[n]
@@ -450,7 +450,7 @@ class ModelProcessor(CircuitProcessor):
         U_list: list
             The propagator matrix obtained from the physical implementation.
         """
-        # TODO Here this variable was called states 
+        # TODO Here this variable was called states
         # in the old circuitprocessor,
         # but there is actaully only one state,
         # change to state? or rho0 like in the solver?
@@ -461,7 +461,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = [states]
         H_ops, H_u = self.get_ops_and_u()
 
-        tlist = np.hstack([[0.],self.tlist])
+        tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)):
             H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
             dt = tlist[n+1] - tlist[n]
@@ -486,7 +486,7 @@ class ModelProcessor(CircuitProcessor):
         dt = 0.01
         H_ops, H_u = self.get_ops_and_u()
 
-        diff_tlist = self.tlist - np.hstack([[0],self.tlist[:-1]])
+        diff_tlist = self.tlist - np.hstack([[0], self.tlist[:-1]])
         t_tot = sum(diff_tlist)
         n_t = int(np.ceil(t_tot / dt))
         n_ops = len(H_ops)
