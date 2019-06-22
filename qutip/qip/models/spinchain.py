@@ -61,6 +61,8 @@ class SpinChain(ModelProcessor):
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
+        self.set_up_ceoff(N, sx=sx, sz=sz, sxsy=sxsy)
+
         # sx_ops
         self.ctrls += [tensor([sigmax() if m == n else identity(2)
                                for n in range(N)])
@@ -78,6 +80,7 @@ class SpinChain(ModelProcessor):
             y[n] = y[n + 1] = sigmay()
             self.ctrls.append(tensor(x) + tensor(y))
 
+    def set_up_ceoff(self, N, sx=None, sz=None, sxsy=None):
         if sx is None:
             self.sx_coeff = [0.25 * 2 * np.pi] * N
         elif not isinstance(sx, list):
@@ -135,6 +138,7 @@ class SpinChain(ModelProcessor):
         dt_list = []
 
         n = 0
+        phase_gate_num = 0
         for gate in gates:
 
             if gate.name == "ISWAP":
@@ -173,6 +177,7 @@ class SpinChain(ModelProcessor):
 
             elif gate.name == "GLOBALPHASE":
                 self.global_phase += gate.arg_value
+                phase_gate_num += 1
 
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
@@ -182,6 +187,7 @@ class SpinChain(ModelProcessor):
         for temp_ind in range(len(dt_list)):
             t += dt_list[temp_ind]
             self.tlist[temp_ind] = t
+        self.amps = self.amps[:, :len(gates)-phase_gate_num]
 
     def adjacent_gates(self, qc, setup="linear"):
         """

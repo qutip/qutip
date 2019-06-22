@@ -78,8 +78,42 @@ class DispersivecQED(ModelProcessor):
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
+        self.set_up_ceoff(N=N, Nres=Nres, deltamax=deltamax,
+                 epsmax=epsmax, w0=w0, wq=wq, eps=eps,
+                 delta=delta, g=g)
+                 
+        # rwa/dispersive regime tests
+        if any(self.g / (self.w0 - self.wq) > 0.05):
+            warnings.warn("Not in the dispersive regime")
 
-        # user definable
+        if any((self.w0 - self.wq) / (self.w0 + self.wq) > 0.05):
+            warnings.warn(
+                "The rotating-wave approximation might not be valid.")
+
+        # single qubit terms
+        self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
+        self.ctrls.append(self.a.dag() * self.a)
+        self.ctrls += [tensor([identity(self.Nres)] +
+                              [sigmax() if m == n else identity(2)
+                               for n in range(N)])
+                       for m in range(N)]
+        self.ctrls += [tensor([identity(self.Nres)] +
+                              [sigmaz() if m == n else identity(2)
+                               for n in range(N)])
+                       for m in range(N)]
+        # interaction terms
+        for n in range(N):
+            sm = tensor([identity(self.Nres)] +
+                        [destroy(2) if m == n else identity(2)
+                         for m in range(N)])
+            self.ctrls.append(self.a.dag() * sm + self.a * sm.dag())
+
+        self.psi_proj = tensor([basis(self.Nres, 0)] +
+                               [identity(2) for n in range(N)])
+
+    def set_up_ceoff(self, N, Nres=None, deltamax=None,
+                 epsmax=None, w0=None, wq=None, eps=None,
+                 delta=None, g=None):
         if Nres is None:
             self.Nres = 10
         else:
@@ -150,43 +184,32 @@ class DispersivecQED(ModelProcessor):
         self.wq = np.sqrt(self.eps ** 2 + self.delta ** 2)
         self.Delta = self.wq - self.w0
 
-        # rwa/dispersive regime tests
-        if any(self.g / (self.w0 - self.wq) > 0.05):
-            warnings.warn("Not in the dispersive regime")
+    @property
+    def sx_ops(self):
+        return self.ctrls[1: self.N+1]
 
-        if any((self.w0 - self.wq) / (self.w0 + self.wq) > 0.05):
-            warnings.warn(
-                "The rotating-wave approximation might not be valid.")
+    @property
+    def sz_ops(self):
+        return self.ctrls[self.N+1: 2*self.N+1]
 
-        self.sx_ops = [tensor([identity(self.Nres)] +
-                              [sigmax() if m == n else identity(2)
-                               for n in range(N)])
-                       for m in range(N)]
-        self.sz_ops = [tensor([identity(self.Nres)] +
-                              [sigmaz() if m == n else identity(2)
-                               for n in range(N)])
-                       for m in range(N)]
+    @property
+    def cavityqubit_ops(self):
+        return self.ctrls[2*self.N+1: 3*self.N+1]
 
-        self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
+    @property
+    def sx_u(self):
+        return self.amps[1: self.N+1]
 
-        self.cavityqubit_ops = []
-        for n in range(N):
-            sm = tensor([identity(self.Nres)] +
-                        [destroy(2) if m == n else identity(2)
-                         for m in range(N)])
-            self.cavityqubit_ops.append(self.a.dag() * sm + self.a * sm.dag())
+    @property
+    def sz_u(self):
+        return self.amps[self.N+1: 2*self.N+1]
 
-        self.psi_proj = tensor([basis(self.Nres, 0)] +
-                               [identity(2) for n in range(N)])
-
-        self.ctrls = [self.a.dag() * self.a] + (
-            self.sx_ops + self.sz_ops + self.cavityqubit_ops)
+    @property
+    def g_u(self):
+        return self.amps[2*self.N+1: 3*self.N+1]
 
     def get_ops_and_u(self):
-        H0 = self.a.dag() * self.a
-        return ([H0] + self.sx_ops + self.sz_ops + self.cavityqubit_ops,
-                np.hstack((self.w0 * np.zeros((self.sx_u.shape[0], 1)),
-                          self.sx_u, self.sz_u, self.g_u)))
+        return (self.ctrls, self.amps.T)
 
     def get_ops_labels(self):
         """
@@ -260,9 +283,7 @@ class DispersivecQED(ModelProcessor):
         gates = self.optimize_circuit(qc).gates
 
         self.global_phase = 0
-        self.sx_u = np.zeros((len(gates), len(self.sx_ops)))
-        self.sz_u = np.zeros((len(gates), len(self.sz_ops)))
-        self.g_u = np.zeros((len(gates), len(self.cavityqubit_ops)))
+        self.amps = np.zeros([len(self.ctrls), len(gates)])
         dt_list = []
 
         n = 0
@@ -271,10 +292,10 @@ class DispersivecQED(ModelProcessor):
 
             if gate.name == "ISWAP":
                 t0, t1 = gate.targets[0], gate.targets[1]
-                self.sz_u[n, t0] = self.wq[t0] - self.w0
-                self.sz_u[n, t1] = self.wq[t1] - self.w0
-                self.g_u[n, t0] = self.g[t0]
-                self.g_u[n, t1] = self.g[t1]
+                self.sz_u[t0, n] = self.wq[t0] - self.w0
+                self.sz_u[t1, n] = self.wq[t1] - self.w0
+                self.g_u[t0, n] = self.g[t0]
+                self.g_u[t1, n] = self.g[t1]
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
@@ -284,10 +305,10 @@ class DispersivecQED(ModelProcessor):
 
             elif gate.name == "SQRTISWAP":
                 t0, t1 = gate.targets[0], gate.targets[1]
-                self.sz_u[n, t0] = self.wq[t0] - self.w0
-                self.sz_u[n, t1] = self.wq[t1] - self.w0
-                self.g_u[n, t0] = self.g[t0]
-                self.g_u[n, t1] = self.g[t1]
+                self.sz_u[t0,n] = self.wq[t0] - self.w0
+                self.sz_u[t1, n] = self.wq[t1] - self.w0
+                self.g_u[t0, n] = self.g[t0]
+                self.g_u[t1, n] = self.g[t1]
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
@@ -297,14 +318,14 @@ class DispersivecQED(ModelProcessor):
 
             elif gate.name == "RZ":
                 g = self.sz_coeff[gate.targets[0]]
-                self.sz_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
+                self.sz_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
                 n += 1
 
             elif gate.name == "RX":
                 g = self.sx_coeff[gate.targets[0]]
-                self.sx_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
+                self.sx_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
                 n += 1
@@ -321,7 +342,12 @@ class DispersivecQED(ModelProcessor):
         for temp_ind in range(len(dt_list)):
             t += dt_list[temp_ind]
             self.tlist[temp_ind] = t
-        self.amps = np.hstack(
-            [self.w0 * np.zeros((self.sx_u.shape[0], 1)),
-                self.sx_u, self.sz_u, self.g_u]).T
         self.amps = self.amps[:, :len(gates)-phase_gate_num]
+        # TODO The amplitude of the first control a.dag()*a 
+        # was set to zero before I made this refactoring.
+        # It is probably due to the fact that 
+        # it contributes only a constant (N) and can be neglected.
+        # It should only result in a global phase when numerical 
+        # solver is used for the evolution, test it.
+        self.amps[0] = self.w0 * np.zeros((self.sx_u.shape[1]))
+
