@@ -49,39 +49,44 @@ class DispersivecQED(ModelProcessor):
         """
         Parameters
         ----------
+        N : int
+            The number of qubits in the system.
+        correct_global_phase : bool
+            Whether the correct phase should be considered in analytical
+            evolution.
         Nres: Integer
             The number of energy levels in the resonator.
-
         deltamax: Integer/List
             The sigma-x coefficient for each of the qubits in the system.
-
         epsmax: Integer/List
             The sigma-z coefficient for each of the qubits in the system.
-
         wo: Integer
             The base frequency of the resonator.
-
         wq: Integer/List
             The frequency of the qubits.
-
         eps: Integer/List
             The epsilon for each of the qubits in the system.
-
         delta: Integer/List
             The epsilon for each of the qubits in the system.
-
         g: Integer/List
             The interaction strength for each of the qubit with the resonator.
+        T1 : list or float
+            Characterize the decoherence of amplitude damping for
+            each qubit.
+        T2 : list of float
+            Characterize the decoherence of dephasing relaxation for
+            each qubit.
         """
 
         super(DispersivecQED, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
-        self.set_up_ceoff(N=N, Nres=Nres, deltamax=deltamax,
-                 epsmax=epsmax, w0=w0, wq=wq, eps=eps,
-                 delta=delta, g=g)
-                 
+        self.set_up_coeff(
+            N=N, Nres=Nres, deltamax=deltamax,
+            epsmax=epsmax, w0=w0, wq=wq, eps=eps,
+            delta=delta, g=g)
+
         # rwa/dispersive regime tests
         if any(self.g / (self.w0 - self.wq) > 0.05):
             warnings.warn("Not in the dispersive regime")
@@ -111,9 +116,13 @@ class DispersivecQED(ModelProcessor):
         self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
 
-    def set_up_ceoff(self, N, Nres=None, deltamax=None,
-                 epsmax=None, w0=None, wq=None, eps=None,
-                 delta=None, g=None):
+    def set_up_coeff(
+            self, N, Nres=None, deltamax=None,
+            epsmax=None, w0=None, wq=None, eps=None,
+            delta=None, g=None):
+        """
+        Calculate the coefficients for this setup.
+        """
         if Nres is None:
             self.Nres = 10
         else:
@@ -279,7 +288,10 @@ class DispersivecQED(ModelProcessor):
         return qc
 
     def load_circuit(self, qc):
-
+        """
+        Decompose a :class:`qutip.QubitCircuit` in to the control
+        amplitude generating the corresponding evolution.
+        """
         gates = self.optimize_circuit(qc).gates
 
         self.global_phase = 0
@@ -305,7 +317,7 @@ class DispersivecQED(ModelProcessor):
 
             elif gate.name == "SQRTISWAP":
                 t0, t1 = gate.targets[0], gate.targets[1]
-                self.sz_u[t0,n] = self.wq[t0] - self.w0
+                self.sz_u[t0, n] = self.wq[t0] - self.w0
                 self.sz_u[t1, n] = self.wq[t1] - self.w0
                 self.g_u[t0, n] = self.g[t0]
                 self.g_u[t1, n] = self.g[t1]
@@ -343,11 +355,9 @@ class DispersivecQED(ModelProcessor):
             t += dt_list[temp_ind]
             self.tlist[temp_ind] = t
         self.amps = self.amps[:, :len(gates)-phase_gate_num]
-        # TODO The amplitude of the first control a.dag()*a 
+        # TODO The amplitude of the first control a.dag()*a
         # was set to zero before I made this refactoring.
-        # It is probably due to the fact that 
+        # It is probably due to the fact that
         # it contributes only a constant (N) and can be neglected.
-        # It should only result in a global phase when numerical 
-        # solver is used for the evolution, test it.
+        # but change the below line to np.ones leads to test error.
         self.amps[0] = self.w0 * np.zeros((self.sx_u.shape[1]))
-

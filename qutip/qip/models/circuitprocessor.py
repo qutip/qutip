@@ -52,11 +52,11 @@ class CircuitProcessor(object):
     The base class for a circuit processor,
     which is defined by the available Hamiltonian of the system
     and the decoherence time for each qubit.
-    For given pulse amplitude matrix, the processor can then
+    For a given pulse amplitude matrix, the processor can then
     calculate the state evolution under the given control pulses,
     either analytically or numerically.
     In the subclass, further methods are defined so that
-    it can be used to find the the corresponding driving pulses
+    it can be used to find the corresponding driving pulses
     of a quantum circuit.
 
     Parameters
@@ -67,17 +67,19 @@ class CircuitProcessor(object):
         Characterize the decoherence of amplitude damping for
         each qubit.
     T2 : list of float
-        Characterize the decoherence of dephase relaxation for
+        Characterize the decoherence of dephasing relaxation for
         each qubit.
 
     Attributes
     ----------
+    ctrls : list of :class:`Qobj`
+        The Hamiltonians driving the evolution.
     tlist : array like
         A NumPy array specifies the time steps.
     amps : array like
         A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
         row corresponds to the control pulse sequence for
-        one Hamiltonian.
+        one Hamiltonian in `ctrls`.
     """
     def __init__(self, N, T1=None, T2=None):
         self.N = N
@@ -163,7 +165,7 @@ class CircuitProcessor(object):
             tlist_len = self.tlist.shape[0]
             if amps_len != tlist_len:
                 raise ValueError(
-                    "tlist has length of {} while amps "
+                    "`tlist` has the length of {} while amps "
                     "has {}".format(tlist_len, amps_len))
 
     def _is_ctrl_amps_valid(self):
@@ -401,7 +403,8 @@ class ModelProcessor(CircuitProcessor):
     def run(self, qc=None):
         """
         Generates the propagator matrix by running the Hamiltonian for the
-        appropriate time duration for the desired physical system.
+        appropriate time duration for the desired physical system
+        analytically with U = exp(-iHt).
 
         Parameters
         ----------
@@ -450,6 +453,7 @@ class ModelProcessor(CircuitProcessor):
         U_list: list
             The propagator matrix obtained from the physical implementation.
         """
+        # TODO choice for numerical/anlytical
         # TODO Here this variable was called states
         # in the old circuitprocessor,
         # but there is actaully only one state,

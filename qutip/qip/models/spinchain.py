@@ -48,20 +48,29 @@ class SpinChain(ModelProcessor):
         """
         Parameters
         ----------
+        N : int
+            The number of qubits in the system.
+        correct_global_phase : bool
+            Whether the correct phase should be considered in analytical
+            evolution.
         sx: Integer/List
             The delta for each of the qubits in the system.
-
         sz: Integer/List
             The epsilon for each of the qubits in the system.
-
         sxsy: Integer/List
             The interaction strength for each of the qubit pair in the system.
+        T1 : list or float
+            Characterize the decoherence of amplitude damping for
+            each qubit.
+        T2 : list of float
+            Characterize the decoherence of dephasing relaxation for
+            each qubit.
         """
         super(SpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
-        self.set_up_ceoff(N, sx=sx, sz=sz, sxsy=sxsy)
+        self.set_up_coeff(N, sx=sx, sz=sz, sxsy=sxsy)
 
         # sx_ops
         self.ctrls += [tensor([sigmax() if m == n else identity(2)
@@ -80,7 +89,10 @@ class SpinChain(ModelProcessor):
             y[n] = y[n + 1] = sigmay()
             self.ctrls.append(tensor(x) + tensor(y))
 
-    def set_up_ceoff(self, N, sx=None, sz=None, sxsy=None):
+    def set_up_coeff(self, N, sx=None, sz=None, sxsy=None):
+        """
+        Calculate the coefficients for this setup.
+        """
         if sx is None:
             self.sx_coeff = [0.25 * 2 * np.pi] * N
         elif not isinstance(sx, list):
@@ -127,10 +139,17 @@ class SpinChain(ModelProcessor):
         return self.amps[2*self.N:]
 
     def get_ops_and_u(self):
+        """
+        Returns the Hamiltonian operators and corresponding values by stacking
+        them together.
+        """
         return (self.ctrls, self.amps.T)
 
     def load_circuit(self, qc):
-
+        """
+        Decompose a :class:`qutip.QubitCircuit` in to the control
+        amplitude generating the corresponding evolution.
+        """
         gates = self.optimize_circuit(qc).gates
 
         self.global_phase = 0
