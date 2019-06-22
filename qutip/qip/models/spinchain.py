@@ -61,21 +61,22 @@ class SpinChain(ModelProcessor):
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.ctrls = []
-
-        self.sx_ops = [tensor([sigmax() if m == n else identity(2)
+        # sx_ops
+        self.ctrls += [tensor([sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
-        self.sz_ops = [tensor([sigmaz() if m == n else identity(2)
+        # sz_ops
+        self.ctrls += [tensor([sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
 
-        self.sxsy_ops = []
+        # sxsy_ops
         for n in range(N - 1):
             x = [identity(2)] * N
             x[n] = x[n + 1] = sigmax()
             y = [identity(2)] * N
             y[n] = y[n + 1] = sigmay()
-            self.sxsy_ops.append(tensor(x) + tensor(y))
+            self.ctrls.append(tensor(x) + tensor(y))
 
         if sx is None:
             self.sx_coeff = [0.25 * 2 * np.pi] * N
@@ -98,18 +99,39 @@ class SpinChain(ModelProcessor):
         else:
             self.sxsy_coeff = sxsy
 
+    @property
+    def sx_ops(self):
+        return self.ctrls[: self.N]
+
+    @property
+    def sz_ops(self):
+        return self.ctrls[self.N: 2*self.N]
+
+    @property
+    def sxsy_ops(self):
+        return self.ctrls[2*self.N:]
+
+    @property
+    def sx_u(self):
+        return self.amps[: self.N]
+
+    @property
+    def sz_u(self):
+        return self.amps[self.N: 2*self.N]
+
+    @property
+    def sxsy_u(self):
+        return self.amps[2*self.N:]
+
     def get_ops_and_u(self):
-        return (self.sx_ops + self.sz_ops + self.sxsy_ops,
-                np.hstack((self.sx_u, self.sz_u, self.sxsy_u)))
+        return (self.ctrls, self.amps.T)
 
     def load_circuit(self, qc):
 
         gates = self.optimize_circuit(qc).gates
 
         self.global_phase = 0
-        self.sx_u = np.zeros((len(gates), len(self.sx_ops)))
-        self.sz_u = np.zeros((len(gates), len(self.sz_ops)))
-        self.sxsy_u = np.zeros((len(gates), len(self.sxsy_ops)))
+        self.amps = np.zeros([len(self.ctrls), len(gates)])
         dt_list = []
 
         n = 0
@@ -118,9 +140,9 @@ class SpinChain(ModelProcessor):
             if gate.name == "ISWAP":
                 g = self.sxsy_coeff[min(gate.targets)]
                 if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
-                    self.sxsy_u[n, self.N - 1] = -g
+                    self.sxsy_u[self.N - 1, n] = -g
                 else:
-                    self.sxsy_u[n, min(gate.targets)] = -g
+                    self.sxsy_u[min(gate.targets), n] = -g
                 T = np.pi / (4 * g)
                 dt_list.append(T)
                 n += 1
@@ -128,23 +150,23 @@ class SpinChain(ModelProcessor):
             elif gate.name == "SQRTISWAP":
                 g = self.sxsy_coeff[min(gate.targets)]
                 if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
-                    self.sxsy_u[n, self.N - 1] = -g
+                    self.sxsy_u[self.N - 1, n] = -g
                 else:
-                    self.sxsy_u[n, min(gate.targets)] = -g
+                    self.sxsy_u[min(gate.targets), n] = -g
                 T = np.pi / (8 * g)
                 dt_list.append(T)
                 n += 1
 
             elif gate.name == "RZ":
                 g = self.sz_coeff[gate.targets[0]]
-                self.sz_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
+                self.sz_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
                 n += 1
 
             elif gate.name == "RX":
                 g = self.sx_coeff[gate.targets[0]]
-                self.sx_u[n, gate.targets[0]] = np.sign(gate.arg_value) * g
+                self.sx_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
                 n += 1
@@ -160,7 +182,6 @@ class SpinChain(ModelProcessor):
         for temp_ind in range(len(dt_list)):
             t += dt_list[temp_ind]
             self.tlist[temp_ind] = t
-        self.amps = np.hstack([self.sx_u, self.sz_u, self.sxsy_u]).T
 
     def adjacent_gates(self, qc, setup="linear"):
         """
@@ -385,7 +406,14 @@ class LinearSpinChain(SpinChain):
 
         super(LinearSpinChain, self).__init__(N, correct_global_phase,
                                               sx, sz, sxsy, T1, T2)
-        self.ctrls += self.sx_ops + self.sz_ops + self.sxsy_ops
+
+    @property
+    def sxsy_ops(self):
+        return self.ctrls[2*self.N: 3*self.N-1]
+
+    @property
+    def sxsy_u(self):
+        return self.amps[2*self.N: 3*self.N-1]
 
     def get_ops_labels(self):
         """
@@ -421,7 +449,7 @@ class CircularSpinChain(SpinChain):
         x[0] = x[N - 1] = sigmax()
         y = [identity(2)] * N
         y[0] = y[N - 1] = sigmay()
-        self.sxsy_ops.append(tensor(x) + tensor(y))
+        self.ctrls.append(tensor(x) + tensor(y))
 
         if sxsy is None:
             self.sxsy_coeff = [0.1 * 2 * np.pi] * N
@@ -429,7 +457,14 @@ class CircularSpinChain(SpinChain):
             self.sxsy_coeff = [sxsy * 2 * np.pi] * N
         else:
             self.sxsy_coeff = sxsy
-        self.ctrls += self.sx_ops + self.sz_ops + self.sxsy_ops
+
+    @property
+    def sxsy_ops(self):
+        return self.ctrls[2*self.N: 3*self.N]
+
+    @property
+    def sxsy_u(self):
+        return self.amps[2*self.N: 3*self.N]
 
     def get_ops_labels(self):
         """
