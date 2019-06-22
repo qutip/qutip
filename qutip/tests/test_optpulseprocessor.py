@@ -32,8 +32,9 @@ def test_simple_hadamard():
 
     # test add/remove ctrl
     test.add_ctrl(sigmay())
-    test.remove_ctrl(0)
-    assert_(len(test.ctrls) == 1)
+    test.remove_ctrl(1)
+    assert_(len(test.ctrls) == 2)
+    assert_allclose(test.drift, H_d)
     assert_(sigmay() in test.ctrls)
 
     # test plot

@@ -49,11 +49,15 @@ from qutip import globalphase
 
 class CircuitProcessor(object):
     """
-    The base class for circuit processor, which is defined by the Hamiltonian available
-    as dynamic generators. It can find the the corresponding driving pulses,
-    either by analytical decomposition of by numerical method. 
-    The processor can then
-    calculate the state evolution under this defined dynamics
+    The base class for a circuit processor,
+    which is defined by the available Hamiltonian of the system
+    and the decoherence time for each qubit.
+    For given pulse amplitude matrix, the processor can then
+    calculate the state evolution under the given control pulses,
+    either analytically or numerically.
+    In the subclass, further methods are defined so that
+    it can be used to find the the corresponding driving pulses
+    of a quantum circuit.
 
     Parameters
     ----------
@@ -165,13 +169,15 @@ class CircuitProcessor(object):
 
     def _is_ctrl_amps_valid(self):
         if self.amps is None and len(self.ctrls)!=0:
-            raise ValueError("The control amplitude is Nono while "
+            raise ValueError("The control amplitude is None while "
                 "the number of ctrls is {}".format(len(self.ctrls)))
         if self.amps is not None:
             if self.amps.shape[0] != len(self.ctrls):
                 raise ValueError(
                     "The control amplitude matrix do not match the "
-                    "number of control Hamiltonians")
+                    "number of ctrls  "
+                    "#ctrls = {}  "
+                    "#amps = {}".format(len(self.ctrls), len(self.amps)))
 
     def _is_amps_valid(self):
         self._is_time_amps_valid()
@@ -222,6 +228,122 @@ class CircuitProcessor(object):
         except Exception as e:
             warnings.warn("{}".format(e))
         return self.tlist, self.amps
+
+    def run_state(self, rho0, **kwargs):
+        """
+        Use mesolve to calculate the time of the state evolution
+        and return the result. Other arguments of mesolve can be
+        given as kwargs.
+
+        Parameters
+        ----------
+        rho0 : Qobj
+            Initial density matrix or state vector (ket).
+        **kwargs
+            Key word arguments for `mesolve`
+
+        Returns
+        -------
+        evo_result : :class:`qutip.Result`
+            An instance of the class :class:`qutip.Result`, which contains
+            either an *array* `result.expect` of expectation values for
+            the times specified by `tlist`, or an *array* `result.states`
+            of state vectors or density matrices corresponding to
+            the times in `tlist` [if `e_ops` is
+            an empty list], or nothing if a callback function was
+            given in place of
+            operators for which to calculate the expectation values.
+        """
+        if "H" in kwargs or "args" in kwargs:
+            raise ValueError(
+                "`H` and `args` are already specified by the processor "
+                "and can not be given as a key word argument")
+
+        # if no control pulse specified (drift evolution with c_ops)
+        if self.tlist is None:
+            if "tlist" in kwargs:
+                tlist = kwargs["tlist"]
+                # If first t is 0, remove it to match the define of self.tlist
+                if tlist[0] == 0:
+                    self.tlist = tlist[1:]
+                del kwargs["tlist"]
+            else:
+                raise ValueError (
+                    "`tlist` has to be given as a key word argument "
+                    "since it's not defined.")
+        elif self.tlist is not None and "tlist" in kwargs:
+            raise ValueError(
+                "`tlist` is already specified by the processor, "
+                "thus can not be given as a key word argument")
+        else:
+            self.tlist = self.tlist
+        if not self.ctrls:
+            self.ctrls.append(tensor([identity(2)] * self.N))
+        if self.amps is None:  # only drift/identity and no amps given
+            self.amps = np.ones(len(self.tlist)).reshape((1,len(self.tlist)))
+
+        # check validity
+        self._is_amps_valid()
+
+        tlist = np.hstack([[0],self.tlist])
+        amps = self.amps
+            
+        # contruct time-dependent Hamiltonian
+        # TODO modefy the structure so that 
+        # tlist does not have to be equaldistant
+        def get_amp_td_func(t, args, row_ind):
+            """
+            This is the func as it is implemented in
+            `qutip.rhs_generate._td_wrap_array_str`
+            """
+            times = args['times']
+            amps = args['amps'][row_ind]
+            n_t = len(times)
+            t_f = times[-1]
+            if t >= t_f:
+                return 0.0
+            else:
+                return amps[int(np.floor((n_t-1)*t/t_f))]
+        H = []
+        for op_ind in range(len(self.ctrls)):
+            # row_ind=op_ind cannot be deleted
+            # see Late Binding Closures for detail
+            H.append(
+                [self.ctrls[op_ind], 
+                lambda t,args,row_ind=op_ind:
+                    get_amp_td_func(t,args,row_ind)])
+
+        # add collapse for T1 & T2 decay
+        sys_c_ops = []
+        for qu_ind in range(self.N):
+            T1 = self.T1[qu_ind]
+            T2 = self.T2[qu_ind]
+            if T1 is not None:
+                sys_c_ops.append(
+                    expand_oper(
+                        1/np.sqrt(T1) * destroy(2), self.N, qu_ind))
+            if T2 is not None:
+                # Keep the total dephasing ~ exp(-t/T2)
+                if T1 is not None:
+                    if 2*T1<T2:
+                        raise ValueError(
+                            "T1={}, T2={} does not fulfill "
+                            "2*T1>T2".format(T1, T2))
+                    T2_eff = 1./(1./T2-1./2./T1)
+                else:
+                    T2_eff = T2
+                sys_c_ops.append(
+                    expand_oper(  
+                        1/np.sqrt(2*T2_eff) * sigmaz(), self.N, qu_ind))
+        if "c_ops" in kwargs:
+            kwargs["c_ops"] += sys_c_ops
+        else:
+            kwargs["c_ops"] = sys_c_ops
+        evo_result = mesolve(
+            H=H, rho0=rho0, tlist=tlist, 
+                args={'times': tlist, 'amps': amps}, **kwargs)
+        
+        return evo_result
 
     def optimize_circuit(self, qc):
         """
