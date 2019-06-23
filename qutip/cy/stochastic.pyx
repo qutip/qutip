@@ -35,7 +35,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-cimport libc.math
+from libc.math cimport fabs
 from qutip.cy.cqobjevo cimport CQobjEvo
 from qutip.cy.brtools cimport ZHEEVR
 from qutip.qobj import Qobj
@@ -128,6 +128,16 @@ cdef void _normalize_inplace(complex[::1] vec):
     cdef int l = vec.shape[0]
     cdef double norm = 1.0/_dznrm2(vec)
     zdscal(&l, &norm, <complex*>&vec[0], &ONE)
+
+# to move eventually, 10x faster than scipy's norm.
+@cython.cdivision(True)
+@cython.boundscheck(False)
+def normalize_inplace(complex[::1] vec):
+    """ make norm of vec equal to 1"""
+    cdef int l = vec.shape[0]
+    cdef double norm = 1.0/_dznrm2(vec)
+    zdscal(&l, &norm, <complex*>&vec[0], &ONE)
+    return fabs(norm-1)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

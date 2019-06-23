@@ -80,6 +80,7 @@ class ExpectOps:
             else:
                 self.e_ops_qoevo = np.array([QobjEvo(spre(e)) for e in e_ops],
                                             dtype=object)
+            [op.compile() for op in self.e_ops_qoevo]
         elif callable(e_ops):
             self.isfunc = True
             self.e_num = 1
@@ -108,7 +109,8 @@ class ExpectOps:
         else:
             t = self.tlist[iter_]
             for ii in range(self.e_num):
-                self.raw_out[ii, iter_] = self.e_ops_qoevo[ii].expect(t, state)
+                self.raw_out[ii, iter_] = \
+                    self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
 
     def finish(self):
         if self.isfunc:

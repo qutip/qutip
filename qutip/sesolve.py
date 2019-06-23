@@ -41,9 +41,11 @@ import types
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm as la_norm
+from qutip.cy.stochastic import normalize_inplace
 import qutip.settings as qset
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
+from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                 cy_ode_psi_func_td_with_state)
 from qutip.solver import Result, Options, config, solver_safe, SolverSystem
@@ -275,6 +277,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     if psi0.isunitary:
         initial_vector = psi0.full().ravel('F')
         oper_evo = True
+        size = psi0.shape[0]
         # oper_n = dims[0][0]
         # norm_dim_factor = np.sqrt(oper_n)
     elif psi0.isket:
@@ -347,15 +350,26 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
         if opt.normalize_output:
             # normalize per column
-            cdata /= la_norm(cdata, axis=0)
-            #cdata *= norm_dim_factor / la_norm(cdata)
             if oper_evo:
+                cdata /= la_norm(cdata, axis=0)
+                #cdata *= norm_dim_factor / la_norm(cdata)
                 r.set_initial_value(cdata.ravel('F'), r.t)
             else:
-                r.set_initial_value(cdata, r.t)
+                #cdata /= la_norm(cdata)
+                norm = normalize_inplace(cdata)
+                if norm > 1e-12:
+                    # only reset the solver if state changed
+                    r.set_initial_value(cdata, r.t)
+                else:
+                    r._y = cdata
 
         if opt.store_states:
-            output.states.append(Qobj(cdata, dims=dims))
+            if oper_evo:
+                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+                output.states.append(Qobj(fdata, dims=dims))
+            else:
+                fdata = dense1D_to_fastcsr_ket(cdata)
+                output.states.append(Qobj(fdata, dims=dims, fast='mc'))
 
         if expt_callback:
             # use callback method
