@@ -208,7 +208,6 @@ class QubitCircuit(object):
                 raise ValueError(
                     "`user_gate` takes a python dictionary of the form"
                     "{{str: gate_function}}, not {}".format(user_gates))
-        
 
     def add_state(self, state, targets=None, state_type="input"):
         """
@@ -453,7 +452,8 @@ class QubitCircuit(object):
                 elif gate in basis_1q_valid:
                     basis_1q.append(gate)
                 else:
-                    raise NotImplementedError("%s is not a valid basis gate" % gate)
+                    raise NotImplementedError(
+                        "%s is not a valid basis gate" % gate)
             if len(basis_1q) == 1:
                 raise ValueError("Not sufficient single-qubit gates in basis")
             elif len(basis_1q) == 0:
