@@ -36,17 +36,18 @@ __all__ = ['mcsolve']
 import os
 import numpy as np
 from numpy.random import RandomState, randint
+import scipy.sparse as sp
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 
 from types import FunctionType, BuiltinFunctionType
 from functools import partial
-
+from qutip.fastsparse import csr2fast
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
-# cy_mc_run_ode = None
+from qutip.cy.spconvert import dense1D_to_fastcsr_ket
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result, ExpectOps,
                           solver_safe, SolverSystem)
@@ -498,7 +499,8 @@ class _MC():
         dims = self.psi0.dims[0]
         psis = np.empty((self.num_traj), dtype=object)
         for i in range(self.num_traj):
-            psis[i] = Qobj(self._psi_out[i,-1,:].reshape((-1,1)), dims=dims)
+            psis[i] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i,-1,:]),
+                           dims=dims, fast='mc')
         return psis
 
     @property
@@ -543,11 +545,12 @@ class _MC():
     @property
     def runs_states(self):
         dims = self.psi0.dims
-        psi = np.empty((self.num_traj, len(self.tlist)), dtype=object)
+        psis = np.empty((self.num_traj, len(self.tlist)), dtype=object)
         for i in range(self.num_traj):
             for j in range(len(self.tlist)):
-                psi[i,j] = Qobj(self._psi_out[i,j,:].reshape((-1,1)), dims=dims)
-        return psi
+                psis[i,j] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i,j,:]),
+                                 dims=dims, fast='mc')
+        return psis
 
     @property
     def collapse(self):
