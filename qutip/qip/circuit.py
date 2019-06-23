@@ -187,7 +187,7 @@ class QubitCircuit(object):
     ...                     [0., 1.j]])
     ...     return Qobj(mat, dims=[[2], [2]])
     >>> qc.QubitCircuit(2, user_gates={"T":user_gate})
-    >>> qc.add_gate("T", targets=[1])
+    >>> qc.add_gate("T", targets=[0])
     """
 
     def __init__(self, N, input_states=None, output_states=None,

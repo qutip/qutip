@@ -232,6 +232,9 @@ class TestQubitCircuit:
         assert_(qc.output_states[1] == "+")
 
     def test_user_gate(self):
+        """
+        User defined gate for QubitCircuit
+        """
         def customer_gate1(arg_values):
             mat = np.zeros((4, 4), dtype=np.complex)
             mat[0, 0] = mat[1, 1] = 1.

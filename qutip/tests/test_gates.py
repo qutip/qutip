@@ -286,6 +286,9 @@ class TestGates:
                         assert_(abs(o1 - o2) < 1e-12)
 
     def test_expand_oper(self):
+        """
+        gate : expand qubits operator to a N qubits system.
+        """
         # random single qubit gate test, integer as target
         r = rand_unitary(2)
         assert(expand_oper(r, 3, 0) == tensor([r, identity(2), identity(2)]))

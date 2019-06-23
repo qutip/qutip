@@ -44,10 +44,10 @@ from qutip.tensor import tensor
 from qutip.states import fock_dm
 
 
-__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot', 
+__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
-           'sqrtiswap', 'fredkin', 'ms_gate', 
+           'sqrtiswap', 'fredkin', 'molmer_sorensen',
            'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
            'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
@@ -186,9 +186,19 @@ def qrot(theta, phi, N=None, target=0):
     Parameters
     ----------
     phi : float
-        The inital phase of the rabi pulse
+        The inital phase of the rabi pulse.
     theta : float
-        The duration of the rabi pulse
+        The duration of the rabi pulse.
+    N : int
+        Number of qubits in the system.
+    target : int
+        The index of the target qubit.
+
+    Returns
+    -------
+    qrot_gate : :class:`qutip.Qobj`
+        Quantum object representation of physical qubit rotation under
+        a rabi pulse.
     """
     if N is not None:
         return expand_oper(qrot(theta, phi), N=N, targets=target)
@@ -511,27 +521,38 @@ shape = [4, 4], type = oper, isHerm = False
                               [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
 
 
-def ms_gate(theta, N=None, targets=(0, 1)):
+def molmer_sorensen(theta, N=None, targets=[0, 1]):
     """
-    Quantum obejct of a Mølmer–Sørensen gate
+    Quantum object of a Mølmer–Sørensen gate.
 
     Parameters
     ----------
-    theta : The duration of the interaction pulse
+    theta : float
+        The duration of the interaction pulse.
+    N : int
+        Number of qubits in the system.
+    target : int
+        The indices of the target qubits.
+
+    Returns
+    -------
+    molmer_sorensen_gate : :class:`qutip.Qobj`
+        Quantum object representation of the Mølmer–Sørensen gate.
     """
-    if targets != (0, 1) and N is None:
+    if targets != [0, 1] and N is None:
         N = 2
 
     if N is not None:
-        return expand_oper(MS_gate(theta), N, targets=targets)
+        return expand_oper(molmer_sorensen(theta), N, targets=targets)
     else:
         return Qobj(
             [
                 [np.cos(theta/2.), 0, 0, -1.j*np.sin(theta/2.)],
                 [0, np.cos(theta/2.), -1.j*np.sin(theta/2.), 0],
                 [0, -1.j*np.sin(theta/2.), np.cos(theta/2.), 0],
-                [-1.j*np.sin(theta/2.), 0, 0, np.cos(theta/2.)]],
-                dims=[[2, 2], [2, 2]])
+                [-1.j*np.sin(theta/2.), 0, 0, np.cos(theta/2.)]
+            ],
+            dims=[[2, 2], [2, 2]])
 
 
 #
@@ -1095,6 +1116,14 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
 
 
 def _check_qubits_oper(oper):
+    """
+    Check if it is an operator acting on a qubit system.
+
+    Parameters
+    ----------
+    oper : :class:`qutip.Qboj`
+        The quantum object to be checked.
+    """
     check = True
     if oper.dims[0] != oper.dims[1]:
         check = False
@@ -1112,7 +1141,7 @@ def expand_oper(oper, N, targets):
 
     Parameters
     ----------
-    oper : `Qobj`
+    oper : :class:`qutip.Qobj`
         An operator acts on qubits, the type of the `Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbertspace
@@ -1121,6 +1150,11 @@ def expand_oper(oper, N, targets):
         The number of qubits in the system.
     targets : int or list of int
         The indices of qubits that are acted on.
+
+    Returns
+    -------
+    expanded_oper : :class:`qutip.Qobj`
+        The expanded qubits operator acting on a system with N qubits
 
     Note
     ----
@@ -1148,9 +1182,9 @@ def expand_oper(oper, N, targets):
                 "was given.".format(targets))
         if len(targets) != req_num:  # correct number of targets
             raise ValueError(
-                "The given Hamiltonian needs {} "
+                "The given operator needs {} "
                 "target qutbis, "
-                "but {} qubits was given.".format(
+                "but {} given.".format(
                     req_num, len(targets)))
     else:
         raise ValueError(
