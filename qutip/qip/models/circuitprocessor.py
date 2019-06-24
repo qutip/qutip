@@ -33,6 +33,7 @@
 from collections.abc import Iterable
 import warnings
 import numbers
+import inspect
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -386,6 +387,40 @@ class CircuitProcessor(object):
     def eliminate_auxillary_modes(self, U):
         return U
 
+    def plot_pulses(self, amps=None, tlist=None, **kwargs):
+        """
+        Plot the pulse amplitude
+
+        Parameters
+        ----------
+        **kwargs
+            Key word arguments for figure
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The `Figure` object for the plot.
+        ax : matplotlib.axes._subplots.AxesSubplot
+            The axes for the plot.
+        """
+        if amps is None:
+            amps = self.amps
+        if tlist is None:
+            tlist = self.tlist
+
+        fig_keys = inspect.getfullargspec(plt.subplots)[0]
+        fig, ax = plt.subplots(
+            1, 1, **{key: kwargs[key] for key in kwargs if key in fig_keys})
+        ax.set_ylabel("Control pulse amplitude")
+        ax.set_xlabel("Time")
+        amps = np.hstack([amps, amps[:, -1:]])
+        plot_keys = inspect.getfullargspec(ax.step)[0]
+        for i in range(amps.shape[0]):
+            ax.step(np.hstack([[0], tlist]), amps[i], where='post',
+                    **{key: kwargs[key] for key in kwargs if key in plot_keys})
+        fig.tight_layout()
+        return fig, ax
+
 
 class ModelProcessor(CircuitProcessor):
     def __init__(self, N, correct_global_phase=True, T1=None, T2=None):
@@ -418,12 +453,12 @@ class ModelProcessor(CircuitProcessor):
         """
         if qc:
             self.load_circuit(qc)
-        U_list = []
-        H_ops, H_u = self.get_ops_and_u()
 
+        U_list = []
         tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)-1):
-            H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
+            H = sum([self.amps[m, n] * self.ctrls[m] 
+                    for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
@@ -434,7 +469,7 @@ class ModelProcessor(CircuitProcessor):
 
         return U_list
 
-    def run_state(self, qc=None, states=None):
+    def run_state(self, qc=None, rho0=None, states=None):
         """
         Generates the propagator matrix by running the Hamiltonian for the
         appropriate time duration for the desired physical system with the
@@ -458,16 +493,18 @@ class ModelProcessor(CircuitProcessor):
         # in the old circuitprocessor,
         # but there is actaully only one state,
         # change to state? or rho0 like in the solver?
-        if states is None:
+        if rho0 is None or states is None:
             raise NotImplementedError("Qubit state not defined.")
+        elif rho0 is None:
+            rho0 = states  # just to keep the old prameters `states`
         if qc:
             self.load_circuit(qc)
-        U_list = [states]
-        H_ops, H_u = self.get_ops_and_u()
 
+        U_list = [states]
         tlist = np.hstack([[0.], self.tlist])
-        for n in range(len(tlist)):
-            H = sum([H_u[n, m] * H_ops[m] for m in range(len(H_ops))])
+        for n in range(len(tlist)-1):
+            H = sum([self.amps[m, n] * self.ctrls[m] 
+                    for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)

@@ -76,7 +76,7 @@ class OptPulseProcessor(CircuitProcessor):
         else:
             raise ValueError(
                 "ctrls 0 is the "
-                "drift Ham and cannot be removed")
+                "drift Hamiltonian and cannot be removed")
         super(OptPulseProcessor, self).remove_ctrl(indices)
 
     def load_circuit(
@@ -150,7 +150,6 @@ class OptPulseProcessor(CircuitProcessor):
                                                 result.grad_norm_final))
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
-
         self.tlist = np.hstack(time_record)
         self.amps = np.vstack(
             [np.ones(len(self.tlist)), np.hstack(amps_record)])
@@ -190,11 +189,6 @@ class OptPulseProcessor(CircuitProcessor):
         ax : matplotlib.axes._subplots.AxesSubplot
             The axes for the plot.
         """
-        fig, ax = plt.subplots(1, 1, **kwargs)
-        ax.set_ylabel("Control amplitude")
-        ax.set_xlabel("Time")
-        amps = np.hstack([self.amps, self.amps[:, -1:]])
-        for i in range(1, self.amps.shape[0]):
-            ax.step(np.hstack([[0], self.tlist]), amps[i], where='post')
-        fig.tight_layout()
-        return fig, ax
+        # first row of amps is for drift Ham
+        super(OptPulseProcessor, self).plot_pulses(
+            amps=self.amps[1:], tlist=self.tlist)
