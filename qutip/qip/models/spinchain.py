@@ -383,7 +383,7 @@ class LinearSpinChain(SpinChain):
     def optimize_circuit(self, qc):
         self.qc0 = qc
         self.qc1 = self.adjacent_gates(self.qc0, "linear")
-        self.qc2 = self.qc1.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        self.qc2 = self.qc1.resolve_gates(basis=["SQRTISWAP","ISWAP", "RX", "RZ"])
         return self.qc2
 
 
@@ -423,5 +423,5 @@ class CircularSpinChain(SpinChain):
     def optimize_circuit(self, qc):
         self.qc0 = qc
         self.qc1 = self.adjacent_gates(self.qc0, "circular")
-        self.qc2 = self.qc1.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        self.qc2 = self.qc1.resolve_gates(basis=["SQRTISWAP","ISWAP", "RX", "RZ"])
         return self.qc2
