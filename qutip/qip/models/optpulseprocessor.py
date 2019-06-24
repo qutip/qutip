@@ -50,7 +50,7 @@ class OptPulseProcessor(CircuitProcessor):
     def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None):
         super(OptPulseProcessor, self).__init__(N, T1=T1, T2=T2)
         if drift is None:
-            self.ctrls.append(tensor([identity(2)] * N))
+            self._hams.append(tensor([identity(2)] * N))
         else:
             self.add_ctrl(drift)
         if ctrls is not None:
@@ -59,7 +59,34 @@ class OptPulseProcessor(CircuitProcessor):
 
     @property
     def drift(self):
-        return self.ctrls[0]
+        return self._hams[0]
+
+    @drift.setter
+    def drift(self, H_d):
+        hams = self._hams
+        self._hams = []
+        self.add_ctrl(H_d)
+        for H_c in hams[1:]:
+            self.add_ctrl(H_c)
+
+    @property
+    def ctrls(self):
+        return self._hams[1:]
+
+    @ctrls.setter
+    def ctrls(self, ctrls_list):
+        self._hams = [self._hams[0]]
+        for H_c in ctrls_list:
+            self.add_ctrl(H_c)
+        print(len(self._hams))
+
+    @property
+    def hams(self):
+        raise AttributeError("Please use attributes ctrls and drift")
+
+    @hams.setter
+    def hams(self, ctrl_list):
+        raise AttributeError("Please use attributes ctrls and drift")
 
     def remove_ctrl(self, indices):
         """
@@ -128,7 +155,7 @@ class OptPulseProcessor(CircuitProcessor):
 
             # TODO: different settings for different oper in qc? How?
             result = cpo.optimize_pulse_unitary(
-                self.ctrls[0], self.ctrls[1:], U_0,
+                self._hams[0], self._hams[1:], U_0,
                 U_targ, n_ts[prop_ind], evo_time[prop_ind], **kwargs)
 
             # TODO: To prevent repitition, pulse for the same oper can

@@ -69,15 +69,15 @@ class SpinChain(ModelProcessor):
         super(SpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
-        self.ctrls = []
+        self._hams = []
         self.set_up_coeff(N, sx=sx, sz=sz, sxsy=sxsy)
 
         # sx_ops
-        self.ctrls += [tensor([sigmax() if m == n else identity(2)
+        self._hams += [tensor([sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
         # sz_ops
-        self.ctrls += [tensor([sigmaz() if m == n else identity(2)
+        self._hams += [tensor([sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
 
@@ -87,7 +87,7 @@ class SpinChain(ModelProcessor):
             x[n] = x[n + 1] = sigmax()
             y = [identity(2)] * N
             y[n] = y[n + 1] = sigmay()
-            self.ctrls.append(tensor(x) + tensor(y))
+            self._hams.append(tensor(x) + tensor(y))
 
     def set_up_coeff(self, N, sx=None, sz=None, sxsy=None):
         """
@@ -116,15 +116,15 @@ class SpinChain(ModelProcessor):
 
     @property
     def sx_ops(self):
-        return self.ctrls[: self.N]
+        return self._hams[: self.N]
 
     @property
     def sz_ops(self):
-        return self.ctrls[self.N: 2*self.N]
+        return self._hams[self.N: 2*self.N]
 
     @property
     def sxsy_ops(self):
-        return self.ctrls[2*self.N:]
+        return self._hams[2*self.N:]
 
     @property
     def sx_u(self):
@@ -143,7 +143,7 @@ class SpinChain(ModelProcessor):
         Returns the Hamiltonian operators and corresponding values by stacking
         them together.
         """
-        return (self.ctrls, self.amps.T)
+        return (self._hams, self.amps.T)
 
     def load_circuit(self, qc):
         """
@@ -153,7 +153,7 @@ class SpinChain(ModelProcessor):
         gates = self.optimize_circuit(qc).gates
 
         self.global_phase = 0
-        self.amps = np.zeros([len(self.ctrls), len(gates)])
+        self.amps = np.zeros([len(self._hams), len(gates)])
         dt_list = []
 
         n = 0
@@ -434,7 +434,7 @@ class LinearSpinChain(SpinChain):
 
     @property
     def sxsy_ops(self):
-        return self.ctrls[2*self.N: 3*self.N-1]
+        return self._hams[2*self.N: 3*self.N-1]
 
     @property
     def sxsy_u(self):
@@ -474,7 +474,7 @@ class CircularSpinChain(SpinChain):
         x[0] = x[N - 1] = sigmax()
         y = [identity(2)] * N
         y[0] = y[N - 1] = sigmay()
-        self.ctrls.append(tensor(x) + tensor(y))
+        self._hams.append(tensor(x) + tensor(y))
 
         if sxsy is None:
             self.sxsy_coeff = [0.1 * 2 * np.pi] * N
@@ -485,7 +485,7 @@ class CircularSpinChain(SpinChain):
 
     @property
     def sxsy_ops(self):
-        return self.ctrls[2*self.N: 3*self.N]
+        return self._hams[2*self.N: 3*self.N]
 
     @property
     def sxsy_u(self):

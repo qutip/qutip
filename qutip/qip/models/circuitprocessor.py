@@ -86,9 +86,19 @@ class CircuitProcessor(object):
         self.N = N
         self.tlist = None
         self.amps = None
-        self.ctrls = []
+        self._hams = []
         self.T1 = self._check_T_valid(T1, self.N)
         self.T2 = self._check_T_valid(T2, self.N)
+
+    @property
+    def hams(self):
+        return self._hams
+
+    @hams.setter
+    def hams(self, ctrl_list):
+        self._hams = []
+        for ctrl in ctrl_list:
+            self.add_ctrl(ctrl)
 
     def _check_T_valid(self, T, N):
         if (isinstance(T, numbers.Real) and T > 0) or T is None:
@@ -127,13 +137,13 @@ class CircuitProcessor(object):
 
         if expand_type is None:
             if d == self.N:
-                self.ctrls.append(ctrl)
+                self._hams.append(ctrl)
             else:
-                self.ctrls.append(expand_oper(ctrl, self.N, targets))
+                self._hams.append(expand_oper(ctrl, self.N, targets))
         elif expand_type == "periodic":
             for i in range(self.N):
                 new_targets = np.mod(np.array(targets)+i, self.N)
-                self.ctrls.append(
+                self._hams.append(
                     expand_oper(ctrl, self.N, new_targets))
         else:
             raise ValueError(
@@ -154,7 +164,7 @@ class CircuitProcessor(object):
             if not isinstance(ind, numbers.Integral):
                 raise TypeError("Index must in an integer")
             else:
-                del self.ctrls[ind]
+                del self._hams[ind]
 
     def _is_time_amps_valid(self):
         if self.tlist is None and self.amps is None:
@@ -170,17 +180,17 @@ class CircuitProcessor(object):
                     "has {}".format(tlist_len, amps_len))
 
     def _is_ctrl_amps_valid(self):
-        if self.amps is None and len(self.ctrls) != 0:
+        if self.amps is None and len(self._hams) != 0:
             raise ValueError(
                 "The control amplitude is None while "
-                "the number of ctrls is {}".format(len(self.ctrls)))
+                "the number of ctrls is {}".format(len(self._hams)))
         if self.amps is not None:
-            if self.amps.shape[0] != len(self.ctrls):
+            if self.amps.shape[0] != len(self._hams):
                 raise ValueError(
                     "The control amplitude matrix do not match the "
                     "number of ctrls  "
                     "#ctrls = {}  "
-                    "#amps = {}".format(len(self.ctrls), len(self.amps)))
+                    "#amps = {}".format(len(self._hams), len(self.amps)))
 
     def _is_amps_valid(self):
         self._is_time_amps_valid()
@@ -280,8 +290,8 @@ class CircuitProcessor(object):
                 "thus can not be given as a key word argument")
         else:
             self.tlist = self.tlist
-        if not self.ctrls:
-            self.ctrls.append(tensor([identity(2)] * self.N))
+        if not self._hams:
+            self._hams.append(tensor([identity(2)] * self.N))
         if self.amps is None:  # only drift/identity and no amps given
             self.amps = np.ones(len(self.tlist)).reshape((1, len(self.tlist)))
 
@@ -308,11 +318,11 @@ class CircuitProcessor(object):
             else:
                 return amps[int(np.floor((n_t-1)*t/t_f))]
         H = []
-        for op_ind in range(len(self.ctrls)):
+        for op_ind in range(len(self._hams)):
             # row_ind=op_ind cannot be deleted
             # see Late Binding Closures for detail
             H.append(
-                [self.ctrls[op_ind],
+                [self._hams[op_ind],
                     lambda t, args, row_ind=op_ind:
                     get_amp_td_func(t, args, row_ind)])
 
@@ -457,8 +467,8 @@ class ModelProcessor(CircuitProcessor):
         U_list = []
         tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self.ctrls[m] 
-                    for m in range(len(self.ctrls))])
+            H = sum([self.amps[m, n] * self._hams[m] 
+                    for m in range(len(self._hams))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
@@ -503,8 +513,8 @@ class ModelProcessor(CircuitProcessor):
         U_list = [states]
         tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self.ctrls[m] 
-                    for m in range(len(self.ctrls))])
+            H = sum([self.amps[m, n] * self._hams[m] 
+                    for m in range(len(self._hams))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)

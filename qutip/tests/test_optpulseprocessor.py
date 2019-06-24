@@ -33,7 +33,7 @@ def test_simple_hadamard():
     # test add/remove ctrl
     test.add_ctrl(sigmay())
     test.remove_ctrl(1)
-    assert_(len(test.ctrls) == 2)
+    assert_(len(test.ctrls) == 1)
     assert_allclose(test.drift, H_d)
     assert_(sigmay() in test.ctrls)
 
@@ -76,6 +76,7 @@ def test_multi_qubits():
     # test save and read amps
     test.save_amps("qutip_test_multi_qubits.txt")
     test2 = OptPulseProcessor(N, H_d, H_c)
+    test2.drift = test.drift
     test2.ctrls = test.ctrls
     test2.read_amps("qutip_test_multi_qubits.txt")
     os.remove("qutip_test_multi_qubits.txt")

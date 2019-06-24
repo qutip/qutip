@@ -81,7 +81,7 @@ class DispersivecQED(ModelProcessor):
         super(DispersivecQED, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
-        self.ctrls = []
+        self._hams = []
         self.set_up_coeff(
             N=N, Nres=Nres, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
@@ -97,12 +97,12 @@ class DispersivecQED(ModelProcessor):
 
         # single qubit terms
         self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
-        self.ctrls.append(self.a.dag() * self.a)
-        self.ctrls += [tensor([identity(self.Nres)] +
+        self._hams.append(self.a.dag() * self.a)
+        self._hams += [tensor([identity(self.Nres)] +
                               [sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
-        self.ctrls += [tensor([identity(self.Nres)] +
+        self._hams += [tensor([identity(self.Nres)] +
                               [sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
@@ -111,7 +111,7 @@ class DispersivecQED(ModelProcessor):
             sm = tensor([identity(self.Nres)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
-            self.ctrls.append(self.a.dag() * sm + self.a * sm.dag())
+            self._hams.append(self.a.dag() * sm + self.a * sm.dag())
 
         self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
@@ -195,15 +195,15 @@ class DispersivecQED(ModelProcessor):
 
     @property
     def sx_ops(self):
-        return self.ctrls[1: self.N+1]
+        return self._hams[1: self.N+1]
 
     @property
     def sz_ops(self):
-        return self.ctrls[self.N+1: 2*self.N+1]
+        return self._hams[self.N+1: 2*self.N+1]
 
     @property
     def cavityqubit_ops(self):
-        return self.ctrls[2*self.N+1: 3*self.N+1]
+        return self._hams[2*self.N+1: 3*self.N+1]
 
     @property
     def sx_u(self):
@@ -218,7 +218,7 @@ class DispersivecQED(ModelProcessor):
         return self.amps[2*self.N+1: 3*self.N+1]
 
     def get_ops_and_u(self):
-        return (self.ctrls, self.amps.T)
+        return (self._hams, self.amps.T)
 
     def get_ops_labels(self):
         """
@@ -295,7 +295,7 @@ class DispersivecQED(ModelProcessor):
         gates = self.optimize_circuit(qc).gates
 
         self.global_phase = 0
-        self.amps = np.zeros([len(self.ctrls), len(gates)])
+        self.amps = np.zeros([len(self._hams), len(gates)])
         dt_list = []
 
         n = 0
