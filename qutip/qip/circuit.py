@@ -48,7 +48,7 @@ class Gate(object):
     """
     Representation of a quantum gate, with its required parametrs, and target
     and control qubits.
-    
+
     Parameters
     ----------
     name : string
@@ -243,9 +243,9 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        gate: string or `Gate`
-            Gate name. If gate is an instance of `Gate`, parameters are
-            unpacked and added.
+        gate: string or :class:`qutip.Gate`
+            Gate name. If gate is an instance of :class:`qutip.Gate`, 
+            parameters are unpacked and added.
         targets: list
             Gate targets.
         controls: list
