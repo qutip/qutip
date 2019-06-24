@@ -152,15 +152,20 @@ Available solver for photocurrent_sesolve and photocurrent_mesolve:
         Photocurrent use ordinary differential equations between
         stochastic "jump/collapse".
     euler:
-        Euler method for ordinary differential equations.
+        Euler method for ordinary differential equations between jumps.
+        Only 1 jumps per time interval.
         Default solver
         -Order 1.0
         -Code: 'euler'
+        Quantum measurement and control
+        Chapter 4, Eq 4.19, 4.40, By Howard M. Wiseman, Gerard J. Milburn
 
     predictor–corrector:
         predictor–corrector method (PECE) for ordinary differential equations.
+        Use poisson distribution to obtain the number of jump at each timestep.
         -Order 2.0
         -Code: 'pred-corr'
+
     """
     pass
 

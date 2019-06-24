@@ -294,7 +294,7 @@ def test_hellinger_monotonicity():
     Metrics: Hellinger dist.: check monotonicity
     w.r.t. tensor product, see. Eq. (45) in
     arXiv:1611.03449v2:
-    hellinger_dist(rhoA \otimes rhoB, sigmaA \otimes sigmaB)>=
+    hellinger_dist(rhoA*rhoB, sigmaA*sigmaB)>=
     hellinger_dist(rhoA, sigmaA)
     with equality iff sigmaB=rhoB
     """

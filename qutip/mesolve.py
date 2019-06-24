@@ -45,6 +45,7 @@ from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat, lind
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, solver_safe, SolverSystem
 from qutip.cy.spmatfuncs import spmv
+from qutip.cy.spconvert import dense2D_to_fastcsr_cmode, dense2D_to_fastcsr_fmode
 from qutip.states import ket2dm
 from qutip.settings import debug
 from qutip.sesolve import sesolve
@@ -235,7 +236,7 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
                             options.rhs_with_state))
 
     if not use_mesolve:
-        print("not collapse operator, using sesolve")
+        print("no collapse operator, using sesolve")
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
                     progress_bar=progress_bar, _safe_mode=_safe_mode)
 
@@ -428,6 +429,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
     output = Result()
     output.solver = "mesolve"
     output.times = tlist
+    size = rho0.shape[0]
 
     initial_vector = rho0.full().ravel('F')
 
@@ -487,7 +489,12 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             cdata = get_curr_state_data(r)
 
         if opt.store_states:
-            output.states.append(Qobj(cdata, dims=dims, isherm=True))
+            if issuper(rho0):
+                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+                output.states.append(Qobj(fdata, dims=dims))
+            else:
+                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+                output.states.append(Qobj(fdata, dims=dims, fast="mc-dm"))
 
         if expt_callback:
             # use callback method

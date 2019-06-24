@@ -110,6 +110,40 @@ def dense2D_to_fastcsr_cmode(complex[:, ::1] mat, int nrows, int ncols):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def dense1D_to_fastcsr_ket(complex[::1] vec):
+    """
+    Converts a dense c-mode complex ndarray to a sparse CSR matrix.
+
+    Parameters
+    ----------
+    mat : ndarray
+        Input complex ndarray
+
+    Returns
+    -------
+    out : fast_csr_matrix
+        Output matrix in CSR format.
+    """
+    cdef int nnz = 0
+    cdef size_t ii, nrows = vec.shape[0]
+    cdef np.ndarray[complex, ndim=1, mode='c'] data = np.zeros(nrows, dtype=complex)
+    cdef np.ndarray[int, ndim=1, mode='c'] ind = np.zeros(nrows, dtype=np.int32)
+    cdef np.ndarray[int, ndim=1, mode='c'] ptr = np.zeros(nrows+1, dtype=np.int32)
+
+    for ii in range(nrows):
+        if vec[ii] != 0:
+            data[nnz] = vec[ii]
+            nnz += 1
+        ptr[ii+1] = nnz
+
+    if nnz < (nrows):
+        return fast_csr_matrix((data[:nnz], ind[:nnz], ptr), shape=(nrows,1))
+    else:
+        return fast_csr_matrix((data, ind, ptr), shape=(nrows,1))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef void fdense2D_to_CSR(complex[::1, :] mat, CSR_Matrix * out,
                                 unsigned int nrows, unsigned int ncols):
     """

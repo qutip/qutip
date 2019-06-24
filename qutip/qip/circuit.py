@@ -37,6 +37,8 @@ import inspect
 
 import numpy as np
 
+import numpy as np
+
 from qutip.qip.circuit_latex import _latex_compile
 from qutip.qip.gates import *
 from qutip.qip.qubits import qubit_states
@@ -243,9 +245,9 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        gate: string or :class:`qutip.Gate`
-            Gate name. If gate is an instance of :class:`qutip.Gate`, 
-            parameters are unpacked and added.
+        gate: string or `Gate`
+            Gate name. If gate is an instance of `Gate`, parameters are
+            unpacked and added.
         targets: list
             Gate targets.
         controls: list
