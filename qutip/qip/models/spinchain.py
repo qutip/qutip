@@ -391,7 +391,6 @@ class LinearSpinChain(SpinChain):
         return super(LinearSpinChain, self).adjacent_gates(qc, "linear")
 
 
-
 class CircularSpinChain(SpinChain):
     """
     Representation of the physical implementation of a quantum
@@ -427,4 +426,3 @@ class CircularSpinChain(SpinChain):
 
     def adjacent_gates(self, qc):
         return super(CircularSpinChain, self).adjacent_gates(qc, "circular")
-
