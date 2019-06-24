@@ -1137,7 +1137,7 @@ def _check_qubits_oper(oper):
 
 def expand_oper(oper, N, targets):
     """
-    Expand an operator to dimension N acting on the targeting qubits.
+    Expand a qubits operator to one that acts on a N-qutbis system.
 
     Parameters
     ----------
@@ -1193,7 +1193,7 @@ def expand_oper(oper, N, targets):
             "was given.".format(targets))
 
     # Generate the correct order for qubits permutation,
-    # eg. if N = 5, targets = [3,0], the order is [1,3,2,0,4].
+    # eg. if N = 5, targets = [3,0], the order is [1,x,x,0,x].
     # If the operator is cnot,
     # this order means that the 3rd qubit control the 0th qubit.
     new_order = list(range(N))
