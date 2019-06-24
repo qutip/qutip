@@ -527,16 +527,16 @@ def molmer_sorensen(theta, N=None, targets=[0, 1]):
 
     Parameters
     ----------
-    theta : float
+    theta: float
         The duration of the interaction pulse.
-    N : int
+    N: int
         Number of qubits in the system.
-    target : int
+    target: int
         The indices of the target qubits.
 
     Returns
     -------
-    molmer_sorensen_gate : :class:`qutip.Qobj`
+    molmer_sorensen_gate: :class:`qutip.Qobj`
         Quantum object representation of the Mølmer–Sørensen gate.
     """
     if targets != [0, 1] and N is None:
