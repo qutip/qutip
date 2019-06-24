@@ -526,12 +526,12 @@ class QubitCircuit(object):
                 if "ISWAP" in basis_2q:  # dealed with separately
                     temp_resolved.append(gate)
                 else:
-                    temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                            gate.targets[1]))
-                    temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                            gate.targets[0]))
-                    temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                            gate.targets[1]))
+                    temp_resolved.append(
+                        Gate("CNOT", gate.targets[0], gate.targets[1]))
+                    temp_resolved.append(
+                        Gate("CNOT", gate.targets[1], gate.targets[0]))
+                    temp_resolved.append(
+                        Gate("CNOT", gate.targets[0], gate.targets[1]))
             elif gate.name == "ISWAP":
                 temp_resolved.append(Gate("CNOT", gate.targets[0],
                                           gate.targets[1]))
