@@ -86,10 +86,13 @@ INCLUDE_DIRS = [np.get_include()] if np is not None else []
 HEADERS = ['qutip/cy/src/zspmv.hpp', 'qutip/cy/openmp/src/zspmv_openmp.hpp']
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
-          "Chris Granade, Arne Grimsmo")
+          "Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, "
+          "Neill Lambert, Eric Giguere")
 AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
                 "jrjohansson@gmail.com, cgranade@cgranade.com, "
-                "arne.grimsmo@gmail.com")
+                "arne.grimsmo@gmail.com, nathan.shammah@gmail.com, "
+                "shahnawaz.ahmed95@gmail.com, nwlambert@gmail.com, "
+                "eric.giguere@usherbrooke.ca")
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
