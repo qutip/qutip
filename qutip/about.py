@@ -56,7 +56,8 @@ def about():
     print("Copyright (c) 2011 and later.")
     print(("A. J. Pitchford, P. D. Nation, "
             "R. J. Johansson, A. Grimsmo, "
-            "and C. Granade"))
+            "C. Granade, N. Shammah, S. Ahmed, "
+            "N. Lambert, and E. Giguere"))
     print("")
     print("QuTiP Version:      %s" % qutip.__version__)
     print("Numpy Version:      %s" % numpy.__version__)
