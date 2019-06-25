@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 5 - Production/Stable
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -58,7 +58,7 @@ from Cython.Distutils import build_ext
 MAJOR = 4
 MINOR = 4
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
 EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
