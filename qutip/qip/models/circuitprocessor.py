@@ -173,7 +173,7 @@ class CircuitProcessor(object):
             raise ValueError("`tlist` or `amps` is not given.")
         else:
             amps_len = self.amps.shape[1]
-            tlist_len = self.tlist.shape[0]
+            tlist_len = len(self.tlist)
             if amps_len != tlist_len:
                 raise ValueError(
                     "`tlist` has the length of {} while amps "
@@ -298,25 +298,40 @@ class CircuitProcessor(object):
         # check validity
         self._is_amps_valid()
 
-        tlist = np.hstack([[0], self.tlist])
-        amps = self.amps
-
         # contruct time-dependent Hamiltonian
-        # TODO modefy the structure so that
-        # tlist does not have to be equaldistant
+        # TODO This way does not seems to be very neat
+        ####################################################
         def get_amp_td_func(t, args, row_ind):
-            """
-            This is the func as it is implemented in
-            `qutip.rhs_generate._td_wrap_array_str`
-            """
             times = args['times']
             amps = args['amps'][row_ind]
-            n_t = len(times)
-            t_f = times[-1]
-            if t >= t_f:
-                return 0.0
+            if t >= times[-1]:
+                return 0.
+            current_ind = get_amp_td_func.ind
+            if current_ind == get_amp_td_func.max_ind:
+                if t >= tlist[current_ind]:
+                    amp = amps[current_ind]
+                else:
+                    get_amp_td_func.ind -= 1
+                    amp = amps[current_ind-1]
+            elif current_ind == 0:
+                if t < tlist[current_ind+1]:
+                    amp = amps[current_ind]
+                else:
+                    get_amp_td_func.ind += 1
+                    amp = amps[current_ind+1]
             else:
-                return amps[int(np.floor((n_t-1)*t/t_f))]
+                if t < tlist[current_ind]:
+                    get_amp_td_func.ind -= 1
+                    amp = amps[current_ind-1]
+                elif t >= tlist[current_ind+1]:
+                    get_amp_td_func.ind += 1
+                    amp = amps[current_ind+1]
+                else:
+                    amp = amps[current_ind]
+            return amp
+        get_amp_td_func.ind = 0  # initialized when first use
+        get_amp_td_func.max_ind = len(self.tlist)-1
+        ####################################################
         H = []
         for op_ind in range(len(self._hams)):
             # row_ind=op_ind cannot be deleted
@@ -352,6 +367,9 @@ class CircuitProcessor(object):
             kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
+
+        tlist = np.hstack([[0], self.tlist])
+        amps = self.amps
         evo_result = mesolve(
             H=H, rho0=rho0, tlist=tlist,
             args={'times': tlist, 'amps': amps}, **kwargs)
@@ -479,7 +497,7 @@ class ModelProcessor(CircuitProcessor):
 
         return U_list
 
-    def run_state(self, qc=None, rho0=None, states=None):
+    def run_state(self, qc=None, rho0=None, states=None, numerical=True):
         """
         Generates the propagator matrix by running the Hamiltonian for the
         appropriate time duration for the desired physical system with the
@@ -503,14 +521,16 @@ class ModelProcessor(CircuitProcessor):
         # in the old circuitprocessor,
         # but there is actaully only one state,
         # change to state? or rho0 like in the solver?
-        if rho0 is None or states is None:
-            raise NotImplementedError("Qubit state not defined.")
+        if rho0 is None and states is None:
+            raise ValueError("Qubit state not defined.")
         elif rho0 is None:
             rho0 = states  # just to keep the old prameters `states`
         if qc:
             self.load_circuit(qc)
+        if numerical:
+            return super(ModelProcessor, self).run_state(rho0=rho0)
 
-        U_list = [states]
+        U_list = [rho0]
         tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)-1):
             H = sum([self.amps[m, n] * self._hams[m] 
