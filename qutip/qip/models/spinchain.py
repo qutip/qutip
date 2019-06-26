@@ -207,6 +207,7 @@ class SpinChain(ModelProcessor):
             t += dt_list[temp_ind]
             self.tlist[temp_ind] = t
         self.amps = self.amps[:, :len(gates)-phase_gate_num]
+        return self.tlist, self.amps
 
     def adjacent_gates(self, qc, setup="linear"):
         """
@@ -418,6 +419,13 @@ class SpinChain(ModelProcessor):
     def eliminate_auxillary_modes(self, U):
         return U
 
+    def optimize_circuit(self, qc):
+        self.qc0 = qc
+        self.qc1 = self.adjacent_gates(self.qc0)
+        self.qc2 = self.qc1.resolve_gates(
+            basis=["ISWAP", "RX", "RZ"])
+        return self.qc2
+
 
 class LinearSpinChain(SpinChain):
     """
@@ -450,11 +458,8 @@ class LinearSpinChain(SpinChain):
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
                  % (n, n, n + 1, n + 1) for n in range(self.N - 1)])
 
-    def optimize_circuit(self, qc):
-        self.qc0 = qc
-        self.qc1 = self.adjacent_gates(self.qc0, "linear")
-        self.qc2 = self.qc1.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-        return self.qc2
+    def adjacent_gates(self, qc):
+        return super(LinearSpinChain, self).adjacent_gates(qc, "linear")
 
 
 class CircularSpinChain(SpinChain):
@@ -502,8 +507,5 @@ class CircularSpinChain(SpinChain):
                  % (n, n, (n + 1) % self.N, (n + 1) % self.N)
                  for n in range(self.N)])
 
-    def optimize_circuit(self, qc):
-        self.qc0 = qc
-        self.qc1 = self.adjacent_gates(self.qc0, "circular")
-        self.qc2 = self.qc1.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-        return self.qc2
+    def adjacent_gates(self, qc):
+        return super(CircularSpinChain, self).adjacent_gates(qc, "circular")
