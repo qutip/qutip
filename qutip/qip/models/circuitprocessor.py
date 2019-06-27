@@ -455,6 +455,25 @@ class ModelProcessor(CircuitProcessor):
         super(ModelProcessor, self).__init__(N, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.global_phase = 0.
+        self._paras = {}
+        self._hams = []
+
+    def _para_list(self, para, N):
+        if isinstance(para, numbers.Real):
+            return [para * 2 * np.pi] * N
+        elif isinstance(para, Iterable):
+            return [c * 2 * np.pi for c in para]
+
+    def set_up_paras(self):
+        raise NotImplementedError("Parameters should be defined in subclass.")
+
+    @property
+    def paras(self):
+        return self._paras
+
+    @paras.setter
+    def paras(self, par):
+        self.set_up_paras(**par)
 
     def get_ops_labels(self):
         """
@@ -497,7 +516,8 @@ class ModelProcessor(CircuitProcessor):
 
         return U_list
 
-    def run_state(self, qc=None, rho0=None, states=None, numerical=True):
+    def run_state(self, qc=None, rho0=None, states=None,
+                  numerical=True, **kwargs):
         """
         Generates the propagator matrix by running the Hamiltonian for the
         appropriate time duration for the desired physical system with the
@@ -516,19 +536,15 @@ class ModelProcessor(CircuitProcessor):
         U_list: list
             The propagator matrix obtained from the physical implementation.
         """
-        # TODO choice for numerical/anlytical
-        # TODO Here this variable was called states
-        # in the old circuitprocessor,
-        # but there is actaully only one state,
-        # change to state? or rho0 like in the solver?
         if rho0 is None and states is None:
             raise ValueError("Qubit state not defined.")
         elif rho0 is None:
-            rho0 = states  # just to keep the old prameters `states`
+            # just to keep the old prameters `states`, it is replaced by rho0
+            rho0 = states
         if qc:
             self.load_circuit(qc)
         if numerical:
-            return super(ModelProcessor, self).run_state(rho0=rho0)
+            return super(ModelProcessor, self).run_state(rho0=rho0, **kwargs)
 
         U_list = [rho0]
         tlist = np.hstack([[0.], self.tlist])

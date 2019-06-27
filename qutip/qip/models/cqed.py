@@ -43,9 +43,9 @@ class DispersivecQED(ModelProcessor):
     program/algorithm on a dispersive cavity-QED system.
     """
 
-    def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None,
-                 epsmax=None, w0=None, wq=None, eps=None,
-                 delta=None, g=None, T1=None, T2=None):
+    def __init__(self, N, correct_global_phase=True, Nres=10, deltamax=1.0,
+                 epsmax=9.5, w0=10., wq=None, eps=9.5,
+                 delta=0.0, g=0.01, T1=None, T2=None):
         """
         Parameters
         ----------
@@ -57,9 +57,9 @@ class DispersivecQED(ModelProcessor):
         Nres: Integer
             The number of energy levels in the resonator.
         deltamax: Integer/List
-            The sigma-x coefficient for each of the qubits in the system.
+            The sigma-x paraicient for each of the qubits in the system.
         epsmax: Integer/List
-            The sigma-z coefficient for each of the qubits in the system.
+            The sigma-z paraicient for each of the qubits in the system.
         wo: Integer
             The base frequency of the resonator.
         wq: Integer/List
@@ -81,20 +81,16 @@ class DispersivecQED(ModelProcessor):
         super(DispersivecQED, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
+        self.Nres = Nres
         self._hams = []
-        self.set_up_coeff(
+        self._paras = {}
+        self.set_up_paras(
             N=N, Nres=Nres, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
             delta=delta, g=g)
+        self.set_up_ops(N)
 
-        # rwa/dispersive regime tests
-        if any(self.g / (self.w0 - self.wq) > 0.05):
-            warnings.warn("Not in the dispersive regime")
-
-        if any((self.w0 - self.wq) / (self.w0 + self.wq) > 0.05):
-            warnings.warn(
-                "The rotating-wave approximation might not be valid.")
-
+    def set_up_ops(self, N):
         # single qubit terms
         self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
         self._hams.append(self.a.dag() * self.a)
@@ -116,82 +112,36 @@ class DispersivecQED(ModelProcessor):
         self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
 
-    def set_up_coeff(
-            self, N, Nres=None, deltamax=None,
-            epsmax=None, w0=None, wq=None, eps=None,
-            delta=None, g=None):
+    def set_up_paras(
+            self, N, Nres, deltamax,
+            epsmax, w0, wq, eps, delta, g):
         """
-        Calculate the coefficients for this setup.
+        Calculate the paraicients for this setup.
         """
-        if Nres is None:
-            self.Nres = 10
-        else:
-            self.Nres = Nres
-
-        if deltamax is None:
-            self.sx_coeff = np.array([1.0 * 2 * np.pi] * N)
-        elif not isinstance(deltamax, list):
-            self.sx_coeff = np.array([deltamax * 2 * np.pi] * N)
-        else:
-            self.sx_coeff = np.array(deltamax)
-
-        if epsmax is None:
-            self.sz_coeff = np.array([9.5 * 2 * np.pi] * N)
-        elif not isinstance(epsmax, list):
-            self.sz_coeff = np.array([epsmax * 2 * np.pi] * N)
-        else:
-            self.sz_coeff = np.array(epsmax)
-
-        if w0 is None:
-            self.w0 = 10 * 2 * np.pi
-        else:
-            self.w0 = w0
-
-        if eps is None:
-            self.eps = np.array([9.5 * 2 * np.pi] * N)
-        elif not isinstance(eps, list):
-            self.eps = np.array([eps * 2 * np.pi] * N)
-        else:
-            self.eps = np.array(eps)
-
-        if delta is None:
-            self.delta = np.array([0.0 * 2 * np.pi] * N)
-        elif not isinstance(delta, list):
-            self.delta = np.array([delta * 2 * np.pi] * N)
-        else:
-            self.delta = np.array(delta)
-
-        if g is None:
-            self.g = np.array([0.01 * 2 * np.pi] * N)
-        elif not isinstance(g, list):
-            self.g = np.array([g * 2 * np.pi] * N)
-        else:
-            self.g = np.array(g)
-
-        if wq is not None:
-            if not isinstance(wq, list):
-                self.wq = np.array([wq] * N)
-            else:
-                self.wq = np.array(wq)
-
-        if wq is None:
-            if eps is None:
-                self.eps = np.array([9.5 * 2 * np.pi] * N)
-            elif not isinstance(eps, list):
-                self.eps = np.array([eps] * N)
-            else:
-                self.eps = np.array(eps)
-
-            if delta is None:
-                self.delta = np.array([0.0 * 2 * np.pi] * N)
-            elif not isinstance(delta, list):
-                self.delta = np.array([delta] * N)
-            else:
-                self.delta = np.array(delta)
+        sx_para = super(DispersivecQED, self)._para_list(deltamax, N)
+        self._paras["sx"] = sx_para
+        sz_para = super(DispersivecQED, self)._para_list(epsmax, N)
+        self._paras["sz"] = sz_para
+        w0 = w0 * 2 * np.pi
+        self._paras["w0"] = w0
+        eps = super(DispersivecQED, self)._para_list(eps, N)
+        self._paras["eps"] = eps
+        delta = super(DispersivecQED, self)._para_list(delta, N)
+        self._paras["delta"] = delta
+        g = super(DispersivecQED, self)._para_list(g, N)
+        self._paras["g"] = g
 
         # computed
-        self.wq = np.sqrt(self.eps ** 2 + self.delta ** 2)
-        self.Delta = self.wq - self.w0
+        self.wq = [np.sqrt(eps[i] ** 2 + delta[i] ** 2) for i in range(N)]
+        self.Delta = [self.wq[i] - w0 for i in range(N)]
+
+        # rwa/dispersive regime tests
+        if any([g[i] / (w0 - self.wq[i]) > 0.05 for i in range(N)]):
+            warnings.warn("Not in the dispersive regime")
+
+        if any([(w0-self.wq[i]) / (w0+self.wq[i]) > 0.05 for i in range(N)]):
+            warnings.warn(
+                "The rotating-wave approximation might not be valid.")
 
     @property
     def sx_ops(self):
@@ -304,39 +254,39 @@ class DispersivecQED(ModelProcessor):
 
             if gate.name == "ISWAP":
                 t0, t1 = gate.targets[0], gate.targets[1]
-                self.sz_u[t0, n] = self.wq[t0] - self.w0
-                self.sz_u[t1, n] = self.wq[t1] - self.w0
-                self.g_u[t0, n] = self.g[t0]
-                self.g_u[t1, n] = self.g[t1]
+                self.sz_u[t0, n] = self.wq[t0] - self._paras["w0"]
+                self.sz_u[t1, n] = self.wq[t1] - self._paras["w0"]
+                self.g_u[t0, n] = self._paras["g"][t0]
+                self.g_u[t1, n] = self._paras["g"][t1]
 
-                J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
-                                               1 / self.Delta[t1]) / 2
+                J = self._paras["g"][t0] * self._paras["g"][t1] * (
+                    1 / self.Delta[t0] + 1 / self.Delta[t1]) / 2
                 T = (4 * np.pi / abs(J)) / 4
                 dt_list.append(T)
                 n += 1
 
             elif gate.name == "SQRTISWAP":
                 t0, t1 = gate.targets[0], gate.targets[1]
-                self.sz_u[t0, n] = self.wq[t0] - self.w0
-                self.sz_u[t1, n] = self.wq[t1] - self.w0
-                self.g_u[t0, n] = self.g[t0]
-                self.g_u[t1, n] = self.g[t1]
+                self.sz_u[t0, n] = self.wq[t0] - self._paras["w0"]
+                self.sz_u[t1, n] = self.wq[t1] - self._paras["w0"]
+                self.g_u[t0, n] = self._paras["g"][t0]
+                self.g_u[t1, n] = self._paras["g"][t1]
 
-                J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
-                                               1 / self.Delta[t1]) / 2
+                J = self._paras["g"][t0] * self._paras["g"][t1] * (
+                    1 / self.Delta[t0] + 1 / self.Delta[t1]) / 2
                 T = (4 * np.pi / abs(J)) / 8
                 dt_list.append(T)
                 n += 1
 
             elif gate.name == "RZ":
-                g = self.sz_coeff[gate.targets[0]]
+                g = self._paras["sz"][gate.targets[0]]
                 self.sz_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
                 n += 1
 
             elif gate.name == "RX":
-                g = self.sx_coeff[gate.targets[0]]
+                g = self._paras["sx"][gate.targets[0]]
                 self.sx_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
@@ -360,4 +310,5 @@ class DispersivecQED(ModelProcessor):
         # It is probably due to the fact that
         # it contributes only a constant (N) and can be neglected.
         # but change the below line to np.ones leads to test error.
-        self.amps[0] = self.w0 * np.zeros((self.sx_u.shape[1]))
+        self.amps[0] = self._paras["w0"] * np.zeros((self.sx_u.shape[1]))
+        return self.tlist, self.amps

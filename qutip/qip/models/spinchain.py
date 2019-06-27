@@ -43,8 +43,8 @@ class SpinChain(ModelProcessor):
     program/algorithm on a spin chain qubit system.
     """
 
-    def __init__(self, N, correct_global_phase=True,
-                 sx=None, sz=None, sxsy=None, T1=None, T2=None):
+    def __init__(self, N, correct_global_phase,
+                 sx, sz, sxsy, T1, T2):
         """
         Parameters
         ----------
@@ -69,9 +69,9 @@ class SpinChain(ModelProcessor):
         super(SpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
-        self._hams = []
-        self.set_up_coeff(N, sx=sx, sz=sz, sxsy=sxsy)
+        # paras and ops are set in the submethods
 
+    def set_up_ops(self, N):
         # sx_ops
         self._hams += [tensor([sigmax() if m == n else identity(2)
                                for n in range(N)])
@@ -89,30 +89,14 @@ class SpinChain(ModelProcessor):
             y[n] = y[n + 1] = sigmay()
             self._hams.append(tensor(x) + tensor(y))
 
-    def set_up_coeff(self, N, sx=None, sz=None, sxsy=None):
+    def set_up_paras(self, sx, sz):
         """
-        Calculate the coefficients for this setup.
+        Calculate the paraicients for this setup.
         """
-        if sx is None:
-            self.sx_coeff = [0.25 * 2 * np.pi] * N
-        elif not isinstance(sx, list):
-            self.sx_coeff = [sx * 2 * np.pi] * N
-        else:
-            self.sx_coeff = sx
-
-        if sz is None:
-            self.sz_coeff = [1.0 * 2 * np.pi] * N
-        elif not isinstance(sz, list):
-            self.sz_coeff = [sz * 2 * np.pi] * N
-        else:
-            self.sz_coeff = sz
-
-        if sxsy is None:
-            self.sxsy_coeff = [0.1 * 2 * np.pi] * (N - 1)
-        elif not isinstance(sxsy, list):
-            self.sxsy_coeff = [sxsy * 2 * np.pi] * (N - 1)
-        else:
-            self.sxsy_coeff = sxsy
+        sx_para = super(SpinChain, self)._para_list(sx, self.N)
+        self._paras["sx"] = sx_para
+        sz_para = super(SpinChain, self)._para_list(sz, self.N)
+        self._paras["sz"] = sz_para
 
     @property
     def sx_ops(self):
@@ -161,7 +145,7 @@ class SpinChain(ModelProcessor):
         for gate in gates:
 
             if gate.name == "ISWAP":
-                g = self.sxsy_coeff[min(gate.targets)]
+                g = self._paras["sxsy"][min(gate.targets)]
                 if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
                     self.sxsy_u[self.N - 1, n] = -g
                 else:
@@ -171,7 +155,7 @@ class SpinChain(ModelProcessor):
                 n += 1
 
             elif gate.name == "SQRTISWAP":
-                g = self.sxsy_coeff[min(gate.targets)]
+                g = self._paras["sxsy"][min(gate.targets)]
                 if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
                     self.sxsy_u[self.N - 1, n] = -g
                 else:
@@ -181,14 +165,14 @@ class SpinChain(ModelProcessor):
                 n += 1
 
             elif gate.name == "RZ":
-                g = self.sz_coeff[gate.targets[0]]
+                g = self._paras["sz"][gate.targets[0]]
                 self.sz_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
                 n += 1
 
             elif gate.name == "RX":
-                g = self.sx_coeff[gate.targets[0]]
+                g = self._paras["sx"][gate.targets[0]]
                 self.sx_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
                 T = abs(gate.arg_value) / (2 * g)
                 dt_list.append(T)
@@ -435,10 +419,20 @@ class LinearSpinChain(SpinChain):
     """
 
     def __init__(self, N, correct_global_phase=True,
-                 sx=None, sz=None, sxsy=None, T1=None, T2=None):
+                 sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
         super(LinearSpinChain, self).__init__(N, correct_global_phase,
                                               sx, sz, sxsy, T1, T2)
+        self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
+        self.set_up_ops(N)
+
+    def set_up_ops(self, N):
+        super(LinearSpinChain, self).set_up_ops(N)
+
+    def set_up_paras(self, sx, sz, sxsy):
+        super(LinearSpinChain, self).set_up_paras(sx, sz)
+        sxsy_para = self._para_list(sxsy, self.N-1)
+        self._paras["sxsy"] = sxsy_para
 
     @property
     def sxsy_ops(self):
@@ -470,23 +464,25 @@ class CircularSpinChain(SpinChain):
     """
 
     def __init__(self, N, correct_global_phase=True,
-                 sx=None, sz=None, sxsy=None, T1=None, T2=None):
+                 sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
         super(CircularSpinChain, self).__init__(N, correct_global_phase,
                                                 sx, sz, sxsy, T1, T2)
+        self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
+        self.set_up_ops(N)
 
+    def set_up_ops(self, N):
+        super(CircularSpinChain, self).set_up_ops(N)
         x = [identity(2)] * N
         x[0] = x[N - 1] = sigmax()
         y = [identity(2)] * N
         y[0] = y[N - 1] = sigmay()
         self._hams.append(tensor(x) + tensor(y))
 
-        if sxsy is None:
-            self.sxsy_coeff = [0.1 * 2 * np.pi] * N
-        elif not isinstance(sxsy, list):
-            self.sxsy_coeff = [sxsy * 2 * np.pi] * N
-        else:
-            self.sxsy_coeff = sxsy
+    def set_up_paras(self, sx, sz, sxsy):
+        super(CircularSpinChain, self).set_up_paras(sx, sz)
+        sxsy_para = self._para_list(sxsy, self.N)
+        self._paras["sxsy"] = sxsy_para
 
     @property
     def sxsy_ops(self):
