@@ -121,7 +121,7 @@ cdef class CyMcOde:
     @cython.wraparound(False)
     def run_ode(self, ODE, tlist_, e_call, prng):
         cdef np.ndarray[double, ndim=1] rand_vals
-        cdef np.ndarray[double, ndim=1] tlist = np.array(tlist_)
+        cdef np.ndarray[double, ndim=1] tlist = np.array(tlist_, dtype=np.double)
         cdef np.ndarray[complex, ndim=1] y_prev
         cdef np.ndarray[complex, ndim=1] out_psi = ODE._y
         cdef int num_times = tlist.shape[0]
