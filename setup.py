@@ -57,9 +57,9 @@ from Cython.Distutils import build_ext
 # all information about QuTiP goes here
 MAJOR = 4
 MINOR = 4
-MICRO = 0
+MICRO = 3
 ISRELEASED = True
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+VERSION = '%d.%d.post%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
 EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
@@ -80,10 +80,6 @@ PACKAGE_DATA = {
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
-# ajgpitch Mar 2017:
-# This HEADERS did not work, but I will leave it in anyway, as it is supposed to.
-# I had to do the nasty thing with PACKAGES and PACKAGE_DATA above.
-HEADERS = ['qutip/cy/src/zspmv.hpp', 'qutip/cy/openmp/src/zspmv_openmp.hpp']
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
           "Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, "
