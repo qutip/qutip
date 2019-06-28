@@ -129,68 +129,18 @@ class SpinChain(ModelProcessor):
         """
         return (self._hams, self.amps.T)
 
-    def load_circuit(self, qc):
+    def load_circuit(self, qc, type_):
         """
         Decompose a :class:`qutip.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
         """
         gates = self.optimize_circuit(qc).gates
 
-        self.global_phase = 0
-        self.amps = np.zeros([len(self._hams), len(gates)])
-        dt_list = []
+        dec = CQEDGateDecomposer(
+            self.N, self._paras, type_=type_,
+            global_phase=0., num_ops=len(self._hams))
+        self.tlist, self.amps, self.global_phase = dec.decompose(gates)
 
-        n = 0
-        phase_gate_num = 0
-        for gate in gates:
-
-            if gate.name == "ISWAP":
-                g = self._paras["sxsy"][min(gate.targets)]
-                if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
-                    self.sxsy_u[self.N - 1, n] = -g
-                else:
-                    self.sxsy_u[min(gate.targets), n] = -g
-                T = np.pi / (4 * g)
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "SQRTISWAP":
-                g = self._paras["sxsy"][min(gate.targets)]
-                if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
-                    self.sxsy_u[self.N - 1, n] = -g
-                else:
-                    self.sxsy_u[min(gate.targets), n] = -g
-                T = np.pi / (8 * g)
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "RZ":
-                g = self._paras["sz"][gate.targets[0]]
-                self.sz_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
-                T = abs(gate.arg_value) / (2 * g)
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "RX":
-                g = self._paras["sx"][gate.targets[0]]
-                self.sx_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
-                T = abs(gate.arg_value) / (2 * g)
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "GLOBALPHASE":
-                self.global_phase += gate.arg_value
-                phase_gate_num += 1
-
-            else:
-                raise ValueError("Unsupported gate %s" % gate.name)
-
-        self.tlist = np.zeros(len(dt_list))
-        t = 0
-        for temp_ind in range(len(dt_list)):
-            t += dt_list[temp_ind]
-            self.tlist[temp_ind] = t
-        self.amps = self.amps[:, :len(gates)-phase_gate_num]
         return self.tlist, self.amps
 
     def adjacent_gates(self, qc, setup="linear"):
@@ -442,6 +392,13 @@ class LinearSpinChain(SpinChain):
     def sxsy_u(self):
         return self.amps[2*self.N: 3*self.N-1]
 
+    def load_circuit(self, qc):
+        """
+        Decompose a :class:`qutip.QubitCircuit` in to the control
+        amplitude generating the corresponding evolution.
+        """
+        return super(LinearSpinChain, self).load_circuit(qc, "linear")
+
     def get_ops_labels(self):
         """
         Returns the Hamiltonian operators and corresponding values by stacking
@@ -492,6 +449,13 @@ class CircularSpinChain(SpinChain):
     def sxsy_u(self):
         return self.amps[2*self.N: 3*self.N]
 
+    def load_circuit(self, qc):
+        """
+        Decompose a :class:`qutip.QubitCircuit` in to the control
+        amplitude generating the corresponding evolution.
+        """
+        return super(CircularSpinChain, self).load_circuit(qc, "circular")
+
     def get_ops_labels(self):
         """
         Returns the Hamiltonian operators and corresponding values by stacking
@@ -505,3 +469,84 @@ class CircularSpinChain(SpinChain):
 
     def adjacent_gates(self, qc):
         return super(CircularSpinChain, self).adjacent_gates(qc, "circular")
+
+
+class CQEDGateDecomposer(object):
+    def __init__(self, N, paras, type_, global_phase, num_ops):
+        self.gate_decs = {"ISWAP": self.iswap_dec,
+                          "SQRTISWAP": self.sqrtiswap_dec,
+                          "RZ": self.rz_dec,
+                          "RX": self.rx_dec,
+                          "GLOBALPHASE": self.globalphase_dec
+                          }
+        self.N = N
+        self.sx_ind = list(range(0, N))
+        self.sz_ind = list(range(N, 2*N))
+        if type_ == "circular":
+            self.sxsy_ind = list(range(2*N, 3*N))
+        elif type_ == "linear":
+            self.sxsy_ind = list(range(2*N, 3*N-1))
+        self.num_ops = num_ops
+        self.paras = paras
+        self.global_phase = global_phase
+
+    def decompose(self, gates):
+        self.dt_list = []
+        self.amps_list = []
+        for gate in gates:
+            if gate.name not in self.gate_decs:
+                raise ValueError("Unsupported gate %s" % gate.name)
+            self.gate_decs[gate.name](gate)
+            amps = np.vstack(self.amps_list).T
+
+        tlist = np.zeros(len(self.dt_list))
+        t = 0
+        for i in range(len(self.dt_list)):
+            t += self.dt_list[i]
+            tlist[i] = t
+        return tlist, amps, self.global_phase
+
+    def rz_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q_ind = gate.targets[0]
+        g = self.paras["sz"][q_ind]
+        pulse[self.sz_ind[q_ind]] = np.sign(gate.arg_value) * g
+        t = abs(gate.arg_value) / (2 * g)
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+    def rx_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q_ind = gate.targets[0]
+        g = self.paras["sx"][q_ind]
+        pulse[self.sx_ind[q_ind]] = np.sign(gate.arg_value) * g
+        t = abs(gate.arg_value) / (2 * g)
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+    def iswap_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q1, q2 = min(gate.targets), max(gate.targets)
+        g = self.paras["sxsy"][q1]
+        if q1 == 0 and q2 == self.N - 1:
+            pulse[self.sxsy_ind[self.N - 1]] = -g
+        else:
+            pulse[self.sxsy_ind[q1]] = -g
+        t = np.pi / (4 * g)
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+    def sqrtiswap_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q1, q2 = min(gate.targets), max(gate.targets)
+        g = self.paras["sxsy"][q1]
+        if q1 == 0 and q2 == self.N - 1:
+            pulse[self.sxsy_ind[self.N - 1]] = -g
+        else:
+            pulse[self.sxsy_ind[q1]] = -g
+        t = np.pi / (8 * g)
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+    def globalphase_dec(self, gate):
+        self.global_phase += gate.arg_value

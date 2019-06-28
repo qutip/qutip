@@ -183,59 +183,11 @@ class DispersivecQED(ModelProcessor):
     def optimize_circuit(self, qc):
         self.qc0 = qc
         self.qc1 = self.qc0.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-        self.qc2 = self.dispersive_gate_correction(self.qc1)
 
-        return self.qc2
+        return self.qc1
 
     def eliminate_auxillary_modes(self, U):
         return self.psi_proj.dag() * U * self.psi_proj
-
-    def dispersive_gate_correction(self, qc1, rwa=True):
-        """
-        Method to resolve ISWAP and SQRTISWAP gates in a cQED system by adding
-        single qubit gates to get the correct output matrix.
-
-        Parameters
-        ----------
-        qc: Qobj
-            The circular spin chain circuit to be resolved
-
-        rwa: Boolean
-            Specify if RWA is used or not.
-
-        Returns
-        ----------
-        qc: QubitCircuit
-            Returns QubitCircuit of resolved gates for the qubit circuit in the
-            desired basis.
-        """
-        qc = QubitCircuit(qc1.N, qc1.reverse_states)
-
-        for gate in qc1.gates:
-            qc.gates.append(gate)
-            if rwa:
-                if gate.name == "SQRTISWAP":
-                    qc.gates.append(Gate("RZ", [gate.targets[0]], None,
-                                         arg_value=-np.pi / 4,
-                                         arg_label=r"-\pi/4"))
-                    qc.gates.append(Gate("RZ", [gate.targets[1]], None,
-                                         arg_value=-np.pi / 4,
-                                         arg_label=r"-\pi/4"))
-                    qc.gates.append(Gate("GLOBALPHASE", None, None,
-                                         arg_value=-np.pi / 4,
-                                         arg_label=r"-\pi/4"))
-                elif gate.name == "ISWAP":
-                    qc.gates.append(Gate("RZ", [gate.targets[0]], None,
-                                         arg_value=-np.pi / 2,
-                                         arg_label=r"-\pi/2"))
-                    qc.gates.append(Gate("RZ", [gate.targets[1]], None,
-                                         arg_value=-np.pi / 2,
-                                         arg_label=r"-\pi/2"))
-                    qc.gates.append(Gate("GLOBALPHASE", None, None,
-                                         arg_value=-np.pi / 2,
-                                         arg_label=r"-\pi/2"))
-
-        return qc
 
     def load_circuit(self, qc):
         """
@@ -244,67 +196,11 @@ class DispersivecQED(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
 
-        self.global_phase = 0
-        self.amps = np.zeros([len(self._hams), len(gates)])
-        dt_list = []
+        dec = CQEDGateDecomposer(
+            self.N, self._paras, self.wq, self.Delta,
+            global_phase=0., num_ops=len(self._hams))
+        self.tlist, self.amps, self.global_phase = dec.decompose(gates)
 
-        n = 0
-        phase_gate_num = 0
-        for gate in gates:
-
-            if gate.name == "ISWAP":
-                t0, t1 = gate.targets[0], gate.targets[1]
-                self.sz_u[t0, n] = self.wq[t0] - self._paras["w0"]
-                self.sz_u[t1, n] = self.wq[t1] - self._paras["w0"]
-                self.g_u[t0, n] = self._paras["g"][t0]
-                self.g_u[t1, n] = self._paras["g"][t1]
-
-                J = self._paras["g"][t0] * self._paras["g"][t1] * (
-                    1 / self.Delta[t0] + 1 / self.Delta[t1]) / 2
-                T = (4 * np.pi / abs(J)) / 4
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "SQRTISWAP":
-                t0, t1 = gate.targets[0], gate.targets[1]
-                self.sz_u[t0, n] = self.wq[t0] - self._paras["w0"]
-                self.sz_u[t1, n] = self.wq[t1] - self._paras["w0"]
-                self.g_u[t0, n] = self._paras["g"][t0]
-                self.g_u[t1, n] = self._paras["g"][t1]
-
-                J = self._paras["g"][t0] * self._paras["g"][t1] * (
-                    1 / self.Delta[t0] + 1 / self.Delta[t1]) / 2
-                T = (4 * np.pi / abs(J)) / 8
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "RZ":
-                g = self._paras["sz"][gate.targets[0]]
-                self.sz_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
-                T = abs(gate.arg_value) / (2 * g)
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "RX":
-                g = self._paras["sx"][gate.targets[0]]
-                self.sx_u[gate.targets[0], n] = np.sign(gate.arg_value) * g
-                T = abs(gate.arg_value) / (2 * g)
-                dt_list.append(T)
-                n += 1
-
-            elif gate.name == "GLOBALPHASE":
-                self.global_phase += gate.arg_value
-                phase_gate_num += 1
-
-            else:
-                raise ValueError("Unsupported gate %s" % gate.name)
-
-        self.tlist = np.zeros(len(dt_list))
-        t = 0
-        for temp_ind in range(len(dt_list)):
-            t += dt_list[temp_ind]
-            self.tlist[temp_ind] = t
-        self.amps = self.amps[:, :len(gates)-phase_gate_num]
         # TODO The amplitude of the first control a.dag()*a
         # was set to zero before I made this refactoring.
         # It is probably due to the fact that
@@ -312,3 +208,100 @@ class DispersivecQED(ModelProcessor):
         # but change the below line to np.ones leads to test error.
         self.amps[0] = self._paras["w0"] * np.zeros((self.sx_u.shape[1]))
         return self.tlist, self.amps
+
+
+class CQEDGateDecomposer(object):
+    def __init__(self, N, paras, wq, Delta, global_phase, num_ops):
+        self.gate_decs = {"ISWAP": self.iswap_dec,
+                          "SQRTISWAP": self.sqrtiswap_dec,
+                          "RZ": self.rz_dec,
+                          "RX": self.rx_dec,
+                          "GLOBALPHASE": self.globalphase_dec
+                          }
+        self.sx_ind = list(range(1, N+1))
+        self.sz_ind = list(range(N+1, 2*N+1))
+        self.g_ind = list(range(2*N+1, 3*N+1))
+        self.num_ops = num_ops
+        self.paras = paras
+        self.wq = wq
+        self.Delta = Delta
+        self.global_phase = global_phase
+
+    def decompose(self, gates):
+        self.dt_list = []
+        self.amps_list = []
+        for gate in gates:
+            if gate.name not in self.gate_decs:
+                raise ValueError("Unsupported gate %s" % gate.name)
+            self.gate_decs[gate.name](gate)
+            amps = np.vstack(self.amps_list).T
+
+        tlist = np.zeros(len(self.dt_list))
+        t = 0
+        for i in range(len(self.dt_list)):
+            t += self.dt_list[i]
+            tlist[i] = t
+        return tlist, amps, self.global_phase
+
+    def rz_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q_ind = gate.targets[0]
+        g = self.paras["sz"][q_ind]
+        pulse[self.sz_ind[q_ind]] = np.sign(gate.arg_value) * g
+        t = abs(gate.arg_value) / (2 * g)
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+    def rx_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q_ind = gate.targets[0]
+        g = self.paras["sx"][q_ind]
+        pulse[self.sx_ind[q_ind]] = np.sign(gate.arg_value) * g
+        t = abs(gate.arg_value) / (2 * g)
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+    def sqrtiswap_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q1, q2 = gate.targets
+        pulse[self.sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
+        pulse[self.sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
+        pulse[self.g_ind[q1]] = self.paras["g"][q1]
+        pulse[self.g_ind[q2]] = self.paras["g"][q2]
+        J = self.paras["g"][q1] * self.paras["g"][q2] * (
+            1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
+        t = (4 * np.pi / abs(J)) / 8
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+        # corrections
+        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4)   
+        self.rz_dec(gate1)
+        gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/4)
+        self.rz_dec(gate2)
+        gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/4)
+        self.globalphase_dec(gate3)
+
+    def iswap_dec(self, gate):
+        pulse = np.zeros(self.num_ops)
+        q1, q2 = gate.targets
+        pulse[self.sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
+        pulse[self.sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
+        pulse[self.g_ind[q1]] = self.paras["g"][q1]
+        pulse[self.g_ind[q2]] = self.paras["g"][q2]
+        J = self.paras["g"][q1] * self.paras["g"][q2] * (
+            1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
+        t = (4 * np.pi / abs(J)) / 4
+        self.dt_list.append(t)
+        self.amps_list.append(pulse)
+
+        # corrections
+        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/2.)
+        self.rz_dec(gate1)
+        gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/2)
+        self.rz_dec(gate2)
+        gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/2)
+        self.globalphase_dec(gate3)
+
+    def globalphase_dec(self, gate):
+        self.global_phase += gate.arg_value
