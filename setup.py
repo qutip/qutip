@@ -257,7 +257,7 @@ setup(
     packages = PACKAGES,
     include_package_data=True,
     include_dirs = INCLUDE_DIRS,
-    headers = HEADERS,
+    # headers = HEADERS,
     ext_modules = cythonize(EXT_MODULES),
     cmdclass = {'build_ext': build_ext},
     author = AUTHOR,
