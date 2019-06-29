@@ -32,52 +32,88 @@
 ###############################################################################
 import numpy as np
 import warnings
-from qutip import tensor, identity, destroy, sigmax, sigmaz, basis
+from qutip.operators import tensor, identity, destroy, sigmax, sigmaz
+from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.models.circuitprocessor import CircuitProcessor, ModelProcessor
 
 
 class DispersivecQED(ModelProcessor):
     """
-    Representation of the physical implementation of a quantum
-    program/algorithm on a dispersive cavity-QED system.
+    The circuitprocessor based on the physical implementation of
+    a dispersive cavity QED system.
+    The available Hamiltonian of the system is predefined.
+    For a given pulse amplitude matrix, the processor can
+    calculate the state evolution under the given control pulse,
+    either analytically or numerically.
+
+    Parameters
+    ----------
+    N : int
+        The number of qubits in the system.
+    correct_global_phase : bool
+        Whether the correct phase should be considered in analytical
+        evolution.
+    Nres: Integer
+        The number of energy levels in the resonator.
+    deltamax: Integer/List
+        The sigma-x paraicient for each of the qubits in the system.
+    epsmax: Integer/List
+        The sigma-z paraicient for each of the qubits in the system.
+    wo: Integer
+        The base frequency of the resonator.
+    eps: Integer/List
+        The epsilon for each of the qubits in the system.
+    delta: Integer/List
+        The epsilon for each of the qubits in the system.
+    g: Integer/List
+        The interaction strength for each of the qubit with the resonator.
+    T1 : list or float
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+    T2 : list of float
+        Characterize the decoherence of dephasing relaxation for
+        each qubit.
+
+    Attributes
+    ----------
+    hams : list of :class:`Qobj`
+        A list of Hamiltonians of the control pulsedriving the evolution.
+    tlist : array like
+        A NumPy array specifies all time points
+        when a next pulse is to be applied.
+    amps : array like
+        The pulse matrix, a 2d NumPy array of the shape
+        (len(ctrls), len(tlist)).
+        Each row corresponds to the control pulse sequence for
+        one Hamiltonian.
+    paras : dict
+        A Python dictionary contains the name and the value of the parameters
+        of the physical realization, such as laser freqeuncy, detuning etc.
+    sx_ops :
+        A list of sigmax Hamiltonians for each qubit.
+    sz_ops :
+        A list of sigmaz Hamiltonians for each qubit.
+    cavityqubit_ops :
+        A list of interacting Hamiltonians between cavity and each qubit.
+    sx_u : array like
+        Pulse matrix for sigmax Hamiltonians.
+    sz_u : array like
+        Pulse matrix for sigmaz Hamiltonians.
+    g_u : array like
+        Pulse matrix for interacting Hamiltonians
+        between cavity and each qubit.
+    wq : list of float
+        The frequency of the qubits calculated from
+        eps and delta for each qubit.
+    Delta : list of float
+        The detuning with repect to w0 calculated
+        from wq and w0 for each qubit.
     """
 
     def __init__(self, N, correct_global_phase=True, Nres=10, deltamax=1.0,
                  epsmax=9.5, w0=10., wq=None, eps=9.5,
                  delta=0.0, g=0.01, T1=None, T2=None):
-        """
-        Parameters
-        ----------
-        N : int
-            The number of qubits in the system.
-        correct_global_phase : bool
-            Whether the correct phase should be considered in analytical
-            evolution.
-        Nres: Integer
-            The number of energy levels in the resonator.
-        deltamax: Integer/List
-            The sigma-x paraicient for each of the qubits in the system.
-        epsmax: Integer/List
-            The sigma-z paraicient for each of the qubits in the system.
-        wo: Integer
-            The base frequency of the resonator.
-        wq: Integer/List
-            The frequency of the qubits.
-        eps: Integer/List
-            The epsilon for each of the qubits in the system.
-        delta: Integer/List
-            The epsilon for each of the qubits in the system.
-        g: Integer/List
-            The interaction strength for each of the qubit with the resonator.
-        T1 : list or float
-            Characterize the decoherence of amplitude damping for
-            each qubit.
-        T2 : list of float
-            Characterize the decoherence of dephasing relaxation for
-            each qubit.
-        """
-
         super(DispersivecQED, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
@@ -91,6 +127,15 @@ class DispersivecQED(ModelProcessor):
         self.set_up_ops(N)
 
     def set_up_ops(self, N):
+        """
+        Genrate the Hamiltonians for the spinchain model and save them in the
+        attributes `hams`.
+
+        Parameters
+        ----------
+        N : int
+            The number of qubits in the system.
+        """
         # single qubit terms
         self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
         self._hams.append(self.a.dag() * self.a)
@@ -116,7 +161,32 @@ class DispersivecQED(ModelProcessor):
             self, N, Nres, deltamax,
             epsmax, w0, wq, eps, delta, g):
         """
-        Calculate the paraicients for this setup.
+        Save the parameters in the attributes `paras` and check the validity.
+
+        Parameters
+        ----------
+        N : int
+            The number of qubits in the system.
+        Nres: Integer
+            The number of energy levels in the resonator.
+        deltamax: Integer/List
+            The sigma-x paraicient for each of the qubits in the system.
+        epsmax: Integer/List
+            The sigma-z paraicient for each of the qubits in the system.
+        wo: Integer
+            The base frequency of the resonator.
+        wq: Integer/List
+            The frequency of the qubits.
+        eps: Integer/List
+            The epsilon for each of the qubits in the system.
+        delta: Integer/List
+            The delta for each of the qubits in the system.
+        g: Integer/List
+            The interaction strength for each of the qubit with the resonator.
+
+        Note
+        ----
+        All parameters will be multiplied by 2*pi for simplicity
         """
         sx_para = super(DispersivecQED, self)._para_list(deltamax, N)
         self._paras["sx"] = sx_para
@@ -167,9 +237,6 @@ class DispersivecQED(ModelProcessor):
     def g_u(self):
         return self.amps[2*self.N+1: 3*self.N+1]
 
-    def get_ops_and_u(self):
-        return (self._hams, self.amps.T)
-
     def get_ops_labels(self):
         """
         Returns the Hamiltonian operators and corresponding values by stacking
@@ -181,18 +248,50 @@ class DispersivecQED(ModelProcessor):
                 [r"$g_{%d}$" % (n) for n in range(self.N)])
 
     def optimize_circuit(self, qc):
+        """
+        Function to take a quantum circuit/algorithm and convert it into the
+        optimal form/basis for the desired physical system.
+
+        Parameters
+        ----------
+        qc: QubitCircuit
+            Takes the quantum circuit to be implemented.
+
+        Returns
+        --------
+        qc: QubitCircuit
+            The circuit representation with elementary gates
+            that can be implemented in this model.
+        """
         self.qc0 = qc
         self.qc1 = self.qc0.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-
         return self.qc1
 
     def eliminate_auxillary_modes(self, U):
+        """
+        Eliminate the auxillary modes like the cavity modes in cqed.
+        """
         return self.psi_proj.dag() * U * self.psi_proj
 
     def load_circuit(self, qc):
         """
         Decompose a :class:`qutip.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
+
+        Parameters
+        ----------
+        qc: QubitCircuit
+            Takes the quantum circuit to be implemented.
+
+        Returns
+        -------
+        tlist : array like
+            A NumPy array specifies all time points
+            when a next pulse is to be applied.
+        amps : array like
+            A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+            row corresponds to the control pulse sequence for
+            one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
 
@@ -211,6 +310,39 @@ class DispersivecQED(ModelProcessor):
 
 
 class CQEDGateDecomposer(object):
+    """
+    The obejct that decompose a :class:`qutip.QubitCircuit` into
+    the pulse sequence for the processor.
+
+    Parameters
+    ----------
+    N : int
+        The number of qubits in the system.
+    paras : dict
+        A Python dictionary contains the name and the value of the parameters
+        of the physical realization, such as laser freqeuncy,detuning etc.
+    wq : list of float
+        The frequency of the qubits calculated from
+        eps and delta for each qubit.
+    Delta : list of float
+        The detuning with repect to w0 calculated
+        from wq and w0 for each qubit.
+    global_phase : bool
+        Record of the global phase change and will be returned.
+    num_ops : int
+        Number of Hamiltonians in the processor.
+
+    Attributes
+    ----------
+    gate_decs : dict
+        The Python dictionary in the form {gate_name: decompose_function}.
+    sx_ind: Integer/List
+        The list of indices in the Hamiltonian list of sigmax.
+    sz_ind: Integer/List
+        The list of indices in the Hamiltonian list of sigmaz.
+    g_ind: Integer/List
+        The list of indices in the Hamiltonian list of tensor(sigmax, sigmay).
+    """
     def __init__(self, N, paras, wq, Delta, global_phase, num_ops):
         self.gate_decs = {"ISWAP": self.iswap_dec,
                           "SQRTISWAP": self.sqrtiswap_dec,
@@ -228,6 +360,28 @@ class CQEDGateDecomposer(object):
         self.global_phase = global_phase
 
     def decompose(self, gates):
+        """
+        Decompose the the elementary gates
+        into control pulse sequence.
+
+        Parameters
+        ----------
+        gates : list
+            A list of elementary gates that can be implemented in this
+            model. The gate names have to be in `gate_decs`.
+
+        Returns
+        -------
+        tlist : array like
+            A NumPy array specifies all time points
+            when a next pulse is to be applied.
+        amps : array like
+            A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+            row corresponds to the control pulse sequence for
+            one Hamiltonian.
+        global_phase : bool
+            Recorded change of global phase.
+        """
         self.dt_list = []
         self.amps_list = []
         for gate in gates:
@@ -244,6 +398,9 @@ class CQEDGateDecomposer(object):
         return tlist, amps, self.global_phase
 
     def rz_dec(self, gate):
+        """
+        Decomposer for the RZ gate
+        """
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
         g = self.paras["sz"][q_ind]
@@ -253,6 +410,9 @@ class CQEDGateDecomposer(object):
         self.amps_list.append(pulse)
 
     def rx_dec(self, gate):
+        """
+        Decomposer for the RX gate
+        """
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
         g = self.paras["sx"][q_ind]
@@ -262,6 +422,9 @@ class CQEDGateDecomposer(object):
         self.amps_list.append(pulse)
 
     def sqrtiswap_dec(self, gate):
+        """
+        Decomposer for the SQRTISWAP gate
+        """
         pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
         pulse[self.sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
@@ -275,7 +438,7 @@ class CQEDGateDecomposer(object):
         self.amps_list.append(pulse)
 
         # corrections
-        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4)   
+        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4)
         self.rz_dec(gate1)
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/4)
         self.rz_dec(gate2)
@@ -283,6 +446,9 @@ class CQEDGateDecomposer(object):
         self.globalphase_dec(gate3)
 
     def iswap_dec(self, gate):
+        """
+        Decomposer for the ISWAP gate
+        """
         pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
         pulse[self.sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
@@ -304,4 +470,7 @@ class CQEDGateDecomposer(object):
         self.globalphase_dec(gate3)
 
     def globalphase_dec(self, gate):
+        """
+        Decomposer for the GLOBALPHASE gate
+        """
         self.global_phase += gate.arg_value

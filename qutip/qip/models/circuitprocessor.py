@@ -39,13 +39,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from qutip.qobj import Qobj
-import qutip.control.pulseoptim as cpo
 from qutip.operators import identity, sigmax, sigmaz, destroy
-from qutip.qip.gates import expand_oper
+from qutip.qip.gates import expand_oper, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip import globalphase
 
 
 class CircuitProcessor(object):
@@ -54,16 +52,16 @@ class CircuitProcessor(object):
     which is defined by the available Hamiltonian of the system
     and the decoherence time for each qubit.
     For a given pulse amplitude matrix, the processor can then
-    calculate the state evolution under the given control pulses,
+    calculate the state evolution under the given control pulse,
     either analytically or numerically.
-    In the subclass, further methods are defined so that
-    it can be used to find the corresponding driving pulses
+    In the subclasses, further methods are defined so that
+    it can be used to find the driving pulse
     of a quantum circuit.
 
     Parameters
     ----------
     N : int
-        The number of qubits in the system.
+        The number of qubits in the system
     T1 : list or float
         Characterize the decoherence of amplitude damping for
         each qubit.
@@ -73,14 +71,15 @@ class CircuitProcessor(object):
 
     Attributes
     ----------
-    ctrls : list of :class:`Qobj`
-        The Hamiltonians driving the evolution.
+    hams : list of :class:`Qobj`
+        A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
-        A NumPy array specifies the time steps.
+        A NumPy array specifies all time points
+        when a next pulse is to be applied.
     amps : array like
         A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
         row corresponds to the control pulse sequence for
-        one Hamiltonian in `ctrls`.
+        one Hamiltonian.
     """
     def __init__(self, N, T1=None, T2=None):
         self.N = N
@@ -101,6 +100,21 @@ class CircuitProcessor(object):
             self.add_ctrl(ctrl)
 
     def _check_T_valid(self, T, N):
+        """
+        Check if the relaxation time is valid
+
+        Parameters
+        ----------
+        T : list of float
+            The relaxation time
+        N : int
+            The number of qubits in the system
+
+        Returns
+        -------
+        T : list
+            The relaxation time in list form
+        """
         if (isinstance(T, numbers.Real) and T > 0) or T is None:
             return [T] * N
         elif isinstance(T, Iterable) and len(T) == N:
@@ -111,16 +125,16 @@ class CircuitProcessor(object):
 
     def add_ctrl(self, ctrl, targets=None, expand_type=None):
         """
-        Add a ctrl Hamiltonian to the processor
+        Add a control Hamiltonian to the processor
 
         Parameters
         ----------
-        ctrl : Qobj
+        ctrl : :class:`qutip.Qobj`
             A hermitian Qobj representation of the driving Hamiltonian
         targets : list of int
-            The indices of qubits that are acted on.
+            The indices of qubits that are acted on
         expand_type : string
-            The tyoe of expansion
+            The type of expansion
             None - only expand for the given target qubits
             "periodic" - the Hamiltonian is to be expanded for
                 all cyclic permutation of target qubits
@@ -131,12 +145,12 @@ class CircuitProcessor(object):
         if not ctrl.isherm:
             raise ValueError("The Hamiltonian must be Hermitian.")
 
-        d = len(ctrl.dims[0])
+        num_qubits = len(ctrl.dims[0])
         if targets is None:
-            targets = list(range(d))
+            targets = list(range(num_qubits))
 
         if expand_type is None:
-            if d == self.N:
+            if num_qubits == self.N:
                 self._hams.append(ctrl)
             else:
                 self._hams.append(expand_oper(ctrl, self.N, targets))
@@ -152,21 +166,22 @@ class CircuitProcessor(object):
 
     def remove_ctrl(self, indices):
         """
-        Remove the ctrl Hamiltonian with given indices
+        Remove the ctrl Hamiltonian with given indices.
 
         Parameters
         ----------
         indices : int or list of int
+            The indices of the control Hamiltonians to be removed
         """
         if not isinstance(indices, Iterable):
             indices = [indices]
         for ind in indices:
-            if not isinstance(ind, numbers.Integral):
-                raise TypeError("Index must in an integer")
-            else:
-                del self._hams[ind]
+            del self._hams[ind]
 
     def _is_time_amps_valid(self):
+        """
+        Check it the len(tlist) and amps.shape[1] are the same.
+        """
         if self.tlist is None and self.amps is None:
             pass
         elif self.tlist is None or self.amps is None:
@@ -177,22 +192,29 @@ class CircuitProcessor(object):
             if amps_len != tlist_len:
                 raise ValueError(
                     "`tlist` has the length of {} while amps "
-                    "has {}".format(tlist_len, amps_len))
+                    "has {}.".format(tlist_len, amps_len))
 
     def _is_ctrl_amps_valid(self):
+        """
+        Check if the number of control Hamiltonians
+        and amps.shape[0] are the same.
+        """
         if self.amps is None and len(self._hams) != 0:
             raise ValueError(
                 "The control amplitude is None while "
-                "the number of ctrls is {}".format(len(self._hams)))
+                "the number of ctrls is {}.".format(len(self._hams)))
         if self.amps is not None:
             if self.amps.shape[0] != len(self._hams):
                 raise ValueError(
                     "The control amplitude matrix do not match the "
                     "number of ctrls  "
                     "#ctrls = {}  "
-                    "#amps = {}".format(len(self._hams), len(self.amps)))
+                    "#amps = {}.".format(len(self._hams), len(self.amps)))
 
     def _is_amps_valid(self):
+        """
+        Check if the data are in the corret shape.
+        """
         self._is_time_amps_valid()
         self._is_ctrl_amps_valid()
 
@@ -203,9 +225,9 @@ class CircuitProcessor(object):
         Parameters
         ----------
         file_name : string
-            Name of the file
+            Name of the file.
         inctime : boolean
-            True if the time list in included in the first column
+            True if the time list in included in the first column.
         """
         self._is_amps_valid()
 
@@ -226,9 +248,16 @@ class CircuitProcessor(object):
         Parameters
         ----------
         file_name : string
-            Name of the file
+            Name of the file.
         inctime : boolean
-            True if the time list in included in the first column
+            True if the time list in included in the first column.
+
+        Returns
+        -------
+        tlist : array like
+            The time list read from the file.
+        amps : array like
+            The pulse matrix read from the file.
         """
         data = np.loadtxt(file_name, delimiter='\t')
         if not inctime:
@@ -252,9 +281,9 @@ class CircuitProcessor(object):
         ----------
         rho0 : Qobj
             Initial density matrix or state vector (ket).
-        **kwargs
-            Key word arguments for `mesolve`
-
+        kwargs
+            Key word arguments for the qutip solver.
+            (currently `qutip.mesolve`)
         Returns
         -------
         evo_result : :class:`qutip.Result`
@@ -299,7 +328,8 @@ class CircuitProcessor(object):
         self._is_amps_valid()
 
         # contruct time-dependent Hamiltonian
-        # TODO This way does not seems to be very neat
+        # TODO This is a temprary solution
+        # This way does not seems to be very neat
         ####################################################
         def get_amp_td_func(t, args, row_ind):
             times = args['times']
@@ -380,39 +410,30 @@ class CircuitProcessor(object):
         """
         Function to take a quantum circuit/algorithm and convert it into the
         optimal form/basis for the desired physical system.
-
-        Parameters
-        ----------
-        qc: QubitCircuit
-            Takes the quantum circuit to be implemented.
-
-        Returns
-        --------
-        qc: QubitCircuit
-            The optimal circuit representation.
+        (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
 
     def load_circuit(self, qc):
         """
-        Translates an abstract quantum circuit to its corresponding Hamiltonian
-        for a specific model.
-
-        Parameters
-        ----------
-        qc: QubitCircuit
-            Takes the quantum circuit to be implemented.
+        Translates an abstract quantum circuit to its 
+        corresponding Hamiltonians
+        for a specific model. (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
 
     def get_ops_and_u(self):
         """
-        Returns the Hamiltonian operators and corresponding values by stacking
-        them together.
+        Returns the Hamiltonian operators and the pulse matrix
+        (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
 
     def eliminate_auxillary_modes(self, U):
+        """
+        Eliminate the auxillary modes like the cavity modes in cqed.
+        (Defined in subclasses)
+        """
         return U
 
     def plot_pulses(self, amps=None, tlist=None, **kwargs):
@@ -430,6 +451,8 @@ class CircuitProcessor(object):
             The `Figure` object for the plot.
         ax : matplotlib.axes._subplots.AxesSubplot
             The axes for the plot.
+        kwargs
+            Keyword arguments for `plt.subplot` or `as.step`.
         """
         if amps is None:
             amps = self.amps
@@ -451,6 +474,45 @@ class CircuitProcessor(object):
 
 
 class ModelProcessor(CircuitProcessor):
+    """
+    The base class for a circuit processor based on phyiscal hardware,
+    e.g ion trap, spinchain.
+    The available Hamiltonian of the system is predefined.
+    For a given pulse amplitude matrix, the processor can then
+    calculate the state evolution under the given control pulse,
+    either analytically or numerically.
+    In the subclasses, further methods are defined so that
+    it can be used to find the driving pulse
+    of a quantum circuit.
+
+    Parameters
+    ----------
+    N : int
+        The number of qubits in the system.
+    T1 : list or float
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+    T2 : list of float
+        Characterize the decoherence of dephasing relaxation for
+        each qubit.
+    correct_global_phase : boolean
+        If the gloabl phase will be tracked when analytical method is choosen.
+
+    Attributes
+    ----------
+    hams : list of :class:`Qobj`
+        A list of Hamiltonians of the control pulsedriving the evolution.
+    tlist : array like
+        A NumPy array specifies all time points
+        when a next pulse is to be applied.
+    amps : array like
+        A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+        row corresponds to the control pulse sequence for
+        one Hamiltonian.
+    paras : dict
+        A Python dictionary contains the name and the value of the parameters
+        in the physical realization, such as laser freqeuncy, detuning etc.
+    """
     def __init__(self, N, correct_global_phase=True, T1=None, T2=None):
         super(ModelProcessor, self).__init__(N, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
@@ -459,12 +521,35 @@ class ModelProcessor(CircuitProcessor):
         self._hams = []
 
     def _para_list(self, para, N):
+        """
+        transfer a parameter to list form and multiplied by 2*pi.
+
+        Parameters
+        ----------
+        para : float or list
+            One parameter in the setup.
+        N : int
+            The number of qubits in the system.
+
+        Returns
+        -------
+        paras : list
+            The given parameter in a list for
+        """
         if isinstance(para, numbers.Real):
             return [para * 2 * np.pi] * N
         elif isinstance(para, Iterable):
             return [c * 2 * np.pi for c in para]
 
     def set_up_paras(self):
+        """
+        Save the parameters in the attributes `paras` and check the validity.
+        (Defined in subclasses)
+
+        Note
+        ----
+        All parameters will be multiplied by 2*pi for simplicity
+        """
         raise NotImplementedError("Parameters should be defined in subclass.")
 
     @property
@@ -475,27 +560,42 @@ class ModelProcessor(CircuitProcessor):
     def paras(self, par):
         self.set_up_paras(**par)
 
+    def get_ops_and_u(self):
+        """
+        Returns the Hamiltonian operators and corresponding values by stacking
+        them together.
+
+        Returns
+        -------
+        hams : list
+            The list of Hamiltonians
+        amps : array like
+            The transposed pulse matrix
+        """
+        return (self._hams, self.amps.T)
+
     def get_ops_labels(self):
         """
         Returns the Hamiltonian operators and corresponding labels by stacking
-        them together.
+        them together. (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
 
     def run(self, qc=None):
         """
-        Generates the propagator matrix by running the Hamiltonian for the
+        Generates the pulse matrix by running the Hamiltonian for the
         appropriate time duration for the desired physical system
-        analytically with U = exp(-iHt).
+        analytically with U = exp(-iHt). This method won't consider
+        any noise.
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc : :class:`qutip.qip.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         --------
-        U_list: list
+        U_list : list
             The propagator matrix obtained from the physical implementation.
         """
         if qc:
@@ -504,7 +604,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = []
         tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self._hams[m] 
+            H = sum([self.amps[m, n] * self._hams[m]
                     for m in range(len(self._hams))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
@@ -519,22 +619,45 @@ class ModelProcessor(CircuitProcessor):
     def run_state(self, qc=None, rho0=None, states=None,
                   numerical=True, **kwargs):
         """
-        Generates the propagator matrix by running the Hamiltonian for the
-        appropriate time duration for the desired physical system with the
-        given initial state of the qubit register.
+        Simulate the state evolution under the given `qutip.QubitCircuit`
+        If `analytical` is false, it will generate 
+        the propagator matrix by running U = exp(-iHt)
+        If `analytical` is true, it will use mesolve to 
+        calculate the time of the state evolution
+        and return the result. Other arguments of mesolve can be
+        given as kwargs.
 
         Parameters
         ----------
-        qc: :class:`qutip.qip.QubitCircuit`
+        qc : :class:`qutip.qip.QubitCircuit`
             Takes the quantum circuit to be implemented.
-
-        states: :class:`qutip.Qobj`
+        rho0 : :class:`qutip.Qobj`
             Initial state of the qubits in the register.
+        numerical : boolean
+            If qutip solver is used to calculate the evolution numerically.
+            Noise will only be considered if this is true.
+        kwargs
+            Key word arguments for the qutip solver.
+            (currently `qutip.mesolve`)
+        states : :class:`qutip.Qobj`
+            Old API, deprecated to be consistent with qutip solver.
 
         Returns
         --------
-        U_list: list
-            The propagator matrix obtained from the physical implementation.
+        U_list : list
+            If the analytical method is used,
+            the propagator matrix obtained from the physical implementation.
+        evo_result : :class:`qutip.Result`
+            If the numerical method is used, the result of the solver will
+            be returned.
+            An instance of the class :class:`qutip.Result`, which contains
+            either an *array* `result.expect` of expectation values for
+            the times specified by `tlist`, or an *array* `result.states`
+            of state vectors or density matrices corresponding to
+            the times in `tlist` [if `e_ops` is
+            an empty list], or nothing if a callback function was
+            given in place of
+            operators for which to calculate the expectation values.
         """
         if rho0 is None and states is None:
             raise ValueError("Qubit state not defined.")
@@ -549,7 +672,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = [rho0]
         tlist = np.hstack([[0.], self.tlist])
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self._hams[m] 
+            H = sum([self.amps[m, n] * self._hams[m]
                     for m in range(len(self._hams))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()

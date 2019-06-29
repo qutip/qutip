@@ -121,8 +121,14 @@ class OptPulseProcessor(CircuitProcessor):
             The number of time steps for each gate in `qc`
         evo_time : int or list
             The allowed evolution time for each gate in `qc`
-        **kwargs
-            Key word arguments for `optimize_pulse_unitary`
+        min_fid_err : float
+            The minimal fidelity error, if the fidelity error of any
+            gate decomposition is higher, a warning will be given.
+        verbose : boolean
+            If true, the information for each decomposed gate
+            will be shown.
+        kwargs
+            Key word arguments for `qutip.optimize_pulse_unitary`
 
         Returns
         -------
@@ -182,27 +188,9 @@ class OptPulseProcessor(CircuitProcessor):
             [np.ones(len(self.tlist)), np.hstack(amps_record)])
         return self.tlist, self.amps
 
-    def _refine_step(self, tlist, amps, dt):
-        """
-        Refine the NumPy amplitude. It is useful if the amps
-        is given by analytical solution or the step size is
-        too large.
-        """
-        # For now it only works if tlist is equidistant
-        origin_dt = tlist[1:]-tlist[:-1]
-        if (max(origin_dt)-min(origin_dt)) < 1.0e-8:
-            repeat_num = np.floor(origin_dt[0]/dt)
-            new_dt = origin_dt[0]/repeat_num
-            tlist = np.arange(tlist[0], tlist[-1]+origin_dt[0], new_dt)
-            amps = np.repeat(amps, repeat_num, axis=1)
-            return tlist, amps
-        else:
-            raise NotImplementedError(
-                "Works only for tlist with equal distance.")
-
     def plot_pulses(self, **kwargs):
         """
-        Plot the pulse amplitude
+        Plot the pulse amplitude, the constant drift Hamiltonian is not shown.
 
         Parameters
         ----------
