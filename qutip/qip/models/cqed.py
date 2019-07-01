@@ -78,10 +78,10 @@ class DispersivecQED(ModelProcessor):
     Attributes
     ----------
     hams : list of :class:`Qobj`
-        A list of Hamiltonians of the control pulsedriving the evolution.
+        A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
-        A NumPy array specifies all time points
-        when a next pulse is to be applied.
+        A NumPy array specifies at which time the next amplitude of
+        a pulse is to be applied.
     amps : array like
         The pulse matrix, a 2d NumPy array of the shape
         (len(ctrls), len(tlist)).
@@ -129,7 +129,7 @@ class DispersivecQED(ModelProcessor):
     def set_up_ops(self, N):
         """
         Genrate the Hamiltonians for the spinchain model and save them in the
-        attributes `hams`.
+        attribute `hams`.
 
         Parameters
         ----------
@@ -161,7 +161,7 @@ class DispersivecQED(ModelProcessor):
             self, N, Nres, deltamax,
             epsmax, w0, wq, eps, delta, g):
         """
-        Save the parameters in the attributes `paras` and check the validity.
+        Save the parameters in the attribute `paras` and check the validity.
 
         Parameters
         ----------
@@ -254,12 +254,12 @@ class DispersivecQED(ModelProcessor):
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         --------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
         """
@@ -280,14 +280,14 @@ class DispersivecQED(ModelProcessor):
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         -------
         tlist : array like
-            A NumPy array specifies all time points
-            when a next pulse is to be applied.
+            A NumPy array specifies at which time the next amplitude of
+            a pulse is to be applied.
         amps : array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
@@ -373,8 +373,8 @@ class CQEDGateDecomposer(object):
         Returns
         -------
         tlist : array like
-            A NumPy array specifies all time points
-            when a next pulse is to be applied.
+            A NumPy array specifies at which time the next amplitude of
+            a pulse is to be applied.
         amps : array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
@@ -424,7 +424,13 @@ class CQEDGateDecomposer(object):
     def sqrtiswap_dec(self, gate):
         """
         Decomposer for the SQRTISWAP gate
+
+        Note
+        ----
+        This version of sqrtiswap_dec has very low fidelity, please use
+        iswap
         """
+        # FIXME This decomposition has poor behaviour
         pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
         pulse[self.sz_ind[q1]] = self.wq[q1] - self.paras["w0"]

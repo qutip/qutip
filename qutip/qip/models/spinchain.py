@@ -69,10 +69,10 @@ class SpinChain(ModelProcessor):
     Attributes
     ----------
     hams : list of :class:`Qobj`
-        A list of Hamiltonians of the control pulsedriving the evolution.
+        A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
-        A NumPy array specifies all time points
-        when a next pulse is to be applied.
+        A NumPy array specifies at which time the next amplitude of
+        a pulse is to be applied.
     amps : array like
         The pulse matrix, a 2d NumPy array of the shape
         (len(ctrls), len(tlist)).
@@ -105,7 +105,7 @@ class SpinChain(ModelProcessor):
     def set_up_ops(self, N):
         """
         Genrate the Hamiltonians for the spinchain model and save them in the
-        attributes `hams`.
+        attribute `hams`.
 
         Parameters
         ----------
@@ -130,7 +130,7 @@ class SpinChain(ModelProcessor):
 
     def set_up_paras(self, sx, sz):
         """
-        Save the parameters in the attributes `paras` and check the validity.
+        Save the parameters in the attribute `paras` and check the validity.
 
         Parameters
         ----------
@@ -180,7 +180,7 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             Takes the quantum circuit to be implemented.
         setup : string
             "linear" or "circular"
@@ -188,8 +188,8 @@ class SpinChain(ModelProcessor):
         Returns
         -------
         tlist : array like
-            A NumPy array specifies all time points
-            when a next pulse is to be applied.
+            A NumPy array specifies at which time the next amplitude of
+            a pulse is to be applied.
         amps : array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
@@ -212,7 +212,7 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             The circular spin chain circuit to be resolved
 
         setup: Boolean
@@ -220,7 +220,7 @@ class SpinChain(ModelProcessor):
 
         Returns
         ----------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
@@ -421,12 +421,12 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         --------
-        qc: QubitCircuit
+        qc: :class:`qutip.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
         """
@@ -451,7 +451,7 @@ class LinearSpinChain(SpinChain):
 
     def set_up_paras(self, sx, sz, sxsy):
         """
-        Save the parameters in the attributes `paras` and check the validity.
+        Save the parameters in the attribute `paras` and check the validity.
 
         Parameters
         ----------
@@ -517,7 +517,7 @@ class CircularSpinChain(SpinChain):
 
     def set_up_paras(self, sx, sz, sxsy):
         """
-        Save the parameters in the attributes `paras` and check the validity.
+        Save the parameters in the attribute `paras` and check the validity.
 
         Parameters
         ----------
@@ -623,8 +623,8 @@ class CQEDGateDecomposer(object):
         Returns
         -------
         tlist : array like
-            A NumPy array specifies all time points
-            when a next pulse is to be applied.
+            A NumPy array specifies at which time the next amplitude of
+            a pulse is to be applied.
         amps : array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for

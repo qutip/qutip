@@ -41,7 +41,8 @@ class OptPulseProcessor(CircuitProcessor):
     Attributes
     ----------
     tlist : array like
-        A NumPy array specifies the time steps.
+        A NumPy array specifies at which time the next amplitude of
+        a pulse is to be applied.
     amps : array like
         A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
         row corresponds to the control pulse sequence for
@@ -115,14 +116,14 @@ class OptPulseProcessor(CircuitProcessor):
 
         Parameters
         ----------
-        qc : QubitCircuit or list of Qobj
+        qc : :class:`qutip.QubitCircuit` or list of Qobj
             The quantum circuit to be translated.
         n_ts : int or list
             The number of time steps for each gate in `qc`
         evo_time : int or list
             The allowed evolution time for each gate in `qc`
         min_fid_err : float
-            The minimal fidelity error, if the fidelity error of any
+            The minimal fidelity tolerance, if the fidelity error of any
             gate decomposition is higher, a warning will be given.
         verbose : boolean
             If true, the information for each decomposed gate
@@ -133,7 +134,8 @@ class OptPulseProcessor(CircuitProcessor):
         Returns
         -------
         tlist : array like
-            A NumPy array specifies the time steps.
+            A NumPy array specifies at which time the next amplitude of
+            a pulse is to be applied.
         amps : array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for

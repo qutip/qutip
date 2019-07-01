@@ -36,7 +36,6 @@ import numbers
 import inspect
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from qutip.qobj import Qobj
 from qutip.operators import identity, sigmax, sigmaz, destroy
@@ -51,7 +50,7 @@ class CircuitProcessor(object):
     The base class for a circuit processor,
     which is defined by the available Hamiltonian of the system
     and the decoherence time for each qubit.
-    For a given pulse amplitude matrix, the processor can then
+    For a given pulse amplitude matrix, the processor can
     calculate the state evolution under the given control pulse,
     either analytically or numerically.
     In the subclasses, further methods are defined so that
@@ -74,8 +73,8 @@ class CircuitProcessor(object):
     hams : list of :class:`Qobj`
         A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
-        A NumPy array specifies all time points
-        when a next pulse is to be applied.
+        A NumPy array specifies at which time the next amplitude of
+        a pulse is to be applied.
     amps : array like
         A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
         row corresponds to the control pulse sequence for
@@ -113,7 +112,7 @@ class CircuitProcessor(object):
         Returns
         -------
         T : list
-            The relaxation time in list form
+            The relaxation time in Python list form
         """
         if (isinstance(T, numbers.Real) and T > 0) or T is None:
             return [T] * N
@@ -175,6 +174,7 @@ class CircuitProcessor(object):
         """
         if not isinstance(indices, Iterable):
             indices = [indices]
+        indices.sort(reverse=True)
         for ind in indices:
             del self._hams[ind]
 
@@ -184,8 +184,10 @@ class CircuitProcessor(object):
         """
         if self.tlist is None and self.amps is None:
             pass
-        elif self.tlist is None or self.amps is None:
+        elif self.tlist is None:
             raise ValueError("`tlist` or `amps` is not given.")
+        elif self.amps is None:
+            pass  # evolution with identity
         else:
             amps_len = self.amps.shape[1]
             tlist_len = len(self.tlist)
@@ -213,7 +215,7 @@ class CircuitProcessor(object):
 
     def _is_amps_valid(self):
         """
-        Check if the data are in the corret shape.
+        Check if the attribute are in the corret shape.
         """
         self._is_time_amps_valid()
         self._is_ctrl_amps_valid()
@@ -243,7 +245,8 @@ class CircuitProcessor(object):
 
     def read_amps(self, file_name, inctime=True):
         """
-        Read the pulse amplitude matrix save in a file by `save_amp`
+        Read the pulse amplitude matrix and time list
+        saved in the file by `save_amp`
 
         Parameters
         ----------
@@ -265,24 +268,20 @@ class CircuitProcessor(object):
         else:
             self.tlist = data[:, 0]
             self.amps = data[:, 1:].T
-        try:
-            self._is_amps_valid()
-        except Exception as e:
-            warnings.warn("{}".format(e))
         return self.tlist, self.amps
 
     def run_state(self, rho0, **kwargs):
         """
         Use mesolve to calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
-        given as kwargs.
+        given as keyword arguments.
 
         Parameters
         ----------
         rho0 : Qobj
             Initial density matrix or state vector (ket).
         kwargs
-            Key word arguments for the qutip solver.
+            Keyword arguments for the qutip solver.
             (currently `qutip.mesolve`)
         Returns
         -------
@@ -301,12 +300,12 @@ class CircuitProcessor(object):
                 "`H` and `args` are already specified by the processor "
                 "and can not be given as a key word argument")
 
-        # if no control pulse specified (drift evolution with c_ops)
+        # if no control pulse specified (e.g. drift or id evolution with c_ops)
         if self.tlist is None:
             if "tlist" in kwargs:
                 tlist = kwargs["tlist"]
                 # If first t is 0, remove it to match the define of self.tlist
-                if tlist[0] == 0:
+                if abs(tlist[0]) < 1e-15:
                     self.tlist = tlist[1:]
                 del kwargs["tlist"]
             else:
@@ -325,6 +324,7 @@ class CircuitProcessor(object):
             self.amps = np.ones(len(self.tlist)).reshape((1, len(self.tlist)))
 
         # check validity
+
         self._is_amps_valid()
 
         # contruct time-dependent Hamiltonian
@@ -416,9 +416,8 @@ class CircuitProcessor(object):
 
     def load_circuit(self, qc):
         """
-        Translates an abstract quantum circuit to its 
-        corresponding Hamiltonians
-        for a specific model. (Defined in subclasses)
+        Translates an abstract quantum circuit to its
+        corresponding Hamiltonians.(Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
 
@@ -454,6 +453,7 @@ class CircuitProcessor(object):
         kwargs
             Keyword arguments for `plt.subplot` or `as.step`.
         """
+        import matplotlib.pyplot as plt
         if amps is None:
             amps = self.amps
         if tlist is None:
@@ -475,10 +475,10 @@ class CircuitProcessor(object):
 
 class ModelProcessor(CircuitProcessor):
     """
-    The base class for a circuit processor based on phyiscal hardware,
+    The base class for a circuit processor based on phyiscal hardwares,
     e.g ion trap, spinchain.
     The available Hamiltonian of the system is predefined.
-    For a given pulse amplitude matrix, the processor can then
+    For a given pulse amplitude matrix, the processor can
     calculate the state evolution under the given control pulse,
     either analytically or numerically.
     In the subclasses, further methods are defined so that
@@ -501,10 +501,10 @@ class ModelProcessor(CircuitProcessor):
     Attributes
     ----------
     hams : list of :class:`Qobj`
-        A list of Hamiltonians of the control pulsedriving the evolution.
+        A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
-        A NumPy array specifies all time points
-        when a next pulse is to be applied.
+        A NumPy array specifies at which time the next amplitude of
+        a pulse is to be applied.
     amps : array like
         A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
         row corresponds to the control pulse sequence for
@@ -543,7 +543,7 @@ class ModelProcessor(CircuitProcessor):
 
     def set_up_paras(self):
         """
-        Save the parameters in the attributes `paras` and check the validity.
+        Save the parameters in the attribute `paras` and check the validity.
         (Defined in subclasses)
 
         Note
@@ -620,16 +620,16 @@ class ModelProcessor(CircuitProcessor):
                   numerical=True, **kwargs):
         """
         Simulate the state evolution under the given `qutip.QubitCircuit`
-        If `analytical` is false, it will generate 
+        If `analytical` is false, it will generate
         the propagator matrix by running U = exp(-iHt)
-        If `analytical` is true, it will use mesolve to 
+        If `analytical` is true, it will use mesolve to
         calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
         given as kwargs.
 
         Parameters
         ----------
-        qc : :class:`qutip.qip.QubitCircuit`
+        qc : :class:`qutip.QubitCircuit`
             Takes the quantum circuit to be implemented.
         rho0 : :class:`qutip.Qobj`
             Initial state of the qubits in the register.
@@ -666,6 +666,7 @@ class ModelProcessor(CircuitProcessor):
             rho0 = states
         if qc:
             self.load_circuit(qc)
+            # TODO It noise exists, give warning
         if numerical:
             return super(ModelProcessor, self).run_state(rho0=rho0, **kwargs)
 
