@@ -30,12 +30,20 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import warnings
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, run_module_suite, assert_allclose
+
 from qutip.qip.gates import gate_sequence_product
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.cqed import DispersivecQED
+from qutip.random_objects import rand_ket
+from qutip.metrics import fidelity
+from qutip.operators import sigmaz, sigmax
+from qutip.solver import Options
+from qutip.states import basis
+from qutip.tensor import tensor
 
 
 class Testcqed:
@@ -100,6 +108,57 @@ class Testcqed:
 
         print((U_ideal - U_physical).norm())
         assert_((U_ideal - U_physical).norm() < 1e-2)
+
+    def test_analytical_evo(self):
+        """
+        Test of run_state with exp(-iHt)
+        """
+        N = 3
+
+        qc = QubitCircuit(N)
+        qc.add_gate("ISWAP", targets=[0, 1])
+        qc.add_gate("RZ", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[1])
+        qc.add_gate("RX", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[0])
+        U_ideal = gate_sequence_product(qc.propagators())
+
+        rho0 = rand_ket(2**N)
+        rho0.dims = [[2]*N, [1]*N]
+        rho1 = gate_sequence_product([rho0] + qc.propagators())
+
+        p = DispersivecQED(N, correct_global_phase=True)
+        U_list = p.run_state(qc, rho0=rho0, numerical=False)
+        result = gate_sequence_product(U_list)
+        assert_allclose(
+            fidelity(result, rho1), 1., rtol=1e-2,
+            err_msg="Numerical run_state fails in DispersivecQED")
+
+    def test_numerical_evo(self):
+        """
+        Test of run_state with qutip solver
+        """
+        N = 3
+        qc = QubitCircuit(N)
+        qc.add_gate("RX", targets=[0], arg_value=np.pi/2)
+        qc.add_gate("CNOT", targets=[0], controls=[1])
+        qc.add_gate("ISWAP", targets=[2, 1])
+        qc.add_gate("CNOT", targets=[0], controls=[2])
+        # qc.add_gate("SQRTISWAP", targets=[0, 2])
+
+        with warnings.catch_warnings(record=True):
+            test = DispersivecQED(N, g=0.1)
+        tlist, amps = test.load_circuit(qc)
+
+        # test numerical run_state
+        qu0 = rand_ket(2**N)
+        qu0.dims = [[2]*N, [1]*N]
+        rho0 = tensor(basis(10, 0), qu0)
+        qu1 = gate_sequence_product([qu0] + qc.propagators())
+        result = test.run_state(
+            rho0=rho0, numerical=True,
+            options=Options(store_final_state=True, nsteps=50000)).final_state
+        assert_allclose(
+            fidelity(result, tensor(basis(10, 0), qu1)), 1., rtol=1e-2,
+            err_msg="Numerical run_state fails in DispersivecQED")
 
 
 if __name__ == "__main__":
