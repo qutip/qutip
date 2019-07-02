@@ -732,7 +732,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     See Also
     --------
-    scipy.sparse.diags for usage information.
+    scipy.sparse.diags : for usage information.
 
     Notes
     -----

@@ -30,9 +30,11 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from __future__ import division
-from collections.abc import Iterable
 import numbers
+from collections.abc import Iterable
+from itertools import product
+from functools import partial, reduce
+from operator import mul
 
 import numpy as np
 import scipy.sparse as sp
@@ -41,16 +43,15 @@ from qutip.operators import identity, qeye, sigmax
 from qutip.tensor import tensor
 from qutip.states import fock_dm
 
-from itertools import product
-from functools import partial, reduce
-from operator import mul
 
-__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'cphase', 'cnot',
+__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
+           'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
-           'sqrtiswap', 'fredkin', 'toffoli', 'rotation', 'controlled_gate',
+           'sqrtiswap', 'fredkin', 'molmer_sorensen',
+           'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
            'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
-           'qubit_clifford_group']
+           'qubit_clifford_group', 'expand_oper']
 
 #
 # Single Qubit Gates
@@ -176,6 +177,37 @@ shape = [2, 2], type = oper, isHerm = False
         return Qobj([[1, 0],
                      [0, np.exp(1.0j * theta)]],
                     dims=[[2], [2]])
+
+
+def qrot(theta, phi, N=None, target=0):
+    """
+    Single qubit rotation driving by Rabi oscillation with 0 detune.
+
+    Parameters
+    ----------
+    phi : float
+        The inital phase of the rabi pulse.
+    theta : float
+        The duration of the rabi pulse.
+    N : int
+        Number of qubits in the system.
+    target : int
+        The index of the target qubit.
+
+    Returns
+    -------
+    qrot_gate : :class:`qutip.Qobj`
+        Quantum object representation of physical qubit rotation under
+        a rabi pulse.
+    """
+    if N is not None:
+        return expand_oper(qrot(theta, phi), N=N, targets=target)
+    else:
+        return Qobj(
+            [
+                [np.cos(theta/2.), -1.j*np.exp(-1.j*phi)*np.sin(theta/2.)],
+                [-1.j*np.exp(1.j*phi)*np.sin(theta/2.), np.cos(theta/2.)]
+            ])
 
 
 #
@@ -487,6 +519,40 @@ shape = [4, 4], type = oper, isHerm = False
                               [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
                               [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
                               [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
+
+
+def molmer_sorensen(theta, N=None, targets=[0, 1]):
+    """
+    Quantum object of a Mølmer–Sørensen gate.
+
+    Parameters
+    ----------
+    theta: float
+        The duration of the interaction pulse.
+    N: int
+        Number of qubits in the system.
+    target: int
+        The indices of the target qubits.
+
+    Returns
+    -------
+    molmer_sorensen_gate: :class:`qutip.Qobj`
+        Quantum object representation of the Mølmer–Sørensen gate.
+    """
+    if targets != [0, 1] and N is None:
+        N = 2
+
+    if N is not None:
+        return expand_oper(molmer_sorensen(theta), N, targets=targets)
+    else:
+        return Qobj(
+            [
+                [np.cos(theta/2.), 0, 0, -1.j*np.sin(theta/2.)],
+                [0, np.cos(theta/2.), -1.j*np.sin(theta/2.), 0],
+                [0, -1.j*np.sin(theta/2.), np.cos(theta/2.), 0],
+                [-1.j*np.sin(theta/2.), 0, 0, np.cos(theta/2.)]
+            ],
+            dims=[[2, 2], [2, 2]])
 
 
 #
@@ -1049,13 +1115,33 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
     return tensor([U] + [identity(2)] * (N - 3)).permute(p)
 
 
-def expand_oper(oper, N, targets):
+def _check_qubits_oper(oper):
     """
-    Expand an operator to dimension N acting on the targeting qubits.
+    Check if it is an operator acting on a qubit system.
 
     Parameters
     ----------
-    oper : `Qobj`
+    oper : :class:`qutip.Qboj`
+        The quantum object to be checked.
+    """
+    check = True
+    if oper.dims[0] != oper.dims[1]:
+        check = False
+    if oper.dims[0] != len(oper.dims[0]) * [2]:
+        check = False
+    if not check:
+        raise ValueError(
+            "The following operator is not an "
+            "operator on a qubits system:\n{}".format(oper))
+
+
+def expand_oper(oper, N, targets):
+    """
+    Expand a qubits operator to one that acts on a N-qutbis system.
+
+    Parameters
+    ----------
+    oper : :class:`qutip.Qobj`
         An operator acts on qubits, the type of the `Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbertspace
@@ -1065,11 +1151,17 @@ def expand_oper(oper, N, targets):
     targets : int or list of int
         The indices of qubits that are acted on.
 
+    Returns
+    -------
+    expanded_oper : :class:`qutip.Qobj`
+        The expanded qubits operator acting on a system with N qubits
+
     Note
     ----
     This is equivalent to gate_expand_1toN, gate_expand_2toN,
     gate_expand_3toN in `qutip.qip.gate.py`, but works for any dimension.
     """
+    _check_qubits_oper(oper)
     req_num = len(oper.dims[0])
     if req_num > N:
         raise ValueError(
@@ -1090,9 +1182,9 @@ def expand_oper(oper, N, targets):
                 "was given.".format(targets))
         if len(targets) != req_num:  # correct number of targets
             raise ValueError(
-                "The given Hamiltonian needs {} "
+                "The given operator needs {} "
                 "target qutbis, "
-                "but {} qubits was given.".format(
+                "but {} given.".format(
                     req_num, len(targets)))
     else:
         raise ValueError(
@@ -1101,7 +1193,7 @@ def expand_oper(oper, N, targets):
             "was given.".format(targets))
 
     # Generate the correct order for qubits permutation,
-    # eg. if N = 5, targets = [3,0], the order is [1,3,2,0,4].
+    # eg. if N = 5, targets = [3,0], the order is [1,x,x,0,x].
     # If the operator is cnot,
     # this order means that the 3rd qubit control the 0th qubit.
     new_order = list(range(N))

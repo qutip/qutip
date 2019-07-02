@@ -52,9 +52,10 @@ def _compile_str_single(string, args):
 # This file is generated automatically by QuTiP.
 
 import numpy as np
+import scipy.special as spe
 cimport numpy as np
 cimport cython
-from qutip.cy.math cimport erf
+from qutip.cy.math cimport erf, zerf
 cdef double pi = 3.14159265358979323
 include """+_include_string+"""
 
@@ -84,11 +85,11 @@ def f(double t, args):
     return str_func[0], filename
 
 
-def _compiled_coeffs(ops, args, tlist):
+def _compiled_coeffs(ops, args, dyn_args, tlist):
     """Create and import a cython compiled class for coeff that
     need compilation.
     """
-    code = _make_code_4_cimport(ops, args, tlist)
+    code = _make_code_4_cimport(ops, args, dyn_args, tlist)
     filename = "cqobjevo_compiled_coeff_"+str(hash(code))[1:]
 
     file = open(filename+".pyx", "w")
@@ -100,7 +101,7 @@ def _compiled_coeffs(ops, args, tlist):
                           "import_list.append(CompiledStrCoeff)",
                           '<string>', 'exec')
     exec(import_code, locals())
-    coeff_obj = import_list[0](ops, args, tlist)
+    coeff_obj = import_list[0](ops, args, tlist, dyn_args)
 
     try:
         os.remove(filename+".pyx")
@@ -110,7 +111,7 @@ def _compiled_coeffs(ops, args, tlist):
     return coeff_obj, code, filename
 
 
-def _make_code_4_cimport(ops, args, tlist):
+def _make_code_4_cimport(ops, args, dyn_args, tlist):
     """
     Create the code for a CoeffFunc cython class the wraps
     the string coefficients, array_like coefficients and Cubic_Spline.
@@ -125,6 +126,7 @@ def _make_code_4_cimport(ops, args, tlist):
 
 import numpy as np
 cimport numpy as np
+import scipy.special as spe
 cimport cython
 np.import_array()
 cdef extern from "numpy/arrayobject.h" nogil:
@@ -135,7 +137,9 @@ from qutip.cy.inter cimport _spline_complex_t_second, _spline_complex_cte_second
 from qutip.cy.inter cimport _spline_float_t_second, _spline_float_cte_second
 from qutip.cy.interpolate cimport (interp, zinterp)
 from qutip.cy.cqobjevo_factor cimport StrCoeff
-from qutip.cy.math cimport erf
+from qutip.cy.cqobjevo cimport CQobjEvo
+from qutip.cy.math cimport erf, zerf
+from qutip.qobj import Qobj
 cdef double pi = 3.14159265358979323
 
 include """ + _include_string + "\n\n"
@@ -189,7 +193,11 @@ include """ + _include_string + "\n\n"
             N_np += 1
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"
-    for name, value in args.items():
+    normal_args = args.copy()
+    for name, _, _ in dyn_args:
+        del normal_args[name]
+
+    for name, value in normal_args.items():
         if not isinstance(name, str):
             raise Exception("All arguments key must be string " +
                             "and valid variables name")
@@ -201,18 +209,20 @@ include """ + _include_string + "\n\n"
             code += "    cdef complex[::1] " + name + "\n"
         elif isinstance(value, (complex, np.complex128)):
             code += "    cdef complex " + name + "\n"
-        else:
+        elif np.isscalar(value):
             code += "    cdef double " + name + "\n"
+        else:
+            code += "    cdef object " + name + "\n"
 
     code += "\n"
-    if args:
+    if normal_args:
         code += "    def set_args(self, args):\n"
-        for name, value in args.items():
+        for name, value in normal_args.items():
             code += "        self." + name + "=args['" + name + "']\n"
         code += "\n"
     code += "    cdef void _call_core(self, double t, complex * coeff):\n"
 
-    for name, value in args.items():
+    for name, value in normal_args.items():
         if isinstance(value, np.ndarray) and \
                 isinstance(value[0], (float, np.float32, np.float64)):
             code += "        cdef double[::1] " + name + " = self." +\
@@ -223,8 +233,26 @@ include """ + _include_string + "\n\n"
                     name + "\n"
         elif isinstance(value, (complex, np.complex128)):
             code += "        cdef complex " + name + " = self." + name + "\n"
-        else:
+        elif np.isscalar(value):
             code += "        cdef double " + name + " = self." + name + "\n"
+        else:
+            code += "        cdef object " + name + " = self." + name + "\n"
+
+    expect_i = 0
+    for name, what, op in dyn_args:
+        if what == "vec":
+            code += "        cdef complex[::1] " + name + " = self._vec\n"
+        if what == "mat":
+            code += "        cdef np.ndarray[complex, ndim=2] " + name + \
+                    " = np.array(self._vec).reshape(" \
+                    "(self._mat_shape[0], self._mat_shape[1]), order='F')\n"
+        if what == "Qobj":
+            code += "        " + name + " = Qobj(np.array(self._vec).reshape(" \
+                    "(self._mat_shape[0], self._mat_shape[1]), order='F'))\n"
+        if what == "expect":
+            code += "        cdef complex " + name + " = self._expect_vec[" \
+                    + str(expect_i) + "]\n"
+            expect_i += 1
 
     code += "\n"
     for i, str_coeff in enumerate(compile_list):

@@ -31,9 +31,12 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy.testing import assert_, run_module_suite
-from qutip.qip.gates import gate_sequence_product
+import numpy as np
+from numpy.testing import assert_, assert_allclose, run_module_suite
+from qutip.qip.gates import gate_sequence_product, rx, identity, expand_oper
 from qutip.qip.circuit import QubitCircuit, Gate
+from qutip.tensor import tensor
+from qutip.qobj import Qobj
 
 
 class TestQubitCircuit:
@@ -227,6 +230,33 @@ class TestQubitCircuit:
         assert_(qc.input_states[0] == "0")
         assert_(qc.input_states[2] == None)
         assert_(qc.output_states[1] == "+")
+
+    def test_user_gate(self):
+        """
+        User defined gate for QubitCircuit
+        """
+        def customer_gate1(arg_values):
+            mat = np.zeros((4, 4), dtype=np.complex)
+            mat[0, 0] = mat[1, 1] = 1.
+            mat[2:4, 2:4] = rx(arg_values)
+            return Qobj(mat, dims=[[2, 2], [2, 2]])
+
+        def customer_gate2(arg_values):
+            mat = np.array([[1.,   0],
+                            [0., 1.j]])
+            return Qobj(mat, dims=[[2], [2]])
+
+        qc = QubitCircuit(3)
+        qc.user_gates = {"CTRLRX": customer_gate1,
+                         "T": customer_gate2}
+        qc.add_gate("CTRLRX", targets=[1, 2], arg_value=np.pi/2)
+        qc.add_gate("T", targets=[1])
+        props = qc.propagators()
+        result1 = tensor(identity(2), customer_gate1(np.pi/2))
+        assert_allclose(props[0], result1)
+        result2 = tensor(identity(2), customer_gate2(None), identity(2))
+        assert_allclose(props[1], result2)
+
 
 if __name__ == "__main__":
     run_module_suite()

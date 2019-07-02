@@ -33,13 +33,13 @@
 
 import itertools
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, assert_allclose, run_module_suite
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
-from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
-                       sqrtswap, toffoli, fredkin, gate_expand_3toN,
-                       qubit_clifford_group)
-from qutip.qip.gates import expand_oper
+from qutip.qip import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
+                       sqrtswap, molmer_sorensen,
+                       toffoli, fredkin, gate_expand_3toN, 
+                       qubit_clifford_group, expand_oper)
 from qutip.random_objects import rand_ket, rand_herm, rand_unitary
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
@@ -77,7 +77,7 @@ class TestGates:
         Returns True if and only if U is proportional to the
         identity.
         """
-        U0 = complex(U[0, 0]) #scipy 1.3 return 0 dims array.
+        U0 = complex(U[0, 0])  # scipy 1.3 return 0 dims array.
         if U0 != 0:
             norm_U = U / U0
             return (qeye(U.dims[0]) - norm_U).norm() <= tol
@@ -287,6 +287,9 @@ class TestGates:
                         assert_(abs(o1 - o2) < 1e-12)
 
     def test_expand_oper(self):
+        """
+        gate : expand qubits operator to a N qubits system.
+        """
         # random single qubit gate test, integer as target
         r = rand_unitary(2)
         assert(expand_oper(r, 3, 0) == tensor([r, identity(2), identity(2)]))
@@ -312,9 +315,47 @@ class TestGates:
             [0., 0., 0., 0., 1., 0., 0., 0.],
             [0., 1., 0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0., 1., 0.],
-            [0., 0., 0., 1., 0., 0., 0., 0.]], 
+            [0., 0., 0., 1., 0., 0., 0., 0.]],
             dims=[[2, 2, 2], [2, 2, 2]]))
 
+    def test_molmer_sorensen(self):
+        """
+        gate: test for the molmer_sorensen gate
+        """
+        assert_allclose(
+            molmer_sorensen(np.pi, targets=[0, 1]),
+            Qobj(-1j*np.array(
+                 [[0, 0, 0, 1],
+                  [0, 0, 1, 0],
+                  [0, 1, 0, 0],
+                  [1, 0, 0, 0]]), dims=[[2, 2], [2, 2]]),
+            atol=1e-15)
+        assert_allclose(
+            molmer_sorensen(2*np.pi, targets=[0, 1]),
+            Qobj(-np.array(
+                 [[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]]),
+            atol=1e-15)
+        assert_allclose(
+            molmer_sorensen(np.pi/2, N=4, targets=[1, 2]),
+            tensor([identity(2), molmer_sorensen(np.pi/2), identity(2)])
+        )
+
+    def test_qrot(self):
+        """
+        gate: test for the qubit rotation gate
+        """
+        assert_allclose(qrot(0, 0), identity(2))
+        assert_allclose(
+            qrot(np.pi, np.pi/2),
+            Qobj([[0, -1], [1, 0]]),
+            atol=1e-15)
+        assert_allclose(
+            qrot(np.pi/4., np.pi/3., N=2, target=1),
+            tensor([identity(2), qrot(np.pi/4., np.pi/3.)])
+        )
 
 if __name__ == "__main__":
     run_module_suite()
