@@ -38,6 +38,7 @@ __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
 import scipy.sparse as sp
 import numpy as np
 from qutip.qobj import Qobj
+from qutip.qobjevo import QobjEvo
 from qutip.fastsparse import fast_csr_matrix, fast_identity
 from qutip.sparse import sp_reshape
 from qutip.cy.spmath import zcsr_kron
@@ -404,5 +405,3 @@ def sprepost(A, B):
                  _drop_projected_dims(B.dims[0])]]
         data = zcsr_kron(B.data.T, A.data)
         return Qobj(data, dims=dims, superrep='super')
-
-from qutip.qobjevo import QobjEvo

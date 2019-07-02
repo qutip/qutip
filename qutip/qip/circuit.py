@@ -31,10 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from collections.abc import Iterable
-import warnings
-
 import numpy as np
+import warnings
 
 from qutip.qip.circuit_latex import _latex_compile
 from qutip.qip.gates import *
@@ -47,50 +45,46 @@ class Gate(object):
     """
     Representation of a quantum gate, with its required parametrs, and target
     and control qubits.
-    
-    Parameters
-    ----------
-    name : string
-        Gate name.
-    targets : list or int
-        Gate targets.
-    controls : list or int
-        Gate controls.
-    arg_value : float
-        Argument value(phi).
-    arg_label : string
-        Label for gate representation.
     """
 
     def __init__(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
         """
-        Create a gate with specified parameters.
+        Creates a gate with specified parameters.
+
+        Parameters
+        ----------
+        name : String
+            Gate name.
+        targets : list
+            Gate targets.
+        controls : list
+            Gate controls.
+        arg_value : Float
+            Argument value(phi).
+        arg_label : String
+            Label for gate representation.
         """
         self.name = name
         self.targets = None
         self.controls = None
 
-        if not isinstance(targets, Iterable) and targets is not None:
+        if not isinstance(targets, list) and targets is not None:
             self.targets = [targets]
         else:
             self.targets = targets
 
-        if not isinstance(controls, Iterable) and controls is not None:
+        if not isinstance(controls, list) and controls is not None:
             self.controls = [controls]
         else:
             self.controls = controls
 
-        for ind_list in [self.targets, self.controls]:
-            if isinstance(ind_list, Iterable):
-                all_integer = all(
-                    [isinstance(ind, np.int) for ind in ind_list])
-                if not all_integer:
-                    raise ValueError("Index of a qubit must be an integer")
+        self.arg_value = arg_value
+        self.arg_label = arg_label
 
         if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                     "SWAPalpha"]:
-            if (self.targets is None) or (len(self.targets) != 2):
+            if len(self.targets) != 2:
                 raise ValueError("Gate %s requires two targets" % name)
             if self.controls is not None:
                 raise ValueError("Gate %s cannot have a control" % name)
@@ -215,16 +209,16 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        gate: string or `Gate`
+        gate: String or `Gate`
             Gate name. If gate is an instance of `Gate`, parameters are
             unpacked and added.
         targets: list
             Gate targets.
         controls: list
             Gate controls.
-        arg_value: float
+        arg_value: Float
             Argument value(phi).
-        arg_label: string
+        arg_label: String
             Label for gate representation.
         index : list
             Positions to add the gate.
@@ -259,17 +253,17 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        name : string
+        name : String
             Gate name.
-        start : int
+        start : Integer
             Starting location of qubits.
-        end : int
+        end : Integer
             Last qubit for the gate.
         qubits : list
             Specific qubits for applying gates.
-        arg_value : float
+        arg_value : Float
             Argument value(phi).
-        arg_label : string
+        arg_label : String
             Label for gate representation.
         """
         if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
@@ -298,7 +292,7 @@ class QubitCircuit(object):
         ----------
         qc : QubitCircuit
             The circuit block to be added to the main circuit.
-        start : int
+        start : Integer
             The qubit on which the first gate is applied.
         """
         if self.N - start < qc.N:
@@ -329,16 +323,16 @@ class QubitCircuit(object):
 
     def remove_gate(self, index=None, end=None, name=None, remove="first"):
         """
-        Remove a gate from a specific index or between two indexes or the
+        Removes a gate from a specific index or between two indexes or the
         first, last or all instances of a particular gate.
 
         Parameters
         ----------
-        index : int
+        index : Integer
             Location of gate to be removed.
-        name : string
+        name : String
             Gate name to be removed.
-        remove : string
+        remove : String
             If first or all gate are to be removed.
         """
         if index is not None and index <= self.N:
@@ -372,12 +366,12 @@ class QubitCircuit(object):
 
     def reverse_circuit(self):
         """
-        Reverse an entire circuit of unitary gates.
+        Reverses an entire circuit of unitary gates.
 
         Returns
         ----------
         qc : QubitCircuit
-            Return QubitCircuit of resolved gates for the qubit circuit in the
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
             reverse order.
 
         """
@@ -402,7 +396,7 @@ class QubitCircuit(object):
         Returns
         -------
         qc : QubitCircuit
-            Return QubitCircuit of resolved gates for the qubit circuit in the
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
         qc_temp = QubitCircuit(self.N, self.reverse_states)
@@ -831,9 +825,9 @@ class QubitCircuit(object):
         target/s in terms of gates with adjacent interactions.
 
         Returns
-        -------
+        ----------
         qc : QubitCircuit
-            Return QubitCircuit of the gates for the qubit circuit with the
+            Returns QubitCircuit of the gates for the qubit circuit with the
             resolved non-adjacent gates.
 
         """
@@ -914,7 +908,7 @@ class QubitCircuit(object):
         Returns
         -------
         U_list : list
-            Return list of unitary matrices for the qubit circuit.
+            Returns list of unitary matrices for the qubit circuit.
 
         """
         self.U_list = []

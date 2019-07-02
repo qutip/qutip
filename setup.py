@@ -148,7 +148,7 @@ write_version_py()
 
 # Add Cython extensions here
 cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'checks', 'brtools', 'mcsolve',
+           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'checks', 'brtools',
            'brtools_checks', 'br_tensor', 'inter', 'cqobjevo', 'cqobjevo_factor', 'piqs']
 
 # Extra link args
