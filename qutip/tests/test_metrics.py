@@ -80,7 +80,7 @@ else:
     dnorm_test = unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
 
 #FIXME: Try to resolve the average_gate_fidelity issues on MACOS
-avg_gate_fidelity_test = unittest.skipIf(platform.system.startswith("Darwin"),
+avg_gate_fidelity_test = unittest.skipIf(platform.system().startswith("Darwin"),
                 "average_gate_fidelity tests were failing on MacOS "
                 "as of July 2019.")
 
