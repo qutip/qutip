@@ -38,6 +38,10 @@ from qutip.qip.models.circuitprocessor import (
     CircuitProcessor, ModelProcessor, GateDecomposer)
 
 
+__all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain', 
+    'SpinChainGateDecomposer']
+
+
 class SpinChain(ModelProcessor):
     """
     The circuitprocessor based on the physical implementation of
@@ -434,7 +438,7 @@ class SpinChain(ModelProcessor):
         self.qc0 = qc
         self.qc1 = self.adjacent_gates(self.qc0)
         self.qc2 = self.qc1.resolve_gates(
-            basis=["ISWAP", "RX", "RZ"])
+            basis=["SQRTISWAP", "ISWAP", "RX", "RZ"])
         return self.qc2
 
 

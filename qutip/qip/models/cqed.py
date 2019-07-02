@@ -39,6 +39,9 @@ from qutip.qip.models.circuitprocessor import (
     CircuitProcessor, ModelProcessor, GateDecomposer)
 
 
+__all__ = ['DispersivecQED', 'CQEDGateDecomposer']
+
+
 class DispersivecQED(ModelProcessor):
     """
     The circuitprocessor based on the physical implementation of
@@ -265,7 +268,8 @@ class DispersivecQED(ModelProcessor):
             that can be implemented in this model.
         """
         self.qc0 = qc
-        self.qc1 = self.qc0.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        self.qc1 = self.qc0.resolve_gates(
+            basis=["SQRTISWAP","ISWAP", "RX", "RZ"])
         return self.qc1
 
     def eliminate_auxillary_modes(self, U):

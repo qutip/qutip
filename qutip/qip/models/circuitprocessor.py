@@ -45,6 +45,9 @@ from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 
 
+__all__ = ['CircuitProcessor', 'ModelProcessor','GateDecomposer']
+
+
 class CircuitProcessor(object):
     """
     The base class for a circuit processor,
