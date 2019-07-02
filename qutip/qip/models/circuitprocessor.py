@@ -744,3 +744,68 @@ class ModelProcessor(CircuitProcessor):
         fig.tight_layout()
 
         return fig, ax
+
+
+class GateDecomposer(object):
+    """
+    The obejct that decompose a :class:`qutip.QubitCircuit` into
+    the pulse sequence for the processor.
+
+    Parameters
+    ----------
+    N : int
+        The number of qubits in the system.
+    paras : dict
+        A Python dictionary contains the name and the value of the parameters
+        of the physical realization, such as laser freqeuncy,detuning etc.
+    num_ops : int
+        Number of Hamiltonians in the processor.
+
+    Attributes
+    ----------
+    gate_decs : dict
+        The Python dictionary in the form {gate_name: decompose_function}.
+    """
+    def __init__(self, N, paras, num_ops):
+        self.gate_decs = {}
+        self.N = N
+        self.paras = paras
+        self.num_ops = num_ops
+
+    def decompose(self, gates):
+        """
+        Decompose the the elementary gates
+        into control pulse sequence.
+
+        Parameters
+        ----------
+        gates : list
+            A list of elementary gates that can be implemented in this
+            model. The gate names have to be in `gate_decs`.
+
+        Returns
+        -------
+        tlist : array like
+            A NumPy array specifies at which time the next amplitude of
+            a pulse is to be applied.
+        amps : array like
+            A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+            row corresponds to the control pulse sequence for
+            one Hamiltonian.
+        global_phase : bool
+            Recorded change of global phase.
+        """
+        self.dt_list = []
+        self.amps_list = []
+        for gate in gates:
+            if gate.name not in self.gate_decs:
+                raise ValueError("Unsupported gate %s" % gate.name)
+            self.gate_decs[gate.name](gate)
+            amps = np.vstack(self.amps_list).T
+
+        tlist = np.zeros(len(self.dt_list))
+        t = 0
+        for i in range(len(self.dt_list)):
+            t += self.dt_list[i]
+            tlist[i] = t
+        return tlist, amps

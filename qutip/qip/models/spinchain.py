@@ -34,7 +34,8 @@ import numpy as np
 from qutip.operators import sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.models.circuitprocessor import CircuitProcessor, ModelProcessor
+from qutip.qip.models.circuitprocessor import (
+    CircuitProcessor, ModelProcessor, GateDecomposer)
 
 
 class SpinChain(ModelProcessor):
@@ -197,7 +198,7 @@ class SpinChain(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
 
-        dec = CQEDGateDecomposer(
+        dec = SpinChainGateDecomposer(
             self.N, self._paras, setup=setup,
             global_phase=0., num_ops=len(self._hams))
         self.tlist, self.amps, self.global_phase = dec.decompose(gates)
@@ -561,7 +562,7 @@ class CircularSpinChain(SpinChain):
         return super(CircularSpinChain, self).adjacent_gates(qc, "circular")
 
 
-class CQEDGateDecomposer(object):
+class SpinChainGateDecomposer(GateDecomposer):
     """
     The obejct that decompose a :class:`qutip.QubitCircuit` into
     the pulse sequence for the processor.
@@ -592,6 +593,8 @@ class CQEDGateDecomposer(object):
         The list of indices in the Hamiltonian list of tensor(sigmax, sigmay).
     """
     def __init__(self, N, paras, setup, global_phase, num_ops):
+        super(SpinChainGateDecomposer, self).__init__(
+            N=N, paras=paras, num_ops=num_ops)
         self.gate_decs = {"ISWAP": self.iswap_dec,
                           "SQRTISWAP": self.sqrtiswap_dec,
                           "RZ": self.rz_dec,
@@ -606,45 +609,9 @@ class CQEDGateDecomposer(object):
         elif setup == "linear":
             self.sxsy_ind = list(range(2*N, 3*N-1))
         self.global_phase = global_phase
-        self.paras = paras
-        self.num_ops = num_ops
 
     def decompose(self, gates):
-        """
-        Decompose the the elementary gates
-        into control pulse sequence.
-
-        Parameters
-        ----------
-        gates : list
-            A list of elementary gates that can be implemented in this
-            model. The gate names have to be in `gate_decs`.
-
-        Returns
-        -------
-        tlist : array like
-            A NumPy array specifies at which time the next amplitude of
-            a pulse is to be applied.
-        amps : array like
-            A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
-            row corresponds to the control pulse sequence for
-            one Hamiltonian.
-        global_phase : bool
-            Recorded change of global phase.
-        """
-        self.dt_list = []
-        self.amps_list = []
-        for gate in gates:
-            if gate.name not in self.gate_decs:
-                raise ValueError("Unsupported gate %s" % gate.name)
-            self.gate_decs[gate.name](gate)
-            amps = np.vstack(self.amps_list).T
-
-        tlist = np.zeros(len(self.dt_list))
-        t = 0
-        for i in range(len(self.dt_list)):
-            t += self.dt_list[i]
-            tlist[i] = t
+        tlist, amps = super(SpinChainGateDecomposer, self).decompose(gates)
         return tlist, amps, self.global_phase
 
     def rz_dec(self, gate):
