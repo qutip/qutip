@@ -35,12 +35,10 @@ import warnings
 import numbers
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from qutip.qobj import Qobj
 import qutip.control.pulseoptim as cpo
-from qutip.operators import identity, sigmax, sigmaz, destroy
-from qutip.qip.gates import expand_oper
+from qutip.operators import identity
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
