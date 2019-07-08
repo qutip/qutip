@@ -38,14 +38,18 @@ import inspect
 import numpy as np
 
 from qutip.qobj import Qobj
+from qutip.qobjevo import QobjEvo
 from qutip.operators import identity, sigmax, sigmaz, destroy
 from qutip.qip.gates import expand_oper, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
+from qutip.qip.models.circuitnoise import (
+    CircuitNoise, RelaxationNoise, DecoherenceNoise,
+    ControlAmpNoise, WhiteNoise)
 
 
-__all__ = ['CircuitProcessor', 'ModelProcessor','GateDecomposer']
+__all__ = ['CircuitProcessor', 'ModelProcessor', 'GateDecomposer']
 
 
 class CircuitProcessor(object):
@@ -83,13 +87,17 @@ class CircuitProcessor(object):
         row corresponds to the control pulse sequence for
         one Hamiltonian.
     """
-    def __init__(self, N, T1=None, T2=None):
+    def __init__(self, N, T1=None, T2=None, noise=None):
         self.N = N
         self.tlist = None
         self.amps = None
         self._hams = []
-        self.T1 = self._check_T_valid(T1, self.N)
-        self.T2 = self._check_T_valid(T2, self.N)
+        self.T1 = T1
+        self.T2 = T2
+        if noise is None:
+            self.noise = []
+        else:
+            self.noise = noise
 
     @property
     def hams(self):
@@ -100,30 +108,6 @@ class CircuitProcessor(object):
         self._hams = []
         for ctrl in ctrl_list:
             self.add_ctrl(ctrl)
-
-    def _check_T_valid(self, T, N):
-        """
-        Check if the relaxation time is valid
-
-        Parameters
-        ----------
-        T : list of float
-            The relaxation time
-        N : int
-            The number of qubits in the system
-
-        Returns
-        -------
-        T : list
-            The relaxation time in Python list form
-        """
-        if (isinstance(T, numbers.Real) and T > 0) or T is None:
-            return [T] * N
-        elif isinstance(T, Iterable) and len(T) == N:
-            if all([isinstance(t, numbers.Real) and t > 0 for t in T]):
-                return T
-        else:
-            raise ValueError("Invalid relaxation time T={}".format(T))
 
     def add_ctrl(self, ctrl, targets=None, expand_type=None):
         """
@@ -310,17 +294,19 @@ class CircuitProcessor(object):
                 # If first t is 0, remove it to match the define of self.tlist
                 if abs(tlist[0]) < 1e-15:
                     self.tlist = tlist[1:]
+                else:
+                    self.tlist = tlist
                 del kwargs["tlist"]
             else:
                 raise ValueError(
-                    "`tlist` has to be given as a key word argument "
-                    "since it's not defined.")
+                    "`tlist` is not defined in the processor.")
         elif self.tlist is not None and "tlist" in kwargs:
             raise ValueError(
                 "`tlist` is already specified by the processor, "
                 "thus can not be given as a key word argument")
         else:
             self.tlist = self.tlist
+        # if no hams given
         if not self._hams:
             self._hams.append(tensor([identity(2)] * self.N))
         if self.amps is None:  # only drift/identity and no amps given
@@ -337,6 +323,7 @@ class CircuitProcessor(object):
         def get_amp_td_func(t, args, row_ind):
             times = args['times']
             amps = args['amps'][row_ind]
+            # times = np.hstack([[0], times])
             if t >= times[-1]:
                 return 0.
             current_ind = get_amp_td_func.ind
@@ -374,28 +361,8 @@ class CircuitProcessor(object):
                     lambda t, args, row_ind=op_ind:
                     get_amp_td_func(t, args, row_ind)])
 
-        # add collapse for T1 & T2 decay
-        sys_c_ops = []
-        for qu_ind in range(self.N):
-            T1 = self.T1[qu_ind]
-            T2 = self.T2[qu_ind]
-            if T1 is not None:
-                sys_c_ops.append(
-                    expand_oper(
-                        1/np.sqrt(T1) * destroy(2), self.N, qu_ind))
-            if T2 is not None:
-                # Keep the total dephasing ~ exp(-t/T2)
-                if T1 is not None:
-                    if 2*T1 < T2:
-                        raise ValueError(
-                            "T1={}, T2={} does not fulfill "
-                            "2*T1>T2".format(T1, T2))
-                    T2_eff = 1./(1./T2-1./2./T1)
-                else:
-                    T2_eff = T2
-                sys_c_ops.append(
-                    expand_oper(
-                        1/np.sqrt(2*T2_eff) * sigmaz(), self.N, qu_ind))
+        # noise
+        ham_noise, sys_c_ops = self.process_noise()
         if "c_ops" in kwargs:
             kwargs["c_ops"] += sys_c_ops
         else:
@@ -403,6 +370,7 @@ class CircuitProcessor(object):
 
         tlist = np.hstack([[0], self.tlist])
         amps = self.amps
+        H = QobjEvo(H, tlist=tlist) + ham_noise
         evo_result = mesolve(
             H=H, rho0=rho0, tlist=tlist,
             args={'times': tlist, 'amps': amps}, **kwargs)
@@ -474,6 +442,41 @@ class CircuitProcessor(object):
                     **{key: kwargs[key] for key in kwargs if key in plot_keys})
         fig.tight_layout()
         return fig, ax
+
+    def add_noise(self, noise):
+        if isinstance(noise, CircuitNoise):
+            self.noise.append(noise)
+        else:
+            raise TypeError("Parameter noise is not a Noise object.")
+
+    def process_noise(self):
+        # TODO there is a bug when using +=QobjEvo()
+        tlist = np.hstack([[0], self.tlist])
+        evo_noise_list = QobjEvo(tensor([identity(2)]*self.N), tlist=tlist)
+        c_ops = []
+        evo_noise_list = []
+        if (self.T1 is not None) or (self.T2 is not None):
+            c_ops += RelaxationNoise(self.T1, self.T2).get_qobjlist(
+                N=self.N)
+        for noise in self.noise:
+            if isinstance(noise, DecoherenceNoise):
+                c_ops += noise.get_qobjlist(
+                    self.N, tlist)
+            elif isinstance(noise, RelaxationNoise):
+                c_ops += noise.get_qobjlist(
+                    self.N, tlist)
+            elif isinstance(noise, ControlAmpNoise):
+                evo_noise_list.append(noise.get_qobjevo(
+                    self.N, tlist))
+            elif isinstance(noise, WhiteNoise):
+                evo_noise_list.append(noise.get_qobjevo(
+                    self.N, tlist, self.hams))
+            else:
+                raise NotImplementedError(
+                    "the noise type {} is not"
+                    "implemented in the processor".format(
+                        type(noise)))
+        return sum(evo_noise_list), c_ops
 
 
 class ModelProcessor(CircuitProcessor):
@@ -804,7 +807,7 @@ class GateDecomposer(object):
             if gate.name not in self.gate_decs:
                 raise ValueError("Unsupported gate %s" % gate.name)
             self.gate_decs[gate.name](gate)
-            amps = np.vstack(self.amps_list).T
+        amps = np.vstack(self.amps_list).T
 
         tlist = np.zeros(len(self.dt_list))
         t = 0
