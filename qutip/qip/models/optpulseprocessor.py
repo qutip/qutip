@@ -128,7 +128,7 @@ class OptPulseProcessor(CircuitProcessor):
 
         Parameters
         ----------
-        indices : int or list of int
+        indices : int or list or int
         """
         if isinstance(indices, numbers.Integral) and indices != 0:
             pass
