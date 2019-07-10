@@ -31,7 +31,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from collections.abc import Iterable
-import warnings
 import numbers
 import inspect
 
@@ -39,7 +38,7 @@ import numpy as np
 
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
-from qutip.operators import identity, sigmax, sigmaz, destroy
+from qutip.operators import identity
 from qutip.qip.gates import expand_oper, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
@@ -117,7 +116,7 @@ class CircuitProcessor(object):
         ----------
         ctrl : :class:`qutip.Qobj`
             A hermitian Qobj representation of the driving Hamiltonian
-        targets : list of int
+        targets : list or int
             The indices of qubits that are acted on
         expand_type : string
             The type of expansion
@@ -156,7 +155,7 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        indices : int or list of int
+        indices : int or list or int
             The indices of the control Hamiltonians to be removed
         """
         if not isinstance(indices, Iterable):
@@ -361,15 +360,14 @@ class CircuitProcessor(object):
                     lambda t, args, row_ind=op_ind:
                     get_amp_td_func(t, args, row_ind)])
 
-        # noise
-        ham_noise, sys_c_ops = self.process_noise()
+        tlist = np.hstack([[0], self.tlist])
+        amps = self.amps
+        # noise TODO temp
+        ham_noise, sys_c_ops = self.process_noise(QobjEvo(H, tlist=tlist))
         if "c_ops" in kwargs:
             kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
-
-        tlist = np.hstack([[0], self.tlist])
-        amps = self.amps
         H = QobjEvo(H, tlist=tlist) + ham_noise
         evo_result = mesolve(
             H=H, rho0=rho0, tlist=tlist,
@@ -444,12 +442,39 @@ class CircuitProcessor(object):
         return fig, ax
 
     def add_noise(self, noise):
+        """
+        Add a noise object to the processor
+
+        Parameters
+        ----------
+        noise : :class:`qutip.qip.CircuitNoise`
+            The noise object defined out side the processor
+        """
         if isinstance(noise, CircuitNoise):
             self.noise.append(noise)
         else:
-            raise TypeError("Parameter noise is not a Noise object.")
+            raise TypeError("`noise` is not a CircuitNoise object.")
 
-    def process_noise(self):
+    def process_noise(self, unitary_qobjevo):
+        """
+        Call all the noise object saved in the processor and
+        return the :class:`qutip.QobjEvo` and :class:`qutip.Qobj`
+        representing the noise. 
+
+        Parameters
+        ----------
+        unitary_qobjevo : :class:`qutip.qip.QobjEvo`
+            The :class:`qutip.qip.QobjEvo` representing the unitary evolution
+            in the noiseless processor.
+
+        Returns
+        -------
+        H_noise : :class:`qutip.qip.QobjEvo`
+            The :class:`qutip.qip.QobjEvo` representing the noise.
+        c_ops : list
+            A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
+            representing the time-(in)dependent collapse operators.
+        """
         # TODO there is a bug when using +=QobjEvo()
         tlist = np.hstack([[0], self.tlist])
         evo_noise_list = QobjEvo(tensor([identity(2)]*self.N), tlist=tlist)
@@ -467,10 +492,7 @@ class CircuitProcessor(object):
                     self.N, tlist)
             elif isinstance(noise, ControlAmpNoise):
                 evo_noise_list.append(noise.get_qobjevo(
-                    self.N, tlist))
-            elif isinstance(noise, WhiteNoise):
-                evo_noise_list.append(noise.get_qobjevo(
-                    self.N, tlist, self.hams))
+                    self.N, tlist, unitary_qobjevo))
             else:
                 raise NotImplementedError(
                     "the noise type {} is not"
