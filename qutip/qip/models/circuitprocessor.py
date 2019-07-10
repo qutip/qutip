@@ -45,7 +45,7 @@ from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.circuitnoise import (
     CircuitNoise, RelaxationNoise, DecoherenceNoise,
-    ControlAmpNoise, WhiteNoise)
+    ControlAmpNoise, WhiteNoise, UserNoise)
 
 
 __all__ = ['CircuitProcessor', 'ModelProcessor', 'GateDecomposer']
@@ -481,18 +481,23 @@ class CircuitProcessor(object):
         c_ops = []
         evo_noise_list = []
         if (self.T1 is not None) or (self.T2 is not None):
-            c_ops += RelaxationNoise(self.T1, self.T2).get_qobjlist(
+            c_ops += RelaxationNoise(self.T1, self.T2).get_noise(
                 N=self.N)
         for noise in self.noise:
             if isinstance(noise, DecoherenceNoise):
-                c_ops += noise.get_qobjlist(
+                c_ops += noise.get_noise(
                     self.N, tlist)
             elif isinstance(noise, RelaxationNoise):
-                c_ops += noise.get_qobjlist(
+                c_ops += noise.get_noise(
                     self.N, tlist)
             elif isinstance(noise, ControlAmpNoise):
-                evo_noise_list.append(noise.get_qobjevo(
+                evo_noise_list.append(noise.get_noise(
                     self.N, tlist, unitary_qobjevo))
+            elif isinstance(noise, UserNoise):
+                noise_qobjevo, new_c_ops = noise.get_noise(
+                    self.N, tlist, unitary_qobjevo)
+                evo_noise_list.append(noise_qobjevo)
+                c_ops += new_c_ops
             else:
                 raise NotImplementedError(
                     "the noise type {} is not"

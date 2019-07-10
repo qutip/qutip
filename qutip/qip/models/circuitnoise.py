@@ -3,13 +3,14 @@ from collections.abc import Iterable
 import numpy as np
 from numpy.random import normal
 from qutip.qobjevo import QobjEvo, EvoElement
-from qutip.qip.gates import expand_oper, expand_oper_periodic
+from qutip.qip.gates import (
+    expand_oper, expand_oper_periodic, _check_qubits_oper)
 from qutip.qobj import Qobj
 from qutip.operators import sigmaz, destroy
 
 
 __all__ = ["CircuitNoise", "DecoherenceNoise", "RelaxationNoise",
-           "ControlAmpNoise", "WhiteNoise"]
+           "ControlAmpNoise", "WhiteNoise", "UserNoise"]
 
 
 class CircuitNoise(object):
@@ -65,7 +66,7 @@ class DecoherenceNoise(CircuitNoise):
                     "and cannot be applied to all qubits")
         self.all_qubits = all_qubits
 
-    def get_qobjlist(self, N, tlist):
+    def get_noise(self, N, tlist):
         """
         Return the quantum objects representing the noise.
 
@@ -153,7 +154,7 @@ class RelaxationNoise(CircuitNoise):
                 "either the length is not equal to the number of qubits, "
                 "or T is not a positive number.".format(T))
 
-    def get_qobjlist(self, N):
+    def get_noise(self, N):
         """
         Return the quantum objects representing the noise.
 
@@ -224,7 +225,7 @@ class ControlAmpNoise(CircuitNoise):
         self.targets = targets
         self.expand_type = expand_type
 
-    def get_qobjevo(self, N, tlist, proc_qobjevo=None):
+    def get_noise(self, N, tlist, proc_qobjevo=None):
         """
         Return the quantum objects representing the noise.
 
@@ -302,7 +303,7 @@ class WhiteNoise(ControlAmpNoise):
         self.mean = mean
         self.std = std
 
-    def get_qobjevo(self, N, tlist, proc_qobjevo=None):
+    def get_noise(self, N, tlist, proc_qobjevo=None):
         """
         Return the quantum objects representing the noise.
 
@@ -333,5 +334,31 @@ class WhiteNoise(ControlAmpNoise):
             ops_num = len(proc_qobjevo.ops) + 1
         self.coeffs = normal(
             self.mean, self.std, (ops_num, len(tlist)))
-        return super(WhiteNoise, self).get_qobjevo(
+        return super(WhiteNoise, self).get_noise(
             N, tlist, proc_qobjevo=proc_qobjevo)
+
+
+class UserNoise(CircuitNoise):
+    """
+    Abstract class for user defined noise. To define a noise object,
+    one could overwrite the constructor and the class method `get_noise`.
+    """
+    def get_noise(self, N, tlist, proc_qobjevo):
+        """
+        Template method. To define a noise object,
+        one should over write this method and
+        return the unitary evolution part as a :class: `qutip.QobjEvo`
+        and a list of collapse operators in the form of either
+        :class: `qutip.QobjEvo` or :class: `qutip.Qobj`.
+
+        Parameters
+        ----------
+        N : int
+            The number of qubtis in the system
+        tlist : array like
+            A NumPy array specifies at which time the next amplitude of
+            a pulse is to be applied.
+        proc_qobjevo : :class:`qutip.QobjEvo`
+            The object representing the ideal evolution in the processor
+        """
+        return QobjEvo(), []
