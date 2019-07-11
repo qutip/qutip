@@ -39,7 +39,8 @@ from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
 from qutip.qip import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
                        sqrtswap, molmer_sorensen,
                        toffoli, fredkin, gate_expand_3toN, 
-                       qubit_clifford_group, expand_oper)
+                       qubit_clifford_group, expand_oper,
+                       expand_oper_periodic)
 from qutip.random_objects import rand_ket, rand_herm, rand_unitary
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
@@ -290,24 +291,30 @@ class TestGates:
         """
         gate : expand qubits operator to a N qubits system.
         """
+        # oper size is N, no expansion
+        oper = tensor(sigmax(), sigmay())
+        assert_allclose(expand_oper(oper=oper, targets=[0, 1], N=2), oper)
+        assert_allclose(expand_oper(oper=oper, targets=[1, 0], N=2), 
+                            tensor(sigmay(), sigmax()))
+
         # random single qubit gate test, integer as target
         r = rand_unitary(2)
-        assert(expand_oper(r, 3, 0) == tensor([r, identity(2), identity(2)]))
-        assert(expand_oper(r, 3, 1) == tensor([identity(2), r, identity(2)]))
-        assert(expand_oper(r, 3, 2) == tensor([identity(2), identity(2), r]))
+        assert_allclose(expand_oper(r, 3, 0), tensor([r, identity(2), identity(2)]))
+        assert_allclose(expand_oper(r, 3, 1), tensor([identity(2), r, identity(2)]))
+        assert_allclose(expand_oper(r, 3, 2), tensor([identity(2), identity(2), r]))
 
         # random 2qubits gate test, list as target
         r2 = rand_unitary(4)
         r2.dims = [[2, 2], [2, 2]]
-        assert(expand_oper(r2, 3, [2, 1]) == tensor(
+        assert_allclose(expand_oper(r2, 3, [2, 1]), tensor(
             [identity(2), r2.permute([1, 0])]))
-        assert(expand_oper(r2, 3, [0, 1]) == tensor(
+        assert_allclose(expand_oper(r2, 3, [0, 1]), tensor(
             [r2, identity(2)]))
-        assert(expand_oper(r2, 3, [0, 2]) == tensor(
+        assert_allclose(expand_oper(r2, 3, [0, 2]), tensor(
             [r2, identity(2)]).permute([0, 2, 1]))
 
         # cnot expantion, qubit 2 control qubit 0
-        assert(expand_oper(cnot(), 3, [2, 0]) == Qobj([
+        assert_allclose(expand_oper(cnot(), 3, [2, 0]), Qobj([
             [1., 0., 0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 1., 0., 0.],
             [0., 0., 1., 0., 0., 0., 0., 0.],
@@ -317,6 +324,16 @@ class TestGates:
             [0., 0., 0., 0., 0., 0., 1., 0.],
             [0., 0., 0., 1., 0., 0., 0., 0.]],
             dims=[[2, 2, 2], [2, 2, 2]]))
+
+        # test periodically expansion
+        result = expand_oper_periodic(
+            tensor([sigmaz(),sigmax()]), N=3, targets=[2 ,0])
+        mat1 = tensor(sigmax(), qeye(2), sigmaz())
+        mat2 = tensor(sigmaz(), sigmax(), qeye(2))
+        mat3 = tensor(qeye(2), sigmaz(), sigmax())
+        assert_(mat1 in result)
+        assert_(mat2 in result)
+        assert_(mat3 in result)
 
     def test_molmer_sorensen(self):
         """
@@ -356,6 +373,7 @@ class TestGates:
             qrot(np.pi/4., np.pi/3., N=2, target=1),
             tensor([identity(2), qrot(np.pi/4., np.pi/3.)])
         )
+
 
 if __name__ == "__main__":
     run_module_suite()
