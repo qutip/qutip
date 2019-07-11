@@ -51,7 +51,7 @@ __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
            'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
-           'qubit_clifford_group', 'expand_oper']
+           'qubit_clifford_group', 'expand_oper', 'expand_oper_periodic']
 
 #
 # Single Qubit Gates
@@ -1115,7 +1115,7 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
     return tensor([U] + [identity(2)] * (N - 3)).permute(p)
 
 
-def _check_qubits_oper(oper):
+def _check_qubits_oper(oper, N=None):
     """
     Check if it is an operator acting on a qubit system.
 
@@ -1125,14 +1125,55 @@ def _check_qubits_oper(oper):
         The quantum object to be checked.
     """
     check = True
-    if oper.dims[0] != oper.dims[1]:
+    if not isinstance(oper, Qobj):
         check = False
-    if oper.dims[0] != len(oper.dims[0]) * [2]:
+    elif oper.dims[0] != oper.dims[1]:
         check = False
+    elif oper.dims[0] != len(oper.dims[0]) * [2]:
+        check = False
+    if N is not None and len(oper.dims[0]) > N:
+        raise ValueError(
+            "The dimension of the operator "
+            "cannot be larger than the system dimension "
+            "N={}.".format(N))
     if not check:
         raise ValueError(
             "The following operator is not an "
             "operator on a qubits system:\n{}".format(oper))
+
+
+def _targets_to_list(targets, oper=None, N=None):
+    # Check validity of targets
+    if targets is None:
+        targets = list(range(len(oper.dims[0])))
+    elif isinstance(targets, numbers.Integral):
+        targets = [targets]
+    elif isinstance(targets, Iterable):
+        pass
+    else:
+        raise TypeError(
+            "targets should be "
+            "an integer or a list of integer, but {} "
+            "was given.".format(targets))
+    if not all([isinstance(t, numbers.Integral) for t in targets]):
+        raise TypeError(
+            "Targets should be "
+            "an integer or a list of integer, but {} "
+            "was given.".format(targets))
+
+    if oper is not None:
+        req_num = len(oper.dims[0])
+        if len(targets) != req_num:  # correct number of targets
+            raise ValueError(
+                "The given operator needs {} "
+                "target qutbis, "
+                "but {} given.".format(
+                    req_num, len(targets)))
+
+    if N is not None:
+        if not all([t<N for t in targets]):
+            raise ValueError("Targets must be smaller than N={}.".format(N))
+    return targets
 
 
 def expand_oper(oper, N, targets):
@@ -1154,48 +1195,20 @@ def expand_oper(oper, N, targets):
     Returns
     -------
     expanded_oper : :class:`qutip.Qobj`
-        The expanded qubits operator acting on a system with N qubits
+        The expanded qubits operator acting on a system with N qubits.
 
     Note
     ----
     This is equivalent to gate_expand_1toN, gate_expand_2toN,
     gate_expand_3toN in `qutip.qip.gate.py`, but works for any dimension.
     """
-    _check_qubits_oper(oper)
-    req_num = len(oper.dims[0])
-    if req_num > N:
-        raise ValueError(
-            "The dimension of the operator "
-            "cannot be larger than the system dimension "
-            "N={}.".format(N))
-
-    # Check validity of targets
-    if targets is None:
-        targets = list(range(len(oper.dims[0])))
-    elif isinstance(targets, numbers.Integral):
-        targets = [targets]
-    elif isinstance(targets, Iterable):  # correct type
-        if not all([isinstance(t, numbers.Integral) for t in targets]):
-            raise ValueError(
-                "targets should be "
-                "an integer or a list of integer, but {} "
-                "was given.".format(targets))
-        if len(targets) != req_num:  # correct number of targets
-            raise ValueError(
-                "The given operator needs {} "
-                "target qutbis, "
-                "but {} given.".format(
-                    req_num, len(targets)))
-    else:
-        raise ValueError(
-            "targets should be "
-            "an integer or a list of integer, but {} "
-            "was given.".format(targets))
+    _check_qubits_oper(oper, N=N)
+    targets = _targets_to_list(targets, oper=oper, N=N)
 
     # Generate the correct order for qubits permutation,
     # eg. if N = 5, targets = [3,0], the order is [1,x,x,0,x].
     # If the operator is cnot,
-    # this order means that the 3rd qubit control the 0th qubit.
+    # this order means that the 3rd qubit controls the 0th qubit.
     new_order = list(range(N))
     old_ind = range(len(targets))
     for i in old_ind:
@@ -1207,3 +1220,37 @@ def expand_oper(oper, N, targets):
     for ind, value in zip(mod_ind, mod_value):
         new_order[ind] = value
     return tensor([oper] + [identity(2)]*(N-len(targets))).permute(new_order)
+
+
+def expand_oper_periodic(oper, N, targets=None):
+    """
+    Expand a qutbis operator to one that acts on a N-qutbis system for
+    all cyclic permutation of the target qubits.
+
+    Parameters
+    ----------
+    oper : :class:`qutip.Qobj`
+        An operator acts on qubits, the type of the `Qobj`
+        has to be an operator
+        and the dimension matches the tensored qubit Hilbertspace
+        e.g. dims = [[2,2,2],[2,2,2]]
+    N : int
+        The number of qubits in the system.
+    targets : int or list of int
+        The indices of qubits that are acted on.
+
+    Returns
+    -------
+    oper_list : list
+        A list of expanded qubits operator acting on a system with N qubits.
+    """
+    _check_qubits_oper(oper, N=N)
+    targets = _targets_to_list(targets, oper=oper, N=N)
+    if len(targets) == N:
+        return oper
+    oper_list = []
+    for i in range(N):
+        new_targets = np.mod(np.array(targets)+i, N)
+        oper_list.append(
+            expand_oper(oper, N, new_targets))
+    return oper_list
