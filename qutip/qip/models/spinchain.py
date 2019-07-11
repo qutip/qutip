@@ -73,7 +73,7 @@ class SpinChain(ModelProcessor):
 
     Attributes
     ----------
-    hams : list of :class:`Qobj`
+    ctrls : list of :class:`Qobj`
         A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
         A NumPy array specifies at which time the next amplitude of
@@ -110,7 +110,7 @@ class SpinChain(ModelProcessor):
     def set_up_ops(self, N):
         """
         Genrate the Hamiltonians for the spinchain model and save them in the
-        attribute `hams`.
+        attribute `ctrls`.
 
         Parameters
         ----------
@@ -118,11 +118,11 @@ class SpinChain(ModelProcessor):
             The number of qubits in the system.
         """
         # sx_ops
-        self._hams += [tensor([sigmax() if m == n else identity(2)
+        self.ctrls += [tensor([sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
         # sz_ops
-        self._hams += [tensor([sigmaz() if m == n else identity(2)
+        self.ctrls += [tensor([sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
         # sxsy_ops
@@ -131,7 +131,7 @@ class SpinChain(ModelProcessor):
             x[n] = x[n + 1] = sigmax()
             y = [identity(2)] * N
             y[n] = y[n + 1] = sigmay()
-            self._hams.append(tensor(x) + tensor(y))
+            self.ctrls.append(tensor(x) + tensor(y))
 
     def set_up_paras(self, sx, sz):
         """
@@ -156,15 +156,15 @@ class SpinChain(ModelProcessor):
 
     @property
     def sx_ops(self):
-        return self._hams[: self.N]
+        return self.ctrls[: self.N]
 
     @property
     def sz_ops(self):
-        return self._hams[self.N: 2*self.N]
+        return self.ctrls[self.N: 2*self.N]
 
     @property
     def sxsy_ops(self):
-        return self._hams[2*self.N:]
+        return self.ctrls[2*self.N:]
 
     @property
     def sx_u(self):
@@ -204,7 +204,7 @@ class SpinChain(ModelProcessor):
 
         dec = SpinChainGateDecomposer(
             self.N, self._paras, setup=setup,
-            global_phase=0., num_ops=len(self._hams))
+            global_phase=0., num_ops=len(self.ctrls))
         self.tlist, self.amps, self.global_phase = dec.decompose(gates)
 
         return self.tlist, self.amps
@@ -476,7 +476,7 @@ class LinearSpinChain(SpinChain):
 
     @property
     def sxsy_ops(self):
-        return self._hams[2*self.N: 3*self.N-1]
+        return self.ctrls[2*self.N: 3*self.N-1]
 
     @property
     def sxsy_u(self):
@@ -518,7 +518,7 @@ class CircularSpinChain(SpinChain):
         x[0] = x[N - 1] = sigmax()
         y = [identity(2)] * N
         y[0] = y[N - 1] = sigmay()
-        self._hams.append(tensor(x) + tensor(y))
+        self.ctrls.append(tensor(x) + tensor(y))
 
     def set_up_paras(self, sx, sz, sxsy):
         """
@@ -542,7 +542,7 @@ class CircularSpinChain(SpinChain):
 
     @property
     def sxsy_ops(self):
-        return self._hams[2*self.N: 3*self.N]
+        return self.ctrls[2*self.N: 3*self.N]
 
     @property
     def sxsy_u(self):

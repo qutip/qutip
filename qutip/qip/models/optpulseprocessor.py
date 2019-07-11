@@ -83,62 +83,11 @@ class OptPulseProcessor(CircuitProcessor):
     """
     def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None):
         super(OptPulseProcessor, self).__init__(N, T1=T1, T2=T2)
-        if drift is None:
-            self._hams.append(tensor([identity(2)] * N))
-        else:
-            self.add_ctrl(drift)
+
+        self.drift = drift
         if ctrls is not None:
             for H in ctrls:
                 self.add_ctrl(H)
-
-    @property
-    def drift(self):
-        return self._hams[0]
-
-    @drift.setter
-    def drift(self, H_d):
-        hams = self._hams
-        self._hams = []
-        self.add_ctrl(H_d)
-        for H_c in hams[1:]:
-            self.add_ctrl(H_c)
-
-    @property
-    def ctrls(self):
-        return self._hams[1:]
-
-    @ctrls.setter
-    def ctrls(self, ctrls_list):
-        self._hams = [self._hams[0]]
-        for H_c in ctrls_list:
-            self.add_ctrl(H_c)
-        print(len(self._hams))
-
-    @property
-    def hams(self):
-        raise AttributeError("Please use attributes ctrls and drift")
-
-    @hams.setter
-    def hams(self, ctrl_list):
-        raise AttributeError("Please use attributes ctrls and drift")
-
-    def remove_ctrl(self, indices):
-        """
-        Remove the ctrl Hamiltonian with given indices
-
-        Parameters
-        ----------
-        indices : int or list or int
-        """
-        if isinstance(indices, numbers.Integral) and indices != 0:
-            pass
-        elif isinstance(indices, Iterable) and 0 not in indices:
-            pass
-        else:
-            raise ValueError(
-                "ctrls 0 is the "
-                "drift Hamiltonian and cannot be removed")
-        super(OptPulseProcessor, self).remove_ctrl(indices)
 
     def load_circuit(
             self, qc, n_ts, evo_time,
@@ -196,7 +145,7 @@ class OptPulseProcessor(CircuitProcessor):
 
             # TODO: different settings for different oper in qc? How?
             result = cpo.optimize_pulse_unitary(
-                self._hams[0], self._hams[1:], U_0,
+                self.drift, self.ctrls, U_0,
                 U_targ, n_ts[prop_ind], evo_time[prop_ind], **kwargs)
 
             # TODO: To prevent repitition, pulse for the same oper can
@@ -218,10 +167,18 @@ class OptPulseProcessor(CircuitProcessor):
                                                 result.grad_norm_final))
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
-        self.tlist = np.hstack(time_record)
+        self.tlist = np.hstack([[0]]+time_record)
         self.amps = np.vstack(
-            [np.ones(len(self.tlist)), np.hstack(amps_record)])
+            [np.hstack(amps_record)])
         return self.tlist, self.amps
+
+    def get_qobjevo(self, tlist, get_amp_td_func):
+        proc_qobjevo = super(OptPulseProcessor, self).get_qobjevo(
+            tlist=tlist, get_amp_td_func=get_amp_td_func)
+        if self.drift is not None:
+            return proc_qobjevo + self.drift
+        else:
+            return proc_qobjevo
 
     def plot_pulses(self, **kwargs):
         """

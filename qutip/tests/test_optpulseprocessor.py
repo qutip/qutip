@@ -37,7 +37,16 @@ import numpy as np
 
 from qutip.qip.models.optpulseprocessor import OptPulseProcessor
 from qutip.qip.gates import expand_oper
-from qutip import *
+from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
+from qutip.qip.circuit import QubitCircuit
+from qutip.qip.qubits import qubit_states
+from qutip.metrics import fidelity
+from qutip.qobj import Qobj
+from qutip.tensor import tensor
+from qutip.solver import Options
+from qutip.qip.gates import cnot, gate_sequence_product, hadamard_transform
+from qutip.random_objects import rand_ket
+from qutip.states import basis
 
 
 class TestOptPulseProcessor:
@@ -59,14 +68,18 @@ class TestOptPulseProcessor:
         rho0 = qubit_states(1, [0])
         plus = (qubit_states(1, [0]) + qubit_states(1, [1])).unit()
         result = test.run_state(rho0)
-        assert_(fidelity(result.states[-1], plus) > 1-1.0e-6)
+        assert_allclose(fidelity(result.states[-1], plus), 1, rtol=1.0e-6)
 
         # test add/remove ctrl
         test.add_ctrl(sigmay())
-        test.remove_ctrl(1)
-        assert_(len(test.ctrls) == 1)
+        test.remove_ctrl(0)
+        assert_(
+            len(test.ctrls) == 1,
+            msg="Method of remove_ctrl could be wrong.")
         assert_allclose(test.drift, H_d)
-        assert_(sigmay() in test.ctrls)
+        assert_(
+            sigmay() in test.ctrls,
+            msg="Method of remove_ctrl could be wrong.")
 
     def test_multi_qubits(self):
         N = 3

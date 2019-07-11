@@ -76,7 +76,7 @@ class CircuitProcessor(object):
 
     Attributes
     ----------
-    hams : list of :class:`Qobj`
+    ctrls : list of :class:`Qobj`
         A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
         A NumPy array specifies at which time the next amplitude of
@@ -90,23 +90,14 @@ class CircuitProcessor(object):
         self.N = N
         self.tlist = None
         self.amps = None
-        self._hams = []
+        self.ctrls = []
         self.T1 = T1
         self.T2 = T2
         if noise is None:
             self.noise = []
         else:
             self.noise = noise
-
-    @property
-    def hams(self):
-        return self._hams
-
-    @hams.setter
-    def hams(self, ctrl_list):
-        self._hams = []
-        for ctrl in ctrl_list:
-            self.add_ctrl(ctrl)
+        self.dims = [2] * N
 
     def add_ctrl(self, ctrl, targets=None, expand_type=None):
         """
@@ -136,13 +127,13 @@ class CircuitProcessor(object):
 
         if expand_type is None:
             if num_qubits == self.N:
-                self._hams.append(ctrl)
+                self.ctrls.append(ctrl)
             else:
-                self._hams.append(expand_oper(ctrl, self.N, targets))
+                self.ctrls.append(expand_oper(ctrl, self.N, targets))
         elif expand_type == "periodic":
             for i in range(self.N):
                 new_targets = np.mod(np.array(targets)+i, self.N)
-                self._hams.append(
+                self.ctrls.append(
                     expand_oper(ctrl, self.N, new_targets))
         else:
             raise ValueError(
@@ -162,7 +153,7 @@ class CircuitProcessor(object):
             indices = [indices]
         indices.sort(reverse=True)
         for ind in indices:
-            del self._hams[ind]
+            del self.ctrls[ind]
 
     def _is_time_amps_valid(self):
         """
@@ -177,7 +168,7 @@ class CircuitProcessor(object):
         else:
             amps_len = self.amps.shape[1]
             tlist_len = len(self.tlist)
-            if amps_len != tlist_len:
+            if amps_len != tlist_len-1:
                 raise ValueError(
                     "`tlist` has the length of {} while amps "
                     "has {}.".format(tlist_len, amps_len))
@@ -187,17 +178,18 @@ class CircuitProcessor(object):
         Check if the number of control Hamiltonians
         and amps.shape[0] are the same.
         """
-        if self.amps is None and len(self._hams) != 0:
-            raise ValueError(
-                "The control amplitude is None while "
-                "the number of ctrls is {}.".format(len(self._hams)))
-        if self.amps is not None:
-            if self.amps.shape[0] != len(self._hams):
-                raise ValueError(
-                    "The control amplitude matrix do not match the "
-                    "number of ctrls  "
-                    "#ctrls = {}  "
-                    "#amps = {}.".format(len(self._hams), len(self.amps)))
+        # if self.amps is None and len(self.ctrls) != 0:
+        #     raise ValueError(
+        #         "The control amplitude is None while "
+        #         "the number of ctrls is {}.".format(len(self.ctrls)))
+        # if self.amps is not None:
+        #     if self.amps.shape[0] != len(self.ctrls):
+        #         raise ValueError(
+        #             "The control amplitude matrix do not match the "
+        #             "number of ctrls  "
+        #             "#ctrls = {}  "
+        #             "#amps = {}.".format(len(self.ctrls), len(self.amps)))
+        pass
 
     def _is_amps_valid(self):
         """
@@ -222,7 +214,7 @@ class CircuitProcessor(object):
         if inctime:
             shp = self.amps.T.shape
             data = np.empty([shp[0], shp[1] + 1], dtype=np.float)
-            data[:, 0] = self.tlist
+            data[:, 0] = self.tlist[1:]
             data[:, 1:] = self.amps.T
         else:
             data = self.amps.T
@@ -252,9 +244,21 @@ class CircuitProcessor(object):
         if not inctime:
             self.amps = data.T
         else:
-            self.tlist = data[:, 0]
+            self.tlist = np.hstack([[0], data[:, 0]])
             self.amps = data[:, 1:].T
         return self.tlist, self.amps
+
+    def get_qobjevo(self, tlist, get_amp_td_func):
+        dummy = tensor([Qobj(np.zeros((d, d))) for d in self.dims])
+        H = [dummy]
+        for op_ind in range(len(self.ctrls)):
+            # row_ind=op_ind cannot be deleted
+            # see Late Binding Closures for detail
+            H.append(
+                [self.ctrls[op_ind],
+                    lambda t, args, row_ind=op_ind:
+                    get_amp_td_func(t, args, row_ind)])
+        return QobjEvo(H, tlist=tlist)
 
     def run_state(self, rho0, **kwargs):
         """
@@ -281,6 +285,8 @@ class CircuitProcessor(object):
             given in place of
             operators for which to calculate the expectation values.
         """
+        # check validity
+        self._is_amps_valid()
         if "H" in kwargs or "args" in kwargs:
             raise ValueError(
                 "`H` and `args` are already specified by the processor "
@@ -290,11 +296,6 @@ class CircuitProcessor(object):
         if self.tlist is None:
             if "tlist" in kwargs:
                 tlist = kwargs["tlist"]
-                # If first t is 0, remove it to match the define of self.tlist
-                if abs(tlist[0]) < 1e-15:
-                    self.tlist = tlist[1:]
-                else:
-                    self.tlist = tlist
                 del kwargs["tlist"]
             else:
                 raise ValueError(
@@ -304,16 +305,9 @@ class CircuitProcessor(object):
                 "`tlist` is already specified by the processor, "
                 "thus can not be given as a key word argument")
         else:
-            self.tlist = self.tlist
-        # if no hams given
-        if not self._hams:
-            self._hams.append(tensor([identity(2)] * self.N))
-        if self.amps is None:  # only drift/identity and no amps given
-            self.amps = np.ones(len(self.tlist)).reshape((1, len(self.tlist)))
+            tlist = self.tlist
 
-        # check validity
-
-        self._is_amps_valid()
+        amps = self.amps
 
         # contruct time-dependent Hamiltonian
         # TODO This is a temprary solution
@@ -348,29 +342,20 @@ class CircuitProcessor(object):
                 else:
                     amp = amps[current_ind]
             return amp
-        get_amp_td_func.ind = 0  # initialized when first use
-        get_amp_td_func.max_ind = len(self.tlist)-1
-        ####################################################
-        H = []
-        for op_ind in range(len(self._hams)):
-            # row_ind=op_ind cannot be deleted
-            # see Late Binding Closures for detail
-            H.append(
-                [self._hams[op_ind],
-                    lambda t, args, row_ind=op_ind:
-                    get_amp_td_func(t, args, row_ind)])
 
-        tlist = np.hstack([[0], self.tlist])
-        amps = self.amps
-        # noise TODO temp
-        ham_noise, sys_c_ops = self.process_noise(QobjEvo(H, tlist=tlist))
+        get_amp_td_func.ind = 0  # initialized when first use
+        get_amp_td_func.max_ind = len(tlist)-1
+        ####################################################
+        proc_qobjevo = self.get_qobjevo(
+            tlist=tlist, get_amp_td_func=get_amp_td_func)
+        ham_noise, sys_c_ops = self.process_noise(proc_qobjevo)
         if "c_ops" in kwargs:
             kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
-        H = QobjEvo(H, tlist=tlist) + ham_noise
+        proc_qobjevo += ham_noise
         evo_result = mesolve(
-            H=H, rho0=rho0, tlist=tlist,
+            H=proc_qobjevo, rho0=rho0, tlist=tlist,
             args={'times': tlist, 'amps': amps}, **kwargs)
 
         return evo_result
@@ -436,7 +421,7 @@ class CircuitProcessor(object):
         amps = np.hstack([amps, amps[:, -1:]])
         plot_keys = inspect.getfullargspec(ax.step)[0]
         for i in range(amps.shape[0]):
-            ax.step(np.hstack([[0], tlist]), amps[i], where='post',
+            ax.step(tlist, amps[i], where='post',
                     **{key: kwargs[key] for key in kwargs if key in plot_keys})
         fig.tight_layout()
         return fig, ax
@@ -476,7 +461,7 @@ class CircuitProcessor(object):
             representing the time-(in)dependent collapse operators.
         """
         # TODO there is a bug when using +=QobjEvo()
-        tlist = np.hstack([[0], self.tlist])
+        tlist = self.tlist
         evo_noise_list = QobjEvo(tensor([identity(2)]*self.N), tlist=tlist)
         c_ops = []
         evo_noise_list = []
@@ -484,10 +469,7 @@ class CircuitProcessor(object):
             c_ops += RelaxationNoise(self.T1, self.T2).get_noise(
                 N=self.N)
         for noise in self.noise:
-            if isinstance(noise, DecoherenceNoise):
-                c_ops += noise.get_noise(
-                    self.N, tlist)
-            elif isinstance(noise, RelaxationNoise):
+            if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
                 c_ops += noise.get_noise(
                     self.N, tlist)
             elif isinstance(noise, ControlAmpNoise):
@@ -500,7 +482,7 @@ class CircuitProcessor(object):
                 c_ops += new_c_ops
             else:
                 raise NotImplementedError(
-                    "the noise type {} is not"
+                    "The noise type {} is not"
                     "implemented in the processor".format(
                         type(noise)))
         return sum(evo_noise_list), c_ops
@@ -533,7 +515,7 @@ class ModelProcessor(CircuitProcessor):
 
     Attributes
     ----------
-    hams : list of :class:`Qobj`
+    ctrls : list of :class:`Qobj`
         A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
         A NumPy array specifies at which time the next amplitude of
@@ -551,7 +533,7 @@ class ModelProcessor(CircuitProcessor):
         self.correct_global_phase = correct_global_phase
         self.global_phase = 0.
         self._paras = {}
-        self._hams = []
+        self.ctrls = []
 
     def _para_list(self, para, N):
         """
@@ -600,12 +582,12 @@ class ModelProcessor(CircuitProcessor):
 
         Returns
         -------
-        hams : list
+        ctrls : list
             The list of Hamiltonians
         amps : array like
             The transposed pulse matrix
         """
-        return (self._hams, self.amps.T)
+        return (self.ctrls, self.amps.T)
 
     def get_ops_labels(self):
         """
@@ -635,10 +617,10 @@ class ModelProcessor(CircuitProcessor):
             self.load_circuit(qc)
 
         U_list = []
-        tlist = np.hstack([[0.], self.tlist])
+        tlist = self.tlist
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self._hams[m]
-                    for m in range(len(self._hams))])
+            H = sum([self.amps[m, n] * self.ctrls[m]
+                    for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
@@ -704,10 +686,10 @@ class ModelProcessor(CircuitProcessor):
             return super(ModelProcessor, self).run_state(rho0=rho0, **kwargs)
 
         U_list = [rho0]
-        tlist = np.hstack([[0.], self.tlist])
+        tlist = self.tlist
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self._hams[m]
-                    for m in range(len(self._hams))])
+            H = sum([self.amps[m, n] * self.ctrls[m]
+                    for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
@@ -836,9 +818,9 @@ class GateDecomposer(object):
             self.gate_decs[gate.name](gate)
         amps = np.vstack(self.amps_list).T
 
-        tlist = np.zeros(len(self.dt_list))
+        tlist = np.empty(len(self.dt_list))
         t = 0
         for i in range(len(self.dt_list)):
             t += self.dt_list[i]
             tlist[i] = t
-        return tlist, amps
+        return np.hstack([[0], tlist]), amps

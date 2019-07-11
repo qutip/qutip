@@ -30,13 +30,17 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import numpy as np
 import warnings
+
+import numpy as np
+
 from qutip.operators import tensor, identity, destroy, sigmax, sigmaz
 from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.models.circuitprocessor import (
     CircuitProcessor, ModelProcessor, GateDecomposer)
+from qutip.qobj import Qobj
+from qutip.qobjevo import QobjEvo
 
 
 __all__ = ['DispersivecQED', 'CQEDGateDecomposer']
@@ -81,7 +85,7 @@ class DispersivecQED(ModelProcessor):
 
     Attributes
     ----------
-    hams : list of :class:`Qobj`
+    ctrls : list of :class:`Qobj`
         A list of Hamiltonians of the control pulse driving the evolution.
     tlist : array like
         A NumPy array specifies at which time the next amplitude of
@@ -122,18 +126,19 @@ class DispersivecQED(ModelProcessor):
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.Nres = Nres
-        self._hams = []
+        self.ctrls = []
         self._paras = {}
         self.set_up_paras(
             N=N, Nres=Nres, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
             delta=delta, g=g)
         self.set_up_ops(N)
+        self.dims = [Nres] + [2] * N
 
     def set_up_ops(self, N):
         """
         Genrate the Hamiltonians for the spinchain model and save them in the
-        attribute `hams`.
+        attribute `ctrls`.
 
         Parameters
         ----------
@@ -142,12 +147,12 @@ class DispersivecQED(ModelProcessor):
         """
         # single qubit terms
         self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
-        self._hams.append(self.a.dag() * self.a)
-        self._hams += [tensor([identity(self.Nres)] +
+        self.ctrls.append(self.a.dag() * self.a)
+        self.ctrls += [tensor([identity(self.Nres)] +
                               [sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
-        self._hams += [tensor([identity(self.Nres)] +
+        self.ctrls += [tensor([identity(self.Nres)] +
                               [sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
@@ -156,7 +161,7 @@ class DispersivecQED(ModelProcessor):
             sm = tensor([identity(self.Nres)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
-            self._hams.append(self.a.dag() * sm + self.a * sm.dag())
+            self.ctrls.append(self.a.dag() * sm + self.a * sm.dag())
 
         self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
@@ -219,15 +224,15 @@ class DispersivecQED(ModelProcessor):
 
     @property
     def sx_ops(self):
-        return self._hams[1: self.N+1]
+        return self.ctrls[1: self.N+1]
 
     @property
     def sz_ops(self):
-        return self._hams[self.N+1: 2*self.N+1]
+        return self.ctrls[self.N+1: 2*self.N+1]
 
     @property
     def cavityqubit_ops(self):
-        return self._hams[2*self.N+1: 3*self.N+1]
+        return self.ctrls[2*self.N+1: 3*self.N+1]
 
     @property
     def sx_u(self):
@@ -302,7 +307,7 @@ class DispersivecQED(ModelProcessor):
 
         dec = CQEDGateDecomposer(
             self.N, self._paras, self.wq, self.Delta,
-            global_phase=0., num_ops=len(self._hams))
+            global_phase=0., num_ops=len(self.ctrls))
         self.tlist, self.amps, self.global_phase = dec.decompose(gates)
 
         # TODO The amplitude of the first control a.dag()*a
