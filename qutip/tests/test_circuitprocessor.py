@@ -35,35 +35,38 @@ import os
 from numpy.testing import assert_, run_module_suite, assert_allclose
 import numpy as np
 
-from qutip.qip.models.circuitprocessor import CircuitProcessor 
+from qutip.qip.models.circuitprocessor import CircuitProcessor
 from qutip.operators import *
 from qutip.states import basis
 from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
 from qutip.random_objects import rand_ket
+from qutip.qip.models.circuitnoise import DecoherenceNoise, WhiteNoise
+from qutip.qip.qubits import qubit_states
+from qutip.metrics import fidelity
 
 
 class TestCircuitProcessor:
     def test_modify_hams(self):
         """
-        Test for modifing hams, add_ctrl, remove_ctrl
+        Test for modifying Hamiltonian, add_ctrl, remove_ctrl
         """
         N = 2
         proc = CircuitProcessor(N=N)
-        proc.hams
-        proc.hams = [sigmaz()]
-        assert_(tensor([sigmaz(), identity(2)]), proc.hams[0])
+        proc.ctrls
+        proc.ctrls = [sigmaz()]
+        assert_(tensor([sigmaz(), identity(2)]), proc.ctrls[0])
         proc.add_ctrl(sigmax(), expand_type='periodic')
-        assert_allclose(len(proc.hams), 3)
-        assert_allclose(tensor([sigmax(), identity(2)]), proc.hams[1])
-        assert_allclose(tensor([identity(2), sigmax()]), proc.hams[2])
+        assert_allclose(len(proc.ctrls), 3)
+        assert_allclose(tensor([sigmax(), identity(2)]), proc.ctrls[1])
+        assert_allclose(tensor([identity(2), sigmax()]), proc.ctrls[2])
         proc.add_ctrl(sigmay(), targets=1)
-        assert_allclose(tensor([identity(2), sigmay()]), proc.hams[3])
+        assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[3])
         proc.remove_ctrl([0, 1, 2])
-        assert_allclose(tensor([identity(2), sigmay()]), proc.hams[0])
+        assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[0])
         proc.remove_ctrl(0)
-        assert_allclose(len(proc.hams), 0)
+        assert_allclose(len(proc.ctrls), 0)
 
     def test_save_read(self):
         """
@@ -75,7 +78,7 @@ class TestCircuitProcessor:
         proc1.add_ctrl(sigmaz(), expand_type='periodic')
         proc2 = CircuitProcessor(N=2)
         proc2.add_ctrl(sigmaz(), expand_type='periodic')
-        tlist = [0.1, 0.2, 0.3, 0.4, 0.5]
+        tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
         amp1 = np.arange(0, 5, 1)
         amp2 = np.arange(5, 0, -1)
 
@@ -104,7 +107,7 @@ class TestCircuitProcessor:
             options=Options(store_final_state=True))
         global_phase = rho0.data[0, 0]/result.final_state.data[0, 0]
         assert_allclose(global_phase*result.final_state, rho0)
-        proc.tlist = [1., 2.]
+        proc.tlist = [0., 1., 2.]
         result = proc.run_state(
             rho0, options=Options(store_final_state=True))
         global_phase = rho0.data[0, 0]/result.final_state.data[0, 0]
@@ -151,6 +154,42 @@ class TestCircuitProcessor:
             rtol=1e-5,
             err_msg="Error in T1 & T2 simulation, "
                     "with T1={} and T2={}".format(T1, T2))
+
+    def TestNoise(self):
+        """
+        Test for CircuitProcessor with noise
+        """
+        # setup and fidelity without noise
+        rho0 = qubit_states(2, [0, 0, 0, 0])
+        tlist = np.array([0., np.pi/2])
+        a = destroy(2)
+        proc = CircuitProcessor(N=2)
+        proc.tlist = tlist
+        proc.amps = np.array([1]).reshape((1, 1))
+        proc.add_ctrl(sigmax(), targets=1)
+        result = proc.run_state(rho0=rho0)
+        assert_allclose(
+            fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
+            1, rtol=1.e-7)
+
+        # decoherence noise
+        dec_noise = DecoherenceNoise([0.5*a], targets=1)
+        proc.add_noise(dec_noise)
+        result = proc.run_state(rho0=rho0)
+        assert_allclose(
+            fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
+            0.9303888423022834, rtol=1.e-3)
+
+        # white noise with internal/external operators
+        proc.noise = []
+        white_noise = WhiteNoise(mean=0.1, std=0.1)
+        proc.add_noise(white_noise)
+        result = proc.run_state(rho0=rho0)
+
+        proc.noise = []
+        white_noise = WhiteNoise(mean=0.1, std=0.1, ops=sigmax(), targets=1)
+        proc.add_noise(white_noise)
+        result = proc.run_state(rho0=rho0)
 
 
 if __name__ == "__main__":

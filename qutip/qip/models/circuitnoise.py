@@ -22,6 +22,11 @@ class CircuitNoise(object):
     def __init__(self):
         pass
 
+    def _check_coeff_num(self, coeffs, ops_num):
+        if len(coeffs) != ops_num:
+            raise ValueError(
+                "The length of coeffs is not {}".format(ops_num))
+
 
 class DecoherenceNoise(CircuitNoise):
     """
@@ -46,21 +51,10 @@ class DecoherenceNoise(CircuitNoise):
             self.c_ops = [c_ops]
         else:
             self.c_ops = c_ops
-        if coeffs is None:  # time independent coeffs
-            self.coeffs = None
-        elif len(coeffs.shape) == 1:
-            self.coeffs = coeffs.reshape((1, len(coeffs)))
-        elif len(coeffs.shape) == 2:
-            if coeffs.shape[0] != len(self.c_ops):
-                raise ValueError(
-                    "The row number of coeffs does not match"
-                    "the number of collapse operators in c_ops.")
-            self.coeffs = coeffs
-        else:
-            raise ValueError("`coeffs` is not a 2D-NumPy array.")
+        self.coeffs = coeffs
         self.targets = targets
         if all_qubits:
-            if not all([c_op.dims == [[2], [2]] for c_op in c_ops]):
+            if not all([c_op.dims == [[2], [2]] for c_op in self.c_ops]):
                 raise ValueError(
                     "c_op is not a single qubit operator"
                     "and cannot be applied to all qubits")
@@ -97,16 +91,11 @@ class DecoherenceNoise(CircuitNoise):
             return qobj_list
         # time-dependent
         qobjevo_list = []
-        for i, temp in enumerate(self.c_ops):
-            if self.all_qubits:
-                for c_op in qobj_list[i*N: (i+1)*N]:
-                    qobjevo_list.append(QobjEvo(
-                        [c_op, self.coeffs[i]],
-                        tlist=tlist))
-            else:
-                qobjevo_list.append(QobjEvo(
-                    [qobj_list[i], self.coeffs[i]],
-                    tlist=tlist))
+        for i, temp in enumerate(qobj_list):
+            self._check_coeff_num(self.coeffs, len(qobj_list))
+            qobjevo_list.append(QobjEvo(
+                [qobj_list[i], self.coeffs[i]],
+                tlist=tlist))
         return qobjevo_list
 
 
@@ -127,7 +116,7 @@ class RelaxationNoise(CircuitNoise):
         self.T1 = T1
         self.T2 = T2
 
-    def _check_T_valid(self, T, N):
+    def _T_to_list(self, T, N):
         """
         Check if the relaxation time is valid
 
@@ -169,8 +158,8 @@ class RelaxationNoise(CircuitNoise):
             A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
             representing the decoherence noise.
         """
-        self.T1 = self._check_T_valid(self.T1, N)
-        self.T2 = self._check_T_valid(self.T2, N)
+        self.T1 = self._T_to_list(self.T1, N)
+        self.T2 = self._T_to_list(self.T2, N)
         if len(self.T1) != N or len(self.T2) != N:
             raise ValueError(
                 "Length of T1 or T2 does not match N, "
@@ -207,7 +196,8 @@ class ControlAmpNoise(CircuitNoise):
     ops : :class:`qutip.Qobj`
         The Hamiltonian representing the dynamics of the noise
     coeffs : list
-        A list of NumPy array as coefficients of the operators
+        A list of Hamiltonian coeffs.
+        For available choice, see :class:`Qutip.QobjEvo`
     targets : list or int
         The indices of qubits that are acted on
     expand_type : string
@@ -255,7 +245,8 @@ class ControlAmpNoise(CircuitNoise):
             else:
                 ops = []
                 for op in self.ops:
-                    expand_oper_periodic(oper=op, N=N, targets=self.targets)
+                    ops += expand_oper_periodic(
+                        oper=op, N=N, targets=self.targets)
 
         # If no operators given, use operators in the processor
         elif proc_qobjevo is not None:
@@ -330,7 +321,8 @@ class WhiteNoise(ControlAmpNoise):
             else:
                 ops_num = len(self.ops) * N
         elif proc_qobjevo is not None:
-            # +1 for the constant part in QobjEvo
+            # +1 for the constant part in QobjEvo,
+            # if no cte part the last coeff will be ignored
             ops_num = len(proc_qobjevo.ops) + 1
         self.coeffs = normal(
             self.mean, self.std, (ops_num, len(tlist)))
