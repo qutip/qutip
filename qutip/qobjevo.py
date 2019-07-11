@@ -38,6 +38,7 @@ from qutip.qobj import Qobj
 import qutip.settings as qset
 from qutip.interpolate import Cubic_Spline
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import interp1d
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
@@ -139,10 +140,14 @@ class _StrWrapper:
 class _CubicSplineWrapper:
     # Using scipy's CubicSpline since Qutip's one
     # only accept linearly distributed tlist
-    def __init__(self, tlist, coeff):
+    def __init__(self, tlist, coeff, args=None):
         self.coeff = coeff
         self.tlist = tlist
-        self.func = CubicSpline(self.tlist, self.coeff)
+        if "_spline_kind" not in args:
+            self.func = CubicSpline(self.tlist, self.coeff)
+        else:
+            self.func = interp1d(
+                self.tlist, self.coeff, kind=args["_spline_kind"])
 
     def __call__(self, t, args={}):
         return self.func([t])[0]
@@ -460,8 +465,10 @@ class QobjEvo:
                                     op[1], "string"))
                 elif type_ == 3:
                     op_type_count[2] += 1
-                    self.ops.append(EvoElement(op[0], _CubicSplineWrapper(tlist, op[1]),
-                                     op[1].copy(), "array"))
+                    self.ops.append(EvoElement(
+                        op[0],
+                        _CubicSplineWrapper(tlist, op[1], args=self.args),
+                        op[1].copy(), "array"))
                 elif type_ == 4:
                     op_type_count[3] += 1
                     self.ops.append(EvoElement(op[0], op[1], op[1], "spline"))
@@ -470,7 +477,7 @@ class QobjEvo:
             if op_type_count[0] == nops:
                 self.type = "func"
             elif op_type_count[1] == nops:
-                self.type = "string"
+                self.type = "mixed_callable"
             elif op_type_count[2] == nops:
                 self.type = "array"
             elif op_type_count[3] == nops:
@@ -1064,7 +1071,8 @@ class QobjEvo:
                 for i in _set[1:]:
                     new_array += self.ops[i].coeff
                 new_op[2] = new_array
-                new_op[1] = _CubicSplineWrapper(self.tlist, new_array)
+                new_op[1] = _CubicSplineWrapper(
+                    self.tlist, new_array, args=self.args)
                 new_ops.append(EvoElement.make(new_op))
 
         self.ops = new_ops
@@ -1201,7 +1209,8 @@ class QobjEvo:
                     ff = function(f, *args, **kw_args)
                     for i, v in enumerate(op.coeff):
                         op.coeff[i] = ff(v)
-                    op.get_coeff = _CubicSplineWrapper(self.tlist, op.coeff)
+                    op.get_coeff = _CubicSplineWrapper(
+                        self.tlist, op.coeff, args=self.args)
                 else:
                     op.coeff = op.get_coeff
                     op.type = "func"
@@ -1229,7 +1238,8 @@ class QobjEvo:
                 new_op[1] = _StrWrapper(new_op[2])
             elif op.type == "array":
                 new_op[2] = np.abs(op.coeff)**2
-                new_op[1] = _CubicSplineWrapper(self.tlist, new_op[2])
+                new_op[1] = _CubicSplineWrapper(
+                    self.tlist, new_op[2], args=self.args)
             elif op.type == "spline":
                 new_op[1] = _Norm2(op.get_coeff)
                 new_op[2] = new_op[1]
@@ -1251,7 +1261,8 @@ class QobjEvo:
                 new_op[1] = _StrWrapper(new_op[2])
             elif op.type == "array":
                 new_op[2] = np.conj(op.coeff)
-                new_op[1] = _CubicSplineWrapper(self.tlist, new_op[2])
+                new_op[1] = _CubicSplineWrapper(
+                    self.tlist, new_op[2], args=self.args)
             elif op.type == "spline":
                 new_op[1] = _Conj(op.get_coeff)
                 new_op[2] = new_op[1]
