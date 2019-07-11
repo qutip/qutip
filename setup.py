@@ -56,7 +56,7 @@ from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 4
+MINOR = 5
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -80,16 +80,15 @@ PACKAGE_DATA = {
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
-# ajgpitch Mar 2017:
-# This HEADERS did not work, but I will leave it in anyway, as it is supposed to.
-# I had to do the nasty thing with PACKAGES and PACKAGE_DATA above.
-HEADERS = ['qutip/cy/src/zspmv.hpp', 'qutip/cy/openmp/src/zspmv_openmp.hpp']
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
-          "Chris Granade, Arne Grimsmo")
+          "Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, "
+          "Neill Lambert, Eric Giguere")
 AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
                 "jrjohansson@gmail.com, cgranade@cgranade.com, "
-                "arne.grimsmo@gmail.com")
+                "arne.grimsmo@gmail.com, nathan.shammah@gmail.com, "
+                "shahnawaz.ahmed95@gmail.com, nwlambert@gmail.com, "
+                "eric.giguere@usherbrooke.ca")
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
@@ -258,7 +257,7 @@ setup(
     packages = PACKAGES,
     include_package_data=True,
     include_dirs = INCLUDE_DIRS,
-    headers = HEADERS,
+    # headers = HEADERS,
     ext_modules = cythonize(EXT_MODULES),
     cmdclass = {'build_ext': build_ext},
     author = AUTHOR,

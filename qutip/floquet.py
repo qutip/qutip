@@ -433,7 +433,8 @@ def floquet_state_decomposition(f_states, f_energies, psi):
         The coefficients :math:`c_\\alpha` in the Floquet state decomposition.
 
     """
-    return [(f_states[i].dag() * psi).data[0, 0]
+    # [:1,:1][0, 0] patch around scipy 1.3.0 bug
+    return [(f_states[i].dag() * psi).data[:1, :1][0, 0]
             for i in np.arange(len(f_energies))]
 
 def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
@@ -618,8 +619,9 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
             for b in range(N):
                 k_idx = 0
                 for k in range(-kmax, kmax + 1, 1):
+                    # [:1,:1][0, 0] patch around scipy 1.3.0 bug
                     X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
-                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[0, 0]
+                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[:1, :1][0, 0]
                     k_idx += 1
 
     Heaviside = lambda x: ((np.sign(x) + 1) / 2.0)

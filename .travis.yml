@@ -8,7 +8,7 @@ stage_generic_linux: &stage_generic_linux
     - mkdir qutip_testing
     - cd qutip_testing
   # command to run tests
-  script: 
+  script:
     - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
@@ -81,7 +81,7 @@ stage_osx: &stage_osx
     - mkdir qutip_testing
     - cd qutip_testing
   # command to run tests
-  script: 
+  script:
     - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
@@ -93,7 +93,8 @@ stage_osx: &stage_osx
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
+    # - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
+    - conda install nomkl blas=*=openblas numpy scipy nose cython
     - python setup.py install
 
 stages:
