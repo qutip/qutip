@@ -619,11 +619,11 @@ def test_QobjPurity():
     "Qobj purity"
     psi = basis(2,1)
     # check purity of pure ket state
-    assert_(psi.purity(), 1)
+    assert_almost_equal(psi.purity(), 1)
     # check purity of pure ket state (superposition)
     psi2 = basis(2,0)
     psi_tot = (psi+psi2).unit() 
-    assert_(psi_tot.purity(), 1)
+    assert_almost_equal(psi_tot.purity(), 1)
     # check purity of density matrix of pure state 
     assert_almost_equal(ket2dm(psi_tot).purity(), 1)
     # check purity of maximally mixed density matrix
