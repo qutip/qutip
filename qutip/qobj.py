@@ -1047,7 +1047,7 @@ class Qobj(object):
             For a mixed state, the purity is <1.
 
         """
-        if argg.type == "oper" or argg.type =="ket" or argg.type =="bra":
+        if self.type == "oper" or self.type =="ket" or self.type =="bra":
             raise TypeError('Purity is defined on a density matrix or state only.')
 
         if self.type == "ket" or self.type == "bra":
