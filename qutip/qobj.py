@@ -1031,8 +1031,7 @@ class Qobj(object):
         Returns
         -------
         trace : float
-            Returns ``real`` if operator is Hermitian, returns ``complex``
-            otherwise.
+            Returns the trace of the quantum object.
 
         """
         return zcsr_trace(self.data, self.isherm)
