@@ -1035,6 +1035,28 @@ class Qobj(object):
 
         """
         return zcsr_trace(self.data, self.isherm)
+    
+    def purity(self):
+        """Purity of a quantum object.
+
+        Returns
+        -------
+        state_purity : float
+            Returns the purity of a quantum object.
+            For a pure state, the purity is 1.
+            For a mixed state, the purity is <1.
+
+        """
+        if argg.type == "oper" or argg.type =="ket" or argg.type =="bra":
+            raise TypeError('Purity is defined on a density matrix or state only.')
+
+        if self.type == "ket" or self.type == "bra":
+            state_purity = (rho*rho.dag()).tr()
+
+        if self.type == "oper":
+            state_purity = (rho*rho).tr()
+
+        return state_purity
 
     def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
