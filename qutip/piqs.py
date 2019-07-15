@@ -235,7 +235,7 @@ def purity_dicke(rho):
         j = N/2. - k
         #print(j)
         djn = state_degeneracy(N,j)
-        block_purity.append(purity(Qobj(block/djn))*djn)
+        block_purity.append((Qobj(block/djn)).purity()*djn)
         k = k +1
     
     return sum(block_purity)
