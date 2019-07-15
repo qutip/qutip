@@ -615,6 +615,21 @@ def test_QobjNorm():
     b = rand_herm(10,0.25) - 1j*rand_herm(10,0.25)
     assert_almost_equal(b.norm(), (b*b.dag()).sqrtm().tr().real)
 
+def test_QobjPurity():
+    "Qobj purity"
+    psi = basis(2,1)
+    # check purity of pure ket state
+    assert_(psi.purity(), 1)
+    # check purity of pure ket state (superposition)
+    psi2 = basis(2,0)
+    psi_tot = (psi+psi2).unit() 
+    assert_(psi_tot.purity(), 1)
+    # check purity of density matrix of pure state 
+    assert_almost_equal(ket2dm(psi_tot).purity(), 1)
+    # check purity of maximally mixed density matrix
+    rho_mixed = (ket2dm(psi)+ket2dm(psi2)).unit() 
+    assert_almost_equal(rho_mixed.purity(), 0.5)
+
 def test_QobjPermute():
     "Qobj permute"
     A = basis(3, 0)
