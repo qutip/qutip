@@ -245,7 +245,6 @@ cdef class StepCoeffT(CoeffFunc):
         
     cdef void _call_core(self, double t, complex* coeff):
         cdef int i
-        # t_ind = np.searchsorted(self.tlist, t, side='right') - 1
         for i in range(self._num_ops):
             coeff[i] = _step_complex_t(t, self.tlist, self.y[i, :], self.n_t)
 
@@ -261,13 +260,6 @@ cdef class StepCoeffT(CoeffFunc):
         self.n_t = state[1]
         self.tlist = state[3]
         self.y = state[4]
-
-    def temp(self, t):
-        cdef int c_t = t
-        # TODO how is dynamic length handled?
-        cdef complex coeff[10]
-        self._call_core(c_t, &coeff[0])
-        return coeff
 
 
 cdef class StepCoeffCte(CoeffFunc):
@@ -303,12 +295,6 @@ cdef class StepCoeffCte(CoeffFunc):
         self.n_t = state[1]
         self.tlist = state[3]
         self.y = state[4]
-
-    def temp(self, t):
-        cdef int c_t = t
-        cdef complex coeff[10]
-        self._call_core(c_t, &coeff[0])
-        return coeff
 
 
 cdef class StrCoeff(CoeffFunc):
