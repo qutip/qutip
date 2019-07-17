@@ -227,7 +227,7 @@ cdef class InterCoeffT(CoeffFunc):
         self.M = state[5]
 
 
-cdef class StepCoeffT(CoeffFunc):
+cdef class StepCoeff(CoeffFunc):
     cdef int n_t
     cdef double[::1] tlist
     cdef complex[:,::1] y
@@ -243,58 +243,32 @@ cdef class StepCoeffT(CoeffFunc):
             for j in range(self.n_t):
                 self.y[i,j] = ops[i][2][j]
         
+    def set_arg(self, args):
+        pass
+
+    def __getstate__(self):
+        return (self._num_ops, self.n_t, None, np.array(self.tlist),
+                np.array(self.y))
+
+    def __setstate__(self, state):
+        self._num_ops = state[0]
+        self.n_t = state[1]
+        self.tlist = state[3]
+        self.y = state[4]
+
+
+cdef class StepCoeffT(StepCoeff):
     cdef void _call_core(self, double t, complex* coeff):
         cdef int i
         for i in range(self._num_ops):
             coeff[i] = _step_complex_t(t, self.tlist, self.y[i, :], self.n_t)
 
-    def set_arg(self, args):
-        pass
 
-    def __getstate__(self):
-        return (self._num_ops, self.n_t, None, np.array(self.tlist),
-                np.array(self.y))
-
-    def __setstate__(self, state):
-        self._num_ops = state[0]
-        self.n_t = state[1]
-        self.tlist = state[3]
-        self.y = state[4]
-
-
-cdef class StepCoeffCte(CoeffFunc):
-    cdef int n_t
-    cdef double[::1] tlist
-    cdef complex[:,::1] y
-
-    def __init__(self, ops, args, tlist):
-        cdef int i, j
-        self._args = {}
-        self._num_ops = len(ops)
-        self.tlist = tlist
-        self.n_t = len(tlist)
-        self.y = np.zeros((self._num_ops, self.n_t), dtype=complex)
-        for i in range(self._num_ops):
-            for j in range(self.n_t):
-                self.y[i,j] = ops[i][2][j]
-        
+cdef class StepCoeffCte(StepCoeff): 
     cdef void _call_core(self, double t, complex* coeff):
         cdef int i
         for i in range(self._num_ops):
             coeff[i] = _step_complex_cte(t, self.tlist, self.y[i, :], self.n_t)
-
-    def set_arg(self, args):
-        pass
-
-    def __getstate__(self):
-        return (self._num_ops, self.n_t, None, np.array(self.tlist),
-                np.array(self.y))
-
-    def __setstate__(self, state):
-        self._num_ops = state[0]
-        self.n_t = state[1]
-        self.tlist = state[3]
-        self.y = state[4]
 
 
 cdef class StrCoeff(CoeffFunc):
