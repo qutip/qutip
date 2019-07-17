@@ -160,47 +160,43 @@ include """ + _include_string + "\n\n"
             s_str = "_spline_" + str(N_np)
             N_times = str(len(tlist))
             dt_times = str(tlist[1]-tlist[0])
+            try:
+                use_step_func = args["_step_func_coeff"]
+            except:
+                use_step_func = 0
             if dt_cte:
                 if isinstance(op.coeff[0], (float, np.float32, np.float64)):
-                    if "_step_func_coeff" not in args:
-                        string = "_spline_float_cte_second(t, " + t_str + ", " +\
-                                y_str + ", " + s_str + ", " + N_times + ", " +\
-                                dt_times + ")"
-                    elif args["_step_func_coeff"] == 1:
-                        print("here")
+                    if use_step_func:
                         string = "_step_float_cte(t, " + t_str + ", " +\
                                 y_str + ", " + N_times + ")"
                     else:
-                        raise ValueError("Unknow spline kind.")
-                elif isinstance(op.coeff[0], (complex, np.complex128)):
-                    if "_step_func_coeff" not in args:
-                        string = "_spline_complex_cte_second(t, " + t_str + ", " +\
+                        string = "_spline_float_cte_second(t, " + t_str + ", " +\
                                 y_str + ", " + s_str + ", " + N_times + ", " +\
                                 dt_times + ")"
-                    elif args["_step_func_coeff"] == 1:
+
+                elif isinstance(op.coeff[0], (complex, np.complex128)):
+                    if use_step_func:
                         string = "_step_complex_cte(t, " + t_str + ", " +\
                                 y_str + ", " + N_times + ")"
                     else:
-                        raise ValueError("Unknow spline kind.")
+                        string = "_spline_complex_cte_second(t, " + t_str + ", " +\
+                                y_str + ", " + s_str + ", " + N_times + ", " +\
+                                dt_times + ")"
             else:
                 if isinstance(op.coeff[0], (float, np.float32, np.float64)):
-                    if "_step_func_coeff" not in args:
-                        string = "_spline_float_t_second(t, " + t_str + ", " +\
-                             y_str + ", " + s_str + ", " + N_times + ")"
-                    elif args["_step_func_coeff"] == 1:
+                    if use_step_func:
                         string = "_step_float_t(t, " + t_str + ", " +\
                              y_str + ", " + N_times + ")"
                     else:
-                        raise ValueError("Unknow spline kind.")
-                elif isinstance(op.coeff[0], (complex, np.complex128)):
-                    if "_step_func_coeff" not in args:
-                        string = "_spline_complex_t_second(t, " + t_str + ", " +\
+                        string = "_spline_float_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
-                    elif args["_step_func_coeff"] == 1:
+                elif isinstance(op.coeff[0], (complex, np.complex128)):
+                    if use_step_func:
                         string = "_step_complex_t(t, " + t_str + ", " +\
                              y_str + ", " + N_times + ")"
                     else:
-                        raise ValueError("Unknow spline kind.")
+                        string = "_spline_complex_t_second(t, " + t_str + ", " +\
+                             y_str + ", " + s_str + ", " + N_times + ")"
             compile_list.append(string)
             args[t_str] = tlist
             args[y_str] = op.coeff

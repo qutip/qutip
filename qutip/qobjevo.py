@@ -143,14 +143,16 @@ class _CubicSplineWrapper:
     def __init__(self, tlist, coeff, args=None):
         self.coeff = coeff
         self.tlist = tlist
-        if "_step_func_coeff" not in args:
-            self.func = CubicSpline(self.tlist, self.coeff)
-        elif args["_step_func_coeff"] == 1:
+        try:
+            use_step_func = args["_step_func_coeff"]
+        except:
+            use_step_func = 0
+        if use_step_func:
             self.func = interp1d(
                 self.tlist, self.coeff, kind="previous",
                 bounds_error=False, fill_value=0.)
         else:
-            raise ValueError("Unknow spline kind.")
+            self.func = CubicSpline(self.tlist, self.coeff)
 
     def __call__(self, t, args={}):
         try:
@@ -1458,25 +1460,25 @@ class QobjEvo:
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
                 self.compiled += "cyfactor"
             elif self.type == "array":
+                try:
+                    use_step_func = self.args["_step_func_coeff"]
+                except:
+                    use_step_func = 0
                 if np.allclose(np.diff(self.tlist),
                             self.tlist[1] - self.tlist[0]):
-                    if "_step_func_coeff" not in self.args:
-                        self.coeff_get = InterCoeffCte(
-                            self.ops, None, self.tlist)
-                    elif self.args["_step_func_coeff"] == 1:
+                    if use_step_func:
                         self.coeff_get = StepCoeffCte(
                             self.ops, None, self.tlist)
                     else:
-                        raise ValueError("Unknow spline kind.")
-                else:
-                    if "_step_func_coeff" not in self.args:
-                        self.coeff_get = InterCoeffT(
+                        self.coeff_get = InterCoeffCte(
                             self.ops, None, self.tlist)
-                    elif self.args["_step_func_coeff"] == 1:
+                else:
+                    if use_step_func:
                         self.coeff_get = StepCoeffT(
                             self.ops, None, self.tlist)
                     else:
-                        raise ValueError("Unknow spline kind.")
+                        self.coeff_get = InterCoeffT(
+                            self.ops, None, self.tlist)
                 self.compiled += "cyfactor"
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
             elif self.type == "spline":
