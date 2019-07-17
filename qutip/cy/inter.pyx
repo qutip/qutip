@@ -196,3 +196,53 @@ cdef complex _spline_complex_t_second(double x,
     cdef complex Mb = M[p] * dt2
     return te * (Mb * te * te + (y[p]   - Mb)) + \
            tb * (Me * tb * tb + (y[p+1] - Me))
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef double _step_float_cte(double x, double[::1] t, double[::1] y, int n_t):
+    if x < t[0]:
+        return 0
+    elif x >= t[n_t-1]:
+        return 0
+    cdef int ind = <int>(x/t[n_t-1]*(n_t-1))
+    return y[ind]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef complex _step_complex_cte(double x, double[::1] t, complex[::1] y, int n_t):
+    if x < t[0]:
+        return 0
+    elif x >= t[n_t-1]:
+        return 0
+    cdef int ind = <int>(x/t[n_t-1]*(n_t-1))
+    return y[ind]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef double _step_float_t(double x, double[::1] t, double[::1] y, int n_t):
+    if x < t[0]:
+        return 0
+    elif x >= t[n_t-1]:
+        return 0
+    # TODO this can be moved out for better performance
+    cdef int ind = _binary_search(x, t, n_t)
+    return y[ind]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef complex _step_complex_t(double x, double[::1] t, complex[::1] y, int n_t):
+    if x < t[0]:
+        return 0
+    elif x >= t[n_t-1]:
+        return 0
+    # TODO this can be moved out for better performance
+    cdef int ind = _binary_search(x, t, n_t)
+    return y[ind]

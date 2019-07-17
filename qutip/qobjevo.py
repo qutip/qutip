@@ -37,8 +37,7 @@ __all__ = ['QobjEvo']
 from qutip.qobj import Qobj
 import qutip.settings as qset
 from qutip.interpolate import Cubic_Spline
-from scipy.interpolate import CubicSpline
-from scipy.interpolate import interp1d
+from scipy.interpolate import CubicSpline, interp1d
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
@@ -48,7 +47,8 @@ from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv, cy_spmm
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
                                  CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
-                                      InterpolateCoeff, StrCoeff)
+                                      InterpolateCoeff, StrCoeff,
+                                      StepCoeffCte, StepCoeffT)
 import pickle
 import sys
 import scipy
@@ -143,13 +143,21 @@ class _CubicSplineWrapper:
     def __init__(self, tlist, coeff, args=None):
         self.coeff = coeff
         self.tlist = tlist
-        if "_spline_kind" not in args:
+        if "_step_func_coeff" not in args:
             self.func = CubicSpline(self.tlist, self.coeff)
-        else:
+        elif args["_step_func_coeff"] == 1:
             self.func = interp1d(
-                self.tlist, self.coeff, kind=args["_spline_kind"])
+                self.tlist, self.coeff, kind="previous",
+                bounds_error=False, fill_value=0.)
+        else:
+            raise ValueError("Unknow spline kind.")
 
     def __call__(self, t, args={}):
+        try:
+            (self.func([t])[0])
+        except:
+            print(t)
+            print(self.coeff)
         return self.func([t])[0]
 
 
@@ -477,7 +485,7 @@ class QobjEvo:
             if op_type_count[0] == nops:
                 self.type = "func"
             elif op_type_count[1] == nops:
-                self.type = "mixed_callable"
+                self.type = "string"
             elif op_type_count[2] == nops:
                 self.type = "array"
             elif op_type_count[3] == nops:
@@ -1451,11 +1459,24 @@ class QobjEvo:
                 self.compiled += "cyfactor"
             elif self.type == "array":
                 if np.allclose(np.diff(self.tlist),
-                               self.tlist[1] - self.tlist[0]):
-                    self.coeff_get = InterCoeffCte(self.ops, None,
-                                                     self.tlist)
+                            self.tlist[1] - self.tlist[0]):
+                    if "_step_func_coeff" not in self.args:
+                        self.coeff_get = InterCoeffCte(
+                            self.ops, None, self.tlist)
+                    elif self.args["_step_func_coeff"] == 1:
+                        self.coeff_get = StepCoeffCte(
+                            self.ops, None, self.tlist)
+                    else:
+                        raise ValueError("Unknow spline kind.")
                 else:
-                    self.coeff_get = InterCoeffT(self.ops, None, self.tlist)
+                    if "_step_func_coeff" not in self.args:
+                        self.coeff_get = InterCoeffT(
+                            self.ops, None, self.tlist)
+                    elif self.args["_step_func_coeff"] == 1:
+                        self.coeff_get = StepCoeffT(
+                            self.ops, None, self.tlist)
+                    else:
+                        raise ValueError("Unknow spline kind.")
                 self.compiled += "cyfactor"
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
             elif self.type == "spline":
