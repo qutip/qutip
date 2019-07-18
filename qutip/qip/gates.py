@@ -1117,12 +1117,18 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
 
 def _check_qubits_oper(oper, dims=None, targets=None):
     """
-    Check if it is an operator acting on a qubit system.
+    Check if the given operator is valid.
 
     Parameters
     ----------
     oper : :class:`qutip.Qboj`
         The quantum object to be checked.
+    dims : list
+        A list of integer for the dimension of each composite system.
+        e.g [2,2,2,2,2] for 5 qubits system. If None, qubits system
+        will be the default.
+    targets : int or list of int
+        The indices of qubits that are acted on.
     """
     # if operator matches N
     if not isinstance(oper, Qobj) or oper.dims[0] != oper.dims[1]:
@@ -1133,20 +1139,35 @@ def _check_qubits_oper(oper, dims=None, targets=None):
     if dims is not None and targets is not None:
         targ_dims = [dims[t] for t in targets]
         if oper.dims[0] != targ_dims:
-         raise ValueError(
-             "The operator dims {} do not match "
-             "the target dims {}.".format(
-                 oper.dims[0], targ_dims))
+            raise ValueError(
+                "The operator dims {} do not match "
+                "the target dims {}.".format(
+                    oper.dims[0], targ_dims))
 
 
 def _targets_to_list(targets, oper=None, N=None):
+    """
+    transform targets to a list and check validity.
+
+    Parameters
+    ----------
+    targets : int or list of int
+        The indices of qubits that are acted on.
+    oper : :class:`qutip.Qobj`
+        An operator acts on qubits, the type of the `Qobj`
+        has to be an operator
+        and the dimension matches the tensored qubit Hilbert space
+        e.g. dims = [[2,2,2],[2,2,2]]
+    N : int
+        The number of qubits in the system.
+    """
     # if targets is a list of integer
     if targets is None:
         targets = list(range(len(oper.dims[0])))
     elif isinstance(targets, numbers.Integral):
         targets = [targets]
     elif isinstance(targets, Iterable) and (
-        all([isinstance(t, numbers.Integral) for t in targets])):
+            all([isinstance(t, numbers.Integral) for t in targets])):
         pass
     else:
         raise TypeError(
@@ -1164,7 +1185,7 @@ def _targets_to_list(targets, oper=None, N=None):
                     req_num, len(targets)))
     # if targets is smaller than N
     if N is not None:
-        if not all([t<N for t in targets]):
+        if not all([t < N for t in targets]):
             raise ValueError("Targets must be smaller than N={}.".format(N))
     return targets
 
@@ -1178,12 +1199,16 @@ def expand_oper(oper, N, targets, dims=None):
     oper : :class:`qutip.Qobj`
         An operator acts on qubits, the type of the `Qobj`
         has to be an operator
-        and the dimension matches the tensored qubit Hilbertspace
+        and the dimension matches the tensored qubit Hilbert space
         e.g. dims = [[2,2,2],[2,2,2]]
     N : int
         The number of qubits in the system.
     targets : int or list of int
         The indices of qubits that are acted on.
+    dims : list
+        A list of integer for the dimension of each composite system.
+        e.g [2,2,2,2,2] for 5 qubits system. If None, qubits system
+        will be the default option.
 
     Returns
     -------
@@ -1207,7 +1232,8 @@ def expand_oper(oper, N, targets, dims=None):
     new_order = [0] * N
     for i, t in enumerate(targets):
         new_order[t] = i
-    # allocate the rest qutbits (not targets) to the empty position in new_order
+    # allocate the rest qutbits (not targets) to the empty
+    # position in new_order
     rest_pos = [q for q in list(range(N)) if q not in targets]
     rest_qubits = list(range(len(targets), N))
     for i, ind in enumerate(rest_pos):
@@ -1218,7 +1244,7 @@ def expand_oper(oper, N, targets, dims=None):
 
 def expand_oper_periodic(oper, N, targets=None):
     """
-    Expand a qutbis operator to one that acts on a N-qutbis system for
+    Expand a qubis operator to one that acts on a N-qutbis system for
     all cyclic permutation of the target qubits.
 
     Parameters
@@ -1226,7 +1252,7 @@ def expand_oper_periodic(oper, N, targets=None):
     oper : :class:`qutip.Qobj`
         An operator acts on qubits, the type of the `Qobj`
         has to be an operator
-        and the dimension matches the tensored qubit Hilbertspace
+        and the dimension matches the tensored qubit Hilbert space
         e.g. dims = [[2,2,2],[2,2,2]]
     N : int
         The number of qubits in the system.

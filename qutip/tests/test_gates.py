@@ -42,7 +42,7 @@ from qutip.qip import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
                        toffoli, fredkin, gate_expand_3toN, 
                        qubit_clifford_group, expand_oper,
                        expand_oper_periodic)
-from qutip.random_objects import rand_ket, rand_herm, rand_unitary
+from qutip.random_objects import rand_ket, rand_herm, rand_unitary, rand_dm
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
 
@@ -328,7 +328,7 @@ class TestGates:
 
         # test periodically expansion
         result = expand_oper_periodic(
-            tensor([sigmaz(),sigmax()]), N=3, targets=[2 ,0])
+            tensor([sigmaz(), sigmax()]), N=3, targets=[2, 0])
         mat1 = tensor(sigmax(), qeye(2), sigmaz())
         mat2 = tensor(sigmaz(), sigmax(), qeye(2))
         mat3 = tensor(qeye(2), sigmaz(), sigmax())
@@ -340,14 +340,14 @@ class TestGates:
         mat3 = rand_dm(3, density=1.)
         oper = tensor([sigmax(), mat3])
         N = 4
-        dims = [2,2,3,4]
-        result = expand_oper(oper, N, targets=[0,2], dims=dims)
+        dims = [2, 2, 3, 4]
+        result = expand_oper(oper, N, targets=[0, 2], dims=dims)
         assert_array_equal(result.dims[0], dims)
-        dims = [3,2,4,2]
-        result = expand_oper(oper, N, targets=[3,0], dims=dims)
+        dims = [3, 2, 4, 2]
+        result = expand_oper(oper, N, targets=[3, 0], dims=dims)
         assert_array_equal(result.dims[0], dims)
-        dims = [3,2,4,2]
-        result = expand_oper(oper, N, targets=[1,0], dims=dims)
+        dims = [3, 2, 4, 2]
+        result = expand_oper(oper, N, targets=[1, 0], dims=dims)
         assert_array_equal(result.dims[0], dims)
 
     def test_molmer_sorensen(self):
