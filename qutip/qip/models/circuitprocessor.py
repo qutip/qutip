@@ -86,7 +86,7 @@ class CircuitProcessor(object):
         row corresponds to the control pulse sequence for
         one Hamiltonian.
     """
-    def __init__(self, N, T1=None, T2=None, noise=None):
+    def __init__(self, N, T1=None, T2=None, noise=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
         self.amps = None
@@ -98,6 +98,7 @@ class CircuitProcessor(object):
         else:
             self.noise = noise
         self.dims = [2] * N
+        self.spline_kind = "step_func"
 
     def add_ctrl(self, ctrl, targets=None, expand_type=None):
         """
@@ -178,18 +179,17 @@ class CircuitProcessor(object):
         Check if the number of control Hamiltonians
         and amps.shape[0] are the same.
         """
-        # if self.amps is None and len(self.ctrls) != 0:
-        #     raise ValueError(
-        #         "The control amplitude is None while "
-        #         "the number of ctrls is {}.".format(len(self.ctrls)))
-        # if self.amps is not None:
-        #     if self.amps.shape[0] != len(self.ctrls):
-        #         raise ValueError(
-        #             "The control amplitude matrix do not match the "
-        #             "number of ctrls  "
-        #             "#ctrls = {}  "
-        #             "#amps = {}.".format(len(self.ctrls), len(self.amps)))
-        pass
+        if self.amps is None and len(self.ctrls) != 0:
+            raise ValueError(
+                "The control amplitude is None while "
+                "the number of ctrls is {}.".format(len(self.ctrls)))
+        if self.amps is not None:
+            if self.amps.shape[0] != len(self.ctrls):
+                raise ValueError(
+                    "The control amplitude matrix do not match the "
+                    "number of ctrls  "
+                    "#ctrls = {}  "
+                    "#amps = {}.".format(len(self.ctrls), len(self.amps)))
 
     def _is_amps_valid(self):
         """
@@ -248,17 +248,27 @@ class CircuitProcessor(object):
             self.amps = data[:, 1:].T
         return self.tlist, self.amps
 
-    def get_qobjevo(self, tlist, get_amp_td_func):
-        dummy = tensor([Qobj(np.zeros((d, d))) for d in self.dims])
-        H = [dummy]
+    def get_qobjevo(self, tlist=None):
+        """
+        tlist : array like
+            Used if there is no tlist defined in the processor but given as 
+            keyword arguments
+        """
+        if tlist is None:
+            tlist = self.tlist
+        args = {}
+        if self.spline_kind == "step_func" and self.amps is not None:
+            amps = np.hstack([self.amps, self.amps[:, -1:]])
+            args = {"_spline_kind": "previous"}
+        else:
+            amps = self.amps
+
+        dummy_cte = tensor([Qobj(np.zeros((d, d))) for d in self.dims])
+        H = [dummy_cte]
         for op_ind in range(len(self.ctrls)):
-            # row_ind=op_ind cannot be deleted
-            # see Late Binding Closures for detail
             H.append(
-                [self.ctrls[op_ind],
-                    lambda t, args, row_ind=op_ind:
-                    get_amp_td_func(t, args, row_ind)])
-        return QobjEvo(H, tlist=tlist)
+                [self.ctrls[op_ind], amps[op_ind]])
+        return QobjEvo(H, tlist=tlist, args=args)
 
     def run_state(self, rho0, **kwargs):
         """
@@ -307,47 +317,8 @@ class CircuitProcessor(object):
         else:
             tlist = self.tlist
 
-        amps = self.amps
-
         # contruct time-dependent Hamiltonian
-        # TODO This is a temprary solution
-        # This way does not seems to be very neat
-        ####################################################
-        def get_amp_td_func(t, args, row_ind):
-            times = args['times']
-            amps = args['amps'][row_ind]
-            # times = np.hstack([[0], times])
-            if t >= times[-1]:
-                return 0.
-            current_ind = get_amp_td_func.ind
-            if current_ind == get_amp_td_func.max_ind:
-                if t >= tlist[current_ind]:
-                    amp = amps[current_ind]
-                else:
-                    get_amp_td_func.ind -= 1
-                    amp = amps[current_ind-1]
-            elif current_ind == 0:
-                if t < tlist[current_ind+1]:
-                    amp = amps[current_ind]
-                else:
-                    get_amp_td_func.ind += 1
-                    amp = amps[current_ind+1]
-            else:
-                if t < tlist[current_ind]:
-                    get_amp_td_func.ind -= 1
-                    amp = amps[current_ind-1]
-                elif t >= tlist[current_ind+1]:
-                    get_amp_td_func.ind += 1
-                    amp = amps[current_ind+1]
-                else:
-                    amp = amps[current_ind]
-            return amp
-
-        get_amp_td_func.ind = 0  # initialized when first use
-        get_amp_td_func.max_ind = len(tlist)-1
-        ####################################################
-        proc_qobjevo = self.get_qobjevo(
-            tlist=tlist, get_amp_td_func=get_amp_td_func)
+        proc_qobjevo = self.get_qobjevo(tlist=tlist)
         ham_noise, sys_c_ops = self.process_noise(proc_qobjevo)
         if "c_ops" in kwargs:
             kwargs["c_ops"] += sys_c_ops
@@ -355,8 +326,7 @@ class CircuitProcessor(object):
             kwargs["c_ops"] = sys_c_ops
         proc_qobjevo += ham_noise
         evo_result = mesolve(
-            H=proc_qobjevo, rho0=rho0, tlist=tlist,
-            args={'times': tlist, 'amps': amps}, **kwargs)
+            H=proc_qobjevo, rho0=rho0, tlist=tlist, **kwargs)
 
         return evo_result
 
