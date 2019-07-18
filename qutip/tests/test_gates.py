@@ -33,7 +33,8 @@
 
 import itertools
 import numpy as np
-from numpy.testing import assert_, assert_allclose, run_module_suite
+from numpy.testing import (assert_, assert_allclose, assert_array_equal, 
+                           run_module_suite)
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
 from qutip.qip import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
@@ -334,6 +335,20 @@ class TestGates:
         assert_(mat1 in result)
         assert_(mat2 in result)
         assert_(mat3 in result)
+
+        # test for dimensions other than 2
+        mat3 = rand_dm(3, density=1.)
+        oper = tensor([sigmax(), mat3])
+        N = 4
+        dims = [2,2,3,4]
+        result = expand_oper(oper, N, targets=[0,2], dims=dims)
+        assert_array_equal(result.dims[0], dims)
+        dims = [3,2,4,2]
+        result = expand_oper(oper, N, targets=[3,0], dims=dims)
+        assert_array_equal(result.dims[0], dims)
+        dims = [3,2,4,2]
+        result = expand_oper(oper, N, targets=[1,0], dims=dims)
+        assert_array_equal(result.dims[0], dims)
 
     def test_molmer_sorensen(self):
         """

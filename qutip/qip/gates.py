@@ -1115,7 +1115,7 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
     return tensor([U] + [identity(2)] * (N - 3)).permute(p)
 
 
-def _check_qubits_oper(oper, N=None):
+def _check_qubits_oper(oper, dims=None, targets=None):
     """
     Check if it is an operator acting on a qubit system.
 
@@ -1124,59 +1124,52 @@ def _check_qubits_oper(oper, N=None):
     oper : :class:`qutip.Qboj`
         The quantum object to be checked.
     """
-    check = True
-    if not isinstance(oper, Qobj):
-        check = False
-    elif oper.dims[0] != oper.dims[1]:
-        check = False
-    elif oper.dims[0] != len(oper.dims[0]) * [2]:
-        check = False
-    if N is not None and len(oper.dims[0]) > N:
+    # if operator matches N
+    if not isinstance(oper, Qobj) or oper.dims[0] != oper.dims[1]:
         raise ValueError(
-            "The dimension of the operator "
-            "cannot be larger than the system dimension "
-            "N={}.".format(N))
-    if not check:
-        raise ValueError(
-            "The following operator is not an "
-            "operator on a qubits system:\n{}".format(oper))
+            "The operator is not an "
+            "Qobj with the same input and output dimensions.")
+    # if operator dims matches dims
+    if dims is not None and targets is not None:
+        targ_dims = [dims[t] for t in targets]
+        if oper.dims[0] != targ_dims:
+         raise ValueError(
+             "The operator dims {} do not match "
+             "the target dims {}.".format(
+                 oper.dims[0], targ_dims))
 
 
 def _targets_to_list(targets, oper=None, N=None):
-    # Check validity of targets
+    # if targets is a list of integer
     if targets is None:
         targets = list(range(len(oper.dims[0])))
     elif isinstance(targets, numbers.Integral):
         targets = [targets]
-    elif isinstance(targets, Iterable):
+    elif isinstance(targets, Iterable) and (
+        all([isinstance(t, numbers.Integral) for t in targets])):
         pass
     else:
         raise TypeError(
             "targets should be "
             "an integer or a list of integer, but {} "
             "was given.".format(targets))
-    if not all([isinstance(t, numbers.Integral) for t in targets]):
-        raise TypeError(
-            "Targets should be "
-            "an integer or a list of integer, but {} "
-            "was given.".format(targets))
-
+    # if targets has correct length
     if oper is not None:
         req_num = len(oper.dims[0])
-        if len(targets) != req_num:  # correct number of targets
+        if len(targets) != req_num:
             raise ValueError(
                 "The given operator needs {} "
                 "target qutbis, "
                 "but {} given.".format(
                     req_num, len(targets)))
-
+    # if targets is smaller than N
     if N is not None:
         if not all([t<N for t in targets]):
             raise ValueError("Targets must be smaller than N={}.".format(N))
     return targets
 
 
-def expand_oper(oper, N, targets):
+def expand_oper(oper, N, targets, dims=None):
     """
     Expand a qubits operator to one that acts on a N-qutbis system.
 
@@ -1202,24 +1195,25 @@ def expand_oper(oper, N, targets):
     This is equivalent to gate_expand_1toN, gate_expand_2toN,
     gate_expand_3toN in `qutip.qip.gate.py`, but works for any dimension.
     """
-    _check_qubits_oper(oper, N=N)
+    if dims is None:
+        dims = [2] * N
     targets = _targets_to_list(targets, oper=oper, N=N)
+    _check_qubits_oper(oper, dims=dims, targets=targets)
 
     # Generate the correct order for qubits permutation,
-    # eg. if N = 5, targets = [3,0], the order is [1,x,x,0,x].
+    # eg. if N = 5, targets = [3,0], the order is [1,2,3,0,4].
     # If the operator is cnot,
     # this order means that the 3rd qubit controls the 0th qubit.
-    new_order = list(range(N))
-    old_ind = range(len(targets))
-    for i in old_ind:
-        new_order[targets[i]] = i
-    old_ind_set = set(old_ind)
-    targets_set = set(targets)
-    mod_value = targets_set.difference(old_ind_set)
-    mod_ind = old_ind_set.difference(targets_set)
-    for ind, value in zip(mod_ind, mod_value):
-        new_order[ind] = value
-    return tensor([oper] + [identity(2)]*(N-len(targets))).permute(new_order)
+    new_order = [0] * N
+    for i, t in enumerate(targets):
+        new_order[t] = i
+    # allocate the rest qutbits (not targets) to the empty position in new_order
+    rest_pos = [q for q in list(range(N)) if q not in targets]
+    rest_qubits = list(range(len(targets), N))
+    for i, ind in enumerate(rest_pos):
+        new_order[ind] = rest_qubits[i]
+    id_list = [identity(dims[i]) for i in rest_pos]
+    return tensor([oper] + id_list).permute(new_order)
 
 
 def expand_oper_periodic(oper, N, targets=None):
@@ -1244,7 +1238,6 @@ def expand_oper_periodic(oper, N, targets=None):
     oper_list : list
         A list of expanded qubits operator acting on a system with N qubits.
     """
-    _check_qubits_oper(oper, N=N)
     targets = _targets_to_list(targets, oper=oper, N=N)
     if len(targets) == N:
         return oper
