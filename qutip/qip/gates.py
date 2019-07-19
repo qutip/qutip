@@ -1166,7 +1166,7 @@ def _targets_to_list(targets, oper=None, N=None):
         targets = list(range(len(oper.dims[0])))
     if not isinstance(targets, Iterable):
         targets = [targets]
-    if not all([isinstance(t, numbers.Integral) for t in targets])):
+    if not all([isinstance(t, numbers.Integral) for t in targets]):
         raise TypeError(
             "targets should be "
             "an integer or a list of integer")
