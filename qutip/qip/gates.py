@@ -1135,7 +1135,7 @@ def _check_qubits_oper(oper, dims=None, targets=None):
         raise ValueError(
             "The operator is not an "
             "Qobj with the same input and output dimensions.")
-    # if operator dims matches dims
+    # if operator dims matches the target dims
     if dims is not None and targets is not None:
         targ_dims = [dims[t] for t in targets]
         if oper.dims[0] != targ_dims:
@@ -1164,16 +1164,12 @@ def _targets_to_list(targets, oper=None, N=None):
     # if targets is a list of integer
     if targets is None:
         targets = list(range(len(oper.dims[0])))
-    elif isinstance(targets, numbers.Integral):
+    if not isinstance(targets, Iterable):
         targets = [targets]
-    elif isinstance(targets, Iterable) and (
-            all([isinstance(t, numbers.Integral) for t in targets])):
-        pass
-    else:
+    if not all([isinstance(t, numbers.Integral) for t in targets])):
         raise TypeError(
             "targets should be "
-            "an integer or a list of integer, but {} "
-            "was given.".format(targets))
+            "an integer or a list of integer")
     # if targets has correct length
     if oper is not None:
         req_num = len(oper.dims[0])
@@ -1242,7 +1238,7 @@ def expand_oper(oper, N, targets, dims=None):
     return tensor([oper] + id_list).permute(new_order)
 
 
-def expand_oper_periodic(oper, N, targets=None):
+def expand_oper_periodic(oper, N, targets=None, dims=None):
     """
     Expand a qubis operator to one that acts on a N-qutbis system for
     all cyclic permutation of the target qubits.
@@ -1271,5 +1267,5 @@ def expand_oper_periodic(oper, N, targets=None):
     for i in range(N):
         new_targets = np.mod(np.array(targets)+i, N)
         oper_list.append(
-            expand_oper(oper, N, new_targets))
+            expand_oper(oper, N=N, targets=new_targets, dims=dims))
     return oper_list

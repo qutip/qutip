@@ -1033,8 +1033,8 @@ class QubitCircuit(object):
                 else:
                     raise ValueError(
                         "gate function takes at most one parameters.")
-                self.U_list.append(
-                    expand_oper(oper, N=self.N,
+                self.U_list.append(expand_oper(
+                        oper, N=self.N,
                         targets=gate.targets, dims=self.dims))
 
             else:
