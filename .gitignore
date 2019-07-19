@@ -35,3 +35,5 @@ qutip/cy/openmp/*.cpp
 benchmark/benchmark_data.js
 *-tasks.txt
 
+test_final.py
+
