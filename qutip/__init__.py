@@ -230,6 +230,9 @@ from qutip.fileio import *
 from qutip.about import *
 from qutip.cite import *
 
+# lattice models
+from qutip.lattice import *
+
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig
 cfg_vars = distutils.sysconfig.get_config_vars()
