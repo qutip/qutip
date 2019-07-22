@@ -616,7 +616,7 @@ def test_QobjNorm():
     assert_almost_equal(b.norm(), (b*b.dag()).sqrtm().tr().real)
 
 def test_QobjPurity():
-    "Qobj purity"
+    "Tests the purity method of `Qobj`"
     psi = basis(2,1)
     # check purity of pure ket state
     assert_almost_equal(psi.purity(), 1)
