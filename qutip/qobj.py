@@ -1037,14 +1037,14 @@ class Qobj(object):
         return zcsr_trace(self.data, self.isherm)
     
     def purity(self):
-        """Purity of a quantum object.
+        """Calculate purity of a quantum object.
 
         Returns
         -------
         state_purity : float
             Returns the purity of a quantum object.
             For a pure state, the purity is 1.
-            For a mixed state, the purity is <1.
+            For a mixed state of dimension `d`, 1/d<=purity<1.
 
         """
         rho = self
