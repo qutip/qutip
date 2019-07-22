@@ -502,11 +502,12 @@ class Qobj(object):
                     # to have uneven length (non-square Qobjs).
                     # We use None as padding so that it doesn't match anything,
                     # and will never cause a partial trace on the other side.
-                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1],
+                    mask = [l == r == 1 for l, r in zip_longest(dims[0], 
+                                                                dims[1],
                                                                 fillvalue=None)]
                     # To ensure that there are still any dimensions left, we
-                    # use max() to add a dimensions list of [1] if all matching dims
-                    # are traced out of that side.
+                    # use max() to add a dimensions list of [1] if all matching
+                    # dims are traced out of that side.
                     out.dims = [max([1],
                                     [dim for dim, m in zip(dims[0], mask)
                                     if not m]),
@@ -1049,7 +1050,7 @@ class Qobj(object):
         """
         rho = self
         if (rho.type == "super"):
-            raise TypeError('Purity is defined on a density matrix or state only.')
+            raise TypeError('Purity is defined on a density matrix or state.')
 
         if rho.type == "ket" or rho.type == "bra":
             state_purity = (rho*rho.dag()).tr()
@@ -1543,7 +1544,9 @@ class Qobj(object):
             elif bra.isket and ket.isket:
                 return zcsr_mat_elem(self.data,bra.data,ket.data,0)
             else:
-                raise TypeError("Can only calculate matrix elements for bra and ket vectors.")
+                err = "Can only calculate matrix elements for bra"
+                err += " and ket vectors."
+                raise TypeError(err)
 
     def overlap(self, other):
         """Overlap between two state vectors or two operators.
@@ -1588,7 +1591,8 @@ class Qobj(object):
                 elif other.isoper:
                     return (qutip.states.ket2dm(self).dag() * other).tr()
                 else:
-                    raise TypeError("Can only calculate overlap for state vector Qobjs")
+                    err = 
+                    raise TypeError(err)
 
             elif self.isket:
                 if other.isbra:
@@ -1598,7 +1602,8 @@ class Qobj(object):
                 elif other.isoper:
                     return (qutip.states.ket2dm(self).dag() * other).tr()
                 else:
-                    raise TypeError("Can only calculate overlap for state vector Qobjs")
+                    err = "Can only calculate overlap for state vector Qobjs"
+                    raise TypeError(err)
 
             elif self.isoper:
                 if other.isket or other.isbra:
@@ -1606,7 +1611,8 @@ class Qobj(object):
                 elif other.isoper:
                     return (self.dag() * other).tr()
                 else:
-                    raise TypeError("Can only calculate overlap for state vector Qobjs")
+                    err = "Can only calculate overlap for state vector Qobjs"
+                    raise TypeError(err)
 
 
         raise TypeError("Can only calculate overlap for state vector Qobjs")
@@ -1833,8 +1839,8 @@ class Qobj(object):
         Parameters
         ----------
         B : :class:`qutip.Qobj` or None
-            If B is not None, the diamond distance d(A, B) = dnorm(A - B) between
-            this operator and B is returned instead of the diamond norm.
+            If B is not None, the diamond distance d(A, B) = dnorm(A - B) 
+            between this operator and B is returned instead of the diamond norm.
 
         Returns
         -------
@@ -1872,7 +1878,8 @@ class Qobj(object):
                     else sr.to_choi(self)
                 )
                 # If J isn't hermitian, then that could indicate either
-                # that J is not normal, or is normal, but has complex eigenvalues.
+                # that J is not normal, or is normal,  
+                # but has complex eigenvalues.
                 # In either case, it makes no sense to then demand that the
                 # eigenvalues be non-negative.
                 if not J.isherm:
