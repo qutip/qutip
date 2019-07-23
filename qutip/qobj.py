@@ -1591,7 +1591,7 @@ class Qobj(object):
                 elif other.isoper:
                     return (qutip.states.ket2dm(self).dag() * other).tr()
                 else:
-                    err = 
+                    err = "Can only calculate overlap for state vector Qobjs"
                     raise TypeError(err)
 
             elif self.isket:
