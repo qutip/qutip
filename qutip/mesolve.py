@@ -236,7 +236,6 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
                             options.rhs_with_state))
 
     if not use_mesolve:
-        print("no collapse operator, using sesolve")
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
                     progress_bar=progress_bar, _safe_mode=_safe_mode)
 
