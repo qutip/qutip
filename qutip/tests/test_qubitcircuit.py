@@ -36,7 +36,9 @@ from numpy.testing import assert_, assert_allclose, run_module_suite
 from qutip.qip.gates import gate_sequence_product, rx, identity, expand_oper
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.tensor import tensor
-from qutip.qobj import Qobj
+from qutip.qobj import Qobj, ptrace
+from qutip.random_objects import rand_dm
+from qutip.states import fock_dm
 
 
 class TestQubitCircuit:
@@ -256,6 +258,27 @@ class TestQubitCircuit:
         assert_allclose(props[0], result1)
         result2 = tensor(identity(2), customer_gate2(None), identity(2))
         assert_allclose(props[1], result2)
+
+    def test_N_level_system(self):
+        """
+        Test for circuit with N-level system.
+        """
+        mat3 = rand_dm(3, density=1.)
+
+        def controlled_mat3(arg_value):
+            """
+            A qubit control an operator acting on a 3 level system
+            """
+            control_value = arg_value
+            dim = mat3.dims[0][0]
+            return (tensor(fock_dm(2, control_value), mat3) +
+                    tensor(fock_dm(2, 1 - control_value), identity(dim)))        
+
+        qc = QubitCircuit(2, dims=[3, 2])
+        qc.user_gates = {"CTRLMAT3": controlled_mat3}
+        qc.add_gate("CTRLMAT3", targets=[1, 0], arg_value=1)
+        props = qc.propagators()
+        assert_allclose(mat3, ptrace(props[0], 0) - 1)
 
 
 if __name__ == "__main__":
