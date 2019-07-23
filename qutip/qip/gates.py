@@ -51,7 +51,7 @@ __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
            'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
-           'qubit_clifford_group', 'expand_oper', 'expand_oper_periodic']
+           'qubit_clifford_group', 'expand_oper', 'expand_oper_nearest']
 
 #
 # Single Qubit Gates
@@ -1188,7 +1188,7 @@ def _targets_to_list(targets, oper=None, N=None):
 
 def expand_oper(oper, N, targets, dims=None):
     """
-    Expand a qubits operator to one that acts on a N-qutbis system.
+    Expand a qubits operator to one that acts on a N-qubit system.
 
     Parameters
     ----------
@@ -1238,10 +1238,12 @@ def expand_oper(oper, N, targets, dims=None):
     return tensor([oper] + id_list).permute(new_order)
 
 
-def expand_oper_periodic(oper, N, targets=None, dims=None):
+def expand_oper_nearest(oper, N, targets=None, dims=None):
     """
-    Expand a qubis operator to one that acts on a N-qutbis system for
-    all cyclic permutation of the target qubits.
+    Expand a qubis operator to one that acts on a N-qubit system for
+    all cyclic permutation of the target qubits. E.g. if N=3 and `oper`
+    is a 2-qubit operator, the result will be a list of three operators,
+    each acting on qubits 0 and 1, 1 and 2, 2 and 3.
 
     Parameters
     ----------

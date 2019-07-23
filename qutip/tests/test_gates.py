@@ -41,7 +41,7 @@ from qutip.qip import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
                        sqrtswap, molmer_sorensen,
                        toffoli, fredkin, gate_expand_3toN, 
                        qubit_clifford_group, expand_oper,
-                       expand_oper_periodic)
+                       expand_oper_nearest)
 from qutip.random_objects import rand_ket, rand_herm, rand_unitary, rand_dm
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
@@ -327,7 +327,7 @@ class TestGates:
             dims=[[2, 2, 2], [2, 2, 2]]))
 
         # test periodically expansion
-        result = expand_oper_periodic(
+        result = expand_oper_nearest(
             tensor([sigmaz(), sigmax()]), N=3, targets=[2, 0])
         mat1 = tensor(sigmax(), qeye(2), sigmaz())
         mat2 = tensor(sigmaz(), sigmax(), qeye(2))
