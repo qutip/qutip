@@ -51,6 +51,7 @@ from qutip.solver import Options, Result
 from qutip import (Qobj, spre, spost, tensor, identity, ket2dm,
                    vector_to_operator)
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
+from qutip import entropy_vn
 from qutip.cy.piqs import Dicke as _Dicke
 from qutip.cy.piqs import (jmm1_dictionary, _num_dicke_states,
                            _num_dicke_ladders, get_blocks, j_min,
