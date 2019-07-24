@@ -145,7 +145,7 @@ class _CubicSplineWrapper:
         self.tlist = tlist
         try:
             use_step_func = args["_step_func_coeff"]
-        except:
+        except KeyError:
             use_step_func = 0
         if use_step_func:
             self.func = interp1d(
@@ -1462,7 +1462,7 @@ class QobjEvo:
             elif self.type == "array":
                 try:
                     use_step_func = self.args["_step_func_coeff"]
-                except:
+                except KeyError:
                     use_step_func = 0
                 if np.allclose(np.diff(self.tlist),
                             self.tlist[1] - self.tlist[0]):
