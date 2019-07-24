@@ -51,7 +51,7 @@ __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
            'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
-           'qubit_clifford_group', 'expand_oper', 'expand_oper_cycper']
+           'qubit_clifford_group', 'expand_operator']
 
 #
 # Single Qubit Gates
@@ -201,7 +201,7 @@ def qrot(theta, phi, N=None, target=0):
         a rabi pulse.
     """
     if N is not None:
-        return expand_oper(qrot(theta, phi), N=N, targets=target)
+        return expand_operator(qrot(theta, phi), N=N, targets=target)
     else:
         return Qobj(
             [
@@ -543,7 +543,7 @@ def molmer_sorensen(theta, N=None, targets=[0, 1]):
         N = 2
 
     if N is not None:
-        return expand_oper(molmer_sorensen(theta), N, targets=targets)
+        return expand_operator(molmer_sorensen(theta), N, targets=targets)
     else:
         return Qobj(
             [
@@ -1186,7 +1186,7 @@ def _targets_to_list(targets, oper=None, N=None):
     return targets
 
 
-def expand_oper(oper, N, targets, dims=None):
+def expand_operator(oper, N, targets, dims=None, cyclic_permutation=False):
     """
     Expand a qubits operator to one that acts on a N-qubit system.
 
@@ -1205,6 +1205,11 @@ def expand_oper(oper, N, targets, dims=None):
         A list of integer for the dimension of each composite system.
         e.g [2,2,2,2,2] for 5 qubits system. If None, qubits system
         will be the default option.
+    cyclic_permutation : boolean
+        Expand for all cyclic permutation of the targets.
+        E.g. if N=3 and `oper` is a 2-qubit operator,
+        the result will be a list of three operators,
+        each acting on qubits 0 and 1, 1 and 2, 2 and 0.
 
     Returns
     -------
@@ -1221,6 +1226,15 @@ def expand_oper(oper, N, targets, dims=None):
     targets = _targets_to_list(targets, oper=oper, N=N)
     _check_qubits_oper(oper, dims=dims, targets=targets)
 
+    # Call expand_operator for all cyclic permutation of the targets.
+    if cyclic_permutation:
+        oper_list = []
+        for i in range(N):
+            new_targets = np.mod(np.array(targets)+i, N)
+            oper_list.append(
+                expand_operator(oper, N=N, targets=new_targets, dims=dims))
+        return oper_list
+
     # Generate the correct order for qubits permutation,
     # eg. if N = 5, targets = [3,0], the order is [1,2,3,0,4].
     # If the operator is cnot,
@@ -1236,38 +1250,3 @@ def expand_oper(oper, N, targets, dims=None):
         new_order[ind] = rest_qubits[i]
     id_list = [identity(dims[i]) for i in rest_pos]
     return tensor([oper] + id_list).permute(new_order)
-
-
-def expand_oper_cycper(oper, N, targets=None, dims=None):
-    """
-    Expand a qubis operator to one that acts on a N-qubit system for
-    all cyclic permutation of the target qubits. E.g. if N=3 and `oper`
-    is a 2-qubit operator, the result will be a list of three operators,
-    each acting on qubits 0 and 1, 1 and 2, 2 and 3.
-
-    Parameters
-    ----------
-    oper : :class:`qutip.Qobj`
-        An operator acts on qubits, the type of the `Qobj`
-        has to be an operator
-        and the dimension matches the tensored qubit Hilbert space
-        e.g. dims = [[2,2,2],[2,2,2]]
-    N : int
-        The number of qubits in the system.
-    targets : int or list of int
-        The indices of qubits that are acted on.
-
-    Returns
-    -------
-    oper_list : list
-        A list of expanded qubits operator acting on a system with N qubits.
-    """
-    targets = _targets_to_list(targets, oper=oper, N=N)
-    if len(targets) == N:
-        return oper
-    oper_list = []
-    for i in range(N):
-        new_targets = np.mod(np.array(targets)+i, N)
-        oper_list.append(
-            expand_oper(oper, N=N, targets=new_targets, dims=dims))
-    return oper_list
