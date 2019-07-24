@@ -56,7 +56,7 @@ if sys.version_info[0] < 3:
 
 class TestDicke:
     """
-    Tests for `qutip.piqs.Dicke` class.
+    Tests for `qutip.piqs.Dicke` class and auxiliary functions.
     """
 
     def test_num_dicke_states(self):
