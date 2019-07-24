@@ -155,7 +155,6 @@ class _CubicSplineWrapper:
             self.func = CubicSpline(self.tlist, self.coeff)
 
     def __call__(self, t, args={}):
-        self.func([t])[0]
         return self.func([t])[0]
 
 

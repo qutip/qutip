@@ -215,13 +215,14 @@ def test_QobjEvo_step_coeff():
     assert_equal(qobjevo.ops[1].get_coeff(7.0), coeff2[5])
     assert_equal(qobjevo.ops[1].get_coeff(5.0001), coeff2[3])
     assert_equal(qobjevo.ops[1].get_coeff(3.9999), coeff2[1])
+
     qobjevo.compile()
     assert_equal(qobjevo.coeff_get(2.0), [coeff1[0], coeff2[0]])
     assert_equal(qobjevo.coeff_get(7.0), [coeff1[5], coeff2[5]])
     assert_equal(qobjevo.coeff_get(4.0001), [coeff1[2], coeff2[2]])
     assert_equal(qobjevo.coeff_get(3.9999), [coeff1[1], coeff2[1]])
 
-    # non-uniform t and start from 1
+    # non-uniform t
     tlist = np.array([1, 2, 4, 5, 6, 8], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
         tlist=tlist, args={"_step_func_coeff":True})
