@@ -42,7 +42,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb', 'matrix_histogram',
-           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere','matrix_sparcity_pattern']
+           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere']
 
 import warnings
 import itertools as it
@@ -68,20 +68,6 @@ from qutip.tensor import flatten
 
 from qutip import settings
 
-def matrix_sparcity_pattern(Hamt):
-    """
-    Plots the non-zero elements of a matrix on a 2d plane.
-    
-    Parameters
-    ==========
-    Hamt : numpy matrix
-        The matrix to be plotted on the 2d plane.            
-    """       
-    Hamt = csr_matrix(Hamt)         
-
-    fig, axs = plt.subplots(1, 1)
-    axs.spy(Hamt, markersize=5)
-    plt.show()
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
     """Plots a coloured Bloch sphere.
