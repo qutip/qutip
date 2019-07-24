@@ -36,4 +36,12 @@ benchmark/benchmark_data.js
 *-tasks.txt
 
 test_final.py
+test_final_2d.py
+test_final_cell_dist_op.py
+test_final_cell_struc.py
+test_final_CROW.py
+test_final_SSH.py
+
+
+
 

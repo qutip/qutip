@@ -32,7 +32,7 @@
 ###############################################################################
 
 
-__all__ = ['Lattice1d', 'Lattice2d', 'cell_structures']
+__all__ = ['Lattice1d', 'cell_structures']
 
 from numpy import (exp, expm1, log, log10)
 from scipy.sparse import (_sparsetools, isspmatrix, isspmatrix_csr,
