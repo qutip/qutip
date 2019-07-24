@@ -81,10 +81,12 @@ class OptPulseProcessor(CircuitProcessor):
         row corresponds to the control pulse sequence for
         one Hamiltonian.
     """
-    def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None):
-        super(OptPulseProcessor, self).__init__(N, T1=T1, T2=T2)
-
-        self.drift = drift
+    def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None, dims=None):
+        super(OptPulseProcessor, self).__init__(N, T1=T1, T2=T2, dims=dims)
+        if drift is None:
+            self.drift = tensor([identity(self.dims[i]) for i in range(N)])
+        else:
+            self.drift = drift
         if ctrls is not None:
             for H in ctrls:
                 self.add_ctrl(H)
@@ -172,9 +174,9 @@ class OptPulseProcessor(CircuitProcessor):
             [np.hstack(amps_record)])
         return self.tlist, self.amps
 
-    def get_qobjevo(self, tlist, get_amp_td_func):
+    def get_qobjevo(self, tlist):
         proc_qobjevo = super(OptPulseProcessor, self).get_qobjevo(
-            tlist=tlist, get_amp_td_func=get_amp_td_func)
+            tlist=tlist)
         if self.drift is not None:
             return proc_qobjevo + self.drift
         else:

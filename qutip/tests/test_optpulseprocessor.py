@@ -90,7 +90,7 @@ class TestOptPulseProcessor:
         n_ts = 30
         evo_time = 10
         test = OptPulseProcessor(N, H_d, H_c)
-        test.add_ctrl(tensor([sigmax(), sigmax()]), expand_type="periodic")
+        test.add_ctrl(tensor([sigmax(), sigmax()]), expand_type="cycper")
 
         # test periodically adding ctrls
         sx = sigmax()

@@ -191,6 +191,17 @@ class TestCircuitProcessor:
         proc.add_noise(white_noise)
         result = proc.run_state(rho0=rho0)
 
+    def MultiLevelSystem(self):
+        """
+        Test for processor with multi-level system
+        """
+        N = 2
+        proc = CircuitProcessor(N=N, dims=[2, 3])
+        proc.add_ctrl(tensor(sigmaz(), rand_dm(3, density=1.)))
+        proc.amps = np.array([1, 2]).reshape((1,2))
+        proc.tlist = np.array([0., 1., 2])
+        proc.run_state(rho0=tensor([basis(2, 0), basis(3, 1)]))
+
 
 if __name__ == "__main__":
     run_module_suite()

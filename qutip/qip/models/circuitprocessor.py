@@ -86,7 +86,8 @@ class CircuitProcessor(object):
         row corresponds to the control pulse sequence for
         one Hamiltonian.
     """
-    def __init__(self, N, T1=None, T2=None, noise=None, spline_kind="step_func"):
+    def __init__(self, N, T1=None, T2=None, noise=None,
+                 dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
         self.amps = None
@@ -97,8 +98,11 @@ class CircuitProcessor(object):
             self.noise = []
         else:
             self.noise = noise
-        self.dims = [2] * N
-        self.spline_kind = "step_func"
+        if dims is None:
+            self.dims = [2] * N
+        else:
+            self.dims = dims
+        self.spline_kind = spline_kind
 
     def add_ctrl(self, ctrl, targets=None, expand_type=None):
         """
@@ -113,7 +117,7 @@ class CircuitProcessor(object):
         expand_type : string
             The type of expansion
             None - only expand for the given target qubits
-            "periodic" - the Hamiltonian is to be expanded for
+            "cycper" - the Hamiltonian is to be expanded for
                 all cyclic permutation of target qubits
         """
         # Check validity of ctrl
@@ -130,12 +134,13 @@ class CircuitProcessor(object):
             if num_qubits == self.N:
                 self.ctrls.append(ctrl)
             else:
-                self.ctrls.append(expand_oper(ctrl, self.N, targets))
-        elif expand_type == "periodic":
+                self.ctrls.append(
+                    expand_oper(ctrl, self.N, targets, self.dims))
+        elif expand_type == "cycper":
             for i in range(self.N):
                 new_targets = np.mod(np.array(targets)+i, self.N)
                 self.ctrls.append(
-                    expand_oper(ctrl, self.N, new_targets))
+                    expand_oper(ctrl, self.N, new_targets, self.dims))
         else:
             raise ValueError(
                 "expand_type can only be None or 'periodic', "
@@ -259,7 +264,7 @@ class CircuitProcessor(object):
         args = {}
         if self.spline_kind == "step_func" and self.amps is not None:
             amps = np.hstack([self.amps, self.amps[:, -1:]])
-            args = {"_spline_kind": "previous"}
+            args = {"_step_func_coeff": 1}
         else:
             amps = self.amps
 
@@ -430,24 +435,24 @@ class CircuitProcessor(object):
             A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
             representing the time-(in)dependent collapse operators.
         """
-        # TODO there is a bug when using +=QobjEvo()
+        # TODO there is a bug when using QobjEvo()+=
         tlist = self.tlist
         evo_noise_list = QobjEvo(tensor([identity(2)]*self.N), tlist=tlist)
         c_ops = []
         evo_noise_list = []
         if (self.T1 is not None) or (self.T2 is not None):
             c_ops += RelaxationNoise(self.T1, self.T2).get_noise(
-                N=self.N)
+                N=self.N, dims=self.dims)
         for noise in self.noise:
             if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
                 c_ops += noise.get_noise(
-                    self.N, tlist)
+                    self.N, tlist, dims=self.dims)
             elif isinstance(noise, ControlAmpNoise):
                 evo_noise_list.append(noise.get_noise(
-                    self.N, tlist, unitary_qobjevo))
+                    self.N, tlist, unitary_qobjevo, dims=self.dims))
             elif isinstance(noise, UserNoise):
                 noise_qobjevo, new_c_ops = noise.get_noise(
-                    self.N, tlist, unitary_qobjevo)
+                    self.N, tlist, unitary_qobjevo, dims=self.dims)
                 evo_noise_list.append(noise_qobjevo)
                 c_ops += new_c_ops
             else:
@@ -602,7 +607,7 @@ class ModelProcessor(CircuitProcessor):
         return U_list
 
     def run_state(self, qc=None, rho0=None, states=None,
-                  numerical=True, **kwargs):
+                  numerical=False, **kwargs):
         """
         Simulate the state evolution under the given `qutip.QubitCircuit`
         If `analytical` is false, it will generate
@@ -682,7 +687,7 @@ class ModelProcessor(CircuitProcessor):
         dt = 0.01
         H_ops, H_u = self.get_ops_and_u()
 
-        diff_tlist = self.tlist - np.hstack([[0], self.tlist[:-1]])
+        diff_tlist = self.tlist[1:] - self.tlist[:-1]
         t_tot = sum(diff_tlist)
         n_t = int(np.ceil(t_tot / dt))
         n_ops = len(H_ops)
