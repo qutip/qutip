@@ -128,6 +128,52 @@ class TestDicke:
         for (i, j) in zip(m_real, m_calc):
             assert_array_equal(i, j)
 
+    def test_mask_dicke_matrix(self):
+        """
+        PIQS: Test the `mask_dicke_matrix` function.
+        """
+        # test 1
+        # mixed state with non-symmetrical block matrix elements
+        N = 3
+        true_matrix = (excited(N)+dicke(N,0.5,0.5)).unit()
+        test_matrix = mask_dicke_matrix(true_matrix)
+        assert_(test_matrix == true_matrix)
+        # test 2
+        # all elements in block-diagonal matrix
+        N = 4
+        true_matrix = Qobj(block_matrix(N)).unit()
+        test_matrix = mask_dicke_matrix(true_matrix)
+        assert_(test_matrix == true_matrix)
+        
+    def test_expand_dicke_matrix(self):
+        """
+        PIQS: Test the `expand_dicke_matrix` function.
+        """
+        test_matrix = expand_dicke_matrix(excited(3))
+        true_expanded = np.zeros((8,8))
+        true_expanded[0,0] = 1.
+        assert_(test_matrix == Qobj(true_expanded))
+        
+    def test_entropy_vn_dicke(self):
+        """
+        PIQS: Test the `entropy_vn_dicke` function.
+        """
+        N = 3
+        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
+        test_val = entropy_vn_dicke(rho_mixed)
+        true_val = entropy_vn(expand_dicke_matrix(rho_mixed))
+        assert_(test_val == true_val)
+
+    def test_purity_dicke(self):
+        """
+        PIQS: Test the `purity_dicke` function.
+        """
+        N = 3
+        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
+        test_val = purity_dicke(rho_mixed)
+        true_val = (expand_dicke_matrix(rho_mixed)).purity()
+        assert_(test_val == true_val)
+
     def test_get_index(self):
         """
         PIQS: Test the index fetching function for given j, m, m1 value.
