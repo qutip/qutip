@@ -1392,22 +1392,23 @@ def identity_uncoupled(N):
     identity = Qobj(rho, dims=spins_dims)
     return identity
 
-def block_matrix(N):
+def block_matrix(N,elements="ones"):
     """Construct the block-diagonal matrix for the Dicke basis.
 
     Parameters
     ----------
-    N: int
+    N : int
         Number of two-level systems.
+    elements : str {'ones' (default),'degeneracy'}
 
     Returns
     -------
-    block_matr: ndarray
-        A 2D block-diagonal matrix of ones with dimension (nds,nds),
+    block_matr : ndarray
+        A 2D block-diagonal matrix with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
-        systems.
+        systems. Filled with ones or the value of degeneracy 
+        at each matrix element.
     """
-    nds = _num_dicke_states(N)
     # create a list with the sizes of the blocks, in order
     blocks_dimensions = int(N/2 + 1 - 0.5*(N % 2))
     blocks_list = [(2 * (i+1 * (N % 2)) + 1*((N+1) % 2))
@@ -1417,7 +1418,12 @@ def block_matrix(N):
     square_blocks = []
     k = 0
     for i in blocks_list:
-        square_blocks.append(np.ones((i, i)))
+        if elements == "ones":
+            square_blocks.append(np.ones((i, i)))
+        elif elements == "degeneracy":
+            j = N/2 - k
+            dj = state_degeneracy(N,j)
+            square_blocks.append(dj*np.ones((i, i)))
         k = k + 1
     return block_diag(square_blocks)
 
