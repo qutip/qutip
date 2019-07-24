@@ -836,7 +836,7 @@ class TestMESolveStepFuncCoeff:
         npcoeff2 = np.array([0.4, 1.6, 1.0, 1.0], dtype=float)
         strcoeff = "1."
         qu = QobjEvo(
-            [[sigmax(), npcoeff1], [sigmax(), npcoeff2], 
+            [[sigmax(), npcoeff1], [sigmax(), npcoeff2],
              [sigmax(), self.python_coeff], [sigmax(), strcoeff]],
             tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist)
