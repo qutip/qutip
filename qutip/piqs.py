@@ -181,7 +181,56 @@ def mask_dicke_matrix(rho,blocks='qobj'):
     else:
         return Qobj(block_diag(square_blocks))
 
-def entropy_vn_dicke(rho,blocks='qobj'):
+def dicke_trace(rho,f=None):
+    """Calculate the trace of a nonlinear function on a Dicke object.
+    
+    (A) If `f` is not given, simply take the trace of `rho`.
+    
+    (B) If `f` is given, take these steps:
+    1. Unpack `rho` in the list of its Dicke-basis blocks. 
+    2. For each block: Divide by its degeneracy, apply `f`, 
+       then multiply by the degeneracy.
+    3. Take the sum of the results, which is taking the trace.
+    
+    Step (B) allows to correctly calculate nonlinear functions
+    defined on density matrices in the Dicke-basis representation
+    of the `qutip.piqs` module, if `f` can be written as the trace
+    of a Taylor-expandable function acting on `rho`.
+    Examples are the Von Neumann entropy and the purity. 
+
+    Parameters
+    ----------
+    rho : :class:`qutip.Qobj`
+        A block-diagonal density matrix in the Dicke basis. 
+    f : function (optional, default=None)
+        The nonlinear function to apply to rho.
+
+    Returns
+    -------
+    trace: float
+        Trace of the function applied onto the blocks.
+        
+    """
+    # Check if option (A): if no `f` calculate trace
+    if f == None:
+        return rho.tr()
+    # Algorithm for option (B): nonlinear `f`
+    # unpack Dicke-basis `rho` in its blocks
+    N = num_tls(rho.shape[0])
+    blocks = mask_dicke_matrix(rho,blocks="list")
+    block_f = []
+    k = 0
+    # apply `f` to each block
+    for block in blocks:
+        j = N/2. - k
+        dj = state_degeneracy(N,j)
+        # divide by `dj`, apply `f`, multiply by `dj`
+        block_f.append(f(Qobj(block/dj))*dj)
+        k = k+1
+    # sum list (i.e. take trace)
+    return sum(block_f)
+
+def entropy_vn_dicke(rho):
     """Entropy of a Dicke-basis density matrix, accounting for degenerate blocks.
 
     Parameters
@@ -199,21 +248,8 @@ def entropy_vn_dicke(rho,blocks='qobj'):
         Entropy. Use degeneracy to multiply each block.
         
     """
-    shape_dimension = rho.shape[0]
-    N = num_tls(shape_dimension)
-    blocks = mask_dicke_matrix(rho,blocks="list")
-    block_entropy = []
-    k = 0
-    #print("len blocks ", len(blocks))
-    for block_index in range(len(blocks)):
-        block = blocks[block_index]
-        #print(k)
-        j = N/2. - k
-        #print(j)
-        djn = state_degeneracy(N,j)
-        block_entropy.append(entropy_vn(Qobj(block/djn))*djn)
-        k = k+1
-    return sum(block_entropy)
+    f = entropy_vn
+    return dicke_trace(rho,f)
 
 def purity_dicke(rho):
     """Calculate purity of a density matrix in the Dicke basis.
@@ -229,23 +265,8 @@ def purity_dicke(rho):
     purity : float
         The purity of the quantum state. 
         It's 1 for pure states, 0<=purity<1 for mixed states.       
-    """
-    shape_dimension = rho.shape[0]
-    N = num_tls(shape_dimension)
-    blocks = mask_dicke_matrix(rho,blocks="list")
-    block_purity = []
-    k = 0
-    #print("len blocks ", len(blocks))
-    for block_index in range(len(blocks)):
-        block = blocks[block_index]
-        #print(k)
-        j = N/2. - k
-        #print(j)
-        djn = state_degeneracy(N,j)
-        block_purity.append((Qobj(block/djn)).purity()*djn)
-        k = k +1
-    
-    return sum(block_purity)
+    """    
+    return dicke_trace(rho,lambda rho: (rho*rho).tr())
 
 def expand_dicke_matrix(rho,blocks='qobj'):
     """Expand the block-diagonal matrix from the Dicke basis to 2^N.
