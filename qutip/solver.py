@@ -32,7 +32,7 @@
 ###############################################################################
 from __future__ import print_function
 
-__all__ = ['Options', 'Odeoptions', 'Odedata']
+__all__ = ['Options', 'Odeoptions', 'Odedata', 'ExpectOps']
 
 import sys
 import datetime
@@ -319,6 +319,14 @@ class Options():
         s += "store_final_state: " + str(self.store_final_state) + "\n"
 
         return s
+
+    def __call__(self, **kwargs):
+        for key in kwargs:
+            try:
+                self.__getattr__(key)
+                self.__setattr__(key, kwargs[key])
+            except:
+                print(key, "is not a valid option")
 
 
 class Result():
