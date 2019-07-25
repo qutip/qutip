@@ -154,6 +154,23 @@ class TestDicke:
         true_expanded[0,0] = 1.
         assert_(test_matrix == Qobj(true_expanded))
         
+    def test_dicke_trace(self):
+        """
+        PIQS: Test the `dicke_trace` function.
+        """
+        N = 3
+        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
+        test_val = dicke_trace(rho_mixed,f=None)
+        true_val = (expand_dicke_matrix(rho_mixed)).tr()
+        true_val2 = (rho_mixed).tr()
+        # test with linear function (trace)
+        assert_almost_equal(test_val,true_val)
+        assert_almost_equal(test_val,true_val2)
+        # test with nonlinear function
+        test_val3 = dicke_trace(rho_mixed,lambda rho: (rho**3).tr())
+        true_val3 = (expand_dicke_matrix(rho_mixed)**3).tr()
+        assert_almost_equal(test_val3,true_val3)
+        
     def test_entropy_vn_dicke(self):
         """
         PIQS: Test the `entropy_vn_dicke` function.
