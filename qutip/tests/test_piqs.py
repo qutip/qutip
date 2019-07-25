@@ -38,7 +38,7 @@ from numpy.testing import (assert_, run_module_suite, assert_raises,
                            assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
 
-from qutip import Qobj, entropy_vn
+from qutip import Qobj, entropy_vn,sigmax,sigmaz
 from qutip.cy.piqs import (get_blocks, j_min, j_vals, m_vals,
                            _num_dicke_states, _num_dicke_ladders,
                            get_index, jmm1_dictionary)

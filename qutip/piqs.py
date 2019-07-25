@@ -58,11 +58,13 @@ from qutip.cy.piqs import (jmm1_dictionary, _num_dicke_states,
                            m_vals, j_vals)
 
 __all__ = ['num_dicke_states','num_dicke_ladders','num_tls','isdiagonal',
-           'mask_dicke_matrix','purity_dicke','expand_dicke_matrix',
-           'entropy_vn_dicke','Dicke','state_degeneracy','m_degeneracy',
-           'ap','am','spin_algebra','jspin','collapse_uncoupled',
-           'dicke_basis','dicke','excited','superradiant','css','ghz',
-           'ground','identity_uncoupled','block_matrix','tau_column','Pim']
+           'mask_dicke_matrix','expand_dicke_matrix',
+           'dicke_trace','purity_dicke','entropy_vn_dicke',
+           'Dicke','state_degeneracy','m_degeneracy',
+            'energy_degeneracy','ap','am','spin_algebra','jspin',
+            'collapse_uncoupled','dicke_basis',
+            'dicke','excited','superradiant','css','ghz','ground',
+            'identity_uncoupled','block_matrix','tau_column','Pim']
 
 # Functions necessary to generate the Lindbladian/Liouvillian
 def num_dicke_states(N):
