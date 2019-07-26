@@ -116,8 +116,9 @@ cdef double _spline_float_cte_second(double x,
         return y[0]
     elif x > t[n_t-1]:
         return y[n_t-1]
-    cdef int p = <int>(x/dt)
-    cdef double tb = (x/dt - p)
+    cdef double xx = (x-t[0])/dt
+    cdef int p = <int>xx
+    cdef double tb = (xx - p)
     cdef double te = 1 - tb
     cdef double dt2 = dt * dt
     cdef double Me = M[p+1] * dt2
@@ -164,8 +165,9 @@ cdef complex _spline_complex_cte_second(double x,
         return y[0]
     elif x > t[n_t-1]:
         return y[n_t-1]
-    cdef int p = <int>(x/dt)
-    cdef double tb = (x/dt - p)
+    cdef double xx = (x-t[0])/dt
+    cdef int p = <int>xx
+    cdef double tb = (xx - p)
     cdef double te = 1 - tb
     cdef double dt2 = dt * dt
     cdef complex Me = M[p+1] * dt2
