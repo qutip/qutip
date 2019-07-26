@@ -32,7 +32,7 @@
 ###############################################################################
 
 
-__all__ = ['Lattice1d', 'cell_structures']
+__all__ = ['Lattice1d', 'Lattice2d', 'cell_structures']
 
 from scipy.sparse import (csr_matrix)
 from qutip import (Qobj, tensor, basis, qeye, isherm)
@@ -240,12 +240,12 @@ def cell_structures(val_s=[], val_t=[]):
         tensor structure of the cell Hamiltonian elements
     inter_cell_T : numpy ndarray
         tensor structure of the inter cell Hamiltonian elements
-    """    
+    """
     SN = len(val_s)
     TN = len(val_t)
     Er0_str = "At least one list of str necessary for using cell_structures!"
     Er1_str = "val_s is required to be a list of str's or a str"
-    Er2_str = "val_t is required to be a list of str's or a str."    
+    Er2_str = "val_t is required to be a list of str's or a str."
     if SN == 0:
         raise Exception(Er0_str)
     else:
@@ -266,10 +266,9 @@ def cell_structures(val_s=[], val_t=[]):
             if not isinstance(val_t, str):  # checking if it is indeed a str
                 raise Exception(Er2_str)
 
-
     if SN * TN == 0 and SN != 0:
-        scell_H = [[[] for i in range(SN)] for j in range(SN)]
-        sinter_cell_T = [[[] for i in range(SN)] for j in range(SN)]
+        scell_H = [[None for i in range(SN)] for j in range(SN)]
+        sinter_cell_T = [[None for i in range(SN)] for j in range(SN)]
 
         for ir in range(SN):
             for ic in range(SN):
@@ -278,8 +277,9 @@ def cell_structures(val_s=[], val_t=[]):
                 sinter_cell_T[ir][ic] = "<cell(i):" + sst + ":cell(i+1) >"
 
     if SN * TN != 0:
-        scell_H = [[[] for i in range(SN * TN)] for j in range(SN * TN)]
-        sinter_cell_T = [[[] for i in range(SN * TN)] for j in range(SN * TN)]
+        scell_H = [[None for i in range(SN * TN)] for j in range(SN * TN)]
+        sinter_cell_T = [[None for i in range(SN * TN)]
+                         for j in range(SN * TN)]
 
         for ir in range(SN):
             for jr in range(TN):
@@ -298,6 +298,7 @@ def cell_structures(val_s=[], val_t=[]):
                         llt.append("<cell(i):")
                         llt.append(sst)
                         llt.append(":cell(i+1) >")
+                        llt = ''.join(llt)
                         sinter_cell_T[ir * TN+jr][ic * TN+jc] = llt
 
     cell_H = np.zeros(np.shape(scell_H), dtype=complex)
@@ -389,7 +390,7 @@ class Lattice1d():
             raise Exception("\n\n cell_num_site is required to be a positive \
                             integer.")
 
-        if isinstance(cell_site_dof,list):
+        if isinstance(cell_site_dof, list):
             l_v = 1
             for i in range(len(cell_site_dof)):
                 csd_i = cell_site_dof[i]
@@ -400,7 +401,7 @@ class Lattice1d():
                 l_v = l_v * cell_site_dof[i]
             self.cell_site_dof = cell_site_dof
 
-        elif isinstance(cell_site_dof,int):
+        elif isinstance(cell_site_dof, int):
             if cell_site_dof < 0:
                 raise Exception("\n\n cell_site_dof is required to be a \
                                 positive integer.")
@@ -599,7 +600,7 @@ class Lattice1d():
             raise Exception("dof_ind in basis() needs to be an int or \
                             list of int")
 
-        if shape(dof_ind) == shape(self.cell_site_dof):
+        if np.shape(dof_ind) == np.shape(self.cell_site_dof):
             for i in range(len(dof_ind)):
                 if dof_ind[i] >= self.cell_site_dof[i]:
                     print("in basis(), dof_ind[", i, "] is required to be \
@@ -642,7 +643,7 @@ class Lattice1d():
             print("\n inter_hop[", i, "] is not dimensionally incorrect.\n")
             raise Exception("op in distribute_operstor() is required to \
             have the same dimensionality as cell_Hamiltonian.")
-            cell_All = [i for i in range(self.num_cell)]
+        cell_All = [i for i in range(self.num_cell)]
         op_H = self.operator_at_cells(op, cells=cell_All)
         return op_H
 
@@ -659,8 +660,8 @@ class Lattice1d():
         nx = self.cell_num_site
         ne = self._length_for_site
 
-        positions = np.kron( range(nx), [1/nx for i in range(ne)] ) # not used
-        # in the current definition of x        
+        positions = np.kron(range(nx), [1/nx for i in range(ne)])  # not used
+        # in the current definition of x
         S = np.kron(np.ones(self.num_cell), positions)
 #        xs = np.diagflat(R+S)        # not used in the
         # current definition of x
@@ -733,7 +734,7 @@ class Lattice1d():
         M = nx_units*ny_units*NS
         op_H = csr_matrix((data, (row_ind, col_ind)), [M, M], dtype=np.complex)
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
-        return Qobj(op_H, dims=dim_op)        
+        return Qobj(op_H, dims=dim_op)
 
     def plot_dispersion(self):
         """
@@ -746,7 +747,7 @@ class Lattice1d():
         if self.num_cell <= MAXc:
             (kxA, val_ks) = self.get_dispersion(101)
         (knxA, val_kns) = self.get_dispersion()
-        fig, ax = subplots()
+        fig, ax = plt.subplots()
         if self.num_cell <= MAXc:
             for g in range(self._length_of_unit_cell):
                 ax.plot(kxA/np.pi, val_ks[g, :])
@@ -754,12 +755,12 @@ class Lattice1d():
         for g in range(self._length_of_unit_cell):
             if self.num_cell % 2 == 0:
                 ax.plot(np.append(knxA, [np.pi])/np.pi,
-                        np.append(val_kns[g, :], val_kns[g, 0]), 'bo')
+                        np.append(val_kns[g, :], val_kns[g, 0]), 'ro')
             else:
-                ax.plot(knxA/np.pi, val_kns[g, :], 'bo')
+                ax.plot(knxA/np.pi, val_kns[g, :], 'ro')
         ax.set_ylabel('Energy')
         ax.set_xlabel('$k_x(\pi/a)$')
-        show(fig)
+        plt.show(fig)
         fig.savefig('./Dispersion.pdf')
 
     def get_dispersion(self, knpoints=0):
@@ -803,12 +804,11 @@ class Lattice1d():
             for m in range(len(self._H_inter_list)):
                 r_cos = self._inter_vec_list[m]
                 kr_dotted = np.dot(k_cos, r_cos)
-                H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)
+                H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
             H_k = csr_matrix(H_ka)
             vals = diag_a_matrix(H_k, calc_evecs=False)
             val_kns[:, ks] = vals[:]
 
         return (knxA, val_kns)
-
 
