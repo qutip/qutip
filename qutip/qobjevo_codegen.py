@@ -162,7 +162,7 @@ include """ + _include_string + "\n\n"
             dt_times = str(tlist[1]-tlist[0])
             try:
                 use_step_func = args["_step_func_coeff"]
-            except:
+            except KeyError:
                 use_step_func = 0
             if dt_cte:
                 if isinstance(op.coeff[0], (float, np.float32, np.float64)):

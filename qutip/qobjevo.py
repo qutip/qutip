@@ -145,7 +145,7 @@ class _CubicSplineWrapper:
         self.tlist = tlist
         try:
             use_step_func = args["_step_func_coeff"]
-        except:
+        except KeyError:
             use_step_func = 0
         if use_step_func:
             self.func = interp1d(
@@ -155,11 +155,6 @@ class _CubicSplineWrapper:
             self.func = CubicSpline(self.tlist, self.coeff)
 
     def __call__(self, t, args={}):
-        try:
-            (self.func([t])[0])
-        except:
-            print(t)
-            print(self.coeff)
         return self.func([t])[0]
 
 
@@ -243,6 +238,10 @@ class QobjEvo:
     A list of times (float64) at which the coeffients must be given (tlist).
     The coeffients array must have the same len as the tlist.
     The time of the tlist do not need to be equidistant, but must be sorted.
+    By default, a cubic spline interpolation will be used for the coefficient
+    at time t.
+    If the coefficients are to be treated as step function, use the arguments
+    args = {"_step_func_coeff": True}
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo([H0, [H1, np.exp(-1j*tlist)], [H2, np.cos(2.*tlist)]],
@@ -1480,7 +1479,7 @@ class QobjEvo:
             elif self.type == "array":
                 try:
                     use_step_func = self.args["_step_func_coeff"]
-                except:
+                except KeyError:
                     use_step_func = 0
                 if np.allclose(np.diff(self.tlist),
                             self.tlist[1] - self.tlist[0]):
