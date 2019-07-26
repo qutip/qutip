@@ -483,9 +483,7 @@ class QobjEvo:
                     self.ops.append(EvoElement(op[0], op[1], op[1], "spline"))
 
             nops = sum(op_type_count)
-            if nops == 0:
-                self.type = "cte"
-            elif op_type_count[0] == nops:
+            if op_type_count[0] == nops:
                 self.type = "func"
             elif op_type_count[1] == nops:
                 self.type = "mixed_callable"
@@ -721,10 +719,7 @@ class QobjEvo:
             raise TypeError("state must be a Qobj or np.ndarray")
 
     def copy(self):
-        if self.cte is None:
-            new = QobjEvo()
-        else:
-            new = QobjEvo(self.cte.copy())
+        new = QobjEvo(self.cte.copy())
         new.const = self.const
         new.args = self.args.copy()
         new.dynamics_args = self.dynamics_args.copy()
@@ -787,7 +782,7 @@ class QobjEvo:
 
     def to_list(self):
         list_qobj = []
-        if not self.dummy_cte and self.cte is not None:
+        if not self.dummy_cte:
             list_qobj.append(self.cte)
         for op in self.ops:
             list_qobj.append([op.qobj, op.coeff])
@@ -806,11 +801,7 @@ class QobjEvo:
 
     def __iadd__(self, other):
         if isinstance(other, QobjEvo):
-            if other.cte is not None:
-                if self.cte is None:
-                    self.cte = other.cte
-                else:
-                    self.cte += other.cte
+            self.cte += other.cte
             l = len(self.ops)
             for op in other.ops:
                 if op.type == "array":
@@ -822,10 +813,7 @@ class QobjEvo:
                 l += 1
             self.args.update(**other.args)
             self.dynamics_args += other.dynamics_args
-            if not self.ops:
-                self.const = True
-            if self.cte is None: 
-                self.const = False
+            self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
             if self.type != other.type:
                 if self.type in ["func", "mixed_callable"] or \
@@ -1158,13 +1146,7 @@ class QobjEvo:
                 op_type_count[3] += 1
 
         nops = sum(op_type_count)
-        if nops == 0:
-            if self.cte is not None:
-                # TODO what about dummy cte
-                self.type = "cte"
-            else:
-                self.type = None
-        elif op_type_count[0] == nops:
+        if op_type_count[0] == nops:
             self.type = "func"
         elif op_type_count[1] == nops:
             self.type = "string"
