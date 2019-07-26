@@ -719,10 +719,7 @@ class QobjEvo:
             raise TypeError("state must be a Qobj or np.ndarray")
 
     def copy(self):
-        if self.cte is None:
-            new = QobjEvo()
-        else:
-            new = QobjEvo(self.cte.copy())
+        new = QobjEvo(self.cte.copy())
         new.const = self.const
         new.args = self.args.copy()
         new.dynamics_args = self.dynamics_args.copy()
@@ -804,11 +801,7 @@ class QobjEvo:
 
     def __iadd__(self, other):
         if isinstance(other, QobjEvo):
-            if other.cte is not None:
-                if self.cte is None:
-                    self.cte = other.cte
-                else:
-                    self.cte += other.cte
+            self.cte += other.cte
             l = len(self.ops)
             for op in other.ops:
                 if op.type == "array":

@@ -690,18 +690,3 @@ def test_QobjEvo_superoperator():
                                sprepost(op1, op2)(t))
         _assert_qobj_almost_eq(liouvillian(Q1, [Q2]),
                                liouvillian(op1, [op2])(t))
-
-def test_QobjEvo_edge_case():
-    "Test for edge cases"
-    # empty qobjevo addition
-    tlist = np.linspace(0,1,300)
-    qu_empty = QobjEvo()
-    qu_cte = QobjEvo(sigmaz())
-    qu_rand = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist),
-                        args={"w1":1, "w2":2}, tlist=tlist)
-
-    t = np.random.random()    
-    qu_added = qu_empty + qu_cte
-    assert_equal(qu_added(t) == qu_cte(t), True)
-    qu_added = qu_empty + qu_rand
-    assert_equal(qu_added(t) == qu_rand(t), True)
