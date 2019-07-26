@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from collections.abc import Iterable
+from functools import reduce
 import numbers
 import inspect
 
@@ -293,11 +294,14 @@ class CircuitProcessor(object):
 
         # dummy_cte = tensor([Qobj(np.zeros((d, d))) for d in self.dims])
         # H = [dummy_cte]
-        H = []
+        H_list = []
         for op_ind in range(len(self.ctrls)):
-            H.append(
+            H_list.append(
                 [self.ctrls[op_ind], amps[op_ind]])
-        return QobjEvo(H, tlist=tlist, args=args)
+        if not H_list:
+            return _dummy_qobjevo(self.dims, tlist=tlist, args=args)
+        else:
+            return QobjEvo(H_list, tlist=tlist, args=args)
 
     def run_state(self, rho0, **kwargs):
         """
@@ -343,12 +347,20 @@ class CircuitProcessor(object):
                 kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
-        proc_qobjevo = _compatible_coeff([proc_qobjevo, ham_noise])
+        proc_qobjevo = self._compatible_coeff([proc_qobjevo, ham_noise])
 
         # if no unitary Qobj given (id evolution with only collapse)
         if not proc_qobjevo.to_list():
             proc_qobjevo = QobjEvo(tensor([identity(d) for d in self.dims]),
                                    tlist=proc_qobjevo.tlist)
+        # TODO check dummy_cte
+        # TODO test argments
+        # print()
+        # print(proc_qobjevo.to_list())
+        # print(proc_qobjevo.tlist)
+        # print(proc_qobjevo.type)
+        # print(proc_qobjevo.args)
+        # print()
         evo_result = mesolve(
             H=proc_qobjevo, rho0=rho0, tlist=proc_qobjevo.tlist, **kwargs)
         return evo_result
@@ -455,7 +467,7 @@ class CircuitProcessor(object):
         """
         # TODO there is a bug when using QobjEvo()+=
         tlist = self.tlist
-        evo_noise_list = QobjEvo(tensor([identity(2)]*self.N), tlist=tlist)
+        # evo_noise_list = QobjEvo(tensor([identity(2)]*self.N), tlist=tlist)
         c_ops = []
         evo_noise_list = []
         if (self.T1 is not None) or (self.T2 is not None):
@@ -478,50 +490,60 @@ class CircuitProcessor(object):
                     "The noise type {} is not"
                     "implemented in the processor".format(
                         type(noise)))
-        return _compatible_coeff(evo_noise_list), c_ops
+        return self._compatible_coeff(evo_noise_list), c_ops
 
-def _fill_coeff(old_coeff, old_tlist, new_tlist):
-    """
-    Make a step function coefficients compatible with a longer `tlist` by
-    filling the empty slot with the nearest left value.
-    """
-    new_n = len(new_tlist)
-    old_n = len(old_tlist)
-    old_ind = 0  # index for old coeff and tlist
-    new_coeff = np.zeros(new_n)
-    for new_ind in range(new_n):
-        t = new_tlist[new_ind]
-        if t < old_tlist[0]:
-            new_coeff[new_ind] = 0.
-            continue
-        if t > old_tlist[-1]:
-            new_coeff[new_ind] = 0.
-            continue
-        if old_tlist[old_ind+1] == t:
-            old_ind += 1
-        new_coeff[new_ind] = old_coeff[old_ind]
-    return new_coeff
-
-
-def _compatible_coeff(qobjevo_list):
-    if not qobjevo_list:  # no qobjevo
-        return QobjEvo()
-    all_tlists = [qu.tlist for qu in qobjevo_list if qu.tlist is not None]
-    if not all_tlists:  #  all tlists are None
-        return sum(qobjevo_list, QobjEvo())
-    new_tlist = np.unique(np.sort(np.hstack(all_tlists)))
-    for i, qobjevo in enumerate(qobjevo_list):
-        H_list = qobjevo.to_list()
-        for j, H in enumerate(H_list):
-            if isinstance(H, Qobj) or H is None:  # cte part
+    def _fill_coeff(self, old_coeff, old_tlist, new_tlist):
+        """
+        Make a step function coefficients compatible with a longer `tlist` by
+        filling the empty slot with the nearest left value.
+        """
+        new_n = len(new_tlist)
+        old_n = len(old_tlist)
+        old_ind = 0  # index for old coeff and tlist
+        new_coeff = np.zeros(new_n)
+        for new_ind in range(new_n):
+            t = new_tlist[new_ind]
+            if t < old_tlist[0]:
+                new_coeff[new_ind] = 0.
                 continue
-            op, coeff = H
-            if not isinstance(H, np.ndarray):  # not array-like coeff
+            if t > old_tlist[-1]:
+                new_coeff[new_ind] = 0.
                 continue
-            new_coeff = _fill_coeff(coeff, qobjevo.tlist, new_tlist)
-            H_list[j] = [op, new_coeff]
-        qobjevo_list[i] = QobjEvo(H_list, tlist=new_tlist)
-    return sum(qobjevo_list, QobjEvo())
+            if old_tlist[old_ind+1] == t:
+                old_ind += 1
+            new_coeff[new_ind] = old_coeff[old_ind]
+        return new_coeff
+
+    def _compatible_coeff(self, qobjevo_list):
+        if not qobjevo_list:  # no qobjevo
+            return _dummy_qobjevo(self.dims)
+        all_tlists = [qu.tlist for qu in qobjevo_list if qu.tlist is not None]
+        if not all_tlists:  # all tlists are None
+            return sum(qobjevo_list, _dummy_qobjevo(self.dims))
+        new_tlist = np.unique(np.sort(np.hstack(all_tlists)))
+        for i, qobjevo in enumerate(qobjevo_list):
+            H_list = qobjevo.to_list()
+            for j, H in enumerate(H_list):
+                if isinstance(H, Qobj) or H is None:  # cte part
+                    continue
+                op, coeff = H
+                if not isinstance(H, np.ndarray):  # not array-like coeff
+                    continue
+                new_coeff = self._fill_coeff(coeff, qobjevo.tlist, new_tlist)
+                H_list[j] = [op, new_coeff]
+            # QobjEvo cannot handle [Qobj] as input
+            if H_list and all(isinstance(H, Qobj) for H in H_list):
+                H_list = sum(H_list, H_list[0] * 0.)
+            # create a new qobjevo with the old arguments
+            qobjevo_list[i] = QobjEvo(
+                H_list, tlist=new_tlist, args=qobjevo.args)
+        return sum(qobjevo_list, _dummy_qobjevo(self.dims))
+
+
+def _dummy_qobjevo(dims, **kwargs):
+    dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
+    dummy.dummey_cte = True
+    return dummy
 
 
 class ModelProcessor(CircuitProcessor):

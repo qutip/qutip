@@ -26,7 +26,6 @@ class TestCircuitNoise:
         """
         tlist = np.array([1, 2, 3, 4, 5, 6])
         coeffs = [np.array([1, 1, 1, 1, 1, 1])]
-        dummpy_qobjevo = QobjEvo(tlist=tlist)
 
         # Time-dependent
         decnoise = DecoherenceNoise(sigmaz(), coeffs=coeffs, tlist=tlist, targets=[1])
@@ -78,23 +77,23 @@ class TestCircuitNoise:
         """
         tlist = np.array([1, 2, 3, 4, 5, 6])
         coeff = np.array([1, 1, 1, 1, 1, 1])
-        dummpy_qobjevo = QobjEvo(tlist=tlist)
+        dummy_qobjevo = QobjEvo(tlist=tlist)
 
         # no expand 
         connoise = ControlAmpNoise(ops=sigmax(), coeffs=[coeff])
-        noise = connoise.get_noise(N=1, proc_qobjevo=dummpy_qobjevo)
+        noise = connoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, sigmax())
         assert_allclose(noise.tlist, tlist)
         assert_allclose(noise.ops[0].coeff, coeff)
 
         connoise = ControlAmpNoise(ops=sigmay(), coeffs=[coeff], targets=[1])
-        noise = connoise.get_noise(N=2, proc_qobjevo=dummpy_qobjevo)
+        noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([qeye(2), sigmay()]))
 
         # With expand
         connoise = ControlAmpNoise(
             ops=sigmaz(), coeffs=[coeff]*2, expand_type="cyclic_permutation")
-        noise = connoise.get_noise(N=2, proc_qobjevo=dummpy_qobjevo)
+        noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([sigmaz(), qeye(2)]))
         assert_allclose(noise.ops[1].qobj, tensor([qeye(2), sigmaz()]))
 
@@ -104,12 +103,12 @@ class TestCircuitNoise:
         """
 
         tlist = np.array([1, 2, 3, 4, 5, 6])
-        dummpy_qobjevo = QobjEvo(tlist=tlist)
+        dummy_qobjevo = QobjEvo(tlist=tlist)
         mean = 0.
         std = 0.5
         ops = [sigmaz(), sigmax()]
         whitenoise = WhiteNoise(mean=mean, std=std, ops=ops)
-        noise = whitenoise.get_noise(N=1, proc_qobjevo=dummpy_qobjevo)
+        noise = whitenoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[1].qobj, sigmax())
         assert_allclose(len(noise.ops[1].coeff), len(tlist))
         assert_allclose(len(noise.ops), len(ops))

@@ -369,6 +369,13 @@ class UserNoise(CircuitNoise):
             a pulse is to be applied.
         proc_qobjevo : :class:`qutip.QobjEvo`
             The object representing the ideal evolution in the processor
-        """
-        return QobjEvo(), []
 
+        Returns
+        -------
+        noise_qobjevo : :class:`qutip.QobjEvo`
+            A :class:`qutip.Qobj` representing the decoherence noise.
+        collapse_list : list
+            A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
+            representing the decoherence noise.
+        """
+        pass

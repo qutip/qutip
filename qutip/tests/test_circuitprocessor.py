@@ -161,7 +161,7 @@ class TestCircuitProcessor:
         """
         # setup and fidelity without noise
         rho0 = qubit_states(2, [0, 0, 0, 0])
-        tlist = np.array([0., np.pi])
+        tlist = np.array([0., np.pi/2.])
         a = destroy(2)
         proc = CircuitProcessor(N=2)
         proc.tlist = tlist
@@ -178,7 +178,7 @@ class TestCircuitProcessor:
         result = proc.run_state(rho0=rho0)
         assert_allclose(
             fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
-            0.94382, rtol=1.e-3)
+            0.981852, rtol=1.e-3)
 
         # white noise with internal/external operators
         proc.noise = []
