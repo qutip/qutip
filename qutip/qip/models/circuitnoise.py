@@ -46,12 +46,13 @@ class DecoherenceNoise(CircuitNoise):
         If c_ops contains only single qubits collapse operator,
         all_qubits=True will allow it to be applied to all qubits.
     """
-    def __init__(self, c_ops, targets=None, coeffs=None, all_qubits=False):
+    def __init__(self, c_ops, targets=None, coeffs=None, tlist=None, all_qubits=False):
         if isinstance(c_ops, Qobj):
             self.c_ops = [c_ops]
         else:
             self.c_ops = c_ops
         self.coeffs = coeffs
+        self.tlist = tlist
         self.targets = targets
         if all_qubits:
             if not all([c_op.dims == [[2], [2]] for c_op in self.c_ops]):
@@ -60,7 +61,7 @@ class DecoherenceNoise(CircuitNoise):
                     "and cannot be applied to all qubits")
         self.all_qubits = all_qubits
 
-    def get_noise(self, N, tlist):
+    def get_noise(self, N, dims=None):
         """
         Return the quantum objects representing the noise.
 
@@ -78,24 +79,29 @@ class DecoherenceNoise(CircuitNoise):
             A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
             representing the decoherence noise.
         """
+        if dims is None:
+            dims = [2] * N
         qobj_list = []
         for i, c_op in enumerate(self.c_ops):
             if self.all_qubits:
                 qobj_list += expand_oper_periodic(
-                    oper=c_op, N=N, targets=self.targets)
+                    oper=c_op, N=N, targets=self.targets, dims=dims)
             else:
                 qobj_list.append(
-                    expand_oper(oper=c_op, N=N, targets=self.targets))
+                    expand_oper(oper=c_op, N=N, targets=self.targets,
+                                dims=dims))
         # time-independent
         if self.coeffs is None:
             return qobj_list
         # time-dependent
+        if self.tlist is None:
+            raise ValueError("tlist is not given if noise is time-dependent.")
         qobjevo_list = []
         for i, temp in enumerate(qobj_list):
             self._check_coeff_num(self.coeffs, len(qobj_list))
             qobjevo_list.append(QobjEvo(
                 [qobj_list[i], self.coeffs[i]],
-                tlist=tlist))
+                tlist=self.tlist))
         return qobjevo_list
 
 
@@ -143,7 +149,7 @@ class RelaxationNoise(CircuitNoise):
                 "either the length is not equal to the number of qubits, "
                 "or T is not a positive number.".format(T))
 
-    def get_noise(self, N):
+    def get_noise(self, N, dims=None):
         """
         Return the quantum objects representing the noise.
 
@@ -158,6 +164,8 @@ class RelaxationNoise(CircuitNoise):
             A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
             representing the decoherence noise.
         """
+        if dims is None:
+            dims = [2] * N
         self.T1 = self._T_to_list(self.T1, N)
         self.T2 = self._T_to_list(self.T2, N)
         if len(self.T1) != N or len(self.T2) != N:
@@ -171,7 +179,8 @@ class RelaxationNoise(CircuitNoise):
             T2 = self.T2[qu_ind]
             if T1 is not None:
                 qobjevo_list.append(
-                    expand_oper(1/np.sqrt(T1) * destroy(2), N, qu_ind))
+                    expand_oper(1/np.sqrt(T1) * destroy(2),
+                                N, qu_ind, dims=dims))
             if T2 is not None:
                 # Keep the total dephasing ~ exp(-t/T2)
                 if T1 is not None:
@@ -183,7 +192,8 @@ class RelaxationNoise(CircuitNoise):
                 else:
                     T2_eff = T2
                 qobjevo_list.append(
-                    expand_oper(1/np.sqrt(2*T2_eff) * sigmaz(), N, qu_ind))
+                    expand_oper(1/np.sqrt(2*T2_eff) * sigmaz(),
+                                N, qu_ind, dims=dims))
         return qobjevo_list
 
 
@@ -203,7 +213,7 @@ class ControlAmpNoise(CircuitNoise):
     expand_type : string
         The type of expansion
         None - only expand for the given target qubits
-        "periodic" - the Hamiltonian is to be expanded for
+        "cyclic_permutation" - the Hamiltonian is to be expanded for
             all cyclic permutation of target qubits
     """
     def __init__(self, ops, coeffs, targets=None, expand_type=None):
@@ -215,7 +225,7 @@ class ControlAmpNoise(CircuitNoise):
         self.targets = targets
         self.expand_type = expand_type
 
-    def get_noise(self, N, tlist, proc_qobjevo=None):
+    def get_noise(self, N, proc_qobjevo=None, dims=None):
         """
         Return the quantum objects representing the noise.
 
@@ -236,17 +246,20 @@ class ControlAmpNoise(CircuitNoise):
         noise_qobjevo : :class:`qutip.QobjEvo`
             A :class:`qutip.Qobj` representing the decoherence noise.
         """
-        # new Operators are given
+        if dims is None:
+            dims = [2] * N
+        tlist = proc_qobjevo.tlist
+        # If new operators are given
         if self.ops is not None:
             if self.expand_type is None:
                 ops = [
-                    expand_oper(oper=op, N=N, targets=self.targets)
+                    expand_oper(oper=op, N=N, targets=self.targets, dims=dims)
                     for op in self.ops]
             else:
                 ops = []
                 for op in self.ops:
                     ops += expand_oper_periodic(
-                        oper=op, N=N, targets=self.targets)
+                        oper=op, N=N, targets=self.targets, dims=dims)
 
         # If no operators given, use operators in the processor
         elif proc_qobjevo is not None:
@@ -284,17 +297,18 @@ class WhiteNoise(ControlAmpNoise):
     expand_type : string
         The type of expansion
         None - only expand for the given target qubits
-        "periodic" - the Hamiltonian is to be expanded for
+        "cyclic_permutation" - the Hamiltonian is to be expanded for
             all cyclic permutation of target qubits
     """
     def __init__(
-            self, mean, std, ops=None, targets=None, expand_type=None):
+            self, mean, std, dt=None, ops=None, targets=None, expand_type=None):
         super(WhiteNoise, self).__init__(
             ops, coeffs=None, targets=targets, expand_type=expand_type)
         self.mean = mean
         self.std = std
+        self.dt = dt
 
-    def get_noise(self, N, tlist, proc_qobjevo=None):
+    def get_noise(self, N, proc_qobjevo=None, dims=None):
         """
         Return the quantum objects representing the noise.
 
@@ -315,6 +329,9 @@ class WhiteNoise(ControlAmpNoise):
         noise_qobjevo : :class:`qutip.QobjEvo`
             A :class:`qutip.Qobj` representing the decoherence noise.
         """
+        if dims is None:
+            dims = [2] * N
+        tlist = proc_qobjevo.tlist
         if self.ops is not None:
             if self.expand_type is None:
                 ops_num = len(self.ops)
@@ -327,7 +344,7 @@ class WhiteNoise(ControlAmpNoise):
         self.coeffs = normal(
             self.mean, self.std, (ops_num, len(tlist)))
         return super(WhiteNoise, self).get_noise(
-            N, tlist, proc_qobjevo=proc_qobjevo)
+            N, proc_qobjevo=proc_qobjevo, dims=dims)
 
 
 class UserNoise(CircuitNoise):
@@ -335,7 +352,7 @@ class UserNoise(CircuitNoise):
     Abstract class for user defined noise. To define a noise object,
     one could overwrite the constructor and the class method `get_noise`.
     """
-    def get_noise(self, N, tlist, proc_qobjevo):
+    def get_noise(self, N, proc_qobjevo, dims=None):
         """
         Template method. To define a noise object,
         one should over write this method and
@@ -354,3 +371,4 @@ class UserNoise(CircuitNoise):
             The object representing the ideal evolution in the processor
         """
         return QobjEvo(), []
+

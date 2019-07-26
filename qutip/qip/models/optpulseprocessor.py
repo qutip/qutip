@@ -169,15 +169,17 @@ class OptPulseProcessor(CircuitProcessor):
                                                 result.grad_norm_final))
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
-        self.tlist = np.hstack([[0]]+time_record)
+        self.tlist = np.hstack([[0.]]+time_record)
         self.amps = np.vstack(
             [np.hstack(amps_record)])
         return self.tlist, self.amps
 
-    def get_qobjevo(self, tlist):
+    def get_qobjevo(self, **kwargs):
         proc_qobjevo = super(OptPulseProcessor, self).get_qobjevo(
-            tlist=tlist)
+            **kwargs)
         if self.drift is not None:
+            print(type(proc_qobjevo))
+            print(type(self.drift))
             return proc_qobjevo + self.drift
         else:
             return proc_qobjevo

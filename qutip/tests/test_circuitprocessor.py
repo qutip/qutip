@@ -41,7 +41,7 @@ from qutip.states import basis
 from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
-from qutip.random_objects import rand_ket
+from qutip.random_objects import rand_ket, rand_dm
 from qutip.qip.models.circuitnoise import DecoherenceNoise, WhiteNoise
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity
@@ -57,7 +57,7 @@ class TestCircuitProcessor:
         proc.ctrls
         proc.ctrls = [sigmaz()]
         assert_(tensor([sigmaz(), identity(2)]), proc.ctrls[0])
-        proc.add_ctrl(sigmax(), expand_type='periodic')
+        proc.add_ctrl(sigmax(), expand_type="cyclic_permutation")
         assert_allclose(len(proc.ctrls), 3)
         assert_allclose(tensor([sigmax(), identity(2)]), proc.ctrls[1])
         assert_allclose(tensor([identity(2), sigmax()]), proc.ctrls[2])
@@ -73,11 +73,11 @@ class TestCircuitProcessor:
         Test for saving and reading a pulse matrix
         """
         proc = CircuitProcessor(N=2)
-        proc.add_ctrl(sigmaz(), expand_type='periodic')
+        proc.add_ctrl(sigmaz(), expand_type="cyclic_permutation")
         proc1 = CircuitProcessor(N=2)
-        proc1.add_ctrl(sigmaz(), expand_type='periodic')
+        proc1.add_ctrl(sigmaz(), expand_type="cyclic_permutation")
         proc2 = CircuitProcessor(N=2)
-        proc2.add_ctrl(sigmaz(), expand_type='periodic')
+        proc2.add_ctrl(sigmaz(), expand_type="cyclic_permutation")
         tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
         amp1 = np.arange(0, 5, 1)
         amp2 = np.arange(5, 0, -1)
@@ -161,7 +161,7 @@ class TestCircuitProcessor:
         """
         # setup and fidelity without noise
         rho0 = qubit_states(2, [0, 0, 0, 0])
-        tlist = np.array([0., np.pi/2])
+        tlist = np.array([0., np.pi])
         a = destroy(2)
         proc = CircuitProcessor(N=2)
         proc.tlist = tlist
@@ -173,12 +173,12 @@ class TestCircuitProcessor:
             1, rtol=1.e-7)
 
         # decoherence noise
-        dec_noise = DecoherenceNoise([0.5*a], targets=1)
+        dec_noise = DecoherenceNoise([0.25*a], targets=1)
         proc.add_noise(dec_noise)
         result = proc.run_state(rho0=rho0)
         assert_allclose(
             fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
-            0.9303888423022834, rtol=1.e-3)
+            0.94382, rtol=1.e-3)
 
         # white noise with internal/external operators
         proc.noise = []
@@ -198,7 +198,7 @@ class TestCircuitProcessor:
         N = 2
         proc = CircuitProcessor(N=N, dims=[2, 3])
         proc.add_ctrl(tensor(sigmaz(), rand_dm(3, density=1.)))
-        proc.amps = np.array([1, 2]).reshape((1,2))
+        proc.amps = np.array([1, 2]).reshape((1, 2))
         proc.tlist = np.array([0., 1., 2])
         proc.run_state(rho0=tensor([basis(2, 0), basis(3, 1)]))
 

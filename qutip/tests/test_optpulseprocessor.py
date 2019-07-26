@@ -90,7 +90,7 @@ class TestOptPulseProcessor:
         n_ts = 30
         evo_time = 10
         test = OptPulseProcessor(N, H_d, H_c)
-        test.add_ctrl(tensor([sigmax(), sigmax()]), expand_type="cycper")
+        test.add_ctrl(tensor([sigmax(), sigmax()]), expand_type="cyclic_permutation")
 
         # test periodically adding ctrls
         sx = sigmax()
@@ -98,8 +98,8 @@ class TestOptPulseProcessor:
         assert_(Qobj(tensor([sx, iden, sx])) in test.ctrls)
         assert_(Qobj(tensor([iden, sx, sx])) in test.ctrls)
         assert_(Qobj(tensor([sx, sx, iden])) in test.ctrls)
-        test.add_ctrl(sigmax(), expand_type='periodic')
-        test.add_ctrl(sigmay(), expand_type='periodic')
+        test.add_ctrl(sigmax(), expand_type="cyclic_permutation")
+        test.add_ctrl(sigmay(), expand_type="cyclic_permutation")
 
         # test pulse genration for cnot gate, with kwargs
         qc = [tensor([identity(2), cnot()])]
@@ -129,8 +129,8 @@ class TestOptPulseProcessor:
         H_c = []
 
         test = OptPulseProcessor(N, H_d, H_c)
-        test.add_ctrl(sigmax(), expand_type='periodic')
-        test.add_ctrl(sigmay(), expand_type='periodic')
+        test.add_ctrl(sigmax(), expand_type="cyclic_permutation")
+        test.add_ctrl(sigmay(), expand_type="cyclic_permutation")
         test.add_ctrl(tensor([sigmay(), sigmay()]))
 
         # qubits circuit with 3 gates

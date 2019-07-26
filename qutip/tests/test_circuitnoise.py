@@ -14,9 +14,9 @@ from qutip.metrics import fidelity
 class DriftNoise(UserNoise):
     def __init__(self, op):
         self.op = op
-    
-    def get_noise(self, N, tlist, proc_qobjevo):
-        return QobjEvo(self.op, tlist=tlist), []
+
+    def get_noise(self, N, proc_qobjevo, dims=None):
+        return QobjEvo(self.op), []
 
 
 class TestCircuitNoise:
@@ -26,24 +26,25 @@ class TestCircuitNoise:
         """
         tlist = np.array([1, 2, 3, 4, 5, 6])
         coeffs = [np.array([1, 1, 1, 1, 1, 1])]
+        dummpy_qobjevo = QobjEvo(tlist=tlist)
 
         # Time-dependent
-        decnoise = DecoherenceNoise(sigmaz(), coeffs=coeffs, targets=[1])
-        noise_list = decnoise.get_noise(2, tlist=tlist)
+        decnoise = DecoherenceNoise(sigmaz(), coeffs=coeffs, tlist=tlist, targets=[1])
+        noise_list = decnoise.get_noise(2)
         assert_allclose(noise_list[0].ops[0].qobj, tensor(qeye(2), sigmaz()))
         assert_allclose(noise_list[0].ops[0].coeff, coeffs[0])
         assert_allclose(noise_list[0].tlist, tlist)
 
         # Time-indenpendent and all qubits
         decnoise = DecoherenceNoise(sigmax(), all_qubits=True)
-        noise_list = decnoise.get_noise(2, tlist=tlist)
+        noise_list = decnoise.get_noise(2)
         assert_(tensor([qeye(2), sigmax()]) in noise_list)
         assert_(tensor([sigmax(), qeye(2)]) in noise_list)
 
         # Time-denpendent and all qubits
         decnoise = DecoherenceNoise(
-            sigmax(), all_qubits=True, coeffs=coeffs*2)
-        noise_list = decnoise.get_noise(2, tlist=tlist)
+            sigmax(), all_qubits=True, coeffs=coeffs*2, tlist=tlist)
+        noise_list = decnoise.get_noise(2)
         assert_allclose(noise_list[0].ops[0].qobj, tensor(sigmax(), qeye(2)))
         assert_allclose(noise_list[0].ops[0].coeff, coeffs[0])
         assert_allclose(noise_list[0].tlist, tlist)
@@ -77,22 +78,23 @@ class TestCircuitNoise:
         """
         tlist = np.array([1, 2, 3, 4, 5, 6])
         coeff = np.array([1, 1, 1, 1, 1, 1])
+        dummpy_qobjevo = QobjEvo(tlist=tlist)
 
         # no expand 
         connoise = ControlAmpNoise(ops=sigmax(), coeffs=[coeff])
-        noise = connoise.get_noise(N=1, tlist=tlist)
+        noise = connoise.get_noise(N=1, proc_qobjevo=dummpy_qobjevo)
         assert_allclose(noise.ops[0].qobj, sigmax())
         assert_allclose(noise.tlist, tlist)
         assert_allclose(noise.ops[0].coeff, coeff)
 
         connoise = ControlAmpNoise(ops=sigmay(), coeffs=[coeff], targets=[1])
-        noise = connoise.get_noise(N=2, tlist=tlist)
+        noise = connoise.get_noise(N=2, proc_qobjevo=dummpy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([qeye(2), sigmay()]))
 
         # With expand
         connoise = ControlAmpNoise(
-            ops=sigmaz(), coeffs=[coeff]*2, expand_type="periodic")
-        noise = connoise.get_noise(N=2, tlist=tlist)
+            ops=sigmaz(), coeffs=[coeff]*2, expand_type="cyclic_permutation")
+        noise = connoise.get_noise(N=2, proc_qobjevo=dummpy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([sigmaz(), qeye(2)]))
         assert_allclose(noise.ops[1].qobj, tensor([qeye(2), sigmaz()]))
 
@@ -100,13 +102,14 @@ class TestCircuitNoise:
         """
         Test for the white noise
         """
-        
+
         tlist = np.array([1, 2, 3, 4, 5, 6])
+        dummpy_qobjevo = QobjEvo(tlist=tlist)
         mean = 0.
         std = 0.5
         ops = [sigmaz(), sigmax()]
         whitenoise = WhiteNoise(mean=mean, std=std, ops=ops)
-        noise = whitenoise.get_noise(N=1, tlist=tlist)
+        noise = whitenoise.get_noise(N=1, proc_qobjevo=dummpy_qobjevo)
         assert_allclose(noise.ops[1].qobj, sigmax())
         assert_allclose(len(noise.ops[1].coeff), len(tlist))
         assert_allclose(len(noise.ops), len(ops))
@@ -117,7 +120,7 @@ class TestCircuitNoise:
             [[sigmaz(), coeff], [sigmax(), coeff], [sigmay(), coeff]],
             tlist=tlist)
         whitenoise = WhiteNoise(mean=mean, std=std)
-        noise = whitenoise.get_noise(N=1, tlist=tlist, proc_qobjevo=evo_ops)
+        noise = whitenoise.get_noise(N=1, proc_qobjevo=evo_ops)
         assert_allclose(noise.ops[1].qobj, sigmax())
         assert_(len(noise.ops[1].coeff) == len(tlist))
         assert_(len(noise.ops) == len(evo_ops.ops))
