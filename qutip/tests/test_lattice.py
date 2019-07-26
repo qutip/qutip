@@ -33,18 +33,19 @@
 import numpy as np
 from qutip.lattice import *
 from qutip import (Qobj, tensor, basis, qeye, isherm)
-from numpy.testing import (assert_)
+#from numpy.testing import (assert_equal, assert_, assert_almost_equal,
+#                            run_module_suite)
+
+from numpy.testing import (assert_, run_module_suite)
 
 class TestLattice:
     """
     Tests for `qutip.lattice` class.
     """
-
     def test_hamiltonian(self):
         """
         lattice: Test the method Lattice1d.Hamiltonian().
         """
-
         # num_cell = 1
         # Four different instances
         Periodic_Atom_Chain = Lattice1d(num_cell=1, boundary = "periodic")
@@ -174,6 +175,185 @@ class TestLattice:
         assert_(pHamt3122 == Hp_3122)
         assert_(apHamt3122 == Hap_3122)        
 
+    def test_cell_structures(self):
+        """
+        lattice: Test the method Lattice1d.cell_structures().
+        """
+        val_s = ['site0','site1']
+        val_t = [' orb0','orb1']
+        (cell_H_form,inter_cell_T_form,cell_H,inter_cell_T) = cell_structures(
+                val_s, val_t)
+        c_H_form = [['<site0 orb0 H site0 orb0>',
+                     '<site0 orb0 H site0orb1>',
+                     '<site0 orb0 H site1 orb0>',
+                     '<site0 orb0 H site1orb1>'],
+                ['<site0orb1 H site0 orb0>',
+                 '<site0orb1 H site0orb1>',
+                 '<site0orb1 H site1 orb0>',
+                 '<site0orb1 H site1orb1>'],
+                 ['<site1 orb0 H site0 orb0>',
+                  '<site1 orb0 H site0orb1>',
+                  '<site1 orb0 H site1 orb0>',
+                  '<site1 orb0 H site1orb1>'],
+                  ['<site1orb1 H site0 orb0>',
+                   '<site1orb1 H site0orb1>',
+                   '<site1orb1 H site1 orb0>',
+                   '<site1orb1 H site1orb1>']]
+                 
+        i_cell_T_form = [['<cell(i):site0 orb0 H site0 orb0:cell(i+1) >',
+                          '<cell(i):site0 orb0 H site0orb1:cell(i+1) >',
+                          '<cell(i):site0 orb0 H site1 orb0:cell(i+1) >',
+                          '<cell(i):site0 orb0 H site1orb1:cell(i+1) >'],
+                 ['<cell(i):site0orb1 H site0 orb0:cell(i+1) >',
+                  '<cell(i):site0orb1 H site0orb1:cell(i+1) >',
+                  '<cell(i):site0orb1 H site1 orb0:cell(i+1) >',
+                  '<cell(i):site0orb1 H site1orb1:cell(i+1) >'],
+                  ['<cell(i):site1 orb0 H site0 orb0:cell(i+1) >',
+                   '<cell(i):site1 orb0 H site0orb1:cell(i+1) >',
+                   '<cell(i):site1 orb0 H site1 orb0:cell(i+1) >',
+                   '<cell(i):site1 orb0 H site1orb1:cell(i+1) >'],
+                   ['<cell(i):site1orb1 H site0 orb0:cell(i+1) >',
+                    '<cell(i):site1orb1 H site0orb1:cell(i+1) >',
+                    '<cell(i):site1orb1 H site1 orb0:cell(i+1) >',
+                    '<cell(i):site1orb1 H site1orb1:cell(i+1) >']]                 
+                 
+        c_H = np.array([[0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j]])
+        i_cell_T = np.array([[0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                                 [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                                 [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                                 [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j]])
+        assert_(cell_H_form == c_H_form)
+        assert_(inter_cell_T_form == i_cell_T_form)                    
+        assert_((cell_H == c_H).all())
+        assert_((inter_cell_T == i_cell_T).all())                    
+                   
+    def test_basis(self):
+        """
+        lattice: Test the method Lattice1d.basis().
+        """
+        lattice_3242 = Lattice1d(num_cell=3, boundary = "periodic", \
+                           cell_num_site = 2, cell_site_dof = [4,2])
+        psi0 = lattice_3242.basis(1,0,[2,1])
+        psi0dag_a = np.array([[0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
+        0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
+        0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j,
+        0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
+        0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j,
+        0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j]])
+        psi0dag = Qobj(psi0dag_a,dims=[[1, 1, 1, 1], [3, 2, 4, 2]])
+        assert_( psi0 == psi0dag.dag() )
+
+    def test_distribute_operator(self):
+        """
+        lattice: Test the method Lattice1d.distribute_operator().
+        """
+        lattice_412 = Lattice1d(num_cell=4, boundary = "periodic", cell_num_site = 1, cell_site_dof = [2])
+        op = Qobj(np.array([[0, 1], [1, 0]]))
+        op_all = lattice_412.distribute_operator(op)
+        
+        aop_all = np.array([[0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                            [1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                            [0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                            [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
+                            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j],
+                            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j]])        
+
+        sv_op_all = Qobj(aop_all, dims=[[4, 1, 2], [4, 1, 2]])
+        assert_( op_all == sv_op_all )
+        
+    def test_operator_at_cells(self):
+        """
+        lattice: Test the method Lattice1d.operator_at_cells().
+        """
+        lattice_412 = Lattice1d(num_cell=4, boundary = "periodic", cell_num_site = 1, cell_site_dof = [2])
+        op = Qobj(np.array([[0, 1], [1, 0]]) )
+        op_sp = lattice_412.operator_at_cells(op, cells = [1,2])
+
+        aop_sp = np.array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j]])
+
+        sv_op_sp = Qobj(aop_sp, dims=[[4, 1, 2], [4, 1, 2]])
+        assert_( op_sp == sv_op_sp )  
+
+    def test_x(self):
+        """
+        lattice: Test the method Lattice1d.x().
+        """
+        lattice_3223 = Lattice1d(num_cell=3, boundary = "periodic", cell_num_site = 2, cell_site_dof = [2,3])
+        R = lattice_3223.x()
+        
+        #count the number of off-diagonal elements n_off which should be 0
+        n_off = np.count_nonzero(R - np.diag(np.diagonal(R)))
+        assert_(n_off == 0)
+        assert_((np.diag(R) == np.kron(range(3),np.ones(12))).all())
+
+    def test_plot_dispersion(self):
+        """
+        lattice: Test the method Lattice1d.plot_dispersion().
+        """
+        assert_(1 == 1)
+
+    def test_get_dispersion(self):
+        """
+        lattice: Test the method Lattice1d.get_dispersion().
+        """
+        Periodic_Atom_Chain = Lattice1d(num_cell=8, boundary = "periodic")
+        [knxA,val_kns] = Periodic_Atom_Chain.get_dispersion()
+        kB = np.array([[-3.14159265],
+                       [-2.35619449],
+                       [-1.57079633],
+                       [-0.78539816],
+                       [ 0.        ],
+                       [ 0.78539816],
+                       [ 1.57079633],
+                       [ 2.35619449]])
+        valB = np.array([[2., 1.41421356, 0., -1.41421356, -2., -1.41421356, 0., 1.41421356]])
+        assert_( np.max(abs(knxA-kB)) < 1.0E-6 )
+        assert_( np.max(abs(val_kns-valB)) < 1.0E-6 )
+
+        # SSH model with num_cell = 4 and two orbitals, two spins 
+        # cell_site_dof = [2,2]
+        t_intra = -0.5
+        t_inter = -0.6
+        cell_H = tensor(
+                Qobj( np.array( [[ 0, t_intra ],[t_intra,0]] )), qeye([2,2]))
+        inter_cell_T = tensor(
+                Qobj( np.array( [[ 0, 0 ],[t_inter,0]] )), qeye([2,2]))
+
+        SSH_comp = Lattice1d(num_cell=6, boundary = "aperiodic",
+                             cell_num_site = 2, cell_site_dof = [2,2],
+                             cell_Hamiltonian = cell_H, inter_hop = inter_cell_T )
+        [kScomp,vcomp] = SSH_comp.get_dispersion()
+        print(kScomp)
+        kS = np.array([[-3.14159265],
+                       [-2.0943951 ],
+                       [-1.04719755],
+                       [ 0.        ],
+                       [ 1.04719755],
+                       [ 2.0943951 ]])
+        Oband = np.array([-0.1, -0.55677644, -0.9539392 , -1.1, -0.9539392, -0.55677644])
+        vS = np.array([Oband,Oband,Oband,Oband,-Oband,-Oband,-Oband,-Oband])
+        print(vcomp)
+        print(vS)
+        
+        assert_( np.max(abs(kScomp-kS)) < 1.0E-6 ) 
+        assert_( np.max(abs(vcomp-vS)) < 1.0E-6 ) 
+
+    def test_CROW(self):
+        """
+        lattice: Test the method Lattice1d.Hamiltonian().
+        """
         # Coupled Resonator Optical Waveguide(CROW) Example(PhysRevB.99.224201)
         J = 2
         eta = np.pi/4
@@ -209,41 +389,69 @@ class TestLattice:
 
         # Check for CROW with num_cell = 4
         assert_( np.max(abs(CROW_Haml-H_CROW)) < 1.0E-6 ) # 1.0E-8 worked too
-        
+
+        (kxA,val_ks) = CROW_lattice.get_dispersion()
+        kCR = np.array([[-3.14159265],
+                        [-1.57079633],
+                        [ 0.        ],
+                        [ 1.57079633]])
+        vCR = np.array([[-2.        , -2.        , -2.        , -2.        ],
+                        [-0.82842712,  2.        ,  4.82842712,  2.        ]])
+        assert_( np.max(abs(kxA-kCR)) < 1.0E-6 ) 
+        assert_( np.max(abs(val_ks-vCR)) < 1.0E-6 ) 
+                
+    def test_SSH(self):
+        """
+        lattice: Test the method Lattice1d.Hamiltonian().
+        """
         # SSH model with num_cell = 4 and two orbitals, two spins 
         # cell_site_dof = [2,2]
         t_intra = -0.5
         t_inter = -0.6
-        cell_H = tensor(
-                Qobj( np.array( [[ 0, t_intra ],[t_intra,0]] )), qeye([2,2]))
-        inter_cell_T = tensor(
-                Qobj( np.array( [[ 0, 0 ],[t_inter,0]] )), qeye([2,2]))
+        cell_H = Qobj( np.array( [[ 0, t_intra ],[t_intra,0]] )  )
+        inter_cell_T =  Qobj( np.array( [[ 0, 0 ],[t_inter,0]] )  )
 
-        SSH_comp = Lattice1d(num_cell=2, boundary = "aperiodic",
-                             cell_num_site = 2, cell_site_dof = [2,2],
+        SSH_lattice = Lattice1d(num_cell=5, boundary = "aperiodic",
+                             cell_num_site = 2, cell_site_dof = [1],
                              cell_Hamiltonian = cell_H, inter_hop = inter_cell_T )        
-        Ham_Sc = SSH_comp.Hamiltonian()
+        Ham_Sc = SSH_lattice.Hamiltonian()
 
-        H_Sc = Qobj([[ 0., 0., 0., 0., -0.5, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                     [ 0., 0., 0., 0., 0., -0.5, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                     [ 0., 0., 0., 0., 0., 0., -0.5, 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                     [ 0., 0., 0., 0., 0., 0., 0., -0.5, 0., 0., 0., 0., 0., 0., 0., 0.],
-                     [-0.5, 0., 0., 0., 0., 0., 0., 0., -0.6, 0., 0., 0., 0., 0., 0., 0.],
-                     [ 0., -0.5, 0., 0., 0., 0., 0., 0., 0., -0.6, 0., 0., 0., 0., 0., 0.],
-                     [ 0., 0., -0.5, 0., 0., 0., 0., 0., 0., 0., -0.6, 0., 0., 0., 0., 0.],
-                     [ 0., 0., 0., -0.5, 0., 0., 0., 0., 0., 0., 0., -0.6, 0., 0., 0., 0.],
-                     [ 0., 0., 0., 0., -0.6, 0., 0., 0., 0., 0., 0., 0., -0.5, 0., 0., 0.],
-                     [ 0., 0., 0., 0., 0., -0.6, 0., 0., 0., 0., 0., 0., 0., -0.5, 0., 0.],
-                     [ 0., 0., 0., 0., 0., 0., -0.6, 0., 0., 0., 0., 0., 0., 0., -0.5, 0.],
-                     [ 0., 0., 0., 0., 0., 0., 0., -0.6, 0., 0., 0., 0., 0., 0., 0., -0.5],
-                     [ 0., 0., 0., 0., 0., 0., 0., 0., -0.5, 0., 0., 0., 0., 0., 0., 0.],
-                     [ 0., 0., 0., 0., 0., 0., 0., 0., 0., -0.5, 0., 0., 0., 0., 0., 0.],
-                     [ 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -0.5, 0., 0., 0., 0., 0.],
-                     [ 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -0.5, 0., 0., 0., 0.]],
-        dims = [[2, 2, 2, 2], [2, 2, 2, 2]])
-        # check for SSH model with num_cell = 4 and two orbitals, two spins         
+        H_Sc = Qobj([[ 0. +0.j, -0.5+0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,
+         0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j],
+                [-0.5+0.j,  0. +0.j, -0.6+0.j,  0. +0.j,  0. +0.j,  0. +0.j,
+         0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j],
+                [ 0. +0.j, -0.6+0.j,  0. +0.j, -0.5+0.j,  0. +0.j,  0. +0.j,
+         0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j],
+                [ 0. +0.j,  0. +0.j, -0.5+0.j,  0. +0.j, -0.6+0.j,  0. +0.j,
+         0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j],
+                [ 0. +0.j,  0. +0.j,  0. +0.j, -0.6+0.j,  0. +0.j, -0.5+0.j,
+         0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j],
+                [ 0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j, -0.5+0.j,  0. +0.j,
+        -0.6+0.j,  0. +0.j,  0. +0.j,  0. +0.j],
+                [ 0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j, -0.6+0.j,
+         0. +0.j, -0.5+0.j,  0. +0.j,  0. +0.j],
+                [ 0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,
+        -0.5+0.j,  0. +0.j, -0.6+0.j,  0. +0.j],
+                [ 0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,
+         0. +0.j, -0.6+0.j,  0. +0.j, -0.5+0.j],
+                [ 0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,
+         0. +0.j,  0. +0.j, -0.5+0.j,  0. +0.j]], dims = [[5, 2, 1], [5, 2, 1]])
+
+        # check for SSH model with num_cell = 5          
         assert_(Ham_Sc == H_Sc)
+
+        (kxA,val_ks) = SSH_lattice.get_dispersion()
+        kSSH = np.array([[-2.51327412],
+                         [-1.25663706],
+                         [ 0.        ],
+                         [ 1.25663706],
+                         [ 2.51327412]])
+        vSSH = np.array([[-0.35297281, -0.89185772, -1.1       , -0.89185772, -0.35297281],
+                         [ 0.35297281,  0.89185772,  1.1       ,  0.89185772,  0.35297281]])
+        assert_( np.max(abs(kxA-kSSH)) < 1.0E-6 ) 
+        assert_( np.max(abs(val_ks-vSSH)) < 1.0E-6 )
 
 
 if __name__ == "__main__":
     run_module_suite()
+
