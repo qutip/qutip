@@ -785,7 +785,7 @@ class QobjEvo:
 
     def to_list(self):
         list_qobj = []
-        if not self.dummy_cte:
+        if not self.dummy_cte and self.cte is not None:
             list_qobj.append(self.cte)
         for op in self.ops:
             list_qobj.append([op.qobj, op.coeff])
