@@ -282,9 +282,9 @@ def rand_ket(N, density=1, seed=None):
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if isinstance(N, int) :
+    if isinstance(N, int):
         dims = [[N],[1]]
-    else :
+    else:
         dims = [N,[1 for x in N]]
         N = prod(dims[0])
         _check_dims(dims, N, 1)
@@ -315,9 +315,9 @@ def rand_ket_haar(N=2, seed=None):
     psi : Qobj
         A random state vector drawn from the Haar measure.
     """
-    if isinstance(N, int) :
+    if isinstance(N, int):
         dims = [[N],[1]]
-    else :
+    else:
         dims = [N,[1 for x in N]]
         N = prod(dims[0])
         _check_dims(dims, N, 1)
