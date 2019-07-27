@@ -168,15 +168,15 @@ class SpinChain(ModelProcessor):
 
     @property
     def sx_u(self):
-        return self.amps[: self.N]
+        return self.coeff[: self.N]
 
     @property
     def sz_u(self):
-        return self.amps[self.N: 2*self.N]
+        return self.coeff[self.N: 2*self.N]
 
     @property
     def sxsy_u(self):
-        return self.amps[2*self.N:]
+        return self.coeff[2*self.N:]
 
     def load_circuit(self, qc, setup):
         """
@@ -205,9 +205,9 @@ class SpinChain(ModelProcessor):
         dec = SpinChainGateDecomposer(
             self.N, self._paras, setup=setup,
             global_phase=0., num_ops=len(self.ctrls))
-        self.tlist, self.amps, self.global_phase = dec.decompose(gates)
+        self.tlist, self.coeff, self.global_phase = dec.decompose(gates)
 
-        return self.tlist, self.amps
+        return self.tlist, self.coeff
 
     def adjacent_gates(self, qc, setup="linear"):
         """
@@ -480,7 +480,7 @@ class LinearSpinChain(SpinChain):
 
     @property
     def sxsy_u(self):
-        return self.amps[2*self.N: 3*self.N-1]
+        return self.coeff[2*self.N: 3*self.N-1]
 
     def load_circuit(self, qc):
         return super(LinearSpinChain, self).load_circuit(qc, "linear")
@@ -546,7 +546,7 @@ class CircularSpinChain(SpinChain):
 
     @property
     def sxsy_u(self):
-        return self.amps[2*self.N: 3*self.N]
+        return self.coeff[2*self.N: 3*self.N]
 
     def load_circuit(self, qc):
         return super(CircularSpinChain, self).load_circuit(qc, "circular")
@@ -628,7 +628,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         pulse[self.sz_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
     def rx_dec(self, gate):
         """
@@ -640,7 +640,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         pulse[self.sx_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
     def iswap_dec(self, gate):
         """
@@ -655,7 +655,7 @@ class SpinChainGateDecomposer(GateDecomposer):
             pulse[self.sxsy_ind[q1]] = -g
         t = np.pi / (4 * g)
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
     def sqrtiswap_dec(self, gate):
         """
@@ -670,7 +670,7 @@ class SpinChainGateDecomposer(GateDecomposer):
             pulse[self.sxsy_ind[q1]] = -g
         t = np.pi / (8 * g)
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
     def globalphase_dec(self, gate):
         """

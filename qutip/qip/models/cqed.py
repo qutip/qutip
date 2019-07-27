@@ -236,15 +236,15 @@ class DispersivecQED(ModelProcessor):
 
     @property
     def sx_u(self):
-        return self.amps[1: self.N+1]
+        return self.coeff[1: self.N+1]
 
     @property
     def sz_u(self):
-        return self.amps[self.N+1: 2*self.N+1]
+        return self.coeff[self.N+1: 2*self.N+1]
 
     @property
     def g_u(self):
-        return self.amps[2*self.N+1: 3*self.N+1]
+        return self.coeff[2*self.N+1: 3*self.N+1]
 
     def get_ops_labels(self):
         """
@@ -308,15 +308,15 @@ class DispersivecQED(ModelProcessor):
         dec = CQEDGateDecomposer(
             self.N, self._paras, self.wq, self.Delta,
             global_phase=0., num_ops=len(self.ctrls))
-        self.tlist, self.amps, self.global_phase = dec.decompose(gates)
+        self.tlist, self.coeff, self.global_phase = dec.decompose(gates)
 
         # TODO The amplitude of the first control a.dag()*a
         # was set to zero before I made this refactoring.
         # It is probably due to the fact that
         # it contributes only a constant (N) and can be neglected.
         # but change the below line to np.ones leads to test error.
-        self.amps[0] = self._paras["w0"] * np.zeros((self.sx_u.shape[1]))
-        return self.tlist, self.amps
+        self.coeff[0] = self._paras["w0"] * np.zeros((self.sx_u.shape[1]))
+        return self.tlist, self.coeff
 
 
 class CQEDGateDecomposer(GateDecomposer):
@@ -383,7 +383,7 @@ class CQEDGateDecomposer(GateDecomposer):
         pulse[self.sz_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
     def rx_dec(self, gate):
         """
@@ -395,7 +395,7 @@ class CQEDGateDecomposer(GateDecomposer):
         pulse[self.sx_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
     def sqrtiswap_dec(self, gate):
         """
@@ -417,7 +417,7 @@ class CQEDGateDecomposer(GateDecomposer):
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         t = (4 * np.pi / abs(J)) / 8
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4)
@@ -441,7 +441,7 @@ class CQEDGateDecomposer(GateDecomposer):
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         t = (4 * np.pi / abs(J)) / 4
         self.dt_list.append(t)
-        self.amps_list.append(pulse)
+        self.coeff_list.append(pulse)
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/2.)

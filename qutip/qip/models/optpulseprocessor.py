@@ -170,13 +170,14 @@ class OptPulseProcessor(CircuitProcessor):
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
         self.tlist = np.hstack([[0.]]+time_record)
-        self.amps = np.vstack(
+        self.coeff = np.vstack(
             [np.hstack(amps_record)])
-        return self.tlist, self.amps
+        return self.tlist, self.coeff
 
-    def get_qobjevo(self, **kwargs):
-        proc_qobjevo = super(OptPulseProcessor, self).get_qobjevo(
-            **kwargs)
+    def get_unitary_qobjevo(self, args=None):
+        ## TODO add tests
+        proc_qobjevo = super(OptPulseProcessor, self).get_unitary_qobjevo(
+            args=args)
         if self.drift is not None:
             return proc_qobjevo + self.drift
         else:
@@ -200,4 +201,4 @@ class OptPulseProcessor(CircuitProcessor):
         """
         # first row of amps is for drift Ham
         super(OptPulseProcessor, self).plot_pulses(
-            amps=self.amps[1:], tlist=self.tlist)
+            amps=self.coeff[1:], tlist=self.tlist)

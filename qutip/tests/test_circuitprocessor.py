@@ -83,30 +83,25 @@ class TestCircuitProcessor:
         amp2 = np.arange(5, 0, -1)
 
         proc.tlist = tlist
-        proc.amps = np.array([amp1, amp2])
+        proc.coeff = np.array([amp1, amp2])
         proc.save_amps("qutip_test_CircuitProcessor.txt")
         proc1.read_amps("qutip_test_CircuitProcessor.txt")
         os.remove("qutip_test_CircuitProcessor.txt")
-        assert_allclose(proc1.amps, proc.amps)
+        assert_allclose(proc1.coeff, proc.coeff)
         assert_allclose(proc1.tlist, proc.tlist)
         proc.save_amps("qutip_test_CircuitProcessor.txt", inctime=False)
         proc2.read_amps("qutip_test_CircuitProcessor.txt", inctime=False)
         os.remove("qutip_test_CircuitProcessor.txt")
-        assert_allclose(proc2.amps, proc.amps)
+        assert_allclose(proc2.coeff, proc.coeff)
         assert_(proc2.tlist is None)
 
     def test_id_evolution(self):
         """
-        Test for identity evolution with external/internal tlist
+        Test for identity evolution
         """
         N = 1
         proc = CircuitProcessor(N=N)
         rho0 = rand_ket(2)
-        result = proc.run_state(
-            rho0, tlist=[0., 1., 2.],
-            options=Options(store_final_state=True))
-        global_phase = rho0.data[0, 0]/result.final_state.data[0, 0]
-        assert_allclose(global_phase*result.final_state, rho0)
         proc.tlist = [0., 1., 2.]
         result = proc.run_state(
             rho0, options=Options(store_final_state=True))
@@ -129,7 +124,8 @@ class TestCircuitProcessor:
 
         # test T1
         test = CircuitProcessor(1, T1=T1)
-        result = test.run_state(ex_state, e_ops=[a.dag()*a], tlist=tlist)
+        test.tlist = tlist
+        result = test.run_state(ex_state, e_ops=[a.dag()*a])
 
         assert_allclose(
             result.expect[0][-1], np.exp(-1./T1*end_time),
@@ -137,8 +133,9 @@ class TestCircuitProcessor:
 
         # test T2
         test = CircuitProcessor(1, T2=T2)
+        test.tlist = tlist
         result = test.run_state(
-            rho0=mines_state, tlist=tlist, e_ops=[Hadamard*a.dag()*a*Hadamard])
+            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
             result.expect[0][-1], np.exp(-1./T2*end_time)*0.5+0.5,
             rtol=1e-5, err_msg="Error in T2 time simulation")
@@ -147,8 +144,9 @@ class TestCircuitProcessor:
         T1 = np.random.rand(1) + 0.5
         T2 = np.random.rand(1) * 0.5 + 0.5
         test = CircuitProcessor(1, T1=T1, T2=T2)
+        test.tlist = tlist
         result = test.run_state(
-            rho0=mines_state, tlist=tlist, e_ops=[Hadamard*a.dag()*a*Hadamard])
+            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
             result.expect[0][-1], np.exp(-1./T2*end_time)*0.5+0.5,
             rtol=1e-5,
@@ -165,7 +163,7 @@ class TestCircuitProcessor:
         a = destroy(2)
         proc = CircuitProcessor(N=2)
         proc.tlist = tlist
-        proc.amps = np.array([1]).reshape((1, 1))
+        proc.coeff = np.array([1]).reshape((1, 1))
         proc.add_ctrl(sigmax(), targets=1)
         result = proc.run_state(rho0=rho0)
         assert_allclose(
@@ -198,7 +196,7 @@ class TestCircuitProcessor:
         N = 2
         proc = CircuitProcessor(N=N, dims=[2, 3])
         proc.add_ctrl(tensor(sigmaz(), rand_dm(3, density=1.)))
-        proc.amps = np.array([1, 2]).reshape((1, 2))
+        proc.coeff = np.array([1, 2]).reshape((1, 2))
         proc.tlist = np.array([0., 1., 2])
         proc.run_state(rho0=tensor([basis(2, 0), basis(3, 1)]))
 

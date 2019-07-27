@@ -91,7 +91,7 @@ class CircuitProcessor(object):
                  dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
-        self.amps = None
+        self.coeff = None
         self.ctrls = []
         self.T1 = T1
         self.T2 = T2
@@ -121,9 +121,9 @@ class CircuitProcessor(object):
         """
         # Check validity of ctrl
         if not isinstance(ctrl, Qobj):
-            raise TypeError("The Hamiltonian must be a qutip.Qobj.")
+            raise TypeError("The control Hamiltonian must be a qutip.Qobj.")
         if not ctrl.isherm:
-            raise ValueError("The Hamiltonian must be Hermitian.")
+            raise ValueError("The control Hamiltonian must be Hermitian.")
 
         num_qubits = len(ctrl.dims[0])
         if targets is None:
@@ -133,11 +133,8 @@ class CircuitProcessor(object):
             self.ctrls += expand_operator(
                 ctrl, self.N, targets, self.dims, cyclic_permutation=True)
         else:
-            if num_qubits == self.N:
-                self.ctrls.append(ctrl)
-            else:
-                self.ctrls.append(
-                    expand_operator(ctrl, self.N, targets, self.dims))
+            self.ctrls.append(
+                expand_operator(ctrl, self.N, targets, self.dims))
 
     def remove_ctrl(self, indices):
         """
@@ -158,14 +155,14 @@ class CircuitProcessor(object):
         """
         Check it the len(tlist) and amps.shape[1] are the same.
         """
-        if self.tlist is None and self.amps is None:
+        if self.tlist is None and self.coeff is None:
             pass
         elif self.tlist is None:
             raise ValueError("`tlist` or `amps` is not given.")
-        elif self.amps is None:
+        elif self.coeff is None:
             pass  # evolution with identity
         else:
-            amps_len = self.amps.shape[1]
+            amps_len = self.coeff.shape[1]
             tlist_len = len(self.tlist)
             if amps_len != tlist_len-1:
                 raise ValueError(
@@ -177,17 +174,17 @@ class CircuitProcessor(object):
         Check if the number of control Hamiltonians
         and amps.shape[0] are the same.
         """
-        if self.amps is None and len(self.ctrls) != 0:
+        if self.coeff is None and len(self.ctrls) != 0:
             raise ValueError(
                 "The control amplitude is None while "
                 "the number of ctrls is {}.".format(len(self.ctrls)))
-        if self.amps is not None:
-            if self.amps.shape[0] != len(self.ctrls):
+        if self.coeff is not None:
+            if self.coeff.shape[0] != len(self.ctrls):
                 raise ValueError(
                     "The control amplitude matrix do not match the "
                     "number of ctrls  "
                     "#ctrls = {}  "
-                    "#amps = {}.".format(len(self.ctrls), len(self.amps)))
+                    "#amps = {}.".format(len(self.ctrls), len(self.coeff)))
 
     def _is_amps_valid(self):
         """
@@ -210,12 +207,12 @@ class CircuitProcessor(object):
         self._is_amps_valid()
 
         if inctime:
-            shp = self.amps.T.shape
+            shp = self.coeff.T.shape
             data = np.empty([shp[0], shp[1] + 1], dtype=np.float)
             data[:, 0] = self.tlist[1:]
-            data[:, 1:] = self.amps.T
+            data[:, 1:] = self.coeff.T
         else:
-            data = self.amps.T
+            data = self.coeff.T
 
         np.savetxt(file_name, data, delimiter='\t', fmt='%1.16f')
 
@@ -240,46 +237,31 @@ class CircuitProcessor(object):
         """
         data = np.loadtxt(file_name, delimiter='\t')
         if not inctime:
-            self.amps = data.T
+            self.coeff = data.T
         else:
             self.tlist = np.hstack([[0], data[:, 0]])
-            self.amps = data[:, 1:].T
-        return self.tlist, self.amps
+            self.coeff = data[:, 1:].T
+        return self.tlist, self.coeff
 
-    def get_qobjevo(self, **kwargs):
+    def get_unitary_qobjevo(self, args=None):
         """
         tlist : array like
             Used if there is no tlist defined in the processor but given as
             keyword arguments
         """
+        # TODO add test
         # check validity
         self._is_amps_valid()
 
-        # if no tlist defined in the processor, it can be given in kwargs
-        # (e.g. drift or id evolution with c_ops)
-        if self.tlist is None:
-            if "tlist" in kwargs:
-                tlist = kwargs["tlist"]
-                del kwargs["tlist"]
-            else:
-                raise ValueError(
-                    "`tlist` is not defined in the processor.")
-        elif self.tlist is not None and "tlist" in kwargs:
-            raise ValueError(
-                "`tlist` is already specified by the processor, "
-                "thus can not be given as a key word argument")
-        else:
-            tlist = self.tlist
-
-        # set step function
-        if "args" in kwargs:
-            args = kwargs["args"]
-        else:
+        if args is None:
             args = {}
-        if self.spline_kind == "step_func" and self.amps is not None:
-            amps = np.hstack([self.amps, np.zeros((len(self.amps), 1))])
-            args = {"_step_func_coeff": True}
-        elif self.amps is None:
+        else:
+            args = args
+        # set step function
+        if self.spline_kind == "step_func" and self.coeff is not None:
+            amps = np.hstack([self.coeff, np.zeros((len(self.coeff), 1))])
+            args.update({"_step_func_coeff": True})
+        elif self.coeff is None:
             pass
         else:
             # TODO use cubic interpolation
@@ -290,9 +272,16 @@ class CircuitProcessor(object):
             H_list.append(
                 [self.ctrls[op_ind], amps[op_ind]])
         if not H_list:
-            return _dummy_qobjevo(self.dims, tlist=tlist, args=args)
+            return _dummy_qobjevo(self.dims, tlist=self.tlist, args=args)
         else:
-            return QobjEvo(H_list, tlist=tlist, args=args)
+            return QobjEvo(H_list, tlist=self.tlist, args=args)
+
+    def get_noisy_qobjevo(self, args=None):
+        # TODO add test for tlist, args
+        unitary_qobjevo = self.get_unitary_qobjevo(args=args)
+        ham_noise, c_ops = self.process_noise(unitary_qobjevo)
+        noisy_qobjevo = self._compatible_coeff([unitary_qobjevo, ham_noise])
+        return noisy_qobjevo, c_ops
 
     def run_state(self, rho0, **kwargs):
         """
@@ -319,18 +308,22 @@ class CircuitProcessor(object):
             given in place of
             operators for which to calculate the expectation values.
         """
-        # contruct qobjevo for unitary evolution
-        proc_qobjevo = self.get_qobjevo(**kwargs)
-
-        if "H" in kwargs or "args" in kwargs:
+        # kwargs can not contain H
+        if "H" in kwargs or "tlist" in kwargs:
             raise ValueError(
-                "`H` and `args` are already specified by the processor "
+                "`H` and `tlist` are already specified by the processor "
                 "and can not be given as a key word argument")
-        if "tlist" in kwargs:  # handled in self.get_qobjevo
-            del kwargs["tlist"]
+
+        # if no tlist defined in the processor, it can be given in kwargs
+        # (e.g. drift or id evolution with c_ops)
+
+        # contruct qobjevo for unitary evolution
+        if "args" in kwargs:
+            noisy_qobjevo, sys_c_ops = self.get_noisy_qobjevo(kwargs["args"])
+        else:
+            noisy_qobjevo, sys_c_ops = self.get_noisy_qobjevo()
 
         # add noise into kwargs
-        ham_noise, sys_c_ops = self.process_noise(proc_qobjevo)
         if "c_ops" in kwargs:
             if isinstance(kwargs["c_ops"], (Qobj, QobjEvo)):
                 kwargs["c_ops"] += [kwargs["c_ops"]] + sys_c_ops
@@ -338,11 +331,10 @@ class CircuitProcessor(object):
                 kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
-        proc_qobjevo = self._compatible_coeff([proc_qobjevo, ham_noise])
 
         # TODO check dummy_cte
         evo_result = mesolve(
-            H=proc_qobjevo, rho0=rho0, tlist=proc_qobjevo.tlist, **kwargs)
+            H=noisy_qobjevo, rho0=rho0, tlist=noisy_qobjevo.tlist, **kwargs)
         return evo_result
 
     def optimize_circuit(self, qc):
@@ -374,7 +366,7 @@ class CircuitProcessor(object):
         """
         return U
 
-    def plot_pulses(self, amps=None, tlist=None, **kwargs):
+    def plot_pulses(self, amps=None, tlist=None):
         """
         Plot the pulse amplitude
 
@@ -394,21 +386,16 @@ class CircuitProcessor(object):
         """
         import matplotlib.pyplot as plt
         if amps is None:
-            amps = self.amps
+            amps = self.coeff
         if tlist is None:
             tlist = self.tlist
 
-        fig_keys = inspect.getfullargspec(plt.subplots)[0]
-        fig, ax = plt.subplots(
-            1, 1, **{key: kwargs[key] for key in kwargs if key in fig_keys})
+        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
         ax.set_ylabel("Control pulse amplitude")
         ax.set_xlabel("Time")
         amps = np.hstack([amps, amps[:, -1:]])
-        plot_keys = inspect.getfullargspec(ax.step)[0]
         for i in range(amps.shape[0]):
-            ax.step(tlist, amps[i], where='post',
-                    **{key: kwargs[key] for key in kwargs if key in plot_keys})
-        fig.tight_layout()
+            ax.step(tlist, amps[i], where='post')
         return fig, ax
 
     def add_noise(self, noise):
@@ -626,7 +613,7 @@ class ModelProcessor(CircuitProcessor):
         amps : array like
             The transposed pulse matrix
         """
-        return (self.ctrls, self.amps.T)
+        return (self.ctrls, self.coeff.T)
 
     def get_ops_labels(self):
         """
@@ -658,7 +645,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = []
         tlist = self.tlist
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self.ctrls[m]
+            H = sum([self.coeff[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
@@ -727,7 +714,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = [rho0]
         tlist = self.tlist
         for n in range(len(tlist)-1):
-            H = sum([self.amps[m, n] * self.ctrls[m]
+            H = sum([self.coeff[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
@@ -795,8 +782,9 @@ class ModelProcessor(CircuitProcessor):
         ax.set_ylim(-1.5 * 2 * np.pi, 1.5 * 2 * np.pi)
         ax.legend(loc='center left',
                   bbox_to_anchor=(1, 0.5), ncol=(1 + len(u) // 16))
+        ax.set_ylabel("Control pulse amplitude")
+        ax.set_xlabel("Time")
         fig.tight_layout()
-
         return fig, ax
 
 
@@ -850,12 +838,12 @@ class GateDecomposer(object):
             Recorded change of global phase.
         """
         self.dt_list = []
-        self.amps_list = []
+        self.coeff_list = []
         for gate in gates:
             if gate.name not in self.gate_decs:
                 raise ValueError("Unsupported gate %s" % gate.name)
             self.gate_decs[gate.name](gate)
-        amps = np.vstack(self.amps_list).T
+        amps = np.vstack(self.coeff_list).T
 
         tlist = np.empty(len(self.dt_list))
         t = 0
