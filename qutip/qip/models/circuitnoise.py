@@ -4,7 +4,7 @@ import numpy as np
 from numpy.random import normal
 from qutip.qobjevo import QobjEvo, EvoElement
 from qutip.qip.gates import (
-    expand_oper, expand_oper_periodic, _check_qubits_oper)
+    expand_operator, _check_qubits_oper)
 from qutip.qobj import Qobj
 from qutip.operators import sigmaz, destroy, identity
 from qutip.tensor import tensor
@@ -91,11 +91,12 @@ class DecoherenceNoise(CircuitNoise):
         qobj_list = []
         for i, c_op in enumerate(self.c_ops):
             if self.all_qubits:
-                qobj_list += expand_oper_periodic(
-                    oper=c_op, N=N, targets=self.targets, dims=dims)
+                qobj_list += expand_operator(
+                    oper=c_op, N=N, targets=self.targets, dims=dims,
+                    cyclic_permutation=True)
             else:
                 qobj_list.append(
-                    expand_oper(oper=c_op, N=N, targets=self.targets,
+                    expand_operator(oper=c_op, N=N, targets=self.targets,
                                 dims=dims))
         # time-independent
         if self.coeffs is None:
@@ -186,7 +187,7 @@ class RelaxationNoise(CircuitNoise):
             T2 = self.T2[qu_ind]
             if T1 is not None:
                 qobjevo_list.append(
-                    expand_oper(1/np.sqrt(T1) * destroy(2),
+                    expand_operator(1/np.sqrt(T1) * destroy(2),
                                 N, qu_ind, dims=dims))
             if T2 is not None:
                 # Keep the total dephasing ~ exp(-t/T2)
@@ -199,7 +200,7 @@ class RelaxationNoise(CircuitNoise):
                 else:
                     T2_eff = T2
                 qobjevo_list.append(
-                    expand_oper(1/np.sqrt(2*T2_eff) * sigmaz(),
+                    expand_operator(1/np.sqrt(2*T2_eff) * sigmaz(),
                                 N, qu_ind, dims=dims))
         return qobjevo_list
 
@@ -260,13 +261,14 @@ class ControlAmpNoise(CircuitNoise):
         if self.ops is not None:
             if self.expand_type is None:
                 ops = [
-                    expand_oper(oper=op, N=N, targets=self.targets, dims=dims)
+                    expand_operator(oper=op, N=N, targets=self.targets, dims=dims)
                     for op in self.ops]
             else:
                 ops = []
                 for op in self.ops:
-                    ops += expand_oper_periodic(
-                        oper=op, N=N, targets=self.targets, dims=dims)
+                    ops += expand_operator(
+                        oper=op, N=N, targets=self.targets, dims=dims,
+                        cyclic_permutation=True)
 
         # If no operators given, use operators in the processor
         elif proc_qobjevo is not None:
