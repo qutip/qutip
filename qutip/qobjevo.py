@@ -486,7 +486,7 @@ class QobjEvo:
             if op_type_count[0] == nops:
                 self.type = "func"
             elif op_type_count[1] == nops:
-                self.type = "string"
+                self.type = "mixed_callable"
             elif op_type_count[2] == nops:
                 self.type = "array"
             elif op_type_count[3] == nops:
@@ -782,7 +782,7 @@ class QobjEvo:
 
     def to_list(self):
         list_qobj = []
-        if not self.dummy_cte:
+        if not self.dummy_cte and self.cte is not None:
             list_qobj.append(self.cte)
         for op in self.ops:
             list_qobj.append([op.qobj, op.coeff])
