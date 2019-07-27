@@ -491,6 +491,7 @@ class CircuitProcessor(object):
         Combine a list of `:class:qutip.QobjEvo` into one,
         different tlist will be merged.
         """
+        # TODO add test
         # no qobjevo
         if not qobjevo_list:
             return _dummy_qobjevo(self.dims)
@@ -505,7 +506,7 @@ class CircuitProcessor(object):
                 if isinstance(H, Qobj) or H is None:  # cte part
                     continue
                 op, coeff = H
-                if not isinstance(H, np.ndarray):  # not array-like coeff
+                if not isinstance(coeff, np.ndarray):  # not array-like coeff
                     continue
                 new_coeff = self._fill_coeff(coeff, qobjevo.tlist, new_tlist)
                 H_list[j] = [op, new_coeff]
