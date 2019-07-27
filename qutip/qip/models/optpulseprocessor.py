@@ -178,8 +178,6 @@ class OptPulseProcessor(CircuitProcessor):
         proc_qobjevo = super(OptPulseProcessor, self).get_qobjevo(
             **kwargs)
         if self.drift is not None:
-            print(type(proc_qobjevo))
-            print(type(self.drift))
             return proc_qobjevo + self.drift
         else:
             return proc_qobjevo

@@ -285,11 +285,6 @@ class ControlAmpNoise(CircuitNoise):
         for i, op in enumerate(ops):
             noise_list.append(
                 QobjEvo([[op, self.coeffs[i]]], tlist=tlist))
-        # print(noise_list[0].dummy_cte)
-        # print(noise_list[0].cte)
-        print(_dummy_qobjevo(dims).dummy_cte)
-        # print(sum(noise_list, _dummy_qobjevo(dims)).dummy_cte)
-        # print(sum(noise_list, _dummy_qobjevo(dims)).cte)
         return sum(noise_list, _dummy_qobjevo(dims))
 
 
