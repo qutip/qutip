@@ -6,11 +6,17 @@ from qutip.qobjevo import QobjEvo, EvoElement
 from qutip.qip.gates import (
     expand_oper, expand_oper_periodic, _check_qubits_oper)
 from qutip.qobj import Qobj
-from qutip.operators import sigmaz, destroy
+from qutip.operators import sigmaz, destroy, identity
+from qutip.tensor import tensor
 
 
 __all__ = ["CircuitNoise", "DecoherenceNoise", "RelaxationNoise",
            "ControlAmpNoise", "WhiteNoise", "UserNoise"]
+
+
+def _dummy_qobjevo(dims, **kwargs):
+    dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
+    return dummy
 
 
 class CircuitNoise(object):
@@ -46,7 +52,8 @@ class DecoherenceNoise(CircuitNoise):
         If c_ops contains only single qubits collapse operator,
         all_qubits=True will allow it to be applied to all qubits.
     """
-    def __init__(self, c_ops, targets=None, coeffs=None, tlist=None, all_qubits=False):
+    def __init__(self, c_ops, targets=None, coeffs=None, tlist=None,
+                 all_qubits=False):
         if isinstance(c_ops, Qobj):
             self.c_ops = [c_ops]
         else:
@@ -277,7 +284,12 @@ class ControlAmpNoise(CircuitNoise):
         for i, op in enumerate(ops):
             noise_list.append(
                 QobjEvo([[op, self.coeffs[i]]], tlist=tlist))
-        return sum(noise_list)
+        # print(noise_list[0].dummy_cte)
+        # print(noise_list[0].cte)
+        print(_dummy_qobjevo(dims).dummy_cte)
+        # print(sum(noise_list, _dummy_qobjevo(dims)).dummy_cte)
+        # print(sum(noise_list, _dummy_qobjevo(dims)).cte)
+        return sum(noise_list, _dummy_qobjevo(dims))
 
 
 class WhiteNoise(ControlAmpNoise):
@@ -300,8 +312,10 @@ class WhiteNoise(ControlAmpNoise):
         "cyclic_permutation" - the Hamiltonian is to be expanded for
             all cyclic permutation of target qubits
     """
+    # TODO add background or gauss
     def __init__(
-            self, mean, std, dt=None, ops=None, targets=None, expand_type=None):
+            self, mean, std, dt=None, ops=None, targets=None,
+            expand_type=None):
         super(WhiteNoise, self).__init__(
             ops, coeffs=None, targets=targets, expand_type=expand_type)
         self.mean = mean

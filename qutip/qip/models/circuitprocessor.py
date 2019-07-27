@@ -257,7 +257,7 @@ class CircuitProcessor(object):
     def get_qobjevo(self, **kwargs):
         """
         tlist : array like
-            Used if there is no tlist defined in the processor but given as 
+            Used if there is no tlist defined in the processor but given as
             keyword arguments
         """
         # check validity
@@ -279,21 +279,20 @@ class CircuitProcessor(object):
         else:
             tlist = self.tlist
 
+        # set step function
         if "args" in kwargs:
             args = kwargs["args"]
         else:
             args = {}
         if self.spline_kind == "step_func" and self.amps is not None:
             amps = np.hstack([self.amps, np.zeros((len(self.amps), 1))])
-            # amps = np.hstack([self.amps, self.amps[:, -1:]])
             args = {"_step_func_coeff": True}
         elif self.amps is None:
             pass
         else:
+            # TODO use cubic interpolation
             raise NotImplementedError
 
-        # dummy_cte = tensor([Qobj(np.zeros((d, d))) for d in self.dims])
-        # H = [dummy_cte]
         H_list = []
         for op_ind in range(len(self.ctrls)):
             H_list.append(
@@ -349,18 +348,7 @@ class CircuitProcessor(object):
             kwargs["c_ops"] = sys_c_ops
         proc_qobjevo = self._compatible_coeff([proc_qobjevo, ham_noise])
 
-        # if no unitary Qobj given (id evolution with only collapse)
-        if not proc_qobjevo.to_list():
-            proc_qobjevo = QobjEvo(tensor([identity(d) for d in self.dims]),
-                                   tlist=proc_qobjevo.tlist)
         # TODO check dummy_cte
-        # TODO test argments
-        # print()
-        # print(proc_qobjevo.to_list())
-        # print(proc_qobjevo.tlist)
-        # print(proc_qobjevo.type)
-        # print(proc_qobjevo.args)
-        # print()
         evo_result = mesolve(
             H=proc_qobjevo, rho0=rho0, tlist=proc_qobjevo.tlist, **kwargs)
         return evo_result
@@ -449,7 +437,7 @@ class CircuitProcessor(object):
         """
         Call all the noise object saved in the processor and
         return the :class:`qutip.QobjEvo` and :class:`qutip.Qobj`
-        representing the noise. 
+        representing the noise.
 
         Parameters
         ----------
@@ -465,9 +453,6 @@ class CircuitProcessor(object):
             A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
             representing the time-(in)dependent collapse operators.
         """
-        # TODO there is a bug when using QobjEvo()+=
-        tlist = self.tlist
-        # evo_noise_list = QobjEvo(tensor([identity(2)]*self.N), tlist=tlist)
         c_ops = []
         evo_noise_list = []
         if (self.T1 is not None) or (self.T2 is not None):
@@ -498,7 +483,6 @@ class CircuitProcessor(object):
         filling the empty slot with the nearest left value.
         """
         new_n = len(new_tlist)
-        old_n = len(old_tlist)
         old_ind = 0  # index for old coeff and tlist
         new_coeff = np.zeros(new_n)
         for new_ind in range(new_n):
@@ -515,10 +499,16 @@ class CircuitProcessor(object):
         return new_coeff
 
     def _compatible_coeff(self, qobjevo_list):
-        if not qobjevo_list:  # no qobjevo
+        """
+        Combine a list of `:class:qutip.QobjEvo` into one,
+        different tlist will be merged.
+        """
+        # no qobjevo
+        if not qobjevo_list:
             return _dummy_qobjevo(self.dims)
         all_tlists = [qu.tlist for qu in qobjevo_list if qu.tlist is not None]
-        if not all_tlists:  # all tlists are None
+        # all tlists are None
+        if not all_tlists:
             return sum(qobjevo_list, _dummy_qobjevo(self.dims))
         new_tlist = np.unique(np.sort(np.hstack(all_tlists)))
         for i, qobjevo in enumerate(qobjevo_list):
@@ -542,7 +532,6 @@ class CircuitProcessor(object):
 
 def _dummy_qobjevo(dims, **kwargs):
     dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
-    dummy.dummey_cte = True
     return dummy
 
 

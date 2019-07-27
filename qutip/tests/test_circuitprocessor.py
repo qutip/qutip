@@ -36,8 +36,8 @@ from numpy.testing import assert_, run_module_suite, assert_allclose
 import numpy as np
 
 from qutip.qip.models.circuitprocessor import CircuitProcessor
-from qutip.operators import *
 from qutip.states import basis
+from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
 from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
