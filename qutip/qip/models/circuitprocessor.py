@@ -40,7 +40,7 @@ import numpy as np
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.operators import identity
-from qutip.qip.gates import expand_oper, globalphase
+from qutip.qip.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
@@ -136,12 +136,12 @@ class CircuitProcessor(object):
                 self.ctrls.append(ctrl)
             else:
                 self.ctrls.append(
-                    expand_oper(ctrl, self.N, targets, self.dims))
+                    expand_operator(ctrl, self.N, targets, self.dims))
         elif expand_type == "cyclic_permutation":
             for i in range(self.N):
                 new_targets = np.mod(np.array(targets)+i, self.N)
                 self.ctrls.append(
-                    expand_oper(ctrl, self.N, new_targets, self.dims))
+                    expand_operator(ctrl, self.N, new_targets, self.dims))
         else:
             raise ValueError(
                 "expand_type can only be None or 'cyclic_permutation', "
