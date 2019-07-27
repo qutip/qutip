@@ -105,7 +105,7 @@ class CircuitProcessor(object):
             self.dims = dims
         self.spline_kind = spline_kind
 
-    def add_ctrl(self, ctrl, targets=None, expand_type=None):
+    def add_ctrl(self, ctrl, targets=None, cyclic_permutation=False):
         """
         Add a control Hamiltonian to the processor
 
@@ -115,10 +115,8 @@ class CircuitProcessor(object):
             A hermitian Qobj representation of the driving Hamiltonian
         targets : list or int
             The indices of qubits that are acted on
-        expand_type : string
-            The type of expansion
-            None - only expand for the given target qubits
-            "cyclic_permutation" - the Hamiltonian is to be expanded for
+        cyclic_permutation : boolean
+            If true, the Hamiltonian will be expanded for
                 all cyclic permutation of target qubits
         """
         # Check validity of ctrl
@@ -131,21 +129,15 @@ class CircuitProcessor(object):
         if targets is None:
             targets = list(range(num_qubits))
 
-        if expand_type is None:
+        if cyclic_permutation:
+            self.ctrls += expand_operator(
+                ctrl, self.N, targets, self.dims, cyclic_permutation=True)
+        else:
             if num_qubits == self.N:
                 self.ctrls.append(ctrl)
             else:
                 self.ctrls.append(
                     expand_operator(ctrl, self.N, targets, self.dims))
-        elif expand_type == "cyclic_permutation":
-            for i in range(self.N):
-                new_targets = np.mod(np.array(targets)+i, self.N)
-                self.ctrls.append(
-                    expand_operator(ctrl, self.N, new_targets, self.dims))
-        else:
-            raise ValueError(
-                "expand_type can only be None or 'cyclic_permutation', "
-                "not {}".format(expand_type))
 
     def remove_ctrl(self, indices):
         """
