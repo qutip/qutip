@@ -92,7 +92,7 @@ class TestCircuitNoise:
 
         # With expand
         connoise = ControlAmpNoise(
-            ops=sigmaz(), coeffs=[coeff]*2, expand_type="cyclic_permutation")
+            ops=sigmaz(), coeffs=[coeff]*2, cyclic_permutation=True)
         noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([sigmaz(), qeye(2)]))
         assert_allclose(noise.ops[1].qobj, tensor([qeye(2), sigmaz()]))

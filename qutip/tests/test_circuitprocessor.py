@@ -57,7 +57,7 @@ class TestCircuitProcessor:
         proc.ctrls
         proc.ctrls = [sigmaz()]
         assert_(tensor([sigmaz(), identity(2)]), proc.ctrls[0])
-        proc.add_ctrl(sigmax(), expand_type="cyclic_permutation")
+        proc.add_ctrl(sigmax(), cyclic_permutation=True)
         assert_allclose(len(proc.ctrls), 3)
         assert_allclose(tensor([sigmax(), identity(2)]), proc.ctrls[1])
         assert_allclose(tensor([identity(2), sigmax()]), proc.ctrls[2])
@@ -73,11 +73,11 @@ class TestCircuitProcessor:
         Test for saving and reading a pulse matrix
         """
         proc = CircuitProcessor(N=2)
-        proc.add_ctrl(sigmaz(), expand_type="cyclic_permutation")
+        proc.add_ctrl(sigmaz(), cyclic_permutation=True)
         proc1 = CircuitProcessor(N=2)
-        proc1.add_ctrl(sigmaz(), expand_type="cyclic_permutation")
+        proc1.add_ctrl(sigmaz(), cyclic_permutation=True)
         proc2 = CircuitProcessor(N=2)
-        proc2.add_ctrl(sigmaz(), expand_type="cyclic_permutation")
+        proc2.add_ctrl(sigmaz(), cyclic_permutation=True)
         tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
         amp1 = np.arange(0, 5, 1)
         amp2 = np.arange(5, 0, -1)

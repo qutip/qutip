@@ -218,20 +218,18 @@ class ControlAmpNoise(CircuitNoise):
         For available choice, see :class:`Qutip.QobjEvo`
     targets : list or int
         The indices of qubits that are acted on
-    expand_type : string
-        The type of expansion
-        None - only expand for the given target qubits
-        "cyclic_permutation" - the Hamiltonian is to be expanded for
+    cyclic_permutation : boolean
+        If true, the Hamiltonian will be expanded for
             all cyclic permutation of target qubits
     """
-    def __init__(self, ops, coeffs, targets=None, expand_type=None):
+    def __init__(self, ops, coeffs, targets=None, cyclic_permutation=False):
         self.coeffs = coeffs
         if isinstance(ops, Qobj):
             self.ops = [ops]
         else:
             self.ops = ops
         self.targets = targets
-        self.expand_type = expand_type
+        self.cyclic_permutation = cyclic_permutation
 
     def get_noise(self, N, proc_qobjevo=None, dims=None):
         """
@@ -259,16 +257,17 @@ class ControlAmpNoise(CircuitNoise):
         tlist = proc_qobjevo.tlist
         # If new operators are given
         if self.ops is not None:
-            if self.expand_type is None:
-                ops = [
-                    expand_operator(oper=op, N=N, targets=self.targets, dims=dims)
-                    for op in self.ops]
-            else:
+            if self.cyclic_permutation:
                 ops = []
                 for op in self.ops:
                     ops += expand_operator(
                         oper=op, N=N, targets=self.targets, dims=dims,
                         cyclic_permutation=True)
+            else:
+                ops = [
+                    expand_operator(
+                        oper=op, N=N, targets=self.targets, dims=dims)
+                    for op in self.ops]
 
         # If no operators given, use operators in the processor
         elif proc_qobjevo is not None:
@@ -308,18 +307,17 @@ class WhiteNoise(ControlAmpNoise):
         The Hamiltonian representing the dynamics of the noise
     targets : list or int
         The indices of qubits that are acted on
-    expand_type : string
-        The type of expansion
-        None - only expand for the given target qubits
-        "cyclic_permutation" - the Hamiltonian is to be expanded for
+    cyclic_permutation : boolean
+        If true, the Hamiltonian will be expanded for
             all cyclic permutation of target qubits
     """
     # TODO add background or gauss
     def __init__(
             self, mean, std, dt=None, ops=None, targets=None,
-            expand_type=None):
+            cyclic_permutation=False):
         super(WhiteNoise, self).__init__(
-            ops, coeffs=None, targets=targets, expand_type=expand_type)
+            ops, coeffs=None, targets=targets,
+            cyclic_permutation=cyclic_permutation)
         self.mean = mean
         self.std = std
         self.dt = dt
@@ -349,10 +347,10 @@ class WhiteNoise(ControlAmpNoise):
             dims = [2] * N
         tlist = proc_qobjevo.tlist
         if self.ops is not None:
-            if self.expand_type is None:
-                ops_num = len(self.ops)
-            else:
+            if self.cyclic_permutation:
                 ops_num = len(self.ops) * N
+            else:
+                ops_num = len(self.ops)
         elif proc_qobjevo is not None:
             # +1 for the constant part in QobjEvo,
             # if no cte part the last coeff will be ignored
