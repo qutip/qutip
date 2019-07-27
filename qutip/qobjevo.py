@@ -37,7 +37,7 @@ __all__ = ['QobjEvo']
 from qutip.qobj import Qobj
 import qutip.settings as qset
 from qutip.interpolate import Cubic_Spline
-from scipy.interpolate import CubicSpline
+from scipy.interpolate import CubicSpline, interp1d
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
@@ -47,7 +47,8 @@ from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv, cy_spmm
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
                                  CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
-                                      InterpolateCoeff, StrCoeff)
+                                      InterpolateCoeff, StrCoeff,
+                                      StepCoeffCte, StepCoeffT)
 import pickle
 import sys
 import scipy
@@ -139,10 +140,19 @@ class _StrWrapper:
 class _CubicSplineWrapper:
     # Using scipy's CubicSpline since Qutip's one
     # only accept linearly distributed tlist
-    def __init__(self, tlist, coeff):
+    def __init__(self, tlist, coeff, args=None):
         self.coeff = coeff
         self.tlist = tlist
-        self.func = CubicSpline(self.tlist, self.coeff)
+        try:
+            use_step_func = args["_step_func_coeff"]
+        except KeyError:
+            use_step_func = 0
+        if use_step_func:
+            self.func = interp1d(
+                self.tlist, self.coeff, kind="previous",
+                bounds_error=False, fill_value=0.)
+        else:
+            self.func = CubicSpline(self.tlist, self.coeff)
 
     def __call__(self, t, args={}):
         return self.func([t])[0]
@@ -228,6 +238,10 @@ class QobjEvo:
     A list of times (float64) at which the coeffients must be given (tlist).
     The coeffients array must have the same len as the tlist.
     The time of the tlist do not need to be equidistant, but must be sorted.
+    By default, a cubic spline interpolation will be used for the coefficient
+    at time t.
+    If the coefficients are to be treated as step function, use the arguments
+    args = {"_step_func_coeff": True}
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo([H0, [H1, np.exp(-1j*tlist)], [H2, np.cos(2.*tlist)]],
@@ -460,8 +474,10 @@ class QobjEvo:
                                     op[1], "string"))
                 elif type_ == 3:
                     op_type_count[2] += 1
-                    self.ops.append(EvoElement(op[0], _CubicSplineWrapper(tlist, op[1]),
-                                     op[1].copy(), "array"))
+                    self.ops.append(EvoElement(
+                        op[0],
+                        _CubicSplineWrapper(tlist, op[1], args=self.args),
+                        op[1].copy(), "array"))
                 elif type_ == 4:
                     op_type_count[3] += 1
                     self.ops.append(EvoElement(op[0], op[1], op[1], "spline"))
@@ -1064,7 +1080,8 @@ class QobjEvo:
                 for i in _set[1:]:
                     new_array += self.ops[i].coeff
                 new_op[2] = new_array
-                new_op[1] = _CubicSplineWrapper(self.tlist, new_array)
+                new_op[1] = _CubicSplineWrapper(
+                    self.tlist, new_array, args=self.args)
                 new_ops.append(EvoElement.make(new_op))
 
         self.ops = new_ops
@@ -1201,7 +1218,8 @@ class QobjEvo:
                     ff = function(f, *args, **kw_args)
                     for i, v in enumerate(op.coeff):
                         op.coeff[i] = ff(v)
-                    op.get_coeff = _CubicSplineWrapper(self.tlist, op.coeff)
+                    op.get_coeff = _CubicSplineWrapper(
+                        self.tlist, op.coeff, args=self.args)
                 else:
                     op.coeff = op.get_coeff
                     op.type = "func"
@@ -1229,7 +1247,8 @@ class QobjEvo:
                 new_op[1] = _StrWrapper(new_op[2])
             elif op.type == "array":
                 new_op[2] = np.abs(op.coeff)**2
-                new_op[1] = _CubicSplineWrapper(self.tlist, new_op[2])
+                new_op[1] = _CubicSplineWrapper(
+                    self.tlist, new_op[2], args=self.args)
             elif op.type == "spline":
                 new_op[1] = _Norm2(op.get_coeff)
                 new_op[2] = new_op[1]
@@ -1251,7 +1270,8 @@ class QobjEvo:
                 new_op[1] = _StrWrapper(new_op[2])
             elif op.type == "array":
                 new_op[2] = np.conj(op.coeff)
-                new_op[1] = _CubicSplineWrapper(self.tlist, new_op[2])
+                new_op[1] = _CubicSplineWrapper(
+                    self.tlist, new_op[2], args=self.args)
             elif op.type == "spline":
                 new_op[1] = _Conj(op.get_coeff)
                 new_op[2] = new_op[1]
@@ -1439,12 +1459,25 @@ class QobjEvo:
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
                 self.compiled += "cyfactor"
             elif self.type == "array":
+                try:
+                    use_step_func = self.args["_step_func_coeff"]
+                except KeyError:
+                    use_step_func = 0
                 if np.allclose(np.diff(self.tlist),
-                               self.tlist[1] - self.tlist[0]):
-                    self.coeff_get = InterCoeffCte(self.ops, None,
-                                                     self.tlist)
+                            self.tlist[1] - self.tlist[0]):
+                    if use_step_func:
+                        self.coeff_get = StepCoeffCte(
+                            self.ops, None, self.tlist)
+                    else:
+                        self.coeff_get = InterCoeffCte(
+                            self.ops, None, self.tlist)
                 else:
-                    self.coeff_get = InterCoeffT(self.ops, None, self.tlist)
+                    if use_step_func:
+                        self.coeff_get = StepCoeffT(
+                            self.ops, None, self.tlist)
+                    else:
+                        self.coeff_get = InterCoeffT(
+                            self.ops, None, self.tlist)
                 self.compiled += "cyfactor"
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
             elif self.type == "spline":
