@@ -283,6 +283,16 @@ class CircuitProcessor(object):
         noisy_qobjevo = self._compatible_coeff([unitary_qobjevo, ham_noise])
         return noisy_qobjevo, c_ops
 
+    def get_noisy_coeff(self):
+        # TODO add test
+        noisy_qobjevo, c_ops = self.get_noisy_qobjevo()
+        coeff_list = []
+        H_list = noisy_qobjevo.to_list()
+        for H in H_list:
+            if isinstance(H, list):
+                coeff_list.append(H[1])
+        return np.vstack(coeff_list), noisy_qobjevo.tlist
+
     def run_state(self, rho0, **kwargs):
         """
         Use mesolve to calculate the time of the state evolution
@@ -366,14 +376,9 @@ class CircuitProcessor(object):
         """
         return U
 
-    def plot_pulses(self, amps=None, tlist=None):
+    def plot_pulses(self, noisy=False):
         """
         Plot the pulse amplitude
-
-        Parameters
-        ----------
-        **kwargs
-            Key word arguments for figure
 
         Returns
         -------
@@ -385,17 +390,21 @@ class CircuitProcessor(object):
             Keyword arguments for `plt.subplot` or `as.step`.
         """
         import matplotlib.pyplot as plt
-        if amps is None:
-            amps = self.coeff
-        if tlist is None:
-            tlist = self.tlist
 
         fig, ax = plt.subplots(1, 1, figsize=(12, 6))
         ax.set_ylabel("Control pulse amplitude")
         ax.set_xlabel("Time")
-        amps = np.hstack([amps, amps[:, -1:]])
-        for i in range(amps.shape[0]):
-            ax.step(tlist, amps[i], where='post')
+        if noisy:
+            # TODO add test
+            coeff, tlist = self.get_noisy_coeff()
+            coeff[:, -1] = coeff[:, -2]
+            for i in range(coeff.shape[0]):
+                ax.step(tlist, coeff[i], where='post')
+        else:
+            tlist = self.tlist
+            coeff = np.hstack([self.coeff, self.coeff[:, -1:]])
+            for i in range(coeff.shape[0]):
+                ax.step(tlist, coeff[i], where='post')
         return fig, ax
 
     def add_noise(self, noise):
