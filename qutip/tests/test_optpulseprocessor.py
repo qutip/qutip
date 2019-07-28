@@ -120,7 +120,7 @@ class TestOptPulseProcessor:
         test2.ctrls = test.ctrls
         test2.read_amps("qutip_test_multi_qubits.txt")
         os.remove("qutip_test_multi_qubits.txt")
-        assert_(np.max((test.amps-test2.amps)**2) < 1.0e-13)
+        assert_(np.max((test.coeff-test2.coeff)**2) < 1.0e-13)
         result = test2.run_state(rho0,)
         assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
 
@@ -164,7 +164,8 @@ class TestOptPulseProcessor:
 
         # test T1
         test = OptPulseProcessor(1, drift=H_d, T1=T1)
-        result = test.run_state(ex_state, e_ops=[a.dag()*a], tlist=tlist)
+        test.tlist = tlist
+        result = test.run_state(ex_state, e_ops=[a.dag()*a])
 
         assert_allclose(
             result.expect[0][-1], np.exp(-1./T1*end_time),
@@ -172,8 +173,9 @@ class TestOptPulseProcessor:
 
         # test T2
         test = OptPulseProcessor(1, T2=T2)
+        test.tlist = tlist
         result = test.run_state(
-            rho0=mines_state, tlist=tlist, e_ops=[Hadamard*a.dag()*a*Hadamard])
+            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
             result.expect[0][-1], np.exp(-1./T2*end_time)*0.5+0.5,
             rtol=1e-5, err_msg="Error in T2 time simulation")
@@ -182,8 +184,9 @@ class TestOptPulseProcessor:
         T1 = np.random.rand(1) + 0.5
         T2 = np.random.rand(1) * 0.5 + 0.5
         test = OptPulseProcessor(1, T1=T1, T2=T2)
+        test.tlist = tlist
         result = test.run_state(
-            rho0=mines_state, tlist=tlist, e_ops=[Hadamard*a.dag()*a*Hadamard])
+            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
             result.expect[0][-1], np.exp(-1./T2*end_time)*0.5+0.5,
             rtol=1e-5,

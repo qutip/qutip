@@ -1660,3 +1660,6 @@ class _Add():
         return np.sum([f(t, args) for f in self.funcs])
 
 from qutip.superoperator import vec2mat
+
+
+#%%

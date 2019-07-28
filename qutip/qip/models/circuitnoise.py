@@ -222,7 +222,8 @@ class ControlAmpNoise(CircuitNoise):
         If true, the Hamiltonian will be expanded for
             all cyclic permutation of target qubits
     """
-    def __init__(self, ops, coeffs, targets=None, cyclic_permutation=False):
+    def __init__(self, ops, coeffs, targets=None,
+                 cyclic_permutation=False):
         self.coeffs = coeffs
         if isinstance(ops, Qobj):
             self.ops = [ops]
@@ -231,7 +232,7 @@ class ControlAmpNoise(CircuitNoise):
         self.targets = targets
         self.cyclic_permutation = cyclic_permutation
 
-    def get_noise(self, N, proc_qobjevo=None, dims=None):
+    def get_noise(self, N, proc_qobjevo=None, dims=None, tlist=None):
         """
         Return the quantum objects representing the noise.
 
@@ -254,7 +255,9 @@ class ControlAmpNoise(CircuitNoise):
         """
         if dims is None:
             dims = [2] * N
-        tlist = proc_qobjevo.tlist
+        if tlist is None:
+            tlist = proc_qobjevo.tlist
+
         # If new operators are given
         if self.ops is not None:
             if self.cyclic_permutation:
@@ -350,10 +353,20 @@ class WhiteNoise(ControlAmpNoise):
             # +1 for the constant part in QobjEvo,
             # if no cte part the last coeff will be ignored
             ops_num = len(proc_qobjevo.ops) + 1
-        self.coeffs = normal(
-            self.mean, self.std, (ops_num, len(tlist)))
+        if self.dt is not None:
+            # TODO add test
+            # create new tlist and random coeff
+            num_rand = int(np.floor((tlist[-1]-tlist[0])/self.dt))+1
+            self.coeffs = normal(
+                self.mean, self.std, (ops_num, num_rand))
+            tlist = (np.arange(0, self.dt*num_rand, self.dt)[:num_rand] +
+                     tlist[0])
+            # [:num_rand] for round of error like 0.2*6=1.2000000000002
+        else:
+            self.coeffs = normal(
+                self.mean, self.std, (ops_num, len(tlist)))
         return super(WhiteNoise, self).get_noise(
-            N, proc_qobjevo=proc_qobjevo, dims=dims)
+            N, proc_qobjevo=proc_qobjevo, dims=dims, tlist=tlist)
 
 
 class UserNoise(CircuitNoise):
