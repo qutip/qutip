@@ -425,6 +425,11 @@ class QobjEvo:
         self.type = "none"
         self.omp = 0
 
+        # for Q_object = [Qobj]
+        if isinstance(Q_object, list) and \
+                    all(isinstance(H, Qobj) for H in Q_object):
+            Q_object = sum(Q_object)
+
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
                                                                 (Qobj, list)):
@@ -1129,7 +1134,9 @@ class QobjEvo:
                 op_type_count[3] += 1
 
         nops = sum(op_type_count)
-        if op_type_count[0] == nops:
+        if not self.ops and self.dummy_cte is False:
+            self.type = "cte"
+        elif op_type_count[0] == nops:
             self.type = "func"
         elif op_type_count[1] == nops:
             self.type = "string"
