@@ -4,7 +4,7 @@ import numpy as np
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 from qutip.qip.models.circuitnoise import (
     RelaxationNoise, DecoherenceNoise, ControlAmpNoise, WhiteNoise, UserNoise)
-from qutip.operators import qeye, sigmaz, sigmax, sigmay, destroy
+from qutip.operators import qeye, sigmaz, sigmax, sigmay, destroy, identity
 from qutip.tensor import tensor
 from qutip.qobjevo import QobjEvo
 from qutip.states import basis
@@ -77,23 +77,24 @@ class TestCircuitNoise:
         """
         tlist = np.array([1, 2, 3, 4, 5, 6])
         coeff = np.array([1, 1, 1, 1, 1, 1])
-        dummy_qobjevo = QobjEvo(tlist=tlist)
+        dummy_qobjevo1 = QobjEvo(identity(2), tlist=tlist)
+        dummy_qobjevo2 = QobjEvo(tensor([identity(2)]*2), tlist=tlist)
 
         # no expand 
         connoise = ControlAmpNoise(ops=sigmax(), coeffs=[coeff])
-        noise = connoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
+        noise = connoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo1)
         assert_allclose(noise.ops[0].qobj, sigmax())
         assert_allclose(noise.tlist, tlist)
         assert_allclose(noise.ops[0].coeff, coeff)
 
         connoise = ControlAmpNoise(ops=sigmay(), coeffs=[coeff], targets=[1])
-        noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
+        noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo2)
         assert_allclose(noise.ops[0].qobj, tensor([qeye(2), sigmay()]))
 
         # With expand
         connoise = ControlAmpNoise(
             ops=sigmaz(), coeffs=[coeff]*2, cyclic_permutation=True)
-        noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
+        noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo2)
         assert_allclose(noise.ops[0].qobj, tensor([sigmaz(), qeye(2)]))
         assert_allclose(noise.ops[1].qobj, tensor([qeye(2), sigmaz()]))
 
@@ -103,7 +104,7 @@ class TestCircuitNoise:
         """
 
         tlist = np.array([1, 2, 3, 4, 5, 6])
-        dummy_qobjevo = QobjEvo(tlist=tlist)
+        dummy_qobjevo = QobjEvo(identity(2), tlist=tlist)
         mean = 0.
         std = 0.5
         ops = [sigmaz(), sigmax()]
