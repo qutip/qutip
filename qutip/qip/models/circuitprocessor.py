@@ -33,7 +33,7 @@
 from collections.abc import Iterable
 from functools import reduce
 import numbers
-import inspect
+from copy import deepcopy
 
 import numpy as np
 
@@ -465,27 +465,6 @@ class CircuitProcessor(object):
                         type(noise)))
         return self._compatible_coeff(evo_noise_list), c_ops
 
-    def _fill_coeff(self, old_coeff, old_tlist, new_tlist):
-        """
-        Make a step function coefficients compatible with a longer `tlist` by
-        filling the empty slot with the nearest left value.
-        """
-        new_n = len(new_tlist)
-        old_ind = 0  # index for old coeff and tlist
-        new_coeff = np.zeros(new_n)
-        for new_ind in range(new_n):
-            t = new_tlist[new_ind]
-            if t < old_tlist[0]:
-                new_coeff[new_ind] = 0.
-                continue
-            if t > old_tlist[-1]:
-                new_coeff[new_ind] = 0.
-                continue
-            if old_tlist[old_ind+1] == t:
-                old_ind += 1
-            new_coeff[new_ind] = old_coeff[old_ind]
-        return new_coeff
-
     def _compatible_coeff(self, qobjevo_list):
         """
         Combine a list of `:class:qutip.QobjEvo` into one,
@@ -503,12 +482,11 @@ class CircuitProcessor(object):
         for i, qobjevo in enumerate(qobjevo_list):
             H_list = qobjevo.to_list()
             for j, H in enumerate(H_list):
-                if isinstance(H, Qobj) or H is None:  # cte part
+                # cte part or not array-like coeff
+                if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
                     continue
                 op, coeff = H
-                if not isinstance(coeff, np.ndarray):  # not array-like coeff
-                    continue
-                new_coeff = self._fill_coeff(coeff, qobjevo.tlist, new_tlist)
+                new_coeff = _fill_coeff(coeff, qobjevo.tlist, new_tlist)
                 H_list[j] = [op, new_coeff]
             # QobjEvo cannot handle [Qobj] as input
             if H_list and all(isinstance(H, Qobj) for H in H_list):
@@ -516,7 +494,59 @@ class CircuitProcessor(object):
             # create a new qobjevo with the old arguments
             qobjevo_list[i] = QobjEvo(
                 H_list, tlist=new_tlist, args=qobjevo.args)
-        return sum(qobjevo_list, _dummy_qobjevo(self.dims))
+        qobjevo = sum(qobjevo_list, _dummy_qobjevo(self.dims))
+        qobjevo = _merge_id_evo(qobjevo)
+        return qobjevo
+
+
+def _fill_coeff(old_coeff, old_tlist, new_tlist):
+    """
+    Make a step function coefficients compatible with a longer `tlist` by
+    filling the empty slot with the nearest left value.
+    """
+    new_n = len(new_tlist)
+    old_ind = 0  # index for old coeff and tlist
+    new_coeff = np.zeros(new_n)
+    for new_ind in range(new_n):
+        t = new_tlist[new_ind]
+        if t < old_tlist[0]:
+            new_coeff[new_ind] = 0.
+            continue
+        if t > old_tlist[-1]:
+            new_coeff[new_ind] = 0.
+            continue
+        if old_tlist[old_ind+1] == t:
+            old_ind += 1
+        new_coeff[new_ind] = old_coeff[old_ind]
+    return new_coeff
+
+
+def _merge_id_evo(qobjevo):
+    """
+    coeff must all have the same length
+    """
+    H_list = qobjevo.to_list()
+    new_H_list = []
+    add_dict = {}
+    op_list = []
+    coeff_list = []
+    for H in H_list:
+        # cte part or not array-like coeff
+        if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
+            new_H_list.append(deepcopy(H))
+            continue
+        op, coeff = H
+        # Qobj is not hashable, so cannot be used as key in dict
+        try:
+            p = op_list.index(op)
+            coeff_list[p] += coeff
+        except ValueError:
+            op_list.append(op)
+            coeff_list.append(coeff)
+    new_H_list += [[op_list[i], coeff_list[i]] for i in range(len(op_list))]
+    if new_H_list and all(isinstance(H, Qobj) for H in new_H_list):
+        new_H_list = sum(new_H_list, new_H_list[0] * 0.)
+    return QobjEvo(new_H_list, tlist=qobjevo.tlist, args=qobjevo.args)
 
 
 def _dummy_qobjevo(dims, **kwargs):
