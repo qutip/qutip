@@ -576,12 +576,12 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     dt = tlist[1] - tlist[0]
     if not np.allclose(np.diff(tlist), dt*np.ones(N-1,dtype=float)):
         raise Exception('tlist must be equally spaced for FFT.')
-    
+
     if inverse:
            F = N * scipy.fftpack.ifft(y)
     else:
            F = scipy.fftpack.fft(y)
-    
+
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(N, dt)
 
@@ -813,7 +813,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     References
     ----------
     See, Gardiner, Quantum Noise, Section 5.2.
-                       
+
     .. note:: Deprecated in QuTiP 3.1
               Use correlation_3op_1t() instead.
 
@@ -1291,10 +1291,10 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     dtype=corr_mat.dtype
                 )
                 corr_mat[t_idx, :] += corr_mat_add
-                    
+
         if t_idx == 1:
             options.rhs_reuse = True
-    
+
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1344,8 +1344,21 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 
 # auxiliary
-
+from qutip import QobjEvo
 def _transform_L_t_shift(H, c_ops, args={}):
+    if isinstance(args, dict) and isinstance(H, (list, Qobj, QobjEvo)):
+        H_shifted = QobjEvo(H, args)
+        H_shifted._shift()
+        c_ops_shifted = [QobjEvo(op, args)._shift() for op in c_ops]
+        for op in c_ops_shifted:
+            op._shift()
+        new_args = {"_t0": 0}
+        new_args.update(args)
+        return H_shifted, c_ops_shifted, new_args
+    else:
+        return _transform_L_t_shift_old(H, c_ops, args)
+
+def _transform_L_t_shift_old(H, c_ops, args={}):
     """
     Time shift the Hamiltonian with private time-shift variable _t0
     """
@@ -1355,8 +1368,6 @@ def _transform_L_t_shift(H, c_ops, args={}):
     # to keep in mind is that mesolve already requires the types of
     # time-dependence to be the same for the hamiltonian as for the collapse
     # operators.
-
-
     if isinstance(H, Qobj):
         # constant hamiltonian
         H_shifted = H  # not shifted!
@@ -1410,20 +1421,33 @@ def _transform_L_t_shift(H, c_ops, args={}):
                     if isinstance(args, dict) or args is None:
                         if isinstance(H[i][1], types.FunctionType):
                             # function-list based time-dependence
+                            def make_lambda(func):
+                                return lambda t, args_i: \
+                                    func(t + args_i["_t0"], args_i)
+                            fn = make_lambda(H[i][1])
+                            """
                             fn = lambda t, args_i: \
                                 H[i][1](t + args_i["_t0"], args_i)
+                            """
                         else:
                             # string-list based time-dependence
                             # Again, note: _td_format_check already raises
                             # errors formixed td formatting
                             fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                     "(t+_t0)", H[i][1])
+                                     "(t+_t0)", " " + H[i][1] + " ")
                     else:
                         if isinstance(H[i][1], types.FunctionType):
                             # function-list based time-dependence
+                            def make_lambda(func):
+                                return lambda t, args_i: \
+                                    func(t + args_i["_t0"],
+                                         args_i["_user_args"])
+                            fn = make_lambda(H[i][1])
+                            """
                             fn = lambda t, args_i: \
                                 H[i][1](t + args_i["_t0"],
                                         args_i["_user_args"])
+                            """
                         else:
                             raise TypeError("If using string-list based" +
                                             "Hamiltonian time-dependence, " +
@@ -1443,20 +1467,33 @@ def _transform_L_t_shift(H, c_ops, args={}):
                     if isinstance(args, dict) or args is None:
                         if isinstance(c_ops[i][1], types.FunctionType):
                             # function-list based time-dependence
+                            def make_lambda(func):
+                                return lambda t, args_i: \
+                                    func(t + args_i["_t0"], args_i)
+                            fn = make_lambda(c_ops[i][1])
+                            """
                             fn = lambda t, args_i: \
                                 c_ops[i][1](t + args_i["_t0"], args_i)
+                            """
                         else:
                             # string-list based time-dependence
                             # Again, note: _td_format_check already raises
                             # errors formixed td formatting
                             fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                     "(t+_t0)", c_ops[i][1])
+                                     "(t+_t0)", " " + c_ops[i][1] + " ")
                     else:
                         if isinstance(H[i][1], types.FunctionType):
                             # function-list based time-dependence
+                            def make_lambda(func):
+                                return lambda t, args_i: \
+                                    func(t + args_i["_t0"],
+                                         args_i["_user_args"])
+                            fn = make_lambda(c_ops[i][1])
+                            """
                             fn = lambda t, args_i: \
                                 c_ops[i][1](t + args_i["_t0"],
                                             args_i["_user_args"])
+                            """
                         else:
                             raise TypeError("If using string-list based" +
                                             "collapse operator" +

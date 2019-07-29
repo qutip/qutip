@@ -52,6 +52,7 @@ import pickle
 import sys
 import scipy
 import os
+from re import sub
 
 if qset.has_openmp:
     from qutip.cy.openmp.cqobjevo_omp import (CQobjCteOmp, CQobjEvoTdOmp,
