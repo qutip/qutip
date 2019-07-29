@@ -1266,7 +1266,7 @@ class QobjEvo:
 
     def _shift(self):
         self.compiled = ""
-        self.args.update({"_t0":0})
+        self.args.update({"_t0": 0})
         new_ops = []
         for op in self.ops:
             new_op = [op.qobj, None, None, op.type]

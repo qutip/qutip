@@ -51,6 +51,7 @@ from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
 from qutip.operators import qeye
 from qutip.qobj import Qobj, isket, issuper
+from qutip.qobjevo import QobjEvo
 from qutip.rhs_generate import rhs_clear, _td_wrap_array_str
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.settings import debug
@@ -1100,7 +1101,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     rho_t = mesolve(H, rho0, tlist, c_ops, [],
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1229,7 +1230,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1303,7 +1304,6 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 
 # pseudo-inverse solvers
-
 def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     """
     Internal function for calculating the spectrum of the correlation function
@@ -1344,163 +1344,49 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 
 # auxiliary
-from qutip import QobjEvo
-def _transform_L_t_shift(H, c_ops, args={}):
-    if isinstance(args, dict) and isinstance(H, (list, Qobj, QobjEvo)):
-        H_shifted = QobjEvo(H, args)
-        H_shifted._shift()
-        c_ops_shifted = [QobjEvo(op, args)._shift() for op in c_ops]
-        for op in c_ops_shifted:
-            op._shift()
-        new_args = {"_t0": 0}
-        new_args.update(args)
-        return H_shifted, c_ops_shifted, new_args
+def _transform_shift_one_coeff(op, args):
+    if isinstance(op, types.FunctionType):
+        # function-list based time-dependence
+        if isinstance(args, dict):
+            fn = lambda t, args_i: \
+                op(t + args_i["_t0"], args_i)
+        else:
+            fn = lambda t, args_i: \
+                op(t + args_i["_t0"], args_i["_user_args"])
     else:
-        return _transform_L_t_shift_old(H, c_ops, args)
+        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+             "(t+_t0)", " " + op + " ")
+    return fn
 
-def _transform_L_t_shift_old(H, c_ops, args={}):
-    """
-    Time shift the Hamiltonian with private time-shift variable _t0
-    """
 
-    # while this list doesn't seem exhaustive, mesolve has already been called
-    # and has hence called _td_format_check from qutip.rhs_generate. important
-    # to keep in mind is that mesolve already requires the types of
-    # time-dependence to be the same for the hamiltonian as for the collapse
-    # operators.
-    if isinstance(H, Qobj):
-        # constant hamiltonian
-        H_shifted = H  # not shifted!
-
-    c_ops_is_td = False
-    if isinstance(c_ops, list):
-        for i in range(len(c_ops)):
-            # test is collapse operators are time-dependent
-            if isinstance(c_ops[i], list):
-                c_ops_is_td = True
-
-    if not c_ops_is_td:
-        # constant collapse operators
-        c_ops_shifted = c_ops  # not shifted!
-
-    if isinstance(H, Qobj) and not c_ops_is_td:
-        # constant hamiltonian and collapse operators
-        _args = args  # not shifted!
-
-    if isinstance(H, types.FunctionType):
-        # function-callback based time-dependence
-        if isinstance(args, dict) or args is None:
-            if args is None:
-                _args = {"_t0": 0}
+def _transform_shift_one_op(op, args={}):
+    if isinstance(op, Qobj):
+        new_op = op
+    elif isinstance(op, QobjEvo):
+        new_op = op
+        new_op._shift
+    elif callable(op):
+        new_op = lambda t, args_i: op(t+args_i["_t0"], args_i)
+    elif isinstance(op, list):
+        new_op = []
+        for block in op:
+            if isinstance(block, list):
+                new_op.append([block[0],
+                               _transform_shift_one_coeff(block[1], args)])
             else:
-                _args = args.copy()
-                _args["_t0"] = 0
-            H_shifted = lambda t, args_i: H(t+args_i["_t0"], args_i)
-        else:
-            raise TypeError("If using function-callback based Hamiltonian" +
-                            "time-dependence, args must be a dictionary")
+                new_op.append(block)
+    return new_op
 
-    if isinstance(H, list) or c_ops_is_td:
-        # string/function-list based time-dependence
-        if args is None:
-            _args = {"_t0": 0}
-        elif isinstance(args, dict):
-            _args = args.copy()
-            _args["_t0"] = 0
-        else:
-            _args = {"_user_args": args, "_t0": 0}
 
-        if isinstance(H, list):
-            # hamiltonian is time-dependent
-            H_shifted = []
-
-            for i in range(len(H)):
-                if isinstance(H[i], list):
-                    # modify Hamiltonian time dependence in accordance with the
-                    # quantum regression theorem
-                    if isinstance(args, dict) or args is None:
-                        if isinstance(H[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            def make_lambda(func):
-                                return lambda t, args_i: \
-                                    func(t + args_i["_t0"], args_i)
-                            fn = make_lambda(H[i][1])
-                            """
-                            fn = lambda t, args_i: \
-                                H[i][1](t + args_i["_t0"], args_i)
-                            """
-                        else:
-                            # string-list based time-dependence
-                            # Again, note: _td_format_check already raises
-                            # errors formixed td formatting
-                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                     "(t+_t0)", " " + H[i][1] + " ")
-                    else:
-                        if isinstance(H[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            def make_lambda(func):
-                                return lambda t, args_i: \
-                                    func(t + args_i["_t0"],
-                                         args_i["_user_args"])
-                            fn = make_lambda(H[i][1])
-                            """
-                            fn = lambda t, args_i: \
-                                H[i][1](t + args_i["_t0"],
-                                        args_i["_user_args"])
-                            """
-                        else:
-                            raise TypeError("If using string-list based" +
-                                            "Hamiltonian time-dependence, " +
-                                            "args must be a dictionary")
-                    H_shifted.append([H[i][0], fn])
-                else:
-                    H_shifted.append(H[i])
-
-        if c_ops_is_td:
-            # collapse operators are time-dependent
-            c_ops_shifted = []
-
-            for i in range(len(c_ops)):
-                if isinstance(c_ops[i], list):
-                    # modify collapse operators time dependence in accordance
-                    # with the quantum regression theorem
-                    if isinstance(args, dict) or args is None:
-                        if isinstance(c_ops[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            def make_lambda(func):
-                                return lambda t, args_i: \
-                                    func(t + args_i["_t0"], args_i)
-                            fn = make_lambda(c_ops[i][1])
-                            """
-                            fn = lambda t, args_i: \
-                                c_ops[i][1](t + args_i["_t0"], args_i)
-                            """
-                        else:
-                            # string-list based time-dependence
-                            # Again, note: _td_format_check already raises
-                            # errors formixed td formatting
-                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                     "(t+_t0)", " " + c_ops[i][1] + " ")
-                    else:
-                        if isinstance(H[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            def make_lambda(func):
-                                return lambda t, args_i: \
-                                    func(t + args_i["_t0"],
-                                         args_i["_user_args"])
-                            fn = make_lambda(c_ops[i][1])
-                            """
-                            fn = lambda t, args_i: \
-                                c_ops[i][1](t + args_i["_t0"],
-                                            args_i["_user_args"])
-                            """
-                        else:
-                            raise TypeError("If using string-list based" +
-                                            "collapse operator" +
-                                            "time-dependence, " +
-                                            "args must be a dictionary")
-                    c_ops_shifted.append([c_ops[i][0], fn])
-                else:
-                    c_ops_shifted.append(c_ops[i])
+def _transform_L_t_shift_new(H, c_ops, args={}):
+    H_shifted = _transform_shift_one_op(H, args)
+    c_ops_shifted = [_transform_shift_one_op(op, args) for op in c_ops]
+    if args is None:
+        _args = {"_t0": 0}
+    elif isinstance(args, dict):
+        _args = args.copy()
+        _args["_t0"] = 0
+    else:
+        _args = {"_user_args": args, "_t0": 0}
 
     return H_shifted, c_ops_shifted, _args
