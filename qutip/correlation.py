@@ -1348,14 +1348,16 @@ def _transform_shift_one_coeff(op, args):
     if isinstance(op, types.FunctionType):
         # function-list based time-dependence
         if isinstance(args, dict):
+            def fn(t, args_i):
+                return op(t + args_i["_t0"], args_i)
             fn = lambda t, args_i: \
                 op(t + args_i["_t0"], args_i)
         else:
-            fn = lambda t, args_i: \
-                op(t + args_i["_t0"], args_i["_user_args"])
+            def fn(t, args_i):
+                return op(t + args_i["_t0"], args_i["_user_args"])
     else:
         fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-             "(t+_t0)", " " + op + " ")
+                 "(t+_t0)", " " + op + " ")
     return fn
 
 
@@ -1366,7 +1368,8 @@ def _transform_shift_one_op(op, args={}):
         new_op = op
         new_op._shift
     elif callable(op):
-        new_op = lambda t, args_i: op(t+args_i["_t0"], args_i)
+        def new_op(t, args_i):
+            return op(t + args_i["_t0"], args_i)
     elif isinstance(op, list):
         new_op = []
         for block in op:
