@@ -32,7 +32,7 @@
 ###############################################################################
 
 
-__all__ = ['Lattice1d', 'Lattice2d', 'cell_structures']
+__all__ = ['Lattice1d', 'cell_structures']
 
 from scipy.sparse import (csr_matrix)
 from qutip import (Qobj, tensor, basis, qeye, isherm)
