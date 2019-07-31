@@ -53,6 +53,24 @@ from qutip.superoperator import vec2mat
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
+
+class SESolver:
+    """Stochastic equation solver
+
+    """
+    def __init__(self, H, args={}, tlist=[]):
+        self.H = QobjEvo(H, args=args, tlist=tlist)
+
+        self._tlist = tlist
+        self._options = Options()
+        self._e_ops = ExpectOps([])
+
+    def set_initial_value()
+
+
+
+
+
 def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
             progress_bar=BaseProgressBar(), _safe_mode=True):
     """

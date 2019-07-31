@@ -255,6 +255,7 @@ class _MC():
         # Flag
         self._experimental = _exp
 
+    #ToDo: rename
     def reset(self, t=0., psi0=None):
         if psi0 is not None:
             self.psi0 = psi0
@@ -285,6 +286,7 @@ class _MC():
         else:
             self.seeds = seeds[:ntraj]
 
+    #ToDo: hide
     def make_system(self, H, c_ops, tlist=None, args={}, options=None):
         if options is None:
             options = self.options
@@ -345,6 +347,7 @@ class _MC():
         if not self.e_ops:
             self.options.store_states = True
 
+    #ToDo: rename
     def run_test(self):
         try:
             for c_op in self.ss.td_c_ops:
