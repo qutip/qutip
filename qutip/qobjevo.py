@@ -425,8 +425,8 @@ class QobjEvo:
         self.type = "none"
         self.omp = 0
 
-        # for Q_object = [Qobj]
-        if isinstance(Q_object, list) and \
+        # for Q_object = [Qobj, Qobj...]
+        if Q_object and isinstance(Q_object, list) and \
                     all(isinstance(H, Qobj) for H in Q_object):
             Q_object = sum(Q_object)
 
