@@ -49,37 +49,7 @@ class Qsystem:
         self.states_runs_t = []
 
 
-    @property
-    def tlist(self):
-        return self._tlist
 
-    @tlist.setter
-    def tlist(self, _tlist):
-        _t_np = np.array(_tlist)
-        n_dim
-        if _t_np.ndim == 1 and _t_np.dtype in [np.int, np.float]:
-            self._tlist = _tlist
-        else:
-            raise TypeError
-
-    @property
-    def e_ops(self):
-        return self._e_ops
-
-    @e_ops.setter
-    def e_ops(self, e_op):
-        self._e_ops = ExpectOps(e_op)
-
-    @property
-    def options(self):
-        return self._options
-
-    @options.setter
-    def options(self, other):
-        if isinstance(other, Options):
-            self._options = other
-        else:
-            raise Exception("options must be an qutip.Options instance")
 
     def evolve(self, tlist=[], state0=None, t=None):
         if tlist:

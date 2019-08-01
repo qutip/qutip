@@ -32,25 +32,211 @@
 ###############################################################################
 from __future__ import print_function
 
-__all__ = ['Options', 'Odeoptions', 'Odedata', 'ExpectOps']
+__all__ = ['Options', 'Odeoptions', 'Odedata', 'ExpectOps', 'Solver']
 
 import sys
-import datetime
-from collections import OrderedDict
 import os
 import warnings
+import datetime
+import numpy as np
 from qutip import __version__
+from collections import OrderedDict
+from types import FunctionType, BuiltinFunctionType
 from qutip.qobj import Qobj
 import qutip.settings as qset
-from types import FunctionType, BuiltinFunctionType
+from qutip.qobjevo import QobjEvo
+from qutip.superoperator import vec2mat
 
 solver_safe = {}
 
 class SolverSystem():
     pass
 
-import numpy as np
-from qutip.qobjevo import QobjEvo
+class Solver:
+    def __init__(self):
+        self._tlist = []
+        self._options = Options()
+        self._e_ops = ExpectOps([])
+        self._state_out_Qobj = []
+        self._state_out = []
+        self.state0 = None
+        self.dims = [[1],[1]]
+        self.args = {}
+
+    @property
+    def tlist(self):
+        return self._tlist
+
+    @tlist.setter
+    def tlist(self, _tlist):
+        _t_np = np.array(_tlist)
+        if _t_np.ndim == 1 and _t_np.dtype in [np.int, np.float]:
+            self._tlist = _tlist
+        else:
+            raise TypeError
+
+    @property
+    def args(self):
+        return self._args
+
+    @e_ops.setter
+    def args(self, _args):
+        if type(_args) == type(self._args):
+            self._args = _args
+        else:
+            raise TypeError
+
+    @property
+    def e_ops(self):
+        return self._e_ops
+
+    @e_ops.setter
+    def e_ops(self, e_op):
+        self._e_ops = ExpectOps(e_op)
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, other):
+        if isinstance(other, Options):
+            self._options = other
+        else:
+            raise Exception("options must be an qutip.Options instance")
+
+    def _states2qobj(self, state):
+        if np.prod(self.dims[1]) == 1:
+            return Qobj(dense1D_to_fastcsr_ket(state),
+                        dims=self.dims, fast='mc')
+        else:
+            return Qobj(vec2mat(state), dims=self.dims)
+
+    @property
+    def states(self):
+        if self._state_out_Qobj:
+            return self._state_out_Qobj
+        self._state_out_Qobj = np.empty(len(self._tlist), dtype=object)
+        for i in range(len(self._tlist)):
+            self._state_out_Qobj[i] = self._states2qobj(self._state_out[i,:])
+        return self._state_out_Qobj
+
+    @property
+    def final_state(self):
+        if not self._state_out:
+        if self._state_out_Qobj:
+            return self._state_out_Qobj[-1]
+        return self._states2qobj(self._state_out[-1,:])
+
+    @property
+    def expect(self):
+        return self._e_ops.finish()
+
+    def plot_expect(self, ylabels=False, title=None, show_legend=False,
+                    fig=None, axes=None, figsize=(8, 4)):
+
+            if not fig or not axes:
+                fig, axes = plt.subplots(self.e_ops.e_num., 1, sharex=True,
+                                         figsize=figsize, squeeze=False)
+
+            expect = self.expect
+            if isinstance(expect, dict):
+                for key, e in expect.items():
+                    axes[e_idx, 0].plot(self._tlist, e,
+                                    label="%d" % (key))
+            else:
+                for e_idx, e in enumerate(expect):
+                    axes[e_idx, 0].plot(self._tlist, e,
+                                        label="e_ops[%d]" % (e_idx))
+
+            if title:
+                axes[0, 0].set_title(title)
+
+            axes[0, 0].set_xlabel("time", fontsize=12)
+            if show_legend:
+                axes[0, 0].legend()
+            if ylabels:
+                axes[0, 0].set_ylabel(ylabels, fontsize=12)
+
+            return fig, axes
+
+    def get_result(self, ntraj=[]):
+        # Store results in the Result object
+        options = self.options
+        output = Result()
+        output.solver = ''
+        output.options = options
+        output.times = self.tlist
+        output.num_expect = self.e_ops.e_num
+        output.expect = self._e_ops.finish()
+        if options.store_states:
+            output.states = self.runs_states
+        if options.store_final_state:
+            output.final_state = self.final_state
+        return output
+
+    # -----------------------------------------------------------------------------
+    # Solve an ODE for func.
+    # Calculate the required expectation values or invoke callback
+    # function at each time step.
+    def _generic_ode_solve(self, func, ode_args, state0, tlist, e_ops,
+                           normalize_func, opt, progress_bar):
+        """
+        Internal function for solving ODEs.
+        """
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # This function is made similar to mesolve's one for futur merging in a
+        # solver class
+        # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # prepare output array
+        n_tsteps = len(tlist)
+        states = np.zeros(n_tsteps, state0.shape[0]*state0.shape[1])
+
+        r = scipy.integrate.ode(func)
+        r.set_integrator('zvode', method=opt.method, order=opt.order,
+                         atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                         first_step=opt.first_step, min_step=opt.min_step,
+                         max_step=opt.max_step)
+        if ode_args:
+            r.set_f_params(*ode_args)
+        initial_vector = state0.full().ravel('F')
+        r.set_initial_value(initial_vector, tlist[0])
+
+        progress_bar.start(n_tsteps)
+        for t_idx, t in enumerate(tlist):
+            progress_bar.update(t_idx)
+            if not r.successful():
+                raise Exception("ODE integration error: Try to increase "
+                                "the allowed number of substeps by increasing "
+                                "the nsteps parameter in the Options class.")
+            # get the current state / oper data if needed
+            if opt.store_states or opt.normalize_output or e_ops:
+                cdata = r.y
+
+            if opt.normalize_output:
+                norm = normalize_func(cdata)
+                if norm > 1e-12:
+                    r.set_initial_value(cdata, r.t)
+                else:
+                    r._y = cdata
+
+            if opt.store_states:
+                states[t_idx, :] = cdata
+
+            e_ops.step(t_idx, cdata)
+
+            if t_idx < n_tsteps - 1:
+                r.integrate(r.t + dt[t_idx])
+
+        progress_bar.finished()
+
+        if not opt.store_states:
+            states[0, :] = r.y
+
+        return states
+
+
+
 class ExpectOps:
     """
         Contain and compute expectation values
@@ -891,8 +1077,6 @@ class _StatsSection(object):
         self.timings.clear()
         self.messages.clear()
         self.total_time = None
-
-
 
 
 def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):

@@ -41,31 +41,110 @@ import types
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm as la_norm
-from qutip.cy.stochastic import normalize_inplace
+from qutip.cy.stochastic import normalize_inplace, normalize_op_inplace
 import qutip.settings as qset
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                 cy_ode_psi_func_td_with_state)
-from qutip.solver import Result, Options, config, solver_safe, SolverSystem
+from qutip.solver import Result, Options, config, solver_safe, SolverSystem, _generic_ode_solve, ExpectOps
 from qutip.superoperator import vec2mat
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
 
 class SESolver:
-    """Stochastic equation solver
+    """Stochastic Equation Solver
 
     """
-    def __init__(self, H, args={}, tlist=[]):
-        self.H = QobjEvo(H, args=args, tlist=tlist)
+    def __init__(self, H, args={}, tlist=[], options=None):
+        super().__init__()
+        if isinstance(H, (list, Qobj, QobjEvo)):
+            ss = _sesolve_QobjEvo(H, tlist, args, options)
+        elif callable(H):
+            ss = _sesolve_func_td(H, args, options)
+        else:
+            raise Exception("Invalid H type")
 
-        self._tlist = tlist
-        self._options = Options()
-        self._e_ops = ExpectOps([])
+        self.H = H
+        self.ss = ss
+        self.tlist = tlist
+        self._args = args
+        if options is not None:
+            self.options = options
+        self.optimization = {"period":0}
 
-    def set_initial_value()
+    def set_initial_value(self, psi0, tlist=[]):
+        self.state0 = psi0
+        if tlist:
+            self.tlist = tlist
+
+    def optimization(self, period=0):
+        self.optimization["period"] = period
+        raise NotImplementedError
+
+    def run(self, progress_bar=True):
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+
+        func, ode_args = self.ss.makefunc(ss, psi0, args, options)
+
+        if not self._options.normalize_output:
+            normalize_func = None
+        elif self.state0.isket:
+            normalize_func = normalize_inplace
+        else:
+            normalize_func = normalize_op_inplace
+        self._e_ops.init(self._tlist)
+        self._state_out = _generic_ode_solve(func, ode_args, self.state0,
+                                             self._tlist, self._e_ops,
+                                             normalize_func, self._options,
+                                             progress_bar)
+
+    def batch_run(self, states=[], args_sets=[],
+                  parallel=True, progress_bar=True):
+        N_states0 = len(states)
+        if not states:
+            states = [self.state0]
+
+        vec_len = states[0].shape[0]
+        N_vecs = [state.shape[1] for state in states]
+        all_ket = all([n == 1 for n in N_vecs])
+        all_op = all([n == vec_len for n in N_vecs])
+        bad_shape = all([(n != 1 and n != vec_len) for n in N_vecs])
+
+        if not all_ket or (N_vecs > vec_len):
+            computed_state = qt.qeye(vec_len)
+        else:
+            computed_state = stack_ket(states)
+
+        N_args = len(args_sets)
+
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+
+        if not self._options.normalize_output:
+            normalize_func = None
+            normalize_args = ()
+        elif computed_state.isket:
+            normalize_func = normalize_inplace
+            normalize_args = (vec_len, )
+        else:
+            normalize_func = normalize_op_inplace
+            normalize_args = (vec_len, computed_state.shape[1])
+
+        if parallel and N_args > 1:
+
+
+        return
+
+    def _one_run_batch(self, ):
+        pass
+
+
+
+
 
 
 
@@ -176,8 +255,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
         v = psi0.full().ravel('F')
         func(0., v, *ode_args) + v
 
-    res = _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, options,
-                             progress_bar, dims=psi0.dims)
+    res = _se_ode_solve(func, ode_args, psi0, tlist, e_ops,
+                        options, progress_bar, dims=psi0.dims)
     if e_ops_dict:
         res.expect = {e: res.expect[n]
                       for n, e in enumerate(e_ops_dict.keys())}
@@ -276,7 +355,7 @@ def _ode_oper_func_td_with_state(t, y, H_func, args):
 # Solve an ODE for func.
 # Calculate the required expectation values or invoke callback
 # function at each time step.
-def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
+def _se_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                        progress_bar, dims=None):
     """
     Internal function for solving ODEs.

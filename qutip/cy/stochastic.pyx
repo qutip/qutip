@@ -129,19 +129,38 @@ cdef void _normalize_inplace(complex[::1] vec):
     cdef double norm = 1.0/_dznrm2(vec)
     zdscal(&l, &norm, <complex*>&vec[0], &ONE)
 
+# TODO: Move, used by other solver.
+# to move eventually, 10x faster than scipy's norm.
+@cython.cdivision(True)
+@cython.boundscheck(False)
+cdef _normalize_inplace_core(complex[::1] vec, int len_):
+    """ make norm of vec equal to 1"""
+    cdef double norm = 1.0/raw_dznrm2(&len_, <complex*>&vec[0], &ONE)
+    zdscal(&len_, &norm, <complex*>&vec[0], &ONE)
+    return fabs(norm-1)
+
 # to move eventually, 10x faster than scipy's norm.
 @cython.cdivision(True)
 @cython.boundscheck(False)
 def normalize_inplace(complex[::1] vec):
     """ make norm of vec equal to 1"""
     cdef int l = vec.shape[0]
-    cdef double norm = 1.0/_dznrm2(vec)
-    zdscal(&l, &norm, <complex*>&vec[0], &ONE)
-    return fabs(norm-1)
+    return _normalize_inplace_core(vec, l)
+
+# TODO: cmath sqrt.
+@cython.cdivision(True)
+@cython.boundscheck(False)
+def normalize_op_inplace(complex[::1] vec):
+    """ make norm of all cols equal to 1"""
+    cdef int i, N = np.sqrt(vec.shape[0])
+    cdef double delta = 0.
+    for i in range(N):
+        delta += _normalize_inplace_core(vec[i*N:(i+1)*N], N)
+    return delta
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cdef void _normalize_rho(complex[::1] rho):
+cpdef void _normalize_rho(complex[::1] rho):
     """ Ensure that the density matrix trace is one and
     that the composing states are normalized.
     """
