@@ -448,7 +448,6 @@ cpdef cy_expect_rho_vec_csr(complex[::1] data,
         return real(dot)
 
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cy_spmm_tr(object op1, object op2, int herm):
@@ -490,7 +489,6 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
         return real(tr)
 
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def expect_csr_ket(object A, object B, int isherm):
@@ -519,7 +517,6 @@ def expect_csr_ket(object A, object B, int isherm):
         return real(expt)
     else:
         return expt
-
 
 
 @cython.boundscheck(False)
@@ -570,3 +567,84 @@ cpdef double complex zcsr_mat_elem(object A, object left, object right, bool bra
             mat_elem += cval*row_sum
 
     return mat_elem
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _normalize_inplace_core(complex[::1] vec, int len_):
+    """ make norm of vec equal to 1"""
+    cdef double norm = 1.0/raw_dznrm2(&len_, <complex*>&vec[0], &ONE)
+    zdscal(&len_, &norm, <complex*>&vec[0], &ONE)
+    return fabs(norm-1)
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+def normalize_inplace(complex[::1] vec):
+    """ make norm of vec equal to 1"""
+    cdef int l = vec.shape[0]
+    return _normalize_inplace_core(vec, l)
+
+
+# TODO: cmath sqrt.
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def normalize_op_inplace(complex[::1] vec):
+    """ make norm of all cols equal to 1"""
+    cdef int i, N = np.sqrt(vec.shape[0])
+    cdef double delta = 0.
+    for i in range(N):
+        delta += _normalize_inplace_core(vec[i*N:(i+1)*N], N)
+    return delta
+
+
+cdef class normalize_mixed:
+    cdef int l, N
+
+    def __init__(self, shape):
+        self.l = shape[1]
+        self.N = shape[1]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def __call__(self, complex[::1] vec):
+        cdef float delta = 0.
+        cdef int i
+        for i in range(self.N):
+            delta += _normalize_inplace_core(vec[i*N:(i+1)*N], self.l)
+        return delta
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef void _normalize_rho(complex[::1] rho):
+    """ Ensure that the density matrix trace is one and
+    that the composing states are normalized.
+    """
+    cdef int l = rho.shape[0]
+    cdef int N = np.sqrt(l)
+    cdef complex[::1,:] mat = np.reshape(rho, (N,N), order="F")
+    cdef complex[::1,:] eivec = np.zeros((N,N), dtype=complex, order="F")
+    cdef double[::1] eival = np.zeros(N)
+    ZHEEVR(mat, &eival[0], eivec, N)
+    _zero(rho)
+    cdef int i, j, k
+    cdef double sum
+
+    sum = 0.
+    for i in range(N):
+        _normalize_inplace_core(eivec[:,i], N)
+        if eival[i] < 0:
+            eival[i] = 0.
+        sum += eival[i]
+    if sum != 1.:
+        for i in range(N):
+            eival[i] /= sum
+
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                rho[j+N*k] += conj(eivec[k,i])*eivec[j,i]*eival[i]

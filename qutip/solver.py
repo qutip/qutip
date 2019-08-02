@@ -236,7 +236,6 @@ class Solver:
         return states
 
 
-
 class ExpectOps:
     """
         Contain and compute expectation values
