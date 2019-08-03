@@ -51,40 +51,77 @@ __all__ = ['OptPulseProcessor']
 class OptPulseProcessor(CircuitProcessor):
     """
     A circuit processor, which takes the Hamiltonian available
-    as dynamic generators, calls the `optimize_pulse` function
-    to find an optimized pulse sequence. The processor can then
-    calculate the state evolution under this defined dynamics
-    using 'mesolve'.
+    as dynamic generators, calls the
+    `qutip.control.optimize_pulse_unitary` function
+    to find an optimized pulse sequence for the desired quantum circuit.
+    The processor can simulate the evolution under the given
+    control pulses using `qutip.mesolve`.
 
     Parameters
     ----------
-    N : int
-        The number of qubits in the system.
-    drift : :class:`Qobj`
-        The drift Hamiltonian with no time-dependent amplitude.
-    ctrls : list of :class:`Qobj`
-        The control Hamiltonian whose amplitude will be optimized.
-    T1 : list or float
+    N: int
+        The number of component systems.
+
+    drift: :class:`Qobj`
+        The drift Hamiltonian with no time-dependent coefficient.
+
+    ctrls: list of :class:`Qobj`
+        The control Hamiltonian whose time-dependent coefficient
+        will be optimized.
+
+    T1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size N or a float for all qubits
-    T2 : list of float
-        Characterize the decoherence of dephase relaxation for
-        each qubit. A list of size N or a float for all qubits
+        each qubit. A list of size N or a float for all qubits.
+
+    T2: list of float
+        Characterize the decoherence of dephasing for
+        each qubit. A list of size N or a float for all qubits.
 
     Attributes
     ----------
-    tlist : array like
-        A NumPy array specifies at which time the next amplitude of
-        a pulse is to be applied.
-    amps : array like
-        A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
-        row corresponds to the control pulse sequence for
-        one Hamiltonian.
+    N: int
+        The number of component system
+
+    ctrls: list
+        A list of the control Hamiltonians driving the evolution.
+
+    tlist: array-like
+        A NumPy array specifies the time of each coefficient.
+
+    coeffs: array-like
+        A 2d NumPy array of the shape, the length is dependent on the
+        spline type
+
+    T1: list
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+
+    T2: list
+        Characterize the decoherence of dephasing for
+        each qubit.
+
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        The noise object, they will be processed when creating the
+        noisy :class:`qutip.QobjEvo` or run the simulation.
+
+    dims: list
+        The dimension of each component system.
+        If not given, it will be a
+        qutbis system of dim=[2,2,2,...,2]
+
+    spline_kind: str
+        Type of the coefficient interpolation. Default is "step_func".
+        Note that they have different requirement for the length of `coeffs`.
+
+    drift: :class:`Qobj`
+        The drift Hamiltonian with no time-dependent amplitude.
     """
     def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None, dims=None):
         super(OptPulseProcessor, self).__init__(N, T1=T1, T2=T2, dims=dims)
         if drift is None:
-            self.drift = tensor([identity(self.dims[i]) for i in range(N)])
+            self.drift = tensor(
+                [identity(self.dims[i]) for i in range(N)]
+                ) * 0.
         else:
             self.drift = drift
         if ctrls is not None:
@@ -100,31 +137,42 @@ class OptPulseProcessor(CircuitProcessor):
 
         Parameters
         ----------
-        qc : :class:`qutip.QubitCircuit` or list of Qobj
+        qc: :class:`qutip.QubitCircuit` or list of Qobj
             The quantum circuit to be translated.
-        n_ts : int or list
+
+        n_ts: int or list
             The number of time steps for each gate in `qc`
-        evo_time : int or list
+
+        evo_time: int or list
             The allowed evolution time for each gate in `qc`
-        min_fid_err : float
+
+        min_fid_err: float, optional
             The minimal fidelity tolerance, if the fidelity error of any
             gate decomposition is higher, a warning will be given.
-        verbose : boolean
+
+        verbose: boolean, optional
             If true, the information for each decomposed gate
             will be shown.
+
         kwargs
             Key word arguments for `qutip.optimize_pulse_unitary`
 
         Returns
         -------
-        tlist : array like
-            A NumPy array specifies at which time the next amplitude of
-            a pulse is to be applied.
-        amps : array like
+        tlist: array like
+            A NumPy array specifies the time of each coefficients
+
+        coeffs: array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
+
+        Note
+        ----
+        len(tlist)-1=len(coeffs) since tlist gives the begining and the
+        end of the pulses
         """
+        # TODO different gate time and setups
         if isinstance(qc, QubitCircuit):
             props = qc.propagators()
         elif isinstance(qc, Iterable):
@@ -139,7 +187,7 @@ class OptPulseProcessor(CircuitProcessor):
             evo_time = [evo_time] * len(props)
 
         time_record = []  # a list for all the gates
-        amps_record = []
+        coeff_record = []
         last_time = 0.  # used in concatenation of tlist
         for prop_ind in range(len(props)):
             U_targ = props[prop_ind]
@@ -160,7 +208,7 @@ class OptPulseProcessor(CircuitProcessor):
 
             time_record.append(result.time[1:] + last_time)
             last_time += result.time[-1]
-            amps_record.append(result.final_amps.T)
+            coeff_record.append(result.final_amps.T)
 
             if verbose:
                 print("********** Gate {} **********".format(prop_ind))
@@ -170,9 +218,8 @@ class OptPulseProcessor(CircuitProcessor):
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
         self.tlist = np.hstack([[0.]]+time_record)
-        self.coeff = np.vstack(
-            [np.hstack(amps_record)])
-        return self.tlist, self.coeff
+        self.coeffs = np.vstack([np.hstack(coeff_record)])
+        return self.tlist, self.coeffs
 
     def get_unitary_qobjevo(self, args=None):
         ## TODO add tests
@@ -182,23 +229,3 @@ class OptPulseProcessor(CircuitProcessor):
             return proc_qobjevo + self.drift
         else:
             return proc_qobjevo
-
-    def plot_pulses(self, **kwargs):
-        """
-        Plot the pulse amplitude, the constant drift Hamiltonian is not shown.
-
-        Parameters
-        ----------
-        **kwargs
-            Key word arguments for figure
-
-        Returns
-        -------
-        fig : matplotlib.figure.Figure
-            The `Figure` object for the plot.
-        ax : matplotlib.axes._subplots.AxesSubplot
-            The axes for the plot.
-        """
-        # first row of amps is for drift Ham
-        super(OptPulseProcessor, self).plot_pulses(
-            amps=self.coeff[1:], tlist=self.tlist)

@@ -146,7 +146,7 @@ class Testcqed:
 
         with warnings.catch_warnings(record=True):
             test = DispersivecQED(N, g=0.1)
-        tlist, amps = test.load_circuit(qc)
+        tlist, coeff = test.load_circuit(qc)
 
         # test numerical run_state
         qu0 = rand_ket(2**N)

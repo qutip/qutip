@@ -83,16 +83,16 @@ class TestCircuitProcessor:
         amp2 = np.arange(5, 0, -1)
 
         proc.tlist = tlist
-        proc.coeff = np.array([amp1, amp2])
-        proc.save_amps("qutip_test_CircuitProcessor.txt")
-        proc1.read_amps("qutip_test_CircuitProcessor.txt")
+        proc.coeffs = np.array([amp1, amp2])
+        proc.save_coeff("qutip_test_CircuitProcessor.txt")
+        proc1.read_coeff("qutip_test_CircuitProcessor.txt")
         os.remove("qutip_test_CircuitProcessor.txt")
-        assert_allclose(proc1.coeff, proc.coeff)
+        assert_allclose(proc1.coeffs, proc.coeffs)
         assert_allclose(proc1.tlist, proc.tlist)
-        proc.save_amps("qutip_test_CircuitProcessor.txt", inctime=False)
-        proc2.read_amps("qutip_test_CircuitProcessor.txt", inctime=False)
+        proc.save_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
+        proc2.read_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
         os.remove("qutip_test_CircuitProcessor.txt")
-        assert_allclose(proc2.coeff, proc.coeff)
+        assert_allclose(proc2.coeffs, proc.coeffs)
         assert_(proc2.tlist is None)
 
     def test_id_evolution(self):
@@ -163,7 +163,7 @@ class TestCircuitProcessor:
         a = destroy(2)
         proc = CircuitProcessor(N=2)
         proc.tlist = tlist
-        proc.coeff = np.array([1]).reshape((1, 1))
+        proc.coeffs = np.array([1]).reshape((1, 1))
         proc.add_ctrl(sigmax(), targets=1)
         result = proc.run_state(rho0=rho0)
         assert_allclose(
@@ -196,7 +196,7 @@ class TestCircuitProcessor:
         N = 2
         proc = CircuitProcessor(N=N, dims=[2, 3])
         proc.add_ctrl(tensor(sigmaz(), rand_dm(3, density=1.)))
-        proc.coeff = np.array([1, 2]).reshape((1, 2))
+        proc.coeffs = np.array([1, 2]).reshape((1, 2))
         proc.tlist = np.array([0., 1., 2])
         proc.run_state(rho0=tensor([basis(2, 0), basis(3, 1)]))
 

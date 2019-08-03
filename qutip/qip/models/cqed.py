@@ -57,64 +57,103 @@ class DispersivecQED(ModelProcessor):
 
     Parameters
     ----------
-    N : int
+    N: int
         The number of qubits in the system.
-    correct_global_phase : bool
-        Whether the correct phase should be considered in analytical
-        evolution.
-    Nres: Integer
+
+    correct_global_phase: float, optional
+        Save the global phase, the analytical solution
+        will track the global phase.
+        It has no effect on the numerical solution.
+
+    Nres: int, optional
         The number of energy levels in the resonator.
-    deltamax: Integer/List
+
+    deltamax: int or list, optional
         The sigma-x paraicient for each of the qubits in the system.
-    epsmax: Integer/List
+
+    epsmax: int or list, optional
         The sigma-z paraicient for each of the qubits in the system.
-    wo: Integer
+
+    wo: int, optional
         The base frequency of the resonator.
-    eps: Integer/List
+
+    eps: int or list, optional
         The epsilon for each of the qubits in the system.
-    delta: Integer/List
+
+    delta: int or list, optional
         The epsilon for each of the qubits in the system.
-    g: Integer/List
+
+    g: int or list, optional
         The interaction strength for each of the qubit with the resonator.
-    T1 : list or float
+
+    T1: list or float, optional
         Characterize the decoherence of amplitude damping for
         each qubit.
-    T2 : list of float
-        Characterize the decoherence of dephasing relaxation for
+
+    T2: list of float, optional
+        Characterize the decoherence of dephasing for
         each qubit.
 
     Attributes
     ----------
-    ctrls : list of :class:`Qobj`
-        A list of Hamiltonians of the control pulse driving the evolution.
-    tlist : array like
-        A NumPy array specifies at which time the next amplitude of
-        a pulse is to be applied.
-    amps : array like
-        The pulse matrix, a 2d NumPy array of the shape
-        (len(ctrls), len(tlist)).
-        Each row corresponds to the control pulse sequence for
-        one Hamiltonian.
-    paras : dict
-        A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser freqeuncy, detuning etc.
-    sx_ops :
+    N: int
+        The number of component system
+
+    ctrls: list
+        A list of the control Hamiltonians driving the evolution.
+
+    tlist: array-like
+        A NumPy array specifies the time of each coefficient.
+
+    coeffs: array-like
+        A 2d NumPy array of the shape, the length is dependent on the
+        spline type
+
+    T1: list
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+
+    T2: list
+        Characterize the decoherence of dephasing for
+        each qubit.
+
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        The noise object, they will be processed when creating the
+        noisy :class:`qutip.QobjEvo` or run the simulation.
+
+    dims: list
+        The dimension of each component system.
+        If not given, it will be a
+        qutbis system of dim=[2,2,2,...,2]
+
+    spline_kind: str
+        Type of the coefficient interpolation. Default is "step_func".
+        Note that they have different requirement for the length of `coeffs`.
+
+    sx_ops: list
         A list of sigmax Hamiltonians for each qubit.
-    sz_ops :
+
+    sz_ops: list
         A list of sigmaz Hamiltonians for each qubit.
-    cavityqubit_ops :
+
+    cavityqubit_ops: list
         A list of interacting Hamiltonians between cavity and each qubit.
-    sx_u : array like
+
+    sx_u: array-like
         Pulse matrix for sigmax Hamiltonians.
-    sz_u : array like
+
+    sz_u: array-like
         Pulse matrix for sigmaz Hamiltonians.
-    g_u : array like
+
+    g_u: array-like
         Pulse matrix for interacting Hamiltonians
         between cavity and each qubit.
-    wq : list of float
+
+    wq: list of float
         The frequency of the qubits calculated from
         eps and delta for each qubit.
-    Delta : list of float
+
+    Delta: list of float
         The detuning with repect to w0 calculated
         from wq and w0 for each qubit.
     """
@@ -142,7 +181,7 @@ class DispersivecQED(ModelProcessor):
 
         Parameters
         ----------
-        N : int
+        N: int
             The number of qubits in the system.
         """
         # single qubit terms
@@ -174,23 +213,31 @@ class DispersivecQED(ModelProcessor):
 
         Parameters
         ----------
-        N : int
+        N: int
             The number of qubits in the system.
-        Nres: Integer
+
+        Nres: int
             The number of energy levels in the resonator.
-        deltamax: Integer/List
+
+        deltamax: list
             The sigma-x paraicient for each of the qubits in the system.
-        epsmax: Integer/List
+
+        epsmax: list
             The sigma-z paraicient for each of the qubits in the system.
-        wo: Integer
+
+        wo: int
             The base frequency of the resonator.
-        wq: Integer/List
+
+        wq: list
             The frequency of the qubits.
-        eps: Integer/List
+
+        eps: list
             The epsilon for each of the qubits in the system.
-        delta: Integer/List
+
+        delta: list
             The delta for each of the qubits in the system.
-        g: Integer/List
+
+        g: list
             The interaction strength for each of the qubit with the resonator.
 
         Note
@@ -236,15 +283,15 @@ class DispersivecQED(ModelProcessor):
 
     @property
     def sx_u(self):
-        return self.coeff[1: self.N+1]
+        return self.coeffs[1: self.N+1]
 
     @property
     def sz_u(self):
-        return self.coeff[self.N+1: 2*self.N+1]
+        return self.coeffs[self.N+1: 2*self.N+1]
 
     @property
     def g_u(self):
-        return self.coeff[2*self.N+1: 3*self.N+1]
+        return self.coeffs[2*self.N+1: 3*self.N+1]
 
     def get_ops_labels(self):
         """
@@ -295,10 +342,10 @@ class DispersivecQED(ModelProcessor):
 
         Returns
         -------
-        tlist : array like
-            A NumPy array specifies at which time the next amplitude of
-            a pulse is to be applied.
-        amps : array like
+        tlist: array-like
+            A NumPy array specifies the time of each coefficients
+
+        coeffs: array-like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
@@ -308,50 +355,59 @@ class DispersivecQED(ModelProcessor):
         dec = CQEDGateDecomposer(
             self.N, self._paras, self.wq, self.Delta,
             global_phase=0., num_ops=len(self.ctrls))
-        self.tlist, self.coeff, self.global_phase = dec.decompose(gates)
+        self.tlist, self.coeffs, self.global_phase = dec.decompose(gates)
 
         # TODO The amplitude of the first control a.dag()*a
         # was set to zero before I made this refactoring.
         # It is probably due to the fact that
         # it contributes only a constant (N) and can be neglected.
         # but change the below line to np.ones leads to test error.
-        self.coeff[0] = self._paras["w0"] * np.zeros((self.sx_u.shape[1]))
-        return self.tlist, self.coeff
+        self.coeffs[0] = self._paras["w0"] * np.zeros((self.sx_u.shape[1]))
+        return self.tlist, self.coeffs
 
 
 class CQEDGateDecomposer(GateDecomposer):
     """
-    The obejct that decompose a :class:`qutip.QubitCircuit` into
+    Decompose a :class:`qutip.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters
     ----------
-    N : int
+    N: int
         The number of qubits in the system.
-    paras : dict
+
+    paras: dict
         A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser freqeuncy,detuning etc.
-    wq : list of float
+        of the physical realization, such as laser frequency,detuning etc.
+
+    wq: list of float
         The frequency of the qubits calculated from
         eps and delta for each qubit.
-    Delta : list of float
+
+    Delta: list of float
         The detuning with repect to w0 calculated
         from wq and w0 for each qubit.
-    global_phase : bool
+
+    global_phase: bool
         Record of the global phase change and will be returned.
-    num_ops : int
+
+    num_ops: int
         Number of Hamiltonians in the processor.
 
     Attributes
     ----------
-    gate_decs : dict
+    N: int
+        The number of the component systems.
+
+    paras: dict
+        A Python dictionary contains the name and the value of the parameters
+        of the physical realization, such as laser frequency,detuning etc.
+
+    num_ops: int
+        Number of control Hamiltonians in the processor.
+
+    gate_decs: dict
         The Python dictionary in the form {gate_name: decompose_function}.
-    sx_ind: Integer/List
-        The list of indices in the Hamiltonian list of sigmax.
-    sz_ind: Integer/List
-        The list of indices in the Hamiltonian list of sigmaz.
-    g_ind: Integer/List
-        The list of indices in the Hamiltonian list of tensor(sigmax, sigmay).
     """
     def __init__(self, N, paras, wq, Delta, global_phase, num_ops):
         super(CQEDGateDecomposer, self).__init__(
@@ -362,16 +418,16 @@ class CQEDGateDecomposer(GateDecomposer):
                           "RX": self.rx_dec,
                           "GLOBALPHASE": self.globalphase_dec
                           }
-        self.sx_ind = list(range(1, N+1))
-        self.sz_ind = list(range(N+1, 2*N+1))
-        self.g_ind = list(range(2*N+1, 3*N+1))
+        self._sx_ind = list(range(1, N+1))
+        self._sz_ind = list(range(N+1, 2*N+1))
+        self._g_ind = list(range(2*N+1, 3*N+1))
         self.wq = wq
         self.Delta = Delta
         self.global_phase = global_phase
 
     def decompose(self, gates):
-        tlist, amps = super(CQEDGateDecomposer, self).decompose(gates)
-        return tlist, amps, self.global_phase
+        tlist, coeffs = super(CQEDGateDecomposer, self).decompose(gates)
+        return tlist, coeffs, self.global_phase
 
     def rz_dec(self, gate):
         """
@@ -380,7 +436,7 @@ class CQEDGateDecomposer(GateDecomposer):
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
         g = self.paras["sz"][q_ind]
-        pulse[self.sz_ind[q_ind]] = np.sign(gate.arg_value) * g
+        pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
         self.coeff_list.append(pulse)
@@ -392,7 +448,7 @@ class CQEDGateDecomposer(GateDecomposer):
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
         g = self.paras["sx"][q_ind]
-        pulse[self.sx_ind[q_ind]] = np.sign(gate.arg_value) * g
+        pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
         self.coeff_list.append(pulse)
@@ -409,10 +465,10 @@ class CQEDGateDecomposer(GateDecomposer):
         # FIXME This decomposition has poor behaviour
         pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
-        pulse[self.sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
-        pulse[self.sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
-        pulse[self.g_ind[q1]] = self.paras["g"][q1]
-        pulse[self.g_ind[q2]] = self.paras["g"][q2]
+        pulse[self._sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
+        pulse[self._sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
+        pulse[self._g_ind[q1]] = self.paras["g"][q1]
+        pulse[self._g_ind[q2]] = self.paras["g"][q2]
         J = self.paras["g"][q1] * self.paras["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         t = (4 * np.pi / abs(J)) / 8
@@ -433,10 +489,10 @@ class CQEDGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
-        pulse[self.sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
-        pulse[self.sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
-        pulse[self.g_ind[q1]] = self.paras["g"][q1]
-        pulse[self.g_ind[q2]] = self.paras["g"][q2]
+        pulse[self._sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
+        pulse[self._sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
+        pulse[self._g_ind[q1]] = self.paras["g"][q1]
+        pulse[self._g_ind[q2]] = self.paras["g"][q2]
         J = self.paras["g"][q1] * self.paras["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         t = (4 * np.pi / abs(J)) / 4

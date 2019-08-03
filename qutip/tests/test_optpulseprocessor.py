@@ -61,7 +61,7 @@ class TestOptPulseProcessor:
         n_ts = 10
         evo_time = 10
         test = OptPulseProcessor(N, H_d, H_c)
-        tlist, amps = test.load_circuit(
+        tlist, coeffs = test.load_circuit(
             qc, n_ts=n_ts, evo_time=evo_time, verbose=True)
 
         # test run_state
@@ -113,14 +113,14 @@ class TestOptPulseProcessor:
         print(rho1)
         assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
 
-        # test save and read amps
-        test.save_amps("qutip_test_multi_qubits.txt")
+        # test save and read coeffs
+        test.save_coeff("qutip_test_multi_qubits.txt")
         test2 = OptPulseProcessor(N, H_d, H_c)
         test2.drift = test.drift
         test2.ctrls = test.ctrls
-        test2.read_amps("qutip_test_multi_qubits.txt")
+        test2.read_coeff("qutip_test_multi_qubits.txt")
         os.remove("qutip_test_multi_qubits.txt")
-        assert_(np.max((test.coeff-test2.coeff)**2) < 1.0e-13)
+        assert_(np.max((test.coeffs-test2.coeffs)**2) < 1.0e-13)
         result = test2.run_state(rho0,)
         assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
 

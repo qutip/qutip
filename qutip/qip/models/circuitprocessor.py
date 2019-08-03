@@ -36,6 +36,7 @@ import numbers
 from copy import deepcopy
 
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
@@ -54,44 +55,90 @@ __all__ = ['CircuitProcessor', 'ModelProcessor', 'GateDecomposer']
 
 class CircuitProcessor(object):
     """
-    The base class for a circuit processor,
-    which is defined by the available Hamiltonian of the system
-    and the decoherence time for each qubit.
-    For a given pulse amplitude matrix, the processor can
-    calculate the state evolution under the given control pulse,
-    either analytically or numerically.
-    In the subclasses, further methods are defined so that
-    it can be used to find the driving pulse
-    of a quantum circuit.
+    The base class for a circuit processor, which is
+    the simulator of quantum device using `qutip.mesolve`.
+    It is defined by the available driving Hamiltonian and
+    the decoherence time for each component systems.
+    The processor can simulate the evolution under the given
+    control pulses.
 
     Parameters
     ----------
-    N : int
-        The number of qubits in the system
-    T1 : list or float
+    N: int
+        The number of component systems
+
+    T1: list or float, optional
         Characterize the decoherence of amplitude damping for
         each qubit.
-    T2 : list of float
-        Characterize the decoherence of dephasing relaxation for
+
+    T2: list of float, optional
+        Characterize the decoherence of dephasing for
         each qubit.
+
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        The noise object, they will be processed when creating the
+        noisy :class:`qutip.QobjEvo` or run the simulation.
+
+    dims: list of int, optional
+        The dimension of each component system.
+        If not given, it will be a
+        qutbis system of dim=[2,2,2,...,2]
+
+    spline_kind: str, optional
+        Type of the coefficient interpolation. Default is `step_func`
+        Note that they have different requirement for the length of `coeffs`.
+
+        -step_func: 
+        The coefficient will be treated as a step function.
+        E.g. tlist=[0,1,2] and coeffs=[3,2], means that the coefficient
+        is 3 in t=[0,1) and 2 in t=[2,3). It requires
+        len(coeffs)=len(tlist)-1 or len(coeffs)=len(tlist), but
+        in the second case the last element has no effect.
+
+        -cubic: Use cubic interpolation for the coefficient. It requires
+        len(coeffs)=len(tlist)
 
     Attributes
     ----------
-    ctrls : list of :class:`Qobj`
-        A list of Hamiltonians of the control pulse driving the evolution.
-    tlist : array like
-        A NumPy array specifies at which time the next amplitude of
-        a pulse is to be applied.
-    amps : array like
-        A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
-        row corresponds to the control pulse sequence for
-        one Hamiltonian.
+    N: int
+        The number of component system
+
+    ctrls: list
+        A list of the control Hamiltonians driving the evolution.
+
+    tlist: array-like
+        A NumPy array specifies the time of each coefficient.
+
+    coeffs: array-like
+        A 2d NumPy array of the shape, the length is dependent on the
+        spline type
+
+    T1: list
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+
+    T2: list
+        Characterize the decoherence of dephasing for
+        each qubit.
+
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        The noise object, they will be processed when creating the
+        noisy :class:`qutip.QobjEvo` or run the simulation.
+
+    dims: list
+        The dimension of each component system.
+        If not given, it will be a
+        qutbis system of dim=[2,2,2,...,2]
+
+    spline_kind: str
+        Type of the coefficient interpolation. Default is "step_func".
+        Note that they have different requirement for the length of `coeffs`.
     """
     def __init__(self, N, T1=None, T2=None, noise=None,
                  dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
-        self.coeff = None
+        self.coeffs = None
         self.ctrls = []
         self.T1 = T1
         self.T2 = T2
@@ -111,11 +158,13 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        ctrl : :class:`qutip.Qobj`
-            A hermitian Qobj representation of the driving Hamiltonian
-        targets : list or int
+        ctrl: :class:`qutip.Qobj`
+            The control Hamiltonian to be added
+
+        targets: list or int, optional
             The indices of qubits that are acted on
-        cyclic_permutation : boolean
+
+        cyclic_permutation: boolean, optional
             If true, the Hamiltonian will be expanded for
                 all cyclic permutation of target qubits
         """
@@ -138,11 +187,11 @@ class CircuitProcessor(object):
 
     def remove_ctrl(self, indices):
         """
-        Remove the ctrl Hamiltonian with given indices.
+        Remove the control Hamiltonian with given indices.
 
         Parameters
         ----------
-        indices : int or list or int
+        indices: int or list of int
             The indices of the control Hamiltonians to be removed
         """
         if not isinstance(indices, Iterable):
@@ -151,139 +200,200 @@ class CircuitProcessor(object):
         for ind in indices:
             del self.ctrls[ind]
 
-    def _is_time_amps_valid(self):
+    def _is_time_coeff_valid(self):
         """
-        Check it the len(tlist) and amps.shape[1] are the same.
-        """
-        if self.tlist is None and self.coeff is None:
-            pass
-        elif self.tlist is None:
-            raise ValueError("`tlist` or `amps` is not given.")
-        elif self.coeff is None:
-            pass  # evolution with identity
-        else:
-            amps_len = self.coeff.shape[1]
-            tlist_len = len(self.tlist)
-            if amps_len != tlist_len-1:
-                raise ValueError(
-                    "`tlist` has the length of {} while amps "
-                    "has {}.".format(tlist_len, amps_len))
+        Check if the len(tlist) and coeffs.shape[1] are valid.
 
-    def _is_ctrl_amps_valid(self):
+        Returns: boolean
+            If they are valid or not
+        """
+        if self.coeffs is None:
+            return True  # evolution with identity
+        if self.tlist is None:
+            raise ValueError("`tlist` is not given.")
+        coeff_len = self.coeffs.shape[1]
+        tlist_len = len(self.tlist)
+        if self.spline_kind == "step_func":
+            if coeff_len == tlist_len-1 or coeff_len == tlist_len:
+                return True
+            else:
+                raise ValueError(
+                    "The lenght of tlist and coeffs is not valid. "
+                    "It's either len(tlist)=len(coeffs) or "
+                    "len(tlist)-1=len(coeffs) for coefficients "
+                    "as step function")
+        if self.spline_kind == "cubic" and coeff_len == tlist_len:
+            return True
+        else:
+            raise ValueError(
+                "The lenght of tlist and coeffs is not valid. "
+                "It sould be either len(tlist)=len(coeffs)")
+
+    def _is_ctrl_coeff_valid(self):
         """
         Check if the number of control Hamiltonians
-        and amps.shape[0] are the same.
+        and coeffs.shape[0] are the same.
+
+        Returns: boolean
+            If they are valid or not
         """
-        if self.coeff is None and len(self.ctrls) != 0:
+        if self.coeffs is None and len(self.ctrls) != 0:
             raise ValueError(
                 "The control amplitude is None while "
                 "the number of ctrls is {}.".format(len(self.ctrls)))
-        if self.coeff is not None:
-            if self.coeff.shape[0] != len(self.ctrls):
+        if self.coeffs is not None:
+            if self.coeffs.shape[0] != len(self.ctrls):
                 raise ValueError(
                     "The control amplitude matrix do not match the "
                     "number of ctrls  "
                     "#ctrls = {}  "
-                    "#amps = {}.".format(len(self.ctrls), len(self.coeff)))
+                    "#coeffs = {}.".format(len(self.ctrls), len(self.coeffs)))
+        return True
 
-    def _is_amps_valid(self):
+    def _is_coeff_valid(self):
         """
         Check if the attribute are in the corret shape.
-        """
-        self._is_time_amps_valid()
-        self._is_ctrl_amps_valid()
 
-    def save_amps(self, file_name, inctime=True):
+        Returns: boolean
+            If they are valid or not
+        """
+        return (self._is_time_coeff_valid() and
+                self._is_ctrl_coeff_valid())
+
+    def save_coeff(self, file_name, inctime=True):
         """
         Save a file with the current control amplitudes in each timeslot
 
         Parameters
         ----------
-        file_name : string
+        file_name: string
             Name of the file.
-        inctime : boolean
+
+        inctime: boolean, optional
             True if the time list in included in the first column.
         """
-        self._is_amps_valid()
+        self._is_coeff_valid()
 
         if inctime:
-            shp = self.coeff.T.shape
+            shp = self.coeffs.T.shape
             data = np.empty([shp[0], shp[1] + 1], dtype=np.float)
             data[:, 0] = self.tlist[1:]
-            data[:, 1:] = self.coeff.T
+            data[:, 1:] = self.coeffs.T
         else:
-            data = self.coeff.T
+            data = self.coeffs.T
 
         np.savetxt(file_name, data, delimiter='\t', fmt='%1.16f')
 
-    def read_amps(self, file_name, inctime=True):
+    def read_coeff(self, file_name, inctime=True):
         """
         Read the pulse amplitude matrix and time list
         saved in the file by `save_amp`
 
         Parameters
         ----------
-        file_name : string
+        file_name: string
             Name of the file.
-        inctime : boolean
+
+        inctime: boolean, optional
             True if the time list in included in the first column.
 
         Returns
         -------
-        tlist : array like
+        tlist: array like
             The time list read from the file.
-        amps : array like
+
+        coeffs: array like
             The pulse matrix read from the file.
         """
         data = np.loadtxt(file_name, delimiter='\t')
         if not inctime:
-            self.coeff = data.T
+            self.coeffs = data.T
         else:
             self.tlist = np.hstack([[0], data[:, 0]])
-            self.coeff = data[:, 1:].T
-        return self.tlist, self.coeff
+            self.coeffs = data[:, 1:].T
+        return self.tlist, self.coeffs
 
     def get_unitary_qobjevo(self, args=None):
         """
-        tlist : array like
-            Used if there is no tlist defined in the processor but given as
-            keyword arguments
+        Create a :class:`qutip.QobjEvo` that can be given to
+        the open system solver.
+
+        Parameters
+        ----------
+        args: dict, optional
+            Arguments for :class:`qutip.QobjEvo`
+
+        Returns
+        -------
+        unitary_qobjevo: :class:`qutip.QobjEvo`
+            The :class:`qutip.QobjEvo` representation of the unitary evolution.
         """
         # TODO add test
         # check validity
-        self._is_amps_valid()
+        self._is_coeff_valid()
 
         if args is None:
             args = {}
         else:
             args = args
         # set step function
-        if self.spline_kind == "step_func" and self.coeff is not None:
-            amps = np.hstack([self.coeff, np.zeros((len(self.coeff), 1))])
+        if self.coeffs is None:
+            coeffs = np.empty((0, 0))
+        elif self.spline_kind == "step_func":
             args.update({"_step_func_coeff": True})
-        elif self.coeff is None:
-            pass
+            if self.coeffs.shape[1] == len(self.tlist) - 1:
+                coeffs = np.hstack([self.coeffs, self.coeffs[:, -1:]])
+            else:
+                # TODO add
+                coeffs = self.coeffs
+        elif self.spline_kind == "cubic":
+            # TODO add test
+            args.update({"_step_func_coeff": False})
         else:
-            # TODO use cubic interpolation
-            raise NotImplementedError
+            raise ValueError("Wrong spline_kind.")
 
         H_list = []
         for op_ind in range(len(self.ctrls)):
             H_list.append(
-                [self.ctrls[op_ind], amps[op_ind]])
+                [self.ctrls[op_ind], coeffs[op_ind]])
         if not H_list:
             return _dummy_qobjevo(self.dims, tlist=self.tlist, args=args)
         else:
             return QobjEvo(H_list, tlist=self.tlist, args=args)
 
     def get_noisy_qobjevo(self, args=None):
-        # TODO add test for tlist, args
+        """
+        Create a :class:`qutip.QobjEvo` with noise that can be given to
+        the open system solver.
+
+        Parameters
+        ----------
+        args: dict, optional
+            Arguments for :class:`qutip.QobjEvo`
+
+        Returns
+        -------
+        noisy_qobjevo: :class:`qutip.QobjEvo`
+            The :class:`qutip.QobjEvo` representation of the noisy evolution.
+        """
+        # TODO add test for args
         unitary_qobjevo = self.get_unitary_qobjevo(args=args)
         ham_noise, c_ops = self.process_noise(unitary_qobjevo)
         noisy_qobjevo = self._compatible_coeff([unitary_qobjevo, ham_noise])
         return noisy_qobjevo, c_ops
 
     def get_noisy_coeff(self):
+        """
+        Create the array-like coefficients including the noise.
+
+        Returns
+        -------
+        coeff_list: list
+            A list of coefficient for each control Hamiltonian.
+
+        tlist: np.array
+            Time array for the coefficient.
+        """
         # TODO add test
         noisy_qobjevo, c_ops = self.get_noisy_qobjevo()
         coeff_list = []
@@ -291,24 +401,26 @@ class CircuitProcessor(object):
         for H in H_list:
             if isinstance(H, list):
                 coeff_list.append(H[1])
-        return np.vstack(coeff_list), noisy_qobjevo.tlist
+        return coeff_list, noisy_qobjevo.tlist
 
     def run_state(self, rho0, **kwargs):
         """
-        Use mesolve to calculate the time of the state evolution
-        and return the result. Other arguments of mesolve can be
+        Use `qutip.mesolve` to calculate the time of the state evolution
+        and return the result. Other arguments of the solver can be
         given as keyword arguments.
 
         Parameters
         ----------
-        rho0 : Qobj
+        rho0: Qobj
             Initial density matrix or state vector (ket).
+
         kwargs
             Keyword arguments for the qutip solver.
             (currently `qutip.mesolve`)
+
         Returns
         -------
-        evo_result : :class:`qutip.Result`
+        evo_result: :class:`qutip.Result`
             An instance of the class :class:`qutip.Result`, which contains
             either an *array* `result.expect` of expectation values for
             the times specified by `tlist`, or an *array* `result.states`
@@ -324,12 +436,10 @@ class CircuitProcessor(object):
                 "`H` and `tlist` are already specified by the processor "
                 "and can not be given as a key word argument")
 
-        # if no tlist defined in the processor, it can be given in kwargs
-        # (e.g. drift or id evolution with c_ops)
-
-        # contruct qobjevo for unitary evolution
+        # construct qobjevo for unitary evolution
         if "args" in kwargs:
-            noisy_qobjevo, sys_c_ops = self.get_noisy_qobjevo(kwargs["args"])
+            noisy_qobjevo, sys_c_ops = self.get_noisy_qobjevo(
+                                                        args=kwargs["args"])
         else:
             noisy_qobjevo, sys_c_ops = self.get_noisy_qobjevo()
 
@@ -342,7 +452,6 @@ class CircuitProcessor(object):
         else:
             kwargs["c_ops"] = sys_c_ops
 
-        # TODO check dummy_cte
         evo_result = mesolve(
             H=noisy_qobjevo, rho0=rho0, tlist=noisy_qobjevo.tlist, **kwargs)
         return evo_result
@@ -376,35 +485,61 @@ class CircuitProcessor(object):
         """
         return U
 
-    def plot_pulses(self, noisy=False):
+    def plot_pulses(self, noisy=False, title=None):
         """
         Plot the pulse amplitude
 
+        Parameters
+        ----------
+        noisy: boolean, optional
+            If true, it will plot the noisy pulses.
+
+        title: str
+            Title for the plot.
+
         Returns
         -------
-        fig : matplotlib.figure.Figure
+        fig: matplotlib.figure.Figure
             The `Figure` object for the plot.
-        ax : matplotlib.axes._subplots.AxesSubplot
+
+        ax: matplotlib.axes._subplots.AxesSubplot
             The axes for the plot.
-        kwargs
-            Keyword arguments for `plt.subplot` or `as.step`.
+
+
+        Note
+        ----
+        It only works for array-like coefficients
         """
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(5, 3))
         ax.set_ylabel("Control pulse amplitude")
         ax.set_xlabel("Time")
         if noisy:
             # TODO add test
-            coeff, tlist = self.get_noisy_coeff()
-            coeff[:, -1] = coeff[:, -2]
-            for i in range(coeff.shape[0]):
-                ax.step(tlist, coeff[i], where='post')
+            coeffs, tlist = self.get_noisy_coeff()    
         else:
+            coeffs = [coeff for coeff in self.coeffs]
             tlist = self.tlist
-            coeff = np.hstack([self.coeff, self.coeff[:, -1:]])
-            for i in range(coeff.shape[0]):
-                ax.step(tlist, coeff[i], where='post')
+
+        for i in range(len(coeffs)):
+            if not isinstance(coeffs[i], (Iterable, np.ndarray)):
+                raise ValueError(
+                    "plot_pulse only accept array-like coefficients.")
+            if self.spline_kind == "step_func":
+                if len(coeffs[i]) == len(tlist) - 1:
+                    coeffs[i] = np.hstack([self.coeffs[i], self.coeffs[i, -1:]])
+                else:
+                    coeffs[i][-1] = coeffs[i][-2]
+                ax.step(tlist, coeffs[i], where='post')
+            elif self.spline_kind == "cubic":
+                sp = CubicSpline(tlist, coeffs[i])
+                t_line = np.linspace(tlist[0], tlist[-1], 200)
+                c_line = [sp(t) for t in t_line]
+                ax.plot(t_line, c_line)
+        if title is not None:
+            ax.set_title(title)
+        fig.tight_layout()
         return fig, ax
 
     def add_noise(self, noise):
@@ -413,31 +548,31 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        noise : :class:`qutip.qip.CircuitNoise`
-            The noise object defined out side the processor
+        noise: :class:`qutip.qip.CircuitNoise`
+            The noise object defined outside the processor
         """
         if isinstance(noise, CircuitNoise):
             self.noise.append(noise)
         else:
-            raise TypeError("`noise` is not a CircuitNoise object.")
+            raise TypeError("Input is not a CircuitNoise object.")
 
     def process_noise(self, proc_qobjevo):
         """
         Call all the noise object saved in the processor and
-        return the :class:`qutip.QobjEvo` and :class:`qutip.Qobj`
-        representing the noise.
+        return noisy representation of the evolution
 
         Parameters
         ----------
-        proc_qobjevo : :class:`qutip.qip.QobjEvo`
-            The :class:`qutip.qip.QobjEvo` representing the unitary evolution
-            in the noiseless processor.
+        proc_qobjevo: :class:`qutip.qip.QobjEvo`
+            The :class:`qutip.qip.QobjEvo` representing the unitary evolution in the noiseless processor.
 
         Returns
         -------
-        H_noise : :class:`qutip.qip.QobjEvo`
-            The :class:`qutip.qip.QobjEvo` representing the noise.
-        c_ops : list
+        H_noise: :class:`qutip.qip.QobjEvo`
+            The :class:`qutip.qip.QobjEvo` representing the noisy
+            part Hamiltonians.
+
+        c_ops: list
             A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
             representing the time-(in)dependent collapse operators.
         """
@@ -482,11 +617,11 @@ class CircuitProcessor(object):
         for i, qobjevo in enumerate(qobjevo_list):
             H_list = qobjevo.to_list()
             for j, H in enumerate(H_list):
-                # cte part or not array-like coeff
+                # cte part or not array-like coeffs
                 if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
                     continue
-                op, coeff = H
-                new_coeff = _fill_coeff(coeff, qobjevo.tlist, new_tlist)
+                op, coeffs = H
+                new_coeff = _fill_coeff(coeffs, qobjevo.tlist, new_tlist)
                 H_list[j] = [op, new_coeff]
             # QobjEvo cannot handle [Qobj] as input
             if H_list and all(isinstance(H, Qobj) for H in H_list):
@@ -505,7 +640,7 @@ def _fill_coeff(old_coeff, old_tlist, new_tlist):
     filling the empty slot with the nearest left value.
     """
     new_n = len(new_tlist)
-    old_ind = 0  # index for old coeff and tlist
+    old_ind = 0  # index for old coeffs and tlist
     new_coeff = np.zeros(new_n)
     for new_ind in range(new_n):
         t = new_tlist[new_ind]
@@ -523,7 +658,8 @@ def _fill_coeff(old_coeff, old_tlist, new_tlist):
 
 def _merge_id_evo(qobjevo):
     """
-    coeff must all have the same length
+    Merge identical Hamiltonians in the :class":`qutip.QobjEvo`.
+    coeffs must all have the same length
     """
     H_list = qobjevo.to_list()
     new_H_list = []
@@ -531,18 +667,18 @@ def _merge_id_evo(qobjevo):
     op_list = []
     coeff_list = []
     for H in H_list:
-        # cte part or not array-like coeff
+        # cte part or not array-like coeffs
         if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
             new_H_list.append(deepcopy(H))
             continue
-        op, coeff = H
+        op, coeffs = H
         # Qobj is not hashable, so cannot be used as key in dict
         try:
             p = op_list.index(op)
-            coeff_list[p] += coeff
+            coeff_list[p] += coeffs
         except ValueError:
             op_list.append(op)
-            coeff_list.append(coeff)
+            coeff_list.append(coeffs)
     new_H_list += [[op_list[i], coeff_list[i]] for i in range(len(op_list))]
     if new_H_list and all(isinstance(H, Qobj) for H in new_H_list):
         new_H_list = sum(new_H_list, new_H_list[0] * 0.)
@@ -550,72 +686,94 @@ def _merge_id_evo(qobjevo):
 
 
 def _dummy_qobjevo(dims, **kwargs):
+    """
+    Create a dummy :class":`qutip.QobjEvo` with
+    a constant zero Halmiltonian.
+    """
     dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
     return dummy
 
 
 class ModelProcessor(CircuitProcessor):
     """
-    The base class for a circuit processor based on phyiscal hardwares,
-    e.g ion trap, spinchain.
+    The base class for a circuit processor based on physical hardwares,
+    e.g cavityQED, spinchain.
     The available Hamiltonian of the system is predefined.
-    For a given pulse amplitude matrix, the processor can
-    calculate the state evolution under the given control pulse,
-    either analytically or numerically.
-    In the subclasses, further methods are defined so that
-    it can be used to find the driving pulse
-    of a quantum circuit.
+    The processor can simulate the evolution under the given
+    control pulses either numerically or analytically.
+    It cannot be used alone, please refer to the sub-classes.
 
     Parameters
     ----------
-    N : int
-        The number of qubits in the system.
-    T1 : list or float
+    N: int
+        The number of component systems.
+
+    correct_global_phase: boolean, optional
+        If true, the analytical solution will track the global phase. It
+        has no effect on the numerical solution.
+
+    T1: list or float, optional
         Characterize the decoherence of amplitude damping for
         each qubit.
-    T2 : list of float
-        Characterize the decoherence of dephasing relaxation for
+
+    T2: list of float, optional
+        Characterize the decoherence of dephasing for
         each qubit.
-    correct_global_phase : boolean
-        If the gloabl phase will be tracked when analytical method is choosen.
 
     Attributes
     ----------
-    ctrls : list of :class:`Qobj`
-        A list of Hamiltonians of the control pulse driving the evolution.
-    tlist : array like
-        A NumPy array specifies at which time the next amplitude of
-        a pulse is to be applied.
-    amps : array like
-        A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
-        row corresponds to the control pulse sequence for
-        one Hamiltonian.
-    paras : dict
+    N: int
+        The number of component system
+
+    ctrls: list
+        A list of the control Hamiltonians driving the evolution.
+
+    tlist: array-like
+        A NumPy array specifies the time of each coefficient.
+
+    coeffs: array-like
+        A 2d NumPy array of the shape, the length is dependent on the
+        spline type
+
+    T1: list
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+
+    T2: list
+        Characterize the decoherence of dephasing for
+        each qubit.
+
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        The noise object, they will be processed when creating the
+        noisy :class:`qutip.QobjEvo` or run the simulation.
+
+    dims: list
+        The dimension of each component system.
+        If not given, it will be a
+        qutbis system of dim=[2,2,2,...,2]
+
+    spline_kind: str
+        Type of the coefficient interpolation. Default is "step_func".
+        Note that they have different requirement for the length of `coeffs`.
+
+    paras: dict
         A Python dictionary contains the name and the value of the parameters
-        in the physical realization, such as laser freqeuncy, detuning etc.
+        in the physical realization, such as laser frequency, detuning etc.
+
+    correct_global_phase: float
+        Save the global phase, the analytical solution
+        will track the global phase.
+        It has no effect on the numerical solution.
     """
     def __init__(self, N, correct_global_phase=True, T1=None, T2=None):
         super(ModelProcessor, self).__init__(N, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.global_phase = 0.
         self._paras = {}
-        self.ctrls = []
 
     def _para_list(self, para, N):
         """
-        transfer a parameter to list form and multiplied by 2*pi.
-
-        Parameters
-        ----------
-        para : float or list
-            One parameter in the setup.
-        N : int
-            The number of qubits in the system.
-
-        Returns
-        -------
-        paras : list
-            The given parameter in a list for
+        Transfer a parameter to list form and multiplied by 2*pi.
         """
         if isinstance(para, numbers.Real):
             return [para * 2 * np.pi] * N
@@ -648,12 +806,12 @@ class ModelProcessor(CircuitProcessor):
 
         Returns
         -------
-        ctrls : list
+        ctrls: list
             The list of Hamiltonians
-        amps : array like
+        coeffs: array like
             The transposed pulse matrix
         """
-        return (self.ctrls, self.coeff.T)
+        return (self.ctrls, self.coeffs.T)
 
     def get_ops_labels(self):
         """
@@ -664,19 +822,18 @@ class ModelProcessor(CircuitProcessor):
 
     def run(self, qc=None):
         """
-        Generates the pulse matrix by running the Hamiltonian for the
-        appropriate time duration for the desired physical system
-        analytically with U = exp(-iHt). This method won't consider
-        any noise.
+        Calculate the propagator the evolution by matrix exponentiation.
+        This method won't include the noise.
 
         Parameters
         ----------
-        qc : :class:`qutip.qip.QubitCircuit`
-            Takes the quantum circuit to be implemented.
+        qc: :class:`qutip.qip.QubitCircuit`, optional
+            Takes the quantum circuit to be implemented. If not given, use
+            the quantum circuit saved in the processor by `load_circuit`.
 
         Returns
         --------
-        U_list : list
+        U_list: list
             The propagator matrix obtained from the physical implementation.
         """
         if qc:
@@ -685,7 +842,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = []
         tlist = self.tlist
         for n in range(len(tlist)-1):
-            H = sum([self.coeff[m, n] * self.ctrls[m]
+            H = sum([self.coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
@@ -701,34 +858,36 @@ class ModelProcessor(CircuitProcessor):
                   numerical=False, **kwargs):
         """
         Simulate the state evolution under the given `qutip.QubitCircuit`
-        If `analytical` is false, it will generate
-        the propagator matrix by running U = exp(-iHt)
-        If `analytical` is true, it will use mesolve to
+        If `numerical` is False, it will calculate the propagator
+        with matrix exponentiation and applies it to the initial state.
+        This won't includes the noise.
+        If `numerical` is True, it will use mesolve to
         calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
         given as kwargs.
 
         Parameters
         ----------
-        qc : :class:`qutip.QubitCircuit`
-            Takes the quantum circuit to be implemented.
-        rho0 : :class:`qutip.Qobj`
+        qc: :class:`qutip.qip.QubitCircuit`, optional
+            Takes the quantum circuit to be implemented. If not given, use
+            the quantum circuit saved in the processor by `load_circuit`.
+
+        rho0: :class:`qutip.Qobj`, optional
             Initial state of the qubits in the register.
-        numerical : boolean
+
+        numerical: boolean, optional
             If qutip solver is used to calculate the evolution numerically.
             Noise will only be considered if this is true.
-        kwargs
-            Key word arguments for the qutip solver.
-            (currently `qutip.mesolve`)
-        states : :class:`qutip.Qobj`
+    
+        kwargs, optional
+            Key word arguments for the `qutip.mesolve`.
+    
+        states: :class:`qutip.Qobj`, optional
             Old API, deprecated to be consistent with qutip solver.
 
         Returns
         --------
-        U_list : list
-            If the analytical method is used,
-            the propagator matrix obtained from the physical implementation.
-        evo_result : :class:`qutip.Result`
+        evo_result: :class:`qutip.Result`
             If the numerical method is used, the result of the solver will
             be returned.
             An instance of the class :class:`qutip.Result`, which contains
@@ -739,6 +898,9 @@ class ModelProcessor(CircuitProcessor):
             an empty list], or nothing if a callback function was
             given in place of
             operators for which to calculate the expectation values.
+
+        U_list: list
+            If the analytical method is used, the propagator is returned.
         """
         if rho0 is None and states is None:
             raise ValueError("Qubit state not defined.")
@@ -754,7 +916,7 @@ class ModelProcessor(CircuitProcessor):
         U_list = [rho0]
         tlist = self.tlist
         for n in range(len(tlist)-1):
-            H = sum([self.coeff[m, n] * self.ctrls[m]
+            H = sum([self.coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
             dt = tlist[n+1] - tlist[n]
             U = (-1j * H * dt).expm()
@@ -811,6 +973,7 @@ class ModelProcessor(CircuitProcessor):
         fig, ax: Figure
             Maps the physical interaction between the circuit components.
         """
+        # TODO merge it with plot pulse in circuitprocessor
         import matplotlib.pyplot as plt
         t, u, u_labels = self.pulse_matrix()
         fig, ax = plt.subplots(1, 1, figsize=(12, 6))
@@ -830,22 +993,34 @@ class ModelProcessor(CircuitProcessor):
 
 class GateDecomposer(object):
     """
-    The obejct that decompose a :class:`qutip.QubitCircuit` into
+    Decompose a :class:`qutip.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters
     ----------
-    N : int
-        The number of qubits in the system.
-    paras : dict
+    N: int
+        The number of the component systems.
+
+    paras: dict
         A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser freqeuncy,detuning etc.
-    num_ops : int
-        Number of Hamiltonians in the processor.
+        of the physical realization, such as laser frequency,detuning etc.
+
+    num_ops: int
+        Number of control Hamiltonians in the processor.
 
     Attributes
     ----------
-    gate_decs : dict
+    N: int
+        The number of the component systems.
+
+    paras: dict
+        A Python dictionary contains the name and the value of the parameters
+        of the physical realization, such as laser frequency,detuning etc.
+
+    num_ops: int
+        Number of control Hamiltonians in the processor.
+
+    gate_decs: dict
         The Python dictionary in the form {gate_name: decompose_function}.
     """
     def __init__(self, N, paras, num_ops):
@@ -861,20 +1036,21 @@ class GateDecomposer(object):
 
         Parameters
         ----------
-        gates : list
+        gates: list
             A list of elementary gates that can be implemented in this
             model. The gate names have to be in `gate_decs`.
 
         Returns
         -------
-        tlist : array like
-            A NumPy array specifies at which time the next amplitude of
-            a pulse is to be applied.
-        amps : array like
+        tlist: array like
+            A NumPy array specifies the time of each coefficients
+
+        coeffs: array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
-        global_phase : bool
+
+        global_phase: bool
             Recorded change of global phase.
         """
         self.dt_list = []
@@ -883,11 +1059,11 @@ class GateDecomposer(object):
             if gate.name not in self.gate_decs:
                 raise ValueError("Unsupported gate %s" % gate.name)
             self.gate_decs[gate.name](gate)
-        amps = np.vstack(self.coeff_list).T
+        coeffs = np.vstack(self.coeff_list).T
 
         tlist = np.empty(len(self.dt_list))
         t = 0
         for i in range(len(self.dt_list)):
             t += self.dt_list[i]
             tlist[i] = t
-        return np.hstack([[0], tlist]), amps
+        return np.hstack([[0], tlist]), coeffs

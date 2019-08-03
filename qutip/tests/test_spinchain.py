@@ -173,7 +173,7 @@ class TestSpinChain:
 
         # CircularSpinChain
         test = CircularSpinChain(N)
-        tlist, amps = test.load_circuit(qc)
+        tlist, coeffs = test.load_circuit(qc)
 
         rho0 = rand_ket(2**N)
         rho0.dims = [[2]*N, [1]*N]
@@ -188,7 +188,7 @@ class TestSpinChain:
 
         # LinearSpinChain
         test = LinearSpinChain(N)
-        tlist, amps = test.load_circuit(qc)
+        tlist, coeffs = test.load_circuit(qc)
 
         rho0 = rand_ket(2**N)
         rho0.dims = [[2]*N, [1]*N]
@@ -216,7 +216,7 @@ class TestSpinChain:
 
         # CircularSpinChain
         test = CircularSpinChain(N)
-        tlist, amps = test.load_circuit(qc)
+        tlist, coeffs = test.load_circuit(qc)
 
         rho0 = rand_ket(2**N)
         rho0.dims = [[2]*N, [1]*N]
@@ -230,7 +230,7 @@ class TestSpinChain:
 
         # LinearSpinChain
         test = LinearSpinChain(N)
-        tlist, amps = test.load_circuit(qc)
+        tlist, coeffs = test.load_circuit(qc)
 
         rho0 = rand_ket(2**N)
         rho0.dims = [[2]*N, [1]*N]

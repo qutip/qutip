@@ -9,7 +9,7 @@ from qutip.tensor import tensor
 from qutip.qobjevo import QobjEvo
 from qutip.states import basis
 from qutip.metrics import fidelity
-
+from qutip.tensor import tensor
 
 class DriftNoise(UserNoise):
     def __init__(self, op):
@@ -28,7 +28,8 @@ class TestCircuitNoise:
         coeffs = [np.array([1, 1, 1, 1, 1, 1])]
 
         # Time-dependent
-        decnoise = DecoherenceNoise(sigmaz(), coeffs=coeffs, tlist=tlist, targets=[1])
+        decnoise = DecoherenceNoise(
+            sigmaz(), coeffs=coeffs, tlist=tlist, targets=[1])
         noise_list = decnoise.get_noise(2)
         assert_allclose(noise_list[0].ops[0].qobj, tensor(qeye(2), sigmaz()))
         assert_allclose(noise_list[0].ops[0].coeff, coeffs[0])
@@ -77,20 +78,22 @@ class TestCircuitNoise:
         """
         tlist = np.array([1, 2, 3, 4, 5, 6])
         coeff = np.array([1, 1, 1, 1, 1, 1])
-        dummy_qobjevo = QobjEvo(tlist=tlist)
 
-        # no expand 
+        # no expand
+        dummy_qobjevo = QobjEvo(sigmaz(), tlist=tlist)
         connoise = ControlAmpNoise(ops=sigmax(), coeffs=[coeff])
         noise = connoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, sigmax())
         assert_allclose(noise.tlist, tlist)
         assert_allclose(noise.ops[0].coeff, coeff)
 
+        dummy_qobjevo = QobjEvo(tensor([sigmaz(), sigmaz()]), tlist=tlist)
         connoise = ControlAmpNoise(ops=sigmay(), coeffs=[coeff], targets=[1])
         noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([qeye(2), sigmay()]))
 
         # With expand
+        dummy_qobjevo = QobjEvo(sigmaz(),tlist=tlist)
         connoise = ControlAmpNoise(
             ops=sigmaz(), coeffs=[coeff]*2, cyclic_permutation=True)
         noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
@@ -103,7 +106,7 @@ class TestCircuitNoise:
         """
 
         tlist = np.array([1, 2, 3, 4, 5, 6])
-        dummy_qobjevo = QobjEvo(tlist=tlist)
+        dummy_qobjevo = QobjEvo(sigmaz(), tlist=tlist)
         mean = 0.
         std = 0.5
         ops = [sigmaz(), sigmax()]
@@ -134,7 +137,7 @@ class TestCircuitNoise:
         proc.tlist = np.array([0, np.pi/2.])
         result = proc.run_state(rho0=basis(2, 0))
         assert_allclose(
-            fidelity(result.states[-1], basis(2, 1)), 1, rtol=1.0e-6)    
+            fidelity(result.states[-1], basis(2, 1)), 1, rtol=1.0e-6)
 
 
 if __name__ == "__main__":

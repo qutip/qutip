@@ -38,66 +38,110 @@ from qutip.qip.models.circuitprocessor import (
     CircuitProcessor, ModelProcessor, GateDecomposer)
 
 
-__all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain', 
+__all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',
     'SpinChainGateDecomposer']
 
 
 class SpinChain(ModelProcessor):
     """
-    The circuitprocessor based on the physical implementation of
-    a spin chain qubit system.
+    The circuit processor based on the physical implementation of
+    a spin chain qubits system.
     The available Hamiltonian of the system is predefined.
-    For a given pulse amplitude matrix, the processor can
-    calculate the state evolution under the given control pulse,
-    either analytically or numerically.
+    The processor can simulate the evolution under the given
+    control pulses either numerically or analytically.
+    It is a base class and should not be used directly, please
+    refer the the subclasses :class:`qutip.qip.LinearSpinChain` and
+    :class:`qutip.qip.CircularSpinChain`.
 
     Parameters
     ----------
-    N : int
+    N: int
         The number of qubits in the system.
-    correct_global_phase : bool
-        Whether the correct phase should be considered in analytical
-        evolution.
-    sx: Integer/List
+
+    correct_global_phase: float
+        Save the global phase, the analytical solution
+        will track the global phase.
+        It has no effect on the numerical solution.
+
+    sx: int or list
         The delta for each of the qubits in the system.
-    sz: Integer/List
+
+    sz: int or list
         The epsilon for each of the qubits in the system.
-    sxsy: Integer/List
+
+    sxsy: int or list
         The interaction strength for each of the qubit pair in the system.
-    T1 : list or float
+
+    T1: list or float, optional
         Characterize the decoherence of amplitude damping for
         each qubit.
-    T2 : list of float
-        Characterize the decoherence of dephasing relaxation for
+
+    T2: list of float, optional
+        Characterize the decoherence of dephasing for
         each qubit.
 
     Attributes
     ----------
-    ctrls : list of :class:`Qobj`
-        A list of Hamiltonians of the control pulse driving the evolution.
-    tlist : array like
-        A NumPy array specifies at which time the next amplitude of
-        a pulse is to be applied.
-    amps : array like
-        The pulse matrix, a 2d NumPy array of the shape
-        (len(ctrls), len(tlist)).
-        Each row corresponds to the control pulse sequence for
-        one Hamiltonian.
-    paras : dict
-        A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser freqeuncy, detuning etc.
-    sx_ops :
+    N: int
+        The number of component system
+
+    ctrls: list
+        A list of the control Hamiltonians driving the evolution.
+
+    tlist: array-like
+        A NumPy array specifies the time of each coefficient.
+
+    coeffs: array-like
+        A 2d NumPy array of the shape, the length is dependent on the
+        spline type
+
+    T1: list
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+
+    T2: list
+        Characterize the decoherence of dephasing for
+        each qubit.
+
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        The noise object, they will be processed when creating the
+        noisy :class:`qutip.QobjEvo` or run the simulation.
+
+    dims: list
+        The dimension of each component system.
+        If not given, it will be a
+        qutbis system of dim=[2,2,2,...,2]
+
+    spline_kind: str
+        Type of the coefficient interpolation. Default is "step_func".
+        Note that they have different requirement for the length of `coeffs`.
+
+    sx: list
+        The delta for each of the qubits in the system.
+
+    sz: list
+        The epsilon for each of the qubits in the system.
+
+    sxsy: list
+        The interaction strength for each of the qubit pair in the system.
+
+    sx_ops: list
         A list of sigmax Hamiltonians for each qubit.
-    sz_ops :
+
+    sz_ops: list
         A list of sigmaz Hamiltonians for each qubit.
-    sxsy_ops :
+
+    sxsy_ops: list
         A list of tensor(sigmax, sigmay)
         interacting Hamiltonians for each qubit.
-    sx_u : array like
+
+    sx_u: array-like
         Pulse matrix for sigmax Hamiltonians.
-    sz_u : array like
+
+    sz_u: array-like
         Pulse matrix for sigmaz Hamiltonians.
-    sxsy_u : array like
+
+    sxsy_u: array-like
         Pulse matrix for tensor(sigmax, sigmay) interacting Hamiltonians.
     """
     def __init__(self, N, correct_global_phase,
@@ -114,7 +158,7 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        N : int
+        N: int
             The number of qubits in the system.
         """
         # sx_ops
@@ -139,9 +183,10 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        sx : float or list
+        sx: float or list
             The coefficient of sigmax in the model
-        sz : flaot or list
+
+        sz: flaot or list
             The coefficient of sigmaz in the model
 
         Note
@@ -168,15 +213,15 @@ class SpinChain(ModelProcessor):
 
     @property
     def sx_u(self):
-        return self.coeff[: self.N]
+        return self.coeffs[: self.N]
 
     @property
     def sz_u(self):
-        return self.coeff[self.N: 2*self.N]
+        return self.coeffs[self.N: 2*self.N]
 
     @property
     def sxsy_u(self):
-        return self.coeff[2*self.N:]
+        return self.coeffs[2*self.N:]
 
     def load_circuit(self, qc, setup):
         """
@@ -187,15 +232,16 @@ class SpinChain(ModelProcessor):
         ----------
         qc: :class:`qutip.QubitCircuit`
             Takes the quantum circuit to be implemented.
-        setup : string
-            "linear" or "circular"
+
+        setup: string
+            "linear" or "circular" for two sub-calsses.
 
         Returns
         -------
-        tlist : array like
-            A NumPy array specifies at which time the next amplitude of
-            a pulse is to be applied.
-        amps : array like
+        tlist: array like
+            A NumPy array specifies the time of each coefficients
+
+        coeffs: array like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
@@ -205,9 +251,9 @@ class SpinChain(ModelProcessor):
         dec = SpinChainGateDecomposer(
             self.N, self._paras, setup=setup,
             global_phase=0., num_ops=len(self.ctrls))
-        self.tlist, self.coeff, self.global_phase = dec.decompose(gates)
+        self.tlist, self.coeffs, self.global_phase = dec.decompose(gates)
 
-        return self.tlist, self.coeff
+        return self.tlist, self.coeffs
 
     def adjacent_gates(self, qc, setup="linear"):
         """
@@ -443,6 +489,40 @@ class SpinChain(ModelProcessor):
 
 
 class LinearSpinChain(SpinChain):
+    """
+    The circuit processor based on the physical implementation of
+    a linear spin chain qubits system.
+    The available Hamiltonian of the system is predefined.
+    The processor can simulate the evolution under the given
+    control pulses either numerically or analytically.
+
+    Parameters
+    ----------
+    N: int
+        The number of qubits in the system.
+
+    correct_global_phase: float
+        Save the global phase, the analytical solution
+        will track the global phase.
+        It has no effect on the numerical solution.
+
+    sx: int or list
+        The delta for each of the qubits in the system.
+
+    sz: int or list
+        The epsilon for each of the qubits in the system.
+
+    sxsy: int or list
+        The interaction strength for each of the qubit pair in the system.
+
+    T1: list or float, optional
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+
+    T2: list of float, optional
+        Characterize the decoherence of dephasing for
+        each qubit.
+    """
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
@@ -455,21 +535,7 @@ class LinearSpinChain(SpinChain):
         super(LinearSpinChain, self).set_up_ops(N)
 
     def set_up_paras(self, sx, sz, sxsy):
-        """
-        Save the parameters in the attribute `paras` and check the validity.
-
-        Parameters
-        ----------
-        sx : float or list
-            The coefficient of sigmax in the model.
-        sz : flaot or list
-            The coefficient of sigmaz in the model.
-        sxsy : The coefficient of tensor(sigmax, sigmay) in the model.
-
-        Note
-        ----
-        All parameters will be multiplied by 2*pi for simplicity
-        """
+        # Doc same as in the parent class
         super(LinearSpinChain, self).set_up_paras(sx, sz)
         sxsy_para = self._para_list(sxsy, self.N-1)
         self._paras["sxsy"] = sxsy_para
@@ -480,20 +546,12 @@ class LinearSpinChain(SpinChain):
 
     @property
     def sxsy_u(self):
-        return self.coeff[2*self.N: 3*self.N-1]
+        return self.coeffs[2*self.N: 3*self.N-1]
 
     def load_circuit(self, qc):
         return super(LinearSpinChain, self).load_circuit(qc, "linear")
 
     def get_ops_labels(self):
-        """
-        Returns the Hamiltonian operators and corresponding labels by stacking
-        them together.
-
-        Returns
-        -------
-        A list of the Hamiltonian operators and labels
-        """
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
@@ -504,6 +562,40 @@ class LinearSpinChain(SpinChain):
 
 
 class CircularSpinChain(SpinChain):
+    """
+    The circuit processor based on the physical implementation of
+    a circular spin chain qubits system.
+    The available Hamiltonian of the system is predefined.
+    The processor can simulate the evolution under the given
+    control pulses either numerically or analytically.
+
+    Parameters
+    ----------
+    N: int
+        The number of qubits in the system.
+
+    correct_global_phase: float
+        Save the global phase, the analytical solution
+        will track the global phase.
+        It has no effect on the numerical solution.
+
+    sx: int or list
+        The delta for each of the qubits in the system.
+
+    sz: int or list
+        The epsilon for each of the qubits in the system.
+
+    sxsy: int or list
+        The interaction strength for each of the qubit pair in the system.
+
+    T1: list or float, optional
+        Characterize the decoherence of amplitude damping for
+        each qubit.
+
+    T2: list of float, optional
+        Characterize the decoherence of dephasing for
+        each qubit.
+    """
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
@@ -521,21 +613,7 @@ class CircularSpinChain(SpinChain):
         self.ctrls.append(tensor(x) + tensor(y))
 
     def set_up_paras(self, sx, sz, sxsy):
-        """
-        Save the parameters in the attribute `paras` and check the validity.
-
-        Parameters
-        ----------
-        sx : float or list
-            The coefficient of sigmax in the model.
-        sz : flaot or list
-            The coefficient of sigmaz in the model.
-        sxsy : The coefficient of tensor(sigmax, sigmay) in the model.
-
-        Note
-        ----
-        All parameters will be multiplied by 2*pi for simplicity
-        """
+        # Doc same as in the parent class
         super(CircularSpinChain, self).set_up_paras(sx, sz)
         sxsy_para = self._para_list(sxsy, self.N)
         self._paras["sxsy"] = sxsy_para
@@ -546,16 +624,12 @@ class CircularSpinChain(SpinChain):
 
     @property
     def sxsy_u(self):
-        return self.coeff[2*self.N: 3*self.N]
+        return self.coeffs[2*self.N: 3*self.N]
 
     def load_circuit(self, qc):
         return super(CircularSpinChain, self).load_circuit(qc, "circular")
 
     def get_ops_labels(self):
-        """
-        Returns the Hamiltonian operators and corresponding values by stacking
-        them together.
-        """
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
@@ -568,33 +642,47 @@ class CircularSpinChain(SpinChain):
 
 class SpinChainGateDecomposer(GateDecomposer):
     """
-    The obejct that decompose a :class:`qutip.QubitCircuit` into
+    Decompose a :class:`qutip.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters
     ----------
-    N : int
+    N: int
         The number of qubits in the system.
-    paras : dict
+
+    paras: dict
         A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser freqeuncy,detuning etc.
-    setup : string
-        "linear" or "circular"
-    global_phase : bool
+        of the physical realization, such as laser frequency,detuning etc.
+
+    setup: string
+        "linear" or "circular" for two sub-calsses.
+
+    global_phase: bool
         Record of the global phase change and will be returned.
-    num_ops : int
+
+    num_ops: int
         Number of Hamiltonians in the processor.
 
     Attributes
     ----------
-    gate_decs : dict
+    N: int
+        The number of the component systems.
+
+    paras: dict
+        A Python dictionary contains the name and the value of the parameters
+        of the physical realization, such as laser frequency,detuning etc.
+
+    num_ops: int
+        Number of control Hamiltonians in the processor.
+
+    gate_decs: dict
         The Python dictionary in the form {gate_name: decompose_function}.
-    sx_ind: Integer/List
-        The list of indices in the Hamiltonian list of sigmax.
-    sz_ind: Integer/List
-        The list of indices in the Hamiltonian list of sigmaz.
-    sxsy_ind: Integer/List
-        The list of indices in the Hamiltonian list of tensor(sigmax, sigmay).
+
+    setup: string
+        "linear" or "circular" for two sub-calsses.
+
+    global_phase: bool
+        Record of the global phase change and will be returned.
     """
     def __init__(self, N, paras, setup, global_phase, num_ops):
         super(SpinChainGateDecomposer, self).__init__(
@@ -606,17 +694,17 @@ class SpinChainGateDecomposer(GateDecomposer):
                           "GLOBALPHASE": self.globalphase_dec
                           }
         self.N = N
-        self.sx_ind = list(range(0, N))
-        self.sz_ind = list(range(N, 2*N))
+        self._sx_ind = list(range(0, N))
+        self._sz_ind = list(range(N, 2*N))
         if setup == "circular":
-            self.sxsy_ind = list(range(2*N, 3*N))
+            self._sxsy_ind = list(range(2*N, 3*N))
         elif setup == "linear":
-            self.sxsy_ind = list(range(2*N, 3*N-1))
+            self._sxsy_ind = list(range(2*N, 3*N-1))
         self.global_phase = global_phase
 
     def decompose(self, gates):
-        tlist, amps = super(SpinChainGateDecomposer, self).decompose(gates)
-        return tlist, amps, self.global_phase
+        tlist, coeffs = super(SpinChainGateDecomposer, self).decompose(gates)
+        return tlist, coeffs, self.global_phase
 
     def rz_dec(self, gate):
         """
@@ -625,7 +713,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
         g = self.paras["sz"][q_ind]
-        pulse[self.sz_ind[q_ind]] = np.sign(gate.arg_value) * g
+        pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
         self.coeff_list.append(pulse)
@@ -637,7 +725,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
         g = self.paras["sx"][q_ind]
-        pulse[self.sx_ind[q_ind]] = np.sign(gate.arg_value) * g
+        pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
         self.coeff_list.append(pulse)
@@ -650,9 +738,9 @@ class SpinChainGateDecomposer(GateDecomposer):
         q1, q2 = min(gate.targets), max(gate.targets)
         g = self.paras["sxsy"][q1]
         if q1 == 0 and q2 == self.N - 1:
-            pulse[self.sxsy_ind[self.N - 1]] = -g
+            pulse[self._sxsy_ind[self.N - 1]] = -g
         else:
-            pulse[self.sxsy_ind[q1]] = -g
+            pulse[self._sxsy_ind[q1]] = -g
         t = np.pi / (4 * g)
         self.dt_list.append(t)
         self.coeff_list.append(pulse)
@@ -665,9 +753,9 @@ class SpinChainGateDecomposer(GateDecomposer):
         q1, q2 = min(gate.targets), max(gate.targets)
         g = self.paras["sxsy"][q1]
         if q1 == 0 and q2 == self.N - 1:
-            pulse[self.sxsy_ind[self.N - 1]] = -g
+            pulse[self._sxsy_ind[self.N - 1]] = -g
         else:
-            pulse[self.sxsy_ind[q1]] = -g
+            pulse[self._sxsy_ind[q1]] = -g
         t = np.pi / (8 * g)
         self.dt_list.append(t)
         self.coeff_list.append(pulse)
