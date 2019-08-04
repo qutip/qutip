@@ -34,8 +34,8 @@ import numpy as np
 from qutip.operators import sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.models.circuitprocessor import (
-    CircuitProcessor, ModelProcessor, GateDecomposer)
+from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.models.modelprocessor import ModelProcessor, GateDecomposer
 
 
 __all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',
@@ -149,6 +149,7 @@ class SpinChain(ModelProcessor):
         super(SpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
+        self.spline_kind = "step_func"
         # paras and ops are set in the submethods
 
     def set_up_ops(self, N):

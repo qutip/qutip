@@ -37,8 +37,8 @@ import numpy as np
 from qutip.operators import tensor, identity, destroy, sigmax, sigmaz
 from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.models.circuitprocessor import (
-    CircuitProcessor, ModelProcessor, GateDecomposer)
+from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.models.modelprocessor import ModelProcessor, GateDecomposer
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 
@@ -164,6 +164,7 @@ class DispersivecQED(ModelProcessor):
         super(DispersivecQED, self).__init__(
             N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
+        self.spline_kind = "step_func"
         self.Nres = Nres
         self.ctrls = []
         self._paras = {}
