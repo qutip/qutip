@@ -425,11 +425,6 @@ class QobjEvo:
         self.type = "none"
         self.omp = 0
 
-        # for Q_object = [Qobj, Qobj...]
-        if Q_object and isinstance(Q_object, list) and \
-                    all(isinstance(H, Qobj) for H in Q_object):
-            Q_object = sum(Q_object)
-
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
                                                                 (Qobj, list)):
@@ -472,7 +467,9 @@ class QobjEvo:
                     self.ops.append(EvoElement(op[0], op[1], op[1], "spline"))
 
             nops = sum(op_type_count)
-            if op_type_count[0] == nops:
+            if all([op_t == 0 for op_t in op_type]):
+                self.type = "cte"
+            elif op_type_count[0] == nops:
                 self.type = "func"
             elif op_type_count[1] == nops:
                 self.type = "string"
