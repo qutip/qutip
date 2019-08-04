@@ -4,7 +4,7 @@ import numpy as np
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 from qutip.qip.models.circuitnoise import (
     RelaxationNoise, DecoherenceNoise, ControlAmpNoise, WhiteNoise, UserNoise)
-from qutip.operators import qeye, sigmaz, sigmax, sigmay, destroy
+from qutip.operators import qeye, sigmaz, sigmax, sigmay, destroy, identity
 from qutip.tensor import tensor
 from qutip.qobjevo import QobjEvo
 from qutip.states import basis
