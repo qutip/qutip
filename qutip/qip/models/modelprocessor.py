@@ -97,8 +97,8 @@ class ModelProcessor(CircuitProcessor):
         each qubit.
 
     noise: :class:`qutip.qip.CircuitNoise`, optional
-        The noise object, they will be processed when creating the
-        noisy :class:`qutip.QobjEvo` or run the simulation.
+        A list of noise objects. They will be processed when creating the
+        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
     dims: list
         The dimension of each component system.
@@ -107,7 +107,8 @@ class ModelProcessor(CircuitProcessor):
 
     spline_kind: str
         Type of the coefficient interpolation. Default is "step_func".
-        Note that they have different requirement for the length of `coeffs`.
+        Note that they have different requirements for the shape of
+        :attr:`qutip.qip.circuitprocessor.coeffs`.
 
     paras: dict
         A Python dictionary contains the name and the value of the parameters
@@ -161,7 +162,7 @@ class ModelProcessor(CircuitProcessor):
         -------
         ctrls: list
             The list of Hamiltonians
-        coeffs: array like
+        coeffs: array-like
             The transposed pulse matrix
         """
         return (self.ctrls, self.coeffs.T)
@@ -224,7 +225,7 @@ class ModelProcessor(CircuitProcessor):
             Noise will only be considered if this is true.
     
         kwargs, optional
-            Key word arguments for the `qutip.mesolve`.
+            Key word arguments for the:func:`qutip.mesolve`.
     
         states: :class:`qutip.Qobj`, optional
             Old API, deprecated to be consistent with qutip solver.
@@ -390,10 +391,10 @@ class GateDecomposer(object):
 
         Returns
         -------
-        tlist: array like
+        tlist: array-like
             A NumPy array specifies the time of each coefficients
 
-        coeffs: array like
+        coeffs: array-like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.

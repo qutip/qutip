@@ -36,7 +36,7 @@ class CircuitNoise(object):
 
 class DecoherenceNoise(CircuitNoise):
     """
-    The decoherence noise in a circuit processor. It is defined the
+    The decoherence noise in a circuit processor. It will generate a list of
     collapse operators.
 
     Parameters
@@ -91,8 +91,8 @@ class DecoherenceNoise(CircuitNoise):
         if all_qubits:
             if not all([c_op.dims == [[2], [2]] for c_op in self.c_ops]):
                 raise ValueError(
-                    "c_op is not a single qubit operator"
-                    "and cannot be applied to all qubits")
+                    "The operator is not a single qubit operator, "
+                    "thus cannot be applied to all qubits")
         self.all_qubits = all_qubits
 
     def get_noise(self, N, dims=None):
@@ -231,8 +231,8 @@ class RelaxationNoise(CircuitNoise):
             T2 = self.T2[qu_ind]
             if T1 is not None:
                 qobjevo_list.append(
-                    expand_operator(1/np.sqrt(T1) * destroy(2),
-                                N, qu_ind, dims=dims))
+                    expand_operator(
+                        1/np.sqrt(T1) * destroy(2), N, qu_ind, dims=dims))
             if T2 is not None:
                 # Keep the total dephasing ~ exp(-t/T2)
                 if T1 is not None:
@@ -244,8 +244,8 @@ class RelaxationNoise(CircuitNoise):
                 else:
                     T2_eff = T2
                 qobjevo_list.append(
-                    expand_operator(1/np.sqrt(2*T2_eff) * sigmaz(),
-                                N, qu_ind, dims=dims))
+                    expand_operator(
+                        1/np.sqrt(2*T2_eff) * sigmaz(), N, qu_ind, dims=dims))
         return qobjevo_list
 
 
@@ -261,7 +261,7 @@ class ControlAmpNoise(CircuitNoise):
 
     coeffs: list
         A list of the coefficients for the control Hamiltonians.
-        For available choice, see :class:`Qutip.QobjEvo`.
+        For available choices, see :class:`Qutip.QobjEvo`.
 
     targets: int or list, optional
         The indices of qubits that are acted on. Default is the first
@@ -269,7 +269,7 @@ class ControlAmpNoise(CircuitNoise):
 
     cyclic_permutation: boolean, optional
         If true, the Hamiltonian will be expanded for
-            all cyclic permutation of target qubits.
+        all cyclic permutation of the target qubits.
 
     Attributes
     ----------
@@ -278,14 +278,14 @@ class ControlAmpNoise(CircuitNoise):
 
     coeffs: list
         A list of the coefficients for the control Hamiltonians.
-        For available choice, see :class:`Qutip.QobjEvo`.
+        For available choices, see :class:`Qutip.QobjEvo`.
 
     targets: list
         The indices of qubits that are acted on.
 
     cyclic_permutation: boolean
         If true, the Hamiltonian will be expanded for
-            all cyclic permutation of target qubits.
+        all cyclic permutation of the target qubits.
     """
     def __init__(self, ops, coeffs, targets=None,
                  cyclic_permutation=False):
@@ -384,9 +384,9 @@ class WhiteNoise(ControlAmpNoise):
 
     cyclic_permutation: boolean
         If true, the Hamiltonian will be expanded for
-            all cyclic permutation of target qubits.
+        all cyclic permutation of the target qubits.
     """
-    # TODO add background or gauss
+    # TODO add other types of random generators
     def __init__(
             self, mean, std, dt=None, ops=None, targets=None,
             cyclic_permutation=False):

@@ -55,7 +55,7 @@ class OptPulseProcessor(CircuitProcessor):
     `qutip.control.optimize_pulse_unitary` function
     to find an optimized pulse sequence for the desired quantum circuit.
     The processor can simulate the evolution under the given
-    control pulses using `qutip.mesolve`.
+    control pulses using :func:`qutip.mesolve`.
 
     Parameters
     ----------
@@ -76,6 +76,11 @@ class OptPulseProcessor(CircuitProcessor):
     T2: list of float
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
+
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        A list of noise objects. They will be processed when creating the
+        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
+        Defaut is a empty list.
 
     Attributes
     ----------
@@ -111,14 +116,16 @@ class OptPulseProcessor(CircuitProcessor):
 
     spline_kind: str
         Type of the coefficient interpolation. Default is "step_func".
-        Note that they have different requirement for the length of `coeffs`.
+        Note that they have different requirements for the shape of
+        :attr:`qutip.qip.circuitprocessor.coeffs`.
 
     drift: :class:`Qobj`
         The drift Hamiltonian with no time-dependent amplitude.
     """
     def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None, dims=None):
-        super(OptPulseProcessor, self).__init__(N, T1=T1, T2=T2, dims=dims)
-        if drift is None:
+        super(OptPulseProcessor, self).__init__(
+            N, T1=T1, T2=T2, dims=dims, noise=None)
+        if drift is None:  # zero matrix
             self.drift = tensor(
                 [identity(self.dims[i]) for i in range(N)]
                 ) * 0.
@@ -159,17 +166,17 @@ class OptPulseProcessor(CircuitProcessor):
 
         Returns
         -------
-        tlist: array like
+        tlist: array-like
             A NumPy array specifies the time of each coefficients
 
-        coeffs: array like
+        coeffs: array-like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
 
         Note
         ----
-        len(tlist)-1=len(coeffs) since tlist gives the begining and the
+        len(tlist)-1=coeffs.shape[1] since tlist gives the begining and the
         end of the pulses
         """
         # TODO different gate time and setups

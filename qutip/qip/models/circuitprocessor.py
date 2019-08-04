@@ -56,11 +56,12 @@ __all__ = ['CircuitProcessor']
 class CircuitProcessor(object):
     """
     The base class for a circuit processor, which is
-    the simulator of quantum device using `qutip.mesolve`.
+    the simulator of quantum device using :func:`qutip.mesolve`.
     It is defined by the available driving Hamiltonian and
     the decoherence time for each component systems.
     The processor can simulate the evolution under the given
-    control pulses.
+    control pulses. Noisy evolution is supported by
+    :class:`qutip.qip.CircuitNoise` and can be added to the processor.
 
     Parameters
     ----------
@@ -68,8 +69,7 @@ class CircuitProcessor(object):
         The number of component systems
 
     ctrls: list of :class:`Qobj`
-        The control Hamiltonian whose time-dependent coefficient
-        will be optimized.
+        A list of the control Hamiltonians driving the evolution.
 
     T1: list or float, optional
         Characterize the decoherence of amplitude damping for
@@ -80,8 +80,9 @@ class CircuitProcessor(object):
         each qubit.
 
     noise: :class:`qutip.qip.CircuitNoise`, optional
-        The noise object, they will be processed when creating the
-        noisy :class:`qutip.QobjEvo` or run the simulation.
+        A list of noise objects. They will be processed when creating the
+        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
+        Defaut is a empty list.
 
     dims: list of int, optional
         The dimension of each component system.
@@ -92,20 +93,20 @@ class CircuitProcessor(object):
         Type of the coefficient interpolation. Default is `step_func`
         Note that they have different requirement for the length of `coeffs`.
 
-        -step_func: 
+        -step_func:
         The coefficient will be treated as a step function.
         E.g. tlist=[0,1,2] and coeffs=[3,2], means that the coefficient
         is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        len(coeffs)=len(tlist)-1 or len(coeffs)=len(tlist), but
+        coeffs.shape[1]=len(tlist)-1 or coeffs.shape[1]=len(tlist), but
         in the second case the last element has no effect.
 
         -cubic: Use cubic interpolation for the coefficient. It requires
-        len(coeffs)=len(tlist)
+        coeffs.shape[1]=len(tlist)
 
     Attributes
     ----------
     N: int
-        The number of component system
+        The number of component systems
 
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
@@ -126,8 +127,8 @@ class CircuitProcessor(object):
         each qubit.
 
     noise: :class:`qutip.qip.CircuitNoise`, optional
-        The noise object, they will be processed when creating the
-        noisy :class:`qutip.QobjEvo` or run the simulation.
+        A list of noise objects. They will be processed when creating the
+        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
     dims: list
         The dimension of each component system.
@@ -136,7 +137,8 @@ class CircuitProcessor(object):
 
     spline_kind: str
         Type of the coefficient interpolation. Default is "step_func".
-        Note that they have different requirement for the length of `coeffs`.
+        Note that they have different requirements for the shape of
+        :attr:`qutip.qip.circuitprocessor.coeffs`.
     """
     def __init__(self, N, ctrls=None, T1=None, T2=None, noise=None,
                  dims=None, spline_kind="step_func"):
@@ -161,19 +163,19 @@ class CircuitProcessor(object):
 
     def add_ctrl(self, ctrl, targets=None, cyclic_permutation=False):
         """
-        Add a control Hamiltonian to the processor
+        Add a control Hamiltonian to the processor.
 
         Parameters
         ----------
         ctrl: :class:`qutip.Qobj`
-            The control Hamiltonian to be added
+            The control Hamiltonian to be added.
 
         targets: list or int, optional
-            The indices of qubits that are acted on
+            The indices of qubits that are acted on.
 
         cyclic_permutation: boolean, optional
             If true, the Hamiltonian will be expanded for
-                all cyclic permutation of target qubits
+        all cyclic permutation of the target qubits.
         """
         # Check validity of ctrl
         if not isinstance(ctrl, Qobj):
@@ -199,7 +201,7 @@ class CircuitProcessor(object):
         Parameters
         ----------
         indices: int or list of int
-            The indices of the control Hamiltonians to be removed
+            The indices of the control Hamiltonians to be removed.
         """
         if not isinstance(indices, Iterable):
             indices = [indices]
@@ -225,16 +227,16 @@ class CircuitProcessor(object):
                 return True
             else:
                 raise ValueError(
-                    "The lenght of tlist and coeffs is not valid. "
-                    "It's either len(tlist)=len(coeffs) or "
-                    "len(tlist)-1=len(coeffs) for coefficients "
+                    "The length of tlist and coeffs is not valid. "
+                    "It's either len(tlist)=coeffs.shape[1] or "
+                    "len(tlist)-1=coeffs.shape[1] for coefficients "
                     "as step function")
         if self.spline_kind == "cubic" and coeff_len == tlist_len:
             return True
         else:
             raise ValueError(
-                "The lenght of tlist and coeffs is not valid. "
-                "It sould be either len(tlist)=len(coeffs)")
+                "The length of tlist and coeffs is not valid. "
+                "It should be either len(tlist)=coeffs.shape[1]")
 
     def _is_ctrl_coeff_valid(self):
         """
@@ -269,7 +271,7 @@ class CircuitProcessor(object):
 
     def save_coeff(self, file_name, inctime=True):
         """
-        Save a file with the current control amplitudes in each timeslot
+        Save a file with the control amplitudes in each timeslot.
 
         Parameters
         ----------
@@ -293,8 +295,8 @@ class CircuitProcessor(object):
 
     def read_coeff(self, file_name, inctime=True):
         """
-        Read the pulse amplitude matrix and time list
-        saved in the file by `save_amp`
+        Read the control amplitudes matrix and time list
+        saved in the file by `save_amp`.
 
         Parameters
         ----------
@@ -306,10 +308,10 @@ class CircuitProcessor(object):
 
         Returns
         -------
-        tlist: array like
+        tlist: array-like
             The time list read from the file.
 
-        coeffs: array like
+        coeffs: array-like
             The pulse matrix read from the file.
         """
         data = np.loadtxt(file_name, delimiter='\t')
@@ -351,10 +353,8 @@ class CircuitProcessor(object):
             if self.coeffs.shape[1] == len(self.tlist) - 1:
                 coeffs = np.hstack([self.coeffs, self.coeffs[:, -1:]])
             else:
-                # TODO add
                 coeffs = self.coeffs
         elif self.spline_kind == "cubic":
-            # TODO add test
             args.update({"_step_func_coeff": False})
         else:
             raise ValueError("Wrong spline_kind.")
@@ -382,6 +382,8 @@ class CircuitProcessor(object):
         -------
         noisy_qobjevo: :class:`qutip.QobjEvo`
             The :class:`qutip.QobjEvo` representation of the noisy evolution.
+        c_pos: list
+            A list of time-(in)dependent collapse operators.
         """
         # TODO add test for args
         unitary_qobjevo = self.get_unitary_qobjevo(args=args)
@@ -418,7 +420,7 @@ class CircuitProcessor(object):
 
     def run_state(self, rho0, **kwargs):
         """
-        Use `qutip.mesolve` to calculate the time of the state evolution
+        Use :func:`qutip.mesolve` to calculate the state evolution
         and return the result. Other arguments of the solver can be
         given as keyword arguments.
 
@@ -429,7 +431,7 @@ class CircuitProcessor(object):
 
         kwargs
             Keyword arguments for the qutip solver.
-            (currently `qutip.mesolve`)
+            (currently :func:`qutip.mesolve`)
 
         Returns
         -------
@@ -471,22 +473,21 @@ class CircuitProcessor(object):
 
     def optimize_circuit(self, qc):
         """
-        Function to take a quantum circuit/algorithm and convert it into the
-        optimal form/basis for the desired physical system.
+        Function to take a quantum circuit/algorithm and convert it into the optimal form/basis for the desired physical system.
         (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
 
     def load_circuit(self, qc):
         """
-        Translates an abstract quantum circuit to its
-        corresponding Hamiltonians.(Defined in subclasses)
+        Translate an :class:`qutip.qip.QubitCircuit` to its
+        corresponding Hamiltonians. (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
 
     def get_ops_and_u(self):
         """
-        Returns the Hamiltonian operators and the pulse matrix
+        Return the Hamiltonian operators and the pulse matrix.
         (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
@@ -538,14 +539,9 @@ class CircuitProcessor(object):
         if noisy:
             # TODO add test
             coeffs, tlist = self.get_noisy_coeffs()
-            labels = [None] * len(coeffs)
         else:
             coeffs = [coeff for coeff in self.coeffs]
             tlist = self.tlist
-            try:
-                labels = self.get_ops_labels()
-            except NotImplementedError:
-                labels = [None] * len(coeffs)
 
         for i in range(len(coeffs)):
             if not isinstance(coeffs[i], (Iterable, np.ndarray)):
@@ -553,7 +549,8 @@ class CircuitProcessor(object):
                     "plot_pulse only accept array-like coefficients.")
             if self.spline_kind == "step_func":
                 if len(coeffs[i]) == len(tlist) - 1:
-                    coeffs[i] = np.hstack([self.coeffs[i], self.coeffs[i, -1:]])
+                    coeffs[i] = np.hstack(
+                        [self.coeffs[i], self.coeffs[i, -1:]])
                 else:
                     coeffs[i][-1] = coeffs[i][-2]
                 ax.step(tlist, coeffs[i], where='post')
@@ -589,7 +586,8 @@ class CircuitProcessor(object):
         Parameters
         ----------
         proc_qobjevo: :class:`qutip.qip.QobjEvo`
-            The :class:`qutip.qip.QobjEvo` representing the unitary evolution in the noiseless processor.
+            The :class:`qutip.qip.QobjEvo` representing the unitary evolution
+            in the noiseless processor.
 
         Returns
         -------
@@ -630,7 +628,8 @@ class CircuitProcessor(object):
         Combine a list of `:class:qutip.QobjEvo` into one,
         different tlist will be merged.
         """
-        # TODO add test
+        # TODO This method can be eventually integrated into QobjEvo, for
+        # which a more through test is required
         # no qobjevo
         if not qobjevo_list:
             return _dummy_qobjevo(self.dims)
@@ -646,11 +645,9 @@ class CircuitProcessor(object):
                 if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
                     continue
                 op, coeffs = H
-                new_coeff = _fill_coeff(coeffs, qobjevo.tlist, new_tlist)
+                new_coeff = _fill_coeff(
+                    coeffs, qobjevo.tlist, new_tlist, self.spline_kind)
                 H_list[j] = [op, new_coeff]
-            # QobjEvo cannot handle [Qobj] as input
-            if H_list and all(isinstance(H, Qobj) for H in H_list):
-                H_list = sum(H_list, H_list[0] * 0.)
             # create a new qobjevo with the old arguments
             qobjevo_list[i] = QobjEvo(
                 H_list, tlist=new_tlist, args=qobjevo.args)
@@ -659,25 +656,29 @@ class CircuitProcessor(object):
         return qobjevo
 
 
-def _fill_coeff(old_coeff, old_tlist, new_tlist):
+def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_kind):
     """
     Make a step function coefficients compatible with a longer `tlist` by
     filling the empty slot with the nearest left value.
     """
-    new_n = len(new_tlist)
-    old_ind = 0  # index for old coeffs and tlist
-    new_coeff = np.zeros(new_n)
-    for new_ind in range(new_n):
-        t = new_tlist[new_ind]
-        if t < old_tlist[0]:
-            new_coeff[new_ind] = 0.
-            continue
-        if t > old_tlist[-1]:
-            new_coeff[new_ind] = 0.
-            continue
-        if old_tlist[old_ind+1] == t:
-            old_ind += 1
-        new_coeff[new_ind] = old_coeff[old_ind]
+    if spline_kind == "step_func":
+        new_n = len(new_tlist)
+        old_ind = 0  # index for old coeffs and tlist
+        new_coeff = np.zeros(new_n)
+        for new_ind in range(new_n):
+            t = new_tlist[new_ind]
+            if t < old_tlist[0]:
+                new_coeff[new_ind] = 0.
+                continue
+            if t > old_tlist[-1]:
+                new_coeff[new_ind] = 0.
+                continue
+            if old_tlist[old_ind+1] == t:
+                old_ind += 1
+            new_coeff[new_ind] = old_coeffs[old_ind]
+    elif spline_kind == "cubic":
+        sp = CubicSpline(old_tlist, old_coeffs)
+        new_coeff = np.array([sp(t) for t in new_tlist])
     return new_coeff
 
 
@@ -688,7 +689,6 @@ def _merge_id_evo(qobjevo):
     """
     H_list = qobjevo.to_list()
     new_H_list = []
-    add_dict = {}
     op_list = []
     coeff_list = []
     for H in H_list:
@@ -705,8 +705,6 @@ def _merge_id_evo(qobjevo):
             op_list.append(op)
             coeff_list.append(coeffs)
     new_H_list += [[op_list[i], coeff_list[i]] for i in range(len(op_list))]
-    if new_H_list and all(isinstance(H, Qobj) for H in new_H_list):
-        new_H_list = sum(new_H_list, new_H_list[0] * 0.)
     return QobjEvo(new_H_list, tlist=qobjevo.tlist, args=qobjevo.args)
 
 

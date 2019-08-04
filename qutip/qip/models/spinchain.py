@@ -80,6 +80,11 @@ class SpinChain(ModelProcessor):
         Characterize the decoherence of dephasing for
         each qubit.
 
+    noise: :class:`qutip.qip.CircuitNoise`, optional
+        A list of noise objects. They will be processed when creating the
+        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
+        Defaut is a empty list.
+
     Attributes
     ----------
     N: int
@@ -104,8 +109,8 @@ class SpinChain(ModelProcessor):
         each qubit.
 
     noise: :class:`qutip.qip.CircuitNoise`, optional
-        The noise object, they will be processed when creating the
-        noisy :class:`qutip.QobjEvo` or run the simulation.
+        A list of noise objects. They will be processed when creating the
+        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
     dims: list
         The dimension of each component system.
@@ -114,7 +119,8 @@ class SpinChain(ModelProcessor):
 
     spline_kind: str
         Type of the coefficient interpolation. Default is "step_func".
-        Note that they have different requirement for the length of `coeffs`.
+        Note that they have different requirements for the shape of
+        :attr:`qutip.qip.circuitprocessor.coeffs`.
 
     sx: list
         The delta for each of the qubits in the system.
@@ -147,7 +153,8 @@ class SpinChain(ModelProcessor):
     def __init__(self, N, correct_global_phase,
                  sx, sz, sxsy, T1, T2):
         super(SpinChain, self).__init__(
-            N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
+            N, correct_global_phase=correct_global_phase, T1=T1, T2=T2,
+            noise=None, dims=None)
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
         # paras and ops are set in the submethods
@@ -239,10 +246,10 @@ class SpinChain(ModelProcessor):
 
         Returns
         -------
-        tlist: array like
+        tlist: array-like
             A NumPy array specifies the time of each coefficients
 
-        coeffs: array like
+        coeffs: array-like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
