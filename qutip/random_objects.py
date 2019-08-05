@@ -263,7 +263,7 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
     return U
 
 
-def rand_ket(N, density=1, dims=None, seed=None):
+def rand_ket(N=0, density=1, dims=None, seed=None):
     """Creates a random Nx1 sparse ket vector.
 
     Parameters
@@ -290,7 +290,7 @@ def rand_ket(N, density=1, dims=None, seed=None):
     elif dims:
         N = prod(dims[0])
         _check_dims(dims, N, 1)
-    elif:
+    else:
         dims = [[N],[1]]
     X = sp.rand(N, 1, density, format='csr')
     X.data = X.data - 0.5
@@ -326,7 +326,7 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     elif dims:
         N = prod(dims[0])
         _check_dims(dims, N, 1)
-    elif:
+    else:
         dims = [[N],[1]]
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
