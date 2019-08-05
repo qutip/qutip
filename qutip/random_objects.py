@@ -265,7 +265,7 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
 
 def rand_ket(N, density=1, dims=None, seed=None):
     """Creates a random Nx1 sparse ket vector.
-    
+
     Parameters
     ----------
     N : int
@@ -306,6 +306,7 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     """
     Returns a Haar random pure state of dimension ``dim`` by
     applying a Haar random unitary to a fixed pure state.
+
     Parameters
     ----------
     N : int
