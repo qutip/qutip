@@ -407,9 +407,9 @@ class TestLattice:
         for i in range(4):
             np.testing.assert_array_almost_equal(qH_ks[i],qHks[i],decimal=8)
 
-    def test_Bloch_wave_functions(self):
+    def test_bloch_wave_functions(self):
         """
-        lattice: Test the method Lattice1d.Bloch_wave_functions().
+        lattice: Test the method Lattice1d.bloch_wave_functions().
         """
         # Coupled Resonator Optical Waveguide(CROW) Example(PhysRevB.99.224201)
         J = 2
@@ -436,7 +436,7 @@ class TestLattice:
                                   dims = [[4, 1, 2], [4, 1, 2]] )
         # Check for CROW with num_cell = 4
         assert_( np.max(abs(CROW_Haml-H_CROW)) < 1.0E-6 ) # 1.0E-8 worked too
-        eigen_states = CROW_lattice.Bloch_wave_functions()
+        eigen_states = CROW_lattice.bloch_wave_functions()
         for i in range(8):
             if eigen_states[i][0] == 0:
                 E_V = eigen_states[i][1]
@@ -499,7 +499,7 @@ class TestLattice:
         assert_( np.max(abs(kxA-kCR)) < 1.0E-6 )
         assert_( np.max(abs(val_kns-vCR)) < 1.0E-6 )
         
-        eigen_states = CROW_lattice.Bloch_wave_functions()
+        eigen_states = CROW_lattice.bloch_wave_functions()
         for i in range(8):
             E_V = eigen_states[i][1]
             eE_V = CROW_Haml * E_V

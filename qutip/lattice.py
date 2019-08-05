@@ -1092,7 +1092,7 @@ class Lattice1d():
                                 j0*self._length_for_site+j]
                 dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dims_site = [dim_site, dim_site]
-                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
+                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)          
 
         fig = plt.figure(figsize=[CNS*2, CNS*2.5])
         ax = fig.add_subplot(111, aspect='equal')
@@ -1129,7 +1129,7 @@ class Lattice1d():
                     continue
 
                 for j in range(i+1, CNS):
-                    if self._H_intra[i, j] == 0:
+                    if (Hcell[i][j].full() == 0).all():
                         continue
                     c_cen = (self.positions_of_sites[
                             i]+self.positions_of_sites[j])/2
@@ -1178,6 +1178,21 @@ class Lattice1d():
             H_inter = H_inter + self._H_inter_list[i0]
         H_inter = np.array(H_inter)
         CSN = self.cell_num_site
+        Hcell = [[{} for i in range(CSN)] for j in range(CSN)]
+
+        for i0 in range(CSN):
+            for j0 in range(CSN):
+                Qin = np.zeros((self._length_for_site, self._length_for_site),
+                               dtype=complex)
+                for i in range(self._length_for_site):
+                    for j in range(self._length_for_site):
+                        Qin[i, j] = self._H_intra[
+                                i0*self._length_for_site+i,
+                                j0*self._length_for_site+j]
+                dim_site = list(np.delete(self.cell_tensor_config, [0], None))
+                dims_site = [dim_site, dim_site]
+                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
+
         j0 = 0
         i0 = CSN-1
         Qin = np.zeros((self._length_for_site, self._length_for_site),
@@ -1216,7 +1231,7 @@ class Lattice1d():
 
                 for j in range(i+1, CSN):
 
-                    if self._H_intra[i, j] == 0:
+                    if (Hcell[i][j].full() == 0).all():
                         continue
                     c_cen = self.positions_of_sites[i]
                     c_cen = (c_cen+self.positions_of_sites[j])/2
