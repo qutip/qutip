@@ -80,11 +80,6 @@ class SpinChain(ModelProcessor):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.CircuitNoise`, optional
-        A list of noise objects. They will be processed when creating the
-        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
-        Defaut is a empty list.
-
     Attributes
     ----------
     N: int
@@ -153,8 +148,7 @@ class SpinChain(ModelProcessor):
     def __init__(self, N, correct_global_phase,
                  sx, sz, sxsy, T1, T2):
         super(SpinChain, self).__init__(
-            N, correct_global_phase=correct_global_phase, T1=T1, T2=T2,
-            noise=None, dims=None)
+            N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
         # paras and ops are set in the submethods
@@ -534,8 +528,8 @@ class LinearSpinChain(SpinChain):
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
-        super(LinearSpinChain, self).__init__(N, correct_global_phase,
-                                              sx, sz, sxsy, T1, T2)
+        super(LinearSpinChain, self).__init__(N, correct_global_phase=correct_global_phase,
+                                                sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
         self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 
@@ -607,8 +601,8 @@ class CircularSpinChain(SpinChain):
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
-        super(CircularSpinChain, self).__init__(N, correct_global_phase,
-                                                sx, sz, sxsy, T1, T2)
+        super(CircularSpinChain, self).__init__(N, correct_global_phase=correct_global_phase,
+                                                sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
         self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 

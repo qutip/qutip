@@ -74,8 +74,8 @@ class DispersivecQED(ModelProcessor):
     epsmax: int or list, optional
         The sigma-z paraicient for each of the qubits in the system.
 
-    wo: int, optional
-    The base frequency of the resonator.
+    w0: int, optional
+        The base frequency of the resonator.
 
     eps: int or list, optional
         The epsilon for each of the qubits in the system.
@@ -93,11 +93,6 @@ class DispersivecQED(ModelProcessor):
     T2: list of float, optional
         Characterize the decoherence of dephasing for
         each qubit.
-
-    noise: :class:`qutip.qip.CircuitNoise`, optional
-        A list of noise objects. They will be processed when creating the
-        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
-        Defaut is a empty list.
 
     Attributes
     ----------
@@ -166,10 +161,10 @@ class DispersivecQED(ModelProcessor):
 
     def __init__(self, N, correct_global_phase=True, Nres=10, deltamax=1.0,
                  epsmax=9.5, w0=10., wq=None, eps=9.5,
-                 delta=0.0, g=0.01, T1=None, T2=None, noise=None):
+                 delta=0.0, g=0.01, T1=None, T2=None):
         super(DispersivecQED, self).__init__(
             N, correct_global_phase=correct_global_phase,
-            T1=T1, T2=T2, noise=noise, dims=[Nres] + [2] * N)
+            T1=T1, T2=T2)
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
         self.Nres = Nres
@@ -179,6 +174,7 @@ class DispersivecQED(ModelProcessor):
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
             delta=delta, g=g)
         self.set_up_ops(N)
+        self.dims = [Nres] + [2] * N
 
     def set_up_ops(self, N):
         """

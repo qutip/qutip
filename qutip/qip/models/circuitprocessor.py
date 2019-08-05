@@ -79,11 +79,6 @@ class CircuitProcessor(object):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.CircuitNoise`, optional
-        A list of noise objects. They will be processed when creating the
-        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
-        Defaut is a empty list.
-
     dims: list of int, optional
         The dimension of each component system.
         If not given, it will be a
@@ -140,7 +135,7 @@ class CircuitProcessor(object):
         Note that they have different requirements for the shape of
         :attr:`qutip.qip.circuitprocessor.coeffs`.
     """
-    def __init__(self, N, ctrls=None, T1=None, T2=None, noise=None,
+    def __init__(self, N, ctrls=None, T1=None, T2=None,
                  dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
@@ -151,10 +146,7 @@ class CircuitProcessor(object):
                 self.add_ctrl(H)
         self.T1 = T1
         self.T2 = T2
-        if noise is None:
-            self.noise = []
-        else:
-            self.noise = noise
+        self.noise = []
         if dims is None:
             self.dims = [2] * N
         else:

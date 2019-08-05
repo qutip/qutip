@@ -77,11 +77,6 @@ class OptPulseProcessor(CircuitProcessor):
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
 
-    noise: :class:`qutip.qip.CircuitNoise`, optional
-        A list of noise objects. They will be processed when creating the
-        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
-        Defaut is a empty list.
-
     Attributes
     ----------
     N: int
@@ -124,7 +119,7 @@ class OptPulseProcessor(CircuitProcessor):
     """
     def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None, dims=None):
         super(OptPulseProcessor, self).__init__(
-            N, T1=T1, T2=T2, dims=dims, noise=None)
+            N, T1=T1, T2=T2, dims=dims)
         if drift is None:  # zero matrix
             self.drift = tensor(
                 [identity(self.dims[i]) for i in range(N)]
