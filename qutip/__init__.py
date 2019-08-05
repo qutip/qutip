@@ -220,6 +220,9 @@ from qutip.nonmarkov import *
 from qutip.interpolate import *
 from qutip.scattering import *
 
+# lattice models
+from qutip.lattice import *
+
 # quantum information
 from qutip.qip import *
 
