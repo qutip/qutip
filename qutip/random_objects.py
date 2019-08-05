@@ -263,16 +263,18 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
     return U
 
 
-def rand_ket(N, density=1, seed=None):
+def rand_ket(N, density=1, dims=None, seed=None):
     """Creates a random Nx1 sparse ket vector.
-
     Parameters
     ----------
-    N : int or list of ints
-        Left-dimensions of the state vector to be returned.
-        If it is an integer, [N] is used.
+    N : int
+        Number of rows for output quantum operator.
+        If None or 0, N is deduced from dims.
     density : float
         Density between [0,1] of output ket state.
+    dims : list
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[1]].
 
     Returns
     -------
@@ -282,12 +284,15 @@ def rand_ket(N, density=1, seed=None):
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if isinstance(N, int):
-        dims = [[N],[1]]
-    else:
-        dims = [N,[1 for x in N]]
-        N = prod(dims[0])
+    if dims:
+        if not N :
+            N = prod(dims[0])
         _check_dims(dims, N, 1)
+    else:
+        if N:
+            dims = [[N],[1]]
+        else:
+            raise TypeError("Must provide either N or dims")
     X = sp.rand(N, 1, density, format='csr')
     X.data = X.data - 0.5
     Y = X.copy()
@@ -298,30 +303,34 @@ def rand_ket(N, density=1, seed=None):
     return Qobj(X / X.norm(), dims=dims)
 
 
-def rand_ket_haar(N=2, seed=None):
+def rand_ket_haar(N=2, dims=None, seed=None):
     """
-    Returns a Haar random pure state of dimension ``N`` by
+    Returns a Haar random pure state of dimension ``dim`` by
     applying a Haar random unitary to a fixed pure state.
-
-
     Parameters
     ----------
-    N : int or list of ints
-        Left-dimensions of the state vector to be returned.
-        If it is an integer, [N] is used.
+    N : int
+        Dimension of the state vector to be returned.
+        If None or 0, N is deduced from dims.
+    dims : list of ints, or None
+        Dimensions of the resultant quantum object.
+        If None, [[N],[1]] is used.
 
     Returns
     -------
     psi : Qobj
         A random state vector drawn from the Haar measure.
     """
-    if isinstance(N, int):
-        dims = [[N],[1]]
-    else:
-        dims = [N,[1 for x in N]]
-        N = prod(dims[0])
+    if dims:
+        if not N :
+            N = prod(dims[0])
         _check_dims(dims, N, 1)
-
+    else:
+        if N:
+            dims = [[N],[1]]
+        else:
+            raise TypeError("Must provide either N or dims")
+    
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
     return psi
