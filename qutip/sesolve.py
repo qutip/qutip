@@ -98,13 +98,13 @@ class SESolver:
         else:
             normalize_func = normalize_op_inplace
         self._e_ops.init(self._tlist)
-        self._state_out = _generic_ode_solve(func, ode_args, self.state0,
-                                             self._tlist, self._e_ops,
-                                             normalize_func, self._options,
-                                             progress_bar)
+        self._state_out = self._generic_ode_solve(func, ode_args, self.state0,
+                                                  self._tlist, self._e_ops,
+                                                  normalize_func, self._options,
+                                                  progress_bar)
 
     def batch_run(self, states=[], args_sets=[],
-                  parallel=True, progress_bar=True):
+                  progress_bar=True, map_func=parallel_map):
         N_states0 = len(states)
         if not states:
             states = [self.state0]
@@ -122,140 +122,191 @@ class SESolver:
         if progress_bar is True:
             progress_bar = TextProgressBar()
 
-        if all_ket:
-            res = self._batch_run_ket(states, args_sets, parallel, progress_bar)
+        map_kwargs = {'progress_bar': progress_bar,
+                      'num_cpus': options.num_cpus}
+
+        if all_ket and ss.with_state:
+            res = self._batch_run_ket(states, args_sets, map_func, map_kwargs)
+        elif all_ket and (N_vecs > vec_len):
+            res = self._batch_run_prop_ket(states, args_sets, map_func, map_kwargs)
+        elif all_ket and N_states0 >= 2:
+            res = self._batch_run_merged_ket(states, args_sets, map_func, map_kwargs)
+        elif all_ket:
+            res = self._batch_run_ket(states, args_sets, map_func, map_kwargs)
+        elif ss.with_state:
+            res = self._batch_run_oper(states, args_sets, map_func, map_kwargs)
         else:
-            res = self._batch_run_oper(states, args_sets, parallel, progress_bar)
+            res = self._batch_run_prop_oper(states, args_sets, map_func, map_kwargs)
 
         return res
 
-    def _batch_run_ket(self, kets=[], args_sets=[],
-                       parallel=True, progress_bar=True):
+    def _batch_run_ket(self, kets, args_sets, map_func, map_kwargs):
         N_states0 = len(states)
         N_args = len(args_sets)
-
+        states_out = np.empty((N_states0, N_args), dtype=object)
+        expect_out = np.empty((N_states0, N_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
+        values = product(states, args_sets)
 
-        if ss.with_state :
-            computed_state = states
-            normalize_func = normalize_inplace
-            batch = "ket"
-        elif (N_vecs > vec_len):
-            computed_state = [qt.qeye(vec_len)]
-            normalize_func = normalize_op_inplace
-            batch = "prop"
-        elif N_states0 >= 2:
-            computed_state = stack_ket(states)
-            normalize_func = normalize_mixed(computed_state.shape)
-            batch = "merged"
-        else:
-            computed_state = states
-            normalize_func = normalize_inplace
-            batch = "ket"
-
+        normalize_func = normalize_inplace
         if not self._options.normalize_output:
             normalize_func = False
 
-        values = product(computed_state, args_sets)
+        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
 
-        if parallel:
-            results = parallel_map(_one_run, values, (normalize_func,),
-                                   progress_bar=progress_bar)
-        else:
-            results = serial_map(_one_run, values, (normalize_func,),
-                                 progress_bar=progress_bar)
+        for i, (state, expect) in enumerate(results):
+            args_n, state_n = divmod(i, N_states0)
+            if self._e_ops:
+                expect_out[state_n, args_n] = expect.finish()
+            if store_states:
+                states_out[state_n, args_n] = state
+
+        return states_out, expect_out
+
+    def _batch_run_prop_ket(self, kets, args_sets, map_func, map_kwargs):
+        N_states0 = len(states)
+        N_args = len(args_sets)
+        nt = len(self._tlist)
+        vec_len = kets[0].shape[0]
 
         states_out = np.empty((N_states0, N_args), dtype=object)
         expect_out = np.empty((N_states0, N_args), dtype=object)
-        if batch == "ket":
-            for i, (state, expect) in enumerate(results):
-                args_n, state_n = divmod(i, N_states0)
+        store_states = not bool(self._e_ops) or self._options.store_states
+        computed_state = [qt.qeye(vec_len)]
+        values = product(computed_state, args_sets)
+
+        normalize_func = normalize_op_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
+
+        for i, (prop, _) in enumerate(results):
+            args_n, state_n = divmod(i, N_states0)
+            for ket in kets:
+                e_op = self._e_ops.copy()
+                e_op.init(self._tlist)
+                state = np.zeros((nt, vec_len), dtype=np.float)
+                for i, t in self._tlist:
+                    state[i,:] = prop[t,:,:] * ket
+                    e_op.step(i, state[i,:])
                 if self._e_ops:
-                    expect_out[state_n, args_n] = expect.finish()
+                    expect_out[state_n, args_n] = e_op.finish()
                 if store_states:
                     states_out[state_n, args_n] = state
-        elif batch == "merged":
-            for i, (state, _) in enumerate(results):
-                args_n, state_n = divmod(i, N_states0)
-                for i in range(state.shape[1]):
-                    vecs = state[:,:,i]
-                    e_op = self._e_ops.copy()
-                    e_op.init(self._tlist)
-                    for i, t in self._tlist:
-                        e_op.step(i, vec[t,:])
-                    if self._e_ops:
-                        expect_out[state_n, args_n] = e_op.finish()
-                    if store_states:
-                        states_out[state_n, args_n] = vec
-        else:
-            nt = len(self._tlist)
-            len_vec = kets[0].shape[0]
-            for i, (prop, _) in enumerate(results):
-                args_n, state_n = divmod(i, N_states0)
-                for ket in kets:
-                    e_op = self._e_ops.copy()
-                    e_op.init(self._tlist)
-                    state = np.zeros((nt, len_vec), dtype=np.float)
-                    for i, t in self._tlist:
-                        state[i,:] = prop[t,:,:] * ket
-                        e_op.step(i, state[i,:])
-                    if self._e_ops:
-                        expect_out[state_n, args_n] = e_op.finish()
-                    if store_states:
-                        states_out[state_n, args_n] = state
+        return states_out, expect_out
+
+    def _batch_run_merged_ket(self, kets, args_sets, map_func, map_kwargs):
+        N_states0 = len(states)
+        N_args = len(args_sets)
+        nt = len(self._tlist)
+
+        states_out = np.empty((N_states0, N_args), dtype=object)
+        expect_out = np.empty((N_states0, N_args), dtype=object)
+        store_states = not bool(self._e_ops) or self._options.store_states
+        values = product(stack_ket(states), args_sets)
+
+        normalize_func = normalize_op_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
+
+        for i, (state, _) in enumerate(results):
+            args_n, state_n = divmod(i, N_states0)
+            for i in range(state.shape[2]):
+                vecs = state[:,:,i]
+                e_op = self._e_ops.copy()
+                e_op.init(self._tlist)
+                for i, t in self._tlist:
+                    e_op.step(i, vecs[t,:])
+                if self._e_ops:
+                    expect_out[state_n, args_n] = e_op.finish()
+                if store_states:
+                    states_out[state_n, args_n] = vecs
+        return states_out, expect_out
+
+    def _batch_run_oper(self, opers, args_sets, map_func, map_kwargs):
+        N_states0 = len(opers)
+        N_args = len(args_sets)
+        states_out = np.empty((N_states0, N_args), dtype=object)
+        expect_out = np.empty((N_states0, N_args), dtype=object)
+        store_states = not bool(self._e_ops) or self._options.store_states
+        values = product(opers, args_sets)
+
+        normalize_func = normalize_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        map_func(self._one_run_oper, values, (normalize_func,), **map_kwargs)
+
+        for i, (state, expect) in enumerate(results):
+            args_n, state_n = divmod(i, N_states0)
+            if self._e_ops:
+                expect_out[state_n, args_n] = expect.finish()
+            if store_states:
+                states_out[state_n, args_n] = state
+
+        return states_out, expect_out
+
+    def _batch_run_prop_ket(self, opers, args_sets, map_func, map_kwargs):
+        N_states0 = len(states)
+        N_args = len(args_sets)
+        nt = len(self._tlist)
+        vec_len = opers[0].shape[0]
+
+        states_out = np.empty((N_states0, N_args), dtype=object)
+        expect_out = np.empty((N_states0, N_args), dtype=object)
+        store_states = not bool(self._e_ops) or self._options.store_states
+        computed_state = [qt.qeye(vec_len)]
+        values = product(computed_state, args_sets)
+
+        normalize_func = normalize_op_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
+
+        for i, (prop, _) in enumerate(results):
+            args_n, state_n = divmod(i, N_states0)
+            for oper in opers:
+                e_op = self._e_ops.copy()
+                e_op.init(self._tlist)
+                state = np.zeros((nt, vec_len, vec_len), dtype=np.float)
+                for i, t in self._tlist:
+                    state[i,:,:] = np.conj(prop[t,:,:].T) @ oper @ prop[t,:,:]
+                    e_op.step(i, state[i,:,:])
+                if self._e_ops:
+                    expect_out[state_n, args_n] = e_op.finish()
+                if store_states:
+                    states_out[state_n, args_n] = state
         return states_out, expect_out
 
     def _one_run_ket(self, run_data, normalize_func):
         opt = self._options
         state0, args = run_data
         func, ode_args = self.ss.makefunc(self.ss, state0, args, opt)
-        if normalize_func is True:
 
         if state0.isket:
             e_ops = self._e_ops.copy()
             e_ops.init(self._tlist)
         else:
             e_ops = ExpectOps([])
-        state = _generic_ode_solve(func, ode_args, state0, self._tlist, e_ops,
-                                   normalize_func, opt, BaseProgressBar())
+        state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
+                                        e_ops, normalize_func, opt,
+                                        BaseProgressBar())
         return state, e_ops
-
-    def _batch_run_oper(self, kets=[], args_sets=[],
-                        parallel=True, progress_bar=True):
-        if ss.with_state and all_ket:
-            computed_state = states
-            normalize_func = normalize_inplace
-        elif ss.with_state and all_op:
-            computed_state = states
-            normalize_func = True
-        elif all_op or (N_vecs > vec_len):
-            computed_state = [qt.qeye(vec_len)]
-            normalize_func = normalize_op_inplace
-        elif N_states0 >= 2:
-            computed_state = stack_ket(states)
-            normalize_func = normalize_mixed(computed_state.shape)
-        else:
-            computed_state = states
-            normalize_func = normalize_inplace
-
-        if not self._options.normalize_output:
-            normalize_func = False
-
-        return
 
     def _one_run_oper(self, run_data, normalize_func):
         opt = self._options
         state0, args = run_data
-        func, ode_args = self.ss.makefunc(self.ss, state0, args, opt)
-        if normalize_func is True:
+        func, ode_args = self.ss.makeoper(self.ss, state0, args, opt)
 
-        if state0.isket:
-            e_ops = self._e_ops.copy()
-            e_ops.init(self._tlist)
-        else:
-            e_ops = ExpectOps([])
-        state = _generic_ode_solve(func, ode_args, state0, self._tlist, e_ops,
-                                   normalize_func, opt, BaseProgressBar())
+        e_ops = self._e_ops.copy()
+        e_ops.init(self._tlist)
+        state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
+                                        e_ops, normalize_func, opt,
+                                        BaseProgressBar())
         return state, e_ops
 
 
@@ -392,6 +443,7 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     ss.shape = ss.H_td.cte.shape
     ss.with_state = bool(ss.H_td.dynamics_args)
     ss.makefunc = _qobjevo_set
+    ss.makeoper = _qobjevo_set_oper
     solver_safe["sesolve"] = ss
     return ss
 
@@ -401,16 +453,31 @@ def _qobjevo_set(HS, psi, args, opt):
     """
     H_td = HS.H
     H_td.arguments(args)
-    if psi.isunitary:
-        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
-    elif psi.isket:
+
+    if psi.isket:
         func = H_td.compiled_qobjevo.mul_vec
+    elif psi.isunitary:
+        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
     else:
         raise TypeError("The unitary solver requires psi0 to be"
                         " a ket as initial state"
                         " or a unitary as initial operator.")
     return func, ()
 
+def _qobjevo_set_oper(HS, psi, args, opt):
+    """
+    From the system, get the ode function and args
+    """
+    H_td = HS.H
+    H_td.arguments(args)
+    N = psi.shape[0]
+
+    def _oper_evolution(t, mat):
+        oper = H_td.compiled_qobjevo.ode_mul_mat_f_vec(t, mat)
+        out = mat.reshape((N,N)).T @ H_td.call(t, 1) - oper.reshape((N,N)).T
+        return out.ravel("F")
+
+    return _oper_evolution, ()
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
@@ -424,6 +491,7 @@ def _sesolve_func_td(H_func, args, opt):
     ss.type = "func"
     ss.H = H_func
     ss.makefunc = _Hfunc_set
+    ss.makeoper = _Hfunc_set_oper
     solver_safe["sesolve"] = ss
     if not opt.rhs_with_state:
         ss.shape = h_func(0., args).shape
@@ -454,6 +522,24 @@ def _Hfunc_set(HS, psi, args, opt):
             func = cy_ode_psi_func_td_with_state
 
     return func, (H_func, args)
+
+def _Hfunc_set_oper(HS, psi, args, opt):
+    """
+    From the system, get the ode function and args
+    """
+    H_func = HS.H
+
+    def _HO_OH(t, mat):
+        H = H_func(t, args).full()
+        op = mat.reshape((n, n)).T
+        return op @ H - H @ op
+
+    def _HO_OH_state(t, mat):
+        H = H_func(t, mat, args).full()
+        op = mat.reshape((n, n)).T
+        return op @ H - H @ op
+
+    return _HO_OH_state if opt.rhs_with_state else _HO_OH
 
 
 # -----------------------------------------------------------------------------
