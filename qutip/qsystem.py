@@ -34,7 +34,6 @@ class Qsystem:
         self.sparsity = 1
 
     def reset(self, t=0, state=None, tlist=[]):
-        if self._tlist and not t and not tlist:
         if tlist:
             self._tlist = _tlist
             self.t0 = _tlist[0]
@@ -142,5 +141,7 @@ class Qsystem:
         self.path_results.expect
 
     def final_state(self):
+        pass
 
     def runs_final_states(self):
+        pass

@@ -113,3 +113,18 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmf(object sparse,
 
 cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmm(object sparse,
                                             cnp.ndarray[complex, ndim=2] mat)
+
+cdef class normalize_mixed:
+    cdef:
+        int l
+        int N
+
+cpdef double normalize_op_inplace(complex[::1] vec)
+
+cpdef void _normalize_rho(complex[::1] rho)
+
+cpdef double normalize_inplace(complex[::1] vec)
+
+cdef void _zero(complex[::1] x)
+
+cdef double _normalize_inplace_core(complex[::1] vec, int len_)

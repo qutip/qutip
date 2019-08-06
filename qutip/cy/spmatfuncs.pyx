@@ -37,6 +37,15 @@ cimport numpy as cnp
 cimport cython
 cimport libc.math
 from libcpp cimport bool
+from libc.math cimport fabs
+from qutip.cy.brtools cimport ZHEEVR
+from scipy.linalg.cython_blas cimport zaxpy, zdotu, zdotc, zcopy, zdscal, zscal
+from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
+
+cdef int ZERO=0
+cdef double DZERO=0
+cdef complex ZZERO=0j
+cdef int ONE=1
 
 cdef extern from "src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec,
@@ -572,7 +581,7 @@ cpdef double complex zcsr_mat_elem(object A, object left, object right, bool bra
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef _normalize_inplace_core(complex[::1] vec, int len_):
+cdef double _normalize_inplace_core(complex[::1] vec, int len_):
     """ make norm of vec equal to 1"""
     cdef double norm = 1.0/raw_dznrm2(&len_, <complex*>&vec[0], &ONE)
     zdscal(&len_, &norm, <complex*>&vec[0], &ONE)
@@ -581,7 +590,7 @@ cdef _normalize_inplace_core(complex[::1] vec, int len_):
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
-def normalize_inplace(complex[::1] vec):
+cpdef double normalize_inplace(complex[::1] vec):
     """ make norm of vec equal to 1"""
     cdef int l = vec.shape[0]
     return _normalize_inplace_core(vec, l)
@@ -591,7 +600,7 @@ def normalize_inplace(complex[::1] vec):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def normalize_op_inplace(complex[::1] vec):
+cpdef double normalize_op_inplace(complex[::1] vec):
     """ make norm of all cols equal to 1"""
     cdef int i, N = np.sqrt(vec.shape[0])
     cdef double delta = 0.
@@ -599,12 +608,15 @@ def normalize_op_inplace(complex[::1] vec):
         delta += _normalize_inplace_core(vec[i*N:(i+1)*N], N)
     return delta
 
+@cython.boundscheck(False)
+cdef void _zero(complex[::1] x):
+    """ x *= 0 """
+    cdef int l = x.shape[0]
+    zdscal(&l, &DZERO, <complex*>&x[0], &ONE)
 
 cdef class normalize_mixed:
-    cdef int l, N
-
     def __init__(self, shape):
-        self.l = shape[1]
+        self.l = shape[0]
         self.N = shape[1]
 
     @cython.boundscheck(False)
@@ -613,9 +625,15 @@ cdef class normalize_mixed:
         cdef float delta = 0.
         cdef int i
         for i in range(self.N):
-            delta += _normalize_inplace_core(vec[i*N:(i+1)*N], self.l)
+            delta += _normalize_inplace_core(vec[i*self.N:(i+1)*self.N], self.l)
         return delta
 
+    def __getstate__(self):
+        return self.l, self.N
+
+    def __setstate__(self, state):
+        self.l = state[0]
+        self.N = state[1]
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

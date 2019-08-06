@@ -40,10 +40,11 @@ import os
 import types
 import numpy as np
 import scipy.integrate
-from scipy.linalg import norm as la_norm
 import qutip.settings as qset
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
+from scipy.linalg import norm as la_norm
+from qutip.parallel import parallel_map, serial_map
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                 cy_ode_psi_func_td_with_state, normalize_inplace,
@@ -55,11 +56,22 @@ from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 from itertools import product
 
-class SESolver:
+
+def stack_ket(kets):
+    out = np.zeros((kets[0].shape[0], len(kets)), dtype=complex)
+    for i, ket in enumerate(kets):
+        out[:,i] = ket.full().ravel()
+    return Qobj(out)
+
+
+class SESolver(Solver):
     """Stochastic Equation Solver
 
     """
     def __init__(self, H, args={}, tlist=[], options=None):
+        if options is None:
+            options = Options()
+
         super().__init__()
         if isinstance(H, (list, Qobj, QobjEvo)):
             ss = _sesolve_QobjEvo(H, tlist, args, options)
@@ -70,14 +82,15 @@ class SESolver:
 
         self.H = H
         self.ss = ss
+        self.dims = None
         self.tlist = tlist
         self._args = args
-        if options is not None:
-            self.options = options
+        self.options = options
         self.optimization = {"period":0}
 
     def set_initial_value(self, psi0, tlist=[]):
         self.state0 = psi0
+        self.dims = psi0.dims
         if tlist:
             self.tlist = tlist
 
@@ -89,7 +102,10 @@ class SESolver:
         if progress_bar is True:
             progress_bar = TextProgressBar()
 
-        func, ode_args = self.ss.makefunc(ss, psi0, args, options)
+        func, ode_args = self.ss.makefunc(self.ss, self.state0,
+                                          self._args, self.options)
+        if not self.e_ops:
+            self._options.store_states = True
 
         if not self._options.normalize_output:
             normalize_func = None
@@ -121,13 +137,12 @@ class SESolver:
 
         if progress_bar is True:
             progress_bar = TextProgressBar()
-
         map_kwargs = {'progress_bar': progress_bar,
-                      'num_cpus': options.num_cpus}
+                      'num_cpus': self.options.num_cpus}
 
-        if all_ket and ss.with_state:
+        if all_ket and self.ss.with_state:
             res = self._batch_run_ket(states, args_sets, map_func, map_kwargs)
-        elif all_ket and (N_vecs > vec_len):
+        elif all_ket and (len(N_vecs) > vec_len):
             res = self._batch_run_prop_ket(states, args_sets, map_func, map_kwargs)
         elif all_ket and N_states0 >= 2:
             res = self._batch_run_merged_ket(states, args_sets, map_func, map_kwargs)
@@ -137,16 +152,15 @@ class SESolver:
             res = self._batch_run_oper(states, args_sets, map_func, map_kwargs)
         else:
             res = self._batch_run_prop_oper(states, args_sets, map_func, map_kwargs)
-
         return res
 
     def _batch_run_ket(self, kets, args_sets, map_func, map_kwargs):
-        N_states0 = len(states)
+        N_states0 = len(kets)
         N_args = len(args_sets)
         states_out = np.empty((N_states0, N_args), dtype=object)
         expect_out = np.empty((N_states0, N_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
-        values = product(states, args_sets)
+        values = list(product(kets, args_sets))
 
         normalize_func = normalize_inplace
         if not self._options.normalize_output:
@@ -164,7 +178,7 @@ class SESolver:
         return states_out, expect_out
 
     def _batch_run_prop_ket(self, kets, args_sets, map_func, map_kwargs):
-        N_states0 = len(states)
+        N_states0 = len(kets)
         N_args = len(args_sets)
         nt = len(self._tlist)
         vec_len = kets[0].shape[0]
@@ -173,7 +187,7 @@ class SESolver:
         expect_out = np.empty((N_states0, N_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
         computed_state = [qt.qeye(vec_len)]
-        values = product(computed_state, args_sets)
+        values = list(product(computed_state, args_sets))
 
         normalize_func = normalize_op_inplace
         if not self._options.normalize_output:
@@ -197,14 +211,14 @@ class SESolver:
         return states_out, expect_out
 
     def _batch_run_merged_ket(self, kets, args_sets, map_func, map_kwargs):
-        N_states0 = len(states)
+        N_states0 = len(kets)
         N_args = len(args_sets)
         nt = len(self._tlist)
 
         states_out = np.empty((N_states0, N_args), dtype=object)
         expect_out = np.empty((N_states0, N_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
-        values = product(stack_ket(states), args_sets)
+        values = list(product(stack_ket(kets), args_sets))
 
         normalize_func = normalize_op_inplace
         if not self._options.normalize_output:
@@ -232,7 +246,7 @@ class SESolver:
         states_out = np.empty((N_states0, N_args), dtype=object)
         expect_out = np.empty((N_states0, N_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
-        values = product(opers, args_sets)
+        values = list(product(opers, args_sets))
 
         normalize_func = normalize_inplace
         if not self._options.normalize_output:
@@ -250,7 +264,7 @@ class SESolver:
         return states_out, expect_out
 
     def _batch_run_prop_ket(self, opers, args_sets, map_func, map_kwargs):
-        N_states0 = len(states)
+        N_states0 = len(opers)
         N_args = len(args_sets)
         nt = len(self._tlist)
         vec_len = opers[0].shape[0]
@@ -259,7 +273,7 @@ class SESolver:
         expect_out = np.empty((N_states0, N_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
         computed_state = [qt.qeye(vec_len)]
-        values = product(computed_state, args_sets)
+        values = list(product(computed_state, args_sets))
 
         normalize_func = normalize_op_inplace
         if not self._options.normalize_output:
@@ -440,8 +454,9 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     ss = SolverSystem()
     ss.type = "QobjEvo"
     ss.H = H_td
-    ss.shape = ss.H_td.cte.shape
-    ss.with_state = bool(ss.H_td.dynamics_args)
+    ss.shape = H_td.cte.shape
+    ss.dims = H_td.cte.dims
+    ss.with_state = bool(H_td.dynamics_args)
     ss.makefunc = _qobjevo_set
     ss.makeoper = _qobjevo_set_oper
     solver_safe["sesolve"] = ss
@@ -495,9 +510,11 @@ def _sesolve_func_td(H_func, args, opt):
     solver_safe["sesolve"] = ss
     if not opt.rhs_with_state:
         ss.shape = h_func(0., args).shape
+        ss.dims = h_func(0., args).dims
         ss.with_state = False
-    except:
+    else:
         ss.shape = None
+        ss.dims = [[1],[1]]
         ss.with_state = True
     return ss
 

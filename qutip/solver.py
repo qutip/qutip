@@ -39,6 +39,7 @@ import os
 import warnings
 import datetime
 import numpy as np
+import scipy.integrate
 from qutip import __version__
 from collections import OrderedDict
 from types import FunctionType, BuiltinFunctionType
@@ -46,6 +47,12 @@ from qutip.qobj import Qobj
 import qutip.settings as qset
 from qutip.qobjevo import QobjEvo
 from qutip.superoperator import vec2mat
+from qutip.cy.spconvert import dense1D_to_fastcsr_ket
+
+try:
+    import matplotlib.pyplot as plt
+except:
+    pass
 
 solver_safe = {}
 
@@ -57,11 +64,11 @@ class Solver:
         self._tlist = []
         self._options = Options()
         self._e_ops = ExpectOps([])
-        self._state_out_Qobj = []
-        self._state_out = []
+        self._state_out_Qobj = None
+        self._state_out = None
         self.state0 = None
-        self.dims = [[1],[1]]
-        self.args = {}
+        self.dims = None
+        self._args = {}
 
     @property
     def tlist(self):
@@ -79,7 +86,7 @@ class Solver:
     def args(self):
         return self._args
 
-    @e_ops.setter
+    @args.setter
     def args(self, _args):
         if type(_args) == type(self._args):
             self._args = _args
@@ -88,7 +95,7 @@ class Solver:
 
     @property
     def e_ops(self):
-        return self._e_ops
+        return self._e_ops.raw_e_ops
 
     @e_ops.setter
     def e_ops(self, e_op):
@@ -114,17 +121,18 @@ class Solver:
 
     @property
     def states(self):
-        if self._state_out_Qobj:
+        if self._state_out_Qobj is not None:
             return self._state_out_Qobj
-        self._state_out_Qobj = np.empty(len(self._tlist), dtype=object)
-        for i in range(len(self._tlist)):
-            self._state_out_Qobj[i] = self._states2qobj(self._state_out[i,:])
+        self._state_out_Qobj = np.empty(self._state_out.shape[0], dtype=object)
+        for i, state in enumerate(self._state_out):
+            self._state_out_Qobj[i] = self._states2qobj(state)
         return self._state_out_Qobj
 
     @property
     def final_state(self):
-        if not self._state_out:
-        if self._state_out_Qobj:
+        if self._state_out is None:
+            raise Exception("run solver first")
+        if self._state_out_Qobj is not None:
             return self._state_out_Qobj[-1]
         return self._states2qobj(self._state_out[-1,:])
 
@@ -136,7 +144,7 @@ class Solver:
                     fig=None, axes=None, figsize=(8, 4)):
 
             if not fig or not axes:
-                fig, axes = plt.subplots(self.e_ops.e_num., 1, sharex=True,
+                fig, axes = plt.subplots(self._e_ops.e_num, 1, sharex=True,
                                          figsize=figsize, squeeze=False)
 
             expect = self.expect
@@ -160,17 +168,17 @@ class Solver:
 
             return fig, axes
 
-    def get_result(self, ntraj=[]):
+    def get_result(self):
         # Store results in the Result object
         options = self.options
         output = Result()
         output.solver = ''
         output.options = options
         output.times = self.tlist
-        output.num_expect = self.e_ops.e_num
+        output.num_expect = self._e_ops.e_num
         output.expect = self._e_ops.finish()
         if options.store_states:
-            output.states = self.runs_states
+            output.states = self.states
         if options.store_final_state:
             output.final_state = self.final_state
         return output
@@ -190,7 +198,12 @@ class Solver:
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         # prepare output array
         n_tsteps = len(tlist)
-        states = np.zeros(n_tsteps, state0.shape[0]*state0.shape[1])
+        if opt.store_states:
+            states = np.zeros((n_tsteps, state0.shape[0]*state0.shape[1]),
+                              dtype=complex)
+        else:
+            states = np.zeros((1, state0.shape[0]*state0.shape[1]),
+                              dtype=complex)
 
         r = scipy.integrate.ode(func)
         r.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -202,9 +215,8 @@ class Solver:
         initial_vector = state0.full().ravel('F')
         r.set_initial_value(initial_vector, tlist[0])
 
-        progress_bar.start(n_tsteps)
+        progress_bar.start(n_tsteps-1)
         for t_idx, t in enumerate(tlist):
-            progress_bar.update(t_idx)
             if not r.successful():
                 raise Exception("ODE integration error: Try to increase "
                                 "the allowed number of substeps by increasing "
@@ -226,7 +238,8 @@ class Solver:
             e_ops.step(t_idx, cdata)
 
             if t_idx < n_tsteps - 1:
-                r.integrate(r.t + dt[t_idx])
+                r.integrate(tlist[t_idx+1])
+                progress_bar.update(t_idx)
 
         progress_bar.finished()
 
