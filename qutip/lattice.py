@@ -409,6 +409,21 @@ class Lattice1d():
         self._length_for_site = l_v
         self.cell_tensor_config = [self.cell_num_site] + self.cell_site_dof
         self.lattice_tensor_config = [self.num_cell] + self.cell_tensor_config
+        # remove any 1 present in self.cell_tensor_config and
+        # self.lattice_tensor_config unless all the eleents are 1
+
+        if all(x==1 for x in self.cell_tensor_config):
+            self.cell_tensor_config = [1]
+        else:
+            while 1 in self.cell_tensor_config:
+                self.cell_tensor_config.remove(1)
+
+        if all(x==1 for x in self.lattice_tensor_config):
+            self.lattice_tensor_config = [1]
+        else:
+            while 1 in self.lattice_tensor_config:
+                self.lattice_tensor_config.remove(1)
+
         dim_ih = [self.cell_tensor_config, self.cell_tensor_config]
         self._length_of_unit_cell = self.cell_num_site*self._length_for_site
 
@@ -445,12 +460,12 @@ class Lattice1d():
         if isinstance(inter_hop, list):      # There is a user input list
             for i in range(len(inter_hop)):
                 if not isinstance(inter_hop[i], Qobj):
-                    raise Exception("\ninter_hop[", i, "] is not a Qobj. All \
+                    raise Exception("inter_hop[", i, "] is not a Qobj. All \
                                 inter_hop list elements need to be Qobj's. \n")
                 nSi = inter_hop[i].shape
                 # inter_hop[i] is a Qobj, now confirmed
                 if nSb != nSi:
-                    raise Exception("\ninter_hop[", i, "] is dimensionally \
+                    raise Exception("inter_hop[", i, "] is dimensionally \
                         incorrect. All inter_hop list elements need to \
                         have the same dimensionality as cell_Hamiltonian.")
                 else:    # inter_hop[i] has the right shape, now confirmed,
@@ -481,7 +496,7 @@ class Lattice1d():
             inter_hop = tensor(Qobj(siteT), qeye(self.cell_site_dof))
             self._H_inter_list = [inter_hop]
         else:
-            raise Exception("\n\n inter_hop is required to be a Qobj or a \
+            raise Exception("inter_hop is required to be a Qobj or a \
                             list of Qobjs.")
 
         self.positions_of_sites = [(i/self.cell_num_site) for i in
@@ -841,9 +856,9 @@ class Lattice1d():
         dtype = [('eigen_value', '<f16'), ('eigen_vector', Qobj)]
         values = list()
         for i in range(self.num_cell):
-            for j in range(self._length_for_site):
+            for j in range(self._length_of_unit_cell):
                 values.append((
-                        val_kns[j][i], vec_xs[j+i*self._length_for_site]))
+                        val_kns[j][i], vec_xs[j+i*self._length_of_unit_cell]))
         eigen_states = np.array(values, dtype=dtype)
 #        eigen_states = np.sort(eigen_states, order='eigen_value')
         return eigen_states
