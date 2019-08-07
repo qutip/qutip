@@ -295,8 +295,7 @@ class Lattice1d():
 
         if isinstance(cell_site_dof, list):
             l_v = 1
-            for i in range(len(cell_site_dof)):
-                csd_i = cell_site_dof[i]
+            for i, csd_i in enumerate(cell_site_dof):
                 if (not isinstance(csd_i, int)) or csd_i < 0:
                     raise Exception("Invalid cell_site_dof list element at \
                                     index: ", i, "Elements of cell_site_dof \
@@ -506,9 +505,8 @@ class Lattice1d():
         if np.shape(dof_ind) == np.shape(self.cell_site_dof):
             for i in range(len(dof_ind)):
                 if dof_ind[i] >= self.cell_site_dof[i]:
-                    print("in basis(), dof_ind[", i, "] is required to be \
-                          smaller than cell_num_site[", i, "]")
-                    raise Exception("\n Problem with dof_ind in basis()!")
+                    raise Exception("in basis(), dof_ind[", i, "] is required\
+                                to be smaller than cell_num_site[", i, "]")
         else:
             raise Exception("dof_ind in basis() needs to be of the same \
                             dimensions as cell_site_dof.")
@@ -543,10 +541,9 @@ class Lattice1d():
             raise Exception("op in distribute_operator() needs to be Qobj.\n")
         nSi = op.shape
         if nSb != nSi:
-            print("\n inter_hop[", i, "] is not dimensionally incorrect.\n")
             raise Exception("op in distribute_operstor() is required to \
             have the same dimensionality as cell_Hamiltonian.")
-        cell_All = [i for i in range(self.num_cell)]
+        cell_All = list(range(self.num_cell))
         op_H = self.operator_at_cells(op, cells=cell_All)
         return op_H
 
@@ -562,12 +559,11 @@ class Lattice1d():
         """
         nx = self.cell_num_site
         ne = self._length_for_site
-        positions = np.kron(range(nx), [1/nx for i in range(ne)])  # not used
+#        positions = np.kron(range(nx), [1/nx for i in range(ne)])  # not used
         # in the current definition of x
-        S = np.kron(np.ones(self.num_cell), positions)
+#        S = np.kron(np.ones(self.num_cell), positions)
 #        xs = np.diagflat(R+S)        # not used in the
         # current definition of x
-
         R = np.kron(range(0, self.num_cell), np.ones(nx*ne))
         xs = np.diagflat(R)
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
@@ -588,21 +584,20 @@ class Lattice1d():
 
         Returns
         -------
-        isherm : bool
-            Returns the new value of isherm property.
+        Qobj(op_H) : Qobj
+            Quantum object representing the operator with op applied at
+            the specified cells.
         """
-        if not isinstance(cells, list):
-            if isinstance(cells, int):
-                cells = [cells]
-            else:
-                raise Exception("cells in operator_at_cells() need to be a \
-                                list of ints.")
-        else:
-            for i in range(len(cells)):
-                if not isinstance(cells[i], int):
-                    print("")
+        if isinstance(cells, int):
+            cells = [cells]
+        if isinstance(cells, list):
+            for i, cells_i in enumerate(cells):
+                if not isinstance(cells_i, int):
                     raise Exception("cells[", i, "] is not an int!elements of \
                                     cells is required to be ints.")
+        else:
+            raise Exception("cells in operator_at_cells() need to be an int or\
+                               a list of ints.")
 
         nSb = self._H_intra.shape
         if (not isinstance(op, Qobj)):
@@ -616,7 +611,7 @@ class Lattice1d():
         row_ind = np.array([])
         col_ind = np.array([])
         data = np.array([])
-        NS = self._length_of_unit_cell
+        nS = self._length_of_unit_cell
         nx_units = self.num_cell
         ny_units = 1
         for i in range(nx_units):
@@ -625,17 +620,17 @@ class Lattice1d():
                 if (i in cells) and j == 0:
                     for k in range(xx):
                         for l in range(yy):
-                            row_ind = np.append(row_ind, [lin_RI*NS+k])
-                            col_ind = np.append(col_ind, [lin_RI*NS+l])
+                            row_ind = np.append(row_ind, [lin_RI*nS+k])
+                            col_ind = np.append(col_ind, [lin_RI*nS+l])
                             data = np.append(data, [op[k, l]])
                 else:
                     for k in range(xx):
-                        row_ind = np.append(row_ind, [lin_RI*NS+k])
-                        col_ind = np.append(col_ind, [lin_RI*NS+k])
+                        row_ind = np.append(row_ind, [lin_RI*nS+k])
+                        col_ind = np.append(col_ind, [lin_RI*nS+k])
                         data = np.append(data, [1])
 
-        M = nx_units*ny_units*NS
-        op_H = csr_matrix((data, (row_ind, col_ind)), [M, M], dtype=np.complex)
+        m = nx_units*ny_units*nS
+        op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(op_H, dims=dim_op)
 
@@ -723,22 +718,30 @@ class Lattice1d():
             qH_k = Qobj(H_k)
             (vals, veks) = qH_k.eigenstates()
             val_kns[:, ks] = vals[:]
-
         return (knxA, val_kns)
 
     def bloch_wave_functions(self):
         """
-        Returns eigenvectors of the Hamiltonian in a numpy.ndarray for
-        translationally symmetric lattices with periodic boundary condition.
+        Returns eigenvectors ($\psi_n(k)$) of the Hamiltonian in a 
+        numpy.ndarray for translationally symmetric lattices with periodic
+        boundary condition.
+
+        .. math::
+            :nowrap:
+            \begin{eqnarray}
+            |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
+            | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\
+            \end{eqnarray}
+
+        Please see section 1.2 of Asbóth, J. K., Oroszlány, L., & Pályi, A.
+        (2016). A short course on topological insulators. Lecture notes in
+        physics, 919 for a review.
 
         Returns
         -------
-        knxa : np.array
-            knxA[j][0] is the jth good Quantum number k.
-
-        vec_xs : np.ndarray of Qobj's
-            vec_xs[j] is the Oobj of type ket that holds an eigenvector of the
-            Hamiltonian of the lattice.
+        eigenstates : ordered np.array
+            eigenstates[j][0] is the jth eigenvalue.
+            eigenstates[j][1] is the corresponding eigenvector.
         """
         if self.PBCx == 0:
             raise Exception("The lattice is not periodic.")
@@ -753,11 +756,22 @@ class Lattice1d():
 #        eigen_states = np.sort(eigen_states, order='eigen_value')
         return eigen_states
 
-    def array_of_unk(self):
+    def cell_periodic_parts(self):
         """
         Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
-        part of the Bloch wavefunctios in a numpy.ndarray for translationally
-        symmetric lattices with periodic boundary condition.
+        part($u_n(k)$) of the Bloch wavefunctios in a numpy.ndarray for
+        translationally symmetric lattices with periodic boundary condition.
+
+        .. math::
+            :nowrap:
+            \begin{eqnarray}
+            |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
+            | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\
+            \end{eqnarray}
+
+        Please see section 1.2 of Asbóth, J. K., Oroszlány, L., & Pályi, A.
+        (2016). A short course on topological insulators. Lecture notes in
+        physics, 919 for a review.
 
         Returns
         -------
@@ -775,8 +789,12 @@ class Lattice1d():
 
     def bulk_Hamiltonian_array(self):
         """
-        Returns the bulk Hamiltonian for the lattice at the good quantum
-        numbers of k in a numpy ndarray of Qobj's.
+        Returns the bulk momentum space Hamiltonian ($H(k)$) for the lattice at
+        the good quantum numbers of k in a numpy ndarray of Qobj's.
+
+        Please see section 1.2 of Asbóth, J. K., Oroszlány, L., & Pályi, A.
+        (2016). A short course on topological insulators. Lecture notes in
+        physics, 919 for a review.
 
         Returns
         -------

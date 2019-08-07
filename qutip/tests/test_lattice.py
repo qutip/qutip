@@ -373,7 +373,7 @@ class TestLattice:
         assert_( np.max(abs(kScomp-kS)) < 1.0E-6 ) 
         assert_( np.max(abs(vcomp-vS)) < 1.0E-6 ) 
 
-    def test_array_of_unk(self):
+    def test_cell_periodic_parts(self):
         """
         lattice: Test the method Lattice1d.array_of_unk().
         """
@@ -390,7 +390,7 @@ class TestLattice:
                     cell_num_site=1, cell_site_dof=[2],
                     cell_Hamiltonian=cell_H, inter_hop = inter_cell_T )
         (kxA, val_kns) = CROW_lattice.get_dispersion()
-        (knxA, vec_kns) = CROW_lattice.array_of_unk()
+        (knxA, vec_kns) = CROW_lattice.cell_periodic_parts()
         (knxA, qH_ks) = CROW_lattice.bulk_Hamiltonian_array()
         for i in range(4):
             for j in range(2):
@@ -540,7 +540,7 @@ class TestLattice:
             oE = eigen_states[i][0]*np.ones((8,1))
             assert_(np.max(abs(oE-qE_V)) < 1.0E-10)
         (knxA, qH_ks) = CROW_lattice.bulk_Hamiltonian_array()
-        (knxA, vec_kns) = CROW_lattice.array_of_unk()
+        (knxA, vec_kns) = CROW_lattice.cell_periodic_parts()
         
         Hk0 = np.array([[-1.41421356+0.j, -0.58578644+0.j],
                         [-0.58578644+0.j, -1.41421356+0.j]])
