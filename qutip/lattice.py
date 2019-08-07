@@ -199,8 +199,7 @@ def Hamiltonian_2d(base_h, inter_hop_x, inter_hop_y, nx_units=1, PBCx=0,
     Hamt = csr_matrix((data, (row_ind, col_ind)), [M, M], dtype=np.complex)
     return Hamt
 
-
-def cell_structures(val_s=[], val_t=[]):
+def cell_structures(val_s=None, val_t=None, val_u=None):
     """
     Returns two matrices cell_H and cell_T to help the user form the inputs for
     defining an instance of Lattice1d and Lattice2d classes. The two matrices
@@ -217,12 +216,16 @@ def cell_structures(val_s=[], val_t=[]):
         The second list of str's specifying the sites/degrees of freedom in the
         unitcell
 
+    val_u : list of str/str
+        The third list of str's specifying the sites/degrees of freedom in the
+        unitcell
+
     Returns
     -------
     scell_H : list of list of str
         tensor structure of the cell Hamiltonian elements
     sinter_cell_T : list of list of str
-        tensor structure of the inter cell Hamiltonian elements    
+        tensor structure of the inter cell Hamiltonian elements
     cell_H : Qobj
         A Qobj initiated with all 0s with proper shape for an input as
         cell_Hamiltonian in Lattice1d.__init__()
@@ -230,65 +233,121 @@ def cell_structures(val_s=[], val_t=[]):
         A Qobj initiated with all 0s with proper shape for an input as
         inter_hop in Lattice1d.__init__()
     """
-    SN = len(val_s)
-    TN = len(val_t)
     Er0_str = "At least one list of str necessary for using cell_structures!"
     Er1_str = "val_s is required to be a list of str's or a str"
     Er2_str = "val_t is required to be a list of str's or a str."
-    if SN == 0:
+    Er3_str = "val_u is required to be a list of str's or a str"
+
+    if val_s is None:
         raise Exception(Er0_str)
-    else:
-        if isinstance(val_s, list):
-            for i in range(len(val_s)):    # checking if all elements are str's
-                if not isinstance(val_s[i], str):
-                    raise(Er1_str)
-        else:
-            if not isinstance(val_s, str):  # checking if it is indeed a str
-                raise Exception(Er1_str)
+    if (not isinstance(val_s, list)) and (not isinstance(val_s, str)):
+        raise Exception(Er1_str)
+    if not all([isinstance(val, str) for val in val_s]):
+        raise(Er1_str)
 
-    if TN != 0:
-        if isinstance(val_t, list):
-            for i in range(len(val_t)):    # checking if all elements are str's
-                if not isinstance(val_t[i], str):
-                    raise(Er2_str)
-        else:
-            if not isinstance(val_t, str):  # checking if it is indeed a str
-                raise Exception(Er2_str)
-
-    if SN * TN == 0 and SN != 0:
+    if val_t is None:
+        SN = len(val_s)        
+        Row_I = np.arange(SN).reshape(SN, 1)
+        Row_I_C = np.ones(SN).reshape(1, SN)
+        Rows = np.kron(Row_I, Row_I_C)
+        Rows = np.array(Rows, dtype=int)        
+        
         scell_H = [[None for i in range(SN)] for j in range(SN)]
         sinter_cell_T = [[None for i in range(SN)] for j in range(SN)]
 
         for ir in range(SN):
             for ic in range(SN):
-                sst = val_s[ir]+" H "+val_s[ic]
+                sst = val_s[Rows[ir][ic]]+" H "+val_s[Rows[ic][ir]]
                 scell_H[ir][ic] = "<" + sst + ">"
                 sinter_cell_T[ir][ic] = "<cell(i):" + sst + ":cell(i+1) >"
 
-    if SN * TN != 0:
-        scell_H = [[None for i in range(SN * TN)] for j in range(SN * TN)]
-        sinter_cell_T = [[None for i in range(SN * TN)]
-                         for j in range(SN * TN)]
+    if val_t is not None and val_u is None:
+        if not all([isinstance(val, str) for val in val_t]):
+            raise Exception(Er2_str)
+        SN = len(val_s)
+        TN = len(val_t)
+        P = SN * TN
+        sRow_I = np.kron(np.arange(SN), np.ones(TN)).reshape(P, 1)
+        sRow_I_C = np.ones(SN * TN).reshape(1, P)
+        sRows = np.kron(sRow_I, sRow_I_C)
+        sRows = np.array(sRows, dtype=int)
 
-        for ir in range(SN):
-            for jr in range(TN):
-                for ic in range(SN):
-                    for jc in range(TN):
-                        sst = []
-                        sst.append(val_s[ir])
-                        sst.append(val_t[jr])
-                        sst.append(" H ")
-                        sst.append(val_s[ic])
-                        sst.append(val_t[jc])
-                        sst = ''.join(sst)
+        tRow_I = np.kron(np.ones(SN), np.arange(TN)).reshape(P, 1)
+        tRow_I_C = np.ones(SN * TN).reshape(1, P)
+        tRows = np.kron(tRow_I, tRow_I_C)
+        tRows = np.array(tRows, dtype=int)
 
-                        scell_H[ir * TN+jr][ic * TN+jc] = "<" + sst + ">"
-                        llt = []
-                        llt.append("<cell(i):")
-                        llt.append(sst)
-                        llt.append(":cell(i+1) >")
-                        llt = ''.join(llt)
-                        sinter_cell_T[ir * TN+jr][ic * TN+jc] = llt
+        scell_H = [[None for i in range(P)] for j in range(P)]
+        sinter_cell_T = [[None for i in range(P)] for j in range(P)]
+
+        for ir in range(P):
+            for jr in range(P):
+                sst = []
+                sst.append(val_s[sRows[ir][jr]])
+                sst.append(val_t[tRows[ir][jr]])
+                sst.append(" H ")
+                sst.append(val_s[sRows[jr][ir]])
+                sst.append(val_t[tRows[jr][ir]])
+                sst = ''.join(sst)
+                scell_H[ir][jr] = "<" + sst + ">"
+
+                llt = []
+                llt.append("<cell(i):")
+                llt.append(sst)
+                llt.append(":cell(i+1) >")
+                llt = ''.join(llt)
+                sinter_cell_T[ir][jr] = llt
+
+    if val_u is not None:
+        if not all([isinstance(val, str) for val in val_u]):
+            raise Exception(Er3_str)
+        SN = len(val_s)
+        TN = len(val_t)
+        UN = len(val_u)
+        P = SN * TN * UN
+        sRow_I = np.kron(np.arange(SN), np.ones(TN))
+        sRow_I = np.kron(sRow_I, np.ones(UN))
+        sRow_I = sRow_I.reshape(P, 1)
+        sRow_I_C = np.ones(P).reshape(1, P)
+        sRows = np.kron(sRow_I, sRow_I_C)
+        sRows = np.array(sRows, dtype=int)
+
+        tRow_I = np.kron(np.ones(SN), np.arange(TN))
+        tRow_I = np.kron(tRow_I, np.ones(UN))
+        tRow_I = tRow_I.reshape(P, 1)
+        tRow_I_C = np.ones(P).reshape(1, P)
+        tRows = np.kron(tRow_I, tRow_I_C)
+        tRows = np.array(tRows, dtype=int)
+
+        uRow_I = np.kron(np.ones(SN), np.ones(TN))
+        uRow_I = np.kron(uRow_I, np.arange(UN))
+        uRow_I = uRow_I.reshape(P, 1)
+        uRow_I_C = np.ones(P).reshape(1, P)
+        uRows = np.kron(uRow_I, uRow_I_C)
+        uRows = np.array(uRows, dtype=int)
+
+        scell_H = [[None for i in range(P)] for j in range(P)]
+        sinter_cell_T = [[None for i in range(P)] for j in range(P)]
+
+        for ir in range(P):
+            for jr in range(P):
+                sst = []
+                sst.append(val_s[sRows[ir][jr]])
+                sst.append(val_t[tRows[ir][jr]])
+                sst.append(val_u[uRows[ir][jr]])
+                sst.append(" H ")
+                sst.append(val_s[sRows[jr][ir]])
+                sst.append(val_t[tRows[jr][ir]])
+                sst.append(val_u[uRows[jr][ir]])
+                sst = ''.join(sst)
+                scell_H[ir][jr] = "<" + sst + ">"
+
+                llt = []
+                llt.append("<cell(i):")
+                llt.append(sst)
+                llt.append(":cell(i+1) >")
+                llt = ''.join(llt)
+                sinter_cell_T[ir][jr] = llt
 
     cell_H = np.zeros(np.shape(scell_H), dtype=complex)
     inter_cell_T = np.zeros(np.shape(sinter_cell_T), dtype=complex)
