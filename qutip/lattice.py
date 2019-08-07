@@ -45,160 +45,6 @@ except:
     pass
 
 
-def Hamiltonian_2d(base_h, inter_hop_x, inter_hop_y, nx_units=1, PBCx=0,
-                   ny_units=1, PBCy=0, cell_num_site=1, length_for_site=1):
-    """
-    Returns the Hamiltonian as a csr_matrix from the specified parameters for a
-    2d space of sites in the x-major format.
-
-    Parameters
-    ==========
-    base_h : qutip.Qobj
-        The Hamiltonian matrix of the unit cell
-    inter_hop_x : list of Qobj/ qutip.Qobj
-        The matrix coupling between cell i to the one at cell i+\hat{x}
-    inter_hop_y : list of Qobj/ qutip.Qobj
-        The matrix coupling between cell i to the one at cell i+\hat{y}
-    site_dof_config : list
-        The list of two numbers, namely the number of sites and the nuber of
-        degrees of freedom per site of the unit cell
-    nx_units : int
-        The length of the crystal in the x direction in units of unit cell
-        length
-    PBCx : int
-        The indicator of periodic(1)/hardwall(0) boundary condition along
-        direction x
-    ny_units : int
-        The length of the crystal in the x direction in units of unit cell
-        length
-    PBCy : int
-        The indicator of periodic(1)/hardwall(0) boundary condition along
-        direction y
-
-    Returns
-    -------
-    Hamt : csr_matrix
-        The 2d Hamiltonian matrix for the specified parameters.
-    """
-    xi_len = len(inter_hop_x)
-    yi_len = len(inter_hop_y)
-    (x0, y0) = np.shape(inter_hop_x[0])
-
-    if inter_hop_y == []:
-        x1 = 0
-        y1 = 0
-    else:
-        (x1, y1) = np.shape(inter_hop_y[0])
-    (xx, yy) = np.shape(base_h)
-
-    row_ind = np.array([])
-    col_ind = np.array([])
-    data = np.array([])
-
-    NS = cell_num_site*length_for_site
-
-    for i in range(nx_units):
-        for j in range(ny_units):
-            lin_RI = i + j * nx_units
-            for k in range(xx):
-                for l in range(yy):
-                    row_ind = np.append(row_ind, [lin_RI*NS+k])
-                    col_ind = np.append(col_ind, [lin_RI*NS+l])
-                    data = np.append(data, [base_h[k, l]])
-
-    for i in range(0, nx_units):
-        for j in range(0, ny_units):
-            lin_RI = i + j * nx_units
-
-            for m in range(xi_len):
-
-                for k in range(x0):
-                    for l in range(y0):
-                        if (i > 0):
-                            row_ind = np.append(row_ind, [lin_RI * NS+k])
-                            col_ind = np.append(col_ind, [(lin_RI-1) * NS+l])
-                            data = np.append(data,
-                                             [np.conj(inter_hop_x[m][l, k])])
-
-                for k in range(x0):
-                    for l in range(y0):
-                        if (i < (nx_units-1)):
-                            row_ind = np.append(row_ind, [lin_RI*NS+k])
-                            col_ind = np.append(col_ind, [(lin_RI+1)*NS+l])
-                            data = np.append(data, [inter_hop_x[m][k, l]])
-
-            for m in range(yi_len):
-                for k in range(x1):
-                    for l in range(y1):
-                        if (j > 0):
-                            row_ind = np.append(row_ind, [lin_RI*NS+k])
-                            col_ind = np.append(col_ind,
-                                                [(lin_RI-nx_units)*NS+l])
-                            data = np.append(data,
-                                             [np.conj(inter_hop_y[m][l, k])])
-
-                for k in range(x1):
-                    for l in range(y1):
-                        if (j < (ny_units-1)):
-                            row_ind = np.append(row_ind, [lin_RI*NS+k])
-                            col_ind = np.append(col_ind,
-                                                [(lin_RI+nx_units)*NS+l])
-                            data = np.append(data,
-                                             [inter_hop_y[m][k, l]])
-
-    M = nx_units * ny_units * NS
-
-    for i in range(0, nx_units):
-        lin_RI = i
-        if (PBCy == 1 and ny_units * length_for_site > 2):
-            for k in range(x1):
-                for l in range(y1):
-                    (Aw,) = np.where(row_ind == (lin_RI * NS+k))
-                    (Bw,) = np.where(col_ind == ((lin_RI+(ny_units-1) *
-                                                 nx_units) * NS+l))
-                    if (len(np.intersect1d(Aw, Bw)) == 0):
-                        for m in range(yi_len):
-                            row_ind = np.append(
-                                row_ind,
-                                [lin_RI * NS+k,
-                                 (lin_RI+(ny_units-1) * nx_units) * NS+l])
-
-                            col_ind = np.append(
-                                col_ind, [(lin_RI +
-                                          (ny_units-1) * nx_units) * NS+l,
-                                          lin_RI * NS+k])
-
-                            data = np.append(data, [
-                                    np.conj(inter_hop_y[m][l, k]),
-                                    inter_hop_y[m][l, k]])
-
-    for j in range(0, ny_units):
-        lin_RI = j
-        if (PBCx == 1 and nx_units * cell_num_site > 2):
-            for k in range(x0):
-                for l in range(y0):
-                    (Aw,) = np.where(row_ind == (lin_RI * nx_units * NS+k))
-                    (Bw,) = np.where(col_ind ==
-                                     (((lin_RI+1) * nx_units-1) * NS+l))
-                    if (len(np.intersect1d(Aw, Bw)) == 0):
-                        for m in range(xi_len):
-                            row_ind = np.append(
-                                    row_ind, [lin_RI * nx_units * NS+k,
-                                              ((lin_RI+1) * nx_units-1) *
-                                              NS+l])
-
-                            col_ind = np.append(col_ind, [((lin_RI+1) *
-                                                           nx_units-1) * NS+l,
-                                                          lin_RI *
-                                                          nx_units * NS+k])
-
-                            data = np.append(
-                                    data, [np.conj(inter_hop_x[m][l, k]),
-                                           inter_hop_x[m][l, k]])
-
-    Hamt = csr_matrix((data, (row_ind, col_ind)), [M, M], dtype=np.complex)
-    return Hamt
-
 def cell_structures(val_s=None, val_t=None, val_u=None):
     """
     Returns two matrices cell_H and cell_T to help the user form the inputs for
@@ -246,12 +92,12 @@ def cell_structures(val_s=None, val_t=None, val_u=None):
         raise(Er1_str)
 
     if val_t is None:
-        SN = len(val_s)        
+        SN = len(val_s)
         Row_I = np.arange(SN).reshape(SN, 1)
         Row_I_C = np.ones(SN).reshape(1, SN)
         Rows = np.kron(Row_I, Row_I_C)
-        Rows = np.array(Rows, dtype=int)        
-        
+        Rows = np.array(Rows, dtype=int)
+
         scell_H = [[None for i in range(SN)] for j in range(SN)]
         sinter_cell_T = [[None for i in range(SN)] for j in range(SN)]
 
@@ -406,9 +252,6 @@ class Lattice1d():
         The Qobj storing the Hamiltonian of the unnit cell.
     H_inter_list : list of Qobj/ qutip.Qobj
         The list of coupling terms between unit cells of the lattice.
-    is_consistent : bool
-        Indicates the consistency/correctness of all the attributes together
-        in the unit Lattice1d.
     is_real : bool
         Indicates if the Hamiltonian is real or not.
 
@@ -436,7 +279,7 @@ class Lattice1d():
         Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
         part of the Bloch wavefunctios in a numpy.ndarray for translationally
         symmetric lattices with periodic boundary condition.
-    bulk_Hamiltonian_array
+    bulk_Hamiltonian_array()
         Returns the bulk Hamiltonian for the lattice at the good quantum
         numbers of lattice momentum, k in a numpy ndarray of Qobj's.
     """
@@ -477,13 +320,13 @@ class Lattice1d():
         # remove any 1 present in self.cell_tensor_config and
         # self.lattice_tensor_config unless all the eleents are 1
 
-        if all(x==1 for x in self.cell_tensor_config):
+        if all(x == 1 for x in self.cell_tensor_config):
             self.cell_tensor_config = [1]
         else:
             while 1 in self.cell_tensor_config:
                 self.cell_tensor_config.remove(1)
 
-        if all(x==1 for x in self.lattice_tensor_config):
+        if all(x == 1 for x in self.lattice_tensor_config):
             self.lattice_tensor_config = [1]
         else:
             while 1 in self.lattice_tensor_config:
@@ -518,11 +361,13 @@ class Lattice1d():
                 raise Exception("cell_Hamiltonian does not have a shape \
                             consistent with cell_num_site and cell_site_dof.")
             self._H_intra = Qobj(cell_Hamiltonian, dims=dim_ih)
-
         is_real = np.isreal(self._H_intra).all()
+        if not isherm(self._H_intra):
+            raise Exception(" cell_Hamiltonian is required to be Hermitian. ")
 
         nSb = self._H_intra.shape
         if isinstance(inter_hop, list):      # There is a user input list
+            inter_hop_sum = Qobj(np.zeros(nSb))
             for i in range(len(inter_hop)):
                 if not isinstance(inter_hop[i], Qobj):
                     raise Exception("inter_hop[", i, "] is not a Qobj. All \
@@ -535,9 +380,11 @@ class Lattice1d():
                         have the same dimensionality as cell_Hamiltonian.")
                 else:    # inter_hop[i] has the right shape, now confirmed,
                     inter_hop[i] = Qobj(inter_hop[i], dims=dim_ih)
+                    inter_hop_sum = inter_hop_sum + inter_hop[i]
                     is_real = is_real and np.isreal(inter_hop[i]).all()
             self._H_inter_list = inter_hop    # The user input list was correct
             # we store it in _H_inter_list
+            self._H_inter = Qobj(inter_hop_sum, dims=dim_ih)
         elif isinstance(inter_hop, Qobj):  # There is a user input
             # Qobj
             nSi = inter_hop.shape
@@ -547,6 +394,7 @@ class Lattice1d():
             else:
                 inter_hop = Qobj(inter_hop, dims=dim_ih)
             self._H_inter_list = [inter_hop]
+            self._H_inter = inter_hop
             is_real = is_real and np.isreal(inter_hop).all()
 
         elif inter_hop is None:      # inter_hop is the default None)
@@ -557,16 +405,17 @@ class Lattice1d():
             else:
                 bNm = basis(cell_num_site, cell_num_site-1)
                 bN0 = basis(cell_num_site, 0)
-                siteT = bNm * bN0.dag() + bN0 * bNm.dag()
+                siteT = bNm * bN0.dag()
+
             inter_hop = tensor(Qobj(siteT), qeye(self.cell_site_dof))
             self._H_inter_list = [inter_hop]
+            self._H_inter = inter_hop
         else:
             raise Exception("inter_hop is required to be a Qobj or a \
                             list of Qobjs.")
 
         self.positions_of_sites = [(i/self.cell_num_site) for i in
                                    range(self.cell_num_site)]
-        self._is_consistent = self._checks(check_if_complete=True)
         self._inter_vec_list = [[1] for i in range(len(self._H_inter_list))]
         self._Brav_lattice_vectors_list = [[1]]     # unit vectors
         self.is_real = is_real
@@ -592,50 +441,26 @@ class Lattice1d():
             s += "Boundary Condition:  Hardwall"
         return s
 
-    def _checks(self, check_if_complete=False):
-        """
-        User inputs are checked in __init__() at the time of initialization.
-        Here it is checked if all the different inputs are consistent with each
-        other. If it is called with check_if_complete == True, it returns if
-        the Lattice1d instance is complete or not.
-
-        Returns
-        -------
-        is_consistent : bool
-            Returns True if all the attributes and parameters are consistent
-            for a complete definition of Lattice1d and False otherwise.
-        """
-        if not isherm(self._H_intra):
-            raise Exception(" cell_Hamiltonian is required to be Hermitian. ")
-
-        nRi = self._H_intra.shape[0]
-        if nRi != self._length_of_unit_cell:
-            stt = " cell_Hamiltonian is not dimensionally consistent with \
-            cell_num_site and cell_site_dof. cell_structure() function can be \
-            used to obtain a valid structure for the cell_Hamiltonian and \
-            inter_hop."
-            raise Exception("stt")
-
-        is_consistent = True
-        return is_consistent
-
     def Hamiltonian(self):
         """
         Returns the lattice Hamiltonian for the instance of Lattice1d.
 
         Returns
         ----------
-        vec_i : qutip.Qobj
+        Qobj(Hamil) : qutip.Qobj
             oper type Quantum object representing the lattice Hamiltonian.
         """
-        Hamil = Hamiltonian_2d(self._H_intra, self._H_inter_list,
-                               [], nx_units=self.num_cell,
-                               PBCx=self.PBCx, ny_units=1, PBCy=0,
-                               cell_num_site=self.cell_num_site,
-                               length_for_site=self._length_for_site)
-        # inter_hop_y = self._H_inter_list[0] is a dummy argument,
-        # since ny_units is 1,
-        # the inter_hop_y coupling is immaterial.
+        D = qeye(self.num_cell)
+        T = np.diag(np.zeros(self.num_cell-1)+1, 1)
+        Tdag = np.diag(np.zeros(self.num_cell-1)+1, -1)
+
+        if self.PBCx is 1 and self.num_cell > 2:
+            Tdag[0][self.num_cell-1] = 1
+            T[self.num_cell-1][0] = 1
+        T = Qobj(T)
+        Tdag = Qobj(Tdag)
+        Hamil = tensor(D, self._H_intra) + tensor(
+                T, self._H_inter) + tensor(Tdag, self._H_inter.dag())
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(Hamil, dims=dim_H)
 
@@ -1172,7 +997,7 @@ class Lattice1d():
                                 j0*self._length_for_site+j]
                 dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dims_site = [dim_site, dim_site]
-                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)          
+                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
         fig = plt.figure(figsize=[CNS*2, CNS*2.5])
         ax = fig.add_subplot(111, aspect='equal')
@@ -1362,5 +1187,3 @@ class Lattice1d():
         dim_site = list(np.delete(self.cell_tensor_config, [0], None))
         dims_site = [dim_site, dim_site]
         return Qobj(inter_T, dims=dims_site)
-
-
