@@ -219,10 +219,16 @@ def cell_structures(val_s=[], val_t=[]):
 
     Returns
     -------
-    cell_H : numpy ndarray
+    scell_H : list of list of str
         tensor structure of the cell Hamiltonian elements
-    inter_cell_T : numpy ndarray
-        tensor structure of the inter cell Hamiltonian elements
+    sinter_cell_T : list of list of str
+        tensor structure of the inter cell Hamiltonian elements    
+    cell_H : Qobj
+        A Qobj initiated with all 0s with proper shape for an input as
+        cell_Hamiltonian in Lattice1d.__init__()
+    inter_cell_T : Qobj
+        A Qobj initiated with all 0s with proper shape for an input as
+        inter_hop in Lattice1d.__init__()
     """
     SN = len(val_s)
     TN = len(val_t)
