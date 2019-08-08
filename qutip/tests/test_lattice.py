@@ -533,7 +533,7 @@ class TestLattice:
 
         (kxA,val_kns) = CROW_Random.get_dispersion()
         assert_( np.max(abs(kxA-knxA)) < 1.0E-13 )        
-        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-15 )
+        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13 )
 
     def test_SSH(self):
         """
@@ -620,7 +620,7 @@ class TestLattice:
             Ana_val_kns[1, ks] = np.sqrt(t_intra **2 + t_inter ** 2
                        + 2 * t_intra * t_inter * np.cos(knx) )
         (kxA,val_kns) = SSH_Random.get_dispersion()
-        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-15 )
+        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13 )
 
 if __name__ == "__main__":
     run_module_suite()
