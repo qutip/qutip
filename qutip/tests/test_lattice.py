@@ -35,7 +35,6 @@ from qutip.lattice import *
 from qutip import (Qobj, tensor, basis, qeye, isherm, sigmax)
 #from numpy.testing import (assert_equal, assert_, assert_almost_equal,
 #                            run_module_suite)
-
 from numpy.testing import (assert_, run_module_suite)
 
 class TestLattice:
@@ -623,7 +622,5 @@ class TestLattice:
         (kxA,val_kns) = SSH_Random.get_dispersion()
         assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-15 )
 
-
 if __name__ == "__main__":
     run_module_suite()
-
