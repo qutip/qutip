@@ -193,7 +193,9 @@ class SESolver(Solver):
 
         states_out = np.empty((N_states0, N_args), dtype=object)
         expect_out = np.empty((N_states0, N_args), dtype=object)
-        store_states = not bool(self._e_ops) or self._options.store_states
+        self._options.store_states = (not bool(self._e_ops) or
+                                      self._options.store_states)
+
         computed_state = [qt.qeye(vec_len)]
         values = list(product(computed_state, args_sets))
 
@@ -212,26 +214,28 @@ class SESolver(Solver):
                 e_op = self._e_ops.copy()
                 e_op.init(self._tlist)
                 state = np.zeros((nt, vec_len), dtype=np.float)
-                for i, t in self._tlist:
+                for t in self._tlist:
                     state[i,:] = prop[t,:,:] * ket
                     e_op.step(i, state[i,:])
                 if self._e_ops:
                     expect_out[state_n, args_n] = e_op.finish()
-                if store_states:
+                if self._options.store_states:
                     states_out[state_n, args_n] = state
         return states_out, expect_out
 
     def _batch_run_merged_ket(self, kets, args_sets, map_func, map_kwargs):
-        N_states0 = len(kets)
-        N_args = len(args_sets)
+        num_states0 = len(kets)
+        vec_len = kets[0].shape[0]
+        num_args = len(args_sets)
         nt = len(self._tlist)
 
-        states_out = np.empty((N_states0, N_args), dtype=object)
-        expect_out = np.empty((N_states0, N_args), dtype=object)
+        states_out = np.empty((num_states0, num_args), dtype=object)
+        expect_out = np.empty((num_states0, num_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
+        self._options.store_states = True
         values = list(product(stack_ket(kets), args_sets))
 
-        normalize_func = normalize_op_inplace
+        normalize_func = normalize_mixed(values[0][0].shape)
         if not self._options.normalize_output:
             normalize_func = False
 
@@ -240,18 +244,24 @@ class SESolver(Solver):
         results = map_func(self._one_run_ket, values, (normalize_func,),
                            **map_kwargs)
 
-        for i, (state, _) in enumerate(results):
-            args_n, state_n = divmod(i, N_states0)
-            for i in range(state.shape[2]):
-                vecs = state[:,:,i]
-                e_op = self._e_ops.copy()
-                e_op.init(self._tlist)
-                for i, t in self._tlist:
-                    e_op.step(i, vecs[t,:])
-                if self._e_ops:
-                    expect_out[state_n, args_n] = e_op.finish()
+        for args_n, (state, _) in enumerate(results):
+            e_ops_ = [self._e_ops.copy() for _ in range(num_states0)]
+            [e_op.init(self._tlist) for e_op in e_ops_]
+            states_out_run = [np.zeros((nt, vec_len), dtype=complex)
+                               for _ in range(num_states0)]
+            for t in range(nt):
+                state_t = state[t,:].reshape((num_states0, vec_len)).T
+                for j in range(num_states0):
+                    vec = state_t[:,j]
+                    e_ops_[j].step(t, vec)
+                    if store_states:
+                        states_out_run[j][t,:] = vec
+
+            for state_n in range(num_states0):
+                expect_out[state_n, args_n] = e_ops_[state_n].finish()
                 if store_states:
-                    states_out[state_n, args_n] = vecs
+                    states_out[state_n, args_n] = states_out_run[state_n]
+
         return states_out, expect_out
 
     def _batch_run_oper(self, opers, args_sets, map_func, map_kwargs):

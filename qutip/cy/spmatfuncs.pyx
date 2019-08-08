@@ -625,7 +625,7 @@ cdef class normalize_mixed:
         cdef float delta = 0.
         cdef int i
         for i in range(self.N):
-            delta += _normalize_inplace_core(vec[i*self.N:(i+1)*self.N], self.l)
+            delta += _normalize_inplace_core(vec[i*self.l:(i+1)*self.l], self.l)
         return delta
 
     def __getstate__(self):
