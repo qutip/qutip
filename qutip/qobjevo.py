@@ -414,7 +414,7 @@ class QobjEvo:
 
         self.const = False
         self.dummy_cte = False
-        self.args = args.copy() if copy else args
+        self.args = args.copy()
         self.dynamics_args = []
         self.cte = None
         self.tlist = tlist
