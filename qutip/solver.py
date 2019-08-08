@@ -215,6 +215,9 @@ class Solver:
         initial_vector = state0.full().ravel('F')
         r.set_initial_value(initial_vector, tlist[0])
 
+        e_ops_store = bool(e_ops)
+        e_ops.init(tlist)
+
         progress_bar.start(n_tsteps-1)
         for t_idx, t in enumerate(tlist):
             if not r.successful():
@@ -222,7 +225,7 @@ class Solver:
                                 "the allowed number of substeps by increasing "
                                 "the nsteps parameter in the Options class.")
             # get the current state / oper data if needed
-            if opt.store_states or opt.normalize_output or e_ops:
+            if opt.store_states or opt.normalize_output or e_ops_store:
                 cdata = r.y
 
             if opt.normalize_output:
@@ -302,10 +305,10 @@ class ExpectOps:
         return out
 
     def step(self, iter_, state):
+        t = self.tlist[iter_]
         if self.isfunc:
             self.raw_out.append(self.e_ops(t, state))
         else:
-            t = self.tlist[iter_]
             for ii in range(self.e_num):
                 self.raw_out[ii, iter_] = \
                     self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)

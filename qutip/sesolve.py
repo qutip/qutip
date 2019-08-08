@@ -61,7 +61,7 @@ def stack_ket(kets):
     out = np.zeros((kets[0].shape[0], len(kets)), dtype=complex)
     for i, ket in enumerate(kets):
         out[:,i] = ket.full().ravel()
-    return Qobj(out)
+    return [Qobj(out)]
 
 
 class SESolver(Solver):
@@ -107,12 +107,19 @@ class SESolver(Solver):
         if not self.e_ops:
             self._options.store_states = True
 
-        if not self._options.normalize_output:
-            normalize_func = None
+
         elif self.state0.isket:
             normalize_func = normalize_inplace
+            func, ode_args = self.ss.makefunc(self.ss, self.state0,
+                                              self._args, self.options)
         else:
             normalize_func = normalize_op_inplace
+            func, ode_args = self.ss.makeoper(self.ss, self.state0,
+                                              self._args, self.options)
+
+        if not self._options.normalize_output:
+            normalize_func = None
+
         self._e_ops.init(self._tlist)
         self._state_out = self._generic_ode_solve(func, ode_args, self.state0,
                                                   self._tlist, self._e_ops,
@@ -124,7 +131,7 @@ class SESolver(Solver):
         N_states0 = len(states)
         if not states:
             states = [self.state0]
-        vec_len = self.H.shape[0]
+        vec_len = self.ss.shape[0]
         N_vecs = [state.shape[1] for state in states]
         all_ket = all([n == 1 for n in N_vecs])
         all_op = all([n == vec_len for n in N_vecs])
@@ -166,7 +173,8 @@ class SESolver(Solver):
         if not self._options.normalize_output:
             normalize_func = False
 
-        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
+        results = map_func(self._one_run_ket, values, (normalize_func,),
+                           **map_kwargs)
 
         for i, (state, expect) in enumerate(results):
             args_n, state_n = divmod(i, N_states0)
@@ -193,7 +201,10 @@ class SESolver(Solver):
         if not self._options.normalize_output:
             normalize_func = False
 
-        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
+        if len(values) == 1:
+            map_func = serial_map
+        results = map_func(self._one_run_ket, values, (normalize_func,),
+                           **map_kwargs)
 
         for i, (prop, _) in enumerate(results):
             args_n, state_n = divmod(i, N_states0)
@@ -224,7 +235,10 @@ class SESolver(Solver):
         if not self._options.normalize_output:
             normalize_func = False
 
-        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
+        if len(values) == 1:
+            map_func = serial_map
+        results = map_func(self._one_run_ket, values, (normalize_func,),
+                           **map_kwargs)
 
         for i, (state, _) in enumerate(results):
             args_n, state_n = divmod(i, N_states0)
@@ -252,7 +266,8 @@ class SESolver(Solver):
         if not self._options.normalize_output:
             normalize_func = False
 
-        map_func(self._one_run_oper, values, (normalize_func,), **map_kwargs)
+        results = map_func(self._one_run_oper, values, (normalize_func,),
+                           **map_kwargs)
 
         for i, (state, expect) in enumerate(results):
             args_n, state_n = divmod(i, N_states0)
@@ -279,7 +294,10 @@ class SESolver(Solver):
         if not self._options.normalize_output:
             normalize_func = False
 
-        map_func(self._one_run_ket, values, (normalize_func,), **map_kwargs)
+        if len(values) == 1:
+            map_func = serial_map
+        results = map_func(self._one_run_ket, values, (normalize_func,),
+                           **map_kwargs)
 
         for i, (prop, _) in enumerate(results):
             args_n, state_n = divmod(i, N_states0)
@@ -303,7 +321,6 @@ class SESolver(Solver):
 
         if state0.isket:
             e_ops = self._e_ops.copy()
-            e_ops.init(self._tlist)
         else:
             e_ops = ExpectOps([])
         state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
@@ -317,7 +334,6 @@ class SESolver(Solver):
         func, ode_args = self.ss.makeoper(self.ss, state0, args, opt)
 
         e_ops = self._e_ops.copy()
-        e_ops.init(self._tlist)
         state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
                                         e_ops, normalize_func, opt,
                                         BaseProgressBar())
@@ -472,11 +488,13 @@ def _qobjevo_set(HS, psi, args, opt):
     if psi.isket:
         func = H_td.compiled_qobjevo.mul_vec
     elif psi.isunitary:
-        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
+        func = H_td.compiled_qobjevo.ode_mul_mat_f_oper
     else:
-        raise TypeError("The unitary solver requires psi0 to be"
-                        " a ket as initial state"
-                        " or a unitary as initial operator.")
+        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
+    # else:
+    #    raise TypeError("The unitary solver requires psi0 to be"
+    #                    " a ket as initial state"
+    #                    " or a unitary as initial operator.")
     return func, ()
 
 def _qobjevo_set_oper(HS, psi, args, opt):
@@ -488,7 +506,7 @@ def _qobjevo_set_oper(HS, psi, args, opt):
     N = psi.shape[0]
 
     def _oper_evolution(t, mat):
-        oper = H_td.compiled_qobjevo.ode_mul_mat_f_vec(t, mat)
+        oper = H_td.compiled_qobjevo.ode_mul_mat_f_oper(t, mat)
         out = mat.reshape((N,N)).T @ H_td.call(t, 1) - oper.reshape((N,N)).T
         return out.ravel("F")
 

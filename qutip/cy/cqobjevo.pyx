@@ -267,10 +267,18 @@ cdef class CQobjEvo:
         cdef complex* vec = &oper[0]
         return self._overlapse(t, vec)
 
-    def ode_mul_mat_f_vec(self, double t, complex[::1] mat):
+    def ode_mul_mat_f_oper(self, double t, complex[::1] mat):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape1*self.shape1,
                                                       dtype=complex)
         self._mul_matf(t, &mat[0], &out[0], self.shape1, self.shape1)
+        return out
+
+    @cython.cdivision(True)
+    def ode_mul_mat_f_vec(self, double t, complex[::1] mat):
+        cdef np.ndarray[complex, ndim=1] out = np.zeros(mat.shape[0],
+                                                        dtype=complex)
+        self._mul_matf(t, &mat[0], &out[0], self.shape1,
+                       mat.shape[0] // self.shape1)
         return out
 
     def call(self, double t, int data=0):
