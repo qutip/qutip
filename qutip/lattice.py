@@ -623,11 +623,6 @@ class Lattice1d():
                             row_ind = np.append(row_ind, [lin_RI*nS+k])
                             col_ind = np.append(col_ind, [lin_RI*nS+l])
                             data = np.append(data, [op[k, l]])
-                else:
-                    for k in range(xx):
-                        row_ind = np.append(row_ind, [lin_RI*nS+k])
-                        col_ind = np.append(col_ind, [lin_RI*nS+k])
-                        data = np.append(data, [1])
 
         m = nx_units*ny_units*nS
         op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)

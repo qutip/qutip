@@ -33,6 +33,7 @@
 import numpy as np
 from qutip.lattice import *
 from qutip import (Qobj, tensor, basis, qeye, isherm)
+import random
 #from numpy.testing import (assert_equal, assert_, assert_almost_equal,
 #                            run_module_suite)
 
@@ -307,14 +308,14 @@ class TestLattice:
         op = Qobj(np.array([[0, 1], [1, 0]]) )
         op_sp = lattice_412.operator_at_cells(op, cells = [1,2])
 
-        aop_sp = np.array([[1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                           [0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+        aop_sp = np.array([[0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
                            [0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
                            [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
                            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
                            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
-                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j],
-                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j]])
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+                           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j]])
 
         sv_op_sp = Qobj(aop_sp, dims=[[4, 2], [4, 2]])
         assert_( op_sp == sv_op_sp )  
@@ -567,6 +568,57 @@ class TestLattice:
                 oE = val_kns[j][i]*np.ones((2,1))
                 assert_(np.max(abs(oE-qE_V)) < 1.0E-12)
 
+        # A test on CROW lattice dispersion with a random number of cells and
+        # random values of eta
+        J = 1
+        num_cell = random.randint(1, 60)
+        eta = 2*np.pi*random.random()
+
+        eta = np.pi/4
+        cell_H = Qobj( np.array( [[0,J*np.sin(eta)  ],[J*np.sin(eta), 0]]   ) )
+        inter_cell_T0 = (J/2)*Qobj(  np.array( [[ np.exp(eta * 1j) , 0 ],[0,np.exp(-eta*1j)]] )  )
+        inter_cell_T1 = (J/2)*Qobj(  np.array( [[ 0 , 1 ],[ 1 , 0 ]] )  )
+
+        inter_cell_T = [inter_cell_T0, inter_cell_T1]
+
+        CROW_Random = Lattice1d(num_cell=num_cell, boundary="periodic",
+                    cell_num_site=1, cell_site_dof=[2],
+                    cell_Hamiltonian=cell_H, inter_hop = inter_cell_T )
+        a = 1  # The unit cell length is always considered 1
+        kn_start = 0
+        kn_end = 2*np.pi/a
+        Ana_val_kns = np.zeros((2, num_cell), dtype=float)
+        knxA = np.zeros((num_cell, 1), dtype=float)
+
+        for ks in range(num_cell):
+            knx = kn_start + (ks*(kn_end-kn_start)/num_cell)
+            if knx >= np.pi:
+                knxA[ks, 0] = knx - 2 * np.pi
+            else:
+                knxA[ks, 0] = knx
+        knxA = np.roll(knxA, np.floor_divide(num_cell, 2))
+
+        for ks in range(num_cell):
+            knx = knxA[ks, 0]
+            # Ana_val_kns are the analytical bands
+            val0 = np.cos(knx) * np.cos(eta) + np.sqrt( 2 * np.sin(eta) ** 2
+                          + (np.cos(knx) * np.cos(eta)) ** 2 + 2 * np.sin(eta) * np.cos(knx))
+            val1 = np.cos(knx) * np.cos(eta) - np.sqrt( 2 * np.sin(eta) ** 2
+                          + (np.cos(knx) * np.cos(eta)) ** 2 + 2 * np.sin(eta) * np.cos(knx))
+            vals = [val0, val1]
+            Ana_val_kns[0, ks] = np.min(vals) 
+            Ana_val_kns[1, ks] = np.max(vals)
+
+        (kxA,val_kns) = CROW_Random.get_dispersion()
+        print(val_kns)
+        print(Ana_val_kns)
+
+#        assert_( np.max(abs(kxA-knxA)) < 1.0E-13 )        
+        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13 )
+
+
+
+
 
     def test_SSH(self):
         """
@@ -581,7 +633,7 @@ class TestLattice:
 
         SSH_lattice = Lattice1d(num_cell=5, boundary = "periodic",
                              cell_num_site = 2, cell_site_dof = [1],
-                             cell_Hamiltonian = cell_H, inter_hop = inter_cell_T )        
+                             cell_Hamiltonian = cell_H, inter_hop = inter_cell_T)        
         Ham_Sc = SSH_lattice.Hamiltonian()
 
         H_Sc = Qobj([[ 0. +0.j, -0.5+0.j,  0. +0.j,  0. +0.j,  0. +0.j,  0. +0.j,
@@ -619,6 +671,43 @@ class TestLattice:
         assert_( np.max(abs(kxA-kSSH)) < 1.0E-6 ) 
         assert_( np.max(abs(val_ks-vSSH)) < 1.0E-6 )
 
+        # A test on SSH lattice dispersion with a random number of cells and
+        # random values of t_inter and t_intra
+        num_cell = random.randint(1, 60)
+        t_intra = -random.random()
+        t_inter = -random.random()
+        cell_H = Qobj( np.array( [[ 0, t_intra ],[t_intra,0]] )  )
+        inter_cell_T =  Qobj( np.array( [[ 0, 0 ],[t_inter,0]] )  )
+        SSH_Random = Lattice1d(num_cell=num_cell, boundary = "periodic",
+                             cell_num_site = 2, cell_site_dof = [1],
+                             cell_Hamiltonian = cell_H, inter_hop = inter_cell_T)
+        a = 1  # The unit cell length is always considered 1
+        kn_start = 0
+        kn_end = 2*np.pi/a
+        Ana_val_kns = np.zeros((2, num_cell), dtype=float)
+        knxA = np.zeros((num_cell, 1), dtype=float)
+
+        for ks in range(num_cell):
+            knx = kn_start + (ks*(kn_end-kn_start)/num_cell)
+            if knx >= np.pi:
+                knxA[ks, 0] = knx - 2 * np.pi
+            else:
+                knxA[ks, 0] = knx
+        knxA = np.roll(knxA, np.floor_divide(num_cell, 2))
+
+        for ks in range(num_cell):
+            knx = knxA[ks, 0]
+            # Ana_val_kns are the analytical bands
+            Ana_val_kns[0, ks] = -np.sqrt(t_intra **2 + t_inter ** 2
+                       + 2 * t_intra * t_inter * np.cos(knx) )
+            Ana_val_kns[1, ks] = np.sqrt(t_intra **2 + t_inter ** 2
+                       + 2 * t_intra * t_inter * np.cos(knx) )
+        (kxA,val_kns) = SSH_Random.get_dispersion()
+        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13 )
+
 
 if __name__ == "__main__":
     run_module_suite()
+
+
+
