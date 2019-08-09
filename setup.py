@@ -57,7 +57,7 @@ from Cython.Distutils import build_ext
 # all information about QuTiP goes here
 MAJOR = 4
 MINOR = 4
-MICRO = 0
+MICRO = 1
 ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
@@ -146,15 +146,18 @@ if os.path.exists('qutip/version.py'):
 write_version_py()
 
 # Add Cython extensions here
-cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'checks', 'brtools', 'mcsolve',
-           'brtools_checks', 'br_tensor', 'inter', 'cqobjevo', 'cqobjevo_factor', 'piqs']
+cy_exts = ['spmatfuncs', 'math', 'spconvert', 'spmath',
+           'sparse_utils', 'graph_utils', 'interpolate', 'ptrace',
+           'inter', 'cqobjevo', 'cqobjevo_factor',
+           'stochastic', 'brtools', 'mcsolve', 'br_tensor', 'piqs', 'heom',
+           'brtools_checks', 'checks']
 
 # Extra link args
 _link_flags = []
 
 # If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
-if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
+if (sys.platform == 'win32'
+    and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
     and os.environ.get('MSYSTEM') is None):
     _compiler_flags = ['/w', '/Ox']
 # Everything else

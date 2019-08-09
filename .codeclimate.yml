@@ -2,21 +2,21 @@ version: "2"
 checks:
   argument-count:
     config:
-      threshold: 6
+      threshold: 8
   complex-logic:
     config:
-      threshold: 5
+      threshold: 10
   file-lines:
     enabled: false
   method-complexity:
     config:
-      threshold: 5
+      threshold: 10
   method-count:
     config:
       threshold: 50
   method-lines:
     config:
-      threshold: 50
+      threshold: 70
   nested-control-flow:
     config:
       threshold: 4
