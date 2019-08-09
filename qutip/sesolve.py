@@ -53,8 +53,8 @@ from qutip.superoperator import vec2mat
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
-def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
-            progress_bar=BaseProgressBar(), _safe_mode=True):
+def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
+            progress_bar=None, _safe_mode=True):
     """
     Schrodinger equation evolution of a state vector or unitary matrix
     for a given Hamiltonian.
@@ -86,19 +86,19 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    e_ops : list of :class:`qutip.qobj` / callback function
+    e_ops : None / list of :class:`qutip.qobj` / callback function
         single operator or list of operators for which to evaluate
         expectation values.
         For list operator evolution, the overlapse is computed:
             tr(e_ops[i].dag()*op(t))
 
-    args : *dictionary*
+    args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians
 
-    options : :class:`qutip.Qdeoptions`
+    options : None / :class:`qutip.Qdeoptions`
         with options for the ODE solver.
 
-    progress_bar : BaseProgressBar
+    progress_bar : None / BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation.
 
@@ -115,6 +115,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
         which to calculate the expectation values.
 
     """
+    if e_ops is None:
+        e_ops = []
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
     elif isinstance(e_ops, dict):
@@ -123,6 +125,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
     else:
         e_ops_dict = None
 
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
     if progress_bar is True:
         progress_bar = TextProgressBar()
 
@@ -131,6 +135,8 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
                         " a ket as initial state"
                         " or a unitary as initial operator.")
 
+    if options is None:
+        options = Options()
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "sesolve" in solver_safe:
@@ -140,7 +146,9 @@ def sesolve(H, psi0, tlist, e_ops=[], args={}, options=Options(),
             pass
             # raise Exception("Could not find the Hamiltonian to reuse.")
 
-    #check if should use OPENMP
+    if args is None:
+        args = {}
+
     check_use_openmp(options)
 
     if isinstance(H, SolverSystem):
