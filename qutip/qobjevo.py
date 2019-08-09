@@ -484,7 +484,9 @@ class QobjEvo:
                     self.ops.append(EvoElement(op[0], op[1], op[1], "spline"))
 
             nops = sum(op_type_count)
-            if op_type_count[0] == nops:
+            if all([op_t == 0 for op_t in op_type]):
+                self.type = "cte"
+            elif op_type_count[0] == nops:
                 self.type = "func"
             elif op_type_count[1] == nops:
                 self.type = "string"
@@ -1147,7 +1149,9 @@ class QobjEvo:
                 op_type_count[3] += 1
 
         nops = sum(op_type_count)
-        if op_type_count[0] == nops:
+        if not self.ops and self.dummy_cte is False:
+            self.type = "cte"
+        elif op_type_count[0] == nops:
             self.type = "func"
         elif op_type_count[1] == nops:
             self.type = "string"
