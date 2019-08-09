@@ -352,7 +352,8 @@ class Bloch3d():
             cone = tvtk.ConeSource(height=self.vector_head_height,
                                    radius=self.vector_head_radius,
                                    resolution=100)
-            cone_mapper = tvtk.PolyDataMapper(input=cone.output)
+            cone_mapper = tvtk.PolyDataMapper(
+                input_connection=cone.output_port)
             prop = tvtk.Property(opacity=self.vector_alpha, color=color)
             cc = tvtk.Actor(mapper=cone_mapper, property=prop)
             cc.rotate_z(np.degrees(phi))
