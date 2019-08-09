@@ -502,7 +502,7 @@ class Qobj(object):
                     # to have uneven length (non-square Qobjs).
                     # We use None as padding so that it doesn't match anything,
                     # and will never cause a partial trace on the other side.
-                    mask = [l == r == 1 for l, r in zip_longest(dims[0], 
+                    mask = [l == r == 1 for l, r in zip_longest(dims[0],
                                                                 dims[1],
                                                                 fillvalue=None)]
                     # To ensure that there are still any dimensions left, we
@@ -1036,7 +1036,7 @@ class Qobj(object):
 
         """
         return zcsr_trace(self.data, self.isherm)
-    
+
     def purity(self):
         """Calculate purity of a quantum object.
 
@@ -1335,6 +1335,7 @@ class Qobj(object):
         """
         q = Qobj()
         q.data, q.dims = _permute(self, order)
+        q.data.sort_indices()
         return q.tidyup() if settings.auto_tidyup else q
 
     def tidyup(self, atol=settings.auto_tidyup_atol):
@@ -1839,7 +1840,7 @@ class Qobj(object):
         Parameters
         ----------
         B : :class:`qutip.Qobj` or None
-            If B is not None, the diamond distance d(A, B) = dnorm(A - B) 
+            If B is not None, the diamond distance d(A, B) = dnorm(A - B)
             between this operator and B is returned instead of the diamond norm.
 
         Returns
@@ -1878,7 +1879,7 @@ class Qobj(object):
                     else sr.to_choi(self)
                 )
                 # If J isn't hermitian, then that could indicate either
-                # that J is not normal, or is normal,  
+                # that J is not normal, or is normal,
                 # but has complex eigenvalues.
                 # In either case, it makes no sense to then demand that the
                 # eigenvalues be non-negative.
