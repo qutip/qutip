@@ -338,7 +338,6 @@ class QobjEvo:
 
     norm()
         Return self.dag() * self.
-        Only possible if num_obj == 1
 
     permute(order)
         Returns composite qobj with indices reordered.

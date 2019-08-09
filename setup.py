@@ -155,7 +155,8 @@ cy_exts = ['spmatfuncs', 'math', 'spconvert', 'spmath',
 # Extra link args
 _link_flags = []
 
-# If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
+# If on Win and Python version >= 3.5 and not in MSYS2
+# (i.e. Visual studio compile)
 if (sys.platform == 'win32'
     and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
     and os.environ.get('MSYSTEM') is None):
@@ -173,21 +174,22 @@ else:
 EXT_MODULES =[]
 # Add Cython files from qutip/cy
 for ext in cy_exts:
-    _mod = Extension('qutip.cy.'+ext,
-            sources = ['qutip/cy/'+ext+'.pyx', 'qutip/cy/src/zspmv.cpp'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+    _mod = Extension('qutip.cy.' + ext,
+                     sources=['qutip/cy/' + ext +
+                              '.pyx', 'qutip/cy/src/zspmv.cpp'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags,
+                     extra_link_args=_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
 # Add Cython files from qutip/control
 _mod = Extension('qutip.control.cy_grape',
-            sources = ['qutip/control/cy_grape.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+                 sources=['qutip/control/cy_grape.pyx'],
+                 include_dirs=[np.get_include()],
+                 extra_compile_args=_compiler_flags,
+                 extra_link_args=_link_flags,
+                 language='c++')
 EXT_MODULES.append(_mod)
 
 
@@ -202,47 +204,47 @@ if "--with-openmp" in sys.argv:
         omp_flags = ['-fopenmp']
         omp_args = omp_flags
     _mod = Extension('qutip.cy.openmp.parfuncs',
-            sources = ['qutip/cy/openmp/parfuncs.pyx',
-                       'qutip/cy/openmp/src/zspmv_openmp.cpp'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args+_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/parfuncs.pyx',
+                              'qutip/cy/openmp/src/zspmv_openmp.cpp'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags+omp_flags,
+                     extra_link_args=omp_args+_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
     # Add benchmark pyx
     _mod = Extension('qutip.cy.openmp.benchmark',
-            sources = ['qutip/cy/openmp/benchmark.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/benchmark.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags,
+                     extra_link_args=_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
     # Add brtools_omp
     _mod = Extension('qutip.cy.openmp.br_omp',
-            sources = ['qutip/cy/openmp/br_omp.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/br_omp.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags,
+                     extra_link_args=_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
     # Add omp_sparse_utils
     _mod = Extension('qutip.cy.openmp.omp_sparse_utils',
-            sources = ['qutip/cy/openmp/omp_sparse_utils.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args+_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/omp_sparse_utils.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags+omp_flags,
+                     extra_link_args=omp_args+_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
     # Add cqobjevo_omp
     _mod = Extension('qutip.cy.openmp.cqobjevo_omp',
-            sources = ['qutip/cy/openmp/cqobjevo_omp.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args,
-            language='c++')
+                     sources=['qutip/cy/openmp/cqobjevo_omp.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags+omp_flags,
+                     extra_link_args=omp_args,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
 
@@ -254,30 +256,29 @@ if "CFLAGS" in cfg_vars:
 
 
 # Setup commands go here
-setup(
-    name = NAME,
-    version = FULLVERSION,
-    packages = PACKAGES,
-    include_package_data=True,
-    include_dirs = INCLUDE_DIRS,
-    # headers = HEADERS,
-    ext_modules = cythonize(EXT_MODULES),
-    cmdclass = {'build_ext': build_ext},
-    author = AUTHOR,
-    author_email = AUTHOR_EMAIL,
-    license = LICENSE,
-    description = DESCRIPTION,
-    long_description = LONG_DESCRIPTION,
-    keywords = KEYWORDS,
-    url = URL,
-    classifiers = CLASSIFIERS,
-    platforms = PLATFORMS,
-    requires = REQUIRES,
-    extras_require = EXTRAS_REQUIRE,
-    package_data = PACKAGE_DATA,
-    zip_safe = False,
-    install_requires=INSTALL_REQUIRES,
-    **EXTRA_KWARGS
+setup(name = NAME,
+      version = FULLVERSION,
+      packages = PACKAGES,
+      include_package_data=True,
+      include_dirs = INCLUDE_DIRS,
+      # headers = HEADERS,
+      ext_modules = cythonize(EXT_MODULES),
+      cmdclass = {'build_ext': build_ext},
+      author = AUTHOR,
+      author_email = AUTHOR_EMAIL,
+      license = LICENSE,
+      description = DESCRIPTION,
+      long_description = LONG_DESCRIPTION,
+      keywords = KEYWORDS,
+      url = URL,
+      classifiers = CLASSIFIERS,
+      platforms = PLATFORMS,
+      requires = REQUIRES,
+      extras_require = EXTRAS_REQUIRE,
+      package_data = PACKAGE_DATA,
+      zip_safe = False,
+      install_requires=INSTALL_REQUIRES,
+      **EXTRA_KWARGS
 )
 _cite = """\
 ==============================================================================
