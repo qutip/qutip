@@ -852,7 +852,7 @@ class Lattice1d():
             else:
                 knxA[ks, 0] = knx
         knxA = np.roll(knxA, np.floor_divide(knpoints, 2))
-
+        dim_hk = [self.cell_tensor_config, self.cell_tensor_config]
         for ks in range(knpoints):
             kx = knxA[ks, 0]
             H_ka = G0_H
@@ -863,7 +863,7 @@ class Lattice1d():
                 H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
             H_k = csr_matrix(H_ka)
-            qH_k = Qobj(H_k)
+            qH_k = Qobj(H_k, dims = dim_hk)
             qH_ks[ks] = qH_k
             (vals, veks) = qH_k.eigenstates()
             plane_waves = np.kron(np.exp(-1j * (kx * range(self.num_cell))),
@@ -930,7 +930,6 @@ class Lattice1d():
 
         knxA = np.zeros((knpoints+1, 1), dtype=float)
         G0_H = self._H_intra
-        qH_ks = np.array([None for i in range(knpoints+1)])
         mx_k = np.array([None for i in range(knpoints+1)])
         my_k = np.array([None for i in range(knpoints+1)])
         Phi_m_k = np.array([None for i in range(knpoints+1)])
@@ -950,7 +949,6 @@ class Lattice1d():
                 H_ka = H_ka + H_int + H_int.dag()
             H_k = csr_matrix(H_ka)
             qH_k = Qobj(H_k)
-            qH_ks[ks] = qH_k
             mx_k[ks] = 0.5*(qH_k*sigmax()).tr()
             my_k[ks] = 0.5*(qH_k*sigmay()).tr()
 
