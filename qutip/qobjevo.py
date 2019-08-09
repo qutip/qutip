@@ -53,6 +53,7 @@ import pickle
 import sys
 import scipy
 import os
+from re import sub
 
 if qset.has_openmp:
     from qutip.cy.openmp.cqobjevo_omp import (CQobjCteOmp, CQobjEvoTdOmp,
@@ -350,7 +351,7 @@ class QobjEvo:
     trans()
         Return the transpose of quantum object.
 
-    norm()
+    _cdc()
         Return self.dag() * self.
         Only possible if num_obj == 1
 
@@ -1240,6 +1241,7 @@ class QobjEvo:
         return res
 
     def _f_norm2(self):
+        self.compiled = ""
         new_ops = []
         for op in self.ops:
             new_op = [op.qobj, None, None, op.type]
@@ -1263,6 +1265,7 @@ class QobjEvo:
         return self
 
     def _f_conj(self):
+        self.compiled = ""
         new_ops = []
         for op in self.ops:
             new_op = [op.qobj, None, None, op.type]
@@ -1278,6 +1281,33 @@ class QobjEvo:
                     self.tlist, new_op[2], args=self.args)
             elif op.type == "spline":
                 new_op[1] = _Conj(op.get_coeff)
+                new_op[2] = new_op[1]
+                new_op[3] = "func"
+                self.type = "mixed_callable"
+            new_ops.append(EvoElement.make(new_op))
+        self.ops = new_ops
+        return self
+
+    def _shift(self):
+        self.compiled = ""
+        self.args.update({"_t0": 0})
+        new_ops = []
+        for op in self.ops:
+            new_op = [op.qobj, None, None, op.type]
+            if op.type == "func":
+                new_op[1] = _Shift(op.get_coeff)
+                new_op[2] = new_op[1]
+            elif op.type == "string":
+                new_op[2] = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                "(t+_t0)", " " + op.coeff + " ")
+                new_op[1] = _StrWrapper(new_op[2])
+            elif op.type == "array":
+                new_op[2] = _Shift(op.get_coeff)
+                new_op[1] = new_op[1]
+                new_op[3] = "func"
+                self.type = "mixed_callable"
+            elif op.type == "spline":
+                new_op[1] = _Shift(op.get_coeff)
                 new_op[2] = new_op[1]
                 new_op[3] = "func"
                 self.type = "mixed_callable"
@@ -1630,6 +1660,14 @@ class _Norm2():
 
     def __call__(self, t, args):
         return self.func(t, args)*np.conj(self.func(t, args))
+
+
+class _Shift():
+    def __init__(self, f):
+        self.func = f
+
+    def __call__(self, t, args):
+        return np.conj(self.func(t + args["_t0"], args))
 
 
 class _Conj():
