@@ -34,12 +34,13 @@
 from functools import partial
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, run_module_suite, assert_allclose
 
 # disable the MC progress bar
 import os
 
 from qutip import *
+from qutip.random_objects import rand_ket
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
@@ -755,6 +756,93 @@ class TestMESolverMisc:
         assert_(psi0.dims == result.final_state.dims)
 
 
+class TestMESolveStepFuncCoeff:
+    """
+    A Test class for using time-dependent array coefficients
+    as step functions instead of doing interpolation
+    """
+    def python_coeff(self, t, args):
+        if t < np.pi/2:
+            return 1.
+        else:
+            return 0.
+
+    def test_py_coeff(self):
+        """
+        Test for Python function as coefficient as step function coeff
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0, np.pi/2])
+        qu = QobjEvo([[sigmax(), self.python_coeff]],
+                     tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "func")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_cte_coeff(self):
+        """
+        Test for Array coefficient with uniform tlist as step function coeff
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/2, np.pi], dtype=float)
+        npcoeff = np.array([0.25, 0.75, 0.75])
+        qu = QobjEvo([[sigmax(), npcoeff]],
+                     tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "array")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_t_coeff(self):
+        """
+        Test for Array with non-uniform tlist as step function coeff
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
+        npcoeff = np.array([0.5, 0.25, 0.25])
+        qu = QobjEvo([[sigmax(), npcoeff]],
+                     tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "array")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_str_coeff(self):
+        """
+        Test for Array and string as step function coeff.
+        qobjevo_codegen is used and uniform tlist
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/2, np.pi], dtype=float)
+        npcoeff1 = np.array([0.25, 0.75, 0.75], dtype=complex)
+        npcoeff2 = np.array([0.5, 1.5, 1.5], dtype=float)
+        strcoeff = "1."
+        qu = QobjEvo(
+            [[sigmax(), npcoeff1], [sigmax(), strcoeff], [sigmax(), npcoeff2]],
+            tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_str_py_coeff(self):
+        """
+        Test for Array, string and Python function as step function coeff.
+        qobjevo_codegen is used and non non-uniform tlist
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/4, np.pi/2, np.pi], dtype=float)
+        npcoeff1 = np.array([0.4, 1.6, 1.0, 1.0], dtype=complex)
+        npcoeff2 = np.array([0.4, 1.6, 1.0, 1.0], dtype=float)
+        strcoeff = "1."
+        qu = QobjEvo(
+            [[sigmax(), npcoeff1], [sigmax(), npcoeff2],
+             [sigmax(), self.python_coeff], [sigmax(), strcoeff]],
+            tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "mixed_callable")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
 
 
 if __name__ == "__main__":
