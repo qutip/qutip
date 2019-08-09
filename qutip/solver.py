@@ -32,13 +32,15 @@
 ###############################################################################
 from __future__ import print_function
 
-__all__ = ['Options', 'Odeoptions', 'Odedata']
+__all__ = ['Options', 'Odeoptions', 'Odedata', 'ExpectOps']
 
-import sys
-import datetime
-from collections import OrderedDict
 import os
+import sys
 import warnings
+import datetime
+import numpy as np
+from qutip.qobjevo import QobjEvo
+from collections import OrderedDict
 from qutip import __version__
 from qutip.qobj import Qobj
 import qutip.settings as qset
@@ -46,11 +48,11 @@ from types import FunctionType, BuiltinFunctionType
 
 solver_safe = {}
 
+
 class SolverSystem():
     pass
 
-import numpy as np
-from qutip.qobjevo import QobjEvo
+
 class ExpectOps:
     """
         Contain and compute expectation values
@@ -283,7 +285,8 @@ class Options():
         self.store_states = store_states
         # average mcsolver density matricies assuming steady state evolution
         self.steady_state_average = steady_state_average
-        # Normalize output of solvers (turned off for batch unitary propagator mode)
+        # Normalize output of solvers
+        # (turned off for batch unitary propagator mode)
         self.normalize_output = normalize_output
         # Use OPENMP for sparse matrix vector multiplication
         self.use_openmp = use_openmp
@@ -405,7 +408,6 @@ class SolverConfiguration():
         self.reset()
 
     def reset(self):
-
         # General stuff
         self.tlist = None       # evaluations times
         self.ntraj = None       # number / list of trajectories
@@ -425,7 +427,6 @@ class SolverConfiguration():
         self.soft_reset()
 
     def soft_reset(self):
-
         # Hamiltonian stuff
         self.h_td_inds = []  # indicies of time-dependent Hamiltonian operators
         self.h_tdterms = []  # List of td strs and funcs
@@ -492,6 +493,7 @@ def _format_time(t, tt=None, ttt=None):
         time_str += " ({:03.2f}% total)".format(solve_percent)
 
     return time_str
+
 
 class Stats(object):
     """
@@ -725,6 +727,7 @@ class Stats(object):
             sect.clear()
         self.total_time = None
 
+
 class _StatsSection(object):
     """
     Not intended to be directly instantiated
@@ -827,8 +830,8 @@ class _StatsSection(object):
                 try:
                     value = sep + value
                 except:
-                    TypeError("It is not possible to concatenate the value with "
-                                "the given seperator")
+                    TypeError("It is not possible to concatenate the value "
+                              "with the given seperator")
             self.messages[key] += value
         else:
             self.messages[key] = value
@@ -883,8 +886,6 @@ class _StatsSection(object):
         self.timings.clear()
         self.messages.clear()
         self.total_time = None
-
-
 
 
 def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
@@ -961,6 +962,7 @@ def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
     else:
         raise Exception('Invalid e_ops specification.')
 
+
 def _structure_check(Hdims, Htype, state):
     if state is not None:
         # Input state is a ket vector
@@ -968,11 +970,13 @@ def _structure_check(Hdims, Htype, state):
             # Input is Hamiltonian
             if Htype == 'oper':
                 if Hdims[1] != state.dims[0]:
-                    raise Exception('Input operator and ket do not share same structure.')
+                    raise Exception('Input operator and ket do not '
+                                    'share same structure.')
             # Input is super and state is ket
             elif Htype == 'super':
                 if Hdims[1][1] != state.dims[0]:
-                    raise Exception('Input operator and ket do not share same structure.')
+                    raise Exception('Input operator and ket do not '
+                                    'share same structure.')
             else:
                 raise Exception('Invalid input operator.')
         # Input state is a density matrix
@@ -980,11 +984,13 @@ def _structure_check(Hdims, Htype, state):
             # Input is Hamiltonian and state is density matrix
             if Htype == 'oper':
                 if Hdims[1] != state.dims[0]:
-                    raise Exception('Input operators do not share same structure.')
+                    raise Exception('Input operators do not '
+                                    'share same structure.')
             # Input is super op. and state is density matrix
             elif Htype == 'super':
                 if Hdims[1] != state.dims:
-                    raise Exception('Input operators do not share same structure.')
+                    raise Exception('Input operators do not '
+                                    'share same structure.')
 
 
 #
