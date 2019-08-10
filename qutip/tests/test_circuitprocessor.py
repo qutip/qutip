@@ -42,7 +42,7 @@ from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
 from qutip.random_objects import rand_ket, rand_dm
-from qutip.qip.models.circuitnoise import DecoherenceNoise, WhiteNoise
+from qutip.qip.models.circuitnoise import DecoherenceNoise, RandomNoise
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity
 
@@ -180,12 +180,12 @@ class TestCircuitProcessor:
 
         # white noise with internal/external operators
         proc.noise = []
-        white_noise = WhiteNoise(mean=0.1, std=0.1)
+        white_noise = RandomNoise(loc=0.1, scale=0.1)
         proc.add_noise(white_noise)
         result = proc.run_state(rho0=rho0)
 
         proc.noise = []
-        white_noise = WhiteNoise(mean=0.1, std=0.1, ops=sigmax(), targets=1)
+        white_noise = RandomNoise(loc=0.1, scale=0.1, ops=sigmax(), targets=1)
         proc.add_noise(white_noise)
         result = proc.run_state(rho0=rho0)
 

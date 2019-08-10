@@ -3,13 +3,14 @@ import numpy as np
 
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 from qutip.qip.models.circuitnoise import (
-    RelaxationNoise, DecoherenceNoise, ControlAmpNoise, WhiteNoise, UserNoise)
+    RelaxationNoise, DecoherenceNoise, ControlAmpNoise, RandomNoise, UserNoise)
 from qutip.operators import qeye, sigmaz, sigmax, sigmay, destroy, identity
 from qutip.tensor import tensor
 from qutip.qobjevo import QobjEvo
 from qutip.states import basis
 from qutip.metrics import fidelity
 from qutip.tensor import tensor
+
 
 class DriftNoise(UserNoise):
     def __init__(self, op):
@@ -79,7 +80,7 @@ class TestCircuitNoise:
         tlist = np.array([1, 2, 3, 4, 5, 6])
         coeff = np.array([1, 1, 1, 1, 1, 1])
 
-        # no expand
+        # use external operators and no expansion
         dummy_qobjevo = QobjEvo(sigmaz(), tlist=tlist)
         connoise = ControlAmpNoise(ops=sigmax(), coeffs=[coeff])
         noise = connoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
@@ -88,44 +89,59 @@ class TestCircuitNoise:
         assert_allclose(noise.ops[0].coeff, coeff)
 
         dummy_qobjevo = QobjEvo(tensor([sigmaz(), sigmaz()]), tlist=tlist)
-        connoise = ControlAmpNoise(ops=sigmay(), coeffs=[coeff], targets=[1])
+        connoise = ControlAmpNoise(ops=[sigmay()], coeffs=[coeff], targets=1)
         noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([qeye(2), sigmay()]))
 
-        # With expand
-        dummy_qobjevo = QobjEvo(sigmaz(),tlist=tlist)
+        # use external operators with expansion
+        dummy_qobjevo = QobjEvo(sigmaz(), tlist=tlist)
         connoise = ControlAmpNoise(
             ops=sigmaz(), coeffs=[coeff]*2, cyclic_permutation=True)
         noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([sigmaz(), qeye(2)]))
         assert_allclose(noise.ops[1].qobj, tensor([qeye(2), sigmaz()]))
 
-    def TestWhiteNoise(self):
+        # use proc_qobjevo
+        proc_qobjevo = QobjEvo([[sigmaz(), coeff]], tlist=tlist)
+        connoise = ControlAmpNoise(coeffs=[coeff])
+        noise = connoise.get_noise(N=2, proc_qobjevo=proc_qobjevo)
+        assert_allclose(noise.ops[0].qobj, sigmaz())
+        assert_allclose(noise.ops[0].coeff, coeff[0])
+
+    def TestRandomNoise(self):
         """
         Test for the white noise
         """
-
         tlist = np.array([1, 2, 3, 4, 5, 6])
+        coeff = np.array([1, 1, 1, 1, 1, 1])
         dummy_qobjevo = QobjEvo(sigmaz(), tlist=tlist)
         mean = 0.
         std = 0.5
         ops = [sigmaz(), sigmax()]
-        whitenoise = WhiteNoise(mean=mean, std=std, ops=ops)
-        noise = whitenoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
+        proc_qobjevo = QobjEvo(
+            [[sigmaz(), coeff], [sigmax(), coeff], [sigmay(), coeff]],
+            tlist=tlist)
+
+        # random noise with external operators
+        gaussnoise = RandomNoise(ops=ops, loc=mean, scale=std)
+        noise = gaussnoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[1].qobj, sigmax())
         assert_allclose(len(noise.ops[1].coeff), len(tlist))
         assert_allclose(len(noise.ops), len(ops))
 
-        # White noise with operator from processor (proc_qobjevo)
-        coeff = np.array([1, 1, 1, 1, 1, 1])
-        evo_ops = QobjEvo(
-            [[sigmaz(), coeff], [sigmax(), coeff], [sigmay(), coeff]],
-            tlist=tlist)
-        whitenoise = WhiteNoise(mean=mean, std=std)
-        noise = whitenoise.get_noise(N=1, proc_qobjevo=evo_ops)
+        # random noise with operators from proc_qobjevo
+        gaussnoise = RandomNoise(loc=mean, scale=std)
+        noise = gaussnoise.get_noise(N=1, proc_qobjevo=proc_qobjevo)
         assert_allclose(noise.ops[1].qobj, sigmax())
-        assert_(len(noise.ops[1].coeff) == len(tlist))
-        assert_(len(noise.ops) == len(evo_ops.ops))
+        assert_(len(noise.ops[0].coeff) == len(tlist))
+        assert_(len(noise.ops) == len(proc_qobjevo.ops))
+
+        # random noise with dt and other random number generator
+        gaussnoise = RandomNoise(lam=0.1,
+                                dt=0.2, rand_gen=np.random.poisson)
+        assert_(gaussnoise.rand_gen is np.random.poisson)
+        noise = gaussnoise.get_noise(N=1, proc_qobjevo=proc_qobjevo)
+        assert_allclose(noise.tlist, np.linspace(1, 6, int(5/0.2) + 1))
 
     def TestUserNoise(self):
         """

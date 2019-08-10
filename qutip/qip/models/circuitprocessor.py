@@ -47,7 +47,7 @@ from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.circuitnoise import (
     CircuitNoise, RelaxationNoise, DecoherenceNoise,
-    ControlAmpNoise, WhiteNoise, UserNoise)
+    ControlAmpNoise, RandomNoise, UserNoise)
 
 
 __all__ = ['CircuitProcessor']
@@ -465,7 +465,8 @@ class CircuitProcessor(object):
 
     def optimize_circuit(self, qc):
         """
-        Function to take a quantum circuit/algorithm and convert it into the optimal form/basis for the desired physical system.
+        Function to take a quantum circuit/algorithm and convert it into the
+        optimal form/basis for the desired physical system.
         (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")

@@ -11,7 +11,7 @@ from qutip.tensor import tensor
 
 
 __all__ = ["CircuitNoise", "DecoherenceNoise", "RelaxationNoise",
-           "ControlAmpNoise", "WhiteNoise", "UserNoise"]
+           "ControlAmpNoise", "RandomNoise", "UserNoise"]
 
 
 def _dummy_qobjevo(dims, **kwargs):
@@ -287,7 +287,7 @@ class ControlAmpNoise(CircuitNoise):
         If true, the Hamiltonian will be expanded for
         all cyclic permutation of the target qubits.
     """
-    def __init__(self, ops, coeffs, targets=None,
+    def __init__(self, coeffs, ops=None, targets=None,
                  cyclic_permutation=False):
         self.coeffs = coeffs
         if isinstance(ops, Qobj):
@@ -311,7 +311,8 @@ class ControlAmpNoise(CircuitNoise):
 
         proc_qobjevo: :class:`qutip.QobjEvo`, optional
             If no operator is defined in the noise object, `proc_qobjevo`
-            wil be used as operators, otherwise it is ignored.
+            wil be used as operators, otherwise the operators in the
+            object is used.
 
         dims: list, optional
             The dimension of the components system, default value is
@@ -340,7 +341,6 @@ class ControlAmpNoise(CircuitNoise):
                     expand_operator(
                         oper=op, N=N, targets=self.targets, dims=dims)
                     for op in self.ops]
-
         # If no operators given, use operators in the processor
         elif proc_qobjevo is not None:
             # If there is a constant part
@@ -353,48 +353,76 @@ class ControlAmpNoise(CircuitNoise):
             raise ValueError(
                 "No operators found.")
 
-        noise_list = []
-        for i, op in enumerate(ops):
-            noise_list.append(
-                QobjEvo([[op, self.coeffs[i]]], tlist=tlist))
-        return sum(noise_list, _dummy_qobjevo(dims))
+        if len(ops) > len(self.coeffs):
+            raise ValueError("The number of coefficient has to be larger than"
+                             "{}".format(len(ops)))
+        return QobjEvo([[ops[i], self.coeffs[i]] for i in range(len(ops))],
+                       tlist=tlist)
 
 
-class WhiteNoise(ControlAmpNoise):
+class RandomNoise(ControlAmpNoise):
     """
-    White gaussian noise in the amplitude of the control pulse.
+    Random noise in the amplitude of the control pulse.
 
     Parameters
     ----------
-    mean: float
-        Mean value of the additional noisy part of pulse intensity.
+    rand_gen: numpy.random, optional
+        A random generator in numpy.random, it has to take a ``size``
+        parameter.
 
-    std: float
-        Standard deviation of the additional noisy part of pulse intensity.
-
-    dt: float
+    dt: float, optional
         The time interval between two random amplitude. The coefficients
         of the noise is the same within this time range.
 
-    ops: :class:`qutip.Qobj`
+    ops: list, optional
         The Hamiltonian representing the dynamics of the noise.
 
-    targets: list or int
+    targets: list or int, optional
+        The indices of qubits that are acted on.
+
+    cyclic_permutation: boolean, optional
+        If true, the Hamiltonian will be expanded for
+        all cyclic permutation of the target qubits.
+
+    kwargs:
+        Key word arguments for the random number generator.
+
+    Attributes
+    ----------
+    ops: list
+        The Hamiltonian representing the dynamics of the noise.
+
+    coeffs: list
+        A list of the coefficients for the control Hamiltonians.
+        For available choices, see :class:`Qutip.QobjEvo`.
+
+    targets: list
         The indices of qubits that are acted on.
 
     cyclic_permutation: boolean
         If true, the Hamiltonian will be expanded for
         all cyclic permutation of the target qubits.
+
+    rand_gen: numpy.random
+        A random generator in numpy.random, it has to take a ``size``
+        parameter.
+
+    kwargs: dict
+        Key word arguments for the random number generator.
     """
-    # TODO add other types of random generators
     def __init__(
-            self, mean, std, dt=None, ops=None, targets=None,
-            cyclic_permutation=False):
-        super(WhiteNoise, self).__init__(
-            ops, coeffs=None, targets=targets,
+            self, rand_gen=None, dt=None, ops=None, targets=None,
+            cyclic_permutation=False, **kwargs):
+        super(RandomNoise, self).__init__(
+            coeffs=None, ops=ops, targets=targets,
             cyclic_permutation=cyclic_permutation)
-        self.mean = mean
-        self.std = std
+        if rand_gen is None:
+            self.rand_gen = np.random.normal
+        else:
+            self.rand_gen = rand_gen
+        self.kwargs = kwargs
+        if "size" in kwargs:
+            raise ValueError("size is preditermined inside the noise object.")
         self.dt = dt
 
     def get_noise(self, N, proc_qobjevo=None, dims=None):
@@ -407,9 +435,9 @@ class WhiteNoise(ControlAmpNoise):
             The number of component systems.
 
         proc_qobjevo: :class:`qutip.QobjEvo`, optional
-            If no operator is saved in the noise object, `proc_qobjevo`
-            wil be used
-            as operators, otherwise it is ignored.
+            If no operator is defined in the noise object, `proc_qobjevo`
+            wil be used as operators, otherwise the operators in the
+            object is used.
 
         dims: list, optional
             The dimension of the components system, default value is
@@ -433,18 +461,17 @@ class WhiteNoise(ControlAmpNoise):
             # if no cte part the last coeffs will be ignored
             ops_num = len(proc_qobjevo.ops) + 1
         if self.dt is not None:
-            # TODO add test
             # create new tlist and random coeffs
             num_rand = int(np.floor((tlist[-1]-tlist[0])/self.dt))+1
-            self.coeffs = normal(
-                self.mean, self.std, (ops_num, num_rand))
+            self.coeffs = self.rand_gen(
+                **self.kwargs, size=(ops_num, num_rand))
             tlist = (np.arange(0, self.dt*num_rand, self.dt)[:num_rand] +
                      tlist[0])
             # [:num_rand] for round of error like 0.2*6=1.2000000000002
         else:
-            self.coeffs = normal(
-                self.mean, self.std, (ops_num, len(tlist)))
-        return super(WhiteNoise, self).get_noise(
+            self.coeffs = self.rand_gen(
+                **self.kwargs, size=(ops_num, len(tlist)))
+        return super(RandomNoise, self).get_noise(
             N, proc_qobjevo=proc_qobjevo, dims=dims, tlist=tlist)
 
 
