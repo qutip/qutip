@@ -34,6 +34,7 @@ from collections.abc import Iterable
 from functools import reduce
 import numbers
 from copy import deepcopy
+import warnings
 
 import numpy as np
 from scipy.interpolate import CubicSpline
@@ -408,24 +409,26 @@ class CircuitProcessor(object):
                 coeff_list.append(H[1])
         return coeff_list, noisy_qobjevo.tlist
 
-    def run_state(self, rho0, **kwargs):
+    def run_analytically(self, rho0=None, qc=None):
         """
-        Use :func:`qutip.mesolve` to calculate the state evolution
-        and return the result. Other arguments of the solver can be
-        given as keyword arguments.
+        Simulate the state evolution under the given `qutip.QubitCircuit`
+        with matrice exponentiation. It will calculate the propagator
+        with matrix exponentiation and return a list of matrices.
 
         Parameters
         ----------
-        rho0: Qobj
-            Initial density matrix or state vector (ket).
+        qc: :class:`qutip.qip.QubitCircuit`, optional
+            Takes the quantum circuit to be implemented. If not given, use
+            the quantum circuit saved in the processor by `load_circuit`.
 
-        kwargs
-            Keyword arguments for the qutip solver.
-            (currently :func:`qutip.mesolve`)
+        rho0: :class:`qutip.Qobj`, optional
+            Initial state of the qubits in the register.
 
         Returns
-        -------
+        --------
         evo_result: :class:`qutip.Result`
+            If the numerical method is used, the result of the solver will
+            be returned.
             An instance of the class :class:`qutip.Result`, which contains
             either an *array* `result.expect` of expectation values for
             the times specified by `tlist`, or an *array* `result.states`
@@ -435,6 +438,109 @@ class CircuitProcessor(object):
             given in place of
             operators for which to calculate the expectation values.
         """
+        if rho0 is not None:
+            U_list = [rho0]
+        else:
+            U_list = []
+        tlist = self.tlist
+        for n in range(len(tlist)-1):
+            H = sum([self.coeffs[m, n] * self.ctrls[m]
+                    for m in range(len(self.ctrls))])
+            dt = tlist[n+1] - tlist[n]
+            U = (-1j * H * dt).expm()
+            U = self.eliminate_auxillary_modes(U)
+            U_list.append(U)
+
+        try:
+            if self.correct_global_phase and self.global_phase != 0:
+                U_list.append(globalphase(self.global_phase, N=self.N))
+        except AttributeError:
+            pass
+
+        return U_list
+
+    def run(self, qc=None):
+        """
+        Calculate the propagator the evolution by matrix exponentiation.
+        This method won't include the noise.
+
+        Parameters
+        ----------
+        qc: :class:`qutip.qip.QubitCircuit`, optional
+            Takes the quantum circuit to be implemented. If not given, use
+            the quantum circuit saved in the processor by `load_circuit`.
+
+        Returns
+        --------
+        U_list: list
+            The propagator matrix obtained from the physical implementation.
+        """
+        if qc:
+            self.load_circuit(qc)
+        return self.run_analytically(qc=qc, rho0=None)
+
+    def run_state(self, rho0=None, analytical=False, qc=None, states=None,
+                  **kwargs):
+        """
+        If `analytical` is False, it will use :func:`qutip.mesolve` to
+        calculate the time of the state evolution
+        and return the result. Other arguments of mesolve can be
+        given as kwargs.
+        If `analytical` is True, it will calculate the propagator
+        with matrix exponentiation and return a list of matrices.
+
+        Parameters
+        ----------
+        rho0: Qobj
+            Initial density matrix or state vector (ket).
+
+        analytical: boolean
+            If the evolution with matrices exponentiation.
+
+        qc: :class:`qutip.qip.QubitCircuit`, optional
+            Takes the quantum circuit to be implemented. If not given, use
+            the quantum circuit saved in the processor by `load_circuit`.
+
+        states: :class:`qutip.Qobj`, optional
+            Old API, same as rho0.
+
+        **kwargs
+            Keyword arguments for the qutip solver.
+            (currently :func:`qutip.mesolve`)
+
+        Returns
+        -------
+        evo_result: :class:`qutip.Result`
+            If `analytical` is False, An instance of the class
+            :class:`qutip.Result`, which contains
+            either an *array* `result.expect` of expectation values for
+            the times specified by `tlist`, or an *array* `result.states`
+            of state vectors or density matrices corresponding to
+            the times in `tlist` [if `e_ops` is
+            an empty list], or nothing if a callback function was
+            given in place of
+            operators for which to calculate the expectation values.
+
+            If `analytical` is True, a list of matrices representation
+            is returned.
+        """
+        if states is not None:
+            warnings.warn("states will be deprecated and replaced by rho0"
+                          "to be consistent with the QuTiP solver.",
+                          DeprecationWarning)
+        if rho0 is None and states is None:
+            raise ValueError("Qubit state not defined.")
+        elif rho0 is None:
+            # just to keep the old prameters `states`, it is replaced by rho0
+            rho0 = states
+        if qc:
+            self.load_circuit(qc)
+        if analytical:
+            if kwargs or self.noise:
+                raise ValueError("Analytical method cannot process noise and"
+                                 "key word arguments.")
+            return self.run_analytically(rho0=rho0)
+
         # kwargs can not contain H
         if "H" in kwargs or "tlist" in kwargs:
             raise ValueError(

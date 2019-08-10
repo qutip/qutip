@@ -179,12 +179,11 @@ class TestSpinChain:
         rho0.dims = [[2]*N, [1]*N]
         rho1 = gate_sequence_product([rho0] + qc.propagators())
         U_list = test.run_state(
-            rho0=rho0, numerical=False,
-            options=Options(store_final_state=True))
+            rho0=rho0, analytical=True)
         result = gate_sequence_product(U_list)
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
-            err_msg="Numerical run_state fails in CircularSpinChain")
+            err_msg="Analytical run_state fails in CircularSpinChain")
 
         # LinearSpinChain
         test = LinearSpinChain(N)
@@ -194,12 +193,11 @@ class TestSpinChain:
         rho0.dims = [[2]*N, [1]*N]
         rho1 = gate_sequence_product([rho0] + qc.propagators())
         U_list = test.run_state(
-            rho0=rho0, numerical=False,
-            options=Options(store_final_state=True))
+            rho0=rho0, analytical=True)
         result = gate_sequence_product(U_list)
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
-            err_msg="Numerical run_state fails in LinearSpinChain")
+            err_msg="Analytical run_state fails in LinearSpinChain")
 
     def test_numerical_evo(self):
         """
@@ -222,7 +220,7 @@ class TestSpinChain:
         rho0.dims = [[2]*N, [1]*N]
         rho1 = gate_sequence_product([rho0] + qc.propagators())
         result = test.run_state(
-            rho0=rho0, numerical=True,
+            rho0=rho0, analytical=False,
             options=Options(store_final_state=True)).final_state
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
@@ -236,7 +234,7 @@ class TestSpinChain:
         rho0.dims = [[2]*N, [1]*N]
         rho1 = gate_sequence_product([rho0] + qc.propagators())
         result = test.run_state(
-            rho0=rho0, numerical=True,
+            rho0=rho0, analytical=False,
             options=Options(store_final_state=True)).final_state
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,

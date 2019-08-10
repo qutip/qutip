@@ -126,11 +126,11 @@ class Testcqed:
         rho1 = gate_sequence_product([rho0] + qc.propagators())
 
         p = DispersivecQED(N, correct_global_phase=True)
-        U_list = p.run_state(qc, rho0=rho0, numerical=False)
+        U_list = p.run_state(rho0=rho0, qc=qc, analytical=True)
         result = gate_sequence_product(U_list)
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-2,
-            err_msg="Numerical run_state fails in DispersivecQED")
+            err_msg="Analytical run_state fails in DispersivecQED")
 
     def test_numerical_evo(self):
         """
@@ -154,7 +154,7 @@ class Testcqed:
         rho0 = tensor(basis(10, 0), qu0)
         qu1 = gate_sequence_product([qu0] + qc.propagators())
         result = test.run_state(
-            rho0=rho0, numerical=True,
+            rho0=rho0, analytical=False,
             options=Options(store_final_state=True, nsteps=50000)).final_state
         assert_allclose(
             fidelity(result, tensor(basis(10, 0), qu1)), 1., rtol=1e-2,
