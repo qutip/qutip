@@ -255,13 +255,16 @@ class ControlAmpNoise(CircuitNoise):
 
     Parameters
     ----------
-    ops: :class:`qutip.Qobj` or list
-        The Hamiltonian representing the dynamics of the noise.
-        len(ops)=len(coeffs) is required.
-
     coeffs: list
         A list of the coefficients for the control Hamiltonians.
         For available choices, see :class:`Qutip.QobjEvo`.
+
+    tlist: array_like, optional
+        A NumPy array specifies the time of each coefficient.
+
+    ops: :class:`qutip.Qobj` or list
+        The Hamiltonian representing the dynamics of the noise.
+        len(ops)=len(coeffs) is required.
 
     targets: int or list, optional
         The indices of qubits that are acted on. Default is the first
@@ -273,12 +276,15 @@ class ControlAmpNoise(CircuitNoise):
 
     Attributes
     ----------
-    ops: list
-        The Hamiltonian representing the dynamics of the noise.
-
     coeffs: list
         A list of the coefficients for the control Hamiltonians.
         For available choices, see :class:`Qutip.QobjEvo`.
+
+    tlist: array_like
+        A NumPy array specifies the time of each coefficient.
+
+    ops: list
+        The Hamiltonian representing the dynamics of the noise.
 
     targets: list
         The indices of qubits that are acted on.
@@ -287,9 +293,10 @@ class ControlAmpNoise(CircuitNoise):
         If true, the Hamiltonian will be expanded for
         all cyclic permutation of the target qubits.
     """
-    def __init__(self, coeffs, ops=None, targets=None,
+    def __init__(self, coeffs, tlist, ops=None, targets=None,
                  cyclic_permutation=False):
         self.coeffs = coeffs
+        self.tlist = tlist
         if isinstance(ops, Qobj):
             self.ops = [ops]
         else:
@@ -297,7 +304,7 @@ class ControlAmpNoise(CircuitNoise):
         self.targets = targets
         self.cyclic_permutation = cyclic_permutation
 
-    def get_noise(self, N, proc_qobjevo=None, dims=None, tlist=None):
+    def get_noise(self, N, proc_qobjevo=None, dims=None):
         """
         Return the quantum objects representing the noise.
 
@@ -305,9 +312,6 @@ class ControlAmpNoise(CircuitNoise):
         ----------
         N: int
             The number of component systems.
-
-        tlist: array_like, optional
-            A NumPy array specifies the time of each coefficient.
 
         proc_qobjevo: :class:`qutip.QobjEvo`, optional
             If no operator is defined in the noise object, `proc_qobjevo`
@@ -325,8 +329,6 @@ class ControlAmpNoise(CircuitNoise):
         """
         if dims is None:
             dims = [2] * N
-        if tlist is None:
-            tlist = proc_qobjevo.tlist
 
         # If new operators are given
         if self.ops is not None:
@@ -357,7 +359,7 @@ class ControlAmpNoise(CircuitNoise):
             raise ValueError("The number of coefficient has to be larger than"
                              "{}".format(len(ops)))
         return QobjEvo([[ops[i], self.coeffs[i]] for i in range(len(ops))],
-                       tlist=tlist)
+                       tlist=self.tlist)
 
 
 class RandomNoise(ControlAmpNoise):
@@ -414,7 +416,7 @@ class RandomNoise(ControlAmpNoise):
             self, rand_gen=None, dt=None, ops=None, targets=None,
             cyclic_permutation=False, **kwargs):
         super(RandomNoise, self).__init__(
-            coeffs=None, ops=ops, targets=targets,
+            coeffs=None, tlist=None, ops=ops, targets=targets,
             cyclic_permutation=cyclic_permutation)
         if rand_gen is None:
             self.rand_gen = np.random.normal
@@ -471,8 +473,9 @@ class RandomNoise(ControlAmpNoise):
         else:
             self.coeffs = self.rand_gen(
                 **self.kwargs, size=(ops_num, len(tlist)))
+        self.tlist = tlist
         return super(RandomNoise, self).get_noise(
-            N, proc_qobjevo=proc_qobjevo, dims=dims, tlist=tlist)
+            N, proc_qobjevo=proc_qobjevo, dims=dims)
 
 
 class UserNoise(CircuitNoise):

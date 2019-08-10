@@ -228,7 +228,7 @@ class ModelProcessor(CircuitProcessor):
             Key word arguments for the:func:`qutip.mesolve`.
     
         states: :class:`qutip.Qobj`, optional
-            Old API, deprecated to be consistent with qutip solver.
+            Old API, same as rho0.
 
         Returns
         --------
@@ -254,7 +254,7 @@ class ModelProcessor(CircuitProcessor):
             rho0 = states
         if qc:
             self.load_circuit(qc)
-            # TODO It noise exists, give warning
+            # TODO If noise exists, give warning
         if numerical:
             return super(ModelProcessor, self).run_state(rho0=rho0, **kwargs)
 

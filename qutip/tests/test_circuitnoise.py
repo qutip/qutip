@@ -82,28 +82,30 @@ class TestCircuitNoise:
 
         # use external operators and no expansion
         dummy_qobjevo = QobjEvo(sigmaz(), tlist=tlist)
-        connoise = ControlAmpNoise(ops=sigmax(), coeffs=[coeff])
+        connoise = ControlAmpNoise(ops=sigmax(), coeffs=[coeff], tlist=tlist)
         noise = connoise.get_noise(N=1, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, sigmax())
         assert_allclose(noise.tlist, tlist)
         assert_allclose(noise.ops[0].coeff, coeff)
 
         dummy_qobjevo = QobjEvo(tensor([sigmaz(), sigmaz()]), tlist=tlist)
-        connoise = ControlAmpNoise(ops=[sigmay()], coeffs=[coeff], targets=1)
+        connoise = ControlAmpNoise(ops=[sigmay()], coeffs=[coeff],
+                                   tlist=tlist, targets=1)
         noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([qeye(2), sigmay()]))
 
         # use external operators with expansion
         dummy_qobjevo = QobjEvo(sigmaz(), tlist=tlist)
         connoise = ControlAmpNoise(
-            ops=sigmaz(), coeffs=[coeff]*2, cyclic_permutation=True)
+            ops=sigmaz(), coeffs=[coeff]*2,
+            tlist=tlist, cyclic_permutation=True)
         noise = connoise.get_noise(N=2, proc_qobjevo=dummy_qobjevo)
         assert_allclose(noise.ops[0].qobj, tensor([sigmaz(), qeye(2)]))
         assert_allclose(noise.ops[1].qobj, tensor([qeye(2), sigmaz()]))
 
         # use proc_qobjevo
         proc_qobjevo = QobjEvo([[sigmaz(), coeff]], tlist=tlist)
-        connoise = ControlAmpNoise(coeffs=[coeff])
+        connoise = ControlAmpNoise(coeffs=[coeff], tlist=tlist)
         noise = connoise.get_noise(N=2, proc_qobjevo=proc_qobjevo)
         assert_allclose(noise.ops[0].qobj, sigmaz())
         assert_allclose(noise.ops[0].coeff, coeff[0])

@@ -329,7 +329,6 @@ class CircuitProcessor(object):
         unitary_qobjevo: :class:`qutip.QobjEvo`
             The :class:`qutip.QobjEvo` representation of the unitary evolution.
         """
-        # TODO add test
         # check validity
         self._is_coeff_valid()
 
@@ -348,6 +347,7 @@ class CircuitProcessor(object):
                 coeffs = self.coeffs
         elif self.spline_kind == "cubic":
             args.update({"_step_func_coeff": False})
+            coeffs = self.coeffs
         else:
             raise ValueError("Wrong spline_kind.")
 
@@ -377,7 +377,6 @@ class CircuitProcessor(object):
         c_pos: list
             A list of time-(in)dependent collapse operators.
         """
-        # TODO add test for args
         unitary_qobjevo = self.get_unitary_qobjevo(args=args)
         ham_noise, c_ops = self._process_noise(unitary_qobjevo)
         noisy_qobjevo = self._compatible_coeff([unitary_qobjevo, ham_noise])
@@ -401,7 +400,6 @@ class CircuitProcessor(object):
         please use :meth:`qutip.qip.circuitprocessor.get_noisy_qobjevo`
         if they are needed.
         """
-        # TODO add test
         noisy_qobjevo, c_ops = self.get_noisy_qobjevo()
         coeff_list = []
         H_list = noisy_qobjevo.to_list()
@@ -511,6 +509,12 @@ class CircuitProcessor(object):
         title: str
             Title for the plot.
 
+        figsize: tuple
+            The size of the figure
+
+        dpi: int
+            The dpi of the figure
+
         Returns
         -------
         fig: matplotlib.figure.Figure
@@ -519,10 +523,9 @@ class CircuitProcessor(object):
         ax: matplotlib.axes._subplots.AxesSubplot
             The axes for the plot.
 
-
         Note
         ----
-        It only works for array-like coefficients
+        ``plot_pulses`` only works for array-like coefficients
         """
         import matplotlib.pyplot as plt
 
@@ -530,7 +533,6 @@ class CircuitProcessor(object):
         ax.set_ylabel("Control pulse amplitude")
         ax.set_xlabel("Time")
         if noisy:
-            # TODO add test
             coeffs, tlist = self.get_noisy_coeffs()
         else:
             coeffs = [coeff for coeff in self.coeffs]
@@ -539,7 +541,7 @@ class CircuitProcessor(object):
         for i in range(len(coeffs)):
             if not isinstance(coeffs[i], (Iterable, np.ndarray)):
                 raise ValueError(
-                    "plot_pulse only accept array-like coefficients.")
+                    "plot_pulse only accepts array-like coefficients.")
             if self.spline_kind == "step_func":
                 if len(coeffs[i]) == len(tlist) - 1:
                     coeffs[i] = np.hstack(

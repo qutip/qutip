@@ -32,7 +32,8 @@
 ###############################################################################
 import os
 
-from numpy.testing import assert_, run_module_suite, assert_allclose
+from numpy.testing import (
+    assert_, run_module_suite, assert_allclose, assert_equal)
 import numpy as np
 
 from qutip.qip.models.circuitprocessor import CircuitProcessor
@@ -42,13 +43,14 @@ from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
 from qutip.random_objects import rand_ket, rand_dm
-from qutip.qip.models.circuitnoise import DecoherenceNoise, RandomNoise
+from qutip.qip.models.circuitnoise import (
+    DecoherenceNoise, RandomNoise, ControlAmpNoise)
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity
 
 
 class TestCircuitProcessor:
-    def test_modify_hams(self):
+    def test_modify_ctrls(self):
         """
         Test for modifying Hamiltonian, add_ctrl, remove_ctrl
         """
@@ -153,6 +155,113 @@ class TestCircuitProcessor:
             err_msg="Error in T1 & T2 simulation, "
                     "with T1={} and T2={}".format(T1, T2))
 
+    def TestPlot(self):
+        try:
+            import matplotlib.pyplot as plt
+        except:
+            return True
+        # step_func
+        tlist = np.linspace(0., 2*np.pi, 20)
+        processor = CircuitProcessor(N=1, spline_kind="step_func")
+        processor.add_ctrl(sigmaz())
+        processor.tlist = tlist
+        processor.coeffs = np.array([[np.sin(t) for t in tlist]])
+        processor.plot_pulses(noisy=False)
+        plt.clf()
+
+        # cubic spline
+        tlist = np.linspace(0., 2*np.pi, 20)
+        processor = CircuitProcessor(N=1, spline_kind="cubic")
+        processor.add_ctrl(sigmaz())
+        processor.tlist = tlist
+        processor.coeffs = np.array([[np.sin(t) for t in tlist]])
+        processor.plot_pulses(noisy=False)
+        plt.clf()
+
+        # noisy
+        processor = CircuitProcessor(N=1)
+        processor.add_ctrl(sigmaz(), targets=0)
+        processor.add_ctrl(sigmay(), targets=0)
+        processor.coeffs = np.array([[ 0.5, 0.,  0.5],
+                                    [ 0. , 0.5, 0. ]])
+        processor.tlist = np.array([0., np.pi/2., 2*np.pi/2, 3*np.pi/2])
+
+        processor.plot_pulses(noisy=False)
+        plt.clf()
+        processor.plot_pulses(noisy=True)
+        plt.clf()
+
+    def TestSpline(self):
+        tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
+        coeffs = np.array([[1, 1, 1, 1, 1, 1]], dtype=float)
+        processor = CircuitProcessor(N=1)
+        processor.add_ctrl(sigmaz())
+        processor.tlist = tlist
+        processor.coeffs = coeffs
+
+        processor.spline_kind = "step_func"
+        noisy_qobjevo, c_ops = processor.get_noisy_qobjevo()
+        assert_(noisy_qobjevo.args["_step_func_coeff"])
+
+        processor.spline_kind = "cubic"
+        noisy_qobjevo, c_ops = processor.get_noisy_qobjevo()
+        assert_(not noisy_qobjevo.args["_step_func_coeff"])
+
+    def TestGetObjevo(self):
+        tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
+        coeffs = np.array([[1, 1, 1, 1, 1, 1]], dtype=float)
+        processor = CircuitProcessor(N=1)
+        processor.add_ctrl(sigmaz())
+        processor.tlist = tlist
+        processor.coeffs = coeffs
+
+        # without noise
+        unitary_qobjevo = processor.get_unitary_qobjevo(args={"test": True})
+        assert_allclose(unitary_qobjevo.ops[0].qobj, sigmaz())
+        assert_allclose(unitary_qobjevo.tlist, tlist)
+        assert_allclose(unitary_qobjevo.ops[0].coeff, coeffs[0])
+        assert_(unitary_qobjevo.args["test"],
+                msg="Arguments not correctly passed on")
+
+        # with decoherence noise
+        dec_noise = DecoherenceNoise(
+            c_ops=sigmax(), coeffs=coeffs, tlist=tlist)
+        processor.add_noise(dec_noise)
+        assert_equal(unitary_qobjevo.to_list(),
+                        processor.get_unitary_qobjevo().to_list())
+
+        noisy_qobjevo, c_ops = processor.get_noisy_qobjevo(args={"test": True})
+        assert_(noisy_qobjevo.args["_step_func_coeff"],
+                msg="Spline type not correctly passed on")
+        assert_(noisy_qobjevo.args["test"],
+                msg="Arguments not correctly passed on")
+        assert_(sigmaz() in [pair[0] for pair in noisy_qobjevo.to_list()])
+        assert_equal(c_ops[0].ops[0].qobj, sigmax())
+        assert_equal(c_ops[0].tlist, tlist)
+
+        # with amplitude noise
+        processor.spline_kind = "cubic"
+        new_tlist = np.linspace(1, 6, int(5/0.2))
+        new_coeffs = np.random.rand(1, len(new_tlist))
+        # noise with a different operator
+        amp_noise = ControlAmpNoise(ops=sigmax(), coeffs=coeffs, tlist=tlist)
+        processor.add_noise(amp_noise)
+        noisy_qobjevo, c_ops = processor.get_noisy_qobjevo(args={"test": True})
+        assert_(not noisy_qobjevo.args["_step_func_coeff"],
+                msg="Spline type not correctly passed on")
+        assert_(sigmax() in [pair[0] for pair in noisy_qobjevo.to_list()])
+        # noise with operators in the processor
+        # Since the noise operator is also sigmaz,
+        # it should be merged with the original operator
+        amp_noise2 = ControlAmpNoise(coeffs=coeffs, tlist=tlist)
+        processor.noise[1] = amp_noise2
+        noisy_qobjevo, c_ops = processor.get_noisy_qobjevo(args={"test": True})
+        assert_(not noisy_qobjevo.args["_step_func_coeff"],
+                msg="Spline type not correctly passed on")
+        assert_equal(len(noisy_qobjevo.ops), 1)
+        assert_equal(sigmaz(), noisy_qobjevo.ops[0].qobj)
+        assert_equal(coeffs[0] * 2, noisy_qobjevo.ops[0].coeff)
+
     def TestNoise(self):
         """
         Test for CircuitProcessor with noise
@@ -189,7 +298,7 @@ class TestCircuitProcessor:
         proc.add_noise(white_noise)
         result = proc.run_state(rho0=rho0)
 
-    def MultiLevelSystem(self):
+    def TestMultiLevelSystem(self):
         """
         Test for processor with multi-level system
         """
