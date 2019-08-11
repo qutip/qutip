@@ -388,6 +388,36 @@ def test_QobjEvo_compress():
     _assert_qobj_almost_eq(td_obj_2(t), td_obj_1(t))
 
 
+def test_QobjEvo_shift():
+    """QobjEvo _shift time"""
+    tlist = np.linspace(0, 1, 300)
+    td_obj_1 = QobjEvo(_random_QobjEvo((1,1), [0,0], tlist=tlist),
+                       args={"w1":1, "w2":2}, tlist=tlist)
+    td_obj_1s = td_obj_1.copy()
+    td_obj_1s._shift()
+    td_obj_2 = QobjEvo(_random_QobjEvo((1,1), [1,1], tlist=tlist),
+                       args={"w1":1, "w2":2}, tlist=tlist)
+    td_obj_2s = td_obj_2.copy()
+    td_obj_2s._shift()
+
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(1, args={"_t0":-1}))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(1, args={"_t0":-1}))
+    td_obj_1s.arguments({"_t0":-1})
+    td_obj_2s.arguments({"_t0":-1})
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(1))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(1))
+    td_obj_1s.compile()
+    td_obj_2s.compile()
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(1))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(1))
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(2, args={"_t0":-2}))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(2, args={"_t0":-2}))
+    td_obj_1s.arguments({"_t0":-2})
+    td_obj_2s.arguments({"_t0":-2})
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(2))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(2))
+
+
 def test_QobjEvo_apply():
     "QobjEvo apply"
     def multiply(qobj,b,factor = 3.):

@@ -130,6 +130,18 @@ class TestQubitCircuit:
         U2 = gate_sequence_product(qc2.propagators())
         assert_((U1 - U2).norm() < 1e-12)
 
+    def testSNOTdecompose(self):
+        """
+        SNOT to rotation: compare unitary matrix for SNOT and product of
+        resolved matrices in terms of rotation gates.
+        """
+        qc1 = QubitCircuit(1)
+        qc1.add_gate("SNOT", targets=0)
+        U1 = gate_sequence_product(qc1.propagators())
+        qc2 = qc1.resolve_gates()
+        U2 = gate_sequence_product(qc2.propagators())
+        assert_((U1 - U2).norm() < 1e-12)
+
     def testadjacentgates(self):
         """
         Adjacent Gates: compare unitary matrix for ISWAP and product of
