@@ -1,4 +1,4 @@
-#!python
+#!/bin/sh python
 #cython: language_level=3
 ## cython: profile=True
 ## cython: linetrace=True
