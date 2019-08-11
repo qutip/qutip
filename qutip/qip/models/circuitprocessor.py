@@ -446,7 +446,7 @@ class CircuitProcessor(object):
         for n in range(len(tlist)-1):
             H = sum([self.coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
-            dt = tlist[n+1] - tlist[n]
+            dt = tlist[n + 1] - tlist[n]
             U = (-1j * H * dt).expm()
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
@@ -538,14 +538,14 @@ class CircuitProcessor(object):
         if analytical:
             if kwargs or self.noise:
                 raise ValueError("Analytical method cannot process noise and"
-                                 "key word arguments.")
+                                 "keyword arguments.")
             return self.run_analytically(rho0=rho0)
 
-        # kwargs can not contain H
+        # kwargs can not contain H or tlist
         if "H" in kwargs or "tlist" in kwargs:
             raise ValueError(
                 "`H` and `tlist` are already specified by the processor "
-                "and can not be given as a key word argument")
+                "and can not be given as a keyword argument")
 
         # construct qobjevo for unitary evolution
         if "args" in kwargs:

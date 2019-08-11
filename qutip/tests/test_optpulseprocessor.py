@@ -58,11 +58,11 @@ class TestOptPulseProcessor:
         qc.add_gate("SNOT", 0)
 
         # test load_circuit, with verbose info
-        n_ts = 10
+        num_tslots = 10
         evo_time = 10
         test = OptPulseProcessor(N, H_d, H_c)
         tlist, coeffs = test.load_circuit(
-            qc, n_ts=n_ts, evo_time=evo_time, verbose=True)
+            qc, num_tslots=num_tslots, evo_time=evo_time, verbose=True)
 
         # test run_state
         rho0 = qubit_states(1, [0])
@@ -87,7 +87,7 @@ class TestOptPulseProcessor:
         H_c = []
 
         # test empty ctrls
-        n_ts = 30
+        num_tslots = 30
         evo_time = 10
         test = OptPulseProcessor(N, H_d, H_c)
         test.add_ctrl(tensor([sigmax(), sigmax()]),
@@ -104,7 +104,7 @@ class TestOptPulseProcessor:
 
         # test pulse genration for cnot gate, with kwargs
         qc = [tensor([identity(2), cnot()])]
-        test.load_circuit(qc, n_ts=n_ts, evo_time=evo_time, min_fid_err=1.0e-6)
+        test.load_circuit(qc, num_tslots=num_tslots, evo_time=evo_time, min_fid_err=1.0e-6)
         rho0 = qubit_states(3, [1, 1, 1])
         rho1 = qubit_states(3, [1, 1, 0])
         result = test.run_state(
@@ -135,13 +135,14 @@ class TestOptPulseProcessor:
         test.add_ctrl(tensor([sigmay(), sigmay()]))
 
         # qubits circuit with 3 gates
-        n_ts = [10, 30, 30]
-        evo_time = [1, 3, 3]
+        setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
+                        "SWAP": {"num_tslots": 30, "evo_time": 3},
+                        "CNOT": {"num_tslots": 30, "evo_time": 3}}
         qc = QubitCircuit(N)
         qc.add_gate("SNOT", 0)
         qc.add_gate("SWAP", targets=[0, 1])
         qc.add_gate('CNOT', controls=1, targets=[0])
-        test.load_circuit(qc, n_ts=n_ts, evo_time=evo_time)
+        test.load_circuit(qc, setting_args=setting_args)
 
         rho0 = rand_ket(4)  # use random generated ket state
         rho0.dims = [[2, 2], [1, 1]]
@@ -192,6 +193,13 @@ class TestOptPulseProcessor:
             rtol=1e-5,
             err_msg="Error in T1 & T2 simulation, "
                     "with T1={} and T2={}".format(T1, T2))
+
+    def TestGetQobjevo(self):
+        processor = OptPulseProcessor(N=1, drift=sigmaz())
+        processor.tlist = np.array([0., 1., 2.])
+        processor.pulses = np.array([1., 1., 1.])
+        unitary_qobjevo = processor.get_unitary_qobjevo()
+        assert_equal(unitary_qobjevo.cte, sigmaz())
 
 if __name__ == "__main__":
     run_module_suite()
