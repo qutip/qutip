@@ -440,11 +440,6 @@ class QobjEvo:
         self.type = "none"
         self.omp = 0
 
-        # for Q_object = [Qobj, Qobj...]
-        if Q_object and isinstance(Q_object, list) and \
-                    all(isinstance(H, Qobj) for H in Q_object):
-            Q_object = sum(Q_object)
-
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
                                                                 (Qobj, list)):
@@ -1700,6 +1695,3 @@ class _Add():
         return np.sum([f(t, args) for f in self.funcs])
 
 from qutip.superoperator import vec2mat
-
-
-#%%
