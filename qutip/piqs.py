@@ -240,7 +240,7 @@ def entropy_vn_dicke(rho):
         Entropy. Use degeneracy to multiply each block.
         
     """
-    return dicke_function_trace(f=entr, rho)
+    return dicke_function_trace(entr, rho)
 
 def purity_dicke(rho):
     """Calculate purity of a density matrix in the Dicke basis.
