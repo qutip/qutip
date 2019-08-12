@@ -45,6 +45,7 @@ from decimal import Decimal
 
 import numpy as np
 from scipy.integrate import odeint
+from scipy.sparse.linalg import eigsh
 from scipy import constants
 from scipy.sparse import dok_matrix, block_diag, lil_matrix
 from qutip.solver import Options, Result
