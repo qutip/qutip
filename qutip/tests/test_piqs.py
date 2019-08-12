@@ -156,20 +156,38 @@ class TestDicke:
         
     def test_dicke_function_trace(self):
         """
-        PIQS: Test the `dicke_trace` function.
+        PIQS: Test the `dicke_function_trace` function.
         """
         N = 3
+        # test trace
         rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
-        test_val = dicke_trace(rho_mixed,f=None)
+        f = lambda x:x
+        test_val = dicke_function_trace(f,rho_mixed)
         true_val = (expand_dicke_matrix(rho_mixed)).tr()
         true_val2 = (rho_mixed).tr()
         # test with linear function (trace)
         assert_almost_equal(test_val,true_val)
         assert_almost_equal(test_val,true_val2)
         # test with nonlinear function
-        test_val3 = dicke_trace(rho_mixed,lambda rho: (rho**3).tr())
+        f = lambda rho: rho**3
+        test_val3 = dicke_function_trace(f,rho_mixed)
         true_val3 = (expand_dicke_matrix(rho_mixed)**3).tr()
         assert_almost_equal(test_val3,true_val3)
+        N = 4
+        # test trace
+        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
+        f = lambda x:x
+        test_val = dicke_function_trace(f,rho_mixed)
+        true_val = (expand_dicke_matrix(rho_mixed)).tr()
+        true_val2 = (rho_mixed).tr()
+        # test with linear function (trace)
+        assert_almost_equal(test_val,true_val)
+        assert_almost_equal(test_val,true_val2)
+        # test with nonlinear function
+        f = lambda rho: rho**3
+        test_val3 = dicke_function_trace(f,rho_mixed)
+        true_val3 = (expand_dicke_matrix(rho_mixed)**3).tr()
+        assert np.allclose(test_val3, true_val3)
         
     def test_entropy_vn_dicke(self):
         """
@@ -179,7 +197,7 @@ class TestDicke:
         rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
         test_val = entropy_vn_dicke(rho_mixed)
         true_val = entropy_vn(expand_dicke_matrix(rho_mixed))
-        assert_(test_val == true_val)
+        assert np.allclose(test_val, true_val)
 
     def test_purity_dicke(self):
         """
@@ -189,7 +207,7 @@ class TestDicke:
         rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
         test_val = purity_dicke(rho_mixed)
         true_val = (expand_dicke_matrix(rho_mixed)).purity()
-        assert_(test_val == true_val)
+        assert np.allclose(test_val, true_val)
 
     def test_get_index(self):
         """
