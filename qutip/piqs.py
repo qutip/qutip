@@ -258,7 +258,7 @@ def purity_dicke(rho):
         It's 1 for pure states, 0<=purity<1 for mixed states.       
     """
     f = lambda x: x*x    
-    return dicke_function_trace(rho)
+    return dicke_function_trace(f, rho)
 
 def expand_dicke_matrix(rho,blocks='qobj'):
     """Expand the block-diagonal matrix from the Dicke basis to 2^N.
