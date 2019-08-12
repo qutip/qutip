@@ -10,7 +10,7 @@ from qutip.operators import sigmaz, destroy, identity
 from qutip.tensor import tensor
 
 
-__all__ = ["CircuitNoise", "DecoherenceNoise", "RelaxationNoise",
+__all__ = ["Noise", "DecoherenceNoise", "RelaxationNoise",
            "ControlAmpNoise", "RandomNoise", "UserNoise"]
 
 
@@ -24,7 +24,7 @@ def _dummy_qobjevo(dims, **kwargs):
     return dummy
 
 
-class CircuitNoise(object):
+class Noise(object):
     """
     The base class representing noise in a circuit processor.
     The noise object can be added to :class:`qutip.qip.CircuitProcessor` and
@@ -39,7 +39,7 @@ class CircuitNoise(object):
                 "The length of coeffs is not {}".format(ops_num))
 
 
-class DecoherenceNoise(CircuitNoise):
+class DecoherenceNoise(Noise):
     """
     The decoherence noise in a circuit processor. It will generate a list of
     collapse operators.
@@ -146,7 +146,7 @@ class DecoherenceNoise(CircuitNoise):
         return qobjevo_list
 
 
-class RelaxationNoise(CircuitNoise):
+class RelaxationNoise(Noise):
     """
     The decoherence on each qubit characterized by two time scales T1 and T2.
 
@@ -254,7 +254,7 @@ class RelaxationNoise(CircuitNoise):
         return qobjevo_list
 
 
-class ControlAmpNoise(CircuitNoise):
+class ControlAmpNoise(Noise):
     """
     The noise in the amplitude of the control pulse.
 
@@ -483,7 +483,7 @@ class RandomNoise(ControlAmpNoise):
             N, proc_qobjevo=proc_qobjevo, dims=dims)
 
 
-class UserNoise(CircuitNoise):
+class UserNoise(Noise):
     """
     Abstract class for user defined noise. To define a noise object,
     one could overwrite the constructor and the class method `get_noise`.

@@ -46,8 +46,8 @@ from qutip.qip.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.circuitnoise import (
-    CircuitNoise, RelaxationNoise, DecoherenceNoise,
+from qutip.qip.device.noise import (
+    Noise, RelaxationNoise, DecoherenceNoise,
     ControlAmpNoise, RandomNoise, UserNoise)
 
 
@@ -62,7 +62,7 @@ class CircuitProcessor(object):
     the decoherence time for each component systems.
     The processor can simulate the evolution under the given
     control pulses. Noisy evolution is supported by
-    :class:`qutip.qip.CircuitNoise` and can be added to the processor.
+    :class:`qutip.qip.device.Noise` and can be added to the processor.
 
     Parameters
     ----------
@@ -122,7 +122,7 @@ class CircuitProcessor(object):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.CircuitNoise`, optional
+    noise: :class:`qutip.qip.device.Noise`, optional
         A list of noise objects. They will be processed when creating the
         noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
@@ -651,13 +651,13 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        noise: :class:`qutip.qip.CircuitNoise`
+        noise: :class:`qutip.qip.device.Noise`
             The noise object defined outside the processor
         """
-        if isinstance(noise, CircuitNoise):
+        if isinstance(noise, Noise):
             self.noise.append(noise)
         else:
-            raise TypeError("Input is not a CircuitNoise object.")
+            raise TypeError("Input is not a Noise object.")
 
     def _process_noise(self, proc_qobjevo):
         """

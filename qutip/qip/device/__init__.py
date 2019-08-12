@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.qip.device.circuitprocessor import *
-from qutip.qip.device.circuitnoise import *
+from qutip.qip.device.noise import *
 from qutip.qip.device.spinchain import *
 from qutip.qip.device.cqed import *
 # from qutip.qip.device.optpulseprocessor import * circular importation

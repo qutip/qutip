@@ -104,7 +104,7 @@ class OptPulseProcessor(CircuitProcessor):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.CircuitNoise`, optional
+    noise: :class:`qutip.qip.device.Noise`, optional
         The noise object, they will be processed when creating the
         noisy :class:`qutip.QobjEvo` or run the simulation.
 

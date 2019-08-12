@@ -43,7 +43,7 @@ from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
 from qutip.random_objects import rand_ket, rand_dm
-from qutip.qip.device.circuitnoise import (
+from qutip.qip.device.noise import (
     DecoherenceNoise, RandomNoise, ControlAmpNoise)
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity

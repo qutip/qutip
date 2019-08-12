@@ -117,7 +117,7 @@ class DispersivecQED(ModelProcessor):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.CircuitNoise`, optional
+    noise: :class:`qutip.qip.device.Noise`, optional
         A list of noise objects. They will be processed when creating the
         noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
