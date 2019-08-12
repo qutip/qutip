@@ -46,6 +46,7 @@ from decimal import Decimal
 import numpy as np
 from scipy.integrate import odeint
 from scipy.sparse.linalg import eigsh
+from scipy.special import entr
 from scipy import constants
 from scipy.sparse import dok_matrix, block_diag, lil_matrix
 from qutip.solver import Options, Result
@@ -239,8 +240,7 @@ def entropy_vn_dicke(rho):
         Entropy. Use degeneracy to multiply each block.
         
     """
-    f = lambda x: -x*np.log(x)
-    return dicke_function_trace(f, rho)
+    return dicke_function_trace(f=entr, rho)
 
 def purity_dicke(rho):
     """Calculate purity of a density matrix in the Dicke basis.

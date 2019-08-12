@@ -158,6 +158,7 @@ class TestDicke:
         """
         PIQS: Test the `dicke_function_trace` function.
         """
+        ## test for N odd
         N = 3
         # test trace
         rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
@@ -173,9 +174,10 @@ class TestDicke:
         test_val3 = dicke_function_trace(f,rho_mixed)
         true_val3 = (expand_dicke_matrix(rho_mixed)**3).tr()
         assert_almost_equal(test_val3,true_val3)
+        ## test for N even
         N = 4
         # test trace
-        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
+        rho_mixed = (excited(N)+dicke(N,0,0)).unit()
         f = lambda x:x
         test_val = dicke_function_trace(f,rho_mixed)
         true_val = (expand_dicke_matrix(rho_mixed)).tr()
