@@ -154,7 +154,7 @@ class TestDicke:
         true_expanded[0,0] = 1.
         assert_(test_matrix == Qobj(true_expanded))
         
-    def test_dicke_trace(self):
+    def test_dicke_function_trace(self):
         """
         PIQS: Test the `dicke_trace` function.
         """
