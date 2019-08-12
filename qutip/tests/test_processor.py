@@ -36,7 +36,7 @@ from numpy.testing import (
     assert_, run_module_suite, assert_allclose, assert_equal)
 import numpy as np
 
-from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.processor import Processor
 from qutip.states import basis
 from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
 from qutip.qip.gates import hadamard_transform
@@ -55,7 +55,7 @@ class TestCircuitProcessor:
         Test for modifying Hamiltonian, add_ctrl, remove_ctrl
         """
         N = 2
-        proc = CircuitProcessor(N=N)
+        proc = Processor(N=N)
         proc.ctrls
         proc.ctrls = [sigmaz()]
         assert_(tensor([sigmaz(), identity(2)]), proc.ctrls[0])
@@ -74,11 +74,11 @@ class TestCircuitProcessor:
         """
         Test for saving and reading a pulse matrix
         """
-        proc = CircuitProcessor(N=2)
+        proc = Processor(N=2)
         proc.add_ctrl(sigmaz(), cyclic_permutation=True)
-        proc1 = CircuitProcessor(N=2)
+        proc1 = Processor(N=2)
         proc1.add_ctrl(sigmaz(), cyclic_permutation=True)
-        proc2 = CircuitProcessor(N=2)
+        proc2 = Processor(N=2)
         proc2.add_ctrl(sigmaz(), cyclic_permutation=True)
         tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
         amp1 = np.arange(0, 5, 1)
@@ -102,7 +102,7 @@ class TestCircuitProcessor:
         Test for identity evolution
         """
         N = 1
-        proc = CircuitProcessor(N=N)
+        proc = Processor(N=N)
         rho0 = rand_ket(2)
         proc.tlist = [0., 1., 2.]
         result = proc.run_state(
@@ -125,7 +125,7 @@ class TestCircuitProcessor:
         T2 = 0.5
 
         # test T1
-        test = CircuitProcessor(1, T1=T1)
+        test = Processor(1, T1=T1)
         test.tlist = tlist
         result = test.run_state(ex_state, e_ops=[a.dag()*a])
 
@@ -134,7 +134,7 @@ class TestCircuitProcessor:
             rtol=1e-5, err_msg="Error in T1 time simulation")
 
         # test T2
-        test = CircuitProcessor(1, T2=T2)
+        test = Processor(1, T2=T2)
         test.tlist = tlist
         result = test.run_state(
             rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
@@ -145,7 +145,7 @@ class TestCircuitProcessor:
         # test T1 and T2
         T1 = np.random.rand(1) + 0.5
         T2 = np.random.rand(1) * 0.5 + 0.5
-        test = CircuitProcessor(1, T1=T1, T2=T2)
+        test = Processor(1, T1=T1, T2=T2)
         test.tlist = tlist
         result = test.run_state(
             rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
@@ -162,7 +162,7 @@ class TestCircuitProcessor:
             return True
         # step_func
         tlist = np.linspace(0., 2*np.pi, 20)
-        processor = CircuitProcessor(N=1, spline_kind="step_func")
+        processor = Processor(N=1, spline_kind="step_func")
         processor.add_ctrl(sigmaz())
         processor.tlist = tlist
         processor.coeffs = np.array([[np.sin(t) for t in tlist]])
@@ -171,7 +171,7 @@ class TestCircuitProcessor:
 
         # cubic spline
         tlist = np.linspace(0., 2*np.pi, 20)
-        processor = CircuitProcessor(N=1, spline_kind="cubic")
+        processor = Processor(N=1, spline_kind="cubic")
         processor.add_ctrl(sigmaz())
         processor.tlist = tlist
         processor.coeffs = np.array([[np.sin(t) for t in tlist]])
@@ -179,7 +179,7 @@ class TestCircuitProcessor:
         plt.clf()
 
         # noisy
-        processor = CircuitProcessor(N=1)
+        processor = Processor(N=1)
         processor.add_ctrl(sigmaz(), targets=0)
         processor.add_ctrl(sigmay(), targets=0)
         processor.coeffs = np.array([[ 0.5, 0.,  0.5],
@@ -194,7 +194,7 @@ class TestCircuitProcessor:
     def TestSpline(self):
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeffs = np.array([[1, 1, 1, 1, 1, 1]], dtype=float)
-        processor = CircuitProcessor(N=1)
+        processor = Processor(N=1)
         processor.add_ctrl(sigmaz())
         processor.tlist = tlist
         processor.coeffs = coeffs
@@ -210,7 +210,7 @@ class TestCircuitProcessor:
     def TestGetObjevo(self):
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeffs = np.array([[1, 1, 1, 1, 1, 1]], dtype=float)
-        processor = CircuitProcessor(N=1)
+        processor = Processor(N=1)
         processor.add_ctrl(sigmaz())
         processor.tlist = tlist
         processor.coeffs = coeffs
@@ -264,13 +264,13 @@ class TestCircuitProcessor:
 
     def TestNoise(self):
         """
-        Test for CircuitProcessor with noise
+        Test for Processor with noise
         """
         # setup and fidelity without noise
         rho0 = qubit_states(2, [0, 0, 0, 0])
         tlist = np.array([0., np.pi/2.])
         a = destroy(2)
-        proc = CircuitProcessor(N=2)
+        proc = Processor(N=2)
         proc.tlist = tlist
         proc.coeffs = np.array([1]).reshape((1, 1))
         proc.add_ctrl(sigmax(), targets=1)
@@ -303,7 +303,7 @@ class TestCircuitProcessor:
         Test for processor with multi-level system
         """
         N = 2
-        proc = CircuitProcessor(N=N, dims=[2, 3])
+        proc = Processor(N=N, dims=[2, 3])
         proc.add_ctrl(tensor(sigmaz(), rand_dm(3, density=1.)))
         proc.coeffs = np.array([1, 2]).reshape((1, 2))
         proc.tlist = np.array([0., 1., 2])

@@ -1,7 +1,7 @@
 from numpy.testing import assert_, run_module_suite, assert_allclose
 import numpy as np
 
-from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.processor import Processor
 from qutip.qip.device.noise import (
     RelaxationNoise, DecoherenceNoise, ControlAmpNoise, RandomNoise, UserNoise)
 from qutip.operators import qeye, sigmaz, sigmax, sigmay, destroy, identity
@@ -150,7 +150,7 @@ class TestNoise:
         Test for the user-defined noise object
         """
         dr_noise = DriftNoise(sigmax())
-        proc = CircuitProcessor(1)
+        proc = Processor(1)
         proc.add_noise(dr_noise)
         proc.tlist = np.array([0, np.pi/2.])
         result = proc.run_state(rho0=basis(2, 0))

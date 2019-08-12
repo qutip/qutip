@@ -42,16 +42,16 @@ from qutip.operators import identity
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.processor import Processor
 from qutip.qip.gates import gate_sequence_product
 
 
 __all__ = ['OptPulseProcessor']
 
 
-class OptPulseProcessor(CircuitProcessor):
+class OptPulseProcessor(Processor):
     """
-    A circuit processor, which takes the Hamiltonian available
+    A processor, which takes the Hamiltonian available
     as dynamic generators, calls the
     `qutip.control.optimize_pulse_unitary` function
     to find an optimized pulse sequence for the desired quantum circuit.

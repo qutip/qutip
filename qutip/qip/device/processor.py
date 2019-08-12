@@ -51,10 +51,10 @@ from qutip.qip.device.noise import (
     ControlAmpNoise, RandomNoise, UserNoise)
 
 
-__all__ = ['CircuitProcessor']
+__all__ = ['Processor']
 
 
-class CircuitProcessor(object):
+class Processor(object):
     """
     A simulator of a quantum device based on the QuTiP solver
     :func:`qutip.mesolve`.
@@ -398,7 +398,7 @@ class CircuitProcessor(object):
         Note
         ----
         Collapse operators are not included in this method,
-        please use :meth:`qutip.qip.circuitprocessor.get_noisy_qobjevo`
+        please use :meth:`qutip.qip.processor.get_noisy_qobjevo`
         if they are needed.
         """
         noisy_qobjevo, c_ops = self.get_noisy_qobjevo()

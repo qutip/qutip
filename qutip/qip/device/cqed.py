@@ -37,7 +37,7 @@ import numpy as np
 from qutip.operators import tensor, identity, destroy, sigmax, sigmaz
 from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
@@ -48,7 +48,7 @@ __all__ = ['DispersivecQED', 'CQEDGateDecomposer']
 
 class DispersivecQED(ModelProcessor):
     """
-    The circuitprocessor based on the physical implementation of
+    The processor based on the physical implementation of
     a dispersive cavity QED system.
     The available Hamiltonian of the system is predefined.
     For a given pulse amplitude matrix, the processor can

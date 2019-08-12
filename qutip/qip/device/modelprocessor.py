@@ -41,13 +41,13 @@ from qutip.qip.gates import globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.processor import Processor
 
 
 __all__ = ['ModelProcessor', 'GateDecomposer']
 
 
-class ModelProcessor(CircuitProcessor):
+class ModelProcessor(Processor):
     """
     The base class for a circuit processor simulating a physical device,
     e.g cavityQED, spinchain.

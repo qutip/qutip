@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip.qip.device.circuitprocessor import *
+from qutip.qip.device.processor import *
 from qutip.qip.device.noise import *
 from qutip.qip.device.spinchain import *
 from qutip.qip.device.cqed import *

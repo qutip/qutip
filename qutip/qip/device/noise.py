@@ -26,8 +26,8 @@ def _dummy_qobjevo(dims, **kwargs):
 
 class Noise(object):
     """
-    The base class representing noise in a circuit processor.
-    The noise object can be added to :class:`qutip.qip.CircuitProcessor` and
+    The base class representing noise in a processor.
+    The noise object can be added to :class:`qutip.qip.Processor` and
     contributes to evolution.
     """
     def __init__(self):
@@ -41,7 +41,7 @@ class Noise(object):
 
 class DecoherenceNoise(Noise):
     """
-    The decoherence noise in a circuit processor. It will generate a list of
+    The decoherence noise in a processor. It will generate a list of
     collapse operators.
 
     Parameters

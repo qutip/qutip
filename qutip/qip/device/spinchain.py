@@ -34,7 +34,7 @@ import numpy as np
 from qutip.operators import sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
 
 
@@ -44,7 +44,7 @@ __all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',
 
 class SpinChain(ModelProcessor):
     """
-    The circuit processor based on the physical implementation of
+    The processor based on the physical implementation of
     a spin chain qubits system.
     The available Hamiltonian of the system is predefined.
     The processor can simulate the evolution under the given
@@ -492,7 +492,7 @@ class SpinChain(ModelProcessor):
 
 class LinearSpinChain(SpinChain):
     """
-    The circuit processor based on the physical implementation of
+    A processor based on the physical implementation of
     a linear spin chain qubits system.
     The available Hamiltonian of the system is predefined.
     The processor can simulate the evolution under the given
@@ -565,7 +565,7 @@ class LinearSpinChain(SpinChain):
 
 class CircularSpinChain(SpinChain):
     """
-    The circuit processor based on the physical implementation of
+    A processor based on the physical implementation of
     a circular spin chain qubits system.
     The available Hamiltonian of the system is predefined.
     The processor can simulate the evolution under the given
