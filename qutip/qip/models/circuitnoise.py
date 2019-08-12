@@ -15,6 +15,11 @@ __all__ = ["CircuitNoise", "DecoherenceNoise", "RelaxationNoise",
 
 
 def _dummy_qobjevo(dims, **kwargs):
+    """
+    Create a dummy :class":`qutip.QobjEvo` with
+    a constant zero Hamiltonian. This is used since empty QobjEvo
+    is not yet supported.
+    """
     dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
     return dummy
 
@@ -23,7 +28,7 @@ class CircuitNoise(object):
     """
     The base class representing noise in a circuit processor.
     The noise object can be added to :class:`qutip.qip.CircuitProcessor` and
-    contributes to the evolution.
+    contributes to evolution.
     """
     def __init__(self):
         pass
@@ -105,7 +110,7 @@ class DecoherenceNoise(CircuitNoise):
             The number of component systems.
 
         dims: list, optional
-            The dimension of the components system, default value is
+            The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
 
         Returns
@@ -207,7 +212,7 @@ class RelaxationNoise(CircuitNoise):
             The number of component systems.
 
         dims: list, optional
-            The dimension of the components system, default value is
+            The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
 
         Returns
@@ -315,11 +320,11 @@ class ControlAmpNoise(CircuitNoise):
 
         proc_qobjevo: :class:`qutip.QobjEvo`, optional
             If no operator is defined in the noise object, `proc_qobjevo`
-            wil be used as operators, otherwise the operators in the
+            will be used as operators, otherwise the operators in the
             object is used.
 
         dims: list, optional
-            The dimension of the components system, default value is
+            The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
 
         Returns
@@ -374,7 +379,7 @@ class RandomNoise(ControlAmpNoise):
 
     dt: float, optional
         The time interval between two random amplitude. The coefficients
-        of the noise is the same within this time range.
+        of the noise are the same within this time range.
 
     ops: list, optional
         The Hamiltonian representing the dynamics of the noise.
@@ -442,7 +447,7 @@ class RandomNoise(ControlAmpNoise):
             object is used.
 
         dims: list, optional
-            The dimension of the components system, default value is
+            The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
 
         Returns
@@ -500,7 +505,7 @@ class UserNoise(CircuitNoise):
             The object representing the ideal evolution in the processor.
 
         dims: list, optional
-            The dimension of the components system, default value is
+            The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
 
         Returns

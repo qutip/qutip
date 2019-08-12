@@ -56,8 +56,8 @@ __all__ = ['CircuitProcessor']
 
 class CircuitProcessor(object):
     """
-    The base class for a circuit processor, which is
-    the simulator of quantum device using :func:`qutip.mesolve`.
+    A simulator of a quantum device based on the QuTiP solver
+    :func:`qutip.mesolve`.
     It is defined by the available driving Hamiltonian and
     the decoherence time for each component systems.
     The processor can simulate the evolution under the given
@@ -67,23 +67,23 @@ class CircuitProcessor(object):
     Parameters
     ----------
     N: int
-        The number of component systems
+        The number of component systems.
 
     ctrls: list of :class:`Qobj`
         A list of the control Hamiltonians driving the evolution.
 
-    T1: list or float, optional
+        T1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float, optional
+    T2: list of float
         Characterize the decoherence of dephasing for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits.
 
     dims: list of int, optional
         The dimension of each component system.
         If not given, it will be a
-        qutbis system of dim=[2,2,2,...,2]
+        qubit system of dim=[2,2,2,...,2]
 
     spline_kind: str, optional
         Type of the coefficient interpolation. Default is `step_func`
@@ -91,18 +91,18 @@ class CircuitProcessor(object):
 
         -step_func:
         The coefficient will be treated as a step function.
-        E.g. tlist=[0,1,2] and coeffs=[3,2], means that the coefficient
+        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
         is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        coeffs.shape[1]=len(tlist)-1 or coeffs.shape[1]=len(tlist), but
+        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
         in the second case the last element has no effect.
 
         -cubic: Use cubic interpolation for the coefficient. It requires
-        coeffs.shape[1]=len(tlist)
+        ``coeffs.shape[1]=len(tlist)``
 
     Attributes
     ----------
     N: int
-        The number of component systems
+        The number of component systems.
 
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
@@ -129,12 +129,11 @@ class CircuitProcessor(object):
     dims: list
         The dimension of each component system.
         If not given, it will be a
-        qutbis system of dim=[2,2,2,...,2]
+        qubit system of ``dim=[2,2,2,...,2]``
 
     spline_kind: str
-        Type of the coefficient interpolation. Default is "step_func".
-        Note that they have different requirements for the shape of
-        :attr:`qutip.qip.circuitprocessor.coeffs`.
+        Type of the coefficient interpolation.
+        "step_func" or "cubic"
     """
     def __init__(self, N, ctrls=None, T1=None, T2=None,
                  dims=None, spline_kind="step_func"):
@@ -168,7 +167,7 @@ class CircuitProcessor(object):
 
         cyclic_permutation: boolean, optional
             If true, the Hamiltonian will be expanded for
-        all cyclic permutation of the target qubits.
+            all cyclic permutation of the target qubits.
         """
         # Check validity of ctrl
         if not isinstance(ctrl, Qobj):
@@ -230,6 +229,7 @@ class CircuitProcessor(object):
             raise ValueError(
                 "The length of tlist and coeffs is not valid. "
                 "It should be either len(tlist)=coeffs.shape[1]")
+        raise ValueError("Unknown spline_kind.")
 
     def _is_ctrl_coeff_valid(self):
         """
@@ -254,7 +254,7 @@ class CircuitProcessor(object):
 
     def _is_coeff_valid(self):
         """
-        Check if the attribute are in the corret shape.
+        Check if the attributes are in the correct shape.
 
         Returns: boolean
             If they are valid or not
@@ -272,7 +272,7 @@ class CircuitProcessor(object):
             Name of the file.
 
         inctime: boolean, optional
-            True if the time list in included in the first column.
+            True if the time list should be included in the first column.
         """
         self._is_coeff_valid()
 
@@ -397,7 +397,7 @@ class CircuitProcessor(object):
 
         Note
         ----
-        Collapse operator is not included in this method,
+        Collapse operators are not included in this method,
         please use :meth:`qutip.qip.circuitprocessor.get_noisy_qobjevo`
         if they are needed.
         """
@@ -413,30 +413,23 @@ class CircuitProcessor(object):
         """
         Simulate the state evolution under the given `qutip.QubitCircuit`
         with matrice exponentiation. It will calculate the propagator
-        with matrix exponentiation and return a list of matrices.
+        with matrix exponentiation and return a list of :class:`qutip.Qobj`.
+        This method won't include noise or collpase.
 
         Parameters
         ----------
         qc: :class:`qutip.qip.QubitCircuit`, optional
             Takes the quantum circuit to be implemented. If not given, use
-            the quantum circuit saved in the processor by `load_circuit`.
+            the quantum circuit saved in the processor by ``load_circuit``.
 
         rho0: :class:`qutip.Qobj`, optional
-            Initial state of the qubits in the register.
+            The initial state of the qubits in the register.
 
         Returns
         --------
         evo_result: :class:`qutip.Result`
-            If the numerical method is used, the result of the solver will
-            be returned.
-            An instance of the class :class:`qutip.Result`, which contains
-            either an *array* `result.expect` of expectation values for
-            the times specified by `tlist`, or an *array* `result.states`
-            of state vectors or density matrices corresponding to
-            the times in `tlist` [if `e_ops` is
-            an empty list], or nothing if a callback function was
-            given in place of
-            operators for which to calculate the expectation values.
+            An instance of the class
+            :class:`qutip.Result` will be returned.
         """
         if rho0 is not None:
             U_list = [rho0]
@@ -451,7 +444,7 @@ class CircuitProcessor(object):
             U = self.eliminate_auxillary_modes(U)
             U_list.append(U)
 
-        try:
+        try:  # correct_global_phase are defined for ModelProcessor
             if self.correct_global_phase and self.global_phase != 0:
                 U_list.append(globalphase(self.global_phase, N=self.N))
         except AttributeError:
@@ -461,8 +454,8 @@ class CircuitProcessor(object):
 
     def run(self, qc=None):
         """
-        Calculate the propagator the evolution by matrix exponentiation.
-        This method won't include the noise.
+        Calculate the propagator of the evolution by matrix exponentiation.
+        This method won't include noise or collpase.
 
         Parameters
         ----------
@@ -479,13 +472,13 @@ class CircuitProcessor(object):
             self.load_circuit(qc)
         return self.run_analytically(qc=qc, rho0=None)
 
-    def run_state(self, rho0=None, analytical=False, qc=None, states=None,
+    def run_state(self, rho0=None, analytical=False, states=None,
                   **kwargs):
         """
         If `analytical` is False, it will use :func:`qutip.mesolve` to
         calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
-        given as kwargs.
+        given as keyword arguments.
         If `analytical` is True, it will calculate the propagator
         with matrix exponentiation and return a list of matrices.
 
@@ -497,31 +490,19 @@ class CircuitProcessor(object):
         analytical: boolean
             If the evolution with matrices exponentiation.
 
-        qc: :class:`qutip.qip.QubitCircuit`, optional
-            Takes the quantum circuit to be implemented. If not given, use
-            the quantum circuit saved in the processor by `load_circuit`.
-
         states: :class:`qutip.Qobj`, optional
             Old API, same as rho0.
 
         **kwargs
             Keyword arguments for the qutip solver.
-            (currently :func:`qutip.mesolve`)
 
         Returns
         -------
         evo_result: :class:`qutip.Result`
-            If `analytical` is False, An instance of the class
-            :class:`qutip.Result`, which contains
-            either an *array* `result.expect` of expectation values for
-            the times specified by `tlist`, or an *array* `result.states`
-            of state vectors or density matrices corresponding to
-            the times in `tlist` [if `e_ops` is
-            an empty list], or nothing if a callback function was
-            given in place of
-            operators for which to calculate the expectation values.
+            If ``analytical`` is False,  an instance of the class
+            :class:`qutip.Result` will be returned.
 
-            If `analytical` is True, a list of matrices representation
+            If ``analytical`` is True, a list of matrices representation
             is returned.
         """
         if states is not None:
@@ -533,11 +514,10 @@ class CircuitProcessor(object):
         elif rho0 is None:
             # just to keep the old prameters `states`, it is replaced by rho0
             rho0 = states
-        if qc:
-            self.load_circuit(qc)
         if analytical:
             if kwargs or self.noise:
-                raise ValueError("Analytical method cannot process noise and"
+                raise ValueError("Analytical matrices exponentiation"
+                                 "cannot process noise or"
                                  "keyword arguments.")
             return self.run_analytically(rho0=rho0)
 
@@ -682,7 +662,7 @@ class CircuitProcessor(object):
     def _process_noise(self, proc_qobjevo):
         """
         Call all the noise object saved in the processor and
-        return noisy representation of the evolution
+        return a noisy part of the evolution.
 
         Parameters
         ----------
@@ -692,7 +672,7 @@ class CircuitProcessor(object):
 
         Returns
         -------
-        H_noise: :class:`qutip.qip.QobjEvo`
+        noise: :class:`qutip.qip.QobjEvo`
             The :class:`qutip.qip.QobjEvo` representing the noisy
             part Hamiltonians.
 
@@ -731,6 +711,7 @@ class CircuitProcessor(object):
         """
         # TODO This method can be eventually integrated into QobjEvo, for
         # which a more through test is required
+
         # no qobjevo
         if not qobjevo_list:
             return _dummy_qobjevo(self.dims)
@@ -812,7 +793,8 @@ def _merge_id_evo(qobjevo):
 def _dummy_qobjevo(dims, **kwargs):
     """
     Create a dummy :class":`qutip.QobjEvo` with
-    a constant zero Halmiltonian.
+    a constant zero Hamiltonian. This is used since empty QobjEvo
+    is not yet supported.
     """
     dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
     return dummy

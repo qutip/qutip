@@ -43,6 +43,7 @@ from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.gates import gate_sequence_product
 
 
 __all__ = ['OptPulseProcessor']
@@ -80,10 +81,13 @@ class OptPulseProcessor(CircuitProcessor):
     Attributes
     ----------
     N: int
-        The number of component system
+        The number of component systems.
 
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
+
+    drift: :class:`Qobj`
+        The drift Hamiltonian with no time-dependent amplitude.
 
     tlist: array-like
         A NumPy array specifies the time of each coefficient.
@@ -107,15 +111,13 @@ class OptPulseProcessor(CircuitProcessor):
     dims: list
         The dimension of each component system.
         If not given, it will be a
-        qutbis system of dim=[2,2,2,...,2]
+        qubit system of dim=[2,2,2,...,2]
 
     spline_kind: str
-        Type of the coefficient interpolation. Default is "step_func".
+        Type of the coefficient interpolation.
         Note that they have different requirements for the shape of
-        :attr:`qutip.qip.circuitprocessor.coeffs`.
+        ``coeffs``.
 
-    drift: :class:`Qobj`
-        The drift Hamiltonian with no time-dependent amplitude.
     """
     def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None, dims=None):
         super(OptPulseProcessor, self).__init__(
@@ -130,13 +132,15 @@ class OptPulseProcessor(CircuitProcessor):
             for H in ctrls:
                 self.add_ctrl(H)
 
-    def load_circuit(self, qc, min_fid_err=np.inf,
+    def load_circuit(self, qc, min_fid_err=np.inf, merge_gates=True,
                      setting_args=None, verbose=False, **kwargs):
         """
         Find the pulses realizing a given :class:`qutip.qip.Circuit` using
         `qutip.control.optimize_pulse_unitary`. Further parameter for
         for `qutip.control.optimize_pulse_unitary` needs to be given as
-        keyword arguments. It is also possible to set different parameters
+        keyword arguments. By default, it first merge all the gates
+        into one unitary and then find the control pulses for it.
+        It can be turned off and one can set different parameters
         for different gates. See examples for details.
 
         Examples
@@ -165,7 +169,8 @@ class OptPulseProcessor(CircuitProcessor):
         setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
                         "SWAP": {"num_tslots": 30, "evo_time": 3},
                         "CNOT": {"num_tslots": 30, "evo_time": 3}}
-        tlist, coeffs = processor.load_circuit(qc, setting_args=setting_args)
+        tlist, coeffs = processor.load_circuit(qc, setting_args=setting_args,
+                                               merge_gates=False)
 
         Parameters
         ----------
@@ -177,8 +182,14 @@ class OptPulseProcessor(CircuitProcessor):
             gate decomposition is higher, a warning will be given.
             Default is infinite.
 
+        merge_gates: boolean, optimal
+            If True, merge all gate/Qobj into one Qobj and then
+            find the optimal pulses for this unitary matrix. If False,
+            find the optimal pulses for each gate/Qobj.
+
         setting_args: dict, optional
-            A dictionary containing keyword arguments for different gates.
+            Only considered if merge_gates is False.
+            It is a dictionary containing keyword arguments for different gates.
             E.g:
             setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
                             "SWAP": {"num_tslots": 30, "evo_time": 3},
@@ -194,7 +205,7 @@ class OptPulseProcessor(CircuitProcessor):
         Returns
         -------
         tlist: array-like
-            A NumPy array specifies the time of each coefficients
+            A NumPy array specifies the time of each coefficient
 
         coeffs: array-like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)-1). Each
@@ -203,22 +214,24 @@ class OptPulseProcessor(CircuitProcessor):
 
         Note
         ----
-        len(tlist)-1=coeffs.shape[1] since tlist gives the begining and the
+        len(tlist)-1=coeffs.shape[1] since tlist gives the beginning and the
         end of the pulses
         """
         if setting_args is None:
             setting_args = {}
-
         if isinstance(qc, QubitCircuit):
             props = qc.propagators()
             gates = [g.name for g in qc.gates]
         elif isinstance(qc, Iterable):
             props = qc
-            gates = None
+            gates = None  # using list of Qobj, no gates name
         else:
             raise ValueError(
                 "qc should be a "
                 "QubitCircuit or a list of Qobj")
+        if merge_gates:  # merge all gates/Qobj into one Qobj
+            props = [gate_sequence_product(props)]
+            gates = None
 
         time_record = []  # a list for all the gates
         coeff_record = []

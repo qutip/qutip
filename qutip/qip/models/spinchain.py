@@ -72,18 +72,18 @@ class SpinChain(ModelProcessor):
     sxsy: int or list
         The interaction strength for each of the qubit pair in the system.
 
-    T1: list or float, optional
+    T1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float, optional
+    T2: list of float
         Characterize the decoherence of dephasing for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits.
 
     Attributes
     ----------
     N: int
-        The number of component system
+        The number of component systems.
 
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
@@ -110,12 +110,12 @@ class SpinChain(ModelProcessor):
     dims: list
         The dimension of each component system.
         If not given, it will be a
-        qutbis system of dim=[2,2,2,...,2]
+        qubit system of dim=[2,2,2,...,2]
 
     spline_kind: str
-        Type of the coefficient interpolation. Default is "step_func".
+        Type of the coefficient interpolation.
         Note that they have different requirements for the shape of
-        :attr:`qutip.qip.circuitprocessor.coeffs`.
+        ``coeffs``.
 
     sx: list
         The delta for each of the qubits in the system.
@@ -241,7 +241,7 @@ class SpinChain(ModelProcessor):
         Returns
         -------
         tlist: array-like
-            A NumPy array specifies the time of each coefficients
+            A NumPy array specifies the time of each coefficient
 
         coeffs: array-like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
@@ -653,8 +653,8 @@ class SpinChainGateDecomposer(GateDecomposer):
         The number of qubits in the system.
 
     paras: dict
-        A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser frequency,detuning etc.
+        A Python dictionary contains the name and the value of the parameters,
+        such as laser frequency, detuning etc.
 
     setup: string
         "linear" or "circular" for two sub-calsses.
@@ -671,14 +671,15 @@ class SpinChainGateDecomposer(GateDecomposer):
         The number of the component systems.
 
     paras: dict
-        A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser frequency,detuning etc.
+        A Python dictionary contains the name and the value of the parameters,
+        such as laser frequency, detuning etc.
 
     num_ops: int
         Number of control Hamiltonians in the processor.
 
     gate_decs: dict
-        The Python dictionary in the form {gate_name: decompose_function}.
+        The Python dictionary in the form of {gate_name: decompose_function}.
+        It saves the decomposition scheme for each gate.
 
     setup: string
         "linear" or "circular" for two sub-calsses.

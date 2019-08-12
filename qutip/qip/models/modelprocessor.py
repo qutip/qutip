@@ -49,7 +49,7 @@ __all__ = ['ModelProcessor', 'GateDecomposer']
 
 class ModelProcessor(CircuitProcessor):
     """
-    The base class for a circuit processor based on physical hardwares,
+    The base class for a circuit processor simulating a physical device,
     e.g cavityQED, spinchain.
     The available Hamiltonian of the system is predefined.
     The processor can simulate the evolution under the given
@@ -65,18 +65,18 @@ class ModelProcessor(CircuitProcessor):
         If true, the analytical solution will track the global phase. It
         has no effect on the numerical solution.
 
-    T1: list or float, optional
+    T1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float, optional
+    T2: list of float
         Characterize the decoherence of dephasing for
-        each qubit.
+        each qubit. A list of size N or a float for all qubits.
 
     Attributes
     ----------
     N: int
-        The number of component system
+        The number of component systems.
 
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
@@ -103,12 +103,12 @@ class ModelProcessor(CircuitProcessor):
     dims: list
         The dimension of each component system.
         If not given, it will be a
-        qutbis system of dim=[2,2,2,...,2]
+        qubit system of dim=[2,2,2,...,2]
 
     spline_kind: str
-        Type of the coefficient interpolation. Default is "step_func".
+        Type of the coefficient interpolation.
         Note that they have different requirements for the shape of
-        :attr:`qutip.qip.circuitprocessor.coeffs`.
+        ``coeffs``.
 
     paras: dict
         A Python dictionary contains the name and the value of the parameters
@@ -152,6 +152,48 @@ class ModelProcessor(CircuitProcessor):
     @paras.setter
     def paras(self, par):
         self.set_up_paras(**par)
+
+    def run_state(self, rho0=None, analytical=False, qc=None, states=None,
+        **kwargs):
+        """
+        If `analytical` is False, it will use :func:`qutip.mesolve` to
+        calculate the time of the state evolution
+        and return the result. Other arguments of mesolve can be
+        given as keyword arguments.
+        If `analytical` is True, it will calculate the propagator
+        with matrix exponentiation and return a list of matrices.
+
+        Parameters
+        ----------
+        rho0: Qobj
+        Initial density matrix or state vector (ket).
+
+        analytical: boolean
+        If the evolution with matrices exponentiation.
+
+        qc: :class:`qutip.qip.QubitCircuit`, optional
+        A quantum circuit. If given, it first calls the ``load_circuit``
+        and then calculate the evolution.
+
+        states: :class:`qutip.Qobj`, optional
+        Old API, same as rho0.
+
+        **kwargs
+        Keyword arguments for the qutip solver.
+
+        Returns
+        -------
+        evo_result: :class:`qutip.Result`
+        If ``analytical`` is False,  an instance of the class
+        :class:`qutip.Result` will be returned.
+
+        If ``analytical`` is True, a list of matrices representation
+        is returned.
+        """
+        if qc is not None:
+            self.load_circuit(qc)
+        return super(ModelProcessor, self).run_state(
+            rho0=rho0, analytical=analytical, states=states, **kwargs)
 
     def get_ops_and_u(self):
         """
@@ -236,7 +278,7 @@ class ModelProcessor(CircuitProcessor):
 
 class GateDecomposer(object):
     """
-    Decompose a :class:`qutip.QubitCircuit` into
+    Base class. It decomposes a :class:`qutip.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters
@@ -245,8 +287,8 @@ class GateDecomposer(object):
         The number of the component systems.
 
     paras: dict
-        A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser frequency,detuning etc.
+        A Python dictionary contains the name and the value of the parameters,
+        such as laser frequency, detuning etc.
 
     num_ops: int
         Number of control Hamiltonians in the processor.
@@ -257,14 +299,15 @@ class GateDecomposer(object):
         The number of the component systems.
 
     paras: dict
-        A Python dictionary contains the name and the value of the parameters
-        of the physical realization, such as laser frequency,detuning etc.
+        A Python dictionary contains the name and the value of the parameters,
+        such as laser frequency, detuning etc.
 
     num_ops: int
         Number of control Hamiltonians in the processor.
 
     gate_decs: dict
-        The Python dictionary in the form {gate_name: decompose_function}.
+        The Python dictionary in the form of {gate_name: decompose_function}.
+        It saves the decomposition scheme for each gate.
     """
     def __init__(self, N, paras, num_ops):
         self.gate_decs = {}
@@ -286,7 +329,7 @@ class GateDecomposer(object):
         Returns
         -------
         tlist: array-like
-            A NumPy array specifies the time of each coefficients
+            A NumPy array specifies the time of each coefficient
 
         coeffs: array-like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
@@ -296,8 +339,8 @@ class GateDecomposer(object):
         global_phase: bool
             Recorded change of global phase.
         """
-        # TODO further enhancement can be made here, e.g. merge the gate
-        # acting on different qubits to make the pulse sequence shorter.
+        # TODO further enhancement can be made here,
+        # e.g. merge single qubit rotation gate, combine XX gates etc.
         self.dt_list = []
         self.coeff_list = []
         for gate in gates:

@@ -32,7 +32,8 @@
 ###############################################################################
 import os
 
-from numpy.testing import assert_, run_module_suite, assert_allclose
+from numpy.testing import (assert_, run_module_suite, assert_allclose,
+                           assert_equal)
 import numpy as np
 
 from qutip.qip.models.optpulseprocessor import OptPulseProcessor
@@ -104,7 +105,8 @@ class TestOptPulseProcessor:
 
         # test pulse genration for cnot gate, with kwargs
         qc = [tensor([identity(2), cnot()])]
-        test.load_circuit(qc, num_tslots=num_tslots, evo_time=evo_time, min_fid_err=1.0e-6)
+        test.load_circuit(qc, num_tslots=num_tslots,
+                          evo_time=evo_time, min_fid_err=1.0e-6)
         rho0 = qubit_states(3, [1, 1, 1])
         rho1 = qubit_states(3, [1, 1, 0])
         result = test.run_state(
@@ -142,7 +144,8 @@ class TestOptPulseProcessor:
         qc.add_gate("SNOT", 0)
         qc.add_gate("SWAP", targets=[0, 1])
         qc.add_gate('CNOT', controls=1, targets=[0])
-        test.load_circuit(qc, setting_args=setting_args)
+        test.load_circuit(qc, setting_args=setting_args,
+                          merge_gates=False)
 
         rho0 = rand_ket(4)  # use random generated ket state
         rho0.dims = [[2, 2], [1, 1]]
