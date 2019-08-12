@@ -36,7 +36,7 @@ from numpy.testing import (assert_, run_module_suite, assert_allclose,
                            assert_equal)
 import numpy as np
 
-from qutip.qip.models.optpulseprocessor import OptPulseProcessor
+from qutip.qip.device.optpulseprocessor import OptPulseProcessor
 from qutip.qip.gates import expand_operator
 from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
 from qutip.qip.circuit import QubitCircuit

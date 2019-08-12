@@ -42,7 +42,7 @@ from qutip.operators import identity
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.device.circuitprocessor import CircuitProcessor
 from qutip.qip.gates import gate_sequence_product
 
 

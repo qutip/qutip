@@ -36,14 +36,14 @@ from numpy.testing import (
     assert_, run_module_suite, assert_allclose, assert_equal)
 import numpy as np
 
-from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.device.circuitprocessor import CircuitProcessor
 from qutip.states import basis
 from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
 from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
 from qutip.random_objects import rand_ket, rand_dm
-from qutip.qip.models.circuitnoise import (
+from qutip.qip.device.circuitnoise import (
     DecoherenceNoise, RandomNoise, ControlAmpNoise)
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity

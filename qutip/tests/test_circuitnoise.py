@@ -1,8 +1,8 @@
 from numpy.testing import assert_, run_module_suite, assert_allclose
 import numpy as np
 
-from qutip.qip.models.circuitprocessor import CircuitProcessor
-from qutip.qip.models.circuitnoise import (
+from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.circuitnoise import (
     RelaxationNoise, DecoherenceNoise, ControlAmpNoise, RandomNoise, UserNoise)
 from qutip.operators import qeye, sigmaz, sigmax, sigmay, destroy, identity
 from qutip.tensor import tensor

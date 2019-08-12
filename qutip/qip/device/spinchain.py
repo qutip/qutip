@@ -34,8 +34,8 @@ import numpy as np
 from qutip.operators import sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.models.circuitprocessor import CircuitProcessor
-from qutip.qip.models.modelprocessor import ModelProcessor, GateDecomposer
+from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
 
 
 __all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',

@@ -41,7 +41,7 @@ from qutip.qip.gates import globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.device.circuitprocessor import CircuitProcessor
 
 
 __all__ = ['ModelProcessor', 'GateDecomposer']

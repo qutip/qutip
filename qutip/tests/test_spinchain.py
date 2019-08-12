@@ -35,7 +35,7 @@ import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_allclose
 from qutip.qip.gates import gate_sequence_product
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.models.spinchain import LinearSpinChain, CircularSpinChain
+from qutip.qip.device.spinchain import LinearSpinChain, CircularSpinChain
 from qutip.random_objects import rand_ket
 from qutip.metrics import fidelity
 from qutip.operators import sigmaz, sigmax

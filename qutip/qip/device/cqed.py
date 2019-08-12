@@ -37,8 +37,8 @@ import numpy as np
 from qutip.operators import tensor, identity, destroy, sigmax, sigmaz
 from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.models.circuitprocessor import CircuitProcessor
-from qutip.qip.models.modelprocessor import ModelProcessor, GateDecomposer
+from qutip.qip.device.circuitprocessor import CircuitProcessor
+from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 
