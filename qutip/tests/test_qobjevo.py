@@ -199,6 +199,52 @@ def test_QobjEvo_call_args():
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
 
+def test_QobjEvo_step_coeff():
+    coeff1 = np.random.rand(6)
+    coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
+    # uniform t
+    tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
+    qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]], 
+                    tlist=tlist, args={"_step_func_coeff":True})
+    assert_equal(qobjevo.ops[0].get_coeff(2.0), coeff1[0])
+    assert_equal(qobjevo.ops[0].get_coeff(7.0), coeff1[5])
+    assert_equal(qobjevo.ops[0].get_coeff(5.0001), coeff1[3])
+    assert_equal(qobjevo.ops[0].get_coeff(3.9999), coeff1[1])
+
+    assert_equal(qobjevo.ops[1].get_coeff(2.0), coeff2[0])
+    assert_equal(qobjevo.ops[1].get_coeff(7.0), coeff2[5])
+    assert_equal(qobjevo.ops[1].get_coeff(5.0001), coeff2[3])
+    assert_equal(qobjevo.ops[1].get_coeff(3.9999), coeff2[1])
+
+    qobjevo.compile()
+    assert_equal(qobjevo.coeff_get(2.0), [coeff1[0], coeff2[0]])
+    assert_equal(qobjevo.coeff_get(7.0), [coeff1[5], coeff2[5]])
+    assert_equal(qobjevo.coeff_get(4.0001), [coeff1[2], coeff2[2]])
+    assert_equal(qobjevo.coeff_get(3.9999), [coeff1[1], coeff2[1]])
+
+    # non-uniform t
+    tlist = np.array([1, 2, 4, 5, 6, 8], dtype=float)
+    qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
+        tlist=tlist, args={"_step_func_coeff":True})
+    assert_equal(qobjevo.ops[0].get_coeff(1.0), coeff1[0])
+    assert_equal(qobjevo.ops[0].get_coeff(8.0), coeff1[5])
+    assert_equal(qobjevo.ops[0].get_coeff(3.9999), coeff1[1])
+    assert_equal(qobjevo.ops[0].get_coeff(4.23), coeff1[2])
+    assert_equal(qobjevo.ops[0].get_coeff(1.23), coeff1[0])
+
+    assert_equal(qobjevo.ops[1].get_coeff(1.0), coeff2[0])
+    assert_equal(qobjevo.ops[1].get_coeff(8.0), coeff2[5])
+    assert_equal(qobjevo.ops[1].get_coeff(6.7), coeff2[4])
+    assert_equal(qobjevo.ops[1].get_coeff(7.9999), coeff2[4])
+    assert_equal(qobjevo.ops[1].get_coeff(3.9999), coeff2[1])
+
+    qobjevo.compile()
+    assert_equal(qobjevo.coeff_get(1.0), [coeff1[0], coeff2[0]])
+    assert_equal(qobjevo.coeff_get(3.999), [coeff1[1], coeff2[1]])
+    assert_equal(qobjevo.coeff_get(6.3), [coeff1[4], coeff2[4]])
+    assert_equal(qobjevo.coeff_get(1.0001), [coeff1[0], coeff2[0]])
+
+
 def test_QobjEvo_copy():
     "QobjEvo copy"
     tlist = np.linspace(0,1,300)
@@ -340,6 +386,36 @@ def test_QobjEvo_compress():
     assert_equal(len(td_obj_2.to_list()), 4)
     # check that data is still valid
     _assert_qobj_almost_eq(td_obj_2(t), td_obj_1(t))
+
+
+def test_QobjEvo_shift():
+    """QobjEvo _shift time"""
+    tlist = np.linspace(0, 1, 300)
+    td_obj_1 = QobjEvo(_random_QobjEvo((1,1), [0,0], tlist=tlist),
+                       args={"w1":1, "w2":2}, tlist=tlist)
+    td_obj_1s = td_obj_1.copy()
+    td_obj_1s._shift()
+    td_obj_2 = QobjEvo(_random_QobjEvo((1,1), [1,1], tlist=tlist),
+                       args={"w1":1, "w2":2}, tlist=tlist)
+    td_obj_2s = td_obj_2.copy()
+    td_obj_2s._shift()
+
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(1, args={"_t0":-1}))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(1, args={"_t0":-1}))
+    td_obj_1s.arguments({"_t0":-1})
+    td_obj_2s.arguments({"_t0":-1})
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(1))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(1))
+    td_obj_1s.compile()
+    td_obj_2s.compile()
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(1))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(1))
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(2, args={"_t0":-2}))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(2, args={"_t0":-2}))
+    td_obj_1s.arguments({"_t0":-2})
+    td_obj_2s.arguments({"_t0":-2})
+    _assert_qobj_almost_eq(td_obj_1(0),td_obj_1s(2))
+    _assert_qobj_almost_eq(td_obj_2(0),td_obj_2s(2))
 
 
 def test_QobjEvo_apply():
