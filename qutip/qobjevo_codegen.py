@@ -135,6 +135,8 @@ cdef extern from "numpy/arrayobject.h" nogil:
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.inter cimport _spline_complex_t_second, _spline_complex_cte_second
 from qutip.cy.inter cimport _spline_float_t_second, _spline_float_cte_second
+from qutip.cy.inter cimport _step_float_cte, _step_complex_cte
+from qutip.cy.inter cimport _step_float_t, _step_complex_t
 from qutip.cy.interpolate cimport (interp, zinterp)
 from qutip.cy.cqobjevo_factor cimport StrCoeff
 from qutip.cy.cqobjevo cimport CQobjEvo
@@ -158,21 +160,42 @@ include """ + _include_string + "\n\n"
             s_str = "_spline_" + str(N_np)
             N_times = str(len(tlist))
             dt_times = str(tlist[1]-tlist[0])
+            try:
+                use_step_func = args["_step_func_coeff"]
+            except KeyError:
+                use_step_func = 0
             if dt_cte:
                 if isinstance(op.coeff[0], (float, np.float32, np.float64)):
-                    string = "_spline_float_cte_second(t, " + t_str + ", " +\
-                              y_str + ", " + s_str + ", " + N_times + ", " +\
-                              dt_times + ")"
+                    if use_step_func:
+                        string = "_step_float_cte(t, " + t_str + ", " +\
+                                y_str + ", " + N_times + ")"
+                    else:
+                        string = "_spline_float_cte_second(t, " + t_str + ", " +\
+                                y_str + ", " + s_str + ", " + N_times + ", " +\
+                                dt_times + ")"
+
                 elif isinstance(op.coeff[0], (complex, np.complex128)):
-                    string = "_spline_complex_cte_second(t, " + t_str + ", " +\
-                              y_str + ", " + s_str + ", " + N_times + ", " +\
-                              dt_times + ")"
+                    if use_step_func:
+                        string = "_step_complex_cte(t, " + t_str + ", " +\
+                                y_str + ", " + N_times + ")"
+                    else:
+                        string = "_spline_complex_cte_second(t, " + t_str + ", " +\
+                                y_str + ", " + s_str + ", " + N_times + ", " +\
+                                dt_times + ")"
             else:
                 if isinstance(op.coeff[0], (float, np.float32, np.float64)):
-                    string = "_spline_float_t_second(t, " + t_str + ", " +\
+                    if use_step_func:
+                        string = "_step_float_t(t, " + t_str + ", " +\
+                             y_str + ", " + N_times + ")"
+                    else:
+                        string = "_spline_float_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
                 elif isinstance(op.coeff[0], (complex, np.complex128)):
-                    string = "_spline_complex_t_second(t, " + t_str + ", " +\
+                    if use_step_func:
+                        string = "_step_complex_t(t, " + t_str + ", " +\
+                             y_str + ", " + N_times + ")"
+                    else:
+                        string = "_spline_complex_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
             compile_list.append(string)
             args[t_str] = tlist

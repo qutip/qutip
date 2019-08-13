@@ -610,10 +610,25 @@ def test_QobjNorm():
     assert_equal(
         np.abs(A.norm('fro') - la.norm(A.full(), 'fro')) < 1e-12, True)
     # operator trace norm
-    a = rand_herm(10,0.25)
+    a = rand_herm(10, 0.25)
     assert_almost_equal(a.norm(), (a*a.dag()).sqrtm().tr().real)
-    b = rand_herm(10,0.25) - 1j*rand_herm(10,0.25)
+    b = rand_herm(10, 0.25) - 1j*rand_herm(10, 0.25)
     assert_almost_equal(b.norm(), (b*b.dag()).sqrtm().tr().real)
+
+def test_QobjPurity():
+    "Tests the purity method of `Qobj`"
+    psi = basis(2, 1)
+    # check purity of pure ket state
+    assert_almost_equal(psi.purity(), 1)
+    # check purity of pure ket state (superposition)
+    psi2 = basis(2, 0)
+    psi_tot = (psi+psi2).unit() 
+    assert_almost_equal(psi_tot.purity(), 1)
+    # check purity of density matrix of pure state 
+    assert_almost_equal(ket2dm(psi_tot).purity(), 1)
+    # check purity of maximally mixed density matrix
+    rho_mixed = (ket2dm(psi)+ket2dm(psi2)).unit() 
+    assert_almost_equal(rho_mixed.purity(), 0.5)
 
 def test_QobjPermute():
     "Qobj permute"
