@@ -154,7 +154,7 @@ class ModelProcessor(Processor):
         self.set_up_paras(**par)
 
     def run_state(self, rho0=None, analytical=False, qc=None, states=None,
-        **kwargs):
+                  **kwargs):
         """
         If `analytical` is False, it will use :func:`qutip.mesolve` to
         calculate the time of the state evolution
@@ -166,29 +166,29 @@ class ModelProcessor(Processor):
         Parameters
         ----------
         rho0: Qobj
-        Initial density matrix or state vector (ket).
+            Initial density matrix or state vector (ket).
 
         analytical: boolean
-        If the evolution with matrices exponentiation.
+            If the evolution with matrices exponentiation.
 
         qc: :class:`qutip.qip.QubitCircuit`, optional
-        A quantum circuit. If given, it first calls the ``load_circuit``
-        and then calculate the evolution.
+            A quantum circuit. If given, it first calls the ``load_circuit``
+            and then calculate the evolution.
 
         states: :class:`qutip.Qobj`, optional
-        Old API, same as rho0.
+         Old API, same as rho0.
 
         **kwargs
-        Keyword arguments for the qutip solver.
+           Keyword arguments for the qutip solver.
 
         Returns
         -------
         evo_result: :class:`qutip.Result`
-        If ``analytical`` is False,  an instance of the class
-        :class:`qutip.Result` will be returned.
+            If ``analytical`` is False,  an instance of the class
+            :class:`qutip.Result` will be returned.
 
-        If ``analytical`` is True, a list of matrices representation
-        is returned.
+            If ``analytical`` is True, a list of matrices representation
+            is returned.
         """
         if qc is not None:
             self.load_circuit(qc)

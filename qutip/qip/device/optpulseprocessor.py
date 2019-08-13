@@ -189,7 +189,9 @@ class OptPulseProcessor(Processor):
 
         setting_args: dict, optional
             Only considered if merge_gates is False.
-            It is a dictionary containing keyword arguments for different gates.
+            It is a dictionary containing keyword arguments
+            for different gates.
+
             E.g:
             setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
                             "SWAP": {"num_tslots": 30, "evo_time": 3},

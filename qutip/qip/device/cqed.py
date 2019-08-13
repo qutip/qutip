@@ -323,7 +323,7 @@ class DispersivecQED(ModelProcessor):
         """
         self.qc0 = qc
         self.qc1 = self.qc0.resolve_gates(
-            basis=["SQRTISWAP","ISWAP", "RX", "RZ"])
+            basis=["SQRTISWAP", "ISWAP", "RX", "RZ"])
         return self.qc1
 
     def eliminate_auxillary_modes(self, U):

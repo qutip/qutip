@@ -39,7 +39,7 @@ from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
 
 
 __all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',
-    'SpinChainGateDecomposer']
+           'SpinChainGateDecomposer']
 
 
 class SpinChain(ModelProcessor):
@@ -528,8 +528,9 @@ class LinearSpinChain(SpinChain):
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
-        super(LinearSpinChain, self).__init__(N, correct_global_phase=correct_global_phase,
-                                                sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
+        super(LinearSpinChain, self).__init__(
+            N, correct_global_phase=correct_global_phase,
+            sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
         self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 
@@ -601,8 +602,9 @@ class CircularSpinChain(SpinChain):
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
 
-        super(CircularSpinChain, self).__init__(N, correct_global_phase=correct_global_phase,
-                                                sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
+        super(CircularSpinChain, self).__init__(
+            N, correct_global_phase=correct_global_phase,
+            sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
         self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 
