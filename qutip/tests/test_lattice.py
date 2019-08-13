@@ -220,9 +220,22 @@ class TestLattice:
         op_all = lattice_412.distribute_operator(op)
         sv_op_all = tensor(qeye(4), sigmax())
 
-        assert_( op_all == sv_op_all )
-        
+        assert_(op_all == sv_op_all)
+
     def test_operator_at_cells(self):
+        """
+        lattice: Test the method Lattice1d.operator_between_cells().
+        """
+        p_2222 = Lattice1d(num_cell=2, boundary = "periodic",
+                                 cell_num_site = 2, cell_site_dof = [2,2])
+        op_0 = basis(2,0)*basis(2,1).dag()
+        op_c = tensor(op_0, qeye([2, 2]) )
+        OP = p_2222.operator_between_cells(op_c,1,0)
+        T = basis(2,1)*basis(2,0).dag()
+        QP = tensor(T, op_c)
+        assert_(OP == QP)
+
+    def test_operator_between_cells(self):
         """
         lattice: Test the method Lattice1d.operator_at_cells().
         """
@@ -235,7 +248,7 @@ class TestLattice:
         aop_sp[2:4,2:4] = sigmax()
         aop_sp[4:6,4:6] = sigmax()
         sv_op_sp = Qobj(aop_sp, dims=[[4, 2], [4, 2]])
-        assert_( op_sp == sv_op_sp )  
+        assert_(op_sp == sv_op_sp)
 
     def test_x(self):
         """
@@ -266,8 +279,8 @@ class TestLattice:
                        [ 2.35619449]])
         valB = np.array([[2., 1.41421356, 0., -1.41421356, -2.,
                           -1.41421356, 0., 1.41421356]])
-        assert_( np.max(abs(knxA-kB)) < 1.0E-6 )
-        assert_( np.max(abs(val_kns-valB)) < 1.0E-6 )
+        assert_(np.max(abs(knxA-kB)) < 1.0E-6)
+        assert_(np.max(abs(val_kns-valB)) < 1.0E-6)
 
         # SSH model with num_cell = 4 and two orbitals, two spins 
         # cell_site_dof = [2,2]
@@ -292,8 +305,8 @@ class TestLattice:
         Oband = np.array([-0.1, -0.55677644, -0.9539392 , -1.1,
                           -0.9539392, -0.55677644])
         vS = np.array([Oband,Oband,Oband,Oband,-Oband,-Oband,-Oband,-Oband])        
-        assert_( np.max(abs(kScomp-kS)) < 1.0E-6 ) 
-        assert_( np.max(abs(vcomp-vS)) < 1.0E-6 ) 
+        assert_(np.max(abs(kScomp-kS)) < 1.0E-6) 
+        assert_(np.max(abs(vcomp-vS)) < 1.0E-6) 
 
     def test_cell_periodic_parts(self):
         """
@@ -368,15 +381,16 @@ class TestLattice:
         # Coupled Resonator Optical Waveguide(CROW) Example(PhysRevB.99.224201)
         J = 2
         eta = np.pi/2
-        cell_H = Qobj( np.array( [[0,J*np.sin(eta)  ],[J*np.sin(eta), 0]]   ) )
-        inter_cell_T0 = (J/2)*Qobj(  np.array( [[ np.exp(eta * 1j) , 0 ],[0,np.exp(-eta*1j)]] )  )
-        inter_cell_T1 = (J/2)*Qobj(  np.array( [[ 0 , 1 ],[ 1 , 0 ]] )  )
+        cell_H = Qobj(np.array([[0,J*np.sin(eta)],[J*np.sin(eta), 0]]))
+        inter_cell_T0 = (J/2)*Qobj(np.array([[np.exp(eta * 1j), 0], [0,
+                                   np.exp(-eta*1j)]]))
+        inter_cell_T1 = (J/2)*Qobj(np.array([[0, 1], [1, 0]]))
 
         inter_cell_T = [inter_cell_T0, inter_cell_T1]
 
         CROW_lattice = Lattice1d(num_cell=4, boundary="periodic",
                     cell_num_site=1, cell_site_dof=[2],
-                    cell_Hamiltonian=cell_H, inter_hop = inter_cell_T )
+                    cell_Hamiltonian=cell_H, inter_hop = inter_cell_T)
         CROW_Haml = CROW_lattice.Hamiltonian()
 
         H_CROW = Qobj(np.array([[0.+0.j, 2.+0.j, 0.+1.j, 1.+0.j, 0.+0.j, 0.+0.j, 0.-1.j, 1.+0.j],
@@ -389,7 +403,7 @@ class TestLattice:
                                 [1.+0.j, 0.-1.j, 0.+0.j, 0.+0.j, 1.+0.j, 0.+1.j, 2.+0.j, 0.+0.j]]),
                                   dims = [[4, 2], [4, 2]] )
         # Check for CROW with num_cell = 4
-        assert_( np.max(abs(CROW_Haml-H_CROW)) < 1.0E-6 ) # 1.0E-8 worked too
+        assert_( np.max(abs(CROW_Haml-H_CROW)) < 1.0E-6) # 1.0E-8 worked too
         eigen_states = CROW_lattice.bloch_wave_functions()
         for i in range(8):
             if eigen_states[i][0] == 0:
@@ -503,7 +517,7 @@ class TestLattice:
 
         CROW_Random = Lattice1d(num_cell=num_cell, boundary="periodic",
                     cell_num_site=1, cell_site_dof=[2],
-                    cell_Hamiltonian=cell_H, inter_hop = inter_cell_T )
+                    cell_Hamiltonian=cell_H, inter_hop = inter_cell_T)
         a = 1  # The unit cell length is always considered 1
         kn_start = 0
         kn_end = 2*np.pi/a
@@ -532,8 +546,8 @@ class TestLattice:
             Ana_val_kns[1, ks] = np.max(vals)
 
         (kxA,val_kns) = CROW_Random.get_dispersion()
-        assert_( np.max(abs(kxA-knxA)) < 1.0E-13 )        
-        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13 )
+        assert_( np.max(abs(kxA-knxA)) < 1.0E-13)
+        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13)
 
     def test_SSH(self):
         """
@@ -616,11 +630,11 @@ class TestLattice:
             knx = knxA[ks, 0]
             # Ana_val_kns are the analytical bands
             Ana_val_kns[0, ks] = -np.sqrt(t_intra **2 + t_inter ** 2
-                       + 2 * t_intra * t_inter * np.cos(knx) )
+                       + 2 * t_intra * t_inter * np.cos(knx))
             Ana_val_kns[1, ks] = np.sqrt(t_intra **2 + t_inter ** 2
-                       + 2 * t_intra * t_inter * np.cos(knx) )
+                       + 2 * t_intra * t_inter * np.cos(knx))
         (kxA,val_kns) = SSH_Random.get_dispersion()
-        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13 )
+        assert_( np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13)
 
 if __name__ == "__main__":
     run_module_suite()

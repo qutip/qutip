@@ -593,7 +593,8 @@ class Lattice1d():
         Returns
         -------
         Qobj(ks) : qutip.Qobj
-            The crystal momentum operator.
+            The crystal momentum operator in units of 2\pi/L/a. L is the number
+            of unit cells, a is the length of a unit cell.
         """
         L = self.num_cell
         kop = np.zeros((L, L), dtype=complex)
@@ -659,21 +660,23 @@ class Lattice1d():
         nx_units = self.num_cell
         ny_units = 1
         for i in range(nx_units):
-            for j in range(ny_units):
-                lin_RI = i + j * nx_units
-                if (i in cells) and j == 0:
-                    for k in range(xx):
-                        for l in range(yy):
-                            row_ind = np.append(row_ind, [lin_RI*nS+k])
-                            col_ind = np.append(col_ind, [lin_RI*nS+l])
-                            data = np.append(data, [op[k, l]])
+            lin_RI = i
+            if (i in cells):
+                for k in range(xx):
+                    for l in range(yy):
+                        row_ind = np.append(row_ind, [lin_RI*nS+k])
+                        col_ind = np.append(col_ind, [lin_RI*nS+l])
+                        data = np.append(data, [op[k, l]])
 
         m = nx_units*ny_units*nS
         op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
+
+
+
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(op_H, dims=dim_op)
 
-    def operator_between_cells(self, op, cells):
+    def operator_between_cells(self, op, row_cell, col_cell):
         """
         A function that returns an operator matrix that applies op to specific
         cells specified in the cells list
@@ -681,55 +684,45 @@ class Lattice1d():
         Parameters
         ----------
         op : qutip.Qobj
-            Qobj representing the operator to be applied at certain cells.
+            Qobj representing the operator to be put between cells row_cell
+            and col_cell.
 
-        cells: list of int
-            The cells at which the operator op is to be applied.
+        row_cell: int
+            The row index for cell for the operator op to be applied.
+
+        col_cell: int
+            The column index for cell for the operator op to be applied.
 
         Returns
         -------
         Qobj(op_H) : Qobj
-            Quantum object representing the operator with op applied at
+            Quantum object representing the operator with op applied between
             the specified cells.
         """
-        if isinstance(cells, int):
-            cells = [cells]
-        if isinstance(cells, list):
-            for i, cells_i in enumerate(cells):
-                if not isinstance(cells_i, int):
-                    raise Exception("cells[", i, "] is not an int!elements of \
-                                    cells is required to be ints.")
-        else:
-            raise Exception("cells in operator_at_cells() need to be an int or\
-                               a list of ints.")
+        if not isinstance(row_cell, int):
+            raise Exception("row_cell is required to be an int between 0 and\
+                            num_cell - 1.")
+            if row_cell < 0 or row_cell > self.num_cell-1:
+                raise Exception("row_cell is required to be an int between 0\
+                                and num_cell - 1.")
+        if not isinstance(col_cell, int):
+            raise Exception("row_cell is required to be an int between 0 and\
+                            num_cell - 1.")
+            if col_cell < 0 or col_cell > self.num_cell-1:
+                raise Exception("row_cell is required to be an int between 0\
+                                and num_cell - 1.")
 
         nSb = self._H_intra.shape
         if (not isinstance(op, Qobj)):
-            raise Exception("op in operator_at_cells need to be Qobj's. \n")
+            raise Exception("op in operator_between_cells need to be Qobj's.")
         nSi = op.shape
         if (nSb != nSi):
-            raise Exception("op in operstor_at_cells() is required to \
+            raise Exception("op in operstor_between_cells() is required to \
                             have the same dimensionality as cell_Hamiltonian.")
 
-        (xx, yy) = np.shape(op)
-        row_ind = np.array([])
-        col_ind = np.array([])
-        data = np.array([])
-        nS = self._length_of_unit_cell
-        nx_units = self.num_cell
-        ny_units = 1
-        for i in range(nx_units):
-            for j in range(ny_units):
-                lin_RI = i + j * nx_units
-                if (i in cells) and j == 0:
-                    for k in range(xx):
-                        for l in range(yy):
-                            row_ind = np.append(row_ind, [lin_RI*nS+k])
-                            col_ind = np.append(col_ind, [lin_RI*nS+l])
-                            data = np.append(data, [op[k, l]])
-
-        m = nx_units*ny_units*nS
-        op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
+        T = np.zeros((self.num_cell, self.num_cell), dtype=complex)
+        T[row_cell, col_cell] = 1
+        op_H = np.kron(T, op)
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(op_H, dims=dim_op)
 
