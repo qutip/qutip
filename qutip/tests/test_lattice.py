@@ -263,6 +263,29 @@ class TestLattice:
         assert_(n_off == 0)
         assert_((np.diag(R) == np.kron(range(3),np.ones(12))).all())
 
+    def test_k(self):
+        """
+        lattice: Test the method Lattice1d.k().
+        """
+        lattice_2123 = Lattice1d(num_cell=2, boundary = "periodic", cell_num_site = 1,
+                      cell_site_dof = [2,3])
+        kq = lattice_2123.k()
+
+        L = 2
+        kop = np.zeros((L, L), dtype=complex)
+        for row in range(L):
+            for col in range(L):
+                if row == col:
+                    kop[row, col] = (L-1)/2
+                else:
+                    kop[row, col] = 1 / (np.exp(2j * np.pi * (row - col)/L)-1)
+
+        kt = np.kron(kop, np.eye(6))
+        dim_H = [[2, 2, 3], [2, 2, 3]]
+        kt = Qobj(kt, dims=dim_H)
+
+        assert_(kq == kt)
+
     def test_get_dispersion(self):
         """
         lattice: Test the method Lattice1d.get_dispersion().
