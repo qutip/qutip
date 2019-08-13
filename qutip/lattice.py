@@ -346,9 +346,19 @@ class Lattice1d():
             # cell_Hamiltonian, so we set it ourselves
             siteH = np.diag(np.zeros(cell_num_site-1)-1, 1)
             siteH += np.diag(np.zeros(cell_num_site-1)-1, -1)
-            cell_Hamiltonian = tensor(Qobj(siteH), qeye(self.cell_site_dof))
-            self._H_intra = cell_Hamiltonian
-
+            if cell_site_dof == [1] or cell_site_dof == 1:
+                cell_Hamiltonian = Qobj(siteH, type = 'oper')
+                self._H_intra = cell_Hamiltonian
+            else:
+                cell_Hamiltonian = tensor(Qobj(siteH), qeye(self.cell_site_dof))
+                dih = cell_Hamiltonian.dims[0]
+                if all(x == 1 for x in dih):
+                    dih = [1]
+                else:
+                    while 1 in dih:
+                        dih.remove(1)
+                self._H_intra = Qobj(cell_Hamiltonian, dims=[dih, dih],
+                                 type = 'oper')
         elif not isinstance(cell_Hamiltonian, Qobj):    # The user
             # input for cell_Hamiltonian is not a Qobj and hence is invalid
             raise Exception("cell_Hamiltonian is required to be a Qobj.")
@@ -359,7 +369,7 @@ class Lattice1d():
             if cell_Hamiltonian.shape != r_shape:
                 raise Exception("cell_Hamiltonian does not have a shape \
                             consistent with cell_num_site and cell_site_dof.")
-            self._H_intra = Qobj(cell_Hamiltonian, dims=dim_ih)
+            self._H_intra = Qobj(cell_Hamiltonian, dims=dim_ih, type = 'oper')
         is_real = np.isreal(self._H_intra).all()
         if not isherm(self._H_intra):
             raise Exception(" cell_Hamiltonian is required to be Hermitian. ")
@@ -383,7 +393,7 @@ class Lattice1d():
                     is_real = is_real and np.isreal(inter_hop[i]).all()
             self._H_inter_list = inter_hop    # The user input list was correct
             # we store it in _H_inter_list
-            self._H_inter = Qobj(inter_hop_sum, dims=dim_ih)
+            self._H_inter = Qobj(inter_hop_sum, dims=dim_ih, type = 'oper')
         elif isinstance(inter_hop, Qobj):  # There is a user input
             # Qobj
             nSi = inter_hop.shape
@@ -391,7 +401,7 @@ class Lattice1d():
                 raise Exception("inter_hop is required to have the same \
                 dimensionality as cell_Hamiltonian.")
             else:
-                inter_hop = Qobj(inter_hop, dims=dim_ih)
+                inter_hop = Qobj(inter_hop, dims=dim_ih, type = 'oper')
             self._H_inter_list = [inter_hop]
             self._H_inter = inter_hop
             is_real = is_real and np.isreal(inter_hop).all()
@@ -399,16 +409,23 @@ class Lattice1d():
         elif inter_hop is None:      # inter_hop is the default None)
             # So, we set self._H_inter_list from cell_num_site and
             # cell_site_dof
-            if cell_num_site == 1:
-                siteT = Qobj([[-1]])
+            if self._length_of_unit_cell == 1:
+                inter_hop = Qobj([[-1]], type = 'oper')
             else:
                 bNm = basis(cell_num_site, cell_num_site-1)
                 bN0 = basis(cell_num_site, 0)
-                siteT = bNm * bN0.dag()
-
-            inter_hop = tensor(Qobj(siteT), qeye(self.cell_site_dof))
-            self._H_inter_list = [inter_hop]
-            self._H_inter = inter_hop
+                siteT = -bNm * bN0.dag()
+                inter_hop = tensor(Qobj(siteT), qeye(self.cell_site_dof))
+            dih = inter_hop.dims[0]
+            if all(x == 1 for x in dih):
+                dih = [1]
+            else:
+                while 1 in dih:
+                    dih.remove(1)
+            self._H_inter_list = [Qobj(inter_hop, dims = [dih, dih],
+                                       type = 'oper')]
+            self._H_inter = Qobj(inter_hop, dims = [dih, dih],
+                                  type = 'oper')
         else:
             raise Exception("inter_hop is required to be a Qobj or a \
                             list of Qobjs.")
@@ -432,7 +449,6 @@ class Lattice1d():
               ",\nbasis_Hamiltonian = " + str(self._H_intra) +
               ",\ninter_hop = " + str(self._H_inter_list) +
               ",\ncell_tensor_config = " + str(self.cell_tensor_config) +
-              ",\nis_consistent = " + str(self._is_consistent) +
               "\n")
         if self.PBCx == 1:
             s += "Boundary Condition:  Periodic"
@@ -453,7 +469,7 @@ class Lattice1d():
         T = np.diag(np.zeros(self.num_cell-1)+1, 1)
         Tdag = np.diag(np.zeros(self.num_cell-1)+1, -1)
 
-        if self.PBCx is 1 and self.num_cell > 2:
+        if self.PBCx == 1 and self.num_cell > 2:
             Tdag[0][self.num_cell-1] = 1
             T[self.num_cell-1][0] = 1
         T = Qobj(T)
@@ -569,7 +585,95 @@ class Lattice1d():
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(xs, dims=dim_H)
 
+    def k(self):
+        """
+        Returns the crystal momentum operator. All degrees of freedom has the
+        cell number at their correspondig entry in the position operator.
+
+        Returns
+        -------
+        Qobj(ks) : qutip.Qobj
+            The crystal momentum operator.
+        """
+        L = self.num_cell
+        kop = np.zeros((L, L), dtype=complex)
+        for row in range(L):
+            for col in range(L):
+                if row == col:
+                    kop[row, col] = (L-1)/2
+                else:
+#                    sums = 0
+#                    for kth in range(1, L):
+#                        sums = sums + kth * np.exp(2j*(row-col)*np.pi*kth/L)
+#                    sums = sums * 2/L
+                    kop[row, col] = 1 / (np.exp(2j * np.pi * (row - col)/L)-1)
+        nx = self.cell_num_site
+        ne = self._length_for_site
+        k = np.kron(kop, np.eye(nx*ne))
+        dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
+        return Qobj(k, dims=dim_H)
+
     def operator_at_cells(self, op, cells):
+        """
+        A function that returns an operator matrix that applies op to specific
+        cells specified in the cells list
+
+        Parameters
+        ----------
+        op : qutip.Qobj
+            Qobj representing the operator to be applied at certain cells.
+
+        cells: list of int
+            The cells at which the operator op is to be applied.
+
+        Returns
+        -------
+        Qobj(op_H) : Qobj
+            Quantum object representing the operator with op applied at
+            the specified cells.
+        """
+        if isinstance(cells, int):
+            cells = [cells]
+        if isinstance(cells, list):
+            for i, cells_i in enumerate(cells):
+                if not isinstance(cells_i, int):
+                    raise Exception("cells[", i, "] is not an int!elements of \
+                                    cells is required to be ints.")
+        else:
+            raise Exception("cells in operator_at_cells() need to be an int or\
+                               a list of ints.")
+
+        nSb = self._H_intra.shape
+        if (not isinstance(op, Qobj)):
+            raise Exception("op in operator_at_cells need to be Qobj's. \n")
+        nSi = op.shape
+        if (nSb != nSi):
+            raise Exception("op in operstor_at_cells() is required to \
+                            have the same dimensionality as cell_Hamiltonian.")
+
+        (xx, yy) = np.shape(op)
+        row_ind = np.array([])
+        col_ind = np.array([])
+        data = np.array([])
+        nS = self._length_of_unit_cell
+        nx_units = self.num_cell
+        ny_units = 1
+        for i in range(nx_units):
+            for j in range(ny_units):
+                lin_RI = i + j * nx_units
+                if (i in cells) and j == 0:
+                    for k in range(xx):
+                        for l in range(yy):
+                            row_ind = np.append(row_ind, [lin_RI*nS+k])
+                            col_ind = np.append(col_ind, [lin_RI*nS+l])
+                            data = np.append(data, [op[k, l]])
+
+        m = nx_units*ny_units*nS
+        op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
+        dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
+        return Qobj(op_H, dims=dim_op)
+
+    def operator_between_cells(self, op, cells):
         """
         A function that returns an operator matrix that applies op to specific
         cells specified in the cells list
@@ -1090,8 +1194,9 @@ class Lattice1d():
         dim_I = [self.cell_tensor_config, self.cell_tensor_config]
         H_inter = Qobj(np.zeros((self._length_of_unit_cell,
                                  self._length_of_unit_cell)), dims=dim_I)
-        for i0 in range(len(self._H_inter_list)):
-            H_inter = H_inter + self._H_inter_list[i0]
+        for no, inter_hop_no in enumerate(self._H_inter_list):
+            H_inter = H_inter + inter_hop_no
+
         H_inter = np.array(H_inter)
         CSN = self.cell_num_site
         Hcell = [[{} for i in range(CSN)] for j in range(CSN)]
