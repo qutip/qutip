@@ -311,7 +311,7 @@ class ExpectOps:
         else:
             for ii in range(self.e_num):
                 self.raw_out[ii, iter_] = \
-                    self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
+                    self.e_ops_qoevo[ii].expect(t, state)
 
     def finish(self):
         if self.isfunc:

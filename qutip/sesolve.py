@@ -320,10 +320,10 @@ class SESolver(Solver):
                     prop = props[i,:].reshape((vec_len, vec_len)).T
                     state[i,:,:] = np.conj(prop.T) @ oper.full() @ prop
                     e_op.step(i, state[i,:,:].ravel("F"))
+                    if store_states:
+                        states_out[state_n, args_n] = dense2D_to_fastcsr_fmode(state[i,:,:])
                 if self._e_ops:
                     expect_out[state_n, args_n] = e_op.finish()
-                if store_states:
-                    states_out[state_n, args_n] = state
         return states_out, expect_out
 
     def _one_run_ket(self, run_data, normalize_func):

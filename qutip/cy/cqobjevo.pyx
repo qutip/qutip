@@ -434,7 +434,7 @@ cdef class CQobjCte(CQobjEvo):
             row_start = self.cte.indptr[row]
             row_end = self.cte.indptr[row+1]
             for jj from row_start <= jj < row_end:
-                tr += self.cte.data[jj]*oper[num_rows*jj + row]
+                tr += self.cte.data[jj]*oper[num_rows*self.cte.indices[jj] + row]
         return tr
 
 
