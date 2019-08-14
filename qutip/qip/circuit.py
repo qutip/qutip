@@ -39,6 +39,8 @@ import numpy as np
 
 import numpy as np
 
+import numpy as np
+
 from qutip.qip.circuit_latex import _latex_compile
 from qutip.qip.gates import *
 from qutip.qip.qubits import qubit_states
@@ -487,11 +489,11 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                           arg_value=np.pi / 2,
                                           arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RX", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
                 temp_resolved.append(Gate("RY", gate.targets, None,
                                           arg_value=np.pi / 2,
                                           arg_label=r"\pi/2"))
+                temp_resolved.append(Gate("RX", gate.targets, None,
+                                          arg_value=np.pi, arg_label=r"\pi"))
             elif gate.name == "PHASEGATE":
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                           arg_value=gate.arg_value / 2,

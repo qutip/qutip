@@ -109,6 +109,7 @@ def stochastic_solvers():
         Efficient Quantum Filtering for Quantum Feedback Control
         Pierre Rouchon, Jason F. Ralph
         arXiv:1410.5345 [quant-ph]
+        Phys. Rev. A 91, 012118, (2015)
 
     taylor1.5, Order 1.5 strong Taylor scheme:
         Solver with more terms of the Ito-Taylor expansion.

@@ -116,8 +116,9 @@ cdef double _spline_float_cte_second(double x,
         return y[0]
     elif x > t[n_t-1]:
         return y[n_t-1]
-    cdef int p = <int>(x/dt)
-    cdef double tb = (x/dt - p)
+    cdef double xx = (x-t[0])/dt
+    cdef int p = <int>xx
+    cdef double tb = (xx - p)
     cdef double te = 1 - tb
     cdef double dt2 = dt * dt
     cdef double Me = M[p+1] * dt2
@@ -164,8 +165,9 @@ cdef complex _spline_complex_cte_second(double x,
         return y[0]
     elif x > t[n_t-1]:
         return y[n_t-1]
-    cdef int p = <int>(x/dt)
-    cdef double tb = (x/dt - p)
+    cdef double xx = (x-t[0])/dt
+    cdef int p = <int>xx
+    cdef double tb = (xx - p)
     cdef double te = 1 - tb
     cdef double dt2 = dt * dt
     cdef complex Me = M[p+1] * dt2
@@ -196,3 +198,53 @@ cdef complex _spline_complex_t_second(double x,
     cdef complex Mb = M[p] * dt2
     return te * (Mb * te * te + (y[p]   - Mb)) + \
            tb * (Me * tb * tb + (y[p+1] - Me))
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef double _step_float_cte(double x, double[::1] t, double[::1] y, int n_t):
+    if x < t[0]:
+        return y[0]
+    elif x >= t[n_t-1]:
+        return y[n_t-1]
+    cdef int p = <int> ((x-t[0]) / (t[n_t-1]-t[0]) * (n_t-1))
+    return y[p]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef complex _step_complex_cte(double x, double[::1] t, complex[::1] y, int n_t):
+    if x < t[0]:
+        return y[0]
+    elif x >= t[n_t-1]:
+        return y[n_t-1]
+    cdef int p = <int> ((x-t[0]) / (t[n_t-1]-t[0]) * (n_t-1))
+    return y[p]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef double _step_float_t(double x, double[::1] t, double[::1] y, int n_t):
+    if x < t[0]:
+        return y[0]
+    elif x >= t[n_t-1]:
+        return y[n_t-1]
+    # TODO this can be moved out for better performance
+    cdef int p = _binary_search(x, t, n_t)
+    return y[p]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef complex _step_complex_t(double x, double[::1] t, complex[::1] y, int n_t):
+    if x < t[0]:
+        return y[0]
+    elif x >= t[n_t-1]:
+        return y[n_t-1]
+    # TODO this can be moved out for better performance
+    cdef int p = _binary_search(x, t, n_t)
+    return y[p]
