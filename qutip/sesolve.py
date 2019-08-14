@@ -42,6 +42,7 @@ import numpy as np
 import scipy.integrate
 import qutip.settings as qset
 from qutip.qobj import Qobj
+from qutip.operators import qeye
 from qutip.qobjevo import QobjEvo
 from scipy.linalg import norm as la_norm
 from qutip.parallel import parallel_map, serial_map
@@ -86,7 +87,7 @@ class SESolver(Solver):
         self.tlist = tlist
         self._args = args
         self.options = options
-        self.optimization = {"period":0}
+        self._optimization = {"period":0}
 
     def set_initial_value(self, psi0, tlist=[]):
         self.state0 = psi0
@@ -95,7 +96,7 @@ class SESolver(Solver):
             self.tlist = tlist
 
     def optimization(self, period=0):
-        self.optimization["period"] = period
+        self._optimization["period"] = period
         raise NotImplementedError
 
     def run(self, progress_bar=True):
@@ -155,7 +156,7 @@ class SESolver(Solver):
             res = self._batch_run_merged_ket(states, args_sets, map_func, map_kwargs)
         elif all_ket:
             res = self._batch_run_ket(states, args_sets, map_func, map_kwargs)
-        elif ss.with_state:
+        elif self.ss.with_state:
             res = self._batch_run_oper(states, args_sets, map_func, map_kwargs)
         else:
             res = self._batch_run_prop_oper(states, args_sets, map_func, map_kwargs)
@@ -196,7 +197,7 @@ class SESolver(Solver):
         self._options.store_states = (not bool(self._e_ops) or
                                       self._options.store_states)
 
-        computed_state = [qt.qeye(vec_len)]
+        computed_state = [qeye(vec_len)]
         values = list(product(computed_state, args_sets))
 
         normalize_func = normalize_op_inplace
@@ -288,7 +289,7 @@ class SESolver(Solver):
 
         return states_out, expect_out
 
-    def _batch_run_prop_ket(self, opers, args_sets, map_func, map_kwargs):
+    def _batch_run_prop_oper(self, opers, args_sets, map_func, map_kwargs):
         N_states0 = len(opers)
         N_args = len(args_sets)
         nt = len(self._tlist)
@@ -297,7 +298,7 @@ class SESolver(Solver):
         states_out = np.empty((N_states0, N_args), dtype=object)
         expect_out = np.empty((N_states0, N_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
-        computed_state = [qt.qeye(vec_len)]
+        computed_state = [qeye(vec_len)]
         values = list(product(computed_state, args_sets))
 
         normalize_func = normalize_op_inplace
@@ -309,15 +310,16 @@ class SESolver(Solver):
         results = map_func(self._one_run_ket, values, (normalize_func,),
                            **map_kwargs)
 
-        for i, (prop, _) in enumerate(results):
+        for i, (props, _) in enumerate(results):
             args_n, state_n = divmod(i, N_states0)
             for oper in opers:
                 e_op = self._e_ops.copy()
                 e_op.init(self._tlist)
-                state = np.zeros((nt, vec_len, vec_len), dtype=np.float)
-                for i, t in self._tlist:
-                    state[i,:,:] = np.conj(prop[t,:,:].T) @ oper @ prop[t,:,:]
-                    e_op.step(i, state[i,:,:])
+                state = np.zeros((nt, vec_len, vec_len), dtype=complex)
+                for i, t in enumerate(self._tlist):
+                    prop = props[i,:].reshape((vec_len, vec_len)).T
+                    state[i,:,:] = np.conj(prop.T) @ oper.full() @ prop
+                    e_op.step(i, state[i,:,:].ravel("F"))
                 if self._e_ops:
                     expect_out[state_n, args_n] = e_op.finish()
                 if store_states:
