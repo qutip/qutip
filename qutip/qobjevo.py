@@ -59,9 +59,9 @@ if qset.has_openmp:
     from qutip.cy.openmp.cqobjevo_omp import (CQobjCteOmp, CQobjEvoTdOmp,
                                               CQobjEvoTdMatchedOmp)
 
-safePickle = False
+safePickle = [False]
 if sys.platform == 'win32':
-    safePickle = True
+    safePickle[0] = True
 
 
 def proj(x):
@@ -353,7 +353,6 @@ class QobjEvo:
 
     _cdc()
         Return self.dag() * self.
-        Only possible if num_obj == 1
 
     permute(order)
         Returns composite qobj with indices reordered.
@@ -429,7 +428,7 @@ class QobjEvo:
 
         self.const = False
         self.dummy_cte = False
-        self.args = args.copy() if copy else args
+        self.args = args.copy()
         self.dynamics_args = []
         self.cte = None
         self.tlist = tlist
@@ -1544,7 +1543,7 @@ class QobjEvo:
         if self.compiled:
             mat_type, threading, td =  self.compiled.split()
             if mat_type == "csr":
-                if safePickle:
+                if safePickle[0]:
                     # __getstate__ and __setstate__ of compiled_qobjevo pass pointers
                     # In 'safe' mod, these pointers are not used.
                     if td == "cte":
@@ -1566,9 +1565,9 @@ class QobjEvo:
                             self.compiled_qobjevo.set_threads(self.omp)
 
                         if td == "pyfunc":
-                            self.compiled_qobjevo.set_factor(obj=self.coeff_get)
-                        elif td == "cyfactor":
                             self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                        elif td == "cyfactor":
+                            self.compiled_qobjevo.set_factor(obj=self.coeff_get)
                 else:
                     if td == "cte":
                         if threading == "single":

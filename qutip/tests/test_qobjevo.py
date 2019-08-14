@@ -705,6 +705,45 @@ def test_QobjEvo_pickle():
     assert_equal(td_obj_m(t) == td_pick(t), True)
 
 
+def test_QobjEvo_safepickle():
+    "QobjEvo with safe pickle"
+    #used in parallel_map
+    import pickle
+    from qutip.qobjevo import safePickle
+    safePickle[0] = True
+    tlist = np.linspace(0,1,300)
+    args={"w1":1, "w2":2}
+    t = np.random.random()
+
+    td_obj_c = QobjEvo(_random_QobjEvo((5,5), [0,0,0]))
+    td_obj_c.compile()
+    pickled = pickle.dumps(td_obj_c)
+    td_pick = pickle.loads(pickled)
+    # Check for const case
+    assert_equal(td_obj_c(t) == td_pick(t), True)
+
+    td_obj_sa = QobjEvo(_random_QobjEvo((5,5), [2,3,0], tlist=tlist),
+                       args=args, tlist=tlist)
+    td_obj_sa.compile()
+    td_obj_m = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist),
+                       args=args, tlist=tlist)
+
+    pickled = pickle.dumps(td_obj_sa, -1)
+    td_pick = pickle.loads(pickled)
+    # Check for cython compiled coeff
+    assert_equal(td_obj_sa(t) == td_pick(t), True)
+
+    pickled = pickle.dumps(td_obj_m, -1)
+    td_pick = pickle.loads(pickled)
+    # Check for not compiled mix
+    assert_equal(td_obj_m(t) == td_pick(t), True)
+    td_obj_m.compile()
+    pickled = pickle.dumps(td_obj_m, -1)
+    td_pick = pickle.loads(pickled)
+    # Check for ct_cqobjevo
+    assert_equal(td_obj_m(t) == td_pick(t), True)
+
+
 def test_QobjEvo_superoperator():
     "QobjEvo superoperator"
     cqobjevos1, _ = _rand_cqobjevo(3)
