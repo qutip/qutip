@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 5 - Production/Stable
+Development Status :: 4 - Beta
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
