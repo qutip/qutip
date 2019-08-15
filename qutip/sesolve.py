@@ -66,7 +66,7 @@ def stack_ket(kets):
 
 
 class SESolver(Solver):
-    """Stochastic Equation Solver
+    """Schrodinger Equation Solver
 
     """
     def __init__(self, H, args={}, tlist=[], options=None):
@@ -107,7 +107,6 @@ class SESolver(Solver):
                                           self._args, self.options)
         if not self.e_ops:
             self._options.store_states = True
-
 
         elif self.state0.isket:
             normalize_func = normalize_inplace
@@ -150,7 +149,7 @@ class SESolver(Solver):
 
         if all_ket and self.ss.with_state:
             res = self._batch_run_ket(states, args_sets, map_func, map_kwargs)
-        elif all_ket and (len(N_vecs) > vec_len):
+        elif all_ket and (N_states0 > vec_len):
             res = self._batch_run_prop_ket(states, args_sets, map_func, map_kwargs)
         elif all_ket and N_states0 >= 2:
             res = self._batch_run_merged_ket(states, args_sets, map_func, map_kwargs)
@@ -310,18 +309,22 @@ class SESolver(Solver):
         results = map_func(self._one_run_ket, values, (normalize_func,),
                            **map_kwargs)
 
-        for i, (props, _) in enumerate(results):
-            args_n, state_n = divmod(i, N_states0)
-            for oper in opers:
+        for args_n, (props, _) in enumerate(results):
+            # args_n, state_n = divmod(index, N_states0)
+            for state_n, oper in enumerate(opers):
                 e_op = self._e_ops.copy()
                 e_op.init(self._tlist)
-                state = np.zeros((nt, vec_len, vec_len), dtype=complex)
+                state = np.zeros((vec_len, vec_len), dtype=complex)
+                states_out[state_n, args_n] = np.empty(nt, dtype=object)
                 for i, t in enumerate(self._tlist):
                     prop = props[i,:].reshape((vec_len, vec_len)).T
-                    state[i,:,:] = np.conj(prop.T) @ oper.full() @ prop
-                    e_op.step(i, state[i,:,:].ravel("F"))
+                    state = prop @ oper.full().T @ np.conj(prop.T)
+                    e_op.step(i, state.ravel("F"))
                     if store_states:
-                        states_out[state_n, args_n] = dense2D_to_fastcsr_fmode(state[i,:,:])
+                        states_out[state_n, args_n][i] = \
+                            Qobj(dense2D_to_fastcsr_fmode(state.T,
+                                                          vec_len, vec_len),
+                                 dims=oper.dims)
                 if self._e_ops:
                     expect_out[state_n, args_n] = e_op.finish()
         return states_out, expect_out

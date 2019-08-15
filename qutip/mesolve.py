@@ -51,8 +51,220 @@ from qutip.settings import debug
 from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.qobjevo import QobjEvo
-
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
+
+
+def stack_rho(rhos):
+    size = rhos[0].shape[0] * rhos[0].shape[1]
+    out = np.zeros((size, len(rhos)), dtype=complex)
+    for i, rho in enumerate(rhos):
+        out[:,i] = rho.full().ravel("F")
+    return [Qobj(out)]
+
+
+class MESolver(Solver):
+    """Master Equation Solver
+
+    """
+    def __init__(self, H, c_ops=[], args={}, tlist=[], options=None):
+        if options is None:
+            options = Options()
+
+        super().__init__()
+        if isinstance(H, (list, Qobj, QobjEvo)):
+            ss = _mesolve_QobjEvo(H, c_ops, tlist, args, options)
+        elif callable(H):
+            ss = _mesolve_func_td(H, c_ops, args, options)
+        else:
+            raise Exception("Invalid H type")
+
+        self.H = H
+        self.ss = ss
+        self.c_ops = []
+        self.dims = None
+        self._args = args
+        self.tlist = tlist
+        self.options = options
+        self._optimization = {"period":0}
+
+    def set_initial_value(self, rho0, tlist=[]):
+        self.state0 = rho0
+        self.dims = rho0.dims
+        if tlist:
+            self.tlist = tlist
+
+    def optimization(self, period=0, sparse=False):
+        self._optimization["period"] = period
+        self._optimization["sparse"] = sparse
+        raise NotImplementedError
+
+    def run(self, progress_bar=True):
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+
+        func, ode_args = self.ss.makefunc(self.ss, self.state0,
+                                          self._args, self.options)
+        if not self.e_ops:
+            self._options.store_states = True
+
+        elif self.state0.isket:
+            normalize_func = normalize_inplace
+            func, ode_args = self.ss.makefunc(self.ss, self.state0,
+                                              self._args, self.options)
+        else:
+            normalize_func = normalize_op_inplace
+            func, ode_args = self.ss.makeoper(self.ss, self.state0,
+                                              self._args, self.options)
+
+        if not self._options.normalize_output:
+            normalize_func = None
+
+        self._e_ops.init(self._tlist)
+        self._state_out = self._generic_ode_solve(func, ode_args, self.state0,
+                                                  self._tlist, self._e_ops,
+                                                  normalize_func, self._options,
+                                                  progress_bar)
+
+    def batch_run(self, states=[], args_sets=[],
+                  progress_bar=True, map_func=parallel_map):
+        N_states0 = len(states)
+        if not states:
+            states = [self.state0]
+        states = [ket2dm(state) if isket(state) else state for state in states]
+        size = rhos[0].shape[0] * rhos[0].shape[1]
+
+        N_args = len(args_sets)
+        if not args_sets:
+            args_sets = [self._args]
+
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+        map_kwargs = {'progress_bar': progress_bar,
+                      'num_cpus': self.options.num_cpus}
+
+        if self.ss.with_state:
+            res = self._batch_run_rho(states, args_sets, map_func, map_kwargs)
+        elif N_states0 > size:
+            res = self._batch_run_prop_rho(states, args_sets, map_func, map_kwargs)
+        elif N_states0 >= 2:
+            res = self._batch_run_merged_rho(states, args_sets, map_func, map_kwargs)
+        else:
+            res = self._batch_run_rho(states, args_sets, map_func, map_kwargs)
+        return res
+
+    def _batch_run_rho(self, states, args_sets, map_func, map_kwargs):
+        N_states0 = len(kets)
+        N_args = len(args_sets)
+        states_out = np.empty((N_states0, N_args), dtype=object)
+        expect_out = np.empty((N_states0, N_args), dtype=object)
+        store_states = not bool(self._e_ops) or self._options.store_states
+        values = list(product(kets, args_sets))
+
+        normalize_func = normalize_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        results = map_func(self._one_run_ket, values, (normalize_func,),
+                           **map_kwargs)
+
+        for i, (state, expect) in enumerate(results):
+            args_n, state_n = divmod(i, N_states0)
+            if self._e_ops:
+                expect_out[state_n, args_n] = expect.finish()
+            if store_states:
+                states_out[state_n, args_n] = state
+
+        return states_out, expect_out
+
+    def _batch_run_prop_rho(self, states, args_sets, map_func, map_kwargs):
+        N_states0 = len(states)
+        N_args = len(args_sets)
+        nt = len(self._tlist)
+        size = states[0].shape[0] * states[0].shape[1]
+        size_s = states[0].shape[0]
+
+        states_out = np.empty((N_states0, N_args), dtype=object)
+        expect_out = np.empty((N_states0, N_args), dtype=object)
+        self._options.store_states = (not bool(self._e_ops) or
+                                      self._options.store_states)
+
+        computed_state = [qeye(vec_len)]
+        values = list(product(computed_state, args_sets))
+
+        normalize_func = normalize_op_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        if len(values) == 1:
+            map_func = serial_map
+        results = map_func(self._one_run_ket, values, (normalize_func,),
+                           **map_kwargs)
+
+        for args_n, (prop, _) in enumerate(results):
+            for state_n, rho in enumerate(states):
+                e_op = self._e_ops.copy()
+                e_op.init(self._tlist)
+                state = np.zeros((nt, vec_len), dtype=complex)
+                for t in self._tlist:
+                    state[t,:] = prop[t,:,:] @ rho.full.ravel("F")
+                    e_op.step(t, state[t,:])
+                if self._e_ops:
+                    expect_out[state_n, args_n] = e_op.finish()
+                if self._options.store_states:
+                    states_out[state_n, args_n] = state
+        return states_out, expect_out
+
+    def _batch_run_merged_rho(self, states, args_sets, map_func, map_kwargs):
+        nt = len(self._tlist)
+        num_states0 = len(kets)
+        num_args = len(args_sets)
+        size = states[0].shape[0] * states[0].shape[1]
+        size_s = states[0].shape[0]
+
+        states_out = np.empty((num_states0, num_args), dtype=object)
+        expect_out = np.empty((num_states0, num_args), dtype=object)
+        store_states = not bool(self._e_ops) or self._options.store_states
+        self._options.store_states = True
+        values = list(product(stack_rho(kets), args_sets))
+
+        if len(values) == 1:
+            map_func = serial_map
+        results = map_func(self._one_run_rho, values, (), **map_kwargs)
+
+        for args_n, (state, _) in enumerate(results):
+            e_ops_ = [self._e_ops.copy() for _ in range(num_states0)]
+            [e_op.init(self._tlist) for e_op in e_ops_]
+            states_out_run = [np.zeros((nt, size), dtype=complex)
+                              for _ in range(num_states0)]
+            for t in range(nt):
+                state_t = state[t,:].reshape((num_states0, size)).T
+                for j in range(num_states0):
+                    vec = state_t[:,j]
+                    e_ops_[j].step(t, vec)
+                    if store_states:
+                        states_out_run[j][t,:] = vec
+
+            for state_n in range(num_states0):
+                expect_out[state_n, args_n] = e_ops_[state_n].finish()
+                if store_states:
+                    states_out[state_n, args_n] = states_out_run[state_n]
+
+        return states_out, expect_out
+
+    def _one_run_rho(self, run_data):
+        opt = self._options
+        state0, args = run_data
+        func, ode_args = self.ss.makefunc(self.ss, state0, args, opt)
+
+        if state0.isket:
+            e_ops = self._e_ops.copy()
+        else:
+            e_ops = ExpectOps([])
+
+        state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
+                                        e_ops, False, opt, BaseProgressBar())
+        return state, e_ops
+
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
