@@ -266,8 +266,13 @@ class Lattice1d():
         Distributes an input operator over all the cells.
     x()
         Position operator for the crystal.
+    k()
+        Crystal momentum operator for the crystal.
     operator_at_cells()
         Distributes an input operator over user specified cells .
+    operator_between_cells()
+        A function that returns an operator matrix that applies an operator
+        between a two specified cells.
     plot_dispersion()
         Plots dispersion relation of the crystal.
     get_dispersion()
@@ -279,7 +284,7 @@ class Lattice1d():
         Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
         part of the Bloch wavefunctios in a numpy.ndarray for translationally
         symmetric lattices with periodic boundary condition.
-    bulk_Hamiltonian_array()
+    bulk_Hamiltonians()
         Returns the bulk Hamiltonian for the lattice at the good quantum
         numbers of lattice momentum, k in a numpy ndarray of Qobj's.
     """
@@ -347,10 +352,11 @@ class Lattice1d():
             siteH = np.diag(np.zeros(cell_num_site-1)-1, 1)
             siteH += np.diag(np.zeros(cell_num_site-1)-1, -1)
             if cell_site_dof == [1] or cell_site_dof == 1:
-                cell_Hamiltonian = Qobj(siteH, type = 'oper')
+                cell_Hamiltonian = Qobj(siteH, type='oper')
                 self._H_intra = cell_Hamiltonian
             else:
-                cell_Hamiltonian = tensor(Qobj(siteH), qeye(self.cell_site_dof))
+                cell_Hamiltonian = tensor(Qobj(siteH),
+                                          qeye(self.cell_site_dof))
                 dih = cell_Hamiltonian.dims[0]
                 if all(x == 1 for x in dih):
                     dih = [1]
@@ -358,7 +364,7 @@ class Lattice1d():
                     while 1 in dih:
                         dih.remove(1)
                 self._H_intra = Qobj(cell_Hamiltonian, dims=[dih, dih],
-                                 type = 'oper')
+                                     type='oper')
         elif not isinstance(cell_Hamiltonian, Qobj):    # The user
             # input for cell_Hamiltonian is not a Qobj and hence is invalid
             raise Exception("cell_Hamiltonian is required to be a Qobj.")
@@ -369,7 +375,7 @@ class Lattice1d():
             if cell_Hamiltonian.shape != r_shape:
                 raise Exception("cell_Hamiltonian does not have a shape \
                             consistent with cell_num_site and cell_site_dof.")
-            self._H_intra = Qobj(cell_Hamiltonian, dims=dim_ih, type = 'oper')
+            self._H_intra = Qobj(cell_Hamiltonian, dims=dim_ih, type='oper')
         is_real = np.isreal(self._H_intra).all()
         if not isherm(self._H_intra):
             raise Exception(" cell_Hamiltonian is required to be Hermitian. ")
@@ -393,7 +399,7 @@ class Lattice1d():
                     is_real = is_real and np.isreal(inter_hop[i]).all()
             self._H_inter_list = inter_hop    # The user input list was correct
             # we store it in _H_inter_list
-            self._H_inter = Qobj(inter_hop_sum, dims=dim_ih, type = 'oper')
+            self._H_inter = Qobj(inter_hop_sum, dims=dim_ih, type='oper')
         elif isinstance(inter_hop, Qobj):  # There is a user input
             # Qobj
             nSi = inter_hop.shape
@@ -401,7 +407,7 @@ class Lattice1d():
                 raise Exception("inter_hop is required to have the same \
                 dimensionality as cell_Hamiltonian.")
             else:
-                inter_hop = Qobj(inter_hop, dims=dim_ih, type = 'oper')
+                inter_hop = Qobj(inter_hop, dims=dim_ih, type='oper')
             self._H_inter_list = [inter_hop]
             self._H_inter = inter_hop
             is_real = is_real and np.isreal(inter_hop).all()
@@ -410,7 +416,7 @@ class Lattice1d():
             # So, we set self._H_inter_list from cell_num_site and
             # cell_site_dof
             if self._length_of_unit_cell == 1:
-                inter_hop = Qobj([[-1]], type = 'oper')
+                inter_hop = Qobj([[-1]], type='oper')
             else:
                 bNm = basis(cell_num_site, cell_num_site-1)
                 bN0 = basis(cell_num_site, 0)
@@ -422,10 +428,9 @@ class Lattice1d():
             else:
                 while 1 in dih:
                     dih.remove(1)
-            self._H_inter_list = [Qobj(inter_hop, dims = [dih, dih],
-                                       type = 'oper')]
-            self._H_inter = Qobj(inter_hop, dims = [dih, dih],
-                                  type = 'oper')
+            self._H_inter_list = [Qobj(inter_hop, dims=[dih, dih],
+                                       type='oper')]
+            self._H_inter = Qobj(inter_hop, dims=[dih, dih], type='oper')
         else:
             raise Exception("inter_hop is required to be a Qobj or a \
                             list of Qobjs.")
@@ -603,10 +608,6 @@ class Lattice1d():
                 if row == col:
                     kop[row, col] = (L-1)/2
                 else:
-#                    sums = 0
-#                    for kth in range(1, L):
-#                        sums = sums + kth * np.exp(2j*(row-col)*np.pi*kth/L)
-#                    sums = sums * 2/L
                     kop[row, col] = 1 / (np.exp(2j * np.pi * (row - col)/L)-1)
         nx = self.cell_num_site
         ne = self._length_for_site
@@ -670,9 +671,6 @@ class Lattice1d():
 
         m = nx_units*ny_units*nS
         op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
-
-
-
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(op_H, dims=dim_op)
 
@@ -814,7 +812,7 @@ class Lattice1d():
 
     def bloch_wave_functions(self):
         """
-        Returns eigenvectors ($\psi_n(k)$) of the Hamiltonian in a 
+        Returns eigenvectors ($\psi_n(k)$) of the Hamiltonian in a
         numpy.ndarray for translationally symmetric lattices with periodic
         boundary condition.
 
@@ -879,7 +877,7 @@ class Lattice1d():
         (knxA, qH_ks, val_kns, vec_kns, vec_xs) = self._k_space_calculations()
         return (knxA, vec_kns)
 
-    def bulk_Hamiltonian_array(self):
+    def bulk_Hamiltonians(self):
         """
         Returns the bulk momentum space Hamiltonian ($H(k)$) for the lattice at
         the good quantum numbers of k in a numpy ndarray of Qobj's.
@@ -960,7 +958,7 @@ class Lattice1d():
                 H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
             H_k = csr_matrix(H_ka)
-            qH_k = Qobj(H_k, dims = dim_hk)
+            qH_k = Qobj(H_k, dims=dim_hk)
             qH_ks[ks] = qH_k
             (vals, veks) = qH_k.eigenstates()
             plane_waves = np.kron(np.exp(-1j * (kx * range(self.num_cell))),
