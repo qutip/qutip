@@ -131,12 +131,13 @@ class SESolver(Solver):
     def batch_run(self, states=[], args_sets=[],
                   progress_bar=True, map_func=parallel_map):
         num_states = len(states)
+        nt = len(self._tlist)
         if not states:
             states = [self.state0]
         vec_len = self.ss.shape[0]
-        N_vecs = [state.shape[1] for state in states]
-        all_ket = all([n == 1 for n in N_vecs])
-        all_op = all([n == vec_len for n in N_vecs])
+        state_shape = [state.shape[1] for state in states]
+        all_ket = all([n == 1 for n in state_shape])
+        all_op = all([n == vec_len for n in state_shape])
         if not (all_ket or all_op):
             raise ValueError("Input state must be all ket or operator")
 
@@ -181,10 +182,12 @@ class SESolver(Solver):
         return states_out, expect
 
     def _batch_run_ket(self, kets, args_sets, map_func, map_kwargs):
-        N_states0 = len(kets)
-        N_args = len(args_sets)
-        states_out = np.empty((N_states0, N_args, nt, vec_len), dtype=complex)
-        expect_out = np.empty((N_states0, N_args), dtype=object)
+        num_states = len(kets)
+        num_args = len(args_sets)
+        nt = len(self._tlist)
+        vec_len = self.ss.shape[0]
+        states_out = np.empty((num_states, num_args, nt, vec_len), dtype=complex)
+        expect_out = np.empty((num_states, num_args), dtype=object)
         old_store_state = self._options.store_states
         store_states = not bool(self._e_ops) or self._options.store_states
         self._options.store_states =  store_states
@@ -200,7 +203,7 @@ class SESolver(Solver):
         self._options.store_states = old_store_state
 
         for i, (state, expect) in enumerate(results):
-            args_n, state_n = divmod(i, N_states0)
+            args_n, state_n = divmod(i, num_states)
             if self._e_ops:
                 expect_out[state_n, args_n] = expect.finish()
             if store_states:
@@ -209,13 +212,13 @@ class SESolver(Solver):
         return states_out, expect_out
 
     def _batch_run_prop_ket(self, kets, args_sets, map_func, map_kwargs):
-        N_states0 = len(kets)
-        N_args = len(args_sets)
+        num_states = len(kets)
+        num_args = len(args_sets)
         nt = len(self._tlist)
         vec_len = kets[0].shape[0]
 
-        states_out = np.empty((N_states0, N_args, nt, vec_len), dtype=complex)
-        expect_out = np.empty((N_states0, N_args), dtype=object)
+        states_out = np.empty((num_states, num_args, nt, vec_len), dtype=complex)
+        expect_out = np.empty((num_states, num_args), dtype=object)
         old_store_state = self._options.store_states
         store_states = not bool(self._e_ops) or self._options.store_states
         self._options.store_states = True
@@ -235,7 +238,7 @@ class SESolver(Solver):
         self._options.store_states = old_store_state
 
         for i, (prop, _) in enumerate(results):
-            args_n, state_n = divmod(i, N_states0)
+            args_n, state_n = divmod(i, num_states)
             for ket in kets:
                 e_op = self._e_ops.copy()
                 e_op.init(self._tlist)
@@ -250,13 +253,13 @@ class SESolver(Solver):
         return states_out, expect_out
 
     def _batch_run_merged_ket(self, kets, args_sets, map_func, map_kwargs):
-        num_states0 = len(kets)
+        num_states = len(kets)
         vec_len = kets[0].shape[0]
         num_args = len(args_sets)
         nt = len(self._tlist)
 
-        states_out = np.empty((N_states0, N_args, nt, vec_len), dtype=complex)
-        expect_out = np.empty((num_states0, num_args), dtype=object)
+        states_out = np.empty((num_states, num_args, nt, vec_len), dtype=complex)
+        expect_out = np.empty((num_states, num_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
         old_store_state = self._options.store_states
         self._options.store_states = True
@@ -274,19 +277,19 @@ class SESolver(Solver):
         self._options.store_states = old_store_state
 
         for args_n, (state, _) in enumerate(results):
-            e_ops_ = [self._e_ops.copy() for _ in range(num_states0)]
+            e_ops_ = [self._e_ops.copy() for _ in range(num_states)]
             [e_op.init(self._tlist) for e_op in e_ops_]
             states_out_run = [np.zeros((nt, vec_len), dtype=complex)
-                               for _ in range(num_states0)]
+                               for _ in range(num_states)]
             for t in range(nt):
-                state_t = state[t,:].reshape((num_states0, vec_len)).T
-                for j in range(num_states0):
+                state_t = state[t,:].reshape((num_states, vec_len)).T
+                for j in range(num_states):
                     vec = state_t[:,j]
                     e_ops_[j].step(t, vec)
                     if store_states:
                         states_out_run[j][t,:] = vec
 
-            for state_n in range(num_states0):
+            for state_n in range(num_states):
                 expect_out[state_n, args_n] = e_ops_[state_n].finish()
                 if store_states:
                     states_out[state_n, args_n, :, :] = states_out_run[state_n]
@@ -294,12 +297,13 @@ class SESolver(Solver):
         return states_out, expect_out
 
     def _batch_run_oper(self, opers, args_sets, map_func, map_kwargs):
-        N_states0 = len(opers)
-        N_args = len(args_sets)
+        num_states = len(opers)
+        num_args = len(args_sets)
+        nt = len(self._tlist)
         vec_len = opers[0].shape[0] * opers.shape[1]
 
-        states_out = np.empty((N_states0, N_args, nt, vec_len), dtype=complex)
-        expect_out = np.empty((N_states0, N_args), dtype=object)
+        states_out = np.empty((num_states, num_args, nt, vec_len), dtype=complex)
+        expect_out = np.empty((num_states, num_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
         old_store_state = self._options.store_states
         self._options.store_states = store_states
@@ -314,7 +318,7 @@ class SESolver(Solver):
         self._options.store_states= old_store_state
 
         for i, (state, expect) in enumerate(results):
-            args_n, state_n = divmod(i, N_states0)
+            args_n, state_n = divmod(i, num_states)
             if self._e_ops:
                 expect_out[state_n, args_n] = expect.finish()
             if store_states:
@@ -323,14 +327,14 @@ class SESolver(Solver):
         return states_out, expect_out
 
     def _batch_run_prop_oper(self, opers, args_sets, map_func, map_kwargs):
-        N_states0 = len(opers)
-        N_args = len(args_sets)
+        num_states = len(opers)
+        num_args = len(args_sets)
         nt = len(self._tlist)
         vec_len = opers[0].shape[0]
         vec_len_2 = opers[0].shape[0] * opers[0].shape[1]
 
-        states_out = np.empty((N_states0, N_args, nt, vec_len_2), dtype=complex)
-        expect_out = np.empty((N_states0, N_args), dtype=object)
+        states_out = np.empty((num_states, num_args, nt, vec_len_2), dtype=complex)
+        expect_out = np.empty((num_states, num_args), dtype=object)
         store_states = not bool(self._e_ops) or self._options.store_states
         old_store_state = self._options.store_states
         self._options.store_states = True
