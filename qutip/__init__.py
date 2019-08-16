@@ -225,23 +225,12 @@ from qutip.scattering import *
 # from qutip.qip import *
 
 # This section exists only for the deprecation of
-# importing members of the qip submodule directly from the qutip namespace.
+# importing members of the qip submodule into the qutip namespace.
 
 import inspect
 from functools import wraps as _func_wrap
 import qutip.qip as _temp_qip
-# Deprecation warning is by default ignored if not in the main workspace,
-# this forces it to show up. 
-warnings.simplefilter('once', DeprecationWarning)
-
-def _qip_importation_warning():
-    warnings.warn(
-        "Importing functions/classes of the qip submodule directly from "
-        "the namespace qutip is deprecated. "
-        "Please import them from the submodule instead, e.g. "
-        "qutip.qip import `func_name`.", DeprecationWarning, stacklevel=3)
-    # stacklevel makes the warning refer to the original caller
-    # instead of the wrapper.
+from qutip.qip_depracation import _qip_importation_warning
 
 def _qip_func_wrapper(func):
     """Function wrapper for adding a deprecation warning."""
