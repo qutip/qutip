@@ -32,8 +32,9 @@
 ###############################################################################
 import warnings
 # Deprecation warning is by default ignored if not in the main workspace,
-# this forces it to show up. 
+# this forces it to show up.
 warnings.simplefilter('once', DeprecationWarning)
+
 
 def _qip_importation_warning():
     warnings.warn(

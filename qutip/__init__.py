@@ -232,6 +232,7 @@ from functools import wraps as _func_wrap
 import qutip.qip as _temp_qip
 from qutip.qip_depracation import _qip_importation_warning
 
+
 def _qip_func_wrapper(func):
     """Function wrapper for adding a deprecation warning."""
     @_func_wrap(func)
@@ -240,11 +241,13 @@ def _qip_func_wrapper(func):
         return func(*args, **kwargs)
     return deprecated_func
 
+
 #  Wrap all qip functions with a deprecation warning
 _func_pairs = inspect.getmembers(_temp_qip, inspect.isfunction)
 for _name, _func in _func_pairs:
     locals()[_name] = _qip_func_wrapper(_func)
 del _name, _func, _func_pairs, _qip_func_wrapper
+
 
 def _qip_class_wrapper(original_cls):
     """Class wrapper for adding a deprecation warning."""
@@ -261,6 +264,7 @@ def _qip_class_wrapper(original_cls):
         else:
             setattr(Deprecated_cls, attr, value)
     return Deprecated_cls
+
 
 #  Wrap all qip classes with a deprecation warning
 _cls_pairs = inspect.getmembers(_temp_qip, inspect.isclass)
