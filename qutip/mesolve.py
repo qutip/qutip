@@ -104,17 +104,12 @@ class MESolver(Solver):
 
         func, ode_args = self.ss.makefunc(self.ss, self.state0,
                                           self._args, self.options)
+        old_store_state = self._options.store_states
         if not self.e_ops:
             self._options.store_states = True
 
-        elif self.state0.isket:
-            normalize_func = normalize_inplace
-            func, ode_args = self.ss.makefunc(self.ss, self.state0,
-                                              self._args, self.options)
-        else:
-            normalize_func = normalize_op_inplace
-            func, ode_args = self.ss.makeoper(self.ss, self.state0,
-                                              self._args, self.options)
+        func, ode_args = self.ss.makeoper(self.ss, self.state0,
+                                          self._args, self.options)
 
         if not self._options.normalize_output:
             normalize_func = None
@@ -122,18 +117,20 @@ class MESolver(Solver):
         self._e_ops.init(self._tlist)
         self._state_out = self._generic_ode_solve(func, ode_args, self.state0,
                                                   self._tlist, self._e_ops,
-                                                  normalize_func, self._options,
+                                                  False, self._options,
                                                   progress_bar)
+        self._options.store_states = old_store_state
 
     def batch_run(self, states=[], args_sets=[],
                   progress_bar=True, map_func=parallel_map):
         N_states0 = len(states)
+        N_args = len(args_sets)
+
         if not states:
             states = [self.state0]
         states = [ket2dm(state) if isket(state) else state for state in states]
         size = rhos[0].shape[0] * rhos[0].shape[1]
 
-        N_args = len(args_sets)
         if not args_sets:
             args_sets = [self._args]
 
@@ -143,29 +140,39 @@ class MESolver(Solver):
                       'num_cpus': self.options.num_cpus}
 
         if self.ss.with_state:
-            res = self._batch_run_rho(states, args_sets, map_func, map_kwargs)
+            state, expect = self._batch_run_rho(states, args_sets,
+                                                map_func, map_kwargs)
         elif N_states0 > size:
-            res = self._batch_run_prop_rho(states, args_sets, map_func, map_kwargs)
+            state, expect = self._batch_run_prop_rho(states, args_sets,
+                                                     map_func, map_kwargs)
         elif N_states0 >= 2:
-            res = self._batch_run_merged_rho(states, args_sets, map_func, map_kwargs)
+            state, expect = self._batch_run_merged_rho(states, args_sets,
+                                                       map_func, map_kwargs)
         else:
-            res = self._batch_run_rho(states, args_sets, map_func, map_kwargs)
-        return res
+            state, expect = self._batch_run_rho(states, args_sets,
+                                                map_func, map_kwargs)
+
+        states_out = np.empty((num_states, num_args, nt), dtype=object)
+        for i,j,k in product(range(num_states), range(num_args), range(nt)):
+            oper = state[i,j,k].reshape((vec_len, vec_len), order="F")
+            states_out[i,j,k] = dense2D_to_fastcsr_fmode(oper, vec_len, vec_len)
+        return states_out, expect
 
     def _batch_run_rho(self, states, args_sets, map_func, map_kwargs):
         N_states0 = len(kets)
         N_args = len(args_sets)
-        states_out = np.empty((N_states0, N_args), dtype=object)
+        nt = len(self._tlist)
+        size = states[0].shape[0] * states[0].shape[1]
+
+        states_out = np.empty((N_states0, N_args, nt, size), dtype=complex)
         expect_out = np.empty((N_states0, N_args), dtype=object)
+        old_store_state = self._options.store_states
         store_states = not bool(self._e_ops) or self._options.store_states
-        values = list(product(kets, args_sets))
+        self._options.store_states = store_states
 
-        normalize_func = normalize_inplace
-        if not self._options.normalize_output:
-            normalize_func = False
+        values = list(product(states, args_sets))
 
-        results = map_func(self._one_run_ket, values, (normalize_func,),
-                           **map_kwargs)
+        results = map_func(self._one_run_ket, values, (), **map_kwargs)
 
         for i, (state, expect) in enumerate(results):
             args_n, state_n = divmod(i, N_states0)
@@ -174,6 +181,7 @@ class MESolver(Solver):
             if store_states:
                 states_out[state_n, args_n] = state
 
+        self._options.store_states = old_store_state
         return states_out, expect_out
 
     def _batch_run_prop_rho(self, states, args_sets, map_func, map_kwargs):
@@ -181,37 +189,35 @@ class MESolver(Solver):
         N_args = len(args_sets)
         nt = len(self._tlist)
         size = states[0].shape[0] * states[0].shape[1]
-        size_s = states[0].shape[0]
 
-        states_out = np.empty((N_states0, N_args), dtype=object)
+        states_out = np.empty((N_states0, N_args, nt, size), dtype=complex)
         expect_out = np.empty((N_states0, N_args), dtype=object)
-        self._options.store_states = (not bool(self._e_ops) or
-                                      self._options.store_states)
+        old_store_state = self._options.store_states
+        store_states = (not bool(self._e_ops) or self._options.store_states)
+        self._options.store_states = True
 
-        computed_state = [qeye(vec_len)]
+        computed_state = [qeye(size)]
         values = list(product(computed_state, args_sets))
-
-        normalize_func = normalize_op_inplace
-        if not self._options.normalize_output:
-            normalize_func = False
 
         if len(values) == 1:
             map_func = serial_map
-        results = map_func(self._one_run_ket, values, (normalize_func,),
+        results = map_func(self._one_run_ket, values, (),
                            **map_kwargs)
 
         for args_n, (prop, _) in enumerate(results):
             for state_n, rho in enumerate(states):
                 e_op = self._e_ops.copy()
                 e_op.init(self._tlist)
-                state = np.zeros((nt, vec_len), dtype=complex)
+                state = np.zeros((nt, size), dtype=complex)
+                rho_vec = rho.full.ravel("F")
                 for t in self._tlist:
-                    state[t,:] = prop[t,:,:] @ rho.full.ravel("F")
+                    state[t,:] = prop[t,:,:] @ rho_vec
                     e_op.step(t, state[t,:])
                 if self._e_ops:
                     expect_out[state_n, args_n] = e_op.finish()
-                if self._options.store_states:
+                if store_states:
                     states_out[state_n, args_n] = state
+        self._options.store_states = old_store_state
         return states_out, expect_out
 
     def _batch_run_merged_rho(self, states, args_sets, map_func, map_kwargs):
@@ -221,9 +227,10 @@ class MESolver(Solver):
         size = states[0].shape[0] * states[0].shape[1]
         size_s = states[0].shape[0]
 
-        states_out = np.empty((num_states0, num_args), dtype=object)
+        states_out = np.empty((N_states0, N_args, nt, size), dtype=complex)
         expect_out = np.empty((num_states0, num_args), dtype=object)
-        store_states = not bool(self._e_ops) or self._options.store_states
+        old_store_state = self._options.store_states
+        store_states = (not bool(self._e_ops) or self._options.store_states)
         self._options.store_states = True
         values = list(product(stack_rho(kets), args_sets))
 
@@ -248,7 +255,7 @@ class MESolver(Solver):
                 expect_out[state_n, args_n] = e_ops_[state_n].finish()
                 if store_states:
                     states_out[state_n, args_n] = states_out_run[state_n]
-
+        self._options.store_states = old_store_state
         return states_out, expect_out
 
     def _one_run_rho(self, run_data):

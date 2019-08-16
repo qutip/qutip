@@ -702,6 +702,7 @@ def _format_time(t, tt=None, ttt=None):
 
     return time_str
 
+
 class Stats(object):
     """
     Statistical information on the solver performance
@@ -933,6 +934,7 @@ class Stats(object):
         for sect in self.sections.values():
             sect.clear()
         self.total_time = None
+
 
 class _StatsSection(object):
     """
@@ -1167,6 +1169,7 @@ def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
         pass
     else:
         raise Exception('Invalid e_ops specification.')
+
 
 def _structure_check(Hdims, Htype, state):
     if state is not None:
