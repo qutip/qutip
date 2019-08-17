@@ -111,7 +111,7 @@ class OptPulseProcessor(Processor):
     dims: list
         The dimension of each component system.
         Default value is a
-        qubit system of dim=[2,2,2,...,2]
+        qubit system of ``dim=[2,2,2,...,2]``
 
     spline_type: str
         Type of the coefficient interpolation.

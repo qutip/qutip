@@ -142,7 +142,7 @@ class ModelProcessor(Processor):
         elif isinstance(para, Iterable):
             return [c * 2 * np.pi for c in para]
 
-    def set_up_paras(self):
+    def set_up_params(self):
         """
         Save the parameters in the attribute `params` and check the validity.
         (Defined in subclasses)
@@ -159,7 +159,7 @@ class ModelProcessor(Processor):
 
     @params.setter
     def params(self, par):
-        self.set_up_paras(**par)
+        self.set_up_params(**par)
 
     def run_state(self, rho0=None, analytical=False, qc=None, states=None,
                   **kwargs):
@@ -257,7 +257,7 @@ class ModelProcessor(Processor):
         desired physical system.
 
         Returns
-        --------
+        -------
         fig, ax: Figure
             Maps the physical interaction between the circuit components.
         """
@@ -339,7 +339,7 @@ class GateDecomposer(object):
             A NumPy array specifies the time of each coefficient
 
         coeffs: array_like
-            A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
+            A 2d NumPy array of the shape ``(len(ctrls), len(tlist))``. Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
 

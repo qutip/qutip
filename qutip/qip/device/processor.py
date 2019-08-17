@@ -80,7 +80,7 @@ class Processor(object):
     dims: list
         The dimension of each component system.
         Default value is a
-        qubit system of dim=[2,2,2,...,2]
+        qubit system of ``dim=[2,2,2,...,2]``
 
     spline_type: str, optional
         Type of the coefficient interpolation. Default is ``step_func``
@@ -200,7 +200,7 @@ class Processor(object):
 
     def _is_time_coeff_valid(self):
         """
-        Check if the len(tlist) and coeffs.shape[1] are valid.
+        Check if the ``len(tlist)`` and ``coeffs.shape[1]`` are valid.
 
         Returns: boolean
             If they are valid or not
@@ -231,7 +231,7 @@ class Processor(object):
     def _is_ctrl_coeff_valid(self):
         """
         Check if the number of control Hamiltonians
-        and coeffs.shape[0] are the same.
+        and ``coeffs.shape[0]`` are the same.
 
         Returns: boolean
             If they are valid or not
@@ -424,7 +424,7 @@ class Processor(object):
             The initial state of the qubits in the register.
 
         Returns
-        --------
+        -------
         evo_result: :class:`qutip.Result`
             An instance of the class
             :class:`qutip.Result` will be returned.
@@ -462,7 +462,7 @@ class Processor(object):
             the quantum circuit saved in the processor by `load_circuit`.
 
         Returns
-        --------
+        -------
         U_list: list
             The propagator matrix obtained from the physical implementation.
         """

@@ -412,7 +412,7 @@ class QubitCircuit(object):
         Reverse an entire circuit of unitary gates.
 
         Returns
-        ----------
+        -------
         qc : QubitCircuit
             Return QubitCircuit of resolved gates for the qubit circuit in the
             reverse order.

@@ -187,7 +187,7 @@ class SpinChain(ModelProcessor):
             y[n] = y[n + 1] = sigmay()
             self.ctrls.append(tensor(x) + tensor(y))
 
-    def set_up_paras(self, sx, sz):
+    def set_up_params(self, sx, sz):
         """
         Save the parameters in the attribute `params` and check the validity.
 
@@ -280,7 +280,7 @@ class SpinChain(ModelProcessor):
             Linear of Circular spin chain setup
 
         Returns
-        ----------
+        -------
         qc: :class:`qutip.QubitCircuit`
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
@@ -486,7 +486,7 @@ class SpinChain(ModelProcessor):
             Takes the quantum circuit to be implemented.
 
         Returns
-        --------
+        -------
         qc: :class:`qutip.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
@@ -539,15 +539,15 @@ class LinearSpinChain(SpinChain):
         super(LinearSpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase,
             sx=sx, sz=sz, sxsy=sxsy, t1=t1, t2=t2)
-        self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
+        self.set_up_params(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 
     def set_up_ops(self, N):
         super(LinearSpinChain, self).set_up_ops(N)
 
-    def set_up_paras(self, sx, sz, sxsy):
+    def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
-        super(LinearSpinChain, self).set_up_paras(sx, sz)
+        super(LinearSpinChain, self).set_up_params(sx, sz)
         sxsy_para = self._para_list(sxsy, self.N-1)
         self._paras["sxsy"] = sxsy_para
 
@@ -613,7 +613,7 @@ class CircularSpinChain(SpinChain):
         super(CircularSpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase,
             sx=sx, sz=sz, sxsy=sxsy, t1=t1, t2=t2)
-        self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
+        self.set_up_params(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 
     def set_up_ops(self, N):
@@ -624,9 +624,9 @@ class CircularSpinChain(SpinChain):
         y[0] = y[N - 1] = sigmay()
         self.ctrls.append(tensor(x) + tensor(y))
 
-    def set_up_paras(self, sx, sz, sxsy):
+    def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
-        super(CircularSpinChain, self).set_up_paras(sx, sz)
+        super(CircularSpinChain, self).set_up_params(sx, sz)
         sxsy_para = self._para_list(sxsy, self.N)
         self._paras["sxsy"] = sxsy_para
 

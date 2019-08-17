@@ -124,7 +124,7 @@ class DispersivecQED(ModelProcessor):
     dims: list
         The dimension of each component system.
         Default value is a
-        qubit system of dim=[2,2,2,...,2]
+        qubit system of ``dim=[2,2,2,...,2]``
 
     spline_type: str
         Type of the coefficient interpolation.
@@ -179,7 +179,7 @@ class DispersivecQED(ModelProcessor):
         self.spline_type = "step_func"
         self.res_levels = res_levels
         self._paras = {}
-        self.set_up_paras(
+        self.set_up_params(
             N=N, res_levels=res_levels, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
             delta=delta, g=g)
@@ -218,7 +218,7 @@ class DispersivecQED(ModelProcessor):
         self.psi_proj = tensor([basis(self.res_levels, 0)] +
                                [identity(2) for n in range(N)])
 
-    def set_up_paras(
+    def set_up_params(
             self, N, res_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
         """
@@ -326,7 +326,7 @@ class DispersivecQED(ModelProcessor):
             Takes the quantum circuit to be implemented.
 
         Returns
-        --------
+        -------
         qc: :class:`qutip.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
