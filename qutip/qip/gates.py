@@ -1157,7 +1157,7 @@ def _targets_to_list(targets, oper=None, N=None):
         An operator acts on qubits, the type of the `Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
-        e.g. dims = [[2,2,2],[2,2,2]]
+        e.g. dims = ``[[2,2,2],[2,2,2]]``
     N : int
         The number of qubits in the system.
     """
@@ -1196,14 +1196,14 @@ def expand_operator(oper, N, targets, dims=None, cyclic_permutation=False):
         An operator acts on qubits, the type of the `Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
-        e.g. dims = [[2,2,2],[2,2,2]]
+        e.g. dims = ``[[2,2,2],[2,2,2]]``
     N : int
         The number of qubits in the system.
     targets : int or list of int
         The indices of qubits that are acted on.
     dims : list
         A list of integer for the dimension of each composite system.
-        e.g [2,2,2,2,2] for 5 qubits system. If None, qubits system
+        E.g ``[2,2,2,2,2]`` for 5 qubits system. If None, qubits system
         will be the default option.
     cyclic_permutation : boolean
         Expand for all cyclic permutation of the targets.
