@@ -65,11 +65,11 @@ class ModelProcessor(Processor):
         If true, the analytical solution will track the global phase. It
         has no effect on the numerical solution.
 
-    T1: list or float
+    t1: list or float
         Characterize the decoherence of amplitude damping for
         each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float
+    t2: list of float
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
 
@@ -88,11 +88,11 @@ class ModelProcessor(Processor):
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
-    T1: list
+    t1: list
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list
+    t2: list
         Characterize the decoherence of dephasing for
         each qubit.
 
@@ -118,8 +118,8 @@ class ModelProcessor(Processor):
         will track the global phase.
         It has no effect on the numerical solution.
     """
-    def __init__(self, N, correct_global_phase=True, T1=None, T2=None):
-        super(ModelProcessor, self).__init__(N, T1=T1, T2=T2)
+    def __init__(self, N, correct_global_phase=True, t1=None, t2=None):
+        super(ModelProcessor, self).__init__(N, t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
         self.global_phase = 0.
         self._paras = {}

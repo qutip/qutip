@@ -72,11 +72,11 @@ class Processor(object):
     ctrls: list of :class:`Qobj`
         A list of the control Hamiltonians driving the evolution.
 
-        T1: list or float
+        t1: list or float
         Characterize the decoherence of amplitude damping for
         each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float
+    t2: list of float
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
 
@@ -114,11 +114,11 @@ class Processor(object):
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
-    T1: list
+    t1: list
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list
+    t2: list
         Characterize the decoherence of dephasing for
         each qubit.
 
@@ -135,7 +135,7 @@ class Processor(object):
         Type of the coefficient interpolation.
         "step_func" or "cubic"
     """
-    def __init__(self, N, ctrls=None, T1=None, T2=None,
+    def __init__(self, N, ctrls=None, t1=None, t2=None,
                  dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
@@ -144,8 +144,8 @@ class Processor(object):
         if ctrls is not None:
             for H in ctrls:
                 self.add_ctrl(H)
-        self.T1 = T1
-        self.T2 = T2
+        self.t1 = t1
+        self.t2 = t2
         self.noise = []
         if dims is None:
             self.dims = [2] * N
@@ -682,8 +682,8 @@ class Processor(object):
         """
         c_ops = []
         evo_noise_list = []
-        if (self.T1 is not None) or (self.T2 is not None):
-            c_ops += RelaxationNoise(self.T1, self.T2).get_noise(
+        if (self.t1 is not None) or (self.t2 is not None):
+            c_ops += RelaxationNoise(self.t1, self.t2).get_noise(
                 N=self.N, dims=self.dims)
         for noise in self.noise:
             if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):

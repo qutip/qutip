@@ -112,7 +112,7 @@ class TestCircuitProcessor:
 
     def test_id_with_T1_T2(self):
         """
-        Test for identity evolution with relaxation T1 and T2
+        Test for identity evolution with relaxation t1 and t2
         """
         # setup
         a = destroy(2)
@@ -121,39 +121,39 @@ class TestCircuitProcessor:
         mines_state = (basis(2, 1)-basis(2, 0)).unit()
         end_time = 2.
         tlist = np.arange(0, end_time + 0.02, 0.02)
-        T1 = 1.
-        T2 = 0.5
+        t1 = 1.
+        t2 = 0.5
 
-        # test T1
-        test = Processor(1, T1=T1)
+        # test t1
+        test = Processor(1, t1=t1)
         test.tlist = tlist
         result = test.run_state(ex_state, e_ops=[a.dag()*a])
 
         assert_allclose(
-            result.expect[0][-1], np.exp(-1./T1*end_time),
-            rtol=1e-5, err_msg="Error in T1 time simulation")
+            result.expect[0][-1], np.exp(-1./t1*end_time),
+            rtol=1e-5, err_msg="Error in t1 time simulation")
 
-        # test T2
-        test = Processor(1, T2=T2)
+        # test t2
+        test = Processor(1, t2=t2)
         test.tlist = tlist
         result = test.run_state(
             rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
-            result.expect[0][-1], np.exp(-1./T2*end_time)*0.5+0.5,
-            rtol=1e-5, err_msg="Error in T2 time simulation")
+            result.expect[0][-1], np.exp(-1./t2*end_time)*0.5+0.5,
+            rtol=1e-5, err_msg="Error in t2 time simulation")
 
-        # test T1 and T2
-        T1 = np.random.rand(1) + 0.5
-        T2 = np.random.rand(1) * 0.5 + 0.5
-        test = Processor(1, T1=T1, T2=T2)
+        # test t1 and t2
+        t1 = np.random.rand(1) + 0.5
+        t2 = np.random.rand(1) * 0.5 + 0.5
+        test = Processor(1, t1=t1, t2=t2)
         test.tlist = tlist
         result = test.run_state(
             rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
-            result.expect[0][-1], np.exp(-1./T2*end_time)*0.5+0.5,
+            result.expect[0][-1], np.exp(-1./t2*end_time)*0.5+0.5,
             rtol=1e-5,
-            err_msg="Error in T1 & T2 simulation, "
-                    "with T1={} and T2={}".format(T1, T2))
+            err_msg="Error in t1 & t2 simulation, "
+                    "with t1={} and t2={}".format(t1, t2))
 
     def TestPlot(self):
         try:

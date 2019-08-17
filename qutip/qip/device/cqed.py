@@ -65,7 +65,7 @@ class DispersivecQED(ModelProcessor):
         will track the global phase.
         It has no effect on the numerical solution.
 
-    Nres: int, optional
+    res_levels: int, optional
         The number of energy levels in the resonator.
 
     deltamax: int or list, optional
@@ -86,11 +86,11 @@ class DispersivecQED(ModelProcessor):
     g: int or list, optional
         The interaction strength for each of the qubit with the resonator.
 
-    T1: list or float
+    t1: list or float
         Characterize the decoherence of amplitude damping for
         each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float
+    t2: list of float
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
 
@@ -109,11 +109,11 @@ class DispersivecQED(ModelProcessor):
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
-    T1: list
+    t1: list
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list
+    t2: list
         Characterize the decoherence of dephasing for
         each qubit.
 
@@ -159,22 +159,22 @@ class DispersivecQED(ModelProcessor):
         from wq and w0 for each qubit.
     """
 
-    def __init__(self, N, correct_global_phase=True, Nres=10, deltamax=1.0,
+    def __init__(self, N, correct_global_phase=True, res_levels=10, deltamax=1.0,
                  epsmax=9.5, w0=10., wq=None, eps=9.5,
-                 delta=0.0, g=0.01, T1=None, T2=None):
+                 delta=0.0, g=0.01, t1=None, t2=None):
         super(DispersivecQED, self).__init__(
             N, correct_global_phase=correct_global_phase,
-            T1=T1, T2=T2)
+            t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
-        self.Nres = Nres
+        self.res_levels = res_levels
         self._paras = {}
         self.set_up_paras(
-            N=N, Nres=Nres, deltamax=deltamax,
+            N=N, res_levels=res_levels, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
             delta=delta, g=g)
         self.set_up_ops(N)
-        self.dims = [Nres] + [2] * N
+        self.dims = [res_levels] + [2] * N
 
     def set_up_ops(self, N):
         """
@@ -187,28 +187,28 @@ class DispersivecQED(ModelProcessor):
             The number of qubits in the system.
         """
         # single qubit terms
-        self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
+        self.a = tensor([destroy(self.res_levels)] + [identity(2) for n in range(N)])
         self.ctrls.append(self.a.dag() * self.a)
-        self.ctrls += [tensor([identity(self.Nres)] +
+        self.ctrls += [tensor([identity(self.res_levels)] +
                               [sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
-        self.ctrls += [tensor([identity(self.Nres)] +
+        self.ctrls += [tensor([identity(self.res_levels)] +
                               [sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
         # interaction terms
         for n in range(N):
-            sm = tensor([identity(self.Nres)] +
+            sm = tensor([identity(self.res_levels)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
             self.ctrls.append(self.a.dag() * sm + self.a * sm.dag())
 
-        self.psi_proj = tensor([basis(self.Nres, 0)] +
+        self.psi_proj = tensor([basis(self.res_levels, 0)] +
                                [identity(2) for n in range(N)])
 
     def set_up_paras(
-            self, N, Nres, deltamax,
+            self, N, res_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
         """
         Save the parameters in the attribute `paras` and check the validity.
@@ -218,7 +218,7 @@ class DispersivecQED(ModelProcessor):
         N: int
             The number of qubits in the system.
 
-        Nres: int
+        res_levels: int
             The number of energy levels in the resonator.
 
         deltamax: list

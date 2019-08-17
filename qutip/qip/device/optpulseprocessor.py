@@ -70,11 +70,11 @@ class OptPulseProcessor(Processor):
         The control Hamiltonian whose time-dependent coefficient
         will be optimized.
 
-    T1: list or float
+    t1: list or float
         Characterize the decoherence of amplitude damping for
         each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float
+    t2: list of float
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
 
@@ -96,11 +96,11 @@ class OptPulseProcessor(Processor):
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
-    T1: list
+    t1: list
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list
+    t2: list
         Characterize the decoherence of dephasing for
         each qubit.
 
@@ -119,9 +119,9 @@ class OptPulseProcessor(Processor):
         ``coeffs``.
 
     """
-    def __init__(self, N, drift=None, ctrls=None, T1=None, T2=None, dims=None):
+    def __init__(self, N, drift=None, ctrls=None, t1=None, t2=None, dims=None):
         super(OptPulseProcessor, self).__init__(
-            N, T1=T1, T2=T2, dims=dims)
+            N, t1=t1, t2=t2, dims=dims)
         if drift is None:  # zero matrix
             self.drift = tensor(
                 [identity(self.dims[i]) for i in range(N)]

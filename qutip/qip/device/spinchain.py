@@ -72,11 +72,11 @@ class SpinChain(ModelProcessor):
     sxsy: int or list
         The interaction strength for each of the qubit pair in the system.
 
-    T1: list or float
+    t1: list or float
         Characterize the decoherence of amplitude damping for
         each qubit. A list of size N or a float for all qubits.
 
-    T2: list of float
+    t2: list of float
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
 
@@ -95,11 +95,11 @@ class SpinChain(ModelProcessor):
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
-    T1: list
+    t1: list
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list
+    t2: list
         Characterize the decoherence of dephasing for
         each qubit.
 
@@ -145,9 +145,9 @@ class SpinChain(ModelProcessor):
         Pulse matrix for tensor(sigmax, sigmay) interacting Hamiltonians.
     """
     def __init__(self, N, correct_global_phase,
-                 sx, sz, sxsy, T1, T2):
+                 sx, sz, sxsy, t1, t2):
         super(SpinChain, self).__init__(
-            N, correct_global_phase=correct_global_phase, T1=T1, T2=T2)
+            N, correct_global_phase=correct_global_phase, t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
         # paras and ops are set in the submethods
@@ -516,20 +516,20 @@ class LinearSpinChain(SpinChain):
     sxsy: int or list
         The interaction strength for each of the qubit pair in the system.
 
-    T1: list or float, optional
+    t1: list or float, optional
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list of float, optional
+    t2: list of float, optional
         Characterize the decoherence of dephasing for
         each qubit.
     """
     def __init__(self, N, correct_global_phase=True,
-                 sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
+                 sx=0.25, sz=1.0, sxsy=0.1, t1=None, t2=None):
 
         super(LinearSpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase,
-            sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
+            sx=sx, sz=sz, sxsy=sxsy, t1=t1, t2=t2)
         self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 
@@ -590,20 +590,20 @@ class CircularSpinChain(SpinChain):
     sxsy: int or list
         The interaction strength for each of the qubit pair in the system.
 
-    T1: list or float, optional
+    t1: list or float, optional
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list of float, optional
+    t2: list of float, optional
         Characterize the decoherence of dephasing for
         each qubit.
     """
     def __init__(self, N, correct_global_phase=True,
-                 sx=0.25, sz=1.0, sxsy=0.1, T1=None, T2=None):
+                 sx=0.25, sz=1.0, sxsy=0.1, t1=None, t2=None):
 
         super(CircularSpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase,
-            sx=sx, sz=sz, sxsy=sxsy, T1=T1, T2=T2)
+            sx=sx, sz=sz, sxsy=sxsy, t1=t1, t2=t2)
         self.set_up_paras(sx=sx, sz=sz, sxsy=sxsy)
         self.set_up_ops(N)
 

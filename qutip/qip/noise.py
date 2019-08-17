@@ -148,31 +148,31 @@ class DecoherenceNoise(Noise):
 
 class RelaxationNoise(Noise):
     """
-    The decoherence on each qubit characterized by two time scales T1 and T2.
+    The decoherence on each qubit characterized by two time scales t1 and t2.
 
     Parameters
     ----------
-    T1: float or list, optional
+    t1: float or list, optional
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: float or list, optional
+    t2: float or list, optional
         Characterize the decoherence of dephasing for
         each qubit.
 
     Attributes
     ----------
-    T1: list
+    t1: list
         Characterize the decoherence of amplitude damping for
         each qubit.
 
-    T2: list
+    t2: list
         Characterize the decoherence of dephasing for
         each qubit.
     """
-    def __init__(self, T1=None, T2=None):
-        self.T1 = T1
-        self.T2 = T2
+    def __init__(self, t1=None, t2=None):
+        self.t1 = t1
+        self.t2 = t2
 
     def _T_to_list(self, T, N):
         """
@@ -223,31 +223,31 @@ class RelaxationNoise(Noise):
         """
         if dims is None:
             dims = [2] * N
-        self.T1 = self._T_to_list(self.T1, N)
-        self.T2 = self._T_to_list(self.T2, N)
-        if len(self.T1) != N or len(self.T2) != N:
+        self.t1 = self._T_to_list(self.t1, N)
+        self.t2 = self._T_to_list(self.t2, N)
+        if len(self.t1) != N or len(self.t2) != N:
             raise ValueError(
-                "Length of T1 or T2 does not match N, "
-                "len(T1)={}, len(T2)={}".format(
-                    len(self.T1), len(self.T2)))
+                "Length of t1 or t2 does not match N, "
+                "len(t1)={}, len(t2)={}".format(
+                    len(self.t1), len(self.t2)))
         qobjevo_list = []
         for qu_ind in range(N):
-            T1 = self.T1[qu_ind]
-            T2 = self.T2[qu_ind]
-            if T1 is not None:
+            t1 = self.t1[qu_ind]
+            t2 = self.t2[qu_ind]
+            if t1 is not None:
                 qobjevo_list.append(
                     expand_operator(
-                        1/np.sqrt(T1) * destroy(2), N, qu_ind, dims=dims))
-            if T2 is not None:
-                # Keep the total dephasing ~ exp(-t/T2)
-                if T1 is not None:
-                    if 2*T1 < T2:
+                        1/np.sqrt(t1) * destroy(2), N, qu_ind, dims=dims))
+            if t2 is not None:
+                # Keep the total dephasing ~ exp(-t/t2)
+                if t1 is not None:
+                    if 2*t1 < t2:
                         raise ValueError(
-                            "T1={}, T2={} does not fulfill "
-                            "2*T1>T2".format(T1, T2))
-                    T2_eff = 1./(1./T2-1./2./T1)
+                            "t1={}, t2={} does not fulfill "
+                            "2*t1>t2".format(t1, t2))
+                    T2_eff = 1./(1./t2-1./2./t1)
                 else:
-                    T2_eff = T2
+                    T2_eff = t2
                 qobjevo_list.append(
                     expand_operator(
                         1/np.sqrt(2*T2_eff) * sigmaz(), N, qu_ind, dims=dims))

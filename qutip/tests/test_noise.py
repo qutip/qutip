@@ -56,20 +56,20 @@ class TestNoise:
         Test for the relaxation noise
         """
         a = destroy(2)
-        relnoise = RelaxationNoise(T1=[1., 1., 1.], T2=None)
+        relnoise = RelaxationNoise(t1=[1., 1., 1.], t2=None)
         noise_list = relnoise.get_noise(3)
         assert_(len(noise_list) == 3)
         assert_allclose(noise_list[1], tensor([qeye(2), a, qeye(2)]))
 
-        relnoise = RelaxationNoise(T1=None, T2=None)
+        relnoise = RelaxationNoise(t1=None, t2=None)
         noise_list = relnoise.get_noise(2)
         assert_(len(noise_list) == 0)
 
-        relnoise = RelaxationNoise(T1=None, T2=[0.2, 0.7])
+        relnoise = RelaxationNoise(t1=None, t2=[0.2, 0.7])
         noise_list = relnoise.get_noise(2)
         assert_(len(noise_list) == 2)
 
-        relnoise = RelaxationNoise(T1=[1., 1.], T2=[0.5, 0.5])
+        relnoise = RelaxationNoise(t1=[1., 1.], t2=[0.5, 0.5])
         noise_list = relnoise.get_noise(2)
         assert_(len(noise_list) == 4)
 
