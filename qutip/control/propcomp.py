@@ -54,7 +54,7 @@ import numpy as np
 import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
-from qutip.qobj import Qobj
+from qutip import Qobj
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
