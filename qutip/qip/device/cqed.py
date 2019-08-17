@@ -168,7 +168,8 @@ class DispersivecQED(ModelProcessor):
         from wq and w0 for each qubit.
     """
 
-    def __init__(self, N, correct_global_phase=True, res_levels=10, deltamax=1.0,
+    def __init__(self, N, correct_global_phase=True,
+                 res_levels=10, deltamax=1.0,
                  epsmax=9.5, w0=10., wq=None, eps=9.5,
                  delta=0.0, g=0.01, t1=None, t2=None):
         super(DispersivecQED, self).__init__(
@@ -196,7 +197,8 @@ class DispersivecQED(ModelProcessor):
             The number of qubits in the system.
         """
         # single qubit terms
-        self.a = tensor([destroy(self.res_levels)] + [identity(2) for n in range(N)])
+        self.a = tensor([destroy(self.res_levels)] +
+                        [identity(2) for n in range(N)])
         self.ctrls.append(self.a.dag() * self.a)
         self.ctrls += [tensor([identity(self.res_levels)] +
                               [sigmax() if m == n else identity(2)
@@ -276,7 +278,7 @@ class DispersivecQED(ModelProcessor):
         if any([g[i] / (w0 - self.wq[i]) > 0.05 for i in range(N)]):
             warnings.warn("Not in the dispersive regime")
 
-        if any([(w0 - self.wq[i]) / (w0 + self.wq[i]) > 0.05 for i in range(N)]):
+        if any([(w0 - self.wq[i])/(w0 + self.wq[i]) > 0.05 for i in range(N)]):
             warnings.warn(
                 "The rotating-wave approximation might not be valid.")
 
@@ -424,11 +426,11 @@ class CQEDGateDecomposer(GateDecomposer):
         super(CQEDGateDecomposer, self).__init__(
             N=N, params=params, num_ops=num_ops)
         self.gate_decomps = {"ISWAP": self.iswap_dec,
-                          "SQRTISWAP": self.sqrtiswap_dec,
-                          "RZ": self.rz_dec,
-                          "RX": self.rx_dec,
-                          "GLOBALPHASE": self.globalphase_dec
-                          }
+                             "SQRTISWAP": self.sqrtiswap_dec,
+                             "RZ": self.rz_dec,
+                             "RX": self.rx_dec,
+                             "GLOBALPHASE": self.globalphase_dec
+                             }
         self._sx_ind = list(range(1, N + 1))
         self._sz_ind = list(range(N + 1, 2*N + 1))
         self._g_ind = list(range(2*N + 1, 3*N + 1))
