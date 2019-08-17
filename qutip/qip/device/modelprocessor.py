@@ -96,14 +96,13 @@ class ModelProcessor(Processor):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.device.Noise`, optional
+    noise: :class:`qutip.qip.Noise`, optional
         A list of noise objects. They will be processed when creating the
         noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
     dims: list
         The dimension of each component system.
-        If not given, it will be a
-        qubit system of dim=[2,2,2,...,2]
+        Default is dim=[2,2,2,...,2]
 
     spline_kind: str
         Type of the coefficient interpolation.
@@ -156,11 +155,11 @@ class ModelProcessor(Processor):
     def run_state(self, rho0=None, analytical=False, qc=None, states=None,
                   **kwargs):
         """
-        If `analytical` is False, it will use :func:`qutip.mesolve` to
+        If `analytical` is False, use :func:`qutip.mesolve` to
         calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
         given as keyword arguments.
-        If `analytical` is True, it will calculate the propagator
+        If `analytical` is True, calculate the propagator
         with matrix exponentiation and return a list of matrices.
 
         Parameters
@@ -169,7 +168,7 @@ class ModelProcessor(Processor):
             Initial density matrix or state vector (ket).
 
         analytical: boolean
-            If the evolution with matrices exponentiation.
+            If True, calculate the evolution with matrices exponentiation.
 
         qc: :class:`qutip.qip.QubitCircuit`, optional
             A quantum circuit. If given, it first calls the ``load_circuit``

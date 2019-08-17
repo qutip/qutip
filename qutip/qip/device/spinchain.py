@@ -103,14 +103,13 @@ class SpinChain(ModelProcessor):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.device.Noise`, optional
+    noise: :class:`qutip.qip.Noise`, optional
         A list of noise objects. They will be processed when creating the
         noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
     dims: list
         The dimension of each component system.
-        If not given, it will be a
-        qubit system of dim=[2,2,2,...,2]
+        Default is dim=[2,2,2,...,2]
 
     spline_kind: str
         Type of the coefficient interpolation.
@@ -469,7 +468,7 @@ class SpinChain(ModelProcessor):
 
     def optimize_circuit(self, qc):
         """
-        Function to take a quantum circuit/algorithm and convert it into the
+        Take a quantum circuit/algorithm and convert it into the
         optimal form/basis for the desired physical system.
 
         Parameters

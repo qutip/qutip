@@ -46,7 +46,7 @@ from qutip.qip.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.noise import (
+from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
     ControlAmpNoise, RandomNoise, UserNoise)
 
@@ -62,7 +62,7 @@ class Processor(object):
     the decoherence time for each component systems.
     The processor can simulate the evolution under the given
     control pulses. Noisy evolution is supported by
-    :class:`qutip.qip.device.Noise` and can be added to the processor.
+    :class:`qutip.qip.Noise` and can be added to the processor.
 
     Parameters
     ----------
@@ -80,9 +80,9 @@ class Processor(object):
         Characterize the decoherence of dephasing for
         each qubit. A list of size N or a float for all qubits.
 
-    dims: list of int, optional
+    dims: list
         The dimension of each component system.
-        If not given, it will be a
+        Default value is a
         qubit system of dim=[2,2,2,...,2]
 
     spline_kind: str, optional
@@ -122,13 +122,13 @@ class Processor(object):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.device.Noise`, optional
+    noise: :class:`qutip.qip.Noise`, optional
         A list of noise objects. They will be processed when creating the
         noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
     dims: list
         The dimension of each component system.
-        If not given, it will be a
+        Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
 
     spline_kind: str
@@ -475,11 +475,11 @@ class Processor(object):
     def run_state(self, rho0=None, analytical=False, states=None,
                   **kwargs):
         """
-        If `analytical` is False, it will use :func:`qutip.mesolve` to
+        If `analytical` is False, use :func:`qutip.mesolve` to
         calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
         given as keyword arguments.
-        If `analytical` is True, it will calculate the propagator
+        If `analytical` is True, calculate the propagator
         with matrix exponentiation and return a list of matrices.
 
         Parameters
@@ -488,7 +488,7 @@ class Processor(object):
             Initial density matrix or state vector (ket).
 
         analytical: boolean
-            If the evolution with matrices exponentiation.
+            If True, calculate the evolution with matrices exponentiation.
 
         states: :class:`qutip.Qobj`, optional
             Old API, same as rho0.
@@ -549,7 +549,7 @@ class Processor(object):
 
     def optimize_circuit(self, qc):
         """
-        Function to take a quantum circuit/algorithm and convert it into the
+        Take a quantum circuit/algorithm and convert it into the
         optimal form/basis for the desired physical system.
         (Defined in subclasses)
         """
@@ -590,7 +590,7 @@ class Processor(object):
         Parameters
         ----------
         noisy: boolean, optional
-            If true, it will plot the noisy pulses.
+            If true, plot the noisy pulses.
 
         title: str
             Title for the plot.
@@ -651,7 +651,7 @@ class Processor(object):
 
         Parameters
         ----------
-        noise: :class:`qutip.qip.device.Noise`
+        noise: :class:`qutip.qip.Noise`
             The noise object defined outside the processor
         """
         if isinstance(noise, Noise):

@@ -33,3 +33,5 @@
 from qutip.qip.circuit import *
 from qutip.qip.gates import *
 from qutip.qip.qubits import *
+from qutip.qip.noise import (Noise, RelaxationNoise, DecoherenceNoise,
+                             ControlAmpNoise, RandomNoise, UserNoise)

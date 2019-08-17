@@ -104,13 +104,13 @@ class OptPulseProcessor(Processor):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.device.Noise`, optional
+    noise: :class:`qutip.qip.Noise`, optional
         The noise object, they will be processed when creating the
         noisy :class:`qutip.QobjEvo` or run the simulation.
 
     dims: list
         The dimension of each component system.
-        If not given, it will be a
+        Default value is a
         qubit system of dim=[2,2,2,...,2]
 
     spline_kind: str

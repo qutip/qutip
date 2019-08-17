@@ -41,7 +41,7 @@ class Noise(object):
 
 class DecoherenceNoise(Noise):
     """
-    The decoherence noise in a processor. It will generate a list of
+    The decoherence noise in a processor. It generates a list of
     collapse operators.
 
     Parameters
