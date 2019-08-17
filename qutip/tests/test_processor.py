@@ -162,7 +162,7 @@ class TestCircuitProcessor:
             return True
         # step_func
         tlist = np.linspace(0., 2*np.pi, 20)
-        processor = Processor(N=1, spline_kind="step_func")
+        processor = Processor(N=1, spline_type="step_func")
         processor.add_ctrl(sigmaz())
         processor.tlist = tlist
         processor.coeffs = np.array([[np.sin(t) for t in tlist]])
@@ -171,7 +171,7 @@ class TestCircuitProcessor:
 
         # cubic spline
         tlist = np.linspace(0., 2*np.pi, 20)
-        processor = Processor(N=1, spline_kind="cubic")
+        processor = Processor(N=1, spline_type="cubic")
         processor.add_ctrl(sigmaz())
         processor.tlist = tlist
         processor.coeffs = np.array([[np.sin(t) for t in tlist]])
@@ -199,11 +199,11 @@ class TestCircuitProcessor:
         processor.tlist = tlist
         processor.coeffs = coeffs
 
-        processor.spline_kind = "step_func"
+        processor.spline_type = "step_func"
         noisy_qobjevo, c_ops = processor.get_noisy_qobjevo()
         assert_(noisy_qobjevo.args["_step_func_coeff"])
 
-        processor.spline_kind = "cubic"
+        processor.spline_type = "cubic"
         noisy_qobjevo, c_ops = processor.get_noisy_qobjevo()
         assert_(not noisy_qobjevo.args["_step_func_coeff"])
 
@@ -240,7 +240,7 @@ class TestCircuitProcessor:
         assert_equal(c_ops[0].tlist, tlist)
 
         # with amplitude noise
-        processor.spline_kind = "cubic"
+        processor.spline_type = "cubic"
         new_tlist = np.linspace(1, 6, int(5/0.2))
         new_coeffs = np.random.rand(1, len(new_tlist))
         # noise with a different operator

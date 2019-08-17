@@ -72,11 +72,11 @@ class OptPulseProcessor(Processor):
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     Attributes
     ----------
@@ -89,10 +89,10 @@ class OptPulseProcessor(Processor):
     drift: :class:`Qobj`
         The drift Hamiltonian with no time-dependent amplitude.
 
-    tlist: array-like
+    tlist: array_like
         A NumPy array specifies the time of each coefficient.
 
-    coeffs: array-like
+    coeffs: array_like
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
@@ -113,10 +113,19 @@ class OptPulseProcessor(Processor):
         Default value is a
         qubit system of dim=[2,2,2,...,2]
 
-    spline_kind: str
+    spline_type: str
         Type of the coefficient interpolation.
-        Note that they have different requirements for the shape of
-        ``coeffs``.
+        Note that they have different requirement for the length of ``coeffs``.
+
+        -"step_func":
+        The coefficient will be treated as a step function.
+        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
+        is 3 in t=[0,1) and 2 in t=[2,3). It requires
+        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
+        in the second case the last element has no effect.
+
+        -"cubic": Use cubic interpolation for the coefficient. It requires
+        ``coeffs.shape[1]=len(tlist)``
 
     """
     def __init__(self, N, drift=None, ctrls=None, t1=None, t2=None, dims=None):
@@ -206,10 +215,10 @@ class OptPulseProcessor(Processor):
 
         Returns
         -------
-        tlist: array-like
+        tlist: array_like
             A NumPy array specifies the time of each coefficient
 
-        coeffs: array-like
+        coeffs: array_like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)-1). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.

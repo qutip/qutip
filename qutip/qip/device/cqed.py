@@ -88,11 +88,11 @@ class DispersivecQED(ModelProcessor):
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     Attributes
     ----------
@@ -102,10 +102,10 @@ class DispersivecQED(ModelProcessor):
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
 
-    tlist: array-like
+    tlist: array_like
         A NumPy array specifies the time of each coefficient.
 
-    coeffs: array-like
+    coeffs: array_like
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
@@ -126,10 +126,19 @@ class DispersivecQED(ModelProcessor):
         Default value is a
         qubit system of dim=[2,2,2,...,2]
 
-    spline_kind: str
+    spline_type: str
         Type of the coefficient interpolation.
-        Note that they have different requirements for the shape of
-        ``coeffs``.
+        Note that they have different requirement for the length of ``coeffs``.
+
+        -"step_func":
+        The coefficient will be treated as a step function.
+        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
+        is 3 in t=[0,1) and 2 in t=[2,3). It requires
+        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
+        in the second case the last element has no effect.
+
+        -"cubic": Use cubic interpolation for the coefficient. It requires
+        ``coeffs.shape[1]=len(tlist)``
 
     sx_ops: list
         A list of sigmax Hamiltonians for each qubit.
@@ -140,13 +149,13 @@ class DispersivecQED(ModelProcessor):
     cavityqubit_ops: list
         A list of interacting Hamiltonians between cavity and each qubit.
 
-    sx_u: array-like
+    sx_u: array_like
         Pulse matrix for sigmax Hamiltonians.
 
-    sz_u: array-like
+    sz_u: array_like
         Pulse matrix for sigmaz Hamiltonians.
 
-    g_u: array-like
+    g_u: array_like
         Pulse matrix for interacting Hamiltonians
         between cavity and each qubit.
 
@@ -166,7 +175,7 @@ class DispersivecQED(ModelProcessor):
             N, correct_global_phase=correct_global_phase,
             t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
-        self.spline_kind = "step_func"
+        self.spline_type = "step_func"
         self.res_levels = res_levels
         self._paras = {}
         self.set_up_paras(
@@ -178,7 +187,7 @@ class DispersivecQED(ModelProcessor):
 
     def set_up_ops(self, N):
         """
-        Genrate the Hamiltonians for the spinchain model and save them in the
+        Generate the Hamiltonians for the spinchain model and save them in the
         attribute `ctrls`.
 
         Parameters
@@ -211,7 +220,7 @@ class DispersivecQED(ModelProcessor):
             self, N, res_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
         """
-        Save the parameters in the attribute `paras` and check the validity.
+        Save the parameters in the attribute `params` and check the validity.
 
         Parameters
         ----------
@@ -260,45 +269,44 @@ class DispersivecQED(ModelProcessor):
         self._paras["g"] = g
 
         # computed
-        self.wq = [np.sqrt(eps[i] ** 2 + delta[i] ** 2) for i in range(N)]
+        self.wq = [np.sqrt(eps[i]**2 + delta[i]**2) for i in range(N)]
         self.Delta = [self.wq[i] - w0 for i in range(N)]
 
         # rwa/dispersive regime tests
         if any([g[i] / (w0 - self.wq[i]) > 0.05 for i in range(N)]):
             warnings.warn("Not in the dispersive regime")
 
-        if any([(w0-self.wq[i]) / (w0+self.wq[i]) > 0.05 for i in range(N)]):
+        if any([(w0 - self.wq[i]) / (w0 + self.wq[i]) > 0.05 for i in range(N)]):
             warnings.warn(
                 "The rotating-wave approximation might not be valid.")
 
     @property
     def sx_ops(self):
-        return self.ctrls[1: self.N+1]
+        return self.ctrls[1: self.N + 1]
 
     @property
     def sz_ops(self):
-        return self.ctrls[self.N+1: 2*self.N+1]
+        return self.ctrls[self.N + 1: 2*self.N + 1]
 
     @property
     def cavityqubit_ops(self):
-        return self.ctrls[2*self.N+1: 3*self.N+1]
+        return self.ctrls[2*self.N + 1: 3*self.N + 1]
 
     @property
     def sx_u(self):
-        return self.coeffs[1: self.N+1]
+        return self.coeffs[1: self.N + 1]
 
     @property
     def sz_u(self):
-        return self.coeffs[self.N+1: 2*self.N+1]
+        return self.coeffs[self.N + 1: 2*self.N + 1]
 
     @property
     def g_u(self):
-        return self.coeffs[2*self.N+1: 3*self.N+1]
+        return self.coeffs[2*self.N + 1: 3*self.N + 1]
 
     def get_ops_labels(self):
         """
-        Returns the Hamiltonian operators and corresponding values by stacking
-        them together.
+        Get the labels for each Hamiltonian.
         """
         return ([r"$a^\dagger a$"] +
                 [r"$\sigma_x^%d$" % n for n in range(self.N)] +
@@ -344,10 +352,10 @@ class DispersivecQED(ModelProcessor):
 
         Returns
         -------
-        tlist: array-like
+        tlist: array_like
             A NumPy array specifies the time of each coefficient
 
-        coeffs: array-like
+        coeffs: array_like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
@@ -378,7 +386,7 @@ class CQEDGateDecomposer(GateDecomposer):
     N: int
         The number of qubits in the system.
 
-    paras: dict
+    params: dict
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
@@ -401,29 +409,29 @@ class CQEDGateDecomposer(GateDecomposer):
     N: int
         The number of the component systems.
 
-    paras: dict
+    params: dict
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
     num_ops: int
         Number of control Hamiltonians in the processor.
 
-    gate_decs: dict
+    gate_decomps: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
     """
-    def __init__(self, N, paras, wq, Delta, global_phase, num_ops):
+    def __init__(self, N, params, wq, Delta, global_phase, num_ops):
         super(CQEDGateDecomposer, self).__init__(
-            N=N, paras=paras, num_ops=num_ops)
-        self.gate_decs = {"ISWAP": self.iswap_dec,
+            N=N, params=params, num_ops=num_ops)
+        self.gate_decomps = {"ISWAP": self.iswap_dec,
                           "SQRTISWAP": self.sqrtiswap_dec,
                           "RZ": self.rz_dec,
                           "RX": self.rx_dec,
                           "GLOBALPHASE": self.globalphase_dec
                           }
-        self._sx_ind = list(range(1, N+1))
-        self._sz_ind = list(range(N+1, 2*N+1))
-        self._g_ind = list(range(2*N+1, 3*N+1))
+        self._sx_ind = list(range(1, N + 1))
+        self._sz_ind = list(range(N + 1, 2*N + 1))
+        self._g_ind = list(range(2*N + 1, 3*N + 1))
         self.wq = wq
         self.Delta = Delta
         self.global_phase = global_phase
@@ -438,7 +446,7 @@ class CQEDGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
-        g = self.paras["sz"][q_ind]
+        g = self.params["sz"][q_ind]
         pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
@@ -450,7 +458,7 @@ class CQEDGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
-        g = self.paras["sx"][q_ind]
+        g = self.params["sx"][q_ind]
         pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
@@ -468,11 +476,11 @@ class CQEDGateDecomposer(GateDecomposer):
         # FIXME This decomposition has poor behaviour
         pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
-        pulse[self._sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
-        pulse[self._sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
-        pulse[self._g_ind[q1]] = self.paras["g"][q1]
-        pulse[self._g_ind[q2]] = self.paras["g"][q2]
-        J = self.paras["g"][q1] * self.paras["g"][q2] * (
+        pulse[self._sz_ind[q1]] = self.wq[q1] - self.params["w0"]
+        pulse[self._sz_ind[q2]] = self.wq[q2] - self.params["w0"]
+        pulse[self._g_ind[q1]] = self.params["g"][q1]
+        pulse[self._g_ind[q2]] = self.params["g"][q2]
+        J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         t = (4 * np.pi / abs(J)) / 8
         self.dt_list.append(t)
@@ -492,11 +500,11 @@ class CQEDGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
-        pulse[self._sz_ind[q1]] = self.wq[q1] - self.paras["w0"]
-        pulse[self._sz_ind[q2]] = self.wq[q2] - self.paras["w0"]
-        pulse[self._g_ind[q1]] = self.paras["g"][q1]
-        pulse[self._g_ind[q2]] = self.paras["g"][q2]
-        J = self.paras["g"][q1] * self.paras["g"][q2] * (
+        pulse[self._sz_ind[q1]] = self.wq[q1] - self.params["w0"]
+        pulse[self._sz_ind[q2]] = self.wq[q2] - self.params["w0"]
+        pulse[self._g_ind[q1]] = self.params["g"][q1]
+        pulse[self._g_ind[q2]] = self.params["g"][q2]
+        J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         t = (4 * np.pi / abs(J)) / 4
         self.dt_list.append(t)

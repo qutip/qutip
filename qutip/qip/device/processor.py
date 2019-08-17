@@ -72,31 +72,31 @@ class Processor(object):
     ctrls: list of :class:`Qobj`
         A list of the control Hamiltonians driving the evolution.
 
-        t1: list or float
+    t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     dims: list
         The dimension of each component system.
         Default value is a
         qubit system of dim=[2,2,2,...,2]
 
-    spline_kind: str, optional
-        Type of the coefficient interpolation. Default is `step_func`
-        Note that they have different requirement for the length of `coeffs`.
+    spline_type: str, optional
+        Type of the coefficient interpolation. Default is ``step_func``
+        Note that they have different requirement for the length of ``coeffs``.
 
-        -step_func:
+        -"step_func":
         The coefficient will be treated as a step function.
         E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
         is 3 in t=[0,1) and 2 in t=[2,3). It requires
         ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
         in the second case the last element has no effect.
 
-        -cubic: Use cubic interpolation for the coefficient. It requires
+        -"cubic": Use cubic interpolation for the coefficient. It requires
         ``coeffs.shape[1]=len(tlist)``
 
     Attributes
@@ -107,10 +107,10 @@ class Processor(object):
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
 
-    tlist: array-like
+    tlist: array_like
         A NumPy array specifies the time of each coefficient.
 
-    coeffs: array-like
+    coeffs: array_like
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
@@ -131,12 +131,12 @@ class Processor(object):
         Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
 
-    spline_kind: str
+    spline_type: str
         Type of the coefficient interpolation.
         "step_func" or "cubic"
     """
     def __init__(self, N, ctrls=None, t1=None, t2=None,
-                 dims=None, spline_kind="step_func"):
+                 dims=None, spline_type="step_func"):
         self.N = N
         self.tlist = None
         self.coeffs = None
@@ -151,7 +151,7 @@ class Processor(object):
             self.dims = [2] * N
         else:
             self.dims = dims
-        self.spline_kind = spline_kind
+        self.spline_type = spline_type
 
     def add_ctrl(self, ctrl, targets=None, cyclic_permutation=False):
         """
@@ -214,7 +214,7 @@ class Processor(object):
             raise ValueError("`tlist` is not given.")
         coeff_len = self.coeffs.shape[1]
         tlist_len = len(self.tlist)
-        if self.spline_kind == "step_func":
+        if self.spline_type == "step_func":
             if coeff_len == tlist_len-1 or coeff_len == tlist_len:
                 return True
             else:
@@ -223,13 +223,13 @@ class Processor(object):
                     "It's either len(tlist)=coeffs.shape[1] or "
                     "len(tlist)-1=coeffs.shape[1] for coefficients "
                     "as step function")
-        if self.spline_kind == "cubic" and coeff_len == tlist_len:
+        if self.spline_type == "cubic" and coeff_len == tlist_len:
             return True
         else:
             raise ValueError(
                 "The length of tlist and coeffs is not valid. "
                 "It should be either len(tlist)=coeffs.shape[1]")
-        raise ValueError("Unknown spline_kind.")
+        raise ValueError("Unknown spline_type.")
 
     def _is_ctrl_coeff_valid(self):
         """
@@ -301,10 +301,10 @@ class Processor(object):
 
         Returns
         -------
-        tlist: array-like
+        tlist: array_like
             The time list read from the file.
 
-        coeffs: array-like
+        coeffs: array_like
             The pulse matrix read from the file.
         """
         data = np.loadtxt(file_name, delimiter='\t')
@@ -340,17 +340,18 @@ class Processor(object):
         # set step function
         if self.coeffs is None:
             coeffs = np.empty((0, 0))
-        elif self.spline_kind == "step_func":
+        elif self.spline_type == "step_func":
             args.update({"_step_func_coeff": True})
             if self.coeffs.shape[1] == len(self.tlist) - 1:
                 coeffs = np.hstack([self.coeffs, self.coeffs[:, -1:]])
             else:
                 coeffs = self.coeffs
-        elif self.spline_kind == "cubic":
+        elif self.spline_type == "cubic":
             args.update({"_step_func_coeff": False})
             coeffs = self.coeffs
         else:
-            raise ValueError("Wrong spline_kind.")
+            raise ValueError(
+                "No option for spline_type '{}'.".format(self.spline_type))
 
         H_list = []
         for op_ind in range(len(self.ctrls)):
@@ -375,7 +376,7 @@ class Processor(object):
         -------
         noisy_qobjevo: :class:`qutip.QobjEvo`
             The :class:`qutip.QobjEvo` representation of the noisy evolution.
-        c_pos: list
+        c_ops: list
             A list of time-(in)dependent collapse operators.
         """
         unitary_qobjevo = self.get_unitary_qobjevo(args=args)
@@ -385,7 +386,7 @@ class Processor(object):
 
     def get_noisy_coeffs(self):
         """
-        Create the array-like coefficients including the noise.
+        Create the array_like coefficients including the noise.
 
         Returns
         -------
@@ -611,7 +612,7 @@ class Processor(object):
 
         Note
         ----
-        ``plot_pulses`` only works for array-like coefficients
+        ``plot_pulses`` only works for array_like coefficients
         """
         import matplotlib.pyplot as plt
 
@@ -627,15 +628,15 @@ class Processor(object):
         for i in range(len(coeffs)):
             if not isinstance(coeffs[i], (Iterable, np.ndarray)):
                 raise ValueError(
-                    "plot_pulse only accepts array-like coefficients.")
-            if self.spline_kind == "step_func":
+                    "plot_pulse only accepts array_like coefficients.")
+            if self.spline_type == "step_func":
                 if len(coeffs[i]) == len(tlist) - 1:
                     coeffs[i] = np.hstack(
                         [self.coeffs[i], self.coeffs[i, -1:]])
                 else:
                     coeffs[i][-1] = coeffs[i][-2]
                 ax.step(tlist, coeffs[i], where='post')
-            elif self.spline_kind == "cubic":
+            elif self.spline_type == "cubic":
                 sp = CubicSpline(tlist, coeffs[i])
                 t_line = np.linspace(tlist[0], tlist[-1], 200)
                 c_line = [sp(t) for t in t_line]
@@ -723,12 +724,12 @@ class Processor(object):
         for i, qobjevo in enumerate(qobjevo_list):
             H_list = qobjevo.to_list()
             for j, H in enumerate(H_list):
-                # cte part or not array-like coeffs
+                # cte part or not array_like coeffs
                 if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
                     continue
                 op, coeffs = H
                 new_coeff = _fill_coeff(
-                    coeffs, qobjevo.tlist, new_tlist, self.spline_kind)
+                    coeffs, qobjevo.tlist, new_tlist, self.spline_type)
                 H_list[j] = [op, new_coeff]
             # create a new qobjevo with the old arguments
             qobjevo_list[i] = QobjEvo(
@@ -738,12 +739,12 @@ class Processor(object):
         return qobjevo
 
 
-def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_kind):
+def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_type):
     """
     Make a step function coefficients compatible with a longer `tlist` by
     filling the empty slot with the nearest left value.
     """
-    if spline_kind == "step_func":
+    if spline_type == "step_func":
         new_n = len(new_tlist)
         old_ind = 0  # index for old coeffs and tlist
         new_coeff = np.zeros(new_n)
@@ -758,7 +759,7 @@ def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_kind):
             if old_tlist[old_ind+1] == t:
                 old_ind += 1
             new_coeff[new_ind] = old_coeffs[old_ind]
-    elif spline_kind == "cubic":
+    elif spline_type == "cubic":
         sp = CubicSpline(old_tlist, old_coeffs)
         new_coeff = np.array([sp(t) for t in new_tlist])
     return new_coeff
@@ -774,7 +775,7 @@ def _merge_id_evo(qobjevo):
     op_list = []
     coeff_list = []
     for H in H_list:
-        # cte part or not array-like coeffs
+        # cte part or not array_like coeffs
         if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
             new_H_list.append(deepcopy(H))
             continue

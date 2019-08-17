@@ -67,11 +67,11 @@ class ModelProcessor(Processor):
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     Attributes
     ----------
@@ -81,10 +81,10 @@ class ModelProcessor(Processor):
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
 
-    tlist: array-like
+    tlist: array_like
         A NumPy array specifies the time of each coefficient.
 
-    coeffs: array-like
+    coeffs: array_like
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
@@ -104,12 +104,21 @@ class ModelProcessor(Processor):
         The dimension of each component system.
         Default is dim=[2,2,2,...,2]
 
-    spline_kind: str
+    spline_type: str
         Type of the coefficient interpolation.
-        Note that they have different requirements for the shape of
-        ``coeffs``.
+        Note that they have different requirement for the length of ``coeffs``.
 
-    paras: dict
+        -"step_func":
+        The coefficient will be treated as a step function.
+        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
+        is 3 in t=[0,1) and 2 in t=[2,3). It requires
+        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
+        in the second case the last element has no effect.
+
+        -"cubic": Use cubic interpolation for the coefficient. It requires
+        ``coeffs.shape[1]=len(tlist)``
+
+    params: dict
         A Python dictionary contains the name and the value of the parameters
         in the physical realization, such as laser frequency, detuning etc.
 
@@ -135,7 +144,7 @@ class ModelProcessor(Processor):
 
     def set_up_paras(self):
         """
-        Save the parameters in the attribute `paras` and check the validity.
+        Save the parameters in the attribute `params` and check the validity.
         (Defined in subclasses)
 
         Note
@@ -145,11 +154,11 @@ class ModelProcessor(Processor):
         raise NotImplementedError("Parameters should be defined in subclass.")
 
     @property
-    def paras(self):
+    def params(self):
         return self._paras
 
-    @paras.setter
-    def paras(self, par):
+    @params.setter
+    def params(self, par):
         self.set_up_paras(**par)
 
     def run_state(self, rho0=None, analytical=False, qc=None, states=None,
@@ -196,14 +205,13 @@ class ModelProcessor(Processor):
 
     def get_ops_and_u(self):
         """
-        Returns the Hamiltonian operators and corresponding values by stacking
-        them together.
+        Get the labels for each Hamiltonian.
 
         Returns
         -------
         ctrls: list
             The list of Hamiltonians
-        coeffs: array-like
+        coeffs: array_like
             The transposed pulse matrix
         """
         return (self.ctrls, self.coeffs.T)
@@ -213,7 +221,7 @@ class ModelProcessor(Processor):
         Generates the pulse matrix for the desired physical system.
 
         Returns
-        --------
+        -------
         t, u, labels:
             Returns the total time and label for every operation.
         """
@@ -285,7 +293,7 @@ class GateDecomposer(object):
     N: int
         The number of the component systems.
 
-    paras: dict
+    params: dict
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
@@ -297,21 +305,21 @@ class GateDecomposer(object):
     N: int
         The number of the component systems.
 
-    paras: dict
+    params: dict
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
     num_ops: int
         Number of control Hamiltonians in the processor.
 
-    gate_decs: dict
+    gate_decomps: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
     """
-    def __init__(self, N, paras, num_ops):
-        self.gate_decs = {}
+    def __init__(self, N, params, num_ops):
+        self.gate_decomps = {}
         self.N = N
-        self.paras = paras
+        self.params = params
         self.num_ops = num_ops
 
     def decompose(self, gates):
@@ -323,14 +331,14 @@ class GateDecomposer(object):
         ----------
         gates: list
             A list of elementary gates that can be implemented in this
-            model. The gate names have to be in `gate_decs`.
+            model. The gate names have to be in `gate_decomps`.
 
         Returns
         -------
-        tlist: array-like
+        tlist: array_like
             A NumPy array specifies the time of each coefficient
 
-        coeffs: array-like
+        coeffs: array_like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
@@ -343,9 +351,9 @@ class GateDecomposer(object):
         self.dt_list = []
         self.coeff_list = []
         for gate in gates:
-            if gate.name not in self.gate_decs:
+            if gate.name not in self.gate_decomps:
                 raise ValueError("Unsupported gate %s" % gate.name)
-            self.gate_decs[gate.name](gate)
+            self.gate_decomps[gate.name](gate)
         coeffs = np.vstack(self.coeff_list).T
 
         tlist = np.empty(len(self.dt_list))

@@ -74,11 +74,11 @@ class SpinChain(ModelProcessor):
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size N or a float for all qubits.
+        each qubit. A list of size ``N`` or a float for all qubits.
 
     Attributes
     ----------
@@ -88,10 +88,10 @@ class SpinChain(ModelProcessor):
     ctrls: list
         A list of the control Hamiltonians driving the evolution.
 
-    tlist: array-like
+    tlist: array_like
         A NumPy array specifies the time of each coefficient.
 
-    coeffs: array-like
+    coeffs: array_like
         A 2d NumPy array of the shape, the length is dependent on the
         spline type
 
@@ -111,10 +111,19 @@ class SpinChain(ModelProcessor):
         The dimension of each component system.
         Default is dim=[2,2,2,...,2]
 
-    spline_kind: str
+    spline_type: str
         Type of the coefficient interpolation.
-        Note that they have different requirements for the shape of
-        ``coeffs``.
+        Note that they have different requirement for the length of ``coeffs``.
+
+        -"step_func":
+        The coefficient will be treated as a step function.
+        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
+        is 3 in t=[0,1) and 2 in t=[2,3). It requires
+        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
+        in the second case the last element has no effect.
+
+        -"cubic": Use cubic interpolation for the coefficient. It requires
+        ``coeffs.shape[1]=len(tlist)``
 
     sx: list
         The delta for each of the qubits in the system.
@@ -135,13 +144,13 @@ class SpinChain(ModelProcessor):
         A list of tensor(sigmax, sigmay)
         interacting Hamiltonians for each qubit.
 
-    sx_u: array-like
+    sx_u: array_like
         Pulse matrix for sigmax Hamiltonians.
 
-    sz_u: array-like
+    sz_u: array_like
         Pulse matrix for sigmaz Hamiltonians.
 
-    sxsy_u: array-like
+    sxsy_u: array_like
         Pulse matrix for tensor(sigmax, sigmay) interacting Hamiltonians.
     """
     def __init__(self, N, correct_global_phase,
@@ -149,12 +158,12 @@ class SpinChain(ModelProcessor):
         super(SpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase, t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
-        self.spline_kind = "step_func"
-        # paras and ops are set in the submethods
+        self.spline_type = "step_func"
+        # params and ops are set in the submethods
 
     def set_up_ops(self, N):
         """
-        Genrate the Hamiltonians for the spinchain model and save them in the
+        Generate the Hamiltonians for the spinchain model and save them in the
         attribute `ctrls`.
 
         Parameters
@@ -180,7 +189,7 @@ class SpinChain(ModelProcessor):
 
     def set_up_paras(self, sx, sz):
         """
-        Save the parameters in the attribute `paras` and check the validity.
+        Save the parameters in the attribute `params` and check the validity.
 
         Parameters
         ----------
@@ -239,10 +248,10 @@ class SpinChain(ModelProcessor):
 
         Returns
         -------
-        tlist: array-like
+        tlist: array_like
             A NumPy array specifies the time of each coefficient
 
-        coeffs: array-like
+        coeffs: array_like
             A 2d NumPy array of the shape (len(ctrls), len(tlist)). Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
@@ -653,7 +662,7 @@ class SpinChainGateDecomposer(GateDecomposer):
     N: int
         The number of qubits in the system.
 
-    paras: dict
+    params: dict
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
@@ -671,14 +680,14 @@ class SpinChainGateDecomposer(GateDecomposer):
     N: int
         The number of the component systems.
 
-    paras: dict
+    params: dict
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
     num_ops: int
         Number of control Hamiltonians in the processor.
 
-    gate_decs: dict
+    gate_decomps: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
 
@@ -688,10 +697,10 @@ class SpinChainGateDecomposer(GateDecomposer):
     global_phase: bool
         Record of the global phase change and will be returned.
     """
-    def __init__(self, N, paras, setup, global_phase, num_ops):
+    def __init__(self, N, params, setup, global_phase, num_ops):
         super(SpinChainGateDecomposer, self).__init__(
-            N=N, paras=paras, num_ops=num_ops)
-        self.gate_decs = {"ISWAP": self.iswap_dec,
+            N=N, params=params, num_ops=num_ops)
+        self.gate_decomps = {"ISWAP": self.iswap_dec,
                           "SQRTISWAP": self.sqrtiswap_dec,
                           "RZ": self.rz_dec,
                           "RX": self.rx_dec,
@@ -716,7 +725,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
-        g = self.paras["sz"][q_ind]
+        g = self.params["sz"][q_ind]
         pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
@@ -728,7 +737,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q_ind = gate.targets[0]
-        g = self.paras["sx"][q_ind]
+        g = self.params["sx"][q_ind]
         pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
         t = abs(gate.arg_value) / (2 * g)
         self.dt_list.append(t)
@@ -740,7 +749,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q1, q2 = min(gate.targets), max(gate.targets)
-        g = self.paras["sxsy"][q1]
+        g = self.params["sxsy"][q1]
         if q1 == 0 and q2 == self.N - 1:
             pulse[self._sxsy_ind[self.N - 1]] = -g
         else:
@@ -755,7 +764,7 @@ class SpinChainGateDecomposer(GateDecomposer):
         """
         pulse = np.zeros(self.num_ops)
         q1, q2 = min(gate.targets), max(gate.targets)
-        g = self.paras["sxsy"][q1]
+        g = self.params["sxsy"][q1]
         if q1 == 0 and q2 == self.N - 1:
             pulse[self._sxsy_ind[self.N - 1]] = -g
         else:
