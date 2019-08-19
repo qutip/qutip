@@ -44,7 +44,7 @@ from qutip.qip.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.noise import (
+from qutip.qip.device.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
     ControlAmpNoise, RandomNoise, UserNoise)
 

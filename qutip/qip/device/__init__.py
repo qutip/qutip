@@ -36,3 +36,6 @@ from qutip.qip.device.spinchain import (
 from qutip.qip.device.cqed import DispersivecQED
 from qutip.qip.device.optpulseprocessor import OptPulseProcessor
 from qutip.qip.device.modelprocessor import ModelProcessor
+from qutip.qip.device.noise import (
+    Noise, RelaxationNoise, DecoherenceNoise,
+    ControlAmpNoise, RandomNoise, UserNoise)
