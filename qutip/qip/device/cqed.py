@@ -253,8 +253,8 @@ class DispersivecQED(ModelProcessor):
         g: list
             The interaction strength for each of the qubit with the resonator.
 
-        Note
-        ----
+        Notes
+        -----
         All parameters will be multiplied by 2*pi for simplicity
         """
         sx_para = super(DispersivecQED, self)._para_list(deltamax, N)
@@ -470,8 +470,8 @@ class CQEDGateDecomposer(GateDecomposer):
         """
         Decomposer for the SQRTISWAP gate
 
-        Note
-        ----
+        Notes
+        -----
         This version of sqrtiswap_dec has very low fidelity, please use
         iswap
         """

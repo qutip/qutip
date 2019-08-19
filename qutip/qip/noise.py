@@ -369,7 +369,8 @@ class ControlAmpNoise(Noise):
 
 class RandomNoise(ControlAmpNoise):
     """
-    Random noise in the amplitude of the control pulse.
+    Random noise in the amplitude of the control pulse. The arguments for
+    the random generator need to be given as key word arguments.
 
     Parameters
     ----------

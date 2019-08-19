@@ -223,8 +223,8 @@ class OptPulseProcessor(Processor):
             row corresponds to the control pulse sequence for
             one Hamiltonian.
 
-        Note
-        ----
+        Notes
+        -----
         len(tlist)-1=coeffs.shape[1] since tlist gives the beginning and the
         end of the pulses
         """

@@ -315,8 +315,8 @@ class Processor(object):
 
     def get_unitary_qobjevo(self, args=None):
         """
-        Create a :class:`qutip.QobjEvo` that can be given to
-        the open system solver.
+        Create a :class:`qutip.QobjEvo` without any noise that can be given to
+        the QuTiP open system solver.
 
         Parameters
         ----------
@@ -394,8 +394,8 @@ class Processor(object):
         tlist: np.array
             Time array for the coefficient.
 
-        Note
-        ----
+        Notes
+        -----
         Collapse operators are not included in this method,
         please use :meth:`qutip.qip.processor.get_noisy_qobjevo`
         if they are needed.
@@ -608,8 +608,8 @@ class Processor(object):
         ax: matplotlib.axes._subplots.AxesSubplot
             The axes for the plot.
 
-        Note
-        ----
+        Notes
+        -----
         ``plot_pulses`` only works for array_like coefficients
         """
         import matplotlib.pyplot as plt
@@ -772,7 +772,7 @@ def _merge_id_evo(qobjevo):
     new_H_list = []
     op_list = []
     coeff_list = []
-    for H in H_list: # H = [op, coeff]
+    for H in H_list:  # H = [op, coeff]
         # cte part or not array_like coeffs
         if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
             new_H_list.append(deepcopy(H))

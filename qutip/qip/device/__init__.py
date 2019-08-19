@@ -31,7 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.qip.device.processor import Processor
-from qutip.qip.device.spinchain import SpinChain
+from qutip.qip.device.spinchain import (
+    SpinChain, LinearSpinChain, CircularSpinChain)
 from qutip.qip.device.cqed import DispersivecQED
 from qutip.qip.device.optpulseprocessor import OptPulseProcessor
 from qutip.qip.device.modelprocessor import ModelProcessor

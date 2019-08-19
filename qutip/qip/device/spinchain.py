@@ -199,8 +199,8 @@ class SpinChain(ModelProcessor):
         sz: flaot or list
             The coefficient of sigmaz in the model
 
-        Note
-        ----
+        Notes
+        -----
         The coefficient of sxsy is defined in the submethods.
         All parameters will be multiplied by 2*pi for simplicity
         """

@@ -147,8 +147,8 @@ class ModelProcessor(Processor):
         Save the parameters in the attribute `params` and check the validity.
         (Defined in subclasses)
 
-        Note
-        ----
+        Notes
+        -----
         All parameters will be multiplied by 2*pi for simplicity
         """
         raise NotImplementedError("Parameters should be defined in subclass.")
