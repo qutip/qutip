@@ -65,7 +65,7 @@ class DispersivecQED(ModelProcessor):
         will track the global phase.
         It has no effect on the numerical solution.
 
-    res_levels: int, optional
+    num_levels: int, optional
         The number of energy levels in the resonator.
 
     deltamax: int or list, optional
@@ -169,7 +169,7 @@ class DispersivecQED(ModelProcessor):
     """
 
     def __init__(self, N, correct_global_phase=True,
-                 res_levels=10, deltamax=1.0,
+                 num_levels=10, deltamax=1.0,
                  epsmax=9.5, w0=10., wq=None, eps=9.5,
                  delta=0.0, g=0.01, t1=None, t2=None):
         super(DispersivecQED, self).__init__(
@@ -177,14 +177,14 @@ class DispersivecQED(ModelProcessor):
             t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
         self.spline_type = "step_func"
-        self.res_levels = res_levels
+        self.num_levels = num_levels
         self._paras = {}
         self.set_up_params(
-            N=N, res_levels=res_levels, deltamax=deltamax,
+            N=N, num_levels=num_levels, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
             delta=delta, g=g)
         self.set_up_ops(N)
-        self.dims = [res_levels] + [2] * N
+        self.dims = [num_levels] + [2] * N
 
     def set_up_ops(self, N):
         """
@@ -197,29 +197,29 @@ class DispersivecQED(ModelProcessor):
             The number of qubits in the system.
         """
         # single qubit terms
-        self.a = tensor([destroy(self.res_levels)] +
+        self.a = tensor([destroy(self.num_levels)] +
                         [identity(2) for n in range(N)])
         self.ctrls.append(self.a.dag() * self.a)
-        self.ctrls += [tensor([identity(self.res_levels)] +
+        self.ctrls += [tensor([identity(self.num_levels)] +
                               [sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
-        self.ctrls += [tensor([identity(self.res_levels)] +
+        self.ctrls += [tensor([identity(self.num_levels)] +
                               [sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
         # interaction terms
         for n in range(N):
-            sm = tensor([identity(self.res_levels)] +
+            sm = tensor([identity(self.num_levels)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
             self.ctrls.append(self.a.dag() * sm + self.a * sm.dag())
 
-        self.psi_proj = tensor([basis(self.res_levels, 0)] +
+        self.psi_proj = tensor([basis(self.num_levels, 0)] +
                                [identity(2) for n in range(N)])
 
     def set_up_params(
-            self, N, res_levels, deltamax,
+            self, N, num_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
         """
         Save the parameters in the attribute `params` and check the validity.
@@ -229,7 +229,7 @@ class DispersivecQED(ModelProcessor):
         N: int
             The number of qubits in the system.
 
-        res_levels: int
+        num_levels: int
             The number of energy levels in the resonator.
 
         deltamax: list
