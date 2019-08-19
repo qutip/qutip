@@ -65,7 +65,7 @@ import scipy.sparse as sp
 # import scipy.linalg as la
 import timeit
 # QuTiP
-from qutip import Qobj
+from qutip.qobj import Qobj
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()

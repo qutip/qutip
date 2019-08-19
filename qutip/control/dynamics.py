@@ -62,7 +62,7 @@ import numpy as np
 import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
-from qutip import Qobj
+from qutip.qobj import Qobj
 from qutip.sparse import sp_eigs, _dense_eigs
 import qutip.settings as settings
 # QuTiP logging
