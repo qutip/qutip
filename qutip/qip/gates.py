@@ -1123,11 +1123,11 @@ def _check_qubits_oper(oper, dims=None, targets=None):
     ----------
     oper : :class:`qutip.Qboj`
         The quantum object to be checked.
-    dims : list
+    dims : list, optional
         A list of integer for the dimension of each composite system.
-        e.g [2,2,2,2,2] for 5 qubits system. If None, qubits system
+        e.g ``[2, 2, 2, 2, 2]`` for 5 qubits system. If None, qubits system
         will be the default.
-    targets : int or list of int
+    targets : int or list of int, optional
         The indices of qubits that are acted on.
     """
     # if operator matches N
@@ -1153,12 +1153,12 @@ def _targets_to_list(targets, oper=None, N=None):
     ----------
     targets : int or list of int
         The indices of qubits that are acted on.
-    oper : :class:`qutip.Qobj`
-        An operator acts on qubits, the type of the `Qobj`
+    oper : :class:`qutip.Qobj`, optional
+        An operator acts on qubits, the type of the :class:`qutip.Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
-        e.g. dims = ``[[2,2,2],[2,2,2]]``
-    N : int
+        e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
+    N : int, optional
         The number of qubits in the system.
     """
     # if targets is a list of integer
@@ -1193,21 +1193,21 @@ def expand_operator(oper, N, targets, dims=None, cyclic_permutation=False):
     Parameters
     ----------
     oper : :class:`qutip.Qobj`
-        An operator acts on qubits, the type of the `Qobj`
+        An operator acts on qubits, the type of the :class:`qutip.Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
-        e.g. dims = ``[[2,2,2],[2,2,2]]``
+        e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
     N : int
         The number of qubits in the system.
     targets : int or list of int
         The indices of qubits that are acted on.
-    dims : list
+    dims : list, optional
         A list of integer for the dimension of each composite system.
-        E.g ``[2,2,2,2,2]`` for 5 qubits system. If None, qubits system
+        E.g ``[2, 2, 2, 2, 2]`` for 5 qubits system. If None, qubits system
         will be the default option.
-    cyclic_permutation : boolean
+    cyclic_permutation : boolean, optional
         Expand for all cyclic permutation of the targets.
-        E.g. if N=3 and `oper` is a 2-qubit operator,
+        E.g. if ``N=3`` and `oper` is a 2-qubit operator,
         the result will be a list of three operators,
         each acting on qubits 0 and 1, 1 and 2, 2 and 0.
 
@@ -1219,7 +1219,7 @@ def expand_operator(oper, N, targets, dims=None, cyclic_permutation=False):
     Notes
     -----
     This is equivalent to gate_expand_1toN, gate_expand_2toN,
-    gate_expand_3toN in `qutip.qip.gate.py`, but works for any dimension.
+    gate_expand_3toN in ``qutip.qip.gate.py``, but works for any dimension.
     """
     if dims is None:
         dims = [2] * N
