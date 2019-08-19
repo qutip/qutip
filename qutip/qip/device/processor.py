@@ -32,6 +32,7 @@
 ###############################################################################
 from collections.abc import Iterable
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from scipy.interpolate import CubicSpline
@@ -771,7 +772,7 @@ def _merge_id_evo(qobjevo):
     new_H_list = []
     op_list = []
     coeff_list = []
-    for H in H_list:
+    for H in H_list: # H = [op, coeff]
         # cte part or not array_like coeffs
         if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
             new_H_list.append(deepcopy(H))
