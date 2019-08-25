@@ -538,7 +538,8 @@ class Lattice1d():
         vec_i = tensor(
                 basis(self.num_cell, cell), basis(self.cell_num_site, site),
                 doft)
-
+        ltc = self.lattice_tensor_config
+        vec_i = Qobj(vec_i, dims=[ltc, [1 for i, j in enumerate(ltc)]])
         return vec_i
 
     def distribute_operator(self, op):
@@ -607,8 +608,21 @@ class Lattice1d():
             for col in range(L):
                 if row == col:
                     kop[row, col] = (L-1)/2
+#                    kop[row, col] = ((L+1) % 2)/ 2
+                    # shifting the eigenvalues
                 else:
-                    kop[row, col] = 1 / (np.exp(2j * np.pi * (row - col)/L)-1)
+                    kop[row, col] = 1 /(np.exp(2j * np.pi * (row - col)/L) - 1)
+        qkop = Qobj(kop)
+        [kD, kV] = qkop.eigenstates()
+        kop_P = np.zeros((L, L), dtype=complex)
+        for eno in range(L):
+            if kD[eno] > (L // 2 + 0.5) :
+                vl = kD[eno] - L
+            else:
+                vl = kD[eno]
+            vk = kV[eno]
+            kop_P = kop_P + vl * vk * vk.dag()
+        kop = 2 * np.pi / L * kop_P
         nx = self.cell_num_site
         ne = self._length_for_site
         k = np.kron(kop, np.eye(nx*ne))
@@ -693,7 +707,7 @@ class Lattice1d():
 
         Returns
         -------
-        Qobj(op_H) : Qobj
+        oper_bet_cell : Qobj
             Quantum object representing the operator with op applied between
             the specified cells.
         """
@@ -932,7 +946,7 @@ class Lattice1d():
         val_kns = np.zeros((self._length_of_unit_cell, knpoints), dtype=float)
         knxA = np.zeros((knpoints, 1), dtype=float)
         G0_H = self._H_intra
-        vec_kns = np.zeros((self.num_cell, self._length_of_unit_cell,
+        vec_kns = np.zeros((knpoints, self._length_of_unit_cell,
                            self._length_of_unit_cell), dtype=complex)
 
         vec_xs = np.array([None for i in range(
