@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['berry_curvature']
+__all__ = ['berry_curvature', 'plot_berry_curvature']
 
 from qutip import (Qobj, tensor, basis, qeye, isherm, sigmax, sigmay, sigmaz)
 import numpy as np
@@ -44,13 +44,25 @@ except:
 
 def berry_curvature(eigfs):
     """Computes the discretized Berry curvature on the two dimensional grid
-    of parameters. The function works well for cases with no band mixing."""
+    of parameters. The function works well for cases with no band mixing.
+
+    Parameters
+    ==========
+    eigfs : numpy ndarray
+        4 dimensional numpy ndarray where the first two indices are for the two
+        discrete values of the two parameters and the third is the index of the
+        occupied bands. The fourth dimension holds the eigenfunctions.
+
+    Returns
+    -------
+    b_curv : numpy ndarray
+        A two dimensional array of the discretized Berry curvature defined for
+        the values of the two parameters defined in the eigfs.
+    """
     nparam0 = eigfs.shape[0]
     nparam1 = eigfs.shape[1]
     nocc = eigfs.shape[2]
-    
     b_curv=np.zeros((nparam0-1, nparam1-1), dtype=float)
-
 
     for i in range(nparam0-1):
         for j in range(nparam1-1):
@@ -87,19 +99,16 @@ def berry_curvature(eigfs):
             curl_z = np.angle(dett)
             b_curv[i,j] = curl_z
 
-    # also plot Berry phase on each small plaquette of the mesh
-#    plaq=w_square.berry_flux([0],individual_phases=True)
-    #
-    fig, ax = plt.subplots()
-#    ax.imshow(plaq.T,origin="lower",
-#          extent=(0,2*np.pi,2*np.pi,2*np.pi,))
-    ax.imshow(b_curv, origin="lower")    
-    ax.set_title("Berry curvature near Dirac cone")
-    ax.set_xlabel(r"$k_x$")
-    ax.set_ylabel(r"$k_y$")
-    fig.tight_layout()
-    fig.savefig("cone_phases.pdf")
-
-
     return b_curv
 
+def plot_berry_curvature(eigfs):
+    """Plots the discretized Berry curvature on the two dimensional grid
+    of parameters. The function works well for cases with no band mixing."""
+    b_curv = berry_curvature(eigfs)
+    fig, ax = plt.subplots()
+    ax.imshow(b_curv, origin="lower")    
+    ax.set_title("Berry curvature near Dirac cone")
+    ax.set_xlabel(r"$Parameter0$")
+    ax.set_ylabel(r"$Parameter1$")
+    fig.tight_layout()
+    fig.savefig("berry_curvature.pdf")
