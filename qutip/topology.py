@@ -107,7 +107,7 @@ def plot_berry_curvature(eigfs):
     b_curv = berry_curvature(eigfs)
     fig, ax = plt.subplots()
     ax.imshow(b_curv, origin="lower")    
-    ax.set_title("Berry curvature near Dirac cone")
+    ax.set_title("Berry curvature")
     ax.set_xlabel(r"$Parameter0$")
     ax.set_ylabel(r"$Parameter1$")
     fig.tight_layout()
