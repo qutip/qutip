@@ -183,6 +183,10 @@ class QubitCircuit(object):
         Define a dictionary of the custom gates. See examples for detail.
     input_states : list
         A list of string such as `0`,'+', "A", "Y". Only used for latex.
+    dims : list
+        A list of integer for the dimension of each composite system.
+        e.g [2,2,2,2,2] for 5 qubits system. If None, qubits system
+        will be the default option.
 
     Examples
     --------
@@ -195,7 +199,7 @@ class QubitCircuit(object):
     """
 
     def __init__(self, N, input_states=None, output_states=None,
-                 reverse_states=True, user_gates=None):
+                 reverse_states=True, user_gates=None, dims=None):
         # number of qubits in the register
         self.N = N
         self.reverse_states = reverse_states
@@ -203,6 +207,7 @@ class QubitCircuit(object):
         self.U_list = []
         self.input_states = [None for i in range(N)]
         self.output_states = [None for i in range(N)]
+        self.dims = dims
         if user_gates is None:
             self.user_gates = {}
         else:
@@ -1030,7 +1035,9 @@ class QubitCircuit(object):
                 else:
                     raise ValueError(
                         "gate function takes at most one parameters.")
-                self.U_list.append(expand_oper(oper, self.N, gate.targets))
+                self.U_list.append(expand_operator(
+                        oper, N=self.N,
+                        targets=gate.targets, dims=self.dims))
 
             else:
                 raise NotImplementedError(
