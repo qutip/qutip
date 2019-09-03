@@ -267,10 +267,10 @@ class TestLattice:
         """
         lattice: Test the method Lattice1d.k().
         """
-        lattice_2123 = Lattice1d(num_cell=2, boundary="periodic",
+        L = 7
+        lattice_L123 = Lattice1d(num_cell=L, boundary="periodic",
                                  cell_num_site=1, cell_site_dof=[2, 3])
-        kq = lattice_2123.k()
-        L = 2
+        kq = lattice_L123.k()
         kop = np.zeros((L, L), dtype=complex)
         for row in range(L):
             for col in range(L):
@@ -279,10 +279,16 @@ class TestLattice:
                 else:
                     kop[row, col] = 1 / (np.exp(2j * np.pi * (row - col)/L)-1)
 
-        kt = np.kron(kop, np.eye(6))
+        kt = np.kron(kop * 2 * np.pi / L, np.eye(6))
         dim_H = [[2, 2, 3], [2, 2, 3]]
         kt = Qobj(kt, dims=dim_H)
-        assert_(kq == kt)
+
+        [k_q, Vq] = kq.eigenstates()
+        [k_t, Vt] = kt.eigenstates()
+        k_tC = k_t - 2*np.pi/L*((L-1)//2)
+        #k_ts = [(i-(L-1)//2)*2*np.pi/L for i in range(L)]
+        #k_w = np.kron((np.array(k_ts)).T, np.ones((1,6)))
+        assert_((np.abs(k_tC - k_q) < 1E-13).all())
 
     def test_get_dispersion(self):
         """

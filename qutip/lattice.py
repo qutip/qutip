@@ -599,8 +599,9 @@ class Lattice1d():
         Returns
         -------
         Qobj(ks) : qutip.Qobj
-            The crystal momentum operator in units of 2\pi/L/a. L is the number
-            of unit cells, a is the length of a unit cell.
+            The crystal momentum operator in units of 1/a. L is the number
+            of unit cells, a is the length of a unit cell which is always taken
+            to be 1.
         """
         L = self.num_cell
         kop = np.zeros((L, L), dtype=complex)
