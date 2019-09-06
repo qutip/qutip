@@ -63,13 +63,17 @@ safePickle = [False]
 if sys.platform == 'win32':
     safePickle[0] = True
 
+try:
+    import cython
+    use_cython = [True]
+except e:
+    use_cython = [False]
 
 def proj(x):
     if np.isfinite(x):
         return (x)
     else:
         return np.inf+0j
-
 
 str_env = {
     "sin": np.sin,
@@ -126,7 +130,6 @@ class _file_list:
 
 coeff_files = _file_list()
 
-
 class _StrWrapper:
     def __init__(self, code):
         self.code = "_out = " + code
@@ -136,7 +139,6 @@ class _StrWrapper:
         env.update(args)
         exec(self.code, str_env, env)
         return env["_out"]
-
 
 class _CubicSplineWrapper:
     # Using scipy's CubicSpline since Qutip's one
@@ -157,7 +159,6 @@ class _CubicSplineWrapper:
 
     def __call__(self, t, args={}):
         return self.func([t])[0]
-
 
 class _StateAsArgs:
     # old with state (f(t, psi, args)) to new (args["state"] = psi)
@@ -1464,33 +1465,66 @@ class QobjEvo:
             self.compiled_qobjevo.has_dyn_args(bool(self.dynamics_args))
 
             if self.type in ["func"]:
-                funclist = []
-                for part in self.ops:
-                    funclist.append(part.get_coeff)
+                #funclist = []
+                #for part in self.ops:
+                #    funclist.append(part.get_coeff)
+                funclist = [part.get_coeff for part in self.ops]
                 self.coeff_get = _UnitedFuncCaller(funclist, self.args,
                                                    self.dynamics_args, self.cte)
                 self.compiled += "pyfunc"
                 self.compiled_qobjevo.set_factor(func=self.coeff_get)
+
             elif self.type in ["mixed_callable"]:
-                funclist = []
-                for part in self.ops:
-                    if isinstance(part.get_coeff, _StrWrapper):
-                        part.get_coeff, file = _compile_str_single(part.coeff, self.args)
-                        coeff_files.add(file)
-                    funclist.append(part.get_coeff)
-                self.coeff_get = _UnitedFuncCaller(funclist, self.args,
-                                                   self.dynamics_args, self.cte)
-                self.compiled += "pyfunc"
-                self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                if use_cython[0]:
+                    funclist = []
+                    for part in self.ops:
+                        if isinstance(part.get_coeff, _StrWrapper):
+                            part.get_coeff, file = _compile_str_single(part.coeff, self.args)
+                            coeff_files.add(file)
+                        funclist.append(part.get_coeff)
+                    self.coeff_get = _UnitedFuncCaller(funclist, self.args,
+                                                       self.dynamics_args, self.cte)
+                    self.compiled += "pyfunc"
+                    self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                else:
+                    funclist = [part.get_coeff for part in self.ops]
+                    _UnitedStrCaller, Code, file = _compiled_coeffs_python(
+                                                        self.ops,
+                                                        self.args,
+                                                        self.dynamics_args,
+                                                        self.tlist)
+                    coeff_files.add(file)
+                    self.coeff_get = _UnitedStrCaller(funclist, self.args,
+                                                      self.dynamics_args,
+                                                      self.cte)
+                    self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                    self.compiled += "pyfunc"
+
             elif self.type in ["string", "mixed_compilable"]:
-                # All factor can be compiled
-                self.coeff_get, Code, file = _compiled_coeffs(self.ops,
-                                                              self.args,
-                                                              self.dynamics_args,
-                                                              self.tlist)
-                coeff_files.add(file)
-                self.compiled_qobjevo.set_factor(obj=self.coeff_get)
-                self.compiled += "cyfactor"
+                if use_cython[0]:
+                    # All factor can be compiled
+                    self.coeff_get, Code, file = _compiled_coeffs(self.ops,
+                                                                  self.args,
+                                                                  self.dynamics_args,
+                                                                  self.tlist)
+                    coeff_files.add(file)
+                    self.compiled_qobjevo.set_factor(obj=self.coeff_get)
+                    self.compiled += "cyfactor"
+                else:
+                    # All factor can be compiled
+                    _UnitedStrCaller, Code, file = _compiled_coeffs_python(
+                                                        self.ops,
+                                                        self.args,
+                                                        self.dynamics_args,
+                                                        self.tlist)
+                    coeff_files.add(file)
+                    funclist = [part.get_coeff for part in self.ops]
+                    self.coeff_get = _UnitedStrCaller(funclist, self.args,
+                                                      self.dynamics_args,
+                                                      self.cte)
+                    self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                    self.compiled += "pyfunc"
+
             elif self.type == "array":
                 try:
                     use_step_func = self.args["_step_func_coeff"]
@@ -1513,6 +1547,7 @@ class QobjEvo:
                             self.ops, None, self.tlist)
                 self.compiled += "cyfactor"
                 self.compiled_qobjevo.set_factor(obj=self.coeff_get)
+
             elif self.type == "spline":
                 self.coeff_get = InterpolateCoeff(self.ops, None, None)
                 self.compiled += "cyfactor"
