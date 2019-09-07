@@ -33,8 +33,8 @@
 
 import numpy as np
 from numpy.testing import assert_, assert_almost_equal
-from qutip import qubit_states, tensor
-from qutip.measurement import measure_qubit
+from qutip import basis, qubit_states, tensor, sigmax, sigmaz
+from qutip.measurement import measure_qubit, measure
 
 
 def assert_measure_qubits(qobj_in, i, outcomes):
@@ -44,7 +44,7 @@ def assert_measure_qubits(qobj_in, i, outcomes):
     assert_(qobj_out == outcomes[outcome])
 
 
-def test_measure_qubits_n_1():
+def _test_measure_qubits_n_1():
     q0 = qubit_states(1, [0])
     assert_measure_qubits(q0, 0, {0: q0})
 
@@ -56,7 +56,7 @@ def test_measure_qubits_n_1():
         assert_measure_qubits(qb, 0, {0: q0, 1: q1})
 
 
-def test_measure_qubits_n_2():
+def _test_measure_qubits_n_2():
     q0 = qubit_states(1, [0])
     q1 = qubit_states(1, [1])
 
@@ -85,3 +85,31 @@ def test_measure_qubits_n_2():
                 0: tensor(qubit_states(1, [np.sqrt(p1)]), q0),
                 1: tensor(qubit_states(1, [np.sqrt(p1)]), q1),
             })
+
+
+def test_measure_1():
+    state = basis(2, 0)
+    op = sigmaz()
+    e_v, new_state = measure(state, op)
+    assert_(e_v == 1)
+    assert_(new_state == -1 * state)
+
+
+def test_measure_2():
+    state = (basis(2, 0) + basis(2, 1)).unit()
+    op = sigmax()
+    e_v, new_state = measure(state, op)
+    assert_(e_v == 1)
+    assert_(new_state == state)
+
+
+def test_measure_3():
+    state = (basis(2, 0) + basis(2, 1)).unit()
+    op = sigmaz()
+    e_v, new_state = measure(state, op)
+    assert_(e_v in (-1, 1))
+    if e_v == 1:
+        assert_(new_state == -1 * basis(2, 0))
+    else:
+        assert_(new_state == -1 * basis(2, 1))
+    print(e_v)

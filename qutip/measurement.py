@@ -36,7 +36,7 @@ Module for measuring quantum objects.
 
 import numpy as np
 
-from qutip import basis, tensor, identity
+from qutip import basis, tensor, identity, ket2dm
 
 
 def _qubit_projector(outcome, i, n):
@@ -80,3 +80,32 @@ def measure_qubit(qobj_in, i):
         qobj_out = m1 * qobj_in / np.sqrt(p1)
 
     return outcome, qobj_out
+
+
+def measure(state, op, subsys=None):
+    # we return a ket if the state is a ket and subsys is None
+    # in all other cases we return a density matrix regardless of
+    # whether state was a ket or a density matric to start with
+    #
+    # subsys is passed into .ptrace as select
+    #
+    # if subsys is a list, op should also be a list
+    if state.isket:
+        state = ket2dm(state)
+    if subsys is not None:
+        state = state.ptrace(subsys)
+        # e.g. N = 5 & sel = 2
+        # need to reconstruct at the end
+
+    eigenvalues, eigenstates = op.eigenstates()
+    projectors = [v * v.dag() for v in eigenstates]
+    probabilities = [(p * state).tr() for p in projectors]
+
+    i = np.random.choice(range(len(eigenvalues)), p=probabilities)
+    # out_state = projectors[i] * state * projectors[i] / probabilities[i]
+    out_state = eigenstates[i]
+    # out_state = projectors[i] * state / np.sqrt(probabilities[i])
+
+    # out_state = tensor(ptrace(1..i), measure_result[i], ptrace(i+1..n))
+
+    return eigenvalues[i], out_state
