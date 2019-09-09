@@ -50,7 +50,15 @@ from scipy.special import entr
 from scipy import constants
 from scipy.sparse import dok_matrix, block_diag, lil_matrix
 from qutip.solver import Options, Result
-from qutip import Qobj, spre, spost, tensor, identity, ket2dm, vector_to_operator
+from qutip import (
+    Qobj,
+    spre,
+    spost,
+    tensor,
+    identity,
+    ket2dm,
+    vector_to_operator,
+)
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
 from qutip import entropy_vn
 from qutip.cy.piqs import Dicke as _Dicke
@@ -197,7 +205,8 @@ def dicke_blocks(rho):
     # create a list with the sizes of the blocks, in order
     blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
     blocks_list = [
-        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
+        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2))
+        for i in range(blocks_dimensions)
     ]
     blocks_list = np.flip(blocks_list, 0)
     # create a list with each block matrix as element
@@ -235,7 +244,8 @@ def dicke_blocks_full(rho):
     # create a list with the sizes of the blocks, in order
     blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
     blocks_list = [
-        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
+        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2))
+        for i in range(blocks_dimensions)
     ]
     blocks_list = np.flip(blocks_list, 0)
     # create a list with each block matrix as element
@@ -464,11 +474,17 @@ class Dicke(object):
         if self.pumping != 0:
             string.append("pumping = {}".format(self.pumping))
         if self.collective_emission != 0:
-            string.append("collective_emission = {}".format(self.collective_emission))
+            string.append(
+                "collective_emission = {}".format(self.collective_emission)
+            )
         if self.collective_dephasing != 0:
-            string.append("collective_dephasing = {}".format(self.collective_dephasing))
+            string.append(
+                "collective_dephasing = {}".format(self.collective_dephasing)
+            )
         if self.collective_pumping != 0:
-            string.append("collective_pumping = {}".format(self.collective_pumping))
+            string.append(
+                "collective_pumping = {}".format(self.collective_pumping)
+            )
         return "\n".join(string)
 
     def lindbladian(self):
@@ -1005,7 +1021,10 @@ def collapse_uncoupled(
     [sx, sy, sz] = spin_algebra(N)
     sp, sm = spin_algebra(N, "+"), spin_algebra(N, "-")
     [jx, jy, jz] = jspin(N, basis="uncoupled")
-    jp, jm = (jspin(N, "+", basis="uncoupled"), jspin(N, "-", basis="uncoupled"))
+    jp, jm = (
+        jspin(N, "+", basis="uncoupled"),
+        jspin(N, "-", basis="uncoupled"),
+    )
 
     c_ops = []
 
@@ -1320,7 +1339,13 @@ def superradiant(N, basis="dicke"):
     return dicke_basis(N, jmm1)
 
 
-def css(N, x=1 / np.sqrt(2), y=1 / np.sqrt(2), basis="dicke", coordinates="cartesian"):
+def css(
+    N,
+    x=1 / np.sqrt(2),
+    y=1 / np.sqrt(2),
+    basis="dicke",
+    coordinates="cartesian",
+):
     """
     Generate the density matrix of the Coherent Spin State (CSS).
 
@@ -1496,7 +1521,8 @@ def block_matrix(N, elements="ones"):
     # create a list with the sizes of the blocks, in order
     blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
     blocks_list = [
-        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
+        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2))
+        for i in range(blocks_dimensions)
     ]
     blocks_list = np.flip(blocks_list, 0)
     # create a list with each block matrix as element
@@ -1706,7 +1732,9 @@ class Pim(object):
         # The 3x3 sub matrix surrounding the Dicke space element to
         # run the tau functions
         indices = [
-            (dicke_row + x, dicke_col + y) for x in range(-1, 2) for y in range(-1, 2)
+            (dicke_row + x, dicke_col + y)
+            for x in range(-1, 2)
+            for y in range(-1, 2)
         ]
         taus = {}
         for idx, tau in zip(indices, tau_functions):
@@ -1835,7 +1863,9 @@ class Pim(object):
         yL = self.emission
         N = float(self.N)
         spontaneous = yS * (1 + j - m) * (j + m)
-        losses = yL * (((N / 2 + 1) * (j - m + 1) * (j + m)) / (2 * j * (j + 1)))
+        losses = yL * (
+            ((N / 2 + 1) * (j - m + 1) * (j + m)) / (2 * j * (j + 1))
+        )
         t2 = spontaneous + losses
         return t2
 

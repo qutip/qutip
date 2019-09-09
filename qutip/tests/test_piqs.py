@@ -78,7 +78,9 @@ class TestDicke:
         """
         N_list = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
         dicke_states = [num_dicke_states(i) for i in N_list]
-        assert_array_equal(dicke_states, [2, 4, 6, 9, 12, 16, 30, 36, 121, 2601, 3906])
+        assert_array_equal(
+            dicke_states, [2, 4, 6, 9, 12, 16, 30, 36, 121, 2601, 3906]
+        )
         N = -1
         assert_raises(ValueError, num_dicke_states, N)
         N = 0.2
@@ -252,7 +254,8 @@ class TestDicke:
 
         blocks = get_blocks(N)
         calculated_indices = [
-            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list
+            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks)
+            for jmm1 in jmm1_list
         ]
         assert_array_almost_equal(calculated_indices, indices)
         N = 2
@@ -282,7 +285,8 @@ class TestDicke:
             (3, 3),
         ]
         calculated_indices = [
-            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list
+            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks)
+            for jmm1 in jmm1_list
         ]
         assert_array_almost_equal(calculated_indices, indices)
         N = 3
@@ -318,7 +322,8 @@ class TestDicke:
         ]
 
         calculated_indices = [
-            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list
+            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks)
+            for jmm1 in jmm1_list
         ]
         assert_array_almost_equal(calculated_indices, indices)
 
@@ -449,7 +454,9 @@ class TestDicke:
         Ldata[2] = [0, 0, -0.9, 0]
         Ldata[3] = [0.6, 0, 0, -0.6]
 
-        lindbladian_correct = Qobj(Ldata, dims=[[[2], [2]], [[2], [2]]], shape=(4, 4))
+        lindbladian_correct = Qobj(
+            Ldata, dims=[[[2], [2]], [[2], [2]]], shape=(4, 4)
+        )
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
         N = 2
         gCE = 0.5
@@ -475,7 +482,12 @@ class TestDicke:
         Ldata[1, 1], Ldata[1, 6] = -2, 1.1
         Ldata[2, 2] = -2.2999999999999998
         Ldata[4, 4], Ldata[4, 9] = -2, 1.1
-        Ldata[5, 0], Ldata[5, 5], Ldata[5, 10], Ldata[5, 15] = (1.1, -2.25, 1.1, 0.05)
+        Ldata[5, 0], Ldata[5, 5], Ldata[5, 10], Ldata[5, 15] = (
+            1.1,
+            -2.25,
+            1.1,
+            0.05,
+        )
         Ldata[6, 1], Ldata[6, 6] = 1.1, -2
         Ldata[8, 8] = -2.2999999999999998
         Ldata[9, 4], Ldata[9, 9] = 1.1, -2
@@ -486,7 +498,9 @@ class TestDicke:
             0.1,
             -0.25,
         )
-        lindbladian_correct = Qobj(Ldata, dims=[[[4], [4]], [[4], [4]]], shape=(16, 16))
+        lindbladian_correct = Qobj(
+            Ldata, dims=[[[4], [4]], [[4], [4]]], shape=(16, 16)
+        )
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
 
     def test_gamma(self):
@@ -528,7 +542,17 @@ class TestDicke:
             model.gamma8((2, -1, -1)),
             model.gamma9((1, -1, -1)),
         ]
-        tau_real = [2.0, 8.0, 0.333333, 1.5, -19.5, 0.666667, 2.0, 8.0, 0.333333]
+        tau_real = [
+            2.0,
+            8.0,
+            0.333333,
+            1.5,
+            -19.5,
+            0.666667,
+            2.0,
+            8.0,
+            0.333333,
+        ]
         assert_array_almost_equal(tau_calculated, tau_real)
 
     def test_jspin(self):
@@ -992,7 +1016,9 @@ class TestDicke:
         """
         test_identity = identity_uncoupled(4)
         assert_equal(test_identity.dims, [[2, 2, 2, 2], [2, 2, 2, 2]])
-        assert_array_equal(np.diag(test_identity.full()), np.ones(16, np.complex))
+        assert_array_equal(
+            np.diag(test_identity.full()), np.ones(16, np.complex)
+        )
 
     def test_css(self):
         """
@@ -1144,7 +1170,9 @@ class TestDicke:
         )
         test_liouvillian = test_piqs.liouvillian()
         test_hamiltonian = test_piqs.hamiltonian
-        assert_array_almost_equal(test_liouvillian.full(), true_liouvillian.full())
+        assert_array_almost_equal(
+            test_liouvillian.full(), true_liouvillian.full()
+        )
         assert_array_almost_equal(test_hamiltonian.full(), true_H.full())
         assert_array_equal(test_liouvillian.dims, test_liouvillian.dims)
 
@@ -1426,7 +1454,17 @@ class TestPim:
             model.tau8(2, -1),
             model.tau9(1, -1),
         ]
-        tau_real = [2.0, 8.0, 0.333333, 1.5, -19.5, 0.666667, 2.0, 8.0, 0.333333]
+        tau_real = [
+            2.0,
+            8.0,
+            0.333333,
+            1.5,
+            -19.5,
+            0.666667,
+            2.0,
+            8.0,
+            0.333333,
+        ]
         assert_array_almost_equal(tau_calculated, tau_real)
 
     def test_isdicke(self):
@@ -1483,7 +1521,12 @@ class TestPim:
         test_matrix = ensemble.coefficient_matrix().todense()
         ensemble2 = Dicke(N, emission=1)
         test_matrix2 = ensemble.coefficient_matrix().todense()
-        true_matrix = [[-2, 0, 0, 0], [1, -1, 0, 0], [0, 1, 0, 1.0], [1, 0, 0, -1.0]]
+        true_matrix = [
+            [-2, 0, 0, 0],
+            [1, -1, 0, 0],
+            [0, 1, 0, 1.0],
+            [1, 0, 0, -1.0],
+        ]
 
         assert_array_almost_equal(test_matrix, true_matrix)
         assert_array_almost_equal(test_matrix2, true_matrix)
@@ -1504,14 +1547,20 @@ class TestPim:
         non_diag_initial_state = ghz(4)
         tlist = np.linspace(0, 10, 100)
 
-        assert_raises(ValueError, non_diag_system.pisolve, diag_initial_state, tlist)
+        assert_raises(
+            ValueError, non_diag_system.pisolve, diag_initial_state, tlist
+        )
         assert_raises(
             ValueError, non_diag_system.pisolve, non_diag_initial_state, tlist
         )
-        assert_raises(ValueError, diag_system.pisolve, non_diag_initial_state, tlist)
+        assert_raises(
+            ValueError, diag_system.pisolve, non_diag_initial_state, tlist
+        )
 
         non_dicke_initial_state = excited(4, basis="uncoupled")
-        assert_raises(ValueError, diag_system.pisolve, non_dicke_initial_state, tlist)
+        assert_raises(
+            ValueError, diag_system.pisolve, non_dicke_initial_state, tlist
+        )
 
         # no Hamiltonian
         no_hamiltonian_system = Dicke(4, emission=0.1)
