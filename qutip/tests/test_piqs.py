@@ -34,14 +34,27 @@
 Tests for Permutational Invariant Quantum solver (PIQS).
 """
 import numpy as np
-from numpy.testing import (assert_, run_module_suite, assert_raises,
-                           assert_array_equal, assert_array_almost_equal,
-                           assert_almost_equal, assert_equal)
+from numpy.testing import (
+    assert_,
+    run_module_suite,
+    assert_raises,
+    assert_array_equal,
+    assert_array_almost_equal,
+    assert_almost_equal,
+    assert_equal,
+)
 
-from qutip import Qobj, entropy_vn,sigmax,sigmaz
-from qutip.cy.piqs import (get_blocks, j_min, j_vals, m_vals,
-                           _num_dicke_states, _num_dicke_ladders,
-                           get_index, jmm1_dictionary)
+from qutip import Qobj, entropy_vn, sigmax, sigmaz
+from qutip.cy.piqs import (
+    get_blocks,
+    j_min,
+    j_vals,
+    m_vals,
+    _num_dicke_states,
+    _num_dicke_ladders,
+    get_index,
+    jmm1_dictionary,
+)
 from qutip.cy.piqs import Dicke as _Dicke
 from qutip.piqs import *
 
@@ -65,8 +78,7 @@ class TestDicke:
         """
         N_list = [1, 2, 3, 4, 5, 6, 9, 10, 20, 100, 123]
         dicke_states = [num_dicke_states(i) for i in N_list]
-        assert_array_equal(dicke_states, [2, 4, 6, 9, 12, 16, 30, 36, 121,
-                                          2601, 3906])
+        assert_array_equal(dicke_states, [2, 4, 6, 9, 12, 16, 30, 36, 121, 2601, 3906])
         N = -1
         assert_raises(ValueError, num_dicke_states, N)
         N = 0.2
@@ -94,8 +106,12 @@ class TestDicke:
         PIQS: Test the function to get blocks.
         """
         N_list = [1, 2, 5, 7]
-        blocks = [np.array([2]), np.array([3, 4]), np.array([6, 10, 12]),
-                  np.array([8, 14, 18, 20])]
+        blocks = [
+            np.array([2]),
+            np.array([3, 4]),
+            np.array([6, 10, 12]),
+            np.array([8, 14, 18, 20]),
+        ]
         calculated_blocks = [get_blocks(i) for i in N_list]
         for (i, j) in zip(calculated_blocks, blocks):
             assert_array_equal(i, j)
@@ -105,10 +121,13 @@ class TestDicke:
         PIQS: Test calculation of j values for given N.
         """
         N_list = [1, 2, 3, 4, 7]
-        j_vals_real = [np.array([0.5]), np.array([0., 1.]),
-                       np.array([0.5, 1.5]),
-                       np.array([0., 1., 2.]),
-                       np.array([0.5, 1.5, 2.5, 3.5])]
+        j_vals_real = [
+            np.array([0.5]),
+            np.array([0.0, 1.0]),
+            np.array([0.5, 1.5]),
+            np.array([0.0, 1.0, 2.0]),
+            np.array([0.5, 1.5, 2.5, 3.5]),
+        ]
         j_vals_calc = [j_vals(i) for i in N_list]
 
         for (i, j) in zip(j_vals_calc, j_vals_real):
@@ -119,10 +138,13 @@ class TestDicke:
         PIQS: Test calculation of m values for a particular j.
         """
         j_list = [0.5, 1, 1.5, 2, 2.5]
-        m_real = [np.array([-0.5, 0.5]), np.array([-1, 0, 1]),
-                  np.array([-1.5, -0.5, 0.5, 1.5]),
-                  np.array([-2, -1, 0, 1, 2]),
-                  np.array([-2.5, -1.5, -0.5, 0.5, 1.5, 2.5])]
+        m_real = [
+            np.array([-0.5, 0.5]),
+            np.array([-1, 0, 1]),
+            np.array([-1.5, -0.5, 0.5, 1.5]),
+            np.array([-2, -1, 0, 1, 2]),
+            np.array([-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]),
+        ]
 
         m_calc = [m_vals(i) for i in j_list]
         for (i, j) in zip(m_real, m_calc):
@@ -135,7 +157,7 @@ class TestDicke:
         # test 1
         # mixed state with non-symmetrical block matrix elements
         N = 3
-        true_matrix = (excited(N)+dicke(N,0.5,0.5)).unit()
+        true_matrix = (excited(N) + dicke(N, 0.5, 0.5)).unit()
         test_matrix = mask_dicke_matrix(true_matrix)
         assert_(test_matrix == true_matrix)
         # test 2
@@ -144,16 +166,16 @@ class TestDicke:
         true_matrix = Qobj(block_matrix(N)).unit()
         test_matrix = mask_dicke_matrix(true_matrix)
         assert_(test_matrix == true_matrix)
-        
+
     def test_expand_dicke_matrix(self):
         """
         PIQS: Test the `expand_dicke_matrix` function.
         """
         test_matrix = expand_dicke_matrix(excited(3))
-        true_expanded = np.zeros((8,8))
-        true_expanded[0,0] = 1.
+        true_expanded = np.zeros((8, 8))
+        true_expanded[0, 0] = 1.0
         assert_(test_matrix == Qobj(true_expanded))
-        
+
     def test_dicke_function_trace(self):
         """
         PIQS: Test the `dicke_function_trace` function.
@@ -161,42 +183,42 @@ class TestDicke:
         ## test for N odd
         N = 3
         # test trace
-        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
-        f = lambda x:x
-        test_val = dicke_function_trace(f,rho_mixed)
+        rho_mixed = (excited(N) + dicke(N, 0.5, 0.5)).unit()
+        f = lambda x: x
+        test_val = dicke_function_trace(f, rho_mixed)
         true_val = (expand_dicke_matrix(rho_mixed)).tr()
         true_val2 = (rho_mixed).tr()
         # test with linear function (trace)
-        assert_almost_equal(test_val,true_val)
-        assert_almost_equal(test_val,true_val2)
+        assert_almost_equal(test_val, true_val)
+        assert_almost_equal(test_val, true_val2)
         # test with nonlinear function
-        f = lambda rho: rho**3
-        test_val3 = dicke_function_trace(f,rho_mixed)
-        true_val3 = (expand_dicke_matrix(rho_mixed)**3).tr()
-        assert_almost_equal(test_val3,true_val3)
+        f = lambda rho: rho ** 3
+        test_val3 = dicke_function_trace(f, rho_mixed)
+        true_val3 = (expand_dicke_matrix(rho_mixed) ** 3).tr()
+        assert_almost_equal(test_val3, true_val3)
         ## test for N even
         N = 4
         # test trace
-        rho_mixed = (excited(N)+dicke(N,0,0)).unit()
-        f = lambda x:x
-        test_val = dicke_function_trace(f,rho_mixed)
+        rho_mixed = (excited(N) + dicke(N, 0, 0)).unit()
+        f = lambda x: x
+        test_val = dicke_function_trace(f, rho_mixed)
         true_val = (expand_dicke_matrix(rho_mixed)).tr()
         true_val2 = (rho_mixed).tr()
         # test with linear function (trace)
-        assert_almost_equal(test_val,true_val)
-        assert_almost_equal(test_val,true_val2)
+        assert_almost_equal(test_val, true_val)
+        assert_almost_equal(test_val, true_val2)
         # test with nonlinear function
-        f = lambda rho: rho**3
-        test_val3 = dicke_function_trace(f,rho_mixed)
-        true_val3 = (expand_dicke_matrix(rho_mixed)**3).tr()
+        f = lambda rho: rho ** 3
+        test_val3 = dicke_function_trace(f, rho_mixed)
+        true_val3 = (expand_dicke_matrix(rho_mixed) ** 3).tr()
         assert np.allclose(test_val3, true_val3)
-        
+
     def test_entropy_vn_dicke(self):
         """
         PIQS: Test the `entropy_vn_dicke` function.
         """
         N = 3
-        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
+        rho_mixed = (excited(N) + dicke(N, 0.5, 0.5)).unit()
         test_val = entropy_vn_dicke(rho_mixed)
         true_val = entropy_vn(expand_dicke_matrix(rho_mixed))
         assert np.allclose(test_val, true_val)
@@ -206,7 +228,7 @@ class TestDicke:
         PIQS: Test the `purity_dicke` function.
         """
         N = 3
-        rho_mixed = (excited(N)+dicke(N,0.5,0.5)).unit()
+        rho_mixed = (excited(N) + dicke(N, 0.5, 0.5)).unit()
         test_val = purity_dicke(rho_mixed)
         true_val = (expand_dicke_matrix(rho_mixed)).purity()
         assert np.allclose(test_val, true_val)
@@ -216,45 +238,84 @@ class TestDicke:
         PIQS: Test the index fetching function for given j, m, m1 value.
         """
         N = 1
-        jmm1_list = [(0.5, 0.5, 0.5), (0.5, 0.5, -0.5),
-                     (0.5, -0.5, 0.5), (0.5, -0.5, -0.5)]
+        jmm1_list = [
+            (0.5, 0.5, 0.5),
+            (0.5, 0.5, -0.5),
+            (0.5, -0.5, 0.5),
+            (0.5, -0.5, -0.5),
+        ]
         indices = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
         blocks = get_blocks(N)
-        calculated_indices = [get_index(N, jmm1[0], jmm1[1],
-                                        jmm1[2], blocks)
-                              for jmm1 in jmm1_list]
+        calculated_indices = [
+            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list
+        ]
         assert_array_almost_equal(calculated_indices, indices)
         N = 2
         blocks = get_blocks(N)
-        jmm1_list = [(1, 1, 1), (1, 1, 0), (1, 1, -1),
-                     (1, 0, 1), (1, 0, 0), (1, 0, -1),
-                     (1, -1, 1), (1, -1, 0), (1, -1, -1),
-                     (0, 0, 0)]
-        indices = [(0, 0), (0, 1), (0, 2),
-                   (1, 0), (1, 1), (1, 2),
-                   (2, 0), (2, 1), (2, 2),
-                   (3, 3)]
-        calculated_indices = [get_index(N, jmm1[0], jmm1[1],
-                                        jmm1[2], blocks)
-                              for jmm1 in jmm1_list]
+        jmm1_list = [
+            (1, 1, 1),
+            (1, 1, 0),
+            (1, 1, -1),
+            (1, 0, 1),
+            (1, 0, 0),
+            (1, 0, -1),
+            (1, -1, 1),
+            (1, -1, 0),
+            (1, -1, -1),
+            (0, 0, 0),
+        ]
+        indices = [
+            (0, 0),
+            (0, 1),
+            (0, 2),
+            (1, 0),
+            (1, 1),
+            (1, 2),
+            (2, 0),
+            (2, 1),
+            (2, 2),
+            (3, 3),
+        ]
+        calculated_indices = [
+            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list
+        ]
         assert_array_almost_equal(calculated_indices, indices)
         N = 3
         blocks = get_blocks(N)
-        jmm1_list = [(1.5, 1.5, 1.5), (1.5, 1.5, 0.5), (1.5, 1.5, -0.5),
-                     (1.5, 1.5, -1.5), (1.5, 0.5, 0.5), (1.5, -0.5, -0.5),
-                     (1.5, -1.5, -1.5), (1.5, -1.5, 1.5), (0.5, 0.5, 0.5),
-                     (0.5, 0.5, -0.5), (0.5, - 0.5, 0.5),
-                     (0.5, -0.5, -0.5)]
+        jmm1_list = [
+            (1.5, 1.5, 1.5),
+            (1.5, 1.5, 0.5),
+            (1.5, 1.5, -0.5),
+            (1.5, 1.5, -1.5),
+            (1.5, 0.5, 0.5),
+            (1.5, -0.5, -0.5),
+            (1.5, -1.5, -1.5),
+            (1.5, -1.5, 1.5),
+            (0.5, 0.5, 0.5),
+            (0.5, 0.5, -0.5),
+            (0.5, -0.5, 0.5),
+            (0.5, -0.5, -0.5),
+        ]
 
-        indices = [(0, 0), (0, 1), (0, 2), (0, 3),
-                   (1, 1), (2, 2), (3, 3), (3, 0),
-                   (4, 4), (4, 5),
-                   (5, 4), (5, 5)]
+        indices = [
+            (0, 0),
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (1, 1),
+            (2, 2),
+            (3, 3),
+            (3, 0),
+            (4, 4),
+            (4, 5),
+            (5, 4),
+            (5, 5),
+        ]
 
-        calculated_indices = [get_index(N, jmm1[0], jmm1[1],
-                                        jmm1[2], blocks)
-                              for jmm1 in jmm1_list]
+        calculated_indices = [
+            get_index(N, jmm1[0], jmm1[1], jmm1[2], blocks) for jmm1 in jmm1_list
+        ]
         assert_array_almost_equal(calculated_indices, indices)
 
     def test_jmm1_dictionary(self):
@@ -263,19 +324,33 @@ class TestDicke:
         """
         d1, d2, d3, d4 = jmm1_dictionary(1)
 
-        d1_correct = {(0, 0): (0.5, 0.5, 0.5), (0, 1): (0.5, 0.5, -0.5),
-                      (1, 0): (0.5, -0.5, 0.5), (1, 1): (0.5, -0.5, -0.5)}
+        d1_correct = {
+            (0, 0): (0.5, 0.5, 0.5),
+            (0, 1): (0.5, 0.5, -0.5),
+            (1, 0): (0.5, -0.5, 0.5),
+            (1, 1): (0.5, -0.5, -0.5),
+        }
 
-        d2_correct = {(0.5, -0.5, -0.5): (1, 1), (0.5, -0.5, 0.5): (1, 0),
-                      (0.5, 0.5, -0.5): (0, 1),
-                      (0.5, 0.5, 0.5): (0, 0)}
+        d2_correct = {
+            (0.5, -0.5, -0.5): (1, 1),
+            (0.5, -0.5, 0.5): (1, 0),
+            (0.5, 0.5, -0.5): (0, 1),
+            (0.5, 0.5, 0.5): (0, 0),
+        }
 
-        d3_correct = {0: (0.5, 0.5, 0.5), 1: (0.5, 0.5, -0.5),
-                      2: (0.5, -0.5, 0.5),
-                      3: (0.5, -0.5, -0.5)}
+        d3_correct = {
+            0: (0.5, 0.5, 0.5),
+            1: (0.5, 0.5, -0.5),
+            2: (0.5, -0.5, 0.5),
+            3: (0.5, -0.5, -0.5),
+        }
 
-        d4_correct = {(0.5, -0.5, -0.5): 3, (0.5, -0.5, 0.5): 2,
-                      (0.5, 0.5, -0.5): 1, (0.5, 0.5, 0.5): 0}
+        d4_correct = {
+            (0.5, -0.5, -0.5): 3,
+            (0.5, -0.5, 0.5): 2,
+            (0.5, 0.5, -0.5): 1,
+            (0.5, 0.5, 0.5): 0,
+        }
 
         assert_equal(d1, d1_correct)
         assert_equal(d2, d2_correct)
@@ -284,29 +359,57 @@ class TestDicke:
 
         d1, d2, d3, d4 = jmm1_dictionary(2)
 
-        d1_correct = {(3, 3): (0.0, -0.0, -0.0), (2, 2): (1.0, -1.0, -1.0),
-                      (2, 1): (1.0, -1.0, 0.0), (2, 0): (1.0, -1.0, 1.0),
-                      (1, 2): (1.0, 0.0, -1.0), (1, 1): (1.0, 0.0, 0.0),
-                      (1, 0): (1.0, 0.0, 1.0), (0, 2): (1.0, 1.0, -1.0),
-                      (0, 1): (1.0, 1.0, 0.0), (0, 0): (1.0, 1.0, 1.0)}
+        d1_correct = {
+            (3, 3): (0.0, -0.0, -0.0),
+            (2, 2): (1.0, -1.0, -1.0),
+            (2, 1): (1.0, -1.0, 0.0),
+            (2, 0): (1.0, -1.0, 1.0),
+            (1, 2): (1.0, 0.0, -1.0),
+            (1, 1): (1.0, 0.0, 0.0),
+            (1, 0): (1.0, 0.0, 1.0),
+            (0, 2): (1.0, 1.0, -1.0),
+            (0, 1): (1.0, 1.0, 0.0),
+            (0, 0): (1.0, 1.0, 1.0),
+        }
 
-        d2_correct = {(0.0, -0.0, -0.0): (3, 3), (1.0, -1.0, -1.0): (2, 2),
-                      (1.0, -1.0, 0.0): (2, 1), (1.0, -1.0, 1.0): (2, 0),
-                      (1.0, 0.0, -1.0): (1, 2), (1.0, 0.0, 0.0): (1, 1),
-                      (1.0, 0.0, 1.0): (1, 0), (1.0, 1.0, -1.0): (0, 2),
-                      (1.0, 1.0, 0.0): (0, 1), (1.0, 1.0, 1.0): (0, 0)}
+        d2_correct = {
+            (0.0, -0.0, -0.0): (3, 3),
+            (1.0, -1.0, -1.0): (2, 2),
+            (1.0, -1.0, 0.0): (2, 1),
+            (1.0, -1.0, 1.0): (2, 0),
+            (1.0, 0.0, -1.0): (1, 2),
+            (1.0, 0.0, 0.0): (1, 1),
+            (1.0, 0.0, 1.0): (1, 0),
+            (1.0, 1.0, -1.0): (0, 2),
+            (1.0, 1.0, 0.0): (0, 1),
+            (1.0, 1.0, 1.0): (0, 0),
+        }
 
-        d3_correct = {15: (0.0, -0.0, -0.0), 10: (1.0, -1.0, -1.0),
-                      9: (1.0, -1.0, 0.0), 8: (1.0, -1.0, 1.0),
-                      6: (1.0, 0.0, -1.0), 5: (1.0, 0.0, 0.0),
-                      4: (1.0, 0.0, 1.0), 2: (1.0, 1.0, -1.0),
-                      1: (1.0, 1.0, 0.0), 0: (1.0, 1.0, 1.0)}
+        d3_correct = {
+            15: (0.0, -0.0, -0.0),
+            10: (1.0, -1.0, -1.0),
+            9: (1.0, -1.0, 0.0),
+            8: (1.0, -1.0, 1.0),
+            6: (1.0, 0.0, -1.0),
+            5: (1.0, 0.0, 0.0),
+            4: (1.0, 0.0, 1.0),
+            2: (1.0, 1.0, -1.0),
+            1: (1.0, 1.0, 0.0),
+            0: (1.0, 1.0, 1.0),
+        }
 
-        d4_correct = {(0.0, -0.0, -0.0): 15, (1.0, -1.0, -1.0): 10,
-                      (1.0, -1.0, 0.0): 9, (1.0, -1.0, 1.0): 8,
-                      (1.0, 0.0, -1.0): 6, (1.0, 0.0, 0.0): 5,
-                      (1.0, 0.0, 1.0): 4, (1.0, 1.0, -1.0): 2,
-                      (1.0, 1.0, 0.0): 1, (1.0, 1.0, 1.0): 0}
+        d4_correct = {
+            (0.0, -0.0, -0.0): 15,
+            (1.0, -1.0, -1.0): 10,
+            (1.0, -1.0, 0.0): 9,
+            (1.0, -1.0, 1.0): 8,
+            (1.0, 0.0, -1.0): 6,
+            (1.0, 0.0, 0.0): 5,
+            (1.0, 0.0, 1.0): 4,
+            (1.0, 1.0, -1.0): 2,
+            (1.0, 1.0, 0.0): 1,
+            (1.0, 1.0, 1.0): 0,
+        }
 
         assert_equal(d1, d1_correct)
         assert_equal(d2, d2_correct)
@@ -325,9 +428,15 @@ class TestDicke:
         gD = 0.1
         gP = 0.1
 
-        system = Dicke(N=N, emission=gE, pumping=gP, dephasing=gD,
-                       collective_emission=gCE, collective_pumping=gCP,
-                       collective_dephasing=gCD)
+        system = Dicke(
+            N=N,
+            emission=gE,
+            pumping=gP,
+            dephasing=gD,
+            collective_emission=gCE,
+            collective_pumping=gCP,
+            collective_dephasing=gCD,
+        )
 
         lindbladian = system.lindbladian()
         Ldata = np.zeros((4, 4), dtype="complex")
@@ -336,8 +445,7 @@ class TestDicke:
         Ldata[2] = [0, 0, -0.9, 0]
         Ldata[3] = [0.6, 0, 0, -0.6]
 
-        lindbladian_correct = Qobj(Ldata, dims=[[[2], [2]], [[2], [2]]],
-                                   shape=(4, 4))
+        lindbladian_correct = Qobj(Ldata, dims=[[[2], [2]], [[2], [2]]], shape=(4, 4))
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
         N = 2
         gCE = 0.5
@@ -346,9 +454,15 @@ class TestDicke:
         gE = 0.1
         gD = 0.1
         gP = 0.1
-        system = Dicke(N=N, emission=gE, pumping=gP, dephasing=gD,
-                       collective_emission=gCE, collective_pumping=gCP,
-                       collective_dephasing=gCD)
+        system = Dicke(
+            N=N,
+            emission=gE,
+            pumping=gP,
+            dephasing=gD,
+            collective_emission=gCE,
+            collective_pumping=gCP,
+            collective_dephasing=gCD,
+        )
 
         lindbladian = system.lindbladian()
 
@@ -357,18 +471,18 @@ class TestDicke:
         Ldata[1, 1], Ldata[1, 6] = -2, 1.1
         Ldata[2, 2] = -2.2999999999999998
         Ldata[4, 4], Ldata[4, 9] = -2, 1.1
-        Ldata[5, 0], Ldata[5, 5], Ldata[5, 10], Ldata[5, 15] = (1.1, -2.25,
-                                                                1.1, 0.05)
+        Ldata[5, 0], Ldata[5, 5], Ldata[5, 10], Ldata[5, 15] = (1.1, -2.25, 1.1, 0.05)
         Ldata[6, 1], Ldata[6, 6] = 1.1, -2
         Ldata[8, 8] = -2.2999999999999998
         Ldata[9, 4], Ldata[9, 9] = 1.1, -2
         Ldata[10, 5], Ldata[10, 10], Ldata[10, 15] = 1.1, -1.2, 0.1
-        Ldata[15, 0], Ldata[15, 5], Ldata[15, 10], Ldata[15, 15] = (0.1,
-                                                                    0.05,
-                                                                    0.1,
-                                                                    -0.25)
-        lindbladian_correct = Qobj(Ldata, dims=[[[4], [4]], [[4], [4]]],
-                                   shape=(16, 16))
+        Ldata[15, 0], Ldata[15, 5], Ldata[15, 10], Ldata[15, 15] = (
+            0.1,
+            0.05,
+            0.1,
+            -0.25,
+        )
+        lindbladian_correct = Qobj(Ldata, dims=[[[4], [4]], [[4], [4]]], shape=(16, 16))
         assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
 
     def test_gamma(self):
@@ -386,26 +500,31 @@ class TestDicke:
         | 3,-3>
         """
         N = 6
-        collective_emission = 1.
-        emission = 1.
-        dephasing = 1.
-        pumping = 1.
-        collective_pumping = 1.
-        model = _Dicke(N, collective_emission=collective_emission,
-                       emission=emission, dephasing=dephasing,
-                       pumping=pumping, collective_pumping=collective_pumping)
-        tau_calculated = [model.gamma3((3, 1, 1)),
-                          model.gamma2((2, 1, 1)),
-                          model.gamma4((1, 1, 1)),
-                          model.gamma5((3, 0, 0)),
-                          model.gamma1((2, 0, 0)),
-                          model.gamma6((1, 0, 0)),
-                          model.gamma7((3, -1, -1)),
-                          model.gamma8((2, -1, -1)),
-                          model.gamma9((1, -1, -1))]
-        tau_real = [2., 8., 0.333333,
-                    1.5, -19.5, 0.666667,
-                    2., 8., 0.333333]
+        collective_emission = 1.0
+        emission = 1.0
+        dephasing = 1.0
+        pumping = 1.0
+        collective_pumping = 1.0
+        model = _Dicke(
+            N,
+            collective_emission=collective_emission,
+            emission=emission,
+            dephasing=dephasing,
+            pumping=pumping,
+            collective_pumping=collective_pumping,
+        )
+        tau_calculated = [
+            model.gamma3((3, 1, 1)),
+            model.gamma2((2, 1, 1)),
+            model.gamma4((1, 1, 1)),
+            model.gamma5((3, 0, 0)),
+            model.gamma1((2, 0, 0)),
+            model.gamma6((1, 0, 0)),
+            model.gamma7((3, -1, -1)),
+            model.gamma8((2, -1, -1)),
+            model.gamma9((1, -1, -1)),
+        ]
+        tau_real = [2.0, 8.0, 0.333333, 1.5, -19.5, 0.666667, 2.0, 8.0, 0.333333]
         assert_array_almost_equal(tau_calculated, tau_real)
 
     def test_jspin(self):
@@ -495,14 +614,13 @@ class TestDicke:
         state_deg = []
         state_deg = []
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
-            state_deg.append(state_degeneracy(nn, nn/2))
+            state_deg.append(state_degeneracy(nn, nn / 2))
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
-            state_deg.append(state_degeneracy(nn, (nn/2) % 1))
+            state_deg.append(state_degeneracy(nn, (nn / 2) % 1))
         assert_array_equal(state_deg, true_state_deg)
 
         # check error
         assert_raises(ValueError, state_degeneracy, 2, -1)
-
 
     def test_m_degeneracy(self):
         """
@@ -511,7 +629,7 @@ class TestDicke:
         true_m_deg = [1, 2, 2, 3, 4, 5, 5, 6]
         m_deg = []
         for nn in [1, 2, 3, 4, 7, 8, 9, 10]:
-            m_deg.append(m_degeneracy(nn, -(nn/2) % 1))
+            m_deg.append(m_degeneracy(nn, -(nn / 2) % 1))
         assert_array_equal(m_deg, true_m_deg)
 
         # check error
@@ -527,7 +645,7 @@ class TestDicke:
         true_ap_list = [110, 108, 104, 98, 90, 54, 38, 20, 0]
         ap_list = []
         for m in [0, 1, 2, 3, 4, 7, 8, 9, 10]:
-            ap_list.append(ap(10, m)**2)
+            ap_list.append(ap(10, m) ** 2)
 
         assert_almost_equal(ap_list, true_ap_list)
 
@@ -540,7 +658,7 @@ class TestDicke:
         true_am_list = [110, 110, 108, 104, 98, 68, 54, 38, 20]
         am_list = []
         for m in [0, 1, 2, 3, 4, 7, 8, 9, 10]:
-            am_list.append(am(10, m)**2)
+            am_list.append(am(10, m) ** 2)
 
         assert_almost_equal(am_list, true_am_list)
 
@@ -549,55 +667,75 @@ class TestDicke:
         PIQS: Test the function that creates the SU2 algebra in uncoupled basis.
         The list [sx, sy, sz, sp, sm] is checked for N = 2.
         """
-        sx1 = [[0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
-               [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j]]
+        sx1 = [
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.5 + 0.0j],
+            [0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        sx2 = [[0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-               [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
-               [0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j]]
+        sx2 = [
+            [0.0 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.5 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        sy1 = [[0. + 0.j, 0. + 0.j, 0. - 0.5j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
-               [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.5j, 0. + 0.j, 0. + 0.j]]
+        sy1 = [
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 - 0.5j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 - 0.5j],
+            [0.0 + 0.5j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.5j, 0.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        sy2 = [[0. + 0.j, 0. - 0.5j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.5j, 0. + 0.j]]
+        sy2 = [
+            [0.0 + 0.0j, 0.0 - 0.5j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.5j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 - 0.5j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.5j, 0.0 + 0.0j],
+        ]
 
-        sz1 = [[0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j]]
+        sz1 = [
+            [0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, -0.5 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, -0.5 + 0.0j],
+        ]
 
-        sz2 = [[0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, -0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j],
-               [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j]]
+        sz2 = [
+            [0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, -0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, -0.5 + 0.0j],
+        ]
 
-        sp1 = [[0. + 0.j, 0. + 0.j, 1. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]]
+        sp1 = [
+            [0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        sp2 = [[0. + 0.j, 1. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]]
+        sp2 = [
+            [0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        sm1 = [[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 1. + 0.j, 0. + 0.j, 0. + 0.j]]
+        sm1 = [
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        sm2 = [[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-               [0. + 0.j, 0. + 0.j, 1. + 0.j, 0. + 0.j]]
+        sm2 = [
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
         assert_array_equal(spin_algebra(2, "x")[0].full(), sx1)
         assert_array_equal(spin_algebra(2, "x")[1].full(), sx2)
@@ -621,30 +759,40 @@ class TestDicke:
         checked for N = 2.
         """
 
-        jx_n2 = [[0.0 + 0.j, 0.5 + 0.j, 0.5 + 0.j, 0.0 + 0.j],
-                 [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
-                 [0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.5 + 0.j],
-                 [0.0 + 0.j, 0.5 + 0.j, 0.5 + 0.j, 0.0 + 0.j]]
+        jx_n2 = [
+            [0.0 + 0.0j, 0.5 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j],
+            [0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.5 + 0.0j],
+            [0.5 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.5 + 0.0j],
+            [0.0 + 0.0j, 0.5 + 0.0j, 0.5 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        jy_n2 = [[0. + 0.j, 0. - 0.5j, 0. - 0.5j, 0. + 0.j],
-                 [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
-                 [0. + 0.5j, 0. + 0.j, 0. + 0.j, 0. - 0.5j],
-                 [0. + 0.j, 0. + 0.5j, 0. + 0.5j, 0. + 0.j]]
+        jy_n2 = [
+            [0.0 + 0.0j, 0.0 - 0.5j, 0.0 - 0.5j, 0.0 + 0.0j],
+            [0.0 + 0.5j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 - 0.5j],
+            [0.0 + 0.5j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 - 0.5j],
+            [0.0 + 0.0j, 0.0 + 0.5j, 0.0 + 0.5j, 0.0 + 0.0j],
+        ]
 
-        jz_n2 = [[1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-                 [0. + 0.j, 0. + 0.j, 0. + 0.j, -1. + 0.j]]
+        jz_n2 = [
+            [1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, -1.0 + 0.0j],
+        ]
 
-        jp_n2 = [[0. + 0.j, 1. + 0.j, 1. + 0.j, 0. + 0.j],
-                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
-                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 1. + 0.j],
-                 [0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j]]
+        jp_n2 = [
+            [0.0 + 0.0j, 1.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j],
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
-        jm_n2 = [[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-                 [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-                 [1. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j],
-                 [0. + 0.j, 1. + 0.j, 1. + 0.j, 0. + 0.j]]
+        jm_n2 = [
+            [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+            [0.0 + 0.0j, 1.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j],
+        ]
 
         assert_array_equal(jspin(2, "x", basis="uncoupled").full(), jx_n2)
         assert_array_equal(jspin(2, "y", basis="uncoupled").full(), jy_n2)
@@ -662,19 +810,25 @@ class TestDicke:
         If the matrix element |j,m><j,m'| is allowed it is 1, otherwise 0.
         """
         # N = 1 TLSs
-        block_1 = [[1., 1.], [1., 1.]]
+        block_1 = [[1.0, 1.0], [1.0, 1.0]]
 
         # N = 2 TLSs
-        block_2 = [[1., 1., 1., 0.], [1., 1., 1., 0.],
-                   [1., 1., 1., 0.], [0., 0., 0., 1.]]
+        block_2 = [
+            [1.0, 1.0, 1.0, 0.0],
+            [1.0, 1.0, 1.0, 0.0],
+            [1.0, 1.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
 
         # N = 3 TLSs
-        block_3 = [[1., 1., 1., 1., 0., 0.],
-                   [1., 1., 1., 1., 0., 0.],
-                   [1., 1., 1., 1., 0., 0.],
-                   [1., 1., 1., 1., 0., 0.],
-                   [0., 0., 0., 0., 1., 1.],
-                   [0., 0., 0., 0., 1., 1.]]
+        block_3 = [
+            [1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 1.0],
+        ]
 
         assert_equal(Qobj(block_1), Qobj(block_matrix(1)))
         assert_equal(Qobj(block_2), Qobj(block_matrix(2)))
@@ -760,7 +914,7 @@ class TestDicke:
         test_state_uncoupled = excited(2, basis="uncoupled")
         assert_array_equal(test_state_uncoupled.dims, [[2, 2], [2, 2]])
         assert_array_equal(test_state_uncoupled.shape, (4, 4))
-        assert_almost_equal(test_state_uncoupled.full()[0, 0], 1+0j)
+        assert_almost_equal(test_state_uncoupled.full()[0, 0], 1 + 0j)
 
     def test_superradiant(self):
         """
@@ -787,7 +941,7 @@ class TestDicke:
         test_state_uncoupled = superradiant(2, basis="uncoupled")
         assert_array_equal(test_state_uncoupled.dims, [[2, 2], [2, 2]])
         assert_array_equal(test_state_uncoupled.shape, (4, 4))
-        assert_almost_equal(test_state_uncoupled.full()[1, 1], 1+0j)
+        assert_almost_equal(test_state_uncoupled.full()[1, 1], 1 + 0j)
 
     def test_ghz(self):
         """
@@ -795,10 +949,12 @@ class TestDicke:
 
         PIQS: Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
         """
-        ghz_dicke = Qobj([[0.5, 0, 0.5, 0], [0, 0, 0, 0],
-                          [0.5, 0, 0.5, 0], [0, 0, 0, 0]])
-        ghz_uncoupled = Qobj([[0.5, 0, 0, 0.5], [0, 0, 0, 0],
-                              [0, 0, 0, 0], [0.5, 0, 0, 0.5]])
+        ghz_dicke = Qobj(
+            [[0.5, 0, 0.5, 0], [0, 0, 0, 0], [0.5, 0, 0.5, 0], [0, 0, 0, 0]]
+        )
+        ghz_uncoupled = Qobj(
+            [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
+        )
         ghz_uncoupled.dims = [[2, 2], [2, 2]]
         assert_equal(ghz(2), ghz_dicke)
         assert_equal(ghz(2, "uncoupled"), ghz_uncoupled)
@@ -832,24 +988,43 @@ class TestDicke:
         """
         test_identity = identity_uncoupled(4)
         assert_equal(test_identity.dims, [[2, 2, 2, 2], [2, 2, 2, 2]])
-        assert_array_equal(np.diag(test_identity.full()), np.ones(16,
-                                                                  np.complex))
+        assert_array_equal(np.diag(test_identity.full()), np.ones(16, np.complex))
 
     def test_css(self):
         """
         PIQS: Test the calculation of the CSS state.
         """
-        test_css_uncoupled = css(2, basis='uncoupled')
+        test_css_uncoupled = css(2, basis="uncoupled")
         test_css_dicke = css(2)
-        css_uncoupled = 0.25*np.ones((4, 4), dtype=np.complex)
-        css_dicke = np.array([[0.25000000+0.j, 0.35355339+0.j,
-                               0.25000000+0.j, 0.00000000+0.j],
-                               [0.35355339+0.j, 0.50000000+0.j,
-                               0.35355339+0.j,  0.00000000+0.j],
-                               [ 0.25000000+0.j, 0.35355339+0.j,
-                               0.25000000+0.j, 0.00000000+0.j],
-                               [0.00000000+0.j, 0.00000000+0.j,
-                               0.00000000+0.j, 0.00000000+0.j]])
+        css_uncoupled = 0.25 * np.ones((4, 4), dtype=np.complex)
+        css_dicke = np.array(
+            [
+                [
+                    0.25000000 + 0.0j,
+                    0.35355339 + 0.0j,
+                    0.25000000 + 0.0j,
+                    0.00000000 + 0.0j,
+                ],
+                [
+                    0.35355339 + 0.0j,
+                    0.50000000 + 0.0j,
+                    0.35355339 + 0.0j,
+                    0.00000000 + 0.0j,
+                ],
+                [
+                    0.25000000 + 0.0j,
+                    0.35355339 + 0.0j,
+                    0.25000000 + 0.0j,
+                    0.00000000 + 0.0j,
+                ],
+                [
+                    0.00000000 + 0.0j,
+                    0.00000000 + 0.0j,
+                    0.00000000 + 0.0j,
+                    0.00000000 + 0.0j,
+                ],
+            ]
+        )
         assert_array_almost_equal(test_css_uncoupled.full(), css_uncoupled)
         assert_array_almost_equal(test_css_dicke.full(), css_dicke)
 
@@ -860,10 +1035,14 @@ class TestDicke:
         In the "uncoupled" basis of N two-level system (TLS).
         The test is performed for N = 2 and emission = 1.
         """
-        c1 = Qobj([[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0],
-                   [0, 1, 0, 0]], dims=[[2, 2], [2, 2]])
-        c2 = Qobj([[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0],
-                   [0, 0, 1, 0]], dims=[[2, 2], [2, 2]])
+        c1 = Qobj(
+            [[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, 1, 0, 0]],
+            dims=[[2, 2], [2, 2]],
+        )
+        c2 = Qobj(
+            [[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]],
+            dims=[[2, 2], [2, 2]],
+        )
         true_c_ops = [c1, c2]
         assert_equal(true_c_ops, collapse_uncoupled(N=2, emission=1))
         system = Dicke(N=2, emission=1)
@@ -905,14 +1084,23 @@ class TestDicke:
         """
         PIQS: Test the calculation of the lindbladian matrix.
         """
-        true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
-                  [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
+        true_L = [
+            [-4, 0, 0, 3],
+            [0, -3.54999995, 0, 0],
+            [0, 0, -3.54999995, 0],
+            [4, 0, 0, -3],
+        ]
         true_L = Qobj(true_L)
         true_L.dims = [[[2], [2]], [[2], [2]]]
         N = 1
-        test_dicke = _Dicke(N=N, pumping=1, collective_pumping=2,
-                            emission=1, collective_emission=3,
-                            dephasing=0.1)
+        test_dicke = _Dicke(
+            N=N,
+            pumping=1,
+            collective_pumping=2,
+            emission=1,
+            collective_emission=3,
+            dephasing=0.1,
+        )
         test_L = test_dicke.lindbladian()
         assert_array_almost_equal(test_L.full(), true_L.full())
         assert_array_equal(test_L.dims, true_L.dims)
@@ -921,35 +1109,50 @@ class TestDicke:
         """
         PIQS: Test the calculation of the liouvillian matrix.
         """
-        true_L = [[-4, 0, 0, 3], [0, -3.54999995, 0, 0],
-                  [0, 0, -3.54999995, 0], [4, 0, 0, -3]]
+        true_L = [
+            [-4, 0, 0, 3],
+            [0, -3.54999995, 0, 0],
+            [0, 0, -3.54999995, 0],
+            [4, 0, 0, -3],
+        ]
         true_L = Qobj(true_L)
         true_L.dims = [[[2], [2]], [[2], [2]]]
-        true_H = [[1. + 0.j, 1. + 0.j], [1. + 0.j, -1. + 0.j]]
+        true_H = [[1.0 + 0.0j, 1.0 + 0.0j], [1.0 + 0.0j, -1.0 + 0.0j]]
         true_H = Qobj(true_H)
         true_H.dims = [[[2], [2]]]
-        true_liouvillian = [[-4, -1.j, 1.j, 3],
-                            [-1.j, -3.54999995 + 2.j, 0, 1.j],
-                            [1.j, 0, -3.54999995 - 2.j, -1.j],
-                            [4, +1.j, -1.j, -3]]
+        true_liouvillian = [
+            [-4, -1.0j, 1.0j, 3],
+            [-1.0j, -3.54999995 + 2.0j, 0, 1.0j],
+            [1.0j, 0, -3.54999995 - 2.0j, -1.0j],
+            [4, +1.0j, -1.0j, -3],
+        ]
         true_liouvillian = Qobj(true_liouvillian)
         true_liouvillian.dims = [[[2], [2]], [[2], [2]]]
         N = 1
-        test_piqs = Dicke(hamiltonian=sigmaz() + sigmax(), N=N,
-                          pumping=1, collective_pumping=2, emission=1,
-                          collective_emission=3, dephasing=0.1)
+        test_piqs = Dicke(
+            hamiltonian=sigmaz() + sigmax(),
+            N=N,
+            pumping=1,
+            collective_pumping=2,
+            emission=1,
+            collective_emission=3,
+            dephasing=0.1,
+        )
         test_liouvillian = test_piqs.liouvillian()
         test_hamiltonian = test_piqs.hamiltonian
-        assert_array_almost_equal(
-            test_liouvillian.full(),
-            true_liouvillian.full())
+        assert_array_almost_equal(test_liouvillian.full(), true_liouvillian.full())
         assert_array_almost_equal(test_hamiltonian.full(), true_H.full())
         assert_array_equal(test_liouvillian.dims, test_liouvillian.dims)
 
         # no Hamiltonian
-        test_piqs = Dicke(N=N,
-                          pumping=1, collective_pumping=2, emission=1,
-                          collective_emission=3, dephasing=0.1)
+        test_piqs = Dicke(
+            N=N,
+            pumping=1,
+            collective_pumping=2,
+            emission=1,
+            collective_emission=3,
+            dephasing=0.1,
+        )
         liouv = test_piqs.liouvillian()
         lindblad = test_piqs.lindbladian()
         assert_equal(liouv, lindblad)
@@ -1174,10 +1377,12 @@ class TestDicke:
         assert_almost_equal(true_gamma_3, test_gamma_3)
         assert_almost_equal(true_gamma_4, test_gamma_4)
 
+
 class TestPim:
     """
     Tests for the `qutip.piqs.Pim` class.
     """
+
     def test_gamma(self):
         """
         PIQS: Test the calculation of various gamma values for diagonal system.
@@ -1193,26 +1398,31 @@ class TestPim:
         | 3,-3>
         """
         N = 6
-        collective_emission = 1.
-        emission = 1.
-        dephasing = 1.
-        pumping = 1.
-        collective_pumping = 1.
-        model = Pim(N, collective_emission=collective_emission,
-                       emission=emission, dephasing=dephasing,
-                       pumping=pumping, collective_pumping=collective_pumping)
-        tau_calculated = [model.tau3(3, 1),
-                          model.tau2(2, 1),
-                          model.tau4(1, 1),
-                          model.tau5(3, 0),
-                          model.tau1(2, 0),
-                          model.tau6(1, 0),
-                          model.tau7(3, -1),
-                          model.tau8(2, -1),
-                          model.tau9(1, -1)]
-        tau_real = [2., 8., 0.333333,
-                    1.5, -19.5, 0.666667,
-                    2., 8., 0.333333]
+        collective_emission = 1.0
+        emission = 1.0
+        dephasing = 1.0
+        pumping = 1.0
+        collective_pumping = 1.0
+        model = Pim(
+            N,
+            collective_emission=collective_emission,
+            emission=emission,
+            dephasing=dephasing,
+            pumping=pumping,
+            collective_pumping=collective_pumping,
+        )
+        tau_calculated = [
+            model.tau3(3, 1),
+            model.tau2(2, 1),
+            model.tau4(1, 1),
+            model.tau5(3, 0),
+            model.tau1(2, 0),
+            model.tau6(1, 0),
+            model.tau7(3, -1),
+            model.tau8(2, -1),
+            model.tau9(1, -1),
+        ]
+        tau_real = [2.0, 8.0, 0.333333, 1.5, -19.5, 0.666667, 2.0, 8.0, 0.333333]
         assert_array_almost_equal(tau_calculated, tau_real)
 
     def test_isdicke(self):
@@ -1220,12 +1430,12 @@ class TestPim:
         PIQS: Test the `isdicke` function
         """
         N1 = 1
-        g0=.01
-        nth=.01
-        gP=g0*nth
-        gL=g0*(0.1+nth)
-        gS= 0.1
-        gD= 0.1
+        g0 = 0.01
+        nth = 0.01
+        gP = g0 * nth
+        gL = g0 * (0.1 + nth)
+        gS = 0.1
+        gD = 0.1
 
         pim1 = Pim(N1, gS, gL, gD, gP)
 
@@ -1245,9 +1455,9 @@ class TestPim:
         PIQS: Test the isdiagonal function.
         """
         mat1 = np.array([[1, 2], [3, 4]])
-        mat2 = np.array([[1, 0.], [0., 2]])
-        mat3 = np.array([[1+1j, 0.], [0.-2j, 2-2j]])
-        mat4 = np.array([[1+1j, 0.], [0., 2-2j]])
+        mat2 = np.array([[1, 0.0], [0.0, 2]])
+        mat3 = np.array([[1 + 1j, 0.0], [0.0 - 2j, 2 - 2j]])
+        mat4 = np.array([[1 + 1j, 0.0], [0.0, 2 - 2j]])
         assert_equal(isdiagonal(mat1), False)
         assert_equal(isdiagonal(mat2), True)
         assert_equal(isdiagonal(mat3), False)
@@ -1269,7 +1479,7 @@ class TestPim:
         test_matrix = ensemble.coefficient_matrix().todense()
         ensemble2 = Dicke(N, emission=1)
         test_matrix2 = ensemble.coefficient_matrix().todense()
-        true_matrix = [[-2, 0, 0, 0], [ 1, -1, 0, 0], [ 0, 1, 0, 1.], [ 1, 0, 0, -1.]]
+        true_matrix = [[-2, 0, 0, 0], [1, -1, 0, 0], [0, 1, 0, 1.0], [1, 0, 0, -1.0]]
 
         assert_array_almost_equal(test_matrix, true_matrix)
         assert_array_almost_equal(test_matrix2, true_matrix)
@@ -1290,21 +1500,19 @@ class TestPim:
         non_diag_initial_state = ghz(4)
         tlist = np.linspace(0, 10, 100)
 
-        assert_raises(ValueError, non_diag_system.pisolve,
-                      diag_initial_state, tlist)
-        assert_raises(ValueError, non_diag_system.pisolve,
-                      non_diag_initial_state, tlist)
-        assert_raises(ValueError, diag_system.pisolve,
-                      non_diag_initial_state, tlist)
+        assert_raises(ValueError, non_diag_system.pisolve, diag_initial_state, tlist)
+        assert_raises(
+            ValueError, non_diag_system.pisolve, non_diag_initial_state, tlist
+        )
+        assert_raises(ValueError, diag_system.pisolve, non_diag_initial_state, tlist)
 
-        non_dicke_initial_state = excited(4, basis='uncoupled')
-        assert_raises(ValueError, diag_system.pisolve,
-                      non_dicke_initial_state, tlist)
+        non_dicke_initial_state = excited(4, basis="uncoupled")
+        assert_raises(ValueError, diag_system.pisolve, non_dicke_initial_state, tlist)
 
         # no Hamiltonian
         no_hamiltonian_system = Dicke(4, emission=0.1)
         result = no_hamiltonian_system.pisolve(diag_initial_state, tlist)
-        assert_equal(True, len(result.states)>0)
+        assert_equal(True, len(result.states) > 0)
 
 
 if __name__ == "__main__":

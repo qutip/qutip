@@ -50,23 +50,51 @@ from scipy.special import entr
 from scipy import constants
 from scipy.sparse import dok_matrix, block_diag, lil_matrix
 from qutip.solver import Options, Result
-from qutip import (Qobj, spre, spost, tensor, identity, ket2dm,
-                   vector_to_operator)
+from qutip import Qobj, spre, spost, tensor, identity, ket2dm, vector_to_operator
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
 from qutip import entropy_vn
 from qutip.cy.piqs import Dicke as _Dicke
-from qutip.cy.piqs import (jmm1_dictionary, _num_dicke_states,
-                           _num_dicke_ladders, get_blocks, j_min,
-                           m_vals, j_vals)
+from qutip.cy.piqs import (
+    jmm1_dictionary,
+    _num_dicke_states,
+    _num_dicke_ladders,
+    get_blocks,
+    j_min,
+    m_vals,
+    j_vals,
+)
 
-__all__ = ['num_dicke_states','num_dicke_ladders','num_tls','isdiagonal',
-           'mask_dicke_matrix','expand_dicke_matrix',
-           'dicke_function_trace','purity_dicke','entropy_vn_dicke',
-           'Dicke','state_degeneracy','m_degeneracy',
-            'energy_degeneracy','ap','am','spin_algebra','jspin',
-            'collapse_uncoupled','dicke_basis',
-            'dicke','excited','superradiant','css','ghz','ground',
-            'identity_uncoupled','block_matrix','tau_column','Pim']
+__all__ = [
+    "num_dicke_states",
+    "num_dicke_ladders",
+    "num_tls",
+    "isdiagonal",
+    "mask_dicke_matrix",
+    "expand_dicke_matrix",
+    "dicke_function_trace",
+    "purity_dicke",
+    "entropy_vn_dicke",
+    "Dicke",
+    "state_degeneracy",
+    "m_degeneracy",
+    "energy_degeneracy",
+    "ap",
+    "am",
+    "spin_algebra",
+    "jspin",
+    "collapse_uncoupled",
+    "dicke_basis",
+    "dicke",
+    "excited",
+    "superradiant",
+    "css",
+    "ghz",
+    "ground",
+    "identity_uncoupled",
+    "block_matrix",
+    "tau_column",
+    "Pim",
+]
 
 # Functions necessary to generate the Lindbladian/Liouvillian
 def num_dicke_states(N):
@@ -83,6 +111,7 @@ def num_dicke_states(N):
         The number of Dicke states.
     """
     return _num_dicke_states(N)
+
 
 def num_dicke_ladders(N):
     """Calculate the total number of ladders in the Dicke space.
@@ -102,6 +131,7 @@ def num_dicke_ladders(N):
     """
     return _num_dicke_ladders(N)
 
+
 def num_tls(nds):
     """Calculate the number of two-level systems.
 
@@ -117,11 +147,12 @@ def num_tls(nds):
     """
     if np.sqrt(nds).is_integer():
         # N is even
-        N = 2*(np.sqrt(nds)-1)
+        N = 2 * (np.sqrt(nds) - 1)
     else:
         # N is odd
-        N = 2*(np.sqrt(nds + 1/4)-1)
+        N = 2 * (np.sqrt(nds + 1 / 4) - 1)
     return int(N)
+
 
 def isdiagonal(mat):
     """
@@ -142,8 +173,9 @@ def isdiagonal(mat):
 
     return np.all(mat == np.diag(np.diagonal(mat)))
 
+
 # nonlinear functions of the density matrix
-def mask_dicke_matrix(rho,blocks='qobj'):
+def mask_dicke_matrix(rho, blocks="qobj"):
     """Create a block-diagonal mask for a matrix in the Dicke basis.
 
     Parameters
@@ -166,24 +198,26 @@ def mask_dicke_matrix(rho,blocks='qobj'):
     N = num_tls(shape_dimension)
     ladders = num_dicke_ladders(N)
     # create a list with the sizes of the blocks, in order
-    blocks_dimensions = int(N/2 + 1 - 0.5*(N % 2))
-    blocks_list = [(2 * (i+1 * (N % 2)) + 1*((N+1) % 2))
-                   for i in range(blocks_dimensions)]
+    blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
+    blocks_list = [
+        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
+    ]
     blocks_list = np.flip(blocks_list, 0)
     # create a list with each block matrix as element
     square_blocks = []
     block_position = 0
     for block_size in blocks_list:
         start_m = block_position
-        end_m = (block_position+block_size)
-        square_block = rho[start_m:end_m,start_m:end_m]
+        end_m = block_position + block_size
+        square_block = rho[start_m:end_m, start_m:end_m]
         block_position = block_position + block_size
         square_blocks.append(square_block)
-        
+
     if blocks == "list":
         return square_blocks
     else:
         return Qobj(block_diag(square_blocks))
+
 
 def dicke_function_trace(f, rho):
     """Calculate the trace of a function on a Dicke density matrix.
@@ -199,9 +233,9 @@ def dicke_function_trace(f, rho):
     -------
     res : float
         Trace of a nonlinear function on `rho`.
-    """    
+    """
     N = num_tls(rho.shape[0])
-    blocks = mask_dicke_matrix(rho,blocks="list")
+    blocks = mask_dicke_matrix(rho, blocks="list")
     block_f = []
     degen_blocks = np.flip(j_vals(N))
     state_degeneracies = []
@@ -212,15 +246,16 @@ def dicke_function_trace(f, rho):
     deg = []
     for i, block in enumerate(blocks):
         dj = state_degeneracies[i]
-        normalized_block = block/dj
+        normalized_block = block / dj
         eigenvals_block = eigsh(normalized_block, return_eigenvectors=False)
         for val in eigenvals_block:
             eigenvals_degeneracy.append(val)
             deg.append(dj)
- 
-    eigenvalue=np.array(eigenvals_degeneracy)
-    function_array = f(eigenvalue)*deg
+
+    eigenvalue = np.array(eigenvals_degeneracy)
+    function_array = f(eigenvalue) * deg
     return sum(function_array)
+
 
 def entropy_vn_dicke(rho):
     """Von Neumann Entropy of a Dicke-basis density matrix.
@@ -242,6 +277,7 @@ def entropy_vn_dicke(rho):
     """
     return dicke_function_trace(entr, rho)
 
+
 def purity_dicke(rho):
     """Calculate purity of a density matrix in the Dicke basis.
     It accounts for the degenerate blocks in the density matrix.
@@ -257,10 +293,11 @@ def purity_dicke(rho):
         The purity of the quantum state. 
         It's 1 for pure states, 0<=purity<1 for mixed states.       
     """
-    f = lambda x: x*x    
+    f = lambda x: x * x
     return dicke_function_trace(f, rho)
 
-def expand_dicke_matrix(rho,blocks='qobj'):
+
+def expand_dicke_matrix(rho, blocks="qobj"):
     """Expand the block-diagonal matrix from the Dicke basis to 2^N.
 
     Parameters
@@ -283,9 +320,10 @@ def expand_dicke_matrix(rho,blocks='qobj'):
     N = num_tls(shape_dimension)
     ladders = num_dicke_ladders(N)
     # create a list with the sizes of the blocks, in order
-    blocks_dimensions = int(N/2 + 1 - 0.5*(N % 2))
-    blocks_list = [(2 * (i+1 * (N % 2)) + 1*((N+1) % 2))
-                   for i in range(blocks_dimensions)]
+    blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
+    blocks_list = [
+        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
+    ]
     blocks_list = np.flip(blocks_list, 0)
     # create a list with each block matrix as element
     square_blocks = []
@@ -293,19 +331,19 @@ def expand_dicke_matrix(rho,blocks='qobj'):
     block_position = 0
     for block_size in blocks_list:
         start_m = block_position
-        end_m = (block_position+block_size)
-        square_block = rho[start_m:end_m,start_m:end_m]
+        end_m = block_position + block_size
+        square_block = rho[start_m:end_m, start_m:end_m]
         block_position = block_position + block_size
-        j = N/2 - k
-        #print(block_size)
-        #print(square_block)
+        j = N / 2 - k
+        # print(block_size)
+        # print(square_block)
         # = block_size-1
-        #print("block_size ",block_size)
-        djn = state_degeneracy(N,j)
-        for block_counter in range(0,djn):
-            square_blocks.append(square_block/djn) # preserve trace
+        # print("block_size ",block_size)
+        djn = state_degeneracy(N, j)
+        for block_counter in range(0, djn):
+            square_blocks.append(square_block / djn)  # preserve trace
         k = k + 1
-    if blocks == 'list':
+    if blocks == "list":
         return square_blocks
     else:
         return Qobj(block_diag(square_blocks))
@@ -405,10 +443,18 @@ class Dicke(object):
         The shape of the Hilbert space in the Dicke or uncoupled basis.
         default: (nds, nds).
     """
-    def __init__(self, N, hamiltonian=None,
-                 emission=0., dephasing=0., pumping=0.,
-                 collective_emission=0., collective_dephasing=0.,
-                 collective_pumping=0.):
+
+    def __init__(
+        self,
+        N,
+        hamiltonian=None,
+        emission=0.0,
+        dephasing=0.0,
+        pumping=0.0,
+        collective_emission=0.0,
+        collective_dephasing=0.0,
+        collective_pumping=0.0,
+    ):
         self.N = N
         self.hamiltonian = hamiltonian
         self.emission = emission
@@ -426,8 +472,9 @@ class Dicke(object):
         string.append("N = {}".format(self.N))
         string.append("Hilbert space dim = {}".format(self.dshape))
         string.append("Number of Dicke states = {}".format(self.nds))
-        string.append("Liouvillian space dim = {}".format((self.nds**2,
-                                                           self.nds**2)))
+        string.append(
+            "Liouvillian space dim = {}".format((self.nds ** 2, self.nds ** 2))
+        )
         if self.emission != 0:
             string.append("emission = {}".format(self.emission))
         if self.dephasing != 0:
@@ -435,14 +482,11 @@ class Dicke(object):
         if self.pumping != 0:
             string.append("pumping = {}".format(self.pumping))
         if self.collective_emission != 0:
-            string.append(
-                "collective_emission = {}".format(self.collective_emission))
+            string.append("collective_emission = {}".format(self.collective_emission))
         if self.collective_dephasing != 0:
-            string.append(
-                "collective_dephasing = {}".format(self.collective_dephasing))
+            string.append("collective_dephasing = {}".format(self.collective_dephasing))
         if self.collective_pumping != 0:
-            string.append(
-                "collective_pumping = {}".format(self.collective_pumping))
+            string.append("collective_pumping = {}".format(self.collective_pumping))
         return "\n".join(string)
 
     def lindbladian(self):
@@ -453,13 +497,15 @@ class Dicke(object):
         lindbladian : :class:`qutip.Qobj`
             The Lindbladian matrix as a `qutip.Qobj`.
         """
-        cythonized_dicke = _Dicke(int(self.N),
-                                  float(self.emission),
-                                  float(self.dephasing),
-                                  float(self.pumping),
-                                  float(self.collective_emission),
-                                  float(self.collective_dephasing),
-                                  float(self.collective_pumping))
+        cythonized_dicke = _Dicke(
+            int(self.N),
+            float(self.emission),
+            float(self.dephasing),
+            float(self.pumping),
+            float(self.collective_emission),
+            float(self.collective_dephasing),
+            float(self.collective_pumping),
+        )
         return cythonized_dicke.lindbladian()
 
     def liouvillian(self):
@@ -476,8 +522,9 @@ class Dicke(object):
 
         else:
             hamiltonian = self.hamiltonian
-            hamiltonian_superoperator = - 1j * \
-                spre(hamiltonian) + 1j * spost(hamiltonian)
+            hamiltonian_superoperator = -1j * spre(hamiltonian) + 1j * spost(
+                hamiltonian
+            )
             liouv = lindblad + hamiltonian_superoperator
         return liouv
 
@@ -519,9 +566,15 @@ class Dicke(object):
             msg = "Initial density matrix should be diagonal."
             raise ValueError(msg)
 
-        pim = Pim(self.N, self.emission, self.dephasing, self.pumping,
-                  self.collective_emission, self.collective_pumping,
-                  self.collective_dephasing)
+        pim = Pim(
+            self.N,
+            self.emission,
+            self.dephasing,
+            self.pumping,
+            self.collective_emission,
+            self.collective_pumping,
+            self.collective_dephasing,
+        )
         result = pim.solve(initial_state, tlist, options=None)
         return result
 
@@ -536,13 +589,15 @@ class Dicke(object):
         ce = self.collective_emission
         cd = self.collective_dephasing
         cp = self.collective_pumping
-        c_ops_list = collapse_uncoupled(N=self.N,
-                                        emission=self.emission,
-                                        dephasing=self.dephasing,
-                                        pumping=self.pumping,
-                                        collective_emission=ce,
-                                        collective_dephasing=cd,
-                                        collective_pumping=cp)
+        c_ops_list = collapse_uncoupled(
+            N=self.N,
+            emission=self.emission,
+            dephasing=self.dephasing,
+            pumping=self.pumping,
+            collective_emission=ce,
+            collective_dephasing=cd,
+            collective_pumping=cp,
+        )
         return c_ops_list
 
     def coefficient_matrix(self):
@@ -555,13 +610,15 @@ class Dicke(object):
             p is the vector of the diagonal matrix elements
             of the density matrix rho in the Dicke basis.
         """
-        diagonal_system = Pim(N=self.N,
-                              emission=self.emission,
-                              dephasing=self.dephasing,
-                              pumping=self.pumping,
-                              collective_emission=self.collective_emission,
-                              collective_dephasing=self.collective_dephasing,
-                              collective_pumping=self.collective_pumping)
+        diagonal_system = Pim(
+            N=self.N,
+            emission=self.emission,
+            dephasing=self.dephasing,
+            pumping=self.pumping,
+            collective_emission=self.collective_emission,
+            collective_dephasing=self.collective_dephasing,
+            collective_pumping=self.collective_pumping,
+        )
         coef_matrix = diagonal_system.coefficient_matrix()
         return coef_matrix
 
@@ -588,10 +645,11 @@ def energy_degeneracy(N, m):
         The energy degeneracy
     """
     numerator = Decimal(factorial(N))
-    d1 = Decimal(factorial(N/2 + m))
-    d2 = Decimal(factorial(N/2 - m))
-    degeneracy = numerator/(d1 * d2)
+    d1 = Decimal(factorial(N / 2 + m))
+    d2 = Decimal(factorial(N / 2 - m))
+    degeneracy = numerator / (d1 * d2)
     return int(degeneracy)
+
 
 def state_degeneracy(N, j):
     """Calculate the degeneracy of the Dicke state.
@@ -616,12 +674,13 @@ def state_degeneracy(N, j):
     """
     if j < 0:
         raise ValueError("j value should be >= 0")
-    numerator = Decimal(factorial(N)) * Decimal(2*j + 1)
-    denominator_1 = Decimal(factorial(N/2 + j + 1))
-    denominator_2 = Decimal(factorial(N/2 - j))
-    degeneracy = numerator/(denominator_1 * denominator_2)
+    numerator = Decimal(factorial(N)) * Decimal(2 * j + 1)
+    denominator_1 = Decimal(factorial(N / 2 + j + 1))
+    denominator_2 = Decimal(factorial(N / 2 - j))
+    degeneracy = numerator / (denominator_1 * denominator_2)
     degeneracy = int(np.round(float(degeneracy)))
     return degeneracy
+
 
 def m_degeneracy(N, m):
     """Calculate the number of Dicke states :math:`|j, m\\rangle` with
@@ -647,8 +706,9 @@ def m_degeneracy(N, m):
         e = "m value is incorrect for this N."
         e += " Minimum m value can be {}".format(-maxj)
         raise ValueError(e)
-    degeneracy = N/2 + 1 - abs(m)
+    degeneracy = N / 2 + 1 - abs(m)
     return int(degeneracy)
+
 
 def ap(j, m):
     """Calculate the coefficient `ap` by applying J_+ |j, m>.
@@ -666,8 +726,9 @@ def ap(j, m):
     a_plus: float
         The value of :math:`a_{+}`.
     """
-    a_plus = np.sqrt((j-m) * (j+m+1))
+    a_plus = np.sqrt((j - m) * (j + m + 1))
     return a_plus
+
 
 def am(j, m):
     """Calculate the operator `am` used later.
@@ -687,8 +748,9 @@ def am(j, m):
     a_minus: float
         The value of :math:`a_{-}`.
     """
-    a_minus = np.sqrt((j+m) * (j-m+1))
+    a_minus = np.sqrt((j + m) * (j - m + 1))
     return a_minus
+
 
 def spin_algebra(N, op=None):
     """Create the list [sx, sy, sz] with the spin operators.
@@ -752,18 +814,19 @@ def spin_algebra(N, op=None):
 
     if not op:
         return spin_operators
-    elif op == 'x':
+    elif op == "x":
         return sx
-    elif op == 'y':
+    elif op == "y":
         return sy
-    elif op == 'z':
+    elif op == "z":
         return sz
-    elif op == '+':
+    elif op == "+":
         return sp
-    elif op == '-':
+    elif op == "-":
         return sm
     else:
-        raise TypeError('Invalid type')
+        raise TypeError("Invalid type")
+
 
 def _jspin_uncoupled(N, op=None):
     """Construct the the collective spin algebra in the uncoupled basis.
@@ -804,18 +867,19 @@ def _jspin_uncoupled(N, op=None):
 
     if not op:
         return collective_operators
-    elif op == 'x':
+    elif op == "x":
         return jx
-    elif op == 'y':
+    elif op == "y":
         return jy
-    elif op == 'z':
+    elif op == "z":
         return jz
-    elif op == '+':
+    elif op == "+":
         return jp
-    elif op == '-':
+    elif op == "-":
         return jm
     else:
-        raise TypeError('Invalid type')
+        raise TypeError("Invalid type")
+
 
 def jspin(N, op=None, basis="dicke"):
     """
@@ -857,18 +921,18 @@ def jspin(N, op=None, basis="dicke"):
 
     for k in range(0, num_ladders):
         j = 0.5 * N - k
-        mmax = int(2*j + 1)
+        mmax = int(2 * j + 1)
         for i in range(0, mmax):
-            m = j-i
+            m = j - i
             jz_operator[s, s] = m
-            if (s+1) in range(0, nds):
-                jp_operator[s, s+1] = ap(j, m-1)
-            if (s-1) in range(0, nds):
-                jm_operator[s, s-1] = am(j, m+1)
-            s = s+1
+            if (s + 1) in range(0, nds):
+                jp_operator[s, s + 1] = ap(j, m - 1)
+            if (s - 1) in range(0, nds):
+                jm_operator[s, s - 1] = am(j, m + 1)
+            s = s + 1
 
-    jx_operator = 1/2 * (jp_operator+jm_operator)
-    jy_operator = 1j/2 * (jm_operator-jp_operator)
+    jx_operator = 1 / 2 * (jp_operator + jm_operator)
+    jy_operator = 1j / 2 * (jm_operator - jp_operator)
     jx = Qobj(jx_operator)
     jy = Qobj(jy_operator)
     jz = Qobj(jz_operator)
@@ -877,22 +941,29 @@ def jspin(N, op=None, basis="dicke"):
 
     if not op:
         return [jx, jy, jz]
-    if op == '+':
+    if op == "+":
         return jp
-    elif op == '-':
+    elif op == "-":
         return jm
-    elif op == 'x':
+    elif op == "x":
         return jx
-    elif op == 'y':
+    elif op == "y":
         return jy
-    elif op == 'z':
+    elif op == "z":
         return jz
     else:
-        raise TypeError('Invalid type')
+        raise TypeError("Invalid type")
 
-def collapse_uncoupled(N, emission=0., dephasing=0., pumping=0.,
-              collective_emission=0., collective_dephasing=0.,
-              collective_pumping=0.):
+
+def collapse_uncoupled(
+    N,
+    emission=0.0,
+    dephasing=0.0,
+    pumping=0.0,
+    collective_emission=0.0,
+    collective_dephasing=0.0,
+    collective_pumping=0.0,
+):
     """
     Create the collapse operators (c_ops) of the Lindbladian in the
     uncoupled basis
@@ -952,8 +1023,7 @@ def collapse_uncoupled(N, emission=0., dephasing=0., pumping=0.,
     [sx, sy, sz] = spin_algebra(N)
     sp, sm = spin_algebra(N, "+"), spin_algebra(N, "-")
     [jx, jy, jz] = jspin(N, basis="uncoupled")
-    jp, jm = (jspin(N, "+", basis = "uncoupled"),
-              jspin(N, "-", basis="uncoupled"))
+    jp, jm = (jspin(N, "+", basis="uncoupled"), jspin(N, "-", basis="uncoupled"))
 
     c_ops = []
 
@@ -979,6 +1049,7 @@ def collapse_uncoupled(N, emission=0., dephasing=0., pumping=0.,
         c_ops.append(np.sqrt(collective_pumping) * jp)
 
     return c_ops
+
 
 # State definitions in the Dicke basis with an option for basis transformation
 def dicke_basis(N, jmm1=None):
@@ -1020,6 +1091,7 @@ def dicke_basis(N, jmm1=None):
         rho[i, k] = jmm1[key]
     return Qobj(rho)
 
+
 def dicke(N, j, m):
     """
     Generate a Dicke state as a pure density matrix in the Dicke basis.
@@ -1052,8 +1124,9 @@ def dicke(N, j, m):
     jmm1_dict = jmm1_dictionary(N)[1]
 
     i, k = jmm1_dict[(j, m, m)]
-    rho[i, k] = 1.
+    rho[i, k] = 1.0
     return Qobj(rho)
+
 
 # Uncoupled states in the full Hilbert space. These are returned with the
 # choice of the keyword argument `basis="uncoupled"` in the state functions.
@@ -1075,8 +1148,9 @@ def _uncoupled_excited(N):
     N = int(N)
     jz = jspin(N, "z", basis="uncoupled")
     en, vn = jz.eigenstates()
-    psi0 = vn[2**N - 1]
+    psi0 = vn[2 ** N - 1]
     return ket2dm(psi0)
+
 
 def _uncoupled_superradiant(N):
     """
@@ -1097,8 +1171,9 @@ def _uncoupled_superradiant(N):
     N = int(N)
     jz = jspin(N, "z", basis="uncoupled")
     en, vn = jz.eigenstates()
-    psi0 = vn[2**N - (N+1)]
+    psi0 = vn[2 ** N - (N + 1)]
     return ket2dm(psi0)
+
 
 def _uncoupled_ground(N):
     """
@@ -1121,6 +1196,7 @@ def _uncoupled_ground(N):
     psi0 = vn[0]
     return ket2dm(psi0)
 
+
 def _uncoupled_ghz(N):
     """
     Generate the density matrix of the GHZ state in the full 2^N
@@ -1137,15 +1213,16 @@ def _uncoupled_ghz(N):
         The density matrix for the GHZ state in the full Hilbert space.
     """
     N = int(N)
-    rho = np.zeros((2**N, 2**N))
-    rho[0, 0] = 1/2
-    rho[2**N - 1, 0] = 1/2
-    rho[0, 2**N - 1] = 1/2
-    rho[2**N - 1, 2**N - 1] = 1/2
+    rho = np.zeros((2 ** N, 2 ** N))
+    rho[0, 0] = 1 / 2
+    rho[2 ** N - 1, 0] = 1 / 2
+    rho[0, 2 ** N - 1] = 1 / 2
+    rho[2 ** N - 1, 2 ** N - 1] = 1 / 2
     spin_dim = [2 for i in range(0, N)]
     spins_dims = list((spin_dim, spin_dim))
     rho = Qobj(rho, dims=spins_dims)
     return rho
+
 
 def _uncoupled_css(N, a, b):
     """
@@ -1192,11 +1269,12 @@ def _uncoupled_css(N, a, b):
     # |+><+| = Prod_(i=1)^N |CSS>_i<CSS|_i
     for i in range(1, N):
         rho[i] = rho[0].permute(b[i])
-    identity_i = Qobj(np.eye(2**N), dims=rho[0].dims, shape=rho[0].shape)
+    identity_i = Qobj(np.eye(2 ** N), dims=rho[0].dims, shape=rho[0].shape)
     rho_tot = identity_i
     for i in range(0, N):
         rho_tot = rho_tot * rho[i]
     return rho_tot
+
 
 def excited(N, basis="dicke"):
     """
@@ -1223,8 +1301,9 @@ def excited(N, basis="dicke"):
         state = _uncoupled_excited(N)
         return state
 
-    jmm1 = {(N/2, N/2, N/2): 1}
+    jmm1 = {(N / 2, N / 2, N / 2): 1}
     return dicke_basis(N, jmm1)
+
 
 def superradiant(N, basis="dicke"):
     """
@@ -1252,14 +1331,14 @@ def superradiant(N, basis="dicke"):
         return state
 
     if N % 2 == 0:
-        jmm1 = {(N/2, 0, 0): 1.}
+        jmm1 = {(N / 2, 0, 0): 1.0}
         return dicke_basis(N, jmm1)
     else:
-        jmm1 = {(N/2, 0.5, 0.5): 1.}
+        jmm1 = {(N / 2, 0.5, 0.5): 1.0}
     return dicke_basis(N, jmm1)
 
-def css(N, x=1/np.sqrt(2), y=1/np.sqrt(2),
-        basis="dicke", coordinates="cartesian"):
+
+def css(N, x=1 / np.sqrt(2), y=1 / np.sqrt(2), basis="dicke", coordinates="cartesian"):
     """
     Generate the density matrix of the Coherent Spin State (CSS).
 
@@ -1307,19 +1386,26 @@ def css(N, x=1/np.sqrt(2), y=1/np.sqrt(2),
     # loop in the allowed matrix elements
     jmm1_dict = jmm1_dictionary(N)[1]
 
-    j = 0.5*N
-    mmax = int(2*j + 1)
+    j = 0.5 * N
+    mmax = int(2 * j + 1)
     for i in range(0, mmax):
-        m = j-i
-        psi_m = np.sqrt(float(energy_degeneracy(N, m))) * \
-            a**(N*0.5 + m) * b**(N*0.5 - m)
+        m = j - i
+        psi_m = (
+            np.sqrt(float(energy_degeneracy(N, m)))
+            * a ** (N * 0.5 + m)
+            * b ** (N * 0.5 - m)
+        )
         for i1 in range(0, mmax):
             m1 = j - i1
             row_column = jmm1_dict[(j, m, m1)]
-            psi_m1 = np.sqrt(float(energy_degeneracy(N, m1))) * \
-                np.conj(a)**(N*0.5 + m1) * np.conj(b)**(N*0.5 - m1)
-            rho[row_column] = psi_m*psi_m1
+            psi_m1 = (
+                np.sqrt(float(energy_degeneracy(N, m1)))
+                * np.conj(a) ** (N * 0.5 + m1)
+                * np.conj(b) ** (N * 0.5 - m1)
+            )
+            rho[row_column] = psi_m * psi_m1
     return Qobj(rho)
+
 
 def ghz(N, basis="dicke"):
     """
@@ -1345,11 +1431,12 @@ def ghz(N, basis="dicke"):
         return _uncoupled_ghz(N)
     nds = _num_dicke_states(N)
     rho = dok_matrix((nds, nds), dtype=np.complex)
-    rho[0, 0] = 1/2
-    rho[N, N] = 1/2
-    rho[N, 0] = 1/2
-    rho[0, N] = 1/2
+    rho[0, 0] = 1 / 2
+    rho[N, N] = 1 / 2
+    rho[N, 0] = 1 / 2
+    rho[0, N] = 1 / 2
     return Qobj(rho)
+
 
 def ground(N, basis="dicke"):
     """
@@ -1380,6 +1467,7 @@ def ground(N, basis="dicke"):
     rho[N, N] = 1
     return Qobj(rho)
 
+
 def identity_uncoupled(N):
     """
     Generate the identity in a :math:`2^N`-dimensional Hilbert space.
@@ -1397,15 +1485,16 @@ def identity_uncoupled(N):
         The identity matrix.
     """
     N = int(N)
-    rho = np.zeros((2**N, 2**N))
-    for i in range(0, 2**N):
+    rho = np.zeros((2 ** N, 2 ** N))
+    for i in range(0, 2 ** N):
         rho[i, i] = 1
     spin_dim = [2 for i in range(0, N)]
     spins_dims = list((spin_dim, spin_dim))
     identity = Qobj(rho, dims=spins_dims)
     return identity
 
-def block_matrix(N,elements="ones"):
+
+def block_matrix(N, elements="ones"):
     """Construct the block-diagonal matrix for the Dicke basis.
 
     Parameters
@@ -1423,9 +1512,10 @@ def block_matrix(N,elements="ones"):
         at each matrix element.
     """
     # create a list with the sizes of the blocks, in order
-    blocks_dimensions = int(N/2 + 1 - 0.5*(N % 2))
-    blocks_list = [(2 * (i+1 * (N % 2)) + 1*((N+1) % 2))
-                   for i in range(blocks_dimensions)]
+    blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
+    blocks_list = [
+        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
+    ]
     blocks_list = np.flip(blocks_list, 0)
     # create a list with each block matrix as element
     square_blocks = []
@@ -1434,11 +1524,12 @@ def block_matrix(N,elements="ones"):
         if elements == "ones":
             square_blocks.append(np.ones((i, i)))
         elif elements == "degeneracy":
-            j = N/2 - k
-            dj = state_degeneracy(N,j)
-            square_blocks.append(dj*np.ones((i, i)))
+            j = N / 2 - k
+            dj = state_degeneracy(N, j)
+            square_blocks.append(dj * np.ones((i, i)))
         k = k + 1
     return block_diag(square_blocks)
+
 
 # ============================================================================
 # Adding a faster version to make a Permutational Invariant matrix
@@ -1462,15 +1553,17 @@ def tau_column(tau, k, j):
     """
     # In the notes, we indexed from k = 1, here we do it from k = 0
     k = k + 1
-    mapping = {"tau3": k-(2 * j + 3),
-               "tau2": k-1,
-               "tau4": k+(2 * j - 1),
-               "tau5": k-(2 * j + 2),
-               "tau1": k,
-               "tau6": k+(2 * j),
-               "tau7": k-(2 * j + 1),
-               "tau8": k+1,
-               "tau9": k+(2 * j + 1)}
+    mapping = {
+        "tau3": k - (2 * j + 3),
+        "tau2": k - 1,
+        "tau4": k + (2 * j - 1),
+        "tau5": k - (2 * j + 2),
+        "tau1": k,
+        "tau6": k + (2 * j),
+        "tau7": k - (2 * j + 1),
+        "tau8": k + 1,
+        "tau9": k + (2 * j + 1),
+    }
     # we need to decrement k again as indexing is from 0
     return int(mapping[tau] - 1)
 
@@ -1546,9 +1639,17 @@ class Pim(object):
         A nested dictionary of the structure {row: {col: val}} which holds
         non zero elements of the matrix M
     """
-    def __init__(self, N, emission=0., dephasing=0, pumping=0,
-                 collective_emission=0, collective_pumping=0,
-                 collective_dephasing=0):
+
+    def __init__(
+        self,
+        N,
+        emission=0.0,
+        dephasing=0,
+        pumping=0,
+        collective_emission=0,
+        collective_pumping=0,
+        collective_dephasing=0,
+    ):
         self.N = N
         self.emission = emission
         self.dephasing = dephasing
@@ -1574,16 +1675,16 @@ class Pim(object):
         cols = 0
 
         if (self.N % 2) == 0:
-            cols = int(self.N/2 + 1)
+            cols = int(self.N / 2 + 1)
         else:
-            cols = int(self.N/2 + 1/2)
+            cols = int(self.N / 2 + 1 / 2)
         if (dicke_row > rows) or (dicke_row < 0):
-            return (False)
-        if (dicke_col > cols) or (dicke_col < 0):
-            return (False)
-        if (dicke_row < int(rows/2)) and (dicke_col > dicke_row):
             return False
-        if (dicke_row >= int(rows/2)) and (rows - dicke_row <= dicke_col):
+        if (dicke_col > cols) or (dicke_col < 0):
+            return False
+        if (dicke_row < int(rows / 2)) and (dicke_col > dicke_row):
+            return False
+        if (dicke_row >= int(rows / 2)) and (rows - dicke_row <= dicke_col):
             return False
         else:
             return True
@@ -1606,16 +1707,25 @@ class Pim(object):
             A dictionary of key, val as {tau: value} consisting of the valid
             taus for this row and column of the Dicke space element.
         """
-        tau_functions = [self.tau3, self.tau2, self.tau4,
-                         self.tau5, self.tau1, self.tau6,
-                         self.tau7, self.tau8, self.tau9]
+        tau_functions = [
+            self.tau3,
+            self.tau2,
+            self.tau4,
+            self.tau5,
+            self.tau1,
+            self.tau6,
+            self.tau7,
+            self.tau8,
+            self.tau9,
+        ]
         N = self.N
         if self.isdicke(dicke_row, dicke_col) is False:
             return False
         # The 3x3 sub matrix surrounding the Dicke space element to
         # run the tau functions
-        indices = [(dicke_row + x, dicke_col + y) for x in range(-1, 2)
-                   for y in range(-1, 2)]
+        indices = [
+            (dicke_row + x, dicke_col + y) for x in range(-1, 2) for y in range(-1, 2)
+        ]
         taus = {}
         for idx, tau in zip(indices, tau_functions):
             if self.isdicke(idx[0], idx[1]):
@@ -1638,9 +1748,9 @@ class Pim(object):
             The j and m values.
         """
         N = self.N
-        j = N/2 - dicke_col
-        m = N/2 - dicke_row
-        return(j, m)
+        j = N / 2 - dicke_col
+        m = N / 2 - dicke_row
+        return (j, m)
 
     def calculate_k(self, dicke_row, dicke_col):
         """
@@ -1660,8 +1770,10 @@ class Pim(object):
         if dicke_row == 0:
             k = dicke_col
         else:
-            k = int(((dicke_col)/2) * (2 * (N + 1) - 2 * (dicke_col - 1)) +
-                                      (dicke_row - (dicke_col)))
+            k = int(
+                ((dicke_col) / 2) * (2 * (N + 1) - 2 * (dicke_col - 1))
+                + (dicke_row - (dicke_col))
+            )
         return k
 
     def coefficient_matrix(self):
@@ -1678,9 +1790,9 @@ class Pim(object):
 
         sparse_M = lil_matrix((nds, nds), dtype=float)
         if (self.N % 2) == 0:
-            cols = int(self.N/2 + 1)
+            cols = int(self.N / 2 + 1)
         else:
-            cols = int(self.N/2 + 1/2)
+            cols = int(self.N / 2 + 1 / 2)
         for (dicke_row, dicke_col) in np.ndindex(rows, cols):
             if self.isdicke(dicke_row, dicke_col):
                 k = int(self.calculate_k(dicke_row, dicke_col))
@@ -1723,13 +1835,13 @@ class Pim(object):
         yCP = self.collective_pumping
         N = float(self.N)
         spontaneous = yS * (1 + j - m) * (j + m)
-        losses = yL * (N/2 + m)
-        pump = yP * (N/2 - m)
+        losses = yL * (N / 2 + m)
+        pump = yP * (N / 2 - m)
         collective_pump = yCP * (1 + j + m) * (j - m)
         if j == 0:
-            dephase = yD * N/4
+            dephase = yD * N / 4
         else:
-            dephase = yD * (N/4 - m**2 * ((1 + N/2)/(2 * j * (j+1))))
+            dephase = yD * (N / 4 - m ** 2 * ((1 + N / 2) / (2 * j * (j + 1))))
         t1 = spontaneous + losses + pump + dephase + collective_pump
         return -t1
 
@@ -1741,7 +1853,7 @@ class Pim(object):
         yL = self.emission
         N = float(self.N)
         spontaneous = yS * (1 + j - m) * (j + m)
-        losses = yL * (((N/2 + 1) * (j - m + 1) * (j + m))/(2 * j * (j+1)))
+        losses = yL * (((N / 2 + 1) * (j - m + 1) * (j + m)) / (2 * j * (j + 1)))
         t2 = spontaneous + losses
         return t2
 
@@ -1751,9 +1863,9 @@ class Pim(object):
         """
         yL = self.emission
         N = float(self.N)
-        num = (j + m - 1) * (j + m) * (j + 1 + N/2)
+        num = (j + m - 1) * (j + m) * (j + 1 + N / 2)
         den = 2 * j * (2 * j + 1)
-        t3 = yL * (num/den)
+        t3 = yL * (num / den)
         return t3
 
     def tau4(self, j, m):
@@ -1762,9 +1874,9 @@ class Pim(object):
         """
         yL = self.emission
         N = float(self.N)
-        num = (j - m + 1) * (j - m + 2) * (N/2 - j)
+        num = (j - m + 1) * (j - m + 2) * (N / 2 - j)
         den = 2 * (j + 1) * (2 * j + 1)
-        t4 = yL * (num/den)
+        t4 = yL * (num / den)
         return t4
 
     def tau5(self, j, m):
@@ -1773,9 +1885,9 @@ class Pim(object):
         """
         yD = self.dephasing
         N = float(self.N)
-        num = (j - m) * (j + m) * (j + 1 + N/2)
+        num = (j - m) * (j + m) * (j + 1 + N / 2)
         den = 2 * j * (2 * j + 1)
-        t5 = yD * (num/den)
+        t5 = yD * (num / den)
         return t5
 
     def tau6(self, j, m):
@@ -1784,9 +1896,9 @@ class Pim(object):
         """
         yD = self.dephasing
         N = float(self.N)
-        num = (j - m + 1) * (j + m + 1) * (N/2 - j)
+        num = (j - m + 1) * (j + m + 1) * (N / 2 - j)
         den = 2 * (j + 1) * (2 * j + 1)
-        t6 = yD * (num/den)
+        t6 = yD * (num / den)
         return t6
 
     def tau7(self, j, m):
@@ -1795,9 +1907,9 @@ class Pim(object):
         """
         yP = self.pumping
         N = float(self.N)
-        num = (j - m - 1) * (j - m) * (j + 1 + N/2)
+        num = (j - m - 1) * (j - m) * (j + 1 + N / 2)
         den = 2 * j * (2 * j + 1)
-        t7 = yP * (float(num)/den)
+        t7 = yP * (float(num) / den)
         return t7
 
     def tau8(self, j, m):
@@ -1808,10 +1920,10 @@ class Pim(object):
         yCP = self.collective_pumping
         N = float(self.N)
 
-        num = (1 + N/2) * (j-m) * (j + m + 1)
-        den = 2 * j * (j+1)
-        pump = yP * (float(num)/den)
-        collective_pump = yCP * (j-m) * (j+m+1)
+        num = (1 + N / 2) * (j - m) * (j + m + 1)
+        den = 2 * j * (j + 1)
+        pump = yP * (float(num) / den)
+        collective_pump = yCP * (j - m) * (j + m + 1)
         t8 = pump + collective_pump
         return t8
 
@@ -1821,7 +1933,7 @@ class Pim(object):
         """
         yP = self.pumping
         N = float(self.N)
-        num = (j+m+1) * (j+m+2) * (N/2 - j)
-        den = 2 * (j+1) * (2*j + 1)
-        t9 = yP * (float(num)/den)
+        num = (j + m + 1) * (j + m + 2) * (N / 2 - j)
+        den = 2 * (j + 1) * (2 * j + 1)
+        t9 = yP * (float(num) / den)
         return t9
