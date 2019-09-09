@@ -212,6 +212,7 @@ def dicke_blocks(rho):
 
     return square_blocks
 
+
 def dicke_blocks_full(rho):
     """Give the full (2^N-dimensional) list of blocks for a Dicke-basis matrix.
 
@@ -252,6 +253,7 @@ def dicke_blocks_full(rho):
             full_blocks.append(square_block / djn)  # preserve trace
         k = k + 1
     return full_blocks
+
 
 def dicke_function_trace(f, rho):
     """Calculate the trace of a function on a Dicke density matrix.
@@ -327,6 +329,7 @@ def purity_dicke(rho):
     """
     f = lambda x: x * x
     return dicke_function_trace(f, rho)
+
 
 class Dicke(object):
     """The Dicke class which builds the Lindbladian and Liouvillian matrix.
