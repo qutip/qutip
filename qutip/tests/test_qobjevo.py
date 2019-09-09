@@ -123,22 +123,33 @@ def test_QobjEvo_call():
         op.compile()
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(dense=1)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(matched=1)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(omp=2)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(matched=1, omp=2)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
+
+        op.use_cython = False
+        op.compile()
+        assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
+        assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
 
 def test_QobjEvo_call_args():
@@ -204,7 +215,7 @@ def test_QobjEvo_step_coeff():
     coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
     # uniform t
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
-    qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]], 
+    qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
                     tlist=tlist, args={"_step_func_coeff":True})
     assert_equal(qobjevo.ops[0].get_coeff(2.0), coeff1[0])
     assert_equal(qobjevo.ops[0].get_coeff(7.0), coeff1[5])
@@ -710,6 +721,7 @@ def test_QobjEvo_safepickle():
     #used in parallel_map
     import pickle
     from qutip.qobjevo import safePickle
+    old_set = safePickle[0]
     safePickle[0] = True
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2}
@@ -742,6 +754,7 @@ def test_QobjEvo_safepickle():
     td_pick = pickle.loads(pickled)
     # Check for ct_cqobjevo
     assert_equal(td_obj_m(t) == td_pick(t), True)
+    safePickle[0] = old_set
 
 
 def test_QobjEvo_superoperator():

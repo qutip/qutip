@@ -77,11 +77,6 @@ def f(double t, args):
                           '<string>', 'exec')
     exec(import_code, locals())
 
-    try:
-        os.remove(filename+".pyx")
-    except:
-        pass
-
     return str_func[0], filename
 
 
@@ -103,12 +98,7 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     exec(import_code, locals())
     coeff_obj = import_list[0](ops, args, tlist, dyn_args)
 
-    try:
-        os.remove(filename+".pyx")
-    except:
-        pass
-
-    return coeff_obj, code, filename
+    return coeff_obj, code, filename+".pyx"
 
 
 def _make_code_4_cimport(ops, args, dyn_args, tlist):
@@ -301,22 +291,19 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     exec(import_code, locals())
     coeff_obj = import_list[0]
 
-    try:
-        os.remove(filename+".py")
-    except:
-        pass
-
-    return coeff_obj, code, filename
+    return coeff_obj, code, filename+".py"
 
 code_python_pre = """
+# This file is generated automatically by QuTiP.
 import numpy as np
 import scipy.special as spe
+import scipy
 
 def proj(x):
     if np.isfinite(x):
         return (x)
     else:
-        return np.inf+0j
+        return np.inf + 0j * np.imag(x)
 
 sin = np.sin
 cos = np.cos
@@ -344,7 +331,7 @@ abs = np.abs
 norm = lambda x: np.abs(x)**2
 arg = np.angle
 
-class _UnitedStrCaller(_UnitedFuncCaller):
+class _UnitedStrCaller:
     def __init__(self, funclist, args, dynamics_args, cte):
         self.funclist = funclist
         self.args = args
@@ -377,13 +364,15 @@ class _UnitedStrCaller(_UnitedFuncCaller):
                 else:
                     self.args[name] = op.expect(t, state)
 
-    def __call__(self, t, args=None):
+    def __call__(self, t, args={}):
         if args:
             now_args = self.args.copy()
             now_args.update(args)
         else:
             now_args = self.args
-        out = []"""
+        out = []
+
+"""
 
 code_python_post = """
         return out
@@ -396,7 +385,7 @@ code_python_post = """
 def _make_code_4_python_import(ops, args, dyn_args, tlist):
     code = code_python_pre
     for key in args:
-        code += "        " + key + " = args['" + key + "']\n"
+        code += "        " + key + " = now_args['" + key + "']\n"
 
     for i, op in enumerate(ops):
         if op.type == "string":
@@ -405,3 +394,4 @@ def _make_code_4_python_import(ops, args, dyn_args, tlist):
             code += "        out.append(self.funclist[" + str(i) + \
                     "](t, now_args))\n"
     code += code_python_post
+    return code
