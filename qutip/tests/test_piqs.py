@@ -43,7 +43,7 @@ from numpy.testing import (
     assert_almost_equal,
     assert_equal,
 )
-
+from scipy.sparse import block_diag
 from qutip import Qobj, entropy_vn, sigmax, sigmaz
 from qutip.cy.piqs import (
     get_blocks,
@@ -150,28 +150,32 @@ class TestDicke:
         for (i, j) in zip(m_real, m_calc):
             assert_array_equal(i, j)
 
-    def test_mask_dicke_matrix(self):
+    def test_dicke_blocks(self):
         """
-        PIQS: Test the `mask_dicke_matrix` function.
+        PIQS: Test the `dicke_blocks` function.
         """
         # test 1
         # mixed state with non-symmetrical block matrix elements
         N = 3
         true_matrix = (excited(N) + dicke(N, 0.5, 0.5)).unit()
-        test_matrix = mask_dicke_matrix(true_matrix)
+        test_blocks = dicke_blocks(true_matrix)
+        test_matrix = Qobj(block_diag(test_blocks))
         assert_(test_matrix == true_matrix)
         # test 2
         # all elements in block-diagonal matrix
         N = 4
         true_matrix = Qobj(block_matrix(N)).unit()
-        test_matrix = mask_dicke_matrix(true_matrix)
+        test_blocks = dicke_blocks(true_matrix)
+        test_matrix = Qobj(block_diag(test_blocks))
         assert_(test_matrix == true_matrix)
 
-    def test_expand_dicke_matrix(self):
+    def test_dicke_blocks_full(self):
         """
-        PIQS: Test the `expand_dicke_matrix` function.
+        PIQS: Test the `dicke_blocks_full` function.
         """
-        test_matrix = expand_dicke_matrix(excited(3))
+        N = 3
+        test_blocks = dicke_blocks_full(excited(3))
+        test_matrix = Qobj(block_diag(test_blocks))
         true_expanded = np.zeros((8, 8))
         true_expanded[0, 0] = 1.0
         assert_(test_matrix == Qobj(true_expanded))
@@ -186,7 +190,7 @@ class TestDicke:
         rho_mixed = (excited(N) + dicke(N, 0.5, 0.5)).unit()
         f = lambda x: x
         test_val = dicke_function_trace(f, rho_mixed)
-        true_val = (expand_dicke_matrix(rho_mixed)).tr()
+        true_val = (Qobj(block_diag(dicke_blocks_full(rho_mixed)))).tr()
         true_val2 = (rho_mixed).tr()
         # test with linear function (trace)
         assert_almost_equal(test_val, true_val)
@@ -194,7 +198,7 @@ class TestDicke:
         # test with nonlinear function
         f = lambda rho: rho ** 3
         test_val3 = dicke_function_trace(f, rho_mixed)
-        true_val3 = (expand_dicke_matrix(rho_mixed) ** 3).tr()
+        true_val3 = (Qobj(block_diag(dicke_blocks_full(rho_mixed))) ** 3).tr()
         assert_almost_equal(test_val3, true_val3)
         ## test for N even
         N = 4
@@ -202,7 +206,7 @@ class TestDicke:
         rho_mixed = (excited(N) + dicke(N, 0, 0)).unit()
         f = lambda x: x
         test_val = dicke_function_trace(f, rho_mixed)
-        true_val = (expand_dicke_matrix(rho_mixed)).tr()
+        true_val = (Qobj(block_diag(dicke_blocks_full(rho_mixed)))).tr()
         true_val2 = (rho_mixed).tr()
         # test with linear function (trace)
         assert_almost_equal(test_val, true_val)
@@ -210,7 +214,7 @@ class TestDicke:
         # test with nonlinear function
         f = lambda rho: rho ** 3
         test_val3 = dicke_function_trace(f, rho_mixed)
-        true_val3 = (expand_dicke_matrix(rho_mixed) ** 3).tr()
+        true_val3 = (Qobj(block_diag(dicke_blocks_full(rho_mixed))) ** 3).tr()
         assert np.allclose(test_val3, true_val3)
 
     def test_entropy_vn_dicke(self):
@@ -220,7 +224,7 @@ class TestDicke:
         N = 3
         rho_mixed = (excited(N) + dicke(N, 0.5, 0.5)).unit()
         test_val = entropy_vn_dicke(rho_mixed)
-        true_val = entropy_vn(expand_dicke_matrix(rho_mixed))
+        true_val = entropy_vn(Qobj(block_diag(dicke_blocks_full(rho_mixed))))
         assert np.allclose(test_val, true_val)
 
     def test_purity_dicke(self):
@@ -230,7 +234,7 @@ class TestDicke:
         N = 3
         rho_mixed = (excited(N) + dicke(N, 0.5, 0.5)).unit()
         test_val = purity_dicke(rho_mixed)
-        true_val = (expand_dicke_matrix(rho_mixed)).purity()
+        true_val = (Qobj(block_diag(dicke_blocks_full(rho_mixed)))).purity()
         assert np.allclose(test_val, true_val)
 
     def test_get_index(self):
