@@ -36,6 +36,7 @@
 This module calculates the Liouvillian for the dynamics of ensembles of
 identical two-level systems (TLS) in the presence of local and collective
 processes by exploiting permutational symmetry and using the Dicke basis.
+It also allows to characterize nonlinear functions of the density matrix.
 """
 
 # Authors: Nathan Shammah, Shahnawaz Ahmed
@@ -196,9 +197,9 @@ def dicke_blocks(rho):
 
     Returns
     -------
-    square_blocks: list of np.array 
-        Give back the blocks list. 
-        
+    square_blocks: list of np.array
+        Give back the blocks list.
+
     """
     shape_dimension = rho.shape[0]
     N = num_tls(shape_dimension)
@@ -235,9 +236,9 @@ def dicke_blocks_full(rho):
 
     Returns
     -------
-    full_blocks : list 
+    full_blocks : list
         The list of blocks expanded in the 2^N space for N qubits.
-        
+
     """
     shape_dimension = rho.shape[0]
     N = num_tls(shape_dimension)
@@ -271,9 +272,9 @@ def dicke_function_trace(f, rho):
     Parameters
     ----------
     f : function
-        A Taylor-expandable function of `rho`. 
-    
-    rho : :class:`qutip.Qobj` 
+        A Taylor-expandable function of `rho`.
+
+    rho : :class:`qutip.Qobj`
         A density matrix in the Dicke basis.
 
     Returns
@@ -318,7 +319,7 @@ def entropy_vn_dicke(rho):
     -------
     entropy_dm: float
         Entropy. Use degeneracy to multiply each block.
-        
+
     """
     return dicke_function_trace(entr, rho)
 
@@ -335,8 +336,8 @@ def purity_dicke(rho):
     Returns
     -------
     purity : float
-        The purity of the quantum state. 
-        It's 1 for pure states, 0<=purity<1 for mixed states.       
+        The purity of the quantum state.
+        It's 1 for pure states, 0<=purity<1 for mixed states.
     """
     f = lambda x: x * x
     return dicke_function_trace(f, rho)
@@ -1516,7 +1517,7 @@ def block_matrix(N, elements="ones"):
     block_matr : ndarray
         A 2D block-diagonal matrix with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
-        systems. Filled with ones or the value of degeneracy 
+        systems. Filled with ones or the value of degeneracy
         at each matrix element.
     """
     # create a list with the sizes of the blocks, in order
