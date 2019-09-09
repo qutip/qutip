@@ -266,8 +266,6 @@ def entropy_vn_dicke(rho):
         A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
-    blocks : string {'qobj','list'}
-        Set how to return the output. 
 
     Returns
     -------
@@ -311,9 +309,9 @@ def expand_dicke_matrix(rho, blocks="qobj"):
 
     Returns
     -------
-    expanded_matr : :class:`qutip.Qobj` (default) or list
+    expanded_matr : :class:`qutip.Qobj` (default) or list (optional)
         Expanded matrix in the 2^N space. 
-        A 2D block-diagonal matrix (or list of blocks) for rho.
+        A 2D block-diagonal matrix (as a Qobj or list of blocks) for rho.
         
     """
     shape_dimension = rho.shape[0]
