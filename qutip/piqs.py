@@ -69,8 +69,8 @@ __all__ = [
     "num_dicke_ladders",
     "num_tls",
     "isdiagonal",
-    "mask_dicke_matrix",
-    "expand_dicke_matrix",
+    "dicke_blocks",
+    "dicke_blocks_full",
     "dicke_function_trace",
     "purity_dicke",
     "entropy_vn_dicke",
@@ -175,8 +175,8 @@ def isdiagonal(mat):
 
 
 # nonlinear functions of the density matrix
-def mask_dicke_matrix(rho, blocks="qobj"):
-    """Create a block-diagonal mask for a matrix in the Dicke basis.
+def dicke_blocks(rho):
+    """Create the list of blocks for block-diagonal density matrix in the Dicke basis.
 
     Parameters
     ----------
@@ -184,14 +184,11 @@ def mask_dicke_matrix(rho, blocks="qobj"):
         A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
-    blocks : string {'qobj','list'}
-        Set how to return the output, either as a Qobj matrix or as list.
 
     Returns
     -------
-    masked_matr: qutip.Qobj (default) or list of np.array ('list')
-        Apply the mask in the block diagonal terms.
-        Gives back a block-diagonal matrix or just the block list. 
+    square_blocks: list of np.array 
+        Give back the blocks list. 
         
     """
     shape_dimension = rho.shape[0]
@@ -213,11 +210,48 @@ def mask_dicke_matrix(rho, blocks="qobj"):
         block_position = block_position + block_size
         square_blocks.append(square_block)
 
-    if blocks == "list":
-        return square_blocks
-    else:
-        return Qobj(block_diag(square_blocks))
+    return square_blocks
 
+def dicke_blocks_full(rho):
+    """Give the full (2^N-dimensional) list of blocks for a Dicke-basis matrix.
+
+    Parameters
+    ----------
+    rho : :class:`qutip.Qobj`
+        A 2D block-diagonal matrix of ones with dimension (nds,nds),
+        where nds is the number of Dicke states for N two-level
+        systems.
+
+    Returns
+    -------
+    full_blocks : list 
+        The list of blocks expanded in the 2^N space for N qubits.
+        
+    """
+    shape_dimension = rho.shape[0]
+    N = num_tls(shape_dimension)
+    ladders = num_dicke_ladders(N)
+    # create a list with the sizes of the blocks, in order
+    blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
+    blocks_list = [
+        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
+    ]
+    blocks_list = np.flip(blocks_list, 0)
+    # create a list with each block matrix as element
+    full_blocks = []
+    k = 0
+    block_position = 0
+    for block_size in blocks_list:
+        start_m = block_position
+        end_m = block_position + block_size
+        square_block = rho[start_m:end_m, start_m:end_m]
+        block_position = block_position + block_size
+        j = N / 2 - k
+        djn = state_degeneracy(N, j)
+        for block_counter in range(0, djn):
+            full_blocks.append(square_block / djn)  # preserve trace
+        k = k + 1
+    return full_blocks
 
 def dicke_function_trace(f, rho):
     """Calculate the trace of a function on a Dicke density matrix.
@@ -235,7 +269,7 @@ def dicke_function_trace(f, rho):
         Trace of a nonlinear function on `rho`.
     """
     N = num_tls(rho.shape[0])
-    blocks = mask_dicke_matrix(rho, blocks="list")
+    blocks = dicke_blocks(rho)
     block_f = []
     degen_blocks = np.flip(j_vals(N))
     state_degeneracies = []
@@ -293,59 +327,6 @@ def purity_dicke(rho):
     """
     f = lambda x: x * x
     return dicke_function_trace(f, rho)
-
-
-def expand_dicke_matrix(rho, blocks="qobj"):
-    """Expand the block-diagonal matrix from the Dicke basis to 2^N.
-
-    Parameters
-    ----------
-    rho : :class:`qutip.Qobj`
-        A 2D block-diagonal matrix of ones with dimension (nds,nds),
-        where nds is the number of Dicke states for N two-level
-        systems.
-    blocks : string. {'qobj' (default), 'list'}
-        Set if return is block-diagonal matrix (or list of blocks).
-
-    Returns
-    -------
-    expanded_matr : :class:`qutip.Qobj` (default) or list (optional)
-        Expanded matrix in the 2^N space. 
-        A 2D block-diagonal matrix (as a Qobj or list of blocks) for rho.
-        
-    """
-    shape_dimension = rho.shape[0]
-    N = num_tls(shape_dimension)
-    ladders = num_dicke_ladders(N)
-    # create a list with the sizes of the blocks, in order
-    blocks_dimensions = int(N / 2 + 1 - 0.5 * (N % 2))
-    blocks_list = [
-        (2 * (i + 1 * (N % 2)) + 1 * ((N + 1) % 2)) for i in range(blocks_dimensions)
-    ]
-    blocks_list = np.flip(blocks_list, 0)
-    # create a list with each block matrix as element
-    square_blocks = []
-    k = 0
-    block_position = 0
-    for block_size in blocks_list:
-        start_m = block_position
-        end_m = block_position + block_size
-        square_block = rho[start_m:end_m, start_m:end_m]
-        block_position = block_position + block_size
-        j = N / 2 - k
-        # print(block_size)
-        # print(square_block)
-        # = block_size-1
-        # print("block_size ",block_size)
-        djn = state_degeneracy(N, j)
-        for block_counter in range(0, djn):
-            square_blocks.append(square_block / djn)  # preserve trace
-        k = k + 1
-    if blocks == "list":
-        return square_blocks
-    else:
-        return Qobj(block_diag(square_blocks))
-
 
 class Dicke(object):
     """The Dicke class which builds the Lindbladian and Liouvillian matrix.
