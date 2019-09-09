@@ -1,6 +1,7 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson,
+#    and the QuTiP Developers.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
