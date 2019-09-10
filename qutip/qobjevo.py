@@ -135,6 +135,7 @@ class _file_list:
 
 coeff_files = _file_list()
 
+
 class _StrWrapper:
     def __init__(self, code):
         self.code = "_out = " + code
@@ -578,46 +579,45 @@ class QobjEvo:
     def _args_checks(self, update=False):
         to_remove = []
         to_add = {}
-        for key in self.args:
-            if "=" in key:
-                name, what = key.split("=")
-                if what in ["Qobj", "vec", "mat"] and not update:
-                    # state first, expect last
-                    self.dynamics_args += [(name, what, None)]# + self.dynamics_args
-                    if name not in self.args:
-                        if isinstance(self.args[key], Qobj):
-                            if what == "Qobj":
-                                to_add[name] = self.args[key]
-                            elif what == "mat":
-                                to_add[name] = self.args[key].full()
-                            else:
-                                to_add[name] = self.args[key].full().ravel("F")
-                        else:
-                            if what == "Qobj":
-                                to_add[name] = Qobj(dims=[self.cte.dims[1],[1]])
-                            elif what == "mat":
-                                to_add[name] = np.zeros((self.cte.shape[1],1))
-                            else:
-                                to_add[name] = np.zeros((self.cte.shape[1]))
-
-                elif what == "expect":
-                    if isinstance(self.args[key], QobjEvo):
-                        expect_op = self.args[key]
+        dyn_args = (key for key in self.args if "=" in key)
+        for key in dyn_args:
+            name, what = key.split("=")
+            if what in ["Qobj", "vec", "mat"] and \
+                    not update and name not in self.args:
+                self.dynamics_args += [(name, what, None)]
+                if isinstance(self.args[key], Qobj):
+                    if what == "Qobj":
+                        to_add[name] = self.args[key]
+                    elif what == "mat":
+                        to_add[name] = self.args[key].full()
                     else:
-                        expect_op = QobjEvo(self.args[key], copy=False)
-                    if update:
-                        for ops in self.dynamics_args:
-                            if ops[0] == name:
-                                ops = (name, what, expect_op)
-                    else:
-                        self.dynamics_args += [(name, what, expect_op)]
-                        if name not in self.args:
-                            to_add[name] = 0.
+                        to_add[name] = self.args[key].full().ravel("F")
                 else:
-                    raise Exception("Could not understand dynamics args: " +
-                                    what + "\nSupported dynamics args: "
-                                    "Qobj, csr, vec, mat, expect")
-                to_remove.append(key)
+                    if what == "Qobj":
+                        to_add[name] = Qobj(dims=[self.cte.dims[1],[1]])
+                    elif what == "mat":
+                        to_add[name] = np.zeros((self.cte.shape[1],1))
+                    else:
+                        to_add[name] = np.zeros((self.cte.shape[1]))
+
+            elif what == "expect":
+                if isinstance(self.args[key], QobjEvo):
+                    expect_op = self.args[key]
+                else:
+                    expect_op = QobjEvo(self.args[key], copy=False)
+                if update:
+                    for ops in self.dynamics_args:
+                        if ops[0] == name:
+                            ops = (name, what, expect_op)
+                else:
+                    self.dynamics_args += [(name, what, expect_op)]
+                    if name not in self.args:
+                        to_add[name] = 0.
+            else:
+                raise Exception("Could not understand dynamics args: " +
+                                what + "\nSupported dynamics args: "
+                                "Qobj, vec, mat, expect")
+            to_remove.append(key)
 
         for key in to_remove:
             del self.args[key]
@@ -1489,8 +1489,8 @@ class QobjEvo:
             self.compiled_qobjevo.has_dyn_args(bool(self.dynamics_args))
 
             if self.type in ["func"]:
-                #funclist = []
-                #for part in self.ops:
+                # funclist = []
+                # for part in self.ops:
                 #    funclist.append(part.get_coeff)
                 funclist = [part.get_coeff for part in self.ops]
                 self.coeff_get = _UnitedFuncCaller(funclist, self.args,
@@ -1498,37 +1498,38 @@ class QobjEvo:
                 self.compiled += "pyfunc"
                 self.compiled_qobjevo.set_factor(func=self.coeff_get)
 
-            elif self.type in ["mixed_callable"]:
-                if self.use_cython:
-                    funclist = []
-                    for part in self.ops:
-                        if isinstance(part.get_coeff, _StrWrapper):
-                            part.get_coeff, file_ = _compile_str_single(
+            elif self.type in ["mixed_callable"] and self.use_cython:
+                funclist = []
+                for part in self.ops:
+                    if isinstance(part.get_coeff, _StrWrapper):
+                        get_coeff, file_ = _compile_str_single(
                                                                 part.coeff,
                                                                 self.args)
-                            coeff_files.add(file_)
-                            self.coeff_files.append(file_)
+                        coeff_files.add(file_)
+                        self.coeff_files.append(file_)
+                        funclist.append(get_coeff)
+                    else:
                         funclist.append(part.get_coeff)
-                    self.coeff_get = _UnitedFuncCaller(funclist, self.args,
-                                                       self.dynamics_args,
-                                                       self.cte)
-                    self.compiled += "pyfunc"
-                    self.compiled_qobjevo.set_factor(func=self.coeff_get)
-                else:
-                    funclist = [part.get_coeff for part in self.ops]
-                    _UnitedStrCaller, Code, file_ = _compiled_coeffs_python(
+
+                self.coeff_get = _UnitedFuncCaller(funclist, self.args,
+                                                   self.dynamics_args,
+                                                   self.cte)
+                self.compiled += "pyfunc"
+                self.compiled_qobjevo.set_factor(func=self.coeff_get)
+            elif self.type in ["mixed_callable"]:
+                funclist = [part.get_coeff for part in self.ops]
+                _UnitedStrCaller, Code, file_ = _compiled_coeffs_python(
                                                         self.ops,
                                                         self.args,
                                                         self.dynamics_args,
                                                         self.tlist)
-                    coeff_files.add(file_)
-                    self.coeff_files.append(file_)
-                    self.coeff_get = _UnitedStrCaller(funclist, self.args,
-                                                      self.dynamics_args,
-                                                      self.cte)
-                    self.compiled_qobjevo.set_factor(func=self.coeff_get)
-                    self.compiled += "pyfunc"
-
+                coeff_files.add(file_)
+                self.coeff_files.append(file_)
+                self.coeff_get = _UnitedStrCaller(funclist, self.args,
+                                                  self.dynamics_args,
+                                                  self.cte)
+                self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                self.compiled += "pyfunc"
             elif self.type in ["string", "mixed_compilable"]:
                 if self.use_cython:
                     # All factor can be compiled

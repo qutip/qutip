@@ -273,6 +273,7 @@ include """ + _include_string + "\n\n"
 
     return code
 
+
 def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     """Create and import a cython compiled class for coeff that
     need compilation.
@@ -292,6 +293,7 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     coeff_obj = import_list[0]
 
     return coeff_obj, code, filename+".py"
+
 
 code_python_pre = """
 # This file is generated automatically by QuTiP.
@@ -381,6 +383,7 @@ code_python_post = """
         return self.args
 
 """
+
 
 def _make_code_4_python_import(ops, args, dyn_args, tlist):
     code = code_python_pre
