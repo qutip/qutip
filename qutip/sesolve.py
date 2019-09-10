@@ -232,17 +232,13 @@ def _Hfunc_set(HS, psi, args, opt):
     H_func = HS.H
     if psi.isunitary:
         if not opt.rhs_with_state:
-            print("_ode_oper_func_td")
             func = _ode_oper_func_td
         else:
-            print("_ode_oper_func_td_with_state")
             func = _ode_oper_func_td_with_state
     else:
         if not opt.rhs_with_state:
-            print("cy_ode_psi_func_td")
             func = cy_ode_psi_func_td
         else:
-            print("cy_ode_psi_func_td_with_state")
             func = cy_ode_psi_func_td_with_state
 
     return func, (H_func, args)
