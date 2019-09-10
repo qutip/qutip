@@ -43,7 +43,6 @@ from qutip.cy.inter import _prep_cubic_spline
 def _compile_str_single(string, args):
     """Create and import a cython compiled function from text
     """
-    import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
                     "\\", "/")
     _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
@@ -107,7 +106,6 @@ def _make_code_4_cimport(ops, args, dyn_args, tlist):
     Create the code for a CoeffFunc cython class the wraps
     the string coefficients, array_like coefficients and Cubic_Spline.
     """
-    import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
     _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
 

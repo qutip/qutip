@@ -211,6 +211,7 @@ def test_QobjEvo_call_args():
 
 
 def test_QobjEvo_step_coeff():
+    "QobjEvo step interpolation"
     coeff1 = np.random.rand(6)
     coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
     # uniform t
