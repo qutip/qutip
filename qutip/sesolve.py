@@ -64,12 +64,26 @@ def stack_ket(kets):
         out[:,i] = ket.full().ravel()
     return [Qobj(out)]
 
+def _islistof(obj, type_, default, errmsg):
+    if isinstance(obj, type_):
+        obj = [obj]
+        n = 0
+    elif isinstance(obj, list):
+        if any((not isinstance(ele, type_) for ele in obj)):
+            raise TypeError(errmsg)
+        n = len(obj)
+    elif not obj and default is not None:
+        obj = default
+        n = len(obj)
+    else:
+        raise TypeError(errmsg)
+    return obj, n
 
 class SESolver(Solver):
     """Schrodinger Equation Solver
 
     """
-    def __init__(self, H, args={}, tlist=[], options=None):
+    def __init__(self, H, args={}, options=None):
         if options is None:
             options = Options()
 
@@ -97,6 +111,7 @@ class SESolver(Solver):
 
     def optimization(self, period=0):
         self._optimization["period"] = period
+        self._cache = False
         raise NotImplementedError
 
     def run(self, progress_bar=True):
@@ -127,6 +142,53 @@ class SESolver(Solver):
                                                   normalize_func, self._options,
                                                   progress_bar)
         self._options.store_states = old_store_state
+
+    def evolve(self, psis, args_sets=[], tlist=[],
+               progress_bar=True, map_func=parallel_map):
+        psis, num_states = _islistof(psis, Qobj, None, "psis must be Qobj")
+        if not all([psi.shape == (self._size, 1) for psi in psis]):
+            raise ValueError("Input psis shape is not consistant"
+                             " with the system")
+
+        args_sets, num_args = _islistof(args_sets, dict, self._args,
+                                        "args_sets must be dict")
+
+        tlist, nt = _islistof(tlist, (int, float), self._tlist,
+                              "tlist must be list of times")
+        if not nt: tlist = [self._t0, tlist[0]]
+
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+        map_kwargs = {'progress_bar': progress_bar,
+                      'num_cpus': self.options.num_cpus}
+
+        if self._with_state:
+            state, expect = self._batch_run_ket(states, args_sets,
+                                                map_func, map_kwargs)
+        elif (num_states > vec_len):
+            state, expect = self._batch_run_prop_ket(states, args_sets,
+                                                     map_func, map_kwargs)
+        elif num_states >= 2:
+            state, expect = self._batch_run_merged_ket(states, args_sets,
+                                                       map_func, map_kwargs)
+        else:
+            state, expect = self._batch_run_ket(states, args_sets,
+                                                map_func, map_kwargs)
+
+        states_out = np.empty((len(psis), len(args_sets), len(tlist)),
+                              dtype=object)
+        for i,j,k in product(range(len(psis)), range(len(args_sets)),
+                             range(len(tlist))):
+            states_out[i,j,k] = Qobj(data=dense1D_to_fastcsr_ket(state[i,j,k]),
+                                     dims=psis[0].dims, fast="mc")
+        if nt == 0: states_out.squeeze(axis=2)
+        if num_args == 0: states_out.squeeze(axis=1)
+        if num_states == 0: states_out.squeeze(axis=0)
+
+        return states_out
+
+    def propagator(self, tlist):
+
 
     def batch_run(self, states=[], args_sets=[],
                   progress_bar=True, map_func=parallel_map):
@@ -181,16 +243,16 @@ class SESolver(Solver):
 
         return states_out, expect
 
-    def _batch_run_ket(self, kets, args_sets, map_func, map_kwargs):
+    def _batch_run_ket(self, kets, args_sets, map_func, map_kwargs,
+                       store_states):
         num_states = len(kets)
         num_args = len(args_sets)
         nt = len(self._tlist)
-        vec_len = self.ss.shape[0]
-        states_out = np.empty((num_states, num_args, nt, vec_len), dtype=complex)
+        vec_len = self._size
+        states_out = np.empty((num_states, num_args, nt, vec_len),
+                              dtype=complex)
         expect_out = np.empty((num_states, num_args), dtype=object)
-        old_store_state = self._options.store_states
-        store_states = not bool(self._e_ops) or self._options.store_states
-        self._options.store_states =  store_states
+        self._options.store_states = store_states
         values = list(product(kets, args_sets))
 
         normalize_func = normalize_inplace
@@ -199,8 +261,6 @@ class SESolver(Solver):
 
         results = map_func(self._one_run_ket, values, (normalize_func,),
                            **map_kwargs)
-
-        self._options.store_states = old_store_state
 
         for i, (state, expect) in enumerate(results):
             args_n, state_n = divmod(i, num_states)
@@ -211,7 +271,8 @@ class SESolver(Solver):
 
         return states_out, expect_out
 
-    def _batch_run_prop_ket(self, kets, args_sets, map_func, map_kwargs):
+    def _batch_run_prop_ket(self, kets, args_sets, map_func, map_kwargs,
+                       store_states):
         num_states = len(kets)
         num_args = len(args_sets)
         nt = len(self._tlist)
@@ -252,7 +313,8 @@ class SESolver(Solver):
                     states_out[state_n, args_n, :, :] = state
         return states_out, expect_out
 
-    def _batch_run_merged_ket(self, kets, args_sets, map_func, map_kwargs):
+    def _batch_run_merged_ket(self, kets, args_sets, map_func, map_kwargs,
+                       store_states):
         num_states = len(kets)
         vec_len = kets[0].shape[0]
         num_args = len(args_sets)
@@ -296,7 +358,8 @@ class SESolver(Solver):
 
         return states_out, expect_out
 
-    def _batch_run_oper(self, opers, args_sets, map_func, map_kwargs):
+    def _batch_run_oper(self, opers, args_sets, map_func, map_kwargs,
+                       store_states):
         num_states = len(opers)
         num_args = len(args_sets)
         nt = len(self._tlist)
@@ -326,7 +389,8 @@ class SESolver(Solver):
 
         return states_out, expect_out
 
-    def _batch_run_prop_oper(self, opers, args_sets, map_func, map_kwargs):
+    def _batch_run_prop_oper(self, opers, args_sets, map_func, map_kwargs,
+                       store_states):
         num_states = len(opers)
         num_args = len(args_sets)
         nt = len(self._tlist)

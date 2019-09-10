@@ -47,9 +47,6 @@ class Qsystem:
         self.state_t = None
         self.states_runs_t = []
 
-
-
-
     def evolve(self, tlist=[], state0=None, t=None):
         if tlist:
             self.tlist = tlist
