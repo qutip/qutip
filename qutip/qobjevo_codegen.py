@@ -35,6 +35,7 @@ Function to build cython code from str, compile and import it.
 Used by cQobjEvo.
 cy/codegen.py does the same thing for specific solver
 """
+import os
 import numpy as np
 from qutip.cy.inter import _prep_cubic_spline
 
