@@ -59,6 +59,103 @@ solver_safe = {}
 class SolverSystem():
     pass
 
+
+
+
+class SolverCacheElem:
+    def __init__(self):
+        self.prop_time = []
+        self.prop = []
+
+        self.psi0s = []
+        self.psi_times = [[]]
+        self.psis = [[]]
+
+        self.e_ops_set = []
+
+    def prop_overlaspe(self, tlist, inter=1e-8):
+        if not self.prop_time:
+            return ([], [], tlist)
+        match = []
+        after = []
+        miss = []
+        for t in tlist:
+            if t > self.prop_time[-1]:
+                after += [t]
+            elif t in self.prop_time:
+                match += [t]
+            else:
+                miss += [t]
+        return (match, after, miss)
+
+    def get_prop(self, t, inter=1e-8):
+        for i, _t in self.prop_time:
+            if abs(_t-t) > inter:
+                return self.prop[i]
+
+    def have_psi(self, psi):
+        return psi in self.psi0s
+
+    def psi_overlaspe(self, psi, tlist, inter=1e-8):
+        times = self.psi_times[self.psi0s.index(psi)]
+        if not times:
+            return ([], [], tlist)
+        match = []
+        after = []
+        miss = []
+        for t in tlist:
+            if t > times[-1]:
+                after += [t]
+            elif t in times:
+                match += [t]
+            else:
+                miss += [t]
+        return (match, after, miss)
+
+    def get_psi(self, psi0, t):
+        psi_t = self.psis[self.psi0s.index(psi)]
+        times = self.psi_times[self.psi0s.index(psi)
+        for i, _t in times:
+            if abs(_t-t) > inter:
+                return psi_t[i]
+
+
+
+class SolverCache:
+    def __init__(self):
+        self.num_args = 0
+        self.args_hash = {}
+        self.cached_data = []
+
+    def _make_keys(self, args):
+        keys = [key for key args.keys() if "=" not in key]
+        dynargs = [key for key args.keys() if "=" in key]
+        for key in dynargs:
+            name, what = key.split("=")
+            keys.remove(name)
+            if what == "expect":
+                keys.add(key)
+        return tuple(sorted(keys))
+
+    def _hashable_args(self, args):
+        keys = self._make_keys(args)
+        args_tuple = tuple((args[key] for key in keys))
+        return (keys, args_tuple)
+
+    def __contains__(self, item):
+        return self._hashable_args(item) in self.args_hash
+
+    def __getitem__(self, key):
+        key = self._hashable_args(key)
+        if key not in self.args_hash:
+            self.cached_data.append(SolverCacheElem)
+            self.args_hash[key] = self.num_args
+            self.num_args += 1
+        return self.cached_data[self.args_hash[key]]
+
+
+
+
 class Solver:
     def __init__(self):
         self._tlist = []
@@ -68,7 +165,12 @@ class Solver:
         self._state_out = None
         self.state0 = None
         self.dims = None
-        self._args = {}
+
+        self._args = args
+        self._args_n = 0
+        self._args_list = [args.copy()]
+
+        self._cache = SolverCache()
 
     @property
     def tlist(self):

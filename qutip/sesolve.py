@@ -79,6 +79,9 @@ def _islistof(obj, type_, default, errmsg):
         raise TypeError(errmsg)
     return obj, n
 
+
+
+
 class SESolver(Solver):
     """Schrodinger Equation Solver
 
@@ -97,11 +100,21 @@ class SESolver(Solver):
 
         self.H = H
         self.ss = ss
-        self.dims = None
-        self.tlist = tlist
-        self._args = args
+
+        self.dims = self.Hevo.cte.dims
+        self._size = self.Hevo.cte.shape[0]
+
+        self._tlist = []
+        self._psi = []
+
         self.options = options
         self._optimization = {"period":0}
+
+        self._args = args
+        self._args_n = 0
+        self._args_list = [args.copy()]
+
+        
 
     def set_initial_value(self, psi0, tlist=[]):
         self.state0 = psi0
@@ -143,19 +156,90 @@ class SESolver(Solver):
                                                   progress_bar)
         self._options.store_states = old_store_state
 
+
+    def _check_args(self, args):
+
+
+    def _check_input(self, psi, args, tlist, level):
+        if isinstance(psi, Qobj):
+            psi = [psi]
+            num_states = 0
+        elif not psi:
+            psi = [self.psi]
+            num_states = 0
+        elif isinstance(psi, list):
+            if any((not isinstance(ele, Qobj) for ele in psi)):
+                raise TypeError("psi must be Qobj")
+            num_states = len(psi)
+        else:
+            raise TypeError("psi must be Qobj")
+
+        if isinstance(args, dict):
+            self._check_args(args)
+            args = [args]
+            num_args = 0
+        elif not args:
+            args = [self.args]
+            num_args = 0
+        elif isinstance(args, list):
+            for args_set in args:
+                if not isinstance(args_set, dict):
+                    raise TypeError("args must be dict")
+                self._check_args(args_set)
+
+
+            num_args = len(args)
+        else:
+            raise TypeError("args must be dict")
+
+        if isinstance(tlist, (int, float)):
+            tlist = [self._t0, tlist]
+            nt = 0
+        elif not tlist:
+            tlist = [self._tlist]
+            nt = 0
+        elif isinstance(args, list):
+            if any((not isinstance(ele, (int, float)) for ele in tlist)):
+                raise TypeError("tlist must be list of times")
+            nt = len(tlist)
+        else:
+            raise TypeError("tlist must be list of times")
+
+        return (psi, args, tlist), (num_states, num_args, nt)
+
+    def expect(self, e_ops, psis, argss, tlist,
+               progress_bar=True, map_func=parallel_map):
+        (psi, args, tlist), (num_states, num_args, nt) = \
+             self._check_input(psis, args_sets, tlist)
+
+        if progress_bar is True:
+         progress_bar = TextProgressBar()
+        map_kwargs = {'progress_bar': progress_bar,
+                   'num_cpus': self.options.num_cpus}
+
+        if self._with_state:
+             state, expect = self._batch_run_ket(states, args_sets,
+                                                 map_func, map_kwargs, 0)
+        elif (num_states > vec_len):
+             state, expect = self._batch_run_prop_ket(states, args_sets,
+                                                      map_func, map_kwargs, 0)
+        elif num_states >= 2:
+             state, expect = self._batch_run_merged_ket(states, args_sets,
+                                                        map_func, map_kwargs, 0)
+        else:
+             state, expect = self._batch_run_ket(states, args_sets,
+                                                 map_func, map_kwargs, 0)
+
+        if nt == 0: expect.squeeze(axis=2)
+        if num_args == 0: expect.squeeze(axis=1)
+        if num_states == 0: expect.squeeze(axis=0)
+
+        return expect
+
     def evolve(self, psis, args_sets=[], tlist=[],
                progress_bar=True, map_func=parallel_map):
-        psis, num_states = _islistof(psis, Qobj, None, "psis must be Qobj")
-        if not all([psi.shape == (self._size, 1) for psi in psis]):
-            raise ValueError("Input psis shape is not consistant"
-                             " with the system")
-
-        args_sets, num_args = _islistof(args_sets, dict, self._args,
-                                        "args_sets must be dict")
-
-        tlist, nt = _islistof(tlist, (int, float), self._tlist,
-                              "tlist must be list of times")
-        if not nt: tlist = [self._t0, tlist[0]]
+        (psi, args, tlist), (num_states, num_args, nt) = \
+            self._check_input(psis, args_sets, tlist)
 
         if progress_bar is True:
             progress_bar = TextProgressBar()
@@ -163,17 +247,13 @@ class SESolver(Solver):
                       'num_cpus': self.options.num_cpus}
 
         if self._with_state:
-            state, expect = self._batch_run_ket(states, args_sets,
-                                                map_func, map_kwargs)
+            state, expect = self._batch_run_ket(states, args_sets, map_func, map_kwargs, 1)
         elif (num_states > vec_len):
-            state, expect = self._batch_run_prop_ket(states, args_sets,
-                                                     map_func, map_kwargs)
+            state, expect = self._batch_run_prop_ket(states, args_sets, map_func, map_kwargs, 1)
         elif num_states >= 2:
-            state, expect = self._batch_run_merged_ket(states, args_sets,
-                                                       map_func, map_kwargs)
+            state, expect = self._batch_run_merged_ket(states, args_sets, map_func, map_kwargs, 1)
         else:
-            state, expect = self._batch_run_ket(states, args_sets,
-                                                map_func, map_kwargs)
+            state, expect = self._batch_run_ket(states, args_sets, map_func, map_kwargs, 1)
 
         states_out = np.empty((len(psis), len(args_sets), len(tlist)),
                               dtype=object)
@@ -183,11 +263,48 @@ class SESolver(Solver):
                                      dims=psis[0].dims, fast="mc")
         if nt == 0: states_out.squeeze(axis=2)
         if num_args == 0: states_out.squeeze(axis=1)
-        if num_states == 0: states_out.squeeze(axis=0)
+        if len(states_out.shape) == 1 and num_states == 0:
+            states_out = states_out[0]
+        elif num_states == 0:
+            states_out.squeeze(axis=0)
 
         return states_out
 
-    def propagator(self, tlist):
+    def propagator(self, args, tlist,
+                   progress_bar=True, map_func=parallel_map):
+        (_, args, tlist), (_, num_args, nt) = \
+            self._check_input([], args_sets, tlist)
+
+        self._options.store_states = 1
+        computed_state = [qeye(self._size)]
+        values = list(product(computed_state, args_sets))
+
+        normalize_func = normalize_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+        if len(values) == 1:
+            map_func = serial_map
+        map_kwargs = {'progress_bar': progress_bar,
+                      'num_cpus': self.options.num_cpus}
+
+        results = map_func(self._one_run_oper, values,
+                           (normalize_func,), **map_kwargs)
+
+        prop = np.empty((num_args, nt), dtype=object)
+        for args_n, (states, _) in enumerate(results):
+            prop[args_n, :] = [Qobj(data=dense2D_to_fastcsr_fmode(state),
+                                   dims=computed_state[0].dims, fast="mc")
+                               for state in states]
+        if nt == 0: states_out.squeeze(axis=1)
+        if len(states_out.shape) == 1 and num_args == 0:
+            states_out = states_out[0]
+        elif num_args == 0:
+            states_out.squeeze(axis=0)
+        return prop
+
 
 
     def batch_run(self, states=[], args_sets=[],
