@@ -60,72 +60,94 @@ class SolverSystem():
     pass
 
 
+class _SolverCacheOneEvo:
+    def __init__(self, t_start, t_end, dt, vals):
+        self.t_start = t_start
+        self.t_end = t_end
+        self.dt = dt
+        self.vals = vals
+
+    def __contains__(self, t):
+        if t > self.t_end:
+            return False
+        if t < self.t_start:
+            return False
+        if np.abs((t - self.t_start) % self.dt) < 1e-7:
+            return True
+        return False
+
+    def has(self, t1, t2=None, dt=0):
+        if t2 is None:
+            return t1 in self
+        dt = dt if dt else self.dt
+        return t1 in self and t2 in self and np.abs(dt % self.dt) < 1e-7
+
+    def __call__(self, t1, t2=None, dt=0):
+        if t2 is None:
+            return self.vals[round((t1-self.t_start)//self.dt)]
+        elif dt:
+            step = round(dt//self.dt)
+        else:
+            step = 1
+        start = round((t1-self.t_start) // self.dt)
+        end = round((t2-self.t_start) // self.dt)
+        return self.vals[start:end:step]
+
+    def overlapse(self, t1, t2, dt):
+        if self.has(t1, self.t_end, dt):
+            return min([self.t_end, t2])
+        else:
+            return False
+
+    def restart(self, t1, t2, dt):
+        if not self.has(t1, self.t_end, dt):
+            return t1
+        elif self.t_end < t2:
+            return self.t_end
+        else:
+            return False
+
+    def __bool__(self):
+        return bool(self.vals)
 
 
-class SolverCacheElem:
+class _SolverCacheOneArgs:
     def __init__(self):
-        self.prop_time = []
-        self.prop = []
+        self.prop = None
 
         self.psi0s = []
-        self.psi_times = [[]]
-        self.psis = [[]]
+        self.psis = []
 
-        self.e_ops_set = []
+        self.e_ops_val = [[]]
+        self.e_psis = []
+        self.e_ops = []
 
-    def prop_overlaspe(self, tlist, inter=1e-8):
-        if not self.prop_time:
-            return ([], [], tlist)
-        match = []
-        after = []
-        miss = []
-        for t in tlist:
-            if t > self.prop_time[-1]:
-                after += [t]
-            elif t in self.prop_time:
-                match += [t]
-            else:
-                miss += [t]
-        return (match, after, miss)
+    def get_expect_evolution(self, psi, e_ops):
+        if psi in self.e_psis and e_ops in self.e_ops:
+            i = self.e_psis.index(psi)
+            j = self.e_ops.index(psi)
+            return self.e_ops_val[i][j]
+        else:
+            return None
 
-    def get_prop(self, t, inter=1e-8):
-        for i, _t in self.prop_time:
-            if abs(_t-t) > inter:
-                return self.prop[i]
+    def get_psi_evolution(self, psi):
+        if psi in self.psi0s:
+            i = self.psi0s.index(psi)
+            return self.psis[i]
+        else:
+            return None
 
-    def have_psi(self, psi):
-        return psi in self.psi0s
-
-    def psi_overlaspe(self, psi, tlist, inter=1e-8):
-        times = self.psi_times[self.psi0s.index(psi)]
-        if not times:
-            return ([], [], tlist)
-        match = []
-        after = []
-        miss = []
-        for t in tlist:
-            if t > times[-1]:
-                after += [t]
-            elif t in times:
-                match += [t]
-            else:
-                miss += [t]
-        return (match, after, miss)
-
-    def get_psi(self, psi0, t):
-        psi_t = self.psis[self.psi0s.index(psi)]
-        times = self.psi_times[self.psi0s.index(psi)
-        for i, _t in times:
-            if abs(_t-t) > inter:
-                return psi_t[i]
+    def get_prop_evolution(self):
+        return self.prop
 
 
-
-class SolverCache:
-    def __init__(self):
+class _SolverCache:
+    def __init__(self, t0=0, dt=1):
         self.num_args = 0
         self.args_hash = {}
         self.cached_data = []
+        self.t0 = t0
+        self.dt = dt
 
     def _make_keys(self, args):
         keys = [key for key args.keys() if "=" not in key]
@@ -148,10 +170,41 @@ class SolverCache:
     def __getitem__(self, key):
         key = self._hashable_args(key)
         if key not in self.args_hash:
-            self.cached_data.append(SolverCacheElem)
+            self.cached_data.append(_SolverCacheOneArgs)
             self.args_hash[key] = self.num_args
             self.num_args += 1
         return self.cached_data[self.args_hash[key]]
+
+    def add_prop(self, args, props, t_start=None, dt=None):
+        t_start = t_start if t_start is not None else self.t0
+        dt = dt is dt is not None else self.dt
+        t1 = len(props) * dt + t_start
+        argsCache = self[args]
+        if argsCache.get_prop_evolution() is None:
+            argsCache.prop = _SolverCacheOneEvo(t_start, t_end, dt, vals)
+        else:
+            propCache = argsCache.get_prop_evolution()
+            propCache.add(t_start, t_end, dt, vals)
+
+    def need_compute_prop(self, args, t_end, t_start=None, dt=None):
+        t_start = t_start is t_start is not None else self.t_start
+        dt = dt is dt is not None else self.dt
+        argsCache = self[args]
+        if argsCache.get_prop_evolution() is None:
+            return t0 # Need to be computed from the beginning
+        else:
+            propCache = argsCache.get_prop_evolution()
+            return propCache.restart(t_start, t_end, dt)
+
+    def get_prop(self, args, t_end, t_start=None, dt=None):
+        t_start = t_start is t_start is not None else self.t_start
+        dt = dt is dt is not None else self.dt
+        argsCache = self[args]
+        if argsCache.get_prop_evolution() is None:
+            return None
+        else:
+            propCache = argsCache.get_prop_evolution()
+            return propCache(t_start, t_end, dt)
 
 
 
