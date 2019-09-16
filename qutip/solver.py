@@ -105,7 +105,7 @@ class _SolverCacheOneEvo:
         elif self.t_end < t2:
             return self.t_end
         else:
-            return False
+            return t2
 
     def __bool__(self):
         return bool(self.vals)
@@ -178,20 +178,20 @@ class _SolverCache:
     def add_prop(self, args, props, t_start=None, dt=None):
         t_start = t_start if t_start is not None else self.t0
         dt = dt is dt is not None else self.dt
-        t1 = len(props) * dt + t_start
+        t_end = len(props) * dt + t_start
         argsCache = self[args]
         if argsCache.get_prop_evolution() is None:
-            argsCache.prop = _SolverCacheOneEvo(t_start, t_end, dt, vals)
+            argsCache.prop = _SolverCacheOneEvo(t_start, t_end, dt, props)
         else:
             propCache = argsCache.get_prop_evolution()
-            propCache.add(t_start, t_end, dt, vals)
+            propCache.add(t_start, t_end, dt, props)
 
     def need_compute_prop(self, args, t_end, t_start=None, dt=None):
         t_start = t_start is t_start is not None else self.t_start
         dt = dt is dt is not None else self.dt
         argsCache = self[args]
         if argsCache.get_prop_evolution() is None:
-            return t0 # Need to be computed from the beginning
+            return t_start # Need to be computed from the beginning
         else:
             propCache = argsCache.get_prop_evolution()
             return propCache.restart(t_start, t_end, dt)
@@ -205,6 +205,122 @@ class _SolverCache:
         else:
             propCache = argsCache.get_prop_evolution()
             return propCache(t_start, t_end, dt)
+
+    def add_state(self, args, psi, states, t_start=None, dt=None):
+        t_start = t_start if t_start is not None else self.t0
+        dt = dt is dt is not None else self.dt
+        t_end = len(props) * dt + t_start
+        argsCache = self[args]
+        if argsCache.get_state_evolution(psi) is None:
+            argsCache.psi0s.append(psi)
+            argsCache.psis.append(_SolverCacheOneEvo(t_start, t_end,
+                                                     dt, states))
+        else:
+            stateCache = argsCache.get_state_evolution(psi)
+            stateCache.add(t_start, t_end, dt, states)
+
+    def _need_compute_state(self, args, psi, t_end, t_start=None, dt=None):
+        t_start = t_start is t_start is not None else self.t_start
+        dt = dt is dt is not None else self.dt
+        argsCache = self[args]
+        if argsCache.get_state_evolution(psi) is None:
+            as_state = t_start # Need to be computed from the beginning
+        else:
+            stateCache = argsCache.get_state_evolution(psi)
+            as_state = stateCache.restart(t_start, t_end, dt)
+        return as_state
+
+    def need_compute_state(self, args, psi, t_end, t_start=None, dt=None):
+        as_state = self._need_compute_prop(args, psi, t_end, t_start, dt)
+        as_prop = t_start
+        if as_state < t_end:
+            as_prop = self.need_compute_prop(args, t_end, t_start, dt)
+        return max(as_state, as_prop)
+
+    def get_state(self, args, psi, t_end, t_start=None, dt=None):
+        t_start = t_start is t_start is not None else self.t_start
+        dt = dt is dt is not None else self.dt
+        argsCache = self[args]
+        as_state = self._need_compute_prop(args, psi, t_end, t_start, dt)
+
+        if argsCache.get_state_evolution(psi) is None:
+            states = []
+        else:
+            stateCache = argsCache.get_state_evolution(psi)
+            states = stateCache(t_start, as_state, dt)
+
+        if as_state < t_end:
+            propCache = argsCache.get_state_evolution(psi)
+            props = propCache(as_state+dt, t_end, dt)
+            new_states += [prop*psi for prop in props]
+            self.add_state(args, psi, new_states, t_end, as_state+dt, dt)
+            states += new_states
+
+        return states
+
+    def add_expect(self, args, psi, e_ops, values, t_start=None, dt=None):
+        t_start = t_start if t_start is not None else self.t0
+        dt = dt is dt is not None else self.dt
+        t_end = len(props) * dt + t_start
+        argsCache = self[args]
+        if argsCache.get_expect_evolution(psi, e_ops) is None:
+                    self.e_ops_val = [[]]
+                    self.e_psis = []
+                    self.e_ops = []
+            if psi not in self.e_psis:
+                self.e_psis.append(psi)
+                self.e_ops_val.append([None]*len(self.e_ops))
+            if e_ops not in self.e_ops:
+                self.e_ops.append(e_ops)
+                for one_psi in self.e_ops_val:
+                    one_psi.append(None)
+
+            i = self.e_psis.index(psi)
+            j = self.e_ops.index(psi)
+            self.e_ops_val[i][j]= _SolverCacheOneEvo(t_start, t_end,
+                                                     dt, values)
+        else:
+            expectCache = argsCache.get_expect_evolution(psi, e_ops)
+            expectCache.add(t_start, t_end, dt, states)
+
+    def _need_compute_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
+        t_start = t_start is t_start is not None else self.t_start
+        dt = dt is dt is not None else self.dt
+        argsCache = self[args]
+        if argsCache.get_expect_evolution(psi, e_ops) is None:
+            as_expect = t_start # Need to be computed from the beginning
+        else:
+            expectCache = argsCache.get_expect_evolution(psi, e_ops)
+            as_expect = expectCache.restart(t_start, t_end, dt)
+        return as_expect
+
+    def need_compute_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
+        as_expect = self._need_compute_expect(args, psi, e_ops, t_end, t_start, dt)
+        as_state = t_start
+        if as_expect < t_end:
+            as_state = self.need_compute_state(args, t_end, t_start, dt)
+        return max(as_state, as_expect)
+
+    def get_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
+        t_start = t_start is t_start is not None else self.t_start
+        dt = dt is dt is not None else self.dt
+        argsCache = self[args]
+        as_expect = self._need_compute_expect(args, psi, t_end, t_start, dt)
+
+        if argsCache.get_expect_evolution(psi, e_ops) is None:
+            expects = []
+        else:
+            expectCache = argsCache.get_expect_evolution(psi, e_ops)
+            expects = expectCache(t_start, as_state, dt)
+
+        if as_expect < t_end:
+            stateCache = argsCache.get_state_evolution(psi)
+            states = stateCache(as_state+dt, t_end, dt)
+            new_expects += [e_ops.expect(state) for state in states]
+            self.add_expect(args, psi, e_ops, new_expects, t_end, as_state+dt, dt)
+            expects += new_expects
+
+        return expects
 
 
 
