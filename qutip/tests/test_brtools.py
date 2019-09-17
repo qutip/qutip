@@ -33,7 +33,6 @@
 import numpy as np
 import scipy.linalg as la
 from numpy.testing import assert_equal, assert_, run_module_suite
-import unittest
 from qutip import *
 import qutip.settings as qset
 from qutip.superoperator import mat2vec

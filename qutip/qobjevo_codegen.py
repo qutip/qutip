@@ -299,6 +299,7 @@ code_python_pre = """
 import numpy as np
 import scipy.special as spe
 import scipy
+from qutip.qobjevo import _UnitedFuncCaller
 
 def proj(x):
     if np.isfinite(x):
@@ -332,7 +333,7 @@ abs = np.abs
 norm = lambda x: np.abs(x)**2
 arg = np.angle
 
-class _UnitedStrCaller:
+class _UnitedStrCaller(_UnitedFuncCaller):
     def __init__(self, funclist, args, dynamics_args, cte):
         self.funclist = funclist
         self.args = args

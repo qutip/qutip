@@ -68,7 +68,7 @@ if sys.platform == 'win32':
 try:
     import cython
     use_cython = [True]
-except e:
+except:
     use_cython = [False]
 
 def proj(x):

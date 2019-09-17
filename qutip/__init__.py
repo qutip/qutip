@@ -99,6 +99,10 @@ try:
         print("QuTiP warning: old version of cython detected " +
               ("(%s), requiring %s." %
                (Cython.__version__, _cython_requirement)))
+    # Setup pyximport
+    import qutip.cy.pyxbuilder as pbldr
+    pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
+    del pbldr
 
 except Exception as e:
     print("QuTiP warning: Cython setup failed: " + str(e))
@@ -235,11 +239,6 @@ import distutils.sysconfig
 cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
-
-# Setup pyximport
-import qutip.cy.pyxbuilder as pbldr
-pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
-del pbldr
 
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.

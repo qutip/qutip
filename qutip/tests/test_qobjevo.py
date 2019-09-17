@@ -53,13 +53,10 @@ def _rand_cqobjevo(N=5):
     tlist=np.linspace(0,10,10001)
     tlistlog=np.logspace(-3,1,10001)
     O0, O1, O2 = rand_herm(N), rand_herm(N), rand_herm(N)
-
     cte = [QobjEvo([O0])]
-
     wargs = [QobjEvo([O0,[O1,_f1],[O2,_f2]], args={"w1":1,"w2":2}),
              QobjEvo([O0,[O1,"sin(w1*t)"],[O2,"cos(w2*t)"]],
                      args={"w1":1,"w2":2})]
-
     nargs = [QobjEvo([O0,[O1,np.sin(tlist)],[O2,np.cos(2*tlist)]],tlist=tlist),
              QobjEvo([O0,[O1,np.sin(tlistlog)],[O2,np.cos(2*tlistlog)]],
                      tlist=tlistlog),
@@ -78,12 +75,10 @@ def _random_QobjEvo(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
     """Create a list to make a QobjEvo with up to 3 coefficients"""
     if tlist is None:
         tlist = np.linspace(0,1,301)
-
     Qobj_list = []
     if cte:
         Qobj_list.append(Qobj(np.random.random(shape) + \
                               1j*np.random.random(shape)))
-
     coeff =  [[_f1, "sin(w1*t)",    np.sin(tlist),
                     Cubic_Spline(0,1,np.sin(tlist))],
               [_f2, "cos(w2*t)",    np.cos(tlist),

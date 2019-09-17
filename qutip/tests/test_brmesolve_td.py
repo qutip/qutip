@@ -33,14 +33,22 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_allclose
+import unittest
 from qutip import *
 
+try:
+    import Cython
+except:
+    Cython_OK = False
+else:
+    Cython_OK = _version2int(Cython.__version__) >= _version2int('0.14')
 
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_basic():
     """
     td_brmesolve: passes all brmesolve tests
     """
-    
+
     # Test #1
     delta = 0.0 * 2 * np.pi
     epsilon = 0.5 * 2 * np.pi
@@ -58,7 +66,7 @@ def test_td_brmesolve_basic():
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 1e-2)
 
-    
+
     # Test #2
     delta = 0.0 * 2 * np.pi
     epsilon = 0.5 * 2 * np.pi
@@ -130,7 +138,7 @@ def test_td_brmesolve_basic():
 
     aop_str = "(({0} + 1) * {1})*(w>=0) + (({0}+1)*{1}*exp(w / {2}))*(w<0)" \
         .format(n_th,kappa,w_th)
-    
+
     c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
     a_ops = [[a + a.dag(),aop_str]]
     e_ops = [a.dag() * a, a + a.dag()]
@@ -170,7 +178,7 @@ def test_td_brmesolve_basic():
 
     diff = abs(n_me - n_brme).max()
     assert_(diff < 1e-2)
-    
+
     # Test #7
     N = 10
     kappa = 0.05
@@ -195,7 +203,7 @@ def test_td_brmesolve_basic():
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 5e-2)  # accept 5% error
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_aop():
     """
     td_brmesolve: time-dependent a_ops
@@ -213,7 +221,7 @@ def test_td_brmesolve_aop():
     avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_(avg_diff < 1e-6)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_aop_tuple1():
     """
     td_brmesolve: time-dependent a_ops tuple of strings
@@ -231,7 +239,7 @@ def test_td_brmesolve_aop_tuple1():
     avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_(avg_diff < 1e-6)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_aop_tuple2():
     """
     td_brmesolve: time-dependent a_ops tuple interp
@@ -250,7 +258,7 @@ def test_td_brmesolve_aop_tuple2():
     avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_(avg_diff < 1e-5)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_aop_tuple3():
     """
     td_brmesolve: time-dependent a_ops & c_ops interp
@@ -270,7 +278,7 @@ def test_td_brmesolve_aop_tuple3():
     avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_(avg_diff < 1e-5)
 
-    
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_nonherm_eops():
     """
     td_brmesolve: non-Hermitian e_ops check
@@ -286,7 +294,7 @@ def test_td_brmesolve_nonherm_eops():
     br = brmesolve(H2,psi0,tlist,a_ops=[],e_ops=[a],progress_bar=True)
     assert_(np.max(np.abs(me.expect[0]-br.expect[0])) < 1e-4)
 
-    
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_states():
     """
     td_brmesolve: states check
@@ -300,10 +308,10 @@ def test_td_brmesolve_states():
     tlist = np.linspace(0,10,10)
     me = mesolve(H,psi0,tlist,c_ops=[],e_ops=[],progress_bar=True)
     br = brmesolve(H2,psi0,tlist,a_ops=[],e_ops=[],progress_bar=True)
-    assert_(np.max([np.abs((me.states[kk]-br.states[kk]).full()).max() 
+    assert_(np.max([np.abs((me.states[kk]-br.states[kk]).full()).max()
                 for kk in range(len(tlist))]) < 1e-5)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_split_ops1():
     """
     td_brmesolve: split ops #1
@@ -319,7 +327,7 @@ def test_td_brmesolve_split_ops1():
     H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
     psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
     c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a]
-    a_ops = [[ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), '1', '1') ] , 
+    a_ops = [[ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), '1', '1') ] ,
                 [a+a.dag(), '{0} * (w >= 0)'.format(kappa)]]
     e_ops = [a.dag() * a, a + a.dag()]
 
@@ -329,7 +337,8 @@ def test_td_brmesolve_split_ops1():
     for idx, e in enumerate(e_ops):
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 1e-2)
-    
+
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_split_ops2():
     """
     td_brmesolve: split ops #2
@@ -345,7 +354,7 @@ def test_td_brmesolve_split_ops2():
     H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
     psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
     c_ops = [np.sqrt(kappa) * a, np.sqrt(4*kappa) * a]
-    a_ops = [[a+a.dag(), '{0} * (w >= 0)'.format(kappa)], [ (a, a.dag(), a, a.dag()), 
+    a_ops = [[a+a.dag(), '{0} * (w >= 0)'.format(kappa)], [ (a, a.dag(), a, a.dag()),
                     ('{0} * (w >= 0)'.format(kappa), '1', '1', '1', '1') ]]
 
     e_ops = [a.dag() * a, a + a.dag()]
@@ -356,7 +365,7 @@ def test_td_brmesolve_split_ops2():
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 1e-2)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_split_ops3():
     """
     td_brmesolve: split ops, Cubic_Spline td-terms
@@ -371,10 +380,10 @@ def test_td_brmesolve_split_ops3():
     H = w0 * a.dag() * a + g * (a + a.dag())
     H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
     psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-    
+
     S1 = Cubic_Spline(times[0],times[-1], np.ones_like(times))
     S2 = Cubic_Spline(times[0],times[-1], np.ones_like(times))
-    
+
     c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a, np.sqrt(kappa) * a]
     a_ops = [ [a+a.dag(), '{0} * (w >= 0)'.format(kappa)],  [ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), S1, S2) ]]
     c_ops_br = [np.sqrt(kappa) * a]
@@ -387,7 +396,7 @@ def test_td_brmesolve_split_ops3():
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 1e-2)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_split_ops4():
     """
     td_brmesolve: split ops, multiple
@@ -418,6 +427,7 @@ def test_td_brmesolve_split_ops4():
         diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
         assert_(diff < 1e-2)
 
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_td_brmesolve_args():
     """
     td_brmesolve: Hamiltonian args
