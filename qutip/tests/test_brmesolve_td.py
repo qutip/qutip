@@ -35,6 +35,7 @@ import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_allclose
 import unittest
 from qutip import *
+from qutip import _version2int
 
 try:
     import Cython

@@ -35,6 +35,7 @@ import scipy.interpolate as sint
 from numpy.testing import assert_, assert_equal, run_module_suite
 import unittest
 from qutip import *
+from qutip import _version2int
 
 try:
     import Cython

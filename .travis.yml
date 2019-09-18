@@ -127,6 +127,8 @@ jobs:
     - stage: test
       <<: *stage_linux_37_omp
     - stage: test
+      <<: *stage_linux_37_no_cython
+    - stage: test
       <<: *stage_linux_37_openblas
     - stage: test
       <<: *stage_osx
