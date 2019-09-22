@@ -83,7 +83,7 @@ class Processor(object):
         Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
 
-    spline_type: str, optional
+    spline_kind: str, optional
         Type of the coefficient interpolation. Default is ``step_func``
         Note that they have different requirement for the length of ``coeffs``.
 
@@ -129,12 +129,12 @@ class Processor(object):
         Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
 
-    spline_type: str
+    spline_kind: str
         Type of the coefficient interpolation.
         "step_func" or "cubic"
     """
     def __init__(self, N, ctrls=None, t1=None, t2=None,
-                 dims=None, spline_type="step_func"):
+                 dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
         self.coeffs = None
@@ -149,7 +149,7 @@ class Processor(object):
             self.dims = [2] * N
         else:
             self.dims = dims
-        self.spline_type = spline_type
+        self.spline_kind = spline_kind
 
     def add_ctrl(self, ctrl, targets=None, cyclic_permutation=False):
         """
@@ -212,7 +212,7 @@ class Processor(object):
             raise ValueError("`tlist` is not given.")
         coeff_len = self.coeffs.shape[1]
         tlist_len = len(self.tlist)
-        if self.spline_type == "step_func":
+        if self.spline_kind == "step_func":
             if coeff_len == tlist_len-1 or coeff_len == tlist_len:
                 return True
             else:
@@ -221,13 +221,13 @@ class Processor(object):
                     "It's either len(tlist)=coeffs.shape[1] or "
                     "len(tlist)-1=coeffs.shape[1] for coefficients "
                     "as step function")
-        if self.spline_type == "cubic" and coeff_len == tlist_len:
+        if self.spline_kind == "cubic" and coeff_len == tlist_len:
             return True
         else:
             raise ValueError(
                 "The length of tlist and coeffs is not valid. "
                 "It should be either len(tlist)=coeffs.shape[1]")
-        raise ValueError("Unknown spline_type.")
+        raise ValueError("Unknown spline_kind.")
 
     def _is_ctrl_coeff_valid(self):
         """
@@ -338,18 +338,18 @@ class Processor(object):
         # set step function
         if self.coeffs is None:
             coeffs = np.empty((0, 0))
-        elif self.spline_type == "step_func":
+        elif self.spline_kind == "step_func":
             args.update({"_step_func_coeff": True})
             if self.coeffs.shape[1] == len(self.tlist) - 1:
                 coeffs = np.hstack([self.coeffs, self.coeffs[:, -1:]])
             else:
                 coeffs = self.coeffs
-        elif self.spline_type == "cubic":
+        elif self.spline_kind == "cubic":
             args.update({"_step_func_coeff": False})
             coeffs = self.coeffs
         else:
             raise ValueError(
-                "No option for spline_type '{}'.".format(self.spline_type))
+                "No option for spline_kind '{}'.".format(self.spline_kind))
 
         H_list = []
         for op_ind in range(len(self.ctrls)):
@@ -627,14 +627,14 @@ class Processor(object):
             if not isinstance(coeffs[i], (Iterable, np.ndarray)):
                 raise ValueError(
                     "plot_pulse only accepts array_like coefficients.")
-            if self.spline_type == "step_func":
+            if self.spline_kind == "step_func":
                 if len(coeffs[i]) == len(tlist) - 1:
                     coeffs[i] = np.hstack(
                         [self.coeffs[i], self.coeffs[i, -1:]])
                 else:
                     coeffs[i][-1] = coeffs[i][-2]
                 ax.step(tlist, coeffs[i], where='post')
-            elif self.spline_type == "cubic":
+            elif self.spline_kind == "cubic":
                 sp = CubicSpline(tlist, coeffs[i])
                 t_line = np.linspace(tlist[0], tlist[-1], 200)
                 c_line = [sp(t) for t in t_line]
@@ -727,7 +727,7 @@ class Processor(object):
                     continue
                 op, coeffs = H
                 new_coeff = _fill_coeff(
-                    coeffs, qobjevo.tlist, new_tlist, self.spline_type)
+                    coeffs, qobjevo.tlist, new_tlist, self.spline_kind)
                 H_list[j] = [op, new_coeff]
             # create a new qobjevo with the old arguments
             qobjevo_list[i] = QobjEvo(
@@ -737,12 +737,12 @@ class Processor(object):
         return qobjevo
 
 
-def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_type):
+def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_kind):
     """
     Make a step function coefficients compatible with a longer `tlist` by
     filling the empty slot with the nearest left value.
     """
-    if spline_type == "step_func":
+    if spline_kind == "step_func":
         new_n = len(new_tlist)
         old_ind = 0  # index for old coeffs and tlist
         new_coeff = np.zeros(new_n)
@@ -757,7 +757,7 @@ def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_type):
             if old_tlist[old_ind+1] == t:
                 old_ind += 1
             new_coeff[new_ind] = old_coeffs[old_ind]
-    elif spline_type == "cubic":
+    elif spline_kind == "cubic":
         sp = CubicSpline(old_tlist, old_coeffs)
         new_coeff = np.array([sp(t) for t in new_tlist])
     return new_coeff

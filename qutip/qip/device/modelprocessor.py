@@ -104,7 +104,7 @@ class ModelProcessor(Processor):
         The dimension of each component system.
         Default is dim=[2,2,2,...,2]
 
-    spline_type: str
+    spline_kind: str
         Type of the coefficient interpolation.
         Note that they have different requirement for the length of ``coeffs``.
 

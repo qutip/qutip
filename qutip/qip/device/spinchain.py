@@ -111,7 +111,7 @@ class SpinChain(ModelProcessor):
         The dimension of each component system.
         Default is dim=[2,2,2,...,2]
 
-    spline_type: str
+    spline_kind: str
         Type of the coefficient interpolation.
         Note that they have different requirement for the length of ``coeffs``.
 
@@ -158,7 +158,7 @@ class SpinChain(ModelProcessor):
         super(SpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase, t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
-        self.spline_type = "step_func"
+        self.spline_kind = "step_func"
         # params and ops are set in the submethods
 
     def set_up_ops(self, N):

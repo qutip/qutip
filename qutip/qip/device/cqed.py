@@ -126,7 +126,7 @@ class DispersivecQED(ModelProcessor):
         Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
 
-    spline_type: str
+    spline_kind: str
         Type of the coefficient interpolation.
         Note that they have different requirement for the length of ``coeffs``.
 
@@ -176,7 +176,7 @@ class DispersivecQED(ModelProcessor):
             N, correct_global_phase=correct_global_phase,
             t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
-        self.spline_type = "step_func"
+        self.spline_kind = "step_func"
         self.num_levels = num_levels
         self._paras = {}
         self.set_up_params(
