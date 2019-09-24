@@ -41,6 +41,11 @@ from qutip.cy.inter import _prep_cubic_spline
 import time
 
 
+def delay(filename):
+    if not os.access(filename, os.R_OK):
+        time.sleep(0.01)
+
+
 def _compile_str_single(string, args):
     """Create and import a cython compiled function from text
     """
@@ -87,14 +92,11 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     """
     code = _make_code_4_cimport(ops, args, dyn_args, tlist)
     filename = "cqobjevo_compiled_coeff_"+str(hash(code))[1:]
-
     file_ = open(filename+".pyx", "w")
     file_.writelines(code)
     file_.close()
-    if not os.access(filename+".pyx", os.R_OK):
-        time.sleep(0.01)
+    delay(filename+".pyx")
     import_list = []
-
     import_code = compile('from ' + filename + ' import CompiledStrCoeff\n' +
                           "import_list.append(CompiledStrCoeff)",
                           '<string>', 'exec')
@@ -282,15 +284,11 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     """
     code = _make_code_4_python_import(ops, args, dyn_args, tlist)
     filename = "qobjevo_compiled_coeff_"+str(hash(code))[1:]
-
     file_ = open(filename+".py", "w")
     file_.writelines(code)
     file_.close()
-    if not os.access(filename+".py", os.R_OK):
-        time.sleep(0.01)
-
+    delay(filename+".py")
     import_list = []
-
     import_code = compile('from ' + filename + ' import _UnitedStrCaller\n' +
                           "import_list.append(_UnitedStrCaller)",
                           '<string>', 'exec')
