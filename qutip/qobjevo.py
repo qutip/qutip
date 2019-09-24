@@ -610,8 +610,7 @@ class QobjEvo:
                     expect_op = QobjEvo(self.args[key], copy=False)
                 if update:
                     for ops in self.dynamics_args:
-                        if ops[0] == name:
-                            ops = (name, what, expect_op)
+                        ops = (name, what, expect_op) if ops[0] == name else ops
                 else:
                     self.dynamics_args += [(name, what, expect_op)]
                     if name not in self.args:
