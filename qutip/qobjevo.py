@@ -71,11 +71,13 @@ try:
 except:
     use_cython = [False]
 
+
 def proj(x):
     if np.isfinite(x):
         return (x)
     else:
         return np.inf + 0j * np.imag(x)
+
 
 str_env = {
     "sin": np.sin,
@@ -106,6 +108,7 @@ str_env = {
     "proj": proj,
     "np": np,
     "spe": scipy.special}
+
 
 class _file_list:
     """

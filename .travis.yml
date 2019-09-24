@@ -9,6 +9,7 @@ stage_generic_linux: &stage_generic_linux
     - cd qutip_testing
   # command to run tests
   script:
+    - conda list
     - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
