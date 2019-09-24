@@ -47,6 +47,8 @@ def make_file_code(code):
     file_num = str(make_file_code.file_num)
     make_file_code.file_num += 1
     return now + uniq + file_num
+
+
 make_file_code.file_num = 0
 
 
@@ -100,7 +102,7 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_cimport(ops, args, dyn_args, tlist)
-    filename = "cqobjevo_compiled_coeff_" + make_file_code(Code)
+    filename = "cqobjevo_compiled_coeff_" + make_file_code(code)
     file_ = open(filename+".pyx", "w")
     file_.writelines(code)
     file_.close()
@@ -292,7 +294,7 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_python_import(ops, args, dyn_args, tlist)
-    filename = "qobjevo_compiled_coeff_" + make_file_code(Code)
+    filename = "qobjevo_compiled_coeff_" + make_file_code(code)
     file_ = open(filename+".py", "w")
     file_.writelines(code)
     file_.close()
