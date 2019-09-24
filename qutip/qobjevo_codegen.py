@@ -41,6 +41,15 @@ from qutip.cy.inter import _prep_cubic_spline
 import time
 
 
+def make_file_code(code):
+    now = time.strftime("%d%H%M%S")
+    uniq = str(hash(code))[1:6]
+    file_num = str(make_file_code.file_num)
+    make_file_code.file_num += 1
+    return now + uniq + file_num
+make_file_code.file_num = 0
+
+
 def delay(filename):
     if not os.access(filename, os.R_OK):
         time.sleep(0.05)
@@ -73,7 +82,7 @@ def f(double t, args):
         if name in string:
             Code += "    " + name + " = args['" + name + "']\n"
     Code += "    return " + string + "\n"
-    filename = "td_Qobj_single_str" + str(hash(Code))[1:10]
+    filename = "td_Qobj_single_str" + make_file_code(Code)
     file = open(filename+".pyx", "w")
     file.writelines(Code)
     file.close()
@@ -91,7 +100,7 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_cimport(ops, args, dyn_args, tlist)
-    filename = "cqobjevo_compiled_coeff_"+str(hash(code))[1:10]
+    filename = "cqobjevo_compiled_coeff_" + make_file_code(Code)
     file_ = open(filename+".pyx", "w")
     file_.writelines(code)
     file_.close()
@@ -283,7 +292,7 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_python_import(ops, args, dyn_args, tlist)
-    filename = "qobjevo_compiled_coeff_"+str(hash(code))[1:]
+    filename = "qobjevo_compiled_coeff_" + make_file_code(Code)
     file_ = open(filename+".py", "w")
     file_.writelines(code)
     file_.close()
@@ -292,7 +301,15 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     import_code = compile('from ' + filename + ' import _UnitedStrCaller\n' +
                           "import_list.append(_UnitedStrCaller)",
                           '<string>', 'exec')
-    exec(import_code, locals())
+
+    tries = 0
+    while not import_list and tries < 3:
+        try:
+            exec(import_code, locals())
+        except ModuleNotFoundError:
+            time.sleep(0.2)
+            tries += 1
+
     coeff_obj = import_list[0]
 
     return coeff_obj, code, filename+".py"
