@@ -9,7 +9,6 @@ stage_generic_linux: &stage_generic_linux
     - cd qutip_testing
   # command to run tests
   script:
-    - conda list
     - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
@@ -50,9 +49,10 @@ stage_linux_37_no_cython: &stage_linux_37_no_cython
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install nomkl blas=*=openblas numpy scipy nose cython
+    - conda install -c conda-forge nomkl blas=*=openblas numpy scipy nose cython
+    - conda list
     - python setup.py install
-    - conda uninstall cython
+    - conda uninstall cython --no-update-dependencies
 
 stage_linux_37_openblas: &stage_linux_37_openblas
   <<: *stage_generic_linux
