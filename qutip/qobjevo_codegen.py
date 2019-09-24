@@ -40,6 +40,7 @@ import numpy as np
 from qutip.cy.inter import _prep_cubic_spline
 import time
 
+
 def _compile_str_single(string, args):
     """Create and import a cython compiled function from text
     """
