@@ -126,7 +126,7 @@ class _file_list:
             try:
                 os.remove(file_)
                 to_del.append(i)
-            except:
+            except Exception:
                 if not os.path.isfile(file_):
                     to_del.append(i)
 

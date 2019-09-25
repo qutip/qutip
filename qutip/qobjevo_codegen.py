@@ -41,20 +41,42 @@ from qutip.cy.inter import _prep_cubic_spline
 import time
 
 
-def make_file_code(code):
-    now = time.strftime("%d%H%M%S")
-    uniq = str(hash(code))[1:6]
-    file_num = str(make_file_code.file_num)
-    make_file_code.file_num += 1
-    return now + uniq + file_num
-
-
-make_file_code.file_num = 0
-
-
-def delay(filename):
-    if not os.access(filename, os.R_OK):
-        time.sleep(0.05)
+def import_str(code, basefilename, obj_name, cythonfile=False):
+    filename = basefilename + str(hash(code))[1:6]
+    tries = 0
+    import_list = []
+    ext = ".pyx" if cythonfile else ".py"
+    while not import_list and tries < 3:
+        try:
+            try_file = filename + time.strftime("%d%H%M%S") + str(tries)
+            file_ = open(try_file+ext, "w")
+            file_.writelines(code)
+            file_.close()
+            if not os.access(try_file, os.R_OK):
+                time.sleep(0.1)
+            import_code = compile('from ' + try_file +
+                                  ' import ' + obj_name + '\n'
+                                  "import_list.append(" + obj_name + ")",
+                                  '<string>', 'exec')
+            exec(import_code, locals())
+        except ModuleNotFoundError:
+            time.sleep(0.2)
+            tries += 1
+            try:
+                os.remove(try_file+ext)
+            except Exception:
+                pass
+        except ImportError:
+            tries += 1
+            try:
+                os.remove(try_file+ext)
+            except Exception:
+                pass
+    if not import_list:
+        raise Exception("Could not convert string to importable function, "
+                        "tmpfile:" + try_file + ext)
+    coeff_obj = import_list[0]
+    return coeff_obj, try_file + ext
 
 
 def _compile_str_single(string, args):
@@ -84,17 +106,8 @@ def f(double t, args):
         if name in string:
             Code += "    " + name + " = args['" + name + "']\n"
     Code += "    return " + string + "\n"
-    filename = "td_Qobj_single_str" + make_file_code(Code)
-    file = open(filename+".pyx", "w")
-    file.writelines(Code)
-    file.close()
-    str_func = []
-    import_code = compile('from ' + filename + ' import f\n'
-                          "str_func.append(f)",
-                          '<string>', 'exec')
-    exec(import_code, locals())
 
-    return str_func[0], filename
+    return import_str(Code, "td_Qobj_single_str", "f", True)
 
 
 def _compiled_coeffs(ops, args, dyn_args, tlist):
@@ -102,19 +115,9 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_cimport(ops, args, dyn_args, tlist)
-    filename = "cqobjevo_compiled_coeff_" + make_file_code(code)
-    file_ = open(filename+".pyx", "w")
-    file_.writelines(code)
-    file_.close()
-    delay(filename+".pyx")
-    import_list = []
-    import_code = compile('from ' + filename + ' import CompiledStrCoeff\n' +
-                          "import_list.append(CompiledStrCoeff)",
-                          '<string>', 'exec')
-    exec(import_code, locals())
-    coeff_obj = import_list[0](ops, args, tlist, dyn_args)
-
-    return coeff_obj, code, filename+".pyx"
+    coeff_obj, filename = import_str(code, "cqobjevo_compiled_coeff_",
+                                     "CompiledStrCoeff", True)
+    return coeff_obj(ops, args, tlist, dyn_args), code, filename
 
 
 def _make_code_4_cimport(ops, args, dyn_args, tlist):
@@ -294,27 +297,9 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_python_import(ops, args, dyn_args, tlist)
-    filename = "qobjevo_compiled_coeff_" + make_file_code(code)
-    file_ = open(filename+".py", "w")
-    file_.writelines(code)
-    file_.close()
-    delay(filename+".py")
-    import_list = []
-    import_code = compile('from ' + filename + ' import _UnitedStrCaller\n' +
-                          "import_list.append(_UnitedStrCaller)",
-                          '<string>', 'exec')
-
-    tries = 0
-    while not import_list and tries < 3:
-        try:
-            exec(import_code, locals())
-        except ModuleNotFoundError:
-            time.sleep(0.2)
-            tries += 1
-
-    coeff_obj = import_list[0]
-
-    return coeff_obj, code, filename+".py"
+    coeff_obj, filename = import_str(code, "qobjevo_compiled_coeff_",
+                                     "_UnitedStrCaller", False)
+    return coeff_obj, code, filename
 
 
 code_python_pre = """
