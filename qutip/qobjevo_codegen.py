@@ -59,14 +59,8 @@ def import_str(code, basefilename, obj_name, cythonfile=False):
                                   "import_list.append(" + obj_name + ")",
                                   '<string>', 'exec')
             exec(import_code, locals())
-        except ModuleNotFoundError:
-            time.sleep(0.2)
-            tries += 1
-            try:
-                os.remove(try_file+ext)
-            except Exception:
-                pass
-        except ImportError:
+        except (ModuleNotFoundError, ImportError):
+            time.sleep(0.05)
             tries += 1
             try:
                 os.remove(try_file+ext)
