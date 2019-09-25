@@ -41,6 +41,13 @@ from qutip.cy.inter import _prep_cubic_spline
 import time
 
 
+def _try_remove(filename):
+    try:
+        os.remove(filename)
+    except Exception:
+        pass
+
+
 def import_str(code, basefilename, obj_name, cythonfile=False):
     filename = basefilename + str(hash(code))[1:6]
     tries = 0
@@ -62,10 +69,7 @@ def import_str(code, basefilename, obj_name, cythonfile=False):
         except (ModuleNotFoundError, ImportError):
             time.sleep(0.05)
             tries += 1
-            try:
-                os.remove(try_file+ext)
-            except Exception:
-                pass
+            _try_remove(try_file+ext)
     if not import_list:
         raise Exception("Could not convert string to importable function, "
                         "tmpfile:" + try_file + ext)
