@@ -33,7 +33,7 @@
 
 import numpy as np
 from numpy.testing import assert_, assert_almost_equal, assert_array_equal
-from qutip import basis, isequal, sigmax, sigmay, sigmaz
+from qutip import basis, isequal, ket2dm, sigmax, sigmay, sigmaz
 from qutip.measurement import measure, measurement_statistics
 
 
@@ -46,6 +46,11 @@ class EigenPairs:
 
     def __getitem__(self, i):
         return self.pairs[i]
+
+
+def pairs2dm(pairs):
+    """ Convert eigenpair entries into eigenvalue and density matrix pairs. """
+    return [(v, ket2dm(e)) for v, e in pairs]
 
 
 SIGMAZ = EigenPairs([
@@ -85,17 +90,26 @@ def test_measurement_statistics_sigmaz():
     check_measurement_statistics(
         sigmaz(), basis(2, 0), SIGMAZ, [0, 1],
     )
+    check_measurement_statistics(
+        sigmaz(), ket2dm(basis(2, 0)), SIGMAZ, [0, 1],
+    )
 
 
 def test_measurement_statistics_sigmax():
     check_measurement_statistics(
         sigmax(), basis(2, 0), SIGMAX, [0.5, 0.5],
     )
+    check_measurement_statistics(
+        sigmax(), ket2dm(basis(2, 0)), SIGMAX, [0.5, 0.5],
+    )
 
 
 def test_measurement_statistics_sigmay():
     check_measurement_statistics(
         sigmay(), basis(2, 0), SIGMAY, [0.5, 0.5],
+    )
+    check_measurement_statistics(
+        sigmay(), ket2dm(basis(2, 0)), SIGMAY, [0.5, 0.5],
     )
 
 
@@ -111,6 +125,8 @@ def check_measure(op, state, expected_measurements, seed=0):
 def test_measure_sigmaz():
     check_measure(sigmaz(), basis(2, 0), [SIGMAZ[1]] * 5)
     check_measure(sigmaz(), basis(2, 1), [SIGMAZ[0]] * 5)
+    check_measure(sigmaz(), ket2dm(basis(2, 0)), pairs2dm([SIGMAZ[1]] * 5))
+    check_measure(sigmaz(), ket2dm(basis(2, 1)), pairs2dm([SIGMAZ[0]] * 5))
 
 
 def test_measure_sigmax():
@@ -127,6 +143,10 @@ def test_measure_sigmax():
         [SIGMAX[0], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
         seed=42,
     )
+    check_measure(
+        sigmax(), ket2dm(basis(2, 0)),
+        pairs2dm([SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]]),
+    )
 
 
 def test_measure_sigmay():
@@ -141,5 +161,10 @@ def test_measure_sigmay():
     check_measure(
         sigmay(), basis(2, 1),
         [SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
+        seed=42,
+    )
+    check_measure(
+        sigmay(), ket2dm(basis(2, 1)),
+        pairs2dm([SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]]),
         seed=42,
     )
