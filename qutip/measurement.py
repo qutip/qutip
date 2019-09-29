@@ -36,76 +36,57 @@ Module for measuring quantum objects.
 
 import numpy as np
 
-from qutip import basis, tensor, identity, ket2dm
 
-
-def _qubit_projector(outcome, i, n):
-    v = basis(2, outcome)
-    id2 = identity(2)
-    op = v * v.dag()
-    return tensor([id2] * i + [op] + [id2] * (n - i - 1))
-
-
-def measure_qubit(qobj_in, i):
+def measurement_statistics(op, state):
     """
-    Measure a single qubit from a multiple qubit state.
+    Return the measurement eigenvalues, eigenstates and probabilities
+    for the given state and measurement operator.
 
     Parameters
     ----------
-    qobj_in : :class:`qutip.Qobj`
-        The input multiple qubit state.
-    i : int
-        The qubit to measure.
+    op : Qobj
+        The measurement operator.
+    state : Qobj
+        The ket or density matrix specifying the state to measure.
 
     Returns
     -------
-    outcome : int
-        The outcome of the measurement.
-    qobj_out : :class:`qutip.Qobj`
-        Quantum object representing the post measurement state.
+    eigenvalues: List of floats
+        The list of eigenvalues of the measurement operator.
+    eigenstates: List of Qobj
+        The eigenstates of the measurement operator.
+    probabilities: List of floats
+        The probability of measuring the state as being in the
+        corresponding eigenstate (and the measurement result being
+        the corresponding eigenvalue).
     """
-    n = len(qobj_in.dims[0])
-
-    m0 = _qubit_projector(0, i, n)
-    p0 = (m0 * qobj_in).ptrace(i).tr().real
-
-    m1 = _qubit_projector(1, i, n)
-    p1 = (m1 * qobj_in).ptrace(i).tr().real
-
-    outcome = int(np.random.choice([0, 1], 1, p=[p0, p1]))
-
-    if outcome == 0:
-        qobj_out = m0 * qobj_in / np.sqrt(p0)
-    else:
-        qobj_out = m1 * qobj_in / np.sqrt(p1)
-
-    return outcome, qobj_out
-
-
-def measure(state, op, subsys=None):
-    # we return a ket if the state is a ket and subsys is None
-    # in all other cases we return a density matrix regardless of
-    # whether state was a ket or a density matric to start with
-    #
-    # subsys is passed into .ptrace as select
-    #
-    # if subsys is a list, op should also be a list
-    if state.isket:
-        state = ket2dm(state)
-    if subsys is not None:
-        state = state.ptrace(subsys)
-        # e.g. N = 5 & sel = 2
-        # need to reconstruct at the end
-
+    # TODO: Add support for density matrix.
     eigenvalues, eigenstates = op.eigenstates()
     projectors = [v * v.dag() for v in eigenstates]
-    probabilities = [(p * state).tr() for p in projectors]
+    probabilities = [(p * state).norm() ** 2 for p in projectors]
+    return eigenvalues, eigenstates, probabilities
 
+
+def measure(op, state):
+    """
+    Perform a measure specified by an operator on the given state.
+
+    Parameters
+    ----------
+    op : Qobj
+        The measurement operator.
+    state : Qobj
+        The ket or density matrix specifying the state to measure.
+
+    Returns
+    -------
+    measured_value : float
+        The result of the measurement (one of the eigenvalues of op).
+    state : Qobj
+        The new state (a ket if a ket was given, otherwise a density
+        matrix).
+    """
+    # TODO: Add support for density matrix.
+    eigenvalues, eigenstates, probabilities = measurement_statistics(op, state)
     i = np.random.choice(range(len(eigenvalues)), p=probabilities)
-    # out_state = projectors[i] * state * projectors[i] / probabilities[i]
-    out_state = eigenstates[i]
-    # out_state = projectors[i] * state / np.sqrt(probabilities[i])
-
-    # out_state = tensor(ptrace(1..i), measure_result[i], ptrace(i+1..n))
-
-    return eigenvalues[i], out_state
+    return eigenvalues[i], eigenstates[i]

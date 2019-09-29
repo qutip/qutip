@@ -32,84 +32,106 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import assert_, assert_almost_equal
-from qutip import basis, qubit_states, tensor, sigmax, sigmaz
-from qutip.measurement import measure_qubit, measure
+from numpy.testing import assert_, assert_almost_equal, assert_array_equal
+from qutip import basis, isequal, sigmax, sigmay, sigmaz
+from qutip.measurement import measure, measurement_statistics
 
 
-def assert_measure_qubits(qobj_in, i, outcomes):
-    outcome, qobj_out = measure_qubit(qobj_in, i)
-    assert_(outcome in outcomes)
-    assert_almost_equal(qobj_out.norm(), 1)
-    assert_(qobj_out == outcomes[outcome])
+class EigenPairs:
+    def __init__(self, pairs):
+        self.pairs = pairs
+        self.eigenvalues = [p[0] for p in pairs]
+        self.eigenstates = [p[1] for p in pairs]
+
+    def __getitem__(self, i):
+        return self.pairs[i]
 
 
-def _test_measure_qubits_n_1():
-    q0 = qubit_states(1, [0])
-    assert_measure_qubits(q0, 0, {0: q0})
+SIGMAZ = EigenPairs([
+    (-1, -basis(2, 1)),
+    (1, -basis(2, 0)),
+])
 
-    q1 = qubit_states(1, [1])
-    assert_measure_qubits(q1, 0, {1: q1})
+SIGMAX = EigenPairs([
+    (-1, (-basis(2, 0) + basis(2, 1)).unit()),
+    (1, (basis(2, 0) + basis(2, 1)).unit()),
+])
 
-    for p in np.linspace(0, 1, 5):
-        qb = qubit_states(1, [np.sqrt(p)])
-        assert_measure_qubits(qb, 0, {0: q0, 1: q1})
-
-
-def _test_measure_qubits_n_2():
-    q0 = qubit_states(1, [0])
-    q1 = qubit_states(1, [1])
-
-    for p in np.linspace(0, 1, 5):
-        qb = qubit_states(2, [np.sqrt(p), 0])
-        assert_measure_qubits(qb, 0, {
-            0: tensor(q0, q0),
-            1: tensor(q1, q0),
-        })
-
-    for p in np.linspace(0, 1, 5):
-        qb = qubit_states(2, [0, np.sqrt(p)])
-        assert_measure_qubits(qb, 1, {
-            0: tensor(q0, q0),
-            1: tensor(q0, q1),
-        })
-
-    for p1 in np.linspace(0, 1, 5):
-        for p2 in np.linspace(0, 1, 5):
-            qb = qubit_states(2, [np.sqrt(p1), np.sqrt(p2)])
-            assert_measure_qubits(qb, 0, {
-                0: tensor(q0, qubit_states(1, [np.sqrt(p2)])),
-                1: tensor(q1, qubit_states(1, [np.sqrt(p2)])),
-            })
-            assert_measure_qubits(qb, 1, {
-                0: tensor(qubit_states(1, [np.sqrt(p1)]), q0),
-                1: tensor(qubit_states(1, [np.sqrt(p1)]), q1),
-            })
+SIGMAY = EigenPairs([
+    (-1, (-basis(2, 0) + 1j * basis(2, 1)).unit()),
+    (1, (-basis(2, 0) - 1j * basis(2, 1)).unit()),
+])
 
 
-def test_measure_1():
-    state = basis(2, 0)
-    op = sigmaz()
-    e_v, new_state = measure(state, op)
-    assert_(e_v == 1)
-    assert_(new_state == -1 * state)
+def check_measurement_statistics(
+        op, state, pairs, probabilities):
+    evs, ess, prs = measurement_statistics(op, state)
+    assert_array_equal(evs, pairs.eigenvalues)
+    assert_(len(ess), len(pairs.eigenstates))
+    for a, b in zip(ess, pairs.eigenstates):
+        assert_(isequal(a, b))
+    assert_almost_equal(prs, probabilities)
 
 
-def test_measure_2():
-    state = (basis(2, 0) + basis(2, 1)).unit()
-    op = sigmax()
-    e_v, new_state = measure(state, op)
-    assert_(e_v == 1)
-    assert_(new_state == state)
+def test_measurement_statistics_sigmaz():
+    check_measurement_statistics(
+        sigmaz(), basis(2, 0), SIGMAZ, [0, 1],
+    )
 
 
-def test_measure_3():
-    state = (basis(2, 0) + basis(2, 1)).unit()
-    op = sigmaz()
-    e_v, new_state = measure(state, op)
-    assert_(e_v in (-1, 1))
-    if e_v == 1:
-        assert_(new_state == -1 * basis(2, 0))
-    else:
-        assert_(new_state == -1 * basis(2, 1))
-    print(e_v)
+def test_measurement_statistics_sigmax():
+    check_measurement_statistics(
+        sigmax(), basis(2, 0), SIGMAX, [0.5, 0.5],
+    )
+
+
+def test_measurement_statistics_sigmay():
+    check_measurement_statistics(
+        sigmay(), basis(2, 0), SIGMAY, [0.5, 0.5],
+    )
+
+
+def check_measure(op, state, expected_measurements, seed=0):
+    np.random.seed(seed)
+    measurements = []
+    for _ in expected_measurements:
+        value, new_state = measure(op, state)
+        measurements.append((value, new_state))
+    assert_(measurements == expected_measurements)
+
+
+def test_measure_sigmaz():
+    check_measure(sigmaz(), basis(2, 0), [SIGMAZ[1]] * 5)
+    check_measure(sigmaz(), basis(2, 1), [SIGMAZ[0]] * 5)
+
+
+def test_measure_sigmax():
+    check_measure(
+        sigmax(), basis(2, 0),
+        [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
+    )
+    check_measure(
+        sigmax(), basis(2, 1),
+        [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
+    )
+    check_measure(
+        sigmax(), basis(2, 0),
+        [SIGMAX[0], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
+        seed=42,
+    )
+
+
+def test_measure_sigmay():
+    check_measure(
+        sigmay(), basis(2, 0),
+        [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
+    )
+    check_measure(
+        sigmay(), basis(2, 1),
+        [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
+    )
+    check_measure(
+        sigmay(), basis(2, 1),
+        [SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
+        seed=42,
+    )
