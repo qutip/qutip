@@ -42,35 +42,43 @@ class EigenPairs:
         self.pairs = pairs
         self.eigenvalues = [p[0] for p in pairs]
         self.eigenstates = [p[1] for p in pairs]
+        self.projectors = [v * v.dag() for v in self.eigenstates]
 
     def __getitem__(self, i):
         return self.pairs[i]
 
 
 SIGMAZ = EigenPairs([
-    (-1, -basis(2, 1)),
-    (1, -basis(2, 0)),
+    (-1.0, -basis(2, 1)),
+    (1.0, -basis(2, 0)),
 ])
 
 SIGMAX = EigenPairs([
-    (-1, (-basis(2, 0) + basis(2, 1)).unit()),
-    (1, (basis(2, 0) + basis(2, 1)).unit()),
+    (-1.0, (-basis(2, 0) + basis(2, 1)).unit()),
+    (1.0, (basis(2, 0) + basis(2, 1)).unit()),
 ])
 
 SIGMAY = EigenPairs([
-    (-1, (-basis(2, 0) + 1j * basis(2, 1)).unit()),
-    (1, (-basis(2, 0) - 1j * basis(2, 1)).unit()),
+    (-1.0, (-basis(2, 0) + 1j * basis(2, 1)).unit()),
+    (1.0, (-basis(2, 0) - 1j * basis(2, 1)).unit()),
 ])
 
 
 def check_measurement_statistics(
         op, state, pairs, probabilities):
-    evs, ess, prs = measurement_statistics(op, state)
+    evs, ess_or_projs, probs = measurement_statistics(op, state)
     assert_array_equal(evs, pairs.eigenvalues)
-    assert_(len(ess), len(pairs.eigenstates))
-    for a, b in zip(ess, pairs.eigenstates):
-        assert_(isequal(a, b))
-    assert_almost_equal(prs, probabilities)
+    if state.isket:
+        ess = ess_or_projs
+        assert_(len(ess), len(pairs.eigenstates))
+        for a, b in zip(ess, pairs.eigenstates):
+            assert_(isequal(a, b))
+    else:
+        projs = ess_or_projs
+        assert_(len(projs), len(pairs.projectors))
+        for a, b in zip(projs, pairs.projectors):
+            assert_(isequal(a, b))
+    assert_almost_equal(probs, probabilities)
 
 
 def test_measurement_statistics_sigmaz():

@@ -53,18 +53,22 @@ def measurement_statistics(op, state):
     -------
     eigenvalues: List of floats
         The list of eigenvalues of the measurement operator.
-    eigenstates: List of Qobj
-        The eigenstates of the measurement operator.
+    eigenstates_or_projectors: List of Qobj
+        If the state was a ket, return the eigenstates of the measurement
+        operator. Otherwise return the projectors onto the eigenstates.
     probabilities: List of floats
         The probability of measuring the state as being in the
         corresponding eigenstate (and the measurement result being
         the corresponding eigenvalue).
     """
-    # TODO: Add support for density matrix.
     eigenvalues, eigenstates = op.eigenstates()
-    projectors = [v * v.dag() for v in eigenstates]
-    probabilities = [(p * state).norm() ** 2 for p in projectors]
-    return eigenvalues, eigenstates, probabilities
+    if state.isket:
+        probabilities = [(e.dag() * state).norm() ** 2 for e in eigenstates]
+        return eigenvalues, eigenstates, probabilities
+    else:
+        projectors = [v * v.dag() for v in eigenstates]
+        probabilities = [(p * state).tr() for p in projectors]
+        return eigenvalues, projectors, probabilities
 
 
 def measure(op, state):
@@ -86,7 +90,13 @@ def measure(op, state):
         The new state (a ket if a ket was given, otherwise a density
         matrix).
     """
-    # TODO: Add support for density matrix.
-    eigenvalues, eigenstates, probabilities = measurement_statistics(op, state)
+    eigenvalues, eigenstates_or_projectors, probabilities = (
+        measurement_statistics(op, state))
     i = np.random.choice(range(len(eigenvalues)), p=probabilities)
-    return eigenvalues[i], eigenstates[i]
+    if state.isket:
+        eigenstates = eigenstates_or_projectors
+        state = eigenstates[i]
+    else:
+        projectors = eigenstates_or_projectors
+        state = (projectors[i] * state * projectors[i]) / probabilities[i]
+    return eigenvalues[i], state
