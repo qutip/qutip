@@ -39,8 +39,8 @@ import numpy as np
 
 def measurement_statistics(op, state):
     """
-    Return the measurement eigenvalues, eigenstates and probabilities
-    for the given state and measurement operator.
+    Return the measurement eigenvalues, eigenstates (or projectors) and
+    measurement probabilities for the given state and measurement operator.
 
     Parameters
     ----------
@@ -73,7 +73,7 @@ def measurement_statistics(op, state):
 
 def measure(op, state):
     """
-    Perform a measure specified by an operator on the given state.
+    Perform a measurement specified by an operator on the given state.
 
     Parameters
     ----------
