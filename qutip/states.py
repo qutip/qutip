@@ -69,7 +69,7 @@ def basis(N, n=0, offset=0):
 
     Returns
     -------
-    state : qobj
+    state : :class:`qutip.Qobj`
       Qobj representing the requested number state ``|n>``.
 
     Examples
@@ -927,7 +927,7 @@ def enr_fock(dims, excitations, state):
         raise ValueError("The state tuple %s is not in the restricted "
                          "state space" % str(tuple(state)))
 
-    return Qobj(data, dims=[dims, 1])
+    return Qobj(data, dims=[dims, [1]*len(dims)])
 
 
 def enr_thermal_dm(dims, excitations, n):

@@ -39,8 +39,13 @@ import scipy
 from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
                    operator_to_vector, mat2vec, vec2mat, vec2mat_index,
                    mat2vec_index, tensor, sprepost, to_super, reshuffle,
-                   identity)
-from qutip.superoperator import liouvillian, liouvillian_ref
+                   identity, destroy, create, qeye, QobjEvo)
+from qutip.superoperator import liouvillian, liouvillian_ref, \
+                                lindblad_dissipator
+
+
+def f(t, args):
+    return t*(1-0.5j)
 
 
 class TestMatVec:
@@ -182,6 +187,69 @@ class TestMatVec:
         L2 = liouvillian_ref(H, c_ops)
 
         assert_((L1 - L2).norm('max') < 1e-8)
+
+
+
+class TestSuper_td:
+    """
+    A test class for the QuTiP superoperator functions.
+    """
+
+    def __init__(self):
+        N = 3
+        self.t1 = QobjEvo([qeye(N)*(1.+0.1j),[create(N)*(1.-0.1j),f]])
+        self.t2 = QobjEvo([destroy(N)*(1.-0.2j)])
+        self.t3 = QobjEvo([[destroy(N)*create(N)*(1.+0.2j),f]])
+        self.q1 = qeye(N)*(1.+0.3j)
+        self.q2 = destroy(N)*(1.-0.3j)
+        self.q3 = destroy(N)*create(N)*(1.+0.4j)
+
+    def test_spre_td(self):
+        "Superoperator: spre, time-dependent"
+        assert_(spre(self.t1)(.5) == spre(self.t1(.5)))
+
+    def test_spost_td(self):
+        "Superoperator: spre, time-dependent"
+        assert_(spost(self.t1)(.5) == spost(self.t1(.5)))
+
+    def test_sprepost_td(self):
+        "Superoperator: sprepost, time-dependent"
+        # left QobjEvo
+        assert_(sprepost(self.t1, self.q2)(.5) ==
+                sprepost(self.t1(.5), self.q2))
+        # left QobjEvo
+        assert_(sprepost(self.q2, self.t1)(.5) ==
+                sprepost(self.q2, self.t1(.5)))
+        # left 2 QobjEvo, one cte
+        assert_(sprepost(self.t1, self.t2)(.5) ==
+                sprepost(self.t1(.5), self.t2(.5)))
+
+    def test_operator_vector_td(self):
+        "Superoperator: operator_to_vector, time-dependent"
+        assert_(operator_to_vector(self.t1)(.5) ==
+                operator_to_vector(self.t1(.5)))
+        vec = operator_to_vector(self.t1)
+        assert_(vector_to_operator(vec)(.5) == vector_to_operator(vec(.5)))
+
+    def test_liouvillian_td(self):
+        "Superoperator: liouvillian, time-dependent"
+        assert_(liouvillian(self.t1)(0.5) == liouvillian(self.t1(0.5)))
+        assert_(liouvillian(None, [self.t2])(0.5) ==
+                liouvillian(None, [self.t2(0.5)]))
+        assert_(liouvillian(self.t1, [self.t2, self.q1, self.t3],
+                            chi=[1,2,3])(0.5) ==
+                liouvillian(self.t1(0.5), [self.t2(0.5), self.q1, self.t3(0.5)],
+                            chi=[1,2,3]))
+
+    def test_lindblad_dissipator_td(self):
+        "Superoperator: lindblad_dissipator, time-dependent"
+        assert_(lindblad_dissipator(self.t2)(.5) ==
+                lindblad_dissipator(self.t2(.5)))
+        assert_(lindblad_dissipator(self.t2, self.q1)(.5) ==
+                lindblad_dissipator(self.t2(.5), self.q1))
+        assert_(lindblad_dissipator(self.q1, self.t2)(.5) ==
+                lindblad_dissipator(self.q1, self.t2(.5)))
+
 
 
 if __name__ == "__main__":

@@ -47,7 +47,9 @@ from scipy import angle, pi, exp, sqrt
 from types import FunctionType
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
-from qutip.mesolve import mesolve
+#from qutip.mesolve import mesolve
+from qutip.sesolve import sesolve
+from qutip.rhs_generate import rhs_clear
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.states import projection
@@ -159,10 +161,8 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
         The Floquet modes as kets at time :math:`t`
 
     """
-
     # find t in [0,T] such that t_orig = t + n * T for integer n
     t = t - int(t / T) * T
-
     f_modes_t = []
 
     # get the unitary propagator from 0 to t
@@ -171,7 +171,6 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
 
         for n in np.arange(len(f_modes_0)):
             f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n] * t))
-
     else:
         f_modes_t = f_modes_0
 
@@ -212,7 +211,6 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
         A nested list of Floquet modes as kets for each time in `tlist`
 
     """
-
     # truncate tlist to the driving period
     tlist_period = tlist[np.where(tlist <= T)]
 
@@ -220,9 +218,10 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
 
     opt = Options()
     opt.rhs_reuse = True
+    rhs_clear()
 
     for n, f_mode in enumerate(f_modes_0):
-        output = mesolve(H, f_mode, tlist_period, [], [], args, opt)
+        output = sesolve(H, f_mode, tlist_period, [], args, opt)
         for t_idx, f_state_t in enumerate(output.states):
             f_modes_table_t[t_idx].append(
                 f_state_t * exp(1j * f_energies[n] * tlist_period[t_idx]))
@@ -434,7 +433,8 @@ def floquet_state_decomposition(f_states, f_energies, psi):
         The coefficients :math:`c_\\alpha` in the Floquet state decomposition.
 
     """
-    return [(f_states[i].dag() * psi).data[0, 0]
+    # [:1,:1][0, 0] patch around scipy 1.3.0 bug
+    return [(f_states[i].dag() * psi).data[:1, :1][0, 0]
             for i in np.arange(len(f_energies))]
 
 def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
@@ -619,8 +619,9 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
             for b in range(N):
                 k_idx = 0
                 for k in range(-kmax, kmax + 1, 1):
+                    # [:1,:1][0, 0] patch around scipy 1.3.0 bug
                     X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
-                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[0, 0]
+                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[:1, :1][0, 0]
                     k_idx += 1
 
     Heaviside = lambda x: ((np.sign(x) + 1) / 2.0)
@@ -934,10 +935,10 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
-    
+
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
+
     if T is None:
         T = max(tlist)
 

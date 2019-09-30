@@ -31,9 +31,14 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy.testing import assert_, run_module_suite
-from qutip.qip.gates import gate_sequence_product
+import numpy as np
+from numpy.testing import assert_, assert_allclose, run_module_suite
+from qutip.qip.gates import gate_sequence_product, rx, identity, expand_operator
 from qutip.qip.circuit import QubitCircuit, Gate
+from qutip.tensor import tensor
+from qutip.qobj import Qobj, ptrace
+from qutip.random_objects import rand_dm
+from qutip.states import fock_dm
 
 
 class TestQubitCircuit:
@@ -125,6 +130,18 @@ class TestQubitCircuit:
         U2 = gate_sequence_product(qc2.propagators())
         assert_((U1 - U2).norm() < 1e-12)
 
+    def testSNOTdecompose(self):
+        """
+        SNOT to rotation: compare unitary matrix for SNOT and product of
+        resolved matrices in terms of rotation gates.
+        """
+        qc1 = QubitCircuit(1)
+        qc1.add_gate("SNOT", targets=0)
+        U1 = gate_sequence_product(qc1.propagators())
+        qc2 = qc1.resolve_gates()
+        U2 = gate_sequence_product(qc2.propagators())
+        assert_((U1 - U2).norm() < 1e-12)
+
     def testadjacentgates(self):
         """
         Adjacent Gates: compare unitary matrix for ISWAP and product of
@@ -147,6 +164,9 @@ class TestQubitCircuit:
         test_gate = Gate("RZ", targets=[1], arg_value = 1.570796,
                          arg_label="P")
         qc.add_gate(test_gate)
+        qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
+        qc.add_gate("SNOT", targets=[3])
+        qc.add_gate(test_gate, index = [3])
 
         # Test explicit gate addition
         assert_(qc.gates[0].name == "CNOT")
@@ -157,6 +177,11 @@ class TestQubitCircuit:
         assert_(qc.gates[1].name == test_gate.name)
         assert_(qc.gates[1].targets == test_gate.targets)
         assert_(qc.gates[1].controls == test_gate.controls)
+
+        # Test specified position gate addition
+        assert_(qc.gates[3].name == test_gate.name)
+        assert_(qc.gates[3].targets == test_gate.targets)
+        assert_(qc.gates[3].controls == test_gate.controls)
 
     def test_add_state(self):
         """
@@ -219,6 +244,54 @@ class TestQubitCircuit:
         assert_(qc.input_states[0] == "0")
         assert_(qc.input_states[2] == None)
         assert_(qc.output_states[1] == "+")
+
+    def test_user_gate(self):
+        """
+        User defined gate for QubitCircuit
+        """
+        def customer_gate1(arg_values):
+            mat = np.zeros((4, 4), dtype=np.complex)
+            mat[0, 0] = mat[1, 1] = 1.
+            mat[2:4, 2:4] = rx(arg_values)
+            return Qobj(mat, dims=[[2, 2], [2, 2]])
+
+        def customer_gate2(arg_values):
+            mat = np.array([[1.,   0],
+                            [0., 1.j]])
+            return Qobj(mat, dims=[[2], [2]])
+
+        qc = QubitCircuit(3)
+        qc.user_gates = {"CTRLRX": customer_gate1,
+                         "T": customer_gate2}
+        qc.add_gate("CTRLRX", targets=[1, 2], arg_value=np.pi/2)
+        qc.add_gate("T", targets=[1])
+        props = qc.propagators()
+        result1 = tensor(identity(2), customer_gate1(np.pi/2))
+        assert_allclose(props[0], result1)
+        result2 = tensor(identity(2), customer_gate2(None), identity(2))
+        assert_allclose(props[1], result2)
+
+    def test_N_level_system(self):
+        """
+        Test for circuit with N-level system.
+        """
+        mat3 = rand_dm(3, density=1.)
+
+        def controlled_mat3(arg_value):
+            """
+            A qubit control an operator acting on a 3 level system
+            """
+            control_value = arg_value
+            dim = mat3.dims[0][0]
+            return (tensor(fock_dm(2, control_value), mat3) +
+                    tensor(fock_dm(2, 1 - control_value), identity(dim)))        
+
+        qc = QubitCircuit(2, dims=[3, 2])
+        qc.user_gates = {"CTRLMAT3": controlled_mat3}
+        qc.add_gate("CTRLMAT3", targets=[1, 0], arg_value=1)
+        props = qc.propagators()
+        assert_allclose(mat3, ptrace(props[0], 0) - 1)
+
 
 if __name__ == "__main__":
     run_module_suite()

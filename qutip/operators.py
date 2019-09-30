@@ -266,7 +266,7 @@ def sigmap():
 
     Examples
     --------
-    >>> sigmam()
+    >>> sigmap()
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =
@@ -732,7 +732,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     See Also
     --------
-    scipy.sparse.diags for usage information.
+    scipy.sparse.diags : for usage information.
 
     Notes
     -----

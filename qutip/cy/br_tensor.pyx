@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, The QuTiP Project.
@@ -50,7 +52,7 @@ def _br_term(complex[::1,:] A, complex[::1,:] evecs,
                 double[:,::1] skew, double dw_min, object spectral,
                 unsigned int nrows, int use_secular, double sec_cutoff,
                 double atol):
-                
+
     cdef size_t kk
     cdef size_t I, J # vector index variables
     cdef int[2] ab, cd #matrix indexing variables
@@ -61,35 +63,35 @@ def _br_term(complex[::1,:] A, complex[::1,:] evecs,
     cdef unsigned int nnz
     cdef COO_Matrix coo
     cdef CSR_Matrix csr
-    
+
     for I in range(nrows**2):
         vec2mat_index(nrows, I, ab)
         for J in range(nrows**2):
             vec2mat_index(nrows, J, cd)
-            
+
             if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min * sec_cutoff)):
                 elem = (A_eig[ab[0],cd[0]]*A_eig[cd[1],ab[1]]) * 0.5
                 elem *= (spectral(skew[cd[0],ab[0]])+spectral(skew[cd[1],ab[1]]))
-            
+
                 if (ab[0]==cd[0]):
                     ac_elem = 0
                     for kk in range(nrows):
                         ac_elem += A_eig[cd[1],kk]*A_eig[kk,ab[1]] * spectral(skew[cd[1],kk])
                     elem -= 0.5*ac_elem
-                    
+
                 if (ab[1]==cd[1]):
                     bd_elem = 0
                     for kk in range(nrows):
                         bd_elem += A_eig[ab[0],kk]*A_eig[kk,cd[0]] * spectral(skew[cd[0],kk])
                     elem -= 0.5*bd_elem
-                    
+
                 if (elem != 0):
                     coo_rows.push_back(I)
                     coo_cols.push_back(J)
                     coo_data.push_back(elem)
-    
+
     PyDataMem_FREE(&A_eig[0,0])
-    
+
     #Number of elements in BR tensor
     nnz = coo_rows.size()
     coo.nnz = nnz
@@ -98,7 +100,7 @@ def _br_term(complex[::1,:] A, complex[::1,:] evecs,
     coo.data = coo_data.data()
     coo.nrows = nrows**2
     coo.ncols = nrows**2
-    coo.is_set = 1 
+    coo.is_set = 1
     coo.max_length = nnz
     COO_to_CSR(&csr, &coo)
     return CSR_to_scipy(&csr)
@@ -111,8 +113,8 @@ def bloch_redfield_tensor(object H, list a_ops, spectra_cb=None,
                  double sec_cutoff=0.1,
                  double atol = qset.atol):
      """
-     Calculates the time-independent Bloch-Redfield tensor for a system given 
-     a set of operators and corresponding spectral functions that describes the 
+     Calculates the time-independent Bloch-Redfield tensor for a system given
+     a set of operators and corresponding spectral functions that describes the
      system's couplingto its environment.
 
      Parameters
@@ -138,7 +140,7 @@ def bloch_redfield_tensor(object H, list a_ops, spectra_cb=None,
 
      sec_cutoff : float {0.1}
          Threshold for secular approximation.
-         
+
     atol : float {qutip.settings.atol}
         Threshold for removing small parameters.
 
@@ -158,18 +160,18 @@ def bloch_redfield_tensor(object H, list a_ops, spectra_cb=None,
      cdef list op_dims = H.dims
      cdef list sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
      cdef list ekets, ket_dims
-    
+
      ket_dims = [op_dims[0], [1] * len(op_dims[0])]
-    
+
      if not (spectra_cb is None):
          warnings.warn("The use of spectra_cb is depreciated.", DeprecationWarning)
          _a_ops = []
          for kk, a in enumerate(a_ops):
              _a_ops.append([a,spectra_cb[kk]])
          a_ops = _a_ops
-    
+
      K = len(a_ops)
-    
+
      # Sanity checks for input parameters
      if not isinstance(H, Qobj):
          raise TypeError("H must be an instance of Qobj")
@@ -177,35 +179,35 @@ def bloch_redfield_tensor(object H, list a_ops, spectra_cb=None,
      for a in a_ops:
          if not isinstance(a[0], Qobj) or not a[0].isherm:
              raise TypeError("Operators in a_ops must be Hermitian Qobj.")
-    
+
      cdef complex[::1,:] H0 = H.full('F')
      cdef complex[::1,:] evecs = np.zeros((nrows,nrows), dtype=complex, order='F')
      cdef double[::1] evals = np.zeros(nrows, dtype=float)
-    
+
      ZHEEVR(H0, &evals[0], evecs, nrows)
      L = liou_from_diag_ham(evals)
-    
+
      for cop in c_ops:
          L = L + cop_super_term(cop.full('F'), evecs, 1,
                                nrows, atol)
-     
+
      #only lindblad collapse terms
      if K == 0:
-         ekets = [Qobj(np.asarray(evecs[:,k]), 
+         ekets = [Qobj(np.asarray(evecs[:,k]),
                dims=ket_dims) for k in range(nrows)]
-        
+
          return Qobj(L, dims=sop_dims, copy=False), ekets
-    
+
      #has some br operators and spectra
      cdef double[:,::1] skew = np.zeros((nrows,nrows), dtype=float)
      cdef double dw_min = skew_and_dwmin(&evals[0], skew, nrows)
-    
+
      for a in a_ops:
          L = L + _br_term(a[0].full('F'), evecs, skew, dw_min, a[1],
                         nrows, use_secular, sec_cutoff, atol)
-    
-     ekets = [Qobj(np.asarray(evecs[:,k]), 
+
+     ekets = [Qobj(np.asarray(evecs[:,k]),
                    dims=ket_dims) for k in range(nrows)]
-    
-    
+
+
      return Qobj(L, dims=sop_dims, copy=False), ekets

@@ -80,7 +80,7 @@ def simdiag(ops, evals=True):
 
     A = ops[0]
     eigvals, eigvecs = la.eig(A.full())
-    zipped = zip(-eigvals, range(len(eigvals)))
+    zipped = list(zip(-eigvals, range(len(eigvals))))
     zipped.sort()
     ds, perm = zip(*zipped)
     ds = -np.real(np.array(ds))
@@ -99,13 +99,13 @@ def simdiag(ops, evals=True):
         if len(inds) > 1:  # if at least 2 eigvals are degenerate
             eigvecs_array[inds] = degen(
                 tol, eigvecs_array[inds],
-                np.array([ops[kk] for kk in range(1, num_ops)]))
+                np.array([ops[kk] for kk in range(1, num_ops)], dtype=object))
         k = max(inds) + 1
     eigvals_out = np.zeros((num_ops, len(ds)), dtype=float)
     kets_out = np.array([Qobj(eigvecs_array[j] / la.norm(eigvecs_array[j]),
                               dims=[ops[0].dims[0], [1]],
                               shape=[ops[0].shape[0], 1])
-                         for j in range(len(ds))])
+                         for j in range(len(ds))], dtype=object)
     if not evals:
         return kets_out
     else:
@@ -127,7 +127,7 @@ def degen(tol, in_vecs, ops):
     A = ops[0]
     vecs = np.column_stack(in_vecs)
     eigvals, eigvecs = la.eig(np.dot(vecs.conj().T, A.data.dot(vecs)))
-    zipped = zip(-eigvals, range(len(eigvals)))
+    zipped = list(zip(-eigvals, range(len(eigvals))))
     zipped.sort()
     ds, perm = zip(*zipped)
     ds = -np.real(np.array(ds))
@@ -148,6 +148,7 @@ def degen(tol, in_vecs, ops):
         inds = rng[inds]
         if len(inds) > 1:  # if at least 2 eigvals are degenerate
             vecs_out[inds] = degen(tol, vecs_out[inds],
-                                   np.array([ops[jj] for jj in range(1, n)]))
+                                   np.array([ops[jj] for jj in range(1, n)],
+                                            dtype=object))
         k = max(inds) + 1
     return vecs_out

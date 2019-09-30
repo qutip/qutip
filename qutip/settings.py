@@ -37,6 +37,8 @@ tidyup functionality, etc.
 from __future__ import absolute_import
 # use auto tidyup
 auto_tidyup = True
+# use auto tidyup dims on multiplication
+auto_tidyup_dims = True
 # detect hermiticity
 auto_herm = True
 # general absolute tolerance

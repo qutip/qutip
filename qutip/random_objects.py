@@ -59,19 +59,21 @@ import qutip.superop_reps as sr
 UNITS = np.array([1, 1j])
 
 
-def rand_jacobi_rotation(A):
+def rand_jacobi_rotation(A, seed=None):
     """Random Jacobi rotation of a sparse matrix.
-    
+
     Parameters
     ----------
     A : spmatrix
         Input sparse matrix.
-    
+
     Returns
     -------
     spmatrix
         Rotated sparse matrix.
     """
+    if seed is not None:
+        np.random.seed(seed=seed)
     if A.shape[0]!=A.shape[1]:
         raise Exception('Input matrix must be square.')
     n = A.shape[0]
@@ -90,7 +92,7 @@ def rand_jacobi_rotation(A):
     A = R*A*R.conj().transpose()
     return A
 
-def randnz(shape, norm=1 / np.sqrt(2)):
+def randnz(shape, norm=1 / np.sqrt(2), seed=None):
     # This function is intended for internal use.
     """
     Returns an array of standard normal complex random variates.
@@ -104,12 +106,14 @@ def randnz(shape, norm=1 / np.sqrt(2)):
         Scale of the returned random variates, or 'ginibre' to draw
         from the Ginibre ensemble.
     """
+    if seed is not None:
+        np.random.seed(seed=seed)
     if norm == 'ginibre':
         norm = 1
     return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
 
 
-def rand_herm(N, density=0.75, dims=None, pos_def=False):
+def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     """Creates a random NxN sparse Hermitian quantum object.
 
     If 'N' is an integer, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
@@ -133,10 +137,10 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
     -------
     oper : qobj
         NxN Hermitian quantum operator.
-    
+
     Note
     ----
-    If given a list/ndarray as input 'N', this function returns a 
+    If given a list/ndarray as input 'N', this function returns a
     random Hermitian object with eigenvalues given in the list/ndarray.
     This is accomplished via complex Jacobi rotations.  While this method
     is ~50% faster than the corresponding (real only) Matlab code, it should
@@ -149,9 +153,12 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
         if dims:
             _check_dims(dims, N, N)
         nvals = N**2*density
+        M = rand_jacobi_rotation(M, seed=seed)
         while M.nnz < 0.95*nvals:
             M = rand_jacobi_rotation(M)
     elif isinstance(N, (int, np.int32, np.int64)):
+        if seed is not None:
+            np.random.seed(seed=seed)
         if dims:
             _check_dims(dims, N, N)
         num_elems = np.int(np.ceil(N*(N+1)*density)/2)
@@ -173,7 +180,7 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False):
         return Qobj(M)
 
 
-def rand_unitary(N, density=0.75, dims=None):
+def rand_unitary(N, density=0.75, dims=None, seed=None):
     """Creates a random NxN sparse unitary quantum object.
 
     Uses :math:`\exp(-iH)` where H is a randomly generated
@@ -197,14 +204,14 @@ def rand_unitary(N, density=0.75, dims=None):
     """
     if dims:
         _check_dims(dims, N, N)
-    U = (-1.0j * rand_herm(N, density)).expm()
+    U = (-1.0j * rand_herm(N, density, seed=seed)).expm()
     U.data.sort_indices()
     if dims:
         return Qobj(U, dims=dims, shape=[N, N])
     else:
         return Qobj(U)
 
-def rand_unitary_haar(N=2, dims=None):
+def rand_unitary_haar(N=2, dims=None, seed=None):
     """
     Returns a Haar random unitary matrix of dimension
     ``dim``, using the algorithm of [Mez07]_.
@@ -230,7 +237,7 @@ def rand_unitary_haar(N=2, dims=None):
 
     # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
     #               normal random variates.
-    Z = randnz((N, N))
+    Z = randnz((N, N), seed=seed)
 
     # Mez01 STEP 2: Find a QR decomposition Z = Q · R.
     Q, R = la.qr(Z)
@@ -255,18 +262,20 @@ def rand_unitary_haar(N=2, dims=None):
     U.dims = dims
     return U
 
-def rand_ket(N, density=1, dims=None):
+
+def rand_ket(N=0, density=1, dims=None, seed=None):
     """Creates a random Nx1 sparse ket vector.
 
     Parameters
     ----------
     N : int
         Number of rows for output quantum operator.
+        If None or 0, N is deduced from dims.
     density : float
         Density between [0,1] of output ket state.
     dims : list
-        Left-dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N]].
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[1]].
 
     Returns
     -------
@@ -274,8 +283,15 @@ def rand_ket(N, density=1, dims=None):
         Nx1 ket state quantum operator.
 
     """
-    if dims:
-        _check_ket_dims(dims, N)
+    if seed is not None:
+        np.random.seed(seed=seed)
+    if N and dims:
+        _check_dims(dims, N, 1)
+    elif dims:
+        N = prod(dims[0])
+        _check_dims(dims, N, 1)
+    else:
+        dims = [[N],[1]]
     X = sp.rand(N, 1, density, format='csr')
     X.data = X.data - 0.5
     Y = X.copy()
@@ -283,42 +299,41 @@ def rand_ket(N, density=1, dims=None):
     X = X + Y
     X.sort_indices()
     X = Qobj(X)
-    if dims:
-        return Qobj(X / X.norm(), dims=dims)
-    else:
-        return Qobj(X / X.norm())
+    return Qobj(X / X.norm(), dims=dims)
 
 
-def rand_ket_haar(N=2, dims=None):
+def rand_ket_haar(N=2, dims=None, seed=None):
     """
     Returns a Haar random pure state of dimension ``dim`` by
     applying a Haar random unitary to a fixed pure state.
-
 
     Parameters
     ----------
     N : int
         Dimension of the state vector to be returned.
-
+        If None or 0, N is deduced from dims.
     dims : list of ints, or None
-        Left-dimensions of the resultant quantum object.
-        If None, [N] is used.
+        Dimensions of the resultant quantum object.
+        If None, [[N],[1]] is used.
 
     Returns
     -------
     psi : Qobj
         A random state vector drawn from the Haar measure.
     """
-    if dims:
-        _check_ket_dims(dims, N)
+    if N and dims:
+        _check_dims(dims, N, 1)
+    elif dims:
+        N = prod(dims[0])
+        _check_dims(dims, N, 1)
     else:
         dims = [[N],[1]]
-    psi = rand_unitary_haar(N) * basis(N, 0)
+    psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
     return psi
 
 
-def rand_dm(N, density=0.75, pure=False, dims=None):
+def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     """Creates a random NxN density matrix.
 
     Parameters
@@ -351,6 +366,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
         if dims:
             _check_dims(dims, N, N)
         nvals = N**2*density
+        H = rand_jacobi_rotation(H, seed=seed)
         while H.nnz < 0.95*nvals:
             H = rand_jacobi_rotation(H)
         H.sort_indices()
@@ -366,7 +382,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
             non_zero = 0
             tries = 0
             while non_zero == 0 and tries < 10:
-                H = rand_herm(N, density)
+                H = rand_herm(N, density, seed=seed)
                 H = H.dag() * H
                 non_zero = H.tr()
                 tries += 1
@@ -383,7 +399,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
         return Qobj(H)
 
 
-def rand_dm_ginibre(N=2, rank=None, dims=None):
+def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
     """
     Returns a Ginibre random density operator of dimension
     ``dim`` and rank ``rank`` by using the algorithm of
@@ -414,13 +430,13 @@ def rand_dm_ginibre(N=2, rank=None, dims=None):
     if rank > N:
         raise ValueError("Rank cannot exceed dimension.")
 
-    X = randnz((N, rank), norm='ginibre')
+    X = randnz((N, rank), norm='ginibre', seed=seed)
     rho = np.dot(X, X.T.conj())
     rho /= np.trace(rho)
 
     return Qobj(rho, dims=dims)
 
-def rand_dm_hs(N=2, dims=None):
+def rand_dm_hs(N=2, dims=None, seed=None):
     """
     Returns a Hilbert-Schmidt random density operator of dimension
     ``dim`` and rank ``rank`` by using the algorithm of
@@ -442,10 +458,10 @@ def rand_dm_hs(N=2, dims=None):
         or Hilbert-Schmidt distribution.
 
     """
-    return rand_dm_ginibre(N, rank=None, dims=dims)
+    return rand_dm_ginibre(N, rank=None, dims=dims, seed=seed)
 
 
-def rand_kraus_map(N, dims=None):
+def rand_kraus_map(N, dims=None, seed=None):
     """
     Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
     form.
@@ -470,13 +486,13 @@ def rand_kraus_map(N, dims=None):
         _check_dims(dims, N, N)
 
     # Random unitary (Stinespring Dilation)
-    big_unitary = rand_unitary(N ** 3).data.todense()
+    big_unitary = rand_unitary(N ** 3, seed=seed).data.todense()
     orthog_cols = np.array(big_unitary[:, :N])
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
     return list(map(lambda x: Qobj(inpt=x, dims=dims), oper_list))
 
 
-def rand_super(N=5, dims=None):
+def rand_super(N=5, dims=None, seed=None):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
@@ -494,7 +510,7 @@ def rand_super(N=5, dims=None):
         pass
     else:
         dims = [[[N],[N]], [[N],[N]]]
-    H = rand_herm(N)
+    H = rand_herm(N, seed=seed)
     S = propagator(H, np.random.rand(), [
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
     ])
@@ -502,7 +518,7 @@ def rand_super(N=5, dims=None):
     return S
 
 
-def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None):
+def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
     """
     Returns a random superoperator drawn from the Bruzda
     et al ensemble for CPTP maps [BCSZ08]_. Note that due to
@@ -548,11 +564,11 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None):
 
     # We start with a Ginibre uniform matrix X of the appropriate rank,
     # and use it to construct a positive semidefinite matrix X X⁺.
-    X = randnz((N**2, rank), norm='ginibre')
-    
+    X = randnz((N**2, rank), norm='ginibre', seed=seed)
+
     # Precompute X X⁺, as we'll need it in two different places.
     XXdag = np.dot(X, X.T.conj())
-    
+
     if enforce_tp:
         # We do the partial trace over the first index by using dense reshape
         # operations, so that we can avoid bouncing to a sparse representation
@@ -595,9 +611,9 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None):
     return sr.to_super(D)
 
 
-def rand_stochastic(N, density=0.75, kind='left', dims=None):
+def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
     """Generates a random stochastic matrix.
-    
+
     Parameters
     ----------
     N : int
@@ -609,18 +625,23 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None):
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
-    
+
     Returns
     -------
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
+    if seed is not None:
+        np.random.seed(seed=seed)
     if dims:
         _check_dims(dims, N, N)
-    num_elems = np.int(np.ceil(N*(N+1)*density)/2)
+    num_elems = max([np.int(np.ceil(N*(N+1)*density)/2), N])
     data = np.random.rand(num_elems)
-    row_idx = np.random.choice(N, num_elems)
-    col_idx = np.random.choice(N, num_elems)
+    # Ensure an element on every row and column
+    row_idx = np.hstack([np.random.permutation(N),
+                         np.random.choice(N, num_elems-N)])
+    col_idx = np.hstack([np.random.permutation(N),
+                         np.random.choice(N, num_elems-N)])
     if kind=='left':
         M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=float, shape=(N,N)).tocsc()
     else:
@@ -650,12 +671,6 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None):
 
 
 
-
-def _check_ket_dims(dims, N1):
-    if (not isinstance(dims, list)) or (not isinstance(dims[0], list)):
-        raise TypeError("Left and right Qobj dimensions must be lists of ints. E.g.: [2, 3].")
-    if np.prod(dims) != N1:
-        raise ValueError("Qobj dimensions must match matrix shape.")
 
 def _check_dims(dims, N1, N2):
     if len(dims) != 2:

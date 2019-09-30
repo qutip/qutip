@@ -666,5 +666,31 @@ def test_fn_list_td_corr():
     assert_(abs(g20 - 0.85) < 1e-2)
 
 
+def test_fn_list_td_corr():
+    """
+    correlation: multi time-dependent factor
+    """
+    # test for bug of issue #1048
+    sm = destroy(2)
+    args = {}
+
+    def step_func(t, args={}):
+        return np.arctan(t-2)/np.pi + 0.5
+
+    def inv_step_func(t, args={}):
+        return np.arctan(-(t-2))/np.pi + 0.5
+
+    H1 = [[(sm + sm.dag()), step_func], [qeye(2), inv_step_func]]
+
+    H2 = [[qeye(2), inv_step_func], [(sm + sm.dag()), step_func]]
+    
+    tlist = np.linspace(0, 5, 6)
+    corr1 = correlation_2op_2t(H1, fock(2, 0), tlist, tlist, [sm],
+                               sm.dag(), sm, args=args)
+    corr2 = correlation_2op_2t(H2, fock(2, 0), tlist, tlist, [sm],
+                               sm.dag(), sm, args=args)
+    assert_(np.sum(np.abs(corr1-corr2)) < 1e-5)
+
+
 if __name__ == "__main__":
     run_module_suite()
