@@ -98,6 +98,12 @@ def measure(op, state):
     """
     Perform a measurement specified by an operator on the given state.
 
+    This function simulates the classic quantum measurement described
+    in many introductory texts on quantum mechanics. The measurement
+    collapses the state to one of the eigenstates of the given
+    operator and the result of the measurement is the corresponding
+    eigenvalue.
+
     Parameters
     ----------
     op : Qobj
@@ -112,6 +118,46 @@ def measure(op, state):
     state : Qobj
         The new state (a ket if a ket was given, otherwise a density
         matrix).
+
+    Examples
+    --------
+
+    Measure the z-component of the spin of the spin-up basis state:
+
+    >>> measure(sigmaz(), basis(2, 0))
+    (1.0, Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[-1.]
+     [ 0.]])
+
+    Since the spin-up basis is an eigenstate of sigmaz, this measurement always
+    returns 1 as the measurement result (the eigenvalue of the spin-up basis)
+    and the original state (up to a global phase).
+
+    Measure the x-component of the spin of the spin-down basis state:
+
+    >>> measure(sigmax(), basis(2, 1))
+    (-1.0, Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[-0.70710678]
+     [ 0.70710678]])
+
+    This measurement returns 1 fifty percent of the time and -1 the other fifty
+    percent of the time. The new state returned is the corresponding eigenstate
+    of sigmax.
+
+    One may also perform a measurement on a density matrix. Below we perform
+    the same measurement as above, but on the density matrix representing the
+    pure spin-down state:
+
+    >>> measure(sigmax(), ket2dm(basis(2, 1)))
+    (-1.0, Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper
+    Qobj data =
+    [[ 0.5 -0.5]
+     [-0.5  0.5]])
+
+    The measurement result is the same, but the new state is returned as a
+    density matrix.
     """
     eigenvalues, eigenstates_or_projectors, probabilities = (
         measurement_statistics(op, state))
