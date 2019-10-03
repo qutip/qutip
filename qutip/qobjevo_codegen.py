@@ -118,7 +118,7 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     """
     code = _make_code_4_cimport(ops, args, dyn_args, tlist)
     coeff_obj, filename = _import_str(code, "cqobjevo_compiled_coeff_",
-                                     "CompiledStrCoeff", True)
+                                      "CompiledStrCoeff", True)
     return coeff_obj(ops, args, tlist, dyn_args), code, filename
 
 
@@ -300,7 +300,7 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     """
     code = _make_code_4_python_import(ops, args, dyn_args, tlist)
     coeff_obj, filename = _import_str(code, "qobjevo_compiled_coeff_",
-                                     "_UnitedStrCaller", False)
+                                      "_UnitedStrCaller", False)
     return coeff_obj, code, filename
 
 
