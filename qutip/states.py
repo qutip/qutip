@@ -69,7 +69,7 @@ def basis(N, n=0, offset=0):
 
     Returns
     -------
-    state : qobj
+    state : :class:`qutip.Qobj`
       Qobj representing the requested number state ``|n>``.
 
     Examples

@@ -169,6 +169,7 @@ else:
 
 # core
 from qutip.qobj import *
+from qutip.qobjevo import *
 from qutip.states import *
 from qutip.operators import *
 from qutip.expect import *

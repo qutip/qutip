@@ -100,6 +100,7 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_csr(complex[::1] data,
     zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows)
     return out
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def spmvpy_csr(complex[::1] data,
@@ -132,14 +133,176 @@ def spmvpy_csr(complex[::1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline void spmvpy(complex * data, int * ind, int * ptr,
-            complex * vec,
+cdef inline void spmvpy(complex* data, int* ind, int* ptr,
+            complex* vec,
             complex a,
-            complex * out,
+            complex* out,
             unsigned int nrows):
 
     zspmvpy(data, ind, ptr, vec, a, out, nrows)
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _spmm_c_py(complex* data, int* ind, int* ptr,
+            complex* mat, complex a, complex* out,
+            unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
+    """
+    sparse*dense "C" ordered.
+    """
+    cdef int row, col, ii, jj, row_start, row_end
+    for row from 0 <= row < sp_rows :
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj from row_start <= jj < row_end:
+            for col in range(ncols):
+                out[row * ncols + col] += a*data[jj]*mat[ind[jj] * ncols + col]
+
+
+cpdef void spmmpy_c(complex[::1] data, int[::1] ind, int[::1] ptr,
+             complex[:,::1] M, complex a, complex[:,::1] out):
+    """
+    Sparse matrix, c ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    data : array
+        Data for sparse matrix.
+    idx : array
+        Indices for sparse matrix data.
+    ptr : array
+        Pointers for sparse matrix data.
+    mat : array 2d
+        Dense matrix for multiplication.  Must be in c mode.
+    alpha : complex
+        Numerical coefficient for sparse matrix.
+    out: array
+        Output array. Must be in c mode.
+
+    """
+    cdef unsigned int sp_rows = ptr.shape[0]-1
+    cdef unsigned int nrows = M.shape[0]
+    cdef unsigned int ncols = M.shape[1]
+    _spmm_c_py(&data[0], &ind[0], &ptr[0], &M[0,0], 1.,
+               &out[0,0], sp_rows, nrows, ncols)
+
+
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmc(object sparse,
+                                                   complex[:,::1] mat):
+    """
+    Sparse matrix, c ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    sparse : csr matrix
+    mat : array 2d
+        Dense matrix for multiplication. Must be in c mode.
+
+    Returns
+    -------
+    out : array
+         Keep input ordering
+    """
+    cdef unsigned int sp_rows = sparse.indptr.shape[0]-1
+    cdef unsigned int ncols = mat.shape[1]
+    cdef cnp.ndarray[complex, ndim=2, mode="c"] out = \
+                     np.zeros((sp_rows, ncols), dtype=complex)
+    spmmpy_c(sparse.data, sparse.indices, sparse.indptr,
+             mat, 1., out)
+    return out
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _spmm_f_py(complex* data, int* ind, int* ptr,
+            complex* mat, complex a, complex* out,
+            unsigned int sp_rows, unsigned int nrows, unsigned int ncols):
+    """
+    sparse*dense "F" ordered.
+    """
+    cdef int col
+    for col in range(ncols):
+        spmvpy(data, ind, ptr, mat+nrows*col, a, out+sp_rows*col, sp_rows)
+
+
+cpdef void spmmpy_f(complex[::1] data, int[::1] ind, int[::1] ptr,
+         complex[::1,:] mat, complex a, complex[::1,:] out):
+    """
+    Sparse matrix, fortran ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    data : array
+        Data for sparse matrix.
+    idx : array
+        Indices for sparse matrix data.
+    ptr : array
+        Pointers for sparse matrix data.
+    mat : array 2d
+        Dense matrix for multiplication.  Must be in fortran mode.
+    alpha : complex
+        Numerical coefficient for sparse matrix.
+    out: array
+        Output array. Must be in fortran mode.
+
+    """
+    cdef unsigned int sp_rows = ptr.shape[0]-1
+    cdef unsigned int nrows = mat.shape[0]
+    cdef unsigned int ncols = mat.shape[1]
+    _spmm_f_py(&data[0], &ind[0], &ptr[0], &mat[0,0], 1.,
+               &out[0,0], sp_rows, nrows, ncols)
+
+
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmmf(object sparse,
+                                                   complex[::1,:] mat):
+    """
+    Sparse matrix, fortran ordered dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    sparse : csr matrix
+    mat : array 2d
+        Dense matrix for multiplication. Must be in fortran mode.
+
+    Returns
+    -------
+    out : array
+    Keep input ordering
+    """
+    cdef unsigned int sp_rows = sparse.indptr.shape[0]-1
+    cdef unsigned int ncols = mat.shape[1]
+    cdef cnp.ndarray[complex, ndim=2, mode="fortran"] out = \
+                     np.zeros((sp_rows, ncols), dtype=complex, order="F")
+    spmmpy_f(sparse.data, sparse.indices, sparse.indptr,
+             mat, 1., out)
+    return out
+
+
+cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmm(object sparse,
+                                            cnp.ndarray[complex, ndim=2] mat):
+    """
+    Sparse matrix, dense matrix multiplication.
+    The sparse matrix must be in CSR format and have complex entries.
+
+    Parameters
+    ----------
+    sparse : csr matrix
+    mat : array 2d
+    Dense matrix for multiplication. Can be in c or fortran mode.
+
+    Returns
+    -------
+    out : array
+    Keep input ordering
+    """
+    if mat.flags["F_CONTIGUOUS"]:
+        return spmmf(sparse, mat)
+    else:
+        return spmmc(sparse, mat)
 
 
 @cython.boundscheck(False)

@@ -63,6 +63,11 @@ try:
 except:
     pass
 
+try:
+    from IPython.display import display
+except:
+    pass
+
 
 class Bloch():
     """Class for plotting data on the Bloch sphere.  Valid data can be
@@ -197,7 +202,12 @@ class Bloch():
 
         # status of rendering
         self._rendered = False
-
+        # status of showing
+        if fig is None:
+            self._shown = False
+        else: 
+            self._shown = True
+        
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
 
@@ -422,6 +432,13 @@ class Bloch():
         """
         self.render(self.fig, self.axes)
 
+    def run_from_ipython(self):
+        try:
+            __IPYTHON__
+            return True
+        except NameError:
+            return False
+
     def render(self, fig=None, axes=None):
         """
         Render the Bloch sphere and its data sets in on given figure and axes.
@@ -627,8 +644,12 @@ class Bloch():
         Display Bloch sphere and corresponding data sets.
         """
         self.render(self.fig, self.axes)
-        if self.fig:
-            plt.show(self.fig)
+        if self.run_from_ipython():
+            if self._shown:
+                display(self.fig)
+        else:
+            self.fig.show()
+        self._shown = True
 
     def save(self, name=None, format='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.

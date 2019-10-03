@@ -1,3 +1,5 @@
+#!python
+#cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -31,55 +33,26 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
-import qutip as qt
-from qutip.solver import config
+cdef complex _spline_complex_t_second(double x, double[::1] t,
+                                      complex[::1] y, complex[::1] M,
+                                      int N)
 
-"""
-def test_rhs_reuse():
-    "" "
-    rhs_reuse : pyx filenames match for rhs_reus= True
-    "" "
-    N = 10
-    a = qt.destroy(N)
-    H = [a.dag()*a, [a+a.dag(), 'sin(t)']]
-    psi0 = qt.fock(N,3)
-    tlist = np.linspace(0,10,10)
-    e_ops = [a.dag()*a]
-    c_ops = [0.25*a]
+cdef complex _spline_complex_cte_second(double x, double[::1] t,
+                                        complex[::1] y, complex[::1] M,
+                                        int N, double dt)
 
-    # Test sesolve
-    out1 = qt.mesolve(H, psi0,tlist, e_ops=e_ops)
+cdef double _spline_float_t_second(double x, double[::1] t,
+                                   double[::1] y, double[::1] M,
+                                   int N)
 
-    _temp_config_name = config.tdname
+cdef double _spline_float_cte_second(double x, double[::1] t,
+                                     double[::1] y, double[::1] M,
+                                     int N, double dt)
 
-    out2 = qt.mesolve(H, psi0,tlist, e_ops=e_ops)
+cdef double _step_float_cte(double x, double[::1] t, double[::1] y, int n_t)
 
-    assert_(config.tdname != _temp_config_name)
-    _temp_config_name = config.tdname
+cdef complex _step_complex_cte(double x, double[::1] t, complex[::1] y, int n_t)
 
-    out3 = qt.mesolve(H, psi0,tlist, e_ops=e_ops,
-                        options=qt.Options(rhs_reuse=True))
+cdef double _step_float_t(double x, double[::1] t, double[::1] y, int n_t)
 
-    assert_(config.tdname == _temp_config_name)
-
-    # Test mesolve
-
-    out1 = qt.mesolve(H, psi0,tlist, c_ops=c_ops, e_ops=e_ops)
-
-    _temp_config_name = config.tdname
-
-    out2 = qt.mesolve(H, psi0,tlist, c_ops=c_ops, e_ops=e_ops)
-
-    assert_(config.tdname != _temp_config_name)
-    _temp_config_name = config.tdname
-
-    out3 = qt.mesolve(H, psi0,tlist, e_ops=e_ops, c_ops=c_ops,
-                        options=qt.Options(rhs_reuse=True))
-
-    assert_(config.tdname == _temp_config_name)
-
-if __name__ == "__main__":
-    run_module_suite()
-"""
+cdef complex _step_complex_t(double x, double[::1] t, complex[::1] y, int n_t)

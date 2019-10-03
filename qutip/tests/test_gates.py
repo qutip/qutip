@@ -33,13 +33,17 @@
 
 import itertools
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import (assert_, assert_allclose, assert_array_equal, 
+                           run_module_suite)
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
-from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
-                       sqrtswap, toffoli, fredkin, gate_expand_3toN, qubit_clifford_group)
-from qutip.random_objects import rand_ket, rand_herm
+from qutip.qip import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
+                       sqrtswap, molmer_sorensen,
+                       toffoli, fredkin, gate_expand_3toN, 
+                       qubit_clifford_group, expand_operator)
+from qutip.random_objects import rand_ket, rand_herm, rand_unitary, rand_dm
 from qutip.tensor import tensor
+from qutip.qobj import Qobj
 
 
 class TestGates:
@@ -74,8 +78,9 @@ class TestGates:
         Returns True if and only if U is proportional to the
         identity.
         """
-        if U[0, 0] != 0:
-            norm_U = U / U[0, 0]
+        U0 = complex(U[0, 0])  # scipy 1.3 return 0 dims array.
+        if U0 != 0:
+            norm_U = U / U0
             return (qeye(U.dims[0]) - norm_U).norm() <= tol
         else:
             return False
@@ -85,7 +90,7 @@ class TestGates:
 
         for P in paulis:
             U_P = U * P * U.dag()
-            
+
             out = (np.any(
                 np.array([self._prop_identity(U_P * Q) for Q in paulis])
             ))
@@ -281,6 +286,108 @@ class TestGates:
                         o1 = psi_out.overlap(psi_in)
                         o2 = psi_ref_out.overlap(psi_ref_in)
                         assert_(abs(o1 - o2) < 1e-12)
+
+    def test_expand_operator(self):
+        """
+        gate : expand qubits operator to a N qubits system.
+        """
+        # oper size is N, no expansion
+        oper = tensor(sigmax(), sigmay())
+        assert_allclose(expand_operator(oper=oper, targets=[0, 1], N=2), oper)
+        assert_allclose(expand_operator(oper=oper, targets=[1, 0], N=2), 
+                            tensor(sigmay(), sigmax()))
+
+        # random single qubit gate test, integer as target
+        r = rand_unitary(2)
+        assert_allclose(expand_operator(r, 3, 0), tensor([r, identity(2), identity(2)]))
+        assert_allclose(expand_operator(r, 3, 1), tensor([identity(2), r, identity(2)]))
+        assert_allclose(expand_operator(r, 3, 2), tensor([identity(2), identity(2), r]))
+
+        # random 2qubits gate test, list as target
+        r2 = rand_unitary(4)
+        r2.dims = [[2, 2], [2, 2]]
+        assert_allclose(expand_operator(r2, 3, [2, 1]), tensor(
+            [identity(2), r2.permute([1, 0])]))
+        assert_allclose(expand_operator(r2, 3, [0, 1]), tensor(
+            [r2, identity(2)]))
+        assert_allclose(expand_operator(r2, 3, [0, 2]), tensor(
+            [r2, identity(2)]).permute([0, 2, 1]))
+
+        # cnot expantion, qubit 2 control qubit 0
+        assert_allclose(expand_operator(cnot(), 3, [2, 0]), Qobj([
+            [1., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 1., 0., 0.],
+            [0., 0., 1., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 1.],
+            [0., 0., 0., 0., 1., 0., 0., 0.],
+            [0., 1., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 1., 0.],
+            [0., 0., 0., 1., 0., 0., 0., 0.]],
+            dims=[[2, 2, 2], [2, 2, 2]]))
+
+        # test expansion with cyclic permutation
+        result = expand_operator(
+            tensor([sigmaz(), sigmax()]), N=3, targets=[2, 0],
+            cyclic_permutation=True)
+        mat1 = tensor(sigmax(), qeye(2), sigmaz())
+        mat2 = tensor(sigmaz(), sigmax(), qeye(2))
+        mat3 = tensor(qeye(2), sigmaz(), sigmax())
+        assert_(mat1 in result)
+        assert_(mat2 in result)
+        assert_(mat3 in result)
+
+        # test for dimensions other than 2
+        mat3 = rand_dm(3, density=1.)
+        oper = tensor([sigmax(), mat3])
+        N = 4
+        dims = [2, 2, 3, 4]
+        result = expand_operator(oper, N, targets=[0, 2], dims=dims)
+        assert_array_equal(result.dims[0], dims)
+        dims = [3, 2, 4, 2]
+        result = expand_operator(oper, N, targets=[3, 0], dims=dims)
+        assert_array_equal(result.dims[0], dims)
+        dims = [3, 2, 4, 2]
+        result = expand_operator(oper, N, targets=[1, 0], dims=dims)
+        assert_array_equal(result.dims[0], dims)
+
+    def test_molmer_sorensen(self):
+        """
+        gate: test for the molmer_sorensen gate
+        """
+        assert_allclose(
+            molmer_sorensen(np.pi, targets=[0, 1]),
+            Qobj(-1j*np.array(
+                 [[0, 0, 0, 1],
+                  [0, 0, 1, 0],
+                  [0, 1, 0, 0],
+                  [1, 0, 0, 0]]), dims=[[2, 2], [2, 2]]),
+            atol=1e-15)
+        assert_allclose(
+            molmer_sorensen(2*np.pi, targets=[0, 1]),
+            Qobj(-np.array(
+                 [[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]]),
+            atol=1e-15)
+        assert_allclose(
+            molmer_sorensen(np.pi/2, N=4, targets=[1, 2]),
+            tensor([identity(2), molmer_sorensen(np.pi/2), identity(2)])
+        )
+
+    def test_qrot(self):
+        """
+        gate: test for the qubit rotation gate
+        """
+        assert_allclose(qrot(0, 0), identity(2))
+        assert_allclose(
+            qrot(np.pi, np.pi/2),
+            Qobj([[0, -1], [1, 0]]),
+            atol=1e-15)
+        assert_allclose(
+            qrot(np.pi/4., np.pi/3., N=2, target=1),
+            tensor([identity(2), qrot(np.pi/4., np.pi/3.)])
+        )
 
 
 if __name__ == "__main__":

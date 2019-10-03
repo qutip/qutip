@@ -33,7 +33,11 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 cimport cython
-from libc.math cimport fabs, exp, copysign
+from libc.math cimport (fabs, sinh, cosh, exp, pi, sqrt, cos, sin, copysign)
+
+cdef extern from "<complex>" namespace "std" nogil:
+    double real(double complex x)
+    double imag(double complex x)
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -98,3 +102,90 @@ cdef double erf(double x):
     else:
         erf = copysign(1.0, x)
         return erf
+
+
+#       COMPUTATION OF SPECIAL FUNCTIONS
+#
+#          Shanjie Zhang and Jianming Jin
+#
+#       Copyrighted but permission granted to use code in programs.
+# Buy their book "Computation of Special Functions", 1996, John Wiley & Sons, Inc.
+    
+@cython.cdivision(True)
+@cython.boundscheck(False)
+cdef double complex zerf(double complex Z):
+    """
+    Parameters
+    ----------
+    Z : double complex
+        Input parameter.
+    X : double
+        Real part of Z.
+    Y : double
+        Imag part of Z.
+
+    Returns
+    -------
+    erf(z) : double complex
+    """
+    
+    cdef double EPS = 1e-12
+    cdef double X = real(Z)
+    cdef double Y = imag(Z)
+    cdef double X2 = X * X
+    
+    cdef double ER, R, W, C0, ER0, ERR, ERI, CS, SS, ER1, EI1, ER2, W1
+    
+    cdef size_t K, N
+    
+    if X < 3.5:
+        ER = 1.0
+        R = 1.0
+        W = 0.0
+        for K in range(1, 100):
+            R = R*X2/(K+0.5)
+            ER = ER+R
+            if (fabs(ER-W) < EPS*fabs(ER)):
+                break
+            W = ER
+        C0 = 2.0/sqrt(pi)*X*exp(-X2)
+        ER0 = C0*ER
+    else:
+        ER = 1.0
+        R=1.0
+        for K in range(1, 12):
+            R = -R*(K-0.5)/X2
+            ER = ER+R
+        C0 = exp(-X2)/(X*sqrt(pi))
+        ER0 = 1.0-C0*ER
+    
+    if Y == 0.0:
+        ERR = ER0
+        ERI = 0.0
+    else:
+        CS = cos(2.0*X*Y)
+        SS = sin(2.0*X*Y)
+        ER1 = exp(-X2)*(1.0-CS)/(2.0*pi*X)
+        EI1 = exp(-X2)*SS/(2.0*pi*X)
+        ER2 = 0.0
+        W1 = 0.0
+        
+        for N in range(1,100):
+            ER2 = ER2+exp(-.25*N*N)/(N*N+4.0*X2)*(2.0*X-2.0*X*cosh(N*Y)*CS+N*sinh(N*Y)*SS)
+            if (fabs((ER2-W1)/ER2) < EPS):
+                break
+            W1 = ER2
+        
+        C0 = 2.0*exp(-X2)/pi
+        ERR = ER0+ER1+C0*ER2
+        EI2 = 0.0
+        W2 = 0.0
+        
+        for N in range(1,100):
+            EI2 = EI2+exp(-.25*N*N)/(N*N+4.0*X2)*(2.0*X*cosh(N*Y)*SS+N*sinh(N*Y)*CS)
+            if (fabs((EI2-W2)/EI2) < EPS):
+                break
+            W2 = EI2
+        ERI = EI1+C0*EI2
+        
+    return ERR + 1j*ERI

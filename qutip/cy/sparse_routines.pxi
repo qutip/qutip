@@ -581,6 +581,31 @@ cdef CSR_Matrix CSR_from_scipy(object A):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef void CSR_from_scipy_inplace(object A, CSR_Matrix* mat):
+    """
+    Converts a SciPy CSR sparse matrix to a
+    CSR_Matrix struct.
+    """
+    cdef complex[::1] data = A.data
+    cdef int[::1] ind = A.indices
+    cdef int[::1] ptr = A.indptr
+    cdef int nrows = A.shape[0]
+    cdef int ncols = A.shape[1]
+    cdef int nnz = ptr[nrows]
+
+    mat.data = &data[0]
+    mat.indices = &ind[0]
+    mat.indptr = &ptr[0]
+    mat.nrows = nrows
+    mat.ncols = ncols
+    mat.nnz = nnz
+    mat.max_length = nnz
+    mat.is_set = 1
+    mat.numpy_lock = 1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef COO_Matrix COO_from_scipy(object A):
     """
     Converts a SciPy COO sparse matrix to a

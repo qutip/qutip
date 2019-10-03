@@ -394,7 +394,7 @@ cdef extern from "numpy/arrayobject.h" nogil:
 """
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.interpolate cimport interp, zinterp
-from qutip.cy.math cimport erf
+from qutip.cy.math cimport erf, zerf
 cdef double pi = 3.14159265358979323
 
 include """+_include_string+"""
