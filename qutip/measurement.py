@@ -36,6 +36,8 @@ Module for measuring quantum objects.
 
 import numpy as np
 
+from qutip.qobj import Qobj
+
 
 def measurement_statistics(op, state):
     """
@@ -61,6 +63,27 @@ def measurement_statistics(op, state):
         corresponding eigenstate (and the measurement result being
         the corresponding eigenvalue).
     """
+    if not isinstance(op, Qobj):
+        raise TypeError("op must be a Qobj")
+    if not op.isoper:
+        raise ValueError("op must be an operator")
+    if not isinstance(state, Qobj):
+        raise TypeError("state must be a Qobj")
+    if state.isket:
+        if op.dims[-1] != state.dims[0]:
+            raise ValueError(
+                "op and state dims should be compatible when state is a ket")
+    elif state.isoper:
+        if op.dims != state.dims:
+            raise ValueError(
+                "op and state dims should match"
+                " when state is a density matrix")
+    else:
+        raise ValueError("state must be a ket or a density matrix")
+    return _measurement_statistics(op, state)
+
+
+def _measurement_statistics(op, state):
     eigenvalues, eigenstates = op.eigenstates()
     if state.isket:
         probabilities = [(e.dag() * state).norm() ** 2 for e in eigenstates]

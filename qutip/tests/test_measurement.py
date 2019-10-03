@@ -32,7 +32,9 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import assert_, assert_almost_equal, assert_array_equal
+from numpy.testing import (
+    assert_, assert_almost_equal, assert_array_equal, assert_raises_regex
+)
 from qutip import basis, isequal, ket2dm, sigmax, sigmay, sigmaz
 from qutip.measurement import measure, measurement_statistics
 
@@ -117,6 +119,30 @@ def test_measurement_statistics_sigmay():
     )
 
 
+def test_measurement_statistics_input_errors():
+    """ measurement_statistics: check input errors """
+    assert_raises_regex(
+        TypeError, "op must be a Qobj",
+        measurement_statistics, "notqobj", basis(2, 0))
+    assert_raises_regex(
+        ValueError, "op must be an operator",
+        measurement_statistics, basis(2, 1), basis(2, 0))
+    assert_raises_regex(
+        TypeError, "state must be a Qobj",
+        measurement_statistics, sigmaz(), "notqobj")
+    assert_raises_regex(
+        ValueError, "state must be a ket or a density matrix",
+        measurement_statistics, sigmaz(), basis(2, 0).dag())
+    assert_raises_regex(
+        ValueError,
+        "op and state dims should be compatible when state is a ket",
+        measurement_statistics, sigmaz(), basis(3, 0))
+    assert_raises_regex(
+        ValueError,
+        "op and state dims should match when state is a density matrix",
+        measurement_statistics, sigmaz(), ket2dm(basis(3, 0)))
+
+
 def check_measure(op, state, expected_measurements, seed=0):
     np.random.seed(seed)
     measurements = []
@@ -175,3 +201,27 @@ def test_measure_sigmay():
         pairs2dm([SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]]),
         seed=42,
     )
+
+
+def test_measure_input_errors():
+    """ measure: check input errors """
+    assert_raises_regex(
+        TypeError, "op must be a Qobj",
+        measure, "notqobj", basis(2, 0))
+    assert_raises_regex(
+        ValueError, "op must be an operator",
+        measure, basis(2, 1), basis(2, 0))
+    assert_raises_regex(
+        TypeError, "state must be a Qobj",
+        measure, sigmaz(), "notqobj")
+    assert_raises_regex(
+        ValueError, "state must be a ket or a density matrix",
+        measure, sigmaz(), basis(2, 0).dag())
+    assert_raises_regex(
+        ValueError,
+        "op and state dims should be compatible when state is a ket",
+        measure, sigmaz(), basis(3, 0))
+    assert_raises_regex(
+        ValueError,
+        "op and state dims should match when state is a density matrix",
+        measure, sigmaz(), ket2dm(basis(3, 0)))
