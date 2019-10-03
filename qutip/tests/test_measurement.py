@@ -38,6 +38,7 @@ from qutip.measurement import measure, measurement_statistics
 
 
 class EigenPairs:
+    """ Manage pairs of eigenvalues and eigenstates for an operator. """
     def __init__(self, pairs):
         self.pairs = pairs
         self.eigenvalues = [p[0] for p in pairs]
@@ -87,6 +88,7 @@ def check_measurement_statistics(
 
 
 def test_measurement_statistics_sigmaz():
+    """ measurement statistics: sigmaz applied to basis states. """
     check_measurement_statistics(
         sigmaz(), basis(2, 0), SIGMAZ, [0, 1],
     )
@@ -96,6 +98,7 @@ def test_measurement_statistics_sigmaz():
 
 
 def test_measurement_statistics_sigmax():
+    """ measurement statistics: sigmax applied to basis states. """
     check_measurement_statistics(
         sigmax(), basis(2, 0), SIGMAX, [0.5, 0.5],
     )
@@ -105,6 +108,7 @@ def test_measurement_statistics_sigmax():
 
 
 def test_measurement_statistics_sigmay():
+    """ measurement statistics: sigmay applied to basis states. """
     check_measurement_statistics(
         sigmay(), basis(2, 0), SIGMAY, [0.5, 0.5],
     )
@@ -123,6 +127,7 @@ def check_measure(op, state, expected_measurements, seed=0):
 
 
 def test_measure_sigmaz():
+    """ measure: basis states using sigmaz """
     check_measure(sigmaz(), basis(2, 0), [SIGMAZ[1]] * 5)
     check_measure(sigmaz(), basis(2, 1), [SIGMAZ[0]] * 5)
     check_measure(sigmaz(), ket2dm(basis(2, 0)), pairs2dm([SIGMAZ[1]] * 5))
@@ -130,6 +135,7 @@ def test_measure_sigmaz():
 
 
 def test_measure_sigmax():
+    """ measure: basis states using sigmax """
     check_measure(
         sigmax(), basis(2, 0),
         [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
@@ -150,6 +156,7 @@ def test_measure_sigmax():
 
 
 def test_measure_sigmay():
+    """ measure: basis states using sigmay """
     check_measure(
         sigmay(), basis(2, 0),
         [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
