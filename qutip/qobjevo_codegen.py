@@ -48,7 +48,11 @@ def _try_remove(filename):
         pass
 
 
-def import_str(code, basefilename, obj_name, cythonfile=False):
+def _import_str(code, basefilename, obj_name, cythonfile=False):
+    """
+    Import 'obj_name' defined in 'code'.
+    Using a temporary file starting by 'basefilename'.
+    """
     filename = basefilename + str(hash(code))[1:6]
     tries = 0
     import_list = []
@@ -105,7 +109,7 @@ def f(double t, args):
             Code += "    " + name + " = args['" + name + "']\n"
     Code += "    return " + string + "\n"
 
-    return import_str(Code, "td_Qobj_single_str", "f", True)
+    return _import_str(Code, "td_Qobj_single_str", "f", True)
 
 
 def _compiled_coeffs(ops, args, dyn_args, tlist):
@@ -113,7 +117,7 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_cimport(ops, args, dyn_args, tlist)
-    coeff_obj, filename = import_str(code, "cqobjevo_compiled_coeff_",
+    coeff_obj, filename = _import_str(code, "cqobjevo_compiled_coeff_",
                                      "CompiledStrCoeff", True)
     return coeff_obj(ops, args, tlist, dyn_args), code, filename
 
@@ -295,7 +299,7 @@ def _compiled_coeffs_python(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_python_import(ops, args, dyn_args, tlist)
-    coeff_obj, filename = import_str(code, "qobjevo_compiled_coeff_",
+    coeff_obj, filename = _import_str(code, "qobjevo_compiled_coeff_",
                                      "_UnitedStrCaller", False)
     return coeff_obj, code, filename
 
