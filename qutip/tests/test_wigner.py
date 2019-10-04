@@ -37,8 +37,46 @@ from numpy.random import rand
 from numpy.testing import assert_, run_module_suite, assert_equal
 
 from qutip.states import coherent, fock, ket, bell_state
-from qutip.wigner import wigner, wigner_transform, _parity
+from qutip.wigner import qfunc, qfunc_precompute, wigner, wigner_transform, _parity
 from qutip.random_objects import rand_dm, rand_ket
+
+
+def test_qfunc_ket():
+    "Husimi Q: Compare with/without precomputation for rand. ket"
+    N = 20
+    xvec = np.linspace(-10, 10, 128)
+    for _ in range(3):
+        rho = rand_ket(N)
+
+        precomp = qfunc_precompute(xvec, xvec, N)
+
+        q_default = qfunc(rho, xvec, xvec, precompute=None)
+        q_false = qfunc(rho, xvec, xvec, precompute=False)
+        q_true = qfunc(rho, xvec, xvec, precompute=True)
+        q_precomp = qfunc(rho, xvec, xvec, precompute=precomp)
+
+        assert_equal(q_false, q_default)   # Default: do not precompute
+        assert_equal(q_true, q_precomp)    # Compare precomputing before/during the call
+        assert_equal(np.sum(np.abs(q_true - q_false)) < 1e-7, True) # Compare with/without
+
+
+def test_qfunc_dm():
+    "Husimi Q: Compare with/without precomputation for rand. dm"
+    N = 20
+    xvec = np.linspace(-10, 10, 128)
+    for _ in range(3):
+        rho = rand_dm(N)
+
+        precomp = qfunc_precompute(xvec, xvec, N)
+
+        q_default = qfunc(rho, xvec, xvec, precompute=None)
+        q_false = qfunc(rho, xvec, xvec, precompute=False)
+        q_true = qfunc(rho, xvec, xvec, precompute=True)
+        q_precomp = qfunc(rho, xvec, xvec, precompute=precomp)
+
+        assert_equal(q_true, q_default)   # Default: precompute
+        assert_equal(q_true, q_precomp)   # Compare precomputing before/during the call
+        assert_equal(np.sum(np.abs(q_true - q_false)) < 1e-7, True) # Compare with/without
 
 
 def test_wigner_bell1_su2parity():

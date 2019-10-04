@@ -214,7 +214,7 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
     method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
-        Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw' 
+        Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw'
         and 'iterative' use an iterative method to evaluate the Wigner functions for density
         matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
         in scipy for the same task. The 'fft' method evaluates the Fourier
@@ -229,7 +229,7 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         Tells the default solver whether or not to keep the input density
         matrix in sparse format.  As the dimensions of the density matrix
         grow, setthing this flag can result in increased performance.
-    
+
     parfor : bool {False, True}
         Flag for calculating the Laguerre polynomial based Wigner function
         method='laguerre' in parallel using the parfor function.
@@ -275,7 +275,7 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
 
     elif method == 'laguerre':
         return _wigner_laguerre(rho, xvec, yvec, g, parfor)
-        
+
     elif method == 'clenshaw':
         return _wigner_clenshaw(rho, xvec, yvec, g, sparse=sparse)
 
@@ -476,19 +476,19 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
     """
     Using Clenshaw summation - numerically stable and efficient
     iterative algorithm to evaluate polynomial series.
-    
+
     The Wigner function is calculated as
-    :math:`W = e^(-0.5*x^2)/pi * \sum_{L} c_L (2x)^L / sqrt(L!)` where 
+    :math:`W = e^(-0.5*x^2)/pi * \sum_{L} c_L (2x)^L / sqrt(L!)` where
     :math:`c_L = \sum_n \\rho_{n,L+n} LL_n^L` where
     :math:`LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]`
-    
+
     """
 
     M = np.prod(rho.shape[0])
     X,Y = np.meshgrid(xvec, yvec)
     #A = 0.5 * g * (X + 1.0j * Y)
     A2 = g * (X + 1.0j * Y) #this is A2 = 2*A
-    
+
     B = np.abs(A2)
     B *= B
     w0 = (2*rho.data[0,-1])*np.ones_like(A2)
@@ -510,17 +510,17 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
                 diag *= 2
             #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
             w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
-        
+
     return w0.real * np.exp(-B*0.5) * (g*g*0.5 / pi)
 
 
 def _wig_laguerre_val(L, x, c):
     """
-    this is evaluation of polynomial series inspired by hermval from numpy.    
+    this is evaluation of polynomial series inspired by hermval from numpy.
     Returns polynomial series
     \sum_n b_n LL_n^L,
     where
-    LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]    
+    LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]
     The evaluation uses Clenshaw recursion
     """
 
@@ -538,15 +538,15 @@ def _wig_laguerre_val(L, x, c):
             k -= 1
             y0,    y1 = c[-i] - y1 * (float((k - 1)*(L + k - 1))/((L+k)*k))**0.5, \
             y0 - y1 * ((L + 2*k -1) - x) * ((L+k)*k)**-0.5
-            
+
     return y0 - y1 * ((L + 1) - x) * (L + 1)**-0.5
-    
-    
+
+
 
 # -----------------------------------------------------------------------------
 # Q FUNCTION
 #
-def qfunc(state, xvec, yvec, g=sqrt(2), amat_pwr=None):
+def qfunc(state, xvec, yvec, g=sqrt(2), precompute=None):
     """Q-function of a given state vector or density matrix
     at points `xvec + i * yvec`.
 
@@ -564,13 +564,15 @@ def qfunc(state, xvec, yvec, g=sqrt(2), amat_pwr=None):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
-    amat_pwr : array
-        The matrix provided by qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
-        need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
-        of a pure state in the chosen system.
-        If provided, the pure qfunc is computed with _qfunc_pure_fast, which has
-        significant speedup over _qfunc_pure. Useful if Q is computed for density
-        matrices or many times.
+    precompute : None (default), bool or array
+        Use precomputation to speed up the Husimi Q func.
+
+        None (default): True for density matrices, False for bras/kets
+        True / False: Always/Never use precomputation
+        array: The result of the precomputation can be given explicitly.
+               Useful if qfunc is called many times with the same xvec, yvec and dimensions.
+               The precomputed array is returned by qfunc_precompute(xvec, yvec, n, g),
+               where xvec, yvec and g need to be the same as for qfunc, and n is the dim of the chosen system.
 
     Returns
     --------
@@ -587,8 +589,15 @@ def qfunc(state, xvec, yvec, g=sqrt(2), amat_pwr=None):
 
     qmat = zeros(size(amat))
 
+    if precompute is None:
+        # Decide whether precomputation should be used, if not already set
+        precompute = isoper(state)
+    if precompute is True:
+        # If precomputation should be used but result not given, do it now
+        precompute = qfunc_precompute(xvec, yvec, state.shape[0], g)
+
     if isket(state):
-        qmat = _qfunc_pure(state, amat, amat_pwr)
+        qmat = _qfunc_pure(state, amat, precompute)
     elif isoper(state):
         d, v = la.eig(state.full())
         # d[i]   = eigenvalue i
@@ -596,7 +605,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2), amat_pwr=None):
 
         qmat = zeros(np.shape(amat))
         for k in arange(0, len(d)):
-            qmat1 = _qfunc_pure(v[:, k], amat, amat_pwr)
+            qmat1 = _qfunc_pure(v[:, k], amat, precompute)
             qmat += real(d[k] * qmat1)
 
     qmat = 0.25 * qmat * g ** 2
@@ -609,11 +618,11 @@ def qfunc(state, xvec, yvec, g=sqrt(2), amat_pwr=None):
 # |psi>   = the state in fock basis
 # |alpha> = the coherent state with amplitude alpha
 #
-def _qfunc_pure(psi, alpha_mat, amat_pwr=None):
+def _qfunc_pure(psi, alpha_mat, precompute=False):
     """
     Calculate the Q-function for a pure state.
 
-    If provided, amat_pwr needs to be computed with qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
+    If provided, precompute needs to be computed with qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
     need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
     of a pure state in the chosen system. This gives 3-10x speedup for each call
     """
@@ -623,21 +632,22 @@ def _qfunc_pure(psi, alpha_mat, amat_pwr=None):
     else:
         psi = psi.T
 
-    if amat_pwr is None:
-        qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
-                           conjugate(alpha_mat))
+    if precompute:
+        qmat = np.dot(precompute, psi)
     else:
-        qmat = np.dot(amat_pwr, psi)
+         qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
+                           conjugate(alpha_mat))
+
     # faster than np.abs()**2 if len(xvec) >~ 10
     qmat = qmat.real**2 + qmat.imag**2
-    if amat_pwr is None:
+    if not precompute:
         qmat *= exp(-abs(alpha_mat) ** 2)
     return qmat / pi
 
-def qfunc_amat(xvec, yvec, n, g=sqrt(2)):
+def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
     """Helper matrix for fast Q-function at points `xvec + i * yvec`.
 
-    Warning: The returned array has size len(xvec) * len(yvec) * n, can be large
+    Warning: The returned array has size len(xvec) * len(yvec) * n * 16 Byte, can be large
 
     Parameters
     ----------
@@ -646,28 +656,33 @@ def qfunc_amat(xvec, yvec, n, g=sqrt(2)):
 
     yvec : array_like
         y-coordinates at which to calculate the Wigner function.
-        
+
     n : int
         Dimension of the pure states of which the Q func will be evaluated
 
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
+    max_memory : float
+        Maximal memory size in MB, default 1GB.
+
     Returns
     --------
-    amat_pwr : array
+    precomputed : array
         Precomputed array that contains everything in _qfunc_pure that is not dependent on
         the state.
 
     """
+    memory = len(xvec) * len(yvec) * n * 16 / 1024**2
+    assert memory < max_memory, f"Precomputation uses {memory}MB memory, with a max of {max_memory}MB. Turn precomputation off with precompute=False or use a larger max."
     X, Y = meshgrid(xvec, yvec)
     amat = 0.5 * g * (X - Y * 1j)
 
     powers = np.arange(n)
-    amat_pwr = np.power(np.expand_dims(amat, axis=-1), powers)
-    amat_pwr /= sqrt(factorial(arange(n)))
-    amat_pwr *= np.expand_dims(exp(-abs(amat) ** 2 / 2), axis=-1)
-    return amat_pwr
+    precomputed = np.power(np.expand_dims(amat, axis=-1), powers)
+    precomputed /= sqrt(factorial(arange(n)))
+    precomputed *= np.expand_dims(exp(-abs(amat) ** 2 / 2), axis=-1)
+    return precomputed
 
 # -----------------------------------------------------------------------------
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
