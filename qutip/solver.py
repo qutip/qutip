@@ -61,51 +61,68 @@ class SolverSystem():
 
 
 class _SolverCacheOneEvo:
-    def __init__(self, t_start, t_end, dt, vals):
+    def __init__(self, t_start, dt, vals):
         self.t_start = t_start
-        self.t_end = t_end
         self.dt = dt
         self.vals = vals
+        self.dense = False
+        self.num_val = len(self.vals)
+
+    def _index_from_time(t):
+        return np.round((t-self.t_start)/self.dt, 5)
 
     def __contains__(self, t):
-        if t > self.t_end:
+        index = _index_from_time(t)
+        if index < 0 or index >= self.num_val:
             return False
-        if t < self.t_start:
+        if index != np.round(index):
             return False
-        if np.abs((t - self.t_start) % self.dt) < 1e-7:
-            return True
-        return False
+        return True
 
-    def has(self, t1, t2=None, dt=0):
-        if t2 is None:
-            return t1 in self
-        dt = dt if dt else self.dt
-        return t1 in self and t2 in self and np.abs(dt % self.dt) < 1e-7
-
-    def __call__(self, t1, t2=None, dt=0):
-        if t2 is None:
-            return self.vals[round((t1-self.t_start)//self.dt)]
-        elif dt:
-            step = round(dt//self.dt)
+    def add(self, t_start, vals):
+        index = _index_from_time(t_start)
+        if index != np.round(index):
+            raise ValueError("Can't add new data")
+        if index == 0:
+            self.vals = vals
+            self.num_val = len(self.vals)
+        elif index = self.num_val:
+            self.vals.append(vals)
+            self.num_val = len(self.vals)
+        elif index > 0 and index < self.num_val:
+            self.vals = self.vals[:index] + vals
+            self.num_val = len(self.vals)
         else:
-            step = 1
-        start = round((t1-self.t_start) // self.dt)
-        end = round((t2-self.t_start) // self.dt)
-        return self.vals[start:end:step]
+            raise ValueError("Can't add new data")
 
-    def overlapse(self, t1, t2, dt):
-        if self.has(t1, self.t_end, dt):
-            return min([self.t_end, t2])
-        else:
-            return False
+    def has(self, t_start, t_end=None, dt=0):
+        if t_end is None:
+            return t_start in self
+        dt = np.round(dt/self.dt, 5) if dt else 1
+        return t_start in self and t_end in self and dt == np.round(dt)
 
-    def restart(self, t1, t2, dt):
-        if not self.has(t1, self.t_end, dt):
-            return t1
-        elif self.t_end < t2:
-            return self.t_end
-        else:
-            return t2
+    def __call__(self, t_start, t_end=None, dt=0):
+        # Same structure as deference: [start: end: step]
+        # However 'start' is mandatory
+        index_start = _index_from_time(t_start)
+        if t_end is None and not dt:
+            return self.vals[index]
+        index_end = self.num_val if t_end is None else _index_from_time(t_end)
+        step = np.round(dt/self.dt, 5) if dt else 1
+        return self.vals[np.rint(index_start):np.rint(index_end):np.rint(step)]
+
+    def restart(self, t_start, t_end, dt):
+        if t_start not in self:
+            return (t_start, None)
+        index_start = _index_from_time(t_start)
+        index_end = _index_from_time(t_end)
+        step = np.round(dt / self.dt, 5)
+        if step != np.round(step):
+            return (t_start, self(t_start))
+        if index_end < self.num_val:
+            return (t_end, None)
+        last_position = ((self.num_val - 1 - t_start)//dt) * dt + t_sta
+        return (last_position, self.vals[last_position])
 
     def __bool__(self):
         return bool(self.vals)
@@ -142,16 +159,16 @@ class _SolverCacheOneArgs:
 
 
 class _SolverCache:
-    def __init__(self, t0=0, dt=1):
+    def __init__(self, t_start=0, dt=1):
         self.num_args = 0
         self.args_hash = {}
         self.cached_data = []
-        self.t0 = t0
+        self.t_start = t_start
         self.dt = dt
 
     def _make_keys(self, args):
-        keys = [key for key args.keys() if "=" not in key]
-        dynargs = [key for key args.keys() if "=" in key]
+        keys = [key for key in args.keys() if "=" not in key]
+        dynargs = [key for key in args.keys() if "=" in key]
         for key in dynargs:
             name, what = key.split("=")
             keys.remove(name)
@@ -170,14 +187,14 @@ class _SolverCache:
     def __getitem__(self, key):
         key = self._hashable_args(key)
         if key not in self.args_hash:
-            self.cached_data.append(_SolverCacheOneArgs)
+            self.cached_data.append(_SolverCacheOneArgs())
             self.args_hash[key] = self.num_args
             self.num_args += 1
         return self.cached_data[self.args_hash[key]]
 
     def add_prop(self, args, props, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t0
-        dt = dt is dt is not None else self.dt
+        t_start = t_start if t_start is not None else self.t_start
+        dt = dt if dt is not None else self.dt
         t_end = len(props) * dt + t_start
         argsCache = self[args]
         if argsCache.get_prop_evolution() is None:
@@ -187,8 +204,8 @@ class _SolverCache:
             propCache.add(t_start, t_end, dt, props)
 
     def need_compute_prop(self, args, t_end, t_start=None, dt=None):
-        t_start = t_start is t_start is not None else self.t_start
-        dt = dt is dt is not None else self.dt
+        t_start = t_start if t_start is not None else self.t_start
+        dt = dt if dt is not None else self.dt
         argsCache = self[args]
         if argsCache.get_prop_evolution() is None:
             return t_start # Need to be computed from the beginning
@@ -197,8 +214,10 @@ class _SolverCache:
             return propCache.restart(t_start, t_end, dt)
 
     def get_prop(self, args, t_end, t_start=None, dt=None):
-        t_start = t_start is t_start is not None else self.t_start
-        dt = dt is dt is not None else self.dt
+        if t_start is not None else self.t_start:
+            t_start = t_start
+            t_end = t_end + 1
+        dt = dt if dt is not None else self.dt
         argsCache = self[args]
         if argsCache.get_prop_evolution() is None:
             return None
@@ -207,8 +226,8 @@ class _SolverCache:
             return propCache(t_start, t_end, dt)
 
     def add_state(self, args, psi, states, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t0
-        dt = dt is dt is not None else self.dt
+        t_start = t_start if t_start is not None else self.t_start
+        dt = dt if dt is not None else self.dt
         t_end = len(props) * dt + t_start
         argsCache = self[args]
         if argsCache.get_state_evolution(psi) is None:
@@ -220,8 +239,8 @@ class _SolverCache:
             stateCache.add(t_start, t_end, dt, states)
 
     def _need_compute_state(self, args, psi, t_end, t_start=None, dt=None):
-        t_start = t_start is t_start is not None else self.t_start
-        dt = dt is dt is not None else self.dt
+        t_start = t_start if t_start is not None else self.t_start
+        dt = dt if dt is not None else self.dt
         argsCache = self[args]
         if argsCache.get_state_evolution(psi) is None:
             as_state = t_start # Need to be computed from the beginning
@@ -238,8 +257,10 @@ class _SolverCache:
         return max(as_state, as_prop)
 
     def get_state(self, args, psi, t_end, t_start=None, dt=None):
-        t_start = t_start is t_start is not None else self.t_start
-        dt = dt is dt is not None else self.dt
+        if t_start is not None else self.t_start:
+            t_start = t_start
+            t_end = t_end + 1
+        dt = dt if dt is not None else self.dt
         argsCache = self[args]
         as_state = self._need_compute_prop(args, psi, t_end, t_start, dt)
 
@@ -259,14 +280,14 @@ class _SolverCache:
         return states
 
     def add_expect(self, args, psi, e_ops, values, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t0
-        dt = dt is dt is not None else self.dt
+        t_start = t_start if t_start is not None else self.t_start
+        dt = dt if dt is not None else self.dt
         t_end = len(props) * dt + t_start
         argsCache = self[args]
         if argsCache.get_expect_evolution(psi, e_ops) is None:
-                    self.e_ops_val = [[]]
-                    self.e_psis = []
-                    self.e_ops = []
+            self.e_ops_val = [[]]
+            self.e_psis = []
+            self.e_ops = []
             if psi not in self.e_psis:
                 self.e_psis.append(psi)
                 self.e_ops_val.append([None]*len(self.e_ops))
@@ -284,8 +305,8 @@ class _SolverCache:
             expectCache.add(t_start, t_end, dt, states)
 
     def _need_compute_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
-        t_start = t_start is t_start is not None else self.t_start
-        dt = dt is dt is not None else self.dt
+        t_start = t_start if t_start is not None else self.t_start
+        dt = dt if dt is not None else self.dt
         argsCache = self[args]
         if argsCache.get_expect_evolution(psi, e_ops) is None:
             as_expect = t_start # Need to be computed from the beginning
@@ -302,8 +323,10 @@ class _SolverCache:
         return max(as_state, as_expect)
 
     def get_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
-        t_start = t_start is t_start is not None else self.t_start
-        dt = dt is dt is not None else self.dt
+        if t_start is not None else self.t_start:
+            t_start = t_start
+            t_end = t_end + 1
+        dt = dt if dt is not None else self.dt
         argsCache = self[args]
         as_expect = self._need_compute_expect(args, psi, t_end, t_start, dt)
 
