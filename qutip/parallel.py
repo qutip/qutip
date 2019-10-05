@@ -36,6 +36,7 @@ mappings, using the builtin Python module multiprocessing.
 """
 __all__ = ['parfor', 'parallel_map', 'serial_map']
 
+import loky
 from scipy import array
 from multiprocessing import Pool
 from functools import partial
@@ -187,7 +188,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     return results
 
 
-def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
+def parallel_map(task, values, task_args=None, task_kwargs=None, **kwargs):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
@@ -211,22 +212,24 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     Returns
     --------
     result : list
-        The result list contains the value of 
-        ``task(value, *task_args, **task_kwargs)`` for 
+        The result list contains the value of
+        ``task(value, *task_args, **task_kwargs)`` for
         each value in ``values``.
 
     """
+    if task_args is None:
+        task_args = ()
+    if task_kwargs is None:
+        task_kwargs = {}
+
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     kw = _default_kwargs()
     if 'num_cpus' in kwargs:
         kw['num_cpus'] = kwargs['num_cpus']
 
-    try:
-        progress_bar = kwargs['progress_bar']
-        if progress_bar is True:
-            progress_bar = TextProgressBar()
-    except:
-        progress_bar = BaseProgressBar()
+    progress_bar = kwargs.get('progress_bar', BaseProgressBar())
+    if progress_bar is True:
+        progress_bar = TextProgressBar()
 
     progress_bar.start(len(values))
     nfinished = [0]
@@ -235,29 +238,22 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         nfinished[0] += 1
         progress_bar.update(nfinished[0])
 
-    try:
-        pool = Pool(processes=kw['num_cpus'])
-
-        async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
-                                      _update_progress_bar)
-                     for value in values]
-
-        while not all([ar.ready() for ar in async_res]):
-            for ar in async_res:
-                ar.wait(timeout=0.1)
-
-        pool.terminate()
-        pool.join()
-
-    except KeyboardInterrupt as e:
-        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-        pool.terminate()
-        pool.join()
-        raise e
+    with loky.get_reusable_executor(max_workers=kw['num_cpus']) as executor:
+        jobs = []
+        try:
+            for value in values:
+                args = (value,) + tuple(task_args)
+                job = executor.submit(task, *args, **task_kwargs)
+                job.add_done_callback(_update_progress_bar)
+                jobs.append(job)
+            res = [job.result() for job in jobs]
+        except KeyboardInterrupt as e:
+            os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
+            raise e
 
     progress_bar.finished()
     os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-    return [ar.get() for ar in async_res]
+    return res
 
 
 def _default_kwargs():

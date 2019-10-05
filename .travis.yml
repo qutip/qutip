@@ -22,6 +22,7 @@ stage_generic_linux: &stage_generic_linux
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - conda install -c conda-forge loky
     - python setup.py install
 
 stage_linux_36: &stage_linux_36
@@ -88,6 +89,7 @@ stage_linux_37_openblas: &stage_linux_37_openblas
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - conda install -c conda-forge loky
     - python setup.py install
 
 stage_linux_37_omp: &stage_linux_37_omp
@@ -105,6 +107,7 @@ stage_linux_37_omp: &stage_linux_37_omp
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
     - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - conda install -c conda-forge loky
     - python setup.py install --with-openmp
   after_success:
     - coveralls
@@ -133,6 +136,7 @@ stage_osx: &stage_osx
     - source activate test-environment
     # - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - conda install -c conda-forge loky
     - python setup.py install
 
 stages:
