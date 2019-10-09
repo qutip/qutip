@@ -146,7 +146,7 @@ def ode2es(L, rho0):
             rho0 = rho0 * rho0.dag()
 
         # check if state is below error threshold
-        if abs(rho0.full().sum()) < 1e-10 + 1e-24:
+        if abs(rho0.full()).sum() < 1e-10 + 1e-24:
             # enforce zero operator
             return eseries(qzero(rho0.dims[0]))
 
@@ -175,7 +175,7 @@ def ode2es(L, rho0):
                             'is a Hamiltonian.')
 
         # check if state is below error threshold
-        if abs(rho0.full().sum()) < 1e-5 + 1e-20:
+        if abs(rho0.full()).sum() < 1e-5 + 1e-20:
             # enforce zero operator
             dims = rho0.dims
             return eseries(Qobj(sp.csr_matrix((dims[0][0], dims[1][0]),
