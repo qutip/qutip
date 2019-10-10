@@ -38,12 +38,12 @@ from qutip.qobj import Qobj
 import qutip.settings as qset
 from qutip.interpolate import Cubic_Spline
 from scipy.interpolate import CubicSpline
-from functools import partial, wraps
+from functools import partial
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.qobjevo_codegen import _compile_str_single, _compiled_coeffs
-from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv, cy_spmm_tr)
+from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
                                  CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
@@ -420,7 +420,6 @@ class QobjEvo:
         self.tlist = tlist
         self.compiled = ""
         self.compiled_qobjevo = None
-        self.compiled_ptr = None
         self.coeff_get = None
         self.type = "none"
         self.omp = 0
@@ -588,7 +587,7 @@ class QobjEvo:
 
         self.args.update(to_add)
 
-    def _check_old_with_state(self):
+    def _check_old_with_state(self, state):
         add_vec = False
         for op in self.ops:
             if op.type == "func":
@@ -713,7 +712,6 @@ class QobjEvo:
         new.type = self.type
         new.compiled = False
         new.compiled_qobjevo = None
-        new.compiled_ptr = None
         new.coeff_get = None
         new.coeff_files = []
 
@@ -738,7 +736,6 @@ class QobjEvo:
         self.type = other.type
         self.compiled = ""
         self.compiled_qobjevo = None
-        self.compiled_ptr = None
         self.coeff_get = None
         self.ops = []
 
@@ -807,7 +804,6 @@ class QobjEvo:
                     self.type = "mixed_compilable"
             self.compiled = ""
             self.compiled_qobjevo = None
-            self.compiled_ptr = None
             self.coeff_get = None
 
             if self.tlist is None:
@@ -989,6 +985,14 @@ class QobjEvo:
             res._f_norm2()
         return res
 
+    def _prespostdag(self):
+        """return spre(a) * spost(a.dag()) """
+        def _prespostdag(op):
+            return spre(op) * spost(op.dag())
+
+        res = self.dag()
+        return res.apply(_prespostdag)._f_norm2()
+
     # Unitary function of Qobj
     def tidyup(self, atol=1e-12):
         self.cte = self.cte.tidyup(atol)
@@ -1168,53 +1172,6 @@ class QobjEvo:
         res.cte = cte_res
         for op in res.ops:
             op.qobj = function(op.qobj, *args, **kw_args)
-        return res
-
-    def apply_decorator(self, function, *args, **kw_args):
-        if "str_mod" in kw_args:
-            str_mod = kw_args["str_mod"]
-            del kw_args["str_mod"]
-        else:
-            str_mod = None
-        if "inplace_np" in kw_args:
-            inplace_np = kw_args["inplace_np"]
-            del kw_args["inplace_np"]
-        else:
-            inplace_np = None
-        res = self.copy()
-        for op in res.ops:
-            op.get_coeff = function(op.get_coeff, *args, **kw_args)
-            if op.type == ["func", "spline"]:
-                op.coeff = op.get_coeff
-                op.type = "func"
-            elif op.type == "string":
-                if str_mod is None:
-                    op.coeff = op.get_coeff
-                    op.type = "func"
-                else:
-                    op.coeff = str_mod[0] + op.coeff + str_mod[1]
-            elif op.type == "array":
-                if inplace_np:
-                    # keep the original function, change the array
-                    def f(a):
-                        return a
-                    ff = function(f, *args, **kw_args)
-                    for i, v in enumerate(op.coeff):
-                        op.coeff[i] = ff(v)
-                    op.get_coeff = _CubicSplineWrapper(self.tlist, op.coeff)
-                else:
-                    op.coeff = op.get_coeff
-                    op.type = "func"
-        if self.type == "string" and str_mod is None:
-            res.type = "mixed_callable"
-        elif self.type == "array" and not inplace_np:
-            res.type = "mixed_callable"
-        elif self.type == "spline":
-            res.type = "mixed_callable"
-        elif self.type == "mixed_compilable":
-            for op in res.ops:
-                if op.type == "func":
-                    res.type = "mixed_callable"
         return res
 
     def _f_norm2(self):

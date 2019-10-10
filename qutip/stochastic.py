@@ -809,12 +809,9 @@ def _positive_map(sso, e_ops_dict):
     sso.preops2 = []
     sso.postops2 = []
 
-    def _prespostdag(op):
-        return spre(op) * spost(op.dag())
-
     for op in sso.c_ops:
         LH -= op._cdc() * sso.dt * 0.5
-        sso.pp += op.apply(_prespostdag)._f_norm2() * sso.dt
+        sso.pp += op._prespostdag() * sso.dt
 
     for i, op in enumerate(sops):
         LH -= op._cdc() * sso.dt * 0.5
@@ -923,12 +920,9 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso.solver_name = "photocurrent_mesolve"
     sso.LH = liouvillian(sso.H, c_ops=sso.c_ops) * sso.dt
 
-    def _prespostdag(op):
-        return spre(op) * spost(op.dag())
-
     sso.sops = [[spre(op._cdc()) + spost(op._cdc()),
                  spre(op._cdc()),
-                 op.apply(_prespostdag)._f_norm2()] for op in sso.sc_ops]
+                 op._prespostdag()] for op in sso.sc_ops]
     sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
 

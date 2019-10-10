@@ -1205,3 +1205,97 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
             for jj from row_start <= jj < row_end:
                 tr += self.data_ptr[jj]*oper[num_rows*jj + row]
         return tr
+
+
+cdef class CQobjFunc(CQobjEvo):
+    def __init__(self, base):
+        self.base = base
+        self.shape0 = base.cte.shape[0]
+        self.shape1 = base.cte.shape[1]
+        self.dims = base.cte.dims
+        self.super = base.cte.issuper
+
+    cdef void _mul_vec(self, double t, complex* vec, complex* out):
+        data = self.base(t, data=True, state=zptr2array1d(vec,self.shape1))
+        cdef complex[:] data = data.data
+        cdef int[:] ind = data.indices
+        cdef int[:] ptr = data.indptr
+        spmvpy(&data[0], &ind[0], &ptr[0], vec, 1., out, self.shape0)
+
+    cdef void _mul_matf(self, double t, complex* mat, complex* out,
+                    int nrow, int ncols):
+        """self * dense mat fortran ordered """
+        data = self.base(t, data=True, state=zptr2array2d(vec,nrow,ncols))
+        cdef complex[:] data = data.data
+        cdef int[:] ind = data.indices
+        cdef int[:] ptr = data.indptr
+        _spmm_f_py(&data[0], &ind[0], &ptr[0], mat, 1.,
+                   out, self.shape0, nrow, ncol)
+
+    cdef void _mul_matc(self, double t, complex* mat, complex* out,
+                    int nrow, int ncols):
+        """self * dense mat c ordered"""
+        data = self.base(t, data=True, state=zptr2array2d(vec,nrow,ncols))
+        cdef complex[:] data = data.data
+        cdef int[:] ind = data.indices
+        cdef int[:] ptr = data.indptr
+        _spmm_c_py(&data[0], &ind[0], &ptr[0], mat, 1.,
+                   out, self.shape0, nrow, ncol)
+
+    cdef complex _expect(self, double t, complex* vec):
+        """<vec| self |vec>"""
+        data = self.base(t, data=True, state=zptr2array1d(vec,self.shape1))
+        cdef complex[:] data = data.data
+        cdef int[:] ind = data.indices
+        cdef int[:] ptr = data.indptr
+        cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
+        spmvpy(&data[0], &ind[0], &ptr[0], vec, 1., &y[0], self.shape0)
+        cdef int row
+        cdef complex dot = 0
+        for row from 0 <= row < self.shape0:
+            dot += conj(vec[row])*y[row]
+        return dot
+
+    cdef complex _expect_super(self, double t, complex* rho):
+        """tr( self_L * rho * self_R )"""
+        data = self.base(t, data=True, state=zptr2array1d(rho, self.shape1))
+        cdef complex[:] data = data.data
+        cdef int[:] ind = data.indices
+        cdef int[:] ptr = data.indptr
+
+        cdef int row
+        cdef int jj, row_start, row_end
+        cdef int num_rows = self.shape0
+        cdef int n = <int>libc.math.sqrt(num_rows)
+        cdef complex dot = 0.0
+
+        for row from 0 <= row < num_rows by n+1:
+            row_start = ptr[row]
+            row_end = ptr[row+1]
+            for jj from row_start <= jj < row_end:
+                dot += data[jj] * rho[ind[jj]]
+
+        return dot
+
+    cdef complex _overlapse(self, double t, complex* oper):
+        """tr( self * oper )"""
+        data = self.base(t, data=True,
+                         state=zptr2array2d(rho, self.shape2, self.shape1))
+        cdef complex[:] data = data.data
+        cdef int[:] ind = data.indices
+        cdef int[:] ptr = data.indptr
+
+        cdef int row
+        cdef int jj, row_start, row_end
+        cdef int num_rows = self.shape0
+        cdef complex tr = 0.0
+
+        for row in range(num_rows):
+            row_start = ptr[row]
+            row_end = ptr[row+1]
+            for jj from row_start <= jj < row_end:
+                tr += data[jj]*oper[num_rows*ind[jj] + row]
+        return tr
+
+    def call(self, double t, int data=0):
+        return self.base(t, data=data)
