@@ -86,31 +86,18 @@ def _empty_info_dict():
 
 def _default_steadystate_args():
     def_args = {'sparse': True, 'use_rcm': False,
-                'use_wbm': False, 'weight': None, 'use_precond': False,
+                'use_wbm': False,'use_precond': False,
                 'all_states': False, 'M': None, 'x0': None, 'drop_tol': 1e-4,
                 'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000,
-                'tol': 1e-12, 'matol': 1e-15, 'mtol': None,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2',
-                'restart': 20, 'return_info': False,
-                'info': _empty_info_dict(),
-                'verbose': False, 'solver': 'scipy'}
-
-    return def_args
-
-
-def _mkl_steadystate_args():
-    def_args = {'max_iter_refine': 10,
+                'restart': 20,
+                'max_iter_refine': 10,
                 'scaling_vectors': True,
                 'weighted_matching': True,
                 'return_info': False, 'info': _empty_info_dict(),
-                'verbose': False, 'solver': 'mkl',
-                'use_rcm': False,
-                'use_wbm': False, 'weight': None,
-                'tol': 1e-12, 'matol': 1e-15, 'mtol': None,
-                'maxiter': 1000}
-
+                'verbose': False, 'solver': 'scipy', 'weight': None,
+                'tol': 1e-12, 'matol': 1e-15, 'mtol': None,}
     return def_args
-
 
 def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     """Calculates the steady state for quantum evolution subject to the
@@ -255,12 +242,13 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     elif solver not in ['scipy', 'mkl']:
         raise Exception('Invalid solver kwarg.')
 
-    if solver == 'scipy':
-        ss_args = _default_steadystate_args()
-    elif solver == 'mkl':
-        ss_args = _mkl_steadystate_args()
-    else:
-        raise Exception('Invalid solver keyword argument.')
+    # if solver == 'scipy':
+    #     ss_args = _default_steadystate_args()
+    # elif solver == 'mkl':
+    #     ss_args = _mkl_steadystate_args()
+    # else:
+    #     raise Exception('Invalid solver keyword argument.')
+    ss_args = _default_steadystate_args()
     ss_args['method'] = method
     ss_args['info']['solver'] = ss_args['solver']
     ss_args['info']['method'] = ss_args['method']
