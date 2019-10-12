@@ -681,12 +681,12 @@ class Bloch():
         if name is None:
             if dirc:
                 complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
-                + str(self.savenum) + '.' + format
+                                + str(self.savenum) + '.' + format
             else:
                 complete_path = os.getcwd() + '/bloch_' + \
-                str(self.savenum) + '.' + format
+                                str(self.savenum) + '.' + format
         else:
-        	complete_path = name
+            complete_path = name
 
         if dpsi:
             self.fig.savefig(complete_path, dpi=dpsi)
