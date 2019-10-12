@@ -680,17 +680,18 @@ class Bloch():
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-            	complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
-            	+ str(self.savenum) + '.' + format
+                complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
+                + str(self.savenum) + '.' + format
             else:
-                complete_path = os.getcwd() + '/bloch_' + str(self.savenum) + '.' + format
+                complete_path = os.getcwd() + '/bloch_' + \
+                str(self.savenum) + '.' + format
         else:
         	complete_path = name
 
         if dpsi:
-        	self.fig.savefig(complete_path, dpi=dpsi)
+            self.fig.savefig(complete_path, dpi=dpsi)
         else:
-        	self.fig.savefig(complete_path)
+            self.fig.savefig(complete_path)
         self.savenum += 1
         if self.fig:
             plt.close(self.fig)
