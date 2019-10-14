@@ -35,6 +35,26 @@ stage_linux_37: &stage_linux_37
   dist: xenial
   python: 3.7
 
+stage_linux_37_no_cython: &stage_linux_37_no_cython
+  <<: *stage_generic_linux
+  name: "Python 3.7 no cython"
+  dist: xenial
+  python: 3.7
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install -c conda-forge nomkl blas=*=openblas numpy scipy nose
+    - conda install -c conda-forge cython --freeze-installed
+    - conda list
+    - python setup.py install
+    - conda uninstall cython
+
 stage_linux_37_openblas: &stage_linux_37_openblas
   <<: *stage_generic_linux
   name: "Python 3.7 OpenBLAS"
@@ -108,6 +128,8 @@ jobs:
       <<: *stage_linux_37
     - stage: test
       <<: *stage_linux_37_omp
+    - stage: test
+      <<: *stage_linux_37_no_cython
     - stage: test
       <<: *stage_linux_37_openblas
     - stage: test
