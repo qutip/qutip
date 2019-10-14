@@ -651,7 +651,7 @@ class Bloch():
             self.fig.show()
         self._shown = True
 
-    def save(self, name=None, format='png', dirc=None, dpsi=None):
+    def save(self, name=None, format='png', dirc=None, dpin=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
 
         Parameters
@@ -661,6 +661,8 @@ class Bloch():
             Name of saved image. Must include path and format as well.
             i.e. '/Users/Paul/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
+        dpin : int
+            Resolution in dots per inch.
         format : str
             Format of output image.
         dirc : str
@@ -688,8 +690,8 @@ class Bloch():
         else:
             complete_path = name
 
-        if dpsi:
-            self.fig.savefig(complete_path, dpi=dpsi)
+        if dpin:
+            self.fig.savefig(complete_path, dpi=dpin)
         else:
             self.fig.savefig(complete_path)
         self.savenum += 1
