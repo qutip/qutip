@@ -651,7 +651,7 @@ class Bloch():
             self.fig.show()
         self._shown = True
 
-    def save(self, name=None, format='png', dirc=None):
+    def save(self, name=None, format='png', dirc=None, dpin=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
 
         Parameters
@@ -665,6 +665,8 @@ class Bloch():
             Format of output image.
         dirc : str
             Directory for output images. Defaults to current working directory.
+        dpin : int
+            Resolution in dots per inch.
 
         Returns
         -------
@@ -672,18 +674,26 @@ class Bloch():
 
         """
         self.render(self.fig, self.axes)
+        # Conditional variable for first argument to savefig
+        # that is set in subsequent if-elses
+        complete_path = ""
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-                self.fig.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
-                            str(self.savenum) + '.' + format)
+                complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
+                                + str(self.savenum) + '.' + format
             else:
-                self.fig.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
-                            '.' + format)
+                complete_path = os.getcwd() + '/bloch_' + \
+                                str(self.savenum) + '.' + format
         else:
-            self.fig.savefig(name)
+            complete_path = name
+
+        if dpin:
+            self.fig.savefig(complete_path, dpi=dpin)
+        else:
+            self.fig.savefig(complete_path)
         self.savenum += 1
         if self.fig:
             plt.close(self.fig)
