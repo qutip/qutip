@@ -85,10 +85,11 @@ In addition to the show() command, the Bloch class has the following functions:
 | clear()                  |                                      | Removes all data from Bloch sphere.      |
 |                          |                                      | Keeps customized figure properties.      |
 +--------------------------+--------------------------------------+------------------------------------------+
-| save(#format,#dirc)      | *format* format (default='png') of   | Saves Bloch sphere to a file.            |
+| save(#name,#format,#dirc,|*name* name of output file,           |                                          |
+|	#dpin)				   |*format* format (default='png') of    | Saves Bloch sphere to a file.            |
 |                          | output file, *dirc* (default=cwd)    |                                          |
-|                          | output directory                     |                                          |
-|                          |                                      |                                          |
+|                          | output directory, *dpin* resolution  |                                          |
+|                          | in dots per square inch.             |                                          |
 +--------------------------+--------------------------------------+------------------------------------------+
 | show()                   |                                      | Generates Bloch sphere with given data.  |
 +--------------------------+--------------------------------------+------------------------------------------+
