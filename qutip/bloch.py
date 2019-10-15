@@ -661,12 +661,12 @@ class Bloch():
             Name of saved image. Must include path and format as well.
             i.e. '/Users/Paul/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
-        dpin : int
-            Resolution in dots per inch.
         format : str
             Format of output image.
         dirc : str
             Directory for output images. Defaults to current working directory.
+        dpin : int
+            Resolution in dots per inch.
 
         Returns
         -------
