@@ -777,7 +777,9 @@ class QobjEvo:
         return res
 
     def __iadd__(self, other):
-        if isinstance(other, QobjEvo):
+        if isinstance(other, QobjEvoFunc):
+            return NotImplemented
+        elif isinstance(other, QobjEvo):
             self.cte += other.cte
             l = len(self.ops)
             for op in other.ops:
@@ -844,6 +846,8 @@ class QobjEvo:
             for op in res.ops:
                 op.qobj = other * op.qobj
             return res
+        elif isinstance(other, QobjEvoFunc):
+            return NotImplemented
         else:
             res *= other
             return res
@@ -853,6 +857,8 @@ class QobjEvo:
             self.cte *= other
             for op in self.ops:
                 op.qobj *= other
+        elif isinstance(other, QobjEvoFunc):
+            return NotImplemented
         elif isinstance(other, QobjEvo):
             if other.const:
                 self.cte *= other.cte
@@ -988,6 +994,26 @@ class QobjEvo:
 
         res = self.dag()
         return res.apply(_prespostdag)._f_norm2()
+
+    def spre(self):
+        return self.apply(spre)
+
+    def spost(self):
+        return self.apply(spost)
+
+    def liouvillian(self, c_ops, chi):
+        L = self.apply(liouvillian)
+        if chi:
+            for c_op, chi_ in zip(c_ops,chi):
+                L += lindblad_dissipator(c_op, chi_)
+        return L
+
+    def lindblad_dissipator(self, chi=0):
+        if chi is None:
+            chi = 0
+        ccd = self._prespostdag()*np.exp(1j * chi)
+        cdc = self._cdc()
+        return ccd - 0.5 * spre(cdc) - 0.5 * spost(cdc)
 
     # Unitary function of Qobj
     def tidyup(self, atol=1e-12):

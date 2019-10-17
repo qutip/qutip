@@ -33,7 +33,7 @@
 """Time-dependent Quantum Object (QobjEvo) wrapper class
 for function returning Qobj.
 """
-__all__ = ['QObjEvoFunc']
+__all__ = ['QObjEvoFunc', 'qobjevo_maker']
 
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
@@ -443,13 +443,13 @@ class QObjEvoFunc(QobjEvo):
         if args:
             if not isinstance(args, dict):
                 raise TypeError("The new args must be in a dict")
-            old_args = self.args.copy()
-            self.args.update(args)
-        qobj = self.func(t, self.args)
+            now_args = self.args.copy()
+            now_args.update(args)
+        else:
+            now_args = self.args
+        qobj = self.func(t, now_args)
         for transform in self.operation_stack:
-            qobj = transform(qobj)
-        if args:
-            self.args = old_args
+            qobj = transform(qobj, t, now_args)
         return qobj
 
     def copy(self):
@@ -588,20 +588,30 @@ class QObjEvoFunc(QobjEvo):
         res.operation_stack.append(_Block_dag())
         return res
 
-    def pre(self):
+    def spre(self):
         res = self.copy()
         res.operation_stack.append(_Block_pre())
+        self._reset_type()
         return res
 
-    def post(self):
+    def spost(self):
         res = self.copy()
         res.operation_stack.append(_Block_post())
+        self._reset_type()
         return res
 
-    def liouvillian(self, c_ops):
+    def liouvillian(self, c_ops=[], chi=None):
         res = self.copy()
         c_ops = [qobjevo_maker(c_op) for c_op in c_ops]
-        res.operation_stack.append(_Block_liouvillian(c_ops))
+        res.operation_stack.append(_Block_liouvillian(c_ops, chi))
+        self._reset_type()
+        return res
+
+    def lindblad_dissipator(self, chi=0):
+        res = self.copy()
+        chi = 0 is chi is None else chi
+        res.operation_stack.append(_Block_lindblad_dissipator(chi))
+        self._reset_type()
         return res
 
     def _cdc(self):
@@ -641,7 +651,7 @@ class QObjEvoFunc(QobjEvo):
     def apply(self, function, *args, **kw_args):
         self.compiled = ""
         res = self.copy()
-        res.operation_stack.append(_Block_apply(function, *args, **kw_args))
+        res.operation_stack.append(_Block_apply(function, args, kw_args))
         return res
 
     def expect(self, t, state, herm=0):
@@ -746,15 +756,14 @@ class QObjEvoFunc(QobjEvo):
 
 
 class _Block_transform:
-    def __init__(self):
-        self.use_args = False
-        self.args = {}
+    def __init__(self, other=None):
+        self.other = None
 
     def tidyup(self, atol):
         pass
 
     def copy(self):
-        return self.__class__()
+        return self.__class__(self.other)
 
     def __call__(self, obj, t, args={}):
         return obj
@@ -766,55 +775,31 @@ class _Block_neg(_Block_transform):
 
 
 class _Block_Sum_Qo(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
-
     def __call__(self, obj, t, args={}):
         return obj + self.other
 
 
 class _Block_mul(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
-
     def __call__(self, obj, t, args={}):
         return obj * self.other
 
 
 class _Block_rmul(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
-
     def __call__(self, obj, t, args={}):
         return self.other * obj
 
 
 class _Block_Sum_Qoe(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
-
     def __call__(self, obj, t, args={}):
         return obj + self.other(t, args)
 
 
 class _Block_mul(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
-
     def __call__(self, obj, t, args={}):
         return obj * self.other(t, args)
 
 
 class _Block_rmul(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
-
     def __call__(self, obj, t, args={}):
         return self.other(t, args) * obj
 
@@ -845,10 +830,6 @@ class _Block_prespostdag(_Block_transform):
 
 
 class _Block_permute(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
-
     def __call__(self, obj, t, args={}):
         return obj.permute(self.other)
 
@@ -864,9 +845,24 @@ class _Block_post(_Block_transform):
 
 
 class _Block_liouvillian(_Block_transform):
-    def __init__(self, other):
-        super().__init__()
-        self.other = other
+    def __call__(self, obj, t, args={}):
+        c_ops = [op(t, args) for op in self.other]
+        return liouvillian(obj, c_ops)
+
+
+class _Block_lindblad_dissipator(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return lindblad_dissipator(obj, chi=self.other)
+
+
+class _Block_apply(_Block_transform):
+    def __init__(self, func, args, kwargs):
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+    def copy(self):
+        return _Block_apply(self.func, args, kwargs.copy())
 
     def __call__(self, obj, t, args={}):
-        return liouvillian(obj, self.other(t, args))
+        return self.func(obj, *self.args, **self.kwargs)
