@@ -205,9 +205,9 @@ class Bloch():
         # status of showing
         if fig is None:
             self._shown = False
-        else: 
+        else:
             self._shown = True
-        
+
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
 
@@ -215,17 +215,17 @@ class Bloch():
         ----------
         convention : string
             One of the following:
-            
+
                 - "original"
                 - "xyz"
                 - "sx sy sz"
                 - "01"
                 - "polarization jones"
-                - "polarization jones letters" 
+                - "polarization jones letters"
                   see also: http://en.wikipedia.org/wiki/Jones_calculus
                 - "polarization stokes"
                   see also: http://en.wikipedia.org/wiki/Stokes_parameters
-        
+
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -410,7 +410,7 @@ class Bloch():
         **kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
-        
+
         """
         if isinstance(state_or_vector, Qobj):
             vec = [expect(sigmax(), state_or_vector),
@@ -599,7 +599,7 @@ class Bloch():
                     real(self.points[k][2][indperm]),
                     s=self.point_size[mod(k, len(self.point_size))],
                     alpha=1,
-                    edgecolor='none',
+                    edgecolor=None,
                     zdir='z',
                     color=self.point_color[mod(k, len(self.point_color))],
                     marker=self.point_marker[mod(k, len(self.point_marker))])
@@ -615,7 +615,7 @@ class Bloch():
                 self.axes.scatter(real(self.points[k][1][indperm]),
                                   -real(self.points[k][0][indperm]),
                                   real(self.points[k][2][indperm]),
-                                  s=s, alpha=1, edgecolor='none',
+                                  s=s, alpha=1, edgecolor=None,
                                   zdir='z', color=pnt_colors,
                                   marker=marker)
 
