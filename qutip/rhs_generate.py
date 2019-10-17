@@ -260,6 +260,8 @@ def _td_format_check(H, c_ops, solver='me'):
                         h_str.append(k)
                     elif isinstance(H_k[1], Cubic_Spline):
                         h_obj.append(k)
+                    elif hasattr(H_k[1], '__call__'):
+                        h_obj.append(k)
                     elif isinstance(H_k[1], np.ndarray):
                         h_str.append(k)
                     else:
@@ -284,12 +286,12 @@ def _td_format_check(H, c_ops, solver='me'):
                     if isinstance(c_ops[k][1], (FunctionType,
                                                 BuiltinFunctionType, partial)):
                         c_func.append(k)
-                    elif hasattr(c_ops[k][1], '__call__'):
-                        c_func.append(k)
                     elif isinstance(c_ops[k][1], str):
                         c_str.append(k)
                     elif isinstance(c_ops[k][1], Cubic_Spline):
                         c_obj.append(k)
+                    elif hasattr(c_ops[k][1], '__call__'):
+                        c_func.append(k)
                     elif isinstance(c_ops[k][1], np.ndarray):
                         c_str.append(k)
                     elif isinstance(c_ops[k][1], tuple):
