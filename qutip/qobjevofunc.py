@@ -48,6 +48,15 @@ import sys
 import scipy
 import os
 
+def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True):
+    if isinstance(Q_object, QobjEvo):
+        return Q_object
+    try:
+        obj = QobjEvo(Q_object=None, args={}, tlist=None, copy=True)
+    except Exception as e:
+        obj = QObjEvoFunc(Q_object=None, args={}, tlist=None, copy=True)
+    return obj
+
 
 class _StateAsArgs:
     # old with state (f(t, psi, args)) to new (args["state"] = psi)
@@ -211,10 +220,6 @@ class QObjEvoFunc(QobjEvo):
 
     permute(order)
         Returns composite qobj with indices reordered.
-
-    ptrace(sel)
-        Returns quantum object for selected dimensions after performing
-        partial trace.
 
     apply(f, *args, **kw_args)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
@@ -583,6 +588,22 @@ class QObjEvoFunc(QobjEvo):
         res.operation_stack.append(_Block_dag())
         return res
 
+    def pre(self):
+        res = self.copy()
+        res.operation_stack.append(_Block_pre())
+        return res
+
+    def post(self):
+        res = self.copy()
+        res.operation_stack.append(_Block_post())
+        return res
+
+    def liouvillian(self, c_ops):
+        res = self.copy()
+        c_ops = [qobjevo_maker(c_op) for c_op in c_ops]
+        res.operation_stack.append(_Block_liouvillian(c_ops))
+        return res
+
     def _cdc(self):
         """return a.dag * a """
         res = self.copy()
@@ -614,11 +635,6 @@ class QObjEvoFunc(QobjEvo):
     def permute(self, order):
         res = self.copy()
         res.operation_stack.append(_Block_permute(order))
-        return res
-
-    def ptrace(self, sel):
-        res = self.copy()
-        res.operation_stack.append(_Block_ptrace(sel))
         return res
 
     # function to apply custom transformations
@@ -728,33 +744,129 @@ class QObjEvoFunc(QobjEvo):
         if self.compiled:
             self.compiled_qobjevo = CQobjFunc(self)
 
+
 class _Block_transform:
     def __init__(self):
         self.use_args = False
+        self.args = {}
 
     def tidyup(self, atol):
         pass
 
     def copy(self):
-        return _Block_transform()
+        return self.__class__()
 
-    def __call__(self, obj, t):
+    def __call__(self, obj, t, args={}):
         return obj
 
 
-_Block_mul_Qoe
-_Block_mul
-_Block_rmul_Qoe
-_Block_rmul
-_Block_Sum_Qoe
-_Block_Sum_Qo
-_Block_neg
+class _Block_neg(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return -obj
 
-_Block_trans
-_Block_conj
-_Block_dag
 
-_Block_cdc
-_Block_prespostdag
-_Block_permute
-_Block_ptrace
+class _Block_Sum_Qo(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return obj + self.other
+
+
+class _Block_mul(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return obj * self.other
+
+
+class _Block_rmul(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return self.other * obj
+
+
+class _Block_Sum_Qoe(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return obj + self.other(t, args)
+
+
+class _Block_mul(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return obj * self.other(t, args)
+
+
+class _Block_rmul(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return self.other(t, args) * obj
+
+
+class _Block_trans(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return obj.trans()
+
+
+class _Block_conj(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return obj.conj()
+
+
+class _Block_dag(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return obj.dag()
+
+
+class _Block_cdc(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return obj.dag()
+
+
+class _Block_prespostdag(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return spre(obj) * spost(obj.dag())
+
+
+class _Block_permute(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return obj.permute(self.other)
+
+
+class _Block_pre(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return spre(obj)
+
+
+class _Block_post(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return spost(obj)
+
+
+class _Block_liouvillian(_Block_transform):
+    def __init__(self, other):
+        super().__init__()
+        self.other = other
+
+    def __call__(self, obj, t, args={}):
+        return liouvillian(obj, self.other(t, args))

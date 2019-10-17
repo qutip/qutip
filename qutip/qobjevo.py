@@ -343,10 +343,6 @@ class QobjEvo:
     permute(order)
         Returns composite qobj with indices reordered.
 
-    ptrace(sel)
-        Returns quantum object for selected dimensions after performing
-        partial trace.
-
     apply(f, *args, **kw_args)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
         Return a modified QobjEvo and let the original one untouched
@@ -1153,13 +1149,6 @@ class QobjEvo:
         res.cte = res.cte.permute(order)
         for op in res.ops:
             op.qobj = op.qobj.permute(order)
-        return res
-
-    def ptrace(self, sel):
-        res = self.copy()
-        res.cte = res.cte.ptrace(sel)
-        for op in res.ops:
-            op.qobj = op.qobj.ptrace(sel)
         return res
 
     # function to apply custom transformations
