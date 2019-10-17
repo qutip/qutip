@@ -205,9 +205,9 @@ class Bloch():
         # status of showing
         if fig is None:
             self._shown = False
-        else: 
+        else:
             self._shown = True
-        
+
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
 
@@ -215,17 +215,17 @@ class Bloch():
         ----------
         convention : string
             One of the following:
-            
+
                 - "original"
                 - "xyz"
                 - "sx sy sz"
                 - "01"
                 - "polarization jones"
-                - "polarization jones letters" 
+                - "polarization jones letters"
                   see also: http://en.wikipedia.org/wiki/Jones_calculus
                 - "polarization stokes"
                   see also: http://en.wikipedia.org/wiki/Stokes_parameters
-        
+
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -410,7 +410,7 @@ class Bloch():
         **kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
-        
+
         """
         if isinstance(state_or_vector, Qobj):
             vec = [expect(sigmax(), state_or_vector),
@@ -599,7 +599,7 @@ class Bloch():
                     real(self.points[k][2][indperm]),
                     s=self.point_size[mod(k, len(self.point_size))],
                     alpha=1,
-                    edgecolor='none',
+                    edgecolor=None,
                     zdir='z',
                     color=self.point_color[mod(k, len(self.point_color))],
                     marker=self.point_marker[mod(k, len(self.point_marker))])
@@ -615,7 +615,7 @@ class Bloch():
                 self.axes.scatter(real(self.points[k][1][indperm]),
                                   -real(self.points[k][0][indperm]),
                                   real(self.points[k][2][indperm]),
-                                  s=s, alpha=1, edgecolor='none',
+                                  s=s, alpha=1, edgecolor=None,
                                   zdir='z', color=pnt_colors,
                                   marker=marker)
 
@@ -651,7 +651,7 @@ class Bloch():
             self.fig.show()
         self._shown = True
 
-    def save(self, name=None, format='png', dirc=None):
+    def save(self, name=None, format='png', dirc=None, dpin=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
 
         Parameters
@@ -665,6 +665,8 @@ class Bloch():
             Format of output image.
         dirc : str
             Directory for output images. Defaults to current working directory.
+        dpin : int
+            Resolution in dots per inch.
 
         Returns
         -------
@@ -672,18 +674,26 @@ class Bloch():
 
         """
         self.render(self.fig, self.axes)
+        # Conditional variable for first argument to savefig
+        # that is set in subsequent if-elses
+        complete_path = ""
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-                self.fig.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
-                            str(self.savenum) + '.' + format)
+                complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
+                                + str(self.savenum) + '.' + format
             else:
-                self.fig.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
-                            '.' + format)
+                complete_path = os.getcwd() + '/bloch_' + \
+                                str(self.savenum) + '.' + format
         else:
-            self.fig.savefig(name)
+            complete_path = name
+
+        if dpin:
+            self.fig.savefig(complete_path, dpi=dpin)
+        else:
+            self.fig.savefig(complete_path)
         self.savenum += 1
         if self.fig:
             plt.close(self.fig)

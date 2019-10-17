@@ -89,6 +89,24 @@ else:
 
 del top_path
 
+
+# -----------------------------------------------------------------------------
+# Look to see if we are running with OPENMP
+#
+# Set environ variable to determin if running in parallel mode
+# (i.e. in parfor or parallel_map)
+os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
+
+try:
+    from qutip.cy.openmp.parfuncs import spmv_csr_openmp
+except:
+    qutip.settings.has_openmp = False
+else:
+    qutip.settings.has_openmp = True
+    # See Pull #652 for why this is here.
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
@@ -107,22 +125,6 @@ except Exception as e:
     pass
 else:
     del Cython
-
-# -----------------------------------------------------------------------------
-# Look to see if we are running with OPENMP
-#
-# Set environ variable to determin if running in parallel mode
-# (i.e. in parfor or parallel_map)
-os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-
-try:
-    from qutip.cy.openmp.parfuncs import spmv_csr_openmp
-except:
-    qutip.settings.has_openmp = False
-else:
-    qutip.settings.has_openmp = True
-    # See Pull #652 for why this is here.
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 # -----------------------------------------------------------------------------
