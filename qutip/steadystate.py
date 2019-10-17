@@ -243,12 +243,6 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     elif solver not in ['scipy', 'mkl']:
         raise Exception('Invalid solver kwarg.')
 
-    # if solver == 'scipy':
-    #     ss_args = _default_steadystate_args()
-    # elif solver == 'mkl':
-    #     ss_args = _mkl_steadystate_args()
-    # else:
-    #     raise Exception('Invalid solver keyword argument.')
     ss_args = _default_steadystate_args()
     ss_args['method'] = method
     ss_args['info']['solver'] = ss_args['solver']
