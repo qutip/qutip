@@ -80,7 +80,7 @@ from qutip.qobj import Qobj
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.spmatfuncs cimport spmvpy, _spmm_c_py, _spmm_f_py
 from qutip.cy.spmath import zcsr_add
-from qutip.cy.cqobjevo_factor cimport CoeffFunc, zptr2array1d
+from qutip.cy.cqobjevo_factor cimport CoeffFunc, zptr2array1d, zptr2array2d
 cimport libc.math
 
 include "complex_math.pxi"
@@ -1216,38 +1216,38 @@ cdef class CQobjFunc(CQobjEvo):
         self.super = base.cte.issuper
 
     cdef void _mul_vec(self, double t, complex* vec, complex* out):
-        data = self.base(t, data=True, state=zptr2array1d(vec,self.shape1))
-        cdef complex[:] data = data.data
-        cdef int[:] ind = data.indices
-        cdef int[:] ptr = data.indptr
+        objdata = self.base(t, data=True, state=zptr2array1d(vec,self.shape1))
+        cdef complex[:] data = objdata.data
+        cdef int[:] ind = objdata.indices
+        cdef int[:] ptr = objdata.indptr
         spmvpy(&data[0], &ind[0], &ptr[0], vec, 1., out, self.shape0)
 
     cdef void _mul_matf(self, double t, complex* mat, complex* out,
                     int nrow, int ncols):
         """self * dense mat fortran ordered """
-        data = self.base(t, data=True, state=zptr2array2d(vec,nrow,ncols))
-        cdef complex[:] data = data.data
-        cdef int[:] ind = data.indices
-        cdef int[:] ptr = data.indptr
+        objdata = self.base(t, data=True, state=zptr2array2d(mat, nrow, ncols))
+        cdef complex[:] data = objdata.data
+        cdef int[:] ind = objdata.indices
+        cdef int[:] ptr = objdata.indptr
         _spmm_f_py(&data[0], &ind[0], &ptr[0], mat, 1.,
-                   out, self.shape0, nrow, ncol)
+                   out, self.shape0, nrow, ncols)
 
     cdef void _mul_matc(self, double t, complex* mat, complex* out,
                     int nrow, int ncols):
         """self * dense mat c ordered"""
-        data = self.base(t, data=True, state=zptr2array2d(vec,nrow,ncols))
-        cdef complex[:] data = data.data
-        cdef int[:] ind = data.indices
-        cdef int[:] ptr = data.indptr
+        objdata = self.base(t, data=True, state=zptr2array2d(mat, nrow, ncols))
+        cdef complex[:] data = objdata.data
+        cdef int[:] ind = objdata.indices
+        cdef int[:] ptr = objdata.indptr
         _spmm_c_py(&data[0], &ind[0], &ptr[0], mat, 1.,
-                   out, self.shape0, nrow, ncol)
+                   out, self.shape0, nrow, ncols)
 
     cdef complex _expect(self, double t, complex* vec):
         """<vec| self |vec>"""
-        data = self.base(t, data=True, state=zptr2array1d(vec,self.shape1))
-        cdef complex[:] data = data.data
-        cdef int[:] ind = data.indices
-        cdef int[:] ptr = data.indptr
+        objdata = self.base(t, data=True, state=zptr2array1d(vec,self.shape1))
+        cdef complex[:] data = objdata.data
+        cdef int[:] ind = objdata.indices
+        cdef int[:] ptr = objdata.indptr
         cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy(&data[0], &ind[0], &ptr[0], vec, 1., &y[0], self.shape0)
         cdef int row
@@ -1258,10 +1258,10 @@ cdef class CQobjFunc(CQobjEvo):
 
     cdef complex _expect_super(self, double t, complex* rho):
         """tr( self_L * rho * self_R )"""
-        data = self.base(t, data=True, state=zptr2array1d(rho, self.shape1))
-        cdef complex[:] data = data.data
-        cdef int[:] ind = data.indices
-        cdef int[:] ptr = data.indptr
+        objdata = self.base(t, data=True, state=zptr2array1d(rho, self.shape1))
+        cdef complex[:] data = objdata.data
+        cdef int[:] ind = objdata.indices
+        cdef int[:] ptr = objdata.indptr
 
         cdef int row
         cdef int jj, row_start, row_end
@@ -1279,11 +1279,11 @@ cdef class CQobjFunc(CQobjEvo):
 
     cdef complex _overlapse(self, double t, complex* oper):
         """tr( self * oper )"""
-        data = self.base(t, data=True,
-                         state=zptr2array2d(rho, self.shape2, self.shape1))
-        cdef complex[:] data = data.data
-        cdef int[:] ind = data.indices
-        cdef int[:] ptr = data.indptr
+        objdata = self.base(t, data=True,
+                            state=zptr2array2d(oper, self.shape2, self.shape1))
+        cdef complex[:] data = objdata.data
+        cdef int[:] ind = objdata.indices
+        cdef int[:] ptr = objdata.indptr
 
         cdef int row
         cdef int jj, row_start, row_end

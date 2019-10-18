@@ -33,7 +33,7 @@
 """Time-dependent Quantum Object (QobjEvo) wrapper class
 for function returning Qobj.
 """
-__all__ = ['QObjEvoFunc', 'qobjevo_maker']
+__all__ = ['QobjEvoFunc', 'qobjevo_maker']
 
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
@@ -54,7 +54,7 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True):
     try:
         obj = QobjEvo(Q_object=None, args={}, tlist=None, copy=True)
     except Exception as e:
-        obj = QObjEvoFunc(Q_object=None, args={}, tlist=None, copy=True)
+        obj = QobjEvoFunc(Q_object=None, args={}, tlist=None, copy=True)
     return obj
 
 
@@ -67,7 +67,7 @@ class _StateAsArgs:
         return self.coeff_func(t, args["_state_vec"], args)
 
 
-class QObjEvoFunc(QobjEvo):
+class QobjEvoFunc(QobjEvo):
     """A class for representing time-dependent quantum objects,
     such as quantum operators and states.
 
@@ -276,7 +276,7 @@ class QObjEvoFunc(QobjEvo):
         Return the time-dependent quantum object as a list
     """
     def __init__(self, Q_object=None, args={}, tlist=None, copy=True):
-        if isinstance(Q_object, QObjEvoFunc):
+        if isinstance(Q_object, QobjEvoFunc):
             if copy:
                 self._inplace_copy(Q_object)
             else:
@@ -307,7 +307,7 @@ class QObjEvoFunc(QobjEvo):
             except TypeError as e:
                 self.cte = Qobj()
         if not isinstance(self.cte, Qobj):
-            raise TypeError("QObjEvoFunc require un function returning a Qobj")
+            raise TypeError("QobjEvoFunc require un function returning a Qobj")
 
     def _args_checks(self, update=False):
         to_remove = []
@@ -453,7 +453,7 @@ class QObjEvoFunc(QobjEvo):
         return qobj
 
     def copy(self):
-        new = QObjEvoFunc.__new__()
+        new = QobjEvoFunc.__new__()
         new.__dict__ = self.__dict__.copy()
         new.args = self.args.copy()
         new.dynamics_args = self.dynamics_args.copy()
@@ -609,7 +609,7 @@ class QObjEvoFunc(QobjEvo):
 
     def lindblad_dissipator(self, chi=0):
         res = self.copy()
-        chi = 0 is chi is None else chi
+        chi = 0 if chi is None else chi
         res.operation_stack.append(_Block_lindblad_dissipator(chi))
         self._reset_type()
         return res
@@ -624,6 +624,12 @@ class QObjEvoFunc(QobjEvo):
         """return spre(a) * spost(a.dag()) """
         res = self.copy()
         res.operation_stack.append(_Block_prespostdag())
+        return res
+
+    def _liouvillian_h(self):
+        """return 1j * (spre(a) - spost(a)) """
+        res = self.copy()
+        res.operation_stack.append(_Block_liouvillian_H())
         return res
 
     # Unitary function of Qobj
@@ -848,6 +854,11 @@ class _Block_liouvillian(_Block_transform):
     def __call__(self, obj, t, args={}):
         c_ops = [op(t, args) for op in self.other]
         return liouvillian(obj, c_ops)
+
+
+class _Block_liouvillian_H(_Block_transform):
+    def __call__(self, obj, t, args={}):
+        return -1.0j * (spre(obj) - spost(obj))
 
 
 class _Block_lindblad_dissipator(_Block_transform):

@@ -114,7 +114,7 @@ class SESolver(Solver):
         self._args_n = 0
         self._args_list = [args.copy()]
 
-        
+
 
     def set_initial_value(self, psi0, tlist=[]):
         self.state0 = psi0
@@ -158,7 +158,7 @@ class SESolver(Solver):
 
 
     def _check_args(self, args):
-
+        pass
 
     def _check_input(self, psi, args, tlist, level):
         if isinstance(psi, Qobj):

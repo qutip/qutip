@@ -69,21 +69,21 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     if chi and len(chi) != len(c_ops):
         raise ValueError('chi must be a list with same length as c_ops')
 
-    use_func = isinstance(H, QObjEvoFunc)
-    use_func += any((isinstance(c_op, QObjEvoFunc) for c_op in c_ops))
+    use_func = isinstance(H, QobjEvoFunc)
+    use_func += any((isinstance(c_op, QobjEvoFunc) for c_op in c_ops))
     if use_func:
         return liouvillian_func(H, c_ops, data_only, chi)
 
-    use_evo = isinstance(H, QObjEvo)
-    use_evo += any((isinstance(c_op, QObjEvo) for c_op in c_ops))
+    use_evo = isinstance(H, QobjEvo)
+    use_evo += any((isinstance(c_op, QobjEvo) for c_op in c_ops))
     if use_evo:
         return liouvillian_evo(H, c_ops, data_only, chi)
 
     if H is not None:
-        if h.isoper:
+        if H.isoper:
             op_dims = H.dims
             op_shape = H.shape
-        elif h.issuper:
+        elif H.issuper:
             op_dims = H.dims[0]
             op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
         else:
@@ -152,7 +152,6 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     else:
         L = Qobj()
         L.dims = sop_dims
-        L.shape = sop_shape
         L.data = data
         L.superrep = 'super'
         return L
@@ -171,12 +170,16 @@ def liouvillian_func(H, c_ops, data_only, chi):
         if isinstance(c_op, QobjEvoFunc):
             func_elements.append(c_op.lindblad_dissipator(chi_))
         else:
-            qobj_elements.append(lindblad_dissipator(c_op, chi=chi_)
-
+            qobj_elements.append(lindblad_dissipator(c_op, chi=chi_))
     if isinstance(H, QobjEvoFunc):
-
+        L = H._liouvillian_h()
+        L += sum(qobj_elements)
+        L += sum(func_elements)
     else:
-        L_cte = liouvillian(H)
+        L = liouvillian(H)
+        L += sum(qobj_elements)
+        L += sum(func_elements)
+    return L
 
 
 
@@ -406,3 +409,4 @@ def sprepost(A, B):
         return Qobj(data, dims=dims, superrep='super')
 
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevofunc import QobjEvoFunc
