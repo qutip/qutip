@@ -377,7 +377,7 @@ class QobjEvoFunc(QobjEvo):
         out = self._get_qobj(t, args)
         if data:
             out = out.data
-        return op_t
+        return out
 
     def _dynamics_args_update(self, t, state):
         if isinstance(state, Qobj):
@@ -440,6 +440,7 @@ class QobjEvoFunc(QobjEvo):
             raise TypeError("state must be a Qobj or np.ndarray")
 
     def _get_qobj(self, t, args={}):
+        print("_get_qobj")
         if args:
             if not isinstance(args, dict):
                 raise TypeError("The new args must be in a dict")
@@ -453,7 +454,7 @@ class QobjEvoFunc(QobjEvo):
         return qobj
 
     def copy(self):
-        new = QobjEvoFunc.__new__()
+        new = QobjEvoFunc.__new__(QobjEvoFunc)
         new.__dict__ = self.__dict__.copy()
         new.args = self.args.copy()
         new.dynamics_args = self.dynamics_args.copy()
@@ -481,42 +482,52 @@ class QobjEvoFunc(QobjEvo):
 
     # Math function
     def __add__(self, other):
+        print("__add__")
         res = self.copy()
         res += other
         return res
 
     def __radd__(self, other):
+        print("__radd__")
         res = self.copy()
         res += other
         return res
 
     def __iadd__(self, other):
+        print("__iadd__")
         if isinstance(other, QobjEvo):
+            print("QobjEvo")
             self.operation_stack.append(_Block_Sum_Qoe(other))
         elif isinstance(other, Qobj):
+            print("Qobj")
             self.operation_stack.append(_Block_Sum_Qo(other))
         else:
+            print("other")
             try:
                 other = Qobj(other)
                 self.operation_stack.append(_Block_Sum_Qo(other))
             except Exception:
                 return NotImplemented
         if not self._reset_type():
-            self.operation_stack = self.operation_stack[:-1]
-            return NotImplemented
+            print("check")
+            #self.operation_stack = self.operation_stack[:-1]
+            raise NotImplementedError
         return self
 
     def __sub__(self, other):
+        print("__sub__")
         res = self.copy()
         res -= other
         return res
 
     def __rsub__(self, other):
+        print("__rsub__")
         res = -self.copy()
         res += other
         return res
 
     def __isub__(self, other):
+        print("__isub__")
         self += (-other)
         return self
 
@@ -642,6 +653,7 @@ class QobjEvoFunc(QobjEvo):
         pass
 
     def _reset_type(self):
+        print("_reset_type")
         try:
             self.cte = self._get_qobj(0.)
         except Exception:
@@ -746,8 +758,9 @@ class QobjEvoFunc(QobjEvo):
             return out
 
     def compile(self, code=False, matched=False, dense=False, omp=0):
-        self.compiled_qobjevo = CQobjFunc(self)
-        self.compiled = "True"
+        #self.compiled_qobjevo = CQobjFunc(self)
+        #self.compiled = "True"
+        pass
 
     def __getstate__(self):
         _dict_ = {key: self.__dict__[key]
@@ -763,7 +776,7 @@ class QobjEvoFunc(QobjEvo):
 
 class _Block_transform:
     def __init__(self, other=None):
-        self.other = None
+        self.other = other
 
     def tidyup(self, atol):
         pass
