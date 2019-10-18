@@ -8,7 +8,7 @@ stage_generic_linux: &stage_generic_linux
     - mkdir qutip_testing
     - cd qutip_testing
   # command to run tests
-  script: 
+  script:
     - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
@@ -34,6 +34,26 @@ stage_linux_37: &stage_linux_37
   name: "Python 3.7"
   dist: xenial
   python: 3.7
+
+stage_linux_37_no_cython: &stage_linux_37_no_cython
+  <<: *stage_generic_linux
+  name: "Python 3.7 no cython"
+  dist: xenial
+  python: 3.7
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install -c conda-forge nomkl blas=*=openblas numpy scipy nose
+    - conda install -c conda-forge cython --freeze-installed
+    - conda list
+    - python setup.py install
+    - conda uninstall cython
 
 stage_linux_37_openblas: &stage_linux_37_openblas
   <<: *stage_generic_linux
@@ -81,7 +101,7 @@ stage_osx: &stage_osx
     - mkdir qutip_testing
     - cd qutip_testing
   # command to run tests
-  script: 
+  script:
     - python -m qutip.about
     - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
   install:
@@ -93,7 +113,8 @@ stage_osx: &stage_osx
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
+    # - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
+    - conda install nomkl blas=*=openblas numpy scipy nose cython
     - python setup.py install
 
 stages:
@@ -107,6 +128,8 @@ jobs:
       <<: *stage_linux_37
     - stage: test
       <<: *stage_linux_37_omp
+    - stage: test
+      <<: *stage_linux_37_no_cython
     - stage: test
       <<: *stage_linux_37_openblas
     - stage: test

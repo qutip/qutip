@@ -56,7 +56,7 @@ from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
 MAJOR = 4
-MINOR = 4
+MINOR = 5
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -80,16 +80,15 @@ PACKAGE_DATA = {
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
 INCLUDE_DIRS = [np.get_include()] if np is not None else []
-# ajgpitch Mar 2017:
-# This HEADERS did not work, but I will leave it in anyway, as it is supposed to.
-# I had to do the nasty thing with PACKAGES and PACKAGE_DATA above.
-HEADERS = ['qutip/cy/src/zspmv.hpp', 'qutip/cy/openmp/src/zspmv_openmp.hpp']
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
-          "Chris Granade, Arne Grimsmo")
+          "Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, "
+          "Neill Lambert, Eric Giguere")
 AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
                 "jrjohansson@gmail.com, cgranade@cgranade.com, "
-                "arne.grimsmo@gmail.com")
+                "arne.grimsmo@gmail.com, nathan.shammah@gmail.com, "
+                "shahnawaz.ahmed95@gmail.com, nwlambert@gmail.com, "
+                "eric.giguere@usherbrooke.ca")
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
@@ -147,15 +146,19 @@ if os.path.exists('qutip/version.py'):
 write_version_py()
 
 # Add Cython extensions here
-cy_exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils', 'interpolate',
-           'spmath', 'heom', 'math', 'spconvert', 'ptrace', 'checks', 'brtools', 'mcsolve',
-           'brtools_checks', 'br_tensor', 'inter', 'cqobjevo', 'cqobjevo_factor', 'piqs']
+cy_exts = ['spmatfuncs', 'math', 'spconvert', 'spmath',
+           'sparse_utils', 'graph_utils', 'interpolate', 'ptrace',
+           'inter', 'cqobjevo', 'cqobjevo_factor',
+           'stochastic', 'brtools', 'mcsolve', 'br_tensor', 'piqs', 'heom',
+           'brtools_checks', 'checks']
 
 # Extra link args
 _link_flags = []
 
-# If on Win and Python version >= 3.5 and not in MSYS2 (i.e. Visual studio compile)
-if (sys.platform == 'win32' and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
+# If on Win and Python version >= 3.5 and not in MSYS2
+# (i.e. Visual studio compile)
+if (sys.platform == 'win32'
+    and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
     and os.environ.get('MSYSTEM') is None):
     _compiler_flags = ['/w', '/Ox']
 # Everything else
@@ -171,21 +174,22 @@ else:
 EXT_MODULES =[]
 # Add Cython files from qutip/cy
 for ext in cy_exts:
-    _mod = Extension('qutip.cy.'+ext,
-            sources = ['qutip/cy/'+ext+'.pyx', 'qutip/cy/src/zspmv.cpp'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+    _mod = Extension('qutip.cy.' + ext,
+                     sources=['qutip/cy/' + ext +
+                              '.pyx', 'qutip/cy/src/zspmv.cpp'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags,
+                     extra_link_args=_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
 # Add Cython files from qutip/control
 _mod = Extension('qutip.control.cy_grape',
-            sources = ['qutip/control/cy_grape.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+                 sources=['qutip/control/cy_grape.pyx'],
+                 include_dirs=[np.get_include()],
+                 extra_compile_args=_compiler_flags,
+                 extra_link_args=_link_flags,
+                 language='c++')
 EXT_MODULES.append(_mod)
 
 
@@ -200,47 +204,47 @@ if "--with-openmp" in sys.argv:
         omp_flags = ['-fopenmp']
         omp_args = omp_flags
     _mod = Extension('qutip.cy.openmp.parfuncs',
-            sources = ['qutip/cy/openmp/parfuncs.pyx',
-                       'qutip/cy/openmp/src/zspmv_openmp.cpp'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args+_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/parfuncs.pyx',
+                              'qutip/cy/openmp/src/zspmv_openmp.cpp'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags+omp_flags,
+                     extra_link_args=omp_args+_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
     # Add benchmark pyx
     _mod = Extension('qutip.cy.openmp.benchmark',
-            sources = ['qutip/cy/openmp/benchmark.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/benchmark.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags,
+                     extra_link_args=_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
     # Add brtools_omp
     _mod = Extension('qutip.cy.openmp.br_omp',
-            sources = ['qutip/cy/openmp/br_omp.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags,
-            extra_link_args=_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/br_omp.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags,
+                     extra_link_args=_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
     # Add omp_sparse_utils
     _mod = Extension('qutip.cy.openmp.omp_sparse_utils',
-            sources = ['qutip/cy/openmp/omp_sparse_utils.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args+_link_flags,
-            language='c++')
+                     sources=['qutip/cy/openmp/omp_sparse_utils.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags+omp_flags,
+                     extra_link_args=omp_args+_link_flags,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
     # Add cqobjevo_omp
     _mod = Extension('qutip.cy.openmp.cqobjevo_omp',
-            sources = ['qutip/cy/openmp/cqobjevo_omp.pyx'],
-            include_dirs = [np.get_include()],
-            extra_compile_args=_compiler_flags+omp_flags,
-            extra_link_args=omp_args,
-            language='c++')
+                     sources=['qutip/cy/openmp/cqobjevo_omp.pyx'],
+                     include_dirs=[np.get_include()],
+                     extra_compile_args=_compiler_flags+omp_flags,
+                     extra_link_args=omp_args,
+                     language='c++')
     EXT_MODULES.append(_mod)
 
 
@@ -252,30 +256,29 @@ if "CFLAGS" in cfg_vars:
 
 
 # Setup commands go here
-setup(
-    name = NAME,
-    version = FULLVERSION,
-    packages = PACKAGES,
-    include_package_data=True,
-    include_dirs = INCLUDE_DIRS,
-    headers = HEADERS,
-    ext_modules = cythonize(EXT_MODULES),
-    cmdclass = {'build_ext': build_ext},
-    author = AUTHOR,
-    author_email = AUTHOR_EMAIL,
-    license = LICENSE,
-    description = DESCRIPTION,
-    long_description = LONG_DESCRIPTION,
-    keywords = KEYWORDS,
-    url = URL,
-    classifiers = CLASSIFIERS,
-    platforms = PLATFORMS,
-    requires = REQUIRES,
-    extras_require = EXTRAS_REQUIRE,
-    package_data = PACKAGE_DATA,
-    zip_safe = False,
-    install_requires=INSTALL_REQUIRES,
-    **EXTRA_KWARGS
+setup(name = NAME,
+      version = FULLVERSION,
+      packages = PACKAGES,
+      include_package_data=True,
+      include_dirs = INCLUDE_DIRS,
+      # headers = HEADERS,
+      ext_modules = cythonize(EXT_MODULES),
+      cmdclass = {'build_ext': build_ext},
+      author = AUTHOR,
+      author_email = AUTHOR_EMAIL,
+      license = LICENSE,
+      description = DESCRIPTION,
+      long_description = LONG_DESCRIPTION,
+      keywords = KEYWORDS,
+      url = URL,
+      classifiers = CLASSIFIERS,
+      platforms = PLATFORMS,
+      requires = REQUIRES,
+      extras_require = EXTRAS_REQUIRE,
+      package_data = PACKAGE_DATA,
+      zip_safe = False,
+      install_requires=INSTALL_REQUIRES,
+      **EXTRA_KWARGS
 )
 _cite = """\
 ==============================================================================

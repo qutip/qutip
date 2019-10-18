@@ -76,9 +76,8 @@ class qutip_zvode(zvode):
         return r
 
 def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
-            args={}, options=Options(),
-            progress_bar=True, map_func=parallel_map, map_kwargs={},
-            _safe_mode=True, _exp=False):
+            args={}, options=None, progress_bar=True,
+            map_func=parallel_map, map_kwargs={}, _safe_mode=True):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -174,6 +173,9 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
 
+    if options is None:
+        options = Options()
+
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "mcsolve" in solver_safe:
@@ -202,7 +204,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
         raise Exception("Initial state must be a state vector.")
 
     # load monte carlo class
-    mc = _MC(options, _exp)
+    mc = _MC(options)
 
 
     if isinstance(H, SolverSystem):
@@ -235,7 +237,9 @@ class _MC():
     """
     Private class for solving Monte Carlo evolution from mcsolve
     """
-    def __init__(self, options=Options(), _exp=False):
+    def __init__(self, options=None):
+        if options is None:
+            options = Options()
         self.options = options
         self.ss = None
         self.tlist = None
@@ -252,10 +256,6 @@ class _MC():
         self._collapse = []
         self._ss_out = []
 
-        # Flag
-        self._experimental = _exp
-
-    #ToDo: rename
     def reset(self, t=0., psi0=None):
         if psi0 is not None:
             self.psi0 = psi0
@@ -429,9 +429,10 @@ class _MC():
             progress_bar = TextProgressBar()
 
         # set arguments for input to monte carlo
-        map_kwargs = {'progress_bar': progress_bar,
+        map_kwargs_ = {'progress_bar': progress_bar,
                       'num_cpus': options.num_cpus}
-        map_kwargs.update(map_kwargs)
+        map_kwargs_.update(map_kwargs)
+        map_kwargs = map_kwargs_
 
         if self.e_ops is None:
             self.set_e_ops()
@@ -601,7 +602,7 @@ class _MC():
             output.states = self.runs_states
 
         if options.store_final_state:
-            if not self._experimental or options.average_states:
+            if options.average_states:
                 output.final_state = self.final_state
             else:
                 output.final_state = self.runs_final_states

@@ -34,8 +34,8 @@ from __future__ import print_function
 
 __all__ = ['Options', 'Odeoptions', 'Odedata', 'ExpectOps', 'Solver']
 
-import sys
 import os
+import sys
 import warnings
 import datetime
 import numpy as np
@@ -56,11 +56,9 @@ except:
 
 solver_safe = {}
 
+
 class SolverSystem():
     pass
-
-
-
 
 
 class Solver:
@@ -191,8 +189,6 @@ class Solver:
         if options.store_final_state:
             output.final_state = self.final_state
         return output
-
-
 
 
 class ExpectOps:
@@ -427,7 +423,8 @@ class Options():
         self.store_states = store_states
         # average mcsolver density matricies assuming steady state evolution
         self.steady_state_average = steady_state_average
-        # Normalize output of solvers (turned off for batch unitary propagator mode)
+        # Normalize output of solvers
+        # (turned off for batch unitary propagator mode)
         self.normalize_output = normalize_output
         # Use OPENMP for sparse matrix vector multiplication
         self.use_openmp = use_openmp
@@ -557,7 +554,6 @@ class SolverConfiguration():
         self.reset()
 
     def reset(self):
-
         # General stuff
         self.tlist = None       # evaluations times
         self.ntraj = None       # number / list of trajectories
@@ -577,7 +573,6 @@ class SolverConfiguration():
         self.soft_reset()
 
     def soft_reset(self):
-
         # Hamiltonian stuff
         self.h_td_inds = []  # indicies of time-dependent Hamiltonian operators
         self.h_tdterms = []  # List of td strs and funcs
@@ -981,8 +976,8 @@ class _StatsSection(object):
                 try:
                     value = sep + value
                 except:
-                    TypeError("It is not possible to concatenate the value with "
-                                "the given seperator")
+                    TypeError("It is not possible to concatenate the value "
+                              "with the given seperator")
             self.messages[key] += value
         else:
             self.messages[key] = value
@@ -1121,11 +1116,13 @@ def _structure_check(Hdims, Htype, state):
             # Input is Hamiltonian
             if Htype == 'oper':
                 if Hdims[1] != state.dims[0]:
-                    raise Exception('Input operator and ket do not share same structure.')
+                    raise Exception('Input operator and ket do not '
+                                    'share same structure.')
             # Input is super and state is ket
             elif Htype == 'super':
                 if Hdims[1][1] != state.dims[0]:
-                    raise Exception('Input operator and ket do not share same structure.')
+                    raise Exception('Input operator and ket do not '
+                                    'share same structure.')
             else:
                 raise Exception('Invalid input operator.')
         # Input state is a density matrix
@@ -1133,11 +1130,13 @@ def _structure_check(Hdims, Htype, state):
             # Input is Hamiltonian and state is density matrix
             if Htype == 'oper':
                 if Hdims[1] != state.dims[0]:
-                    raise Exception('Input operators do not share same structure.')
+                    raise Exception('Input operators do not '
+                                    'share same structure.')
             # Input is super op. and state is density matrix
             elif Htype == 'super':
                 if Hdims[1] != state.dims:
-                    raise Exception('Input operators do not share same structure.')
+                    raise Exception('Input operators do not '
+                                    'share same structure.')
 
 
 #

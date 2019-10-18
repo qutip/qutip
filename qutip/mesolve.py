@@ -279,8 +279,8 @@ class MESolver(Solver):
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
-            progress_bar=BaseProgressBar(), _safe_mode=True):
+def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
+            progress_bar=None, _safe_mode=True):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -378,22 +378,22 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : None / list of :class:`qutip.Qobj`
         single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators.
 
-    e_ops : list of :class:`qutip.Qobj` / callback function single
+    e_ops : None / list of :class:`qutip.Qobj` / callback function single
         single operator or list of operators for which to evaluate
         expectation values.
 
-    args : *dictionary*
+    args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Options`
+    options : None / :class:`qutip.Options`
         with options for the solver.
 
-    progress_bar : BaseProgressBar
+    progress_bar : None / BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation.
 
@@ -409,11 +409,13 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
         operators for which to calculate the expectation values.
 
     """
-    # check whether c_ops or e_ops is is a single operator
-    # if so convert it to a list containing only that operator
+    if c_ops is None:
+        c_ops = []
     if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
 
+    if e_ops is None:
+        e_ops = []
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
@@ -423,6 +425,8 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
     else:
         e_ops_dict = None
 
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
     if progress_bar is True:
         progress_bar = TextProgressBar()
 
@@ -433,6 +437,8 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
         raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
                 " a superoperator.")
 
+    if options is None:
+        options = Options()
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "mesolve" in solver_safe:
@@ -442,7 +448,9 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
             pass
             # raise Exception("Could not find the Hamiltonian to reuse.")
 
-    #check if should use OPENMP
+    if args is None:
+        args = {}
+
     check_use_openmp(options)
 
     use_mesolve = ((c_ops and len(c_ops) > 0)
@@ -457,7 +465,6 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=Options(),
                             options.rhs_with_state))
 
     if not use_mesolve:
-        print("no collapse operator, using sesolve")
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
                     progress_bar=progress_bar, _safe_mode=_safe_mode)
 

@@ -33,7 +33,6 @@
 import os
 import numpy as np
 from numpy.testing import run_module_suite, assert_equal
-import unittest
 import scipy.sparse as sp
 from scipy.sparse.csgraph import breadth_first_order as BFO
 

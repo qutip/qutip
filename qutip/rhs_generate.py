@@ -309,15 +309,16 @@ def _td_format_check(H, c_ops, solver='me'):
 
     # check to see if Cython is installed and version is high enough.
     if len(h_str) > 0 or len(c_str) > 0:
-        try:
-            import Cython
-        except:
-            raise Exception(
-                "Unable to load Cython. Use Python function format.")
-        else:
-            if Cython.__version__ < '0.21':
-                raise Exception("Cython version (%s) is too old. Upgrade to " +
-                                "version 0.21+" % Cython.__version__)
+        pass
+        #try:
+        #    import Cython
+        #except:
+        #    raise Exception(
+        #        "Unable to load Cython. Use Python function format.")
+        #else:
+        #    if Cython.__version__ < '0.21':
+        #        raise Exception("Cython version (%s) is too old. Upgrade to" +
+        #                        " version 0.21+" % Cython.__version__)
 
     # If only time-dependence is in Objects, then prefer string based format
     if (len(h_func) + len(c_func) + len(h_str) + len(c_str)) == 0:
