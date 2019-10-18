@@ -245,6 +245,8 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
 
     ss_args = _default_steadystate_args()
     ss_args['method'] = method
+    if solver is not None:
+        ss_args['solver'] = solver
     ss_args['info']['solver'] = ss_args['solver']
     ss_args['info']['method'] = ss_args['method']
 
