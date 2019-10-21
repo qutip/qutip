@@ -1037,11 +1037,7 @@ class QobjEvo:
 
     def _prespostdag(self):
         """return spre(a) * spost(a.dag()) """
-        def _prespostdag(op):
-            return spre(op) * spost(op.dag())
-
-        res = self.dag()
-        return res.apply(_prespostdag)._f_norm2()
+        return self.spre() * self.dag().spost()
 
     def spre(self):
         return self.apply(spre)
@@ -1051,15 +1047,16 @@ class QobjEvo:
 
     def liouvillian(self, c_ops, chi):
         L = self.apply(liouvillian)
-        if chi:
-            for c_op, chi_ in zip(c_ops,chi):
-                L += lindblad_dissipator(c_op, chi_)
+        if not chi:
+            chi = [0] * len(c_ops)
+        for c_op, chi_ in zip(c_ops, chi):
+            L += lindblad_dissipator(c_op, chi=chi_)
         return L
 
     def lindblad_dissipator(self, chi=0):
         if chi is None:
             chi = 0
-        ccd = self._prespostdag()*np.exp(1j * chi)
+        ccd = self._prespostdag() * np.exp(1j * chi)
         cdc = self._cdc()
         return ccd - 0.5 * spre(cdc) - 0.5 * spost(cdc)
 

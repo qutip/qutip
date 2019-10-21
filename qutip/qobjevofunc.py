@@ -42,6 +42,7 @@ from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from qutip.cy.spmatfuncs import cy_expect_rho_vec, cy_expect_psi, spmv
 from qutip.cy.cqobjevo import CQobjFunc
+from qutip.superoperator import spre, spost, liouvillian, lindblad_dissipator
 
 import pickle
 import sys
@@ -440,7 +441,6 @@ class QobjEvoFunc(QobjEvo):
             raise TypeError("state must be a Qobj or np.ndarray")
 
     def _get_qobj(self, t, args={}):
-        print("_get_qobj")
         if args:
             if not isinstance(args, dict):
                 raise TypeError("The new args must be in a dict")
@@ -482,52 +482,42 @@ class QobjEvoFunc(QobjEvo):
 
     # Math function
     def __add__(self, other):
-        print("__add__")
         res = self.copy()
         res += other
         return res
 
     def __radd__(self, other):
-        print("__radd__")
         res = self.copy()
         res += other
         return res
 
     def __iadd__(self, other):
-        print("__iadd__")
         if isinstance(other, QobjEvo):
-            print("QobjEvo")
             self.operation_stack.append(_Block_Sum_Qoe(other))
         elif isinstance(other, Qobj):
-            print("Qobj")
-            self.operation_stack.append(_Block_Sum_Qo(other))
+            self.operation_stack.append(_Block_Sum(other))
         else:
-            print("other")
             try:
                 other = Qobj(other)
-                self.operation_stack.append(_Block_Sum_Qo(other))
+                self.operation_stack.append(_Block_Sum(other))
             except Exception:
                 return NotImplemented
         if not self._reset_type():
-            print("check")
-            #self.operation_stack = self.operation_stack[:-1]
-            raise NotImplementedError
+            self.operation_stack = self.operation_stack[:-1]
+            raise Exception
         return self
 
     def __sub__(self, other):
-        print("__sub__")
         res = self.copy()
         res -= other
         return res
 
     def __rsub__(self, other):
-        print("__rsub__")
         res = -self.copy()
         res += other
         return res
 
     def __isub__(self, other):
-        print("__isub__")
         self += (-other)
         return self
 
@@ -544,7 +534,7 @@ class QobjEvoFunc(QobjEvo):
             res.operation_stack.append(_Block_rmul(other))
         if not self._reset_type():
             self.operation_stack = self.operation_stack[:-1]
-            return NotImplemented
+            raise Exception
         return res
 
     def __imul__(self, other):
@@ -554,7 +544,7 @@ class QobjEvoFunc(QobjEvo):
             self.operation_stack.append(_Block_mul(other))
         if not self._reset_type():
             self.operation_stack = self.operation_stack[:-1]
-            return NotImplemented
+            raise Exception
         return self
 
     def __div__(self, other):
@@ -580,7 +570,6 @@ class QobjEvoFunc(QobjEvo):
     def __neg__(self):
         res = self.copy()
         res.operation_stack.append(_Block_neg())
-
         return res
 
     # Transformations
@@ -653,7 +642,6 @@ class QobjEvoFunc(QobjEvo):
         pass
 
     def _reset_type(self):
-        print("_reset_type")
         try:
             self.cte = self._get_qobj(0.)
         except Exception:
@@ -758,9 +746,8 @@ class QobjEvoFunc(QobjEvo):
             return out
 
     def compile(self, code=False, matched=False, dense=False, omp=0):
-        #self.compiled_qobjevo = CQobjFunc(self)
-        #self.compiled = "True"
-        pass
+        self.compiled_qobjevo = CQobjFunc(self)
+        self.compiled = "True"
 
     def __getstate__(self):
         _dict_ = {key: self.__dict__[key]
@@ -793,7 +780,7 @@ class _Block_neg(_Block_transform):
         return -obj
 
 
-class _Block_Sum_Qo(_Block_transform):
+class _Block_Sum(_Block_transform):
     def __call__(self, obj, t, args={}):
         return obj + self.other
 
@@ -810,17 +797,17 @@ class _Block_rmul(_Block_transform):
 
 class _Block_Sum_Qoe(_Block_transform):
     def __call__(self, obj, t, args={}):
-        return obj + self.other(t, args)
+        return obj + self.other(t, args=args)
 
 
-class _Block_mul(_Block_transform):
+class _Block_mul_Qoe(_Block_transform):
     def __call__(self, obj, t, args={}):
-        return obj * self.other(t, args)
+        return obj * self.other(t, args=args)
 
 
-class _Block_rmul(_Block_transform):
+class _Block_rmul_Qoe(_Block_transform):
     def __call__(self, obj, t, args={}):
-        return self.other(t, args) * obj
+        return self.other(t, args=args) * obj
 
 
 class _Block_trans(_Block_transform):
@@ -840,7 +827,7 @@ class _Block_dag(_Block_transform):
 
 class _Block_cdc(_Block_transform):
     def __call__(self, obj, t, args={}):
-        return obj.dag()
+        return obj.dag() * obj
 
 
 class _Block_prespostdag(_Block_transform):
@@ -864,9 +851,13 @@ class _Block_post(_Block_transform):
 
 
 class _Block_liouvillian(_Block_transform):
+    def __init__(self, other, chi):
+        self.other = other
+        self.chi = chi
+
     def __call__(self, obj, t, args={}):
         c_ops = [op(t, args) for op in self.other]
-        return liouvillian(obj, c_ops)
+        return liouvillian(obj, c_ops, self.chi)
 
 
 class _Block_liouvillian_H(_Block_transform):

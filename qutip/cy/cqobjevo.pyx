@@ -1207,6 +1207,7 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
 
 
 cdef class CQobjFunc(CQobjEvo):
+    cdef object base
     def __init__(self, base):
         self.base = base
         self.shape0 = base.cte.shape[0]
