@@ -176,6 +176,8 @@ class Qobj(object):
     groundstate(sparse=False, tol=0, maxiter=100000)
         Returns eigenvalue and eigenket for the groundstate of a quantum
         object.
+    inv()
+        Return a Qobj corresponding to the matrix inverse of the operator.
     matrix_element(bra, ket)
         Returns the matrix element of operator between `bra` and `ket` vectors.
     norm(norm='tr', sparse=False, tol=0, maxiter=100000)
@@ -1225,7 +1227,6 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
-
     def sinm(self):
         """Sine of a quantum operator.
 
@@ -1251,7 +1252,31 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
+    def inv(self, sparse=None):
+        """Matrix inverse of a quantum operator
 
+        Operator must be square.
+
+        Returns
+        -------
+        oper : :class:`qutip.Qobj`
+            Matrix inverse of operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum object is not square.
+        """
+        if self.shape[0] != self.shape[1]:
+            raise TypeError('Invalid operand for matrix inverse')
+        if sparse is None:
+            if (self.data.nnz / (self.shape[0] * self.shape[1]) >= 0.1:
+                sparse = False
+        if sparse:
+            inv_mat = sp.linalg.inv(sp.csc_matrix(self.data))
+        else:
+            inv_mat = np.linalg.inv(self.full())
+        return Qobj(inv_mat, dims=self.dims[::-1])
 
     def unit(self, inplace=False,
             norm=None, sparse=False,
@@ -1295,7 +1320,7 @@ class Qobj(object):
         else:
             raise Exception('inplace kwarg must be bool.')
 
-    def ptrace(self, sel):
+    def ptrace(self, sel, sparse=None):
         """Partial trace of the quantum object.
 
         Parameters
@@ -1315,9 +1340,15 @@ class Qobj(object):
         that has been deprecated.
 
         """
-        q = Qobj()
-        q.data, q.dims, _ = _ptrace(self, sel)
-        return q.tidyup() if settings.auto_tidyup else q
+        if sparse is None:
+            if (self.data.nnz / (self.shape[0] * self.shape[1]) >= 0.1:
+                sparse = False
+        if sparse:
+            q = Qobj()
+            q.data, q.dims, _ = _ptrace(self, sel)
+            return q.tidyup() if settings.auto_tidyup else q
+        else:
+            return _ptrace_dense(self, sel)
 
     def permute(self, order):
         """Permutes a composite quantum object.
@@ -1445,8 +1476,6 @@ class Qobj(object):
         else:
             return out
 
-
-
     def trunc_neg(self, method="clip"):
         """Truncates negative eigenvalues and renormalizes.
 
@@ -1508,7 +1537,6 @@ class Qobj(object):
                 for val, state in zip(eigvals, eigstates)
             ], Qobj(np.zeros(self.shape), dims=self.dims)
         ).unit()
-
 
     def matrix_element(self, bra, ket):
         """Calculates a matrix element.
@@ -1618,7 +1646,6 @@ class Qobj(object):
 
         raise TypeError("Can only calculate overlap for state vector Qobjs")
 
-
     def eigenstates(self, sparse=False, sort='low',
                     eigvals=0, tol=0, maxiter=100000):
         """Eigenstates and eigenenergies.
@@ -1667,7 +1694,6 @@ class Qobj(object):
                          dtype=object)
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
-
 
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
@@ -1852,7 +1878,6 @@ class Qobj(object):
         """
         return mts.dnorm(self, B)
 
-
     @property
     def ishp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
@@ -1935,7 +1960,6 @@ class Qobj(object):
 
     @property
     def isherm(self):
-
         if self._isherm is not None:
             # used previously computed value
             return self._isherm
@@ -2102,7 +2126,6 @@ def qobj_list_evaluate(qobj_list, t, args):
 # A collection of tests used to determine the type of quantum objects, and some
 # functions for increased compatibility with quantum optics toolbox.
 #
-
 def dag(A):
     """Adjont operator (dagger) of a quantum object.
 
@@ -2154,6 +2177,31 @@ def ptrace(Q, sel):
         raise TypeError("Input is not a quantum object")
 
     return Q.ptrace(sel)
+
+
+def _ptrace_dense(Q, sel):
+    rd = Q.dims[0]
+    nd = len(rd)
+    sel = list(sort(sel))
+    dkeep = (np.array(rd)[sel]).tolist()
+    qtrace = list(set(np.arange(nd)) - set(sel))
+    dtrace = (np.array(rd)[qtrace]).tolist()
+    if isket(Q):
+        vmat = (Q.full()
+                .reshape(rd)
+                .transpose(sel + qtrace)
+                .reshape([prod(dkeep), prod(dtrace)]))
+        rhomat = vmat.dot(vmat.conj().T)
+    else:
+        rhomat = np.trace(Q.full()
+                          .reshape(rd + rd)
+                          .transpose(qtrace + [nd + q for q in qtrace] +
+                                     sel + [nd + q for q in sel])
+                          .reshape([prod(dtrace),
+                                    prod(dtrace),
+                                    prod(dkeep),
+                                    prod(dkeep)]))
+    return Qobj(rhomat, dims=[dkeep, dkeep])
 
 
 def dims(inpt):
