@@ -113,7 +113,8 @@ def randnz(shape, norm=1 / np.sqrt(2), seed=None):
     return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
 
 
-def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
+def rand_herm(N, density=0.75, dims=None, pos_def=False,
+              seed=None, exact_density=False):
     """Creates a random NxN sparse Hermitian quantum object.
 
     If 'N' is an integer, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
@@ -132,6 +133,10 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
         tensor structure. Default is dims=[[N],[N]].
     pos_def : bool (default=False)
         Return a positive semi-definite matrix (by diagonal dominance).
+    seed : int
+        seed for the random number generator
+    exact_density : bool
+        If true
 
     Returns
     -------
@@ -147,24 +152,52 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     not be repeatedly used for generating matrices larger than ~1000x1000.
 
     """
-    if isinstance(N,(np.ndarray,list)):
+    if isinstance(N, (np.ndarray,list)):
         M = sp.diags(N,0, dtype=complex, format='csr')
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
-        nvals = N**2*density
+        nvals = max([N**2 * density, 1])
         M = rand_jacobi_rotation(M, seed=seed)
-        while M.nnz < 0.95*nvals:
+        while M.nnz < 0.95 * nvals:
             M = rand_jacobi_rotation(M)
     elif isinstance(N, (int, np.int32, np.int64)):
         if seed is not None:
             np.random.seed(seed=seed)
         if dims:
             _check_dims(dims, N, N)
-        num_elems = np.int(np.ceil(N*(N+1)*density)/2)
-        data = (2*np.random.rand(num_elems)-1)+1j*(2*np.random.rand(num_elems)-1)
-        row_idx = np.random.choice(N, num_elems)
-        col_idx = np.random.choice(N, num_elems)
+        if not exact_density:
+            # repetition are still possible
+            # so resulting density will be smaller than asked.
+            num_elems = np.int(np.ceil(N * (N + 1) * density) / 2)
+            num_elems = max([num_elems, 1])
+            data = (2 * np.random.rand(num_elems) - 1) + \
+                    1j * (2 * np.random.rand(num_elems) - 1)
+            row_idx, col_idx = zip(*[divmod(index, N) for index
+                                     in np.random.choice(N*N,
+                                                         num_elems,
+                                                         replace=False)])
+        else:
+            # less clean but will get the desired density
+            row_idx = []
+            col_idx = []
+            nnz = 0
+            num_elems = np.int(np.round(N * N * density))
+            num_elems = max([num_elems, 1])
+            num_elems = min([num_elems, N * N])
+            for index in np.random.permutation(N*N):
+                row, col = divmod(index, N)
+                if row >= col:
+                    nnz += 2
+                    row_idx.append(row)
+                    col_idx.append(row)
+                if row >= col:
+                    nnz -= 1
+                if nnz == num_elems:
+                    break
+            num_valid = len(row_idx)
+            data = (2 * np.random.rand(num_valid) - 1) + \
+                   1j * (2 * np.random.rand(num_valid) - 1)
         M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=complex, shape=(N,N)).tocsr()
         M = 0.5*(M+M.conj().transpose())
         if pos_def:
@@ -293,6 +326,9 @@ def rand_ket(N=0, density=1, dims=None, seed=None):
     else:
         dims = [[N],[1]]
     X = sp.rand(N, 1, density, format='csr')
+    while X.nnz == 0:
+        # ensure that the ket is not all zeros.
+        X = sp.rand(N, 1, density+1/N, format='csr')
     X.data = X.data - 0.5
     Y = X.copy()
     Y.data = 1.0j * (np.random.random(len(X.data)) - 0.5)

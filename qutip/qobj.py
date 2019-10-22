@@ -1252,7 +1252,7 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for matrix square root')
 
-    def inv(self, sparse=None):
+    def inv(self, sparse=False):
         """Matrix inverse of a quantum operator
 
         Operator must be square.
@@ -1269,9 +1269,6 @@ class Qobj(object):
         """
         if self.shape[0] != self.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
-        if sparse is None:
-            if (self.data.nnz / (self.shape[0] * self.shape[1]) >= 0.1:
-                sparse = False
         if sparse:
             inv_mat = sp.linalg.inv(sp.csc_matrix(self.data))
         else:
@@ -1341,7 +1338,9 @@ class Qobj(object):
 
         """
         if sparse is None:
-            if (self.data.nnz / (self.shape[0] * self.shape[1]) >= 0.1:
+            if self.isket:
+                sparse = False
+            elif (self.data.nnz / (self.shape[0] * self.shape[1])) >= 0.1:
                 sparse = False
         if sparse:
             q = Qobj()
@@ -2182,7 +2181,7 @@ def ptrace(Q, sel):
 def _ptrace_dense(Q, sel):
     rd = Q.dims[0]
     nd = len(rd)
-    sel = list(sort(sel))
+    sel = list(np.sort(sel))
     dkeep = (np.array(rd)[sel]).tolist()
     qtrace = list(set(np.arange(nd)) - set(sel))
     dtrace = (np.array(rd)[qtrace]).tolist()
@@ -2190,17 +2189,17 @@ def _ptrace_dense(Q, sel):
         vmat = (Q.full()
                 .reshape(rd)
                 .transpose(sel + qtrace)
-                .reshape([prod(dkeep), prod(dtrace)]))
+                .reshape([np.prod(dkeep), np.prod(dtrace)]))
         rhomat = vmat.dot(vmat.conj().T)
     else:
         rhomat = np.trace(Q.full()
                           .reshape(rd + rd)
                           .transpose(qtrace + [nd + q for q in qtrace] +
                                      sel + [nd + q for q in sel])
-                          .reshape([prod(dtrace),
-                                    prod(dtrace),
-                                    prod(dkeep),
-                                    prod(dkeep)]))
+                          .reshape([np.prod(dtrace),
+                                    np.prod(dtrace),
+                                    np.prod(dkeep),
+                                    np.prod(dkeep)]))
     return Qobj(rhomat, dims=[dkeep, dkeep])
 
 
