@@ -82,13 +82,14 @@ def rand_jacobi_rotation(A, seed=None):
     b = 1.0/np.sqrt(2)*np.exp(1j*angle)
     i = np.int(np.floor(np.random.random()*n))
     j = i
-    while (i==j):
+    while (i == j):
         j = np.int(np.floor(np.random.random()*n))
-    data = np.hstack((np.array([a,-b,a,b],dtype=complex),np.ones(n-2,dtype=complex)))
-    diag = np.delete(np.arange(n),[i,j])
-    rows = np.hstack(([i,i,j,j],diag))
-    cols = np.hstack(([i,j,i,j],diag))
-    R = sp.coo_matrix((data,(rows,cols)),shape=[n,n], dtype=complex).tocsr()
+    data = np.hstack((np.array([a,-b,a,b], dtype=complex),
+                      np.ones(n-2, dtype=complex)))
+    diag = np.delete(np.arange(n), [i,j])
+    rows = np.hstack(([i,i,j,j], diag))
+    cols = np.hstack(([i,j,i,j], diag))
+    R = sp.coo_matrix((data,(rows,cols)), shape=[n,n], dtype=complex).tocsr()
     A = R*A*R.conj().transpose()
     return A
 
@@ -113,8 +114,7 @@ def randnz(shape, norm=1 / np.sqrt(2), seed=None):
     return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
 
 
-def rand_herm(N, density=0.75, dims=None, pos_def=False,
-              seed=None, exact_density=False):
+def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     """Creates a random NxN sparse Hermitian quantum object.
 
     If 'N' is an integer, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
@@ -135,8 +135,6 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False,
         Return a positive semi-definite matrix (by diagonal dominance).
     seed : int
         seed for the random number generator
-    exact_density : bool
-        If true
 
     Returns
     -------
@@ -152,65 +150,98 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False,
     not be repeatedly used for generating matrices larger than ~1000x1000.
 
     """
+    if seed is not None:
+        np.random.seed(seed=seed)
     if isinstance(N, (np.ndarray,list)):
         M = sp.diags(N,0, dtype=complex, format='csr')
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
         nvals = max([N**2 * density, 1])
-        M = rand_jacobi_rotation(M, seed=seed)
+        M = rand_jacobi_rotation(M)
         while M.nnz < 0.95 * nvals:
             M = rand_jacobi_rotation(M)
+        M.sort_indices()
     elif isinstance(N, (int, np.int32, np.int64)):
-        if seed is not None:
-            np.random.seed(seed=seed)
         if dims:
             _check_dims(dims, N, N)
-        if not exact_density:
-            # repetition are still possible
-            # so resulting density will be smaller than asked.
-            num_elems = np.int(np.ceil(N * (N + 1) * density) / 2)
-            num_elems = max([num_elems, 1])
-            data = (2 * np.random.rand(num_elems) - 1) + \
-                    1j * (2 * np.random.rand(num_elems) - 1)
-            row_idx, col_idx = zip(*[divmod(index, N) for index
-                                     in np.random.choice(N*N,
-                                                         num_elems,
-                                                         replace=False)])
+        if density < 0.5:
+            M = _rand_herm_sparse(N, density, pos_def)
         else:
-            # less clean but will get the desired density
-            row_idx = []
-            col_idx = []
-            nnz = 0
-            num_elems = np.int(np.round(N * N * density))
-            num_elems = max([num_elems, 1])
-            num_elems = min([num_elems, N * N])
-            for index in np.random.permutation(N*N):
-                row, col = divmod(index, N)
-                if row >= col:
-                    nnz += 2
-                    row_idx.append(row)
-                    col_idx.append(row)
-                if row >= col:
-                    nnz -= 1
-                if nnz == num_elems:
-                    break
-            num_valid = len(row_idx)
-            data = (2 * np.random.rand(num_valid) - 1) + \
-                   1j * (2 * np.random.rand(num_valid) - 1)
-        M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=complex, shape=(N,N)).tocsr()
-        M = 0.5*(M+M.conj().transpose())
-        if pos_def:
-            M = M.tocoo()
-            M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
-            M = M.tocsr()
+            M = _rand_herm_dense(N, density, pos_def)
     else:
         raise TypeError('Input N must be an integer or array_like.')
-    M.sort_indices()
     if dims:
         return Qobj(M, dims=dims)
     else:
         return Qobj(M)
+
+
+def _rand_herm_sparse(N, density, pos_def):
+    target = (1-(1-density)**0.5)
+    num_elems = (N**2 - 0.666 * N) * target + 0.666 * N * density
+    num_elems = max([num_elems, 1])
+    num_elems = np.int(num_elems)
+    data = (2 * np.random.rand(num_elems) - 1) + \
+           (2 * np.random.rand(num_elems) - 1) * 1j
+    row_idx, col_idx = zip(*[divmod(index, N) for index
+                             in np.random.choice(N*N,
+                                                 num_elems,
+                                                 replace=False)])
+    M = sp.coo_matrix((data, (row_idx,col_idx)),
+                      dtype=complex, shape=(N,N)).tocsr()
+    M = 0.5 * (M + M.conj().transpose())
+    if pos_def:
+        M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
+    M.sort_indices()
+    return M
+
+
+def _rand_herm_dense(N, density, pos_def):
+    M = (2 * np.random.rand(N,N) - 1) + \
+        (2 * np.random.rand(N,N) - 1) * 1j
+    M = 0.5 * (M + M.conj().transpose())
+    target = (1-(density)**0.5)
+    num_remove = N * (N - 0.666) * target + 0.666 * N * (1 - density)
+    num_remove = max([num_remove, 1])
+    num_remove = np.int(num_remove)
+    for row, col in [divmod(index, N)
+                     for index in np.random.choice(N*N,
+                                                   num_remove,
+                                                   replace=False)]:
+        M[col, row] = 0
+        M[row, col] = 0
+    if pos_def:
+        M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
+    return M
+
+
+def _rand_herm_exact_density(N, density):
+    # less clean and slower (2x)
+    # However will get the desired density within 1 elements
+    row_idx = []
+    col_idx = []
+    nnz = 0
+    num_elems = np.int(np.round(N * N * density))
+    num_elems = max([num_elems, 1])
+    num_elems = min([num_elems, N * N])
+    for index in np.random.permutation(N*N):
+        row, col = divmod(index, N)
+        if row >= col:
+            nnz += 2
+            row_idx.append(row)
+            col_idx.append(col)
+        if row == col:
+            nnz -= 1
+        if nnz >= num_elems:
+            break
+    num_valid = len(row_idx)
+    data = (2 * np.random.rand(num_valid) - 1) + \
+           (2 * np.random.rand(num_valid) - 1) * 1j
+    M = sp.coo_matrix((data, (row_idx,col_idx)),
+                      dtype=complex, shape=(N,N)).tocsr()
+    M = 0.5 * (M + M.conj().transpose())
+    return M
 
 
 def rand_unitary(N, density=0.75, dims=None, seed=None):
@@ -243,6 +274,7 @@ def rand_unitary(N, density=0.75, dims=None, seed=None):
         return Qobj(U, dims=dims, shape=[N, N])
     else:
         return Qobj(U)
+
 
 def rand_unitary_haar(N=2, dims=None, seed=None):
     """
@@ -394,10 +426,11 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     as no diagonal elements will be generated such that :math:`Tr(\\rho)=1`.
 
     """
-    if isinstance(N,(np.ndarray,list)):
+    if isinstance(N, (np.ndarray, list)):
         if np.abs(np.sum(N)-1.0) > 1e-15:
-            raise ValueError('Eigenvalues of a density matrix must sum to one.')
-        H = sp.diags(N,0, dtype=complex, format='csr')
+            raise ValueError('Eigenvalues of a density matrix '
+                             'must sum to one.')
+        H = sp.diags(N, 0, dtype=complex, format='csr')
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
@@ -471,6 +504,7 @@ def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
     rho /= np.trace(rho)
 
     return Qobj(rho, dims=dims)
+
 
 def rand_dm_hs(N=2, dims=None, seed=None):
     """
@@ -612,9 +646,9 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
         Y = np.einsum('ijik->jk', XXdag.reshape((N, N, N, N)))
 
         # Now we have the matrix 𝟙 ⊗ Y^{-1/2}, which we can find by doing
-        # the square root and the inverse separately. As a possible improvement,
-        # iterative methods exist to find inverse square root matrices directly,
-        # as this is important in statistics.
+        # the square root and the inverse separately. As a possible
+        # improvement, iterative methods exist to find inverse square root
+        # matrices directly, as this is important in statistics.
         Z = np.kron(
             np.eye(N),
             sqrtm(la.inv(Y))
@@ -678,34 +712,21 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
                          np.random.choice(N, num_elems-N)])
     col_idx = np.hstack([np.random.permutation(N),
                          np.random.choice(N, num_elems-N)])
+    M = sp.coo_matrix((data, (row_idx, col_idx)),
+                      dtype=float, shape=(N,N)).tocsr()
+    M = 0.5 * (M + M.conj().transpose())
+    num_rows = M.indptr.shape[0]-1
+    for row in range(num_rows):
+        row_start = M.indptr[row]
+        row_end = M.indptr[row+1]
+        row_sum = np.sum(M.data[row_start:row_end])
+        M.data[row_start:row_end] /= row_sum
     if kind=='left':
-        M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=float, shape=(N,N)).tocsc()
-    else:
-        M = sp.coo_matrix((data, (row_idx,col_idx)), dtype=float, shape=(N,N)).tocsr()
-    M = 0.5*(M+M.conj().transpose())
-    if kind=='left':
-        num_cols = M.indptr.shape[0]-1
-        for col in range(num_cols):
-            col_start = M.indptr[col]
-            col_end = M.indptr[col+1]
-            col_sum = np.sum(M.data[col_start:col_end])
-            M.data[col_start:col_end] /= col_sum
-        M = M.tocsr()
-    else:
-        num_rows = M.indptr.shape[0]-1
-        for row in range(num_rows):
-            row_start = M.indptr[row]
-            row_end = M.indptr[row+1]
-            row_sum = np.sum(M.data[row_start:row_end])
-            M.data[row_start:row_end] /= row_sum
+        M = M.transpose()
     if dims:
         return Qobj(M, dims=dims, shape=[N, N])
     else:
         return Qobj(M)
-
-
-
-
 
 
 def _check_dims(dims, N1, N2):
