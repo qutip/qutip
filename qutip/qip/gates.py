@@ -1216,8 +1216,8 @@ def expand_operator(oper, N, targets, dims=None, cyclic_permutation=False):
     expanded_oper : :class:`qutip.Qobj`
         The expanded qubits operator acting on a system with N qubits.
 
-    Note
-    ----
+    Notes
+    -----
     This is equivalent to gate_expand_1toN, gate_expand_2toN,
     gate_expand_3toN in ``qutip.qip.gate.py``, but works for any dimension.
     """

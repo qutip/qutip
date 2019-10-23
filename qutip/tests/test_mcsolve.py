@@ -198,7 +198,7 @@ def test_MCCollapseTimesOperators():
     result = mcsolve(H, psi0, times, c_ops, [], ntraj=1)
     assert_(len(result.col_times[0]) > 0)
     assert_(len(result.col_which) == len(result.col_times))
-    assert_(set(result.col_which[0]) == {0, 1})
+    assert_(all([col in [0, 1] for col in result.col_which[0]]))
 
 
 def test_MCSimpleConst():
@@ -306,8 +306,9 @@ def test_MCSimpleConstFunc():
     assert_equal(avg_diff < mc_error, True)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+#@unittest.skipIf(Cython_found == 0 or
+#                 _version2int(Cython.__version__) < _version2int('0.14'),
+#                 'Cython not found or version too low.')
 def test_MCSimpleConstStr():
     "Monte-carlo: Collapse terms constant (str format)"
     N = 10  # number of basis states to consider
@@ -343,8 +344,9 @@ def test_MCTDFunc():
     assert_equal(diff < error, True)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+#@unittest.skipIf(Cython_found == 0 or
+#                 _version2int(Cython.__version__) < _version2int('0.14'),
+#                 'Cython not found or version too low.')
 def test_TDStr():
     "Monte-carlo: Time-dependent H (str format)"
     error = 5e-2
@@ -534,7 +536,7 @@ def test_mc_ntraj_list():
 
 def test_mc_functd_sum():
     "Monte-carlo: Test for #490"
-    psi0 = (basis(2,0) + basis(2,1)).unit()   
+    psi0 = (basis(2,0) + basis(2,1)).unit()
     H0 = sigmax()
     H1 = sigmay()
     H2 = sigmaz()

@@ -39,8 +39,8 @@ from qutip import (ssesolve, destroy, coherent, mesolve, fock, qeye,
 def f(t, args):
     return args["a"] * t
 
-def test_smesolve_homodyne_methods():
-    "Stochastic: smesolve: homodyne methods with single jump operator"
+def test_ssesolve_homodyne_methods():
+    "Stochastic: ssesolve: homodyne methods with single jump operator"
 
     def arccoth(x):
         return 0.5*np.log((1.+x)/(x-1.))
@@ -85,13 +85,13 @@ def test_smesolve_homodyne_methods():
                         ['taylor2.0', 5e-4]]
     for n_method in list_methods_tol:
         sol = ssesolve(H, rho0, tlist, sc_op, e_op,
-                       nsubsteps=Nsub, method='homodyne', solver = n_method[0])
+                       nsubsteps=Nsub, method='homodyne', solver=n_method[0])
         sol2 = ssesolve(H, rho0, tlist, sc_op, e_op, store_measurement=0,
-                       nsubsteps=Nsub, method='homodyne', solver = n_method[0],
+                       nsubsteps=Nsub, method='homodyne', solver=n_method[0],
                        noise = sol.noise)
         sol3 = ssesolve(H, rho0, tlist, sc_op, e_op,
-                        nsubsteps=Nsub*5, method='homodyne',
-                        solver = n_method[0], tol=1e-8)
+                        nsubsteps=Nsub*10, method='homodyne',
+                        solver=n_method[0], tol=1e-8)
         err = 1/T * np.sum(np.abs(y_an - \
                     (sol.expect[1]-sol.expect[0]*sol.expect[0].conj())))*ddt
         err3 = 1/T * np.sum(np.abs(y_an - \
@@ -100,7 +100,7 @@ def test_smesolve_homodyne_methods():
         assert_(err < n_method[1])
         # 5* more substep should decrease the error
         assert_(err3 < err)
-        # just to check that noise is not affected by smesolve
+        # just to check that noise is not affected by ssesolve
         assert_(np.all(sol.noise == sol2.noise))
         assert_(np.all(sol.expect[0] == sol2.expect[0]))
 

@@ -35,14 +35,55 @@ Function to build cython code from str, compile and import it.
 Used by cQobjEvo.
 cy/codegen.py does the same thing for specific solver
 """
+import os
 import numpy as np
 from qutip.cy.inter import _prep_cubic_spline
+import time
+
+
+def _try_remove(filename):
+    try:
+        os.remove(filename)
+    except Exception:
+        pass
+
+
+def _import_str(code, basefilename, obj_name, cythonfile=False):
+    """
+    Import 'obj_name' defined in 'code'.
+    Using a temporary file starting by 'basefilename'.
+    """
+    filename = basefilename + str(hash(code))[1:6]
+    tries = 0
+    import_list = []
+    ext = ".pyx" if cythonfile else ".py"
+    while not import_list and tries < 3:
+        try:
+            try_file = filename + time.strftime("%d%H%M%S") + str(tries)
+            file_ = open(try_file+ext, "w")
+            file_.writelines(code)
+            file_.close()
+            if not os.access(try_file, os.R_OK):
+                time.sleep(0.1)
+            import_code = compile('from ' + try_file +
+                                  ' import ' + obj_name + '\n'
+                                  "import_list.append(" + obj_name + ")",
+                                  '<string>', 'exec')
+            exec(import_code, locals())
+        except (ModuleNotFoundError, ImportError):
+            time.sleep(0.05)
+            tries += 1
+            _try_remove(try_file+ext)
+    if not import_list:
+        raise Exception("Could not convert string to importable function, "
+                        "tmpfile:" + try_file + ext)
+    coeff_obj = import_list[0]
+    return coeff_obj, try_file + ext
 
 
 def _compile_str_single(string, args):
     """Create and import a cython compiled function from text
     """
-    import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
                     "\\", "/")
     _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
@@ -67,22 +108,8 @@ def f(double t, args):
         if name in string:
             Code += "    " + name + " = args['" + name + "']\n"
     Code += "    return " + string + "\n"
-    filename = "td_Qobj_single_str" + str(hash(Code))[1:]
-    file = open(filename+".pyx", "w")
-    file.writelines(Code)
-    file.close()
-    str_func = []
-    import_code = compile('from ' + filename + ' import f\n'
-                          "str_func.append(f)",
-                          '<string>', 'exec')
-    exec(import_code, locals())
 
-    try:
-        os.remove(filename+".pyx")
-    except:
-        pass
-
-    return str_func[0], filename
+    return _import_str(Code, "td_Qobj_single_str", "f", True)
 
 
 def _compiled_coeffs(ops, args, dyn_args, tlist):
@@ -90,25 +117,9 @@ def _compiled_coeffs(ops, args, dyn_args, tlist):
     need compilation.
     """
     code = _make_code_4_cimport(ops, args, dyn_args, tlist)
-    filename = "cqobjevo_compiled_coeff_"+str(hash(code))[1:]
-
-    file = open(filename+".pyx", "w")
-    file.writelines(code)
-    file.close()
-    import_list = []
-
-    import_code = compile('from ' + filename + ' import CompiledStrCoeff\n' +
-                          "import_list.append(CompiledStrCoeff)",
-                          '<string>', 'exec')
-    exec(import_code, locals())
-    coeff_obj = import_list[0](ops, args, tlist, dyn_args)
-
-    try:
-        os.remove(filename+".pyx")
-    except:
-        pass
-
-    return coeff_obj, code, filename
+    coeff_obj, filename = _import_str(code, "cqobjevo_compiled_coeff_",
+                                      "CompiledStrCoeff", True)
+    return coeff_obj(ops, args, tlist, dyn_args), code, filename
 
 
 def _make_code_4_cimport(ops, args, dyn_args, tlist):
@@ -116,7 +127,6 @@ def _make_code_4_cimport(ops, args, dyn_args, tlist):
     Create the code for a CoeffFunc cython class the wraps
     the string coefficients, array_like coefficients and Cubic_Spline.
     """
-    import os
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
     _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
 
@@ -281,4 +291,120 @@ include """ + _include_string + "\n\n"
     for i, str_coeff in enumerate(compile_list):
         code += "        coeff[" + str(i) + "] = " + str_coeff + "\n"
 
+    return code
+
+
+def _compiled_coeffs_python(ops, args, dyn_args, tlist):
+    """Create and import a cython compiled class for coeff that
+    need compilation.
+    """
+    code = _make_code_4_python_import(ops, args, dyn_args, tlist)
+    coeff_obj, filename = _import_str(code, "qobjevo_compiled_coeff_",
+                                      "_UnitedStrCaller", False)
+    return coeff_obj, code, filename
+
+
+code_python_pre = """
+# This file is generated automatically by QuTiP.
+import numpy as np
+import scipy.special as spe
+import scipy
+from qutip.qobjevo import _UnitedFuncCaller
+
+def proj(x):
+    if np.isfinite(x):
+        return (x)
+    else:
+        return np.inf + 0j * np.imag(x)
+
+sin = np.sin
+cos = np.cos
+tan = np.tan
+asin = np.arcsin
+acos = np.arccos
+atan = np.arctan
+pi = np.pi
+sinh = np.sinh
+cosh = np.cosh
+tanh = np.tanh
+asinh = np.arcsinh
+acosh = np.arccosh
+atanh = np.arctanh
+exp = np.exp
+log = np.log
+log10 = np.log10
+erf = scipy.special.erf
+zerf = scipy.special.erf
+sqrt = np.sqrt
+real = np.real
+imag = np.imag
+conj = np.conj
+abs = np.abs
+norm = lambda x: np.abs(x)**2
+arg = np.angle
+
+class _UnitedStrCaller(_UnitedFuncCaller):
+    def __init__(self, funclist, args, dynamics_args, cte):
+        self.funclist = funclist
+        self.args = args
+        self.dynamics_args = dynamics_args
+        self.dims = cte.dims
+        self.shape = cte.shape
+
+    def set_args(self, args, dynamics_args):
+        self.args = args
+        self.dynamics_args = dynamics_args
+
+    def dyn_args(self, t, state, shape):
+        # 1d array are to F ordered
+        mat = state.reshape(shape, order="F")
+        for name, what, op in self.dynamics_args:
+            if what == "vec":
+                self.args[name] = state
+            elif what == "mat":
+                self.args[name] = mat
+            elif what == "Qobj":
+                if self.shape[1] == shape[1]:  # oper
+                    self.args[name] = Qobj(mat, dims=self.dims)
+                elif shape[1] == 1:
+                    self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
+                else:  # rho
+                    self.args[name] = Qobj(mat, dims=self.dims[1])
+            elif what == "expect":  # ket
+                if shape[1] == op.cte.shape[1]: # same shape as object
+                    self.args[name] = op.mul_mat(t, mat).trace()
+                else:
+                    self.args[name] = op.expect(t, state)
+
+    def __call__(self, t, args={}):
+        if args:
+            now_args = self.args.copy()
+            now_args.update(args)
+        else:
+            now_args = self.args
+        out = []
+
+"""
+
+code_python_post = """
+        return out
+
+    def get_args(self):
+        return self.args
+
+"""
+
+
+def _make_code_4_python_import(ops, args, dyn_args, tlist):
+    code = code_python_pre
+    for key in args:
+        code += "        " + key + " = now_args['" + key + "']\n"
+
+    for i, op in enumerate(ops):
+        if op.type == "string":
+            code += "        out.append(" + op.coeff + ")\n"
+        else:
+            code += "        out.append(self.funclist[" + str(i) + \
+                    "](t, now_args))\n"
+    code += code_python_post
     return code
