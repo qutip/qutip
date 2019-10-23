@@ -217,34 +217,6 @@ def _rand_herm_dense(N, density, pos_def):
     return M
 
 
-def _rand_herm_exact_density(N, density):
-    # less clean and slower (2x)
-    # However will get the desired density within 1 elements
-    row_idx = []
-    col_idx = []
-    nnz = 0
-    num_elems = np.int(np.round(N * N * density))
-    num_elems = max([num_elems, 1])
-    num_elems = min([num_elems, N * N])
-    for index in np.random.permutation(N*N):
-        row, col = divmod(index, N)
-        if row >= col:
-            nnz += 2
-            row_idx.append(row)
-            col_idx.append(col)
-        if row == col:
-            nnz -= 1
-        if nnz >= num_elems:
-            break
-    num_valid = len(row_idx)
-    data = (2 * np.random.rand(num_valid) - 1) + \
-           (2 * np.random.rand(num_valid) - 1) * 1j
-    M = sp.coo_matrix((data, (row_idx,col_idx)),
-                      dtype=complex, shape=(N,N)).tocsr()
-    M = 0.5 * (M + M.conj().transpose())
-    return M
-
-
 def rand_unitary(N, density=0.75, dims=None, seed=None):
     """Creates a random NxN sparse unitary quantum object.
 
