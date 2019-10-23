@@ -2180,8 +2180,10 @@ def ptrace(Q, sel):
 def _ptrace_dense(Q, sel):
     rd = np.asarray(Q.dims[0], dtype=np.int32).ravel()
     nd = len(rd)
-    if not isinstance(sel, (list, np.ndarray)):
-        sel = [sel]
+    if isinstance(sel, int):
+        sel = np.array([sel])
+    else:
+        sel = np.asarray(sel)
     sel = list(np.sort(sel))
     dkeep = (rd[sel]).tolist()
     qtrace = list(set(np.arange(nd)) - set(sel))

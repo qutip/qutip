@@ -212,7 +212,8 @@ def _rand_herm_dense(N, density, pos_def):
         M[col, row] = 0
         M[row, col] = 0
     if pos_def:
-        M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
+        as_vec = M.ravel()
+        M[::N+1] = (np.abs(M.diagonal())+np.sqrt(2)*N)
     return M
 
 
