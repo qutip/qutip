@@ -1096,41 +1096,43 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     sso.d1 = d1
     sso.d2 = d2
     if _safe_mode:
-        l_vec = sso.rho0.shape[0]
+        # This state0_vec is computed as mat2vec(state0.full()).ravel() in the sso init.
+        state0_vec = sso.rho0
+        l_vec = state0_vec.shape[0]
         try:
             out_d1 = d1(0., sso.rho0)
         except Exception as e:
-            raise Exception("d1(0., mat2vec(state0.full()).ravel()) failed:\n"+
+            raise Exception("Safety check: d1(0., state0_vec) failed:\n"+
                             str(e))
         except:
-            raise Exception("d1(0., mat2vec(state0.full()).ravel()) failed")
+            raise Exception("Safety check: d1(0., state0_vec) failed")
         try:
             out_d2 = d2(0., sso.rho0)
         except Exception as e:
-            raise Exception("d2(0., mat2vec(state0.full()).ravel()) failed:\n"+
+            raise Exception("Safety check: d2(0., state0_vec) failed:\n"+
                             str(e))
         except:
-            raise Exception("d2(0., mat2vec(state0.full()).ravel()) failed")
+            raise Exception("Safety check: d2(0., state0_vec) failed")
         if out_d1.shape[0] != l_vec or len(out_d1.shape) != 1:
             raise Exception("d1 must return an 1d numpy array with "+
                             "the same number of element than the " +
                             "initial state as a vector")
         if len(out_d2.shape) != 2 and out_d2.shape[1] != l_vec and \
                 out_d2.shape[0] != len_d2:
-            raise Exception("d2 must return an 2d numpy array with the shape" +
-                            " (l2_len, len(mat2vec(state0.full()).ravel()) )")
+            raise Exception("Safety check: d2 must return an 2d numpy array with the shape" +
+                            " (len_d2, len(state0_vec) )")
         if out_d1.dtype != np.dtype('complex128') or \
            out_d2.dtype != np.dtype('complex128'):
-            raise Exception("d1 and d2 must return complex numpy array")
+            raise Exception("Safety check: d1 and d2 must return complex numpy array")
         for op in sso.e_ops:
             shape_op = op.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
-                    raise Exception("The size of the e_ops does "
+                    raise Exception("Safety check: The size of the e_ops does "
                                     "not fit the intial state")
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
-                    raise Exception("The size of the e_ops does "
+                    raise Exception("Safety check: The size of the e_ops does "
                                     "not fit the intial state")
 
     sso.m_ops = []
@@ -1293,9 +1295,14 @@ def _sesolve_generic(sso, options, progress_bar):
         data.runs_expect = np.stack(paths_expect)
 
     # average density matrices
-    if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[mm][n] for mm in range(nt)]).unit()
-                       for n in range(len(data.times))]
+    # ajgpitch 2019-10-25: np.any(data.states) seems to error
+    if options.average_states and options.store_states:
+        states_list = []
+        for n in range(len(data.times)):
+            state_data = sum([data.states[mm][n] for mm in range(nt)]).unit()
+            state = Qobj(state_data, dims=data.states[0][n].dims)
+            states_list.append(state)
+        data.states = states_list
 
     # average
     data.expect = data.expect / nt
