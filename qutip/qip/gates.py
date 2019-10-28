@@ -1121,7 +1121,7 @@ def _check_qubits_oper(oper, dims=None, targets=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qboj`
+    oper : :class:`qutip.Qobj`
         The quantum object to be checked.
     dims : list, optional
         A list of integer for the dimension of each composite system.
