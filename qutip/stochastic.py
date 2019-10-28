@@ -1038,6 +1038,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     Solve stochastic general equation. Dispatch to specific solvers
     depending on the value of the `solver` keyword argument.
 
+
     Parameters
     ----------
 
@@ -1090,8 +1091,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     sso = StochasticSolverOptions(False, H=None, state0=state0, times=times,
                                   e_ops=e_ops, args=args, **kwargs)
     if sso.solver_code not in [50, 100, 150]:
-        raise Exception("Only Euler, platen, platen15 can be " +
-                        "used for the general stochastic solver")
+        raise ValueError("Only Euler, platen, platen15 can be " +
+                         "used for the general stochastic solver.")
 
     sso.d1 = d1
     sso.d2 = d2
@@ -1102,45 +1103,53 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         try:
             out_d1 = d1(0., sso.rho0)
         except Exception as e:
-            raise Exception("Safety check: d1(0., state0_vec) failed:\n"+
-                            str(e))
+            raise RuntimeError("Safety check: d1(0., state0_vec) failed.:\n" +
+                               str(e)) from e
         except:
-            raise Exception("Safety check: d1(0., state0_vec) failed")
+            raise RuntimeError("Safety check: d1(0., state0_vec) failed.")
         try:
             out_d2 = d2(0., sso.rho0)
         except Exception as e:
-            raise Exception("Safety check: d2(0., state0_vec) failed:\n"+
-                            str(e))
+            raise RuntimeError("Safety check: d2(0., state0_vec) failed:\n" +
+                               str(e)) from e
         except:
-            raise Exception("Safety check: d2(0., state0_vec) failed")
+            raise RuntimeError("Safety check: d2(0., state0_vec) failed.")
+
+        msg_d1 = ("d1 must return an 1d numpy array with the same number "
+                  "of elements as the initial state as a vector.")
+        if not isinstance(out_d1, np.ndarray) or out_d1.ndim != 1:
+            raise ValueError(msg_d1)
         if out_d1.shape[0] != l_vec or len(out_d1.shape) != 1:
-            raise Exception("d1 must return an 1d numpy array with "+
-                            "the same number of element than the " +
-                            "initial state as a vector")
-        if len(out_d2.shape) != 2 and out_d2.shape[1] != l_vec and \
-                out_d2.shape[0] != len_d2:
-            raise Exception("Safety check: d2 must return an 2d numpy array with the shape" +
-                            " (len_d2, len(state0_vec) )")
+            raise ValueError(msg_d1)
+
+        msg_d2 = ("Safety check: d2 must return a 2d numpy array "
+                  "with the shape (len_d2, len(state0_vec) ).")
+        if not isinstance(out_d2, np.ndarray) or out_d2.ndim != 2:
+            raise ValueError(msg_d2)
+        if out_d2.shape[1] != l_vec and out_d2.shape[0] != len_d2:
+            raise ValueError(msg_d2)
         if out_d1.dtype != np.dtype('complex128') or \
            out_d2.dtype != np.dtype('complex128'):
-            raise Exception("Safety check: d1 and d2 must return complex numpy array")
+            raise ValueError("Safety check: d1 and d2 must return " +
+                            "complex numpy array.")
+        msg_e_ops = ("Safety check: The shape of the e_ops "
+                     "does not fit the intial state.")
         for op in sso.e_ops:
             shape_op = op.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
-                    raise Exception("Safety check: The size of the e_ops does "
-                                    "not fit the intial state")
+                    raise ValueError(msg_e_ops)
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
-                    raise Exception("Safety check: The size of the e_ops does "
-                                    "not fit the intial state")
+                    raise ValueError(msg_e_ops +
+                                     " Expecting e_ops as superoperators.")
 
     sso.m_ops = []
     sso.cm_ops = []
     if sso.store_measurement:
         if not m_ops:
-            raise Exception("General stochastic need explicit " +
-                            "m_ops to store measurement")
+            raise ValueError("General stochastic needs explicit " +
+                             "m_ops to store measurement.")
         sso.m_ops = m_ops
         sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
         [op.compile() for op in sso.cm_ops]
@@ -1149,8 +1158,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         elif len(sso.dW_factors) == 1:
                 sso.dW_factors = sso.dW_factors * len(sso.m_ops)
         elif len(sso.dW_factors) != len(sso.m_ops):
-            raise Exception("The number of dW_factors must fit"
-                            " the number of m_ops")
+            raise ValueError("The number of dW_factors must fit" +
+                             " the number of m_ops.")
 
     if sso.dW_factors is None:
         sso.dW_factors = [1.] * len_d2
@@ -1260,14 +1269,14 @@ def _sesolve_generic(sso, options, progress_bar):
     """
     Internal function. See smesolve.
     """
-    data = Result()
-    data.times = sso.times
-    data.expect = np.zeros((len(sso.e_ops), len(sso.times)), dtype=complex)
-    data.ss = np.zeros((len(sso.e_ops), len(sso.times)), dtype=complex)
-    data.measurement = []
-    data.solver = sso.solver_name
-    data.ntraj = sso.ntraj
-    data.num_expect = len(sso.e_ops)
+    res = Result()
+    res.times = sso.times
+    res.expect = np.zeros((len(sso.e_ops), len(sso.times)), dtype=complex)
+    res.ss = np.zeros((len(sso.e_ops), len(sso.times)), dtype=complex)
+    res.measurement = []
+    res.solver = sso.solver_name
+    res.ntraj = sso.ntraj
+    res.num_expect = len(sso.e_ops)
 
     nt = sso.ntraj
     task = _single_trajectory
@@ -1281,44 +1290,47 @@ def _sesolve_generic(sso, options, progress_bar):
     noise = []
     for result in results:
         states_list, dW, m, expect = result
-        data.states.append(states_list)
+        res.states.append(states_list)
         noise.append(dW)
-        data.measurement.append(m)
-        data.expect += expect
-        data.ss += expect * expect
-    data.noise = np.stack(noise)
+        res.measurement.append(m)
+        res.expect += expect
+        res.ss += expect * expect
+    res.noise = np.stack(noise)
 
     if sso.store_all_expect:
         paths_expect = []
         for result in results:
             paths_expect.append(result[3])
-        data.runs_expect = np.stack(paths_expect)
+        res.runs_expect = np.stack(paths_expect)
 
-    # average density matrices
-    # ajgpitch 2019-10-25: np.any(data.states) seems to error
+    # average density matrices (vectorized)
+    # ajgpitch 2019-10-25: np.any(res.states) seems to error
+    # I guess there may be a potential exception if there are no states?
     if options.average_states and options.store_states:
-        states_list = []
-        for n in range(len(data.times)):
-            state_data = sum([data.states[mm][n] for mm in range(nt)]).unit()
-            state = Qobj(state_data, dims=data.states[0][n].dims)
-            states_list.append(state)
-        data.states = states_list
+        avg_states_list = []
+        for n in range(len(res.times)):
+            tslot_states = [res.states[mm][n].data for mm in range(nt)]
+            if len(tslot_states) > 0:
+                state = Qobj(np.sum(tslot_states),
+                             dims=res.states[0][n].dims).unit()
+                avg_states_list.append(state)
+        res.states = avg_states_list
 
     # average
-    data.expect = data.expect / nt
+    res.expect = res.expect / nt
 
     # standard error
     if nt > 1:
-        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
+        res.se = (res.ss - nt * (res.expect ** 2)) / (nt * (nt - 1))
     else:
-        data.se = None
+        res.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n, :])
-                   if e.isherm else data.expect[n, :]
+    res.expect = [np.real(res.expect[n, :])
+                   if e.isherm else res.expect[n, :]
                    for n, e in enumerate(sso.e_ops)]
 
-    return data
+    return res
 
 
 def _single_trajectory(i, sso):
