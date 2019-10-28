@@ -1097,7 +1097,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     sso.d1 = d1
     sso.d2 = d2
     if _safe_mode:
-        # This state0_vec is computed as mat2vec(state0.full()).ravel() in the sso init.
+        # This state0_vec is computed as mat2vec(state0.full()).ravel()
+        # in the sso init.
         state0_vec = sso.rho0
         l_vec = state0_vec.shape[0]
         try:
@@ -1131,7 +1132,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         if out_d1.dtype != np.dtype('complex128') or \
            out_d2.dtype != np.dtype('complex128'):
             raise ValueError("Safety check: d1 and d2 must return " +
-                            "complex numpy array.")
+                             "complex numpy array.")
         msg_e_ops = ("Safety check: The shape of the e_ops "
                      "does not fit the intial state.")
         for op in sso.e_ops:
@@ -1327,8 +1328,8 @@ def _sesolve_generic(sso, options, progress_bar):
 
     # convert complex data to real if hermitian
     res.expect = [np.real(res.expect[n, :])
-                   if e.isherm else res.expect[n, :]
-                   for n, e in enumerate(sso.e_ops)]
+                  if e.isherm else res.expect[n, :]
+                  for n, e in enumerate(sso.e_ops)]
 
     return res
 
