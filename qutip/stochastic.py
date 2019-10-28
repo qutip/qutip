@@ -1118,16 +1118,18 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
 
         msg_d1 = ("d1 must return an 1d numpy array with the same number "
                   "of elements as the initial state as a vector.")
-        if not isinstance(out_d1, np.ndarray) or out_d1.ndim != 1:
-            raise ValueError(msg_d1)
-        if out_d1.shape[0] != l_vec or len(out_d1.shape) != 1:
+        if not isinstance(out_d1, np.ndarray):
+            raise TypeError(msg_d1)
+        if (out_d1.ndim != 1
+                or out_d1.shape[0] != l_vec or len(out_d1.shape) != 1):
             raise ValueError(msg_d1)
 
         msg_d2 = ("Safety check: d2 must return a 2d numpy array "
                   "with the shape (len_d2, len(state0_vec) ).")
-        if not isinstance(out_d2, np.ndarray) or out_d2.ndim != 2:
-            raise ValueError(msg_d2)
-        if out_d2.shape[1] != l_vec and out_d2.shape[0] != len_d2:
+        if not isinstance(out_d2, np.ndarray):
+            raise TypeError(msg_d2)
+        if (out_d2.ndim != 2
+                or out_d2.shape[1] != l_vec or out_d2.shape[0] != len_d2):
             raise ValueError(msg_d2)
         if out_d1.dtype != np.dtype('complex128') or \
            out_d2.dtype != np.dtype('complex128'):
