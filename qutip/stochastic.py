@@ -322,31 +322,41 @@ class StochasticSolverOptions:
         # Cast to QobjEvo so the code has only one version for both the
         # constant and time-dependent case.
         self.me = me
+
         if H is not None:
+            msg = "The Hamiltonian format is not valid. "
             try:
                 self.H = QobjEvo(H, args=args, tlist=times)
+            except Exception as e:
+                raise ValueError(msg + str(e)) from e
             except:
-                raise Exception("The hamiltonian format is not valid")
+                raise ValueError(msg)
         else:
             self.H = H
 
         if sc_ops:
+            msg = ("The sc_ops format is not valid. Options are "
+                   "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
                 self.sc_ops = [QobjEvo(op, args=args, tlist=times)
                                for op in sc_ops]
+            except Exception as e:
+                raise ValueError(msg + str(e)) from e
             except:
-                raise Exception("The sc_ops format is not valid.\n" +
-                                "[ Qobj / QobjEvo / [Qobj,coeff]]")
+                raise ValueError(msg)
         else:
             self.sc_ops = sc_ops
 
         if c_ops:
+            msg = ("The c_ops format is not valid. Options are "
+                   "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
                 self.c_ops = [QobjEvo(op, args=args, tlist=times)
                               for op in c_ops]
+            except Exception as e:
+                raise ValueError(msg + str(e)) from e
             except:
-                raise Exception("The c_ops format is not valid.\n" +
-                                "[ Qobj / QobjEvo / [Qobj,coeff]]")
+                raise ValueError(msg)
         else:
             self.c_ops = c_ops
 
@@ -393,8 +403,8 @@ class StochasticSolverOptions:
             noise = np.array(noise)
             if len(noise.shape) == 1:
                 if noise.shape[0] < ntraj:
-                    raise Exception("'noise' does not have enought seeds" +
-                                    "len(noise) >= ntraj")
+                    raise ValueError("'noise' does not have enought seeds " +
+                                     "len(noise) >= ntraj")
                 # numpy seed must be between 0 and 2**32-1
                 # 'u4': unsigned 32bit int
                 self.noise = noise.astype("u4")
@@ -404,19 +414,16 @@ class StochasticSolverOptions:
                 # taylor case not included
                 dw_len = (2 if method == "heterodyne" else 1)
                 dw_len_str = (" * 2" if method == "heterodyne" else "")
+                msg = "Incorrect shape for 'noise': "
                 if noise.shape[0] < ntraj:
-                    raise Exception("'noise' does not have the right shape" +
-                                    "shape[0] >= ntraj")
+                    raise ValueError(msg + "shape[0] >= ntraj")
                 if noise.shape[1] < len(times):
-                    raise Exception("'noise' does not have the right shape" +
-                                    "shape[1] >= len(times)")
+                    raise ValueError(msg + "shape[1] >= len(times)")
                 if noise.shape[2] < nsubsteps:
-                    raise Exception("'noise' does not have the right shape" +
-                                    "shape[2] >= nsubsteps")
+                    raise ValueError(msg + "shape[2] >= nsubsteps")
                 if noise.shape[3] < len(self.sc_ops) * dw_len:
-                    raise Exception("'noise' does not have the right shape: " +
-                                    "shape[3] >= len(self.sc_ops)" +
-                                    dw_len_str)
+                    raise ValueError(msg + "shape[3] >= len(self.sc_ops)" +
+                                     dw_len_str)
                 self.noise_type = 1
                 self.noise = noise
 
@@ -462,7 +469,7 @@ class StochasticSolverOptions:
             self.solver_code = 120
             self.solver = 'rouchon'
             if not all((op.const for op in self.sc_ops)):
-                raise Exception("Rouchon only work with constant sc_ops")
+                raise ValueError("Rouchon only works with constant sc_ops")
         elif self.solver in ['platen15', 'explicit1.5', 'explicit15', 150]:
             self.solver_code = 150
             self.solver = 'explicit1.5'
@@ -478,15 +485,16 @@ class StochasticSolverOptions:
             if not len(self.sc_ops) == 1 or \
                     not self.sc_ops[0].const or \
                     not self.method == "homodyne":
-                raise Exception("Taylor2.0 only work with 1 constant sc_ops " +
-                                "and for homodyne method")
+                raise ValueError("Taylor2.0 only works with 1 constant " +
+                                "sc_ops and for homodyne method")
         else:
-            raise Exception("The solver should be one of " +
-                            "[None, 'euler-maruyama', 'platen', 'pc-euler', " +
-                            "'pc-euler-imp', 'milstein', 'milstein-imp', " +
-                            "'rouchon', " +
-                            "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' " +
-                            "'taylor2.0']")
+            raise ValueError((
+                    "The solver should be one of "
+                    "[None, 'euler-maruyama', 'platen', 'pc-euler', "
+                    "'pc-euler-imp', 'milstein', 'milstein-imp', "
+                    "'rouchon', "
+                    "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "
+                    "'taylor2.0']"))
 
 
 class StochasticSolverOptionsPhoto(StochasticSolverOptions):
