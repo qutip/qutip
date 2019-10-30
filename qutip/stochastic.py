@@ -1314,9 +1314,12 @@ def _sesolve_generic(sso, options, progress_bar):
             paths_expect.append(result[3])
         res.runs_expect = np.stack(paths_expect)
 
-    # average density matrices (vectorized)
+    # average density matrices (vectorized maybe)
     # ajgpitch 2019-10-25: np.any(res.states) seems to error
     # I guess there may be a potential exception if there are no states?
+    # store individual trajectory states
+    res.traj_states = res.states
+    res.avg_states = None
     if options.average_states and options.store_states:
         avg_states_list = []
         for n in range(len(res.times)):
@@ -1325,7 +1328,8 @@ def _sesolve_generic(sso, options, progress_bar):
                 state = Qobj(np.sum(tslot_states),
                              dims=res.states[0][n].dims).unit()
                 avg_states_list.append(state)
-        res.states = avg_states_list
+        # store average states
+        res.states = res.avg_states = avg_states_list
 
     # average
     res.expect = res.expect / nt
