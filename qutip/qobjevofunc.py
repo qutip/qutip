@@ -33,7 +33,7 @@
 """Time-dependent Quantum Object (QobjEvo) wrapper class
 for function returning Qobj.
 """
-__all__ = ['QobjEvoFunc', 'qobjevo_maker']
+__all__ = ['QobjEvoFunc']
 
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo

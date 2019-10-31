@@ -37,9 +37,10 @@ import scipy.sparse as sp
 from qutip.cy.stochastic import (SSESolver, SMESolver, PcSSESolver, PcSMESolver,
                                  PmSMESolver, GenericSSolver, Solvers)
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.states import ket2dm
+from qutip.states import ket2dmfunction are defined
 from qutip.solver import Result
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevo_maker import qobjevo_maker
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian, lindblad_dissipator)
 from qutip.solver import Options, _solver_safety_check
@@ -323,30 +324,22 @@ class StochasticSolverOptions:
         # constant and time-dependent case.
         self.me = me
         if H is not None:
-            try:
-                self.H = QobjEvo(H, args=args, tlist=times)
-            except:
-                raise Exception("The hamiltonian format is not valid")
+            self.H = qobjevo_maker(H, args=args, tlist=times,
+                                   rhs_with_state=options.rhs_with_state)
         else:
             self.H = H
 
         if sc_ops:
-            try:
-                self.sc_ops = [QobjEvo(op, args=args, tlist=times)
+            self.sc_ops = [qobjevo_maker(op, args=args, tlist=times,
+                                         rhs_with_state=options.rhs_with_state)
                                for op in sc_ops]
-            except:
-                raise Exception("The sc_ops format is not valid.\n" +
-                                "[ Qobj / QobjEvo / [Qobj,coeff]]")
         else:
             self.sc_ops = sc_ops
 
         if c_ops:
-            try:
-                self.c_ops = [QobjEvo(op, args=args, tlist=times)
+            self.c_ops = [qobjevo_maker(op, args=args, tlist=times,
+                                        rhs_with_state=options.rhs_with_state)
                               for op in c_ops]
-            except:
-                raise Exception("The c_ops format is not valid.\n" +
-                                "[ Qobj / QobjEvo / [Qobj,coeff]]")
         else:
             self.c_ops = c_ops
 

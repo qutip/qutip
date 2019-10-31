@@ -33,7 +33,7 @@
 """Factory fonction to create a QobjEvo or QobjEvoFunc from a valid
 time dependent Qobj definition.
 """
-__all__ = ['QobjEvoFunc', 'qobjevo_maker']
+__all__ = ['qobjevo_maker']
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo, EvoElement
 from qutip.qobjevofunc import QobjEvoFunc
