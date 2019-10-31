@@ -626,19 +626,6 @@ class QobjEvo:
 
         self.args.update(to_add)
 
-    def _check_old_with_state(self):
-        add_vec = False
-        for op in self.ops:
-            if op.type == "func":
-                try:
-                    op.get_coeff(0., self.args)
-                except TypeError as e:
-                    nfunc = _StateAsArgs(self.coeff)
-                    op = EvoElement((op.qobj, nfunc, nfunc, "func"))
-                    add_vec = True
-        if add_vec:
-            self.dynamics_args += [("_state_vec", "vec", None)]
-
     def __del__(self):
         for file_ in self.coeff_files:
             try:
