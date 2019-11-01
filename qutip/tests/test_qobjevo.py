@@ -819,10 +819,10 @@ def test_qobjevo_maker():
 
     list_format_1 = rand_herm(N)
     list_format_2 = [rand_herm(N)]
-    list_format_3 = [rand_herm(N), f1]
-    list_format_4 = [rand_herm(N), [rand_herm(N), f1]]
+    list_format_3 = [rand_herm(N), _f1]
+    list_format_4 = [rand_herm(N), [rand_herm(N), _f1]]
     list_format_5 = [[rand_herm(N), np.sin(tlist)]]
-    list_format_6 = [[rand_herm(N), f1], [rand_herm(N), f1]]
+    list_format_6 = [[rand_herm(N), _f1], [rand_herm(N), _f1]]
     list_format_no_args = [rand_herm(N), f_noargs]
     list_format_old_args = [rand_herm(N), f_old_args]
 

@@ -1366,7 +1366,7 @@ def _transform_shift_one_op(op, args={}):
         new_op = op
     elif isinstance(op, QobjEvo):
         new_op = op
-        new_op._shift
+        new_op._shift()
     elif callable(op):
         def new_op(t, args_i):
             return op(t + args_i["_t0"], args_i)

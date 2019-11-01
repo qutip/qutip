@@ -34,6 +34,7 @@
 time dependent Qobj definition.
 """
 __all__ = ['qobjevo_maker']
+import numpy as np
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo, EvoElement
 from qutip.qobjevofunc import QobjEvoFunc
@@ -120,22 +121,33 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
             Q_object = _StateAsArgs(Q_object)
             args["_state_vec=vec"] = state
         obj = QobjEvoFunc(Q_object, args, tlist, copy)
+    else:
+        raise NotImplementedError(type(Q_object))
     return obj
 
 
 def _with_state(obj):
     add_vec = False
+    new_ops = []
     for op in obj.ops:
         if op.type == "func":
-            nfunc = _StateAsArgs(obj.coeff)
-            op = EvoElement((op.qobj, nfunc, nfunc, "func"))
+            nfunc = _StateAsArgs(op.coeff)
+            new_ops.append(EvoElement(op.qobj, nfunc, nfunc, "func"))
             add_vec = True
+        else:
+            new_ops.append(op)
+    obj.ops = new_ops
     if add_vec:
+        obj.args["_state_vec"] = np.zeros(obj.cte.shape[0], dtype=complex)
         obj.dynamics_args += [("_state_vec", "vec", None)]
 
 
 def _noargs(obj):
+    new_ops = []
     for op in obj.ops:
         if op.type == "func":
-            nfunc = _NoArgs(obj.coeff)
-            op = EvoElement((op.qobj, nfunc, nfunc, "func"))
+            nfunc = _NoArgs(op.coeff)
+            new_ops.append(EvoElement(op.qobj, nfunc, nfunc, "func"))
+        else:
+            new_ops.append(op)
+    obj.ops = new_ops

@@ -595,9 +595,11 @@ class QobjEvo:
                     if what == "Qobj":
                         to_add[name] = Qobj(dims=[self.cte.dims[1],[1]])
                     elif what == "mat":
-                        to_add[name] = np.zeros((self.cte.shape[1],1))
+                        to_add[name] = np.zeros((self.cte.shape[1],1),
+                                                dtype=complex)
                     else:
-                        to_add[name] = np.zeros((self.cte.shape[1]))
+                        to_add[name] = np.zeros((self.cte.shape[1]),
+                                                dtype=complex)
 
             elif what == "expect":
                 if isinstance(self.args[key], QobjEvo):

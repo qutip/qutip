@@ -273,6 +273,7 @@ class QobjEvoFunc(QobjEvo):
         self.compiled = ""
         self.compiled_qobjevo = None
         self.operation_stack = []
+        self.shifted = False
 
         # Dummy attributes from QobjEvo
         self.coeff_get = None
@@ -282,6 +283,7 @@ class QobjEvoFunc(QobjEvo):
         self.dummy_cte = True
         self.const = False
         self.type = ""
+
 
         if not callable(Q_object):
             raise TypeError("expected a function")
@@ -424,6 +426,8 @@ class QobjEvoFunc(QobjEvo):
             now_args.update(args)
         else:
             now_args = self.args
+        if self.shifted:
+            t += args["_t0"]
         qobj = self.func(t, now_args)
         for transform in self.operation_stack:
             qobj = transform(qobj, t, now_args)
@@ -443,6 +447,7 @@ class QobjEvoFunc(QobjEvo):
         self.dynamics_args = other.dynamics_args
         self.operation_stack = [oper.copy() for oper in other.operation_stack]
         self.type = other.type
+        self.shifted = other.shifted
         self.compiled = ""
         self.compiled_qobjevo = None
         self.func = other.func
@@ -606,6 +611,13 @@ class QobjEvoFunc(QobjEvo):
         """return 1j * (spre(a) - spost(a)) """
         res = self.copy()
         res.operation_stack.append(_Block_liouvillian_H())
+        return res
+
+    def _shift(self):
+        """shift t by args("_t0") """
+        res = self.copy()
+        res.shifted = True
+        res.args["_t0"] = 0
         return res
 
     # Unitary function of Qobj

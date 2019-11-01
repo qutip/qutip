@@ -46,7 +46,7 @@ from qutip.superoperator import (spre, spost, liouvillian, mat2vec,
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, solver_safe, SolverSystem
 from qutip.cy.spmatfuncs import spmv
-from qutip.cy.spconvert import (dense2D_to_fastcsr_cmode, 
+from qutip.cy.spconvert import (dense2D_to_fastcsr_cmode,
                                 dense2D_to_fastcsr_fmode)
 from qutip.states import ket2dm
 from qutip.settings import debug
@@ -235,7 +235,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     check_use_openmp(options)
 
-    H = qobjevo_maker(H, args, tlist, rhs_with_state=options.rhs_with_state)
+    if not isinstance(H, SolverSystem):
+        H = qobjevo_maker(H, args, tlist,
+                          rhs_with_state=options.rhs_with_state)
 
     use_mesolve = ((c_ops and len(c_ops) > 0)
                    or (not isket(rho0)) or issuper(H.cte))
