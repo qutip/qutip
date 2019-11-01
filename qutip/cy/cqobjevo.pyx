@@ -64,6 +64,10 @@ CQobjEvoTdMatched:
   - Hidden feature/ experimental.
     It reasult in a speedup in some rare cases.
 
+CQobjFunc:
+  QobjEvo that get its object from a python function.
+  Extract the csr matrix from the Qobj and work in sparse format.
+
 In omp/cqobjevo_omp:
   Variantes which use parallel mat*vec and mat*mat product
   - CQobjCteOmp
