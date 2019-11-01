@@ -45,6 +45,7 @@ from functools import partial
 from qutip.fastsparse import csr2fast
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevo_maker import qobjevo_maker
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket
@@ -299,7 +300,7 @@ class _MC():
         ss.args = args
         ss.col_args = var
         for c in c_ops:
-            cevo = QobjEvo(c, args, tlist)
+            cevo = qobjevo_maker(c, args, tlist)
             cdc = cevo._cdc()
             cevo.compile()
             cdc.compile()
@@ -307,7 +308,7 @@ class _MC():
             ss.td_n_ops.append(cdc)
 
         try:
-            H_td = QobjEvo(H, args, tlist)
+            H_td = qobjevo_maker(H, args, tlist)
             H_td *= -1j
             for c in ss.td_n_ops:
                 H_td += -0.5 * c
@@ -327,6 +328,7 @@ class _MC():
             ss.makefunc = _func_set
             ss.set_args = _func_args
             ss.type = "callback"
+            print("callback")
 
         solver_safe["mcsolve"] = ss
         self.ss = ss

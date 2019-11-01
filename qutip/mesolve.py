@@ -41,16 +41,19 @@ import numpy as np
 import scipy.integrate
 import warnings
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat, lindblad_dissipator
+from qutip.superoperator import (spre, spost, liouvillian, mat2vec,
+                                 vec2mat, lindblad_dissipator)
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config, solver_safe, SolverSystem
 from qutip.cy.spmatfuncs import spmv
-from qutip.cy.spconvert import dense2D_to_fastcsr_cmode, dense2D_to_fastcsr_fmode
+from qutip.cy.spconvert import (dense2D_to_fastcsr_cmode, 
+                                dense2D_to_fastcsr_fmode)
 from qutip.states import ket2dm
 from qutip.settings import debug
 from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevo_maker import qobjevo_maker
 
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
@@ -232,16 +235,18 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     check_use_openmp(options)
 
+    H = qobjevo_maker(H, args, tlist, rhs_with_state=options.rhs_with_state)
+
     use_mesolve = ((c_ops and len(c_ops) > 0)
-                   or (not isket(rho0))
-                   or (isinstance(H, Qobj) and issuper(H))
+                   or (not isket(rho0)) or issuper(H.cte))
+    """            or (isinstance(H, Qobj) and issuper(H))
                    or (isinstance(H, QobjEvo) and issuper(H.cte))
                    or (isinstance(H, list) and isinstance(H[0], Qobj) and
                             issuper(H[0]))
                    or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
                             not options.rhs_with_state and issuper(H(0., args)))
                    or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
-                            options.rhs_with_state))
+                            options.rhs_with_state))"""
 
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
@@ -282,13 +287,13 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = QobjEvo(H, args, tlist)
+    H_td = qobjevo_maker(H, args, tlist)
     if not issuper(H_td.cte):
         L_td = liouvillian(H_td)
     else:
         L_td = H_td
     for op in c_ops:
-        op_td = QobjEvo(op, args, tlist)
+        op_td = qobjevo_maker(op, args, tlist)
         if not issuper(op_td.cte):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td

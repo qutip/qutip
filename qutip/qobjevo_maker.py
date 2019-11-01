@@ -57,7 +57,7 @@ class _NoArgs:
 
 
 def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
-                  rhs_with_state=False, no_args=False):
+                  rhs_with_state=False, no_args=False, state=None):
     """Create a QobjEvo or QobjEvoFunc from a valid definition.
     Valid format are:
     list format:
@@ -96,6 +96,9 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
         Whether the function are defined without states:
         c_i(t)
 
+    state : Qobj
+        default state if rhs_with_state.
+
     Returns
     -------
     L : QobjEvo or QobjEvoFunc
@@ -115,7 +118,7 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
             Q_object = _NoArgs(Q_object)
         elif rhs_with_state:
             Q_object = _StateAsArgs(Q_object)
-            args["_state_vec=vec"] = None
+            args["_state_vec=vec"] = state
         obj = QobjEvoFunc(Q_object, args, tlist, copy)
     return obj
 

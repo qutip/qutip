@@ -64,32 +64,34 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         Liouvillian superoperator.
 
     """
-    if isinstance(c_ops, (Qobj, QobjEvo)):
+    if not isinstance(c_ops, list):
         c_ops = [c_ops]
     if chi and len(chi) != len(c_ops):
         raise ValueError('chi must be a list with same length as c_ops')
 
-    h = None
+    use_func = isinstance(H, QobjEvoFunc)
+    use_func += any((isinstance(c_op, QobjEvoFunc) for c_op in c_ops))
+    if use_func:
+        return liouvillian_func(H, c_ops, data_only, chi)
+
+    use_evo = isinstance(H, QobjEvo)
+    use_evo += any((isinstance(c_op, QobjEvo) for c_op in c_ops))
+    if use_evo:
+        return liouvillian_evo(H, c_ops, data_only, chi)
+
     if H is not None:
-        if isinstance(H, QobjEvo):
-            h = H.cte
-        else:
-            h = H
-        if h.isoper:
-            op_dims = h.dims
-            op_shape = h.shape
-        elif h.issuper:
-            op_dims = h.dims[0]
+        if H.isoper:
+            op_dims = H.dims
+            op_shape = H.shape
+        elif H.issuper:
+            op_dims = H.dims[0]
             op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
         else:
             raise TypeError("Invalid type for Hamiltonian.")
     else:
         # no hamiltonian given, pick system size from a collapse operator
-        if isinstance(c_ops, list) and len(c_ops) > 0:
-            if isinstance(c_ops[0], QobjEvo):
-                c = c_ops[0].cte
-            else:
-                c = c_ops[0]
+        if len(c_ops) > 0:
+            c = c_ops[0]
             if c.isoper:
                 op_dims = c.dims
                 op_shape = c.shape
@@ -106,20 +108,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     spI = fast_identity(op_shape[0])
 
-    td = False
-    L = None
-    if isinstance(H, QobjEvo):
-        td = True
-
-        def H2L(H):
-            if H.isoper:
-                return -1.0j * (spre(H) - spost(H))
-            else:
-                return H
-
-        L = H.apply(H2L)
-        data = L.cte.data
-    elif isinstance(H, Qobj):
+    if isinstance(H, Qobj):
         if H.isoper:
             Ht = H.data.T
             data = -1j * zcsr_kron(spI, H.data)
@@ -129,7 +118,6 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     else:
         data = fast_csr_matrix(shape=(sop_shape[0], sop_shape[1]))
 
-    td_c_ops = []
     for idx, c_op in enumerate(c_ops):
         if isinstance(c_op, QobjEvo):
             td = True
@@ -144,11 +132,11 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         else:
             c_ = c_op
 
-        if c_.issuper:
-            data = data + c_.data
+        if c_op.issuper:
+            data = data + c_op.data
         else:
-            cd = c_.data.H
-            c = c_.data
+            cd = c_op.data.getH()
+            c = c_op.data
             if chi:
                 data = data + np.exp(1j * chi[idx]) * \
                                 zcsr_kron(c.conj(), c)
@@ -159,27 +147,40 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             data = data - 0.5 * zcsr_kron(spI, cdc)
             data = data - 0.5 * zcsr_kron(cdct, spI)
 
-    if not td:
-        if data_only:
-            return data
-        else:
-            L = Qobj()
-            L.dims = sop_dims
-            L.data = data
-            L.superrep = 'super'
-            return L
+    if data_only:
+        return data
     else:
-        if not L:
-            l = Qobj()
-            l.dims = sop_dims
-            l.data = data
-            l.superrep = 'super'
-            L = QobjEvo(l)
-        else:
-            L.cte.data = data
-        for c_op in td_c_ops:
-            L += c_op
+        L = Qobj()
+        L.dims = sop_dims
+        L.data = data
+        L.superrep = 'super'
         return L
+
+
+def liouvillian_evo(H, c_ops, data_only, chi):
+    H = QobjEvo(H)
+    return H.liouvillian(c_ops, chi)
+
+
+def liouvillian_func(H, c_ops, data_only, chi):
+    func_elements = []
+    qobj_elements = []
+    chi = chi if chi is not None else [0] * len(c_ops)
+    for c_op, chi_ in zip(c_ops, chi):
+        if isinstance(c_op, QobjEvoFunc):
+            func_elements.append(c_op.lindblad_dissipator(chi_))
+        else:
+            qobj_elements.append(lindblad_dissipator(c_op, chi=chi_))
+    if isinstance(H, QobjEvoFunc):
+        L = H._liouvillian_h()
+        L += sum(qobj_elements)
+        L += sum(func_elements)
+    else:
+        L = liouvillian(H)
+        L += sum(qobj_elements)
+        L += sum(func_elements)
+    return L
+
 
 
 def liouvillian_ref(H, c_ops=[]):
@@ -235,6 +236,8 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     D : qobj, QobjEvo
         Lindblad dissipator superoperator.
     """
+    if isinstance(a, QobjEvo) and b is None:
+        return a.lindblad_dissipator(chi)
     if b is None:
         b = a
     ad_b = a.dag() * b
@@ -326,7 +329,7 @@ def spost(A):
         Superoperator formed from input qauntum object.
     """
     if isinstance(A, QobjEvo):
-        return A.apply(spost)
+        return A.spost()
 
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
@@ -355,7 +358,7 @@ def spre(A):
         Superoperator formed from input quantum object.
     """
     if isinstance(A, QobjEvo):
-        return A.apply(spre)
+        return A.spre()
 
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
@@ -406,3 +409,4 @@ def sprepost(A, B):
         return Qobj(data, dims=dims, superrep='super')
 
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevofunc import QobjEvoFunc

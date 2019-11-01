@@ -631,9 +631,9 @@ class QobjEvoFunc(QobjEvo):
 
     # function to apply custom transformations
     def apply(self, function, *args, **kw_args):
-        self.compiled = ""
         res = self.copy()
         res.operation_stack.append(_Block_apply(function, args, kw_args))
+        self._reset_type()
         return res
 
     def expect(self, t, state, herm=0):
@@ -853,7 +853,7 @@ class _Block_apply(_Block_transform):
         self.kwargs = kwargs
 
     def copy(self):
-        return _Block_apply(self.func, args, kwargs.copy())
+        return _Block_apply(self.func, self.args, self.kwargs.copy())
 
     def __call__(self, obj, t, args={}):
         return self.func(obj, *self.args, **self.kwargs)

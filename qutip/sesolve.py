@@ -45,6 +45,7 @@ from qutip.cy.stochastic import normalize_inplace
 import qutip.settings as qset
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevo_maker import qobjevo_maker
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                 cy_ode_psi_func_td_with_state)
@@ -153,12 +154,17 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
 
     if isinstance(H, SolverSystem):
         ss = H
-    elif isinstance(H, (list, Qobj, QobjEvo)):
-        ss = _sesolve_QobjEvo(H, tlist, args, options)
-    elif callable(H):
-        ss = _sesolve_func_td(H, args, options)
     else:
-        raise Exception("Invalid H type")
+        H = qobjevo_maker(H, args, tlist,
+                          rhs_with_state=options.rhs_with_state)
+        ss = _sesolve_QobjEvo(H, tlist, args, options)
+
+    # elif isinstance(H, (list, Qobj, QobjEvo)):
+    #    ss = _sesolve_QobjEvo(H, tlist, args, options)
+    # elif callable(H):
+    #    ss = _sesolve_func_td(H, args, options)
+    # else:
+    #     raise Exception("Invalid H type")
 
     func, ode_args = ss.makefunc(ss, psi0, args, options)
 
@@ -182,9 +188,10 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = -1.0j * QobjEvo(H, args, tlist)
-    if opt.rhs_with_state:
-        H_td._check_old_with_state()
+    H_td = -1.0j * qobjevo_maker(H, args, tlist,
+                                 rhs_with_state=opt.rhs_with_state)
+    # if opt.rhs_with_state:
+    #     H_td._check_old_with_state()
     nthread = opt.openmp_threads if opt.use_openmp else 0
     H_td.compile(omp=nthread)
 

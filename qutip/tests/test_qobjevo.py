@@ -32,6 +32,7 @@
 ###############################################################################
 from qutip import *
 from qutip.qobjevofunc import QobjEvoFunc
+from qutip.qobjevo_maker import qobjevo_maker
 import numpy as np
 from numpy.testing import (assert_equal, assert_, assert_almost_equal,
                             run_module_suite, assert_allclose)
@@ -63,8 +64,8 @@ class _fake_QobjEvo:
 
 
 def _rand_cqobjevo(N=5, argsonly=False):
-    tlist=np.linspace(0,10,10001)
-    tlistlog=np.logspace(-3,1,10001)
+    tlist = np.linspace(0,10,10001)
+    tlistlog = np.logspace(-3,1,10001)
     O0, O1, O2 = rand_herm(N), rand_herm(N), rand_herm(N)
     cte = [QobjEvo([O0])]
     wargs = [QobjEvo([O0,[O1,_f1],[O2,_f2]], args={"w1":1,"w2":2}),
@@ -104,7 +105,7 @@ def _random_QobjEvo(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
                     Cubic_Spline(0,1,np.cos(tlist))],
               [_f3, "exp(w3*t*1j)", np.exp(tlist*1j),
                     Cubic_Spline(0,1,np.exp(tlist*1j))]]
-    for i,form in enumerate(ops):
+    for i, form in enumerate(ops):
         if form:
             Qobj_list.append([Qobj(np.random.random(shape)),coeff[i][form-1]])
     return Qobj_list
@@ -753,3 +754,107 @@ def test_QobjEvo_superoperator():
         print("liouvillian", str(i))
         _assert_qobj_almost_eq(liouvillian(Q1, [Q2]),
                                liouvillian(op1, [op2])(t))
+
+
+def test_qobjevo_maker():
+    "QobjEvo maker"
+    N = 5
+    O0 = rand_herm(N)
+    O1 = rand_herm(N)
+    O2 = rand_herm(N)
+    tlist = np.linspace(0,1,11)
+    args = {"w1":1,"w2":2}
+
+    def func_basic(t, args):
+        return rand_herm(N)
+
+    def func_no_args(t):
+        return rand_herm(N)
+
+    def func_old_state(t, state, args):
+        assert_(state.shape[0] == N)
+        return rand_herm(N)
+
+    func_object = _fake_QobjEvo(O0,[[O1,_f1],[O2,_f2]])
+
+    class _fake_QobjEvo_call:
+        def __init__(self, cte, coeff):
+            self.cte = cte
+            self.coeff = coeff
+
+        def call(self, t, args):
+            out = self.cte
+            for elem in self.coeff:
+                out += elem[0]*elem[1](t, args)
+            return out
+
+    func_method = _fake_QobjEvo_call(O0,[[O1,_f1],[O2,_f2]])
+
+    obj = qobjevo_maker(func_basic)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_no_args, no_args=True)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_old_state, rhs_with_state=True, state=rand_ket(5))
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_object, args=args)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_method.call, args=args)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    def f_noargs(t):
+        return t
+
+    def f_old_args(t, state, args):
+        assert_(state.shape[0] == N)
+        return t
+
+    list_format_1 = rand_herm(N)
+    list_format_2 = [rand_herm(N)]
+    list_format_3 = [rand_herm(N), f1]
+    list_format_4 = [rand_herm(N), [rand_herm(N), f1]]
+    list_format_5 = [[rand_herm(N), np.sin(tlist)]]
+    list_format_6 = [[rand_herm(N), f1], [rand_herm(N), f1]]
+    list_format_no_args = [rand_herm(N), f_noargs]
+    list_format_old_args = [rand_herm(N), f_old_args]
+
+    obj = qobjevo_maker(list_format_1)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_2)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_3, args=args)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_4, args=args)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_5, tlist=tlist)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_6, args=args)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_no_args, no_args=True)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_old_args,
+                        rhs_with_state=True, state=rand_ket(5))
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))

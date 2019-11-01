@@ -37,7 +37,7 @@ import scipy.sparse as sp
 from qutip.cy.stochastic import (SSESolver, SMESolver, PcSSESolver, PcSMESolver,
                                  PmSMESolver, GenericSSolver, Solvers)
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.states import ket2dmfunction are defined
+from qutip.states import ket2dm
 from qutip.solver import Result
 from qutip.qobjevo import QobjEvo
 from qutip.qobjevo_maker import qobjevo_maker

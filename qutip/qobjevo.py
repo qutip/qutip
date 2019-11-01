@@ -378,10 +378,6 @@ class QobjEvo:
     permute(order)
         Returns composite qobj with indices reordered.
 
-    ptrace(sel)
-        Returns quantum object for selected dimensions after performing
-        partial trace.
-
     apply(f, *args, **kw_args)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
         Return a modified QobjEvo and let the original one untouched
@@ -626,6 +622,19 @@ class QobjEvo:
 
         self.args.update(to_add)
 
+    def _check_old_with_state(self, state):
+        add_vec = False
+        for op in self.ops:
+            if op.type == "func":
+                try:
+                    op.get_coeff(0., self.args)
+                except TypeError as e:
+                    nfunc = _StateAsArgs(self.coeff)
+                    op = EvoElement((op.qobj, nfunc, nfunc, "func"))
+                    add_vec = True
+        if add_vec:
+            self.dynamics_args += [("_state_vec", "vec", None)]
+
     def __del__(self):
         for file_ in self.coeff_files:
             try:
@@ -816,7 +825,9 @@ class QobjEvo:
         return res
 
     def __iadd__(self, other):
-        if isinstance(other, QobjEvo):
+        if isinstance(other, QobjEvoFunc):
+            return NotImplemented
+        elif isinstance(other, QobjEvo):
             self.cte += other.cte
             l = len(self.ops)
             for op in other.ops:
@@ -883,6 +894,8 @@ class QobjEvo:
             for op in res.ops:
                 op.qobj = other * op.qobj
             return res
+        elif isinstance(other, QobjEvoFunc):
+            return NotImplemented
         else:
             res *= other
             return res
@@ -892,6 +905,8 @@ class QobjEvo:
             self.cte *= other
             for op in self.ops:
                 op.qobj *= other
+        elif isinstance(other, QobjEvoFunc):
+            return NotImplemented
         elif isinstance(other, QobjEvo):
             if other.const:
                 self.cte *= other.cte
@@ -1019,6 +1034,31 @@ class QobjEvo:
                 op.qobj = op.qobj.dag() * op.qobj
             res._f_norm2()
         return res
+
+    def _prespostdag(self):
+        """return spre(a) * spost(a.dag()) """
+        return self.spre() * self.dag().spost()
+
+    def spre(self):
+        return self.apply(spre)
+
+    def spost(self):
+        return self.apply(spost)
+
+    def liouvillian(self, c_ops, chi):
+        L = self.apply(liouvillian)
+        if not chi:
+            chi = [0] * len(c_ops)
+        for c_op, chi_ in zip(c_ops, chi):
+            L += lindblad_dissipator(c_op, chi=chi_)
+        return L
+
+    def lindblad_dissipator(self, chi=0):
+        if chi is None:
+            chi = 0
+        ccd = self._prespostdag() * np.exp(1j * chi)
+        cdc = self._cdc()
+        return ccd - 0.5 * spre(cdc) - 0.5 * spost(cdc)
 
     # Unitary function of Qobj
     def tidyup(self, atol=1e-12):
@@ -1185,13 +1225,6 @@ class QobjEvo:
             op.qobj = op.qobj.permute(order)
         return res
 
-    def ptrace(self, sel):
-        res = self.copy()
-        res.cte = res.cte.ptrace(sel)
-        for op in res.ops:
-            op.qobj = op.qobj.ptrace(sel)
-        return res
-
     # function to apply custom transformations
     def apply(self, function, *args, **kw_args):
         self.compiled = ""
@@ -1202,54 +1235,6 @@ class QobjEvo:
         res.cte = cte_res
         for op in res.ops:
             op.qobj = function(op.qobj, *args, **kw_args)
-        return res
-
-    def apply_decorator(self, function, *args, **kw_args):
-        if "str_mod" in kw_args:
-            str_mod = kw_args["str_mod"]
-            del kw_args["str_mod"]
-        else:
-            str_mod = None
-        if "inplace_np" in kw_args:
-            inplace_np = kw_args["inplace_np"]
-            del kw_args["inplace_np"]
-        else:
-            inplace_np = None
-        res = self.copy()
-        for op in res.ops:
-            op.get_coeff = function(op.get_coeff, *args, **kw_args)
-            if op.type == ["func", "spline"]:
-                op.coeff = op.get_coeff
-                op.type = "func"
-            elif op.type == "string":
-                if str_mod is None:
-                    op.coeff = op.get_coeff
-                    op.type = "func"
-                else:
-                    op.coeff = str_mod[0] + op.coeff + str_mod[1]
-            elif op.type == "array":
-                if inplace_np:
-                    # keep the original function, change the array
-                    def f(a):
-                        return a
-                    ff = function(f, *args, **kw_args)
-                    for i, v in enumerate(op.coeff):
-                        op.coeff[i] = ff(v)
-                    op.get_coeff = _CubicSplineWrapper(
-                        self.tlist, op.coeff, args=self.args)
-                else:
-                    op.coeff = op.get_coeff
-                    op.type = "func"
-        if self.type == "string" and str_mod is None:
-            res.type = "mixed_callable"
-        elif self.type == "array" and not inplace_np:
-            res.type = "mixed_callable"
-        elif self.type == "spline":
-            res.type = "mixed_callable"
-        elif self.type == "mixed_compilable":
-            for op in res.ops:
-                if op.type == "func":
-                    res.type = "mixed_callable"
         return res
 
     def _f_norm2(self):
@@ -1752,4 +1737,6 @@ class _Add():
     def __call__(self, t, args):
         return np.sum([f(t, args) for f in self.funcs])
 
-from qutip.superoperator import vec2mat
+from qutip.superoperator import (vec2mat, liouvillian, lindblad_dissipator,
+                                 spre, spost)
+from qutip.qobjevofunc import QobjEvoFunc

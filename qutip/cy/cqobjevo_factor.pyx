@@ -53,20 +53,13 @@ str inherite from StrCoeff and just add the _call_core method.
 """
 
 cdef np.ndarray[complex, ndim=1] zptr2array1d(complex* ptr, int N):
-    cdef np.npy_intp Ns[1]
-    Ns[0] = N
-    return np.PyArray_SimpleNewFromData(1, Ns, np.NPY_COMPLEX128, ptr)
+    return np.array(<complex[:N]> ptr)
 
 cdef np.ndarray[complex, ndim=2] zptr2array2d(complex* ptr, int R, int C):
-    cdef np.npy_intp Ns[2]
-    Ns[0] = R
-    Ns[1] = C
-    return np.PyArray_SimpleNewFromData(2, Ns, np.NPY_COMPLEX128, ptr)
+    return np.array(<complex[:R*C]> ptr).reshape(R,C)
 
 cdef np.ndarray[int, ndim=1] iprt2array(int* ptr, int N):
-    cdef np.npy_intp Ns[1]
-    Ns[0] = N
-    return np.PyArray_SimpleNewFromData(1, Ns, np.NPY_INT32, ptr)
+    return np.array(<int[:N]> ptr)
 
 cdef class CoeffFunc:
     def __init__(self, ops, args, tlist):
@@ -241,7 +234,7 @@ cdef class StepCoeff(CoeffFunc):
         for i in range(self._num_ops):
             for j in range(self.n_t):
                 self.y[i,j] = ops[i][2][j]
-        
+
     def set_arg(self, args):
         pass
 
@@ -263,7 +256,7 @@ cdef class StepCoeffT(StepCoeff):
             coeff[i] = _step_complex_t(t, self.tlist, self.y[i, :], self.n_t)
 
 
-cdef class StepCoeffCte(StepCoeff): 
+cdef class StepCoeffCte(StepCoeff):
     cdef void _call_core(self, double t, complex* coeff):
         cdef int i
         for i in range(self._num_ops):
