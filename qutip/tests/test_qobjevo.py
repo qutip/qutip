@@ -798,7 +798,7 @@ def test_qobjevo_maker():
     assert_(isinstance(obj, QobjEvoFunc))
     assert_(isinstance(obj(0.5), Qobj))
 
-    obj = qobjevo_maker(func_old_state, rhs_with_state=True, state=rand_ket(5))
+    obj = qobjevo_maker(func_old_state, rhs_with_state=True, state=rand_ket(N))
     assert_(isinstance(obj, QobjEvoFunc))
     assert_(isinstance(obj(0.5), Qobj))
 

@@ -289,11 +289,12 @@ class QobjEvoFunc(QobjEvo):
             raise TypeError("expected a function")
         self.func = Q_object
         # Let Q_object call raise an error if wrong definition
-        self.cte = Q_object(0, args)
+        self.cte = Q_object(0, self.args)
         if not isinstance(self.cte, Qobj):
             raise TypeError("QobjEvoFunc require un function returning a Qobj")
 
     def _args_checks(self, update=False):
+        print(self.args)
         to_remove = []
         to_add = {}
         for key in self.args:
@@ -311,13 +312,15 @@ class QobjEvoFunc(QobjEvo):
                                     to_add[name] = self.args[key].full()
                                 else:
                                     to_add[name] = self.args[key].full().ravel("F")
-                            else:
+                            elif isinstance(self.args[key], np.ndarray):
                                 if what == "Qobj":
-                                    to_add[name] = Qobj(dims=[self.cte.dims[1],[1]])
+                                    to_add[name] = Qobj(self.args[key])
                                 elif what == "mat":
-                                    to_add[name] = np.zeros((self.cte.shape[1],1))
+                                    to_add[name] = self.args[key]
                                 else:
-                                    to_add[name] = np.zeros((self.cte.shape[1]))
+                                    to_add[name] = self.args[key].ravel("F")
+                            else:
+                                to_add[name] = None
 
                 elif what == "expect":
                     if isinstance(self.args[key], QobjEvo):
