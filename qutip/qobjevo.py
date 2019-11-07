@@ -585,23 +585,21 @@ class QobjEvo:
         dyn_args = (key for key in self.args if "=" in key)
         for key in dyn_args:
             name, what = key.split("=")
-            if what in ["Qobj", "vec", "mat"] and \
-                    not update and name not in self.args:
+            if what in ["Qobj", "vec", "mat"]:
                 self.dynamics_args += [(name, what, None)]
                 if isinstance(self.args[key], Qobj):
-                    if what == "Qobj":
-                        to_add[name] = self.args[key]
-                    elif what == "mat":
-                        to_add[name] = self.args[key].full()
-                    else:
-                        to_add[name] = self.args[key].full().ravel("F")
+                    val = self.args[key]
+                elif isinstance(self.args[name], Qobj):
+                    val = self.args[name]
                 else:
-                    if what == "Qobj":
-                        to_add[name] = Qobj(dims=[self.cte.dims[1],[1]])
-                    elif what == "mat":
-                        to_add[name] = np.zeros((self.cte.shape[1],1))
-                    else:
-                        to_add[name] = np.zeros((self.cte.shape[1]))
+                    val = Qobj(dims=[self.cte.dims[1],[1]])
+
+                if what == "Qobj":
+                    to_add[name] = val
+                elif what == "mat":
+                    to_add[name] = val.full()
+                else:
+                    to_add[name] = val.full().ravel("F")
 
             elif what == "expect":
                 if isinstance(self.args[key], QobjEvo):
@@ -615,7 +613,8 @@ class QobjEvo:
                     self.dynamics_args += [(name, what, expect_op)]
                     if name not in self.args:
                         to_add[name] = 0.
-            else:
+
+            elif not update:
                 raise Exception("Could not understand dynamics args: " +
                                 what + "\nSupported dynamics args: "
                                 "Qobj, vec, mat, expect")
