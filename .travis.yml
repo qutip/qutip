@@ -35,6 +35,12 @@ stage_linux_37: &stage_linux_37
   dist: xenial
   python: 3.7
 
+stage_linux_37: &stage_linux_38
+  <<: *stage_generic_linux
+  name: "Python 3.8"
+  dist: xenial
+  python: 3.8
+
 stage_linux_37_no_cython: &stage_linux_37_no_cython
   <<: *stage_generic_linux
   name: "Python 3.7 no cython"
@@ -61,7 +67,13 @@ stage_linux_37_openblas: &stage_linux_37_openblas
   dist: xenial
   python: 3.7
   install:
-    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - wget https://repo.continuum.io/mini
+
+stage_linux_37: &stage_linux_37
+  <<: *stage_generic_linux
+  name: "Python 3.7"
+  dist: xenial
+  python: 3.7conda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
     - hash -r
@@ -96,6 +108,7 @@ stage_osx: &stage_osx
   name: "Python 3.7, OSX 10.13, XCode 10"
   osx_image: xcode10
   language: generic
+  python: 3.7
   # change dir
   before_script:
     - mkdir qutip_testing
@@ -126,6 +139,8 @@ jobs:
       <<: *stage_linux_36
     - stage: test
       <<: *stage_linux_37
+    - stage: test
+      <<: *stage_linux_38
     - stage: test
       <<: *stage_linux_37_omp
     - stage: test
