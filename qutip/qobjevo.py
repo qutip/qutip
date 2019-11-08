@@ -589,7 +589,7 @@ class QobjEvo:
                 self.dynamics_args += [(name, what, None)]
                 if isinstance(self.args[key], Qobj):
                     val = self.args[key]
-                elif isinstance(self.args[name], Qobj):
+                elif name in self.args and isinstance(self.args[name], Qobj):
                     val = self.args[name]
                 else:
                     val = Qobj(dims=[self.cte.dims[1],[1]])
@@ -1350,7 +1350,7 @@ class QobjEvo:
             else:
                 raise Exception("Dimensions do not fit")
         elif isinstance(state, np.ndarray):
-            vec = state.reshape((-1))
+            vec = state.ravel("F")
         else:
             raise TypeError("The vector must be an array or Qobj")
 
@@ -1370,7 +1370,7 @@ class QobjEvo:
                 self._dynamics_args_update(t, state)
                 exp = (self.__call__(t, data=True) *
                        vec.reshape((self.cte.shape[1],
-                                    self.cte.shape[1]))).trace()
+                                    self.cte.shape[1])).T).trace()
         else:
             raise Exception("The shapes do not match")
 
@@ -1699,11 +1699,11 @@ class _UnitedFuncCaller:
             elif what == "Qobj":
                 if self.shape[1] == shape[1]:  # oper
                     self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1:
+                elif shape[1] == 1: # ket
                     self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
                 else:  # rho
                     self.args[name] = Qobj(mat, dims=self.dims[1])
-            elif what == "expect":  # ket
+            elif what == "expect":
                 if shape[1] == op.cte.shape[1]: # same shape as object
                     self.args[name] = op.mul_mat(t, mat).trace()
                 else:
@@ -1763,5 +1763,6 @@ class _Add():
 
     def __call__(self, t, args):
         return np.sum([f(t, args) for f in self.funcs])
+
 
 from qutip.superoperator import vec2mat

@@ -39,6 +39,7 @@ import os
 
 from qutip import sigmax, sigmay, sigmaz, qeye
 from qutip import basis, expect
+from qutip import num, destroy, create
 from qutip.interpolate import Cubic_Spline
 from qutip import sesolve
 from qutip.solver import Options
@@ -354,6 +355,27 @@ class TestSESolve:
                         normalize=False, td_args=td_args, tol=5e-5)
         self.compare_evolution(H, psi0, tlist,
                         normalize=True, td_args=td_args, tol=5e-5)
+
+    def test_07_1_dynamic_args(self):
+        "sesolve: state feedback"
+        tol = 1e-3
+        def f(t, args):
+            return np.abs(args["vec"][1])
+
+        H = [qeye(2), [destroy(2)+create(2), f]]
+        res = sesolve(H, basis(2,1), tlist=np.linspace(0,10,11),
+                      e_ops=[num(2)], args={"vec=vec":basis(2,1)})
+        assert_(max(abs(res.expect[0][5:])) < tol,
+                msg="evolution with feedback not proceding as expected")
+
+        def f(t, args):
+            return np.sqrt(args["e"])
+
+        H = [qeye(2), [destroy(2)+create(2), f]]
+        res = sesolve(H, basis(2,1), tlist=np.linspace(0,10,11),
+                      e_ops=[num(2)], args={"e=expect":num(2)})
+        assert_(max(abs(res.expect[0][5:])) < tol,
+                msg="evolution with feedback not proceding as expected")
 
 if __name__ == "__main__":
     run_module_suite()

@@ -294,11 +294,9 @@ cdef class CQobjEvo:
         cdef int len_
         if self.dyn_args:
             if self.factor_use_cobj:
-                # print("factor_use_cobj")
                 self.factor_cobj._dyn_args(t, state, shape)
             else:
                 len_ = shape[0] * shape[1]
-                # print(len_, shape.shape[0])
                 self.factor_func.dyn_args(t, np.array(<complex[:len_]> state),
                                           np.array(shape))
         self._factor(t)
@@ -425,7 +423,8 @@ cdef class CQobjCte(CQobjEvo):
             row_start = self.cte.indptr[row]
             row_end = self.cte.indptr[row+1]
             for jj from row_start <= jj < row_end:
-                tr += self.cte.data[jj]*oper[num_rows*jj + row]
+                tr += self.cte.data[jj] * \
+                      oper[num_rows * row + self.cte.indices[jj]]
         return tr
 
 
@@ -531,7 +530,7 @@ cdef class CQobjCteDense(CQobjEvo):
 
         for i in range(self.shape0):
             for j in range(self.shape0):
-                tr += self.cte.data[i*self.shape0 + j] * oper[j + i*self.shape0]
+                tr += self.cte[i,j] * oper[j + i*self.shape0]
         return tr
 
 
@@ -780,14 +779,16 @@ cdef class CQobjEvoTd(CQobjEvo):
             row_start = self.cte.indptr[row]
             row_end = self.cte.indptr[row+1]
             for jj from row_start <= jj < row_end:
-                tr += self.cte.data[jj] * oper[num_rows*jj + row]
+                tr += self.cte.data[jj] * \
+                      oper[num_rows * row + self.cte.indices[jj]]
 
         for i in range(self.num_ops):
             for row in range(num_rows):
                 row_start = self.ops[i].indptr[row]
                 row_end = self.ops[i].indptr[row+1]
                 for jj from row_start <= jj < row_end:
-                    tr += self.ops[i].data[jj] * oper[num_rows*jj + row] * self.coeff_ptr[i]
+                    tr += self.ops[i].data[jj] * self.coeff_ptr[i] * \
+                          oper[num_rows * row + self.ops[i].indices[jj]]
 
         return tr
 
@@ -981,7 +982,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
 
         for i in range(self.shape0):
             for j in range(self.shape0):
-                tr += self.data_t[i*self.shape0, j] * oper[j*self.shape0 + i]
+                tr += self.data_t[i, j] * oper[j*self.shape0 + i]
         return tr
 
 
@@ -1191,8 +1192,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         self._call_core(self.data_t, self.coeff_ptr)
 
         for row in range(num_rows):
-            row_start = self.cte.indptr[row]
-            row_end = self.cte.indptr[row+1]
+            row_start = self.indptr[row]
+            row_end = self.indptr[row+1]
             for jj from row_start <= jj < row_end:
-                tr += self.data_ptr[jj]*oper[num_rows*jj + row]
+                tr += self.data_ptr[jj] * oper[num_rows*row + self.indices[jj]]
         return tr
