@@ -586,6 +586,7 @@ class QobjEvo:
         for key in dyn_args:
             name, what = key.split("=")
             if what in ["Qobj", "vec", "mat"]:
+                to_remove.append(key)
                 self.dynamics_args += [(name, what, None)]
                 if isinstance(self.args[key], Qobj):
                     val = self.args[key]
@@ -602,6 +603,7 @@ class QobjEvo:
                     to_add[name] = val.full().ravel("F")
 
             elif what == "expect":
+                to_remove.append(key)
                 if isinstance(self.args[key], QobjEvo):
                     expect_op = self.args[key]
                 else:
@@ -614,14 +616,13 @@ class QobjEvo:
                     if name not in self.args:
                         to_add[name] = 0.
 
+            elif what == "collapse":
+                pass
+
             elif not update:
                 raise Exception("Could not understand dynamics args: " +
                                 what + "\nSupported dynamics args: "
                                 "Qobj, vec, mat, expect")
-            to_remove.append(key)
-
-        for key in to_remove:
-            del self.args[key]
 
         self.args.update(to_add)
 

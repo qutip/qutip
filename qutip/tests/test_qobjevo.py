@@ -171,6 +171,7 @@ def test_QobjEvo_call_args():
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(dense=1)
         assert_equal(len((op(t, args={"w2":4})
@@ -179,6 +180,7 @@ def test_QobjEvo_call_args():
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(matched=1)
         assert_equal(len((op(t, args={"w2":4})
@@ -187,6 +189,7 @@ def test_QobjEvo_call_args():
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(omp=2)
         assert_equal(len((op(t, args={"w2":4})
@@ -195,6 +198,7 @@ def test_QobjEvo_call_args():
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(matched=1, omp=2)
         assert_equal(len((op(t, args={"w2":4})
@@ -203,6 +207,7 @@ def test_QobjEvo_call_args():
         assert_equal(len((op(t) - O_target2).tidyup(1e-10).data.data),0)
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
 
 def test_QobjEvo_step_coeff():
@@ -487,12 +492,16 @@ def test_QobjEvo_mul_vec():
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
         op.compile()
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        op.compiled = ""
         op.compile(dense=1)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        op.compiled = ""
         op.compile(matched=1)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        op.compiled = ""
         op.compile(omp=2)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        op.compiled = ""
         op.compile(matched=1,omp=2)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
 
@@ -515,21 +524,25 @@ def test_QobjEvo_mul_mat():
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        op.compiled = ""
         op.compile(dense=1)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        op.compiled = ""
         op.compile(matched=1)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        op.compiled = ""
         op.compile(omp=2)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        op.compiled = ""
         op.compile(matched=1,omp=2)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
@@ -549,12 +562,16 @@ def test_QobjEvo_expect_psi():
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
         op.compile()
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        op.compiled = ""
         op.compile(dense=1)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        op.compiled = ""
         op.compile(matched=1)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        op.compiled = ""
         op.compile(omp=2)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        op.compiled = ""
         op.compile(matched=1,omp=2)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
 
@@ -564,6 +581,8 @@ def test_QobjEvo_expect_rho():
     N = 5
     t = np.random.rand()+1
     vec = np.random.rand(N*N)+1 + 1j*np.random.rand(N*N)
+    mat = vec2mat(vec)
+    qobj = Qobj(mat)
     cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
     for op_ in cqobjevos:
@@ -571,21 +590,54 @@ def test_QobjEvo_expect_rho():
         Qo1 = op(t)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+
         op.compile()
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+        op.compiled = ""
+
         op.compile(dense=1)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+        op.compiled = ""
+
         op.compile(matched=1)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+        op.compiled = ""
+        
         op.compile(omp=2)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+        op.compiled = ""
+
         op.compile(matched=1,omp=2)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
 
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}

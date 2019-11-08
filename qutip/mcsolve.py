@@ -387,7 +387,7 @@ class _MC():
                                progress_bar, map_func, map_kwargs)
             return
 
-        if args != self.ss.args:
+        if args and args != self.ss.args:
             self.ss.set_args(self.ss, args)
             self.reset()
 
@@ -803,20 +803,13 @@ def _mc_dm_avg(psi_list):
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
 
 def _collapse_args(args):
-    to_rm = ""
     for k in args:
         if "=" in k and k.split("=")[1] == "collapse":
-            to_rm.append(k)
             var = k.split("=")[0]
             if isinstance(args[k], list):
                 list_ = args[k]
             else:
                 list_ = []
-            to_rm = k
-            break
-    if to_rm:
-        del args[k]
-        args[var] = list_
-        return var
-    else:
-        return ""
+            args[var] = list_
+            return var
+    return ""

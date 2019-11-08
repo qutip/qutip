@@ -578,6 +578,9 @@ cdef class CQobjEvoTd(CQobjEvo):
             raise Exception("Could not set coefficient function")
 
     def __getstate__(self):
+        shape_info = (self.shape0, self.shape1, self.dims, self.total_elem)
+        factor_info = (self.factor_use_cobj, self.factor_cobj,
+                       self.factor_func, self.dyn_args)
         cte_info = _shallow_get_state(&self.cte)
         ops_info = ()
         sum_elem = ()
@@ -585,28 +588,25 @@ cdef class CQobjEvoTd(CQobjEvo):
             ops_info += (_shallow_get_state(self.ops[i]),)
             sum_elem += (self.sum_elem[i],)
 
-        return (self.shape0, self.shape1, self.dims, self.total_elem, self.super,
-                self.factor_use_cobj, self.factor_cobj, self.factor_func,
+        return (shape_info, self.super, factor_info,
                 self.num_ops, sum_elem, cte_info, ops_info)
 
     def __setstate__(self, state):
-        self.shape0 = state[0]
-        self.shape1 = state[1]
-        self.dims = state[2]
-        self.total_elem = state[3]
-        self.super = state[4]
-        self.factor_use_cobj = state[5]
+        self.shape0, self.shape1, self.dims, self.total_elem = state[0]
+        self.super = state[1]
+        self.factor_use_cobj = state[2][0]
         if self.factor_use_cobj:
-            self.factor_cobj = <CoeffFunc> state[6]
-        self.factor_func = state[7]
-        self.num_ops = state[8]
-        _shallow_set_state(&self.cte, state[10])
+            self.factor_cobj = <CoeffFunc> state[2][1]
+        self.factor_func = state[2][2]
+        self.dyn_args = state[2][3]
+        self.num_ops = state[3]
+        _shallow_set_state(&self.cte, state[5])
         self.sum_elem = np.zeros(self.num_ops, dtype=int)
         self.ops = <CSR_Matrix**> PyDataMem_NEW(self.num_ops * sizeof(CSR_Matrix*))
         for i in range(self.num_ops):
             self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
-            self.sum_elem[i] = state[9][i]
-            _shallow_set_state(self.ops[i], state[11][i])
+            self.sum_elem[i] = state[4][i]
+            _shallow_set_state(self.ops[i], state[6][i])
         self.coeff = np.empty((self.num_ops,), dtype=complex)
         self.coeff_ptr = &self.coeff[0]
 
@@ -827,7 +827,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     def __getstate__(self):
         return (self.shape0, self.shape1, self.dims, self.super,
                 self.factor_use_cobj, self.factor_cobj,
-                self.factor_func, self.num_ops,
+                self.factor_func, self.dyn_args, self.num_ops,
                 np.array(self.cte), np.array(self.ops))
 
     def __setstate__(self, state):
@@ -839,9 +839,10 @@ cdef class CQobjEvoTdDense(CQobjEvo):
         if self.factor_use_cobj:
             self.factor_cobj = <CoeffFunc> state[5]
         self.factor_func = state[6]
-        self.num_ops = state[7]
-        self.cte = state[8]
-        self.ops = state[9]
+        self.dyn_args = state[7]
+        self.num_ops = state[8]
+        self.cte = state[9]
+        self.ops = state[10]
         self.data_t = np.empty((self.shape0, self.shape1), dtype=complex)
         self.data_ptr = &self.data_t[0,0]
         self.coeff = np.empty((self.num_ops,), dtype=complex)
@@ -1027,8 +1028,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
 
     def __getstate__(self):
         return (self.shape0, self.shape1, self.dims, self.nnz, self.super,
-                self.factor_use_cobj,
-                self.factor_cobj, self.factor_func, self.num_ops,
+                self.factor_use_cobj, self.factor_cobj, self.factor_func,
+                self.dyn_args, self.num_ops,
                 np.array(self.indptr), np.array(self.indices),
                 np.array(self.cte), np.array(self.ops))
 
@@ -1042,11 +1043,12 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         if self.factor_use_cobj:
             self.factor_cobj = <CoeffFunc> state[6]
         self.factor_func = state[7]
-        self.num_ops = state[8]
-        self.indptr = state[9]
-        self.indices = state[10]
-        self.cte = state[11]
-        self.ops = state[12]
+        self.dyn_args = state[8]
+        self.num_ops = state[9]
+        self.indptr = state[10]
+        self.indices = state[11]
+        self.cte = state[12]
+        self.ops = state[13]
         self.coeff = np.zeros((self.num_ops), dtype=complex)
         self.coeff_ptr = &self.coeff[0]
         self.data_t = np.zeros((self.nnz), dtype=complex)

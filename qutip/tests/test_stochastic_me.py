@@ -276,5 +276,30 @@ def test_general_stochastic():
                  for idx in range(len(e_ops))]))
     assert_(len(res.measurement) == ntraj)
 
+def test_ssesolve_feedback():
+    "Stochastic: ssesolve: time-dependent H with feedback"
+    def f(a, args):
+        return args["e"] - 1
+
+    tol = 0.01
+    N = 4
+    ntraj = 10
+    nsubsteps = 100
+    a = destroy(N)
+
+    H = [num(N)]
+    psi0 = coherent(N, 2.5)
+    sc_ops = [[a + a.dag(),f]]
+    e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
+
+    times = np.linspace(0, 10, 101)
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"e=expect":qeye(N)})
+    res = smesolve(H, psi0, times, sc_ops=sc_ops, e_ops=e_ops, noise=1,
+                   ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
+                   map_func=parallel_map, args={"e=expect":qeye(N)})
+
+    print(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
+                 for idx in range(len(e_ops))]))
+
 if __name__ == "__main__":
     run_module_suite()

@@ -226,7 +226,7 @@ include """ + _include_string + "\n\n"
             N_np += 1
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"
-    normal_args = args.copy()
+    normal_args = {key:val for key, val in args.items() if "=" not in key}
     for name, _, _ in dyn_args:
         del normal_args[name]
 
@@ -398,7 +398,8 @@ code_python_post = """
 def _make_code_4_python_import(ops, args, dyn_args, tlist):
     code = code_python_pre
     for key in args:
-        code += "        " + key + " = now_args['" + key + "']\n"
+        if "=" not in key:
+            code += "        " + key + " = now_args['" + key + "']\n"
 
     for i, op in enumerate(ops):
         if op.type == "string":
