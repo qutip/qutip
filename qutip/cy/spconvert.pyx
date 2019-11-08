@@ -300,3 +300,4 @@ def cy_index_permute(int [::1] idx_arr,
             idx_arr[ii] = idx
     finally:
         free(multi_idx)
+        multi_idx = NULL
