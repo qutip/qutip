@@ -120,26 +120,61 @@ Distribution functions
 Quantum information processing
 ------------------------------
 
-.. autoclass:: qutip.qip.circuit.Gate
+.. autoclass:: qutip.qip.Gate
     :members:
 
-.. autoclass:: qutip.qip.circuit.QubitCircuit
+.. autoclass:: qutip.qip.QubitCircuit
     :members:
 
-.. autoclass:: qutip.qip.models.CircuitProcessor
+.. autoclass:: qutip.qip.device.Processor
     :members:
 
-.. autoclass:: qutip.qip.models.spinchain.SpinChain
+.. autoclass:: qutip.qip.device.OptPulseProcessor
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.device.ModelProcessor
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.device.SpinChain
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.device.LinearSpinChain
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.device.CircularSpinChain
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.device.DispersivecQED
+    :members:
+    :inherited-members:
+    
+.. autoclass:: qutip.qip.device.Noise
     :members:
 
-.. autoclass:: qutip.qip.models.spinchain.LinearSpinChain
+.. autoclass:: qutip.qip.device.DecoherenceNoise
     :members:
+    :inherited-members:
 
-.. autoclass:: qutip.qip.models.spinchain.CircularSpinChain
+.. autoclass:: qutip.qip.device.RelaxationNoise
     :members:
+    :inherited-members:
 
-.. autoclass:: qutip.qip.models.cqed.DispersivecQED
+.. autoclass:: qutip.qip.device.ControlAmpNoise
     :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.device.RandomNoise
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.device.UserNoise
+    :members:
+    :inherited-members:
 
 .. _classes-control:
 

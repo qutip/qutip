@@ -24,7 +24,7 @@ sys.path.append(os.path.abspath('sphinxext'))
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-needs_sphinx = '1.5'
+needs_sphinx = '1.8.3'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -41,7 +41,8 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.extlinks',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
-              'sphinx.ext.napoleon'
+              'sphinx.ext.napoleon',
+              'sphinx_gallery.gen_gallery'
               ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -317,3 +318,10 @@ def setup(app):
 # import path
 # path.path = path.Path
 
+# configuration declares the location of the examples directory for
+# Sphinx Gallery
+sphinx_gallery_conf = {
+     'examples_dirs': 'gallery',   # path to your example scripts
+     'gallery_dirs': 'gallery/qutip_examples',  # save generated examples
+     'abort_on_example_error': True  # abort if exception occurs
+}

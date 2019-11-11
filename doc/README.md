@@ -9,6 +9,7 @@ Build requirements
 ------------------
 
 * Sphinx: http://sphinx-doc.org/
+* sphinx-gallery
 * sphinx_rtd_theme
 * LaTeX and pdflatex.
 * numpydoc
