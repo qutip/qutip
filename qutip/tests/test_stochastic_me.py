@@ -36,7 +36,7 @@ from numpy.testing import assert_, run_module_suite
 
 from qutip import (smesolve, mesolve, photocurrent_mesolve, liouvillian,
                    QobjEvo, spre, spost, destroy, coherent, parallel_map,
-                   qeye, fock_dm, general_stochastic, ket2dm)
+                   qeye, fock_dm, general_stochastic, ket2dm, num)
 
 def f(t, args):
     return args["a"] * t
@@ -276,11 +276,13 @@ def test_general_stochastic():
                  for idx in range(len(e_ops))]))
     assert_(len(res.measurement) == ntraj)
 
+
+def f_dargs(a, args):
+    return args["e"] - 1
+
+
 def test_ssesolve_feedback():
     "Stochastic: ssesolve: time-dependent H with feedback"
-    def f(a, args):
-        return args["e"] - 1
-
     tol = 0.01
     N = 4
     ntraj = 10
@@ -289,7 +291,7 @@ def test_ssesolve_feedback():
 
     H = [num(N)]
     psi0 = coherent(N, 2.5)
-    sc_ops = [[a + a.dag(),f]]
+    sc_ops = [[a + a.dag(), f_dargs]]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 10, 101)

@@ -535,19 +535,20 @@ def test_mc_ntraj_list():
     assert_equal(len(mc.expect), 4)
 
 
+def f_dargs(t, args):
+    # allows only one collapse
+    return 0 if args["c"] else 1
+
+
 def test_mc_dyn_args():
     "Monte-carlo: dynamics arguments"
     N = 5
     a = destroy(N)
     H = a.dag()*a       # Simple oscillator Hamiltonian
     psi0 = basis(N, 2)  # Initial Fock state with one photon
-    def f(t, args):
-        # allows only one collapse
-        return 0 if args["c"] else 1
-
     c_ops = []
-    c_ops.append([a, f])
-    c_ops.append([a.dag(),f])
+    c_ops.append([a, f_dargs])
+    c_ops.append([a.dag(), f_dargs])
     ntraj = [10]  # number of MC trajectories
     tlist = np.linspace(0, 1, 11)
     mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a],
