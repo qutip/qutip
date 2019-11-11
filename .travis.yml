@@ -111,7 +111,7 @@ stage_linux_37_omp: &stage_linux_37_omp
 stage_osx: &stage_osx
   os: osx
   name: "Python 3.7, OSX 10.13, XCode 10"
-  osx_image: xcode11.2
+  osx_image: xcode10
   language: generic
   # change dir
   before_script:
