@@ -111,9 +111,8 @@ stage_linux_37_omp: &stage_linux_37_omp
 stage_osx: &stage_osx
   os: osx
   name: "Python 3.7, OSX 10.13, XCode 10"
-  osx_image: xcode10
+  osx_image: xcode11.2
   language: generic
-  python: 3.7
   # change dir
   before_script:
     - mkdir qutip_testing
@@ -129,7 +128,7 @@ stage_osx: &stage_osx
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
     - conda info -a
-    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - conda create -q -n test-environment python=3.7
     - source activate test-environment
     # - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
     - conda install nomkl blas=*=openblas numpy scipy nose cython
