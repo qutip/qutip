@@ -226,7 +226,7 @@ include """ + _include_string + "\n\n"
             N_np += 1
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"
-    normal_args = {key:val for key, val in args.items() if "=" not in key}
+    normal_args = {key: val for key, val in args.items() if "=" not in key}
     for name, _, _ in dyn_args:
         del normal_args[name]
 
