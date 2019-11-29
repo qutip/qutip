@@ -40,5 +40,6 @@ def _qip_importation_warning():
     warnings.warn(
         "Importing functions/classes of the qip submodule directly from "
         "the namespace qutip is deprecated. "
-        "Please import them from the submodule instead, e.g. "
-        "qutip.qip import `func_name`.", DeprecationWarning, stacklevel=3)
+        "Please import them from the submodule instead, e.g.\n"
+        "from qutip.qip import cnot",
+        DeprecationWarning, stacklevel=3)
