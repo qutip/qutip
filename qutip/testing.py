@@ -38,6 +38,6 @@ def run():
     """
     # Call about to get all version info printed with tests
     about()
-    import nose
+    import pytest
     # runs tests in qutip.tests module only
-    nose.run(defaultTest="qutip.tests", argv=['nosetests', '-v'])
+    pytest.main(["--verbosity=2","--disable-pytest-warnings","--pyargs", "qutip"])
