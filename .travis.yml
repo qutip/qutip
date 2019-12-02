@@ -1,5 +1,3 @@
-sudo: required
-
 stage_generic_linux: &stage_generic_linux
   os: linux
   language: python
