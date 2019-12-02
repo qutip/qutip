@@ -57,8 +57,25 @@ class _NoArgs:
         return self.original_func(t)
 
 
+class _KwArgs:
+    def __init__(self, func):
+        self.original_func = func
+        self.clean_args = True
+
+    def __call__(self, t, args={}):
+        if self.clean_args:
+            clean_args = {key:val for key, val in args.items()
+                          if not key.startswith("_")}
+            clean_args = {key:val for key, val in clean_args.items()
+                          if "=" in key}
+            return self.original_func(t, **clean_args)
+        else:
+            return self.original_func(t, **args)
+
+
 def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
-                  rhs_with_state=False, no_args=False, state=None):
+                  rhs_with_state=False, no_args=False, kw_args=False,
+                  state=None):
     """Create a QobjEvo or QobjEvoFunc from a valid definition.
     Valid format are:
     list format:
@@ -114,9 +131,13 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
             _with_state(obj)
         if no_args:
             _noargs(obj)
+        if kw_args:
+            _kwargs(obj)
     elif callable(Q_object):
         if no_args:
             Q_object = _NoArgs(Q_object)
+        if kw_args:
+            Q_object = _KwArgs(Q_object)
         elif rhs_with_state:
             Q_object = _StateAsArgs(Q_object)
             args["_state_vec=vec"] = state
@@ -147,6 +168,17 @@ def _noargs(obj):
     for op in obj.ops:
         if op.type == "func":
             nfunc = _NoArgs(op.coeff)
+            new_ops.append(EvoElement(op.qobj, nfunc, nfunc, "func"))
+        else:
+            new_ops.append(op)
+    obj.ops = new_ops
+
+
+def _kwargs(obj):
+    new_ops = []
+    for op in obj.ops:
+        if op.type == "func":
+            nfunc = _KwArgs(op.coeff)
             new_ops.append(EvoElement(op.qobj, nfunc, nfunc, "func"))
         else:
             new_ops.append(op)
