@@ -342,6 +342,7 @@ class TestPulseOptim:
         control: data dumping
         Dump out processing data, check file counts
         """
+        self.setUp()
         N_EXP_OPTIMDUMP_FILES = 10
         N_EXP_DYNDUMP_FILES = 49
 
@@ -401,6 +402,7 @@ class TestPulseOptim:
             dyn.dump.writeout(f)
         assert_(os.stat(fpath).st_size > 0,
                 msg="Nothing written to dynamics dump file")
+        self.tearDown()
 
     def test_04_unitarity(self):
         """
