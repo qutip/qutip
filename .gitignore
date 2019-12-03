@@ -35,4 +35,5 @@ qutip/cy/openmp/*.cpp
 
 benchmark/benchmark_data.js
 *-tasks.txt
+*compiled_coeff*
 
