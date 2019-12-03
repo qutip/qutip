@@ -627,7 +627,7 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
     If provided, precompute needs to be computed with
     qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
     need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
-    of a pure state in the chosen system. This gives 3-10x speedup for each call
+    of a pure state in the chosen system. This gives 3-10x speedup per call
     """
     n = np.prod(psi.shape)
     if isinstance(psi, Qobj):
@@ -638,14 +638,15 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
     if isinstance(precompute, np.ndarray):
         qmat = np.dot(precompute, psi)
     else:
-         qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
-                        conjugate(alpha_mat))
+        qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
+                       conjugate(alpha_mat))
 
     # faster than np.abs()**2 if len(xvec) >~ 10
     qmat = qmat.real**2 + qmat.imag**2
     if not isinstance(precompute, np.ndarray):
         qmat *= exp(-abs(alpha_mat) ** 2)
     return qmat / pi
+
 
 def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
     """Helper matrix for fast Q-function at points `xvec + i * yvec`.
@@ -680,8 +681,10 @@ def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
     memory = len(xvec) * len(yvec) * n * 16 / 1024**2
     if memory < max_memory:
         raise MemoryError(
-        f"Precomputation uses {memory} MB memory, with a max of {max_memory}MB."
-        +f"Turn precomputation off with precompute=False or use a larger max.")
+            f"Precomputation uses {memory} MB memory, with a max of "
+            + f"{max_memory} MB.Turn precomputation off with precompute=False "
+            + f"or use a larger max."
+        )
     X, Y = meshgrid(xvec, yvec)
     amat = 0.5 * g * (X - Y * 1j)
 
@@ -690,6 +693,7 @@ def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
     precomputed /= sqrt(factorial(arange(n)))
     precomputed *= np.expand_dims(exp(-abs(amat) ** 2 / 2), axis=-1)
     return precomputed
+
 
 # -----------------------------------------------------------------------------
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
