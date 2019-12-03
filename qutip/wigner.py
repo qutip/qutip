@@ -632,7 +632,7 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
     else:
         psi = psi.T
 
-    if precompute:
+    if isinstance(precompute, np.ndarray):
         qmat = np.dot(precompute, psi)
     else:
          qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
@@ -640,7 +640,7 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
 
     # faster than np.abs()**2 if len(xvec) >~ 10
     qmat = qmat.real**2 + qmat.imag**2
-    if not precompute:
+    if not isinstance(precompute, np.ndarray):
         qmat *= exp(-abs(alpha_mat) ** 2)
     return qmat / pi
 
