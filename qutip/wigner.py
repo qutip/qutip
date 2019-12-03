@@ -595,17 +595,17 @@ def qfunc(state, xvec, yvec, g=sqrt(2), precompute=None):
     if precompute is None:
         # Decide whether precomputation should be used, if not already set
         precompute = isoper(state)
-    if precompute is True:
-        # If precomputation should be used but result not given, do it now
         memory = len(xvec) * len(yvec) * state.shape[0] * 16 / 1024**2
-        if memory > 1024:
+        if (precompute is True) and (memory > 1024):
             warnings.warn(
                 f"Precomputation uses {memory} MB memory, with a max of "
                 + f"1024 MB. Falling back to iterative Husimi function"
             )
             precompute = False
-        else:
-            precompute = qfunc_precompute(xvec, yvec, state.shape[0], g)
+
+    if precompute is True:
+        # If precomputation should be used but result not given, do it now
+        precompute = qfunc_precompute(xvec, yvec, state.shape[0], g)
 
     if isket(state):
         qmat = _qfunc_pure(state, amat, precompute)
