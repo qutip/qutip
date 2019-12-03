@@ -570,9 +570,11 @@ def qfunc(state, xvec, yvec, g=sqrt(2), precompute=None):
         None (default): True for density matrices, False for bras/kets
         True / False: Always/Never use precomputation
         array: The result of the precomputation can be given explicitly.
-               Useful if qfunc is called many times with the same xvec, yvec and dimensions.
-               The precomputed array is returned by qfunc_precompute(xvec, yvec, n, g),
-               where xvec, yvec and g need to be the same as for qfunc, and n is the dim of the chosen system.
+               Useful if qfunc is called many times with the same
+               xvec, yvec and dimensions. The precomputed array is returned by
+               qfunc_precompute(xvec, yvec, n, g),
+               where xvec, yvec and g need to be the same as for qfunc,
+               and n is the dim of the chosen system.
 
     Returns
     --------
@@ -622,7 +624,8 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
     """
     Calculate the Q-function for a pure state.
 
-    If provided, precompute needs to be computed with qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
+    If provided, precompute needs to be computed with
+    qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
     need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
     of a pure state in the chosen system. This gives 3-10x speedup for each call
     """
@@ -636,7 +639,7 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
         qmat = np.dot(precompute, psi)
     else:
          qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
-                           conjugate(alpha_mat))
+                        conjugate(alpha_mat))
 
     # faster than np.abs()**2 if len(xvec) >~ 10
     qmat = qmat.real**2 + qmat.imag**2
@@ -647,7 +650,8 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
 def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
     """Helper matrix for fast Q-function at points `xvec + i * yvec`.
 
-    Warning: The returned array has size len(xvec) * len(yvec) * n * 16 Byte, can be large
+    Warning: The returned array has size
+             len(xvec) * len(yvec) * n * 16 Byte, can be large
 
     Parameters
     ----------
@@ -669,12 +673,15 @@ def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
     Returns
     --------
     precomputed : array
-        Precomputed array that contains everything in _qfunc_pure that is not dependent on
-        the state.
+        Precomputed array that contains everything in _qfunc_pure that is not
+        dependent on the state.
 
     """
     memory = len(xvec) * len(yvec) * n * 16 / 1024**2
-    assert memory < max_memory, f"Precomputation uses {memory}MB memory, with a max of {max_memory}MB. Turn precomputation off with precompute=False or use a larger max."
+    if memory < max_memory:
+        raise MemoryError(
+        f"Precomputation uses {memory} MB memory, with a max of {max_memory}MB."
+        +f"Turn precomputation off with precompute=False or use a larger max.")
     X, Y = meshgrid(xvec, yvec)
     amat = 0.5 * g * (X - Y * 1j)
 
