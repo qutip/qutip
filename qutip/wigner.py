@@ -601,7 +601,8 @@ def qfunc(state, xvec, yvec, g=sqrt(2), precompute=None):
         # If too much memory would be used, do not precompute
         warnings.warn(
             f"Precomputation uses {memory} MB memory, with a max of "
-            + f"1024 MB. Falling back to iterative Husimi function"
+            + f"1024 MB. Falling back to iterative Husimi function",
+            ResourceWarning
         )
         precompute = False
 

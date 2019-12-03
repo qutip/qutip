@@ -34,7 +34,8 @@
 import numpy as np
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert_, run_module_suite, assert_equal
+from numpy.testing import assert_, run_module_suite, \
+    assert_equal, assert_raises, assert_warns
 
 from qutip.states import coherent, fock, ket, bell_state
 from qutip.wigner import qfunc, qfunc_precompute, wigner, wigner_transform, _parity
@@ -77,6 +78,16 @@ def test_qfunc_dm():
         assert_equal(q_true, q_default)   # Default: precompute
         assert_equal(q_true, q_precomp)   # Compare precomputing before/during the call
         assert_equal(np.sum(np.abs(q_true - q_false)) < 1e-7, True) # Compare with/without
+
+
+def test_qfunc_exceptions():
+    "Husimi Q: Test Memory Safeguard"
+    xvec = np.linspace(-10, 10, 512)
+
+    # Test only the MemoryError, testing the fallback is too slow
+    with assert_raises(MemoryError):
+        qfunc_precompute(xvec, xvec, 257)
+    qfunc_precompute(xvec, xvec, 256)
 
 
 def test_wigner_bell1_su2parity():
