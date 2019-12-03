@@ -34,6 +34,7 @@
 __all__ = ['wigner', 'qfunc', 'spin_q_function', 'spin_wigner', 'wigner_transform']
 
 import numpy as np
+import warnings
 from scipy import (zeros, array, arange, exp, real, conj, pi,
                    copy, sqrt, meshgrid, size, polyval, fliplr, conjugate,
                    cos, sin)
@@ -596,7 +597,15 @@ def qfunc(state, xvec, yvec, g=sqrt(2), precompute=None):
         precompute = isoper(state)
     if precompute is True:
         # If precomputation should be used but result not given, do it now
-        precompute = qfunc_precompute(xvec, yvec, state.shape[0], g)
+        memory = len(xvec) * len(yvec) * state.shape[0] * 16 / 1024**2
+        if memory > 1024:
+            warnings.warn(
+                f"Precomputation uses {memory} MB memory, with a max of "
+                + f"1024 MB. Falling back to iterative Husimi function"
+            )
+            precompute = False
+        else:
+            precompute = qfunc_precompute(xvec, yvec, state.shape[0], g)
 
     if isket(state):
         qmat = _qfunc_pure(state, amat, precompute)
@@ -679,7 +688,7 @@ def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
 
     """
     memory = len(xvec) * len(yvec) * n * 16 / 1024**2
-    if memory < max_memory:
+    if memory > max_memory:
         raise MemoryError(
             f"Precomputation uses {memory} MB memory, with a max of "
             + f"{max_memory} MB.Turn precomputation off with precompute=False "
