@@ -112,12 +112,10 @@ def linspace_with(start, stop, num=50, elems=[]):
 
 
 def _factorial_prod(N, arr):
-    if N<0: print(N)
     arr[:N] += 1
 
 
 def _factorial_div(N, arr):
-    if N<0: print(N)
     arr[:N] -= 1
 
 
