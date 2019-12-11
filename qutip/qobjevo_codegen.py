@@ -226,7 +226,7 @@ include """ + _include_string + "\n\n"
             N_np += 1
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"
-    normal_args = {key:val for key, val in args.items() if "=" not in key}
+    normal_args = args.copy()
     for name, _, _ in dyn_args:
         del normal_args[name]
 
@@ -280,6 +280,7 @@ include """ + _include_string + "\n\n"
                     " = np.array(self._vec).reshape(" \
                     "(self._mat_shape[0], self._mat_shape[1]), order='F')\n"
         if what == "Qobj":
+            # ToDo: Use cython dense to fast_sparse
             code += "        " + name + " = Qobj(np.array(self._vec).reshape(" \
                     "(self._mat_shape[0], self._mat_shape[1]), order='F'))\n"
         if what == "expect":
@@ -398,8 +399,7 @@ code_python_post = """
 def _make_code_4_python_import(ops, args, dyn_args, tlist):
     code = code_python_pre
     for key in args:
-        if "=" not in key:
-            code += "        " + key + " = now_args['" + key + "']\n"
+        code += "        " + key + " = now_args['" + key + "']\n"
 
     for i, op in enumerate(ops):
         if op.type == "string":

@@ -579,52 +579,35 @@ class QobjEvo:
             raise TypeError("Incorrect Q_object specification")
         return op_type
 
-    def _args_checks(self, update=False):
-        to_remove = []
-        to_add = {}
-        dyn_args = (key for key in self.args if "=" in key)
-        for key in dyn_args:
-            name, what = key.split("=")
-            if what in ["Qobj", "vec", "mat"]:
-                to_remove.append(key)
-                self.dynamics_args += [(name, what, None)]
+    def _args_checks(self):
+        statedims = [self.cte.dims[1],[1]]
+        for key in self.args:
+            if key == "state" or key == "state_qobj":
+                self.dynamics_args += [("state", "Qobj", None)]
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims)
+
+            if key == "state_mat":
+                self.dynamics_args += [("state", "mat", None)]
                 if isinstance(self.args[key], Qobj):
-                    val = self.args[key]
-                elif name in self.args and isinstance(self.args[name], Qobj):
-                    val = self.args[name]
-                else:
-                    val = Qobj(dims=[self.cte.dims[1],[1]])
+                    self.args[key] = self.args[key].full()
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims).full()
 
-                if what == "Qobj":
-                    to_add[name] = val
-                elif what == "mat":
-                    to_add[name] = val.full()
-                else:
-                    to_add[name] = val.full().ravel("F")
+            if key == "state_vec":
+                self.dynamics_args += [("state", "vec", None)]
+                if isinstance(self.args[key], Qobj):
+                    self.args[key] = self.args[key].full().ravel("F")
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims).full().ravel("F")
 
-            elif what == "expect":
-                to_remove.append(key)
-                if isinstance(self.args[key], QobjEvo):
-                    expect_op = self.args[key]
-                else:
-                    expect_op = QobjEvo(self.args[key], copy=False)
-                if update:
-                    for ops in self.dynamics_args:
-                        ops = (name, what, expect_op) if ops[0] == name else ops
-                else:
-                    self.dynamics_args += [(name, what, expect_op)]
-                    if name not in self.args:
-                        to_add[name] = 0.
+            if key.startswith("expect_op_"):
+                e_op_num = int(key[10:])
+                self.dynamics_args += [(key, "expect", e_op_num)]
 
-            elif what == "collapse":
-                pass
-
-            elif not update:
-                raise Exception("Could not understand dynamics args: " +
-                                what + "\nSupported dynamics args: "
-                                "Qobj, vec, mat, expect")
-
-        self.args.update(to_add)
+            if isinstance(self.args[key], StateArgs):
+                self.dynamics_args += [(key, *self.args[key]())]
+                self.args[key] = 0.
 
     def _check_old_with_state(self):
         add_vec = False
@@ -796,10 +779,31 @@ class QobjEvo:
                                        new_coeff, op.type))
 
     def arguments(self, args):
-        if not isinstance(args, dict):
+        if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
-        self.args.update(args)
-        self._args_checks(True)
+        # remove dynamics_args that are to be refreshed
+        self.dynamics_args = [dargs for dargs in self.dynamics_args
+                                    if dargs[0] not in new_args]
+        self.args.update(new_args)
+        self._args_checks()
+        if self.compiled and self.compiled.split()[2] is not "cte":
+            if isinstance(self.coeff_get, StrCoeff):
+                self.coeff_get.set_args(self.args)
+                self.coeff_get._set_dyn_args(self.dynamics_args)
+            elif isinstance(self.coeff_get, _UnitedFuncCaller):
+                self.coeff_get.set_args(self.args, self.dynamics_args)
+            else:
+                pass
+
+    def solver_set_args(self, new_args, psi0, e_ops):
+        self.dynamics_args = []
+        self.args.update(new_args)
+        self._args_checks()
+        self._dynamics_args_update(0., state)
+        for dargs in self.dynamics_args:
+            if dargs[1] == "expect" and isinstance(dargs[2], int):
+                dargs = (dargs[0], "expect", e_ops[dargs[2]])
+        self._dynamics_args_update(0., psi0)
         if self.compiled and self.compiled.split()[2] is not "cte":
             if isinstance(self.coeff_get, StrCoeff):
                 self.coeff_get.set_args(self.args)
