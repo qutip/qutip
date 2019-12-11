@@ -227,6 +227,7 @@ include """ + _include_string + "\n\n"
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"
     normal_args = args.copy()
+
     for name, _, _ in dyn_args:
         del normal_args[name]
 
