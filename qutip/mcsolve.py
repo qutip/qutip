@@ -299,7 +299,7 @@ class _MC():
         ss.args = args
         ss.col_args = var
         for c in c_ops:
-            cevo = QobjEvo(c, args, tlist)
+            cevo = QobjEvo(c, args, tlist=tlist)
             cdc = cevo._cdc()
             cevo.compile()
             cdc.compile()
@@ -307,7 +307,7 @@ class _MC():
             ss.td_n_ops.append(cdc)
 
         try:
-            H_td = QobjEvo(H, args, tlist)
+            H_td = QobjEvo(H, args, tlist=tlist)
             H_td *= -1j
             for c in ss.td_n_ops:
                 H_td += -0.5 * c

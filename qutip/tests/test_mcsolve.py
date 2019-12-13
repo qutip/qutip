@@ -537,7 +537,7 @@ def test_mc_ntraj_list():
 
 def f_dargs(t, args):
     # allows only one collapse
-    return 0 if args["c"] else 1
+    return 0 if args["collapse"] else 1
 
 
 def test_mc_dyn_args():
@@ -552,7 +552,7 @@ def test_mc_dyn_args():
     ntraj = [10]  # number of MC trajectories
     tlist = np.linspace(0, 1, 11)
     mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a],
-                 ntraj, args={"c=collapse":[]})
+                 ntraj, args={"collapse":[]})
     assert_(all(len(col)<=1 for col in mc.col_which))
 
 
@@ -575,7 +575,8 @@ def test_mc_functd_sum():
     tlist = np.linspace(0, 3, 10)
     medata = mesolve(h_t, psi0, tlist, [], [], args = {})
     mcdata = mcsolve(h_t, psi0, tlist, [], [], ntraj = ntraj, args = {})
-    assert_(max([(medata.states[k]-mcdata.states[k]).norm() for k in range(10)]) < 1e-5)
+    assert_(max([(medata.states[k]-mcdata.states[k]).norm()
+                 for k in range(10)]) < 1e-5)
 
 
 if __name__ == "__main__":

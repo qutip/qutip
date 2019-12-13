@@ -216,7 +216,7 @@ def test_ssesolve_heterodyne():
 
 
 def f_dargs(a, args):
-    return args["e"] - 1
+    return args["expect_op_3"] - 1
 
 
 def test_ssesolve_feedback():
@@ -230,13 +230,14 @@ def test_ssesolve_feedback():
     H = [num(N)]
     psi0 = coherent(N, 2.5)
     sc_ops = [[a + a.dag(), f_dargs]]
-    e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
+    e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag()), qeye(N)]
 
     times = np.linspace(0, 10, 101)
-    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"e=expect":qeye(N)})
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops,
+                      args={"expect_op_3":qeye(N)})
     res = ssesolve(H, psi0, times, sc_ops, e_ops, solver=None, noise=1,
                    ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
-                   map_func=parallel_map, args={"e=expect":qeye(N)})
+                   map_func=parallel_map, args={"expect_op_3":qeye(N)})
 
     print(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                  for idx in range(len(e_ops))]))

@@ -324,7 +324,8 @@ class StochasticSolverOptions:
         self.me = me
         if H is not None:
             try:
-                self.H = QobjEvo(H, args=args, tlist=times)
+                self.H = QobjEvo(H, args=args, tlist=times,
+                                 e_ops=e_ops, state0=state0)
             except:
                 raise Exception("The hamiltonian format is not valid")
         else:
@@ -332,7 +333,8 @@ class StochasticSolverOptions:
 
         if sc_ops:
             try:
-                self.sc_ops = [QobjEvo(op, args=args, tlist=times)
+                self.sc_ops = [QobjEvo(op, args=args, tlist=times,
+                                       e_ops=e_ops, state0=state0)
                                for op in sc_ops]
             except:
                 raise Exception("The sc_ops format is not valid.\n" +
@@ -342,7 +344,8 @@ class StochasticSolverOptions:
 
         if c_ops:
             try:
-                self.c_ops = [QobjEvo(op, args=args, tlist=times)
+                self.c_ops = [QobjEvo(op, args=args, tlist=times,
+                                      e_ops=e_ops, state0=state0)
                               for op in c_ops]
             except:
                 raise Exception("The c_ops format is not valid.\n" +
@@ -830,6 +833,7 @@ def _positive_map(sso, e_ops_dict):
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
     sso.preLH = spre(LH)
     sso.postLH = spost(LH.dag())
+
     sso.preLH.compile()
     sso.postLH.compile()
     sso.pp.compile()

@@ -178,6 +178,11 @@ class _StateAsArgs:
         return self.coeff_func(t, args["_state_vec"], args)
 
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+class StateArgs:
+    def __call__(self):
+        return "vec", None
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # object for each time dependent element of the QobjEvo
 # qobj : the Qobj of element ([*Qobj*, f])
@@ -437,7 +442,8 @@ class QobjEvo:
         Return the time-dependent quantum object as a list
     """
 
-    def __init__(self, Q_object=[], args={}, tlist=None, copy=True):
+    def __init__(self, Q_object=[], args={}, copy=True,
+                 tlist=None, state0=None, e_ops=[]):
         if isinstance(Q_object, QobjEvo):
             if copy:
                 self._inplace_copy(Q_object)
@@ -445,6 +451,13 @@ class QobjEvo:
                 self.__dict__ = Q_object.__dict__
             if args:
                 self.arguments(args)
+                if e_ops:
+                    for i, dargs in enumerate(self.dynamics_args):
+                        if dargs[1] == "expect" and isinstance(dargs[2], int):
+                            self.dynamics_args[i] = (dargs[0], "expect",
+                                                     e_ops[dargs[2]])
+                if state0 is not None:
+                    self._dynamics_args_update(0., state0)
             return
 
         self.const = False
@@ -541,6 +554,13 @@ class QobjEvo:
                 self.const = True
         self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
         self._args_checks()
+        if e_ops:
+            for i, dargs in enumerate(self.dynamics_args):
+                if dargs[1] == "expect" and isinstance(dargs[2], int):
+                    self.dynamics_args[i] = (dargs[0], "expect",
+                                             QobjEvo(e_ops[dargs[2]]))
+        if state0 is not None:
+            self._dynamics_args_update(0., state0)
 
     def _td_format_check_single(self, Q_object, tlist=None):
         op_type = []
@@ -583,19 +603,19 @@ class QobjEvo:
         statedims = [self.cte.dims[1],[1]]
         for key in self.args:
             if key == "state" or key == "state_qobj":
-                self.dynamics_args += [("state", "Qobj", None)]
+                self.dynamics_args += [(key, "Qobj", None)]
                 if self.args[key] is None:
                     self.args[key] = Qobj(dims=statedims)
 
             if key == "state_mat":
-                self.dynamics_args += [("state", "mat", None)]
+                self.dynamics_args += [("state_mat", "mat", None)]
                 if isinstance(self.args[key], Qobj):
                     self.args[key] = self.args[key].full()
                 if self.args[key] is None:
                     self.args[key] = Qobj(dims=statedims).full()
 
             if key == "state_vec":
-                self.dynamics_args += [("state", "vec", None)]
+                self.dynamics_args += [("state_vec", "vec", None)]
                 if isinstance(self.args[key], Qobj):
                     self.args[key] = self.args[key].full().ravel("F")
                 if self.args[key] is None:
@@ -778,7 +798,7 @@ class QobjEvo:
             self.ops.append(EvoElement(op.qobj.copy(), op.get_coeff,
                                        new_coeff, op.type))
 
-    def arguments(self, args):
+    def arguments(self, new_args):
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
         # remove dynamics_args that are to be refreshed
@@ -795,15 +815,17 @@ class QobjEvo:
             else:
                 pass
 
-    def solver_set_args(self, new_args, psi0, e_ops):
+    def solver_set_args(self, new_args, state, e_ops):
         self.dynamics_args = []
         self.args.update(new_args)
         self._args_checks()
-        self._dynamics_args_update(0., state)
-        for dargs in self.dynamics_args:
+        for i, dargs in enumerate(self.dynamics_args):
             if dargs[1] == "expect" and isinstance(dargs[2], int):
-                dargs = (dargs[0], "expect", e_ops[dargs[2]])
-        self._dynamics_args_update(0., psi0)
+                self.dynamics_args[i] = (dargs[0], "expect",
+                                         QobjEvo(e_ops[dargs[2]]))
+                if self.compiled:
+                    self.dynamics_args[i][2].compile()
+        self._dynamics_args_update(0., state)
         if self.compiled and self.compiled.split()[2] is not "cte":
             if isinstance(self.coeff_get, StrCoeff):
                 self.coeff_get.set_args(self.args)
