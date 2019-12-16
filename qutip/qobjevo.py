@@ -451,11 +451,11 @@ class QobjEvo:
                 self.__dict__ = Q_object.__dict__
             if args:
                 self.arguments(args)
-                if e_ops:
-                    for i, dargs in enumerate(self.dynamics_args):
-                        if dargs[1] == "expect" and isinstance(dargs[2], int):
-                            self.dynamics_args[i] = (dargs[0], "expect",
-                                                     e_ops[dargs[2]])
+                for i, dargs in enumerate(self.dynamics_args):
+                    e_int = dargs[1] == "expect" and isinstance(dargs[2], int)
+                    if e_ops and e_int:
+                        self.dynamics_args[i] = (dargs[0], "expect",
+                                                 e_ops[dargs[2]])
                 if state0 is not None:
                     self._dynamics_args_update(0., state0)
             return
@@ -803,7 +803,7 @@ class QobjEvo:
             raise TypeError("The new args must be in a dict")
         # remove dynamics_args that are to be refreshed
         self.dynamics_args = [dargs for dargs in self.dynamics_args
-                                    if dargs[0] not in new_args]
+                              if dargs[0] not in new_args]
         self.args.update(new_args)
         self._args_checks()
         if self.compiled and self.compiled.split()[2] is not "cte":
@@ -812,8 +812,6 @@ class QobjEvo:
                 self.coeff_get._set_dyn_args(self.dynamics_args)
             elif isinstance(self.coeff_get, _UnitedFuncCaller):
                 self.coeff_get.set_args(self.args, self.dynamics_args)
-            else:
-                pass
 
     def solver_set_args(self, new_args, state, e_ops):
         self.dynamics_args = []
@@ -832,8 +830,6 @@ class QobjEvo:
                 self.coeff_get._set_dyn_args(self.dynamics_args)
             elif isinstance(self.coeff_get, _UnitedFuncCaller):
                 self.coeff_get.set_args(self.args, self.dynamics_args)
-            else:
-                pass
 
     def to_list(self):
         list_qobj = []
@@ -1222,13 +1218,6 @@ class QobjEvo:
         res.cte = res.cte.permute(order)
         for op in res.ops:
             op.qobj = op.qobj.permute(order)
-        return res
-
-    def ptrace(self, sel):
-        res = self.copy()
-        res.cte = res.cte.ptrace(sel)
-        for op in res.ops:
-            op.qobj = op.qobj.ptrace(sel)
         return res
 
     # function to apply custom transformations
