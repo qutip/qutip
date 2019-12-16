@@ -51,6 +51,16 @@ from operator import add, mul, truediv, sub
 from functools import partial
 from contextlib import contextmanager
 
+def _random_not_singular(N):
+    """
+    return a N*N complex array with determinant not 0.
+    """
+    data = np.zeros((1,1))
+    while np.linalg.det(data) == 0:
+        data = np.random.random((N, N)) + \
+               1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    return data
+
 @contextmanager
 def expect_exception(ex_class):
     """
@@ -91,16 +101,14 @@ def assert_hermicity(oper, hermicity, msg=""):
 def test_QobjData():
     "Qobj data"
     N = 10
-    data1 = np.random.random(
-        (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    data1 = _random_not_singular(N)
     q1 = Qobj(data1)
     # check if data is a csr_matrix if originally array
     assert_equal(sp.isspmatrix_csr(q1.data), True)
     # check if dense ouput is equal to original data
     assert_(np.all(q1.data.todense() - np.matrix(data1) == 0))
 
-    data2 = np.random.random(
-        (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    data2 = _random_not_singular(N)
     data2 = sp.csr_matrix(data2)
     q2 = Qobj(data2)
     # check if data is a csr_matrix if originally csr_matrix
@@ -111,8 +119,7 @@ def test_QobjData():
     # check if data is a csr_matrix if originally int
     assert_equal(sp.isspmatrix_csr(q3.data), True)
 
-    data4 = np.random.random(
-        (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    data4 = _random_not_singular(N)
     data4 = np.matrix(data4)
     q4 = Qobj(data4)
     # check if data is a csr_matrix if originally csr_matrix
@@ -154,8 +161,7 @@ def test_QobjType():
 def test_QobjHerm():
     "Qobj Hermicity"
     N = 10
-    data = np.random.random(
-        (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    data = _random_not_singular(N)
     q = Qobj(data)
     assert_equal(q.isherm, False)
 
@@ -222,8 +228,7 @@ def test_QobjUnitaryOper():
 def test_QobjDimsShape():
     "Qobj shape"
     N = 10
-    data = np.random.random(
-        (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    data = _random_not_singular(N)
 
     q1 = Qobj(data)
     assert_equal(q1.dims, [[10], [10]])
@@ -238,8 +243,7 @@ def test_QobjDimsShape():
 
     N = 4
 
-    data = np.random.random(
-        (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    data = _random_not_singular(N)
 
     q1 = Qobj(data, dims=[[2, 2], [2, 2]])
     assert_equal(q1.dims, [[2, 2], [2, 2]])
@@ -327,12 +331,10 @@ def test_QobjAddition():
 
 def test_QobjSubtraction():
     "Qobj subtraction"
-    data1 = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data1 = _random_not_singular(5)
     q1 = Qobj(data1)
 
-    data2 = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data2 = _random_not_singular(5)
     q2 = Qobj(data2)
 
     q3 = q1 - q2
@@ -364,8 +366,7 @@ def test_QobjMultiplication():
 
 def test_QobjDivision():
     "Qobj division"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     q = Qobj(data)
     randN = 10 * np.random.random()
     q = q / randN
@@ -374,8 +375,7 @@ def test_QobjDivision():
 
 def test_QobjPower():
     "Qobj power"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     q = Qobj(data)
 
     q2 = q ** 2
@@ -387,8 +387,7 @@ def test_QobjPower():
 
 def test_QobjNeg():
     "Qobj negation"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     q = Qobj(data)
     x = -q
     assert_(np.all(x.data.todense() + np.matrix(data) == 0))
@@ -398,8 +397,7 @@ def test_QobjNeg():
 
 def test_QobjEquals():
     "Qobj equals"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     q1 = Qobj(data)
     q2 = Qobj(data)
     assert_(q1 == q2)
@@ -411,8 +409,7 @@ def test_QobjEquals():
 
 def test_QobjGetItem():
     "Qobj getitem"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     q = Qobj(data)
     assert_equal(q[0, 0], data[0, 0])
     assert_equal(q[-1, 2], data[-1, 2])
@@ -489,8 +486,7 @@ def test_Qobj_Spmv():
 
 def test_QobjConjugate():
     "Qobj conjugate"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     A = Qobj(data)
     B = A.conj()
     assert_(np.all(B.data.todense() - np.matrix(data.conj()) == 0))
@@ -501,8 +497,7 @@ def test_QobjConjugate():
 
 def test_QobjDagger():
     "Qobj adjoint (dagger)"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     A = Qobj(data)
     B = A.dag()
     assert_(np.all(B.data.todense() - np.matrix(data.conj().T) == 0))
@@ -513,8 +508,7 @@ def test_QobjDagger():
 
 def test_QobjDiagonals():
     "Qobj diagonals"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     A = Qobj(data)
     b = A.diag()
     assert_(np.all(b - np.diag(data) == 0))
@@ -553,8 +547,7 @@ def test_QobjEigenStates():
 
 def test_QobjExpm():
     "Qobj expm (dense)"
-    data = np.random.random(
-        (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
+    data = _random_not_singular(15)
     A = Qobj(data)
     B = A.expm()
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
@@ -562,8 +555,7 @@ def test_QobjExpm():
 
 def test_QobjExpmExplicitlySparse():
     "Qobj expm (sparse)"
-    data = np.random.random(
-        (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
+    data = _random_not_singular(15)
     A = Qobj(data)
     B = A.expm(method='sparse')
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
@@ -578,17 +570,27 @@ def test_QobjExpmZeroOper():
 
 def test_Qobj_sqrtm():
     "Qobj sqrtm"
-    data = np.random.random(
-        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    data = _random_not_singular(5)
     A = Qobj(data)
     B = A.sqrtm()
     assert_(A == B * B)
 
 
+def test_Qobj_inv():
+    "Qobj inv"
+    data = _random_not_singular(5)
+    A = Qobj(data)
+    B = A.inv()
+    assert_(qeye(5) == A * B)
+    assert_(qeye(5) == B * A)
+    B = A.inv(sparse=True)
+    assert_(qeye(5) == A * B)
+    assert_(qeye(5) == B * A)
+
+
 def test_QobjFull():
     "Qobj full"
-    data = np.random.random(
-        (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
+    data = _random_not_singular(15)
     A = Qobj(data)
     b = A.full()
     assert_(np.all(b - data == 0))
@@ -622,12 +624,12 @@ def test_QobjPurity():
     assert_almost_equal(psi.purity(), 1)
     # check purity of pure ket state (superposition)
     psi2 = basis(2, 0)
-    psi_tot = (psi+psi2).unit() 
+    psi_tot = (psi+psi2).unit()
     assert_almost_equal(psi_tot.purity(), 1)
-    # check purity of density matrix of pure state 
+    # check purity of density matrix of pure state
     assert_almost_equal(ket2dm(psi_tot).purity(), 1)
     # check purity of maximally mixed density matrix
-    rho_mixed = (ket2dm(psi)+ket2dm(psi2)).unit() 
+    rho_mixed = (ket2dm(psi)+ket2dm(psi2)).unit()
     assert_almost_equal(rho_mixed.purity(), 0.5)
 
 def test_QobjPermute():
