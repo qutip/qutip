@@ -38,7 +38,7 @@ import numpy as np
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo, EvoElement
 from qutip.qobjevofunc import QobjEvoFunc
-
+import inspect
 
 class _StateAsArgs:
     # old with state (f(t, psi, args)) to new (args["state"] = psi)
@@ -71,6 +71,41 @@ class _KwArgs:
             return self.original_func(t, **clean_args)
         else:
             return self.original_func(t, **args)
+
+
+def _has_kwargs(f):
+    if hasattr(f, "__code__"):
+        code = f.__code__
+    else:
+        code = f.__call__.__code__
+
+    return bool(inspect.getargs(code).varkw)
+
+
+def _num_args(f):
+    if hasattr(f, "__code__"):
+        code = f.__code__
+    else:
+        code = f.__call__.__code__
+    is_method = inspect.ismethod(f) or inspect.ismethod(f.__call__)
+    return len(inspect.getargs(code).args) - int(is_method)
+
+
+def _set_signature(func):
+    if _has_kwargs(func):
+        # func(t, **kwargs)
+        return _KwArgs(func)
+    elif _num_args == 1:
+        # func(t) of func(self, t)
+        return _NoArgs(func)
+    elif _num_args == 2:
+        # func(t, args) of func(self, t, args)
+        return func
+    elif _num_args == 3:
+        # func(t, state, args) of func(self, t, state, args)
+        return _StateAsArgs(func)
+    else:
+        raise Exception("Could not reconise function signature")
 
 
 def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
@@ -127,13 +162,9 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
         obj = Q_object.copy() if copy else Q_object
     elif isinstance(Q_object, (list, Qobj)):
         obj = QobjEvo(Q_object, args, tlist, copy)
-        if rhs_with_state:
-            _with_state(obj)
-        if no_args:
-            _noargs(obj)
-        if kw_args:
-            _kwargs(obj)
+        _list_signature(obj)
     elif callable(Q_object):
+        obj = _set_signature(Q_object)
         if no_args:
             Q_object = _NoArgs(Q_object)
         if kw_args:

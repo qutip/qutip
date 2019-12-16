@@ -1712,6 +1712,7 @@ class _Shift():
         self.func = f
 
     def __call__(self, t, args):
+        # TODO: check and comment why the np.conj
         return np.conj(self.func(t + args["_t0"], args))
 
 
@@ -1738,6 +1739,7 @@ class _Add():
 
     def __call__(self, t, args):
         return np.sum([f(t, args) for f in self.funcs])
+
 
 from qutip.superoperator import (vec2mat, liouvillian, lindblad_dissipator,
                                  spre, spost)
