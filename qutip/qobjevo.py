@@ -180,8 +180,14 @@ class _StateAsArgs:
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 class StateArgs:
+    """Object to indicate to use the state in args outside solver.
+    args[key] = StateArgs(type, op)
+    """
+    def __init__(self, type="Qobj", op=None):
+        self.dyn_args = (type, op)
+
     def __call__(self):
-        return "vec", None
+        return self.dyn_args
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # object for each time dependent element of the QobjEvo
@@ -263,19 +269,19 @@ class QobjEvo:
     Some solvers support arguments that update at each call:
     sesolve, mesolve, mcsolve:
         state can be obtained with:
-            name+"=vec":Qobj  => args[name] == state as 1D np.ndarray
-            name+"=mat":Qobj  => args[name] == state as 2D np.ndarray
-            name+"=Qobj":Qobj => args[name] == state as Qobj
+            "state_vec":psi0, args["state_vec"] = state as 1D np.ndarray
+            "state_mat":psi0, args["state_mat"] = state as 2D np.ndarray
+            "state":psi0, args["state"] = state as Qobj
 
             This Qobj is the initial value.
 
         expectation values:
-            name+"=expect":O (Qobj/QobjEvo)  => args[name] == expect(O, state)
+            "expect_op_n":0, args["expect_op_n"] = expect(e_ops[int(n)], state)
             expect is <phi|O|psi> or tr(state * O) depending on state dimensions
 
     mcsolve:
         collapse can be obtained with:
-            name+"=collapse":list => args[name] == list of collapse
+            "collapse":list => args[name] == list of collapse
             each collapse will be appended to the list as (time, which c_ops)
 
     Mixing the formats is possible, but not recommended.
@@ -382,10 +388,6 @@ class QobjEvo:
 
     permute(order)
         Returns composite qobj with indices reordered.
-
-    ptrace(sel)
-        Returns quantum object for selected dimensions after performing
-        partial trace.
 
     apply(f, *args, **kw_args)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
