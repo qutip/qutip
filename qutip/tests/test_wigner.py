@@ -34,8 +34,9 @@
 import numpy as np
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert_, run_module_suite, \
-    assert_equal, assert_raises, assert_warns
+from numpy.testing import assert_, run_module_suite, assert_equal
+#from numpy.testing import assert_, run_module_suite, \
+#    assert_equal, assert_raises, assert_warns
 
 from qutip.states import coherent, fock, ket, bell_state
 from qutip.wigner import qfunc, qfunc_precompute, wigner, wigner_transform, _parity
@@ -85,8 +86,15 @@ def test_qfunc_exceptions():
     xvec = np.linspace(-10, 10, 256)
 
     # Test only the MemoryError, testing the fallback is too slow
-    with assert_raises(MemoryError):
+#    with assert_raises(MemoryError):
+#        qfunc_precompute(xvec, xvec, 257, max_memory=256)
+
+    try:
         qfunc_precompute(xvec, xvec, 257, max_memory=256)
+    except MemoryError:
+        pass
+    else:
+        raise Exception
     qfunc_precompute(xvec, xvec, 256, max_memory=256)
 
 
