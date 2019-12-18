@@ -82,12 +82,12 @@ def test_qfunc_dm():
 
 def test_qfunc_exceptions():
     "Husimi Q: Test Memory Safeguard"
-    xvec = np.linspace(-10, 10, 512)
+    xvec = np.linspace(-10, 10, 256)
 
     # Test only the MemoryError, testing the fallback is too slow
     with assert_raises(MemoryError):
-        qfunc_precompute(xvec, xvec, 257)
-    qfunc_precompute(xvec, xvec, 256)
+        qfunc_precompute(xvec, xvec, 257, max_memory=256)
+    qfunc_precompute(xvec, xvec, 256, max_memory=256)
 
 
 def test_wigner_bell1_su2parity():

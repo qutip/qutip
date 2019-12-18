@@ -663,6 +663,13 @@ def _qfunc_pure(psi, alpha_mat, precompute=False):
 def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
     """Helper matrix for fast Q-function at points `xvec + i * yvec`.
 
+    Explanation: A lot of the cost of the Husimi Q function does not depend on
+    the state. If it is called many times (e.g. for a density matrix or when
+    doing multiple states), this can be used for a speedup. This function
+    precomputes everything that does not depend on the state and stores it as
+    a 3d array. The Q function itself is then a dot product between the last
+    axis of the precomputed array and a pure state.
+
     Warning: The returned array has size
              len(xvec) * len(yvec) * n * 16 Byte, can be large
 
