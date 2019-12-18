@@ -220,10 +220,14 @@ class QobjEvo:
     coefficients. The time-dependent coefficients are either a funciton, a
     string or a numpy array.
 
-    For function format, the function signature must be f(t, args).
+    For function format, the function signature must be one of
+    - f(t)
+    - f(t, args)
+    - f(t, **kwargs)
+    - f(t, state, args)  -- for backward compatibility, to be deprecated --
     *Examples*
-        def f1_t(t, args):
-            return np.exp(-1j * t * args["w1"])
+        def f1_t(t):
+            return np.exp(-1j * np.pi * t )
 
         def f2_t(t, args):
             return np.cos(t * args["w2"])
@@ -258,19 +262,19 @@ class QobjEvo:
     Some solvers support arguments that update at each call:
     sesolve, mesolve, mcsolve:
         state can be obtained with:
-            name+"=vec":Qobj  => args[name] == state as 1D np.ndarray
-            name+"=mat":Qobj  => args[name] == state as 2D np.ndarray
-            name+"=Qobj":Qobj => args[name] == state as Qobj
+            "state_vec":psi0, args["state_vec"] = state as 1D np.ndarray
+            "state_mat":psi0, args["state_mat"] = state as 2D np.ndarray
+            "state":psi0, args["state"] = state as Qobj
 
             This Qobj is the initial value.
 
         expectation values:
-            name+"=expect":O (Qobj/QobjEvo)  => args[name] == expect(O, state)
+            "expect_op_n":0, args["expect_op_n"] = expect(e_ops[int(n)], state)
             expect is <phi|O|psi> or tr(state * O) depending on state dimensions
 
     mcsolve:
         collapse can be obtained with:
-            name+"=collapse":list => args[name] == list of collapse
+            "collapse":list => args[name] == list of collapse
             each collapse will be appended to the list as (time, which c_ops)
 
     Mixing the formats is possible, but not recommended.
@@ -278,16 +282,27 @@ class QobjEvo:
 
     Parameters
     ----------
-    QobjEvo(Q_object=[], args={}, tlist=None)
+    QobjEvo(Q_object=[], args={}, copy=True,
+                 tlist=None, state0=None, e_ops=[])
 
-    Q_object : array_like
-        Data for vector/matrix representation of the quantum object.
+    Q_object : list
+        List of Qobj forming the system
 
-    args : dictionary that contain the arguments for
+    args : dictionary that contain the arguments for coefficients.
+
+    copy : bool
+        If Q_object is already a QobjEvo, return a copy.
 
     tlist : array_like
         List of times at which the numpy-array coefficients are applied. Times
         must be equidistant and start from 0.
+
+    state0 : Qobj
+        First state to use if the state is used for args.
+
+    e_ops : list of Qobj
+        Operators from which args can be build.
+        args["expect_op_0"] = expect(e_ops[0], state0)
 
     Attributes
     ----------
@@ -349,10 +364,13 @@ class QobjEvo:
     Methods
     -------
     copy() :
-        Create copy of Qobj
+        Create copy of QobjEvo
 
     arguments(new_args):
         Update the args of the object
+
+    solver_set_args(new_args, state, e_ops):
+        Update the args and set the dynamics_args for the solver state
 
     Math:
         +/- QobjEvo, Qobj, scalar:
@@ -363,6 +381,7 @@ class QobjEvo:
             Product is possible with Qobj or scalar
         / scalar:
             It is possible to divide by scalar only
+
     conj()
         Return the conjugate of quantum object.
 
@@ -381,20 +400,6 @@ class QobjEvo:
     apply(f, *args, **kw_args)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
         Return a modified QobjEvo and let the original one untouched
-
-    apply_decorator(decorator, *args, str_mod=None,
-                    inplace_np=False, **kw_args):
-        Apply the decorator to each function of the ops.
-        The *args and **kw_args are passed to the decorator.
-        new_coeff_function = decorator(coeff_function, *args, **kw_args)
-        str_mod : list of 2 elements
-            replace the string : str_mod[0] + original_string + str_mod[1]
-            *exemple: str_mod = ["exp(",")"]
-        inplace_np:
-            Change the numpy array instead of applying the decorator to the
-            function reading the array. Some decorators create incorrect array.
-            Transformations f'(t) = f(g(t)) create a missmatch between the
-            array and the associated time list.
 
     tidyup(atol=1e-12)
         Removes small elements from quantum object.
@@ -433,7 +438,8 @@ class QobjEvo:
         Return the time-dependent quantum object as a list
     """
 
-    def __init__(self, Q_object=[], args={}, tlist=None, copy=True):
+    def __init__(self, Q_object=[], args={}, copy=True,
+                 tlist=None, state0=None, e_ops=[]):
         if isinstance(Q_object, QobjEvo):
             if copy:
                 self._inplace_copy(Q_object)
@@ -441,6 +447,13 @@ class QobjEvo:
                 self.__dict__ = Q_object.__dict__
             if args:
                 self.arguments(args)
+                for i, dargs in enumerate(self.dynamics_args):
+                    e_int = dargs[1] == "expect" and isinstance(dargs[2], int)
+                    if e_ops and e_int:
+                        self.dynamics_args[i] = (dargs[0], "expect",
+                                                 e_ops[dargs[2]])
+                if state0 is not None:
+                    self._dynamics_args_update(0., state0)
             return
 
         self.const = False
@@ -537,6 +550,13 @@ class QobjEvo:
                 self.const = True
         self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
         self._args_checks()
+        if e_ops:
+            for i, dargs in enumerate(self.dynamics_args):
+                if dargs[1] == "expect" and isinstance(dargs[2], int):
+                    self.dynamics_args[i] = (dargs[0], "expect",
+                                             QobjEvo(e_ops[dargs[2]]))
+        if state0 is not None:
+            self._dynamics_args_update(0., state0)
 
     def _td_format_check_single(self, Q_object, tlist=None):
         op_type = []
@@ -575,67 +595,35 @@ class QobjEvo:
             raise TypeError("Incorrect Q_object specification")
         return op_type
 
-    def _args_checks(self, update=False):
-        to_remove = []
-        to_add = {}
-        dyn_args = (key for key in self.args if "=" in key)
-        for key in dyn_args:
-            name, what = key.split("=")
-            if what in ["Qobj", "vec", "mat"] and \
-                    not update and name not in self.args:
-                self.dynamics_args += [(name, what, None)]
+    def _args_checks(self):
+        statedims = [self.cte.dims[1],[1]]
+        for key in self.args:
+            if key == "state" or key == "state_qobj":
+                self.dynamics_args += [(key, "Qobj", None)]
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims)
+
+            if key == "state_mat":
+                self.dynamics_args += [("state_mat", "mat", None)]
                 if isinstance(self.args[key], Qobj):
-                    if what == "Qobj":
-                        to_add[name] = self.args[key]
-                    elif what == "mat":
-                        to_add[name] = self.args[key].full()
-                    else:
-                        to_add[name] = self.args[key].full().ravel("F")
-                else:
-                    if what == "Qobj":
-                        to_add[name] = Qobj(dims=[self.cte.dims[1],[1]])
-                    elif what == "mat":
-                        to_add[name] = np.zeros((self.cte.shape[1],1),
-                                                dtype=complex)
-                    else:
-                        to_add[name] = np.zeros((self.cte.shape[1]),
-                                                dtype=complex)
+                    self.args[key] = self.args[key].full()
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims).full()
 
-            elif what == "expect":
-                if isinstance(self.args[key], QobjEvo):
-                    expect_op = self.args[key]
-                else:
-                    expect_op = QobjEvo(self.args[key], copy=False)
-                if update:
-                    for ops in self.dynamics_args:
-                        ops = (name, what, expect_op) if ops[0] == name else ops
-                else:
-                    self.dynamics_args += [(name, what, expect_op)]
-                    if name not in self.args:
-                        to_add[name] = 0.
-            else:
-                raise Exception("Could not understand dynamics args: " +
-                                what + "\nSupported dynamics args: "
-                                "Qobj, vec, mat, expect")
-            to_remove.append(key)
+            if key == "state_vec":
+                self.dynamics_args += [("state_vec", "vec", None)]
+                if isinstance(self.args[key], Qobj):
+                    self.args[key] = self.args[key].full().ravel("F")
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims).full().ravel("F")
 
-        for key in to_remove:
-            del self.args[key]
+            if key.startswith("expect_op_"):
+                e_op_num = int(key[10:])
+                self.dynamics_args += [(key, "expect", e_op_num)]
 
-        self.args.update(to_add)
-
-    def _check_old_with_state(self, state):
-        add_vec = False
-        for op in self.ops:
-            if op.type == "func":
-                try:
-                    op.get_coeff(0., self.args)
-                except TypeError as e:
-                    nfunc = _StateAsArgs(self.coeff)
-                    op = EvoElement((op.qobj, nfunc, nfunc, "func"))
-                    add_vec = True
-        if add_vec:
-            self.dynamics_args += [("_state_vec", "vec", None)]
+            if isinstance(self.args[key], StateArgs):
+                self.dynamics_args += [(key, *self.args[key]())]
+                self.args[key] = 0.
 
     def __del__(self):
         for file_ in self.coeff_files:
@@ -793,19 +781,39 @@ class QobjEvo:
             self.ops.append(EvoElement(op.qobj.copy(), op.get_coeff,
                                        new_coeff, op.type))
 
-    def arguments(self, args):
-        if not isinstance(args, dict):
+    def arguments(self, new_args):
+        if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
-        self.args.update(args)
-        self._args_checks(True)
+        # remove dynamics_args that are to be refreshed
+        self.dynamics_args = [dargs for dargs in self.dynamics_args
+                              if dargs[0] not in new_args]
+        self.args.update(new_args)
+        self._args_checks()
         if self.compiled and self.compiled.split()[2] is not "cte":
             if isinstance(self.coeff_get, StrCoeff):
                 self.coeff_get.set_args(self.args)
                 self.coeff_get._set_dyn_args(self.dynamics_args)
             elif isinstance(self.coeff_get, _UnitedFuncCaller):
                 self.coeff_get.set_args(self.args, self.dynamics_args)
-            else:
-                pass
+
+    def solver_set_args(self, new_args, state=None, e_ops=[]):
+        self.dynamics_args = []
+        self.args.update(new_args)
+        self._args_checks()
+        for i, dargs in enumerate(self.dynamics_args):
+            if dargs[1] == "expect" and isinstance(dargs[2], int) and e_ops:
+                self.dynamics_args[i] = (dargs[0], "expect",
+                                         QobjEvo(e_ops[dargs[2]]))
+                if self.compiled:
+                    self.dynamics_args[i][2].compile()
+        if state is not None:
+            self._dynamics_args_update(0., state)
+        if self.compiled and self.compiled.split()[2] is not "cte":
+            if isinstance(self.coeff_get, StrCoeff):
+                self.coeff_get.set_args(self.args)
+                self.coeff_get._set_dyn_args(self.dynamics_args)
+            elif isinstance(self.coeff_get, _UnitedFuncCaller):
+                self.coeff_get.set_args(self.args, self.dynamics_args)
 
     def to_list(self):
         list_qobj = []
@@ -1325,7 +1333,7 @@ class QobjEvo:
             else:
                 raise Exception("Dimensions do not fit")
         elif isinstance(state, np.ndarray):
-            vec = state.reshape((-1))
+            vec = state.ravel("F")
         else:
             raise TypeError("The vector must be an array or Qobj")
 
@@ -1345,7 +1353,7 @@ class QobjEvo:
                 self._dynamics_args_update(t, state)
                 exp = (self.__call__(t, data=True) *
                        vec.reshape((self.cte.shape[1],
-                                    self.cte.shape[1]))).trace()
+                                    self.cte.shape[1])).T).trace()
         else:
             raise Exception("The shapes do not match")
 
@@ -1674,11 +1682,11 @@ class _UnitedFuncCaller:
             elif what == "Qobj":
                 if self.shape[1] == shape[1]:  # oper
                     self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1:
+                elif shape[1] == 1: # ket
                     self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
                 else:  # rho
                     self.args[name] = Qobj(mat, dims=self.dims[1])
-            elif what == "expect":  # ket
+            elif what == "expect":
                 if shape[1] == op.cte.shape[1]: # same shape as object
                     self.args[name] = op.mul_mat(t, mat).trace()
                 else:
@@ -1744,3 +1752,4 @@ class _Add():
 from qutip.superoperator import (vec2mat, liouvillian, lindblad_dissipator,
                                  spre, spost)
 from qutip.qobjevofunc import QobjEvoFunc
+from qutip.qobjevo_maker import StateArgs

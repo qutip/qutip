@@ -52,82 +52,65 @@ import os
 
 class QobjEvoFunc(QobjEvo):
     """A class for representing time-dependent quantum objects,
-    such as quantum operators and states.
+    such as quantum operators and states from a function or callable.
 
-    The QobjEvo class is a representation of time-dependent Qutip quantum
+    The QobjEvoFunc class is a representation of time-dependent Qutip quantum
     objects (Qobj). This class implements math operations :
         +,- : QobjEvo, Qobj
         * : Qobj, C-number
         / : C-number
-    and some common linear operator/state operations. The QobjEvo
-    are constructed from a nested list of Qobj with their time-dependent
-    coefficients. The time-dependent coefficients are either a funciton, a
-    string or a numpy array.
+    and some common linear operator/state operations. The QobjEvoFunc is
+    constructed from a function that return a Qobj from time and extra
+    arguments.
 
-    For function format, the function signature must be f(t, args).
-    *Examples*
-        def f1_t(t, args):
-            return np.exp(-1j * t * args["w1"])
-
-        def f2_t(t, args):
-            return np.cos(t * args["w2"])
-
-        H = QobjEvo([H0, [H1, f1_t], [H2, f2_t]], args={"w1":1., "w2":2.})
-
-    For string based coeffients, the string must be a compilable python code
-    resulting in a complex. The following symbols are defined:
-        sin cos tan asin acos atan pi
-        sinh cosh tanh asinh acosh atanh
-        exp log log10 erf zerf sqrt
-        real imag conj abs norm arg proj
-        numpy as np, and scipy.special as spe.
-    *Examples*
-        H = QobjEvo([H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
-                    args={"w1":1.,"w2":2.})
-
-    For numpy array format, the array must be an 1d of dtype float or complex.
-    A list of times (float64) at which the coeffients must be given (tlist).
-    The coeffients array must have the same len as the tlist.
-    The time of the tlist do not need to be equidistant, but must be sorted.
-    *Examples*
-        tlist = np.logspace(-5,0,100)
-        H = QobjEvo([H0, [H1, np.exp(-1j*tlist)], [H2, np.cos(2.*tlist)]],
-                    tlist=tlist)
+    The signature of the function must be one of
+    - f(t)
+    - f(t, args)
+    - f(t, **kwargs)
+    - f(t, state, args)  -- for backward compatibility, to be deprecated --
 
     args is a dict of (name:object). The name must be a valid variables string.
     Some solvers support arguments that update at each call:
     sesolve, mesolve, mcsolve:
         state can be obtained with:
-            name+"=vec":Qobj  => args[name] == state as 1D np.ndarray
-            name+"=mat":Qobj  => args[name] == state as 2D np.ndarray
-            name+"=Qobj":Qobj => args[name] == state as Qobj
+            "state_vec":psi0, args["state_vec"] = state as 1D np.ndarray
+            "state_mat":psi0, args["state_mat"] = state as 2D np.ndarray
+            "state":psi0, args["state"] = state as Qobj
 
             This Qobj is the initial value.
 
         expectation values:
-            name+"=expect":O (Qobj/QobjEvo)  => args[name] == expect(O, state)
+            "expect_op_n":0, args["expect_op_n"] = expect(e_ops[int(n)], state)
             expect is <phi|O|psi> or tr(state * O) depending on state dimensions
 
     mcsolve:
         collapse can be obtained with:
-            name+"=collapse":list => args[name] == list of collapse
+            "collapse":list => args[name] == list of collapse
             each collapse will be appended to the list as (time, which c_ops)
-
-    Mixing the formats is possible, but not recommended.
-    Mixing tlist will cause problem.
 
     Parameters
     ----------
-    QobjEvo(Q_object=[], args={}, tlist=None)
+    QobjEvoFunc(Q_object=[], args={}, copy=True,
+                 tlist=None, state0=None, e_ops=[])
 
-    Q_object : array_like
-        Data for vector/matrix representation of the quantum object.
+    Q_object : callable
+        Function/method that return the Qobj at time t.
 
-    args : dictionary that contain the arguments for
+    args : dictionary that contain the arguments for coefficients.
+
+    copy : bool
+        If Q_object is already a QobjEvo, return a copy.
 
     tlist : array_like
         List of times at which the numpy-array coefficients are applied. Times
         must be equidistant and start from 0.
+
+    state0 : Qobj
+        First state to use if the state is used for args.
+
+    e_ops : list of Qobj
+        Operators from which args can be build.
+        args["expect_op_0"] = expect(e_ops[0], state0)
 
     Attributes
     ----------
@@ -174,10 +157,13 @@ class QobjEvoFunc(QobjEvo):
     Methods
     -------
     copy() :
-        Create copy of Qobj
+        Create copy of QobjEvoFunc
 
     arguments(new_args):
         Update the args of the object
+
+    solver_set_args(new_args, state, e_ops):
+        Update the args and set the dynamics_args for the solver state
 
     Math:
         +/- QobjEvo, Qobj, scalar:
@@ -188,6 +174,7 @@ class QobjEvoFunc(QobjEvo):
             Product is possible with Qobj or scalar
         / scalar:
             It is possible to divide by scalar only
+
     conj()
         Return the conjugate of quantum object.
 
@@ -207,20 +194,6 @@ class QobjEvoFunc(QobjEvo):
     apply(f, *args, **kw_args)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
         Return a modified QobjEvo and let the original one untouched
-
-    apply_decorator(decorator, *args, str_mod=None,
-                    inplace_np=False, **kw_args):
-        Apply the decorator to each function of the ops.
-        The *args and **kw_args are passed to the decorator.
-        new_coeff_function = decorator(coeff_function, *args, **kw_args)
-        str_mod : list of 2 elements
-            replace the string : str_mod[0] + original_string + str_mod[1]
-            *exemple: str_mod = ["exp(",")"]
-        inplace_np:
-            Change the numpy array instead of applying the decorator to the
-            function reading the array. Some decorators create incorrect array.
-            Transformations f'(t) = f(g(t)) create a missmatch between the
-            array and the associated time list.
 
     tidyup(atol=1e-12)
         Removes small elements from quantum object.
@@ -258,7 +231,8 @@ class QobjEvoFunc(QobjEvo):
     to_list():
         Return the time-dependent quantum object as a list
     """
-    def __init__(self, Q_object=None, args={}, tlist=None, copy=True):
+    def __init__(self, Q_object=[], args={}, copy=True,
+                 tlist=None, state0=None, e_ops=[]):
         if isinstance(Q_object, QobjEvoFunc):
             if copy:
                 self._inplace_copy(Q_object)
@@ -269,7 +243,6 @@ class QobjEvoFunc(QobjEvo):
             return
         self.args = args.copy() if copy else args
         self.dynamics_args = []
-        self._args_checks()
         self.compiled = ""
         self.compiled_qobjevo = None
         self.operation_stack = []
@@ -284,7 +257,6 @@ class QobjEvoFunc(QobjEvo):
         self.const = False
         self.type = ""
 
-
         if not callable(Q_object):
             raise TypeError("expected a function")
         self.func = Q_object
@@ -292,59 +264,37 @@ class QobjEvoFunc(QobjEvo):
         self.cte = Q_object(0, self.args)
         if not isinstance(self.cte, Qobj):
             raise TypeError("QobjEvoFunc require un function returning a Qobj")
+        self._args_checks()
 
-    def _args_checks(self, update=False):
-        print(self.args)
-        to_remove = []
-        to_add = {}
+    def _args_checks(self):
+        statedims = [self.cte.dims[1],[1]]
         for key in self.args:
-            if "=" in key:
-                name, what = key.split("=")
-                if what in ["Qobj", "vec", "mat"]:
-                    # state first, expect last
-                    if not update:
-                        self.dynamics_args = [(name, what, None)] + self.dynamics_args
-                        if name not in self.args:
-                            if isinstance(self.args[key], Qobj):
-                                if what == "Qobj":
-                                    to_add[name] = self.args[key]
-                                elif what == "mat":
-                                    to_add[name] = self.args[key].full()
-                                else:
-                                    to_add[name] = self.args[key].full().ravel("F")
-                            elif isinstance(self.args[key], np.ndarray):
-                                if what == "Qobj":
-                                    to_add[name] = Qobj(self.args[key])
-                                elif what == "mat":
-                                    to_add[name] = self.args[key]
-                                else:
-                                    to_add[name] = self.args[key].ravel("F")
-                            else:
-                                to_add[name] = None
+            if key == "state" or key == "state_qobj":
+                self.dynamics_args += [(key, "Qobj", None)]
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims)
 
-                elif what == "expect":
-                    if isinstance(self.args[key], QobjEvo):
-                        expect_op = self.args[key]
-                    else:
-                        expect_op = QobjEvo(self.args[key], copy=False)
-                    if update:
-                        for ops in self.dynamics_args:
-                            if ops[0] == name:
-                                ops = (name, what, expect_op)
-                    else:
-                        self.dynamics_args += [(name, what, expect_op)]
-                        if name not in self.args:
-                            to_add[name] = 0.
-                else:
-                    raise Exception("Could not understand dynamics args: " +
-                                    what + "\nSupported dynamics args: "
-                                    "Qobj, csr, vec, mat, expect")
-                to_remove.append(key)
+            if key == "state_mat":
+                self.dynamics_args += [("state_mat", "mat", None)]
+                if isinstance(self.args[key], Qobj):
+                    self.args[key] = self.args[key].full()
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims).full()
 
-        for key in to_remove:
-            del self.args[key]
+            if key == "state_vec":
+                self.dynamics_args += [("state_vec", "vec", None)]
+                if isinstance(self.args[key], Qobj):
+                    self.args[key] = self.args[key].full().ravel("F")
+                if self.args[key] is None:
+                    self.args[key] = Qobj(dims=statedims).full().ravel("F")
 
-        self.args.update(to_add)
+            if key.startswith("expect_op_"):
+                e_op_num = int(key[10:])
+                self.dynamics_args += [(key, "expect", e_op_num)]
+
+            if isinstance(self.args[key], StateArgs):
+                self.dynamics_args += [(key, *self.args[key]())]
+                self.args[key] = 0.
 
     def __del__(self):
         pass
@@ -459,7 +409,20 @@ class QobjEvoFunc(QobjEvo):
         if not isinstance(args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(args)
-        self._args_checks(True)
+        self._args_checks()
+
+    def solver_set_args(self, new_args, state, e_ops):
+        self.dynamics_args = []
+        self.args.update(new_args)
+        self._args_checks()
+        for i, dargs in enumerate(self.dynamics_args):
+            if dargs[1] == "expect" and isinstance(dargs[2], int) and e_ops:
+                self.dynamics_args[i] = (dargs[0], "expect",
+                                         QobjEvo(e_ops[dargs[2]]))
+                if self.compiled:
+                    self.dynamics_args[i][2].compile()
+        if state is not None:
+            self._dynamics_args_update(0., state)
 
     def to_list(self):
         return self.func
@@ -872,3 +835,6 @@ class _Block_apply(_Block_transform):
 
     def __call__(self, obj, t, args={}):
         return self.func(obj, *self.args, **self.kwargs)
+
+
+from qutip.qobjevo_maker import StateArgs

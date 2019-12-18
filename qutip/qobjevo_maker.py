@@ -40,13 +40,25 @@ from qutip.qobjevo import QobjEvo, EvoElement
 from qutip.qobjevofunc import QobjEvoFunc
 import inspect
 
+
+class StateArgs:
+    """Object to indicate to use the state in args outside solver.
+    args[key] = StateArgs(type, op)
+    """
+    def __init__(self, type="Qobj", op=None):
+        self.dyn_args = (type, op)
+
+    def __call__(self):
+        return self.dyn_args
+
+
 class _StateAsArgs:
     # old with state (f(t, psi, args)) to new (args["state"] = psi)
     def __init__(self, func):
         self.original_func = func
 
     def __call__(self, t, args={}):
-        return self.original_func(t, args["_state_vec"], args)
+        return self.original_func(t, args["state_vec"], args)
 
 
 class _NoArgs:
@@ -60,48 +72,31 @@ class _NoArgs:
 class _KwArgs:
     def __init__(self, func):
         self.original_func = func
-        self.clean_args = True
 
     def __call__(self, t, args={}):
-        if self.clean_args:
-            clean_args = {key:val for key, val in args.items()
-                          if not key.startswith("_")}
-            clean_args = {key:val for key, val in clean_args.items()
-                          if "=" in key}
-            return self.original_func(t, **clean_args)
-        else:
-            return self.original_func(t, **args)
-
-
-def _has_kwargs(f):
-    if hasattr(f, "__code__"):
-        code = f.__code__
-    else:
-        code = f.__call__.__code__
-
-    return bool(inspect.getargs(code).varkw)
-
-
-def _num_args(f):
-    if hasattr(f, "__code__"):
-        code = f.__code__
-    else:
-        code = f.__call__.__code__
-    is_method = inspect.ismethod(f) or inspect.ismethod(f.__call__)
-    return len(inspect.getargs(code).args) - int(is_method)
+        return self.original_func(t, **args)
 
 
 def _set_signature(func):
-    if _has_kwargs(func):
+    if hasattr(func, "__code__"):
+        code = func.__code__
+    else:
+        code = func.__call__.__code__
+
+    has_kwargs = bool(inspect.getargs(code).varkw)
+    # is_method = inspect.ismethod(func) or inspect.ismethod(func.__call__)
+    num_args = len(inspect.getargs(code).args)
+
+    if has_kwargs:
         # func(t, **kwargs)
         return _KwArgs(func)
-    elif _num_args == 1:
+    elif num_args == 1:
         # func(t) of func(self, t)
         return _NoArgs(func)
-    elif _num_args == 2:
+    elif num_args == 2:
         # func(t, args) of func(self, t, args)
         return func
-    elif _num_args == 3:
+    elif num_args == 3:
         # func(t, state, args) of func(self, t, state, args)
         return _StateAsArgs(func)
     else:
@@ -109,8 +104,7 @@ def _set_signature(func):
 
 
 def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
-                  rhs_with_state=False, no_args=False, kw_args=False,
-                  state=None):
+                  e_ops=[], state=None):
     """Create a QobjEvo or QobjEvoFunc from a valid definition.
     Valid format are:
     list format:
@@ -125,6 +119,12 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
     callable:
 
         Q_object(t, args) -> Qobj
+
+    Valid function signature are:
+        - f(t)
+        - f(t, args)
+        - f(t, state, args)  *to be deprecated
+        - f(t, **kwargs)
 
     Parameters
     ----------
@@ -141,16 +141,11 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
         Whether make a copy of the args or the QobjEvo if Q_object is already a
         QobjEvo.
 
-    rhs_with_state : bool
-        Whether the function are defined using the old rhs_with_state format:
-        c_i(t, state, args)
-
-    no_args : bool
-        Whether the function are defined without states:
-        c_i(t)
-
     state : Qobj
         default state if rhs_with_state.
+
+    e_ops : list of Qobj
+        operators for expect dynamics args
 
     Returns
     -------
@@ -162,55 +157,30 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
         obj = Q_object.copy() if copy else Q_object
     elif isinstance(Q_object, (list, Qobj)):
         obj = QobjEvo(Q_object, args, tlist, copy)
-        _list_signature(obj)
+        if _all_sig_check(obj):
+            args["state_vec"] = None
+        obj.solver_set_args(args, state, e_ops)
     elif callable(Q_object):
-        obj = _set_signature(Q_object)
-        if no_args:
-            Q_object = _NoArgs(Q_object)
-        if kw_args:
-            Q_object = _KwArgs(Q_object)
-        elif rhs_with_state:
-            Q_object = _StateAsArgs(Q_object)
-            args["_state_vec=vec"] = state
+        Q_object = _set_signature(Q_object)
+        if isinstance(Q_object, _StateAsArgs):
+            args["state_vec"] = state
         obj = QobjEvoFunc(Q_object, args, tlist, copy)
+        obj.solver_set_args(args, state, e_ops)
     else:
         raise NotImplementedError(type(Q_object))
     return obj
 
 
-def _with_state(obj):
-    add_vec = False
+def _all_sig_check(obj):
     new_ops = []
+    state_args = False
     for op in obj.ops:
         if op.type == "func":
-            nfunc = _StateAsArgs(op.coeff)
-            new_ops.append(EvoElement(op.qobj, nfunc, nfunc, "func"))
-            add_vec = True
+            fixed_sig = _set_signature(op.coeff)
+            new_ops.append(EvoElement(op.qobj, fixed_sig, fixed_sig, "func"))
+            if isinstance(fixed_sig, _StateAsArgs):
+                state_args = True
         else:
             new_ops.append(op)
     obj.ops = new_ops
-    if add_vec:
-        obj.args["_state_vec"] = np.zeros(obj.cte.shape[0], dtype=complex)
-        obj.dynamics_args += [("_state_vec", "vec", None)]
-
-
-def _noargs(obj):
-    new_ops = []
-    for op in obj.ops:
-        if op.type == "func":
-            nfunc = _NoArgs(op.coeff)
-            new_ops.append(EvoElement(op.qobj, nfunc, nfunc, "func"))
-        else:
-            new_ops.append(op)
-    obj.ops = new_ops
-
-
-def _kwargs(obj):
-    new_ops = []
-    for op in obj.ops:
-        if op.type == "func":
-            nfunc = _KwArgs(op.coeff)
-            new_ops.append(EvoElement(op.qobj, nfunc, nfunc, "func"))
-        else:
-            new_ops.append(op)
-    obj.ops = new_ops
+    return state_args

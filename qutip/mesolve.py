@@ -236,8 +236,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     check_use_openmp(options)
 
     if not isinstance(H, SolverSystem):
-        H = qobjevo_maker(H, args, tlist,
-                          rhs_with_state=options.rhs_with_state)
+        H = qobjevo_maker(H, args, tlist)
 
     use_mesolve = ((c_ops and len(c_ops) > 0)
                    or (not isket(rho0)) or issuper(H.cte))
@@ -264,7 +263,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     else:
         raise Exception("Invalid H type")
 
-    func, ode_args = ss.makefunc(ss, rho0, args, options)
+    func, ode_args = ss.makefunc(ss, rho0, args, e_ops, options)
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -300,8 +299,8 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td
 
-    if opt.rhs_with_state:
-        L_td._check_old_with_state()
+    #if opt.rhs_with_state:
+    #    L_td._check_old_with_state()
 
     nthread = opt.openmp_threads if opt.use_openmp else 0
     L_td.compile(omp=nthread)
@@ -312,12 +311,12 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     solver_safe["mesolve"] = ss
     return ss
 
-def _qobjevo_set(HS, rho0, args, opt):
+def _qobjevo_set(HS, rho0, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.arguments(args)
+    H_td.solver_set_args(args, rho0, e_ops)
     if issuper(rho0):
         func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
     elif rho0.isket or rho0.isoper:
@@ -370,7 +369,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     """
     c_ops = []
     for op in c_op_list:
-        op_td = QobjEvo(op, args, tlist, copy=False)
+        op_td = QobjEvo(op, args, tlist=tlist, copy=False)
         if not issuper(op_td.cte):
             c_ops += [lindblad_dissipator(op_td)]
         else:
@@ -401,7 +400,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     return ss
 
 
-def _Lfunc_set(HS, rho0, args, opt):
+def _Lfunc_set(HS, rho0, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """

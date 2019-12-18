@@ -312,8 +312,8 @@ class _MC():
             H_td *= -1j
             for c in ss.td_n_ops:
                 H_td += -0.5 * c
-            if options.rhs_with_state:
-                H_td._check_old_with_state()
+            # if options.rhs_with_state:
+            #    H_td._check_old_with_state()
             H_td.compile()
             ss.H_td = H_td
             ss.makefunc = _qobjevo_set
@@ -389,7 +389,7 @@ class _MC():
                                progress_bar, map_func, map_kwargs)
             return
 
-        if args != self.ss.args:
+        if args and args != self.ss.args:
             self.ss.set_args(self.ss, args)
             self.reset()
 
@@ -754,11 +754,11 @@ def _qobjevo_args(ss, args):
     var = _collapse_args(args)
     ss.col_args = var
     ss.args = args
-    ss.H_td.arguments(args)
+    ss.H_td.solver_set_args(args, psi0, e_ops)
     for c in ss.td_c_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
 
 def _func_set(HS, psi0=None, args={}, opt=None):
     if args:
@@ -776,9 +776,9 @@ def _func_args(ss, args):
     ss.col_args = var
     ss.args = args
     for c in ss.td_c_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
     return rhs, (ss.h_func, ss.Hc_td, args)
 
 
@@ -805,20 +805,9 @@ def _mc_dm_avg(psi_list):
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
 
 def _collapse_args(args):
-    to_rm = ""
-    for k in args:
-        if "=" in k and k.split("=")[1] == "collapse":
-            to_rm.append(k)
-            var = k.split("=")[0]
-            if isinstance(args[k], list):
-                list_ = args[k]
-            else:
-                list_ = []
-            to_rm = k
-            break
-    if to_rm:
-        del args[k]
-        args[var] = list_
-        return var
-    else:
-        return ""
+    for key in args:
+        if key == "collapse":
+            if not isinstance(args[key], list):
+                args[key] = []
+            return key
+    return ""
