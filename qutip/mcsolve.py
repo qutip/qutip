@@ -754,11 +754,11 @@ def _qobjevo_args(ss, args):
     var = _collapse_args(args)
     ss.col_args = var
     ss.args = args
-    ss.H_td.solver_set_args(args, psi0, e_ops)
+    ss.H_td.arguments(args, psi0, e_ops)
     for c in ss.td_c_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
 
 def _func_set(HS, psi0=None, args={}, opt=None):
     if args:
@@ -776,9 +776,9 @@ def _func_args(ss, args):
     ss.col_args = var
     ss.args = args
     for c in ss.td_c_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
     return rhs, (ss.h_func, ss.Hc_td, args)
 
 

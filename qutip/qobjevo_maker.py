@@ -77,34 +77,64 @@ class _KwArgs:
         return self.original_func(t, **args)
 
 
-def _set_signature(func):
-    if hasattr(func, "__code__"):
-        code = func.__code__
-    else:
-        code = func.__call__.__code__
+def set_signature(func, args, state=None):
+    """Fix the signature of func to f(t, args) if otherwise.
+    Support f(t), f(t, **args), f(t, state, args)
+    """
+    has_varargs = inspect.getfullargspec(func).varargs is not None
+    has_kwargs = inspect.getfullargspec(func).varkw is not None
+    is_method = inspect.ismethod(func) or inspect.ismethod(func.__call__)
+    num_args = len(inspect.getfullargspec(func).args) - is_method
 
-    has_kwargs = bool(inspect.getargs(code).varkw)
-    # is_method = inspect.ismethod(func) or inspect.ismethod(func.__call__)
-    num_args = len(inspect.getargs(code).args)
-
-    if has_kwargs:
+    if has_kwargs and num_args >= 1 and not has_varargs:
         # func(t, **kwargs)
-        return _KwArgs(func)
+        new_func = _KwArgs(func)
     elif num_args == 1:
         # func(t) of func(self, t)
-        return _NoArgs(func)
+        new_func = _NoArgs(func)
     elif num_args == 2:
         # func(t, args) of func(self, t, args)
-        return func
+        new_func = func
     elif num_args == 3:
         # func(t, state, args) of func(self, t, state, args)
-        return _StateAsArgs(func)
+        if "state_vec" not in args:
+            args["state_vec"] = state.full().ravel("F")
+        new_func = _StateAsArgs(func)
     else:
-        raise Exception("Could not reconise function signature")
+        # probably a decorated function f(*args, **kwargs), or an error
+        new_func = _manual_check(func, args, state)
+    try:
+        new_func(0, args)
+    except Exception as e:
+        msg = ("Could not reconise function signature \n"
+               "Should be one or f(t,args), f(t), f(t,**kwargs))")
+        raise Exception(msg) from e
+    return new_func
 
+
+def _can_be_call_with(func, *args, **kwargs):
+    try:
+        func(*args, **kwargs)
+    except:
+        return False
+    else:
+        return True
+
+
+def _manual_check(func, args, state):
+    if _can_be_call_with(func, 0):
+        return _NoArgs(func)
+    if _can_be_call_with(func, 0, **args):
+        return _KwArgs(func)
+    if _can_be_call_with(func, 0, state.full().ravel("F"), args):
+        if "state_vec" not in args:
+            args["state_vec"] = state.full().ravel("F")
+        return _StateAsArgs(func)
+    # Will return an error in _set_signature instead if wrong
+    return func
 
 def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
-                  e_ops=[], state=None):
+                  state=None, e_ops=[]):
     """Create a QobjEvo or QobjEvoFunc from a valid definition.
     Valid format are:
     list format:
@@ -156,31 +186,29 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
     if isinstance(Q_object, QobjEvo):
         obj = Q_object.copy() if copy else Q_object
     elif isinstance(Q_object, (list, Qobj)):
-        obj = QobjEvo(Q_object, args, tlist, copy)
-        if _all_sig_check(obj):
-            args["state_vec"] = None
-        obj.solver_set_args(args, state, e_ops)
+        obj = QobjEvo(Q_object, args, copy, tlist, state, e_ops)
+        #obj.solver_set_args(args, state, e_ops)
+        #_all_sig_check(obj, state)
     elif callable(Q_object):
-        Q_object = _set_signature(Q_object)
-        if isinstance(Q_object, _StateAsArgs):
-            args["state_vec"] = state
-        obj = QobjEvoFunc(Q_object, args, tlist, copy)
-        obj.solver_set_args(args, state, e_ops)
+        obj = QobjEvoFunc(Q_object, args, copy, tlist, state, e_ops)
+        #Q_object = _set_signature(Q_object)
+        #if isinstance(Q_object, _StateAsArgs):
+        #    args["state_vec"] = state
+
+        #obj.solver_set_args(args, state, e_ops)
     else:
         raise NotImplementedError(type(Q_object))
     return obj
 
 
-def _all_sig_check(obj):
+"""def _all_sig_check(obj, state):
     new_ops = []
     state_args = False
     for op in obj.ops:
         if op.type == "func":
-            fixed_sig = _set_signature(op.coeff)
+            fixed_sig = _set_signature(op.coeff, obj.args, state)
             new_ops.append(EvoElement(op.qobj, fixed_sig, fixed_sig, "func"))
-            if isinstance(fixed_sig, _StateAsArgs):
-                state_args = True
         else:
             new_ops.append(op)
     obj.ops = new_ops
-    return state_args
+    return state_args"""

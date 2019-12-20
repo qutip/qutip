@@ -668,7 +668,8 @@ def test_QobjEvo_with_state():
     q2 = Qobj(data2)
     args={"w":5, "state_vec":None, "expect_op_0":2*qeye(N)}
 
-    td_data = QobjEvo([q1, [q2, coeff_state]], args=args, e_ops=[2*qeye(N)])
+    td_data = QobjEvo([q1, [q2, coeff_state]], args=args,
+                      state=Qobj(vec), e_ops=[2*qeye(N)])
     q_at_t = q1 + np.mean(vec) * args["w"] * expect(2*qeye(N), Qobj(vec.T)) * q2
     # Check that the with_state call
     assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
@@ -677,7 +678,7 @@ def test_QobjEvo_with_state():
     assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
 
     td_data = QobjEvo([q1, [q2, "state_vec[0] * cos(w*expect_op_0*t)"]],
-                      args=args, e_ops=[2*qeye(N)])
+                      args=args, state=Qobj(vec), e_ops=[2*qeye(N)])
     data_at_t = q1 + q2 * vec[0] * np.cos(10 * t * expect(qeye(N), Qobj(vec.T)))
     # Check that the with_state call for str format
     assert_allclose(td_data.mul_vec(t, vec), data_at_t * vec)
@@ -707,7 +708,7 @@ def test_QobjEvo_with_state():
         if not np.all(args["state_mat"] == mat):
             raise Exception
         return 1
-    td_data = QobjEvo([q1, check_dyn_args], args=args)
+    td_data = QobjEvo([q1, check_dyn_args], args=args, state=Qobj(mat))
     td_data.mul_mat(0, mat)
 
 
@@ -730,22 +731,22 @@ def test_QobjEvoFunc_with_state():
             raise Exception
         if not np.all(args["state_vec"] == args["state_mat"].ravel("F")):
             raise Exception
-        if not np.all(args["state_mat"] == mat):
+        if not np.all(args["state_qobj"] == args["state_0"]):
             raise Exception
-        if not args["expect_op_0"] == args["e"]:
+        if not np.allclose(args["expect_op_0"], args["e"]):
             raise Exception
         return qeye(3)
 
     args={"state_mat":None, "state_vec":None, "state_qobj":None,
-          "expect_op_0":0, "e":1.}
+          "expect_op_0":0, "e":1., "state_0":basis(3,1)}
     e_ops = [qeye(3)]
-    obj = QobjEvoFunc(check_dyn_args, args=args, e_ops=e_ops, state0=basis(3,1))
+    obj = QobjEvoFunc(check_dyn_args, args=args, state=basis(3,1), e_ops=e_ops)
     obj(0)
 
     args={"state_mat":None, "state_vec":None, "state_qobj":None,
-          "expect_op_0":0, "e":3.}
+          "expect_op_0":0, "e":3., "state_0":create(3)}
     e_ops = [destroy(3)]
-    obj = QobjEvoFunc(check_dyn_args, args=args, e_ops=e_ops, state0=create(3))
+    obj = QobjEvoFunc(check_dyn_args, args=args, state=create(3), e_ops=e_ops)
     obj(0)
 
 
@@ -969,43 +970,44 @@ def test_signature():
 
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f1], args={"a":2})(1))
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f2], args={"a":2})(1))
-    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f3], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f3], args={"a":2},
+                                          state=Qobj())(1))
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f4], args={"a":2})(1))
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f5], args={"a":2})(1))
 
     class c1:
-        def __call__(t):
+        def __call__(self, t):
             return t * 2
 
-        def met(t):
+        def met(self, t):
             return t * 2
 
     class c2:
-        def __call__(t, args):
+        def __call__(self, t, args):
             return t * args["a"]
 
-        def met(t, args):
+        def met(self, t, args):
             return t * args["a"]
 
     class c3:
-        def __call__(t, state, args):
+        def __call__(self, t, state, args):
             return t * args["a"]
 
-        def met(t, state, args):
+        def met(self, t, state, args):
             return t * args["a"]
 
     class c4:
-        def __call__(t, **kwargs):
+        def __call__(self, t, **kwargs):
             return t * kwargs["a"]
 
-        def met(t, **kwargs):
+        def met(self, t, **kwargs):
             return t * kwargs["a"]
 
     class c5:
-        def __call__(t, a=0, **kwargs):
+        def __call__(self, t, a=0, **kwargs):
             return t * a
 
-        def met(t, a=0, **kwargs):
+        def met(self, t, a=0, **kwargs):
             return t * a
 
     g = c1()
@@ -1015,8 +1017,10 @@ def test_signature():
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2})(1))
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2})(1))
     g = c3()
-    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2})(1))
-    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2},
+                                          state=Qobj())(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2},
+                                          state=Qobj())(1))
     g = c4()
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2})(1))
     assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2})(1))
@@ -1041,6 +1045,6 @@ def test_signature():
 
     assert_equal(qeye(2)*2, qobjevo_maker(q1, args={"a":2})(1))
     assert_equal(qeye(2)*2, qobjevo_maker(q2, args={"a":2})(1))
-    assert_equal(qeye(2)*2, qobjevo_maker(q3, args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker(q3, args={"a":2}, state=Qobj())(1))
     assert_equal(qeye(2)*2, qobjevo_maker(q4, args={"a":2})(1))
     assert_equal(qeye(2)*2, qobjevo_maker(q5, args={"a":2})(1))

@@ -202,7 +202,7 @@ def _qobjevo_set(HS, psi, args, e_ops, opt):
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.solver_set_args(args, psi, e_ops)
+    H_td.arguments(args, psi, e_ops)
     if psi.isunitary:
         func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
     elif psi.isket:

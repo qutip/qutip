@@ -327,7 +327,7 @@ class StochasticSolverOptions:
         if H is not None:
             try:
                 self.H = qobjevo_maker(H, args=args, tlist=times,
-                                       e_ops=e_ops, state0=state0)
+                                       e_ops=e_ops, state=state0)
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
         else:
@@ -338,7 +338,7 @@ class StochasticSolverOptions:
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
                 self.sc_ops = [qobjevo_maker(op, args=args, tlist=times,
-                                             e_ops=e_ops, state0=state0)
+                                             e_ops=e_ops, state=state0)
                                for op in sc_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
@@ -352,7 +352,7 @@ class StochasticSolverOptions:
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
                 self.c_ops = [qobjevo_maker(op, args=args, tlist=times,
-                                            e_ops=e_ops, state0=state0)
+                                            e_ops=e_ops, state=state0)
                               for op in c_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e

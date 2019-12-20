@@ -91,7 +91,7 @@ class QobjEvoFunc(QobjEvo):
     Parameters
     ----------
     QobjEvoFunc(Q_object=[], args={}, copy=True,
-                 tlist=None, state0=None, e_ops=[])
+                 tlist=None, state=None, e_ops=[])
 
     Q_object : callable
         Function/method that return the Qobj at time t.
@@ -105,12 +105,12 @@ class QobjEvoFunc(QobjEvo):
         List of times at which the numpy-array coefficients are applied. Times
         must be equidistant and start from 0.
 
-    state0 : Qobj
+    state : Qobj
         First state to use if the state is used for args.
 
     e_ops : list of Qobj
         Operators from which args can be build.
-        args["expect_op_0"] = expect(e_ops[0], state0)
+        args["expect_op_0"] = expect(e_ops[0], state)
 
     Attributes
     ----------
@@ -159,11 +159,8 @@ class QobjEvoFunc(QobjEvo):
     copy() :
         Create copy of QobjEvoFunc
 
-    arguments(new_args):
-        Update the args of the object
-
-    solver_set_args(new_args, state, e_ops):
-        Update the args and set the dynamics_args for the solver state
+    arguments(new_args, state, e_ops):
+        Update the args and set the dynamics_args
 
     Math:
         +/- QobjEvo, Qobj, scalar:
@@ -232,21 +229,23 @@ class QobjEvoFunc(QobjEvo):
         Return the time-dependent quantum object as a list
     """
     def __init__(self, Q_object=[], args={}, copy=True,
-                 tlist=None, state0=None, e_ops=[]):
+                 tlist=None, state=None, e_ops=[]):
         if isinstance(Q_object, QobjEvoFunc):
             if copy:
                 self._inplace_copy(Q_object)
             else:
                 self.__dict__ = Q_object.__dict__
             if args:
-                self.arguments(args)
+                self.arguments(args, state, e_ops)
             return
         self.args = args.copy() if copy else args
         self.dynamics_args = []
+
         self.compiled = ""
         self.compiled_qobjevo = None
         self.operation_stack = []
         self.shifted = False
+        self.const = False
 
         # Dummy attributes from QobjEvo
         self.coeff_get = None
@@ -254,47 +253,17 @@ class QobjEvoFunc(QobjEvo):
         self.omp = 0
         self.num_obj = 1
         self.dummy_cte = True
-        self.const = False
         self.type = ""
 
         if not callable(Q_object):
             raise TypeError("expected a function")
-        self.func = Q_object
+        self._args_checks(state, e_ops)
+
+        self.func = set_signature(Q_object, self.args, state)
         # Let Q_object call raise an error if wrong definition
-        self.cte = Q_object(0, self.args)
+        self.cte = self.func(0, self.args)
         if not isinstance(self.cte, Qobj):
             raise TypeError("QobjEvoFunc require un function returning a Qobj")
-        self._args_checks()
-
-    def _args_checks(self):
-        statedims = [self.cte.dims[1],[1]]
-        for key in self.args:
-            if key == "state" or key == "state_qobj":
-                self.dynamics_args += [(key, "Qobj", None)]
-                if self.args[key] is None:
-                    self.args[key] = Qobj(dims=statedims)
-
-            if key == "state_mat":
-                self.dynamics_args += [("state_mat", "mat", None)]
-                if isinstance(self.args[key], Qobj):
-                    self.args[key] = self.args[key].full()
-                if self.args[key] is None:
-                    self.args[key] = Qobj(dims=statedims).full()
-
-            if key == "state_vec":
-                self.dynamics_args += [("state_vec", "vec", None)]
-                if isinstance(self.args[key], Qobj):
-                    self.args[key] = self.args[key].full().ravel("F")
-                if self.args[key] is None:
-                    self.args[key] = Qobj(dims=statedims).full().ravel("F")
-
-            if key.startswith("expect_op_"):
-                e_op_num = int(key[10:])
-                self.dynamics_args += [(key, "expect", e_op_num)]
-
-            if isinstance(self.args[key], StateArgs):
-                self.dynamics_args += [(key, *self.args[key]())]
-                self.args[key] = 0.
 
     def __del__(self):
         pass
@@ -405,24 +374,14 @@ class QobjEvoFunc(QobjEvo):
         self.compiled_qobjevo = None
         self.func = other.func
 
-    def arguments(self, args):
-        if not isinstance(args, dict):
+    def arguments(self, new_args, state=None, e_ops=[]):
+        if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
-        self.args.update(args)
-        self._args_checks()
-
-    def solver_set_args(self, new_args, state, e_ops):
-        self.dynamics_args = []
+        # remove dynamics_args that are to be refreshed
+        self.dynamics_args = [dargs for dargs in self.dynamics_args
+                              if dargs[0] not in new_args]
         self.args.update(new_args)
-        self._args_checks()
-        for i, dargs in enumerate(self.dynamics_args):
-            if dargs[1] == "expect" and isinstance(dargs[2], int) and e_ops:
-                self.dynamics_args[i] = (dargs[0], "expect",
-                                         QobjEvo(e_ops[dargs[2]]))
-                if self.compiled:
-                    self.dynamics_args[i][2].compile()
-        if state is not None:
-            self._dynamics_args_update(0., state)
+        self._args_checks(state=state, e_ops=e_ops)
 
     def to_list(self):
         return self.func
@@ -837,4 +796,4 @@ class _Block_apply(_Block_transform):
         return self.func(obj, *self.args, **self.kwargs)
 
 
-from qutip.qobjevo_maker import StateArgs
+from qutip.qobjevo_maker import StateArgs, set_signature
