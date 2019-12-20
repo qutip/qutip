@@ -81,7 +81,8 @@ class QobjEvoFunc(QobjEvo):
 
         expectation values:
             "expect_op_n":0, args["expect_op_n"] = expect(e_ops[int(n)], state)
-            expect is <phi|O|psi> or tr(state * O) depending on state dimensions
+            expect is <phi|O|psi> or tr(state * O) depending on state
+            dimensions.
 
     mcsolve:
         collapse can be obtained with:
@@ -279,66 +280,6 @@ class QobjEvoFunc(QobjEvo):
         if data:
             out = out.data
         return out
-
-    def _dynamics_args_update(self, t, state):
-        if isinstance(state, Qobj):
-            for name, what, op in self.dynamics_args:
-                if what == "vec":
-                    self.args[name] = state.full().ravel("F")
-                elif what == "mat":
-                    self.args[name] = state.full()
-                elif what == "Qobj":
-                    self.args[name] = state
-                elif what == "expect":
-                    self.args[name] = op.expect(t, state)
-
-        elif isinstance(state, np.ndarray) and state.ndim == 1:
-            s1 = self.cte.shape[1]
-            for name, what, op in self.dynamics_args:
-                if what == "vec":
-                    self.args[name] = state
-                elif what == "expect":
-                    self.args[name] = op.expect(t, state)
-                elif state.shape[0] == s1 and self.cte.issuper:
-                    new_l = int(np.sqrt(s1))
-                    mat = state.reshape((new_l, new_l), order="F")
-                    if what == "mat":
-                        self.args[name] = mat
-                    elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=self.cte.dims[1])
-                elif state.shape[0] == s1:
-                    mat = state.reshape((-1,1))
-                    if what == "mat":
-                        self.args[name] = mat
-                    elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=[self.cte.dims[1],[1]])
-                elif state.shape[0] == s1*s1:
-                    new_l = int(np.sqrt(s1))
-                    mat = state.reshape((new_l, new_l), order="F")
-                    if what == "mat":
-                        self.args[name] = mat
-                    elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=[self.cte.dims[1], self.cte.dims[1]])
-
-        elif isinstance(state, np.ndarray) and state.ndim == 2:
-            s1 = self.cte.shape[1]
-            new_l = int(np.sqrt(s1))
-            for name, what, op in self.dynamics_args:
-                if what == "vec":
-                    self.args[name] = state.ravel("F")
-                elif what == "mat":
-                    self.args[name] = state
-                elif what == "expect":
-                    self.args[name] = op.expect(t, state)
-                elif state.shape[1] == 1:
-                    self.args[name] = Qobj(state, dims=[self.cte.dims[1],[1]])
-                elif state.shape[1] == s1:
-                    self.args[name] = Qobj(state, dims=self.cte.dims)
-                else:
-                    self.args[name] = Qobj(state)
-
-        else:
-            raise TypeError("state must be a Qobj or np.ndarray")
 
     def _get_qobj(self, t, args={}):
         if args:

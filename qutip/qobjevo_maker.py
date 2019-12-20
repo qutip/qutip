@@ -115,7 +115,7 @@ def set_signature(func, args, state=None):
 def _can_be_call_with(func, *args, **kwargs):
     try:
         func(*args, **kwargs)
-    except:
+    except Exception:
         return False
     else:
         return True
@@ -132,6 +132,7 @@ def _manual_check(func, args, state):
         return _StateAsArgs(func)
     # Will return an error in _set_signature instead if wrong
     return func
+
 
 def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
                   state=None, e_ops=[]):
@@ -179,36 +180,15 @@ def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
 
     Returns
     -------
-    L : QobjEvo or QobjEvoFunc
+    obj : QobjEvo or QobjEvoFunc
         The time-dependent Qobj.
-
     """
     if isinstance(Q_object, QobjEvo):
         obj = Q_object.copy() if copy else Q_object
     elif isinstance(Q_object, (list, Qobj)):
         obj = QobjEvo(Q_object, args, copy, tlist, state, e_ops)
-        #obj.solver_set_args(args, state, e_ops)
-        #_all_sig_check(obj, state)
     elif callable(Q_object):
         obj = QobjEvoFunc(Q_object, args, copy, tlist, state, e_ops)
-        #Q_object = _set_signature(Q_object)
-        #if isinstance(Q_object, _StateAsArgs):
-        #    args["state_vec"] = state
-
-        #obj.solver_set_args(args, state, e_ops)
     else:
         raise NotImplementedError(type(Q_object))
     return obj
-
-
-"""def _all_sig_check(obj, state):
-    new_ops = []
-    state_args = False
-    for op in obj.ops:
-        if op.type == "func":
-            fixed_sig = _set_signature(op.coeff, obj.args, state)
-            new_ops.append(EvoElement(op.qobj, fixed_sig, fixed_sig, "func"))
-        else:
-            new_ops.append(op)
-    obj.ops = new_ops
-    return state_args"""
