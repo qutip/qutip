@@ -234,12 +234,18 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         args = {}
 
     check_use_openmp(options)
+    if isket(rho0):
+        rho = ket2dm(rho0)
+    else:
+        rho = rho0
 
     if not isinstance(H, SolverSystem):
-        H = qobjevo_maker(H, args, tlist)
+        H = qobjevo_maker(H, args, tlist=tlist, state=rho, e_ops=e_ops)
+        c_ops = [qobjevo_maker(op, args, tlist=tlist, state=rho, e_ops=e_ops)
+                 for op in c_ops]
 
-    use_mesolve = ((c_ops and len(c_ops) > 0)
-                   or (not isket(rho0)) or issuper(H.cte))
+    use_mesolve = ((c_ops and len(c_ops) > 0) or (not isket(rho0)) or
+                   issuper(H.cte))
     """            or (isinstance(H, Qobj) and issuper(H))
                    or (isinstance(H, QobjEvo) and issuper(H.cte))
                    or (isinstance(H, list) and isinstance(H[0], Qobj) and
@@ -288,13 +294,13 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = qobjevo_maker(H, args, tlist)
+    H_td = qobjevo_maker(H, args, tlist=tlist)
     if not issuper(H_td.cte):
         L_td = liouvillian(H_td)
     else:
         L_td = H_td
     for op in c_ops:
-        op_td = qobjevo_maker(op, args, tlist)
+        op_td = qobjevo_maker(op, args, tlist=tlist)
         if not issuper(op_td.cte):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td

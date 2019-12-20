@@ -847,7 +847,7 @@ class TestMESolveStepFuncCoeff:
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
 
     def test_dynamic_args(self):
-        "sesolve: state feedback"
+        "mesolve: state feedback"
         tol = 1e-3
         def f(t, args):
             return np.sqrt(args["state_vec"][3])

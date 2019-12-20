@@ -155,7 +155,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if isinstance(H, SolverSystem):
         ss = H
     else:
-        H = qobjevo_maker(H, args, tlist)
+        H = qobjevo_maker(H, args, tlist=tlist, e_ops=e_ops, state=psi0)
         ss = _sesolve_QobjEvo(H, tlist, args, options)
 
     # elif isinstance(H, (list, Qobj, QobjEvo)):
@@ -187,7 +187,7 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = -1.0j * qobjevo_maker(H, args, tlist)
+    H_td = -1.0j * qobjevo_maker(H, args, tlist=tlist)
     nthread = opt.openmp_threads if opt.use_openmp else 0
     H_td.compile(omp=nthread)
 
