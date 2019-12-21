@@ -157,7 +157,7 @@ class TestLattice:
         """
         val_s = ['site0', 'site1']
         val_t = [' orb0', 'orb1']
-        (cell_H_form, inter_cell_T_form, cell_H,
+        (H_cell_form, inter_cell_T_form, H_cell,
          inter_cell_T) = cell_structures(val_s, val_t)
         c_H_form = [['<site0 orb0 H site0 orb0>',
                      '<site0 orb0 H site0orb1>',
@@ -194,9 +194,9 @@ class TestLattice:
                           '<cell(i):site1orb1 H site1orb1:cell(i+1) >']]
         c_H = np.zeros((4, 4), dtype=complex)
         i_cell_T = np.zeros((4, 4), dtype=complex)
-        assert_(cell_H_form == c_H_form)
+        assert_(H_cell_form == c_H_form)
         assert_(inter_cell_T_form == i_cell_T_form)
-        assert_((cell_H == c_H).all())
+        assert_((H_cell == c_H).all())
         assert_((inter_cell_T == i_cell_T).all())
 
     def test_basis(self):
@@ -313,14 +313,14 @@ class TestLattice:
         # cell_site_dof = [2,2]
         t_intra = -0.5
         t_inter = -0.6
-        cell_H = tensor(
+        H_cell = tensor(
                 Qobj(np.array([[0, t_intra], [t_intra, 0]])), qeye([2, 2]))
         inter_cell_T = tensor(
                 Qobj(np.array([[0, 0], [t_inter, 0]])), qeye([2, 2]))
 
         SSH_comp = Lattice1d(num_cell=6, boundary="periodic",
                              cell_num_site=2, cell_site_dof=[2, 2],
-                             cell_Hamiltonian=cell_H, inter_hop=inter_cell_T)
+                             Hamiltonian_of_cell=H_cell, inter_hop=inter_cell_T)
         [kScomp, vcomp] = SSH_comp.get_dispersion()
         kS = np.array([[-3.14159265],
                        [-2.0943951],
@@ -342,7 +342,7 @@ class TestLattice:
         # Coupled Resonator Optical Waveguide(CROW) Example(PhysRevB.99.224201)
         J = 2
         eta = np.pi/4
-        cell_H = Qobj(np.array([[0, J*np.sin(eta)], [J*np.sin(eta), 0]]))
+        H_cell = Qobj(np.array([[0, J*np.sin(eta)], [J*np.sin(eta), 0]]))
         inter_cell_T0 = (J/2) * Qobj(np.array(
                 [[np.exp(eta * 1j), 0], [0, np.exp(-eta*1j)]]))
         inter_cell_T1 = (J/2) * Qobj(np.array([[0, 1], [1, 0]]))
@@ -351,7 +351,7 @@ class TestLattice:
 
         CROW_lattice = Lattice1d(num_cell=4, boundary="periodic",
                                  cell_num_site=1, cell_site_dof=[2],
-                                 cell_Hamiltonian=cell_H,
+                                 Hamiltonian_of_cell=H_cell,
                                  inter_hop=inter_cell_T)
         (kxA, val_kns) = CROW_lattice.get_dispersion()
         (knxA, vec_kns) = CROW_lattice.cell_periodic_parts()
@@ -376,7 +376,7 @@ class TestLattice:
         # Coupled Resonator Optical Waveguide(CROW) Example(PhysRevB.99.224201)
         J = 2
         eta = np.pi/2
-        cell_H = Qobj(np.array([[0, J*np.sin(eta)], [J*np.sin(eta), 0]]))
+        H_cell = Qobj(np.array([[0, J*np.sin(eta)], [J*np.sin(eta), 0]]))
         inter_cell_T0 = (J/2)*Qobj(np.array([[np.exp(eta * 1j), 0],
                                    [0, np.exp(-eta*1j)]]))
         inter_cell_T1 = (J/2)*Qobj(np.array([[0, 1], [1, 0]]))
@@ -384,7 +384,7 @@ class TestLattice:
 
         CROW_lattice = Lattice1d(num_cell=4, boundary="periodic",
                                  cell_num_site=1, cell_site_dof=[2],
-                                 cell_Hamiltonian=cell_H,
+                                 Hamiltonian_of_cell=H_cell,
                                  inter_hop=inter_cell_T)
         (knxA, qH_ks) = CROW_lattice.bulk_Hamiltonians()
         Hk0 = np.array([[0.+0.j, 0.+0.j],
@@ -410,7 +410,7 @@ class TestLattice:
         # Coupled Resonator Optical Waveguide(CROW) Example(PhysRevB.99.224201)
         J = 2
         eta = np.pi/2
-        cell_H = Qobj(np.array([[0, J*np.sin(eta)], [J*np.sin(eta), 0]]))
+        H_cell = Qobj(np.array([[0, J*np.sin(eta)], [J*np.sin(eta), 0]]))
         inter_cell_T0 = (J/2)*Qobj(np.array([[np.exp(eta * 1j), 0], [0,
                                    np.exp(-eta*1j)]]))
         inter_cell_T1 = (J/2)*Qobj(np.array([[0, 1], [1, 0]]))
@@ -419,7 +419,7 @@ class TestLattice:
 
         CROW_lattice = Lattice1d(num_cell=4, boundary="periodic",
                                  cell_num_site=1, cell_site_dof=[2],
-                                 cell_Hamiltonian=cell_H,
+                                 Hamiltonian_of_cell=H_cell,
                                  inter_hop=inter_cell_T)
         CROW_Haml = CROW_lattice.Hamiltonian()
 
@@ -454,7 +454,7 @@ class TestLattice:
         # Coupled Resonator Optical Waveguide(CROW) Example(PhysRevB.99.224201)
         J = 2
         eta = np.pi/4
-        cell_H = Qobj(np.array([[0, J * np.sin(eta)], [J * np.sin(eta), 0]]))
+        H_cell = Qobj(np.array([[0, J * np.sin(eta)], [J * np.sin(eta), 0]]))
         inter_cell_T0 = (J/2)*Qobj(np.array([[np.exp(eta * 1j), 0],
                                    [0, np.exp(-eta*1j)]]))
         inter_cell_T1 = (J/2)*Qobj(np.array([[0, 1], [1, 0]]))
@@ -463,7 +463,7 @@ class TestLattice:
 
         CROW_lattice = Lattice1d(num_cell=4, boundary="periodic",
                                  cell_num_site=1, cell_site_dof=[2],
-                                 cell_Hamiltonian=cell_H,
+                                 Hamiltonian_of_cell=H_cell,
                                  inter_hop=inter_cell_T)
         CROW_Haml = CROW_lattice.Hamiltonian()
 
@@ -538,7 +538,7 @@ class TestLattice:
         num_cell = np.random.randint(2, 60)
         eta = 2*np.pi*np.random.random()
 
-        cell_H = Qobj(np.array([[0, J * np.sin(eta)], [J * np.sin(eta), 0]]))
+        H_cell = Qobj(np.array([[0, J * np.sin(eta)], [J * np.sin(eta), 0]]))
         inter_cell_T0 = (J/2) * Qobj(np.array([[np.exp(eta * 1j), 0],
                                               [0, np.exp(-eta*1j)]]))
         inter_cell_T1 = (J/2) * Qobj(np.array([[0, 1], [1, 0]]))
@@ -546,7 +546,7 @@ class TestLattice:
 
         CROW_Random = Lattice1d(num_cell=num_cell, boundary="periodic",
                                 cell_num_site=1, cell_site_dof=[2],
-                                cell_Hamiltonian=cell_H,
+                                Hamiltonian_of_cell=H_cell,
                                 inter_hop=inter_cell_T)
         a = 1  # The unit cell length is always considered 1
         kn_start = 0
@@ -587,12 +587,12 @@ class TestLattice:
         # cell_site_dof = [2,2]
         t_intra = -0.5
         t_inter = -0.6
-        cell_H = Qobj(np.array([[0, t_intra], [t_intra, 0]]))
+        H_cell = Qobj(np.array([[0, t_intra], [t_intra, 0]]))
         inter_cell_T = Qobj(np.array([[0, 0], [t_inter, 0]]))
 
         SSH_lattice = Lattice1d(num_cell=5, boundary="periodic",
                              cell_num_site=2, cell_site_dof=[1],
-                             cell_Hamiltonian=cell_H,
+                             Hamiltonian_of_cell=H_cell,
                              inter_hop=inter_cell_T)        
         Ham_Sc = SSH_lattice.Hamiltonian()
 
@@ -625,11 +625,11 @@ class TestLattice:
         num_cell = np.random.randint(2, 60)
         t_intra = -np.random.random()
         t_inter = -np.random.random()
-        cell_H = Qobj(np.array([[0, t_intra], [t_intra, 0]]))
+        H_cell = Qobj(np.array([[0, t_intra], [t_intra, 0]]))
         inter_cell_T = Qobj(np.array([[0, 0], [t_inter, 0]]))
         SSH_Random = Lattice1d(num_cell=num_cell, boundary="periodic",
                              cell_num_site=2, cell_site_dof=[1],
-                             cell_Hamiltonian=cell_H,
+                             Hamiltonian_of_cell=H_cell,
                              inter_hop=inter_cell_T)
         a = 1  # The unit cell length is always considered 1
         kn_start = 0

@@ -47,7 +47,7 @@ except:
 
 def cell_structures(val_s=None, val_t=None, val_u=None):
     """
-    Returns two matrices cell_H and cell_T to help the user form the inputs for
+    Returns two matrices H_cell and cell_T to help the user form the inputs for
     defining an instance of Lattice1d and Lattice2d classes. The two matrices
     are the intra and inter cell Hamiltonians with the tensor structure of the
     specified site numbers and/or degrees of freedom defined by the user.
@@ -68,14 +68,14 @@ def cell_structures(val_s=None, val_t=None, val_u=None):
 
     Returns
     -------
-    scell_H : list of list of str
+    H_cell_s : list of list of str
         tensor structure of the cell Hamiltonian elements
-    sinter_cell_T : list of list of str
+    T_inter_cell_s : list of list of str
         tensor structure of the inter cell Hamiltonian elements
-    cell_H : Qobj
+    H_cell : Qobj
         A Qobj initiated with all 0s with proper shape for an input as
-        cell_Hamiltonian in Lattice1d.__init__()
-    inter_cell_T : Qobj
+        Hamiltonian_of_cell in Lattice1d.__init__()
+    T_inter_cell : Qobj
         A Qobj initiated with all 0s with proper shape for an input as
         inter_hop in Lattice1d.__init__()
     """
@@ -92,112 +92,112 @@ def cell_structures(val_s=None, val_t=None, val_u=None):
         raise(Er1_str)
 
     if val_t is None:
-        SN = len(val_s)
-        Row_I = np.arange(SN).reshape(SN, 1)
-        Row_I_C = np.ones(SN).reshape(1, SN)
-        Rows = np.kron(Row_I, Row_I_C)
+        lng0 = len(val_s)
+        row_i = np.arange(lng0).reshape(lng0, 1)
+        row_i_c = np.ones(lng0).reshape(1, lng0)
+        Rows = np.kron(row_i, row_i_c)
         Rows = np.array(Rows, dtype=int)
 
-        scell_H = [[None for i in range(SN)] for j in range(SN)]
-        sinter_cell_T = [[None for i in range(SN)] for j in range(SN)]
+        H_cell_s = [[None for i in range(lng0)] for j in range(lng0)]
+        T_inter_cell_s = [[None for i in range(lng0)] for j in range(lng0)]
 
-        for ir in range(SN):
-            for ic in range(SN):
+        for ir in range(lng0):
+            for ic in range(lng0):
                 sst = val_s[Rows[ir][ic]]+" H "+val_s[Rows[ic][ir]]
-                scell_H[ir][ic] = "<" + sst + ">"
-                sinter_cell_T[ir][ic] = "<cell(i):" + sst + ":cell(i+1) >"
+                H_cell_s[ir][ic] = "<" + sst + ">"
+                T_inter_cell_s[ir][ic] = "<cell(i):" + sst + ":cell(i+1) >"
 
     if val_t is not None and val_u is None:
         if not all([isinstance(val, str) for val in val_t]):
             raise Exception(Er2_str)
-        SN = len(val_s)
-        TN = len(val_t)
-        P = SN * TN
-        sRow_I = np.kron(np.arange(SN), np.ones(TN)).reshape(P, 1)
-        sRow_I_C = np.ones(SN * TN).reshape(1, P)
-        sRows = np.kron(sRow_I, sRow_I_C)
+        lng0 = len(val_s)
+        lng1 = len(val_t)
+        p01 = lng0 * lng1
+        srow_i = np.kron(np.arange(lng0), np.ones(lng1)).reshape(p01, 1)
+        srow_i_c = np.ones(lng0 * lng1).reshape(1, p01)
+        sRows = np.kron(srow_i, srow_i_c)
         sRows = np.array(sRows, dtype=int)
 
-        tRow_I = np.kron(np.ones(SN), np.arange(TN)).reshape(P, 1)
-        tRow_I_C = np.ones(SN * TN).reshape(1, P)
-        tRows = np.kron(tRow_I, tRow_I_C)
-        tRows = np.array(tRows, dtype=int)
+        trow_i = np.kron(np.ones(lng0), np.arange(lng1)).reshape(p01, 1)
+        trow_i_c = np.ones(lng0 * lng1).reshape(1, p01)
+        t_rows = np.kron(trow_i, trow_i_c)
+        t_rows = np.array(t_rows, dtype=int)
 
-        scell_H = [[None for i in range(P)] for j in range(P)]
-        sinter_cell_T = [[None for i in range(P)] for j in range(P)]
+        H_cell_s = [[None for i in range(p01)] for j in range(p01)]
+        T_inter_cell_s = [[None for i in range(p01)] for j in range(p01)]
 
-        for ir in range(P):
-            for jr in range(P):
+        for ir in range(p01):
+            for jr in range(p01):
                 sst = []
                 sst.append(val_s[sRows[ir][jr]])
-                sst.append(val_t[tRows[ir][jr]])
+                sst.append(val_t[t_rows[ir][jr]])
                 sst.append(" H ")
                 sst.append(val_s[sRows[jr][ir]])
-                sst.append(val_t[tRows[jr][ir]])
+                sst.append(val_t[t_rows[jr][ir]])
                 sst = ''.join(sst)
-                scell_H[ir][jr] = "<" + sst + ">"
+                H_cell_s[ir][jr] = "<" + sst + ">"
 
                 llt = []
                 llt.append("<cell(i):")
                 llt.append(sst)
                 llt.append(":cell(i+1) >")
                 llt = ''.join(llt)
-                sinter_cell_T[ir][jr] = llt
+                T_inter_cell_s[ir][jr] = llt
 
     if val_u is not None:
         if not all([isinstance(val, str) for val in val_u]):
             raise Exception(Er3_str)
-        SN = len(val_s)
-        TN = len(val_t)
-        UN = len(val_u)
-        P = SN * TN * UN
-        sRow_I = np.kron(np.arange(SN), np.ones(TN))
-        sRow_I = np.kron(sRow_I, np.ones(UN))
-        sRow_I = sRow_I.reshape(P, 1)
-        sRow_I_C = np.ones(P).reshape(1, P)
-        sRows = np.kron(sRow_I, sRow_I_C)
+        lng0 = len(val_s)
+        lng1 = len(val_t)
+        lng2 = len(val_u)
+        p012 = lng0 * lng1 * lng2
+        srow_i = np.kron(np.arange(lng0), np.ones(lng1))
+        srow_i = np.kron(srow_i, np.ones(lng2))
+        srow_i = srow_i.reshape(p012, 1)
+        srow_i_c = np.ones(p012).reshape(1, p012)
+        sRows = np.kron(srow_i, srow_i_c)
         sRows = np.array(sRows, dtype=int)
 
-        tRow_I = np.kron(np.ones(SN), np.arange(TN))
-        tRow_I = np.kron(tRow_I, np.ones(UN))
-        tRow_I = tRow_I.reshape(P, 1)
-        tRow_I_C = np.ones(P).reshape(1, P)
-        tRows = np.kron(tRow_I, tRow_I_C)
-        tRows = np.array(tRows, dtype=int)
+        trow_i = np.kron(np.ones(lng0), np.arange(lng1))
+        trow_i = np.kron(trow_i, np.ones(lng2))
+        trow_i = trow_i.reshape(p012, 1)
+        trow_i_c = np.ones(P).reshape(1, p012)
+        t_rows = np.kron(trow_i, trow_i_c)
+        t_rows = np.array(t_rows, dtype=int)
 
-        uRow_I = np.kron(np.ones(SN), np.ones(TN))
-        uRow_I = np.kron(uRow_I, np.arange(UN))
-        uRow_I = uRow_I.reshape(P, 1)
-        uRow_I_C = np.ones(P).reshape(1, P)
-        uRows = np.kron(uRow_I, uRow_I_C)
+        urow_i = np.kron(np.ones(lng0), np.ones(lng1))
+        urow_i = np.kron(urow_i, np.arange(lng2))
+        urow_i = urow_i.reshape(p012, 1)
+        urow_i_c = np.ones(p012).reshape(1, p012)
+        uRows = np.kron(urow_i, urow_i_c)
         uRows = np.array(uRows, dtype=int)
 
-        scell_H = [[None for i in range(P)] for j in range(P)]
-        sinter_cell_T = [[None for i in range(P)] for j in range(P)]
+        H_cell_s = [[None for i in range(p012)] for j in range(p012)]
+        T_inter_cell_s = [[None for i in range(p012)] for j in range(p012)]
 
-        for ir in range(P):
-            for jr in range(P):
+        for ir in range(p012):
+            for jr in range(p012):
                 sst = []
                 sst.append(val_s[sRows[ir][jr]])
-                sst.append(val_t[tRows[ir][jr]])
+                sst.append(val_t[t_rows[ir][jr]])
                 sst.append(val_u[uRows[ir][jr]])
                 sst.append(" H ")
                 sst.append(val_s[sRows[jr][ir]])
-                sst.append(val_t[tRows[jr][ir]])
+                sst.append(val_t[t_rows[jr][ir]])
                 sst.append(val_u[uRows[jr][ir]])
                 sst = ''.join(sst)
-                scell_H[ir][jr] = "<" + sst + ">"
+                H_cell_s[ir][jr] = "<" + sst + ">"
 
                 llt = []
                 llt.append("<cell(i):")
                 llt.append(sst)
                 llt.append(":cell(i+1) >")
                 llt = ''.join(llt)
-                sinter_cell_T[ir][jr] = llt
+                T_inter_cell_s[ir][jr] = llt
 
-    cell_H = np.zeros(np.shape(scell_H), dtype=complex)
-    inter_cell_T = np.zeros(np.shape(sinter_cell_T), dtype=complex)
-    return (scell_H, sinter_cell_T, cell_H, inter_cell_T)
+    H_cell = np.zeros(np.shape(H_cell_s), dtype=complex)
+    T_inter_cell = np.zeros(np.shape(T_inter_cell_s), dtype=complex)
+    return (H_cell_s, T_inter_cell_s, H_cell, T_inter_cell)
 
 
 class Lattice1d():
@@ -219,7 +219,7 @@ class Lattice1d():
     cell_site_dof : list of int/ int
         The tensor structure  of the degrees of freedom at each site of a unit
         cell.
-    cell_Hamiltonian : qutip.Qobj
+    Hamiltonian_of_cell : qutip.Qobj
         The Hamiltonian of the unit cell.
     inter_hop : qutip.Qobj / list of Qobj
         The coupling between the unit cell at i and at (i+unit vector)
@@ -240,7 +240,7 @@ class Lattice1d():
         form [num_cell,cell_num_site,cell_site_dof[:][0]]
     length_of_unit_cell : int
         The length of the dimension for a unit cell.
-    PBCx : int
+    period_bnd_cond_x : int
         1 indicates "periodic" and 0 indicates "hardwall" boundary condition
     inter_vec_list : list of list
         The list of list of coefficients of inter unitcell vectors' components
@@ -289,7 +289,7 @@ class Lattice1d():
         numbers of lattice momentum, k in a numpy ndarray of Qobj's.
     """
     def __init__(self, num_cell=10, boundary="periodic", cell_num_site=1,
-                 cell_site_dof=[1], cell_Hamiltonian=None,
+                 cell_site_dof=[1], Hamiltonian_of_cell=None,
                  inter_hop=None):
 
         self.num_cell = num_cell
@@ -340,45 +340,45 @@ class Lattice1d():
         self._length_of_unit_cell = self.cell_num_site*self._length_for_site
 
         if boundary == "periodic":
-            self.PBCx = 1
+            self.period_bnd_cond_x = 1
         elif boundary == "aperiodic" or boundary == "hardwall":
-            self.PBCx = 0
+            self.period_bnd_cond_x = 0
         else:
             raise Exception("Error in boundary: Only recognized bounday \
                     options are:\"periodic \",\"aperiodic\" and \"hardwall\" ")
 
-        if cell_Hamiltonian is None:       # There is no user input for
-            # cell_Hamiltonian, so we set it ourselves
-            siteH = np.diag(np.zeros(cell_num_site-1)-1, 1)
-            siteH += np.diag(np.zeros(cell_num_site-1)-1, -1)
+        if Hamiltonian_of_cell is None:       # There is no user input for
+            # Hamiltonian_of_cell, so we set it ourselves
+            H_site = np.diag(np.zeros(cell_num_site-1)-1, 1)
+            H_site += np.diag(np.zeros(cell_num_site-1)-1, -1)
             if cell_site_dof == [1] or cell_site_dof == 1:
-                cell_Hamiltonian = Qobj(siteH, type='oper')
-                self._H_intra = cell_Hamiltonian
+                Hamiltonian_of_cell = Qobj(H_site, type='oper')
+                self._H_intra = Hamiltonian_of_cell
             else:
-                cell_Hamiltonian = tensor(Qobj(siteH),
+                Hamiltonian_of_cell = tensor(Qobj(H_site),
                                           qeye(self.cell_site_dof))
-                dih = cell_Hamiltonian.dims[0]
+                dih = Hamiltonian_of_cell.dims[0]
                 if all(x == 1 for x in dih):
                     dih = [1]
                 else:
                     while 1 in dih:
                         dih.remove(1)
-                self._H_intra = Qobj(cell_Hamiltonian, dims=[dih, dih],
+                self._H_intra = Qobj(Hamiltonian_of_cell, dims=[dih, dih],
                                      type='oper')
-        elif not isinstance(cell_Hamiltonian, Qobj):    # The user
-            # input for cell_Hamiltonian is not a Qobj and hence is invalid
-            raise Exception("cell_Hamiltonian is required to be a Qobj.")
-        else:       # We check if the user input cell_Hamiltonian have the
+        elif not isinstance(Hamiltonian_of_cell, Qobj):    # The user
+            # input for Hamiltonian_of_cell is not a Qobj and hence is invalid
+            raise Exception("Hamiltonian_of_cell is required to be a Qobj.")
+        else:       # We check if the user input Hamiltonian_of_cell have the
             # right shape or not. If approved, we give it the proper dims
             # ourselves.
             r_shape = (self._length_of_unit_cell, self._length_of_unit_cell)
-            if cell_Hamiltonian.shape != r_shape:
-                raise Exception("cell_Hamiltonian does not have a shape \
+            if Hamiltonian_of_cell.shape != r_shape:
+                raise Exception("Hamiltonian_of_cell does not have a shape \
                             consistent with cell_num_site and cell_site_dof.")
-            self._H_intra = Qobj(cell_Hamiltonian, dims=dim_ih, type='oper')
+            self._H_intra = Qobj(Hamiltonian_of_cell, dims=dim_ih, type='oper')
         is_real = np.isreal(self._H_intra).all()
         if not isherm(self._H_intra):
-            raise Exception(" cell_Hamiltonian is required to be Hermitian. ")
+            raise Exception(" Hamiltonian_of_cell is required to be Hermitian. ")
 
         nSb = self._H_intra.shape
         if isinstance(inter_hop, list):      # There is a user input list
@@ -392,7 +392,7 @@ class Lattice1d():
                 if nSb != nSi:
                     raise Exception("inter_hop[", i, "] is dimensionally \
                         incorrect. All inter_hop list elements need to \
-                        have the same dimensionality as cell_Hamiltonian.")
+                        have the same dimensionality as Hamiltonian_of_cell.")
                 else:    # inter_hop[i] has the right shape, now confirmed,
                     inter_hop[i] = Qobj(inter_hop[i], dims=dim_ih)
                     inter_hop_sum = inter_hop_sum + inter_hop[i]
@@ -405,7 +405,7 @@ class Lattice1d():
             nSi = inter_hop.shape
             if nSb != nSi:
                 raise Exception("inter_hop is required to have the same \
-                dimensionality as cell_Hamiltonian.")
+                dimensionality as Hamiltonian_of_cell.")
             else:
                 inter_hop = Qobj(inter_hop, dims=dim_ih, type='oper')
             self._H_inter_list = [inter_hop]
@@ -455,7 +455,7 @@ class Lattice1d():
               ",\ninter_hop = " + str(self._H_inter_list) +
               ",\ncell_tensor_config = " + str(self.cell_tensor_config) +
               "\n")
-        if self.PBCx == 1:
+        if self.period_bnd_cond_x == 1:
             s += "Boundary Condition:  Periodic"
         else:
             s += "Boundary Condition:  Hardwall"
@@ -474,7 +474,7 @@ class Lattice1d():
         T = np.diag(np.zeros(self.num_cell-1)+1, 1)
         Tdag = np.diag(np.zeros(self.num_cell-1)+1, -1)
 
-        if self.PBCx == 1 and self.num_cell > 2:
+        if self.period_bnd_cond_x == 1 and self.num_cell > 2:
             Tdag[0][self.num_cell-1] = 1
             T[self.num_cell-1][0] = 1
         T = Qobj(T)
@@ -564,7 +564,7 @@ class Lattice1d():
         nSi = op.shape
         if nSb != nSi:
             raise Exception("op in distribute_operstor() is required to \
-            have the same dimensionality as cell_Hamiltonian.")
+            have the same dimensionality as Hamiltonian_of_cell.")
         cell_All = list(range(self.num_cell))
         op_H = self.operator_at_cells(op, cells=cell_All)
         return op_H
@@ -666,7 +666,7 @@ class Lattice1d():
         nSi = op.shape
         if (nSb != nSi):
             raise Exception("op in operstor_at_cells() is required to \
-                            have the same dimensionality as cell_Hamiltonian.")
+                            have the same dimensionality as Hamiltonian_of_cell.")
 
         (xx, yy) = np.shape(op)
         row_ind = np.array([])
@@ -731,7 +731,7 @@ class Lattice1d():
         nSi = op.shape
         if (nSb != nSi):
             raise Exception("op in operstor_between_cells() is required to \
-                            have the same dimensionality as cell_Hamiltonian.")
+                            have the same dimensionality as Hamiltonian_of_cell.")
 
         T = np.zeros((self.num_cell, self.num_cell), dtype=complex)
         T[row_cell, col_cell] = 1
@@ -747,7 +747,7 @@ class Lattice1d():
         """
         MAXc = 20     # Cell numbers above which we do not plot the infinite
         # crystal dispersion
-        if self.PBCx == 0:
+        if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
 
         if self.num_cell <= MAXc:
@@ -788,7 +788,7 @@ class Lattice1d():
         # plot_dispersion using this coode and we do not want to calculate
         # all the eigen-values, eigenvectors of the bulk Hamiltonian for too
         # many points, as is done in the _k_space_calculations() function.
-        if self.PBCx == 0:
+        if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
         if knpoints == 0:
             knpoints = self.num_cell
@@ -848,7 +848,7 @@ class Lattice1d():
             eigenstates[j][0] is the jth eigenvalue.
             eigenstates[j][1] is the corresponding eigenvector.
         """
-        if self.PBCx == 0:
+        if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
         (knxA, qH_ks, val_kns, vec_kns, vec_xs) = self._k_space_calculations()
         dtype = [('eigen_value', '<f16'), ('eigen_vector', Qobj)]
@@ -887,7 +887,7 @@ class Lattice1d():
             vec_kns[j] is the Oobj of type ket that holds an eigenvector of the
             bulk Hamiltonian of the lattice.
         """
-        if self.PBCx == 0:
+        if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
         (knxA, qH_ks, val_kns, vec_kns, vec_xs) = self._k_space_calculations()
         return (knxA, vec_kns)
@@ -910,7 +910,7 @@ class Lattice1d():
             qH_ks[j] is the Oobj of type oper that holds a bulk Hamiltonian
             for a good quantum number k.
         """
-        if self.PBCx == 0:
+        if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
         (knxA, qH_ks, val_kns, vec_kns, vec_xs) = self._k_space_calculations()
         return (knxA, qH_ks)
@@ -1018,7 +1018,7 @@ class Lattice1d():
             raise Exception('H(k) is not a 2by2 matrix.')
 
         if (self._H_intra[0, 0] != 0 or self._H_intra[1, 1] != 0):
-            raise Exception("cell_Hamiltonian has nonzero diagonal elements!")
+            raise Exception("Hamiltonian_of_cell has nonzero diagonal elements!")
 
         for i in range(len(self._H_inter_list)):
             H_I_00 = self._H_inter_list[i][0, 0]
@@ -1204,11 +1204,11 @@ class Lattice1d():
             H_inter = H_inter + inter_hop_no
 
         H_inter = np.array(H_inter)
-        CSN = self.cell_num_site
-        Hcell = [[{} for i in range(CSN)] for j in range(CSN)]
+        csn = self.cell_num_site
+        Hcell = [[{} for i in range(csn)] for j in range(csn)]
 
-        for i0 in range(CSN):
-            for j0 in range(CSN):
+        for i0 in range(csn):
+            for j0 in range(csn):
                 Qin = np.zeros((self._length_for_site, self._length_for_site),
                                dtype=complex)
                 for i in range(self._length_for_site):
@@ -1221,7 +1221,7 @@ class Lattice1d():
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
         j0 = 0
-        i0 = CSN-1
+        i0 = csn-1
         Qin = np.zeros((self._length_for_site, self._length_for_site),
                        dtype=complex)
         for i in range(self._length_for_site):
@@ -1237,26 +1237,26 @@ class Lattice1d():
 
         for nc in range(self.num_cell):
             x_cell = nc
-            for i in range(CSN):
+            for i in range(csn):
                 ax.plot([x_cell + self.positions_of_sites[i]], [0], "o",
                         c="b", mec="w", mew=0.0, zorder=10, ms=8.0)
 
                 if nc > 0:
                     # plot inter_cell_hop
-                    ax.plot([x_cell-1+self.positions_of_sites[CSN-1],
+                    ax.plot([x_cell-1+self.positions_of_sites[csn-1],
                              x_cell+self.positions_of_sites[0]], [0.0, 0.0],
                             "-", c="r", lw=1.5, zorder=7)
 
                     x_b = (x_cell-1+self.positions_of_sites[
-                            CSN-1] + x_cell + self.positions_of_sites[0])/2
+                            csn-1] + x_cell + self.positions_of_sites[0])/2
 
                     plt.text(x=x_b, y=0.1, s='T',
                              horizontalalignment='center',
                              verticalalignment='center')
-                if i == CSN-1:
+                if i == csn-1:
                     continue
 
-                for j in range(i+1, CSN):
+                for j in range(i+1, csn):
 
                     if (Hcell[i][j].full() == 0).all():
                         continue
@@ -1270,28 +1270,28 @@ class Lattice1d():
                     circle1 = plt.Circle((c_cen, 0),
                                          c_radius, color='g', fill=False)
                     ax.add_artist(circle1)
-        if (self.PBCx == 1):
+        if (self.period_bnd_cond_x == 1):
             x_cell = 0
-            x_b = 2*x_cell-1+self.positions_of_sites[CSN-1]
+            x_b = 2*x_cell-1+self.positions_of_sites[csn-1]
             x_b = (x_b+self.positions_of_sites[0])/2
 
             plt.text(x=x_b, y=0.1, s='T', horizontalalignment='center',
                      verticalalignment='center')
-            ax.plot([x_cell-1+self.positions_of_sites[CSN-1],
+            ax.plot([x_cell-1+self.positions_of_sites[csn-1],
                      x_cell+self.positions_of_sites[0]], [0.0, 0.0],
                     "-", c="r", lw=1.5, zorder=7)
 
             x_cell = self.num_cell
-            x_b = 2*x_cell-1+self.positions_of_sites[CSN-1]
+            x_b = 2*x_cell-1+self.positions_of_sites[csn-1]
             x_b = (x_b+self.positions_of_sites[0])/2
 
             plt.text(x=x_b, y=0.1, s='T', horizontalalignment='center',
                      verticalalignment='center')
-            ax.plot([x_cell-1+self.positions_of_sites[CSN-1],
+            ax.plot([x_cell-1+self.positions_of_sites[csn-1],
                      x_cell+self.positions_of_sites[0]], [0.0, 0.0],
                     "-", c="r", lw=1.5, zorder=7)
 
-        x2 = (1+self.positions_of_sites[CSN-1])/2
+        x2 = (1+self.positions_of_sites[csn-1])/2
         x1 = x2-1
         h = 0.5
 
