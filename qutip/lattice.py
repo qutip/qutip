@@ -356,7 +356,7 @@ class Lattice1d():
                 self._H_intra = Hamiltonian_of_cell
             else:
                 Hamiltonian_of_cell = tensor(Qobj(H_site),
-                                          qeye(self.cell_site_dof))
+                                             qeye(self.cell_site_dof))
                 dih = Hamiltonian_of_cell.dims[0]
                 if all(x == 1 for x in dih):
                     dih = [1]
@@ -378,7 +378,7 @@ class Lattice1d():
             self._H_intra = Qobj(Hamiltonian_of_cell, dims=dim_ih, type='oper')
         is_real = np.isreal(self._H_intra).all()
         if not isherm(self._H_intra):
-            raise Exception(" Hamiltonian_of_cell is required to be Hermitian. ")
+            raise Exception("Hamiltonian_of_cell is required to be Hermitian.")
 
         nSb = self._H_intra.shape
         if isinstance(inter_hop, list):      # There is a user input list
@@ -612,12 +612,12 @@ class Lattice1d():
 #                    kop[row, col] = ((L+1) % 2)/ 2
                     # shifting the eigenvalues
                 else:
-                    kop[row, col] = 1 /(np.exp(2j * np.pi * (row - col)/L) - 1)
+                    kop[row, col] = 1/(np.exp(2j * np.pi * (row - col)/L) - 1)
         qkop = Qobj(kop)
         [kD, kV] = qkop.eigenstates()
         kop_P = np.zeros((L, L), dtype=complex)
         for eno in range(L):
-            if kD[eno] > (L // 2 + 0.5) :
+            if kD[eno] > (L // 2 + 0.5):
                 vl = kD[eno] - L
             else:
                 vl = kD[eno]
@@ -666,7 +666,7 @@ class Lattice1d():
         nSi = op.shape
         if (nSb != nSi):
             raise Exception("op in operstor_at_cells() is required to \
-                            have the same dimensionality as Hamiltonian_of_cell.")
+                            be dimensionaly the same as Hamiltonian_of_cell.")
 
         (xx, yy) = np.shape(op)
         row_ind = np.array([])
@@ -731,7 +731,7 @@ class Lattice1d():
         nSi = op.shape
         if (nSb != nSi):
             raise Exception("op in operstor_between_cells() is required to \
-                            have the same dimensionality as Hamiltonian_of_cell.")
+                            be dimensionally the same as Hamiltonian_of_cell.")
 
         T = np.zeros((self.num_cell, self.num_cell), dtype=complex)
         T[row_cell, col_cell] = 1
@@ -1018,7 +1018,7 @@ class Lattice1d():
             raise Exception('H(k) is not a 2by2 matrix.')
 
         if (self._H_intra[0, 0] != 0 or self._H_intra[1, 1] != 0):
-            raise Exception("Hamiltonian_of_cell has nonzero diagonal elements!")
+            raise Exception("Hamiltonian_of_cell has nonzero diagonals!")
 
         for i in range(len(self._H_inter_list)):
             H_I_00 = self._H_inter_list[i][0, 0]

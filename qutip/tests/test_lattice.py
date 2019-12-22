@@ -286,8 +286,8 @@ class TestLattice:
         [k_q, Vq] = kq.eigenstates()
         [k_t, Vt] = kt.eigenstates()
         k_tC = k_t - 2*np.pi/L*((L-1)//2)
-        #k_ts = [(i-(L-1)//2)*2*np.pi/L for i in range(L)]
-        #k_w = np.kron((np.array(k_ts)).T, np.ones((1,6)))
+        # k_ts = [(i-(L-1)//2)*2*np.pi/L for i in range(L)]
+        # k_w = np.kron((np.array(k_ts)).T, np.ones((1,6)))
         assert_((np.abs(k_tC - k_q) < 1E-13).all())
 
     def test_get_dispersion(self):
