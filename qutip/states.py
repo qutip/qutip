@@ -41,8 +41,9 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'enr_thermal_dm']
 
 import numpy as np
-from scipy import arange, conj, prod
+from scipy import arange, conj
 import scipy.sparse as sp
+from numpy import prod
 
 from qutip.qobj import Qobj
 from qutip.operators import destroy, jmat
