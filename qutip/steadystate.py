@@ -631,14 +631,14 @@ def _steadystate_iterative(L, ss_args):
                              M=ss_args['M'], x0=ss_args['x0'],
                              restart=ss_args['restart'],
                              maxiter=ss_args['maxiter'],
-                             callback=_iter_count)
+                             callback=_iter_count, callback_type='legacy')
         except TypeError as e:
             if "unexpected keyword argument 'atol'" in str(e):
                 v, check = gmres(L, b, tol=ss_args['tol'],
                                  M=ss_args['M'], x0=ss_args['x0'],
                                  restart=ss_args['restart'],
                                  maxiter=ss_args['maxiter'],
-                                 callback=_iter_count)
+                                 callback=_iter_count, callback_type='legacy')
 
     elif ss_args['method'] == 'iterative-lgmres':
         try:

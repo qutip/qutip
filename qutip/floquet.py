@@ -43,7 +43,7 @@ __all__ = ['floquet_modes', 'floquet_modes_t', 'floquet_modes_table',
 import numpy as np
 import scipy.linalg as la
 import scipy
-from scipy import angle, pi, exp, sqrt
+from numpy import angle, pi, exp, sqrt
 from types import FunctionType
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
