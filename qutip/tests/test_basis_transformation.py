@@ -36,12 +36,13 @@ from numpy.testing import assert_equal, assert_, run_module_suite
 import scipy
 from qutip import sigmax, sigmay, sigmaz, Qobj, rand_ket, rand_dm, ket2dm, rand_herm
 from qutip.sparse import sp_eigs
+from numpy.random import rand
 
 
 def test_Transformation1():
     "Transform 2-level to eigenbasis and back"
-    H1 = scipy.rand() * sigmax() + scipy.rand() * sigmay() + \
-        scipy.rand() * sigmaz()
+    H1 = rand() * sigmax() + rand() * sigmay() + \
+        rand() * sigmaz()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
     H2 = Heb.transform(ekets, True)  # back to original basis
@@ -51,7 +52,7 @@ def test_Transformation1():
 def test_Transformation2():
     "Transform 10-level real-values to eigenbasis and back"
     N = 10
-    H1 = Qobj((0.5 - scipy.rand(N, N)))
+    H1 = Qobj((0.5 - rand(N, N)))
     H1 = H1 + H1.dag()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
@@ -62,7 +63,7 @@ def test_Transformation2():
 def test_Transformation3():
     "Transform 10-level to eigenbasis and back"
     N = 10
-    H1 = Qobj((0.5 - scipy.rand(N, N)) + 1j * (0.5 - scipy.rand(N, N)))
+    H1 = Qobj((0.5 - rand(N, N)) + 1j * (0.5 - rand(N, N)))
     H1 = H1 + H1.dag()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
@@ -73,7 +74,7 @@ def test_Transformation3():
 def test_Transformation4():
     "Transform 10-level imag to eigenbasis and back"
     N = 10
-    H1 = Qobj(1j * (0.5 - scipy.rand(N, N)))
+    H1 = Qobj(1j * (0.5 - rand(N, N)))
     H1 = H1 + H1.dag()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
@@ -114,18 +115,18 @@ def test_Transformation7():
 
     # generate a random basis
     rand = rand_dm(N, density=1)
-    
+
     evals, rand_basis = rand.eigenstates()
     evals2, rand_basis2 = sp_eigs(rand.data, isherm=1)
     H1 = H.transform(rand_basis)
     H2 = H.transform(rand_basis2)
     assert_((H1 - H2).norm() < 1e-6)
-    
+
     ket = rand_ket(N)
     K1 = ket.transform(rand_basis)
     K2 = ket.transform(rand_basis2)
     assert_((K1 - K2).norm() < 1e-6)
-    
+
     bra = rand_ket(N).dag()
     B1 = bra.transform(rand_basis)
     B2 = bra.transform(rand_basis2)
@@ -140,19 +141,19 @@ def test_Transformation8():
 
     # generate a random basis
     rand = rand_dm(N, density=1)
-    
+
     evals, rand_basis = rand.eigenstates()
     evals2, rand_basis2 = sp_eigs(rand.data, isherm=1)
-    
+
     H1 = H.transform(rand_basis, True)
     H2 = H.transform(rand_basis2, True)
     assert_((H1 - H2).norm() < 1e-6)
-    
+
     ket = rand_ket(N)
     K1 = ket.transform(rand_basis,1)
     K2 = ket.transform(rand_basis2,1)
     assert_((K1 - K2).norm() < 1e-6)
-    
+
     bra = rand_ket(N).dag()
     B1 = bra.transform(rand_basis,1)
     B2 = bra.transform(rand_basis2,1)
