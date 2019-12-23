@@ -625,7 +625,7 @@ def _steadystate_iterative(L, ss_args):
     _iter_start = time.time()
     # FIXME: These atol keyword except checks can be removed once scipy 1.1
     # is a minimum requirement
-    extra = {"callback_type":'legacy'} if scipy.__version__ >= "1.4" else {}
+    extra = {"callback_type": 'legacy'} if scipy.__version__ >= "1.4" else {}
     if ss_args['method'] == 'iterative-gmres':
         try:
             v, check = gmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
