@@ -35,7 +35,7 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
            'concurrence', 'entropy_conditional', 'entangling_power']
 
 from numpy import e, real, sort, sqrt
-from scipy import log, log2
+from numpy.lib.scimath import log, log2
 from qutip.qobj import ptrace
 from qutip.states import ket2dm
 from qutip.tensor import tensor

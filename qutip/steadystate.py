@@ -625,13 +625,14 @@ def _steadystate_iterative(L, ss_args):
     _iter_start = time.time()
     # FIXME: These atol keyword except checks can be removed once scipy 1.1
     # is a minimum requirement
+    extra = {"callback_type": 'legacy'} if scipy.__version__ >= "1.4" else {}
     if ss_args['method'] == 'iterative-gmres':
         try:
             v, check = gmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
                              M=ss_args['M'], x0=ss_args['x0'],
                              restart=ss_args['restart'],
                              maxiter=ss_args['maxiter'],
-                             callback=_iter_count)
+                             callback=_iter_count, **extra)
         except TypeError as e:
             if "unexpected keyword argument 'atol'" in str(e):
                 v, check = gmres(L, b, tol=ss_args['tol'],

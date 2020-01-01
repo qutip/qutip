@@ -32,6 +32,7 @@
 ###############################################################################
 
 import numpy as np
+from numpy.random import rand
 import scipy.linalg as la
 from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
@@ -109,7 +110,7 @@ class TestMatVec:
         """
         Superoperator: Conversion matrix to vector to matrix
         """
-        M = scipy.rand(10, 10)
+        M = rand(10, 10)
         V = mat2vec(M)
         M2 = vec2mat(V)
         assert_(la.norm(M - M2) == 0.0)
@@ -118,7 +119,7 @@ class TestMatVec:
         """
         Superoperator: Conversion vector to matrix to vector
         """
-        V = scipy.rand(100)     # a row vector
+        V = rand(100)     # a row vector
         M = vec2mat(V)
         V2 = mat2vec(M).T  # mat2vec returns a column vector
         assert_(la.norm(V - V2) == 0.0)
@@ -139,7 +140,7 @@ class TestMatVec:
         corresponding index conversions.
         """
         N = 10
-        M = scipy.rand(N, N)
+        M = rand(N, N)
         V = mat2vec(M)
         for I in range(N * N):
             i, j = vec2mat_index(N, I)
