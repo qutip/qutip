@@ -226,9 +226,7 @@ def choi_to_kraus(q_oper):
     vecs = [array(_) for _ in zip(*vecs)]
     shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
     return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
-            dims=q_oper.dims[0][::-1],
-            type='oper',
-            superrep='kraus')
+            dims=q_oper.dims[0][::-1])
             for val, vec in zip(vals, vecs)]
 
 
