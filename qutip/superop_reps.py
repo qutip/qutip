@@ -525,7 +525,7 @@ def to_super(q_oper):
         )
 
 
-def to_kraus(q_oper):
+def to_kraus(q_oper, tol=1e-9):
     """
     Converts a Qobj representing a quantum map to a list of quantum objects,
     each representing an operator in the Kraus decomposition of the given map.
@@ -536,6 +536,10 @@ def to_kraus(q_oper):
         Superoperator to be converted to Kraus representation. If
         ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
         such that ``to_kraus(A) == to_kraus(sprepost(A, A.dag())) == [A]``.
+
+    tol : Float
+        Optional threshold parameter for eigenvalues/Kraus ops to be discarded.
+        The default is to=1e-9.
 
     Returns
     -------
@@ -550,9 +554,9 @@ def to_kraus(q_oper):
     """
     if q_oper.type == 'super':
         if q_oper.superrep in ("super", "chi"):
-            return to_kraus(to_choi(q_oper))
+            return to_kraus(to_choi(q_oper), tol)
         elif q_oper.superrep == 'choi':
-            return choi_to_kraus(q_oper)
+            return choi_to_kraus(q_oper, tol)
     elif q_oper.type == 'oper':  # Assume unitary
         return [q_oper]
     else:
