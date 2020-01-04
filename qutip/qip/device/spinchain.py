@@ -172,20 +172,25 @@ class SpinChain(ModelProcessor):
             The number of qubits in the system.
         """
         # sx_ops
-        self.ctrls += [tensor([sigmax() if m == n else identity(2)
-                               for n in range(N)])
-                       for m in range(N)]
+        # self.ctrls += [tensor([sigmax() if m == n else identity(2)
+        #                        for n in range(N)])
+        #                for m in range(N)]
+        for m in range(N):
+            self.ctrl_pulses.append([sigmax(), m])
         # sz_ops
-        self.ctrls += [tensor([sigmaz() if m == n else identity(2)
-                               for n in range(N)])
-                       for m in range(N)]
+        # self.ctrls += [tensor([sigmaz() if m == n else identity(2)
+        #                        for n in range(N)])
+        #                for m in range(N)]
+        for m in range(N):
+            self.ctrl_pulses.append([sigmaz(), m])
         # sxsy_ops
+        operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
         for n in range(N - 1):
-            x = [identity(2)] * N
-            x[n] = x[n + 1] = sigmax()
-            y = [identity(2)] * N
-            y[n] = y[n + 1] = sigmay()
-            self.ctrls.append(tensor(x) + tensor(y))
+            # x = [identity(2)] * N
+            # x[n] = x[n + 1] = sigmax()
+            # y = [identity(2)] * N
+            # y[n] = y[n + 1] = sigmay()
+            self.ctrl_pulses.append([operator, [n, n+1]])
 
     def set_up_params(self, sx, sz):
         """
@@ -618,11 +623,8 @@ class CircularSpinChain(SpinChain):
 
     def set_up_ops(self, N):
         super(CircularSpinChain, self).set_up_ops(N)
-        x = [identity(2)] * N
-        x[0] = x[N - 1] = sigmax()
-        y = [identity(2)] * N
-        y[0] = y[N - 1] = sigmay()
-        self.ctrls.append(tensor(x) + tensor(y))
+        operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
+        self.ctrl_pulses.append([operator, [N-1, 0]])
 
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class

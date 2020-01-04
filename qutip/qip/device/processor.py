@@ -133,15 +133,12 @@ class Processor(object):
         Type of the coefficient interpolation.
         "step_func" or "cubic"
     """
-    def __init__(self, N, ctrls=None, t1=None, t2=None,
+    def __init__(self, N, t1=None, t2=None,
                  dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist = None
         self.coeffs = None
-        self.ctrls = []
-        if ctrls is not None:
-            for H in ctrls:
-                self.add_ctrl(H)
+        self.ctrl_pulses = []
         self.t1 = t1
         self.t2 = t2
         self.noise = []
@@ -176,13 +173,22 @@ class Processor(object):
         num_qubits = len(ctrl.dims[0])
         if targets is None:
             targets = list(range(num_qubits))
+        if not isinstance(targets, list):
+            targets = [targets]
 
         if cyclic_permutation:
-            self.ctrls += expand_operator(
-                ctrl, self.N, targets, self.dims, cyclic_permutation=True)
+            for i in range(self.N):
+                targets = [(t + i)%self.N for t in targets]
+                self.ctrl_pulses.append([ctrl, targets])
         else:
-            self.ctrls.append(
-                expand_operator(ctrl, self.N, targets, self.dims))
+            self.ctrl_pulses.append([ctrl, targets])
+
+    @property
+    def ctrls(self):
+        result = []
+        for ctrl, targets in self.ctrl_pulses:
+            result.append(expand_operator(ctrl, self.N, targets, self.dims))
+        return result
 
     def remove_ctrl(self, indices):
         """
@@ -197,7 +203,7 @@ class Processor(object):
             indices = [indices]
         indices.sort(reverse=True)
         for ind in indices:
-            del self.ctrls[ind]
+            del self.ctrl_pulses[ind]
 
     def _is_time_coeff_valid(self):
         """
@@ -693,7 +699,7 @@ class Processor(object):
                     self.N, proc_qobjevo, dims=self.dims))
             elif isinstance(noise, UserNoise):
                 noise_qobjevo, new_c_ops = noise.get_noise(
-                    self.N, proc_qobjevo, dims=self.dims)
+                    self.N, proc_qobjevo, self.ctrl_pulses, dims=self.dims)
                 evo_noise_list.append(noise_qobjevo)
                 c_ops += new_c_ops
             else:
@@ -709,7 +715,7 @@ class Processor(object):
         different tlist will be merged.
         """
         # TODO This method can be eventually integrated into QobjEvo, for
-        # which a more through test is required
+        # which a more thorough test is required
 
         # no qobjevo
         if not qobjevo_list:

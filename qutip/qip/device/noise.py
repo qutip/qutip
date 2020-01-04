@@ -486,10 +486,15 @@ class RandomNoise(ControlAmpNoise):
 
 class UserNoise(Noise):
     """
-    Abstract class for user defined noise. To define a noise object,
-    one could overwrite the constructor and the class method `get_noise`.
+    Template class for user defined noise. To define a noise object,
+    please use this as a parent class. When simulating the noise, the
+    mothod get_noise will be called with the input 
+    proc_qobjevo, ctrl_pulses and dims.
     """
-    def get_noise(self, N, proc_qobjevo, dims=None):
+    def __init__(self):
+        pass
+
+    def get_noise(self, proc_qobjevo, ctrl_pulses, dims):
         """
         Template method. To define a noise object,
         one should over write this method and
@@ -518,6 +523,4 @@ class UserNoise(Noise):
             A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
             representing the decoherence noise.
         """
-        if dims is None:
-            dims = [2] * N
         return _dummy_qobjevo(dims), []

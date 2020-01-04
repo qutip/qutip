@@ -39,6 +39,7 @@ from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
+from qutip.qip.gates import expand_operator
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 
@@ -186,6 +187,13 @@ class DispersivecQED(ModelProcessor):
         self.set_up_ops(N)
         self.dims = [num_levels] + [2] * N
 
+    @property
+    def ctrls(self):
+        result = []
+        for ctrl, targets in self.ctrl_pulses:
+            result.append(expand_operator(ctrl, self.N+1, targets, self.dims))
+        return result
+
     def set_up_ops(self, N):
         """
         Generate the Hamiltonians for the spinchain model and save them in the
@@ -197,23 +205,28 @@ class DispersivecQED(ModelProcessor):
             The number of qubits in the system.
         """
         # single qubit terms
-        self.a = tensor([destroy(self.num_levels)] +
-                        [identity(2) for n in range(N)])
-        self.ctrls.append(self.a.dag() * self.a)
-        self.ctrls += [tensor([identity(self.num_levels)] +
-                              [sigmax() if m == n else identity(2)
-                               for n in range(N)])
-                       for m in range(N)]
-        self.ctrls += [tensor([identity(self.num_levels)] +
-                              [sigmaz() if m == n else identity(2)
-                               for n in range(N)])
-                       for m in range(N)]
+        self.a = tensor(destroy(self.num_levels))
+        self.ctrl_pulses.append([self.a.dag() * self.a, [0]])
+        # self.ctrls += [tensor([identity(self.num_levels)] +
+        #                       [sigmax() if m == n else identity(2)
+        #                        for n in range(N)])
+        #                for m in range(N)]
+        for m in range(N):
+            self.ctrl_pulses.append([sigmax(), [m+1]])
+        # self.ctrls += [tensor([identity(self.num_levels)] +
+        #                       [sigmaz() if m == n else identity(2)
+        #                        for n in range(N)])
+        #                for m in range(N)]
+        for m in range(N):
+            self.ctrl_pulses.append([sigmaz(), [m+1]])
         # interaction terms
+        a_full = tensor([destroy(self.num_levels)] + 
+                        [identity(2) for n in range(N)])
         for n in range(N):
             sm = tensor([identity(self.num_levels)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
-            self.ctrls.append(self.a.dag() * sm + self.a * sm.dag())
+            self.ctrl_pulses.append([a_full.dag() * sm + a_full * sm.dag(), list(range(N+1))])
 
         self.psi_proj = tensor([basis(self.num_levels, 0)] +
                                [identity(2) for n in range(N)])

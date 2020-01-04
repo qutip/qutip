@@ -57,7 +57,7 @@ class TestCircuitProcessor:
         N = 2
         proc = Processor(N=N)
         proc.ctrls
-        proc.ctrls = [sigmaz()]
+        proc.add_ctrl(sigmaz())
         assert_(tensor([sigmaz(), identity(2)]), proc.ctrls[0])
         proc.add_ctrl(sigmax(), cyclic_permutation=True)
         assert_allclose(len(proc.ctrls), 3)
