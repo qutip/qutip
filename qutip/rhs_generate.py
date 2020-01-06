@@ -260,6 +260,8 @@ def _td_format_check(H, c_ops, solver='me'):
                         h_str.append(k)
                     elif isinstance(H_k[1], Cubic_Spline):
                         h_obj.append(k)
+                    elif hasattr(H_k[1], '__call__'):
+                        h_obj.append(k)
                     elif isinstance(H_k[1], np.ndarray):
                         h_str.append(k)
                     else:
@@ -288,6 +290,8 @@ def _td_format_check(H, c_ops, solver='me'):
                         c_str.append(k)
                     elif isinstance(c_ops[k][1], Cubic_Spline):
                         c_obj.append(k)
+                    elif hasattr(c_ops[k][1], '__call__'):
+                        c_func.append(k)
                     elif isinstance(c_ops[k][1], np.ndarray):
                         c_str.append(k)
                     elif isinstance(c_ops[k][1], tuple):
@@ -309,15 +313,16 @@ def _td_format_check(H, c_ops, solver='me'):
 
     # check to see if Cython is installed and version is high enough.
     if len(h_str) > 0 or len(c_str) > 0:
-        try:
-            import Cython
-        except:
-            raise Exception(
-                "Unable to load Cython. Use Python function format.")
-        else:
-            if Cython.__version__ < '0.21':
-                raise Exception("Cython version (%s) is too old. Upgrade to " +
-                                "version 0.21+" % Cython.__version__)
+        pass
+        #try:
+        #    import Cython
+        #except:
+        #    raise Exception(
+        #        "Unable to load Cython. Use Python function format.")
+        #else:
+        #    if Cython.__version__ < '0.21':
+        #        raise Exception("Cython version (%s) is too old. Upgrade to" +
+        #                        " version 0.21+" % Cython.__version__)
 
     # If only time-dependence is in Objects, then prefer string based format
     if (len(h_func) + len(c_func) + len(h_str) + len(c_str)) == 0:
