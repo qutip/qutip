@@ -40,5 +40,5 @@ def run():
     about()
     import pytest
     # runs tests in qutip.tests module only
-    pytest.main(["--verbosity=2",
+    pytest.main(["--verbosity=1",
                 "--disable-pytest-warnings", "--pyargs", "qutip"])
