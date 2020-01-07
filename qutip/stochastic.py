@@ -326,11 +326,10 @@ class StochasticSolverOptions:
         if H is not None:
             msg = "The Hamiltonian format is not valid. "
             try:
-                self.H = QobjEvo(H, args=args, tlist=times)
+                self.H = QobjEvo(H, args=args, tlist=times,
+                                 e_ops=e_ops, state0=state0)
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
-            except:
-                raise ValueError(msg)
         else:
             self.H = H
 
@@ -338,7 +337,8 @@ class StochasticSolverOptions:
             msg = ("The sc_ops format is not valid. Options are "
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
-                self.sc_ops = [QobjEvo(op, args=args, tlist=times)
+                self.sc_ops = [QobjEvo(op, args=args, tlist=times,
+                                       e_ops=e_ops, state0=state0)
                                for op in sc_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
@@ -351,7 +351,8 @@ class StochasticSolverOptions:
             msg = ("The c_ops format is not valid. Options are "
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
-                self.c_ops = [QobjEvo(op, args=args, tlist=times)
+                self.c_ops = [QobjEvo(op, args=args, tlist=times,
+                                      e_ops=e_ops, state0=state0)
                               for op in c_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
@@ -838,6 +839,7 @@ def _positive_map(sso, e_ops_dict):
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
     sso.preLH = spre(LH)
     sso.postLH = spost(LH.dag())
+
     sso.preLH.compile()
     sso.postLH.compile()
     sso.pp.compile()

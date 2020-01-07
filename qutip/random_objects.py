@@ -45,7 +45,7 @@ __all__ = [
     'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic', 'rand_super'
 ]
 
-from scipy import arcsin, sqrt, pi
+from numpy import arcsin, sqrt, pi
 from scipy.linalg import sqrtm
 import numpy as np
 import numpy.linalg as la
