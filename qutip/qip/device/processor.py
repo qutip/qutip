@@ -47,6 +47,7 @@ from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
     ControlAmpNoise, RandomNoise, UserNoise)
+from qutip.qip.device.pulse import Pulse, Drift, _merge_qobjevo
 
 
 __all__ = ['Processor']
@@ -136,19 +137,31 @@ class Processor(object):
     def __init__(self, N, t1=None, t2=None,
                  dims=None, spline_kind="step_func"):
         self.N = N
-        self.tlist = None
-        self.coeffs = None
+        self.tlist_ = None
         self.ctrl_pulses = []
         self.t1 = t1
         self.t2 = t2
         self.noise = []
+        self.drift = Drift()
         if dims is None:
             self.dims = [2] * N
         else:
             self.dims = dims
         self.spline_kind = spline_kind
 
-    def add_ctrl(self, ctrl, targets=None, cyclic_permutation=False):
+    def add_drift_ham(self, ham, targets=None):
+        # Check validity of ctrl
+        if not isinstance(ham, Qobj):
+            raise TypeError("The drift Hamiltonian must be a qutip.Qobj.")
+        if not ham.isherm:
+            raise ValueError("The drift Hamiltonian must be Hermitian.")
+        
+        num_qubits = len(ham.dims[0])
+        if targets is None:
+            targets = list(range(num_qubits))
+        self.drift.add_ham(ham, targets)
+
+    def add_ctrl_ham(self, ham, targets=None, cyclic_permutation=False):
         """
         Add a control Hamiltonian to the processor.
 
@@ -165,30 +178,58 @@ class Processor(object):
             all cyclic permutation of the target qubits.
         """
         # Check validity of ctrl
-        if not isinstance(ctrl, Qobj):
+        if not isinstance(ham, Qobj):
             raise TypeError("The control Hamiltonian must be a qutip.Qobj.")
-        if not ctrl.isherm:
+        if not ham.isherm:
             raise ValueError("The control Hamiltonian must be Hermitian.")
 
-        num_qubits = len(ctrl.dims[0])
+        num_qubits = len(ham.dims[0])
         if targets is None:
             targets = list(range(num_qubits))
         if not isinstance(targets, list):
             targets = [targets]
-
         if cyclic_permutation:
             for i in range(self.N):
-                targets = [(t + i)%self.N for t in targets]
-                self.ctrl_pulses.append([ctrl, targets])
+                temp = [(t + i)%self.N for t in targets]
+                self.ctrl_pulses.append(Pulse(ham, temp, spline_kind=self.spline_kind))
         else:
-            self.ctrl_pulses.append([ctrl, targets])
+            self.ctrl_pulses.append(Pulse(ham, targets, spline_kind=self.spline_kind))
 
     @property
     def ctrls(self):
         result = []
-        for ctrl, targets in self.ctrl_pulses:
-            result.append(expand_operator(ctrl, self.N, targets, self.dims))
+        for pulse in self.ctrl_pulses:
+            result.append(pulse.get_full_ham(self.N, self.dims))
         return result
+
+    @property
+    def coeffs(self):
+        if not self.ctrl_pulses:
+            return None
+        coeffs_list = [pulse.coeff for pulse in self.ctrl_pulses]
+        return np.array(coeffs_list)
+
+    @coeffs.setter
+    def coeffs(self, coeffs_list):
+        # check number of pulse
+        if len(coeffs_list) != len(self.ctrl_pulses):
+            raise ValueError("The rwo number of coeffs must be same "
+                             "as the number of control pulses.")
+        for i, coeff in enumerate(coeffs_list):
+            self.ctrl_pulses[i].coeff = coeff
+
+    @property
+    def tlist(self):
+        all_tlists = [pulse.tlist for pulse in self.ctrl_pulses if pulse.tlist is not None]
+        if self.tlist_ is not None:
+            all_tlists += [self.tlist_]
+        if not all_tlists:
+            return None
+        return np.unique(np.sort(np.hstack(all_tlists)))
+
+    @tlist.setter
+    def tlist(self, x):
+        self.tlist_ = x
 
     def remove_ctrl(self, indices):
         """
@@ -205,66 +246,43 @@ class Processor(object):
         for ind in indices:
             del self.ctrl_pulses[ind]
 
-    def _is_time_coeff_valid(self):
+    def _is_pulses_valid(self):
         """
-        Check if the ``len(tlist)`` and ``coeffs.shape[1]`` are valid.
+        Check if the pulses are in the correct shape.
 
         Returns: boolean
             If they are valid or not
         """
-        if self.coeffs is None:
-            return True  # evolution with identity
-        if self.tlist is None:
-            raise ValueError("`tlist` is not given.")
-        coeff_len = self.coeffs.shape[1]
-        tlist_len = len(self.tlist)
-        if self.spline_kind == "step_func":
-            if coeff_len == tlist_len-1 or coeff_len == tlist_len:
-                return True
+        for i, pulse in enumerate(self.ctrl_pulses):
+            if pulse.tlist is None:
+                if pulse.coeff is None:
+                    continue
+                else:
+                    raise ValueError("Pulse id={} is invalid, "
+                                     "a tlist is required.".format(i))
+            if pulse.tlist is not None and pulse.coeff is None:
+                continue
+            coeff_len = len(pulse.coeff)
+            tlist_len = len(pulse.tlist)
+            if pulse.spline_kind == "step_func":
+                if coeff_len == tlist_len-1 or coeff_len == tlist_len:
+                    pass
+                else:
+                    raise ValueError(
+                        "The length of tlist and coeffs in pulse {} is not valid. "
+                        "It's either len(tlist)=len(coeff) or "
+                        "len(tlist)-1=len(coeff) for coefficients "
+                        "as step function".format(i))
+            elif pulse.spline_kind == "cubic":
+                if coeff_len == tlist_len:
+                    pass
+                else:
+                    raise ValueError(
+                        "The length of tlist and coeffs pulse {} is not valid. "
+                        "It should be either len(tlist)=len(coeff)".format(i))
             else:
-                raise ValueError(
-                    "The length of tlist and coeffs is not valid. "
-                    "It's either len(tlist)=coeffs.shape[1] or "
-                    "len(tlist)-1=coeffs.shape[1] for coefficients "
-                    "as step function")
-        if self.spline_kind == "cubic" and coeff_len == tlist_len:
-            return True
-        else:
-            raise ValueError(
-                "The length of tlist and coeffs is not valid. "
-                "It should be either len(tlist)=coeffs.shape[1]")
-        raise ValueError("Unknown spline_kind.")
-
-    def _is_ctrl_coeff_valid(self):
-        """
-        Check if the number of control Hamiltonians
-        and ``coeffs.shape[0]`` are the same.
-
-        Returns: boolean
-            If they are valid or not
-        """
-        if self.coeffs is None and len(self.ctrls) != 0:
-            raise ValueError(
-                "The control amplitude is None while "
-                "the number of ctrls is {}.".format(len(self.ctrls)))
-        if self.coeffs is not None:
-            if self.coeffs.shape[0] != len(self.ctrls):
-                raise ValueError(
-                    "The control amplitude matrix do not match the "
-                    "number of ctrls  "
-                    "#ctrls = {}  "
-                    "#coeffs = {}.".format(len(self.ctrls), len(self.coeffs)))
+                raise ValueError("Unknown spline_kind.")
         return True
-
-    def _is_coeff_valid(self):
-        """
-        Check if the attributes are in the correct shape.
-
-        Returns: boolean
-            If they are valid or not
-        """
-        return (self._is_time_coeff_valid() and
-                self._is_ctrl_coeff_valid())
 
     def save_coeff(self, file_name, inctime=True):
         """
@@ -278,7 +296,7 @@ class Processor(object):
         inctime: boolean, optional
             True if the time list should be included in the first column.
         """
-        self._is_coeff_valid()
+        self._is_pulses_valid()
 
         if inctime:
             shp = self.coeffs.T.shape
@@ -319,7 +337,64 @@ class Processor(object):
             self.coeffs = data[:, 1:].T
         return self.tlist, self.coeffs
 
-    def get_unitary_qobjevo(self, args=None):
+    def _process_noise(self, ctrl_pulses):
+        """
+        Call all the noise object saved in the processor and
+        return a noisy part of the evolution.
+
+        Parameters
+        ----------
+        proc_qobjevo: :class:`qutip.qip.QobjEvo`
+            The :class:`qutip.qip.QobjEvo` representing the unitary evolution
+            in the noiseless processor.
+
+        Returns
+        -------
+        noise: :class:`qutip.qip.QobjEvo`
+            The :class:`qutip.qip.QobjEvo` representing the noisy
+            part Hamiltonians.
+
+        c_ops: list
+            A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
+            representing the time-(in)dependent collapse operators.
+        """
+        ctrl_pulses = deepcopy(ctrl_pulses)
+        noisy_dynamics = []
+        c_ops = []
+
+        if (self.t1 is not None) or (self.t2 is not None):
+            noisy_dynamics += [RelaxationNoise(self.t1, self.t2).get_noisy_dynamics(
+                N=self.N)]
+
+        for noise in self.noise:
+            if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
+                noisy_dynamics += [noise.get_noisy_dynamics(self.N)]
+            elif isinstance(noise, ControlAmpNoise):
+                ctrl_pulses = noise.get_noisy_dynamics(self.N, ctrl_pulses)
+            elif isinstance(noise, UserNoise):
+                ctrl_pulses, new_c_ops = noise.get_noisy_dynamics(
+                    ctrl_pulses, self.dims)
+                c_ops += new_c_ops
+            else:
+                raise NotImplementedError(
+                    "The noise type {} is not"
+                    "implemented in the processor".format(
+                        type(noise)))
+        return ctrl_pulses + noisy_dynamics, c_ops
+        # for noisy_pulse in noisy_dynamics:
+        #     noisy_qu, new_c_ops = noisy_pulse.get_full_evo(self.N, dims=self.dims)
+        #     noisy_qu_list.append(noisy_qu)
+        #     c_ops += new_c_ops
+
+        # if self.spline_kind == "step_func":
+        #     _step_func_coeff = True
+        # else:
+        #     _step_func_coeff = False
+        # dummy = _dummy_qobjevo(
+        #     self.dims, args={"_step_func_coeff":_step_func_coeff})
+        # return _merge_qobjevo([dummy] + noisy_qu_list), c_ops
+
+    def get_dynamics(self, args=None, noisy=False):
         """
         Create a :class:`qutip.QobjEvo` without any noise that can be given to
         the QuTiP open system solver.
@@ -331,62 +406,48 @@ class Processor(object):
 
         Returns
         -------
-        unitary_qobjevo: :class:`qutip.QobjEvo`
+        ideal_qobjevo: :class:`qutip.QobjEvo`
             The :class:`qutip.QobjEvo` representation of the unitary evolution.
         """
         # check validity
-        self._is_coeff_valid()
+        self._is_pulses_valid()
 
         if args is None:
             args = {}
         else:
             args = args
         # set step function
-        if self.coeffs is None:
-            coeffs = np.empty((0, 0))
-        elif self.spline_kind == "step_func":
-            args.update({"_step_func_coeff": True})
-            if self.coeffs.shape[1] == len(self.tlist) - 1:
-                coeffs = np.hstack([self.coeffs, self.coeffs[:, -1:]])
+
+        qu_list = []
+        if not noisy:
+            dynamics = self.ctrl_pulses
+            c_ops = []
+        else:
+            dynamics, c_ops = self._process_noise(self.ctrl_pulses)
+        dynamics = [self.drift] + dynamics
+
+        for pulse in dynamics:
+            if noisy:
+                qu, new_c_ops = pulse.get_full_evo(self.N, dims=self.dims)
+                c_ops += new_c_ops
             else:
-                coeffs = self.coeffs
-        elif self.spline_kind == "cubic":
-            args.update({"_step_func_coeff": False})
-            coeffs = self.coeffs
+                qu = pulse.get_ideal_evo(self.N, dims=self.dims)
+            qu_list.append(qu)
+        
+        if not qu_list: # if no evolution element found.
+            final_qu = _dummy_qobjevo(self.dims, tlist=self.tlist, args=args)
         else:
-            raise ValueError(
-                "No option for spline_kind '{}'.".format(self.spline_kind))
+            final_qu = _merge_qobjevo(qu_list)
+            final_qu.args.update(args)
 
-        H_list = []
-        for op_ind in range(len(self.ctrls)):
-            H_list.append(
-                [self.ctrls[op_ind], coeffs[op_ind]])
-        if not H_list:
-            return _dummy_qobjevo(self.dims, tlist=self.tlist, args=args)
+        if final_qu.tlist is None:
+            # No time specified in Pulse, e.g. evolution under constant pulse.
+            final_qu.tlist = self.tlist
+
+        if noisy:
+            return final_qu, c_ops
         else:
-            return QobjEvo(H_list, tlist=self.tlist, args=args)
-
-    def get_noisy_qobjevo(self, args=None):
-        """
-        Create a :class:`qutip.QobjEvo` with noise that can be given to
-        the open system solver.
-
-        Parameters
-        ----------
-        args: dict, optional
-            Arguments for :class:`qutip.QobjEvo`
-
-        Returns
-        -------
-        noisy_qobjevo: :class:`qutip.QobjEvo`
-            The :class:`qutip.QobjEvo` representation of the noisy evolution.
-        c_ops: list
-            A list of time-(in)dependent collapse operators.
-        """
-        unitary_qobjevo = self.get_unitary_qobjevo(args=args)
-        ham_noise, c_ops = self._process_noise(unitary_qobjevo)
-        noisy_qobjevo = self._compatible_coeff([unitary_qobjevo, ham_noise])
-        return noisy_qobjevo, c_ops
+            return final_qu
 
     def get_noisy_coeffs(self):
         """
@@ -403,10 +464,10 @@ class Processor(object):
         Notes
         -----
         Collapse operators are not included in this method,
-        please use :meth:`qutip.qip.processor.get_noisy_qobjevo`
+        please use :meth:`qutip.qip.processor.get_full_evo`
         if they are needed.
         """
-        noisy_qobjevo, c_ops = self.get_noisy_qobjevo()
+        noisy_qobjevo, c_ops = self.get_full_evo()
         coeff_list = []
         H_list = noisy_qobjevo.to_list()
         for H in H_list:
@@ -534,10 +595,9 @@ class Processor(object):
 
         # construct qobjevo for unitary evolution
         if "args" in kwargs:
-            noisy_qobjevo, sys_c_ops = self.get_noisy_qobjevo(
-                                                        args=kwargs["args"])
+            noisy_qobjevo, sys_c_ops = self.get_dynamics(args=kwargs["args"], noisy=True)
         else:
-            noisy_qobjevo, sys_c_ops = self.get_noisy_qobjevo()
+            noisy_qobjevo, sys_c_ops = self.get_dynamics(noisy=True)
 
         # add noise into kwargs
         if "c_ops" in kwargs:
@@ -664,135 +724,6 @@ class Processor(object):
         else:
             raise TypeError("Input is not a Noise object.")
 
-    def _process_noise(self, proc_qobjevo):
-        """
-        Call all the noise object saved in the processor and
-        return a noisy part of the evolution.
-
-        Parameters
-        ----------
-        proc_qobjevo: :class:`qutip.qip.QobjEvo`
-            The :class:`qutip.qip.QobjEvo` representing the unitary evolution
-            in the noiseless processor.
-
-        Returns
-        -------
-        noise: :class:`qutip.qip.QobjEvo`
-            The :class:`qutip.qip.QobjEvo` representing the noisy
-            part Hamiltonians.
-
-        c_ops: list
-            A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
-            representing the time-(in)dependent collapse operators.
-        """
-        c_ops = []
-        evo_noise_list = []
-        if (self.t1 is not None) or (self.t2 is not None):
-            c_ops += RelaxationNoise(self.t1, self.t2).get_noise(
-                N=self.N, dims=self.dims)
-        for noise in self.noise:
-            if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
-                c_ops += noise.get_noise(
-                    self.N, dims=self.dims)
-            elif isinstance(noise, ControlAmpNoise):
-                evo_noise_list.append(noise.get_noise(
-                    self.N, proc_qobjevo, dims=self.dims))
-            elif isinstance(noise, UserNoise):
-                noise_qobjevo, new_c_ops = noise.get_noise(
-                    self.N, proc_qobjevo, self.ctrl_pulses, dims=self.dims)
-                evo_noise_list.append(noise_qobjevo)
-                c_ops += new_c_ops
-            else:
-                raise NotImplementedError(
-                    "The noise type {} is not"
-                    "implemented in the processor".format(
-                        type(noise)))
-        return self._compatible_coeff(evo_noise_list), c_ops
-
-    def _compatible_coeff(self, qobjevo_list):
-        """
-        Combine a list of `:class:qutip.QobjEvo` into one,
-        different tlist will be merged.
-        """
-        # TODO This method can be eventually integrated into QobjEvo, for
-        # which a more thorough test is required
-
-        # no qobjevo
-        if not qobjevo_list:
-            return _dummy_qobjevo(self.dims)
-        all_tlists = [qu.tlist for qu in qobjevo_list if qu.tlist is not None]
-        # all tlists are None
-        if not all_tlists:
-            return sum(qobjevo_list, _dummy_qobjevo(self.dims))
-        new_tlist = np.unique(np.sort(np.hstack(all_tlists)))
-        for i, qobjevo in enumerate(qobjevo_list):
-            H_list = qobjevo.to_list()
-            for j, H in enumerate(H_list):
-                # cte part or not array_like coeffs
-                if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
-                    continue
-                op, coeffs = H
-                new_coeff = _fill_coeff(
-                    coeffs, qobjevo.tlist, new_tlist, self.spline_kind)
-                H_list[j] = [op, new_coeff]
-            # create a new qobjevo with the old arguments
-            qobjevo_list[i] = QobjEvo(
-                H_list, tlist=new_tlist, args=qobjevo.args)
-        qobjevo = sum(qobjevo_list, _dummy_qobjevo(self.dims))
-        qobjevo = _merge_id_evo(qobjevo)
-        return qobjevo
-
-
-def _fill_coeff(old_coeffs, old_tlist, new_tlist, spline_kind):
-    """
-    Make a step function coefficients compatible with a longer `tlist` by
-    filling the empty slot with the nearest left value.
-    """
-    if spline_kind == "step_func":
-        new_n = len(new_tlist)
-        old_ind = 0  # index for old coeffs and tlist
-        new_coeff = np.zeros(new_n)
-        for new_ind in range(new_n):
-            t = new_tlist[new_ind]
-            if t < old_tlist[0]:
-                new_coeff[new_ind] = 0.
-                continue
-            if t > old_tlist[-1]:
-                new_coeff[new_ind] = 0.
-                continue
-            if old_tlist[old_ind+1] == t:
-                old_ind += 1
-            new_coeff[new_ind] = old_coeffs[old_ind]
-    elif spline_kind == "cubic":
-        sp = CubicSpline(old_tlist, old_coeffs)
-        new_coeff = np.array([sp(t) for t in new_tlist])
-    return new_coeff
-
-
-def _merge_id_evo(qobjevo):
-    """
-    Merge identical Hamiltonians in the :class":`qutip.QobjEvo`.
-    coeffs must all have the same length
-    """
-    H_list = qobjevo.to_list()
-    new_H_list = []
-    op_list = []
-    coeff_list = []
-    for H in H_list:  # H = [op, coeff]
-        # cte part or not array_like coeffs
-        if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
-            new_H_list.append(deepcopy(H))
-            continue
-        op, coeffs = H
-        # Qobj is not hashable, so cannot be used as key in dict
-        try:
-            p = op_list.index(op)
-            coeff_list[p] += coeffs
-        except ValueError:
-            op_list.append(op)
-            coeff_list.append(coeffs)
-    new_H_list += [[op_list[i], coeff_list[i]] for i in range(len(op_list))]
-    return QobjEvo(new_H_list, tlist=qobjevo.tlist, args=qobjevo.args)
 
 
 def _dummy_qobjevo(dims, **kwargs):

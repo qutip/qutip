@@ -42,6 +42,7 @@ from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
 from qutip.qip.gates import expand_operator
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
+from qutip.qip.device.pulse import Pulse
 
 
 __all__ = ['DispersivecQED', 'CQEDGateDecomposer']
@@ -190,8 +191,8 @@ class DispersivecQED(ModelProcessor):
     @property
     def ctrls(self):
         result = []
-        for ctrl, targets in self.ctrl_pulses:
-            result.append(expand_operator(ctrl, self.N+1, targets, self.dims))
+        for pulse in self.ctrl_pulses:
+            result.append(pulse.get_full_ham(self.N+1, self.dims))
         return result
 
     def set_up_ops(self, N):
@@ -206,19 +207,19 @@ class DispersivecQED(ModelProcessor):
         """
         # single qubit terms
         self.a = tensor(destroy(self.num_levels))
-        self.ctrl_pulses.append([self.a.dag() * self.a, [0]])
+        self.ctrl_pulses.append(Pulse(self.a.dag() * self.a, [0], spline_kind=self.spline_kind))
         # self.ctrls += [tensor([identity(self.num_levels)] +
         #                       [sigmax() if m == n else identity(2)
         #                        for n in range(N)])
         #                for m in range(N)]
         for m in range(N):
-            self.ctrl_pulses.append([sigmax(), [m+1]])
+            self.ctrl_pulses.append(Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
         # self.ctrls += [tensor([identity(self.num_levels)] +
         #                       [sigmaz() if m == n else identity(2)
         #                        for n in range(N)])
         #                for m in range(N)]
         for m in range(N):
-            self.ctrl_pulses.append([sigmaz(), [m+1]])
+            self.ctrl_pulses.append(Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
         # interaction terms
         a_full = tensor([destroy(self.num_levels)] + 
                         [identity(2) for n in range(N)])
@@ -226,7 +227,7 @@ class DispersivecQED(ModelProcessor):
             sm = tensor([identity(self.num_levels)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
-            self.ctrl_pulses.append([a_full.dag() * sm + a_full * sm.dag(), list(range(N+1))])
+            self.ctrl_pulses.append(Pulse(a_full.dag() * sm + a_full * sm.dag(), list(range(N+1)), spline_kind=self.spline_kind))
 
         self.psi_proj = tensor([basis(self.num_levels, 0)] +
                                [identity(2) for n in range(N)])
@@ -380,15 +381,16 @@ class DispersivecQED(ModelProcessor):
         dec = CQEDGateDecomposer(
             self.N, self._paras, self.wq, self.Delta,
             global_phase=0., num_ops=len(self.ctrls))
-        self.tlist, self.coeffs, self.global_phase = dec.decompose(gates)
-
+        tlist, self.coeffs, self.global_phase = dec.decompose(gates)
+        for i in range(len(self.ctrl_pulses)):
+            self.ctrl_pulses[i].tlist = tlist
         # TODO The amplitude of the first control a.dag()*a
         # was set to zero before I made this refactoring.
         # It is probably due to the fact that
         # it contributes only a constant (N) and can be neglected.
         # but change the below line to np.ones leads to test error.
         self.coeffs[0] = self._paras["w0"] * np.zeros((self.sx_u.shape[1]))
-        return self.tlist, self.coeffs
+        return tlist, self.coeffs
 
 
 class CQEDGateDecomposer(GateDecomposer):

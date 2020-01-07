@@ -36,7 +36,7 @@ from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
-
+from qutip.qip.device.pulse import Pulse
 
 __all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',
            'SpinChainGateDecomposer']
@@ -176,13 +176,13 @@ class SpinChain(ModelProcessor):
         #                        for n in range(N)])
         #                for m in range(N)]
         for m in range(N):
-            self.ctrl_pulses.append([sigmax(), m])
+            self.ctrl_pulses.append(Pulse(sigmax(), m, spline_kind=self.spline_kind))
         # sz_ops
         # self.ctrls += [tensor([sigmaz() if m == n else identity(2)
         #                        for n in range(N)])
         #                for m in range(N)]
         for m in range(N):
-            self.ctrl_pulses.append([sigmaz(), m])
+            self.ctrl_pulses.append(Pulse(sigmaz(), m, spline_kind=self.spline_kind))
         # sxsy_ops
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
         for n in range(N - 1):
@@ -190,7 +190,7 @@ class SpinChain(ModelProcessor):
             # x[n] = x[n + 1] = sigmax()
             # y = [identity(2)] * N
             # y[n] = y[n + 1] = sigmay()
-            self.ctrl_pulses.append([operator, [n, n+1]])
+            self.ctrl_pulses.append(Pulse(operator, [n, n+1], spline_kind=self.spline_kind))
 
     def set_up_params(self, sx, sz):
         """
@@ -266,9 +266,11 @@ class SpinChain(ModelProcessor):
         dec = SpinChainGateDecomposer(
             self.N, self._paras, setup=setup,
             global_phase=0., num_ops=len(self.ctrls))
-        self.tlist, self.coeffs, self.global_phase = dec.decompose(gates)
+        tlist, self.coeffs, self.global_phase = dec.decompose(gates)
+        for i in range(len(self.ctrl_pulses)):
+            self.ctrl_pulses[i].tlist = tlist
 
-        return self.tlist, self.coeffs
+        return tlist, self.coeffs
 
     def adjacent_gates(self, qc, setup="linear"):
         """
@@ -624,7 +626,7 @@ class CircularSpinChain(SpinChain):
     def set_up_ops(self, N):
         super(CircularSpinChain, self).set_up_ops(N)
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
-        self.ctrl_pulses.append([operator, [N-1, 0]])
+        self.ctrl_pulses.append(Pulse(operator, [N-1, 0], spline_kind=self.spline_kind))
 
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
