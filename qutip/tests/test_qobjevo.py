@@ -704,6 +704,8 @@ def test_QobjEvo_expect_rho_full():
     N = 5
     t = np.random.rand()+1
     vec = np.random.rand(N*N)+1 + 1j*np.random.rand(N*N)
+    mat = vec2mat(vec)
+    qobj = Qobj(mat)
     cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
     for op_ in cqobjevos:
