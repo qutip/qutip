@@ -32,7 +32,7 @@
 ###############################################################################
 from qutip.about import about
 
-def run():
+def run(full=False):
     """
     Run the nose test scripts for QuTiP.
     """
@@ -40,5 +40,7 @@ def run():
     about()
     import pytest
     # runs tests in qutip.tests module only
-    pytest.main(["--verbosity=1",
-                "--disable-pytest-warnings", "--pyargs", "qutip"])
+    test_options = ["--verbosity=1", "--disable-pytest-warnings", "--pyargs"]
+    if not full:
+        test_options += ['-m', 'not slow']
+    pytest.main(test_options + ["qutip"])
