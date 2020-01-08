@@ -1336,7 +1336,7 @@ class Qobj(object):
         q = Qobj()
         q.data, q.dims = _permute(self, order)
         q.data.sort_indices()
-        return q.tidyup() if settings.auto_tidyup else q
+        return q
 
     def tidyup(self, atol=settings.auto_tidyup_atol):
         """Removes small elements from the quantum object.
