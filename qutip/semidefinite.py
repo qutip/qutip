@@ -50,7 +50,7 @@ except:
 
 Complex = namedtuple('Complex', ['re', 'im'])
 
-from qutip.qip.gates import swap
+from qutip.qip.ops import swap
 from qutip.tensor import tensor_swap
 from qutip.operators import qeye
 

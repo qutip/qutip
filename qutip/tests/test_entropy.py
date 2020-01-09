@@ -36,10 +36,10 @@ from __future__ import division
 import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
 
-from qutip import (basis, ket2dm, cnot, entropy_vn, entropy_linear, rand_ket,
+from qutip import (basis, ket2dm, entropy_vn, entropy_linear, rand_ket,
                    rand_dm, tensor, concurrence, entropy_mutual, ptrace,
-                   entropy_conditional, entangling_power, iswap, swap,
-                   berkeley, sqrtswap, swapalpha)
+                   entropy_conditional, entangling_power)
+from qutip.qip.ops import cnot, iswap, swap, berkeley, sqrtswap, swapalpha
 
 
 def test_EntropyVN():

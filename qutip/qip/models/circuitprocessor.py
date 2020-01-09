@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip.qip.gates import globalphase
+from qutip.qip.ops import globalphase
 
 
 class CircuitProcessor(object):

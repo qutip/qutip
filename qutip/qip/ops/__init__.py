@@ -30,16 +30,4 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import warnings
-# Deprecation warning is by default ignored if not in the main workspace,
-# this forces it to show up.
-warnings.simplefilter('once', DeprecationWarning)
-
-
-def _qip_importation_warning():
-    warnings.warn(
-        "Importing functions/classes of the qip submodule directly from "
-        "the namespace qutip is deprecated. "
-        "Please import them from the submodule instead, e.g.\n"
-        "from qutip.ops import cnot",
-        DeprecationWarning, stacklevel=3)
+from .gates import *

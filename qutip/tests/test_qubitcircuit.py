@@ -33,7 +33,8 @@
 
 import numpy as np
 from numpy.testing import assert_, assert_allclose, run_module_suite
-from qutip.qip.gates import gate_sequence_product, rx, identity, expand_oper
+from qutip.qip.ops import gate_sequence_product, rx, expand_oper
+from qutip.operators import identity
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.tensor import tensor
 from qutip.qobj import Qobj

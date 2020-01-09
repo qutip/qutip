@@ -31,5 +31,5 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.qip.circuit import *
-from qutip.qip.gates import *
+from qutip.qip.ops import *
 from qutip.qip.qubits import *

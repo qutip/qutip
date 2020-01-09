@@ -33,7 +33,7 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip.qip.gates import gate_sequence_product
+from qutip.qip.ops import gate_sequence_product
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.spinchain import LinearSpinChain, CircularSpinChain
 
