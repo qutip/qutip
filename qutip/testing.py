@@ -40,7 +40,7 @@ def run():
     # Call about to get all version info printed with tests
     about()
     real_num_cpu = qset.num_cpus
-    real_thresh  = qset.openmp_thresh
+    real_thresh = qset.openmp_thresh
     if qset.has_openmp:
         # For travis which VMs have only 1 cpu.
         # Make sure the openmp version of the functions are tested.
