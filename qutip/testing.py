@@ -42,9 +42,8 @@ def run():
     real_num_cpu = qset.num_cpus
     real_thresh  = qset.openmp_thresh
     if qset.has_openmp:
-        # For test with openmp
-        # make sure the openmp version of the function is tested.
         # For travis which VMs have only 1 cpu.
+        # Make sure the openmp version of the functions are tested.
         qset.num_cpus = 2
         qset.openmp_thresh = 100
     import nose
