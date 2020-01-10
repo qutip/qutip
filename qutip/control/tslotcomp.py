@@ -70,7 +70,7 @@ import warnings
 import numpy as np
 import timeit
 # QuTiP
-from qutip import Qobj
+from qutip.qobj import Qobj
 # QuTiP control modules
 import qutip.control.errors as errors
 import qutip.control.dump as qtrldump

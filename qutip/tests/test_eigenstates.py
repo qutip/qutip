@@ -34,7 +34,7 @@
 from qutip import sigmax, sigmay, sigmaz, tensor, destroy, qeye
 from numpy import amax
 from numpy.testing import assert_equal, run_module_suite
-import scipy
+from numpy.random import rand
 
 
 def test_diagHamiltonian1():
@@ -42,8 +42,8 @@ def test_diagHamiltonian1():
     Diagonalization of random two-level system
     """
 
-    H = scipy.rand() * sigmax() + scipy.rand() * sigmay() +\
-        scipy.rand() * sigmaz()
+    H = rand() * sigmax() + rand() * sigmay() +\
+        rand() * sigmaz()
 
     evals, ekets = H.eigenstates()
 
@@ -58,10 +58,10 @@ def test_diagHamiltonian2():
     Diagonalization of composite systems
     """
 
-    H1 = scipy.rand() * sigmax() + scipy.rand() * sigmay() +\
-        scipy.rand() * sigmaz()
-    H2 = scipy.rand() * sigmax() + scipy.rand() * sigmay() +\
-        scipy.rand() * sigmaz()
+    H1 = rand() * sigmax() + rand() * sigmay() +\
+        rand() * sigmaz()
+    H2 = rand() * sigmax() + rand() * sigmay() +\
+        rand() * sigmaz()
 
     H = tensor(H1, H2)
 
@@ -77,8 +77,8 @@ def test_diagHamiltonian2():
 
     a1 = tensor(destroy(N1), qeye(N2))
     a2 = tensor(qeye(N1), destroy(N2))
-    H = scipy.rand() * a1.dag() * a1 + scipy.rand() * a2.dag() * a2 + \
-        scipy.rand() * (a1 + a1.dag()) * (a2 + a2.dag())
+    H = rand() * a1.dag() * a1 + rand() * a2.dag() * a2 + \
+        rand() * (a1 + a1.dag()) * (a2 + a2.dag())
     evals, ekets = H.eigenstates()
 
     for n in range(len(evals)):

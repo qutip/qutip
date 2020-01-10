@@ -1,4 +1,3 @@
-#!python
 #cython: language_level=3
 ## cython: profile=True
 ## cython: linetrace=True
@@ -387,10 +386,8 @@ cdef class CyMcOdeDiag(CyMcOde):
         self.t = tlist[0]
         norm2_prev = dznrm2(self.psi) ** 2
         for k in range(1, num_times):
-            #print(self.t, tlist[k], norm2_prev, rand_vals[0])
             norm2_prev = self.advance(tlist[k], norm2_prev, rand_vals, use_quick)
             while self.t < tlist[k]:
-                #print(self.t, tlist[k], norm2_prev, rand_vals[0])
                 norm2_prev = self.advance(tlist[k], norm2_prev, rand_vals, 0)
             # after while loop
             # ----------------
@@ -415,10 +412,6 @@ cdef class CyMcOdeDiag(CyMcOde):
         # find collapse time to within specified tolerance
         cdef int ii = 0, jj
         cdef double t_guess, norm2_guess
-        # cdef double t_final = ODE.t
-        #print("before", self.t, norm2_prev)
-        #print("after", t_final, norm2_psi)
-        #print("target", target_norm)
         while ii < self.norm_steps:
             ii += 1
             if (t_final - self.t) < self.norm_t_tol:
@@ -436,13 +429,11 @@ cdef class CyMcOdeDiag(CyMcOde):
 
             self.ode(t_guess, y_new)
             norm2_guess = dznrm2(y_new)**2
-            #print(ii, "guess", t_guess, norm2_guess)
 
             if (np.abs(target_norm - norm2_guess) < self.norm_tol * target_norm):
                 self.t = t_guess
                 for jj in range(self.l_vec):
                     self.psi[jj] = y_new[jj]
-                #print("found")
                 break
             elif (norm2_guess < target_norm):
                 # t_guess is still > t_jump
@@ -455,7 +446,6 @@ cdef class CyMcOdeDiag(CyMcOde):
                     self.psi[jj] = y_new[jj]
                 norm2_prev = norm2_guess
 
-        #print("finish", ii, self.norm_steps)
         if ii > self.norm_steps:
             raise Exception("Norm tolerance not reached. " +
                             "Increase accuracy of ODE solver or " +

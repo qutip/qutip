@@ -76,9 +76,8 @@ class qutip_zvode(zvode):
         return r
 
 def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
-            args={}, options=Options(),
-            progress_bar=True, map_func=parallel_map, map_kwargs={},
-            _safe_mode=True, _exp=False):
+            args={}, options=None, progress_bar=True,
+            map_func=parallel_map, map_kwargs={}, _safe_mode=True):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -174,6 +173,9 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
 
+    if options is None:
+        options = Options()
+
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "mcsolve" in solver_safe:
@@ -202,7 +204,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
         raise Exception("Initial state must be a state vector.")
 
     # load monte carlo class
-    mc = _MC(options, _exp)
+    mc = _MC(options)
 
 
     if isinstance(H, SolverSystem):
@@ -235,7 +237,9 @@ class _MC():
     """
     Private class for solving Monte Carlo evolution from mcsolve
     """
-    def __init__(self, options=Options(), _exp=False):
+    def __init__(self, options=None):
+        if options is None:
+            options = Options()
         self.options = options
         self.ss = None
         self.tlist = None
@@ -251,9 +255,6 @@ class _MC():
         self._expect_out = []
         self._collapse = []
         self._ss_out = []
-
-        # Flag
-        self._experimental = _exp
 
     def reset(self, t=0., psi0=None):
         if psi0 is not None:
@@ -298,7 +299,7 @@ class _MC():
         ss.args = args
         ss.col_args = var
         for c in c_ops:
-            cevo = QobjEvo(c, args, tlist)
+            cevo = QobjEvo(c, args, tlist=tlist)
             cdc = cevo._cdc()
             cevo.compile()
             cdc.compile()
@@ -306,7 +307,7 @@ class _MC():
             ss.td_n_ops.append(cdc)
 
         try:
-            H_td = QobjEvo(H, args, tlist)
+            H_td = QobjEvo(H, args, tlist=tlist)
             H_td *= -1j
             for c in ss.td_n_ops:
                 H_td += -0.5 * c
@@ -386,7 +387,7 @@ class _MC():
                                progress_bar, map_func, map_kwargs)
             return
 
-        if args != self.ss.args:
+        if args and args != self.ss.args:
             self.ss.set_args(self.ss, args)
             self.reset()
 
@@ -426,9 +427,10 @@ class _MC():
             progress_bar = TextProgressBar()
 
         # set arguments for input to monte carlo
-        map_kwargs = {'progress_bar': progress_bar,
+        map_kwargs_ = {'progress_bar': progress_bar,
                       'num_cpus': options.num_cpus}
-        map_kwargs.update(map_kwargs)
+        map_kwargs_.update(map_kwargs)
+        map_kwargs = map_kwargs_
 
         if self.e_ops is None:
             self.set_e_ops()
@@ -598,7 +600,7 @@ class _MC():
             output.states = self.runs_states
 
         if options.store_final_state:
-            if not self._experimental or options.average_states:
+            if options.average_states:
                 output.final_state = self.final_state
             else:
                 output.final_state = self.runs_final_states
@@ -750,11 +752,11 @@ def _qobjevo_args(ss, args):
     var = _collapse_args(args)
     ss.col_args = var
     ss.args = args
-    ss.H_td.arguments(args)
+    ss.H_td.solver_set_args(args, psi0, e_ops)
     for c in ss.td_c_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
 
 def _func_set(HS, psi0=None, args={}, opt=None):
     if args:
@@ -772,9 +774,9 @@ def _func_args(ss, args):
     ss.col_args = var
     ss.args = args
     for c in ss.td_c_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.arguments(args)
+        c.solver_set_args(args, psi0, e_ops)
     return rhs, (ss.h_func, ss.Hc_td, args)
 
 
@@ -801,20 +803,9 @@ def _mc_dm_avg(psi_list):
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
 
 def _collapse_args(args):
-    to_rm = ""
-    for k in args:
-        if "=" in k and k.split("=")[1] == "collapse":
-            to_rm.append(k)
-            var = k.split("=")[0]
-            if isinstance(args[k], list):
-                list_ = args[k]
-            else:
-                list_ = []
-            to_rm = k
-            break
-    if to_rm:
-        del args[k]
-        args[var] = list_
-        return var
-    else:
-        return ""
+    for key in args:
+        if key == "collapse":
+            if not isinstance(args[key], list):
+                args[key] = []
+            return key
+    return ""

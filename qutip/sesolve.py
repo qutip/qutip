@@ -160,7 +160,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     else:
         raise Exception("Invalid H type")
 
-    func, ode_args = ss.makefunc(ss, psi0, args, options)
+    func, ode_args = ss.makefunc(ss, psi0, args, e_ops, options)
 
     if _safe_mode:
         v = psi0.full().ravel('F')
@@ -182,7 +182,7 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = -1.0j * QobjEvo(H, args, tlist)
+    H_td = -1.0j * QobjEvo(H, args, tlist=tlist)
     if opt.rhs_with_state:
         H_td._check_old_with_state()
     nthread = opt.openmp_threads if opt.use_openmp else 0
@@ -194,12 +194,12 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     solver_safe["sesolve"] = ss
     return ss
 
-def _qobjevo_set(HS, psi, args, opt):
+def _qobjevo_set(HS, psi, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.arguments(args)
+    H_td.solver_set_args(args, psi, e_ops)
     if psi.isunitary:
         func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
     elif psi.isket:
@@ -225,24 +225,20 @@ def _sesolve_func_td(H_func, args, opt):
     solver_safe["sesolve"] = ss
     return ss
 
-def _Hfunc_set(HS, psi, args, opt):
+def _Hfunc_set(HS, psi, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
     H_func = HS.H
     if psi.isunitary:
         if not opt.rhs_with_state:
-            print("_ode_oper_func_td")
             func = _ode_oper_func_td
         else:
-            print("_ode_oper_func_td_with_state")
             func = _ode_oper_func_td_with_state
     else:
         if not opt.rhs_with_state:
-            print("cy_ode_psi_func_td")
             func = cy_ode_psi_func_td
         else:
-            print("cy_ode_psi_func_td_with_state")
             func = cy_ode_psi_func_td_with_state
 
     return func, (H_func, args)

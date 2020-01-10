@@ -30,4 +30,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip.qip.models.circuitprocessor import CircuitProcessor
+from qutip.qip.device.processor import Processor
+from qutip.qip.device.spinchain import (
+    SpinChain, LinearSpinChain, CircularSpinChain)
+from qutip.qip.device.cqed import DispersivecQED
+from qutip.qip.device.optpulseprocessor import OptPulseProcessor
+from qutip.qip.device.modelprocessor import ModelProcessor
+from qutip.qip.device.noise import (
+    Noise, RelaxationNoise, DecoherenceNoise,
+    ControlAmpNoise, RandomNoise, UserNoise)

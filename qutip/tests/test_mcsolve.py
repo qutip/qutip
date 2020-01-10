@@ -198,7 +198,7 @@ def test_MCCollapseTimesOperators():
     result = mcsolve(H, psi0, times, c_ops, [], ntraj=1)
     assert_(len(result.col_times[0]) > 0)
     assert_(len(result.col_which) == len(result.col_times))
-    assert_(set(result.col_which[0]) == {0, 1})
+    assert_(all([col in [0, 1] for col in result.col_which[0]]))
 
 
 def test_MCSimpleConst():
@@ -306,8 +306,9 @@ def test_MCSimpleConstFunc():
     assert_equal(avg_diff < mc_error, True)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+#@unittest.skipIf(Cython_found == 0 or
+#                 _version2int(Cython.__version__) < _version2int('0.14'),
+#                 'Cython not found or version too low.')
 def test_MCSimpleConstStr():
     "Monte-carlo: Collapse terms constant (str format)"
     N = 10  # number of basis states to consider
@@ -343,8 +344,9 @@ def test_MCTDFunc():
     assert_equal(diff < error, True)
 
 
-@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
-                 Cython_found == 0, 'Cython not found or version too low.')
+#@unittest.skipIf(Cython_found == 0 or
+#                 _version2int(Cython.__version__) < _version2int('0.14'),
+#                 'Cython not found or version too low.')
 def test_TDStr():
     "Monte-carlo: Time-dependent H (str format)"
     error = 5e-2
@@ -532,9 +534,31 @@ def test_mc_ntraj_list():
     mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a], ntraj)
     assert_equal(len(mc.expect), 4)
 
+
+def f_dargs(t, args):
+    # allows only one collapse
+    return 0 if args["collapse"] else 1
+
+
+def test_mc_dyn_args():
+    "Monte-carlo: dynamics arguments"
+    N = 5
+    a = destroy(N)
+    H = a.dag()*a       # Simple oscillator Hamiltonian
+    psi0 = basis(N, 2)  # Initial Fock state with one photon
+    c_ops = []
+    c_ops.append([a, f_dargs])
+    c_ops.append([a.dag(), f_dargs])
+    ntraj = [10]  # number of MC trajectories
+    tlist = np.linspace(0, 1, 11)
+    mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a],
+                 ntraj, args={"collapse":[]})
+    assert_(all(len(col)<=1 for col in mc.col_which))
+
+
 def test_mc_functd_sum():
     "Monte-carlo: Test for #490"
-    psi0 = (basis(2,0) + basis(2,1)).unit()   
+    psi0 = (basis(2,0) + basis(2,1)).unit()
     H0 = sigmax()
     H1 = sigmay()
     H2 = sigmaz()
@@ -551,7 +575,8 @@ def test_mc_functd_sum():
     tlist = np.linspace(0, 3, 10)
     medata = mesolve(h_t, psi0, tlist, [], [], args = {})
     mcdata = mcsolve(h_t, psi0, tlist, [], [], ntraj = ntraj, args = {})
-    assert_(max([(medata.states[k]-mcdata.states[k]).norm() for k in range(10)]) < 1e-5)
+    assert_(max([(medata.states[k]-mcdata.states[k]).norm()
+                 for k in range(10)]) < 1e-5)
 
 
 if __name__ == "__main__":

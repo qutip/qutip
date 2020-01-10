@@ -34,13 +34,13 @@ import numpy as np
 from numpy.testing import assert_,  run_module_suite
 
 from qutip import (ssesolve, destroy, coherent, mesolve, fock, qeye,
-                   parallel_map, photocurrent_sesolve)
+                   parallel_map, photocurrent_sesolve, num)
 
 def f(t, args):
     return args["a"] * t
 
-def test_smesolve_homodyne_methods():
-    "Stochastic: smesolve: homodyne methods with single jump operator"
+def test_ssesolve_homodyne_methods():
+    "Stochastic: ssesolve: homodyne methods with single jump operator"
 
     def arccoth(x):
         return 0.5*np.log((1.+x)/(x-1.))
@@ -85,13 +85,13 @@ def test_smesolve_homodyne_methods():
                         ['taylor2.0', 5e-4]]
     for n_method in list_methods_tol:
         sol = ssesolve(H, rho0, tlist, sc_op, e_op,
-                       nsubsteps=Nsub, method='homodyne', solver = n_method[0])
+                       nsubsteps=Nsub, method='homodyne', solver=n_method[0])
         sol2 = ssesolve(H, rho0, tlist, sc_op, e_op, store_measurement=0,
-                       nsubsteps=Nsub, method='homodyne', solver = n_method[0],
+                       nsubsteps=Nsub, method='homodyne', solver=n_method[0],
                        noise = sol.noise)
         sol3 = ssesolve(H, rho0, tlist, sc_op, e_op,
-                        nsubsteps=Nsub*5, method='homodyne',
-                        solver = n_method[0], tol=1e-8)
+                        nsubsteps=Nsub*10, method='homodyne',
+                        solver=n_method[0], tol=1e-8)
         err = 1/T * np.sum(np.abs(y_an - \
                     (sol.expect[1]-sol.expect[0]*sol.expect[0].conj())))*ddt
         err3 = 1/T * np.sum(np.abs(y_an - \
@@ -100,7 +100,7 @@ def test_smesolve_homodyne_methods():
         assert_(err < n_method[1])
         # 5* more substep should decrease the error
         assert_(err3 < err)
-        # just to check that noise is not affected by smesolve
+        # just to check that noise is not affected by ssesolve
         assert_(np.all(sol.noise == sol2.noise))
         assert_(np.all(sol.expect[0] == sol2.expect[0]))
 
@@ -213,6 +213,34 @@ def test_ssesolve_heterodyne():
     assert_(len(res.measurement) == ntraj)
     assert_(all([m.shape == (len(times), len(sc_ops), 2)
                  for m in res.measurement]))
+
+
+def f_dargs(a, args):
+    return args["expect_op_3"] - 1
+
+
+def test_ssesolve_feedback():
+    "Stochastic: ssesolve: time-dependent H with feedback"
+    tol = 0.01
+    N = 4
+    ntraj = 10
+    nsubsteps = 100
+    a = destroy(N)
+
+    H = [num(N)]
+    psi0 = coherent(N, 2.5)
+    sc_ops = [[a + a.dag(), f_dargs]]
+    e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag()), qeye(N)]
+
+    times = np.linspace(0, 10, 101)
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops,
+                      args={"expect_op_3":qeye(N)})
+    res = ssesolve(H, psi0, times, sc_ops, e_ops, solver=None, noise=1,
+                   ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
+                   map_func=parallel_map, args={"expect_op_3":qeye(N)})
+
+    print(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
+                 for idx in range(len(e_ops))]))
 
 
 if __name__ == "__main__":

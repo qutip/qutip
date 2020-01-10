@@ -34,6 +34,7 @@
 import os
 from numpy import amax
 from numpy.testing import assert_, run_module_suite
+from numpy.random import rand
 import scipy
 from qutip import *
 from qutip import file_data_store, file_data_read
@@ -49,7 +50,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1 - 2 * scipy.rand(N, N))
+        data = (1 - 2 * rand(N, N))
 
         file_data_store("test.dat", data)
         data2 = file_data_read("test.dat")
@@ -62,7 +63,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1 - 2 * scipy.rand(N, N))
+        data = (1 - 2 * rand(N, N))
 
         file_data_store("test.dat", data, "real", "decimal")
         data2 = file_data_read("test.dat", ",")
@@ -75,7 +76,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1 - 2 * scipy.rand(N, N))
+        data = (1 - 2 * rand(N, N))
 
         file_data_store("test.dat", data, "real", "exp")
         data2 = file_data_read("test.dat", ",")
@@ -88,7 +89,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1 - 2 * scipy.rand(N, N)) + 1j * (1 - 2 * scipy.rand(N, N))
+        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
 
         file_data_store("test.dat", data)
         data2 = file_data_read("test.dat")
@@ -101,7 +102,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1 - 2 * scipy.rand(N, N)) + 1j * (1 - 2 * scipy.rand(N, N))
+        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
 
         file_data_store("test.dat", data, "complex", "decimal")
         data2 = file_data_read("test.dat", ",")
@@ -114,7 +115,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1 - 2 * scipy.rand(N, N)) + 1j * (1 - 2 * scipy.rand(N, N))
+        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
 
         file_data_store("test.dat", data, "complex", "exp")
         data2 = file_data_read("test.dat", ",")
@@ -127,7 +128,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1 - 2 * scipy.rand(N, N)) + 1j * (1 - 2 * scipy.rand(N, N))
+        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
 
         # comma separated values
         file_data_store("test.dat", data, "complex", "exp", ",")
@@ -154,7 +155,7 @@ class TestFileIO:
         data2 = file_data_read("test.dat")
         assert_(amax(abs((data - data2))) < 1e-8)
         os.remove("test.dat")
-    
+
     def testqsaveqload(self):
         "qsave/qload"
         A = sigmax()
