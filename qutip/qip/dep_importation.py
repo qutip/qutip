@@ -30,6 +30,14 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip.qip.circuit import *
+"""
+This module serves temporarily as an subsititution of qutip/qip/__init__.py
+We use this because we want to promote the use of 
+``from qutip.qip.ops import cnot``
+instead of
+``from qutip import cnot``
+or ``from qutip.qip import cnot``
+"""
 from qutip.qip.ops import *
+from qutip.qip.circuit import *
 from qutip.qip.qubits import *

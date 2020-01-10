@@ -229,7 +229,7 @@ from qutip.scattering import *
 
 import inspect
 from functools import wraps as _func_wrap
-import qutip.qip as _temp_qip
+import qutip.qip.dep_importation as _temp_qip
 from qutip.qip_depracation import _qip_importation_warning
 
 
