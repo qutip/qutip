@@ -46,6 +46,7 @@ from qutip.operators import qeye
 from qutip.qobjevo import QobjEvo
 from scipy.linalg import norm as la_norm
 from qutip.parallel import parallel_map, serial_map
+from qutip.qobjevo_maker import qobjevo_maker
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                 cy_ode_psi_func_td_with_state, normalize_inplace,
@@ -674,12 +675,16 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
 
     if isinstance(H, SolverSystem):
         ss = H
-    elif isinstance(H, (list, Qobj, QobjEvo)):
-        ss = _sesolve_QobjEvo(H, tlist, args, options)
-    elif callable(H):
-        ss = _sesolve_func_td(H, args, options)
     else:
-        raise Exception("Invalid H type")
+        H = qobjevo_maker(H, args, tlist=tlist, e_ops=e_ops, state=psi0)
+        ss = _sesolve_QobjEvo(H, tlist, args, options)
+
+    # elif isinstance(H, (list, Qobj, QobjEvo)):
+    #    ss = _sesolve_QobjEvo(H, tlist, args, options)
+    # elif callable(H):
+    #    ss = _sesolve_func_td(H, args, options)
+    # else:
+    #     raise Exception("Invalid H type")
 
     func, ode_args = ss.makefunc(ss, psi0, args, e_ops, options)
 
@@ -703,9 +708,7 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = -1.0j * QobjEvo(H, args, tlist=tlist)
-    if opt.rhs_with_state:
-        H_td._check_old_with_state()
+    H_td = -1.0j * qobjevo_maker(H, args, tlist=tlist)
     nthread = opt.openmp_threads if opt.use_openmp else 0
     H_td.compile(omp=nthread)
 
@@ -725,7 +728,7 @@ def _qobjevo_set(HS, psi, args, e_ops, opt):
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.solver_set_args(args, psi, e_ops)
+    H_td.arguments(args, psi, e_ops)
     if psi.isunitary:
         func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
     elif psi.isket:

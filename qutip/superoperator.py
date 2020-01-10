@@ -158,8 +158,14 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
 
 def liouvillian_evo(H, c_ops, data_only, chi):
-    H = QobjEvo(H)
-    return H.liouvillian(c_ops, chi)
+    if H is not None:
+        H = QobjEvo(H)
+        L = H.liouvillian(c_ops, chi)
+    else:
+        chi = chi if chi is not None else [0] * len(c_ops)
+        L = sum([lindblad_dissipator(c_op, chi=chi_)
+                 for c_op, chi_ in zip(c_ops, chi)])
+    return L
 
 
 def liouvillian_func(H, c_ops, data_only, chi):
@@ -175,12 +181,14 @@ def liouvillian_func(H, c_ops, data_only, chi):
         L = H._liouvillian_h()
         L += sum(qobj_elements)
         L += sum(func_elements)
-    else:
+    elif H is not None:
         L = liouvillian(H)
         L += sum(qobj_elements)
         L += sum(func_elements)
+    else:
+        L = sum(qobj_elements)
+        L += sum(func_elements)
     return L
-
 
 
 def liouvillian_ref(H, c_ops=[]):

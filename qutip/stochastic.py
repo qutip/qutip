@@ -40,6 +40,7 @@ from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import ket2dm
 from qutip.solver import Result
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevo_maker import qobjevo_maker
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian, lindblad_dissipator)
 from qutip.solver import Options, _solver_safety_check
@@ -324,21 +325,20 @@ class StochasticSolverOptions:
         self.me = me
 
         if H is not None:
-            msg = "The Hamiltonian format is not valid. "
             try:
-                self.H = QobjEvo(H, args=args, tlist=times,
-                                 e_ops=e_ops, state0=state0)
+                self.H = qobjevo_maker(H, args=args, tlist=times,
+                                       e_ops=e_ops, state=state0)
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
         else:
             self.H = H
 
         if sc_ops:
-            msg = ("The sc_ops format is not valid. Options are "
+            msg = ("The c_ops format is not valid. Options are "
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
-                self.sc_ops = [QobjEvo(op, args=args, tlist=times,
-                                       e_ops=e_ops, state0=state0)
+                self.sc_ops = [qobjevo_maker(op, args=args, tlist=times,
+                                             e_ops=e_ops, state=state0)
                                for op in sc_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
@@ -351,13 +351,14 @@ class StochasticSolverOptions:
             msg = ("The c_ops format is not valid. Options are "
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
-                self.c_ops = [QobjEvo(op, args=args, tlist=times,
-                                      e_ops=e_ops, state0=state0)
+                self.c_ops = [qobjevo_maker(op, args=args, tlist=times,
+                                            e_ops=e_ops, state=state0)
                               for op in c_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
             except:
                 raise ValueError(msg)
+
         else:
             self.c_ops = c_ops
 

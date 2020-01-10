@@ -45,6 +45,7 @@ from functools import partial
 from qutip.fastsparse import csr2fast
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
+from qutip.qobjevo_maker import qobjevo_maker
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket
@@ -300,7 +301,7 @@ class _MC():
         ss.args = args
         ss.col_args = var
         for c in c_ops:
-            cevo = QobjEvo(c, args, tlist=tlist)
+            cevo = qobjevo_maker(c, args, tlist)
             cdc = cevo._cdc()
             cevo.compile()
             cdc.compile()
@@ -308,12 +309,12 @@ class _MC():
             ss.td_n_ops.append(cdc)
 
         try:
-            H_td = QobjEvo(H, args, tlist=tlist)
+            H_td = qobjevo_maker(H, args, tlist)
             H_td *= -1j
             for c in ss.td_n_ops:
                 H_td += -0.5 * c
-            if options.rhs_with_state:
-                H_td._check_old_with_state()
+            # if options.rhs_with_state:
+            #    H_td._check_old_with_state()
             H_td.compile()
             ss.H_td = H_td
             ss.makefunc = _qobjevo_set
@@ -328,6 +329,7 @@ class _MC():
             ss.makefunc = _func_set
             ss.set_args = _func_args
             ss.type = "callback"
+            print("callback")
 
         solver_safe["mcsolve"] = ss
         self.ss = ss
@@ -754,11 +756,11 @@ def _qobjevo_args(ss, args):
     var = _collapse_args(args)
     ss.col_args = var
     ss.args = args
-    ss.H_td.solver_set_args(args, psi0, e_ops)
+    ss.H_td.arguments(args, psi0, e_ops)
     for c in ss.td_c_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
 
 def _func_set(HS, psi0=None, args={}, opt=None):
     if args:
@@ -776,9 +778,9 @@ def _func_args(ss, args):
     ss.col_args = var
     ss.args = args
     for c in ss.td_c_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
     for c in ss.td_n_ops:
-        c.solver_set_args(args, psi0, e_ops)
+        c.arguments(args, psi0, e_ops)
     return rhs, (ss.h_func, ss.Hc_td, args)
 
 

@@ -32,6 +32,7 @@
 ###############################################################################
 from qutip import *
 from qutip.qobjevofunc import QobjEvoFunc
+from qutip.qobjevo_maker import qobjevo_maker
 import numpy as np
 from numpy.testing import (assert_equal, assert_, assert_almost_equal,
                             run_module_suite, assert_allclose)
@@ -63,8 +64,8 @@ class _fake_QobjEvo:
 
 
 def _rand_cqobjevo(N=5, argsonly=False):
-    tlist=np.linspace(0,10,10001)
-    tlistlog=np.logspace(-3,1,10001)
+    tlist = np.linspace(0,10,10001)
+    tlistlog = np.logspace(-3,1,10001)
     O0, O1, O2 = rand_herm(N), rand_herm(N), rand_herm(N)
     cte = [QobjEvo([O0])]
     wargs = [QobjEvo([O0,[O1,_f1],[O2,_f2]], args={"w1":1,"w2":2}),
@@ -104,7 +105,7 @@ def _random_QobjEvo(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
                     Cubic_Spline(0,1,np.cos(tlist))],
               [_f3, "exp(w3*t*1j)", np.exp(tlist*1j),
                     Cubic_Spline(0,1,np.exp(tlist*1j))]]
-    for i,form in enumerate(ops):
+    for i, form in enumerate(ops):
         if form:
             Qobj_list.append([Qobj(np.random.random(shape)),coeff[i][form-1]])
     return Qobj_list
@@ -667,7 +668,8 @@ def test_QobjEvo_with_state():
     q2 = Qobj(data2)
     args={"w":5, "state_vec":None, "expect_op_0":2*qeye(N)}
 
-    td_data = QobjEvo([q1, [q2, coeff_state]], args=args, e_ops=[2*qeye(N)])
+    td_data = QobjEvo([q1, [q2, coeff_state]], args=args,
+                      state=Qobj(vec), e_ops=[2*qeye(N)])
     q_at_t = q1 + np.mean(vec) * args["w"] * expect(2*qeye(N), Qobj(vec.T)) * q2
     # Check that the with_state call
     assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
@@ -676,7 +678,7 @@ def test_QobjEvo_with_state():
     assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
 
     td_data = QobjEvo([q1, [q2, "state_vec[0] * cos(w*expect_op_0*t)"]],
-                      args=args, e_ops=[2*qeye(N)])
+                      args=args, state=Qobj(vec), e_ops=[2*qeye(N)])
     data_at_t = q1 + q2 * vec[0] * np.cos(10 * t * expect(qeye(N), Qobj(vec.T)))
     # Check that the with_state call for str format
     assert_allclose(td_data.mul_vec(t, vec), data_at_t * vec)
@@ -706,8 +708,46 @@ def test_QobjEvo_with_state():
         if not np.all(args["state_mat"] == mat):
             raise Exception
         return 1
-    td_data = QobjEvo([q1, check_dyn_args], args=args)
+    td_data = QobjEvo([q1, check_dyn_args], args=args, state=Qobj(mat))
     td_data.mul_mat(0, mat)
+
+
+def test_QobjEvoFunc_with_state():
+    "QobjEvoFunc dynamics_args"
+    def check_dyn_args(t, args):
+        if not isinstance(args["state_qobj"], Qobj):
+            raise TypeError("args['state_qobj'], Qobj")
+        if not isinstance(args["state_vec"], np.ndarray):
+            raise TypeError("args['state_vec'], np.ndarray")
+        if not isinstance(args["state_mat"], np.ndarray):
+            raise TypeError("args['state_mat'], np.ndarray")
+
+        if len(args["state_vec"].shape) != 1:
+            raise TypeError
+        if len(args["state_mat"].shape) != 2:
+            raise TypeError
+
+        if not np.all(args["state_vec"] == args["state_qobj"].full().ravel("F")):
+            raise Exception
+        if not np.all(args["state_vec"] == args["state_mat"].ravel("F")):
+            raise Exception
+        if not np.all(args["state_qobj"] == args["state_0"]):
+            raise Exception
+        if not np.allclose(args["expect_op_0"], args["e"]):
+            raise Exception
+        return qeye(3)
+
+    args={"state_mat":None, "state_vec":None, "state_qobj":None,
+          "expect_op_0":0, "e":1., "state_0":basis(3,1)}
+    e_ops = [qeye(3)]
+    obj = QobjEvoFunc(check_dyn_args, args=args, state=basis(3,1), e_ops=e_ops)
+    obj(0)
+
+    args={"state_mat":None, "state_vec":None, "state_qobj":None,
+          "expect_op_0":0, "e":3., "state_0":create(3)}
+    e_ops = [destroy(3)]
+    obj = QobjEvoFunc(check_dyn_args, args=args, state=create(3), e_ops=e_ops)
+    obj(0)
 
 
 def test_QobjEvo_pickle():
@@ -806,3 +846,205 @@ def test_QobjEvo_superoperator():
         print("liouvillian", str(i))
         _assert_qobj_almost_eq(liouvillian(Q1, [Q2]),
                                liouvillian(op1, [op2])(t))
+
+
+def test_qobjevo_maker():
+    "QobjEvo maker"
+    N = 5
+    O0 = rand_herm(N)
+    O1 = rand_herm(N)
+    O2 = rand_herm(N)
+    tlist = np.linspace(0,1,11)
+    args = {"w1":1,"w2":2}
+
+    def func_basic(t, args):
+        return rand_herm(N)
+
+    def func_no_args(t):
+        return rand_herm(N)
+
+    def func_old_state(t, state, args):
+        assert_(state.shape[0] == N)
+        return rand_herm(N)
+
+    func_object = _fake_QobjEvo(O0,[[O1,_f1],[O2,_f2]])
+
+    class _fake_QobjEvo_call:
+        def __init__(self, cte, coeff):
+            self.cte = cte
+            self.coeff = coeff
+
+        def call(self, t, args):
+            out = self.cte
+            for elem in self.coeff:
+                out += elem[0]*elem[1](t, args)
+            return out
+
+    func_method = _fake_QobjEvo_call(O0,[[O1,_f1],[O2,_f2]])
+
+    obj = qobjevo_maker(func_basic)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_no_args)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_old_state, state=rand_ket(N))
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_object, args=args)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(func_method.call, args=args)
+    assert_(isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    def f_noargs(t):
+        return t
+
+    def f_old_args(t, state, args):
+        assert_(state.shape[0] == N)
+        return t
+
+    list_format_1 = rand_herm(N)
+    list_format_2 = [rand_herm(N)]
+    list_format_3 = [rand_herm(N), _f1]
+    list_format_4 = [rand_herm(N), [rand_herm(N), _f1]]
+    list_format_5 = [[rand_herm(N), np.sin(tlist)]]
+    list_format_6 = [[rand_herm(N), _f1], [rand_herm(N), _f1]]
+    list_format_no_args = [rand_herm(N), f_noargs]
+    list_format_old_args = [rand_herm(N), f_old_args]
+
+    obj = qobjevo_maker(list_format_1)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_2)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_3, args=args)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_4, args=args)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_5, tlist=tlist)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_6, args=args)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_no_args)
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+    obj = qobjevo_maker(list_format_old_args, state=rand_ket(5))
+    assert_(not isinstance(obj, QobjEvoFunc))
+    assert_(isinstance(obj(0.5), Qobj))
+
+
+def test_signature():
+    "qobjevo_maker signature detection"
+    def f1(t):
+        return t * 2
+
+    def f2(t, args):
+        return t * args["a"]
+
+    def f3(t, state, args):
+        return t * args["a"]
+
+    def f4(t, **kwargs):
+        return t * kwargs["a"]
+
+    def f5(t, a=0, **kwargs):
+        return t * a
+
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f1], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f2], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f3], args={"a":2},
+                                          state=Qobj())(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f4], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), f5], args={"a":2})(1))
+
+    class c1:
+        def __call__(self, t):
+            return t * 2
+
+        def met(self, t):
+            return t * 2
+
+    class c2:
+        def __call__(self, t, args):
+            return t * args["a"]
+
+        def met(self, t, args):
+            return t * args["a"]
+
+    class c3:
+        def __call__(self, t, state, args):
+            return t * args["a"]
+
+        def met(self, t, state, args):
+            return t * args["a"]
+
+    class c4:
+        def __call__(self, t, **kwargs):
+            return t * kwargs["a"]
+
+        def met(self, t, **kwargs):
+            return t * kwargs["a"]
+
+    class c5:
+        def __call__(self, t, a=0, **kwargs):
+            return t * a
+
+        def met(self, t, a=0, **kwargs):
+            return t * a
+
+    g = c1()
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2})(1))
+    g = c2()
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2})(1))
+    g = c3()
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2},
+                                          state=Qobj())(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2},
+                                          state=Qobj())(1))
+    g = c4()
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2})(1))
+    g = c5()
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g], args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker([qeye(2), g.met], args={"a":2})(1))
+
+    def q1(t):
+        return qeye(2) * 2
+
+    def q2(t, args):
+        return qeye(2) * args["a"]
+
+    def q3(t, state, args):
+        return qeye(2) * args["a"]
+
+    def q4(t, **kwargs):
+        return qeye(2) * kwargs["a"]
+
+    def q5(t, a=0, **kwargs):
+        return qeye(2) * a
+
+    assert_equal(qeye(2)*2, qobjevo_maker(q1, args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker(q2, args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker(q3, args={"a":2}, state=Qobj())(1))
+    assert_equal(qeye(2)*2, qobjevo_maker(q4, args={"a":2})(1))
+    assert_equal(qeye(2)*2, qobjevo_maker(q5, args={"a":2})(1))
