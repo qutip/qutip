@@ -59,16 +59,16 @@ class OdeSolver:
     OdeMonteCarlo:
 
     """
-    def __init__(self, func, opt, e_ops, ode_args,
+    def __init__(self, L, opt, e_ops, ode_args,
                  normalize_func, progress_bar):
         self.opt = opt
-        self.func = func
+        self.L = L
         self.e_ops = e_ops
         self.ode_args = ode_args
         self.normalize_func = normalize_func
         self.progress_bar = progress_bar
 
-    def run(self, state0, tlist):
+    def run(self, state0, tlist, args={}):
         raise NotImplementedError
 
 
@@ -77,13 +77,15 @@ class OdeScipyAdam(OdeSolver):
     # Solve an ODE for func.
     # Calculate the required expectation values or invoke callback
     # function at each time step.
-    def run(self, state0, tlist):
+    def run(self, state0, tlist, args={}):
         """
         Internal function for solving ODEs.
         """
         opt = self.opt
-        func = self.func
         normalize_func = self.normalize_func
+        self.L.arguments(args, state=state0,
+                         e_ops=self.e_ops.raw_e_ops)
+        func = self.L._get_mul(state0)
         n_tsteps = len(tlist)
         if opt.store_states:
             states = np.zeros((n_tsteps, state0.shape[0]*state0.shape[1]),
@@ -128,10 +130,46 @@ class OdeScipyAdam(OdeSolver):
         self.progress_bar.finished()
         if not opt.store_states:
             states[0, :] = r.y
-        return states
+        return states, self.e_ops.finish()
 
 
+class OdeScipyIVP(OdeSolver):
+    # -------------------------------------------------------------------------
+    # Solve an ODE for func.
+    # Calculate the required expectation values or invoke callback
+    # function at each time step.
+    def run(self, state0, tlist, args={}):
+        """
+        Internal function for solving ODEs.
+        """
+        opt = self.opt
+        self.func.arguments(args, state=state0,
+                            e_ops=self.e_ops.raw_e_ops)
+        func = self.L._get_mul(state0)
+        if opt.store_states:
+            states = np.zeros((len(tlist), state0.shape[0]*state0.shape[1]),
+                              dtype=complex)
+        else:
+            states = np.zeros((1, state0.shape[0]*state0.shape[1]),
+                              dtype=complex)
 
+        initial_vector = state0.full().ravel('F')
+        ivp_opt = {method=opt.method, atol=opt.atol, rtol=opt.rtol,
+                   min_step=opt.min_step, max_step=opt.max_step,
+                   first_step=opt.first_step}
+
+        ode_res = solve_ivp(func, [tlist[0], tlist[-1]], initial_vector,
+                            t_eval=tlist, args=self.ode_args, event=event,
+                            **ivp_opt)
+
+        self.e_ops.init(tlist)
+        for t_idx, cdata in enumerate(ode_res.y):
+            if opt.store_states:
+                states[t_idx, :] = cdata
+            self.e_ops.step(t_idx, cdata)
+        if not opt.store_states:
+            states[0, :] = cdata
+        return states, self.e_ops.finish()
 
 
 class _SolverCacheOneEvo:

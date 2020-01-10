@@ -265,6 +265,8 @@ class ExpectOps:
             if self.e_ops_dict:
                 result = {e: result[n]
                           for n, e in enumerate(self.e_ops_dict.keys())}
+            else:
+                result = np.array(result)
         return result
 
     def __eq__(self, other):
