@@ -32,7 +32,7 @@
 ###############################################################################
 """
 This module serves temporarily as an subsititution of qutip/qip/__init__.py
-We use this because we want to promote the use of 
+We use this because we want to promote the use of
 ``from qutip.qip.ops import cnot``
 instead of
 ``from qutip import cnot``
