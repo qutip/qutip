@@ -534,6 +534,28 @@ def test_mc_ntraj_list():
     mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a], ntraj)
     assert_equal(len(mc.expect), 4)
 
+
+def f_dargs(t, args):
+    # allows only one collapse
+    return 0 if args["collapse"] else 1
+
+
+def test_mc_dyn_args():
+    "Monte-carlo: dynamics arguments"
+    N = 5
+    a = destroy(N)
+    H = a.dag()*a       # Simple oscillator Hamiltonian
+    psi0 = basis(N, 2)  # Initial Fock state with one photon
+    c_ops = []
+    c_ops.append([a, f_dargs])
+    c_ops.append([a.dag(), f_dargs])
+    ntraj = [10]  # number of MC trajectories
+    tlist = np.linspace(0, 1, 11)
+    mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a],
+                 ntraj, args={"collapse":[]})
+    assert_(all(len(col)<=1 for col in mc.col_which))
+
+
 def test_mc_functd_sum():
     "Monte-carlo: Test for #490"
     psi0 = (basis(2,0) + basis(2,1)).unit()
@@ -553,7 +575,8 @@ def test_mc_functd_sum():
     tlist = np.linspace(0, 3, 10)
     medata = mesolve(h_t, psi0, tlist, [], [], args = {})
     mcdata = mcsolve(h_t, psi0, tlist, [], [], ntraj = ntraj, args = {})
-    assert_(max([(medata.states[k]-mcdata.states[k]).norm() for k in range(10)]) < 1e-5)
+    assert_(max([(medata.states[k]-mcdata.states[k]).norm()
+                 for k in range(10)]) < 1e-5)
 
 
 if __name__ == "__main__":

@@ -97,7 +97,7 @@ shape = [3, 3], type = oper, isHerm = True
     If no 'args' input, then returns array of ['x','y','z'] operators.
 
     """
-    if (scipy.fix(2 * j) != 2 * j) or (j < 0):
+    if (np.fix(2 * j) != 2 * j) or (j < 0):
         raise TypeError('j must be a non-negative integer or half-integer')
 
     if not args:

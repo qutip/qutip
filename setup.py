@@ -64,7 +64,7 @@ REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
 EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
-            'qutip/qip', 'qutip/qip/models',
+            'qutip/qip', 'qutip/qip/device',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
             'qutip/cy/openmp', 'qutip/cy/openmp/src']

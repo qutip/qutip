@@ -35,7 +35,7 @@ import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
 from qutip import *
 
-    
+
 def testPropHO():
     "Propagator: HO ('single mode')"
     a = destroy(5)
@@ -120,6 +120,12 @@ def testPropHOSteadyPar():
     rho_prop = propagator_steadystate(U)
     rho_ss = steadystate(H,c_op_list)
     assert_(np.abs((rho_prop-rho_ss).full()).max() < 1e-4)
+
+def testPropHDims():
+    "Propagator: preserve H dims (unitary_mode='single', parallel=False)"
+    H = tensor([qeye(2),qeye(2)])
+    U = propagator(H,1, unitary_mode='single')
+    assert_equal(U.dims,H.dims)
 
 if __name__ == "__main__":
     run_module_suite()
