@@ -42,7 +42,7 @@ from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
 from qutip.qip.gates import expand_operator
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
-from qutip.qip.device.pulse import Pulse
+from qutip.qip.pulse import Pulse
 
 
 __all__ = ['DispersivecQED', 'CQEDGateDecomposer']
@@ -192,7 +192,7 @@ class DispersivecQED(ModelProcessor):
     def ctrls(self):
         result = []
         for pulse in self.ctrl_pulses:
-            result.append(pulse.get_full_ham(self.N+1, self.dims))
+            result.append(pulse.get_ideal_qobj(self.dims))
         return result
 
     def set_up_ops(self, N):

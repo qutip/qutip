@@ -43,7 +43,7 @@ from qutip.qip.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
 from qutip.random_objects import rand_ket, rand_dm
-from qutip.qip.device.noise import (
+from qutip.qip.noise import (
     DecoherenceNoise, RandomNoise, ControlAmpNoise)
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity
@@ -273,8 +273,6 @@ class TestCircuitProcessor:
         processor.ctrl_pulses[0].tlist = tlist
         processor.ctrl_pulses[0].coeff = coeff
 
-        # Since the noise operator is also sigmaz,
-        # it should be merged with the original operator
         amp_noise = ControlAmpNoise(coeff=coeff, tlist=tlist)
         processor.add_noise(amp_noise)
         noisy_qobjevo, c_ops = processor.get_dynamics(args={"test": True}, noisy=True)
@@ -282,9 +280,9 @@ class TestCircuitProcessor:
                 msg="Spline type not correctly passed on")
         assert_(noisy_qobjevo.args["test"],
             msg="Arguments not correctly passed on")
-        assert_equal(len(noisy_qobjevo.ops), 1)
+        assert_equal(len(noisy_qobjevo.ops), 2)
         assert_equal(sigmaz(), noisy_qobjevo.ops[0].qobj)
-        assert_allclose(coeff * 2, noisy_qobjevo.ops[0].coeff, rtol=1.e-10)
+        assert_allclose(coeff, noisy_qobjevo.ops[0].coeff, rtol=1.e-10)
 
     def TestNoise(self):
         """

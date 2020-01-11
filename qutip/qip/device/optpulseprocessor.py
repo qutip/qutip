@@ -248,8 +248,8 @@ class OptPulseProcessor(Processor):
             if gates is not None and setting_args:
                 kwargs.update(setting_args[gates[prop_ind]])
 
-            full_drift_ham = self.drift.get_ideal_evo(self.N, self.dims).cte
-            full_ctrls_hams = [pulse.get_full_ham(self.N, self.dims) for pulse in self.ctrl_pulses]
+            full_drift_ham = self.drift.get_ideal_evo(self.dims).cte
+            full_ctrls_hams = [pulse.get_ideal_qobj(self.dims) for pulse in self.ctrl_pulses]
             result = cpo.optimize_pulse_unitary(
                 full_drift_ham, full_ctrls_hams, U_0, U_targ, **kwargs)
 

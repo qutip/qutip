@@ -36,7 +36,7 @@ from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
-from qutip.qip.device.pulse import Pulse
+from qutip.qip.pulse import Pulse
 
 __all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',
            'SpinChainGateDecomposer']

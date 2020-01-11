@@ -9,45 +9,6 @@ from qutip.qip.gates import expand_operator
 from qutip.operators import identity
 
 
-def _get_qobjevo_help(pulse_ele, N, spline_kind, dims):
-    if dims is not None:
-        # Sometimes N is the number of qubits exposed, but there is additional 
-        # hidden dimension such as the resonator. len(dims) can be diffrent 
-        # from N in this case.
-        N = len(dims)
-    if pulse_ele.op is None:
-        if dims is not None:
-            d = dims[0]
-        else:
-            d = 2
-        return QobjEvo(expand_operator(identity(d), N, 0, dims))
-
-    if pulse_ele.tlist is not None and pulse_ele.coeff is None:
-        pulse_ele.coeff = np.ones(len(pulse_ele.tlist))
-    mat = expand_operator(pulse_ele.op, N, pulse_ele.targets, dims)
-
-    if pulse_ele.tlist is None:
-        qu = QobjEvo(mat)
-    else:
-        if spline_kind == "step_func":
-            args = {"_step_func_coeff": True}
-            if len(pulse_ele.coeff) == len(pulse_ele.tlist) - 1:
-                pulse_ele.coeff = np.concatenate([pulse_ele.coeff, [0.]])
-        elif spline_kind == "cubic":
-            args = {"_step_func_coeff": False}
-        else:
-            args = {}
-        qu = QobjEvo([mat, pulse_ele.coeff], tlist=pulse_ele.tlist, args=args)
-    return qu
-
-
-def _get_qobjevo(pulse_ele, N, spline_kind, dims=None):
-    try:
-        return _get_qobjevo_help(pulse_ele, N, spline_kind, dims=dims)
-    except Exception as err:
-        print("The Evolution element went wrong was\n {}".format(str(pulse_ele)))
-        raise(err)
-
 
 class _EvoElement():
     def __init__(self, op, targets, tlist=None, coeff=None):
@@ -55,6 +16,42 @@ class _EvoElement():
         self.targets = targets
         self.tlist = tlist
         self.coeff = coeff
+
+    def get_qobj(self, dims):
+        if isinstance(dims, (int, np.integer)):
+            dims = [2] * dims
+        if self.op is None:
+            op = identity(dims[0]) * 0.
+            targets = 0
+        else: 
+            op = self.op
+            targets = self.targets
+        return expand_operator(op, len(dims), targets, dims)
+
+    def get_qobjevo_help(self, spline_kind, dims):
+        mat = self.get_qobj(dims)
+        if self.tlist is None:
+            qu = QobjEvo(mat)
+        elif self.tlist is not None and self.coeff is None:
+            qu = QobjEvo(mat, tlist=self.tlist)
+        else:
+            if spline_kind == "step_func":
+                args = {"_step_func_coeff": True}
+                if len(self.coeff) == len(self.tlist) - 1:
+                    self.coeff = np.concatenate([self.coeff, [0.]])
+            elif spline_kind == "cubic":
+                args = {"_step_func_coeff": False}
+            else:
+                args = {}
+            qu = QobjEvo([mat, self.coeff], tlist=self.tlist, args=args)
+        return qu
+
+    def get_qobjevo(self, spline_kind, dims):
+        try:
+            return self.get_qobjevo_help(spline_kind, dims=dims)
+        except Exception as err:
+            print("The Evolution element went wrong was\n {}".format(str(self)))
+            raise(err)
 
     def __str__(self):
         return str({"op": self.op,
@@ -109,22 +106,28 @@ class Pulse():
     def add_lindblad_noise(self, op, targets, tlist=None, coeff=None):
         self.lindblad_noise.append(_EvoElement(op, targets, tlist, coeff))
 
-    def get_ideal_evo(self, N, dims=None):
-        return _get_qobjevo(self.ideal_pulse, N, self.spline_kind, dims)
-    
-    def get_full_evo(self, N, dims=None):
-        ideal_qu = self.get_ideal_evo(N, dims)
-        noise_qu_list = [_get_qobjevo(noise, N, self.spline_kind, dims) for noise in self.coherent_noise]
+    def get_ideal_evo(self, dims):
+        return self.ideal_pulse.get_qobjevo(self.spline_kind, dims)
+
+    def get_full_evo(self, dims):
+        ideal_qu = self.get_ideal_evo(dims)
+        noise_qu_list = [noise.get_qobjevo(self.spline_kind, dims) for noise in self.coherent_noise]
         qu = _merge_qobjevo([ideal_qu] + noise_qu_list)
-        c_ops = [_get_qobjevo(noise, N, self.spline_kind, dims) for noise in self.lindblad_noise]
+        c_ops = [noise.get_qobjevo(self.spline_kind, dims) for noise in self.lindblad_noise]
+        full_tlist = _find_common_tlist(c_ops + [qu])
+        qu = _merge_qobjevo([qu], full_tlist)
+        for i, c_op in enumerate(c_ops):
+            c_ops[i] = _merge_qobjevo([c_op], full_tlist)
         return qu, c_ops
 
-    def get_full_ham(self, N, dims=None):
-        return expand_operator(self.ideal_pulse.op, N, self.ideal_pulse.targets, dims)
+    def get_ideal_qobj(self, dims):
+        return self.ideal_pulse.get_qobj(dims)
 
     def print_info(self):
-        print("The pulse contains: {} coherent noise and {} "
-              "Lindblad noise.".format(
+        print("-----------------------------------"
+              "-----------------------------------")
+        print("The pulse contains: {} coherent noise elements and {} "
+              "Lindblad noise elements.".format(
                   len(self.coherent_noise), len(self.lindblad_noise)))
         print()
         print("Pulse Element:")
@@ -138,8 +141,9 @@ class Pulse():
         print("Lindblad noise:")
         for ele in self.lindblad_noise:
             print(ele)
-        print()
-        
+        print("-----------------------------------"
+              "-----------------------------------")
+
 
 class Drift():
     def __init__(self):
@@ -148,17 +152,25 @@ class Drift():
     def add_ham(self, op, targets):
         self.drift_hams.append(_EvoElement(op, targets))
 
-    def get_ideal_evo(self, N, dims=None):
+    def get_ideal_evo(self, dims):
         if not self.drift_hams:
-            self.drift_hams = [Pulse(None, None)]
-        qu_list = [_get_qobjevo(evo, N, None, dims) for evo in self.drift_hams]
+            self.drift_hams = [_EvoElement(None, None)]
+        qu_list = [evo.get_qobjevo(None, dims) for evo in self.drift_hams]
         return _merge_qobjevo(qu_list)
 
-    def get_full_evo(self, N, dims=None):
-        return self.get_ideal_evo(N, dims), []
+    def get_full_evo(self, dims):
+        return self.get_ideal_evo(dims), []
 
 
-def _merge_qobjevo(qobjevo_list):
+def _find_common_tlist(qobjevo_list):
+    all_tlists = [qu.tlist for qu in qobjevo_list if isinstance(qu, QobjEvo) and qu.tlist is not None]
+    if not all_tlists:
+        return None
+    full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
+    return full_tlist
+
+
+def _merge_qobjevo(qobjevo_list, full_tlist=None):
     """
     Combine a list of `:class:qutip.QobjEvo` into one,
     different tlist will be merged.
@@ -169,7 +181,9 @@ def _merge_qobjevo(qobjevo_list):
     # no qobjevo
     if not qobjevo_list:
         raise ValueError("qobjevo_list is empty.")
-
+    
+    if full_tlist is None:
+        full_tlist = _find_common_tlist(qobjevo_list)
     spline_types_num = set()
     args = {}
     for qu in qobjevo_list:
@@ -182,31 +196,21 @@ def _merge_qobjevo(qobjevo_list):
     if len(spline_types_num) > 1:
         raise ValueError("Cannot merge Qobjevo with different spline kinds.")
 
-    all_tlists = [qu.tlist for qu in qobjevo_list if qu.tlist is not None]
-    # all tlists are None
-    if not all_tlists:
-        return sum(qobjevo_list)
-    new_tlist = np.unique(np.sort(np.hstack(all_tlists)))
     for i, qobjevo in enumerate(qobjevo_list):
-        H_list = qobjevo.to_list()
-        for j, H in enumerate(H_list):
-            # cte part or not array_like coeffs
-            if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
-                continue
-            op, coeffs = H
-            new_coeff = _fill_coeff(
-                coeffs, qobjevo.tlist, new_tlist, args)
-            H_list[j] = [op, new_coeff]
-        # create a new qobjevo with the old arguments
-        qobjevo_list[i] = QobjEvo(
-            H_list, tlist=new_tlist, args=args)
+        if isinstance(qobjevo, Qobj):
+            qobjevo_list[i] = QobjEvo(qobjevo)
+            qobjevo = qobjevo_list[i]
+        for j, ele in enumerate(qobjevo.ops):
+            if isinstance(ele.coeff, np.ndarray):
+                new_coeff = _fill_coeff(ele.coeff, qobjevo.tlist, full_tlist, args)
+                qobjevo_list[i].ops[j].coeff = new_coeff
+        qobjevo_list[i].tlist = full_tlist
 
     qobjevo = sum(qobjevo_list)
-    qobjevo = _merge_id_evo(qobjevo)
     return qobjevo
 
 
-def _fill_coeff(old_coeffs, old_tlist, new_tlist, args=None):
+def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
     """
     Make a step function coefficients compatible with a longer `tlist` by
     filling the empty slot with the nearest left value.
@@ -216,11 +220,11 @@ def _fill_coeff(old_coeffs, old_tlist, new_tlist, args=None):
     if "_step_func_coeff" in args and args["_step_func_coeff"]:
         if len(old_coeffs) == len(old_tlist) - 1:
             old_coeffs = np.concatenate([old_coeffs, [0]])
-        new_n = len(new_tlist)
+        new_n = len(full_tlist)
         old_ind = 0  # index for old coeffs and tlist
         new_coeff = np.zeros(new_n)
         for new_ind in range(new_n):
-            t = new_tlist[new_ind]
+            t = full_tlist[new_ind]
             if t < old_tlist[0]:
                 new_coeff[new_ind] = 0.
                 continue
@@ -232,8 +236,8 @@ def _fill_coeff(old_coeffs, old_tlist, new_tlist, args=None):
             new_coeff[new_ind] = old_coeffs[old_ind]
     else:
         sp = CubicSpline(old_tlist, old_coeffs)
-        new_coeff = sp(new_tlist)
-        new_coeff *= (new_tlist <= old_tlist[-1]) * (new_tlist >= old_tlist[0])
+        new_coeff = sp(full_tlist)
+        new_coeff *= (full_tlist <= old_tlist[-1]) * (full_tlist >= old_tlist[0])
     return new_coeff
 
 

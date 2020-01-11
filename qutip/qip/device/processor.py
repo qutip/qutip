@@ -44,10 +44,10 @@ from qutip.qip.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.noise import (
+from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
     ControlAmpNoise, RandomNoise, UserNoise)
-from qutip.qip.device.pulse import Pulse, Drift, _merge_qobjevo
+from qutip.qip.pulse import Pulse, Drift, _merge_qobjevo
 
 
 __all__ = ['Processor']
@@ -199,7 +199,7 @@ class Processor(object):
     def ctrls(self):
         result = []
         for pulse in self.ctrl_pulses:
-            result.append(pulse.get_full_ham(self.N, self.dims))
+            result.append(pulse.get_ideal_qobj(self.dims))
         return result
 
     @property
@@ -373,26 +373,16 @@ class Processor(object):
                 ctrl_pulses = noise.get_noisy_dynamics(self.N, ctrl_pulses)
             elif isinstance(noise, UserNoise):
                 ctrl_pulses, new_c_ops = noise.get_noisy_dynamics(
-                    ctrl_pulses, self.dims)
+                    ctrl_pulses, self.N, self.dims)
                 c_ops += new_c_ops
             else:
                 raise NotImplementedError(
                     "The noise type {} is not"
                     "implemented in the processor".format(
                         type(noise)))
+        # first the control pulse with noise,
+        # then additional pulse independent noise.
         return ctrl_pulses + noisy_dynamics, c_ops
-        # for noisy_pulse in noisy_dynamics:
-        #     noisy_qu, new_c_ops = noisy_pulse.get_full_evo(self.N, dims=self.dims)
-        #     noisy_qu_list.append(noisy_qu)
-        #     c_ops += new_c_ops
-
-        # if self.spline_kind == "step_func":
-        #     _step_func_coeff = True
-        # else:
-        #     _step_func_coeff = False
-        # dummy = _dummy_qobjevo(
-        #     self.dims, args={"_step_func_coeff":_step_func_coeff})
-        # return _merge_qobjevo([dummy] + noisy_qu_list), c_ops
 
     def get_dynamics(self, args=None, noisy=False):
         """
@@ -418,7 +408,6 @@ class Processor(object):
             args = args
         # set step function
 
-        qu_list = []
         if not noisy:
             dynamics = self.ctrl_pulses
             c_ops = []
@@ -426,19 +415,17 @@ class Processor(object):
             dynamics, c_ops = self._process_noise(self.ctrl_pulses)
         dynamics = [self.drift] + dynamics
 
+        qu_list = []
         for pulse in dynamics:
             if noisy:
-                qu, new_c_ops = pulse.get_full_evo(self.N, dims=self.dims)
+                qu, new_c_ops = pulse.get_full_evo(dims=self.dims)
                 c_ops += new_c_ops
             else:
-                qu = pulse.get_ideal_evo(self.N, dims=self.dims)
+                qu = pulse.get_ideal_evo(dims=self.dims)
             qu_list.append(qu)
         
-        if not qu_list: # if no evolution element found.
-            final_qu = _dummy_qobjevo(self.dims, tlist=self.tlist, args=args)
-        else:
-            final_qu = _merge_qobjevo(qu_list)
-            final_qu.args.update(args)
+        final_qu = _merge_qobjevo(qu_list)
+        final_qu.args.update(args)
 
         if final_qu.tlist is None:
             # No time specified in Pulse, e.g. evolution under constant pulse.
@@ -449,31 +436,41 @@ class Processor(object):
         else:
             return final_qu
 
-    def get_noisy_coeffs(self):
-        """
-        Create the array_like coefficients including the noise.
+    # def get_noisy_coeffs(self):
+    #     """
+    #     Create the array_like coefficients including the noise.
 
-        Returns
-        -------
-        coeff_list: list
-            A list of coefficient for each control Hamiltonian.
+    #     Returns
+    #     -------
+    #     coeff_list: list
+    #         A list of coefficient for each control Hamiltonian.
 
-        tlist: np.array
-            Time array for the coefficient.
+    #     tlist: np.array
+    #         Time array for the coefficient.
 
-        Notes
-        -----
-        Collapse operators are not included in this method,
-        please use :meth:`qutip.qip.processor.get_full_evo`
-        if they are needed.
-        """
-        noisy_qobjevo, c_ops = self.get_full_evo()
-        coeff_list = []
-        H_list = noisy_qobjevo.to_list()
-        for H in H_list:
-            if isinstance(H, list):
-                coeff_list.append(H[1])
-        return coeff_list, noisy_qobjevo.tlist
+    #     Notes
+    #     -----
+    #     Collapse operators are not included in this method,
+    #     please use :meth:`qutip.qip.processor.get_full_evo`
+    #     if they are needed.
+    #     """
+    #     fine_tlist = self.tlist
+    #     noisy_pulses, c_ops = self._process_noise(self.ctrl_pulses)
+    #     coeffs_list = []
+    #     for pulse in noisy_pulses:
+    #         coeff = _fill_coeff(pulse.ideal_pulse.coeff, pulse.ideal_pulse.tlist, fine_tlist, args={"_step_func_coeff": True})
+    #         coeffs_list.append(coeff)
+
+    #     ops_list = [(pulse.op, pulse.targets) for pulse in self.ctrl_pulses]
+    #     print(coeffs_list)
+    #     for pulse in noisy_pulses:
+    #         for ele in pulse.coherent_noise:
+    #             for p, (op, targets) in enumerate(ops_list):
+    #                 print(targets,ele.targets)
+    #                 if op==ele.op and targets==ele.targets:
+    #                     coeffs_list[p] += _fill_coeff(ele.coeff, ele.tlist, fine_tlist, args={"_step_func_coeff": True})
+    #     return coeffs_list, fine_tlist
+
 
     def run_analytically(self, rho0=None, qc=None):
         """
@@ -648,7 +645,7 @@ class Processor(object):
         """
         raise NotImplementedError("Use the function in the sub-classes")
 
-    def plot_pulses(self, noisy=False, title=None, figsize=None, dpi=None):
+    def plot_pulses(self, title=None, figsize=None, dpi=None):
         """
         Plot the pulse amplitude
 
