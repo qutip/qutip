@@ -9,6 +9,8 @@ from qutip.qip.gates import expand_operator
 from qutip.operators import identity
 
 
+__all__ = ["Pulse", "Drift"]
+
 
 class _EvoElement():
     def __init__(self, op, targets, tlist=None, coeff=None):
@@ -239,29 +241,3 @@ def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
         new_coeff = sp(full_tlist)
         new_coeff *= (full_tlist <= old_tlist[-1]) * (full_tlist >= old_tlist[0])
     return new_coeff
-
-
-def _merge_id_evo(qobjevo):
-    """
-    Merge identical Hamiltonians in the :class":`qutip.QobjEvo`.
-    coeffs must all have the same length
-    """
-    H_list = qobjevo.to_list()
-    new_H_list = []
-    op_list = []
-    coeff_list = []
-    for H in H_list:  # H = [op, coeff]
-        # cte part or not array_like coeffs
-        if isinstance(H, Qobj) or (not isinstance(H[1], np.ndarray)):
-            new_H_list.append(deepcopy(H))
-            continue
-        op, coeffs = H
-        # Qobj is not hashable, so cannot be used as key in dict
-        try:
-            p = op_list.index(op)
-            coeff_list[p] += coeffs
-        except ValueError:
-            op_list.append(op)
-            coeff_list.append(coeffs)
-    new_H_list += [[op_list[i], coeff_list[i]] for i in range(len(op_list))]
-    return QobjEvo(new_H_list, tlist=qobjevo.tlist, args=qobjevo.args)
