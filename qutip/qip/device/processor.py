@@ -46,7 +46,7 @@ from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
-    ControlAmpNoise, RandomNoise, UserNoise)
+    ControlAmpNoise, RandomNoise, UserNoise, process_noise)
 from qutip.qip.pulse import Pulse, Drift, _merge_qobjevo
 
 
@@ -337,53 +337,6 @@ class Processor(object):
             self.coeffs = data[:, 1:].T
         return self.tlist, self.coeffs
 
-    def _process_noise(self, ctrl_pulses):
-        """
-        Call all the noise object saved in the processor and
-        return a noisy part of the evolution.
-
-        Parameters
-        ----------
-        proc_qobjevo: :class:`qutip.qip.QobjEvo`
-            The :class:`qutip.qip.QobjEvo` representing the unitary evolution
-            in the noiseless processor.
-
-        Returns
-        -------
-        noise: :class:`qutip.qip.QobjEvo`
-            The :class:`qutip.qip.QobjEvo` representing the noisy
-            part Hamiltonians.
-
-        c_ops: list
-            A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
-            representing the time-(in)dependent collapse operators.
-        """
-        ctrl_pulses = deepcopy(ctrl_pulses)
-        noisy_dynamics = []
-        c_ops = []
-
-        if (self.t1 is not None) or (self.t2 is not None):
-            noisy_dynamics += [RelaxationNoise(self.t1, self.t2).get_noisy_dynamics(
-                N=self.N)]
-
-        for noise in self.noise:
-            if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
-                noisy_dynamics += [noise.get_noisy_dynamics(self.N)]
-            elif isinstance(noise, ControlAmpNoise):
-                ctrl_pulses = noise.get_noisy_dynamics(self.N, ctrl_pulses)
-            elif isinstance(noise, UserNoise):
-                ctrl_pulses, new_c_ops = noise.get_noisy_dynamics(
-                    ctrl_pulses, self.N, self.dims)
-                c_ops += new_c_ops
-            else:
-                raise NotImplementedError(
-                    "The noise type {} is not"
-                    "implemented in the processor".format(
-                        type(noise)))
-        # first the control pulse with noise,
-        # then additional pulse independent noise.
-        return ctrl_pulses + noisy_dynamics, c_ops
-
     def get_dynamics(self, args=None, noisy=False):
         """
         Create a :class:`qutip.QobjEvo` without any noise that can be given to
@@ -412,7 +365,7 @@ class Processor(object):
             dynamics = self.ctrl_pulses
             c_ops = []
         else:
-            dynamics, c_ops = self._process_noise(self.ctrl_pulses)
+            dynamics, c_ops = process_noise(self.ctrl_pulses, self.noise, self.N, self.dims, t1=self.t1, t2=self.t2)
         dynamics = [self.drift] + dynamics
 
         qu_list = []

@@ -1,7 +1,9 @@
 import numbers
 from collections.abc import Iterable
+from copy import deepcopy
 import numpy as np
 from numpy.random import normal
+
 from qutip.qobjevo import QobjEvo, EvoElement
 from qutip.qip.gates import (
     expand_operator, _check_qubits_oper)
@@ -12,17 +14,55 @@ from qutip.qip.pulse import Pulse
 
 
 __all__ = ["Noise", "DecoherenceNoise", "RelaxationNoise",
-           "ControlAmpNoise", "RandomNoise", "UserNoise"]
+           "ControlAmpNoise", "RandomNoise", "UserNoise", "process_noise"]
 
 
-def _dummy_qobjevo(dims, **kwargs):
+def process_noise(ctrl_pulses, noise, N, dims, t1=None, t2=None):
     """
-    Create a dummy :class":`qutip.QobjEvo` with
-    a constant zero Hamiltonian. This is used since empty QobjEvo
-    is not yet supported.
+    Call all the noise object saved in the processor and
+    return a noisy part of the evolution.
+
+    Parameters
+    ----------
+    proc_qobjevo: :class:`qutip.qip.QobjEvo`
+        The :class:`qutip.qip.QobjEvo` representing the unitary evolution
+        in the noiseless processor.
+
+    Returns
+    -------
+    noise: :class:`qutip.qip.QobjEvo`
+        The :class:`qutip.qip.QobjEvo` representing the noisy
+        part Hamiltonians.
+
+    c_ops: list
+        A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
+        representing the time-(in)dependent collapse operators.
     """
-    dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
-    return dummy
+    ctrl_pulses = deepcopy(ctrl_pulses)
+    noisy_dynamics = []
+    c_ops = []
+
+    if (t1 is not None) or (t2 is not None):
+        noisy_dynamics += [RelaxationNoise(t1, t2).get_noisy_dynamics(
+            N=N)]
+
+    for noise in noise:
+        if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
+            noisy_dynamics += [noise.get_noisy_dynamics(N)]
+        elif isinstance(noise, ControlAmpNoise):
+            ctrl_pulses = noise.get_noisy_dynamics(N, ctrl_pulses)
+        elif isinstance(noise, UserNoise):
+            ctrl_pulses, new_c_ops = noise.get_noisy_dynamics(
+                ctrl_pulses, N, dims)
+            c_ops += new_c_ops
+        else:
+            raise NotImplementedError(
+                "The noise type {} is not"
+                "implemented in the processor".format(
+                    type(noise)))
+    # first the control pulse with noise,
+    # then additional pulse independent noise.
+    return ctrl_pulses + noisy_dynamics, c_ops
 
 
 class Noise(object):
