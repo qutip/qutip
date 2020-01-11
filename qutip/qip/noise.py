@@ -8,7 +8,7 @@ from qutip.qip.gates import (
 from qutip.qobj import Qobj
 from qutip.operators import sigmaz, destroy, identity
 from qutip.tensor import tensor
-from qutip.qip.device.pulse import Pulse
+from qutip.qip.pulse import Pulse
 
 
 __all__ = ["Noise", "DecoherenceNoise", "RelaxationNoise",
@@ -442,7 +442,7 @@ class UserNoise(Noise):
     def __init__(self):
         pass
 
-    def get_noisy_dynamics(self, ctrl_pulses, dims):
+    def get_noisy_dynamics(self, ctrl_pulses, N, dims):
         """
         Template method. To define a noise object,
         one should over write this method and
