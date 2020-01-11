@@ -70,34 +70,34 @@ class TestCircuitProcessor:
         proc.remove_ctrl(0)
         assert_allclose(len(proc.ctrls), 0)
 
-    # def test_save_read(self):
-    #     """
-    #     Test for saving and reading a pulse matrix
-    #     """
-    #     proc = Processor(N=2)
-    #     proc.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
-    #     proc1 = Processor(N=2)
-    #     proc1.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
-    #     proc2 = Processor(N=2)
-    #     proc2.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
-    #     tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
-    #     amp1 = np.arange(0, 5, 1)
-    #     amp2 = np.arange(5, 0, -1)
+    def test_save_read(self):
+        """
+        Test for saving and reading a pulse matrix
+        """
+        proc = Processor(N=2)
+        proc.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
+        proc1 = Processor(N=2)
+        proc1.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
+        proc2 = Processor(N=2)
+        proc2.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
+        tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
+        amp1 = np.arange(0, 5, 1)
+        amp2 = np.arange(5, 0, -1)
 
-    #     proc.ctrl_pulses[0].tlist = tlist
-    #     proc.ctrl_pulses[0].coeff = amp1
-    #     proc.ctrl_pulses[1].tlist = tlist
-    #     proc.ctrl_pulses[1].coeff = amp2
-    #     proc.save_coeff("qutip_test_CircuitProcessor.txt")
-    #     proc1.read_coeff("qutip_test_CircuitProcessor.txt")
-    #     os.remove("qutip_test_CircuitProcessor.txt")
-    #     assert_allclose(proc1.coeffs, proc.coeffs)
-    #     assert_allclose(proc1.tlist, proc.tlist)
-    #     proc.save_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
-    #     proc2.read_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
-    #     os.remove("qutip_test_CircuitProcessor.txt")
-    #     assert_allclose(proc2.coeffs, proc.coeffs)
-    #     assert_(proc2.tlist is None)
+        proc.ctrl_pulses[0].tlist = tlist
+        proc.ctrl_pulses[0].coeff = amp1
+        proc.ctrl_pulses[1].tlist = tlist
+        proc.ctrl_pulses[1].coeff = amp2
+        proc.save_coeff("qutip_test_CircuitProcessor.txt")
+        proc1.read_coeff("qutip_test_CircuitProcessor.txt")
+        os.remove("qutip_test_CircuitProcessor.txt")
+        assert_allclose(proc1.coeffs, proc.coeffs)
+        assert_allclose(proc1.tlist, proc.tlist)
+        proc.save_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
+        proc2.read_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
+        os.remove("qutip_test_CircuitProcessor.txt")
+        assert_allclose(proc2.coeffs, proc.coeffs)
+        assert_(proc2.tlist is None)
 
     def test_id_evolution(self):
         """
@@ -157,44 +157,31 @@ class TestCircuitProcessor:
             err_msg="Error in t1 & t2 simulation, "
                     "with t1={} and t2={}".format(t1, t2))
 
-    # def TestPlot(self):
-    #     """
-    #     Test for plotting functions
-    #     """
-    #     try:
-    #         import matplotlib.pyplot as plt
-    #     except:
-    #         return True
-    #     # step_func
-    #     tlist = np.linspace(0., 2*np.pi, 20)
-    #     processor = Processor(N=1, spline_kind="step_func")
-    #     processor.add_ctrl_ham(sigmaz())
-    #     processor.ctrl_pulses[0].tlist = tlist
-    #     processor.ctrl_pulses[0].coeff = np.array([[np.sin(t) for t in tlist]])
-    #     processor.plot_pulses(noisy=False)
-    #     plt.clf()
+    def TestPlot(self):
+        """
+        Test for plotting functions
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except:
+            return True
+        # step_func
+        tlist = np.linspace(0., 2*np.pi, 20)
+        processor = Processor(N=1, spline_kind="step_func")
+        processor.add_ctrl_ham(sigmaz())
+        processor.ctrl_pulses[0].tlist = tlist
+        processor.ctrl_pulses[0].coeff = np.array([np.sin(t) for t in tlist])
+        processor.plot_pulses()
+        plt.clf()
 
-    #     # cubic spline
-    #     tlist = np.linspace(0., 2*np.pi, 20)
-    #     processor = Processor(N=1, spline_kind="cubic")
-    #     processor.add_ctrl_ham(sigmaz())
-    #     processor.tlist = tlist
-    #     processor.coeffs = np.array([[np.sin(t) for t in tlist]])
-    #     processor.plot_pulses(noisy=False)
-    #     plt.clf()
-
-    #     # noisy
-    #     processor = Processor(N=1)
-    #     processor.add_ctrl_ham(sigmaz(), targets=0)
-    #     processor.add_ctrl_ham(sigmay(), targets=0)
-    #     processor.coeffs = np.array([[ 0.5, 0.,  0.5],
-    #                                 [ 0. , 0.5, 0. ]])
-    #     processor.tlist = np.array([0., np.pi/2., 2*np.pi/2, 3*np.pi/2])
-
-    #     processor.plot_pulses(noisy=False)
-    #     plt.clf()
-    #     processor.plot_pulses(noisy=True)
-    #     plt.clf()
+        # cubic spline
+        tlist = np.linspace(0., 2*np.pi, 20)
+        processor = Processor(N=1, spline_kind="cubic")
+        processor.add_ctrl_ham(sigmaz())
+        processor.tlist = tlist
+        processor.coeffs = np.array([[np.sin(t) for t in tlist]])
+        processor.plot_pulses()
+        plt.clf()
 
     def TestSpline(self):
         """

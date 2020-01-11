@@ -389,42 +389,6 @@ class Processor(object):
         else:
             return final_qu
 
-    # def get_noisy_coeffs(self):
-    #     """
-    #     Create the array_like coefficients including the noise.
-
-    #     Returns
-    #     -------
-    #     coeff_list: list
-    #         A list of coefficient for each control Hamiltonian.
-
-    #     tlist: np.array
-    #         Time array for the coefficient.
-
-    #     Notes
-    #     -----
-    #     Collapse operators are not included in this method,
-    #     please use :meth:`qutip.qip.processor.get_full_evo`
-    #     if they are needed.
-    #     """
-    #     fine_tlist = self.tlist
-    #     noisy_pulses, c_ops = self._process_noise(self.ctrl_pulses)
-    #     coeffs_list = []
-    #     for pulse in noisy_pulses:
-    #         coeff = _fill_coeff(pulse.ideal_pulse.coeff, pulse.ideal_pulse.tlist, fine_tlist, args={"_step_func_coeff": True})
-    #         coeffs_list.append(coeff)
-
-    #     ops_list = [(pulse.op, pulse.targets) for pulse in self.ctrl_pulses]
-    #     print(coeffs_list)
-    #     for pulse in noisy_pulses:
-    #         for ele in pulse.coherent_noise:
-    #             for p, (op, targets) in enumerate(ops_list):
-    #                 print(targets,ele.targets)
-    #                 if op==ele.op and targets==ele.targets:
-    #                     coeffs_list[p] += _fill_coeff(ele.coeff, ele.tlist, fine_tlist, args={"_step_func_coeff": True})
-    #     return coeffs_list, fine_tlist
-
-
     def run_analytically(self, rho0=None, qc=None):
         """
         Simulate the state evolution under the given `qutip.QubitCircuit`
@@ -633,11 +597,9 @@ class Processor(object):
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
         ax.set_ylabel("Control pulse amplitude")
         ax.set_xlabel("Time")
-        if noisy:
-            coeffs, tlist = self.get_noisy_coeffs()
-        else:
-            coeffs = [coeff for coeff in self.coeffs]
-            tlist = self.tlist
+
+        coeffs = self.coeffs
+        tlist = self.tlist
 
         for i in range(len(coeffs)):
             if not isinstance(coeffs[i], (Iterable, np.ndarray)):
