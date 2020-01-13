@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.about import about
+from qutip import settings
 
 def run():
     """
@@ -38,6 +39,17 @@ def run():
     """
     # Call about to get all version info printed with tests
     about()
+    real_num_cpu = qset.num_cpus
+    real_thresh = qset.openmp_thresh
+    if qset.has_openmp:
+        # For travis which VMs have only 1 cpu.
+        # Make sure the openmp version of the functions are tested.
+        qset.num_cpus = 2
+        qset.openmp_thresh = 100
     import nose
     # runs tests in qutip.tests module only
     nose.run(defaultTest="qutip.tests", argv=['nosetests', '-v'])
+
+    if qset.has_openmp:
+        qset.num_cpus = real_num_cpu
+        qset.openmp_thresh = real_thresh
