@@ -138,7 +138,7 @@ class Processor(object):
                  dims=None, spline_kind="step_func"):
         self.N = N
         self.tlist_ = None
-        self.ctrl_pulses = []
+        self.pulses = []
         self.t1 = t1
         self.t2 = t2
         self.noise = []
@@ -193,37 +193,38 @@ class Processor(object):
                 temp_targets = [(t + i)%self.N for t in targets]
                 if label is not None:
                     temp_label = label + "_" + str(temp_targets)
-                self.ctrl_pulses.append(Pulse(ham, temp_targets, spline_kind=self.spline_kind, label=temp_label))
+                temp_label = label
+                self.pulses.append(Pulse(ham, temp_targets, spline_kind=self.spline_kind, label=temp_label))
         else:
-            self.ctrl_pulses.append(Pulse(ham, targets, spline_kind=self.spline_kind, label=label))
+            self.pulses.append(Pulse(ham, targets, spline_kind=self.spline_kind, label=label))
 
     @property
     def ctrls(self):
         result = []
-        for pulse in self.ctrl_pulses:
+        for pulse in self.pulses:
             result.append(pulse.get_ideal_qobj(self.dims))
         return result
 
     @property
     def coeffs(self):
-        if not self.ctrl_pulses:
+        if not self.pulses:
             return None
-        coeffs_list = [pulse.coeff for pulse in self.ctrl_pulses]
+        coeffs_list = [pulse.coeff for pulse in self.pulses]
         return np.array(coeffs_list)
 
     @coeffs.setter
     def coeffs(self, coeffs_list):
         # check number of pulse
-        if len(coeffs_list) != len(self.ctrl_pulses):
+        if len(coeffs_list) != len(self.pulses):
             raise ValueError("The rwo number of coeffs must be same "
                              "as the number of control pulses.")
         for i, coeff in enumerate(coeffs_list):
-            self.ctrl_pulses[i].coeff = coeff
+            self.pulses[i].coeff = coeff
 
     @property
     def tlist(self):
         # check this tlist
-        all_tlists = [pulse.tlist for pulse in self.ctrl_pulses if pulse.tlist is not None]
+        all_tlists = [pulse.tlist for pulse in self.pulses if pulse.tlist is not None]
         if self.tlist_ is not None:
             all_tlists += [self.tlist_]
         if not all_tlists:
@@ -233,6 +234,12 @@ class Processor(object):
     @tlist.setter
     def tlist(self, x):
         self.tlist_ = x
+
+    def set_all_tlist(self,tlist):
+        # TODO add tests
+        for pulse in self.pulses:
+            pulse.tlist = tlist
+        self.tlist_ = tlist
 
     def remove_ctrl(self, indices):
         """
@@ -247,24 +254,26 @@ class Processor(object):
             indices = [indices]
         indices.sort(reverse=True)
         for ind in indices:
-            del self.ctrl_pulses[ind]
+            del self.pulses[ind]
 
     def _is_pulses_valid(self):
+        # TODO move this to Pulse
         """
         Check if the pulses are in the correct shape.
 
         Returns: boolean
             If they are valid or not
         """
-        for i, pulse in enumerate(self.ctrl_pulses):
-            if pulse.tlist is None:
-                if pulse.coeff is None or isinstance(pulse.coeff, bool):
-                    continue
-                else:
-                    raise ValueError("Pulse id={} is invalid, "
-                                     "a tlist is required.".format(i))
-            if pulse.tlist is not None and pulse.coeff is None:
+        for i, pulse in enumerate(self.pulses):
+            if pulse.coeff is None or isinstance(pulse.coeff, bool):
+                # constant pulse
                 continue
+            if pulse.tlist is None:
+                raise ValueError("Pulse id={} is invalid. "
+                                     "Please define a tlist for the pulse.".format(i))
+            if pulse.tlist is not None and pulse.coeff is None:
+                raise ValueError("Pulse id={} is invalid. "
+                                 "Please define a coeff for the pulse.".format(i))
             coeff_len = len(pulse.coeff)
             tlist_len = len(pulse.tlist)
             if pulse.spline_kind == "step_func":
@@ -340,7 +349,10 @@ class Processor(object):
             self.coeffs = data[:, 1:].T
         return self.tlist, self.coeffs
 
-    def get_dynamics(self, args=None, noisy=False):
+    def get_noisy_pulses(self):
+        return process_noise(self.pulses, self.noise, self.dims, t1=self.t1, t2=self.t2)
+
+    def get_qobjevo(self, args=None, noisy=True):
         """
         Create a :class:`qutip.QobjEvo` without any noise that can be given to
         the QuTiP open system solver.
@@ -365,10 +377,10 @@ class Processor(object):
         # set step function
 
         if not noisy:
-            dynamics = self.ctrl_pulses
+            dynamics = self.pulses
             c_ops = []
         else:
-            dynamics, c_ops = process_noise(self.ctrl_pulses, self.noise, self.dims, t1=self.t1, t2=self.t2)
+            dynamics, c_ops = self.get_noisy_pulses(noisy)
         dynamics = [self.drift] + dynamics
 
         qu_list = []
@@ -460,7 +472,7 @@ class Processor(object):
         return self.run_analytically(qc=qc, rho0=None)
 
     def run_state(self, rho0=None, analytical=False, states=None,
-                  **kwargs):
+                  noisy=True, **kwargs):
         """
         If `analytical` is False, use :func:`qutip.mesolve` to
         calculate the time of the state evolution
@@ -516,9 +528,9 @@ class Processor(object):
 
         # construct qobjevo for unitary evolution
         if "args" in kwargs:
-            noisy_qobjevo, sys_c_ops = self.get_dynamics(args=kwargs["args"], noisy=True)
+            noisy_qobjevo, sys_c_ops = self.get_qobjevo(args=kwargs["args"], noisy=noisy)
         else:
-            noisy_qobjevo, sys_c_ops = self.get_dynamics(noisy=True)
+            noisy_qobjevo, sys_c_ops = self.get_qobjevo(noisy=noisy)
 
         # add noise into kwargs
         if "c_ops" in kwargs:
@@ -605,7 +617,7 @@ class Processor(object):
         ax.set_ylabel("Control pulse amplitude")
         ax.set_xlabel("Time")
 
-        coeffs = self.coeffs
+        coeffs = [coeff for coeff in self.coeffs]
         tlist = self.tlist
 
         for i in range(len(coeffs)):
@@ -642,14 +654,3 @@ class Processor(object):
             self.noise.append(noise)
         else:
             raise TypeError("Input is not a Noise object.")
-
-
-
-def _dummy_qobjevo(dims, **kwargs):
-    """
-    Create a dummy :class":`qutip.QobjEvo` with
-    a constant zero Hamiltonian. This is used since empty QobjEvo
-    is not yet supported.
-    """
-    dummy = QobjEvo(tensor([identity(d) for d in dims]) * 0., **kwargs)
-    return dummy

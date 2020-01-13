@@ -128,7 +128,7 @@ def TestPulseConstructor():
     tlist = np.array([0., 1., 2., 3.])
     ham = sigmaz()
     # Special ways of initializing pulse
-    pulse2 = Pulse(sigmax(), 0, tlist)
+    pulse2 = Pulse(sigmax(), 0, tlist, True)
     assert_allclose(pulse2.get_ideal_evo(2).cte, tensor(sigmax(), identity(2)))
 
     pulse3 = Pulse(sigmay(), 0)
@@ -145,7 +145,7 @@ def TestPulseConstructor():
     coeff_noise2 = np.array([0.1, 0.2, 0.3])
     # Pulse with different dims
     random_qobj = Qobj(np.random.random((3,3)))
-    pulse5 = Pulse(sigmaz(), 1, tlist)
+    pulse5 = Pulse(sigmaz(), 1, tlist, True)
     pulse5.add_coherent_noise(sigmay(), 1, tlist_noise, coeff_noise)
     pulse5.add_lindblad_noise(random_qobj, 0, tlist=tlist_noise2, coeff=coeff_noise2)
     qu, c_ops = pulse5.get_full_evo(dims=[3,2])

@@ -191,7 +191,7 @@ class DispersivecQED(ModelProcessor):
     @property
     def ctrls(self):
         result = []
-        for pulse in self.ctrl_pulses:
+        for pulse in self.pulses:
             result.append(pulse.get_ideal_qobj(self.dims))
         return result
 
@@ -207,19 +207,19 @@ class DispersivecQED(ModelProcessor):
         """
         # single qubit terms
         self.a = tensor(destroy(self.num_levels))
-        self.ctrl_pulses.append(Pulse(self.a.dag() * self.a, [0], spline_kind=self.spline_kind))
+        self.pulses.append(Pulse(self.a.dag() * self.a, [0], spline_kind=self.spline_kind))
         # self.ctrls += [tensor([identity(self.num_levels)] +
         #                       [sigmax() if m == n else identity(2)
         #                        for n in range(N)])
         #                for m in range(N)]
         for m in range(N):
-            self.ctrl_pulses.append(Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
+            self.pulses.append(Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
         # self.ctrls += [tensor([identity(self.num_levels)] +
         #                       [sigmaz() if m == n else identity(2)
         #                        for n in range(N)])
         #                for m in range(N)]
         for m in range(N):
-            self.ctrl_pulses.append(Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
+            self.pulses.append(Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
         # interaction terms
         a_full = tensor([destroy(self.num_levels)] + 
                         [identity(2) for n in range(N)])
@@ -227,7 +227,7 @@ class DispersivecQED(ModelProcessor):
             sm = tensor([identity(self.num_levels)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
-            self.ctrl_pulses.append(Pulse(a_full.dag() * sm + a_full * sm.dag(), list(range(N+1)), spline_kind=self.spline_kind))
+            self.pulses.append(Pulse(a_full.dag() * sm + a_full * sm.dag(), list(range(N+1)), spline_kind=self.spline_kind))
 
         self.psi_proj = tensor([basis(self.num_levels, 0)] +
                                [identity(2) for n in range(N)])
@@ -382,8 +382,8 @@ class DispersivecQED(ModelProcessor):
             self.N, self._paras, self.wq, self.Delta,
             global_phase=0., num_ops=len(self.ctrls))
         tlist, self.coeffs, self.global_phase = dec.decompose(gates)
-        for i in range(len(self.ctrl_pulses)):
-            self.ctrl_pulses[i].tlist = tlist
+        for i in range(len(self.pulses)):
+            self.pulses[i].tlist = tlist
         # TODO The amplitude of the first control a.dag()*a
         # was set to zero before I made this refactoring.
         # It is probably due to the fact that

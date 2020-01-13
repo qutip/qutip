@@ -47,15 +47,15 @@ class _EvoElement():
             targets = self.targets
         return expand_operator(op, len(dims), targets, dims)
 
-    def get_qobjevo_help(self, spline_kind, dims):
+    def _get_qobjevo_helper(self, spline_kind, dims):
         mat = self.get_qobj(dims)
-        if self.tlist is None:
-            if isinstance(self.coeff, bool) and self.coeff:
-                qu = QobjEvo(mat)
+        if self.tlist is None and self.coeff is None:
+            qu = QobjEvo(mat) * 0.
+        elif isinstance(self.coeff, bool):
+            if self.coeff:
+                qu = QobjEvo(mat, tlist=self.tlist)
             else:
-                qu = QobjEvo(mat) * 0.
-        elif self.tlist is not None and self.coeff is None:
-            qu = QobjEvo(mat, tlist=self.tlist)
+                qu = QobjEvo(mat * 0., tlist=self.tlist)
         else:
             if spline_kind == "step_func":
                 args = {"_step_func_coeff": True}
@@ -70,7 +70,7 @@ class _EvoElement():
 
     def get_qobjevo(self, spline_kind, dims):
         try:
-            return self.get_qobjevo_help(spline_kind, dims=dims)
+            return self._get_qobjevo_helper(spline_kind, dims=dims)
         except Exception as err:
             print("The Evolution element went wrong was\n {}".format(str(self)))
             raise(err)
@@ -155,17 +155,18 @@ class Pulse():
               "Lindblad noise elements.".format(
                   len(self.coherent_noise), len(self.lindblad_noise)))
         print()
-        print("Pulse Element:")
         print("Ideal pulse:")
         print(self.ideal_pulse)
-        print()
-        print("Coherent noise:")
-        for ele in self.coherent_noise:
-            print(ele)
-        print()
-        print("Lindblad noise:")
-        for ele in self.lindblad_noise:
-            print(ele)
+        if not self.coherent_noise:
+            print()
+            print("Coherent noise:")
+            for ele in self.coherent_noise:
+                print(ele)
+        if not self.lindblad_noise:
+            print()
+            print("Lindblad noise:")
+            for ele in self.lindblad_noise:
+                print(ele)
         print("-----------------------------------"
               "-----------------------------------")
 

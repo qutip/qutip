@@ -80,7 +80,7 @@ class TestOptPulseProcessor:
         test.add_ctrl_ham(sigmay())
         test.remove_ctrl(0)
         assert_(
-            len(test.ctrl_pulses) == 1,
+            len(test.pulses) == 1,
             msg="Method of remove_ctrl could be wrong.")
         assert_allclose(test.drift.drift_hams[0].op, H_d)
         assert_(

@@ -84,10 +84,10 @@ class TestCircuitProcessor:
         amp1 = np.arange(0, 5, 1)
         amp2 = np.arange(5, 0, -1)
 
-        proc.ctrl_pulses[0].tlist = tlist
-        proc.ctrl_pulses[0].coeff = amp1
-        proc.ctrl_pulses[1].tlist = tlist
-        proc.ctrl_pulses[1].coeff = amp2
+        proc.pulses[0].tlist = tlist
+        proc.pulses[0].coeff = amp1
+        proc.pulses[1].tlist = tlist
+        proc.pulses[1].coeff = amp2
         proc.save_coeff("qutip_test_CircuitProcessor.txt")
         proc1.read_coeff("qutip_test_CircuitProcessor.txt")
         os.remove("qutip_test_CircuitProcessor.txt")
@@ -169,8 +169,8 @@ class TestCircuitProcessor:
         tlist = np.linspace(0., 2*np.pi, 20)
         processor = Processor(N=1, spline_kind="step_func")
         processor.add_ctrl_ham(sigmaz())
-        processor.ctrl_pulses[0].tlist = tlist
-        processor.ctrl_pulses[0].coeff = np.array([np.sin(t) for t in tlist])
+        processor.pulses[0].tlist = tlist
+        processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
         processor.plot_pulses()
         plt.clf()
 
@@ -192,32 +192,32 @@ class TestCircuitProcessor:
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
         processor = Processor(N=1, spline_kind = "step_func")
         processor.add_ctrl_ham(sigmaz())
-        processor.ctrl_pulses[0].tlist = tlist
-        processor.ctrl_pulses[0].coeff = coeff
+        processor.pulses[0].tlist = tlist
+        processor.pulses[0].coeff = coeff
 
-        ideal_qobjevo = processor.get_dynamics(noisy=False)
+        ideal_qobjevo = processor.get_qobjevo(noisy=False)
         assert_(ideal_qobjevo.args["_step_func_coeff"])
-        noisy_qobjevo, c_ops = processor.get_dynamics(noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
         assert_(noisy_qobjevo.args["_step_func_coeff"])
         processor.T1 = 100.
         processor.add_noise(ControlAmpNoise(coeff=coeff, tlist=tlist))
-        noisy_qobjevo, c_ops = processor.get_dynamics(noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
         assert_(noisy_qobjevo.args["_step_func_coeff"])
 
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
         processor = Processor(N=1, spline_kind = "cubic")
         processor.add_ctrl_ham(sigmaz())
-        processor.ctrl_pulses[0].tlist = tlist
-        processor.ctrl_pulses[0].coeff = coeff
+        processor.pulses[0].tlist = tlist
+        processor.pulses[0].coeff = coeff
 
-        ideal_qobjevo = processor.get_dynamics(noisy=False)
+        ideal_qobjevo = processor.get_qobjevo(noisy=False)
         assert_(not ideal_qobjevo.args["_step_func_coeff"])
-        noisy_qobjevo, c_ops = processor.get_dynamics(noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
         assert_(not noisy_qobjevo.args["_step_func_coeff"])
         processor.T1 = 100.
         processor.add_noise(ControlAmpNoise(coeff=coeff, tlist=tlist))
-        noisy_qobjevo, c_ops = processor.get_dynamics(noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
         assert_(not noisy_qobjevo.args["_step_func_coeff"])
 
     def TestGetObjevo(self):
@@ -225,11 +225,11 @@ class TestCircuitProcessor:
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
         processor = Processor(N=1)
         processor.add_ctrl_ham(sigmaz())
-        processor.ctrl_pulses[0].tlist = tlist
-        processor.ctrl_pulses[0].coeff = coeff
+        processor.pulses[0].tlist = tlist
+        processor.pulses[0].coeff = coeff
 
         # without noise
-        unitary_qobjevo = processor.get_dynamics(args={"test": True})
+        unitary_qobjevo = processor.get_qobjevo(args={"test": True}, noisy=False)
         assert_allclose(unitary_qobjevo.ops[0].qobj, sigmaz())
         assert_allclose(unitary_qobjevo.tlist, tlist)
         assert_allclose(unitary_qobjevo.ops[0].coeff, coeff[0])
@@ -241,9 +241,9 @@ class TestCircuitProcessor:
             c_ops=sigmax(), coeff=coeff, tlist=tlist)
         processor.add_noise(dec_noise)
         assert_equal(unitary_qobjevo.to_list(),
-                        processor.get_dynamics().to_list())
+                        processor.get_qobjevo(noisy=False).to_list())
 
-        noisy_qobjevo, c_ops = processor.get_dynamics(args={"test": True}, noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(args={"test": True}, noisy=True)
         assert_(noisy_qobjevo.args["_step_func_coeff"],
                 msg="Spline type not correctly passed on")
         assert_(noisy_qobjevo.args["test"],
@@ -257,12 +257,12 @@ class TestCircuitProcessor:
         processor.add_ctrl_ham(sigmaz())
         tlist = np.linspace(1, 6, int(5/0.2))
         coeff = np.random.rand(len(tlist))
-        processor.ctrl_pulses[0].tlist = tlist
-        processor.ctrl_pulses[0].coeff = coeff
+        processor.pulses[0].tlist = tlist
+        processor.pulses[0].coeff = coeff
 
         amp_noise = ControlAmpNoise(coeff=coeff, tlist=tlist)
         processor.add_noise(amp_noise)
-        noisy_qobjevo, c_ops = processor.get_dynamics(args={"test": True}, noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(args={"test": True}, noisy=True)
         assert_(not noisy_qobjevo.args["_step_func_coeff"],
                 msg="Spline type not correctly passed on")
         assert_(noisy_qobjevo.args["test"],
@@ -281,8 +281,8 @@ class TestCircuitProcessor:
         a = destroy(2)
         proc = Processor(N=2)
         proc.add_ctrl_ham(sigmax(), targets=1)
-        proc.ctrl_pulses[0].tlist = tlist
-        proc.ctrl_pulses[0].coeff = np.array([1])
+        proc.pulses[0].tlist = tlist
+        proc.pulses[0].coeff = np.array([1])
         result = proc.run_state(rho0=rho0)
         assert_allclose(
             fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
@@ -310,8 +310,8 @@ class TestCircuitProcessor:
         N = 2
         proc = Processor(N=N, dims=[2, 3])
         proc.add_ctrl_ham(tensor(sigmaz(), rand_dm(3, density=1.)))
-        proc.ctrl_pulses[0].coeff = np.array([1, 2])
-        proc.ctrl_pulses[0].tlist = np.array([0., 1., 2])
+        proc.pulses[0].coeff = np.array([1, 2])
+        proc.pulses[0].tlist = np.array([0., 1., 2])
         proc.run_state(rho0=tensor([basis(2, 0), basis(3, 1)]))
 
 
@@ -322,7 +322,7 @@ class TestCircuitProcessor:
         processor = Processor(N=1)
         processor.add_drift_ham(sigmaz())
         processor.tlist = np.array([0., 1., 2.])
-        ideal_qobjevo = processor.get_dynamics()
+        ideal_qobjevo, _ = processor.get_qobjevo()
         assert_equal(ideal_qobjevo.cte, sigmaz())
 
 

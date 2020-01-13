@@ -249,7 +249,7 @@ class OptPulseProcessor(Processor):
                 kwargs.update(setting_args[gates[prop_ind]])
 
             full_drift_ham = self.drift.get_ideal_evo(self.dims).cte
-            full_ctrls_hams = [pulse.get_ideal_qobj(self.dims) for pulse in self.ctrl_pulses]
+            full_ctrls_hams = [pulse.get_ideal_qobj(self.dims) for pulse in self.pulses]
             result = cpo.optimize_pulse_unitary(
                 full_drift_ham, full_ctrls_hams, U_0, U_targ, **kwargs)
 
@@ -272,8 +272,8 @@ class OptPulseProcessor(Processor):
                 print("Number of iterations {}".format(result.num_iter))
 
         self.tlist = np.hstack([[0.]] + time_record)
-        for i in range(len(self.ctrl_pulses)):
-            self.ctrl_pulses[i].tlist = self.tlist
+        for i in range(len(self.pulses)):
+            self.pulses[i].tlist = self.tlist
         self.coeffs = np.vstack([np.hstack(coeff_record)])
 
         return self.tlist, self.coeffs
@@ -293,7 +293,7 @@ class OptPulseProcessor(Processor):
     #     unitary_qobjevo: :class:`qutip.QobjEvo`
     #         The :class:`qutip.QobjEvo` representation of the unitary evolution.
     #     """
-    #     proc_qobjevo = super(OptPulseProcessor, self).get_dynamics(
+    #     proc_qobjevo = super(OptPulseProcessor, self).get_qobjevo(
     #         args=args)
     #     if self.drift is not None:
     #         return proc_qobjevo + self.drift
