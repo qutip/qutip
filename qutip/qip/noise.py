@@ -17,25 +17,25 @@ __all__ = ["Noise", "DecoherenceNoise", "RelaxationNoise",
            "ControlAmpNoise", "RandomNoise", "UserNoise", "process_noise"]
 
 
-def process_noise(ctrl_pulses, noise, N, dims, t1=None, t2=None):
+def process_noise(ctrl_pulses, noise, dims, t1=None, t2=None):
     """
     Call all the noise object saved in the processor and
     return a noisy part of the evolution.
 
     Parameters
     ----------
-    proc_qobjevo: :class:`qutip.qip.QobjEvo`
-        The :class:`qutip.qip.QobjEvo` representing the unitary evolution
+    proc_qobjevo: :class:`qutip.QobjEvo`
+        The :class:`qutip.QobjEvo` representing the unitary evolution
         in the noiseless processor.
 
     Returns
     -------
-    noise: :class:`qutip.qip.QobjEvo`
-        The :class:`qutip.qip.QobjEvo` representing the noisy
+    noise: :class:`qutip.QobjEvo`
+        The :class:`qutip.QobjEvo` representing the noisy
         part Hamiltonians.
 
     c_ops: list
-        A list of :class:`qutip.qip.QobjEvo` or :class:`qutip.qip.Qobj`,
+        A list of :class:`qutip.QobjEvo` or :class:`qutip.qip.Qobj`,
         representing the time-(in)dependent collapse operators.
     """
     ctrl_pulses = deepcopy(ctrl_pulses)
@@ -43,17 +43,16 @@ def process_noise(ctrl_pulses, noise, N, dims, t1=None, t2=None):
     c_ops = []
 
     if (t1 is not None) or (t2 is not None):
-        noisy_dynamics += [RelaxationNoise(t1, t2).get_noisy_dynamics(
-            N=N)]
+        noisy_dynamics += [RelaxationNoise(t1, t2).get_noisy_dynamics(dims)]
 
     for noise in noise:
         if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
-            noisy_dynamics += [noise.get_noisy_dynamics(N)]
+            noisy_dynamics += [noise.get_noisy_dynamics(dims)]
         elif isinstance(noise, ControlAmpNoise):
-            ctrl_pulses = noise.get_noisy_dynamics(N, ctrl_pulses)
+            ctrl_pulses = noise.get_noisy_dynamics(ctrl_pulses)
         elif isinstance(noise, UserNoise):
             ctrl_pulses, new_c_ops = noise.get_noisy_dynamics(
-                ctrl_pulses, N, dims)
+                ctrl_pulses, dims)
             c_ops += new_c_ops
         else:
             raise NotImplementedError(
@@ -84,6 +83,7 @@ class DecoherenceNoise(Noise):
     """
     The decoherence noise in a processor. It generates a list of
     collapse operators.
+    if tlist and coeff are None, time-independent decoherence
 
     Parameters
     ----------
@@ -142,7 +142,7 @@ class DecoherenceNoise(Noise):
         self.all_qubits = all_qubits
         self.spline_kind = spline_kind
 
-    def get_noisy_dynamics(self, N):
+    def get_noisy_dynamics(self, dims):
         """
         Return the quantum objects representing the noise.
 
@@ -161,9 +161,13 @@ class DecoherenceNoise(Noise):
             A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
             representing the decoherence noise.
         """
+        if isinstance(dims, list):
+            N = len(dims)
+        else:
+            N = dims
         # time-independent
-        if (self.coeff is None) ^ (self.tlist is None):
-            raise ValueError("Invalid input, coeffs and tlist are both required for time-dependent noise.")
+        if (self.coeff is None) and (self.tlist is None):
+            self.coeff = True
 
         lindblad_noise = Pulse(None, None)
         for c_op in self.c_ops:
@@ -231,7 +235,7 @@ class RelaxationNoise(Noise):
                 "either the length is not equal to the number of qubits, "
                 "or T is not a positive number.".format(T))
 
-    def get_noisy_dynamics(self, N):
+    def get_noisy_dynamics(self, dims):
         """
         Return the quantum objects representing the noise.
 
@@ -250,6 +254,15 @@ class RelaxationNoise(Noise):
             A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
             representing the decoherence noise.
         """
+        if isinstance(dims, list):
+            for d in dims:
+                if d != 2:
+                    raise ValueError(
+                        "Relaxation noise is defined only for qubits system")
+            N = len(dims)
+        else:
+            N = dims
+
         self.t1 = self._T_to_list(self.t1, N)
         self.t2 = self._T_to_list(self.t2, N)
         if len(self.t1) != N or len(self.t2) != N:
@@ -266,7 +279,7 @@ class RelaxationNoise(Noise):
                 # lindblad_noise.append(
                 #     expand_operator(
                 #         1/np.sqrt(t1) * destroy(2), N, qu_ind, dims=dims))
-                lindblad_noise.add_lindblad_noise(op, qu_ind)
+                lindblad_noise.add_lindblad_noise(op, qu_ind, coeff=True)
             if t2 is not None:
                 # Keep the total dephasing ~ exp(-t/t2)
                 if t1 is not None:
@@ -281,7 +294,7 @@ class RelaxationNoise(Noise):
                 # lindblad_noise.append(
                 #     expand_operator(
                 #         1/np.sqrt(2*T2_eff) * sigmaz(), N, qu_ind, dims=dims))
-                lindblad_noise.add_lindblad_noise(op, qu_ind)
+                lindblad_noise.add_lindblad_noise(op, qu_ind, coeff=True)
         return lindblad_noise
 
 
@@ -333,7 +346,7 @@ class ControlAmpNoise(Noise):
         self.coeff = coeff
         self.tlist = tlist
 
-    def get_noisy_dynamics(self, N, ctrl_pulses):
+    def get_noisy_dynamics(self, ctrl_pulses):
         """
         Return the quantum objects representing the noise.
 
@@ -433,7 +446,7 @@ class RandomNoise(ControlAmpNoise):
             raise ValueError("size is preditermined inside the noise object.")
         self.dt = dt
 
-    def get_noisy_dynamics(self, N, ctrl_pulses):
+    def get_noisy_dynamics(self, ctrl_pulses):
         """
         Return the quantum objects representing the noise.
 

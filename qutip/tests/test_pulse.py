@@ -103,7 +103,7 @@ def TestNoisyPulse():
     pulse1.add_coherent_noise(sigmay(), 0, tlist_noise, coeff_noise)
     tlist_noise2 = np.array([0.5, 2, 3.])
     coeff_noise2 = np.array([0.1, 0.2, 0.3])
-    pulse1.add_lindblad_noise(sigmax(), 1)
+    pulse1.add_lindblad_noise(sigmax(), 1, coeff=True)
     pulse1.add_lindblad_noise(sigmax(), 0, tlist=tlist_noise2, coeff=coeff_noise2)
 
     assert_allclose(pulse1.get_ideal_evo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
@@ -132,7 +132,7 @@ def TestPulseConstructor():
     assert_allclose(pulse2.get_ideal_evo(2).cte, tensor(sigmax(), identity(2)))
 
     pulse3 = Pulse(sigmay(), 0)
-    assert_allclose(pulse3.get_ideal_evo(2).cte, tensor(sigmay(), identity(2)))
+    assert_allclose(pulse3.get_ideal_evo(2).cte.norm(), 0.)
 
     pulse4 = Pulse(None, None)  # Dummy empty ham
     assert_allclose(pulse4.get_ideal_evo(2).cte.norm(), 0.)
@@ -145,7 +145,7 @@ def TestPulseConstructor():
     coeff_noise2 = np.array([0.1, 0.2, 0.3])
     # Pulse with different dims
     random_qobj = Qobj(np.random.random((3,3)))
-    pulse5 = Pulse(sigmaz(), 1)
+    pulse5 = Pulse(sigmaz(), 1, tlist)
     pulse5.add_coherent_noise(sigmay(), 1, tlist_noise, coeff_noise)
     pulse5.add_lindblad_noise(random_qobj, 0, tlist=tlist_noise2, coeff=coeff_noise2)
     qu, c_ops = pulse5.get_full_evo(dims=[3,2])

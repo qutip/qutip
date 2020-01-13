@@ -161,7 +161,7 @@ class Processor(object):
             targets = list(range(num_qubits))
         self.drift.add_ham(ham, targets)
 
-    def add_ctrl_ham(self, ham, targets=None, cyclic_permutation=False):
+    def add_ctrl_ham(self, ham, targets=None, cyclic_permutation=False, label=None):
         """
         Add a control Hamiltonian to the processor.
 
@@ -190,10 +190,12 @@ class Processor(object):
             targets = [targets]
         if cyclic_permutation:
             for i in range(self.N):
-                temp = [(t + i)%self.N for t in targets]
-                self.ctrl_pulses.append(Pulse(ham, temp, spline_kind=self.spline_kind))
+                temp_targets = [(t + i)%self.N for t in targets]
+                if label is not None:
+                    temp_label = label + "_" + str(temp_targets)
+                self.ctrl_pulses.append(Pulse(ham, temp_targets, spline_kind=self.spline_kind, label=temp_label))
         else:
-            self.ctrl_pulses.append(Pulse(ham, targets, spline_kind=self.spline_kind))
+            self.ctrl_pulses.append(Pulse(ham, targets, spline_kind=self.spline_kind, label=label))
 
     @property
     def ctrls(self):
@@ -220,6 +222,7 @@ class Processor(object):
 
     @property
     def tlist(self):
+        # check this tlist
         all_tlists = [pulse.tlist for pulse in self.ctrl_pulses if pulse.tlist is not None]
         if self.tlist_ is not None:
             all_tlists += [self.tlist_]
@@ -255,7 +258,7 @@ class Processor(object):
         """
         for i, pulse in enumerate(self.ctrl_pulses):
             if pulse.tlist is None:
-                if pulse.coeff is None:
+                if pulse.coeff is None or isinstance(pulse.coeff, bool):
                     continue
                 else:
                     raise ValueError("Pulse id={} is invalid, "
@@ -365,7 +368,7 @@ class Processor(object):
             dynamics = self.ctrl_pulses
             c_ops = []
         else:
-            dynamics, c_ops = process_noise(self.ctrl_pulses, self.noise, self.N, self.dims, t1=self.t1, t2=self.t2)
+            dynamics, c_ops = process_noise(self.ctrl_pulses, self.noise, self.dims, t1=self.t1, t2=self.t2)
         dynamics = [self.drift] + dynamics
 
         qu_list = []
@@ -376,12 +379,16 @@ class Processor(object):
             else:
                 qu = pulse.get_ideal_evo(dims=self.dims)
             qu_list.append(qu)
-        
+
         final_qu = _merge_qobjevo(qu_list)
         final_qu.args.update(args)
 
         if final_qu.tlist is None:
             # No time specified in Pulse, e.g. evolution under constant pulse.
+            if self.tlist is None:
+                raise ValueError("No valid tlist found. "
+                "Please define tlist either for the pulse with Pulse.tlist "
+                "or for the whole device with Processor.tlist")
             final_qu.tlist = self.tlist
 
         if noisy:

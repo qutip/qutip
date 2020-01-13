@@ -13,6 +13,9 @@ __all__ = ["Pulse", "Drift"]
 
 
 class _EvoElement():
+    """
+    The class saving the information of one evolution element.
+    """
     def __init__(self, op, targets, tlist=None, coeff=None):
         self.op = op
         self.targets = targets
@@ -20,6 +23,20 @@ class _EvoElement():
         self.coeff = coeff
 
     def get_qobj(self, dims):
+        """
+        Return a operator of the element.
+
+        Parameters
+        ----------
+        dims: int or list
+            Dimension of the system.
+            If integer, we assume it is the number of qubit in the system.
+            If list, it is the dimension of each component system.
+
+        Return:
+        op: :class:`qutip.QobjEvo`
+            The operator of this element.
+        """
         if isinstance(dims, (int, np.integer)):
             dims = [2] * dims
         if self.op is None:
@@ -33,7 +50,10 @@ class _EvoElement():
     def get_qobjevo_help(self, spline_kind, dims):
         mat = self.get_qobj(dims)
         if self.tlist is None:
-            qu = QobjEvo(mat)
+            if isinstance(self.coeff, bool) and self.coeff:
+                qu = QobjEvo(mat)
+            else:
+                qu = QobjEvo(mat) * 0.
         elif self.tlist is not None and self.coeff is None:
             qu = QobjEvo(mat, tlist=self.tlist)
         else:
@@ -64,11 +84,12 @@ class _EvoElement():
 
 
 class Pulse():
-    def __init__(self, op, targets, tlist=None, coeff=None, spline_kind=None):
+    def __init__(self, op, targets, tlist=None, coeff=None, spline_kind=None, label=None):
         self.spline_kind = spline_kind
         self.ideal_pulse = _EvoElement(op, targets, tlist, coeff)
         self.coherent_noise = []
         self.lindblad_noise = []
+        self.label = label
 
     @property
     def op(self):
@@ -128,6 +149,8 @@ class Pulse():
     def print_info(self):
         print("-----------------------------------"
               "-----------------------------------")
+        if self.label is not None:
+            print("Pulse label:", self.label)
         print("The pulse contains: {} coherent noise elements and {} "
               "Lindblad noise elements.".format(
                   len(self.coherent_noise), len(self.lindblad_noise)))
@@ -157,7 +180,7 @@ class Drift():
     def get_ideal_evo(self, dims):
         if not self.drift_hams:
             self.drift_hams = [_EvoElement(None, None)]
-        qu_list = [evo.get_qobjevo(None, dims) for evo in self.drift_hams]
+        qu_list = [QobjEvo(evo.get_qobj(dims)) for evo in self.drift_hams]
         return _merge_qobjevo(qu_list)
 
     def get_full_evo(self, dims):
