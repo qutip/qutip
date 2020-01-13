@@ -349,8 +349,16 @@ class Processor(object):
             self.coeffs = data[:, 1:].T
         return self.tlist, self.coeffs
 
-    def get_noisy_pulses(self):
-        return process_noise(self.pulses, self.noise, self.dims, t1=self.t1, t2=self.t2)
+    def get_noisy_pulses(self, ind_device_noise=False, ind_drift=False):
+        """
+        The pulse attribute must remain unchanged
+        """
+        # TODO add tests
+        pulses = deepcopy(self.pulses)
+        noisy_pulses = process_noise(pulses, self.noise, self.dims, t1=self.t1, t2=self.t2, ind_device_noise=ind_device_noise)
+        if ind_drift:
+            noisy_pulses += [self.drift]
+        return noisy_pulses
 
     def get_qobjevo(self, args=None, noisy=True):
         """
@@ -378,12 +386,11 @@ class Processor(object):
 
         if not noisy:
             dynamics = self.pulses
-            c_ops = []
         else:
-            dynamics, c_ops = self.get_noisy_pulses(noisy)
-        dynamics = [self.drift] + dynamics
+            dynamics = self.get_noisy_pulses(ind_device_noise=True, ind_drift=True)
 
         qu_list = []
+        c_ops = []
         for pulse in dynamics:
             if noisy:
                 qu, new_c_ops = pulse.get_full_evo(dims=self.dims)

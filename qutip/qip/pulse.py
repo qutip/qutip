@@ -64,7 +64,7 @@ class _EvoElement():
             elif spline_kind == "cubic":
                 args = {"_step_func_coeff": False}
             else:
-                args = {}
+                args = {}  # The spline will follow other pulses or use the default value of QobjEvo
             qu = QobjEvo([mat, self.coeff], tlist=self.tlist, args=args)
         return qu
 
@@ -157,12 +157,12 @@ class Pulse():
         print()
         print("Ideal pulse:")
         print(self.ideal_pulse)
-        if not self.coherent_noise:
+        if self.coherent_noise:
             print()
             print("Coherent noise:")
             for ele in self.coherent_noise:
                 print(ele)
-        if not self.lindblad_noise:
+        if self.lindblad_noise:
             print()
             print("Lindblad noise:")
             for ele in self.lindblad_noise:
