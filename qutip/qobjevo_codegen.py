@@ -58,6 +58,8 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
     tries = 0
     import_list = []
     ext = ".pyx" if cythonfile else ".py"
+    if os.getcwd() not in sys.path:
+        sys.path.insert(0, os.getcwd())
     while not import_list and tries < 3:
         try_file = filename + time.strftime("%d%H%M%S") + str(tries)
         file_ = open(try_file+ext, "w")
@@ -72,8 +74,6 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
             import_code = compile(codeString, '<string>', 'exec')
             exec(import_code, locals())
         except (ModuleNotFoundError, ImportError) as e:
-            if os.getcwd() not in sys.path:
-                sys.path.insert(0, os.getcwd())
             time.sleep(0.05)
             tries += 1
             _try_remove(try_file+ext)
