@@ -67,8 +67,8 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
             if not os.access(try_file, os.R_OK):
                 time.sleep(0.1)
             codeString = str("from " + try_file +
-                        " import " + obj_name + '\n' +
-                        "import_list.append(" + obj_name + ")")
+                            " import " + obj_name + '\n' +
+                            "import_list.append(" + obj_name + ")")
             import_code = compile(codeString, '<string>', 'exec')
             exec(import_code, locals())
         except (ModuleNotFoundError, ImportError) as e:
