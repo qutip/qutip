@@ -59,16 +59,16 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
     import_list = []
     ext = ".pyx" if cythonfile else ".py"
     while not import_list and tries < 3:
+        try_file = filename + time.strftime("%d%H%M%S") + str(tries)
+        file_ = open(try_file+ext, "w")
+        file_.writelines(code)
+        file_.close()
+        if not os.access(try_file, os.R_OK):
+            time.sleep(0.1)
+        codeString = str("from " + try_file +
+                         " import " + obj_name + '\n' +
+                         "import_list.append(" + obj_name + ")")
         try:
-            try_file = filename + time.strftime("%d%H%M%S") + str(tries)
-            file_ = open(try_file+ext, "w")
-            file_.writelines(code)
-            file_.close()
-            if not os.access(try_file, os.R_OK):
-                time.sleep(0.1)
-            codeString = str("from " + try_file +
-                             " import " + obj_name + '\n' +
-                             "import_list.append(" + obj_name + ")")
             import_code = compile(codeString, '<string>', 'exec')
             exec(import_code, locals())
         except (ModuleNotFoundError, ImportError) as e:
