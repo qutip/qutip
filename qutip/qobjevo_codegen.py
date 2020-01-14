@@ -39,7 +39,7 @@ import os
 import numpy as np
 from qutip.cy.inter import _prep_cubic_spline
 import time
-
+import sys
 
 def _try_remove(filename):
     try:
@@ -70,13 +70,15 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
                                   "import_list.append(" + obj_name + ")",
                                   '<string>', 'exec')
             exec(import_code, locals())
-        except (ModuleNotFoundError, ImportError):
+        except (ModuleNotFoundError, ImportError) as e:
+            if os.getcwd() not in sys.path:
+                sys.path.insert(0, os.getcwd())
             time.sleep(0.05)
             tries += 1
             _try_remove(try_file+ext)
     if not import_list:
         raise Exception("Could not convert string to importable function, "
-                        "tmpfile:" + try_file + ext)
+                        "tmpfile:" + try_file + ext) from e
     coeff_obj = import_list[0]
     return coeff_obj, try_file + ext
 
