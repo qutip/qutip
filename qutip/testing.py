@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.about import about
+from qutip import settings
 
 def run(full=False):
     """
@@ -40,7 +41,20 @@ def run(full=False):
     about()
     import pytest
     # runs tests in qutip.tests module only
+    real_num_cpu = qset.num_cpus
+    real_thresh = qset.openmp_thresh
+    if qset.has_openmp:
+        # For travis which VMs have only 1 cpu.
+        # Make sure the openmp version of the functions are tested.
+        qset.num_cpus = 2
+        qset.openmp_thresh = 100
+
     test_options = ["--verbosity=1", "--disable-pytest-warnings", "--pyargs"]
     if not full:
         test_options += ['-m', 'not slow']
     pytest.main(test_options + ["qutip"])
+    # runs tests in qutip.tests module only
+
+    if qset.has_openmp:
+        qset.num_cpus = real_num_cpu
+        qset.openmp_thresh = real_thresh
