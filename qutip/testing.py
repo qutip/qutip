@@ -39,6 +39,10 @@ def run():
     """
     # Call about to get all version info printed with tests
     about()
+    import pytest
+    # runs tests in qutip.tests module only
+    pytest.main(["--verbosity=1",
+                "--disable-pytest-warnings", "--pyargs", "qutip"])
     real_num_cpu = qset.num_cpus
     real_thresh = qset.openmp_thresh
     if qset.has_openmp:
