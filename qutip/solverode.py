@@ -1,21 +1,9 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import numpy as np
+from scipy.integrate import solve_ivp, ode
+from qutip.solver import
 
 class OdeSolver:
     """Parent of OdeSolver used by Qutip quantum system solvers.
@@ -94,7 +82,7 @@ class OdeScipyAdam(OdeSolver):
             states = np.zeros((1, state0.shape[0]*state0.shape[1]),
                               dtype=complex)
 
-        r = scipy.integrate.ode(func)
+        r = ode(func)
         r.set_integrator('zvode', method=opt.method, order=opt.order,
                          atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                          first_step=opt.first_step, min_step=opt.min_step,
@@ -172,7 +160,11 @@ class OdeScipyIVP(OdeSolver):
         return states, self.e_ops.finish()
 
 
-class _SolverCacheOneEvo:
+def _to_linspace(vec):
+    raise NotImplementedError
+
+
+class _SolverCacheOneEvoOld:
     def __init__(self, t_start, dt, vals):
         self.t_start = t_start
         self.dt = dt
@@ -240,34 +232,89 @@ class _SolverCacheOneEvo:
         return bool(self.vals)
 
 
-class _SolverCacheOneArgs:
+class _SolverCacheOneEvo:
     def __init__(self):
-        self.prop = None
+        self.times = []
+        self.vals = []
+        self.linArgs = False
 
-        self.psi0s = []
-        self.psis = []
-
-        self.e_ops_val = [[]]
-        self.e_psis = []
-        self.e_ops = []
-
-    def get_expect_evolution(self, psi, e_ops):
-        if psi in self.e_psis and e_ops in self.e_ops:
-            i = self.e_psis.index(psi)
-            j = self.e_ops.index(psi)
-            return self.e_ops_val[i][j]
+    def __setitem__(self, time_info, vals):
+        if not self.times:
+            self._first_set(time_info, vals)
+            self._check()
         else:
-            return None
 
-    def get_psi_evolution(self, psi):
-        if psi in self.psi0s:
-            i = self.psi0s.index(psi)
-            return self.psis[i]
+
+    def __getitem__(self, time_info):
+        pass
+
+    def missing(self, time_info):
+        pass
+
+    def _first_set(self, time_info, vals):
+        if isinstance(time_info, (int, float)):
+            self.times = np.array([time_info])
+            self.linArgs = (time_info, time_info, 1)
+            self.vals = [vals]
+
+        elif isinstance(time_info, (list, np.ndarray)):
+            self.times = np.array(time_info)
+            self.linArgs = _to_linspace(time_info)
+            self.vals = vals
+
+        elif isinstance(time_info, slice):
+            self.linArgs = time_info
+            self.times = np.linspace(time_info.start,
+                                     time_info.stop,
+                                     time_info.step)
+            self.vals = vals
+
+    def _check(self):
+        if len(self.vals) != len(self.times):
+            raise Exception("Error in caching")
+        if len(self.times) != (self.linArgs[1] - self.linArgs[1]) \
+                              / self.linArgs[0] +1
+
+
+class _SolverCacheOneLevel:
+    def __init__(self, parent, key, maker_func):
+        self.this_level = _SolverCacheOneEvo()
+        self.keys = []
+        self.caches = []
+        self.maker_func = maker_func[0]
+        self.child_maker_func = maker_func[1:]
+        self.parent = parent
+        self.key = key
+
+    def __setitem__(self, args, vals):
+        if len(args) == 1:
+            self.this_level[args] = vals
         else:
-            return None
+            key, *other_keys = args
+            if key in self.keys:
+                idx = self.keys.index(key)
+                self.caches[idx][other_keys] = vals
+            else:
+                self.keys.append(key)
+                self.caches.append(_SolverCacheOneLevel(self, key,
+                                                        self.child_maker_func))
+                self.caches[-1][other_keys] = vals
 
-    def get_prop_evolution(self):
-        return self.prop
+    def __getitem__(self, args):
+        if len(args) == 1:
+            missing = self.this_level.missing(args)
+            source, times, _ = self.parent[missing]
+            self.this_level[times] = self.maker_func(source, self.key)
+            return self.this_level[args]
+        else:
+            key, *other_keys = args
+            if key in self.keys:
+                return self.caches[self.keys.index(key)][other_keys]
+            else:
+                self.keys.append(key)
+                self.caches.append(_SolverCacheOneLevel(self, key,
+                                                        self.child_maker_func))
+                return self.caches[-1][other_keys]
 
 
 class _SolverCache:
