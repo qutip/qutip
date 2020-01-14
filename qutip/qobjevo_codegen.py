@@ -41,6 +41,7 @@ from qutip.cy.inter import _prep_cubic_spline
 import time
 import sys
 
+
 def _try_remove(filename):
     try:
         os.remove(filename)
