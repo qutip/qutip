@@ -229,6 +229,7 @@ include """ + _include_string + "\n\n"
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"
     normal_args = args.copy()
+
     for name, _, _ in dyn_args:
         del normal_args[name]
 
@@ -282,6 +283,7 @@ include """ + _include_string + "\n\n"
                     " = np.array(self._vec).reshape(" \
                     "(self._mat_shape[0], self._mat_shape[1]), order='F')\n"
         if what == "Qobj":
+            # ToDo: Use cython dense to fast_sparse
             code += "        " + name + " = Qobj(np.array(self._vec).reshape(" \
                     "(self._mat_shape[0], self._mat_shape[1]), order='F'))\n"
         if what == "expect":
