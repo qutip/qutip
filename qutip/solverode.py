@@ -234,7 +234,10 @@ class _SolverCacheOneEvo:
     def __init__(self):
         self.times = np.array([], dtype=np.double)
         self.vals = np.array([], dtype=object)
-        self.spaceArgs = False
+        self.N = 0
+        self.start = 0
+        self.stop = 0
+        self.step = 0
         self.interpolation = False
 
     def __setitem__(self, time_info, vals):
@@ -242,9 +245,9 @@ class _SolverCacheOneEvo:
         if not isinstance(vals, (list, np.ndarray)):
             vals = [vals]
         vals = np.array(vals, dtype=object)
-        if not self.times:
+        if self.times.size == 0:
             self.times = times
-            self.times = np.array(vals, dtype=object)
+            self.vals = np.array(vals, dtype=object)
         else:
             self.times = np.concatenate((self.times, times), axis=None)
             self.vals = np.concatenate((self.vals, vals), axis=None)
@@ -256,65 +259,63 @@ class _SolverCacheOneEvo:
         self.spaceArgs = self._to_linspace(self.times)
 
     def __getitem__(self, time_info):
-        pass
+        if isinstance(time_info, (int, float)):
+            val,_,_ = self._get_random(times)
+            if val.size == 1:
+                return val[0]
+            else:
+                return None
+        times = self._time2arr(time_info)
+        start, stop, step, N = self._to_slice(times)
+        if not self._is_sorted(times):
+            return self._get_random(times)
+        if not self.step or not step:
+            return self._get_variable(times)
+
+        before = (times < self.start)
+        after = (times > self.stop)
+
+        ratio = step / self.step
+        start_idx = (start - self.start) / self.step
+        stop_idx = (self.stop - stop) / self.step
+        ratio_isint = self._is_int(ratio)
+        start_isint = self._is_int(start_idx)
+
+        if (ratio_isint and start_isint):
+            ratio_int = int(np.round(ratio))
+            start_int = int(np.round(start_idx))
+            start_int = start_int if start_int >= 0 else 0
+            stop_int = int(np.round(stop_idx))
+            stop_int = start_int if start_int <= self.N else self.N
+            return (self.vals[start_int:stop_int:ratio],
+                    self.times[start_int:stop_int:ratio],
+                    times[np.logical_or(before, after)])
+
+        if self.interpolation:
+            raise NotImplementedError
+
+        return np.array([], dtype=object), np.array([], dtype=float), times
 
     def missing(self, time_info):
         times = self._time2arr(time_info)
         if not self._is_sorted(times):
             times = np.sort(times)
-        outside = np.logical_or(times < self.spaceArgs[0],
-                                times > self.spaceArgs[1])
+        outside = np.logical_or(times < self.start,
+                                times > self.stop)
         times_in = times[np.logical_not(outside)]
         start, stop, N, step = self._to_slice(times_in)
         if self.interpolation:
             return times[outside]
-        if step and self.spaceArgs[2]:
-            ratio_int = self._is_int(step / self.spaceArgs[2])
-            start_int = self._is_int((start - self.spaceArgs[0]) /
-                                     self.spaceArgs[2])
-            stop_int = self._is_int((self.spaceArgs[1] - stop) /
-                                    self.spaceArgs[2])
+        if step and self.step:
+            ratio_int = self._is_int(step / self.step)
+            start_int = self._is_int((start - self.start) /
+                                     self.step)
+            stop_int = self._is_int((self.stop - stop) /
+                                    self.step)
             if (ratio_int and start_int and stop_int):
                 return times[outside]
         no_match = self._no_match(times_in)
         return np.sort(np.concatenate([times[outside], no_match]))
-
-    @staticmethod
-    def _time2arr(time):
-        if isinstance(time_info, (int, float)):
-            times = np.array([time_info])
-
-        elif isinstance(time_info, (list, np.ndarray)):
-            times = np.array(time_info)
-
-        elif isinstance(time_info, slice):
-            times = np.linspace(time_info.start,
-                                time_info.stop,
-                                time_info.step)
-        return times
-
-    @staticmethod
-    def _to_slice(times):
-        # sorted array to start, stop, N, dt
-        # dt == 0 if step size not constant
-        start = times[0]
-        stop = times[-1]
-        N = len(times)
-        if N == 1:
-            return start, stop, N, 0
-        step = (stop-start)/(N-1)
-        if all(np.diff(times) == step):
-            return start, stop, N, step
-        else:
-            return start, stop, N, 0
-
-    @staticmethod
-    def _is_sorted(arr):
-        return len(self.times) < 2 or all(np.diff(self.times)>=0)
-
-    @staticmethod
-    def _is_int(number):
-        return np.abs(np.round(number) - number) < 1e-12
 
     def _sort(self):
         # ensure times are sorted
@@ -336,6 +337,70 @@ class _SolverCacheOneEvo:
     def _no_match(self, times):
         missing = [t for t in times if not np.any(np.isclose(t, self.times))]
         return np.array(missing)
+
+    def _get_random(self, times):
+        vals = []
+        ins = []
+        misses = []
+        for t in times:
+            idx = np.min(np.abs(self.times, t), where=True)
+            delta = self.times[idx]-t
+            if np.abs(delta) <= 1e-8:
+                ins.append(self.times[idx])
+                vals.append(self.vals[idx])
+            elif self.interpolation and t > self.start and t < self.stop:
+                raise NotImplementedError
+            else:
+                misses.append(t)
+        return np.array(vals, dtype=object), np.array(ins), np.array(misses)
+
+    def _get_variable(self, times):
+        before = times < self.start
+        after = times > self.stop
+        outside = np.logical_or(before, after)
+        times_before = times[before]
+        times_after = times[after]
+        times_in = times[np.logical_not(outside)]
+        vals, times_ok, miss = self._get_random(times_in)
+        miss = np.concatenate([before, miss, after])
+        return vals, times_ok, miss
+
+    @staticmethod
+    def _time2arr(time_info):
+        if isinstance(time_info, (int, float)):
+            times = np.array([time_info])
+
+        elif isinstance(time_info, (list, np.ndarray)):
+            times = np.array(time_info)
+
+        elif isinstance(time_info, slice):
+            times = np.linspace(time_info.start,
+                                time_info.stop,
+                                time_info.step)
+        return times
+
+    @staticmethod
+    def _to_slice(times):
+        # sorted array to start, stop, N, dt
+        # dt == 0 if step size not constant
+        start = times[0]
+        stop = times[-1]
+        N = len(times)
+        if N == 1:
+            step = 0
+        elif all(np.diff(times) == (stop-start)/(N-1)):
+            step = (stop-start)/(N-1)
+        else:
+            step = 0
+        return start, stop, step, N
+
+    @staticmethod
+    def _is_sorted(arr):
+        return len(arr) < 2 or all(np.diff(arr)>=0)
+
+    @staticmethod
+    def _is_int(number):
+        return np.abs(np.round(number) - number) < 1e-12
 
 
 class _SolverCacheOneLevel:
