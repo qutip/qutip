@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2013, Paul D. Nation, Robert J. Johansson & Alexander Pitchford
 
 .. _changelog:
@@ -22,6 +22,8 @@ Improvements
 
 Bug Fixes
 ---------
+
+- Fixed the feature allowing to add points to the Bloch sphere, `Bloch.add_ponts` making it compatible with Matplotlib 3.1.0 (by **Nathan Shammah**).
 
 - Fixed PolyDataMapper construction (by **Sam Griffiths**).
 
@@ -183,7 +185,7 @@ Improvements
 
 - Codegen now makes sure that division is done in C, as opposed to Python.
 
-- Can now set different controls for a each timeslot in quantum optimization. 
+- Can now set different controls for a each timeslot in quantum optimization.
 This allows time-varying controls to be used in pulse optimisation.
 
 
@@ -292,14 +294,14 @@ New Features
 - **MAJOR FEATURE**: Non-Markovian solvers: Hierarchy (**Added by Neill Lambert**), Memory-Cascade, and Transfer-Tensor methods.
 - **MAJOR FEATURE**: Default steady state solver now up to 100x faster using the Intel Pardiso library under the Anaconda and Intel Python distributions.
 - The default Wigner function now uses a Clenshaw summation algorithm to evaluate a polynomial series that is applicable for any number of exciations (previous limitation was ~50 quanta), and is ~3x faster than before. (**Added by Denis Vasilyev**)
-- Can now define a given eigen spectrum for random Hermitian and density operators. 
+- Can now define a given eigen spectrum for random Hermitian and density operators.
 - The Qobj ``expm`` method now uses the equivilent SciPy routine, and performs a much faster ``exp`` operation if the matrix is diagonal.
 - One can now build zero operators using the ``qzero`` function.
 
 *Control modules*
 
 - **MAJOR FEATURE**: CRAB algorithm added
-  This is an alternative to the GRAPE algorithm, which allows for analytical control functions, which means that experimental constraints can more easily be added into optimisation.  
+  This is an alternative to the GRAPE algorithm, which allows for analytical control functions, which means that experimental constraints can more easily be added into optimisation.
   See tutorial notebook for full information.
 
 
@@ -321,20 +323,20 @@ Improvements
 
 - The internal state / quantum operator data type can now be either Qobj or ndarray
   Previous only ndarray was possible. This now opens up possibility of using Qobj methods in fidelity calculations
-  The attributes and functions that return these operators are now preceded by an underscore, to indicate that the data type could change depending on the configuration options. 
-  In most cases these functions were for internal processing only anyway, and should have been 'private'. 
+  The attributes and functions that return these operators are now preceded by an underscore, to indicate that the data type could change depending on the configuration options.
+  In most cases these functions were for internal processing only anyway, and should have been 'private'.
   Accessors to the properties that could be useful outside of the library have been added. These always return Qobj. If the internal operator data type is not Qobj, then there could be signicant overhead in the conversion, and so this should be avoided during pulse optimisation.
   If custom sub-classes are developed that use Qobj properties and methods (e.g. partial trace), then it is very likely that it will be more efficient to set the internal data type to Qobj.
   The internal operator data will be chosen automatically based on the size and sparsity of the dynamics generator. It can be forced by setting ``dynamics.oper_dtype = <type>``
   Note this can be done by passing ``dyn_params={'oper_dtype':<type>}`` in any of the pulseoptim functions.
-  
+
   Some other properties and methods were renamed at the same time. A full list is given here.
-  
-  - All modules 
+
+  - All modules
     - function: ``set_log_level`` -> property: ``log_level``
 
   - dynamics functions
-  
+
     - ``_init_lists`` now ``_init_evo``
     - ``get_num_ctrls`` now property: ``num_ctrls``
     - ``get_owd_evo_target`` now property: ``onto_evo_target``
@@ -343,31 +345,31 @@ Improvements
     - ``get_ctrl_den_gen`` now ``_get_phased_ctrl_dyn_gen``
     - ``ensure_decomp_curr`` now ``_ensure_decomp_curr``
     - ``spectral_decomp`` now ``_spectral_decomp``
-    
+
   - dynamics properties
-  
+
     - ``evo_init2t`` now ``_fwd_evo`` (``fwd_evo`` as Qobj)
     - ``evo_t2end`` now ``_onwd_evo`` (``onwd_evo`` as Qobj)
     - ``evo_t2targ`` now ``_onto_evo`` (``onto_evo`` as Qobj)
 
   - fidcomp properties
-  
+
     - ``uses_evo_t2end`` now ``uses_onwd_evo``
     - ``uses_evo_t2targ`` now ``uses_onto_evo``
     - ``set_phase_option`` function now property ``phase_option``
 
   - propcomp properties
-  
+
     - ``grad_exact`` (now read only)
 
   - propcomp functions
-  
+
     - ``compute_propagator`` now ``_compute_propagator``
     - ``compute_diff_prop`` now ``_compute_diff_prop``
     - ``compute_prop_grad`` now ``_compute_prop_grad``
 
   - tslotcomp functions
-  
+
     - ``get_timeslot_for_fidelity_calc`` now ``_get_timeslot_for_fidelity_calc``
 
 
@@ -454,7 +456,7 @@ Bug Fixes
 - Fix bug in parsing of time-dependent Hamiltonian/collapse operator arguments
   that occurred when the args argument is not a dictionary.
 - Fix bug in internal _version2int function that cause a failure when parsingthe version number of the Cython package.
-- 
+-
 
 
 Version 3.0.0 (July 17, 2014):
@@ -467,7 +469,7 @@ New Features
   Schrödinger equation solvers.
 
 - Expanded steady state solvers. The function ``steady`` has been deprecated in
-  favor of ``steadystate``. The steadystate solver no longer use umfpack by 
+  favor of ``steadystate``. The steadystate solver no longer use umfpack by
   default. New pre-processing methods for reordering and balancing the linear
   equation system used in direct solution of the steady state.
 
@@ -475,7 +477,7 @@ New Features
   including pre-defined quantum gates along with functions for expanding
   arbitrary 1, 2, and 3 qubit gates to N qubit registers, circuit
   representations, library of quantum algorithms, and basic physical models for
-  some common QIP architectures. 
+  some common QIP architectures.
 
 - New module `qutip.distributions` with unified API for working with
   distribution functions.
@@ -493,7 +495,7 @@ New Features
 - Dynamics solver now support taking argument ``e_ops`` (expectation value
   operators) in dictionary form.
 
-- Public plotting functions from the ``qutip.visualization`` module are now 
+- Public plotting functions from the ``qutip.visualization`` module are now
   prefixed with ``plot_`` (e.g., ``plot_fock_distribution``). The
   ``plot_wigner`` and ``plot_wigner_fock_distribution`` now supports 3D views
   in addition to contour views.
@@ -516,7 +518,7 @@ New Features
 
 - The ``concurrence`` function now supports both pure and mixed states. Added
   function for calculating the entangling power of a two-qubit gate.
- 
+
 - Added function for generating (generalized) Lindblad dissipator
   superoperators.
 
@@ -543,13 +545,13 @@ Improvements
   significantly lower memory footprint due to avoiding excessive copying of
   internal matrix data.
 
-- The classes ``OdeData``, ``Odeoptions``, ``Odeconfig`` are now called 
+- The classes ``OdeData``, ``Odeoptions``, ``Odeconfig`` are now called
   ``Result``, ``Options``, and ``Config``, respectively, and are available in
   the module `qutip.solver`.
 
 - The ``squeez`` function has been renamed to ``squeeze``.
 
-- Better support for sparse matrices when calculating propagators using the 
+- Better support for sparse matrices when calculating propagators using the
   ``propagator`` function.
 
 - Improved Bloch sphere.
@@ -588,7 +590,7 @@ New Features
 - The master-equation solver (mesolve) now accepts pre-constructed Liouvillian
   terms, which makes it possible to solve master equations that are not on
   the standard Lindblad form.
-  
+
 - Optional Fortran Monte Carlo solver (mcsolve_f90) by Arne Grimsmo.
 
 - A module of tools for using QuTiP in IPython notebooks.
@@ -645,7 +647,7 @@ Bug Fixes:
 
 - Odeoptions now prints mc_avg correctly.
 
-- Do not check for PyObj in mcsolve when gui=False. 
+- Do not check for PyObj in mcsolve when gui=False.
 
 - Eseries now correctly handles purely complex rates.
 
