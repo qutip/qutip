@@ -454,7 +454,7 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     if isinstance(N, list):
-        return tensor(*[identity(n) for n in N])
+        return tensor(*[qeye(n) for n in N])
     N = int(N)
     if N < 0:
         raise ValueError("N must be integer N>=0")
