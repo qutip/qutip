@@ -576,8 +576,8 @@ class TestLattice:
             Ana_val_kns[1, ks] = np.max(vals)
 
         (kxA, val_kns) = CROW_Random.get_dispersion()
-        assert_(np.max(abs(kxA-knxA)) < 1.0E-13)
-        assert_(np.max(abs(val_kns-Ana_val_kns)) < 1.0E-13)
+        assert_(np.max(abs(kxA-knxA)) < 1.0E-8)
+        assert_(np.max(abs(val_kns-Ana_val_kns)) < 1.0E-8)
 
     def test_SSH(self):
         """
