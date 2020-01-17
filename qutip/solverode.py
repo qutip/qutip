@@ -162,72 +162,7 @@ class OdeScipyIVP(OdeSolver):
 
 
 
-class _SolverCacheOneEvoOld:
-    def __init__(self, t_start, dt, vals):
-        self.t_start = t_start
-        self.dt = dt
-        self.vals = vals
-        self.dense = False
-        self.num_val = len(self.vals)
 
-    def _index_from_time(t):
-        return np.round((t-self.t_start)/self.dt, 5)
-
-    def __contains__(self, t):
-        index = _index_from_time(t)
-        if index < 0 or index >= self.num_val:
-            return False
-        if index != np.round(index):
-            return False
-        return True
-
-    def add(self, t_start, vals):
-        index = _index_from_time(t_start)
-        if index != np.round(index):
-            raise ValueError("Can't add new data")
-        if index == 0:
-            self.vals = vals
-            self.num_val = len(self.vals)
-        elif index = self.num_val:
-            self.vals.append(vals)
-            self.num_val = len(self.vals)
-        elif index > 0 and index < self.num_val:
-            self.vals = self.vals[:index] + vals
-            self.num_val = len(self.vals)
-        else:
-            raise ValueError("Can't add new data")
-
-    def has(self, t_start, t_end=None, dt=0):
-        if t_end is None:
-            return t_start in self
-        dt = np.round(dt/self.dt, 5) if dt else 1
-        return t_start in self and t_end in self and dt == np.round(dt)
-
-    def __call__(self, t_start, t_end=None, dt=0):
-        # Same structure as deference: [start: end: step]
-        # However 'start' is mandatory
-        index_start = _index_from_time(t_start)
-        if t_end is None and not dt:
-            return self.vals[index]
-        index_end = self.num_val if t_end is None else _index_from_time(t_end)
-        step = np.round(dt/self.dt, 5) if dt else 1
-        return self.vals[np.rint(index_start):np.rint(index_end):np.rint(step)]
-
-    def restart(self, t_start, t_end, dt):
-        if t_start not in self:
-            return (t_start, None)
-        index_start = _index_from_time(t_start)
-        index_end = _index_from_time(t_end)
-        step = np.round(dt / self.dt, 5)
-        if step != np.round(step):
-            return (t_start, self(t_start))
-        if index_end < self.num_val:
-            return (t_end, None)
-        last_position = ((self.num_val - 1 - t_start)//dt) * dt + t_sta
-        return (last_position, self.vals[last_position])
-
-    def __bool__(self):
-        return bool(self.vals)
 
 
 class _SolverCacheOneEvo:
@@ -241,10 +176,10 @@ class _SolverCacheOneEvo:
         self.interpolation = False
 
     def __setitem__(self, time_info, vals):
-        times = self._time2arr(time_info)
         if not isinstance(vals, (list, np.ndarray)):
             vals = [vals]
         vals = np.array(vals, dtype=object)
+        times = self._time2arr_set(time_info, len(vals))
         if self.times.size == 0:
             self.times = times
             self.vals = np.array(vals, dtype=object)
@@ -252,21 +187,28 @@ class _SolverCacheOneEvo:
             self.times = np.concatenate((self.times, times), axis=None)
             self.vals = np.concatenate((self.vals, vals), axis=None)
         if len(self.vals) != len(self.times):
+            print(len(self.vals), len(self.times))
+            print(self.start, self.stop, self.step, self.N)
             raise Exception("Error in caching")
 
         self._sort()
         self._remove_donblons()
-        self.spaceArgs = self._to_linspace(self.times)
+        self.N = len(self.times)
+        self.start, self.stop, self.step = self._to_slice(self.times)
 
     def __getitem__(self, time_info):
+        if self.N == 0:
+            return (np.array([], dtype=object),
+                    np.array([], dtype=float), time_info)
         if isinstance(time_info, (int, float)):
-            val,_,_ = self._get_random(times)
+            val,_,_ = self._get_random([time_info])
             if val.size == 1:
                 return val[0]
             else:
                 return None
-        times = self._time2arr(time_info)
-        start, stop, step, N = self._to_slice(times)
+        times = self._time2arr_get(time_info)
+        print(times)
+        start, stop, step = self._to_slice(times)
         if not self._is_sorted(times):
             return self._get_random(times)
         if not self.step or not step:
@@ -277,7 +219,6 @@ class _SolverCacheOneEvo:
 
         ratio = step / self.step
         start_idx = (start - self.start) / self.step
-        stop_idx = (self.stop - stop) / self.step
         ratio_isint = self._is_int(ratio)
         start_isint = self._is_int(start_idx)
 
@@ -285,10 +226,9 @@ class _SolverCacheOneEvo:
             ratio_int = int(np.round(ratio))
             start_int = int(np.round(start_idx))
             start_int = start_int if start_int >= 0 else 0
-            stop_int = int(np.round(stop_idx))
-            stop_int = start_int if start_int <= self.N else self.N
-            return (self.vals[start_int:stop_int:ratio],
-                    self.times[start_int:stop_int:ratio],
+            stop_int = start_int + ratio_int * (len(times))
+            return (self.vals[start_int:stop_int:ratio_int],
+                    self.times[start_int:stop_int:ratio_int],
                     times[np.logical_or(before, after)])
 
         if self.interpolation:
@@ -297,13 +237,15 @@ class _SolverCacheOneEvo:
         return np.array([], dtype=object), np.array([], dtype=float), times
 
     def missing(self, time_info):
-        times = self._time2arr(time_info)
+        if self.N == 0:
+            return time_info
+        times = self._time2arr_get(time_info)
         if not self._is_sorted(times):
             times = np.sort(times)
         outside = np.logical_or(times < self.start,
                                 times > self.stop)
         times_in = times[np.logical_not(outside)]
-        start, stop, N, step = self._to_slice(times_in)
+        start, stop, step = self._to_slice(times_in)
         if self.interpolation:
             return times[outside]
         if step and self.step:
@@ -343,8 +285,8 @@ class _SolverCacheOneEvo:
         ins = []
         misses = []
         for t in times:
-            idx = np.min(np.abs(self.times, t), where=True)
-            delta = self.times[idx]-t
+            idx = np.argmin(np.abs(self.times - t))
+            delta = self.times[idx] - t
             if np.abs(delta) <= 1e-8:
                 ins.append(self.times[idx])
                 vals.append(self.vals[idx])
@@ -362,22 +304,38 @@ class _SolverCacheOneEvo:
         times_after = times[after]
         times_in = times[np.logical_not(outside)]
         vals, times_ok, miss = self._get_random(times_in)
-        miss = np.concatenate([before, miss, after])
+        miss = np.concatenate([times[before], miss, times[after]])
         return vals, times_ok, miss
 
-    @staticmethod
-    def _time2arr(time_info):
+    def _time2arr(self, time_info):
         if isinstance(time_info, (int, float)):
             times = np.array([time_info])
-
         elif isinstance(time_info, (list, np.ndarray)):
             times = np.array(time_info)
-
-        elif isinstance(time_info, slice):
-            times = np.linspace(time_info.start,
-                                time_info.stop,
-                                time_info.step)
         return times
+
+    def _time2arr_get(self, time_info):
+        if not isinstance(time_info, slice):
+            times = self._time2arr(time_info)
+        else:
+            start = time_info.start if time_info.start is not None else self.start
+            stop = time_info.stop if time_info.stop is not None else self.stop
+            if time_info.step is not None:
+                stop = int((stop-start)/time_info.step)*time_info.step+start
+                times = np.linspace(start, stop, 1 + (stop - start) / (time_info.step))
+            else:
+                times = self.times[np.logical_and(self.times >= start, self.times <= stop)]
+        return times
+
+    def _time2arr_set(self, time_info, N):
+        if not isinstance(time_info, slice):
+            times = self._time2arr(time_info)
+        else:
+            start = time_info.start
+            stop = time_info.stop if time_info.stop is not None else start + time_info.step * (N-1)
+            times = np.linspace(start, stop, N)
+        return times
+
 
     @staticmethod
     def _to_slice(times):
@@ -392,7 +350,7 @@ class _SolverCacheOneEvo:
             step = (stop-start)/(N-1)
         else:
             step = 0
-        return start, stop, step, N
+        return start, stop, step
 
     @staticmethod
     def _is_sorted(arr):
@@ -401,7 +359,6 @@ class _SolverCacheOneEvo:
     @staticmethod
     def _is_int(number):
         return np.abs(np.round(number) - number) < 1e-12
-
 
 class _SolverCacheOneLevel:
     def __init__(self, parent, key, maker_func):
@@ -414,10 +371,9 @@ class _SolverCacheOneLevel:
         self.key = key
 
     def __setitem__(self, args, vals):
-        if len(args) == 1:
-            self.this_level[args] = vals
-        else:
-            key, *other_keys = args
+        if isinstance(args, tuple) and len(args) >=2:
+            key = args[0]
+            other_keys = args[1:]
             if key in self.keys:
                 idx = self.keys.index(key)
                 self.caches[idx][other_keys] = vals
@@ -426,15 +382,14 @@ class _SolverCacheOneLevel:
                 self.caches.append(_SolverCacheOneLevel(self, key,
                                                         self.child_maker_func))
                 self.caches[-1][other_keys] = vals
+        else:
+            args = args[0] if isinstance(args, tuple) else args
+            self.this_level[args] = vals
 
     def __getitem__(self, args):
-        if len(args) == 1:
-            missing = self.this_level.missing(args)
-            source, times, _ = self.parent[missing]
-            self.this_level[times] = self.maker_func(source, self.key)
-            return self.this_level[args]
-        else:
-            key, *other_keys = args
+        if isinstance(args, tuple) and len(args) >=2:
+            key = args[0]
+            other_keys = args[1:]
             if key in self.keys:
                 return self.caches[self.keys.index(key)][other_keys]
             else:
@@ -442,7 +397,13 @@ class _SolverCacheOneLevel:
                 self.caches.append(_SolverCacheOneLevel(self, key,
                                                         self.child_maker_func))
                 return self.caches[-1][other_keys]
-
+        else:
+            args = args[0] if isinstance(args, tuple) else args
+            missing = self.this_level.missing(args)
+            if missing.size != 0:
+                source, times, _ = self.parent[missing]
+                self.this_level[times] = self.maker_func(source, self.key)
+            return self.this_level[args]
 
 class _SolverCache:
     def __init__(self, t_start=0, dt=1):
@@ -452,31 +413,31 @@ class _SolverCache:
         self.t_start = t_start
         self.dt = dt
 
-    def _make_keys(self, args):
-        keys = [key for key in args.keys() if "=" not in key]
-        dynargs = [key for key in args.keys() if "=" in key]
-        for key in dynargs:
-            name, what = key.split("=")
-            keys.remove(name)
-            if what == "expect":
-                keys.add(key)
-        return tuple(sorted(keys))
-
-    def _hashable_args(self, args):
-        keys = self._make_keys(args)
+    def _hashable_args(self, args, dyn_args):
+        dyn_list = tuple(sorted([dyn[0] for dyn in dyn_args]))
+        # collapse? e_ops change?
+        keys = [key for key in args.keys() if key not in dyn_list]
+        keys = tuple(sorted(keys))
         args_tuple = tuple((args[key] for key in keys))
-        return (keys, args_tuple)
+        return (args_tuple, dyn_list)
 
-    def __contains__(self, item):
-        return self._hashable_args(item) in self.args_hash
+    def __setitem__(self, key, val):
+        args = key[0]
+        other_key = key[1:]
+        if args not in self.args_hash:
+            self.cached_data.append(self.new_cache(args))
+            self.args_hash[args] = self.num_args
+            self.num_args += 1
+        self.cached_data[self.args_hash[key]][other_key] = val
 
     def __getitem__(self, key):
-        key = self._hashable_args(key)
-        if key not in self.args_hash:
-            self.cached_data.append(_SolverCacheOneArgs())
-            self.args_hash[key] = self.num_args
+        args = key[0]
+        other_key = key[1:]
+        if args not in self.args_hash:
+            self.cached_data.append(self.new_cache(args))
+            self.args_hash[args] = self.num_args
             self.num_args += 1
-        return self.cached_data[self.args_hash[key]]
+        return self.cached_data[self.args_hash[key]][other_key]
 
     def add_prop(self, args, props, t_start=None, dt=None):
         t_start = t_start if t_start is not None else self.t_start
@@ -630,3 +591,92 @@ class _SolverCache:
             expects += new_expects
 
         return expects
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class _SolverCacheOneEvoOld:
+    def __init__(self, t_start, dt, vals):
+        self.t_start = t_start
+        self.dt = dt
+        self.vals = vals
+        self.dense = False
+        self.num_val = len(self.vals)
+
+    def _index_from_time(t):
+        return np.round((t-self.t_start)/self.dt, 5)
+
+    def __contains__(self, t):
+        index = _index_from_time(t)
+        if index < 0 or index >= self.num_val:
+            return False
+        if index != np.round(index):
+            return False
+        return True
+
+    def add(self, t_start, vals):
+        index = _index_from_time(t_start)
+        if index != np.round(index):
+            raise ValueError("Can't add new data")
+        if index == 0:
+            self.vals = vals
+            self.num_val = len(self.vals)
+        elif index = self.num_val:
+            self.vals.append(vals)
+            self.num_val = len(self.vals)
+        elif index > 0 and index < self.num_val:
+            self.vals = self.vals[:index] + vals
+            self.num_val = len(self.vals)
+        else:
+            raise ValueError("Can't add new data")
+
+    def has(self, t_start, t_end=None, dt=0):
+        if t_end is None:
+            return t_start in self
+        dt = np.round(dt/self.dt, 5) if dt else 1
+        return t_start in self and t_end in self and dt == np.round(dt)
+
+    def __call__(self, t_start, t_end=None, dt=0):
+        # Same structure as deference: [start: end: step]
+        # However 'start' is mandatory
+        index_start = _index_from_time(t_start)
+        if t_end is None and not dt:
+            return self.vals[index]
+        index_end = self.num_val if t_end is None else _index_from_time(t_end)
+        step = np.round(dt/self.dt, 5) if dt else 1
+        return self.vals[np.rint(index_start):np.rint(index_end):np.rint(step)]
+
+    def restart(self, t_start, t_end, dt):
+        if t_start not in self:
+            return (t_start, None)
+        index_start = _index_from_time(t_start)
+        index_end = _index_from_time(t_end)
+        step = np.round(dt / self.dt, 5)
+        if step != np.round(step):
+            return (t_start, self(t_start))
+        if index_end < self.num_val:
+            return (t_end, None)
+        last_position = ((self.num_val - 1 - t_start)//dt) * dt + t_sta
+        return (last_position, self.vals[last_position])
+
+    def __bool__(self):
+        return bool(self.vals)
