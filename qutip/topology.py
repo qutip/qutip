@@ -62,7 +62,7 @@ def berry_curvature(eigfs):
     nparam0 = eigfs.shape[0]
     nparam1 = eigfs.shape[1]
     nocc = eigfs.shape[2]
-    b_curv=np.zeros((nparam0-1, nparam1-1), dtype=float)
+    b_curv = np.zeros((nparam0-1, nparam1-1), dtype=float)
 
     for i in range(nparam0-1):
         for j in range(nparam1-1):
@@ -76,19 +76,19 @@ def berry_curvature(eigfs):
                 for l in range(nocc):
                     wf0 = eigfs[i, j, k, :]
                     wf1 = eigfs[i+1, j, l, :]
-                    innP0[k, l] = np.dot(wf0.conjugate(), wf1)                    
-                    
-                    wf1 = eigfs[i+1, j, k,:]
-                    wf2 = eigfs[i+1, j+1, l,:]
-                    innP1[k, l] = np.dot(wf1.conjugate(), wf2)                    
+                    innP0[k, l] = np.dot(wf0.conjugate(), wf1)
 
-                    wf2 = eigfs[i+1, j+1, k,:]
-                    wf3 = eigfs[i,j+1, l,:]
-                    innP2[k, l] = np.dot(wf2.conjugate(), wf3)                    
-                    
-                    wf3 = eigfs[i, j+1, k,:]
+                    wf1 = eigfs[i+1, j, k, :]
+                    wf2 = eigfs[i+1, j+1, l, :]
+                    innP1[k, l] = np.dot(wf1.conjugate(), wf2)
+
+                    wf2 = eigfs[i+1, j+1, k, :]
+                    wf3 = eigfs[i, j+1, l, :]
+                    innP2[k, l] = np.dot(wf2.conjugate(), wf3)
+
+                    wf3 = eigfs[i, j+1, k, :]
                     wf0 = eigfs[i, j, l, :]
-                    innP3[k, l] = np.dot(wf3.conjugate(), wf0)                    
+                    innP3[k, l] = np.dot(wf3.conjugate(), wf0)
 
             rect_prd = np.dot(rect_prd, innP0)
             rect_prd = np.dot(rect_prd, innP1)
@@ -97,16 +97,17 @@ def berry_curvature(eigfs):
 
             dett = np.linalg.det(rect_prd)
             curl_z = np.angle(dett)
-            b_curv[i,j] = curl_z
+            b_curv[i, j] = curl_z
 
     return b_curv
+
 
 def plot_berry_curvature(eigfs):
     """Plots the discretized Berry curvature on the two dimensional grid
     of parameters. The function works well for cases with no band mixing."""
     b_curv = berry_curvature(eigfs)
     fig, ax = plt.subplots()
-    ax.imshow(b_curv, origin="lower")    
+    ax.imshow(b_curv, origin="lower")
     ax.set_title("Berry curvature")
     ax.set_xlabel(r"$Parameter0$")
     ax.set_ylabel(r"$Parameter1$")
