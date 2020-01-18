@@ -34,7 +34,7 @@
 import numpy as np
 from numpy.testing import assert_equal, run_module_suite
 
-from qutip import (jmat, basis, destroy, create, displace, qeye, 
+from qutip import (jmat, basis, destroy, create, displace, qzero, qeye,
                     num, squeeze, charge, tunneling)
 
 
@@ -123,10 +123,23 @@ def test_create():
     assert_equal(np.allclose(matrix3, c3.full()), True)
 
 
+def test_qzero():
+    "Zero operator"
+    zero5 = qzero(5)
+    assert_equal(np.allclose(zero5.full(), np.zeros((5,5), dtype=complex)), True)
+
+
+def test_qzero_dims():
+    "Zero operator (array input)"
+    zero24 = qzero([2, 3, 4])
+    assert_equal(np.allclose(zero24.full(), np.zeros((24,24), dtype=complex)), True)
+    assert_equal(zero24.dims, [[2, 3, 4], [2, 3, 4]])
+
+
 def test_qeye():
     "Identity operator"
-    eye3 = qeye(5)
-    assert_equal(np.allclose(eye3.full(), np.eye(5, dtype=complex)), True)
+    eye5 = qeye(5)
+    assert_equal(np.allclose(eye5.full(), np.eye(5, dtype=complex)), True)
 
 
 def test_qeye_dims():
