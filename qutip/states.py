@@ -73,6 +73,7 @@ def _promote_to_zero_list(arg, length):
         return arg
     raise TypeError("Dimensions must be an integer or list of integers.")
 
+
 def basis(dimensions, n=None, offset=None):
     """Generates the vector representation of a Fock state.
 
@@ -85,8 +86,8 @@ def basis(dimensions, n=None, offset=None):
     n : int or list of ints, optional (default 0 for all dimensions)
         Integer corresponding to desired number state, defaults to 0 for all
         dimensions if omitted.  The shape must match ``dimensions``, e.g. if
-        ``dimensions`` is a list, then ``n`` must either be omitted or a list of
-        equal length.
+        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        of equal length.
 
     offset : int or list of ints, optional (default 0 for all dimensions)
         The lowest number state that is included in the finite number state
@@ -135,8 +136,8 @@ def basis(dimensions, n=None, offset=None):
     if not isinstance(dimensions, list):
         dimensions = [dimensions]
     n_dimensions = len(dimensions)
-    ns = [m - off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
-                                    _promote_to_zero_list(offset,n_dimensions))]
+    ns = [m-off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
+                                  _promote_to_zero_list(offset, n_dimensions))]
     if any((not isinstance(x, numbers.Integral)) or x < 0 for x in dimensions):
         raise ValueError("All dimensions must be >= 0.")
     if not all(0 <= n < dimension for n, dimension in zip(ns, dimensions)):
@@ -151,6 +152,7 @@ def basis(dimensions, n=None, offset=None):
     ptr = np.array([0]*(location+1) + [1]*(size-location), dtype=np.int32)
     return Qobj(fast_csr_matrix((data, ind, ptr), shape=(size, 1)),
                 dims=[dimensions, [1]*n_dimensions], isherm=False)
+
 
 def qutrit_basis():
     """Basis states for a three level system (qutrit)
@@ -315,8 +317,8 @@ def fock_dm(dimensions, n=None, offset=None):
     n : int or list of ints, optional (default 0 for all dimensions)
         Integer corresponding to desired number state, defaults to 0 for all
         dimensions if omitted.  The shape must match ``dimensions``, e.g. if
-        ``dimensions`` is a list, then ``n`` must either be omitted or a list of
-        equal length.
+        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        of equal length.
 
     offset : int or list of ints, optional (default 0 for all dimensions)
         The lowest number state that is included in the finite number state
@@ -357,8 +359,8 @@ def fock(dimensions, n=None, offset=None):
     n : int or list of ints, optional (default 0 for all dimensions)
         Integer corresponding to desired number state, defaults to 0 for all
         dimensions if omitted.  The shape must match ``dimensions``, e.g. if
-        ``dimensions`` is a list, then ``n`` must either be omitted or a list of
-        equal length.
+        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        of equal length.
 
     offset : int or list of ints, optional (default 0 for all dimensions)
         The lowest number state that is included in the finite number state
