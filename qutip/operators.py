@@ -440,7 +440,8 @@ def _implicit_tensor_dimensions(dimensions):
     size = 1
     for dimension in dimensions:
         if not isinstance(dimension, numbers.Integral):
-            raise TypeError("'dimensions' must be an integer or list of integers.")
+            message = "'dimensions' must be an integer or list of integers."
+            raise TypeError(message)
         if dimension < 0:
             raise ValueError("All dimensions must be integers >= 0")
         size *= dimension
@@ -493,13 +494,15 @@ def qeye(dimensions):
     Examples
     --------
     >>> qeye(3)
-    Quantum object: dims = [[3], [3]], shape = (3, 3), type = oper, isherm = True
+    Quantum object: dims = [[3], [3]], shape = (3, 3), type = oper, \
+isherm = True
     Qobj data =
     [[ 1.  0.  0.]
      [ 0.  1.  0.]
      [ 0.  0.  1.]]
     >>> qeye([2,2])
-    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = True
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, \
+isherm = True
     Qobj data =
     [[1. 0. 0. 0.]
      [0. 1. 0. 0.]
