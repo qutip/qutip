@@ -48,6 +48,7 @@ import scipy
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.fastsparse import fast_csr_matrix, fast_identity
+from qutip.dimensions import flatten, type_from_dims
 
 #
 # Spin operators
@@ -428,6 +429,15 @@ def _implicit_tensor_dimensions(dimensions):
     Total flattened size and operator dimensions for operator creation routines
     that automatically perform tensor products.
 
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        First dimension of an operator which can create an implicit tensor
+        product.  If the type is `int`, it is promoted first to `[dimensions]`.
+        From there, it should be one of the two-elements `dims` parameter of a
+        `qutip.Qobj` representing an `oper` or `super`, with possible tensor
+        products.
+
     Returns
     -------
     size : int
@@ -437,15 +447,14 @@ def _implicit_tensor_dimensions(dimensions):
     """
     if not isinstance(dimensions, list):
         dimensions = [dimensions]
-    size = 1
-    for dimension in dimensions:
-        if not isinstance(dimension, numbers.Integral):
-            message = "'dimensions' must be an integer or list of integers."
-            raise TypeError(message)
-        if dimension < 0:
-            raise ValueError("All dimensions must be integers >= 0")
-        size *= dimension
-    return size, [dimensions, dimensions.copy()]
+    flat = flatten(dimensions)
+    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
+        raise ValueError("All dimensions must be integers >= 0")
+    dimensions = [dimensions, dimensions]
+    if type_from_dims(dimensions) not in ['oper', 'super']:
+        raise TypeError("`dimensions` must be a valid single dimension of a "
+                        "'oper' or 'super' Qobj.")
+    return np.prod(flat), dimensions
 
 
 def qzero(dimensions):
@@ -454,10 +463,11 @@ def qzero(dimensions):
 
     Parameters
     ----------
-    dimensions : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     Returns
     -------
@@ -481,10 +491,11 @@ def qeye(dimensions):
 
     Parameters
     ----------
-    dimensions : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     Returns
     -------
@@ -520,10 +531,11 @@ def identity(dims):
 
     Parameters
     ----------
-    dims : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     Returns
     -------
