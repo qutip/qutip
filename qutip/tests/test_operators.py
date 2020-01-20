@@ -31,9 +31,12 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import numbers
 import numpy as np
 from numpy.testing import assert_equal, run_module_suite
+import pytest
 
+import qutip
 from qutip import (jmat, basis, destroy, create, displace, qzero, qeye,
                     num, squeeze, charge, tunneling)
 
@@ -123,30 +126,35 @@ def test_create():
     assert_equal(np.allclose(matrix3, c3.full()), True)
 
 
-def test_qzero():
-    "Zero operator"
-    zero5 = qzero(5)
-    assert_equal(np.allclose(zero5.full(), np.zeros((5,5), dtype=complex)), True)
+@pytest.mark.parametrize("to_test, expected", [
+        (qutip.qzero, lambda x: np.zeros((x, x), dtype=complex)),
+        (qutip.qeye, lambda x: np.eye(x, dtype=complex)),
+    ])
+def test_simple_operator_creation(to_test, expected):
+    dimension = 5
+    qobj = to_test(dimension)
+    assert np.allclose(qobj.full(), expected(dimension))
 
 
-def test_qzero_dims():
-    "Zero operator (array input)"
-    zero24 = qzero([2, 3, 4])
-    assert_equal(np.allclose(zero24.full(), np.zeros((24,24), dtype=complex)), True)
-    assert_equal(zero24.dims, [[2, 3, 4], [2, 3, 4]])
+@pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])
+@pytest.mark.parametrize("dimensions", [
+        2,
+        [2],
+        [2, 3, 4],
+    ])
+def test_implicit_tensor_creation(to_test, dimensions):
+    implicit = to_test(dimensions)
+    if isinstance(dimensions, numbers.Integral):
+        dimensions = [dimensions]
+    assert implicit.dims == [dimensions, dimensions]
 
 
-def test_qeye():
-    "Identity operator"
-    eye5 = qeye(5)
-    assert_equal(np.allclose(eye5.full(), np.eye(5, dtype=complex)), True)
-
-
-def test_qeye_dims():
-    "Identity operator (array input)"
-    eye24 = qeye([2, 3, 4])
-    assert_equal(np.allclose(eye24.full(), np.eye(24, dtype=complex)), True)
-    assert_equal(eye24.dims, [[2, 3, 4], [2, 3, 4]])
+@pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])
+def test_super_operator_creation(to_test):
+    size = 2
+    implicit = to_test([[size], [size]])
+    explicit = qutip.to_super(to_test(size))
+    assert implicit == explicit
 
 
 def test_num():
