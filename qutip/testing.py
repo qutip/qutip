@@ -47,7 +47,7 @@ def run(full=False):
         # Make sure the openmp version of the functions are tested.
         qset.num_cpus = 2
         qset.openmp_thresh = 100
-        
+
     test_options = ["--verbosity=1", "--disable-pytest-warnings", "--pyargs"]
     if not full:
         test_options += ['-m', 'not slow']
