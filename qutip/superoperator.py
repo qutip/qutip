@@ -269,14 +269,13 @@ def vector_to_operator(op):
     Create a matrix representation given a quantum operator in
     vector form.
     """
-    #TODO shouldn't this check if the vector is actually a vector?
     if isinstance(op, QobjEvo):
         return op.apply(vector_to_operator)
 
     q = Qobj()
     # e.g. op.dims = [ [[rows], [cols]], [1]]
     q.dims = op.dims[0]
-    shape = tuple([x[0] for x in q.dims])
+    shape = (np.prod(q.dims[0]), np.prod(q.dims[1]))
     q.data = sp_reshape(op.data.T, shape[::-1]).T
     return q
 
