@@ -81,9 +81,278 @@ def _islistof(obj, type_, default, errmsg):
     return obj, n
 
 
-
-
 class SESolver(Solver):
+    """Schrodinger Equation Solver
+
+    """
+    def __init__(self, H, args=None,
+                 tlist=None, psi0=None, e_ops=None,
+                 options=None, cache_level="state", progress_bar=True):
+        # TODO: split options
+        super().__init__(options, progress_bar)
+
+        self.H = H
+        self._args0 = args if args is not None else {}
+        self._tlist0 = tlist
+        self._psi0 = psi0
+        self._e_ops0 = e_ops
+
+        self._prepare_H()
+        self.prepare_cache(cache_level)
+        self._cache(self._cache_level)
+        self._prepare_solver()
+
+        self.normalize = True
+
+    def _prepare_H(self):
+        H_td = -1.0j * qobjevo_maker(H, args=self._args0, tlist=self._tlist0,
+                                     state=self._psi0, e_ops=self._e_ops0)
+        nthread = self.options.openmp_threads if self.options.use_openmp else 0
+        H_td.compile(omp=nthread, dense=options.use_dense_matrix)
+        self.LH = H_td
+        self.dims = H_td.dims
+        self.shape = H_td.shape
+        self.has_dyn_args = len(H_td.dynamics_args)
+
+    def _prepare_solver(self):
+        pass
+
+    def prepare_cache(self, cache_level):
+        if isinstance(cache_level, str):
+            cache_level = cache_level.casefold()
+
+        if cache_level in ["full", "Full", 4]:
+            # Cache safe up to propagators
+            self._cache_level = 4
+        elif cache_level in [3, True, "state", "states", "psi", "rho"]:
+            # Cache safe up to state
+            self._cache_level = 3
+        elif cache_level in [2, "state only"]:
+            # Cache only states
+            self._cache_level = 2
+        elif cache_level in [a, "expect"]:
+            # Cache safe up to propagators
+            self._cache_level = 1
+        elif cache_level in [0, False, None, "none"]:
+            # Cache safe up to propagators
+            self._cache_level = 0
+        else:
+            raise ValueError("cache_level must be one of 'full', 'state', "
+                             "'state only', 'expect', 'none'")
+
+    def optimization(self, **optimizations):
+        raise NotImplementedError
+
+
+    def propagator(self, args, tlist):
+        (_, args, tlist), (_, num_args, nt) = \
+            self._check_input([], args_sets, tlist)
+
+        self._options.store_states = 1
+        computed_state = [qeye(self._size)]
+        values = list(product(computed_state, args_sets))
+
+        normalize_func = normalize_inplace
+        if not self._options.normalize_output:
+            normalize_func = False
+
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+        if len(values) == 1:
+            map_func = serial_map
+        map_kwargs = {'progress_bar': progress_bar,
+                      'num_cpus': self.options.num_cpus}
+
+        results = map_func(self._one_run_oper, values,
+                           (normalize_func,), **map_kwargs)
+
+        prop = np.empty((num_args, nt), dtype=object)
+        for args_n, (states, _) in enumerate(results):
+            prop[args_n, :] = [Qobj(data=dense2D_to_fastcsr_fmode(state),
+                                   dims=computed_state[0].dims, fast="mc")
+                               for state in states]
+        if nt == 0: states_out.squeeze(axis=1)
+        if len(states_out.shape) == 1 and num_args == 0:
+            states_out = states_out[0]
+        elif num_args == 0:
+            states_out.squeeze(axis=0)
+        return prop
+
+    def state(self, tlist=None, psi0=None, args=None, sets=None):
+        if tlist is None and self._tlist0 is None:
+            raise TypeError(run expect a tlist kwargs )
+        elif tlist is None:
+            tlist = self._tlist0
+        if e_ops is None:
+            e_ops = self._e_ops0
+
+        if sets is not None:
+            return self._run_sets(sets, tlist, e_ops)
+
+        if psi0 is None:
+            psi0 = self._psi0
+        if args is None:
+            args = self._args0
+
+        if isinstance(psi0, list) or isinstance(args, list):
+            if not isinstance(psi0, list):
+                psi0 = [psi0]
+            if not isinstance(args, list):
+                args = [args]
+            res = self._run_batch(psi0, args, tlist, e_ops)
+        else:
+            res = self._run_single(psi0, args, tlist, e_ops)
+        return res
+
+    def expect(self, e_op=None, psi=None, args=None, tlist=None, sets=None):
+        (psi, args, tlist), (num_states, num_args, nt) = \
+             self._check_input(psis, args_sets, tlist)
+
+        if progress_bar is True:
+         progress_bar = TextProgressBar()
+        map_kwargs = {'progress_bar': progress_bar,
+                   'num_cpus': self.options.num_cpus}
+
+        if self._with_state:
+             state, expect = self._batch_run_ket(states, args_sets,
+                                                 map_func, map_kwargs, 0)
+        elif (num_states > vec_len):
+             state, expect = self._batch_run_prop_ket(states, args_sets,
+                                                      map_func, map_kwargs, 0)
+        elif num_states >= 2:
+             state, expect = self._batch_run_merged_ket(states, args_sets,
+                                                        map_func, map_kwargs, 0)
+        else:
+             state, expect = self._batch_run_ket(states, args_sets,
+                                                 map_func, map_kwargs, 0)
+
+        if nt == 0: expect.squeeze(axis=2)
+        if num_args == 0: expect.squeeze(axis=1)
+        if num_states == 0: expect.squeeze(axis=0)
+
+        return expect
+
+    def plot_expect(e_op=None, psi=None, args=None, tlist=None, sets=None,
+                    fig=None):
+        pass
+
+
+    def _run_batch(self, states, args, tlist, e_ops):
+        num_states = len(states)
+        num_args = len(args_sets)
+        vec_len = self.shape[0]
+
+        if self.has_dyn_args or num_states == 1:
+            sets = []
+            for state in states:
+                for arg in args:
+                    sets.append((state, arg))
+            res = self._run_sets(sets, tlist, e_ops)
+        elif (num_states >= vec_len):
+            res = self._run_batch_prop(states, args, tlist, e_ops)
+        else:
+            res = self._run_batch_merged(states, args, tlist, e_ops)
+        return res
+
+    def _run_sets(self, sets, tlist, e_ops):
+        for psi0, args in sets:
+            res.append(self._run_single(tlist, psi0, e_ops, args))
+        # TODO: merge results
+        return res
+
+    def _run_single(self, state, args, tlist, e_ops):
+        if
+
+        results = map_func(self._one_run_ket, values, (normalize_func,),
+                           **map_kwargs)
+
+        for i, (state, expect) in enumerate(results):
+            args_n, state_n = divmod(i, num_states)
+            if self._e_ops:
+                expect_out[state_n, args_n] = expect.finish()
+            if store_states:
+                states_out[state_n, args_n, :, :] = state
+
+        return states_out, expect_out
+
+
+    def _one_run_ket_loop(self, run_data):
+        solver = self.get_solver(progress_bar=None)
+        state0, args = run_data
+        H_td = self.LH
+        H_td.arguments(args, psi, e_ops)
+        func = H_td._get_mul(state0)
+
+        if state0.isket:
+            e_ops = self._e_ops.copy()
+        else:
+            e_ops = ExpectOps([])
+        return solver(func, state0, tlist, e_ops)
+
+
+    def _one_run_oper(self, run_data, normalize_func):
+        opt = self._options
+        state0, args = run_data
+        func, ode_args = self.ss.makeoper(self.ss, state0, args, opt)
+
+        e_ops = self._e_ops.copy()
+        state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
+                                        e_ops, normalize_func, opt,
+                                        BaseProgressBar())
+        return state, e_ops
+
+
+    def _check_input(self, psi, args, tlist, level):
+        if isinstance(psi, Qobj):
+            psi = [psi]
+            num_states = 0
+        elif not psi:
+            psi = [self.psi]
+            num_states = 0
+        elif isinstance(psi, list):
+            if any((not isinstance(ele, Qobj) for ele in psi)):
+                raise TypeError("psi must be Qobj")
+            num_states = len(psi)
+        else:
+            raise TypeError("psi must be Qobj")
+
+        if isinstance(args, dict):
+            self._check_args(args)
+            args = [args]
+            num_args = 0
+        elif not args:
+            args = [self.args]
+            num_args = 0
+        elif isinstance(args, list):
+            for args_set in args:
+                if not isinstance(args_set, dict):
+                    raise TypeError("args must be dict")
+                self._check_args(args_set)
+
+
+            num_args = len(args)
+        else:
+            raise TypeError("args must be dict")
+
+        if isinstance(tlist, (int, float)):
+            tlist = [self._t0, tlist]
+            nt = 0
+        elif not tlist:
+            tlist = [self._tlist]
+            nt = 0
+        elif isinstance(args, list):
+            if any((not isinstance(ele, (int, float)) for ele in tlist)):
+                raise TypeError("tlist must be list of times")
+            nt = len(tlist)
+        else:
+            raise TypeError("tlist must be list of times")
+
+        return (psi, args, tlist), (num_states, num_args, nt)
+
+
+
+
+class SESolverV1(Solver):
     """Schrodinger Equation Solver
 
     """
@@ -758,6 +1027,10 @@ def _qobjevo_set_oper(HS, psi, args, opt):
 
     return _oper_evolution, ()
 
+
+
+"""
+To be deprecated:
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians.
@@ -975,3 +1248,4 @@ def _se_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
         output.final_state = Qobj(cdata, dims=dims)
 
     return output
+"""

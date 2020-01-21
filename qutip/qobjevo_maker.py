@@ -134,6 +134,7 @@ def _manual_check(func, args, state):
     return func
 
 
+# TODO: mutable default check
 def qobjevo_maker(Q_object=None, args={}, tlist=None, copy=True,
                   state=None, e_ops=[]):
     """Create a QobjEvo or QobjEvoFunc from a valid definition.

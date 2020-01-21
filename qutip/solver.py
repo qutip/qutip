@@ -62,20 +62,24 @@ class SolverSystem():
 
 
 class Solver:
-    def __init__(self):
+    def __init__(self, options, progress_bar):
+        if options is None:
+            options = Options()
+        self.options = options
+
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+
         self._tlist = []
         self._options = Options()
         self._e_ops = ExpectOps([])
-        self._state_out_Qobj = None
-        self._state_out = None
-        self.state0 = None
+
         self.dims = None
+        self.shape = None
 
         self._args = args
-        self._args_n = 0
-        self._args_list = [args.copy()]
-
-        self._cache = SolverCache()
+        self._cache = None
+        self._optimization = {"period":0}
 
     @property
     def tlist(self):
@@ -366,7 +370,8 @@ class Options():
                  rhs_with_state=False, store_final_state=False,
                  store_states=False, steady_state_average=False,
                  seeds=None,
-                 normalize_output=True, use_openmp=None, openmp_threads=None):
+                 normalize_output=True, use_openmp=None, openmp_threads=None,
+                 use_dense_matrix=False):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -430,6 +435,8 @@ class Options():
         self.normalize_output = normalize_output
         # Use OPENMP for sparse matrix vector multiplication
         self.use_openmp = use_openmp
+        # Use OPENMP for sparse matrix vector multiplication
+        self.use_dense_matrix = use_dense_matrix
 
     def __str__(self):
         if self.seeds is None:

@@ -790,6 +790,14 @@ class QobjEvo:
             list_qobj.append([op.qobj, op.coeff])
         return list_qobj
 
+    @property
+    def dims:
+        return self.cte.dims
+
+    @property
+    def shape:
+        return self.cte.shape
+
     # Math function
     def __add__(self, other):
         res = self.copy()

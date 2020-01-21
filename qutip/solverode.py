@@ -161,10 +161,7 @@ class OdeScipyIVP(OdeSolver):
 
 
 
-
-
-
-
+# TODO: get last (state, time) and closest before:
 class _SolverCacheOneEvo:
     def __init__(self):
         self.times = np.array([], dtype=np.double)
@@ -207,7 +204,6 @@ class _SolverCacheOneEvo:
             else:
                 return None
         times = self._time2arr_get(time_info)
-        print(times)
         start, stop, step = self._to_slice(times)
         if not self._is_sorted(times):
             return self._get_random(times)
@@ -216,6 +212,7 @@ class _SolverCacheOneEvo:
 
         before = (times < self.start)
         after = (times > self.stop)
+        flag = [np.any(after), np.any(before)]
 
         ratio = step / self.step
         start_idx = (start - self.start) / self.step
@@ -223,18 +220,21 @@ class _SolverCacheOneEvo:
         start_isint = self._is_int(start_idx)
 
         if (ratio_isint and start_isint):
+            flag += [False]
             ratio_int = int(np.round(ratio))
             start_int = int(np.round(start_idx))
             start_int = start_int if start_int >= 0 else 0
             stop_int = start_int + ratio_int * (len(times))
             return (self.vals[start_int:stop_int:ratio_int],
                     self.times[start_int:stop_int:ratio_int],
-                    times[np.logical_or(before, after)])
+                    times[np.logical_or(before, after)], flag)
 
         if self.interpolation:
             raise NotImplementedError
 
-        return np.array([], dtype=object), np.array([], dtype=float), times
+        flag += [np.sum(before) + np.sum(after) != len(times)]
+        return (np.array([], dtype=object), np.array([], dtype=float),
+                times, flag)
 
     def missing(self, time_info):
         if self.N == 0:
@@ -284,6 +284,7 @@ class _SolverCacheOneEvo:
         vals = []
         ins = []
         misses = []
+        flags = [False, False, False]
         for t in times:
             idx = np.argmin(np.abs(self.times - t))
             delta = self.times[idx] - t
@@ -293,19 +294,28 @@ class _SolverCacheOneEvo:
             elif self.interpolation and t > self.start and t < self.stop:
                 raise NotImplementedError
             else:
+                if t < self.start:
+                    flags[0] = True
+                elif t > self.stop:
+                    flags[1] = True
+                else:
+                    flags[2] = True
                 misses.append(t)
-        return np.array(vals, dtype=object), np.array(ins), np.array(misses)
+        return (np.array(vals, dtype=object), np.array(ins),
+                np.array(misses), flags)
 
     def _get_variable(self, times):
         before = times < self.start
         after = times > self.stop
+        flag = [np.any(after), np.any(before)]
         outside = np.logical_or(before, after)
         times_before = times[before]
         times_after = times[after]
         times_in = times[np.logical_not(outside)]
-        vals, times_ok, miss = self._get_random(times_in)
+        vals, times_ok, miss, rflag = self._get_random(times_in)
         miss = np.concatenate([times[before], miss, times[after]])
-        return vals, times_ok, miss
+        flag += [rflag[2]]
+        return vals, times_ok, miss, flag
 
     def _time2arr(self, time_info):
         if isinstance(time_info, (int, float)):
@@ -360,6 +370,7 @@ class _SolverCacheOneEvo:
     def _is_int(number):
         return np.abs(np.round(number) - number) < 1e-12
 
+
 class _SolverCacheOneLevel:
     def __init__(self, parent, key, maker_func):
         self.this_level = _SolverCacheOneEvo()
@@ -401,19 +412,25 @@ class _SolverCacheOneLevel:
             args = args[0] if isinstance(args, tuple) else args
             missing = self.this_level.missing(args)
             if missing.size != 0:
-                source, times, _ = self.parent[missing]
-                self.this_level[times] = self.maker_func(source, self.key)
+                source, times, _, _ = self.parent[missing]
+                self.this_level[times] = self.maker_func(source,
+                                                         times, self.key)
             return self.this_level[args]
 
+
 class _SolverCache:
-    def __init__(self, t_start=0, dt=1):
+    def __init__(self):
         self.num_args = 0
         self.args_hash = {}
         self.cached_data = []
         self.t_start = t_start
-        self.dt = dt
 
-    def _hashable_args(self, args, dyn_args):
+    def _new_cache(self, args):
+        funcs = [None, _prop2state, _expect]
+        return _SolverCacheOneLevel(dummy_parent, args, funcs)
+
+    def _hashable_args(self, args):
+        args, dyn_args = args[0], args[1]
         dyn_list = tuple(sorted([dyn[0] for dyn in dyn_args]))
         # collapse? e_ops change?
         keys = [key for key in args.keys() if key not in dyn_list]
@@ -422,16 +439,16 @@ class _SolverCache:
         return (args_tuple, dyn_list)
 
     def __setitem__(self, key, val):
-        args = key[0]
+        args = self._hashable_args(key[0])
         other_key = key[1:]
         if args not in self.args_hash:
-            self.cached_data.append(self.new_cache(args))
+            self.cached_data.append(self._new_cache(args))
             self.args_hash[args] = self.num_args
             self.num_args += 1
         self.cached_data[self.args_hash[key]][other_key] = val
 
     def __getitem__(self, key):
-        args = key[0]
+        args = self._hashable_args(key[0])
         other_key = key[1:]
         if args not in self.args_hash:
             self.cached_data.append(self.new_cache(args))
@@ -439,244 +456,58 @@ class _SolverCache:
             self.num_args += 1
         return self.cached_data[self.args_hash[key]][other_key]
 
-    def add_prop(self, args, props, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t_start
-        dt = dt if dt is not None else self.dt
-        t_end = len(props) * dt + t_start
-        argsCache = self[args]
-        if argsCache.get_prop_evolution() is None:
-            argsCache.prop = _SolverCacheOneEvo(t_start, t_end, dt, props)
+    def add_prop(self, props, args, times):
+        self[(args, times)] = props
+
+    def get_prop(self, args, times):
+        return self[(args, times)]
+
+    def need_compute_prop(self, args, times):
+        return self[(args, times)][2:4]
+
+    def add_state(self, states, args, psi, times):
+        self[(args, psi, times)] = states
+
+    def get_state(self, args, psi, times):
+        return self[(args, psi, times)]
+
+    def need_compute_state(self, args, psi, times):
+        return self[(args, psi, times)][2:4]
+
+    def add_expect(self, values, args, psi, e_ops, times):
+        if isinstance(e_ops, list):
+            for e_op, val in zip(e_ops, values)
+                self[(args, psi, e_op, times)] = val
         else:
-            propCache = argsCache.get_prop_evolution()
-            propCache.add(t_start, t_end, dt, props)
+            self[(args, psi, e_ops, times)] = values
 
-    def need_compute_prop(self, args, t_end, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t_start
-        dt = dt if dt is not None else self.dt
-        argsCache = self[args]
-        if argsCache.get_prop_evolution() is None:
-            return t_start # Need to be computed from the beginning
+    def get_expect(self, args, psi, e_ops, times):
+        if isinstance(e_ops, list):
+            expects = [self[(args, psi, e_op, times)]
+                       for e_op, val in zip(e_ops, values)]
         else:
-            propCache = argsCache.get_prop_evolution()
-            return propCache.restart(t_start, t_end, dt)
+            expects = self[(args, psi, e_ops, times)]
+        return expects
 
-    def get_prop(self, args, t_end, t_start=None, dt=None):
-        if t_start is not None else self.t_start:
-            t_start = t_start
-            t_end = t_end + 1
-        dt = dt if dt is not None else self.dt
-        argsCache = self[args]
-        if argsCache.get_prop_evolution() is None:
-            return None
+    def need_compute_expect(self, args, psi, e_ops, times):
+        if isinstance(e_ops, list):
+            expects = [self[(args, psi, e_op, times)][2:4]
+                       for e_op, val in zip(e_ops, values)]
         else:
-            propCache = argsCache.get_prop_evolution()
-            return propCache(t_start, t_end, dt)
-
-    def add_state(self, args, psi, states, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t_start
-        dt = dt if dt is not None else self.dt
-        t_end = len(props) * dt + t_start
-        argsCache = self[args]
-        if argsCache.get_state_evolution(psi) is None:
-            argsCache.psi0s.append(psi)
-            argsCache.psis.append(_SolverCacheOneEvo(t_start, t_end,
-                                                     dt, states))
-        else:
-            stateCache = argsCache.get_state_evolution(psi)
-            stateCache.add(t_start, t_end, dt, states)
-
-    def _need_compute_state(self, args, psi, t_end, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t_start
-        dt = dt if dt is not None else self.dt
-        argsCache = self[args]
-        if argsCache.get_state_evolution(psi) is None:
-            as_state = t_start # Need to be computed from the beginning
-        else:
-            stateCache = argsCache.get_state_evolution(psi)
-            as_state = stateCache.restart(t_start, t_end, dt)
-        return as_state
-
-    def need_compute_state(self, args, psi, t_end, t_start=None, dt=None):
-        as_state = self._need_compute_prop(args, psi, t_end, t_start, dt)
-        as_prop = t_start
-        if as_state < t_end:
-            as_prop = self.need_compute_prop(args, t_end, t_start, dt)
-        return max(as_state, as_prop)
-
-    def get_state(self, args, psi, t_end, t_start=None, dt=None):
-        if t_start is not None else self.t_start:
-            t_start = t_start
-            t_end = t_end + 1
-        dt = dt if dt is not None else self.dt
-        argsCache = self[args]
-        as_state = self._need_compute_prop(args, psi, t_end, t_start, dt)
-
-        if argsCache.get_state_evolution(psi) is None:
-            states = []
-        else:
-            stateCache = argsCache.get_state_evolution(psi)
-            states = stateCache(t_start, as_state, dt)
-
-        if as_state < t_end:
-            propCache = argsCache.get_state_evolution(psi)
-            props = propCache(as_state+dt, t_end, dt)
-            new_states += [prop*psi for prop in props]
-            self.add_state(args, psi, new_states, t_end, as_state+dt, dt)
-            states += new_states
-
-        return states
-
-    def add_expect(self, args, psi, e_ops, values, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t_start
-        dt = dt if dt is not None else self.dt
-        t_end = len(props) * dt + t_start
-        argsCache = self[args]
-        if argsCache.get_expect_evolution(psi, e_ops) is None:
-            self.e_ops_val = [[]]
-            self.e_psis = []
-            self.e_ops = []
-            if psi not in self.e_psis:
-                self.e_psis.append(psi)
-                self.e_ops_val.append([None]*len(self.e_ops))
-            if e_ops not in self.e_ops:
-                self.e_ops.append(e_ops)
-                for one_psi in self.e_ops_val:
-                    one_psi.append(None)
-
-            i = self.e_psis.index(psi)
-            j = self.e_ops.index(psi)
-            self.e_ops_val[i][j]= _SolverCacheOneEvo(t_start, t_end,
-                                                     dt, values)
-        else:
-            expectCache = argsCache.get_expect_evolution(psi, e_ops)
-            expectCache.add(t_start, t_end, dt, states)
-
-    def _need_compute_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
-        t_start = t_start if t_start is not None else self.t_start
-        dt = dt if dt is not None else self.dt
-        argsCache = self[args]
-        if argsCache.get_expect_evolution(psi, e_ops) is None:
-            as_expect = t_start # Need to be computed from the beginning
-        else:
-            expectCache = argsCache.get_expect_evolution(psi, e_ops)
-            as_expect = expectCache.restart(t_start, t_end, dt)
-        return as_expect
-
-    def need_compute_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
-        as_expect = self._need_compute_expect(args, psi, e_ops, t_end, t_start, dt)
-        as_state = t_start
-        if as_expect < t_end:
-            as_state = self.need_compute_state(args, t_end, t_start, dt)
-        return max(as_state, as_expect)
-
-    def get_expect(self, args, psi, e_ops, t_end, t_start=None, dt=None):
-        if t_start is not None else self.t_start:
-            t_start = t_start
-            t_end = t_end + 1
-        dt = dt if dt is not None else self.dt
-        argsCache = self[args]
-        as_expect = self._need_compute_expect(args, psi, t_end, t_start, dt)
-
-        if argsCache.get_expect_evolution(psi, e_ops) is None:
-            expects = []
-        else:
-            expectCache = argsCache.get_expect_evolution(psi, e_ops)
-            expects = expectCache(t_start, as_state, dt)
-
-        if as_expect < t_end:
-            stateCache = argsCache.get_state_evolution(psi)
-            states = stateCache(as_state+dt, t_end, dt)
-            new_expects += [e_ops.expect(state) for state in states]
-            self.add_expect(args, psi, e_ops, new_expects, t_end, as_state+dt, dt)
-            expects += new_expects
-
+            expects = self[(args, psi, e_ops, times)][2:4]
         return expects
 
 
+class dummy_parent:
+    def __getitem__(self, args):
+        return (np.array([], dtype=object), np.array([]),
+                args, [True, False, True])
 
 
+def _prop2state(self, sources, times, key):
+    return np.array([prop * key for prop in sources], dtype=object)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class _SolverCacheOneEvoOld:
-    def __init__(self, t_start, dt, vals):
-        self.t_start = t_start
-        self.dt = dt
-        self.vals = vals
-        self.dense = False
-        self.num_val = len(self.vals)
-
-    def _index_from_time(t):
-        return np.round((t-self.t_start)/self.dt, 5)
-
-    def __contains__(self, t):
-        index = _index_from_time(t)
-        if index < 0 or index >= self.num_val:
-            return False
-        if index != np.round(index):
-            return False
-        return True
-
-    def add(self, t_start, vals):
-        index = _index_from_time(t_start)
-        if index != np.round(index):
-            raise ValueError("Can't add new data")
-        if index == 0:
-            self.vals = vals
-            self.num_val = len(self.vals)
-        elif index = self.num_val:
-            self.vals.append(vals)
-            self.num_val = len(self.vals)
-        elif index > 0 and index < self.num_val:
-            self.vals = self.vals[:index] + vals
-            self.num_val = len(self.vals)
-        else:
-            raise ValueError("Can't add new data")
-
-    def has(self, t_start, t_end=None, dt=0):
-        if t_end is None:
-            return t_start in self
-        dt = np.round(dt/self.dt, 5) if dt else 1
-        return t_start in self and t_end in self and dt == np.round(dt)
-
-    def __call__(self, t_start, t_end=None, dt=0):
-        # Same structure as deference: [start: end: step]
-        # However 'start' is mandatory
-        index_start = _index_from_time(t_start)
-        if t_end is None and not dt:
-            return self.vals[index]
-        index_end = self.num_val if t_end is None else _index_from_time(t_end)
-        step = np.round(dt/self.dt, 5) if dt else 1
-        return self.vals[np.rint(index_start):np.rint(index_end):np.rint(step)]
-
-    def restart(self, t_start, t_end, dt):
-        if t_start not in self:
-            return (t_start, None)
-        index_start = _index_from_time(t_start)
-        index_end = _index_from_time(t_end)
-        step = np.round(dt / self.dt, 5)
-        if step != np.round(step):
-            return (t_start, self(t_start))
-        if index_end < self.num_val:
-            return (t_end, None)
-        last_position = ((self.num_val - 1 - t_start)//dt) * dt + t_sta
-        return (last_position, self.vals[last_position])
-
-    def __bool__(self):
-        return bool(self.vals)
+def _expect(self, sources, times, key):
+    return np.array([key.expect(t, psi)
+                     for psi, t in zip(sources, times)], dtype=object)
