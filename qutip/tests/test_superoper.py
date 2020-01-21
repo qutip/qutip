@@ -39,7 +39,7 @@ import scipy
 from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
                    operator_to_vector, mat2vec, vec2mat, vec2mat_index,
                    mat2vec_index, tensor, sprepost, to_super, reshuffle,
-                   identity, destroy, create, qeye, QobjEvo)
+                   identity, destroy, create, qeye, QobjEvo, Qobj)
 from qutip.superoperator import liouvillian, liouvillian_ref, \
                                 lindblad_dissipator
 
@@ -62,6 +62,28 @@ class TestMatVec:
         rho2 = vector_to_operator(operator_to_vector(rho1))
 
         assert_((rho1 - rho2).norm() < 1e-8)
+
+    def testOperatorVectorTensor(self):
+        """
+        Superoperator: Operator - vector - operator conversion with a tensor product state.
+        """
+        Na = 3
+        Nb = 2
+        rhoa = rand_dm(Na)
+        rhob = rand_dm(Nb)
+        rho1 = tensor(rhoa, rhob)
+        rho2 = vector_to_operator(operator_to_vector(rho1))
+
+        assert_((rho1 - rho2).norm() < 1e-8)
+
+    def testOperatorVectorNotSquare(self):
+        """
+        Superoperator: Operator - vector - operator conversion for non-square matrix.
+        """
+        op1 = Qobj(np.random.rand(6).reshape((3, 2)))
+        op2 = vector_to_operator(operator_to_vector(op1))
+
+        assert_((op1 - op2).norm() < 1e-8)
 
     def testOperatorSpreAppl(self):
         """
