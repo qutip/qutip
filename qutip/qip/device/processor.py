@@ -157,7 +157,7 @@ class Processor(object):
             raise TypeError("The drift Hamiltonian must be a qutip.Qobj.")
         if not ham.isherm:
             raise ValueError("The drift Hamiltonian must be Hermitian.")
-        
+
         num_qubits = len(ham.dims[0])
         if targets is None:
             targets = list(range(num_qubits))
@@ -165,7 +165,7 @@ class Processor(object):
             targets = [targets]
         if cyclic_permutation:
             for i in range(self.N):
-                temp_targets = [(t + i)%self.N for t in targets]
+                temp_targets = [(t + i) % self.N for t in targets]
                 self.drift.add_ham(ham, temp_targets)
         else:
             self.drift.add_ham(ham, targets)
@@ -208,13 +208,13 @@ class Processor(object):
             targets = [targets]
         if cyclic_permutation:
             for i in range(self.N):
-                temp_targets = [(t + i)%self.N for t in targets]
+                temp_targets = [(t + i) % self.N for t in targets]
                 if label is not None:
                     temp_label = label + "_" + str(temp_targets)
                 temp_label = label
                 self.pulses.append(
-                    Pulse(ham, temp_targets, spline_kind=self.spline_kind, 
-                            label=temp_label))
+                    Pulse(ham, temp_targets, spline_kind=self.spline_kind,
+                          label=temp_label))
         else:
             self.pulses.append(
                 Pulse(ham, targets, spline_kind=self.spline_kind, label=label))
@@ -264,7 +264,7 @@ class Processor(object):
         # TODO add tests
         self._is_pulses_valid()
         if not self.pulses:
-            return np.array((0,0), dtype=float)
+            return np.array((0, 0), dtype=float)
         full_tlist = self.get_full_tlist()
         coeffs_list = []
         for pulse in self.pulses:
@@ -277,11 +277,11 @@ class Processor(object):
                 raise ValueError(
                     "get_full_coeffs only works for "
                     "NumPy array or bool coeff.")
-            if self.spline_kind=="step_func":
+            if self.spline_kind == "step_func":
                 arg = {"_step_func_coeff": True}
                 coeffs_list.append(
                     _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, arg))
-            elif self.spline_kind=="cubic":
+            elif self.spline_kind == "cubic":
                 coeffs_list.append(
                     _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, {}))
             else:
@@ -300,7 +300,7 @@ class Processor(object):
             The full time sequence for the ideal evolution.
         """
         all_tlists = [pulse.tlist
-                        for pulse in self.pulses if pulse.tlist is not None]
+                      for pulse in self.pulses if pulse.tlist is not None]
         if not all_tlists:
             return None
         return np.unique(np.sort(np.hstack(all_tlists)))
@@ -656,13 +656,14 @@ class Processor(object):
         if rho0 is None and states is None:
             raise ValueError("Qubit state not defined.")
         elif rho0 is None:
-            # just to keep the old prameters `states`, it is replaced by rho0
+            # just to keep the old parameters `states`, it is replaced by rho0
             rho0 = states
         if analytical:
             if kwargs or self.noise:
-                raise warnings.warn("Analytical matrices exponentiation"
-                                 "does not process noise or"
-                                 "any keyword arguments.")
+                raise warnings.warn(
+                    "Analytical matrices exponentiation"
+                    "does not process noise or"
+                    "any keyword arguments.")
             return self.run_analytically(rho0=rho0)
 
         # kwargs can not contain H or tlist

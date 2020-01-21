@@ -101,27 +101,35 @@ class TestNoise:
         mean = 0.
         std = 0.5
         pulses = [Pulse(sigmaz(), 0, tlist, coeff),
-                      Pulse(sigmax(), 0, tlist, coeff*2),
-                      Pulse(sigmay(), 0, tlist, coeff*3)]
+                  Pulse(sigmax(), 0, tlist, coeff*2),
+                  Pulse(sigmay(), 0, tlist, coeff*3)]
 
         # random noise with operators from proc_qobjevo
-        gaussnoise = RandomNoise(dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
+        gaussnoise = RandomNoise(
+            dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
         noisy_pulses = gaussnoise.get_noisy_dynamics(pulses=pulses)
         assert_allclose(noisy_pulses[2].qobj, sigmay())
         assert_allclose(noisy_pulses[1].coherent_noise[0].qobj, sigmax())
-        assert_allclose(len(noisy_pulses[0].coherent_noise[0].tlist), len(noisy_pulses[0].coherent_noise[0].coeff))
+        assert_allclose(
+            len(noisy_pulses[0].coherent_noise[0].tlist),
+            len(noisy_pulses[0].coherent_noise[0].coeff))
 
         # random noise with dt and other random number generator
         pulses = [Pulse(sigmaz(), 0, tlist, coeff),
-                      Pulse(sigmax(), 0, tlist, coeff*2),
-                      Pulse(sigmay(), 0, tlist, coeff*3)]
-        gaussnoise = RandomNoise(lam=0.1,
-                                dt=0.2, rand_gen=np.random.poisson)
+                  Pulse(sigmax(), 0, tlist, coeff*2),
+                  Pulse(sigmay(), 0, tlist, coeff*3)]
+        gaussnoise = RandomNoise(lam=0.1, dt=0.2, rand_gen=np.random.poisson)
         assert_(gaussnoise.rand_gen is np.random.poisson)
         noisy_pulses = gaussnoise.get_noisy_dynamics(pulses=pulses)
-        assert_allclose(noisy_pulses[0].coherent_noise[0].tlist, np.linspace(1, 6, int(5/0.2) + 1))
-        assert_allclose(noisy_pulses[1].coherent_noise[0].tlist, np.linspace(1, 6, int(5/0.2) + 1))
-        assert_allclose(noisy_pulses[2].coherent_noise[0].tlist, np.linspace(1, 6, int(5/0.2) + 1))
+        assert_allclose(
+            noisy_pulses[0].coherent_noise[0].tlist,
+            np.linspace(1, 6, int(5/0.2) + 1))
+        assert_allclose(
+            noisy_pulses[1].coherent_noise[0].tlist,
+            np.linspace(1, 6, int(5/0.2) + 1))
+        assert_allclose(
+            noisy_pulses[2].coherent_noise[0].tlist,
+            np.linspace(1, 6, int(5/0.2) + 1))
 
     def TestUserNoise(self):
         """

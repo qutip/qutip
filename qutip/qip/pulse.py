@@ -45,7 +45,7 @@ class _EvoElement():
         if self.qobj is None:
             qobj = identity(dims[0]) * 0.
             targets = 0
-        else: 
+        else:
             qobj = self.qobj
             targets = self.targets
         return expand_operator(qobj, len(dims), targets, dims)
@@ -70,7 +70,9 @@ class _EvoElement():
             elif spline_kind == "cubic":
                 args = {"_step_func_coeff": False}
             else:
-                args = {}  # The spline will follow other pulses or use the default value of QobjEvo
+                # The spline will follow other pulses or
+                # use the default value of QobjEvo
+                args = {}
             qu = QobjEvo([mat, self.coeff], tlist=self.tlist, args=args)
         return qu
 
@@ -78,7 +80,7 @@ class _EvoElement():
         """
         Get the `QobjEvo` representation of the evolution element.
         If both `tlist` and `coeff` are None, treated as zero matrix.
-        If `coeff=True`, treated as time-independent operator. 
+        If `coeff=True`, treated as time-independent operator.
 
         Parameters
         ----------
@@ -88,8 +90,8 @@ class _EvoElement():
 
             -"step_func":
             The coefficient will be treated as a step function.
-            E.g. ``tlist=[0,1,2]`` and ``coeff=[3,2]``, means that the coefficient
-            is 3 in t=[0,1) and 2 in t=[2,3). It requires
+            E.g. ``tlist=[0,1,2]`` and ``coeff=[3,2]``, means that the
+            coefficient is 3 in t=[0,1) and 2 in t=[2,3). It requires
             ``len(coeff)=len(tlist)-1`` or ``len(coeff)=len(tlist)``, but
             in the second case the last element has no effect.
 
@@ -99,7 +101,7 @@ class _EvoElement():
             Dimension of the system.
             If int, we assume it is the number of qubits in the system.
             If list, it is the dimension of each component system.
-        
+
         Returns
         -------
         qobjevo: :class:`qutip.QobjEvo`
@@ -108,7 +110,8 @@ class _EvoElement():
         try:
             return self._get_qobjevo_helper(spline_kind, dims=dims)
         except Exception as err:
-            print("The Evolution element went wrong was\n {}".format(str(self)))
+            print(
+                "The Evolution element went wrong was\n {}".format(str(self)))
             raise(err)
 
     def __str__(self):
@@ -132,14 +135,14 @@ class Pulse():
     targets: list
         The indices of the target qubits
         (or subquantum system of other dimensions).
-    tlist: array-like, optinal
+    tlist: array-like, optional
         A list of time at which the time-dependent coefficients are applied.
-        `tlist` does not have to be equidistant, but must have the same length 
+        `tlist` does not have to be equidistant, but must have the same length
         or one element shorter compared to `coeff`. See documentation for
         the parameter of `spline_kind`.
         If both `tlist` and `coeff` are None, no pulse.
-    coeff: array-like or bool, optinal
-        Time-dependent coefficients of the control pulse. 
+    coeff: array-like or bool, optional
+        Time-dependent coefficients of the control pulse.
         If an array, the length
         must be the same or one element longer compared to `tlist`.
         See documentation for the parameter of `spline_kind`.
@@ -178,7 +181,8 @@ class Pulse():
     label: str
         See parameter `label`.
     """
-    def __init__(self, qobj, targets, tlist=None, coeff=None, spline_kind=None, label=None):
+    def __init__(self, qobj, targets, tlist=None, coeff=None,
+                 spline_kind=None, label=None):
         self.spline_kind = spline_kind
         self.ideal_pulse = _EvoElement(qobj, targets, tlist, coeff)
         self.coherent_noise = []
@@ -254,7 +258,7 @@ class Pulse():
 
     def get_ideal_evo(self, dims):
         """
-        Get a `QobjEvo` represent of the ideal evoution.
+        Get a `QobjEvo` represent of the ideal evolution.
 
         Returns
         -------
@@ -275,9 +279,11 @@ class Pulse():
             A list of (time-dependent) lindbald operators.
         """
         ideal_qu = self.get_ideal_evo(dims)
-        noise_qu_list = [noise.get_qobjevo(self.spline_kind, dims) for noise in self.coherent_noise]
+        noise_qu_list = [noise.get_qobjevo(self.spline_kind, dims)
+                         for noise in self.coherent_noise]
         qu = _merge_qobjevo([ideal_qu] + noise_qu_list)
-        c_ops = [noise.get_qobjevo(self.spline_kind, dims) for noise in self.lindblad_noise]
+        c_ops = [noise.get_qobjevo(self.spline_kind, dims)
+                 for noise in self.lindblad_noise]
         full_tlist = self.get_full_tlist()
         qu = _merge_qobjevo([qu], full_tlist)
         for i, c_op in enumerate(c_ops):
@@ -296,7 +302,6 @@ class Pulse():
             return None
         full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
         return full_tlist
-
 
     def print_info(self):
         """
@@ -382,7 +387,8 @@ def _find_common_tlist(qobjevo_list):
     """
     Find the common `tlist` of a list of :class:`qutip.QobjEvo`.
     """
-    all_tlists = [qu.tlist for qu in qobjevo_list if isinstance(qu, QobjEvo) and qu.tlist is not None]
+    all_tlists = [qu.tlist for qu in qobjevo_list
+                  if isinstance(qu, QobjEvo) and qu.tlist is not None]
     if not all_tlists:
         return None
     full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
@@ -400,7 +406,7 @@ def _merge_qobjevo(qobjevo_list, full_tlist=None):
     # no qobjevo
     if not qobjevo_list:
         raise ValueError("qobjevo_list is empty.")
-    
+
     if full_tlist is None:
         full_tlist = _find_common_tlist(qobjevo_list)
     spline_types_num = set()
@@ -409,7 +415,7 @@ def _merge_qobjevo(qobjevo_list, full_tlist=None):
         if isinstance(qu, QobjEvo):
             try:
                 spline_types_num.add(qu.args["_step_func_coeff"])
-            except:
+            except Exception:
                 pass
             args.update(qu.args)
     if len(spline_types_num) > 1:
@@ -421,7 +427,8 @@ def _merge_qobjevo(qobjevo_list, full_tlist=None):
             qobjevo = qobjevo_list[i]
         for j, ele in enumerate(qobjevo.ops):
             if isinstance(ele.coeff, np.ndarray):
-                new_coeff = _fill_coeff(ele.coeff, qobjevo.tlist, full_tlist, args)
+                new_coeff = _fill_coeff(
+                    ele.coeff, qobjevo.tlist, full_tlist, args)
                 qobjevo_list[i].ops[j].coeff = new_coeff
         qobjevo_list[i].tlist = full_tlist
 
@@ -459,5 +466,6 @@ def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
     else:
         sp = CubicSpline(old_tlist, old_coeffs)
         new_coeff = sp(full_tlist)
-        new_coeff *= (full_tlist <= old_tlist[-1]) * (full_tlist >= old_tlist[0])
+        new_coeff *= (full_tlist <= old_tlist[-1])
+        new_coeff *= (full_tlist >= old_tlist[0])
     return new_coeff

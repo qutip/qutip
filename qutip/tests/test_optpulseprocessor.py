@@ -99,9 +99,9 @@ class TestOptPulseProcessor:
         num_tslots = 30
         evo_time = 10
         test = OptPulseProcessor(N)
-        test.add_drift_ham(H_d, [0,1,2])
+        test.add_drift_ham(H_d, [0, 1, 2])
         test.add_ctrl_ham(tensor([sigmax(), sigmax()]),
-                      cyclic_permutation=True)
+                          cyclic_permutation=True)
         # test periodically adding ctrls
         sx = sigmax()
         iden = identity(2)
@@ -140,7 +140,7 @@ class TestOptPulseProcessor:
         H_c = []
 
         test = OptPulseProcessor(N)
-        test.add_drift_ham(H_d, [0,1])
+        test.add_drift_ham(H_d, [0, 1])
         test.add_ctrl_ham(sigmax(), cyclic_permutation=True)
         test.add_ctrl_ham(sigmay(), cyclic_permutation=True)
         test.add_ctrl_ham(tensor([sigmay(), sigmay()]))

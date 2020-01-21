@@ -200,7 +200,7 @@ class OptPulseProcessor(Processor):
 
             full_drift_ham = self.drift.get_ideal_evo(self.dims).cte
             full_ctrls_hams = [pulse.get_ideal_qobj(self.dims) 
-                                for pulse in self.pulses]
+                               for pulse in self.pulses]
             result = cpo.optimize_pulse_unitary(
                 full_drift_ham, full_ctrls_hams, U_0, U_targ, **kwargs)
 
@@ -225,6 +225,7 @@ class OptPulseProcessor(Processor):
         tlist = np.hstack([[0.]] + time_record)
         for i in range(len(self.pulses)):
             self.pulses[i].tlist = tlist
-        self.coeffs = np.vstack([np.hstack(coeff_record)])
+        coeffs = np.vstack([np.hstack(coeff_record)])
+        self.coeffs = coeffs
 
-        return tlist, self.coeffs
+        return tlist, coeffs

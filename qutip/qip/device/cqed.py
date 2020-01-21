@@ -174,7 +174,7 @@ class DispersivecQED(ModelProcessor):
             self.pulses.append(
                 Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
         # interaction terms
-        a_full = tensor([destroy(self.num_levels)] + 
+        a_full = tensor([destroy(self.num_levels)] +
                         [identity(2) for n in range(N)])
         for n in range(N):
             sm = tensor([identity(self.num_levels)] +

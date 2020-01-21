@@ -42,7 +42,7 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
     ind_device_noise: bool
         If pulse independent noise such as relaxation are included.
         Default is False.
-    
+
     Returns
     -------
     noisy_pulses: list of :class:`qutip.qip.Pulse`
@@ -55,6 +55,7 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
         noisy_pulses += process_device_noise(noise_list, dims, t1, t2)
     return noisy_pulses
 
+
 def process_device_noise(noise_list, dims, t1=None, t2=None):
     """
     Apply pulse independent noise to the input list of pulses.
@@ -64,7 +65,7 @@ def process_device_noise(noise_list, dims, t1=None, t2=None):
 
     Parameters
     ----------
-    enoise_list: list of :class:`qutip.qip.noise`
+    noise_list: list of :class:`qutip.qip.noise`
         The list of noise object.
     dims: int or list
         Dimension of the system.
@@ -88,9 +89,10 @@ def process_device_noise(noise_list, dims, t1=None, t2=None):
 
     for noise in noise_list:
         if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
-            device_noise += [noise.get_noisy_dynamics(dims)]   
+            device_noise += [noise.get_noisy_dynamics(dims)]
 
     return device_noise
+
 
 def process_pulse_noise(pulses, noise_list, dims):
     """
@@ -120,6 +122,7 @@ def process_pulse_noise(pulses, noise_list, dims):
         elif isinstance(noise, UserNoise):
             noisy_pulses = noise.get_noisy_dynamics(pulses, dims)
     return noisy_pulses
+
 
 class Noise(object):
     """
@@ -332,9 +335,6 @@ class RelaxationNoise(Noise):
             t2 = self.t2[qu_ind]
             if t1 is not None:
                 op = 1/np.sqrt(t1) * destroy(2)
-                # lindblad_noise.append(
-                #     expand_operator(
-                #         1/np.sqrt(t1) * destroy(2), N, qu_ind, dims=dims))
                 lindblad_noise.add_lindblad_noise(op, qu_ind, coeff=True)
             if t2 is not None:
                 # Keep the total dephasing ~ exp(-t/t2)
@@ -347,9 +347,6 @@ class RelaxationNoise(Noise):
                 else:
                     T2_eff = t2
                 op = 1/np.sqrt(2*T2_eff) * sigmaz()
-                # lindblad_noise.append(
-                #     expand_operator(
-                #         1/np.sqrt(2*T2_eff) * sigmaz(), N, qu_ind, dims=dims))
                 lindblad_noise.add_lindblad_noise(op, qu_ind, coeff=True)
         return lindblad_noise
 
@@ -365,7 +362,7 @@ class ControlAmpNoise(Noise):
         For available choices, see :class:`Qutip.QobjEvo`.
     tlist: array_like, optional
         A NumPy array specifies the time of each coefficient.
-    indices: list of int, optinoal
+    indices: list of int, optional
         The indices of target pulse in the list of pulses.
     Attributes
     ----------
@@ -430,7 +427,7 @@ class RandomNoise(ControlAmpNoise):
     rand_gen: numpy.random, optional
         A random generator in numpy.random, it has to take a ``size``
         parameter.
-    indices: list of int, optinoal
+    indices: list of int, optional
         The indices of target pulse in the list of pulses.
     kwargs:
         Key word arguments for the random number generator.
@@ -463,7 +460,7 @@ class RandomNoise(ControlAmpNoise):
 
     def get_noisy_dynamics(self, pulses):
         """
-        Return the noisy `Pulse` with random coherent noise. 
+        Return the noisy `Pulse` with random coherent noise.
 
         Parameters
         ----------

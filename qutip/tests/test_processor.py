@@ -166,7 +166,7 @@ class TestCircuitProcessor:
         """
         try:
             import matplotlib.pyplot as plt
-        except:
+        except Exception:
             return True
         # step_func
         tlist = np.linspace(0., 2*np.pi, 20)
@@ -193,7 +193,7 @@ class TestCircuitProcessor:
         """
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
-        processor = Processor(N=1, spline_kind = "step_func")
+        processor = Processor(N=1, spline_kind="step_func")
         processor.add_ctrl_ham(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = coeff
@@ -209,7 +209,7 @@ class TestCircuitProcessor:
 
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
-        processor = Processor(N=1, spline_kind = "cubic")
+        processor = Processor(N=1, spline_kind="cubic")
         processor.add_ctrl_ham(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = coeff
@@ -232,7 +232,8 @@ class TestCircuitProcessor:
         processor.pulses[0].coeff = coeff
 
         # without noise
-        unitary_qobjevo, _ = processor.get_qobjevo(args={"test": True}, noisy=False)
+        unitary_qobjevo, _ = processor.get_qobjevo(
+            args={"test": True}, noisy=False)
         assert_allclose(unitary_qobjevo.ops[0].qobj, sigmaz())
         assert_allclose(unitary_qobjevo.tlist, tlist)
         assert_allclose(unitary_qobjevo.ops[0].coeff, coeff[0])
@@ -244,9 +245,10 @@ class TestCircuitProcessor:
             c_ops=sigmax(), coeff=coeff, tlist=tlist)
         processor.add_noise(dec_noise)
         assert_equal(unitary_qobjevo.to_list(),
-                        processor.get_qobjevo(noisy=False)[0].to_list())
+                     processor.get_qobjevo(noisy=False)[0].to_list())
 
-        noisy_qobjevo, c_ops = processor.get_qobjevo(args={"test": True}, noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(
+            args={"test": True}, noisy=True)
         assert_(noisy_qobjevo.args["_step_func_coeff"],
                 msg="Spline type not correctly passed on")
         assert_(noisy_qobjevo.args["test"],
@@ -256,7 +258,7 @@ class TestCircuitProcessor:
         assert_equal(c_ops[0].tlist, tlist)
 
         # with amplitude noise
-        processor = Processor(N=1, spline_kind = "cubic")
+        processor = Processor(N=1, spline_kind="cubic")
         processor.add_ctrl_ham(sigmaz())
         tlist = np.linspace(1, 6, int(5/0.2))
         coeff = np.random.rand(len(tlist))
@@ -265,11 +267,12 @@ class TestCircuitProcessor:
 
         amp_noise = ControlAmpNoise(coeff=coeff, tlist=tlist)
         processor.add_noise(amp_noise)
-        noisy_qobjevo, c_ops = processor.get_qobjevo(args={"test": True}, noisy=True)
+        noisy_qobjevo, c_ops = processor.get_qobjevo(
+            args={"test": True}, noisy=True)
         assert_(not noisy_qobjevo.args["_step_func_coeff"],
                 msg="Spline type not correctly passed on")
         assert_(noisy_qobjevo.args["test"],
-            msg="Arguments not correctly passed on")
+                msg="Arguments not correctly passed on")
         assert_equal(len(noisy_qobjevo.ops), 2)
         assert_equal(sigmaz(), noisy_qobjevo.ops[0].qobj)
         assert_allclose(coeff, noisy_qobjevo.ops[0].coeff, rtol=1.e-10)
@@ -305,7 +308,6 @@ class TestCircuitProcessor:
         proc.add_noise(white_noise)
         result = proc.run_state(rho0=rho0)
 
-
     def TestMultiLevelSystem(self):
         """
         Test for processor with multi-level system
@@ -316,7 +318,6 @@ class TestCircuitProcessor:
         proc.pulses[0].coeff = np.array([1, 2])
         proc.pulses[0].tlist = np.array([0., 1., 2])
         proc.run_state(rho0=tensor([basis(2, 0), basis(3, 1)]))
-
 
     def TestDrift(self):
         """

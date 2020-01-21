@@ -50,7 +50,8 @@ def TestBasicPulse():
 
     # Basic tests
     pulse1 = Pulse(ham, 1, tlist, coeff)
-    assert_allclose(pulse1.get_ideal_evo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
+    assert_allclose(
+        pulse1.get_ideal_evo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
     pulse1.tlist = 2 * tlist
     assert_allclose(pulse1.tlist, 2 * tlist)
     pulse1.tlist = tlist
@@ -62,7 +63,7 @@ def TestBasicPulse():
     pulse1.qobj = ham
     pulse1.targets = 3
     assert_allclose(pulse1.targets, 3)
-    pulse1.targets =  1
+    pulse1.targets = 1
     assert_allclose(pulse1.get_ideal_qobj(2), tensor(identity(2), sigmaz()))
 
 
@@ -76,11 +77,12 @@ def TestCoherentNoise():
     pulse1 = Pulse(ham, 1, tlist, coeff)
     # Add coherent noise with the same tlist
     pulse1.add_coherent_noise(sigmay(), 0, tlist, coeff)
-    assert_allclose(pulse1.get_ideal_evo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
+    assert_allclose(
+        pulse1.get_ideal_evo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
     assert_(len(pulse1.coherent_noise) == 1)
     noise_qu, c_ops = pulse1.get_full_evo(2)
     assert_allclose(c_ops, [])
-    assert_allclose(noise_qu.tlist, np.array([0. , 1. , 2., 3. ]))
+    assert_allclose(noise_qu.tlist, np.array([0., 1., 2., 3.]))
     qobj_list = [ele.qobj for ele in noise_qu.ops]
     assert_(tensor(identity(2), sigmaz()) in qobj_list)
     assert_(tensor(sigmay(), identity(2)) in qobj_list)
@@ -104,26 +106,36 @@ def TestNoisyPulse():
     tlist_noise2 = np.array([0.5, 2, 3.])
     coeff_noise2 = np.array([0.1, 0.2, 0.3])
     pulse1.add_lindblad_noise(sigmax(), 1, coeff=True)
-    pulse1.add_lindblad_noise(sigmax(), 0, tlist=tlist_noise2, coeff=coeff_noise2)
+    pulse1.add_lindblad_noise(
+        sigmax(), 0, tlist=tlist_noise2, coeff=coeff_noise2)
 
-    assert_allclose(pulse1.get_ideal_evo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
+    assert_allclose(
+        pulse1.get_ideal_evo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
     noise_qu, c_ops = pulse1.get_full_evo(2)
-    assert_allclose(noise_qu.tlist, np.array([0., 0.5,  1. , 2. , 2.5, 3. ]))
+    assert_allclose(noise_qu.tlist, np.array([0., 0.5,  1., 2., 2.5, 3.]))
     for ele in noise_qu.ops:
         if ele.qobj == tensor(identity(2), sigmaz()):
-            assert_allclose(ele.coeff, np.array([0.1, 0.1, 0.2, 0.3, 0.3, 0.4]))
+            assert_allclose(
+                ele.coeff, np.array([0.1, 0.1, 0.2, 0.3, 0.3, 0.4]))
         elif ele.qobj == tensor(sigmay(), identity(2)):
-            assert_allclose(ele.coeff, np.array([0., 0., 0.5, 0.5, 0.1, 0.5]))
+            assert_allclose(
+                ele.coeff, np.array([0., 0., 0.5, 0.5, 0.1, 0.5]))
     for c_op in c_ops:
-        if len(c_op.ops)==0:
+        if len(c_op.ops) == 0:
             assert_allclose(c_ops[0].cte, tensor(identity(2), sigmax()))
         else:
-            assert_allclose(c_ops[1].ops[0].qobj, tensor(sigmax(), identity(2)))
-            assert_allclose(c_ops[1].tlist, np.array([0. , 0.5, 1. , 2. , 2.5, 3. ]))
-            assert_allclose(c_ops[1].ops[0].coeff, np.array([0. , 0.1, 0.1, 0.2, 0.2, 0.3]))
+            assert_allclose(
+                c_ops[1].ops[0].qobj, tensor(sigmax(), identity(2)))
+            assert_allclose(
+                c_ops[1].tlist, np.array([0., 0.5, 1., 2., 2.5, 3.]))
+            assert_allclose(
+                c_ops[1].ops[0].coeff, np.array([0., 0.1, 0.1, 0.2, 0.2, 0.3]))
 
 
 def TestPulseConstructor():
+    """
+    Test for creating empty Pulse, Pulse with constant coefficients etc.
+    """
     coeff = np.array([0.1, 0.2, 0.3, 0.4])
     tlist = np.array([0., 1., 2., 3.])
     ham = sigmaz()
@@ -137,29 +149,31 @@ def TestPulseConstructor():
     pulse4 = Pulse(None, None)  # Dummy empty ham
     assert_allclose(pulse4.get_ideal_evo(2).cte.norm(), 0.)
 
-
-
     tlist_noise = np.array([1., 2.5, 3.])
     coeff_noise = np.array([0.5, 0.1, 0.5])
     tlist_noise2 = np.array([0.5, 2, 3.])
     coeff_noise2 = np.array([0.1, 0.2, 0.3])
     # Pulse with different dims
-    random_qobj = Qobj(np.random.random((3,3)))
+    random_qobj = Qobj(np.random.random((3, 3)))
     pulse5 = Pulse(sigmaz(), 1, tlist, True)
     pulse5.add_coherent_noise(sigmay(), 1, tlist_noise, coeff_noise)
-    pulse5.add_lindblad_noise(random_qobj, 0, tlist=tlist_noise2, coeff=coeff_noise2)
-    qu, c_ops = pulse5.get_full_evo(dims=[3,2])
+    pulse5.add_lindblad_noise(
+        random_qobj, 0, tlist=tlist_noise2, coeff=coeff_noise2)
+    qu, c_ops = pulse5.get_full_evo(dims=[3, 2])
     assert_allclose(qu.cte, tensor([identity(3), sigmaz()]))
     assert_allclose(qu.ops[0].qobj, tensor([identity(3), sigmay()]))
     assert_allclose(c_ops[0].ops[0].qobj, tensor([random_qobj, identity(2)]))
 
 
 def TestDrift():
-    # drift 
+    """
+    Test for Drift
+    """
     drift = Drift()
     assert_allclose(drift.get_ideal_evo(2).cte.norm(), 0)
     drift.add_ham(sigmaz(), targets=1)
-    assert_allclose(drift.get_ideal_evo(dims=[3,2]).cte, tensor(identity(3), sigmaz()))
+    assert_allclose(
+        drift.get_ideal_evo(dims=[3, 2]).cte, tensor(identity(3), sigmaz()))
 
 
 if __name__ == "__main__":
