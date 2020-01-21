@@ -30,168 +30,139 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
 import numpy as np
-import scipy.linalg as la
-from numpy.testing import assert_equal, assert_, run_module_suite
-from qutip import *
-import qutip.settings as qset
-from qutip.superoperator import mat2vec
-from qutip.cy.brtools_checks import (_test_zheevr, _test_diag_liou_mult,
-                    _test_dense_to_eigbasis, _test_vec_to_eigbasis,
-                    _test_eigvec_to_fockbasis, _test_vector_roundtrip,
-                    _cop_super_mult, _test_br_term_mult)
-
-def test_br_zheevr():
-    "BR Tools : zheevr"
-    for kk in range(2,100):
-        H = rand_herm(kk, 1/kk)
-        H2 =H.full('F')
-        eigvals = np.zeros(kk,dtype=float)
-        Z = _test_zheevr(H2, eigvals)
-        ans_vals, ans_vecs = la.eigh(H.full())
-        assert_(np.allclose(ans_vals,eigvals))
-        assert_(np.allclose(Z,ans_vecs))
+import scipy.linalg
+import pytest
+import qutip
+from qutip.cy.brtools_checks import (
+    _test_zheevr, _test_diag_liou_mult, _test_dense_to_eigbasis,
+    _test_vec_to_eigbasis, _test_eigvec_to_fockbasis, _test_vector_roundtrip,
+    _cop_super_mult, _test_br_term_mult
+)
 
 
-def test_br_dense_to_eigbasis():
+def test_zheevr():
+    """
+    zheevr: store eigenvalues in the passed array, and return the eigenvectors
+    of a complex Hermitian matrix.
+    """
+    for dimension in range(2, 100):
+        H = qutip.rand_herm(dimension, 1/dimension)
+        our_evals = np.zeros(dimension, dtype=np.float64)
+        our_evecs = _test_zheevr(H.full('F'), our_evals)
+        scipy_evals, scipy_evecs = scipy.linalg.eigh(H.full())
+        assert np.allclose(scipy_evals, our_evals)
+        assert np.allclose(scipy_evecs, our_evecs)
+
+
+@pytest.mark.parametrize("operator", [
+        pytest.param(lambda n: qutip.rand_herm(n, 0.5), id='random Hermitian'),
+        pytest.param(qutip.destroy, id='annihilation'),
+    ])
+def test_dense_operator_to_eigbasis(operator):
     "BR Tools : dense operator to eigenbasis"
-    N = 10
-    for kk in range(50):
-        H = rand_herm(N,0.5)
-        a = rand_herm(N,0.5)
-        evals, evecs = H.eigenstates()
-        A = a.transform(evecs).full()
-        H2 = H.full('F')
-        eigvals = np.zeros(N,dtype=float)
-        Z = _test_zheevr(H2, eigvals)
-        a2 = a.full('F')
-        assert_(np.allclose(A,_test_dense_to_eigbasis(a2,Z,N,qset.atol)))
-        b = destroy(N)
-        B = b.transform(evecs).full()
-        b2 = b.full('F')
-        assert_(np.allclose(B,_test_dense_to_eigbasis(b2,Z,N,qset.atol)))
+    dimension = 10
+    operator = operator(dimension)
+    for _ in range(50):
+        H = qutip.rand_herm(dimension, 0.5)
+        basis = H.eigenstates()[1]
+        target = operator.transform(basis).full()
+        _eigenvalues = np.empty((dimension,), dtype=np.float64)
+        basis_zheevr = _test_zheevr(H.full('F'), _eigenvalues)
+        calculated = _test_dense_to_eigbasis(operator.full('F'), basis_zheevr,
+                                             dimension, qutip.settings.atol)
+        assert np.allclose(target, calculated)
 
 
 def test_vec_to_eigbasis():
     "BR Tools : vector to eigenbasis"
-    N = 10
-    for kk in range(50):
-        H = rand_herm(N,0.5)
-        h = H.full('F')
-        R = rand_dm(N,0.5)
-        r = mat2vec(R.full()).ravel()
-        ans = mat2vec(R.transform(H.eigenstates()[1]).full()).ravel()
-        out = _test_vec_to_eigbasis(h, r)
-        assert_(np.allclose(ans,out))
+    dimension = 10
+    for _ in range(50):
+        H = qutip.rand_herm(dimension, 0.5)
+        basis = H.eigenstates()[1]
+        R = qutip.rand_dm(dimension, 0.5)
+        target = qutip.mat2vec(R.transform(basis).full()).ravel()
+        flat_vector = qutip.mat2vec(R.full()).ravel()
+        calculated = _test_vec_to_eigbasis(H.full('F'), flat_vector)
+        assert np.allclose(target, calculated)
 
 
 def test_eigvec_to_fockbasis():
     "BR Tools : eigvector to fockbasis"
-    N = 10
-    for kk in range(50):
-        H = rand_herm(N,0.5)
-        h = H.full('F')
-        R = rand_dm(N,0.5)
-        r = mat2vec(R.full()).ravel()
-        eigvals = np.zeros(N,dtype=float)
-        Z = _test_zheevr(H.full('F'), eigvals)
-        eig_vec = mat2vec(R.transform(H.eigenstates()[1]).full()).ravel()
-        out = _test_eigvec_to_fockbasis(eig_vec, Z, N)
-        assert_(np.allclose(r,out))
+    dimension = 10
+    for _ in range(50):
+        H = qutip.rand_herm(dimension, 0.5)
+        basis = H.eigenstates()[1]
+        R = qutip.rand_dm(dimension, 0.5)
+        target = qutip.mat2vec(R.full()).ravel()
+        _eigenvalues = np.empty((dimension,), dtype=np.float64)
+        evecs_zheevr = _test_zheevr(H.full('F'), _eigenvalues)
+        flat_eigenvectors = qutip.mat2vec(R.transform(basis).full()).ravel()
+        calculated = _test_eigvec_to_fockbasis(flat_eigenvectors, evecs_zheevr,
+                                               dimension)
+        assert np.allclose(target, calculated)
 
 
 def test_vector_roundtrip():
     "BR Tools : vector roundtrip transform"
-    N = 10
-    for kk in range(50):
-        H = rand_herm(N,0.5)
-        h = H.full('F')
-        R = rand_dm(N,0.5)
-        r = mat2vec(R.full()).ravel()
-        out = _test_vector_roundtrip(h,r)
-        assert_(np.allclose(r,out))
+    dimension = 10
+    for _ in range(50):
+        H = qutip.rand_herm(dimension, 0.5).full('F')
+        vector = qutip.mat2vec(qutip.rand_dm(dimension, 0.5).full()).ravel()
+        assert np.allclose(vector, _test_vector_roundtrip(H, vector))
 
 
 def test_diag_liou_mult():
-    "BR Tools : Diagonal liouvillian mult"
-    for kk in range(2,100):
-        H = rand_dm(kk,0.5)
+    "BR Tools : Diagonal Liouvillian mult"
+    for dimension in range(2, 100):
+        H = qutip.rand_dm(dimension, 0.5)
         evals, evecs = H.eigenstates()
-        H_eig = H.transform(evecs)
-        L = liouvillian(H_eig)
-        y = np.ones(kk**2, dtype=complex)
-        out = np.zeros(kk**2, dtype=complex)
-        ans = L.data.dot(y)
-        _test_diag_liou_mult(evals,y,out,H.shape[0])
-        assert_(np.allclose(ans,out))
+        L = qutip.liouvillian(H.transform(evecs))
+        coefficients = np.ones((dimension*dimension,), dtype=np.complex128)
+        calculated = np.zeros_like(coefficients)
+        target = L.data.dot(coefficients)
+        _test_diag_liou_mult(evals, coefficients, calculated, dimension)
+        assert np.allclose(target, calculated)
 
 
 def test_cop_super_mult():
     "BR Tools : cop_super_mult"
-    N = 10
-    for kk in range(50):
-        H = rand_herm(N,0.5)
-        R = rand_dm(N,0.5)
-        a = destroy(N)
-        A = a.transform(H.eigenstates()[1])
-        vec = np.ones(N**2,dtype=complex)
-        L = liouvillian(None,[A])
-        ans = L.data.dot(vec)
-        eigvals = np.zeros(N,dtype=float)
-        Z = _test_zheevr(H.full('F'),eigvals)
-        out = np.zeros_like(vec)
-        _cop_super_mult(a.full('F'), Z, vec, 1, out, N, qset.atol)
-        assert_(np.allclose(ans,out))
+    dimension = 10
+    for _ in range(50):
+        H = qutip.rand_herm(dimension, 0.5)
+        basis = H.eigenstates()[1]
+        a = qutip.destroy(dimension)
+        L = qutip.liouvillian(None, [a.transform(basis)])
+        vec = np.ones((dimension*dimension,), dtype=np.complex128)
+        target = L.data.dot(vec)
+        calculated = np.zeros_like(target)
+        _eigenvalues = np.empty((dimension,), dtype=np.float64)
+        _cop_super_mult(a.full('F'), _test_zheevr(H.full('F'), _eigenvalues),
+                        vec, 1, calculated, dimension, qutip.settings.atol)
+        assert np.allclose(target, calculated)
 
 
-
-def test_br_term_mult():
+@pytest.mark.parametrize("secular",
+                         [True, False], ids=["secular", "non-secular"])
+def test_br_term_mult(secular):
     "BR Tools : br_term_mult"
-    #secular tests
-    for kk in range(10):
-        N = 10
-        H = rand_herm(N, 0.5)
-        Hf = H.full('f')
-        t = 1.0
-        a = rand_herm(N,0.5)
-        A = a.full('f')
-        vec = np.ones(N**2,dtype=complex)
-        out = np.zeros(N**2,dtype=complex)
-        use_secular = 1
-        atol = 1e-12
-        spec = lambda w: 1.0
-        H_diag = H.transform(H.eigenstates()[1])
-        L_diag = liouvillian(H_diag)
-        R = (bloch_redfield_tensor(H, [[a,spec]], c_ops=[], use_secular=use_secular)[0] - L_diag)
-        ans = R.data.dot(vec)
-        evals = np.zeros(N,dtype=float)
-        evecs = _test_zheevr(Hf, evals)
-        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, 0.1, atol)
-        assert_(np.allclose(ans,out))
-
-    #non-secular tests
-    for kk in range(10):
-        N = 10
-        H = rand_herm(N, 0.5)
-        Hf = H.full('f')
-        t = 1.0
-        a = rand_herm(N,0.5)
-        A = a.full('f')
-        vec = np.ones(N**2,dtype=complex)
-        out = np.zeros(N**2,dtype=complex)
-        use_secular = 0
-        atol = 1e-12
-        spec = lambda w: 1.0
-        H_diag = H.transform(H.eigenstates()[1])
-        L_diag = liouvillian(H_diag)
-        R = (bloch_redfield_tensor(H, [[a,spec]], c_ops=[], use_secular=use_secular)[0] - L_diag)
-        ans = R.data.dot(vec)
-        evals = np.zeros(N,dtype=float)
-        evecs = _test_zheevr(Hf, evals)
-        _test_br_term_mult(t, A, evecs, evals, vec, out, use_secular, 0.1, atol)
-        assert_(np.allclose(ans,out))
-
-
-
-if __name__ == "__main__":
-    run_module_suite()
+    dimension = 10
+    time = 1.0
+    atol = 1e-12
+    for _ in range(10):
+        H = qutip.rand_herm(dimension, 0.5)
+        basis = H.eigenstates()[1]
+        L_diagonal = qutip.liouvillian(H.transform(basis))
+        evals = np.empty((dimension,), dtype=np.float64)
+        evecs = _test_zheevr(H.full('F'), evals)
+        operator = qutip.rand_herm(dimension, 0.5)
+        a_ops = [[operator, lambda w: 1.0]]
+        vec = np.ones((dimension*dimension,), dtype=np.complex128)
+        br_tensor, _ = qutip.bloch_redfield_tensor(H, a_ops,
+                                                   use_secular=secular)
+        target = (br_tensor - L_diagonal).data.dot(vec)
+        calculated = np.zeros_like(target)
+        _test_br_term_mult(time, operator.full('F'), evecs, evals, vec,
+                           calculated, secular, 0.1, atol)
+        assert np.allclose(target, calculated)
