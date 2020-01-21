@@ -121,12 +121,12 @@ class Testcqed:
         qc.add_gate("RX", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[0])
         U_ideal = gate_sequence_product(qc.propagators())
 
-        rho0 = rand_ket(2**N)
-        rho0.dims = [[2]*N, [1]*N]
-        rho1 = gate_sequence_product([rho0] + qc.propagators())
+        init_state = rand_ket(2**N)
+        init_state.dims = [[2]*N, [1]*N]
+        rho1 = gate_sequence_product([init_state] + qc.propagators())
 
         p = DispersivecQED(N, correct_global_phase=True)
-        U_list = p.run_state(rho0=rho0, qc=qc, analytical=True)
+        U_list = p.run_state(init_state=init_state, qc=qc, analytical=True)
         result = gate_sequence_product(U_list)
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-2,
@@ -151,10 +151,10 @@ class Testcqed:
         # test numerical run_state
         qu0 = rand_ket(2**N)
         qu0.dims = [[2]*N, [1]*N]
-        rho0 = tensor(basis(10, 0), qu0)
+        init_state = tensor(basis(10, 0), qu0)
         qu1 = gate_sequence_product([qu0] + qc.propagators())
         result = test.run_state(
-            rho0=rho0, analytical=False,
+            init_state=init_state, analytical=False,
             options=Options(store_final_state=True, nsteps=50000)).final_state
         assert_allclose(
             fidelity(result, tensor(basis(10, 0), qu1)), 1., rtol=1e-2,

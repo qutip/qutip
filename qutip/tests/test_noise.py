@@ -140,7 +140,7 @@ class TestNoise:
         proc.add_noise(dr_noise)
         tlist = np.array([0, np.pi/2.])
         proc.add_pulse(Pulse(identity(2), 0, tlist, False))
-        result = proc.run_state(rho0=basis(2, 0))
+        result = proc.run_state(init_state=basis(2, 0))
         assert_allclose(
             fidelity(result.states[-1], basis(2, 1)), 1, rtol=1.0e-6)
 

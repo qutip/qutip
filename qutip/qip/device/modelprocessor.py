@@ -120,8 +120,8 @@ class ModelProcessor(Processor):
     def params(self, par):
         self.set_up_params(**par)
 
-    def run_state(self, rho0=None, analytical=False, qc=None, states=None,
-                  **kwargs):
+    def run_state(self, init_state=None, analytical=False, qc=None,
+                  states=None, **kwargs):
         """
         If `analytical` is False, use :func:`qutip.mesolve` to
         calculate the time of the state evolution
@@ -132,7 +132,7 @@ class ModelProcessor(Processor):
 
         Parameters
         ----------
-        rho0: Qobj
+        init_state: Qobj
             Initial density matrix or state vector (ket).
 
         analytical: boolean
@@ -143,7 +143,7 @@ class ModelProcessor(Processor):
             and then calculate the evolution.
 
         states: :class:`qutip.Qobj`, optional
-         Old API, same as rho0.
+         Old API, same as init_state.
 
         **kwargs
            Keyword arguments for the qutip solver.
@@ -160,7 +160,8 @@ class ModelProcessor(Processor):
         if qc is not None:
             self.load_circuit(qc)
         return super(ModelProcessor, self).run_state(
-            rho0=rho0, analytical=analytical, states=states, **kwargs)
+            init_state=init_state, analytical=analytical,
+            states=states, **kwargs)
 
     def get_ops_and_u(self):
         """

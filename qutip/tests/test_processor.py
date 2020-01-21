@@ -107,13 +107,13 @@ class TestCircuitProcessor:
         """
         N = 1
         proc = Processor(N=N)
-        rho0 = rand_ket(2)
+        init_state = rand_ket(2)
         tlist = [0., 1., 2.]
         proc.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = proc.run_state(
-            rho0, options=Options(store_final_state=True))
-        global_phase = rho0.data[0, 0]/result.final_state.data[0, 0]
-        assert_allclose(global_phase*result.final_state, rho0)
+            init_state, options=Options(store_final_state=True))
+        global_phase = init_state.data[0, 0]/result.final_state.data[0, 0]
+        assert_allclose(global_phase*result.final_state, init_state)
 
     def test_id_with_T1_T2(self):
         """
@@ -142,7 +142,7 @@ class TestCircuitProcessor:
         test = Processor(1, t2=t2)
         test.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = test.run_state(
-            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
+            init_state=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
             result.expect[0][-1], np.exp(-1./t2*end_time)*0.5+0.5,
             rtol=1e-5, err_msg="Error in t2 time simulation")
@@ -153,7 +153,7 @@ class TestCircuitProcessor:
         test = Processor(1, t1=t1, t2=t2)
         test.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = test.run_state(
-            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
+            init_state=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
             result.expect[0][-1], np.exp(-1./t2*end_time)*0.5+0.5,
             rtol=1e-5,
@@ -282,14 +282,14 @@ class TestCircuitProcessor:
         Test for Processor with noise
         """
         # setup and fidelity without noise
-        rho0 = qubit_states(2, [0, 0, 0, 0])
+        init_state = qubit_states(2, [0, 0, 0, 0])
         tlist = np.array([0., np.pi/2.])
         a = destroy(2)
         proc = Processor(N=2)
         proc.add_ctrl_ham(sigmax(), targets=1)
         proc.pulses[0].tlist = tlist
         proc.pulses[0].coeff = np.array([1])
-        result = proc.run_state(rho0=rho0)
+        result = proc.run_state(init_state=init_state)
         assert_allclose(
             fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
             1, rtol=1.e-7)
@@ -297,7 +297,7 @@ class TestCircuitProcessor:
         # decoherence noise
         dec_noise = DecoherenceNoise([0.25*a], targets=1)
         proc.add_noise(dec_noise)
-        result = proc.run_state(rho0=rho0)
+        result = proc.run_state(init_state=init_state)
         assert_allclose(
             fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
             0.981852, rtol=1.e-3)
@@ -306,7 +306,7 @@ class TestCircuitProcessor:
         proc.noise = []
         white_noise = RandomNoise(0.2, np.random.normal, loc=0.1, scale=0.1)
         proc.add_noise(white_noise)
-        result = proc.run_state(rho0=rho0)
+        result = proc.run_state(init_state=init_state)
 
     def TestMultiLevelSystem(self):
         """
@@ -317,7 +317,7 @@ class TestCircuitProcessor:
         proc.add_ctrl_ham(tensor(sigmaz(), rand_dm(3, density=1.)))
         proc.pulses[0].coeff = np.array([1, 2])
         proc.pulses[0].tlist = np.array([0., 1., 2])
-        proc.run_state(rho0=tensor([basis(2, 0), basis(3, 1)]))
+        proc.run_state(init_state=tensor([basis(2, 0), basis(3, 1)]))
 
     def TestDrift(self):
         """

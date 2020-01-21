@@ -549,7 +549,7 @@ class Processor(object):
         else:
             return final_qu, []
 
-    def run_analytically(self, rho0=None, qc=None):
+    def run_analytically(self, init_state=None, qc=None):
         """
         Simulate the state evolution under the given `qutip.QubitCircuit`
         with matrice exponentiation. It will calculate the propagator
@@ -562,7 +562,7 @@ class Processor(object):
             Takes the quantum circuit to be implemented. If not given, use
             the quantum circuit saved in the processor by ``load_circuit``.
 
-        rho0: :class:`qutip.Qobj`, optional
+        init_state: :class:`qutip.Qobj`, optional
             The initial state of the qubits in the register.
 
         Returns
@@ -571,9 +571,9 @@ class Processor(object):
             An instance of the class
             :class:`qutip.Result` will be returned.
         """
-        # TODO change rho0 to init_state
-        if rho0 is not None:
-            U_list = [rho0]
+        # TODO change init_state to init_state
+        if init_state is not None:
+            U_list = [init_state]
         else:
             U_list = []
         tlist = self.get_full_tlist()
@@ -613,9 +613,9 @@ class Processor(object):
         """
         if qc:
             self.load_circuit(qc)
-        return self.run_analytically(qc=qc, rho0=None)
+        return self.run_analytically(qc=qc, init_state=None)
 
-    def run_state(self, rho0=None, analytical=False, states=None,
+    def run_state(self, init_state=None, analytical=False, states=None,
                   noisy=True, **kwargs):
         """
         If `analytical` is False, use :func:`qutip.mesolve` to
@@ -628,14 +628,14 @@ class Processor(object):
 
         Parameters
         ----------
-        rho0: Qobj
+        init_state: Qobj
             Initial density matrix or state vector (ket).
 
         analytical: bool
             If True, calculate the evolution with matrices exponentiation.
 
         states: :class:`qutip.Qobj`, optional
-            Old API, same as rho0.
+            Old API, same as init_state.
 
         **kwargs
             Keyword arguments for the qutip solver.
@@ -650,21 +650,23 @@ class Processor(object):
             is returned.
         """
         if states is not None:
-            warnings.warn("states will be deprecated and replaced by rho0"
-                          "to be consistent with the QuTiP solver.",
-                          DeprecationWarning)
-        if rho0 is None and states is None:
+            warnings.warn(
+                "states will be deprecated and replaced by init_state"
+                "to be consistent with the QuTiP solver.",
+                DeprecationWarning)
+        if init_state is None and states is None:
             raise ValueError("Qubit state not defined.")
-        elif rho0 is None:
-            # just to keep the old parameters `states`, it is replaced by rho0
-            rho0 = states
+        elif init_state is None:
+            # just to keep the old parameters `states`,
+            # it is replaced by init_state
+            init_state = states
         if analytical:
             if kwargs or self.noise:
                 raise warnings.warn(
                     "Analytical matrices exponentiation"
                     "does not process noise or"
                     "any keyword arguments.")
-            return self.run_analytically(rho0=rho0)
+            return self.run_analytically(init_state=init_state)
 
         # kwargs can not contain H or tlist
         if "H" in kwargs or "tlist" in kwargs:
@@ -689,7 +691,8 @@ class Processor(object):
             kwargs["c_ops"] = sys_c_ops
 
         evo_result = mesolve(
-            H=noisy_qobjevo, rho0=rho0, tlist=noisy_qobjevo.tlist, **kwargs)
+            H=noisy_qobjevo, rho0=init_state,
+            tlist=noisy_qobjevo.tlist, **kwargs)
         return evo_result
 
     def load_circuit(self, qc):
