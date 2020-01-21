@@ -55,6 +55,8 @@ class ModelProcessor(Processor):
     The processor can simulate the evolution under the given
     control pulses either numerically or analytically.
     It cannot be used alone, please refer to the sub-classes.
+    (Only additional attributes are documented here, others please
+    refer to the parent class :class:`qutip.qip.Processor`)
 
     Parameters
     ----------
@@ -75,49 +77,6 @@ class ModelProcessor(Processor):
 
     Attributes
     ----------
-    N: int
-        The number of component systems.
-
-    ctrls: list
-        A list of the control Hamiltonians driving the evolution.
-
-    tlist: array_like
-        A NumPy array specifies the time of each coefficient.
-
-    coeffs: array_like
-        A 2d NumPy array of the shape, the length is dependent on the
-        spline type
-
-    t1: list
-        Characterize the decoherence of amplitude damping for
-        each qubit.
-
-    t2: list
-        Characterize the decoherence of dephasing for
-        each qubit.
-
-    noise: :class:`qutip.qip.Noise`, optional
-        A list of noise objects. They will be processed when creating the
-        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
-
-    dims: list
-        The dimension of each component system.
-        Default is dim=[2,2,2,...,2]
-
-    spline_kind: str
-        Type of the coefficient interpolation.
-        Note that they have different requirement for the length of ``coeffs``.
-
-        -"step_func":
-        The coefficient will be treated as a step function.
-        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
-        is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
-        in the second case the last element has no effect.
-
-        -"cubic": Use cubic interpolation for the coefficient. It requires
-        ``coeffs.shape[1]=len(tlist)``
-
     params: dict
         A Python dictionary contains the name and the value of the parameters
         in the physical realization, such as laser frequency, detuning etc.

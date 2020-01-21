@@ -78,14 +78,14 @@ class TestOptPulseProcessor:
 
         # test add/remove ctrl
         test.add_ctrl_ham(sigmay())
-        test.remove_ctrl(0)
+        test.remove_pulse(0)
         assert_(
             len(test.pulses) == 1,
-            msg="Method of remove_ctrl could be wrong.")
-        assert_allclose(test.drift.drift_hams[0].op, H_d)
+            msg="Method of remove_pulse could be wrong.")
+        assert_allclose(test.drift.drift_hams[0].qobj, H_d)
         assert_(
             sigmay() in test.ctrls,
-            msg="Method of remove_ctrl could be wrong.")
+            msg="Method of remove_pulse could be wrong.")
 
     def test_multi_qubits(self):
         """
@@ -99,7 +99,7 @@ class TestOptPulseProcessor:
         num_tslots = 30
         evo_time = 10
         test = OptPulseProcessor(N)
-        test.add_drift_ham(H_d)
+        test.add_drift_ham(H_d, [0,1,2])
         test.add_ctrl_ham(tensor([sigmax(), sigmax()]),
                       cyclic_permutation=True)
         # test periodically adding ctrls
@@ -140,7 +140,7 @@ class TestOptPulseProcessor:
         H_c = []
 
         test = OptPulseProcessor(N)
-        test.add_drift_ham(H_d)
+        test.add_drift_ham(H_d, [0,1])
         test.add_ctrl_ham(sigmax(), cyclic_permutation=True)
         test.add_ctrl_ham(sigmay(), cyclic_permutation=True)
         test.add_ctrl_ham(tensor([sigmay(), sigmay()]))

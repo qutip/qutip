@@ -47,12 +47,13 @@ from qutip.qip.noise import (
     DecoherenceNoise, RandomNoise, ControlAmpNoise)
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity
+from qutip.qip.pulse import Pulse
 
 
 class TestCircuitProcessor:
     def test_modify_ctrls(self):
         """
-        Test for modifying Hamiltonian, add_ctrl_ham, remove_ctrl
+        Test for modifying Hamiltonian, add_ctrl_ham, remove_pulse
         """
         N = 2
         proc = Processor(N=N)
@@ -65,9 +66,9 @@ class TestCircuitProcessor:
         assert_allclose(tensor([identity(2), sigmax()]), proc.ctrls[2])
         proc.add_ctrl_ham(sigmay(), targets=1)
         assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[3])
-        proc.remove_ctrl([0, 1, 2])
+        proc.remove_pulse([0, 1, 2])
         assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[0])
-        proc.remove_ctrl(0)
+        proc.remove_pulse(0)
         assert_allclose(len(proc.ctrls), 0)
 
     def test_save_read(self):
@@ -80,6 +81,7 @@ class TestCircuitProcessor:
         proc1.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
         proc2 = Processor(N=2)
         proc2.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
+        # TODO generalize to different tlist
         tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
         amp1 = np.arange(0, 5, 1)
         amp2 = np.arange(5, 0, -1)
@@ -91,13 +93,13 @@ class TestCircuitProcessor:
         proc.save_coeff("qutip_test_CircuitProcessor.txt")
         proc1.read_coeff("qutip_test_CircuitProcessor.txt")
         os.remove("qutip_test_CircuitProcessor.txt")
-        assert_allclose(proc1.coeffs, proc.coeffs)
-        assert_allclose(proc1.tlist, proc.tlist)
+        assert_allclose(proc1.get_full_coeffs(), proc.get_full_coeffs())
+        assert_allclose(proc1.get_full_tlist(), proc.get_full_tlist())
         proc.save_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
         proc2.read_coeff("qutip_test_CircuitProcessor.txt", inctime=False)
+        proc2.set_all_tlist(tlist)
         os.remove("qutip_test_CircuitProcessor.txt")
-        assert_allclose(proc2.coeffs, proc.coeffs)
-        assert_(proc2.tlist is None)
+        assert_allclose(proc2.get_full_coeffs(), proc.get_full_coeffs())
 
     def test_id_evolution(self):
         """
@@ -106,7 +108,8 @@ class TestCircuitProcessor:
         N = 1
         proc = Processor(N=N)
         rho0 = rand_ket(2)
-        proc.tlist = [0., 1., 2.]
+        tlist = [0., 1., 2.]
+        proc.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = proc.run_state(
             rho0, options=Options(store_final_state=True))
         global_phase = rho0.data[0, 0]/result.final_state.data[0, 0]
@@ -128,16 +131,16 @@ class TestCircuitProcessor:
 
         # test t1
         test = Processor(1, t1=t1)
-        test.tlist = tlist
+        # zero ham evolution
+        test.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = test.run_state(ex_state, e_ops=[a.dag()*a])
-
         assert_allclose(
             result.expect[0][-1], np.exp(-1./t1*end_time),
             rtol=1e-5, err_msg="Error in t1 time simulation")
 
         # test t2
         test = Processor(1, t2=t2)
-        test.tlist = tlist
+        test.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = test.run_state(
             rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
@@ -148,7 +151,7 @@ class TestCircuitProcessor:
         t1 = np.random.rand(1) + 0.5
         t2 = np.random.rand(1) * 0.5 + 0.5
         test = Processor(1, t1=t1, t2=t2)
-        test.tlist = tlist
+        test.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = test.run_state(
             rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
         assert_allclose(
@@ -178,8 +181,8 @@ class TestCircuitProcessor:
         tlist = np.linspace(0., 2*np.pi, 20)
         processor = Processor(N=1, spline_kind="cubic")
         processor.add_ctrl_ham(sigmaz())
-        processor.tlist = tlist
-        processor.coeffs = np.array([[np.sin(t) for t in tlist]])
+        processor.pulses[0].tlist = tlist
+        processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
         processor.plot_pulses()
         plt.clf()
 
@@ -195,7 +198,7 @@ class TestCircuitProcessor:
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = coeff
 
-        ideal_qobjevo = processor.get_qobjevo(noisy=False)
+        ideal_qobjevo, _ = processor.get_qobjevo(noisy=False)
         assert_(ideal_qobjevo.args["_step_func_coeff"])
         noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
         assert_(noisy_qobjevo.args["_step_func_coeff"])
@@ -211,7 +214,7 @@ class TestCircuitProcessor:
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = coeff
 
-        ideal_qobjevo = processor.get_qobjevo(noisy=False)
+        ideal_qobjevo, _ = processor.get_qobjevo(noisy=False)
         assert_(not ideal_qobjevo.args["_step_func_coeff"])
         noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
         assert_(not noisy_qobjevo.args["_step_func_coeff"])
@@ -229,7 +232,7 @@ class TestCircuitProcessor:
         processor.pulses[0].coeff = coeff
 
         # without noise
-        unitary_qobjevo = processor.get_qobjevo(args={"test": True}, noisy=False)
+        unitary_qobjevo, _ = processor.get_qobjevo(args={"test": True}, noisy=False)
         assert_allclose(unitary_qobjevo.ops[0].qobj, sigmaz())
         assert_allclose(unitary_qobjevo.tlist, tlist)
         assert_allclose(unitary_qobjevo.ops[0].coeff, coeff[0])
@@ -241,7 +244,7 @@ class TestCircuitProcessor:
             c_ops=sigmax(), coeff=coeff, tlist=tlist)
         processor.add_noise(dec_noise)
         assert_equal(unitary_qobjevo.to_list(),
-                        processor.get_qobjevo(noisy=False).to_list())
+                        processor.get_qobjevo(noisy=False)[0].to_list())
 
         noisy_qobjevo, c_ops = processor.get_qobjevo(args={"test": True}, noisy=True)
         assert_(noisy_qobjevo.args["_step_func_coeff"],
@@ -320,9 +323,10 @@ class TestCircuitProcessor:
         Test for the drift Hamiltonian
         """
         processor = Processor(N=1)
-        processor.add_drift_ham(sigmaz())
-        processor.tlist = np.array([0., 1., 2.])
-        ideal_qobjevo, _ = processor.get_qobjevo()
+        processor.add_drift_ham(sigmaz(), 0)
+        tlist = np.array([0., 1., 2.])
+        processor.add_pulse(Pulse(identity(2), 0, tlist, False))
+        ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)
         assert_equal(ideal_qobjevo.cte, sigmaz())
 
 

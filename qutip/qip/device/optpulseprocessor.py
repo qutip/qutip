@@ -57,18 +57,13 @@ class OptPulseProcessor(Processor):
     to find an optimized pulse sequence for the desired quantum circuit.
     The processor can simulate the evolution under the given
     control pulses using :func:`qutip.mesolve`.
+    (For attributes documentation, please
+    refer to the parent class :class:`qutip.qip.ModelProcessor`)
 
     Parameters
     ----------
     N: int
         The number of component systems.
-
-    drift: :class:`Qobj`
-        The drift Hamiltonian with no time-dependent coefficient.
-
-    ctrls: list of :class:`Qobj`
-        The control Hamiltonian whose time-dependent coefficient
-        will be optimized.
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
@@ -78,55 +73,10 @@ class OptPulseProcessor(Processor):
         Characterize the decoherence of dephasing for
         each qubit. A list of size ``N`` or a float for all qubits.
 
-    Attributes
-    ----------
-    N: int
-        The number of component systems.
-
-    ctrls: list
-        A list of the control Hamiltonians driving the evolution.
-
-    drift: :class:`Qobj`
-        The drift Hamiltonian with no time-dependent amplitude.
-
-    tlist: array_like
-        A NumPy array specifies the time of each coefficient.
-
-    coeffs: array_like
-        A 2d NumPy array of the shape, the length is dependent on the
-        spline type
-
-    t1: list
-        Characterize the decoherence of amplitude damping for
-        each qubit.
-
-    t2: list
-        Characterize the decoherence of dephasing for
-        each qubit.
-
-    noise: :class:`qutip.qip.Noise`, optional
-        The noise object, they will be processed when creating the
-        noisy :class:`qutip.QobjEvo` or run the simulation.
-
     dims: list
         The dimension of each component system.
         Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
-
-    spline_kind: str
-        Type of the coefficient interpolation.
-        Note that they have different requirement for the length of ``coeffs``.
-
-        -"step_func":
-        The coefficient will be treated as a step function.
-        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
-        is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
-        in the second case the last element has no effect.
-
-        -"cubic": Use cubic interpolation for the coefficient. It requires
-        ``coeffs.shape[1]=len(tlist)``
-
     """
     def __init__(self, N, t1=None, t2=None, dims=None):
         super(OptPulseProcessor, self).__init__(
@@ -249,7 +199,8 @@ class OptPulseProcessor(Processor):
                 kwargs.update(setting_args[gates[prop_ind]])
 
             full_drift_ham = self.drift.get_ideal_evo(self.dims).cte
-            full_ctrls_hams = [pulse.get_ideal_qobj(self.dims) for pulse in self.pulses]
+            full_ctrls_hams = [pulse.get_ideal_qobj(self.dims) 
+                                for pulse in self.pulses]
             result = cpo.optimize_pulse_unitary(
                 full_drift_ham, full_ctrls_hams, U_0, U_targ, **kwargs)
 
@@ -271,31 +222,9 @@ class OptPulseProcessor(Processor):
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
 
-        self.tlist = np.hstack([[0.]] + time_record)
+        tlist = np.hstack([[0.]] + time_record)
         for i in range(len(self.pulses)):
-            self.pulses[i].tlist = self.tlist
+            self.pulses[i].tlist = tlist
         self.coeffs = np.vstack([np.hstack(coeff_record)])
 
-        return self.tlist, self.coeffs
-
-    # def get_ideal_evo(self, args=None):
-    #     """
-    #     Create a :class:`qutip.QobjEvo` that can be given to
-    #     the open system solver.
-
-    #     Parameters
-    #     ----------
-    #     args: dict, optional
-    #         Arguments for :class:`qutip.QobjEvo`
-
-    #     Returns
-    #     -------
-    #     unitary_qobjevo: :class:`qutip.QobjEvo`
-    #         The :class:`qutip.QobjEvo` representation of the unitary evolution.
-    #     """
-    #     proc_qobjevo = super(OptPulseProcessor, self).get_qobjevo(
-    #         args=args)
-    #     if self.drift is not None:
-    #         return proc_qobjevo + self.drift
-    #     else:
-    #         return proc_qobjevo
+        return tlist, self.coeffs

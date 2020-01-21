@@ -57,9 +57,9 @@ def TestBasicPulse():
     pulse1.coeff = 2 * coeff
     assert_allclose(pulse1.coeff, 2 * coeff)
     pulse1.coeff = coeff
-    pulse1.op = 2 * sigmay()
-    assert_allclose(pulse1.op, 2 * sigmay())
-    pulse1.op = ham
+    pulse1.qobj = 2 * sigmay()
+    assert_allclose(pulse1.qobj, 2 * sigmay())
+    pulse1.qobj = ham
     pulse1.targets = 3
     assert_allclose(pulse1.targets, 3)
     pulse1.targets =  1

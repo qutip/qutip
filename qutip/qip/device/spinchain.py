@@ -52,6 +52,8 @@ class SpinChain(ModelProcessor):
     It is a base class and should not be used directly, please
     refer the the subclasses :class:`qutip.qip.LinearSpinChain` and
     :class:`qutip.qip.CircularSpinChain`.
+    (Only additional attributes are documented here, others please
+    refer to the parent class :class:`qutip.qip.ModelProcessor`)
 
     Parameters
     ----------
@@ -82,49 +84,6 @@ class SpinChain(ModelProcessor):
 
     Attributes
     ----------
-    N: int
-        The number of component systems.
-
-    ctrls: list
-        A list of the control Hamiltonians driving the evolution.
-
-    tlist: array_like
-        A NumPy array specifies the time of each coefficient.
-
-    coeffs: array_like
-        A 2d NumPy array of the shape, the length is dependent on the
-        spline type
-
-    t1: list
-        Characterize the decoherence of amplitude damping for
-        each qubit.
-
-    t2: list
-        Characterize the decoherence of dephasing for
-        each qubit.
-
-    noise: :class:`qutip.qip.Noise`, optional
-        A list of noise objects. They will be processed when creating the
-        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
-
-    dims: list
-        The dimension of each component system.
-        Default is dim=[2,2,2,...,2]
-
-    spline_kind: str
-        Type of the coefficient interpolation.
-        Note that they have different requirement for the length of ``coeffs``.
-
-        -"step_func":
-        The coefficient will be treated as a step function.
-        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
-        is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
-        in the second case the last element has no effect.
-
-        -"cubic": Use cubic interpolation for the coefficient. It requires
-        ``coeffs.shape[1]=len(tlist)``
-
     sx: list
         The delta for each of the qubits in the system.
 
@@ -172,25 +131,18 @@ class SpinChain(ModelProcessor):
             The number of qubits in the system.
         """
         # sx_ops
-        # self.ctrls += [tensor([sigmax() if m == n else identity(2)
-        #                        for n in range(N)])
-        #                for m in range(N)]
         for m in range(N):
-            self.pulses.append(Pulse(sigmax(), m, spline_kind=self.spline_kind))
+            self.pulses.append(
+                Pulse(sigmax(), m, spline_kind=self.spline_kind))
         # sz_ops
-        # self.ctrls += [tensor([sigmaz() if m == n else identity(2)
-        #                        for n in range(N)])
-        #                for m in range(N)]
         for m in range(N):
-            self.pulses.append(Pulse(sigmaz(), m, spline_kind=self.spline_kind))
+            self.pulses.append(
+                Pulse(sigmaz(), m, spline_kind=self.spline_kind))
         # sxsy_ops
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
         for n in range(N - 1):
-            # x = [identity(2)] * N
-            # x[n] = x[n + 1] = sigmax()
-            # y = [identity(2)] * N
-            # y[n] = y[n + 1] = sigmay()
-            self.pulses.append(Pulse(operator, [n, n+1], spline_kind=self.spline_kind))
+            self.pulses.append(
+                Pulse(operator, [n, n+1], spline_kind=self.spline_kind))
 
     def set_up_params(self, sx, sz):
         """
@@ -626,7 +578,8 @@ class CircularSpinChain(SpinChain):
     def set_up_ops(self, N):
         super(CircularSpinChain, self).set_up_ops(N)
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
-        self.pulses.append(Pulse(operator, [N-1, 0], spline_kind=self.spline_kind))
+        self.pulses.append(
+            Pulse(operator, [N-1, 0], spline_kind=self.spline_kind))
 
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class

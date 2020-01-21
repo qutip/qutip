@@ -15,12 +15,12 @@ from qutip.qip.pulse import Pulse
 
 class DriftNoise(UserNoise):
     def __init__(self, op):
-        self.op = op
+        self.qobj = op
 
-    def get_noisy_dynamics(self, N, proc_qobjevo, dims=None):
-        dummy = Pulse(identity(2) * 0, 0)
-        dummy.add_coherent_noise(self.op, 0, coeff=True)
-        return [dummy], []
+    def get_noisy_dynamics(self, ctrl_pulses, dims=None):
+        dummy = Pulse(None, None)
+        dummy.add_coherent_noise(self.qobj, 0, coeff=True)
+        return ctrl_pulses + [dummy]
 
 
 class TestNoise:
@@ -88,7 +88,7 @@ class TestNoise:
         pulses = [Pulse(sigmaz(), 0, tlist, coeff)]
         connoise = ControlAmpNoise(coeff=coeff, tlist=tlist)
         noisy_pulses = connoise.get_noisy_dynamics(pulses=pulses)
-        assert_allclose(noisy_pulses[0].coherent_noise[0].op, sigmaz())
+        assert_allclose(noisy_pulses[0].coherent_noise[0].qobj, sigmaz())
         assert_allclose(noisy_pulses[0].coherent_noise[0].coeff, coeff)
 
     def TestRandomNoise(self):
@@ -107,8 +107,8 @@ class TestNoise:
         # random noise with operators from proc_qobjevo
         gaussnoise = RandomNoise(dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
         noisy_pulses = gaussnoise.get_noisy_dynamics(pulses=pulses)
-        assert_allclose(noisy_pulses[2].op, sigmay())
-        assert_allclose(noisy_pulses[1].coherent_noise[0].op, sigmax())
+        assert_allclose(noisy_pulses[2].qobj, sigmay())
+        assert_allclose(noisy_pulses[1].coherent_noise[0].qobj, sigmax())
         assert_allclose(len(noisy_pulses[0].coherent_noise[0].tlist), len(noisy_pulses[0].coherent_noise[0].coeff))
 
         # random noise with dt and other random number generator
@@ -130,7 +130,8 @@ class TestNoise:
         dr_noise = DriftNoise(sigmax())
         proc = Processor(1)
         proc.add_noise(dr_noise)
-        proc.tlist = np.array([0, np.pi/2.])
+        tlist = np.array([0, np.pi/2.])
+        proc.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = proc.run_state(rho0=basis(2, 0))
         assert_allclose(
             fidelity(result.states[-1], basis(2, 1)), 1, rtol=1.0e-6)
