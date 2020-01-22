@@ -35,7 +35,13 @@ from qutip import settings
 
 def run(full=False):
     """
-    Run the nose test scripts for QuTiP.
+    Run the automated test scripts for QuTiP.
+
+    Parameters
+    ----------
+    full: bool
+        If True run all test (30 min). Otherwise skip few variants of the
+        slowest tests.
     """
     # Call about to get all version info printed with tests
     about()
