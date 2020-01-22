@@ -436,7 +436,7 @@ def test_CheckMulType():
     zero_log = tensor(zero, zero, zero)
     op1 = zero_log * zero.dag()
     op2 = zero * zero_log.dag()
-    assert_((op1 - op2.dag()).norm() < 1e-8)
+    assert op1 == op2.dag()
 
     # superoperator-operket and operbra-superoperator multiplication
     sop = to_super(sigmax())
