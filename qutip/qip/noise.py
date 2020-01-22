@@ -28,17 +28,17 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
     pulses: list of :class:`qutip.qip.Pulse`
         The input pulses, on which the noise object will be applied.
     noise_list: list of :class:`qutip.qip.noise`
-        The list of noise object.
+        A list of noise objects.
     dims: int or list
         Dimension of the system.
         If int, we assume it is the number of qubits in the system.
-        If list, it is the dimension of each component system.
+        If list, it is the dimension of the component systems.
     t1: list or float, optional
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
     t2: list of float, optional
         Characterize the decoherence of dephasing for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
     ind_device_noise: bool
         If pulse independent noise such as relaxation are included.
         Default is False.
@@ -66,22 +66,23 @@ def process_device_noise(noise_list, dims, t1=None, t2=None):
     Parameters
     ----------
     noise_list: list of :class:`qutip.qip.noise`
-        The list of noise object.
+        A list of noise objects.
     dims: int or list
         Dimension of the system.
         If int, we assume it is the number of qubits in the system.
-        If list, it is the dimension of each component system.
+        If list, it is the dimension of the component systems.
     t1: list or float, optional
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
     t2: list of float, optional
         Characterize the decoherence of dephasing for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     Returns
     -------
     noisy_pulses: list of :class:`qutip.qip.Pulse`
-        Dummy pulse objects with zero Hamiltonian by non-trivial noise.
+        A list of Dummy pulse objects with zero Hamiltonian
+        by non-trivial noise.
     """
     device_noise = []
     if (t1 is not None) or (t2 is not None):
@@ -106,11 +107,11 @@ def process_pulse_noise(pulses, noise_list, dims):
     pulses: list of :class:`qutip.qip.Pulse`
         The input pulses, on which the noise object will be applied.
     noise_list: list of :class:`qutip.qip.noise`
-        The list of noise object.
+        A list of noise objects.
     dims: int or list
         Dimension of the system.
         If int, we assume it is the number of qubits in the system.
-        If list, it is the dimension of each component system.
+        If list, it is the dimension of the component systems.
 
     noisy_pulses: list of :class:`qutip.qip.Pulse`
         The list of pulses with pulse dependent noise.
@@ -141,41 +142,37 @@ class Noise(object):
 
 class DecoherenceNoise(Noise):
     """
-    The decoherence noise in a processor. It generates a list of
-    collapse operators.
-    if tlist and coeff are None, time-independent decoherence
+    The decoherence noise in a processor. It generates lindblad noise
+    according to the given collapse operator `c_ops`.
 
     Parameters
     ----------
     c_ops: :class:`qutip.Qobj` or list
         The Hamiltonian representing the dynamics of the noise.
-        len(ops)=len(coeffs) is required.
     targets: int or list, optional
-        The indices of qubits that are acted on. Default is the first
-        N qubits
+        The indices of qubits that are acted on. Default is on all
+        qubits
     coeff: list, optional
         A list of the coefficients for the control Hamiltonians.
-        For available choice, see :class:`Qutip.QobjEvo`
     tlist: array_like, optional
         A NumPy array specifies the time of each coefficient.
     all_qubits: bool, optional
-        If c_ops contains only single qubits collapse operator,
-        all_qubits=True will allow it to be applied to all qubits.
+        If `c_ops` contains only single qubits collapse operator,
+        ``all_qubits=True`` will allow it to be applied to all qubits.
 
     Attributes
     ----------
     c_ops: :class:`qutip.Qobj` or list
         The Hamiltonian representing the dynamics of the noise.
-    targets: list
+    targets: int or list
         The indices of qubits that are acted on.
     coeff: list
         A list of the coefficients for the control Hamiltonians.
-        For available choice, see :class:`Qutip.QobjEvo`
     tlist: array_like
         A NumPy array specifies the time of each coefficient.
     all_qubits: bool
-        If c_ops contains only single qubits collapse operator,
-        all_qubits=True will allow it to be applied to all qubits.
+        If `c_ops` contains only single qubits collapse operator,
+        ``all_qubits=True`` will allow it to be applied to all qubits.
     """
     def __init__(self, c_ops, targets=None, coeff=None, tlist=None,
                  all_qubits=False):
@@ -195,12 +192,11 @@ class DecoherenceNoise(Noise):
 
     def get_noisy_dynamics(self, dims):
         """
-        Return the quantum objects representing the noise.
+        Return a list of Pulse object with only trivial ideal pulse (H=0) but
+        non-trivial lindblad noise.
 
         Parameters
         ----------
-        N: int
-            The number of component systems.
         dims: list, optional
             The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
@@ -244,18 +240,18 @@ class RelaxationNoise(Noise):
         Characterize the decoherence of dephasing for
         each qubit.
     targets: int or list, optional
-        The indices of qubits that are acted on. Default is the first
-        N qubits
+        The indices of qubits that are acted on. Default is on all
+        qubits
 
     Attributes
     ----------
-    t1: list
+    t1: float or list
         Characterize the decoherence of amplitude damping for
         each qubit.
-    t2: list
+    t2: float or list
         Characterize the decoherence of dephasing for
         each qubit.
-    targets: list
+    targets: int or list
         The indices of qubits that are acted on.
     """
     def __init__(self, t1=None, t2=None, targets=None):
@@ -292,12 +288,11 @@ class RelaxationNoise(Noise):
 
     def get_noisy_dynamics(self, dims):
         """
-        Return the quantum objects representing the noise.
+        Return a list of Pulse object with only trivial ideal pulse (H=0) but
+        non-trivial relaxation noise.
 
         Parameters
         ----------
-        N: int
-            The number of component systems.
         dims: list, optional
             The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
@@ -306,7 +301,7 @@ class RelaxationNoise(Noise):
         -------
         lindblad_noise: list of :class:`qutip.qip.Pulse`
             A list of Pulse object with only trivial ideal pulse (H=0) but
-            non-trivial lindblad noise.
+            non-trivial relaxation noise.
         """
         if isinstance(dims, list):
             for d in dims:
@@ -359,7 +354,7 @@ class ControlAmpNoise(Noise):
     ----------
     coeff: list
         A list of the coefficients for the control Hamiltonians.
-        For available choices, see :class:`Qutip.QobjEvo`.
+        For available choices, see :class:`qutip.QobjEvo`.
     tlist: array_like, optional
         A NumPy array specifies the time of each coefficient.
     indices: list of int, optional
@@ -368,7 +363,7 @@ class ControlAmpNoise(Noise):
     ----------
     coeff: list
         A list of the coefficients for the control Hamiltonians.
-        For available choices, see :class:`Qutip.QobjEvo`.
+        For available choices, see :class:`qutip.QobjEvo`.
     tlist: array_like
         A NumPy array specifies the time of each coefficient.
     indices: list of int
@@ -382,7 +377,8 @@ class ControlAmpNoise(Noise):
 
     def get_noisy_dynamics(self, pulses):
         """
-        Return the quantum objects representing the noise.
+        Return a list of pulses containing the input pulse with additional
+        coherent noise.
 
         Parameters
         ----------
@@ -426,7 +422,7 @@ class RandomNoise(ControlAmpNoise):
         of the noise are the same within this time range.
     rand_gen: numpy.random, optional
         A random generator in numpy.random, it has to take a ``size``
-        parameter.
+        parameter as the size of random numbers in the output array.
     indices: list of int, optional
         The indices of target pulse in the list of pulses.
     kwargs:
@@ -444,6 +440,11 @@ class RandomNoise(ControlAmpNoise):
         The indices of target pulse in the list of pulses.
     kwargs:
         Key word arguments for the random number generator.
+
+    Examples
+    --------
+    >>> gaussnoise = RandomNoise(
+            dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
     """
     def __init__(
             self, dt, rand_gen, indices=None, **kwargs):
@@ -460,7 +461,8 @@ class RandomNoise(ControlAmpNoise):
 
     def get_noisy_dynamics(self, pulses):
         """
-        Return the noisy `Pulse` with random coherent noise.
+        Return a list of pulses containing the input pulse with additional
+        coherent noise.
 
         Parameters
         ----------
@@ -496,21 +498,21 @@ class RandomNoise(ControlAmpNoise):
 
 class UserNoise(Noise):
     """
-    Template class for user defined noise. It is by default a pulse
+    Template class for user defined noise. It is classified as a pulse
     dependent noise. By calling the method `get_noisy_dynamics`,
     it should return the input pulses with additional
-    coherent and/or lindblad noise.
+    coherent and/or lindblad noise. If there are
+    pulse independent noise, a dummy Pulse can be created by
+    ``Pulse(None, None)``. The modified input pulses should always
+    be at the begining of the list, followed by the dummy pulses.
     """
     def __init__(self):
         pass
 
     def get_noisy_dynamics(self, pulses, dims):
         """
-        Template method. To define a noise object,
-        one should over write this method and
-        return the unitary evolution part as a :class: `qutip.QobjEvo`
-        and a list of collapse operators in the form of either
-        :class: `qutip.QobjEvo` or :class: `qutip.Qobj`.
+        Template method. 
+        It should return a list of pulses with noise.
 
         Parameters
         ----------
@@ -523,11 +525,7 @@ class UserNoise(Noise):
 
         Returns
         -------
-        noise_qobjevo: :class:`qutip.QobjEvo`
-            A :class:`qutip.Qobj` representing the decoherence noise.
-
-        collapse_list: list
-            A list of :class:`qutip.Qobj` or :class:`qutip.QobjEvo`
-            representing the decoherence noise.
+        noisy_pulses: list of :class:`qutip.qip.Pulse`
+            The input `Pulse` object with additional noise. 
         """
         return pulses

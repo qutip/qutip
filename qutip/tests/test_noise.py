@@ -34,14 +34,14 @@ class TestNoise:
         # Time-dependent
         decnoise = DecoherenceNoise(
             sigmaz(), coeff=coeff, tlist=tlist, targets=[1])
-        noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_full_evo(dims=2)
+        noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_allclose(c_ops[0].ops[0].qobj, tensor(qeye(2), sigmaz()))
         assert_allclose(c_ops[0].ops[0].coeff, coeff)
         assert_allclose(c_ops[0].tlist, tlist)
 
         # Time-indenpendent and all qubits
         decnoise = DecoherenceNoise(sigmax(), all_qubits=True)
-        noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_full_evo(dims=2)
+        noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         c_ops = [qu.cte for qu in c_ops]
         assert_(tensor([qeye(2), sigmax()]) in c_ops)
         assert_(tensor([sigmax(), qeye(2)]) in c_ops)
@@ -49,7 +49,7 @@ class TestNoise:
         # Time-denpendent and all qubits
         decnoise = DecoherenceNoise(
             sigmax(), all_qubits=True, coeff=coeff*2, tlist=tlist)
-        noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_full_evo(dims=2)
+        noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_allclose(c_ops[0].ops[0].qobj, tensor(sigmax(), qeye(2)))
         assert_allclose(c_ops[0].ops[0].coeff, coeff*2)
         assert_allclose(c_ops[0].tlist, tlist)
@@ -61,20 +61,20 @@ class TestNoise:
         """
         a = destroy(2)
         relnoise = RelaxationNoise(t1=[1., 1., 1.], t2=None)
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(3).get_full_evo(dims=3)
+        noisy_qu, c_ops = relnoise.get_noisy_dynamics(3).get_noisy_qobjevo(dims=3)
         assert_(len(c_ops) == 3)
         assert_allclose(c_ops[1].cte, tensor([qeye(2), a, qeye(2)]))
 
         relnoise = RelaxationNoise(t1=None, t2=None)
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_full_evo(dims=2)
+        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_(len(c_ops) == 0)
 
         relnoise = RelaxationNoise(t1=None, t2=[0.2, 0.7])
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_full_evo(dims=2)
+        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_(len(c_ops) == 2)
 
         relnoise = RelaxationNoise(t1=[1., 1.], t2=[0.5, 0.5])
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_full_evo(dims=2)
+        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_(len(c_ops) == 4)
 
     def TestControlAmpNoise(self):

@@ -70,11 +70,11 @@ class Processor(object):
 
     t1: list or float, optional
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     t2: list of float, optional
         Characterize the decoherence of dephasing for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     dims: list, optional
         The dimension of each component system.
@@ -90,7 +90,7 @@ class Processor(object):
         E.g. ``tlist=[0,1,2]`` and ``coeff=[3,2]``, means that the coefficient
         is 3 in t=[0,1) and 2 in t=[2,3). It requires
         ``len(coeff)=len(tlist)-1`` or ``len(coeff)=len(tlist)``, but
-        in the second case the last element has no effect.
+        in the second case the last element of `coeff` has no effect.
 
         -"cubic": Use cubic interpolation for the coefficient. It requires
         ``len(coeff)=len(tlist)``
@@ -103,11 +103,11 @@ class Processor(object):
     pulses: list of :class:`qutip.qip.Pulse`
         A list of control pulses of this device
 
-    t1: list
+    t1: float or list
         Characterize the decoherence of amplitude damping of
         each qubit.
 
-    t2: list
+    t2: float or list
         Characterize the decoherence of dephasing for
         each qubit.
 
@@ -247,13 +247,30 @@ class Processor(object):
         for i, coeff in enumerate(coeffs_list):
             self.pulses[i].coeff = coeff
 
+    def get_full_tlist(self):
+        """
+        Return the full tlist of the ideal pulses.
+        It means that if different `tlist`s are present, they will be merged
+        to one with all time points stored in a sorted array.
+
+        Returns
+        -------
+        full_tlist: array-like 1d
+            The full time sequence for the ideal evolution.
+        """
+        all_tlists = [pulse.tlist
+                      for pulse in self.pulses if pulse.tlist is not None]
+        if not all_tlists:
+            return None
+        return np.unique(np.sort(np.hstack(all_tlists)))
+
     def get_full_coeffs(self):
         """
         Return the full coefficients in a 2d matrix form.
         Each row corresponds to one pulse. If the `tlist` are
         different for different pulses, the length of each row
         will be same as the `full_tlist` (see method
-        `get_full_tlist` will). Interpolation is used for
+        `get_full_tlist`). Interpolation is used for
         adding the missing coefficient according to `spline_kind`.
 
         Returns
@@ -287,23 +304,6 @@ class Processor(object):
             else:
                 raise ValueError("Unknown spline kind.")
         return np.array(coeffs_list)
-
-    def get_full_tlist(self):
-        """
-        Return the full tlist of the ideal pulses.
-        It means that if different `tlist`s are present, they will be merged
-        to one with all time points stored in a sorted array.
-
-        Returns
-        -------
-        full_tlist: array-like 1d
-            The full time sequence for the ideal evolution.
-        """
-        all_tlists = [pulse.tlist
-                      for pulse in self.pulses if pulse.tlist is not None]
-        if not all_tlists:
-            return None
-        return np.unique(np.sort(np.hstack(all_tlists)))
 
     def set_all_tlist(self, tlist):
         # TODO add tests
@@ -420,7 +420,7 @@ class Processor(object):
         """
         self._is_pulses_valid()
         # TODO this works only for step_func
-        # TODO repLace this by get_complete_coeffs
+        # TODO replace this by get_complete_coeffs
         coeffs = np.array(self.get_full_coeffs())
         if inctime:
             shp = coeffs.T.shape
@@ -535,10 +535,10 @@ class Processor(object):
         c_ops = []
         for pulse in dynamics:
             if noisy:
-                qu, new_c_ops = pulse.get_full_evo(dims=self.dims)
+                qu, new_c_ops = pulse.get_noisy_qobjevo(dims=self.dims)
                 c_ops += new_c_ops
             else:
-                qu = pulse.get_ideal_evo(dims=self.dims)
+                qu = pulse.get_ideal_qobjevo(dims=self.dims)
             qu_list.append(qu)
 
         final_qu = _merge_qobjevo(qu_list)

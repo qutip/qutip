@@ -76,11 +76,11 @@ class SpinChain(ModelProcessor):
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     Attributes
     ----------
