@@ -35,7 +35,7 @@ __all__ = ['wigner', 'qfunc', 'spin_q_function', 'spin_wigner', 'wigner_transfor
 
 import numpy as np
 import warnings
-from scipy import (zeros, array, arange, exp, real, conj, pi,
+from numpy import (zeros, array, arange, exp, real, conj, pi,
                    copy, sqrt, meshgrid, size, polyval, fliplr, conjugate,
                    cos, sin)
 import scipy.sparse as sp
