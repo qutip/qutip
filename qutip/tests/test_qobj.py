@@ -471,7 +471,7 @@ def test_CheckMulType():
     zero_log = tensor(zero, zero, zero)
     op1 = zero_log * zero.dag()
     op2 = zero * zero_log.dag()
-    assert_(op1 == op2.dag())
+    assert_((op1 - op2.dag()).norm() < 1e-8)
 
     # superoperator-operket and operbra-superoperator multiplication
     sop = to_super(sigmax())
@@ -629,12 +629,12 @@ def test_QobjPurity():
     assert_almost_equal(psi.purity(), 1)
     # check purity of pure ket state (superposition)
     psi2 = basis(2, 0)
-    psi_tot = (psi+psi2).unit() 
+    psi_tot = (psi+psi2).unit()
     assert_almost_equal(psi_tot.purity(), 1)
-    # check purity of density matrix of pure state 
+    # check purity of density matrix of pure state
     assert_almost_equal(ket2dm(psi_tot).purity(), 1)
     # check purity of maximally mixed density matrix
-    rho_mixed = (ket2dm(psi)+ket2dm(psi2)).unit() 
+    rho_mixed = (ket2dm(psi)+ket2dm(psi2)).unit()
     assert_almost_equal(rho_mixed.purity(), 0.5)
 
 def test_QobjPermute():
