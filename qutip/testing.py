@@ -31,11 +31,11 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.about import about
-from qutip import settings
+from qutip import settings as qset
 
 def run(full=False):
     """
-    Run the automated test scripts for QuTiP.
+    Run the test scripts for QuTiP.
 
     Parameters
     ----------
@@ -46,7 +46,6 @@ def run(full=False):
     # Call about to get all version info printed with tests
     about()
     import pytest
-    # runs tests in qutip.tests module only
     real_num_cpu = qset.num_cpus
     real_thresh = qset.openmp_thresh
     if qset.has_openmp:
@@ -61,6 +60,7 @@ def run(full=False):
     pytest.main(test_options + ["qutip"])
     # runs tests in qutip.tests module only
 
+    # Restore previous settings
     if qset.has_openmp:
         qset.num_cpus = real_num_cpu
         qset.openmp_thresh = real_thresh
