@@ -34,13 +34,15 @@
 This module provides the circuit implementation for Quantum Fourier Transform.
 """
 
-__all__ = ['qft', 'qft_steps', 'qft_gate_sequence']
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.qobj import *
 from qutip.qip.gates import snot, cphase, swap
 from qutip.qip.circuit import QubitCircuit
+from qutip.qobj import Qobj
+
+
+__all__ = ['qft', 'qft_steps', 'qft_gate_sequence']
 
 
 def qft(N=1):

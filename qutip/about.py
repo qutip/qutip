@@ -56,6 +56,7 @@ def about():
     print("================================")
     print("Copyright (c) QuTiP team 2011 and later.")
     print("Original developers: R. J. Johansson & P. D. Nation.")
+    print("Previous lead developers: Chris Granade & A. Grimsmo.")
     print("Current admin team: Alexander Pitchford, Paul D. Nation, "
             "Nathan Shammah, Shahnawaz Ahmed, "
             "Neill Lambert, and Eric Giguère.")

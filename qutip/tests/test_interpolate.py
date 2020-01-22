@@ -33,9 +33,17 @@
 import numpy as np
 import scipy.interpolate as sint
 from numpy.testing import assert_, assert_equal, run_module_suite
+import unittest
 from qutip import *
+from qutip import _version2int
 
-    
+try:
+    import Cython
+except:
+    Cython_OK = False
+else:
+    Cython_OK = _version2int(Cython.__version__) >= _version2int('0.14')
+
 def testInterpolate1():
     "Interpolate: Sine + noise (array)"
     x = np.linspace(0,2*np.pi,200)
@@ -252,7 +260,7 @@ def test_interpolate_evolve11():
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_interpolate_brevolve1():
     """
     Interpolate: brmesolve str + interp (real)
@@ -269,7 +277,7 @@ def test_interpolate_brevolve1():
     out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
-
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_interpolate_brevolve2():
     """
     Interpolate: brmesolve str + interp (complex)
@@ -286,6 +294,7 @@ def test_interpolate_brevolve2():
     out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_interpolate_brevolve3():
     """
     Interpolate: brmesolve c_op as interp (str)
