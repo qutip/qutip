@@ -48,7 +48,7 @@ from unittest import expectedFailure
 from qutip.qobj import Qobj
 from qutip.states import basis
 from qutip.operators import identity, sigmax, sigmay, qeye, create
-from qutip.qip.ops import swap
+from qutip.qip.ops.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import tensor, super_tensor
 from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,

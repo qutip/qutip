@@ -41,7 +41,7 @@ from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay
 from qutip.sparse import sp_eigs
-from qutip.qip.ops import swap
+from qutip.qip.ops.gates import swap
 from qutip.partial_transpose import partial_transpose
 
 

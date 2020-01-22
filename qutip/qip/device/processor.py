@@ -40,7 +40,7 @@ from scipy.interpolate import CubicSpline
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.operators import identity
-from qutip.qip.gates import expand_operator, globalphase
+from qutip.qip.ops.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit

@@ -30,14 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-This module serves temporarily as an subsititution of qutip/qip/__init__.py
-We use this because we want to promote the use of 
-``from qutip.qip.ops import cnot``
-instead of
-``from qutip import cnot``
-or ``from qutip.qip import cnot``
-"""
-from qutip.qip.ops import *
-from qutip.qip.circuit import *
-from qutip.qip.qubits import *
+import warnings
+
+from qutip.qip.ops.gates import *
+warnings.warn(
+    "The gates module has been moved to qutip.qip.ops.gates. "
+    "Importation from qutip.qip.gates will be deprecated.",
+    DeprecationWarning, stacklevel=3)

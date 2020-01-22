@@ -37,7 +37,7 @@ from numpy.testing import (assert_, run_module_suite, assert_allclose,
 import numpy as np
 
 from qutip.qip.device.optpulseprocessor import OptPulseProcessor
-from qutip.qip.gates import expand_operator
+from qutip.qip.ops.gates import expand_operator
 from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.qubits import qubit_states
@@ -45,7 +45,7 @@ from qutip.metrics import fidelity
 from qutip.qobj import Qobj
 from qutip.tensor import tensor
 from qutip.solver import Options
-from qutip.qip.gates import cnot, gate_sequence_product, hadamard_transform
+from qutip.qip.ops.gates import cnot, gate_sequence_product, hadamard_transform
 from qutip.random_objects import rand_ket
 from qutip.states import basis
 

@@ -37,7 +37,7 @@ import numpy as np
 
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
-from qutip.qip.gates import globalphase
+from qutip.qip.ops.gates import globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit

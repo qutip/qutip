@@ -43,7 +43,7 @@ from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
-from qutip.qip.gates import gate_sequence_product
+from qutip.qip.ops.gates import gate_sequence_product
 
 
 __all__ = ['OptPulseProcessor']
