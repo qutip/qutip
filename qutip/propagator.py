@@ -158,7 +158,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     u[:, n, k] = output[n].states[k].full().T
         else:
             if unitary_mode == 'single':
-                output = sesolve(H, qeye(N), tlist, [], args, options,
+                output = sesolve(H, qeye(dims[0]), tlist, [], args, options,
                                  _safe_mode=False)
                 if len(tlist) == 2:
                     return output.states[-1]

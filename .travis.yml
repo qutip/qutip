@@ -1,4 +1,5 @@
-sudo: required
+# After changing this file, check it on:
+#   http://lint.travis-ci.org/
 
 stage_generic_linux: &stage_generic_linux
   os: linux
@@ -10,7 +11,7 @@ stage_generic_linux: &stage_generic_linux
   # command to run tests
   script:
     - python -m qutip.about
-    - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -20,7 +21,7 @@ stage_generic_linux: &stage_generic_linux
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
+    - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
 stage_linux_36: &stage_linux_36
@@ -34,6 +35,43 @@ stage_linux_37: &stage_linux_37
   name: "Python 3.7"
   dist: xenial
   python: 3.7
+
+stage_linux_38: &stage_linux_38
+  <<: *stage_generic_linux
+  name: "Python 3.8"
+  dist: xenial
+  python: 3.8
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install numpy scipy pytest pytest-cov cython coveralls
+    - python setup.py install
+
+stage_linux_37_no_cython: &stage_linux_37_no_cython
+  <<: *stage_generic_linux
+  name: "Python 3.7 no cython"
+  dist: xenial
+  python: 3.7
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install -c conda-forge nomkl blas=*=openblas numpy scipy pytest pytest-cov
+    - conda install -c conda-forge cython --freeze-installed
+    - conda list
+    - python setup.py install
+    - conda uninstall cython
 
 stage_linux_37_openblas: &stage_linux_37_openblas
   <<: *stage_generic_linux
@@ -49,7 +87,7 @@ stage_linux_37_openblas: &stage_linux_37_openblas
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install nomkl blas=*=openblas numpy scipy nose cython
+    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
 stage_linux_37_omp: &stage_linux_37_omp
@@ -66,7 +104,7 @@ stage_linux_37_omp: &stage_linux_37_omp
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
+    - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install --with-openmp
   after_success:
     - coveralls
@@ -83,7 +121,7 @@ stage_osx: &stage_osx
   # command to run tests
   script:
     - python -m qutip.about
-    - nosetests --verbosity=2 --with-coverage --cover-package=qutip qutip
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -91,10 +129,10 @@ stage_osx: &stage_osx
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
     - conda info -a
-    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - conda create -q -n test-environment python=3.7
     - source activate test-environment
-    # - conda install mkl blas=*=mkl numpy scipy nose cython coveralls
-    - conda install nomkl blas=*=openblas numpy scipy nose cython
+    # - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
 stages:
@@ -108,6 +146,8 @@ jobs:
       <<: *stage_linux_37
     - stage: test
       <<: *stage_linux_37_omp
+    - stage: test
+      <<: *stage_linux_37_no_cython
     - stage: test
       <<: *stage_linux_37_openblas
     - stage: test

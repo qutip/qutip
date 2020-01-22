@@ -53,7 +53,7 @@ except:
 # if the requirements aren't fulfilled
 #
 
-numpy_requirement = "1.8.0"
+numpy_requirement = "1.12.0"
 try:
     import numpy
     if _version2int(numpy.__version__) < _version2int(numpy_requirement):
@@ -63,7 +63,7 @@ try:
 except:
     warnings.warn("numpy not found.")
 
-scipy_requirement = "0.15.0"
+scipy_requirement = "1.0.0"
 try:
     import scipy
     if _version2int(scipy.__version__) < _version2int(scipy_requirement):
@@ -89,21 +89,6 @@ else:
 
 del top_path
 
-# -----------------------------------------------------------------------------
-# setup the cython environment
-#
-_cython_requirement = "0.21.0"
-try:
-    import Cython
-    if _version2int(Cython.__version__) < _version2int(_cython_requirement):
-        print("QuTiP warning: old version of cython detected " +
-              ("(%s), requiring %s." %
-               (Cython.__version__, _cython_requirement)))
-
-except Exception as e:
-    print("QuTiP warning: Cython setup failed: " + str(e))
-else:
-    del Cython
 
 # -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
@@ -120,6 +105,26 @@ else:
     qutip.settings.has_openmp = True
     # See Pull #652 for why this is here.
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+
+# -----------------------------------------------------------------------------
+# setup the cython environment
+#
+_cython_requirement = "0.21.0"
+try:
+    import Cython
+    if _version2int(Cython.__version__) < _version2int(_cython_requirement):
+        print("QuTiP warning: old version of cython detected " +
+              ("(%s), requiring %s." %
+               (Cython.__version__, _cython_requirement)))
+    # Setup pyximport
+    import qutip.cy.pyxbuilder as pbldr
+    pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
+    del pbldr
+except Exception as e:
+    pass
+else:
+    del Cython
 
 
 # -----------------------------------------------------------------------------
@@ -236,11 +241,6 @@ cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
 
-# Setup pyximport
-import qutip.cy.pyxbuilder as pbldr
-pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
-del pbldr
-
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
@@ -249,19 +249,19 @@ has_rc, rc_file = qutip.configrc.has_qutip_rc()
 
 # Make qutiprc and benchmark OPENMP if has_rc = False
 if qutip.settings.has_openmp and (not has_rc):
-    from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
-    #bench OPENMP
-    print('Calibrating OPENMP threshold...')
-    thrsh = calculate_openmp_thresh()
     qutip.configrc.generate_qutiprc()
     has_rc, rc_file = qutip.configrc.has_qutip_rc()
-    if has_rc:
+    if has_rc and qutip.settings.num_cpus > 1:
+        from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
+        #bench OPENMP
+        print('Calibrating OPENMP threshold...')
+        thrsh = calculate_openmp_thresh()
         qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
 # Make OPENMP if has_rc but 'openmp_thresh' not in keys
 elif qutip.settings.has_openmp and has_rc:
-    from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
     has_omp_key = qutip.configrc.has_rc_key(rc_file, 'openmp_thresh')
-    if not has_omp_key:
+    if not has_omp_key and qutip.settings.num_cpus > 1:
+        from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
         print('Calibrating OPENMP threshold...')
         thrsh = calculate_openmp_thresh()
         qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)

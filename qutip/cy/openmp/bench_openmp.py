@@ -1,7 +1,7 @@
 import numpy as np
 from qutip.cy.openmp.benchmark import _spmvpy, _spmvpy_openmp
 from timeit import default_timer as timer
-
+import qutip.settings as qset
 
 def _min_timer(function, *args, **kwargs):
     min_time = 1e6
@@ -10,8 +10,8 @@ def _min_timer(function, *args, **kwargs):
         function(*args, **kwargs)
         t1 = timer()
         min_time = min(min_time, t1-t0)
-    return min_time 
-    
+    return min_time
+
 
 def system_bench(func, dims):
     from qutip.random_objects import rand_ket
@@ -29,8 +29,8 @@ def system_bench(func, dims):
         ratio = ser/par
         if ratio > 1:
             break
-        nnz_old = nnz 
-        ratio_old = ratio  
+        nnz_old = nnz
+        ratio_old = ratio
     if ratio > 1:
         rate = (ratio-ratio_old)/(nnz-nnz_old)
         return int((1.0-ratio_old)/rate+nnz_old)
@@ -39,21 +39,23 @@ def system_bench(func, dims):
 
 
 def calculate_openmp_thresh():
-  jc_dims = np.arange(2,60,dtype=int)
-  jc_result = system_bench(_jc_liouvillian, jc_dims)
+    if qset.num_cpus == 1:
+        return qset.openmp_thresh
+    jc_dims = np.unique(np.logspace(0.45, 1.78, 20,dtype=int))
+    jc_result = system_bench(_jc_liouvillian, jc_dims)
 
-  opto_dims = np.arange(2,60,dtype=int)
-  opto_result = system_bench(_opto_liouvillian, opto_dims)
+    opto_dims = np.unique(np.logspace(0.4, 1.33, 12, dtype=int))
+    opto_result = system_bench(_opto_liouvillian, opto_dims)
 
-  spin_dims = np.arange(2,15,dtype=int)
-  spin_result = system_bench(_spin_hamiltonian, spin_dims)
-  
+    spin_dims = np.unique(np.logspace(0.45, 1.17, 10, dtype=int))
+    spin_result = system_bench(_spin_hamiltonian, spin_dims)
+
   # Double result to be conservative
-  thresh = 2*int(max([jc_result,opto_result,spin_result]))
-  if thresh < 0:
-      thresh = np.iinfo(np.int32).max
-  return thresh
-  
+    thresh = 2*int(max([jc_result,opto_result,spin_result]))
+    if thresh < 0:
+        thresh = np.iinfo(np.int32).max
+    return thresh
+
 
 def _jc_liouvillian(N):
     from qutip.tensor import tensor
@@ -89,8 +91,8 @@ def _jc_liouvillian(N):
         c_op_list.append(np.sqrt(rate) * sm)
 
     return liouvillian(H, c_op_list)
-    
-    
+
+
 def _opto_liouvillian(N):
     from qutip.tensor import tensor
     from qutip.operators import destroy, qeye
@@ -98,7 +100,7 @@ def _opto_liouvillian(N):
     Nc = 5                      # Number of cavity states
     Nm = N                     # Number of mech states
     kappa = 0.3                 # Cavity damping rate
-    E = 0.1                     # Driving Amplitude         
+    E = 0.1                     # Driving Amplitude
     g0 = 2.4*kappa              # Coupling strength
     Qm = 1e4                    # Mech quality factor
     gamma = 1/Qm                # Mech damping rate
@@ -115,13 +117,13 @@ def _opto_liouvillian(N):
     c_ops = [cc,cm,cp]
 
     return liouvillian(H, c_ops)
-    
+
 def _spin_hamiltonian(N):
     from qutip.tensor import tensor
     from qutip.operators import qeye, sigmax, sigmay, sigmaz
     # array of spin energy splittings and coupling strengths. here we use
     # uniform parameters, but in general we don't have too
-    h  = 1.0 * 2 * np.pi * np.ones(N) 
+    h  = 1.0 * 2 * np.pi * np.ones(N)
     Jz = 0.1 * 2 * np.pi * np.ones(N)
     Jx = 0.1 * 2 * np.pi * np.ones(N)
     Jy = 0.1 * 2 * np.pi * np.ones(N)
