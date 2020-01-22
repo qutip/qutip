@@ -511,7 +511,7 @@ class UserNoise(Noise):
 
     def get_noisy_dynamics(self, pulses, dims):
         """
-        Template method. 
+        Template method.
         It should return a list of pulses with noise.
 
         Parameters
@@ -526,6 +526,6 @@ class UserNoise(Noise):
         Returns
         -------
         noisy_pulses: list of :class:`qutip.qip.Pulse`
-            The input `Pulse` object with additional noise. 
+            The input `Pulse` object with additional noise.
         """
         return pulses

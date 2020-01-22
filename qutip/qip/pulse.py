@@ -14,7 +14,12 @@ __all__ = ["Pulse", "Drift"]
 
 class _EvoElement():
     """
-    The class saving the information of one evolution element.
+    The class object saving the information of one evolution element.
+    Each dynamic element is characterized by four variables:
+    `qobj`, `targets`, `tlist` and `coeff`.
+
+    For documentation and use instruction of the attributes, please
+    refer to :class:`qutip.qip.Pulse`.
     """
     def __init__(self, qobj, targets, tlist=None, coeff=None):
         self.qobj = qobj
@@ -25,7 +30,7 @@ class _EvoElement():
     def get_qobj(self, dims):
         """
         Get the `Qobj` representation of the element. If `qobj` is None,
-        an zero :class:`qutip.Qobj` with the according dimension is
+        a zero :class:`qutip.Qobj` with the corresponding dimension is
         returned.
 
         Parameters
@@ -52,7 +57,7 @@ class _EvoElement():
 
     def _get_qobjevo_helper(self, spline_kind, dims):
         """
-        Please refer to `Pulse.get_qobjevo` for documentation.
+        Please refer to `_Evoelement.get_qobjevo` for documentation.
         """
         mat = self.get_qobj(dims)
         if self.tlist is None and self.coeff is None:
@@ -84,7 +89,8 @@ class _EvoElement():
         """
         Get the `QobjEvo` representation of the evolution element.
         If both `tlist` and `coeff` are None, treated as zero matrix.
-        If `coeff=True`, treated as time-independent operator.
+        If ``coeff=True`` and ``tlist=None``,
+        treated as time-independent operator.
 
         Parameters
         ----------
@@ -178,7 +184,7 @@ class Pulse():
     ideal_pulse: :class:`qutip.qip.pulse._EvoElement`
         The ideal dynamic of the control pulse.
     coherent_noise: list of :class:`qutip.qip.pulse._EvoElement`
-        The coherent noise of the control pulse. Each dynamic element is
+        The coherent noise caused by the control pulse. Each dynamic element is
         still characterized by a time-dependent Hamiltonian.
     lindblad_noise: list of :class:`qutip.qip.pulse._EvoElement`
         The dissipative noise of the control pulse. Each dynamic element
@@ -528,6 +534,10 @@ def _find_common_tlist(qobjevo_list):
         return None
     full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
     return full_tlist
+
+########################################################################
+# These functions are moved here from qutip.qip.device.processor.py
+########################################################################
 
 
 def _merge_qobjevo(qobjevo_list, full_tlist=None):
