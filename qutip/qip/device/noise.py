@@ -3,7 +3,7 @@ from collections.abc import Iterable
 import numpy as np
 from numpy.random import normal
 from qutip.qobjevo import QobjEvo, EvoElement
-from qutip.qip.ops.gates import expand_operator
+from qutip.qip.operations.gates import expand_operator
 from qutip.qobj import Qobj
 from qutip.operators import sigmaz, destroy, identity
 from qutip.tensor import tensor

@@ -348,7 +348,7 @@ def entangling_power(U):
     if U.dims != [[2, 2], [2, 2]]:
         raise Exception("U must be a two-qubit gate.")
 
-    from qutip.qip.ops.gates import swap
+    from qutip.qip.operations.gates import swap
     a = (tensor(U, U).dag() * swap(N=4, targets=[1, 3]) *
          tensor(U, U) * swap(N=4, targets=[1, 3]))
     b = (tensor(swap() * U, swap() * U).dag() * swap(N=4, targets=[1, 3]) *

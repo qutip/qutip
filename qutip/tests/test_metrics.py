@@ -57,7 +57,7 @@ from qutip.random_objects import (
 )
 from qutip.qobj import Qobj
 from qutip.superop_reps import to_super, to_choi
-from qutip.qip.ops.gates import hadamard_transform, swap
+from qutip.qip.operations.gates import hadamard_transform, swap
 from qutip.tensor import tensor
 from qutip.metrics import *
 

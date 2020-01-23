@@ -39,7 +39,7 @@ import numpy as np
 from qutip.qip.device.processor import Processor
 from qutip.states import basis
 from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
-from qutip.qip.ops.gates import hadamard_transform
+from qutip.qip.operations.gates import hadamard_transform
 from qutip.tensor import tensor
 from qutip.solver import Options
 from qutip.random_objects import rand_ket, rand_dm

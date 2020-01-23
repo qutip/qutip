@@ -36,8 +36,10 @@ from functools import wraps as _func_wrap
 
 import qutip.qip.circuit as circuit
 import qutip.qip.qubits as qubits
-import qutip.qip.ops.gates as gates
+import qutip.qip.operations.gates as gates
 
+
+__all__ = circuit.__all__ + qubits.__all__ + gates.__all__
 
 # modules that are wrapped with deprecation warning
 module_list = [gates, circuit, qubits]
@@ -52,7 +54,7 @@ def _qip_importation_warning():
         "Importing functions/classes of the qip submodule directly from "
         "the namespace qutip is deprecated. "
         "Please import them from the submodule instead, e.g.\n"
-        "from qutip.qip.ops import cnot\n"
+        "from qutip.qip.operations import cnot\n"
         "from qutip.qip.circuit import QubitCircuit\n",
         DeprecationWarning, stacklevel=3)
 
