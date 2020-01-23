@@ -41,5 +41,5 @@ def _qip_importation_warning():
         "Importing functions/classes of the qip submodule directly from "
         "the namespace qutip is deprecated. "
         "Please import them from the submodule instead, e.g.\n"
-        "from qutip.qip.ops.gates import cnot",
+        "from qutip.qip import cnot",
         DeprecationWarning, stacklevel=3)

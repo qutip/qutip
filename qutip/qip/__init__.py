@@ -30,8 +30,9 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import qutip.qip.ops
+import qutip.qip.device
 from qutip.qip.ops import *
-from qutip.qip.algorithms import *
 from qutip.qip.circuit import *
 from qutip.qip.qubits import *
 from qutip.qip.device import *
