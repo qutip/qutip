@@ -34,6 +34,6 @@ import warnings
 
 from qutip.qip.ops.gates import *
 warnings.warn(
-    "The gates module has been moved to qutip.qip.ops.gates. "
-    "Importation from qutip.qip.gates will be deprecated.",
+    "Importation from qutip.qip.gates is deprecated."
+    "Please use e.g.\n from qutip.qip.ops import cnot",
     DeprecationWarning)
