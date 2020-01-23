@@ -545,7 +545,7 @@ class Qobj(object):
                 out.superrep = self.superrep
                 return out.tidyup() if settings.auto_tidyup else out
 
-            elif self.shape[1] ==1 and other.shape[0] == 1:
+            elif self.shape[1] == 1 and other.shape[0] == 1:
                 out = Qobj()
                 out.data = self.data * other.data
                 out.dims = [self.dims[0], other.dims[1]]
