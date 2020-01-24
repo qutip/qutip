@@ -60,6 +60,7 @@ from itertools import product
 
 
 def stack_ket(kets):
+    # TODO: speedup, Qobj to dense to Qobj, probably slow
     out = np.zeros((kets[0].shape[0], len(kets)), dtype=complex)
     for i, ket in enumerate(kets):
         out[:,i] = ket.full().ravel()
@@ -121,7 +122,7 @@ class SESolver(Solver):
         if isinstance(cache_level, str):
             cache_level = cache_level.casefold()
 
-        if cache_level in ["full", "Full", 4]:
+        if cache_level in [4, "full"]:
             # Cache safe up to propagators
             self._cache_level = 4
         elif cache_level in [3, True, "state", "states", "psi", "rho"]:
@@ -130,7 +131,7 @@ class SESolver(Solver):
         elif cache_level in [2, "state only"]:
             # Cache only states
             self._cache_level = 2
-        elif cache_level in [a, "expect"]:
+        elif cache_level in [1, "expect"]:
             # Cache safe up to propagators
             self._cache_level = 1
         elif cache_level in [0, False, None, "none"]:
@@ -139,100 +140,154 @@ class SESolver(Solver):
         else:
             raise ValueError("cache_level must be one of 'full', 'state', "
                              "'state only', 'expect', 'none'")
+        if self.has_dyn_args and self._cache_level == 4:
+            # With feedback, the propagator is not valid
+            self._cache_level = 3
 
     def optimization(self, **optimizations):
         raise NotImplementedError
 
 
-    def propagator(self, args, tlist):
-        (_, args, tlist), (_, num_args, nt) = \
-            self._check_input([], args_sets, tlist)
+    def propagator(self, t, args=None, dtype="Qobj", starts=None):
+        # TODO: With feedback, the propagator is not valid
+        # Raise error is self.has_dyn_args?
+        args_sets, num_args = self._fix_input_args(args)
+        tlist, num_t = self._fix_input_time(t)
 
-        self._options.store_states = 1
-        computed_state = [qeye(self._size)]
-        values = list(product(computed_state, args_sets))
+        run_set = []
+        run_idx = []
+        res = [None] * len(args_sets)
+        for i, arg in enumerate(args_sets):
+            prop, times, past, futur = self._cache.get_prop(arg, tlist)
+            if past.size > 0:
+                # some prop are missing at times before t0.
+                prop, t = self._cache.first_after(np.max(past))
+                run_set.append([arg, past, prop, t])
+                run_idx.append(i)
+            if futur.size > 0:
+                prop, t = self._cache.last_before(np.min(futur))
+                run_set.append([arg, futur, prop, t])
+                run_idx.append(i)
+            if times > 0:
+                res[i] = [prop, times]
+            else:
+                res[i] = []
 
-        normalize_func = normalize_inplace
-        if not self._options.normalize_output:
-            normalize_func = False
+        runs = self._run_sets(run_set)
+        for i, run in zip(run_idx, runs):
+            res[i].append(run)
 
-        if progress_bar is True:
-            progress_bar = TextProgressBar()
-        if len(values) == 1:
-            map_func = serial_map
-        map_kwargs = {'progress_bar': progress_bar,
-                      'num_cpus': self.options.num_cpus}
+        results = self._clean(arg_set, 2)
+        if starts is not None:
+            results = self._dprop(results, tlist, starts)
+        else:
+            results = self._sort_by_times(results, tlist, 2)
 
-        results = map_func(self._one_run_oper, values,
-                           (normalize_func,), **map_kwargs)
+        if dtype == "Qobj":
+            results = [[Qobj(mat) for mat in timeline] for timeline in results]
+        elif dtype == "sparse":
+            results = [[csr_matrix(mat) for mat in timeline]
+                       for timeline in results]
+        if num_t == 1:
+            results = [res_set[0] for res_set in results]
+        if num_args == 1:
+            results = results[0]
+        return results
 
-        prop = np.empty((num_args, nt), dtype=object)
-        for args_n, (states, _) in enumerate(results):
-            prop[args_n, :] = [Qobj(data=dense2D_to_fastcsr_fmode(state),
-                                   dims=computed_state[0].dims, fast="mc")
-                               for state in states]
-        if nt == 0: states_out.squeeze(axis=1)
-        if len(states_out.shape) == 1 and num_args == 0:
-            states_out = states_out[0]
-        elif num_args == 0:
-            states_out.squeeze(axis=0)
-        return prop
+    def state(self, t, state0=None, args=None, sets=None, dtype="Qobj"):
+        """
+        Give the state at time t given an initial state0 at t=0.
+        If the Hamiltonian is defined with arguments, the default can be
+        overwritten.
 
-    def state(self, tlist=None, psi0=None, args=None, sets=None):
-        if tlist is None and self._tlist0 is None:
-            raise TypeError(run expect a tlist kwargs )
-        elif tlist is None:
-            tlist = self._tlist0
-        if e_ops is None:
-            e_ops = self._e_ops0
+        t, state0, args can be list:
+            results[a, s, t] = state(t, state0[s], args[a])
+
+        Alternatively "sets = [(state0, args),...]" will provide the evolution
+        for each (state0, args) pairs.
+
+        """
+        if sets is not None:
+            return self._get_sets(t, sets, dtype)
+
+        tlist, num_t = self._fix_input_time(t)
+        state, num_state = self._fix_input_state(state0)
+        args, num_args = self._fix_input_args(args)
+
+        run_set = []
+        run_idx = []
+        res = []
+        if num_state >= self.shape[0]/2 and self._cache_level >= 4:
+            # Evolve propagators to compute state from them.
+            # Calling 'propagator' will automatically cache them.
+            self.propagator(tlist, args, dtype="")
+
+        for i, arg in enumerate(args_sets):
+            res.append([None] * len(num_state))
+            for j, state in enumerate(state):
+                prop, times, past, futur = \
+                    self._cache.get_state(arg, state, tlist)
+                if past.size > 0:
+                    state_f, t = self._cache.first_after(np.max(past))
+                    run_set.append([arg, state, past, state_f, t])
+                    run_idx.append((i,j))
+                if futur.size > 0:
+                    state_l, t = self._cache.last_before(np.min(futur))
+                    run_set.append([arg, state, futur, state_l, t])
+                    run_idx.append((i,j))
+                if times > 0:
+                    res[i][j] = [prop, times]
+                else:
+                    res[i][j] = []
+
+        runs = self._run_sets(run_set)
+        for (i, j), run in zip(run_idx, runs):
+            res[i][j].append(run)
+
+        results = self._clean_res(arg_set, 3)
+        results = self._sort_by_times(results, tlist, 3)
+        results = self._apply_type(results, dtype, 3)
+
+        if num_t == 1:
+            results = [res_set[0] for res_set in results]
+        if num_args == 1:
+            results = results[0]
+        return results
+
+    def expect(self, t, state0=None, args=None, e_ops=None, sets=None):
+        if self.cache_level <= 1:
+            return self._raw_expect(t, state0, args, e_ops, sets)
+
+        # Compute and save states.
+        self.state(t, state0, args)
 
         if sets is not None:
-            return self._run_sets(sets, tlist, e_ops)
+            return self._get_sets(t, sets, dtype)
 
-        if psi0 is None:
-            psi0 = self._psi0
-        if args is None:
-            args = self._args0
+        tlist, num_t = self._fix_input_time(t)
+        e_ops, num_e_ops = self._fix_input_e_ops(e_ops)
+        states, num_state = self._fix_input_state(state)
+        args_sets, num_args = self._fix_input_args(args)
 
-        if isinstance(psi0, list) or isinstance(args, list):
-            if not isinstance(psi0, list):
-                psi0 = [psi0]
-            if not isinstance(args, list):
-                args = [args]
-            res = self._run_batch(psi0, args, tlist, e_ops)
-        else:
-            res = self._run_single(psi0, args, tlist, e_ops)
-        return res
+        res = []
+        for arg in args_sets:
+            one_args = []
+            for state in states:
+                one_state0 = []
+                for e_op in e_ops:
+                    exp, times, past, futur = \
+                        self._cache.get_state(arg, state, e_op, tlist)
+                    if past.size > 0 or futur.size > 0:
+                        raise Exception("Should be empty...")
+                    one_state0.append(exp if num_t > 1 else exp[0])
+                one_args.append(one_state0 if num_e_ops > 1 else one_state0[0])
+            res.append(one_args if num_state > 1 else one_args[0])
+        expects = np.array(res)
+        if num_args == 1:
+            expects = expects[0]
+        return expects
 
-    def expect(self, e_op=None, psi=None, args=None, tlist=None, sets=None):
-        (psi, args, tlist), (num_states, num_args, nt) = \
-             self._check_input(psis, args_sets, tlist)
-
-        if progress_bar is True:
-         progress_bar = TextProgressBar()
-        map_kwargs = {'progress_bar': progress_bar,
-                   'num_cpus': self.options.num_cpus}
-
-        if self._with_state:
-             state, expect = self._batch_run_ket(states, args_sets,
-                                                 map_func, map_kwargs, 0)
-        elif (num_states > vec_len):
-             state, expect = self._batch_run_prop_ket(states, args_sets,
-                                                      map_func, map_kwargs, 0)
-        elif num_states >= 2:
-             state, expect = self._batch_run_merged_ket(states, args_sets,
-                                                        map_func, map_kwargs, 0)
-        else:
-             state, expect = self._batch_run_ket(states, args_sets,
-                                                 map_func, map_kwargs, 0)
-
-        if nt == 0: expect.squeeze(axis=2)
-        if num_args == 0: expect.squeeze(axis=1)
-        if num_states == 0: expect.squeeze(axis=0)
-
-        return expect
-
-    def plot_expect(e_op=None, psi=None, args=None, tlist=None, sets=None,
+    def plot_expect(self, tlist, psi0=None, args=None, e_op=None, sets=None,
                     fig=None):
         pass
 
@@ -254,7 +309,7 @@ class SESolver(Solver):
             res = self._run_batch_merged(states, args, tlist, e_ops)
         return res
 
-    def _run_sets(self, sets, tlist, e_ops):
+    def _get_sets(self, sets, tlist, e_ops):
         for psi0, args in sets:
             res.append(self._run_single(tlist, psi0, e_ops, args))
         # TODO: merge results
@@ -275,6 +330,18 @@ class SESolver(Solver):
 
         return states_out, expect_out
 
+
+    def _fix_input_args
+    def _fix_input_time
+    def _fix_input_state
+    def _fix_input_e_ops
+
+    def _dprop
+    def _run_sets
+
+    def _clean
+    def _sort_by_times
+    def __apply_type
 
     def _one_run_ket_loop(self, run_data):
         solver = self.get_solver(progress_bar=None)

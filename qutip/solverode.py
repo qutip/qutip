@@ -497,6 +497,9 @@ class _SolverCache:
             expects = self[(args, psi, e_ops, times)][2:4]
         return expects
 
+    def first_after
+    def last_before
+
 
 class dummy_parent:
     def __getitem__(self, args):
