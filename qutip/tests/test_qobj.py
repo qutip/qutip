@@ -431,6 +431,13 @@ def test_CheckMulType():
 
     assert bra2.dag() == ket2
 
+    # bra and ket multiplication with different dims
+    zero = basis(2, 0)
+    zero_log = tensor(zero, zero, zero)
+    op1 = zero_log * zero.dag()
+    op2 = zero * zero_log.dag()
+    assert op1 == op2.dag()
+
     # superoperator-operket and operbra-superoperator multiplication
     sop = to_super(sigmax())
     opket1 = operator_to_vector(fock_dm(2))
