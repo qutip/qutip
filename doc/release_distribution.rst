@@ -188,7 +188,7 @@ The html documentation will be in a subfolder like ::
 
     docs/<MAJOR>.<MINOR>
 
-- copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this.
+- copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this. https://qutip/qutip.github.io/blob/master/docs/remove_leading_underscores.py
 
 
 HTML file updates
