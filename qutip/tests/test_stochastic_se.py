@@ -30,6 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import pytest
 import numpy as np
 from numpy.testing import assert_,  run_module_suite
 
@@ -39,6 +40,8 @@ from qutip import (ssesolve, destroy, coherent, mesolve, fock, qeye,
 def f(t, args):
     return args["a"] * t
 
+
+@pytest.mark.slow
 def test_ssesolve_homodyne_methods():
     "Stochastic: ssesolve: homodyne methods with single jump operator"
 
@@ -185,6 +188,7 @@ def test_ssesolve_homodyne():
                  for m in res.measurement]))
 
 
+@pytest.mark.slow
 def test_ssesolve_heterodyne():
     "Stochastic: ssesolve: heterodyne, time-dependent H"
     tol = 0.01
