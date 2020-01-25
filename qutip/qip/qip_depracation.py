@@ -34,19 +34,15 @@ import warnings
 import inspect
 from functools import wraps as _func_wrap
 
-import qutip.qip.circuit as circuit
-import qutip.qip.qubits as qubits
-import qutip.qip.operations.gates as gates
+from . import circuit
+from . import qubits
+from .operations import gates
 
 
 __all__ = circuit.__all__ + qubits.__all__ + gates.__all__
 
 # modules that are wrapped with deprecation warning
 module_list = [gates, circuit, qubits]
-
-# Deprecation warning is by default ignored if not in the main workspace,
-# this forces it to show up.
-warnings.simplefilter('once', DeprecationWarning)
 
 
 def _qip_importation_warning():
@@ -69,7 +65,7 @@ def _qip_func_wrapper(func):
 
 
 for module in module_list:
-#  Wrap all qip functions with a deprecation warning
+# Wrap all qip functions with a deprecation warning
     _func_pairs = inspect.getmembers(module, inspect.isfunction)
     for _name, _func in _func_pairs:
         locals()[_name] = _qip_func_wrapper(_func)
@@ -93,7 +89,7 @@ def _qip_class_wrapper(original_cls):
     return Deprecated_cls
 
 
-#  Wrap all qip classes with a deprecation warning
+# Wrap all qip classes with a deprecation warning
 for module in module_list:
     _cls_pairs = inspect.getmembers(module, inspect.isclass)
     for _name, _cls in _cls_pairs:
