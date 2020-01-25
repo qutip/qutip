@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+import pytest
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 
@@ -41,6 +41,8 @@ from qutip import (smesolve, mesolve, photocurrent_mesolve, liouvillian,
 def f(t, args):
     return args["a"] * t
 
+
+@pytest.mark.slow
 def test_smesolve_homodyne_methods():
     "Stochastic: smesolve: homodyne methods with single jump operator"
 
@@ -130,6 +132,7 @@ def test_smesolve_homodyne_methods():
     assert_(np.all(sol.noise[0,:,:,:] == sol2.noise[1,:,:,:]))
     assert_(np.all(sol.noise[1,:,:,:] == sol2.noise[0,:,:,:]))
 
+
 def test_smesolve_photocurrent():
     "Stochastic: photocurrent_mesolve"
     tol = 0.01
@@ -156,6 +159,7 @@ def test_smesolve_photocurrent():
     assert_(len(res.measurement) == ntraj)
     assert_(all([m.shape == (len(times), len(sc_ops))
                  for m in res.measurement]))
+
 
 def test_smesolve_homodyne():
     "Stochastic: smesolve: homodyne, time-dependent H"
@@ -195,6 +199,8 @@ def test_smesolve_homodyne():
         assert_(all([m.shape == (len(times), len(sc_ops))
                      for m in res.measurement]))
 
+
+@pytest.mark.slow
 def test_smesolve_heterodyne():
     "Stochastic: smesolve: heterodyne, time-dependent H"
     tol = 0.01
@@ -233,6 +239,8 @@ def test_smesolve_heterodyne():
         assert_(all([m.shape == (len(times), len(sc_ops), 2)
                      for m in res.measurement]))
 
+
+@pytest.mark.slow
 def test_general_stochastic():
     "Stochastic: general_stochastic"
     "Reproduce smesolve homodyne"

@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-
+import pytest
 import numpy as np
 
 from qutip import _version2int
@@ -59,7 +59,6 @@ def test_compare_solvers_coherent_state_legacy():
     """
     correlation: legacy me and es for oscillator in coherent initial state
     """
-
     N = 20
     a = destroy(N)
     H = a.dag() * a
@@ -83,7 +82,6 @@ def test_compare_solvers_coherent_state_mees():
     """
     correlation: comparing me and es for oscillator in coherent initial state
     """
-
     N = 20
     a = destroy(N)
     H = a.dag() * a
@@ -101,11 +99,11 @@ def test_compare_solvers_coherent_state_mees():
     assert_(max(abs(corr1 - corr2)) < 1e-4)
 
 
+@pytest.mark.slow
 def test_compare_solvers_coherent_state_memc():
     """
     correlation: comparing me and mc for driven oscillator in fock state
     """
-
     N = 2
     a = destroy(N)
     H = a.dag() * a + a + a.dag()
@@ -129,7 +127,6 @@ def test_compare_solvers_steadystate_legacy():
     """
     correlation: legacy me and es for oscillator in steady-state
     """
-
     N = 20
     a = destroy(N)
     H = a.dag() * a
@@ -152,7 +149,6 @@ def test_compare_solvers_steadystate():
     """
     correlation: comparing me and es for oscillator in steady-state
     """
-
     N = 20
     a = destroy(N)
     H = a.dag() * a
@@ -175,7 +171,6 @@ def test_spectrum_espi_legacy():
     """
     correlation: legacy spectrum from es and pi methods
     """
-
     # use JC model
     N = 4
     wc = wa = 1.0 * 2 * np.pi
@@ -205,7 +200,6 @@ def test_spectrum_esfft():
     """
     correlation: comparing spectrum from es and fft methods
     """
-
     # use JC model
     N = 4
     wc = wa = 1.0 * 2 * np.pi
@@ -236,7 +230,6 @@ def test_spectrum_espi():
     """
     correlation: comparing spectrum from es and pi methods
     """
-
     # use JC model
     N = 4
     wc = wa = 1.0 * 2 * np.pi
@@ -265,7 +258,6 @@ def test_H_str_list_td_corr():
     """
     correlation: comparing TLS emission corr., H td (str-list td format)
     """
-
     # calculate emission zero-delay second order correlation, g2[0], for TLS
     # with following parameters:
     #   gamma = 1, omega = 2, tp = 0.5
@@ -301,7 +293,6 @@ def test_H_np_list_td_corr():
     """
     correlation: comparing TLS emission corr., H td (np-list td format)
     """
-
     #from qutip.rhs_generate import rhs_clear
 
     #rhs_clear()
@@ -341,7 +332,6 @@ def test_H_fn_list_td_corr():
     """
     correlation: comparing TLS emission corr., H td (fn-list td format)
     """
-
     # calculate emission zero-delay second order correlation, g2[0], for TLS
     # with following parameters:
     #   gamma = 1, omega = 2, tp = 0.5
@@ -377,7 +367,6 @@ def test_H_fn_td_corr():
     """
     correlation: comparing TLS emission corr., H td (fn td format)
     """
-
     # calculate emission zero-delay second order correlation, g2[0], for TLS
     # with following parameters:
     #   gamma = 1, omega = 2, tp = 0.5
@@ -413,11 +402,11 @@ def test_H_fn_td_corr():
 
 
 #@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
+@pytest.mark.slow
 def test_c_ops_str_list_td_corr():
     """
     correlation: comparing 3LS emission corr., c_ops td (str-list td format)
     """
-
     # calculate zero-delay HOM cross-correlation, for incoherently pumped
     # 3LS ladder system g2ab[0]
     # with following parameters:
@@ -457,11 +446,11 @@ def test_c_ops_str_list_td_corr():
 
 
 #@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
+@pytest.mark.slow
 def test_np_str_list_td_corr():
     """
     correlation: comparing 3LS emission corr., c_ops td (np-list td format)
     """
-
     # calculate zero-delay HOM cross-correlation, for incoherently pumped
     # 3LS ladder system g2ab[0]
     # with following parameters:
@@ -504,7 +493,6 @@ def test_c_ops_fn_list_td_corr():
     """
     correlation: comparing 3LS emission corr., c_ops td (fn-list td format)
     """
-
     # calculate zero-delay HOM cross-correlation, for incoherently pumped
     # 3LS ladder system g2ab[0]
     # with following parameters:
@@ -546,11 +534,11 @@ def test_c_ops_fn_list_td_corr():
 
 
 #@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
+@pytest.mark.slow
 def test_str_list_td_corr():
     """
     correlation: comparing TLS emission corr. (str-list td format)
     """
-
     # both H and c_ops are time-dependent
 
     # calculate emission zero-delay second order correlation, g2[0], for TLS
@@ -589,7 +577,6 @@ def test_np_list_td_corr():
     """
     correlation: comparing TLS emission corr. (np-list td format)
     """
-
     # both H and c_ops are time-dependent
 
     # calculate emission zero-delay second order correlation, g2[0], for TLS
@@ -628,7 +615,6 @@ def test_fn_list_td_corr():
     """
     correlation: comparing TLS emission corr. (fn-list td format)
     """
-
     # both H and c_ops are time-dependent
 
     # calculate emission zero-delay second order correlation, g2[0], for TLS
@@ -666,7 +652,7 @@ def test_fn_list_td_corr():
     assert_(abs(g20 - 0.85) < 1e-2)
 
 
-def test_fn_list_td_corr():
+def test_fn_list_td_corr2():
     """
     correlation: multi time-dependent factor
     """

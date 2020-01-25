@@ -33,9 +33,15 @@
 from qutip.about import about
 from qutip import settings as qset
 
-def run():
+def run(full=False):
     """
     Run the test scripts for QuTiP.
+
+    Parameters
+    ----------
+    full: bool
+        If True run all test (30 min). Otherwise skip few variants of the
+        slowest tests.
     """
     # Call about to get all version info printed with tests
     about()
@@ -48,8 +54,11 @@ def run():
         qset.num_cpus = 2
         qset.openmp_thresh = 100
 
-    pytest.main(["--verbosity=1",
-                "--disable-pytest-warnings", "--pyargs", "qutip"])
+    test_options = ["--verbosity=1", "--disable-pytest-warnings", "--pyargs"]
+    if not full:
+        test_options += ['-m', 'not slow']
+    pytest.main(test_options + ["qutip"])
+    # runs tests in qutip.tests module only
 
     # Restore previous settings
     if qset.has_openmp:
