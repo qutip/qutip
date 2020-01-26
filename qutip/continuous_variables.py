@@ -168,7 +168,8 @@ def correlation_matrix_quadrature(a1, a2, rho=None, g=sqrt(2)):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default value `hbar=1`. 
+        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default
+        value `hbar=1`. 
 
     Returns
     -------
@@ -221,7 +222,8 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=sqrt(2)):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default value `hbar=1`. 
+        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default 
+        value `hbar=1`. 
 
     Returns
     -------
@@ -273,7 +275,8 @@ def logarithmic_negativity(V, g=sqrt(2)):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default value `hbar=1`. 
+        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default 
+        value `hbar=1`. 
 
     Returns
     -------
