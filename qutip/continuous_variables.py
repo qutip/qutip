@@ -151,7 +151,7 @@ def correlation_matrix_field(a1, a2, rho=None):
     return correlation_matrix(basis, rho)
 
 
-def correlation_matrix_quadrature(a1, a2, rho=None):
+def correlation_matrix_quadrature(a1, a2, rho=None, g=sqrt(2)):
     """
     Calculate the quadrature correlation matrix with given field operators
     :math:`a_1` and :math:`a_2`. If a density matrix is given the expectation
@@ -165,6 +165,10 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
         Field operator for mode 2.
     rho : Qobj
         Density matrix for which to calculate the covariance matrix.
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        The value of `g` is related to the value of `hbar` in the commutation 
+        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default value `hbar=1`. 
 
     Returns
     -------
@@ -174,17 +178,17 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
         or, if rho=0, a matrix of operators.
 
     """
-    x1 = (a1 + a1.dag()) / np.sqrt(2)
-    p1 = -1j * (a1 - a1.dag()) / np.sqrt(2)
-    x2 = (a2 + a2.dag()) / np.sqrt(2)
-    p2 = -1j * (a2 - a2.dag()) / np.sqrt(2)
+    x1 = (a1 + a1.dag()) / g
+    p1 = -1j * (a1 - a1.dag()) / g
+    x2 = (a2 + a2.dag()) / g
+    p2 = -1j * (a2 - a2.dag()) / g
 
     basis = [x1, p1, x2, p2]
 
     return correlation_matrix(basis, rho)
 
 
-def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
+def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=sqrt(2)):
     """
     Calculates the Wigner covariance matrix
     :math:`V_{ij} = \\frac{1}{2}(R_{ij} + R_{ji})`, given
@@ -214,6 +218,11 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     rho : Qobj
         Density matrix for which to calculate the covariance matrix.
 
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        The value of `g` is related to the value of `hbar` in the commutation 
+        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default value `hbar=1`. 
+
     Returns
     -------
     cov_mat : ndarray
@@ -234,10 +243,10 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     elif a1 is not None and a2 is not None:
 
         if rho is not None:
-            x1 = (a1 + a1.dag()) / np.sqrt(2)
-            p1 = -1j * (a1 - a1.dag()) / np.sqrt(2)
-            x2 = (a2 + a2.dag()) / np.sqrt(2)
-            p2 = -1j * (a2 - a2.dag()) / np.sqrt(2)
+            x1 = (a1 + a1.dag()) / g
+            p1 = -1j * (a1 - a1.dag()) / g
+            x2 = (a2 + a2.dag()) / g
+            p2 = -1j * (a2 - a2.dag()) / g
             return covariance_matrix([x1, p1, x2, p2], rho)
         else:
             raise ValueError("Must give rho if using field operators " +
@@ -248,7 +257,7 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
                          "or a precomputed correlation matrix (R)")
 
 
-def logarithmic_negativity(V):
+def logarithmic_negativity(V, g=sqrt(2)):
     """
     Calculates the logarithmic negativity given a symmetrized covariance
     matrix, see :func:`qutip.continous_variables.covariance_matrix`. Note that
@@ -261,6 +270,11 @@ def logarithmic_negativity(V):
     V : *2d array*
         The covariance matrix.
 
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        The value of `g` is related to the value of `hbar` in the commutation 
+        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default value `hbar=1`. 
+
     Returns
     -------
 
@@ -270,9 +284,9 @@ def logarithmic_negativity(V):
 
     """
 
-    A = V[0:2, 0:2]
-    B = V[2:4, 2:4]
-    C = V[0:2, 2:4]
+    A = 0.5 * V[0:2, 0:2] * g ** 2
+    B = 0.5 * V[2:4, 2:4] * g ** 2
+    C = 0.5 * V[0:2, 2:4] * g ** 2
 
     sigma = np.linalg.det(A) + np.linalg.det(B) - 2 * np.linalg.det(C)
     nu_ = sigma / 2 - np.sqrt(sigma ** 2 - 4 * np.linalg.det(V)) / 2
