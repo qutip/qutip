@@ -215,7 +215,8 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         The value of `g` is related to the value of `hbar` in the commutation
-        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default value `hbar=1`.
+        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default
+        value `hbar=1`.
 
     method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
         Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw'
@@ -568,7 +569,8 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         The value of `g` is related to the value of `hbar` in the commutation
-        relation `[x, y] = 1j * hbar` via `hbar=2/g^2` giving the default value `hbar=1`.
+        relation `[x, y] = 1j * hbar` via `hbar=2/g^2` giving the default
+        value `hbar=1`.
 
 
     Returns
