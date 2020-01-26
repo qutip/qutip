@@ -151,7 +151,7 @@ def correlation_matrix_field(a1, a2, rho=None):
     return correlation_matrix(basis, rho)
 
 
-def correlation_matrix_quadrature(a1, a2, rho=None, g=sqrt(2)):
+def correlation_matrix_quadrature(a1, a2, rho=None, g=np.sqrt(2)):
     """
     Calculate the quadrature correlation matrix with given field operators
     :math:`a_1` and :math:`a_2`. If a density matrix is given the expectation
@@ -189,7 +189,7 @@ def correlation_matrix_quadrature(a1, a2, rho=None, g=sqrt(2)):
     return correlation_matrix(basis, rho)
 
 
-def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=sqrt(2)):
+def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=np.sqrt(2)):
     """
     Calculates the Wigner covariance matrix
     :math:`V_{ij} = \\frac{1}{2}(R_{ij} + R_{ji})`, given
@@ -259,7 +259,7 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=sqrt(2)):
                          "or a precomputed correlation matrix (R)")
 
 
-def logarithmic_negativity(V, g=sqrt(2)):
+def logarithmic_negativity(V, g=np.sqrt(2)):
     """
     Calculates the logarithmic negativity given a symmetrized covariance
     matrix, see :func:`qutip.continous_variables.covariance_matrix`. Note that
