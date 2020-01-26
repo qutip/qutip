@@ -37,7 +37,7 @@ from numpy.testing import assert_, run_module_suite, assert_allclose
 
 from qutip.qip.gates import gate_sequence_product
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.cqed import DispersivecQED
+from qutip.qip.device.cavityqed import DispersiveCavityQED
 from qutip.random_objects import rand_ket
 from qutip.metrics import fidelity
 from qutip.operators import sigmaz, sigmax
@@ -52,7 +52,7 @@ class Testcqed:
     resonator-qubit models.
     """
 
-    def test_dispersivecqed_ISWAP(self):
+    def test_DispersiveCavityQED_ISWAP(self):
         """
         Dispersive cQED Setup: compare unitary matrix for ISWAP and propogator
         matrix of the implemented physical model.
@@ -63,14 +63,14 @@ class Testcqed:
         qc1.add_gate("ISWAP", targets=[0, 1])
         U_ideal = gate_sequence_product(qc1.propagators())
 
-        p = DispersivecQED(N, correct_global_phase=True)
+        p = DispersiveCavityQED(N, correct_global_phase=True)
         U_list = p.run(qc1)
         U_physical = gate_sequence_product(U_list)
 
         print((U_ideal - U_physical).norm())
         assert_((U_ideal - U_physical).norm() < 1e-2)
 
-    def skip_dispersivecqed_SQRTISWAP(self):
+    def skip_DispersiveCavityQED_SQRTISWAP(self):
         """
         Dispersive cQED Setup: compare unitary matrix for SQRTISWAP and
         propogator matrix of the implemented physical model.
@@ -81,14 +81,14 @@ class Testcqed:
         qc1.add_gate("SQRTISWAP", targets=[0, 1])
         U_ideal = gate_sequence_product(qc1.propagators())
 
-        p = DispersivecQED(N, correct_global_phase=True)
+        p = DispersiveCavityQED(N, correct_global_phase=True)
         U_list = p.run(qc1)
         U_physical = gate_sequence_product(U_list)
 
         print((U_ideal - U_physical).norm())
         assert_((U_ideal - U_physical).norm() < 1e-4)
 
-    def test_dispersivecqed_combination(self):
+    def test_DispersiveCavityQED_combination(self):
         """
         Dispersive cQED Setup: compare unitary matrix for ISWAP, SQRTISWAP,
         RX and RY gates and the propogator matrix of the implemented physical
@@ -102,7 +102,7 @@ class Testcqed:
         qc1.add_gate("RX", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[0])
         U_ideal = gate_sequence_product(qc1.propagators())
 
-        p = DispersivecQED(N, correct_global_phase=True)
+        p = DispersiveCavityQED(N, correct_global_phase=True)
         U_list = p.run(qc1)
         U_physical = gate_sequence_product(U_list)
 
@@ -125,12 +125,12 @@ class Testcqed:
         init_state.dims = [[2]*N, [1]*N]
         rho1 = gate_sequence_product([init_state] + qc.propagators())
 
-        p = DispersivecQED(N, correct_global_phase=True)
+        p = DispersiveCavityQED(N, correct_global_phase=True)
         U_list = p.run_state(init_state=init_state, qc=qc, analytical=True)
         result = gate_sequence_product(U_list)
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-2,
-            err_msg="Analytical run_state fails in DispersivecQED")
+            err_msg="Analytical run_state fails in DispersiveCavityQED")
 
     def test_numerical_evo(self):
         """
@@ -145,7 +145,7 @@ class Testcqed:
         # qc.add_gate("SQRTISWAP", targets=[0, 2])
 
         with warnings.catch_warnings(record=True):
-            test = DispersivecQED(N, g=0.1)
+            test = DispersiveCavityQED(N, g=0.1)
         tlist, coeff = test.load_circuit(qc)
 
         # test numerical run_state
@@ -158,7 +158,7 @@ class Testcqed:
             options=Options(store_final_state=True, nsteps=50000)).final_state
         assert_allclose(
             fidelity(result, tensor(basis(10, 0), qu1)), 1., rtol=1e-2,
-            err_msg="Numerical run_state fails in DispersivecQED")
+            err_msg="Numerical run_state fails in DispersiveCavityQED")
 
 
 if __name__ == "__main__":

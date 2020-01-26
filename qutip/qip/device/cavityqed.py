@@ -47,10 +47,10 @@ from qutip.qip.compiler.gatecompiler import GateCompiler
 from qutip.qip.compiler import CavityQEDCompiler
 
 
-__all__ = ['DispersivecQED']
+__all__ = ['DispersiveCavityQED']
 
 
-class DispersivecQED(ModelProcessor):
+class DispersiveCavityQED(ModelProcessor):
     """
     The processor based on the physical implementation of
     a dispersive cavity QED system.
@@ -134,7 +134,7 @@ class DispersivecQED(ModelProcessor):
                  num_levels=10, deltamax=1.0,
                  epsmax=9.5, w0=10., wq=None, eps=9.5,
                  delta=0.0, g=0.01, t1=None, t2=None):
-        super(DispersivecQED, self).__init__(
+        super(DispersiveCavityQED, self).__init__(
             N, correct_global_phase=correct_global_phase,
             t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
@@ -228,17 +228,17 @@ class DispersivecQED(ModelProcessor):
         -----
         All parameters will be multiplied by 2*pi for simplicity
         """
-        sx_para = super(DispersivecQED, self)._para_list(deltamax, N)
+        sx_para = super(DispersiveCavityQED, self)._para_list(deltamax, N)
         self._paras["sx"] = sx_para
-        sz_para = super(DispersivecQED, self)._para_list(epsmax, N)
+        sz_para = super(DispersiveCavityQED, self)._para_list(epsmax, N)
         self._paras["sz"] = sz_para
         w0 = w0 * 2 * np.pi
         self._paras["w0"] = w0
-        eps = super(DispersivecQED, self)._para_list(eps, N)
+        eps = super(DispersiveCavityQED, self)._para_list(eps, N)
         self._paras["eps"] = eps
-        delta = super(DispersivecQED, self)._para_list(delta, N)
+        delta = super(DispersiveCavityQED, self)._para_list(delta, N)
         self._paras["delta"] = delta
-        g = super(DispersivecQED, self)._para_list(g, N)
+        g = super(DispersiveCavityQED, self)._para_list(g, N)
         self._paras["g"] = g
 
         # computed
