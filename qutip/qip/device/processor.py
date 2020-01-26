@@ -171,7 +171,7 @@ class Processor(object):
             self.drift.add_ham(ham, targets)
 
     def add_control(self, ham, targets=None, cyclic_permutation=False,
-                    It takes the pulses defined in the `Processor` andlabel=None):
+                    label=None):
         """
         Add a control Hamiltonian to the processor. It creates a new
         :class:`qutip.qip.Pulse`

@@ -38,14 +38,16 @@ from qutip.operators import tensor, identity, destroy, sigmax, sigmaz
 from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.device.processor import Processor
-from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
+from qutip.qip.device.modelprocessor import ModelProcessor
 from qutip.qip.gates import expand_operator
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.qip.pulse import Pulse
+from qutip.qip.compiler.gatecompiler import GateCompiler
+from qutip.qip.compiler import CavityQEDCompiler
 
 
-__all__ = ['DispersivecQED', 'CQEDGateDecomposer']
+__all__ = ['DispersivecQED']
 
 
 class DispersivecQED(ModelProcessor):
@@ -333,7 +335,7 @@ class DispersivecQED(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
 
-        dec = CQEDGateDecomposer(
+        dec = CavityQEDCompiler(
             self.N, self._paras, self.wq, self.Delta,
             global_phase=0., num_ops=len(self.ctrls))
         tlist, self.coeffs, self.global_phase = dec.decompose(gates)
@@ -346,152 +348,3 @@ class DispersivecQED(ModelProcessor):
         # but change the below line to np.ones leads to test error.
         self.coeffs[0] = self._paras["w0"] * np.zeros(len(tlist))
         return tlist, self.coeffs
-
-
-class CQEDGateDecomposer(GateDecomposer):
-    """
-    Decompose a :class:`qutip.QubitCircuit` into
-    the pulse sequence for the processor.
-
-    Parameters
-    ----------
-    N: int
-        The number of qubits in the system.
-
-    params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
-
-    wq: list of float
-        The frequency of the qubits calculated from
-        eps and delta for each qubit.
-
-    Delta: list of float
-        The detuning with repect to w0 calculated
-        from wq and w0 for each qubit.
-
-    global_phase: bool
-        Record of the global phase change and will be returned.
-
-    num_ops: int
-        Number of Hamiltonians in the processor.
-
-    Attributes
-    ----------
-    N: int
-        The number of the component systems.
-
-    params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
-
-    num_ops: int
-        Number of control Hamiltonians in the processor.
-
-    gate_decomps: dict
-        The Python dictionary in the form of {gate_name: decompose_function}.
-        It saves the decomposition scheme for each gate.
-    """
-    def __init__(self, N, params, wq, Delta, global_phase, num_ops):
-        super(CQEDGateDecomposer, self).__init__(
-            N=N, params=params, num_ops=num_ops)
-        self.gate_decomps = {"ISWAP": self.iswap_dec,
-                             "SQRTISWAP": self.sqrtiswap_dec,
-                             "RZ": self.rz_dec,
-                             "RX": self.rx_dec,
-                             "GLOBALPHASE": self.globalphase_dec
-                             }
-        self._sx_ind = list(range(1, N + 1))
-        self._sz_ind = list(range(N + 1, 2*N + 1))
-        self._g_ind = list(range(2*N + 1, 3*N + 1))
-        self.wq = wq
-        self.Delta = Delta
-        self.global_phase = global_phase
-
-    def decompose(self, gates):
-        tlist, coeffs = super(CQEDGateDecomposer, self).decompose(gates)
-        return tlist, coeffs, self.global_phase
-
-    def rz_dec(self, gate):
-        """
-        Decomposer for the RZ gate
-        """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sz"][q_ind]
-        pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-    def rx_dec(self, gate):
-        """
-        Decomposer for the RX gate
-        """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sx"][q_ind]
-        pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-    def sqrtiswap_dec(self, gate):
-        """
-        Decomposer for the SQRTISWAP gate
-
-        Notes
-        -----
-        This version of sqrtiswap_dec has very low fidelity, please use
-        iswap
-        """
-        # FIXME This decomposition has poor behaviour
-        pulse = np.zeros(self.num_ops)
-        q1, q2 = gate.targets
-        pulse[self._sz_ind[q1]] = self.wq[q1] - self.params["w0"]
-        pulse[self._sz_ind[q2]] = self.wq[q2] - self.params["w0"]
-        pulse[self._g_ind[q1]] = self.params["g"][q1]
-        pulse[self._g_ind[q2]] = self.params["g"][q2]
-        J = self.params["g"][q1] * self.params["g"][q2] * (
-            1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
-        t = (4 * np.pi / abs(J)) / 8
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-        # corrections
-        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4)
-        self.rz_dec(gate1)
-        gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/4)
-        self.rz_dec(gate2)
-        gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/4)
-        self.globalphase_dec(gate3)
-
-    def iswap_dec(self, gate):
-        """
-        Decomposer for the ISWAP gate
-        """
-        pulse = np.zeros(self.num_ops)
-        q1, q2 = gate.targets
-        pulse[self._sz_ind[q1]] = self.wq[q1] - self.params["w0"]
-        pulse[self._sz_ind[q2]] = self.wq[q2] - self.params["w0"]
-        pulse[self._g_ind[q1]] = self.params["g"][q1]
-        pulse[self._g_ind[q2]] = self.params["g"][q2]
-        J = self.params["g"][q1] * self.params["g"][q2] * (
-            1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
-        t = (4 * np.pi / abs(J)) / 4
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-        # corrections
-        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/2.)
-        self.rz_dec(gate1)
-        gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/2)
-        self.rz_dec(gate2)
-        gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/2)
-        self.globalphase_dec(gate3)
-
-    def globalphase_dec(self, gate):
-        """
-        Decomposer for the GLOBALPHASE gate
-        """
-        self.global_phase += gate.arg_value

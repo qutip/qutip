@@ -35,11 +35,13 @@ from qutip.operators import sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
-from qutip.qip.device.modelprocessor import ModelProcessor, GateDecomposer
+from qutip.qip.device.modelprocessor import ModelProcessor
 from qutip.qip.pulse import Pulse
+from qutip.qip.compiler.gatecompiler import GateCompiler
+from qutip.qip.compiler.spinchaincompiler import SpinChainCompiler
 
-__all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain',
-           'SpinChainGateDecomposer']
+
+__all__ = ['SpinChain', 'LinearSpinChain', 'CircularSpinChain']
 
 
 class SpinChain(ModelProcessor):
@@ -215,7 +217,7 @@ class SpinChain(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
 
-        dec = SpinChainGateDecomposer(
+        dec = SpinChainCompiler(
             self.N, self._paras, setup=setup,
             global_phase=0., num_ops=len(self.ctrls))
         tlist, self.coeffs, self.global_phase = dec.decompose(gates)
@@ -244,6 +246,9 @@ class SpinChain(ModelProcessor):
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
+        # FIXME This huge block has been here for a long time.
+        # It could be moved to the new compiler section and carefully
+        # splitted into smaller peaces.
         qc_t = QubitCircuit(qc.N, qc.reverse_states)
         swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                       "SWAPalpha"]
@@ -607,131 +612,3 @@ class CircularSpinChain(SpinChain):
 
     def adjacent_gates(self, qc):
         return super(CircularSpinChain, self).adjacent_gates(qc, "circular")
-
-
-class SpinChainGateDecomposer(GateDecomposer):
-    """
-    Decompose a :class:`qutip.QubitCircuit` into
-    the pulse sequence for the processor.
-
-    Parameters
-    ----------
-    N: int
-        The number of qubits in the system.
-
-    params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
-
-    setup: string
-        "linear" or "circular" for two sub-calsses.
-
-    global_phase: bool
-        Record of the global phase change and will be returned.
-
-    num_ops: int
-        Number of Hamiltonians in the processor.
-
-    Attributes
-    ----------
-    N: int
-        The number of the component systems.
-
-    params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
-
-    num_ops: int
-        Number of control Hamiltonians in the processor.
-
-    gate_decomps: dict
-        The Python dictionary in the form of {gate_name: decompose_function}.
-        It saves the decomposition scheme for each gate.
-
-    setup: string
-        "linear" or "circular" for two sub-calsses.
-
-    global_phase: bool
-        Record of the global phase change and will be returned.
-    """
-    def __init__(self, N, params, setup, global_phase, num_ops):
-        super(SpinChainGateDecomposer, self).__init__(
-            N=N, params=params, num_ops=num_ops)
-        self.gate_decomps = {"ISWAP": self.iswap_dec,
-                             "SQRTISWAP": self.sqrtiswap_dec,
-                             "RZ": self.rz_dec,
-                             "RX": self.rx_dec,
-                             "GLOBALPHASE": self.globalphase_dec
-                             }
-        self.N = N
-        self._sx_ind = list(range(0, N))
-        self._sz_ind = list(range(N, 2*N))
-        if setup == "circular":
-            self._sxsy_ind = list(range(2*N, 3*N))
-        elif setup == "linear":
-            self._sxsy_ind = list(range(2*N, 3*N-1))
-        self.global_phase = global_phase
-
-    def decompose(self, gates):
-        tlist, coeffs = super(SpinChainGateDecomposer, self).decompose(gates)
-        return tlist, coeffs, self.global_phase
-
-    def rz_dec(self, gate):
-        """
-        Decomposer for the RZ gate
-        """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sz"][q_ind]
-        pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-    def rx_dec(self, gate):
-        """
-        Decomposer for the RX gate
-        """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sx"][q_ind]
-        pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-    def iswap_dec(self, gate):
-        """
-        Decomposer for the ISWAP gate
-        """
-        pulse = np.zeros(self.num_ops)
-        q1, q2 = min(gate.targets), max(gate.targets)
-        g = self.params["sxsy"][q1]
-        if q1 == 0 and q2 == self.N - 1:
-            pulse[self._sxsy_ind[self.N - 1]] = -g
-        else:
-            pulse[self._sxsy_ind[q1]] = -g
-        t = np.pi / (4 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-    def sqrtiswap_dec(self, gate):
-        """
-        Decomposer for the SQRTISWAP gate
-        """
-        pulse = np.zeros(self.num_ops)
-        q1, q2 = min(gate.targets), max(gate.targets)
-        g = self.params["sxsy"][q1]
-        if q1 == 0 and q2 == self.N - 1:
-            pulse[self._sxsy_ind[self.N - 1]] = -g
-        else:
-            pulse[self._sxsy_ind[q1]] = -g
-        t = np.pi / (8 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
-
-    def globalphase_dec(self, gate):
-        """
-        Decomposer for the GLOBALPHASE gate
-        """
-        self.global_phase += gate.arg_value
