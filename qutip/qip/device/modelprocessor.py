@@ -55,8 +55,8 @@ class ModelProcessor(Processor):
     The processor can simulate the evolution under the given
     control pulses either numerically or analytically.
     It cannot be used alone, please refer to the sub-classes.
-    (Only additional attributes are documented here, others please
-    refer to the parent class :class:`qutip.qip.Processor`)
+    (Only additional attributes are documented here, for others please
+    refer to the parent class :class:`qutip.qip.device.Processor`)
 
     Parameters
     ----------

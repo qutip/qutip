@@ -56,8 +56,8 @@ class DispersivecQED(ModelProcessor):
     For a given pulse amplitude matrix, the processor can
     calculate the state evolution under the given control pulse,
     either analytically or numerically.
-    (Only additional attributes are documented here, others please
-    refer to the parent class :class:`qutip.qip.ModelProcessor`)
+    (Only additional attributes are documented here, for others please
+    refer to the parent class :class:`qutip.qip.device.ModelProcessor`)
 
     Parameters
     ----------

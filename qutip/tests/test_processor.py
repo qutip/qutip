@@ -53,18 +53,18 @@ from qutip.qip.pulse import Pulse
 class TestCircuitProcessor:
     def test_modify_ctrls(self):
         """
-        Test for modifying Hamiltonian, add_ctrl_ham, remove_pulse
+        Test for modifying Hamiltonian, add_control, remove_pulse
         """
         N = 2
         proc = Processor(N=N)
         proc.ctrls
-        proc.add_ctrl_ham(sigmaz())
+        proc.add_control(sigmaz())
         assert_(tensor([sigmaz(), identity(2)]), proc.ctrls[0])
-        proc.add_ctrl_ham(sigmax(), cyclic_permutation=True)
+        proc.add_control(sigmax(), cyclic_permutation=True)
         assert_allclose(len(proc.ctrls), 3)
         assert_allclose(tensor([sigmax(), identity(2)]), proc.ctrls[1])
         assert_allclose(tensor([identity(2), sigmax()]), proc.ctrls[2])
-        proc.add_ctrl_ham(sigmay(), targets=1)
+        proc.add_control(sigmay(), targets=1)
         assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[3])
         proc.remove_pulse([0, 1, 2])
         assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[0])
@@ -76,11 +76,11 @@ class TestCircuitProcessor:
         Test for saving and reading a pulse matrix
         """
         proc = Processor(N=2)
-        proc.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
+        proc.add_control(sigmaz(), cyclic_permutation=True)
         proc1 = Processor(N=2)
-        proc1.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
+        proc1.add_control(sigmaz(), cyclic_permutation=True)
         proc2 = Processor(N=2)
-        proc2.add_ctrl_ham(sigmaz(), cyclic_permutation=True)
+        proc2.add_control(sigmaz(), cyclic_permutation=True)
         # TODO generalize to different tlist
         tlist = [0., 0.1, 0.2, 0.3, 0.4, 0.5]
         amp1 = np.arange(0, 5, 1)
@@ -171,7 +171,7 @@ class TestCircuitProcessor:
         # step_func
         tlist = np.linspace(0., 2*np.pi, 20)
         processor = Processor(N=1, spline_kind="step_func")
-        processor.add_ctrl_ham(sigmaz())
+        processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
         processor.plot_pulses()
@@ -180,7 +180,7 @@ class TestCircuitProcessor:
         # cubic spline
         tlist = np.linspace(0., 2*np.pi, 20)
         processor = Processor(N=1, spline_kind="cubic")
-        processor.add_ctrl_ham(sigmaz())
+        processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
         processor.plot_pulses()
@@ -194,7 +194,7 @@ class TestCircuitProcessor:
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
         processor = Processor(N=1, spline_kind="step_func")
-        processor.add_ctrl_ham(sigmaz())
+        processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = coeff
 
@@ -210,7 +210,7 @@ class TestCircuitProcessor:
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
         processor = Processor(N=1, spline_kind="cubic")
-        processor.add_ctrl_ham(sigmaz())
+        processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = coeff
 
@@ -227,7 +227,7 @@ class TestCircuitProcessor:
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
         processor = Processor(N=1)
-        processor.add_ctrl_ham(sigmaz())
+        processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = coeff
 
@@ -259,7 +259,7 @@ class TestCircuitProcessor:
 
         # with amplitude noise
         processor = Processor(N=1, spline_kind="cubic")
-        processor.add_ctrl_ham(sigmaz())
+        processor.add_control(sigmaz())
         tlist = np.linspace(1, 6, int(5/0.2))
         coeff = np.random.rand(len(tlist))
         processor.pulses[0].tlist = tlist
@@ -286,7 +286,7 @@ class TestCircuitProcessor:
         tlist = np.array([0., np.pi/2.])
         a = destroy(2)
         proc = Processor(N=2)
-        proc.add_ctrl_ham(sigmax(), targets=1)
+        proc.add_control(sigmax(), targets=1)
         proc.pulses[0].tlist = tlist
         proc.pulses[0].coeff = np.array([1])
         result = proc.run_state(init_state=init_state)
@@ -314,7 +314,7 @@ class TestCircuitProcessor:
         """
         N = 2
         proc = Processor(N=N, dims=[2, 3])
-        proc.add_ctrl_ham(tensor(sigmaz(), rand_dm(3, density=1.)))
+        proc.add_control(tensor(sigmaz(), rand_dm(3, density=1.)))
         proc.pulses[0].coeff = np.array([1, 2])
         proc.pulses[0].tlist = np.array([0., 1., 2])
         proc.run_state(init_state=tensor([basis(2, 0), basis(3, 1)]))
@@ -324,7 +324,7 @@ class TestCircuitProcessor:
         Test for the drift Hamiltonian
         """
         processor = Processor(N=1)
-        processor.add_drift_ham(sigmaz(), 0)
+        processor.add_drift(sigmaz(), 0)
         tlist = np.array([0., 1., 2.])
         processor.add_pulse(Pulse(identity(2), 0, tlist, False))
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)

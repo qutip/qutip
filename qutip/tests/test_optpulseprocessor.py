@@ -65,8 +65,8 @@ class TestOptPulseProcessor:
         num_tslots = 10
         evo_time = 10
         test = OptPulseProcessor(N)
-        test.add_drift_ham(H_d, targets=0)
-        test.add_ctrl_ham(H_c, targets=0)
+        test.add_drift(H_d, targets=0)
+        test.add_control(H_c, targets=0)
         tlist, coeffs = test.load_circuit(
             qc, num_tslots=num_tslots, evo_time=evo_time, verbose=True)
 
@@ -77,7 +77,7 @@ class TestOptPulseProcessor:
         assert_allclose(fidelity(result.states[-1], plus), 1, rtol=1.0e-6)
 
         # test add/remove ctrl
-        test.add_ctrl_ham(sigmay())
+        test.add_control(sigmay())
         test.remove_pulse(0)
         assert_(
             len(test.pulses) == 1,
@@ -99,8 +99,8 @@ class TestOptPulseProcessor:
         num_tslots = 30
         evo_time = 10
         test = OptPulseProcessor(N)
-        test.add_drift_ham(H_d, [0, 1, 2])
-        test.add_ctrl_ham(tensor([sigmax(), sigmax()]),
+        test.add_drift(H_d, [0, 1, 2])
+        test.add_control(tensor([sigmax(), sigmax()]),
                           cyclic_permutation=True)
         # test periodically adding ctrls
         sx = sigmax()
@@ -110,8 +110,8 @@ class TestOptPulseProcessor:
         assert_(Qobj(tensor([sx, iden, sx])) in test.ctrls)
         assert_(Qobj(tensor([iden, sx, sx])) in test.ctrls)
         assert_(Qobj(tensor([sx, sx, iden])) in test.ctrls)
-        test.add_ctrl_ham(sigmax(), cyclic_permutation=True)
-        test.add_ctrl_ham(sigmay(), cyclic_permutation=True)
+        test.add_control(sigmax(), cyclic_permutation=True)
+        test.add_control(sigmay(), cyclic_permutation=True)
 
         # test pulse genration for cnot gate, with kwargs
         qc = [tensor([identity(2), cnot()])]
@@ -140,10 +140,10 @@ class TestOptPulseProcessor:
         H_c = []
 
         test = OptPulseProcessor(N)
-        test.add_drift_ham(H_d, [0, 1])
-        test.add_ctrl_ham(sigmax(), cyclic_permutation=True)
-        test.add_ctrl_ham(sigmay(), cyclic_permutation=True)
-        test.add_ctrl_ham(tensor([sigmay(), sigmay()]))
+        test.add_drift(H_d, [0, 1])
+        test.add_control(sigmax(), cyclic_permutation=True)
+        test.add_control(sigmay(), cyclic_permutation=True)
+        test.add_control(tensor([sigmay(), sigmay()]))
 
         # qubits circuit with 3 gates
         setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},

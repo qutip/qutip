@@ -18,7 +18,7 @@ __all__ = ["Noise", "DecoherenceNoise", "RelaxationNoise",
 
 
 def process_noise(pulses, noise_list, dims, t1=None, t2=None,
-                  ind_device_noise=False):
+                  device_noise=False):
     """
     Apply noise to the input list of pulses. It does not modify the input
     pulse, but return a new one containing the noise.
@@ -39,7 +39,7 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
     t2: list of float, optional
         Characterize the decoherence of dephasing for
         each qubit. A list of size `N` or a float for all qubits.
-    ind_device_noise: bool
+    device_noise: bool
         If pulse independent noise such as relaxation are included.
         Default is False.
 
@@ -51,7 +51,7 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
     # first the control pulse with noise,
     # then additional pulse independent noise.
     noisy_pulses = process_pulse_noise(pulses, noise_list, dims)
-    if ind_device_noise:
+    if device_noise:
         noisy_pulses += process_device_noise(noise_list, dims, t1, t2)
     return noisy_pulses
 
@@ -128,7 +128,7 @@ def process_pulse_noise(pulses, noise_list, dims):
 class Noise(object):
     """
     The base class representing noise in a processor.
-    The noise object can be added to :class:`qutip.qip.Processor` and
+    The noise object can be added to :class:`qutip.qip.device.Processor` and
     contributes to evolution.
     """
     def __init__(self):

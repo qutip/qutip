@@ -141,7 +141,7 @@ class Processor(object):
             self.dims = dims
         self.spline_kind = spline_kind
 
-    def add_drift_ham(self, ham, targets, cyclic_permutation=False):
+    def add_drift(self, ham, targets, cyclic_permutation=False):
         """
         Add one Hamiltonian to the drift Hamiltonians
 
@@ -170,8 +170,8 @@ class Processor(object):
         else:
             self.drift.add_ham(ham, targets)
 
-    def add_ctrl_ham(self, ham, targets=None, cyclic_permutation=False,
-                     label=None):
+    def add_control(self, ham, targets=None, cyclic_permutation=False,
+                    It takes the pulses defined in the `Processor` andlabel=None):
         """
         Add a control Hamiltonian to the processor. It creates a new
         :class:`qutip.qip.Pulse`
@@ -463,22 +463,22 @@ class Processor(object):
             self.coeffs = data[:, 1:].T
             return self.get_full_tlist, self.coeffs
 
-    def get_noisy_pulses(self, ind_device_noise=False, ind_drift=False):
+    def get_noisy_pulses(self, device_noise=False, drift=False):
         """
         It takes the pulses defined in the `Processor` and
-        add noise according to `Processor.noise`. It does not modify the
-        pulses saved in `Processor.pulses` but return a new list.
+        adds noise according to `Processor.noise`. It does not modify the
+        pulses saved in `Processor.pulses` but returns a new list.
         The length of the new list of noisy pulses might be longer
         because of drift Hamiltonian and device noise. They will be
         added to the end of the pulses list.
 
         Parameters
         ----------
-        ind_device_noise: bool, optional
-            If include pulse independent noise such as single qubit
+        device_noise: bool, optional
+            If true, include pulse independent noise such as single qubit
             Relaxation. Default is False.
-        ind_drift: bool, optional
-            If include drift Hamiltonians. Default is False.
+        drift: bool, optional
+            If true, include drift Hamiltonians. Default is False.
 
         Returns
         -------
@@ -489,8 +489,8 @@ class Processor(object):
         pulses = deepcopy(self.pulses)
         noisy_pulses = process_noise(
             pulses, self.noise, self.dims, t1=self.t1, t2=self.t2,
-            ind_device_noise=ind_device_noise)
-        if ind_drift:
+            device_noise=device_noise)
+        if drift:
             noisy_pulses += [self.drift]
         return noisy_pulses
 
@@ -529,7 +529,7 @@ class Processor(object):
             dynamics = self.pulses
         else:
             dynamics = self.get_noisy_pulses(
-                ind_device_noise=True, ind_drift=True)
+                device_noise=True, drift=True)
 
         qu_list = []
         c_ops = []
@@ -651,8 +651,7 @@ class Processor(object):
         """
         if states is not None:
             warnings.warn(
-                "states will be deprecated and replaced by init_state"
-                "to be consistent with the QuTiP solver.",
+                "states will be deprecated and replaced by init_state",
                 DeprecationWarning)
         if init_state is None and states is None:
             raise ValueError("Qubit state not defined.")

@@ -58,7 +58,7 @@ class OptPulseProcessor(Processor):
     The processor can simulate the evolution under the given
     control pulses using :func:`qutip.mesolve`.
     (For attributes documentation, please
-    refer to the parent class :class:`qutip.qip.ModelProcessor`)
+    refer to the parent class :class:`qutip.qip.device.Processor`)
 
     Parameters
     ----------
@@ -114,9 +114,9 @@ class OptPulseProcessor(Processor):
         qc.add_gate('CNOT', controls=1, targets=[0])
 
         processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
-        processor.add_ctrl_ham(sigmax(), cyclic_permutation=True)
-        processor.add_ctrl_ham(sigmay(), cyclic_permutation=True)
-        processor.add_ctrl_ham(tensor([sigmay(), sigmay()]))
+        processor.add_control(sigmax(), cyclic_permutation=True)
+        processor.add_control(sigmay(), cyclic_permutation=True)
+        processor.add_control(tensor([sigmay(), sigmay()]))
         setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
                         "SWAP": {"num_tslots": 30, "evo_time": 3},
                         "CNOT": {"num_tslots": 30, "evo_time": 3}}
