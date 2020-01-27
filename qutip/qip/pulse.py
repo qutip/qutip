@@ -458,21 +458,21 @@ class Drift():
 
     Parameters
     ----------
-    ham: :class:`qutip.Qobj` or list of :class:`qutip.Qobj`, optional
-        The drift Hamiltonian.
+    qobj: :class:`qutip.Qobj` or list of :class:`qutip.Qobj`, optional
+        The drift Hamiltonians.
 
     Attributes
     ----------
-    ham: :class:`qutip.Qobj` or list of :class:`qutip.Qobj`
+    qobj: :class:`qutip.Qobj` or list of :class:`qutip.Qobj`
         A list of the the drift Hamiltonians.
     """
-    def __init__(self, ham=None):
-        if ham is None:
-            self.drift_hams = []
-        elif isinstance(ham, list):
-            self.drift_hams = ham
+    def __init__(self, qobj=None):
+        if qobj is None:
+            self.drift_hamiltonians = []
+        elif isinstance(qobj, list):
+            self.drift_hamiltonians = qobj
         else:
-            self.drift_hams = [ham]
+            self.drift_hamiltonians = [qobj]
 
     def add_ham(self, qobj, targets):
         """
@@ -486,7 +486,7 @@ class Drift():
             target qubits of the collapse operator
             (or subquantum system of other dimensions).
         """
-        self.drift_hams.append(_EvoElement(qobj, targets))
+        self.drift_hamiltonians.append(_EvoElement(qobj, targets))
 
     def get_ideal_qobjevo(self, dims):
         """
@@ -504,9 +504,9 @@ class Drift():
         ideal_evo: :class:`qutip.QobjEvo`
             A `QobjEvo` representing the drift evolution.
         """
-        if not self.drift_hams:
-            self.drift_hams = [_EvoElement(None, None)]
-        qu_list = [QobjEvo(evo.get_qobj(dims)) for evo in self.drift_hams]
+        if not self.drift_hamiltonians:
+            self.drift_hamiltonians = [_EvoElement(None, None)]
+        qu_list = [QobjEvo(evo.get_qobj(dims)) for evo in self.drift_hamiltonians]
         return _merge_qobjevo(qu_list)
 
     def get_noisy_qobjevo(self, dims):
