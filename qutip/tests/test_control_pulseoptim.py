@@ -54,7 +54,7 @@ from numpy.testing import (
 from scipy.optimize import check_grad
 
 from qutip import Qobj, identity, sigmax, sigmay, sigmaz, tensor
-from qutip.qip import hadamard_transform
+from qutip.qip.operations.gates import hadamard_transform
 from qutip.qip.algorithms import qft
 import qutip.control.optimconfig as optimconfig
 import qutip.control.dynamics as dynamics

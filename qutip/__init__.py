@@ -229,8 +229,13 @@ from qutip.scattering import *
 from qutip.lattice import *
 from qutip.topology import *
 
+########################################################################
+# This section exists only for the deprecation warning of qip importation.
+# It can be deleted for a major release.
+
 # quantum information
 from qutip.qip import *
+########################################################################
 
 # utilities
 from qutip.parallel import *
