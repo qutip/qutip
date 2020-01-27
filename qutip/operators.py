@@ -48,7 +48,7 @@ import scipy
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.fastsparse import fast_csr_matrix, fast_identity
-from qutip.dimensions import flatten, type_from_dims
+from qutip.dimensions import flatten
 
 #
 # Spin operators
@@ -450,11 +450,7 @@ def _implicit_tensor_dimensions(dimensions):
     flat = flatten(dimensions)
     if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
         raise ValueError("All dimensions must be integers >= 0")
-    dimensions = [dimensions, dimensions]
-    if type_from_dims(dimensions) not in ['oper', 'super']:
-        raise TypeError("`dimensions` must be a valid single dimension of a "
-                        "'oper' or 'super' Qobj.")
-    return np.prod(flat), dimensions
+    return np.prod(flat), [dimensions, dimensions]
 
 
 def qzero(dimensions):

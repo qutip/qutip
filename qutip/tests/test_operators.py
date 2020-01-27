@@ -130,8 +130,8 @@ def test_create():
         (qutip.qzero, lambda x: np.zeros((x, x), dtype=complex)),
         (qutip.qeye, lambda x: np.eye(x, dtype=complex)),
     ])
-def test_simple_operator_creation(to_test, expected):
-    dimension = 5
+@pytest.mark.parametrize("dimension", [1, 5, 100])
+def test_simple_operator_creation(to_test, expected, dimension):
     qobj = to_test(dimension)
     assert np.allclose(qobj.full(), expected(dimension))
 
@@ -141,6 +141,9 @@ def test_simple_operator_creation(to_test, expected):
         2,
         [2],
         [2, 3, 4],
+        1,
+        [1],
+        [1, 1],
     ])
 def test_implicit_tensor_creation(to_test, dimensions):
     implicit = to_test(dimensions)
