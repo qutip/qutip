@@ -47,7 +47,7 @@ import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.ui.progressbar import BaseProgressBar
 from qutip.control.cy_grape import cy_overlap, cy_grape_inner
-from qutip.qip.gates import gate_sequence_product
+from qutip.qip.operations.gates import gate_sequence_product
 
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()

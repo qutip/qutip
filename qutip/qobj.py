@@ -545,6 +545,12 @@ class Qobj(object):
                 out.superrep = self.superrep
                 return out.tidyup() if settings.auto_tidyup else out
 
+            elif self.shape[1] == 1 and other.shape[0] == 1:
+                out = Qobj()
+                out.data = self.data * other.data
+                out.dims = [self.dims[0], other.dims[1]]
+                return out.tidyup() if settings.auto_tidyup else out
+
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
@@ -1365,7 +1371,7 @@ class Qobj(object):
         q = Qobj()
         q.data, q.dims = _permute(self, order)
         q.data.sort_indices()
-        return q.tidyup() if settings.auto_tidyup else q
+        return q
 
     def tidyup(self, atol=settings.auto_tidyup_atol):
         """Removes small elements from the quantum object.

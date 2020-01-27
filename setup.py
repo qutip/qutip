@@ -35,11 +35,9 @@ import sys
 # If the user doesn't have, then that's OK, we'll just skip unit tests.
 try:
     from setuptools import setup, Extension
-    TEST_SUITE = 'nose.collector'
-    TESTS_REQUIRE = ['nose']
     EXTRA_KWARGS = {
-        'test_suite': TEST_SUITE,
-        'tests_require': TESTS_REQUIRE
+        'setup_require': ['pytest-runner'],
+        'tests_require': ['pytest']
     }
 except:
     from distutils.core import setup
@@ -65,6 +63,7 @@ EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip', 'qutip/qip/device',
+            'qutip/qip', 'qutip/qip/device', 'qutip/qip/operations',
             'qutip/qip/compiler',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',

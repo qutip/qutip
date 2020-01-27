@@ -37,7 +37,7 @@ from numpy.testing import (assert_, assert_allclose, assert_array_equal,
                            run_module_suite)
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
-from qutip.qip import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
+from qutip.qip.operations.gates import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
                        sqrtswap, molmer_sorensen,
                        toffoli, fredkin, gate_expand_3toN, 
                        qubit_clifford_group, expand_operator)

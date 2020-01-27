@@ -61,7 +61,7 @@ def is_vectorized_oper(dims):
     )
 
 
-def type_from_dims(dims, enforce_square=True):
+def type_from_dims(dims, enforce_square=False):
     bra_like, ket_like = map(is_scalar, dims)
 
     if bra_like:

@@ -39,7 +39,7 @@ from qutip.states import basis
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor
-from qutip.qip.gates import expand_operator
+from qutip.qip.operations import expand_operator
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.qip.pulse import Pulse

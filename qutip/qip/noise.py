@@ -5,7 +5,7 @@ import numpy as np
 from numpy.random import normal
 
 from qutip.qobjevo import QobjEvo, EvoElement
-from qutip.qip.gates import expand_operator
+from qutip.qip.operations import expand_operator
 from qutip.qobj import Qobj
 from qutip.operators import sigmaz, destroy, identity
 from qutip.tensor import tensor
