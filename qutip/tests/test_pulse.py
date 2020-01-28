@@ -172,7 +172,7 @@ def TestDrift():
     """
     drift = Drift()
     assert_allclose(drift.get_ideal_qobjevo(2).cte.norm(), 0)
-    drift.add_ham(sigmaz(), targets=1)
+    drift.add_drift(sigmaz(), targets=1)
     assert_allclose(
         drift.get_ideal_qobjevo(dims=[3, 2]).cte, tensor(identity(3), sigmaz()))
 

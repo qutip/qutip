@@ -174,7 +174,7 @@ class ModelProcessor(Processor):
         coeffs: array_like
             The transposed pulse matrix
         """
-        return (self.ctrls, self.coeffs.T)
+        return (self.ctrls, self.get_full_coeffs().T)
 
     def pulse_matrix(self):
         """
@@ -188,7 +188,10 @@ class ModelProcessor(Processor):
         dt = 0.01
         H_ops, H_u = self.get_ops_and_u()
 
-        diff_tlist = self.tlist[1:] - self.tlist[:-1]
+        # FIXME This might becomes a problem if new tlist other than
+        # int the default pulses are added.
+        tlist = self.get_full_tlist()
+        diff_tlist = tlist[1:] - tlist[:-1]
         t_tot = sum(diff_tlist)
         n_t = int(np.ceil(t_tot / dt))
         n_ops = len(H_ops)
@@ -221,6 +224,7 @@ class ModelProcessor(Processor):
         fig, ax: Figure
             Maps the physical interaction between the circuit components.
         """
+        # TODO add test
         if noisy is not None:
             return super(ModelProcessor, self).plot_pulses(
                 title=title, noisy=noisy)

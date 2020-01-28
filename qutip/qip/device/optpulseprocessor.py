@@ -65,6 +65,9 @@ class OptPulseProcessor(Processor):
     N: int
         The number of component systems.
 
+    drift: `:class:`qutip.Qobj`
+        The drift Hamiltonian. The size must match the whole quantum system.
+
     t1: list or float
         Characterize the decoherence of amplitude damping for
         each qubit. A list of size `N` or a float for all qubits.
@@ -78,9 +81,11 @@ class OptPulseProcessor(Processor):
         Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
     """
-    def __init__(self, N, t1=None, t2=None, dims=None):
+    def __init__(self, N, drift=None, t1=None, t2=None, dims=None):
         super(OptPulseProcessor, self).__init__(
             N, t1=t1, t2=t2, dims=dims)
+        if drift is not None:
+            self.add_drift(drift, list(range(N)))
         self.spline_kind = "step_func"
 
     def load_circuit(self, qc, min_fid_err=np.inf, merge_gates=True,

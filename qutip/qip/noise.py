@@ -448,10 +448,7 @@ class RandomNoise(ControlAmpNoise):
     def __init__(
             self, dt, rand_gen, indices=None, **kwargs):
         super(RandomNoise, self).__init__(coeff=None, tlist=None)
-        if rand_gen is None:
-            self.rand_gen = np.random.normal
-        else:
-            self.rand_gen = rand_gen
+        self.rand_gen = rand_gen
         self.kwargs = kwargs
         if "size" in kwargs:
             raise ValueError("size is preditermined inside the noise object.")

@@ -141,24 +141,24 @@ class Processor(object):
             self.dims = dims
         self.spline_kind = spline_kind
 
-    def add_drift(self, ham, targets, cyclic_permutation=False):
+    def add_drift(self, qobj, targets, cyclic_permutation=False):
         """
         Add one Hamiltonian to the drift Hamiltonians
 
         Parameters
         ----------
-        ham: :class:`qutip.Qobj`
+        qobj: :class:`qutip.Qobj`
             The drift Hamiltonian.
         targets: list
             The indices of the target qubits
             (or subquantum system of other dimensions).
         """
-        if not isinstance(ham, Qobj):
+        if not isinstance(qobj, Qobj):
             raise TypeError("The drift Hamiltonian must be a qutip.Qobj.")
-        if not ham.isherm:
+        if not qobj.isherm:
             raise ValueError("The drift Hamiltonian must be Hermitian.")
 
-        num_qubits = len(ham.dims[0])
+        num_qubits = len(qobj.dims[0])
         if targets is None:
             targets = list(range(num_qubits))
         if not isinstance(targets, list):
@@ -166,11 +166,11 @@ class Processor(object):
         if cyclic_permutation:
             for i in range(self.N):
                 temp_targets = [(t + i) % self.N for t in targets]
-                self.drift.add_ham(ham, temp_targets)
+                self.drift.add_drift(qobj, temp_targets)
         else:
-            self.drift.add_ham(ham, targets)
+            self.drift.add_drift(qobj, targets)
 
-    def add_control(self, ham, targets=None, cyclic_permutation=False,
+    def add_control(self, qobj, targets=None, cyclic_permutation=False,
                     label=None):
         """
         Add a control Hamiltonian to the processor. It creates a new
@@ -181,7 +181,7 @@ class Processor(object):
 
         Parameters
         ----------
-        ham: :class:`qutip.Qobj`
+        qobj: :class:`qutip.Qobj`
             The Hamiltonian for the control pulse..
 
         targets: list, optional
@@ -196,12 +196,12 @@ class Processor(object):
             The label (name) of the pulse
         """
         # Check validity of ctrl
-        if not isinstance(ham, Qobj):
+        if not isinstance(qobj, Qobj):
             raise TypeError("The control Hamiltonian must be a qutip.Qobj.")
-        if not ham.isherm:
+        if not qobj.isherm:
             raise ValueError("The control Hamiltonian must be Hermitian.")
 
-        num_qubits = len(ham.dims[0])
+        num_qubits = len(qobj.dims[0])
         if targets is None:
             targets = list(range(num_qubits))
         if not isinstance(targets, list):
@@ -213,11 +213,11 @@ class Processor(object):
                     temp_label = label + "_" + str(temp_targets)
                 temp_label = label
                 self.pulses.append(
-                    Pulse(ham, temp_targets, spline_kind=self.spline_kind,
+                    Pulse(qobj, temp_targets, spline_kind=self.spline_kind,
                           label=temp_label))
         else:
             self.pulses.append(
-                Pulse(ham, targets, spline_kind=self.spline_kind, label=label))
+                Pulse(qobj, targets, spline_kind=self.spline_kind, label=label))
 
     @property
     def ctrls(self):
@@ -330,6 +330,8 @@ class Processor(object):
             `Pulse` object to be added.
         """
         if isinstance(pulse, Pulse):
+            if pulse.spline_kind is None:
+                pulse.spline_kind = self.spline_kind
             self.pulses.append(pulse)
         else:
             raise ValueError("Invalid input, pulse must be a Pulse object")
@@ -380,7 +382,7 @@ class Processor(object):
                         "It's either len(tlist)=len(coeff) or "
                         "len(tlist)-1=len(coeff) for coefficients "
                         "as step function".format(i))
-            elif pulse.spline_kind == "cubic":
+            else:
                 if coeff_len == tlist_len:
                     pass
                 else:
@@ -388,8 +390,6 @@ class Processor(object):
                         "The length of tlist and coeff of the pulse "
                         "labelled {} is invalid. "
                         "It should be either len(tlist)=len(coeff)".format(i))
-            else:
-                raise ValueError("Unknown spline_kind.")
         return True
 
     def add_noise(self, noise):
@@ -745,7 +745,7 @@ class Processor(object):
         ax.set_xlabel("Time")
 
         # TODO add test
-        coeffs = self.get_full_coeffs()
+        coeffs = self.coeffs
         tlist = self.get_full_tlist()
 
         for i in range(len(coeffs)):
@@ -753,11 +753,11 @@ class Processor(object):
                 raise ValueError(
                     "plot_pulse only accepts array_like coefficients.")
             if self.spline_kind == "step_func":
-                # if len(coeffs[i]) == len(tlist) - 1:
-                #     coeffs[i] = np.hstack(
-                #         [self.coeffs[i], self.coeffs[i, -1:]])
-                # else:
-                coeffs[i:-1] = coeffs[i:-2]
+                if len(coeffs[i]) == len(tlist) - 1:
+                    coeffs[i] = np.hstack(
+                        [coeffs[i], coeffs[i][-1:]])
+                else:
+                    coeffs[i][-1] = coeffs[i][-2]
                 ax.step(tlist, coeffs[i], where='post')
             elif self.spline_kind == "cubic":
                 sp = CubicSpline(tlist, coeffs[i])

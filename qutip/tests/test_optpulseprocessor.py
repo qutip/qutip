@@ -64,8 +64,7 @@ class TestOptPulseProcessor:
         # test load_circuit, with verbose info
         num_tslots = 10
         evo_time = 10
-        test = OptPulseProcessor(N)
-        test.add_drift(H_d, targets=0)
+        test = OptPulseProcessor(N, drift=H_d)
         test.add_control(H_c, targets=0)
         tlist, coeffs = test.load_circuit(
             qc, num_tslots=num_tslots, evo_time=evo_time, verbose=True)
@@ -82,7 +81,7 @@ class TestOptPulseProcessor:
         assert_(
             len(test.pulses) == 1,
             msg="Method of remove_pulse could be wrong.")
-        assert_allclose(test.drift.drift_hams[0].qobj, H_d)
+        assert_allclose(test.drift.drift_hamiltonians[0].qobj, H_d)
         assert_(
             sigmay() in test.ctrls,
             msg="Method of remove_pulse could be wrong.")

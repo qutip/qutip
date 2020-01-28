@@ -463,7 +463,7 @@ class Drift():
 
     Attributes
     ----------
-    qobj: :class:`qutip.Qobj` or list of :class:`qutip.Qobj`
+    qobj: list of :class:`qutip.Qobj`
         A list of the the drift Hamiltonians.
     """
     def __init__(self, qobj=None):
@@ -474,7 +474,7 @@ class Drift():
         else:
             self.drift_hamiltonians = [qobj]
 
-    def add_ham(self, qobj, targets):
+    def add_drift(self, qobj, targets):
         """
         Add a Hamiltonian to the drift.
 
