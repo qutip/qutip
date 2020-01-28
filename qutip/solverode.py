@@ -443,18 +443,19 @@ class _SolverCacheOneLevel:
 
 
 class _SolverCache:
-    def __init__(self, t_start, dims):
+    def __init__(self, solver):
         self.num_args = 0
         self.args_hash = {}
         self.cached_data = []
-        self.t_start = t_start
-        self.dims = dims
+        self.solver = solver
 
     def _new_cache(self, args):
         funcs = [None, _prop2state, _expect]
         cache = _SolverCacheOneLevel(dummy_parent, args,
                                      funcs, self.t_start, 0)
-        cache[self.t_start] = qeye(self.dims)
+        self.solver.LH.arguments(args)
+        dims = self.solver.dims
+        cache[self.solver.t_start] = qeye(dims[0])
         return cache
 
     def _hashable_args(self, args):

@@ -89,21 +89,58 @@ class SESolver(Solver):
     def __init__(self, H, args=None,
                  tlist=None, state0=None, e_ops=None,
                  options=None, cache_level="state", progress_bar=True):
-        # TODO: split options
-        super().__init__(options, progress_bar)
-
+        # TODO: split options?
         self.H = H
         self._args0 = args if args is not None else {}
         self._tlist0 = tlist
         self._state0 = state0
         self._e_ops0 = e_ops
-
         self._prepare_H()
-        self.prepare_cache(cache_level)
-        self._cache(self._cache_level)
-        self._prepare_solver()
 
-        self.normalize = True
+        self.options = options
+        self.progress_bar = progress_bar
+        self.map_func = map_func
+
+        self.prepare_cache(self)
+        self._cache(self)
+        self.optimization = {"diagonal":False, "period":0}
+        self.solver = None
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, options):
+        if isinstance(options, Options):
+            self._options = options
+            self._prepare_solver()
+        else:
+            raise TypeError("Invalid options")
+
+    @property
+    def map_func(self):
+        return self._map_func
+
+    @map_func.setter
+    def progress_bar(self, map_func):
+        if map_func in [parallel_map, serial_map]:
+            self._map_func = map_func
+        else:
+            self._map_func = parallel_map
+
+    @property
+    def progress_bar(self):
+        return self._progress_bar
+
+    @progress_bar.setter
+    def progress_bar(self, progress_bar):
+        if isinstance(progress_bar, BaseProgressBar):
+            self._progress_bar = progress_bar
+        elif progress_bar:
+            self._progress_bar = TextProgressBar
+        else:
+            self._progress_bar = BaseProgressBar
 
     def _prepare_H(self):
         H_td = -1.0j * qobjevo_maker(H, args=self._args0, tlist=self._tlist0,
@@ -116,7 +153,21 @@ class SESolver(Solver):
         self.has_dyn_args = len(H_td.dynamics_args)
 
     def _prepare_solver(self):
-        pass
+        if self.optimization["diagonal"]:
+            raise NotImplementedError
+        elif self.optimization["period"]:
+            raise NotImplementedError
+        elif self.option.method in ['adams','bdf']:
+            solver = OdeScipyAdam
+        else:
+            solver = OdeScipyIVP
+        self.LH_Solver = solver(self.LH)
+        self.solver = solver
+
+    def _get_solver(self, args, progress_bar=None):
+        solver = self.solver(self.LH, self.options)
+        solver.progress_bar = progress_bar
+        return solver
 
     def prepare_cache(self, cache_level):
         if isinstance(cache_level, str):
@@ -200,7 +251,7 @@ class SESolver(Solver):
                     self._cache.get_state(arg, state, times)
                 if past.size > 0:
                     state_f, t = self._cache.first_after(np.max(past), state)
-                    run_set.append([arg, state, past, state_f, t])
+                    run_set.append([(arg, state), past, state_f, t])
                     run_idx.append((i,j))
                 if futur.size > 0:
                     state_l, t = self._cache.last_before(np.min(futur), state)
@@ -260,7 +311,6 @@ class SESolver(Solver):
 
     def plot_expect(self, tlist, psi0=None, args=None, e_op=None, fig=None):
         pass
-
 
 
     def _fix_input_args(self, args):
@@ -401,7 +451,7 @@ class SESolver(Solver):
             results = [csr_matrix(mat) for mat in results]
         elif dtype == "dense":
             results = [np.array(mat) for mat in results]
-
+        return results
 
     def _prop_core(self, t, args):
         """return [(prop(t), t), ...] for each args
@@ -435,116 +485,33 @@ class SESolver(Solver):
 
     def _raw_expect(self, t, state0=None, args=None, e_ops=None):
 
-    def _run_sets(self, sets):
+    def _run_sets(self, sets, prop=False):
+        if len(sets) == 1:
+            results = [self._run_one(sets)]
+        map_kwargs = {'progress_bar': self.progress_bar,
+                      'num_cpus': self.options.num_cpus}
+        results = self.map_func(self._run_one, sets, **map_kwargs)
+        if self.cache_level >= 4 if prop else 2:
+            for res, run_data in zip(results, sets):
+                set_info, tlist, state0, t0 = *run_data
+                self._cache[(*set_info, tlist)] = res
+        return results
 
+    def _run_one_alone(self, run_data):
+        set_info, tlist, state0, t0 = *run_data
+        self.LH.arguments(set_info[0], state0, self._e_ops0)
+        solver = self.get_solver(progress_bar=self.progress_bar,
+                                 args=set_info[0])
+        return solver(t0, state0, tlist)
 
-    def _run_batch(self, states, args, tlist, e_ops):
-        num_states = len(states)
-        num_args = len(args_sets)
-        vec_len = self.shape[0]
-
-        if self.has_dyn_args or num_states == 1:
-            sets = []
-            for state in states:
-                for arg in args:
-                    sets.append((state, arg))
-            res = self._run_sets(sets, tlist, e_ops)
-        elif (num_states >= vec_len):
-            res = self._run_batch_prop(states, args, tlist, e_ops)
-        else:
-            res = self._run_batch_merged(states, args, tlist, e_ops)
-        return res
-
-    def _run_single(self, state, args, tlist, e_ops):
-        if
-
-        results = map_func(self._one_run_ket, values, (normalize_func,),
-                           **map_kwargs)
-
-        for i, (state, expect) in enumerate(results):
-            args_n, state_n = divmod(i, num_states)
-            if self._e_ops:
-                expect_out[state_n, args_n] = expect.finish()
-            if store_states:
-                states_out[state_n, args_n, :, :] = state
-
-        return states_out, expect_out
+    def _run_one(self, run_data):
+        set_info, tlist, state0, t0 = *run_data
+        self.LH.arguments(set_info[0], state0, self._e_ops0)
+        solver = self.get_solver(args=set_info[0])
+        return solver(t0, state0, tlist)
 
 
 
-
-    def _one_run_ket_loop(self, run_data):
-        solver = self.get_solver(progress_bar=None)
-        state0, args = run_data
-        H_td = self.LH
-        H_td.arguments(args, psi, e_ops)
-        func = H_td._get_mul(state0)
-
-        if state0.isket:
-            e_ops = self._e_ops.copy()
-        else:
-            e_ops = ExpectOps([])
-        return solver(func, state0, tlist, e_ops)
-
-
-    def _one_run_oper(self, run_data, normalize_func):
-        opt = self._options
-        state0, args = run_data
-        func, ode_args = self.ss.makeoper(self.ss, state0, args, opt)
-
-        e_ops = self._e_ops.copy()
-        state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
-                                        e_ops, normalize_func, opt,
-                                        BaseProgressBar())
-        return state, e_ops
-
-
-    def _check_input(self, psi, args, tlist, level):
-        if isinstance(psi, Qobj):
-            psi = [psi]
-            num_states = 0
-        elif not psi:
-            psi = [self.psi]
-            num_states = 0
-        elif isinstance(psi, list):
-            if any((not isinstance(ele, Qobj) for ele in psi)):
-                raise TypeError("psi must be Qobj")
-            num_states = len(psi)
-        else:
-            raise TypeError("psi must be Qobj")
-
-        if isinstance(args, dict):
-            self._check_args(args)
-            args = [args]
-            num_args = 0
-        elif not args:
-            args = [self.args]
-            num_args = 0
-        elif isinstance(args, list):
-            for args_set in args:
-                if not isinstance(args_set, dict):
-                    raise TypeError("args must be dict")
-                self._check_args(args_set)
-
-
-            num_args = len(args)
-        else:
-            raise TypeError("args must be dict")
-
-        if isinstance(tlist, (int, float)):
-            tlist = [self._t0, tlist]
-            nt = 0
-        elif not tlist:
-            tlist = [self._tlist]
-            nt = 0
-        elif isinstance(args, list):
-            if any((not isinstance(ele, (int, float)) for ele in tlist)):
-                raise TypeError("tlist must be list of times")
-            nt = len(tlist)
-        else:
-            raise TypeError("tlist must be list of times")
-
-        return (psi, args, tlist), (num_states, num_args, nt)
 
 
 
