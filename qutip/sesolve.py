@@ -87,7 +87,7 @@ class SESolver(Solver):
 
     """
     def __init__(self, H, args=None,
-                 tlist=None, psi0=None, e_ops=None,
+                 tlist=None, state0=None, e_ops=None,
                  options=None, cache_level="state", progress_bar=True):
         # TODO: split options
         super().__init__(options, progress_bar)
@@ -95,7 +95,7 @@ class SESolver(Solver):
         self.H = H
         self._args0 = args if args is not None else {}
         self._tlist0 = tlist
-        self._psi0 = psi0
+        self._state0 = state0
         self._e_ops0 = e_ops
 
         self._prepare_H()
@@ -154,47 +154,23 @@ class SESolver(Solver):
         args_sets, num_args = self._fix_input_args(args)
         tlist, num_t = self._fix_input_time(t)
 
-        run_set = []
-        run_idx = []
-        res = [None] * len(args_sets)
-        for i, arg in enumerate(args_sets):
-            prop, times, past, futur = self._cache.get_prop(arg, tlist)
-            if past.size > 0:
-                # some prop are missing at times before t0.
-                prop, t = self._cache.first_after(np.max(past))
-                run_set.append([arg, past, prop, t])
-                run_idx.append(i)
-            if futur.size > 0:
-                prop, t = self._cache.last_before(np.min(futur))
-                run_set.append([arg, futur, prop, t])
-                run_idx.append(i)
-            if times > 0:
-                res[i] = [prop, times]
-            else:
-                res[i] = []
-
-        runs = self._run_sets(run_set)
-        for i, run in zip(run_idx, runs):
-            res[i].append(run)
-
-        results = self._clean(arg_set, 2)
-        if starts is not None:
-            results = self._dprop(results, tlist, starts)
+        if starts is None:
+            res_time = self.prop_core(tlist, args_sets)
+            results = self._sort_by_tlist(res_time, tlist, 1)
         else:
-            results = self._sort_by_times(results, tlist, 2)
+            start_tlist, num_t2 = self._fix_input_time(t)
+            res, time = self._prop_core(tlist + start_tlist, args_sets)
+            results = [self._dprop(by_args, time, tlist, start_tlist)
+                       for by_args in res]
 
-        if dtype == "Qobj":
-            results = [[Qobj(mat) for mat in timeline] for timeline in results]
-        elif dtype == "sparse":
-            results = [[csr_matrix(mat) for mat in timeline]
-                       for timeline in results]
-        if num_t == 1:
+        results = self._apply_type(results, dtype, None, 1)
+        if not num_t and starts is None or not num_t2:
             results = [res_set[0] for res_set in results]
-        if num_args == 1:
+        if not num_args:
             results = results[0]
         return results
 
-    def state(self, t, state0=None, args=None, sets=None, dtype="Qobj"):
+    def state(self, t, state0=None, args=None,  dtype="Qobj"):
         """
         Give the state at time t given an initial state0 at t=0.
         If the Hamiltonian is defined with arguments, the default can be
@@ -203,13 +179,7 @@ class SESolver(Solver):
         t, state0, args can be list:
             results[a, s, t] = state(t, state0[s], args[a])
 
-        Alternatively "sets = [(state0, args),...]" will provide the evolution
-        for each (state0, args) pairs.
-
         """
-        if sets is not None:
-            return self._get_sets(t, sets, dtype)
-
         tlist, num_t = self._fix_input_time(t)
         state, num_state = self._fix_input_state(state0)
         args, num_args = self._fix_input_args(args)
@@ -222,21 +192,22 @@ class SESolver(Solver):
             # Calling 'propagator' will automatically cache them.
             self.propagator(tlist, args, dtype="")
 
+        times = np.unique(np.sort(tlist))
         for i, arg in enumerate(args_sets):
             res.append([None] * len(num_state))
             for j, state in enumerate(state):
                 prop, times, past, futur = \
-                    self._cache.get_state(arg, state, tlist)
+                    self._cache.get_state(arg, state, times)
                 if past.size > 0:
-                    state_f, t = self._cache.first_after(np.max(past))
+                    state_f, t = self._cache.first_after(np.max(past), state)
                     run_set.append([arg, state, past, state_f, t])
                     run_idx.append((i,j))
                 if futur.size > 0:
-                    state_l, t = self._cache.last_before(np.min(futur))
+                    state_l, t = self._cache.last_before(np.min(futur), state)
                     run_set.append([arg, state, futur, state_l, t])
                     run_idx.append((i,j))
                 if times > 0:
-                    res[i][j] = [prop, times]
+                    res[i][j] = [[prop, times]]
                 else:
                     res[i][j] = []
 
@@ -244,25 +215,25 @@ class SESolver(Solver):
         for (i, j), run in zip(run_idx, runs):
             res[i][j].append(run)
 
-        results = self._clean_res(arg_set, 3)
-        results = self._sort_by_times(results, tlist, 3)
-        results = self._apply_type(results, dtype, 3)
+        results = self._clean_res(arg_set, 2)
+        results = self._sort_by_tlist(results, tlist, 2)
+        results = self._apply_type(results, dtype, None, 2)
 
-        if num_t == 1:
-            results = [res_set[0] for res_set in results]
-        if num_args == 1:
+        if not num_t:
+            results = [[by_state[0] for by_state in by_args]
+                       for by_args in results]
+        if not num_state:
+            results = [by_args[0] for by_args in results]
+        if not num_args:
             results = results[0]
         return results
 
-    def expect(self, t, state0=None, args=None, e_ops=None, sets=None):
+    def expect(self, t, state0=None, args=None, e_ops=None):
         if self.cache_level <= 1:
-            return self._raw_expect(t, state0, args, e_ops, sets)
+            return self._raw_expect(t, state0, args, e_ops)
 
         # Compute and save states.
         self.state(t, state0, args)
-
-        if sets is not None:
-            return self._get_sets(t, sets, dtype)
 
         tlist, num_t = self._fix_input_time(t)
         e_ops, num_e_ops = self._fix_input_e_ops(e_ops)
@@ -287,9 +258,184 @@ class SESolver(Solver):
             expects = expects[0]
         return expects
 
-    def plot_expect(self, tlist, psi0=None, args=None, e_op=None, sets=None,
-                    fig=None):
+    def plot_expect(self, tlist, psi0=None, args=None, e_op=None, fig=None):
         pass
+
+
+
+    def _fix_input_args(self, args):
+        if args is None:
+            args = self._args0
+        if not isinstance(args, list):
+            args = [args]
+            num_args = 0
+        else:
+            num_args = len(args)
+        return args, len(args)
+
+    def _fix_input_time(self, times):
+        if isinstance(args, np.ndarray):
+            times = list(times)
+        if not isinstance(times, list):
+            times = [times]
+            num = 0
+        else:
+            num = len(times)
+        return times, num
+
+    def _fix_input_state(self, state):
+        if state is None:
+            state = self._state0
+        if not isinstance(state, list):
+            state = [state]
+            num = 0
+        else:
+            num = len(state)
+        return state, num
+
+    def _fix_input_e_ops(self, e_ops):
+        if e_ops is None:
+            e_ops = self._e_ops0
+        if not isinstance(e_ops, list):
+            e_ops = [e_ops]
+            num = 0
+        else:
+            num = len(e_ops)
+        return e_ops, num
+
+    def _clean(self, results, depth):
+        """ If new results were partialy cached,
+        merge the cached and new values.
+        """
+        if depth:
+            # Get to the right depth in the lists of lists of lists...
+            return [self._clean(res, depth-1) for res in results]
+        if len(results) == 1:
+            # Nothing to merge
+            return results[0][0]
+
+        out_vals = results[0][0]
+        out_times = results[0][1]
+        for res in results[1:]:
+            start = res[1][0]
+            end = res[1][-1]
+            if start > out_times[-1]:
+                # append after
+                out_vals += res[0]
+                out_times += res[1]
+            elif start == out_times[-1]:
+                # append after, bondary repeated
+                out_vals += res[0][1:]
+                out_times += res[1][1:]
+            elif end < out_times[0]:
+                # append before
+                out_vals = res[0] + out_vals
+                out_times = res[1] + out_times
+            elif end == out_times[0]:
+                # append before, bondary repeated
+                out_vals = res[0][:-1] + out_vals
+                out_times = res[1][:-1] + out_times
+            else:
+                # Inside, TODO: skip cache in these case?
+                vals = out_vals + res[0]
+                time = out_times + res[1]
+                idx = np.argsort(time)
+                vals = [vals[i] for i in idx]
+                time = [time[i] for i in idx]
+                _, idx = np.unique(time, return_index=True)
+                if len(time) != len(idx):
+                    vals = [vals[i] for i in idx]
+                    time = [time[i] for i in idx]
+                out_vals = vals
+                out_times = time
+        return out_vals
+
+    def _sort_by_tlist(self, res, tlist, times, depth, check=True):
+        """
+        'tlist' is the list of user desired times.
+        'times' are the computed times.
+        If the 'tlist' is not sorted, these could be different.
+        Force user desired order.
+        """
+        if check and np.allclose(tlist, times):
+            # tlist sorted, all good
+            return res
+        if depth:
+            # Get to the right depth in the lists of lists of lists...
+            return [self._sort_by_tlist(res, tlist, times, depth-1, 0)
+                    for res in res_time]
+        return [res[times.searchsorted(t)] for t in tlist]
+
+    def _dprop(self, prop, times, tlist, starts_tlist):
+        """Used to optain propagator not starting from t0
+        input: prop are [U(t, t0) for t in times], tlist, starts_tlist
+        return: [U(t1,t2) for t1 in tlist and t2 in starts_tlist]
+        U(t1,t2) = U(t1,t0) * U(t2,t0).dag
+        """
+        new_results = []
+        if len(tlist) > len(starts_tlist):
+            starts_tlist *= len(tlist)
+        elif len(tlist) < len(starts_tlist):
+            tlist *= len(starts_tlist)
+        for t1, t2 in zip(tlist, starts_tlist):
+            idx1 = times.searchsorted(t1)
+            idx2 = times.searchsorted(t2)
+            prop_t1_t0 = results[idx1]
+            prop_t2_t0 = results[idx2]
+            prop_t1_t2 = prop_t1_t0 @ prop_t2_t0.T.conj()
+            new_results.append(prop_t1_t2)
+        return new_results
+
+    def __apply_type(self, results, dtype, dims, depth):
+        """ Change the state type: dense, sparse, Qobj.
+        """
+        # TODO: have from type for faster type conversion
+        if depth:
+            # Get to the right depth in the lists of lists of lists...
+            return [self.__apply_type(res, dtype, dims, depth-1)
+                    for res in results]
+        if dtype == "Qobj":
+            # TODO: use fast=...
+            results = [Qobj(mat, dims=dims) for mat in results]
+        elif dtype == "sparse":
+            results = [csr_matrix(mat) for mat in results]
+        elif dtype == "dense":
+            results = [np.array(mat) for mat in results]
+
+
+    def _prop_core(self, t, args):
+        """return [(prop(t), t), ...] for each args
+        with ts sorted and duplicate removed """
+        run_set = []
+        run_idx = []
+        res = [None] * len(args_sets)
+        t = np.unique(np.sort(t))
+        for i, arg in enumerate(args_sets):
+            prop, times, past, futur = self._cache.get_prop(arg, tlist)
+            if past.size > 0:
+                # some prop are missing at times before t0.
+                prop, t = self._cache.first_after(np.max(past), True)
+                run_set.append([arg, np.sort(past), prop, t])
+                run_idx.append(i)
+            if futur.size > 0:
+                prop, t = self._cache.last_before(np.min(futur), True)
+                run_set.append([arg, np.sort(futur), prop, t])
+                run_idx.append(i)
+            if times > 0:
+                res[i] = [[prop, times]]
+            else:
+                res[i] = []
+
+        runs = self._run_sets(run_set)
+        for i, run in zip(run_idx, runs):
+            res[i].append(run)
+
+        results = self._clean(res, 1)
+        return results, t
+
+    def _raw_expect(self, t, state0=None, args=None, e_ops=None):
+
+    def _run_sets(self, sets):
 
 
     def _run_batch(self, states, args, tlist, e_ops):
@@ -309,12 +455,6 @@ class SESolver(Solver):
             res = self._run_batch_merged(states, args, tlist, e_ops)
         return res
 
-    def _get_sets(self, sets, tlist, e_ops):
-        for psi0, args in sets:
-            res.append(self._run_single(tlist, psi0, e_ops, args))
-        # TODO: merge results
-        return res
-
     def _run_single(self, state, args, tlist, e_ops):
         if
 
@@ -331,17 +471,7 @@ class SESolver(Solver):
         return states_out, expect_out
 
 
-    def _fix_input_args
-    def _fix_input_time
-    def _fix_input_state
-    def _fix_input_e_ops
 
-    def _dprop
-    def _run_sets
-
-    def _clean
-    def _sort_by_times
-    def __apply_type
 
     def _one_run_ket_loop(self, run_data):
         solver = self.get_solver(progress_bar=None)

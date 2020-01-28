@@ -160,8 +160,6 @@ class OdeScipyIVP(OdeSolver):
         return states, self.e_ops.finish()
 
 
-
-# TODO: get last (state, time) and closest before:
 class _SolverCacheOneEvo:
     def __init__(self):
         self.times = np.array([], dtype=np.double)
@@ -346,7 +344,6 @@ class _SolverCacheOneEvo:
             times = np.linspace(start, stop, N)
         return times
 
-
     @staticmethod
     def _to_slice(times):
         # sorted array to start, stop, N, dt
@@ -372,7 +369,7 @@ class _SolverCacheOneEvo:
 
 
 class _SolverCacheOneLevel:
-    def __init__(self, parent, key, maker_func):
+    def __init__(self, parent, key, maker_func, t0, level):
         self.this_level = _SolverCacheOneEvo()
         self.keys = []
         self.caches = []
@@ -380,6 +377,10 @@ class _SolverCacheOneLevel:
         self.child_maker_func = maker_func[1:]
         self.parent = parent
         self.key = key
+        self.level = level
+        self.t0 = t0
+        if self.level == 1:
+            self.this_level[t0] = self.key
 
     def __setitem__(self, args, vals):
         if isinstance(args, tuple) and len(args) >=2:
@@ -391,7 +392,8 @@ class _SolverCacheOneLevel:
             else:
                 self.keys.append(key)
                 self.caches.append(_SolverCacheOneLevel(self, key,
-                                                        self.child_maker_func))
+                                                        self.child_maker_func
+                                                        self.t0, self.level+1))
                 self.caches[-1][other_keys] = vals
         else:
             args = args[0] if isinstance(args, tuple) else args
@@ -417,17 +419,43 @@ class _SolverCacheOneLevel:
                                                          times, self.key)
             return self.this_level[args]
 
+    def first_after(self, t, state=None):
+        if state is None:
+            times = self.this_level.times
+            t_ = times[((times - t) > 0)[0]]
+            val = self.this_level[t_]
+        else:
+            times = self.caches[self.keys.index(state)]
+            t_ = times[((times - t) > 0)[0]]
+            val = self.caches[self.keys.index(state)][t_]
+        return val, t_
+
+    def last_before(self, t, state=None):
+        if state is None:
+            times = self.this_level.times
+            t_ = times[((t - times) > 0)[-1]]
+            val = self.this_level[t_]
+        else:
+            times = self.caches[self.keys.index(state)]
+            t_ = times[((t - times) > 0)[-1]]
+            val = self.caches[self.keys.index(state)][t_]
+        return val, t_
+
 
 class _SolverCache:
-    def __init__(self):
+    def __init__(self, t_start, dims):
         self.num_args = 0
         self.args_hash = {}
         self.cached_data = []
         self.t_start = t_start
+        self.dims = dims
 
     def _new_cache(self, args):
         funcs = [None, _prop2state, _expect]
-        return _SolverCacheOneLevel(dummy_parent, args, funcs)
+        cache = _SolverCacheOneLevel(dummy_parent, args,
+                                     funcs, self.t_start, 0)
+        cache[self.t_start] = qeye(self.dims)
+        return cache
 
     def _hashable_args(self, args):
         args, dyn_args = args[0], args[1]
@@ -445,7 +473,7 @@ class _SolverCache:
             self.cached_data.append(self._new_cache(args))
             self.args_hash[args] = self.num_args
             self.num_args += 1
-        self.cached_data[self.args_hash[key]][other_key] = val
+        self.cached_data[self.args_hash[args]][other_key] = val
 
     def __getitem__(self, key):
         args = self._hashable_args(key[0])
@@ -454,7 +482,7 @@ class _SolverCache:
             self.cached_data.append(self.new_cache(args))
             self.args_hash[args] = self.num_args
             self.num_args += 1
-        return self.cached_data[self.args_hash[key]][other_key]
+        return self.cached_data[self.args_hash[args]][other_key]
 
     def add_prop(self, props, args, times):
         self[(args, times)] = props
@@ -465,23 +493,23 @@ class _SolverCache:
     def need_compute_prop(self, args, times):
         return self[(args, times)][2:4]
 
-    def add_state(self, states, args, psi, times):
+    def add_state(self, states, args, state, times):
         self[(args, psi, times)] = states
 
-    def get_state(self, args, psi, times):
+    def get_state(self, args, state, times):
         return self[(args, psi, times)]
 
-    def need_compute_state(self, args, psi, times):
+    def need_compute_state(self, args, state, times):
         return self[(args, psi, times)][2:4]
 
-    def add_expect(self, values, args, psi, e_ops, times):
+    def add_expect(self, values, args, state, e_ops, times):
         if isinstance(e_ops, list):
             for e_op, val in zip(e_ops, values)
                 self[(args, psi, e_op, times)] = val
         else:
             self[(args, psi, e_ops, times)] = values
 
-    def get_expect(self, args, psi, e_ops, times):
+    def get_expect(self, args, state, e_ops, times):
         if isinstance(e_ops, list):
             expects = [self[(args, psi, e_op, times)]
                        for e_op, val in zip(e_ops, values)]
@@ -489,7 +517,7 @@ class _SolverCache:
             expects = self[(args, psi, e_ops, times)]
         return expects
 
-    def need_compute_expect(self, args, psi, e_ops, times):
+    def need_compute_expect(self, args, state, e_ops, times):
         if isinstance(e_ops, list):
             expects = [self[(args, psi, e_op, times)][2:4]
                        for e_op, val in zip(e_ops, values)]
@@ -497,8 +525,25 @@ class _SolverCache:
             expects = self[(args, psi, e_ops, times)][2:4]
         return expects
 
-    def first_after
-    def last_before
+    def first_after(self, t, args, state=None):
+        if state is None:
+            val, ts, _, after = self.get_prop([args, t])
+        else:
+            val, ts, _, after = self.get_state([args, state, t])
+        if ts.size == 1:
+            return val, ts
+        args = self._hashable_args(args)
+        return self.cached_data[self.args_hash[args]].first_after(t, state)
+
+    def last_before(self, t, args, state=None):
+        if state is None:
+            val, ts, before, _ = self.get_prop([args, t])
+        else:
+            val, ts, before, _ = self.get_state([args, state, t])
+        if ts.size == 1:
+            return val, ts
+        args = self._hashable_args(args)
+        return self.cached_data[self.args_hash[args]].last_before(t, state)
 
 
 class dummy_parent:
