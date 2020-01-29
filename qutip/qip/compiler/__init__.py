@@ -30,12 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip.qip.operations.gates import (
-    rx, ry, rz, sqrtnot, snot, phasegate, qrot,
-    cphase, cnot,
-    csign, berkeley, swapalpha, swap, iswap, sqrtswap,
-    sqrtiswap, fredkin, molmer_sorensen,
-    toffoli, rotation, controlled_gate,
-    globalphase, hadamard_transform, gate_sequence_product,
-    gate_expand_1toN, gate_expand_2toN, gate_expand_3toN,
-    qubit_clifford_group, expand_operator)
+
+from .gatecompiler import GateCompiler
+from .cavityqedcompiler import CavityQEDCompiler
+from .spinchaincompiler import SpinChainCompiler
