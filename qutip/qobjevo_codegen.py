@@ -54,7 +54,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
     Import 'obj_name' defined in 'code'.
     Using a temporary file starting by 'basefilename'.
     """
-    filename = (basefilename + str(hash(code))[1:4] + 
+    filename = (basefilename + str(hash(code))[1:4] +
                 str(os.getpid()) + time.strftime("%M%S"))
     tries = 0
     import_list = []
