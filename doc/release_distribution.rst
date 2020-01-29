@@ -74,7 +74,7 @@ Create a new minor or major release
 -----------------------------------
 
 Create a new branch on qutip repository using the website, e.g. 'qutip-4.1.X'.
-
+(See https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-and-deleting-branches-within-your-repository#creating-a-branch)
 Checkout the branch and push to your fork ::
 
     $ git fetch upstream
