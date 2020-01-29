@@ -137,6 +137,7 @@ The next steps are based instructions from https://packaging.python.org/distribu
 
 Build the source code distribution
 ----------------------------------
+On Mac, first create a directory named ``tmp`` in your home directory.  
 
 ::
 
