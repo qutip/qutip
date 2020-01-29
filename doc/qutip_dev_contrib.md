@@ -16,7 +16,7 @@ http://qutip.org/docs/latest/installation.html
 This would be typical:
 
 ```
-conda create -n qutip-dev-py3 python=3 numpy scipy cython matplotlib nose jupyter notebook spyder
+conda create -n qutip-dev-py3 python=3 numpy scipy cython matplotlib pytest pytest-cov jupyter notebook spyder
 ```
 
 If you wanting to build the documentation, then you will need more libraries, see:

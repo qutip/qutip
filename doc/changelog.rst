@@ -8,6 +8,93 @@ Change Log
 **********
 
 
+Version 4.5.x (unreleased)
+++++++++++++++++++++++++++++++
+
+Improvements
+------------
+
+- Migrated testing from Nose to PyTest (by **Tarun Raheja**).
+
+- QObjEvo no longer requires Cython for string coefficient (by **Eric Giguère**).
+
+- Added entropy and purity for Dicke density matrices, refactored into more general dicke_trace (by **Nathan Shammah**).
+
+- Added option for specifying resolution in Bloch.save function (by **Tarun Raheja**).
+
+
+Bug Fixes
+---------
+
+- Fixed PolyDataMapper construction (by **Sam Griffiths**).
+
+- Fixed error checking for null matrix in essolve (by **Nathan Shammah**).
+
+
+Version 4.4.1 (August 29, 2019)
+++++++++++++++++++++++++++++++
+
+Improvements
+------------
+
+- QobjEvo do not need to start from 0 anymore (by **Eric Giguère**).
+
+- Add a quantum object purity function (by **Nathan Shammah** and **Shahnawaz Ahmed**).
+
+- Add step function interpolation for array time-coefficient (by **Boxi Li**).
+
+- Generalize expand_oper for arbitrary dimensions, and new method for cyclic permutations of given target cubits (by **Boxi Li**).
+
+
+Bug Fixes
+---------
+
+- Fixed the pickling but that made solver unable to run in parallel on Windows (Thank **lrunze** for reporting)
+
+- Removed warning when mesolve fall back on sesolve (by **Michael Goerz**).
+
+- Fixed dimension check and confusing documentation in random ket (by **Yariv Yanay**).
+
+- Fixed Qobj isherm not working after using Qobj.permute (Thank **llorz1207** for reporting).
+
+- Correlation functions call now properly handle multiple time dependant functions (Thank **taw181** for reporting).
+
+- Removed mutable default values in mesolve/sesolve (by **Michael Goerz**).
+
+- Fixed simdiag bug (Thank **Croydon-Brixton** for reporting).
+
+- Better support of constant QobjEvo (by **Boxi Li**).
+
+- Fixed potential cyclic import in the control module (by **Alexander Pitchford**).
+
+
+Version 4.4.0 (July 03, 2019)
+++++++++++++++++++++++++++++++
+
+Improvements
+------------
+
+- **MAJOR FEATURE**: Added methods and techniques to the stochastic solvers (by **Eric Giguère**) which allows to use a much broader set of solvers and much more efficiently.
+
+- **MAJOR FEATURE**: Optimization of the montecarlo solver (by **Eric Giguère**). Computation are faster in many cases. Collapse information available to time dependant information.
+
+- Added the QObjEvo class and methods (by **Eric Giguère**), which is used behind the scenes by the dynamical solvers, making the code more efficient and tidier. More built-in function available to string coefficients.
+
+- The coefficients can be made from interpolated array with variable timesteps and can obtain state information more easily. Time-dependant collapse operator can have multiple terms.
+
+- New wigner_transform and plot_wigner_sphere function. (by **Nithin Ramu**).
+
+- ptrace is faster and work on bigger systems, from 15 Qbits to 30 Qbits.
+
+- QIP module: added the possibility for user-defined gates, added the possibility to remove or add gates in any point of an already built circuit, added the molmer_sorensen gate, and fixed some bugs (by **Boxi Li**).
+
+- Added the quantum Hellinger distance to qutip.metrics (by **Wojciech Rzadkowski**).
+
+- Implemented possibility of choosing a random seed (by **Marek Marekyggdrasil**).
+
+- Added a code of conduct to Github.
+
+
 Bug Fixes
 ---------
 

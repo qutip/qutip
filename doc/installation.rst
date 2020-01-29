@@ -48,7 +48,7 @@ In addition, there are several optional packages that provide additional functio
 +================+==============+=====================================================+
 | LaTeX          | TexLive 2009+| Needed if using LaTeX in matplotlib figures.        |    
 +----------------+--------------+-----------------------------------------------------+
-| nose           | 1.1.2+       | For running the test suite.                         |
+| pytest         | 5.3+         | For running the test suite.                         |
 +----------------+--------------+-----------------------------------------------------+
 
 
@@ -95,13 +95,13 @@ recommended:
 
 .. code-block:: bash
 
-   conda install numpy scipy cython matplotlib nose jupyter notebook spyder
+   conda install numpy scipy cython matplotlib pytest pytest-cov jupyter notebook spyder
 
 minimum (recommended):
 
 .. code-block:: bash
 
-   conda install numpy scipy cython nose matplotlib
+   conda install numpy scipy cython pytest pytest-cov matplotlib
 
 absolute mimimum:
 
@@ -235,7 +235,7 @@ You can then install QuTiP using either the install-via_pip_ or install-get-it_ 
 Verifying the Installation
 ==========================
 
-QuTiP includes a collection of built-in test scripts to verify that an installation was successful. To run the suite of tests scripts you must have the nose testing library. After installing QuTiP, leave the installation directory, run Python (or iPython), and call:
+QuTiP includes a collection of built-in test scripts to verify that an installation was successful. To run the suite of tests scripts you must have the pytest testing library. After installing QuTiP, leave the installation directory, run Python (or iPython), and call:
 
 .. code-block:: python
 
