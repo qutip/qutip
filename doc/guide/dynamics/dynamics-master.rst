@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _master:
@@ -13,9 +13,9 @@ Lindblad Master Equation Solver
    :suppress:
 
    In [1]: from qutip import *
-   
+
    In [1]: import numpy as np
-   
+
    In [1]: from pylab import *
 
 Unitary evolution
@@ -30,35 +30,36 @@ The dynamics of a closed (pure) quantum system is governed by the Schrödinger e
 where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :math:`\hbar` is Planck's constant. In general, the Schrödinger equation is a partial differential equation (PDE) where both :math:`\Psi` and :math:`\hat H` are functions of space and time. For computational purposes it is useful to expand the PDE in a set of basis functions that span the Hilbert space of the Hamiltonian, and to write the equation in matrix and vector form
 
 .. math::
-   
+
    i\hbar\frac{d}{dt}\left|\psi\right> = H \left|\psi\right>
 
 where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix representation of the Hamiltonian. This matrix equation can, in principle, be solved by diagonalizing the Hamiltonian matrix :math:`H`. In practice, however, it is difficult to perform this diagonalization unless the size of the Hilbert space (dimension of the matrix :math:`H`) is small. Analytically, it is a formidable task to calculate the dynamics for systems with more than two states. If, in addition, we consider dissipation due to the inevitable interaction with a surrounding environment, the computational complexity grows even larger, and we have to resort to numerical calculations in all realistic situations. This illustrates the importance of numerical calculations in describing the dynamics of open quantum systems, and the need for efficient and accessible tools for this task.
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.mesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.mesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers.
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code
 
 .. ipython::
 
     In [1]: H = 2 * np.pi * 0.1 * sigmax()
-    
+
     In [1]: psi0 = basis(2, 0)
-    
+
     In [1]: times = np.linspace(0.0, 10.0, 20)
-    
-    In [1]: result = mesolve(H, psi0, times, [], [sigmaz()])
+
+    In [1]: result = sesolve(H, psi0, times, [sigmaz()])
+
 
 The brackets in the fourth argument is an empty list of collapse operators, since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
 
 The function returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
 
 .. ipython::
-    
-    In [1]: result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
-    
+
+    In [1]: result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
+
     In [1]: result.expect
-  
+
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
 .. ipython::
@@ -69,7 +70,7 @@ The resulting list of expectation values can easily be visualized using matplotl
 
     In [1]: times = np.linspace(0.0, 10.0, 100)
 
-    In [1]: result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
+    In [1]: result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
 
     In [1]: fig, ax = subplots()
 
@@ -91,9 +92,9 @@ If an empty list of operators is passed as fifth parameter, the :func:`qutip.mes
 .. ipython::
 
     In [1]: times = [0.0, 1.0]
-    
+
     In [1]: result = mesolve(H, psi0, times, [], [])
-    
+
     In [1]: result.states
 
 .. _master-nonunitary:
@@ -112,16 +113,16 @@ The standard approach for deriving the equations of motion for a system interact
 
 .. math::
    :label: neumann_total
-   
+
    \dot \rho_{\rm tot}(t) = -\frac{i}{\hbar}[H_{\rm tot}, \rho_{\rm tot}(t)],
 
-the equivalent of the Schrödinger equation :eq:`schrodinger` in the density matrix formalism. Here, the total Hamiltonian 
+the equivalent of the Schrödinger equation :eq:`schrodinger` in the density matrix formalism. Here, the total Hamiltonian
 
 .. math::
 
  	H_{\rm tot} = H_{\rm sys} + H_{\rm env} + H_{\rm int},
 
-includes the original system Hamiltonian :math:`H_{\rm sys}`, the Hamiltonian for the environment :math:`H_{\rm env}`, and a term representing the interaction between the system and its environment :math:`H_{\rm int}`. Since we are only interested in the dynamics of the system, we can at this point perform a partial trace over the environmental degrees of freedom in Eq. :eq:`neumann_total`, and thereby obtain a master equation for the motion of the original system density matrix. The most general trace-preserving and completely positive form of this evolution is the Lindblad master equation for the reduced density matrix :math:`\rho = {\rm Tr}_{\rm env}[\rho_{\rm tot}]` 
+includes the original system Hamiltonian :math:`H_{\rm sys}`, the Hamiltonian for the environment :math:`H_{\rm env}`, and a term representing the interaction between the system and its environment :math:`H_{\rm int}`. Since we are only interested in the dynamics of the system, we can at this point perform a partial trace over the environmental degrees of freedom in Eq. :eq:`neumann_total`, and thereby obtain a master equation for the motion of the original system density matrix. The most general trace-preserving and completely positive form of this evolution is the Lindblad master equation for the reduced density matrix :math:`\rho = {\rm Tr}_{\rm env}[\rho_{\rm tot}]`
 
 .. math::
 	:label: master_equation
@@ -139,15 +140,15 @@ where the :math:`C_n = \sqrt{\gamma_n} A_n` are collapse operators, and :math:`A
 - **Secular approximation** Stipulates that elements in the master equation corresponding to transition frequencies satisfy :math:`|\omega_{ab}-\omega_{cd}| \ll 1/\tau_{\rm sys}`, i.e., all fast rotating terms in the interaction picture can be neglected. It also ignores terms that lead to a small renormalization of the system energy levels. This approximation is not strictly necessary for all master-equation formalisms (e.g., the Block-Redfield master equation), but it is required for arriving at the Lindblad form :eq:`master_equation` which is used in :func:`qutip.mesolve`.
 
 
-For systems with environments satisfying the conditions outlined above, the Lindblad master equation :eq:`master_equation` governs the time-evolution of the system density matrix, giving an ensemble average of the system dynamics. In order to ensure that these approximations are not violated, it is important that the decay rates :math:`\gamma_n` be smaller than the minimum energy splitting in the system Hamiltonian. Situations that demand special attention therefore include, for example, systems strongly coupled to their environment, and systems with degenerate or nearly degenerate energy levels. 
+For systems with environments satisfying the conditions outlined above, the Lindblad master equation :eq:`master_equation` governs the time-evolution of the system density matrix, giving an ensemble average of the system dynamics. In order to ensure that these approximations are not violated, it is important that the decay rates :math:`\gamma_n` be smaller than the minimum energy splitting in the system Hamiltonian. Situations that demand special attention therefore include, for example, systems strongly coupled to their environment, and systems with degenerate or nearly degenerate energy levels.
 
 
 For non-unitary evolution of a quantum systems, i.e., evolution that includes
 incoherent processes such as relaxation and dephasing, it is common to use
-master equations. In QuTiP, the same function (:func:`qutip.mesolve`) is used for 
+master equations. In QuTiP, the same function (:func:`qutip.mesolve`) is used for
 evolution both according to the Schrödinger equation and to the master equation,
 even though these two equations of motion are very different. The :func:`qutip.mesolve`
-function automatically determines if it is sufficient to use the Schrödinger 
+function automatically determines if it is sufficient to use the Schrödinger
 equation (if no collapse operators were given) or if it has to use the
 master equation (if collapse operators were given). Note that to calculate
 the time evolution according to the Schrödinger equation is easier and much
@@ -160,9 +161,9 @@ with an environment. These environmental interactions are defined by the
 operators through which the system couples to the environment, and rates that
 describe the strength of the processes.
 
-In QuTiP, the product of the square root of the rate and the operator that 
-describe the dissipation process is called a collapse operator. A list of 
-collapse operators (``c_ops``) is passed as the fourth argument to the 
+In QuTiP, the product of the square root of the rate and the operator that
+describe the dissipation process is called a collapse operator. A list of
+collapse operators (``c_ops``) is passed as the fourth argument to the
 :func:`qutip.mesolve` function in order to define the dissipation processes in the master
 equation. When the ``c_ops`` isn't empty, the :func:`qutip.mesolve` function will use
 the master equation instead of the unitary Schrödinger equation.
@@ -195,44 +196,37 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
     In [1]: show()
 
 
-Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation 
+Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation
 process.
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code
 
 .. ipython::
-    
+
     In [1]: times = np.linspace(0.0, 10.0, 200)
-    
+
     In [1]: psi0 = tensor(fock(2,0), fock(10, 5))
-    
+
     In [1]: a  = tensor(qeye(2), destroy(10))
-    
+
     In [1]: sm = tensor(destroy(2), qeye(10))
-    
+
     In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
        ...: 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-    
+
     In [1]: result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    
+
     In [1]: figure()
-    
+
     In [1]: plot(times, result.expect[0])
-    
+
     In [1]: plot(times, result.expect[1])
-    
+
     In [1]: xlabel('Time')
-    
+
     In [1]: ylabel('Expectation values')
-    
+
     In [1]: legend(("cavity photon number", "atom excitation probability"))
-    
+
     @savefig guide-dynamics-jc.png width=5.0in align=center
     In [1]: show()
-
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _monte:
@@ -13,19 +13,19 @@ Monte Carlo Solver
    :suppress:
 
    In [1]: from qutip import *
-   
+
    In [1]: import numpy as np
-   
+
    In [1]: from pylab import *
 
 Introduction
 =============
 
-Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation with a **non-Hermitian** effective Hamiltonian  
+Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation with a **non-Hermitian** effective Hamiltonian
 
 .. math::
 	:label: heff
-	
+
 	H_{\rm eff}=H_{\rm sys}-\frac{i\hbar}{2}\sum_{i}C^{+}_{n}C_{n},
 
 where again, the :math:`C_{n}` are collapse operators, each corresponding to a separate irreversible process with rate :math:`\gamma_{n}`.  Here, the strictly negative non-Hermitian portion of Eq. :eq:`heff` gives rise to a reduction in the norm of the wave function, that to first-order in a small time :math:`\delta t`, is given by :math:`\left<\psi(t+\delta t)|\psi(t+\delta t)\right>=1-\delta p` where
@@ -42,7 +42,7 @@ and :math:`\delta t` is such that :math:`\delta p \ll 1`.  With a probability of
 
 	\left|\psi(t+\delta t)\right>=C_{n}\left|\psi(t)\right>/\left<\psi(t)|C_{n}^{+}C_{n}|\psi(t)\right>^{1/2}.
 
-If more than a single collapse operator is present in Eq. :eq:`heff`, the probability of collapse due to the :math:`i\mathrm{th}`-operator :math:`C_{i}` is given by 
+If more than a single collapse operator is present in Eq. :eq:`heff`, the probability of collapse due to the :math:`i\mathrm{th}`-operator :math:`C_{i}` is given by
 
 .. math::
 	:label: pcn
@@ -51,7 +51,7 @@ If more than a single collapse operator is present in Eq. :eq:`heff`, the probab
 
 Evaluating the MC evolution to first-order in time is quite tedious.  Instead, QuTiP uses the following algorithm to simulate a single realization of a quantum system.  Starting from a pure state :math:`\left|\psi(0)\right>`:
 
-- **I:** Choose a random number :math:`r` between zero and one, representing the probability that a quantum jump occurs.  
+- **I:** Choose a random number :math:`r` between zero and one, representing the probability that a quantum jump occurs.
 
 - **II:** Integrate the Schrödinger equation, using the effective Hamiltonian :eq:`heff` until a time :math:`\tau` such that the norm of the wave function satisfies :math:`\left<\psi(\tau)\right.\left|\psi(\tau)\right>=r`, at which point a jump occurs.
 
@@ -73,36 +73,36 @@ Monte Carlo in QuTiP
 ====================
 
 In QuTiP, Monte Carlo evolution is implemented with the :func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.mesolve`
-function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and there is an optional keyword parameter ``ntraj`` that defines the number of stochastic trajectories to be simulated.  By default, ``ntraj=500`` indicating that 500 Monte Carlo trajectories will be performed. 
+function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and there is an optional keyword parameter ``ntraj`` that defines the number of stochastic trajectories to be simulated.  By default, ``ntraj=500`` indicating that 500 Monte Carlo trajectories will be performed.
 
 To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, let's again consider the case of a two-level atom coupled to a leaky cavity. The only differences to the master-equation treatment is that in this case we invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`
 
 .. ipython::
-	
+
     In [1]: times = np.linspace(0.0, 10.0, 200)
-	
+
     In [1]: psi0 = tensor(fock(2, 0), fock(10, 5))
-	
+
     In [1]: a  = tensor(qeye(2), destroy(10))
-	
+
     In [1]: sm = tensor(destroy(2), qeye(10))
-	
+
     In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-    
+
     In [1]: data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
-	
+
     In [1]: figure()
-    
+
     In [1]: plot(times, data.expect[0], times, data.expect[1])
-	
+
     In [1]: title('Monte Carlo time evolution')
-	
+
     In [1]: xlabel('Time')
-	
+
     In [1]: ylabel('Expectation values')
-	
+
     In [1]: legend(("cavity photon number", "atom excitation probability"))
-	
+
     @savefig guide-monte1.png width=5.0in align=center
     In [1]: show()
 
@@ -140,13 +140,13 @@ we can extract the relevant expectation values using:
 
 .. ipython::
 
-	In [1]: expt1 = data.expect[0]     # <- expectation values for 1 trajectory
-	
-    In [1]: expt10 = data.expect[1]    # <- expectation values avg. over 10 trajectories
-	
-    In [1]: expt100 = data.expect[2]   # <- expectation  values avg. over 100 trajectories
-	
-    In [1]: expt1000 = data.expect[3]  # <- expectation values avg. over 1000 trajectories
+    In [1]: expt1 = data.expect[0]
+
+    In [1]: expt10 = data.expect[1]
+
+    In [1]: expt100 = data.expect[2]
+
+    In [1]: expt1000 = data.expect[3]
 
 The Monte Carlo solver also has many available options that can be set using the :func:`qutip.solver.Options` class as discussed in :ref:`options`.
 
@@ -160,74 +160,52 @@ Reusing Hamiltonian Data
 
 In order to solve a given simulation as fast as possible, the solvers in QuTiP take the given input operators and break them down into simpler components before passing them on to the ODE solvers.  Although these operations are reasonably fast, the time spent organizing data can become appreciable when repeatedly solving a system over, for example, many different initial conditions. In cases such as this, the Hamiltonian and other operators may be reused after the initial configuration, thus speeding up calculations.  Note that, unless you are planning to reuse the data many times, this functionality will not be very useful.
 
-To turn on the "reuse" functionality we must set the ``rhs_reuse=True`` flag in the :func:`qutip.solver.Options`:  
+To turn on the "reuse" functionality we must set the ``rhs_reuse=True`` flag in the :func:`qutip.solver.Options`:
 
 .. ipython::
-    
+
     In [1]: options = Options(rhs_reuse=True)
 
-A full account of this feature is given in :ref:`options`.  Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call 
+A full account of this feature is given in :ref:`options`.  Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call
 
 .. ipython::
 
-	In [1]: times = np.linspace(0.0, 10.0, 200)
-	
+    In [1]: times = np.linspace(0.0, 10.0, 200)
+
     In [1]: psi0 = tensor(fock(2, 0), fock(10, 5))
-	
+
     In [1]: a  = tensor(qeye(2), destroy(10))
-	
+
     In [1]: sm = tensor(destroy(2), qeye(10))
-	
+
     In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
        ...: 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-    
+
     In [1]: data1 = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
-	
+
     In [1]: psi1 = tensor(fock(2, 0), coherent(10, 2 - 1j))
-	
+
     In [1]: opts = Options(rhs_reuse=True) # Run a second time, reusing RHS
-	
+
     In [1]: data2 = mcsolve(H, psi1, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], options=opts)
-    
+
     In [1]: figure()
-    
+
     In [1]: plot(times, data1.expect[0], times, data1.expect[1], lw=2)
-	
+
     In [1]: plot(times, data2.expect[0], '--', times, data2.expect[1], '--', lw=2)
-	
+
     In [1]: title('Monte Carlo time evolution')
-	
+
     In [1]: xlabel('Time', fontsize=14)
-	
+
     In [1]: ylabel('Expectation values', fontsize=14)
-	
+
     In [1]: legend(("cavity photon number", "atom excitation probability"))
-	
+
     @savefig guide-monte2.png width=5.0in align=center
     In [1]: show()
 
 .. guide-dynamics-mc2:
 
 In addition to the initial state, one may reuse the Hamiltonian data when changing the number of trajectories ``ntraj`` or simulation times ``times``.  The reusing of Hamiltonian data is also supported for time-dependent Hamiltonians.  See :ref:`time` for further details.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

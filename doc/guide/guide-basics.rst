@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _basics:
@@ -18,7 +18,7 @@ To load the qutip modules, we must first call the import statement:
 
 .. ipython::
 
-	In [1]: from qutip import *
+    In [1]: from qutip import *
 
 
 that will load all of the user available functions. Often, we also need to import the NumPy and Matplotlib libraries with:
@@ -26,7 +26,7 @@ that will load all of the user available functions. Often, we also need to impor
 .. ipython::
 
    In [1]: import numpy as np
-    
+
    In [2]: import matplotlib.pyplot as plt
 
 Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt, Python script, or Jupyter notebook.
@@ -47,9 +47,9 @@ To begin, let us create a blank ``Qobj``:
 
 .. ipython::
 
-	In [1]: Qobj()
+    In [1]: Qobj()
 
-where we see the blank ``Qobj`` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  
+where we see the blank ``Qobj`` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.
 
 .. Hint:: By convention, Class objects in Python such as ``Qobj()`` differ from functions in the use of a beginning capital letter.
 
@@ -59,13 +59,14 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
 
     In [1]: Qobj([[1],[2],[3],[4],[5]])
 
-    In [1]: x = np.array([[1, 2, 3, 4, 5]])
+    In [2]: x = np.array([[1, 2, 3, 4, 5]])
 
-    In [1]: Qobj(x)
+    In [3]: Qobj(x)
 
-    In [1]: r = np.random.rand(4, 4)
+    In [4]: r = np.random.rand(4, 4)
 
-    In [1]: Qobj(r)
+    In [5]: Qobj(r)
+
 
 Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on :ref:`tensor products and partial traces <tensor>`.
 
@@ -85,7 +86,7 @@ Manually specifying the data for each quantum object is inefficient. Even more s
 +==========================+==================================+========================================+
 | Fock state ket vector    | ``basis(N,#m)``/``fock(N,#m)``   | N = number of levels in Hilbert space, |
 |                          |                                  | m = level containing excitation        |
-|                          |                                  | (0 if no m given)                      | 
+|                          |                                  | (0 if no m given)                      |
 +--------------------------+----------------------------------+----------------------------------------+
 | Fock density matrix      | ``fock_dm(N,#p)``                | same as basis(N,m) / fock(N,m)         |
 | (outer product of basis) |                                  |                                        |
@@ -164,13 +165,13 @@ As an example, we give the output for a few of these functions:
 .. ipython::
 
    In [1]: basis(5,3)
-	
+
    In [2]: coherent(5,0.5-0.5j)
-	
+
    In [3]: destroy(4)
-	
+
    In [4]: sigmaz()
-	
+
    In [5]: jmat(5/2.0,'+')
 
 .. _basics-qobj-props:
@@ -183,10 +184,10 @@ We have seen that a quantum object has several internal attributes, such as data
 .. ipython::
 
    In [1]: q = destroy(4)
-	
+
    In [2]: q.dims
-   
-   In [3]: q.shape 
+
+   In [3]: q.shape
 
 In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following:
 
@@ -213,7 +214,7 @@ In general, the attributes (properties) of a ``Qobj`` object (or any Python clas
 .. figure:: quide-basics-qobj-box.png
    :align: center
    :width: 3.5in
-   
+
    The ``Qobj`` Class viewed as a container for the properties need to characterize a quantum operator or state vector.
 
 
@@ -221,11 +222,11 @@ For the destruction operator above:
 
 .. ipython::
 
-	In [1]: q.type
-	
-	In [2]: q.isherm
-	
-	In [3]: q.data
+    In [1]: q.type
+
+    In [2]: q.isherm
+
+    In [3]: q.data
 
 
 The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory. To access the underlying dense matrix one needs to use the :func:`qutip.Qobj.full` function as described below.
@@ -239,24 +240,24 @@ The rules for mathematical operations on ``Qobj`` instances are similar to stand
 
 .. ipython::
 
-	In [1]: q = destroy(4)
-	
-	In [2]: x = sigmax()
-	
-	In [3]: q + 5
-	
-	In [4]: x * x
-	
-	In [5]: q ** 3 
-	
-	In [6]: x / np.sqrt(2)
+    In [1]: q = destroy(4)
+
+    In [2]: x = sigmax()
+
+    In [3]: q + 5
+
+    In [4]: x * x
+
+    In [5]: q ** 3
+
+    In [6]: x / np.sqrt(2)
 
 
 Of course, like matrices, multiplying two objects of incompatible shape throws an error:
 
 .. ipython::
     :okexcept:
-    
+
     In [1]: q * x
 
 
@@ -313,10 +314,10 @@ Like attributes, the quantum object class has defined functions (methods) that o
 | Partial Trace   | ``Q.ptrace(sel)``             | Partial trace returning components     |
 |                 |                               | selected using 'sel' parameter.        |
 +-----------------+-------------------------------+----------------------------------------+
-| Permute         | ``Q.permute(order)``          | Permutes the tensor structure of a     | 
+| Permute         | ``Q.permute(order)``          | Permutes the tensor structure of a     |
 |                 |                               | composite object in the given order.   |
 +-----------------+-------------------------------+----------------------------------------+
-| Projector       | ``Q.proj()``                  | Form projector operator from given     | 
+| Projector       | ``Q.proj()``                  | Form projector operator from given     |
 |                 |                               | ket or bra vector.                     |
 +-----------------+-------------------------------+----------------------------------------+
 | Sine            | ``Q.sinm()``                  | Sine of quantum operator.              |
@@ -335,25 +336,25 @@ Like attributes, the quantum object class has defined functions (methods) that o
 | Truncate Neg    | ``Q.trunc_neg()``             | Truncates negative eigenvalues         |
 +-----------------+-------------------------------+----------------------------------------+
 | Unit            | ``Q.unit()``                  | Returns normalized (unit)              |
-|                 |                               | vector Q/Q.norm().                     |  
+|                 |                               | vector Q/Q.norm().                     |
 +-----------------+-------------------------------+----------------------------------------+
 
 .. ipython::
 
-	In [1]: basis(5, 3)
-    
-	In [2]: basis(5, 3).dag()
-    
-	In [3]: coherent_dm(5, 1)
-    
-	In [4]: coherent_dm(5, 1).diag()
-    
-	In [5]: coherent_dm(5, 1).full()
-    
-	In [6]: coherent_dm(5, 1).norm()
-	
-	In [7]: coherent_dm(5, 1).sqrtm()
-	
-	In [8]: coherent_dm(5, 1).tr()
-	
-	In [9]: (basis(4, 2) + basis(4, 1)).unit()
+    In [1]: basis(5, 3)
+
+    In [2]: basis(5, 3).dag()
+
+    In [3]: coherent_dm(5, 1)
+
+    In [4]: coherent_dm(5, 1).diag()
+
+    In [5]: coherent_dm(5, 1).full()
+
+    In [6]: coherent_dm(5, 1).norm()
+
+    In [7]: coherent_dm(5, 1).sqrtm()
+
+    In [8]: coherent_dm(5, 1).tr()
+
+    In [9]: (basis(4, 2) + basis(4, 1)).unit()

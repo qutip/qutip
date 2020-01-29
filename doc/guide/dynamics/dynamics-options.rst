@@ -86,30 +86,27 @@ These properties are detailed in the following table.  Assuming ``options = Opti
 | options.use_openmp          | None            | Use OPENMP for sparse matrix vector multiplication.            |
 +-----------------------------+-----------------+----------------------------------------------------------------+
 
-
 As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the Options class.  First way,
 
 .. ipython::
 
-   In [1]: options = Options()
-   
-   In [1]: options.num_cpus = 3
-   
-   In [1]: options.gui = False
-   
-   In [1]: options.atol = 1e-10
+    In [1]: options = Options()
+
+    In [1]: options.num_cpus = 3
+
+    In [1]: options.atol = 1e-10
 
 or one can use an inline method,
 
 .. ipython::
 
-   In [1]: options = Options(num_cpus=4, gui=False, atol=1e-10)
+    In [1]: options = Options(num_cpus=4, atol=1e-10)
 
 Note that the order in which you input the options does not matter.  Using either method, the resulting `options` variable is now:
 
 .. ipython::
 
-   In [1]: print(options)
+    In [1]: print(options)
 
 To use these new settings we can use the keyword argument ``options`` in either the func:`qutip.mesolve` and :func:`qutip.mcsolve` function.  We can modify the last example as::
 

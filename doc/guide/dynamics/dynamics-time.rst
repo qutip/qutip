@@ -18,6 +18,8 @@ Solving Problems with Time-dependent Hamiltonians
 
    In [1]: from warnings import warn
 
+   In [1]: plt.close("all")
+
 
 Methods for Writing Time-Dependent Operators
 ============================================

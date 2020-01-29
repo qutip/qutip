@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 
 .. _developers:
@@ -24,7 +24,7 @@ Contributors
 ============
 
 .. note::
-	
+
 	Anyone is welcome to contribute to QuTiP.  If you are interested in helping, please let us know!
 
 **alexbrc** (github user) - Code contributor
@@ -41,7 +41,7 @@ Contributors
 
 **Anubhav Vardhan** (IIT, Kanpur) - Bug hunter, Code contributor, Documentation
 
-**Arne Grimsmo** (University of Auckland) - Bug hunter, Code contributor 
+**Arne Grimsmo** (University of Auckland) - Bug hunter, Code contributor
 
 **Ben Criger** (Waterloo IQC) - Code contributor
 
@@ -58,6 +58,8 @@ Contributors
 **Denis Vasilyev** (St. Petersburg State University) -  Code contributor
 
 **Dong Zhou** (Yale University) - Bug hunter
+
+**Eric Giguere** (Sherbrooke University) - Code contributor
 
 **Florian Ong** (Institute for Quantum Computation) - Bug hunter
 
@@ -91,7 +93,9 @@ Contributors
 
 **Nikolas Tezak** (Stanford) - Code contributor
 
-**Per Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor 
+**Nithin Ramu** Code contributor
+
+**Per Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor
 
 **Piotr Migdał** (ICFO) - Code contributor
 
@@ -104,4 +108,3 @@ Contributors
 **Shahnawaz Ahmed** (RIKEN, BITS Pilani) - Code contributor, Bug hunter
 
 **W.M. Witzel** - Bug hunter
-

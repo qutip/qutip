@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 
@@ -12,6 +12,8 @@ Manipulating States and Operators
    :suppress:
 
    In [1]: from qutip import *
+
+   In [1]: import numpy as np
 
 .. _states-intro:
 
@@ -29,19 +31,19 @@ State Vectors (kets or bras)
 Here we begin by creating a Fock :func:`qutip.states.basis` vacuum state vector :math:`\left|0\right>` with in a Hilbert space with 5 number states, from 0 to 4:
 
 .. ipython::
- 
-    In [1]: vac = basis(5, 0)
-    
-    In [2]: vac
+
+   In [1]: vac = basis(5, 0)
+
+   In [2]: vac
 
 
 and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.operators.destroy` function:
 
 .. ipython::
 
-    In [1]: a = destroy(5)
-    
-    In [2]: a
+   In [1]: a = destroy(5)
+
+   In [2]: a
 
 
 Now lets apply the destruction operator to our vacuum state ``vac``,
@@ -49,58 +51,58 @@ Now lets apply the destruction operator to our vacuum state ``vac``,
 
 .. ipython::
 
-    In [1]: a * vac
+   In [1]: a * vac
 
 
 We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^\dagger`:
 
 .. ipython::
 
-    In [1]: a.dag() * vac
+   In [1]: a.dag() * vac
 
 
 The raising operator has in indeed raised the state `vec` from the vacuum to the :math:`\left| 1\right>` state.  Instead of using the dagger ``Qobj.dag()`` method to raise the state, we could have also used the built in :func:`qutip.operators.create` function to make a raising operator:
 
 .. ipython::
 
-    In [1]: c = create(5)
-    
-    In [2]: c * vac
+   In [1]: c = create(5)
+
+   In [2]: c * vac
 
 
 which does the same thing.  We can raise the vacuum state more than once by successively apply the raising operator:
 
 .. ipython::
 
-    In [1]: c * c * vac
+   In [1]: c * c * vac
 
 
 or just taking the square of the raising operator :math:`\left(\hat{a}^\dagger\right)^{2}`:
 
 .. ipython::
 
-    In [1]: c ** 2 * vac
+   In [1]: c ** 2 * vac
 
 
 Applying the raising operator twice gives the expected :math:`\sqrt{n + 1}` dependence.  We can use the product of :math:`c * a` to also apply the number operator to the state vector ``vac``:
 
 .. ipython::
 
-    In [1]: c * a * vac
+   In [1]: c * a * vac
 
 
 or on the :math:`\left| 1\right>` state:
 
 .. ipython::
 
-    In [1]: c * a * (c * vac)
+   In [1]: c * a * (c * vac)
 
 
 or the :math:`\left| 2\right>` state:
 
 .. ipython::
 
-    In [1]: c * a * (c**2 * vac)
+   In [1]: c * a * (c**2 * vac)
 
 
 Notice how in this last example, application of the number operator does not give the expected value :math:`n=2`, but rather :math:`2\sqrt{2}`.  This is because this last state is not normalized to unity as :math:`c\left| n\right> = \sqrt{n+1}\left| n+1\right>`.  Therefore, we should normalize our vector first:
@@ -115,7 +117,7 @@ Since we are giving a demonstration of using states and operators, we have done 
 .. ipython::
 
     In [1]: ket = basis(5, 2)
-   
+
     In [2]: print(ket)
 
 
@@ -124,7 +126,7 @@ Notice how it is automatically normalized.  We can also use the built in :func:`
 .. ipython::
 
     In [1]: n = num(5)
-   
+
     In [2]: print(n)
 
 
@@ -140,7 +142,7 @@ We can also create superpositions of states:
 .. ipython::
 
     In [1]: ket = (basis(5, 0) + basis(5, 1)).unit()
-   
+
     In [2]: print(ket)
 
 
@@ -156,11 +158,11 @@ We can also create coherent states and squeezed states by applying the :func:`qu
 .. ipython::
 
     In [1]: vac = basis(5, 0)
-  
+
     In [2]: d = displace(5, 1j)
-   
+
     In [3]: s = squeeze(5, 0.25 + 0.25j)
-   
+
     In [4]: d * vac
 
 
@@ -184,7 +186,7 @@ The simplest density matrix is created by forming the outer-product :math:`\left
 .. ipython::
 
     In [1]: ket = basis(5, 2)
-   
+
     In [2]: ket * ket.dag()
 
 A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or :func:`qutip.states.ket2dm` functions:
@@ -224,13 +226,13 @@ QuTiP also provides a set of distance metrics for determining how close two dens
 .. ipython::
 
     In [1]: x = coherent_dm(5, 1.25)
-    
+
     In [2]: y = coherent_dm(5, 1.25j)  # <-- note the 'j'
-    
+
     In [3]: z = thermal_dm(5, 0.125)
-    
+
     In [4]: fidelity(x, x)
-    
+
     In [5]: tracedist(y, y)
     
     In [6]: hellinger_dist(y, y)
@@ -272,56 +274,56 @@ Having spent a fair amount of time on basis states that represent harmonic oscil
 Now at this point one may ask how this state is different than that of a harmonic oscillator in the vacuum state truncated to two energy levels?
 
 .. ipython::
-    
+
     In [1]: vac = basis(2, 0)
 
 At this stage, there is no difference.  This should not be surprising as we called the exact same function twice.  The difference between the two comes from the action of the spin operators :func:`qutip.operators.sigmax`, :func:`qutip.operators.sigmay`, :func:`qutip.operators.sigmaz`, :func:`qutip.operators.sigmap`, and :func:`qutip.operators.sigmam` on these two-level states.  For example, if ``vac`` corresponds to the vacuum state of a harmonic oscillator, then, as we have already seen, we can use the raising operator to get the :math:`\left|1\right>` state:
 
 .. ipython::
-    
+
     In [1]: vac
 
 .. ipython::
-    
+
     In [1]: c = create(2)
-    
+
     In [2]: c * vac
 
 
 For a spin system, the operator analogous to the raising operator is the sigma-plus operator :func:`qutip.operators.sigmap`.  Operating on the ``spin`` state gives:
 
 .. ipython::
-    
+
     In [1]: spin
-    
+
     In [2]: sigmap() * spin
 
 Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting on the ``spin`` state returns the zero vector.  Why is this?  To see what happened, let us use the :func:`qutip.operators.sigmaz` operator:
 
 .. ipython::
-    
+
     In [1]: sigmaz()
-    
+
     In [2]: sigmaz() * spin
-    
+
     In [3]: spin2 = basis(2, 1)
-    
+
     In [4]: spin2
-    
+
     In [5]: sigmaz() * spin2
 
 
-The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\uparrow\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\downarrow\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
+The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\uparrow\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\downarrow\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.
 
 While at first glance this convention might seem somewhat odd, it is in fact quite handy. For one, the spin operators remain in the conventional form. Second, when the spin system is in the :math:`\left|\uparrow\right>` state:
 
 .. ipython::
-    
+
     In [1]: sigmaz() * spin
 
 the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\downarrow\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\uparrow\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\downarrow\right>` state by :math:`\left|1\right>`.
 
-If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy. 
+If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy.
 
 .. _states-expect:
 
@@ -331,45 +333,44 @@ Expectation values
 Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  To begin:
 
 .. ipython::
-    
+
     In [1]: vac = basis(5, 0)
-    
+
     In [2]: one = basis(5, 1)
-    
+
     In [3]: c = create(5)
-    
+
     In [4]: N = num(5)
-    
+
     In [5]: expect(N, vac)
-    
+
     In [6]: expect(N, one)
 
 
 .. ipython::
-    
+
     In [1]: coh = coherent_dm(5, 1.0j)
-    
+
     In [2]: expect(N, coh)
 
 .. ipython::
-    
+
     In [1]: cat = (basis(5, 4) + 1.0j * basis(5, 3)).unit()
-    
+
     In [2]: expect(c, cat)
 
 The :func:`qutip.expect` function also accepts lists or arrays of state vectors or density matrices for the second input:
 
 .. ipython::
-    
+
     In [1]: states = [(c**k * vac).unit() for k in range(5)]  # must normalize
 
     In [2]: expect(N, states)
 
 .. ipython::
-    
-    In [1]: cat_list = [(basis(5, 4) + x * basis(5, 3)).unit()
-       ...:             for x in [0, 1.0j, -1.0, -1.0j]]
-    
+
+    In [1]: cat_list = [(basis(5, 4) + x * basis(5, 3)).unit() for x in [0, 1.0j, -1.0, -1.0j]]
+
     In [2]: expect(c, cat_list)
 
 Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, than the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
@@ -378,32 +379,32 @@ Of course, the :func:`qutip.expect` function works for spin states and operators
 
 
 .. ipython::
-    
+
     In [1]: up = basis(2, 0)
-    
+
     In [2]: down = basis(2, 1)
-    
+
     In [3]: expect(sigmaz(), up)
-    
+
     In [4]: expect(sigmaz(), down)
 
 
 as well as the composite objects discussed in the next section :ref:`tensor`:
 
 .. ipython::
-    
+
     In [1]: spin1 = basis(2, 0)
-    
+
     In [2]: spin2 = basis(2, 1)
-    
+
     In [3]: two_spins = tensor(spin1, spin2)
-    
+
     In [4]: sz1 = tensor(sigmaz(), qeye(2))
-    
+
     In [5]: sz2 = tensor(qeye(2), sigmaz())
-    
+
     In [6]: expect(sz1, two_spins)
-    
+
     In [7]: expect(sz2, two_spins)
 
 .. _states-super:
@@ -420,25 +421,25 @@ in two copies of that Hilbert space,
 [Hav03]_, [Wat13]_.
 
 This isomorphism is implemented in QuTiP by the
-:obj:`~qutip.superoperator.operator_to_vector` and 
+:obj:`~qutip.superoperator.operator_to_vector` and
 :obj:`~qutip.superoperator.vector_to_operator` functions:
 
 .. ipython::
 
     In [1]: psi = basis(2, 0)
-    
+
     In [2]: rho = ket2dm(psi)
-    
+
     In [3]: rho
-    
+
     In [4]: vec_rho = operator_to_vector(rho)
 
     In [5]: vec_rho
 
     In [6]: rho2 = vector_to_operator(vec_rho)
-    
+
     In [7]: (rho - rho2).norm()
-    
+
 The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
 a vector corresponding to an operator (``operator-ket``), or its Hermitian
 conjugate (``operator-bra``).
@@ -449,11 +450,11 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
 .. ipython::
 
     In [1]: import numpy as np
-    
+
     In [2]: A = Qobj(np.arange(4).reshape((2, 2)))
-    
+
     In [3]: A
-     
+
     In [4]: operator_to_vector(A)
 
 Since :math:`\mathcal{H} \otimes \mathcal{H}` is a vector space, linear maps
@@ -465,18 +466,18 @@ constructed.
 .. ipython::
 
     In [1]: X = sigmax()
-    
+
     In [2]: S = spre(X) * spost(X.dag()) # Represents conjugation by X.
-    
+
 Note that this is done automatically by the :obj:`~qutip.superop_reps.to_super` function when given
 ``type='oper'`` input.
 
 .. ipython::
 
     In [1]: S2 = to_super(X)
-    
+
     In [2]: (S - S2).norm()
-    
+
 Quantum objects representing superoperators are denoted by ``type='super'``:
 
 .. ipython::
@@ -490,8 +491,7 @@ and :attr:`~qutip.Qobj.iscptp` attributes:
 .. ipython::
 
     In [1]: S.iscp, S.istp, S.iscptp
-    True True True
-    
+
 In addition, dynamical generators on this extended space, often called
 *Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` function. Each of these takes a Hamilonian along with
 a list of collapse operators, and returns a ``type="super"`` object that can
@@ -506,7 +506,7 @@ be exponentiated to find the superoperator for that evolution.
     In [3]: L = liouvillian(H, [c1])
 
     In [4]: L
-     
+
     In [5]: S = (12 * L).expm()
 
 For qubits, a particularly useful way to visualize superoperators is to plot them in the Pauli basis,
@@ -550,9 +550,9 @@ In QuTiP, :math:`J(\Lambda)` can be found by calling the :func:`~qutip.superop_r
 function on a ``type="super"`` :ref:`Qobj`.
 
 .. ipython::
-    
+
     In [1]: X = sigmax()
-    
+
     In [2]: S = sprepost(X, X)
 
     In [3]: J = to_choi(S)
@@ -565,14 +565,14 @@ If a :ref:`Qobj` instance is already in the Choi :attr:`~Qobj.superrep`, then ca
 does nothing:
 
 .. ipython::
-    
+
     In [1]: print(to_choi(J))
 
 To get back to the superoperator representation, simply use the :func:`~qutip.superop_reps.to_super` function.
 As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super` is idempotent:
 
 .. ipython::
-    
+
     In [1]: print(to_super(J) - S)
 
     In [2]: print(to_super(S))
@@ -600,10 +600,16 @@ The Kraus representation of a hermicity-preserving map can be found in QuTiP
 using the :func:`~qutip.superop_reps.to_kraus` function.
 
 .. ipython::
+    :suppress:
+
+    In [1]: del sum # np.sum overwrote sum and caused a bug.
+
+
+.. ipython::
 
     In [1]: I, X, Y, Z = qeye(2), sigmax(), sigmay(), sigmaz()
 
-    In [2]: S = sum(sprepost(P, P) for P in (I, X, Y, Z)) / 4
+    In [2]: S = sum([sprepost(P, P) for P in (I, X, Y, Z)]) / 4
        ...: print(S)
 
     In [3]: J = to_choi(S)
@@ -758,7 +764,7 @@ This can be confirmed by the :attr:`~Qobj.istp` attribute:
 
 .. ipython::
 
-    In [1]: print(J.ishp)
+    In [1]: print(J.istp)
 
 Finally, a map is called a quantum channel if it always maps valid states to valid
 states. Formally, a map is a channel if it is both completely positive and trace preserving.
@@ -769,4 +775,3 @@ Thus, QuTiP provides a single attribute to quickly check that this is true.
     In [1]: print(J.iscptp)
 
     In [2]: print(to_super(qeye(2)).iscptp)
-

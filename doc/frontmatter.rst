@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 
 .. _frontmatter:
@@ -12,7 +12,7 @@ Frontmatter
 About This Documentation
 ==========================
 
-This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `documentation page <http://www.qutip.org/documentation.html>`_. 
+This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `documentation page <http://www.qutip.org/documentation.html>`_.
 
 **For more information see the** `QuTiP project web page`_.
 
@@ -29,8 +29,17 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Chris Grenade
 
+:Author: P.D. Nation
 
-:version: 4.3
+:Author: Nathan Shammah
+
+:Author: Shahnawaz Ahmed
+
+:Author: Neill Lambert
+
+:Author: Eric Giguere
+
+:version: 4.4
 :status: Released (July 18, 2018)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
@@ -38,7 +47,7 @@ This document contains a user guide and automatically generated API documentatio
 
 Citing This Project
 ==========================
-    
+
 If you find this project useful, then please cite:
 
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP 2: A Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. **184**, 1234 (2013).
@@ -63,7 +72,7 @@ QuTiP is developed under the auspice of the non-profit organization:
    :figclass: align-center
 
 
-QuTiP was partially supported by 
+QuTiP was partially supported by
 
 .. _image-jsps:
 
@@ -80,6 +89,10 @@ QuTiP was partially supported by
 .. _image-korea:
 
 .. figure:: figures/korea-logo.png
+	:width: 2in
+	:figclass: align-center
+
+.. figure:: figures/inst_quant_sher.png
 	:width: 2in
 	:figclass: align-center
 
@@ -106,7 +119,7 @@ The Quantum Toolbox in Python, or QuTiP, is an open-source framework written in 
 
 * Takes advantage of the multiple processing cores found in essentially all modern computers.
 
-* QuTiP was designed from the start to require a minimal learning curve for those users who have experience using the popular quantum optics toolbox by Sze M. Tan. 
+* QuTiP was designed from the start to require a minimal learning curve for those users who have experience using the popular quantum optics toolbox by Sze M. Tan.
 
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
 
@@ -116,8 +129,7 @@ For detailed information about new features of each release of QuTiP, see the :r
 
 Contributing to QuTiP
 =====================
-We welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum systems. Anyone who contributes will be duly recognized.  Even small contributions are noted. See :ref:`developers-contributors` for a list of people who have helped in one way or another. If you are interested, please drop us a line at the `QuTiP discussion group webpage`_. 
+We welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum systems. Anyone who contributes will be duly recognized.  Even small contributions are noted. See :ref:`developers-contributors` for a list of people who have helped in one way or another. If you are interested, please drop us a line at the `QuTiP discussion group webpage`_.
 
 
 .. _QuTiP discussion group webpage: http://groups.google.com/group/qutip.
-

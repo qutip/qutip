@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _visual:
@@ -12,13 +12,19 @@ Visualization of quantum states and processes
 
    In [1]: from qutip import *
 
+   In [1]: import numpy as np
+
+   In [1]: import matplotlib.pyplot as plt
+
+   In [1]: plt.close("all")
+
 
 Visualization is often an important complement to a simulation of a quantum
 mechanical system. The first method of visualization that come to mind might be
 to plot the expectation values of a few selected operators. But on top of that,
 it can often be instructive to visualize for example the state vectors or
 density matices that describe the state of the system, or how the state is
-transformed as a function of time (see process tomography below). In this 
+transformed as a function of time (see process tomography below). In this
 section we demonstrate how QuTiP and matplotlib can be used to perform a few
 types of  visualizations that often can provide additional understanding of
 quantum system.
@@ -31,17 +37,17 @@ Fock-basis probability distribution
 In quantum mechanics probability distributions plays an important role, and as
 in statistics, the expectation values computed from a probability distribution
 does not reveal the full story. For example, consider an quantum harmonic
-oscillator mode with Hamiltonian :math:`H = \hbar\omega a^\dagger a`, which is 
+oscillator mode with Hamiltonian :math:`H = \hbar\omega a^\dagger a`, which is
 in a state described by its density matrix :math:`\rho`, and which on average
 is occupied by two photons, :math:`\mathrm{Tr}[\rho a^\dagger a] = 2`. Given
-this information we cannot say whether the oscillator is in a Fock state, 
+this information we cannot say whether the oscillator is in a Fock state,
 a thermal state, a coherent state, etc. By visualizing the photon distribution
 in the Fock state basis important clues about the underlying state can be
 obtained.
 
 One convenient way to visualize a probability distribution is to use histograms.
 Consider the following histogram visualization of the number-basis probability
-distribution, which can be obtained from the diagonal of the density matrix, 
+distribution, which can be obtained from the diagonal of the density matrix,
 for a few possible oscillator states with on average occupation of two photons.
 
 First we generate the density matrices for the coherent, thermal and fock states.
@@ -81,13 +87,13 @@ Next, we plot histograms of the diagonals of the density matrices:
 
     In [1]: lim2 = axes[2].set_xlim([-.5, N])
 
-	@savefig visualization-distribution.png width=7.0in align=center
+    @savefig visualization-distribution.png width=7.0in align=center
     In [1]: plt.show()
 
 
 All these states correspond to an average of two photons, but by visualizing
 the photon distribution in Fock basis the differences between these states are
-easily appreciated. 
+easily appreciated.
 
 One frequently need to visualize the Fock-distribution in the way described
 above, so QuTiP provides a convenience function for doing this, see
@@ -105,7 +111,7 @@ above, so QuTiP provides a convenience function for doing this, see
 
     In [1]: fig.tight_layout()
 
-	@savefig visualization-distribution-2.png width=7.0in align=center
+    @savefig visualization-distribution-2.png width=7.0in align=center
     In [1]: plt.show()
 
 .. _visual-dist:
@@ -115,8 +121,8 @@ Quasi-probability distributions
 
 The probability distribution in the number (Fock) basis only describes the
 occupation probabilities for a discrete set of states. A more complete
-phase-space probability-distribution-like function for harmonic modes are 
-the Wigner and Husumi Q-functions, which are full descriptions of the 
+phase-space probability-distribution-like function for harmonic modes are
+the Wigner and Husumi Q-functions, which are full descriptions of the
 quantum state (equivalent to the density matrix). These are called
 quasi-distribution functions because unlike real probability distribution
 functions they can for example be negative. In addition to being more complete descriptions
@@ -130,7 +136,7 @@ Wigner function
 ---------------
 
 In QuTiP, the Wigner function for a harmonic mode can be calculated with the
-function :func:`qutip.wigner.wigner`. It takes a ket or a density matrix as 
+function :func:`qutip.wigner.wigner`. It takes a ket or a density matrix as
 input, together with arrays that define the ranges of the phase-space
 coordinates (in the x-y plane). In the following example the Wigner functions
 are calculated and plotted for the same three states as in the previous section.
@@ -161,7 +167,7 @@ are calculated and plotted for the same three states as in the previous section.
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
-	@savefig visualization-wigner.png width=7.0in align=center
+    @savefig visualization-wigner.png width=7.0in align=center
     In [1]: plt.show()
 
 .. _visual-cmap:
@@ -186,35 +192,35 @@ this function in your Wigner figures:
 .. ipython::
 
     In [1]: import matplotlib as mpl
-    
+
     In [1]: from matplotlib import cm
-    
+
     In [1]: psi = (basis(10, 0) + basis(10, 3) + basis(10, 9)).unit()
-    
+
     In [1]: xvec = np.linspace(-5, 5, 500)
-    
+
     In [1]: W = wigner(psi, xvec, xvec)
-    
+
     In [1]: wmap = wigner_cmap(W)  # Generate Wigner colormap
-    
+
     In [1]: nrm = mpl.colors.Normalize(-W.max(), W.max())
-    
+
     In [1]: fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
     In [1]: plt1 = axes[0].contourf(xvec, xvec, W, 100, cmap=cm.RdBu, norm=nrm)
-    
+
     In [1]: axes[0].set_title("Standard Colormap");
-    
+
     In [1]: cb1 = fig.colorbar(plt1, ax=axes[0])
-    
+
     In [1]: plt2 = axes[1].contourf(xvec, xvec, W, 100, cmap=wmap)  # Apply Wigner colormap
-    
+
     In [1]: axes[1].set_title("Wigner Colormap");
-    
+
     In [1]: cb2 = fig.colorbar(plt2, ax=axes[1])
 
     In [1]: fig.tight_layout()
-    
+
     @savefig wigner_cmap.png width=7.0in align=center
     In [10]: plt.show()
 
@@ -257,7 +263,7 @@ demonstrated below.
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
-	@savefig visualization-q-func.png width=7.0in align=center
+    @savefig visualization-q-func.png width=7.0in align=center
     In [1]: plt.show()
 
 
@@ -269,7 +275,7 @@ Visualizing operators
 Sometimes, it may also be useful to directly visualizing the underlying matrix
 representation of an operator. The density matrix, for example, is an operator
 whose elements can give insights about the state it represents, but one might
-also be interesting in plotting the matrix of an Hamiltonian to inspect the 
+also be interesting in plotting the matrix of an Hamiltonian to inspect the
 structure and relative importance of various elements.
 
 QuTiP offers a few functions for quickly visualizing matrix data in the
@@ -278,9 +284,9 @@ form of histograms, :func:`qutip.visualization.matrix_histogram` and
 squares, :func:`qutip.visualization.hinton`. These functions takes a
 :class:`qutip.Qobj.Qobj` as first argument, and optional arguments to, for
 example, set the axis labels and figure title (see the function's documentation
-for details). 
+for details).
 
-For example, to illustrate the use of :func:`qutip.visualization.matrix_histogram`, 
+For example, to illustrate the use of :func:`qutip.visualization.matrix_histogram`,
 let's visualize of the Jaynes-Cummings Hamiltonian:
 
 .. ipython::
@@ -295,7 +301,7 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
 
     In [1]: H = a.dag() * a + sx - 0.5 * (a * b.dag() + a.dag() * b)
 
-    In [1]: # visualize H 
+    In [1]: # visualize H
 
     In [1]: lbls_list = [[str(d) for d in range(N)], ["u", "d"]]
 
@@ -309,23 +315,21 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
 
     In [1]: ax.view_init(azim=-55, elev=45)
 
-	@savefig visualization-H.png width=5.0in align=center
+    @savefig visualization-H.png width=5.0in align=center
     In [1]: plt.show()
 
 
 Similarly, we can use the function :func:`qutip.visualization.hinton`, which is
-used below to visualize the corresponding steadystate density matrix: 
+used below to visualize the corresponding steadystate density matrix:
 
 .. ipython::
 
     In [1]: rho_ss = steadystate(H, [np.sqrt(0.1) * a, np.sqrt(0.4) * b.dag()])
 
-    In [1]: fig, ax = hinton(rho_ss) # xlabels=xlabels, ylabels=xlabels)
+    In [1]: hinton(rho_ss)
 
-	@savefig visualization-rho-ss.png width=5.0in align=center
+    @savefig visualization-rho-ss.png width=5.0in align=center
     In [1]: plt.show()
-
-
 
 .. _visual-qpt:
 
@@ -334,7 +338,7 @@ Quantum process tomography
 
 Quantum process tomography (QPT) is a useful technique for characterizing experimental implementations of quantum gates involving a small number of qubits. It can also be a useful theoretical tool that can give insight in how a process transforms states, and it can be used for example to study how noise or other imperfections deteriorate a gate. Whereas a fidelity or distance measure can give a single number that indicates how far from ideal a gate is, a quantum process tomography analysis can give detailed information about exactly what kind of errors various imperfections introduce.
 
-The idea is to construct a transformation matrix for a quantum process (for example a quantum gate) that describes how the density matrix of a system is transformed by the process. We can then decompose the transformation in some operator basis that represent well-defined and easily interpreted transformations of the input states. 
+The idea is to construct a transformation matrix for a quantum process (for example a quantum gate) that describes how the density matrix of a system is transformed by the process. We can then decompose the transformation in some operator basis that represent well-defined and easily interpreted transformations of the input states.
 
 To see how this works (see e.g. [Moh08]_ for more details), consider a process that is described by quantum map :math:`\epsilon(\rho_{\rm in}) = \rho_{\rm out}`, which can be written
 
@@ -352,7 +356,7 @@ where :math:`N` is the number of states of the system (that is, :math:`\rho` is 
 
 where :math:`\chi_{mn} = \sum_{ij} b_{im}b_{jn}^*` and :math:`A_i = \sum_{m} b_{im}B_{m}`. Here, matrix :math:`\chi` is the transformation matrix we are after, since it describes how much :math:`B_m \rho_{\rm in} B_n^\dagger` contributes to :math:`\rho_{\rm out}`.
 
-In a numerical simulation of a quantum process we usually do not have access to the quantum map in the form Eq. :eq:`qpt-quantum-map`. Instead, what we usually can do is to calculate the propagator :math:`U` for the density matrix in superoperator form, using for example the QuTiP function :func:`qutip.propagator.propagator`. We can then write 
+In a numerical simulation of a quantum process we usually do not have access to the quantum map in the form Eq. :eq:`qpt-quantum-map`. Instead, what we usually can do is to calculate the propagator :math:`U` for the density matrix in superoperator form, using for example the QuTiP function :func:`qutip.propagator.propagator`. We can then write
 
 .. math::
 
@@ -420,7 +424,3 @@ We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and
 
 
 For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`qutip.propagator.propagator`, see notebook "Time-dependent master equation: Landau-Zener transitions" on the tutorials section on the QuTiP web site.
-
-
-
-

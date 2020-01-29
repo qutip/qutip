@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _random:
@@ -20,7 +20,7 @@ For example, a random Hermitian operator can be sampled by calling `rand_herm` f
 
 .. ipython::
 
-	In [2]: rand_herm(5)
+    In [2]: rand_herm(5)
 
 .. tabularcolumns:: | p{2cm} | p{3cm} | c |
 
@@ -44,10 +44,10 @@ In all cases, these functions can be called with a single parameter :math:`N` th
 ``dims`` keyword argument allows for the dimensions of a random state, unitary or channel to be broken down into subsystems.
 
 .. ipython::
-	
-	In [3]: print(rand_super_bcsz(7).dims)
 
-	In [4]: print(rand_super_bcsz(6, dims=[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]).dims)
+    In [3]: print(rand_super_bcsz(7).dims)
+
+    In [4]: print(rand_super_bcsz(6, dims=[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]).dims)
 
 Several of the distributions supported by QuTiP support additional parameters as well, namely *density* and *rank*. In particular,
 the `rand_herm` and `rand_dm` functions return quantum objects such that a fraction of the elements are identically equal to zero.
@@ -63,10 +63,10 @@ For example,
    In [5]: rand_dm(5, density=0.5)
 
    In [6]: rand_dm_ginibre(5, rank=2)
-	
+
 See the API documentation: :ref:`functions-rand` for details.
 
-.. warning::  
+.. warning::
 
     When using the ``density`` keyword argument, setting the density too low may result in not enough diagonal elements to satisfy trace
     constraints.
@@ -82,13 +82,13 @@ It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy 
 
 
 .. ipython::
-    
-   In [7]: eigs = np.arange(5)    
-   
+
+   In [7]: eigs = np.arange(5)
+
    In [8]: H = rand_herm(eigs, density=0.5)
-   
+
    In [9]: H
-   
+
    In [10]: H.eigenenergies()
 
 
@@ -104,4 +104,3 @@ In many cases, one is interested in generating random quantum objects that corre
 .. ipython::
 
    In [1]: rand_dm(4, 0.5, dims=[[2,2], [2,2]])
-
