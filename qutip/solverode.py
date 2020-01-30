@@ -4,6 +4,7 @@
 import numpy as np
 from scipy.integrate import solve_ivp, ode
 from qutip.solver import
+from qutip.qobjevo_maker import is_dynargs_pattern
 
 class OdeSolver:
     """Parent of OdeSolver used by Qutip quantum system solvers.
@@ -443,11 +444,13 @@ class _SolverCacheOneLevel:
 
 
 class _SolverCache:
-    def __init__(self, solver):
+    def __init__(self, solver, args):
         self.num_args = 0
         self.args_hash = {}
         self.cached_data = []
         self.solver = solver
+        self.args = args
+        self.argsk = [key for key in args.keys if not is_dynargs_pattern(key)]
 
     def _new_cache(self, args):
         funcs = [None, _prop2state, _expect]
@@ -459,13 +462,10 @@ class _SolverCache:
         return cache
 
     def _hashable_args(self, args):
-        args, dyn_args = args[0], args[1]
-        dyn_list = tuple(sorted([dyn[0] for dyn in dyn_args]))
-        # collapse? e_ops change?
-        keys = [key for key in args.keys() if key not in dyn_list]
-        keys = tuple(sorted(keys))
-        args_tuple = tuple((args[key] for key in keys))
-        return (args_tuple, dyn_list)
+        fullargs = self.args.copy()
+        fullargs.update(args)
+        args_values = tuple(fullargs[key] for key in self.argsk)
+        return args_values
 
     def __setitem__(self, key, val):
         args = self._hashable_args(key[0])

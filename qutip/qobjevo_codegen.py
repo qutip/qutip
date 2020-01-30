@@ -274,6 +274,10 @@ include """ + _include_string + "\n\n"
 
     expect_i = 0
     for name, what, op in dyn_args:
+        if what == "norm":
+            code += "        cdef complex[::1] " + name + " = self._norm\n"
+        if what == "trace":
+            code += "        cdef complex[::1] " + name + " = self._trace\n"
         if what == "vec":
             code += "        cdef complex[::1] " + name + " = self._vec\n"
         if what == "mat":

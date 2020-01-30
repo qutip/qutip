@@ -20,3 +20,5 @@ cdef class StrCoeff(CoeffFunc):
     cdef list _expect_op
     cdef complex[::1] _expect_vec
     cdef complex[::1] _vec
+    cdef int _dynnorm, _dyntrace
+    cdef complex _trace, _norm

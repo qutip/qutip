@@ -161,11 +161,11 @@ class SESolver(Solver):
             solver = OdeScipyAdam
         else:
             solver = OdeScipyIVP
-        self.LH_Solver = solver(self.LH)
+        self.LH_Solver = solver.prepare(self.LH, self.options)
         self.solver = solver
 
     def _get_solver(self, args, progress_bar=None):
-        solver = self.solver(self.LH, self.options)
+        solver = self.solver(self.LH_Solver, self.options)
         solver.progress_bar = progress_bar
         return solver
 
@@ -197,7 +197,6 @@ class SESolver(Solver):
 
     def optimization(self, **optimizations):
         raise NotImplementedError
-
 
     def propagator(self, t, args=None, dtype="Qobj", starts=None):
         # TODO: With feedback, the propagator is not valid
@@ -436,13 +435,13 @@ class SESolver(Solver):
             new_results.append(prop_t1_t2)
         return new_results
 
-    def __apply_type(self, results, dtype, dims, depth):
+    def _apply_type(self, results, dtype, dims, depth):
         """ Change the state type: dense, sparse, Qobj.
         """
         # TODO: have from type for faster type conversion
         if depth:
             # Get to the right depth in the lists of lists of lists...
-            return [self.__apply_type(res, dtype, dims, depth-1)
+            return [self._apply_type(res, dtype, dims, depth-1)
                     for res in results]
         if dtype == "Qobj":
             # TODO: use fast=...
@@ -499,14 +498,14 @@ class SESolver(Solver):
 
     def _run_one_alone(self, run_data):
         set_info, tlist, state0, t0 = *run_data
-        self.LH.arguments(set_info[0], state0, self._e_ops0)
+        self.LH_Solver.arguments(set_info[0], state0, self._e_ops0)
         solver = self.get_solver(progress_bar=self.progress_bar,
                                  args=set_info[0])
         return solver(t0, state0, tlist)
 
     def _run_one(self, run_data):
         set_info, tlist, state0, t0 = *run_data
-        self.LH.arguments(set_info[0], state0, self._e_ops0)
+        self.LH_Solver.arguments(set_info[0], state0, self._e_ops0)
         solver = self.get_solver(args=set_info[0])
         return solver(t0, state0, tlist)
 

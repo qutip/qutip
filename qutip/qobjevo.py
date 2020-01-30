@@ -41,6 +41,7 @@ from scipy.interpolate import CubicSpline, interp1d
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
+from numpy.linalg import np_norm
 from numbers import Number
 from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
                                    _compiled_coeffs_python)
@@ -596,6 +597,12 @@ class QobjEvo:
                 if isinstance(self.args[key], Qobj):
                     self.args[key] = self.args[key].full().ravel("F")
 
+            if key == "norm":
+                self.dynamics_args += [("norm", "norm", None)]
+
+            if key == "trace":
+                self.dynamics_args += [("trace", "trace", None)]
+
             if key.startswith("expect_op_"):
                 e_op_num = int(key[10:])
                 self.dynamics_args += [(key, "expect", e_op_num)]
@@ -664,6 +671,10 @@ class QobjEvo:
                     self.args[name] = state.full()
                 elif what == "Qobj":
                     self.args[name] = state
+                elif what == "norm":
+                    self.args[name] = state.norm()
+                elif what == "trace":
+                    self.args[name] = state.tr()
                 elif what == "expect":
                     self.args[name] = op.expect(t, state)
 
@@ -1698,6 +1709,10 @@ class _UnitedFuncCaller:
                     self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
                 else:  # rho
                     self.args[name] = Qobj(mat, dims=self.dims[1])
+            elif what == "norm":
+                self.args[name] = np_norm(state)
+            elif what == "trace":
+                self.args[name] = state.trace()
             elif what == "expect":
                 if shape[1] == op.cte.shape[1]: # same shape as object
                     self.args[name] = op.mul_mat(t, mat).trace()

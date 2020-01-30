@@ -42,6 +42,15 @@ from qutip.cy.inter cimport (_spline_complex_cte_second,
                              _step_complex_t, _step_complex_cte)
 from qutip.cy.interpolate cimport (interp, zinterp)
 from qutip.cy.cqobjevo cimport CQobjEvo
+from scipy.linalg.cython_blas cimport dznrm2
+
+cdef int ONE=1
+
+@cython.boundscheck(False)
+cdef double _dznrm2(complex[::1] vec):
+    """ = sqrt( x_i**2 ) """
+    cdef int l = vec.shape[0]
+    return dznrm2(&l, <complex*>&vec[0], &ONE)
 
 include "complex_math.pxi"
 
@@ -270,6 +279,8 @@ cdef class StrCoeff(CoeffFunc):
         self._dyn_args_list = dyn_args
         self.set_args(args)
         self._set_dyn_args(dyn_args)
+        self._norm = 0
+        self._trace = 0
 
     def _set_dyn_args(self, dyn_args):
         self._num_expect = 0
@@ -283,6 +294,10 @@ cdef class StrCoeff(CoeffFunc):
                     self._expect_op.append(op.compiled_qobjevo)
                     expect_def.append(self._args[name])
                     self._num_expect += 1
+                elif what == "norm":
+                    self._dynnorm = 1
+                elif what == "trace":
+                    self._dyntrace = 1
                 elif what == "vec":
                     self._vec = self._args[name]
                 elif what == "mat":
@@ -300,6 +315,13 @@ cdef class StrCoeff(CoeffFunc):
         self._vec = <complex[:nn]> state
         self._mat_shape[0] = shape[0]
         self._mat_shape[1] = shape[1]
+        if self._dynnorm:
+            self._norm = dznrm2(&nn, state, &ONE)
+        if self._dyntrace:
+            self._trace = 0
+            for ii in range(shape[0]):
+                self.trace += state[ii*(shape[0]+1)]
+
         cdef CQobjEvo cop
         for ii in range(self._num_expect):
             cop = self._expect_op[ii]

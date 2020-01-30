@@ -52,6 +52,13 @@ class StateArgs:
         return self.dyn_args
 
 
+def is_dynargs_pattern(key):
+    is_state = key in ["state", "state_mat", "state_qobj", "state_vec"]
+    is_basic = key in ["norm", "trace"]
+    is_expect = key.startswith("expect_op_")
+    return is_state or is_basic or is_expect
+
+
 class _StateAsArgs:
     # old with state (f(t, psi, args)) to new (args["state"] = psi)
     def __init__(self, func):
