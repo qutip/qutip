@@ -19,17 +19,15 @@ This document contains a user guide and automatically generated API documentatio
 .. _QuTiP project web page: http://www.qutip.org
 
 
+:Author: J.R. Johansson
+
 :Author: P.D. Nation
 
 :Author: Alexander Pitchford
 
 :Author: Arne Grimsmo
 
-:Author: J.R. Johansson
-
 :Author: Chris Grenade
-
-:Author: P.D. Nation
 
 :Author: Nathan Shammah
 
@@ -39,8 +37,8 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Eric Giguere
 
-:version: 4.4
-:status: Released (July 18, 2018)
+:version: 4.5
+:status: Released (January 30, 2020)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:

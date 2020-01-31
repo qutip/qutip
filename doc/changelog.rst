@@ -1,5 +1,5 @@
 .. QuTiP
-   Copyright (C) 2011-2013, Paul D. Nation, Robert J. Johansson & Alexander Pitchford
+   Copyright (C) 2011-2020, Paul D. Nation, Robert J. Johansson, Alexander Pitchford, Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawax Ahmed, Eric Giguère
 
 .. _changelog:
 
@@ -8,27 +8,76 @@ Change Log
 **********
 
 
-Version 4.5.x (unreleased)
+Version 4.5.0 (January 31, 2020)
 ++++++++++++++++++++++++++++++
 
 Improvements
 ------------
+- **MAJOR FEATURE**: Added `qip.noise`, a module with pulse level description of quantum circuits allowing to model various types of noise and devices (by **Boxi Li**).
+
+- **MAJOR FEATURE**: Added `qip.lattice`, a module for the study of lattice dynamics in 1D (by **Saumya Biswas**).
 
 - Migrated testing from Nose to PyTest (by **Tarun Raheja**).
 
+- Optimized testing for PyTest and removed duplicated test runners (by **Jake Lishman**).
+
+- Deprecated importing `qip` functions to the qutip namespace (by **Boxi Li**).
+
+- Added the possibility to define non-square superoperators relevant for quantum circuits (by **Arne Grimsmo** and **Josh Combes**).
+
+- Implicit tensor product for `qeye`, `qzero` and `basis` (by **Jake Lishman**).
+
 - QObjEvo no longer requires Cython for string coefficient (by **Eric Giguère**).
+
+- Added marked tests for faster tests in `testing.run()` and made faster OpenMP benchmarking in CI (by **Eric Giguère**).
 
 - Added entropy and purity for Dicke density matrices, refactored into more general dicke_trace (by **Nathan Shammah**).
 
 - Added option for specifying resolution in Bloch.save function (by **Tarun Raheja**).
 
+- Added information related to the value of hbar in `wigner` and `continuous_variables` (by **Nicolas Quesada**).
+
+- Updated requirements for `scipy 1.4` (by **Eric Giguère**).
+
+- Added previous lead developers to the qutip.about() message (by **Nathan Shammah**).
+
+- Added improvements to `Qobj` introducing the `inv` method and making the partial trace, `ptrace`, faster, keeping both sparse and dense methods (by **Eric Giguère**).
+
+- Allowed general callable objects to define a time-dependent Hamiltonian (by **Eric Giguère**).
+
+- Added feature so that `QobjEvo` no longer requires Cython for string coefficients (by **Eric Giguère**).
+
+- Updated authors list on Github and added `my binder` link (by **Nathan Shammah**).
+
 
 Bug Fixes
 ---------
 
-- Fixed PolyDataMapper construction (by **Sam Griffiths**).
+- Fixed `PolyDataMapper` construction for `Bloch3d` (by **Sam Griffiths**).
 
 - Fixed error checking for null matrix in essolve (by **Nathan Shammah**).
+
+- Fixed name collision for parallel propagator (by **Nathan Shammah**).
+
+- Fixed dimensional incongruence in `propagator` (by **Nathan Shammah**)
+
+- Fixed bug by rewriting clebsch function based on long integer fraction (by **Eric Giguère**).
+
+- Fixed bugs in QobjEvo's args depending on state and added solver tests using them (by **Eric Giguère**).
+
+- Fixed bug in `sesolve` calculation of average states when summing the timeslot states (by **Alex Pitchford**).
+
+- Fixed bug in `steadystate` solver by removing separate arguments for MKL and Scipy (by **Tarun Raheja**).
+
+- Fixed `Bloch.add_ponts` by setting `edgecolor = None` in `plot_points` (by **Nathan Shammah**).
+
+- Fixed error checking for null matrix in `essolve` solver affecting also `ode2es` (by **Peter Kirton**).
+
+- Removed unnecessary shebangs in .pyx and .pxd files (by **Samesh Lakhotia**).
+
+- Fixed `sesolve` and  import of `os` in `codegen` (by **Alex Pitchford**).
+
+- Updated `plot_fock_distribution` by removing the offset value 0.4 in the plot (by **Rajiv-B**).
 
 
 Version 4.4.1 (August 29, 2019)

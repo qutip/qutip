@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from qutip.qip.device import Processor
 from qutip.operators import sigmaz, destroy
-from qutip.qip import snot
+from qutip.qip.operations import snot
 from qutip.states import basis
 
 a = destroy(2)
@@ -18,11 +18,11 @@ tlist = np.arange(0.00, 20.2, 0.2)
 
 T2 = 5
 processor = Processor(1, t2=T2)
-processor.add_ctrl(sigmaz())
-processor.tlist= tlist
-processor.coeffs = np.ones((1,len(processor.tlist)))
+processor.add_control(sigmaz())
+processor.pulses[0].coeff = True
+processor.pulses[0].tlist = tlist
 result = processor.run_state(
-    rho0=plus_state, e_ops=[a.dag()*a, Hadamard*a.dag()*a*Hadamard])
+    plus_state, e_ops=[a.dag()*a, Hadamard*a.dag()*a*Hadamard])
 
 fig, ax = plt.subplots()
 # detail about length of tlist needs to be fixed

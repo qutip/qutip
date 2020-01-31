@@ -15,11 +15,12 @@ The Quantum Information Processing (QIP) module aims at providing basic tools fo
 Quantum Circuit
 ===============
 
-The most common model for quantum computing is the quantum circuit model. In QuTiP, we use :class:`qutip.qip.QubitCircuit` to represent a quantum circuit. Each quantum gate is saved as a class object :class:`qutip.qip.Gate` with information such as gate name, target qubits and arguments. To get the matrix representation of each gate, we can call the class method :meth:`qutip.qip.QubitCircuit.propagators()`. Carrying out the matrices product, one gets the matrix representation of the whole evolution. This process is demonstrated in the following example.
+The most common model for quantum computing is the quantum circuit model. In QuTiP, we use :class:`qutip.qip.QubitCircuit` to represent a quantum circuit. Each quantum gate is saved as a class object :class:`qutip.qip.operations.Gate` with information such as gate name, target qubits and arguments. To get the matrix representation of each gate, we can call the class method :meth:`qutip.qip.QubitCircuit.propagators()`. Carrying out the matrices product, one gets the matrix representation of the whole evolution. This process is demonstrated in the following example.
 
 .. code-block:: python
    
-   >>> from qutip.qip import QubitCircuit, Gate
+   >>> from qutip.qip.circuit import QubitCircuit, Gate
+   >>> from qutip.qip.operations import gate_sequence_product
    >>> qc = QubitCircuit(N=2)
    >>> swap_gate = Gate(name="SWAP", targets=[0, 1])
    >>> qc.add_gate(swap_gate)
@@ -75,7 +76,8 @@ In addition to these pre-defined gates, QuTiP also allows the user to define the
 
 .. code-block:: 
 
-      >>> from qutip.qip import QubitCircuit, Gate, rx
+      >>> from qutip.qip.circuit import Gate
+      >>> from qutip.qip.operations import rx
       >>> from qutip import Qobj
       >>> import numpy as np
       >>> def user_gate1(arg_value):
@@ -133,15 +135,15 @@ Processor for QIP simulation
 
    Available from QuTiP 4.5
 
-In addition to direct matrix product, QuTiP also offers another approach to QIP simulation. Based on the open system solver, :class:`qutip.qip.device.Processor` in the :mod:`qutip.qip` module simulates quantum circuits at the level of driving Hamiltonians. One can consider the processor as a simulator of a quantum device, on which the quantum circuit is to be implemented. Like a real quantum device, the processor is determined by a list of Hamiltonians, i.e. the control pulses driving the evolution. Given the intensity of the control pulses and the corresponding time slices for each pulse, the evolution can be calculated using the solver. The pulse intensity and time for each pulse are saved in the attributes :attr:`qutip.qip.device.Processor.coeffs`, a 2-d NumPy array, and :attr:`qutip.qip.device.Processor.tlist`, a 1-d NumPy array. We can either use the coefficients as a step function or with cubic spline. For step function, ``tlist`` specifies the start and the end of each pulse and thus is one element longer the ``coeffs``. One example of defining the control pulse coefficients and the time array is as follows:
+In addition to direct matrix product, QuTiP also offers another approach to QIP simulation. Based on the open system solver, :class:`qutip.qip.device.Processor` in the :mod:`qutip.qip` module simulates quantum circuits at the level of driving Hamiltonians. One can consider the processor as a simulator of a quantum device, on which the quantum circuit is to be implemented. Like a real quantum device, the processor is determined by a list of Hamiltonians, i.e. the control pulses driving the evolution. Given the intensity of the control pulses and the corresponding time slices for each pulse, the evolution can be calculated using the solver. A control pulse is characterized by :class:`qutip.qip.pulse.Pulse`, consisting of the control Hamiltonian, the targets qubit, the pulse coefficients and the time sequence. We can either use the coefficients as a step function or with cubic spline. For step function, ``tlist`` specifies the start and the end of each pulse and thus is one element longer the ``coeffs``. One example of defining the control pulse coefficients and the time array is as follows:
 
 .. code-block:: python
 
    >>> from qutip.qip.device import Processor
    >>> proc = Processor(2)
-   >>> proc.add_ctrl(sigmaz(), cyclic_permutation=True)  # sigmaz for all qubits
-   >>> proc.coeffs = np.array([[1.0, 1.5, 2.0], [1.8, 1.3, 0.8]])
-   >>> proc.tlist = np.array([0.1, 0.2, 0.4, 0.5])
+   >>> proc.add_control(sigmaz(), cyclic_permutation=True)  # sigmaz for all qubits
+   >>> proc.pulses[0].coeffs = np.array([[1.0, 1.5, 2.0], [1.8, 1.3, 0.8]])
+   >>> proc.pulses[0].tlist = np.array([0.1, 0.2, 0.4, 0.5])
 
 .. note::
 
@@ -191,8 +193,8 @@ To let it find the optimal pulses, we need to give the parameters for :func:`qut
 .. code-block:: python
 
       >>> from qutip.qip.device import OptPulseProcessor
-      >>> from qutip.qip import QubitCircuit
-      >>> from qutip import tensor, sigmaz, sigmax, sigmay
+      >>> from qutip.operators import sigmaz, sigmax, sigmay
+      >>> from qutip.tensor import tensor
       >>>
       >>> # Same parameter for all the gates
       ... qc = QubitCircuit(N=1)
@@ -200,7 +202,8 @@ To let it find the optimal pulses, we need to give the parameters for :func:`qut
       >>>
       >>> num_tslots = 10
       >>> evo_time = 10
-      >>> processor = OptPulseProcessor(N=1, drift=sigmaz(), ctrls=[sigmax()])
+      >>> processor = OptPulseProcessor(N=1, drift=sigmaz())
+      >>> processor.add_control(sigmax())
       >>> # num_tslots and evo_time are two keyword arguments
       ... tlist, coeffs = processor.load_circuit(
       ... qc, num_tslots=num_tslots, evo_time=evo_time)
@@ -212,9 +215,9 @@ To let it find the optimal pulses, we need to give the parameters for :func:`qut
       >>> qc.add_gate('CNOT', controls=1, targets=[0])
       >>>
       >>> processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
-      >>> processor.add_ctrl(sigmax(), cyclic_permutation=True)
-      >>> processor.add_ctrl(sigmay(), cyclic_permutation=True)
-      >>> processor.add_ctrl(tensor([sigmay(), sigmay()]))
+      >>> processor.add_control(sigmax(), cyclic_permutation=True)
+      >>> processor.add_control(sigmay(), cyclic_permutation=True)
+      >>> processor.add_control(tensor([sigmay(), sigmay()]))
       >>> setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
       ...                 "SWAP": {"num_tslots": 30, "evo_time": 3},
       ...                 "CNOT": {"num_tslots": 30, "evo_time": 3}}
@@ -248,7 +251,7 @@ As the design of our simulator follows the physical realization, so is the noise
 
 * The noise of the pulse intensity can be simulated by modifying the coefficients of the Hamiltonian operators or even adding new Hamiltonians.
 
-To add noise to a processor, one needs to first define a noise object :class:`qutip.qip.device.Noise`. The simplest relaxation noise can be defined directly in the processor with relaxation time. Other pre-defined noise can be found as subclasses of  :class:`qutip.qip.device.Noise`. We add noise to the simulator with the method :meth:`qutip.qip.device.Processor.add_noise`.
+To add noise to a processor, one needs to first define a noise object :class:`qutip.qip.noise.Noise`. The simplest relaxation noise can be defined directly in the processor with relaxation time. Other pre-defined noise can be found as subclasses of  :class:`qutip.qip.noise.Noise`. We add noise to the simulator with the method :meth:`qutip.qip.device.Processor.add_noise`.
 
 Workflow of the Processor
 ================================

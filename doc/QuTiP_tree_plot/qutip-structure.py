@@ -37,9 +37,9 @@ module_cmap = {"mesolve":           0, # time evolution
                "eseries":           0,
                "hsolve":            0,
                "rcsolve":           0,
-               "heom":              0,               
+               "heom":              0,
                "scattering":        0,
-               "piqs":              0,               
+               "piqs":              0,
                "odeconfig":         1, # options and settings
                "settings":          1,
                "odechecks":         1,
@@ -61,8 +61,13 @@ module_cmap = {"mesolve":           0, # time evolution
                "continuous_variables": 4,
                "qstate":            4,
                "random_objects":    4,
-               "three_level_atom":  4, 
-               "gates":             5, # gates
+               "three_level_atom":  4,
+               "gates":             5, # gates and qip
+               "qubits":            5,
+               "circuit":           5,
+               "pulse":             5,
+               "noise":             5,
+               "qft":               5,
                "entropy":           6, # measures
                "metrics":           6,
                "countstat":         6,
@@ -95,15 +100,15 @@ module_list  = []
 
 num_items = 0
 
-for root, dirs, files in os.walk(qutip_root):  
-    
+for root, dirs, files in os.walk(qutip_root):
+
     if not ".svn" in root and root == "../../qutip/qutip":
         for f in files:
             if f[-3:] == ".py" and f[0] != "_" and f != "setup.py":
 
                 module = f[:-3]
                 if module not in hidden_modules:
-                    idx   = module_cmap[module] if module in module_cmap else -1                 
+                    idx   = module_cmap[module] if module in module_cmap else -1
                     color = colors[idx] if idx >= 0 else "black"
 
                     symbol_list = []
@@ -116,11 +121,11 @@ for root, dirs, files in os.walk(qutip_root):
                     module_list.append({"name": module, "children": symbol_list, "color": color, "idx": idx})
         for d in dirs:
             if d in ['nonmarkov']:
-                for root, dr, files in os.walk(qutip_root+'/'+d):  
+                for root, dr, files in os.walk(qutip_root+'/'+d):
                     for f in files:
                         if f[-3:] == ".py" and f[0] != "_" and f != "setup.py":
                             module = f[:-3]
-                            idx   = module_cmap[module] if module in module_cmap else -1                 
+                            idx   = module_cmap[module] if module in module_cmap else -1
                             color = colors[idx] if idx >= 0 else "black"
 
                             symbol_list = []

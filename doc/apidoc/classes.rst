@@ -69,10 +69,16 @@ Non-Markovian Solvers
 Solver Options and Results
 ---------------------------
 
+.. autoclass:: qutip.solver.ExpectOps
+    :members:
+
 .. autoclass:: qutip.solver.Options
     :members:
 
 .. autoclass:: qutip.solver.Result
+    :members:
+
+.. autoclass:: qutip.solver.SolverConfiguration
     :members:
 
 .. autoclass:: qutip.solver.Stats
@@ -93,6 +99,12 @@ Permutational Invariance
     :members:
 
 .. _classes-distributions:
+
+One-Dimensional Lattice
+---------------
+
+.. autoclass:: qutip.lattice.Lattice1d
+    :members:
 
 Distribution functions
 ----------------------------
@@ -153,28 +165,31 @@ Quantum information processing
     :members:
     :inherited-members:
     
-.. autoclass:: qutip.qip.device.Noise
+.. autoclass:: qutip.qip.Noise
     :members:
 
-.. autoclass:: qutip.qip.device.DecoherenceNoise
+.. autoclass:: qutip.qip.noise.DecoherenceNoise
     :members:
     :inherited-members:
 
-.. autoclass:: qutip.qip.device.RelaxationNoise
+.. autoclass:: qutip.qip.noise.RelaxationNoise
     :members:
     :inherited-members:
 
-.. autoclass:: qutip.qip.device.ControlAmpNoise
+.. autoclass:: qutip.qip.noise.ControlAmpNoise
     :members:
     :inherited-members:
 
-.. autoclass:: qutip.qip.device.RandomNoise
+.. autoclass:: qutip.qip.noise.RandomNoise
     :members:
     :inherited-members:
 
-.. autoclass:: qutip.qip.device.UserNoise
+.. autoclass:: qutip.qip.noise.UserNoise
     :members:
     :inherited-members:
+
+.. autoclass:: qutip.qip.pulse.Pulse
+    :members:
 
 .. _classes-control:
 
