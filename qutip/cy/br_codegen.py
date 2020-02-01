@@ -59,6 +59,11 @@ class BR_Codegen(object):
                 omp_thresh=None,
                 omp_threads=None,
                 atol=None):
+        try:
+            import cython
+        except (ImportError, ModuleNotFoundError):
+            raise ModuleNotFoundError("Cython is needed for "
+                                      "time-depdendent brmesolve")
         import sys
         import os
         sys.path.append(os.getcwd())

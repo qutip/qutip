@@ -42,11 +42,13 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
            'enr_identity', 'charge', 'tunneling']
 
+import numbers
 import numpy as np
 import scipy
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.fastsparse import fast_csr_matrix, fast_identity
+from qutip.dimensions import flatten
 
 #
 # Spin operators
@@ -97,7 +99,7 @@ shape = [3, 3], type = oper, isHerm = True
     If no 'args' input, then returns array of ['x','y','z'] operators.
 
     """
-    if (scipy.fix(2 * j) != 2 * j) or (j < 0):
+    if (np.fix(2 * j) != 2 * j) or (j < 0):
         raise TypeError('j must be a non-negative integer or half-integer')
 
     if not args:
@@ -422,20 +424,74 @@ shape = [4, 4], type = oper, isHerm = False
     return qo.dag()
 
 
-#
-# QEYE returns identity operator for an N dimensional space
-# a = qeye(N), N is integer & N>0
-#
-def qeye(N):
+def _implicit_tensor_dimensions(dimensions):
     """
-    Identity operator
+    Total flattened size and operator dimensions for operator creation routines
+    that automatically perform tensor products.
 
     Parameters
     ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    dimensions : (int) or (list of int) or (list of list of int)
+        First dimension of an operator which can create an implicit tensor
+        product.  If the type is `int`, it is promoted first to `[dimensions]`.
+        From there, it should be one of the two-elements `dims` parameter of a
+        `qutip.Qobj` representing an `oper` or `super`, with possible tensor
+        products.
+
+    Returns
+    -------
+    size : int
+        Dimension of backing matrix required to represent operator.
+    dimensions : list
+        Dimension list in the form required by ``Qobj`` creation.
+    """
+    if not isinstance(dimensions, list):
+        dimensions = [dimensions]
+    flat = flatten(dimensions)
+    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
+        raise ValueError("All dimensions must be integers >= 0")
+    return np.prod(flat), [dimensions, dimensions]
+
+
+def qzero(dimensions):
+    """
+    Zero operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
+
+    Returns
+    -------
+    qzero : qobj
+        Zero operator Qobj.
+
+    """
+    size, dimensions = _implicit_tensor_dimensions(dimensions)
+    # A sparse matrix with no data is equal to a zero matrix.
+    return Qobj(fast_csr_matrix(shape=(size, size), dtype=complex),
+                dims=dimensions, isherm=True)
+
+
+#
+# QEYE returns identity operator for a Hilbert space with dimensions dims.
+# a = qeye(N), N is integer or list of integers & all elements >= 0
+#
+def qeye(dimensions):
+    """
+    Identity operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     Returns
     -------
@@ -445,38 +501,44 @@ def qeye(N):
     Examples
     --------
     >>> qeye(3)
-    Quantum object: dims = [[3], [3]], \
-shape = [3, 3], type = oper, isHerm = True
+    Quantum object: dims = [[3], [3]], shape = (3, 3), type = oper, \
+isherm = True
     Qobj data =
     [[ 1.  0.  0.]
      [ 0.  1.  0.]
      [ 0.  0.  1.]]
+    >>> qeye([2,2])
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, \
+isherm = True
+    Qobj data =
+    [[1. 0. 0. 0.]
+     [0. 1. 0. 0.]
+     [0. 0. 1. 0.]
+     [0. 0. 0. 1.]]
 
     """
-    if isinstance(N, list):
-        return tensor(*[identity(n) for n in N])
-    N = int(N)
-    if N < 0:
-        raise ValueError("N must be integer N>=0")
-    return Qobj(fast_identity(N), isherm=True, isunitary=True)
+    size, dimensions = _implicit_tensor_dimensions(dimensions)
+    return Qobj(fast_identity(size),
+                dims=dimensions, isherm=True, isunitary=True)
 
 
-def identity(N):
+def identity(dims):
     """Identity operator. Alternative name to :func:`qeye`.
 
     Parameters
     ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     Returns
     -------
     oper : qobj
         Identity operator Qobj.
     """
-    return qeye(N)
+    return qeye(dims)
 
 
 def position(N, offset=0):
@@ -785,32 +847,6 @@ def phase(N, phi0=0):
                        for kk in phim])
     ops = np.array([np.outer(st, st.conj()) for st in states])
     return Qobj(np.sum(ops, axis=0))
-
-
-def qzero(N):
-    """
-    Zero operator
-
-    Parameters
-    ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
-
-    Returns
-    -------
-    qzero : qobj
-        Zero operator Qobj.
-
-    """
-
-    if isinstance(N, list):
-        return tensor(*[qzero(n) for n in N])
-    N = int(N)
-    if (not isinstance(N, (int, np.integer))) or N < 0:
-        raise ValueError("N must be integer N>=0")
-    return Qobj(sp.csr_matrix((N, N), dtype=complex), isherm=True)
 
 
 def enr_destroy(dims, excitations):

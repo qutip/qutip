@@ -37,12 +37,8 @@ import inspect
 
 import numpy as np
 
-import numpy as np
-
-import numpy as np
-
 from qutip.qip.circuit_latex import _latex_compile
-from qutip.qip.gates import *
+from qutip.qip.operations.gates import *
 from qutip.qip.qubits import qubit_states
 
 __all__ = ['Gate', 'QubitCircuit']
@@ -416,7 +412,7 @@ class QubitCircuit(object):
         Reverse an entire circuit of unitary gates.
 
         Returns
-        ----------
+        -------
         qc : QubitCircuit
             Return QubitCircuit of resolved gates for the qubit circuit in the
             reverse order.

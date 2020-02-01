@@ -31,9 +31,39 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import pytest
+import numpy as np
 from numpy.testing import assert_, run_module_suite
+import qutip
 from qutip import (expect, destroy, coherent, coherent_dm, thermal_dm,
-                    fock_dm, triplet_states)
+                   fock_dm, triplet_states)
+
+
+@pytest.mark.parametrize("size, n", [(2, 0), (2, 1), (100, 99)])
+def test_basis_simple(size, n):
+    qobj = qutip.basis(size, n)
+    numpy = np.zeros((size, 1), dtype=complex)
+    numpy[n, 0] = 1
+    assert np.array_equal(qobj.full(), numpy)
+
+
+@pytest.mark.parametrize("to_test", [qutip.basis, qutip.fock, qutip.fock_dm])
+@pytest.mark.parametrize("size, n", [([2, 2], [0, 1]), ([2, 3, 4], [1, 2, 0])])
+def test_implicit_tensor_basis_like(to_test, size, n):
+    implicit = to_test(size, n)
+    explicit = qutip.tensor(*[to_test(ss, nn) for ss, nn in zip(size, n)])
+    assert implicit == explicit
+
+
+@pytest.mark.parametrize("size, n, m", [
+        ([2, 2], [0, 0], [1, 1]),
+        ([2, 3, 4], [1, 2, 0], [0, 1, 3]),
+    ])
+def test_implicit_tensor_projection(size, n, m):
+    implicit = qutip.projection(size, n, m)
+    explicit = qutip.tensor(*[qutip.projection(ss, nn, mm)
+                              for ss, nn, mm in zip(size, n, m)])
+    assert implicit == explicit
 
 
 class TestStates:

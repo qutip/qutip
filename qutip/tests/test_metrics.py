@@ -44,7 +44,7 @@ from numpy.testing import (
     assert_, run_module_suite, assert_approx_equal,
     assert_almost_equal
 )
-import scipy
+from numpy.random import rand
 
 from qutip.operators import (
     create, destroy, jmat, identity, qdiags, sigmax, sigmay, sigmaz, qeye
@@ -57,7 +57,7 @@ from qutip.random_objects import (
 )
 from qutip.qobj import Qobj
 from qutip.superop_reps import to_super, to_choi
-from qutip.qip.gates import hadamard_transform, swap
+from qutip.qip.operations.gates import hadamard_transform, swap
 from qutip.tensor import tensor
 from qutip.metrics import *
 
@@ -323,7 +323,7 @@ def test_hellinger_monotonicity():
 
 def rand_super():
     h_5 = rand_herm(5)
-    return propagator(h_5, scipy.rand(), [
+    return propagator(h_5, rand(), [
         create(5), destroy(5), jmat(2, 'z')
     ])
 

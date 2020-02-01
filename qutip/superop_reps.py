@@ -58,7 +58,7 @@ from scipy.linalg import eig, svd
 import numpy as np
 
 # Other QuTiP functions and classes
-from qutip.superoperator import vec2mat, spre, spost, operator_to_vector
+from qutip.superoperator import vec2mat, operator_to_vector, sprepost
 from qutip.operators import identity, sigmax, sigmay, sigmaz
 from qutip.tensor import tensor, flatten
 from qutip.qobj import Qobj
@@ -138,10 +138,16 @@ def _super_tofrom_choi(q_oper):
     type should be called externally.
     """
     data = q_oper.data.toarray()
-    sqrt_shape = int(sqrt(data.shape[0]))
-    return Qobj(dims=q_oper.dims,
-                inpt=data.reshape([sqrt_shape] * 4).
-                transpose(3, 1, 2, 0).reshape(q_oper.data.shape))
+    dims = q_oper.dims
+    new_dims = [[dims[1][1], dims[0][1]], [dims[1][0], dims[0][0]]]
+    d0 = np.prod(np.ravel(new_dims[0]))
+    d1 = np.prod(np.ravel(new_dims[1]))
+    s0 = np.prod(dims[0][0])
+    s1 = np.prod(dims[1][1])
+    return Qobj(dims=new_dims,
+                inpt=data.reshape([s0, s1, s0, s1]).
+                transpose(3, 1, 2, 0).reshape((d0, d1)))
+
 
 def _isqubitdims(dims):
     """Checks whether all entries in a dims list are integer powers of 2.
@@ -210,7 +216,7 @@ def choi_to_super(q_oper):
     return q_oper
 
 
-def choi_to_kraus(q_oper):
+def choi_to_kraus(q_oper, tol=1e-9):
     """
     Takes a Choi matrix and returns a list of Kraus operators.
     TODO: Create a new class structure for quantum channels, perhaps as a
@@ -218,7 +224,10 @@ def choi_to_kraus(q_oper):
     """
     vals, vecs = eig(q_oper.data.todense())
     vecs = [array(_) for _ in zip(*vecs)]
-    return [Qobj(inpt=sqrt(val)*vec2mat(vec)) for val, vec in zip(vals, vecs)]
+    shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
+    return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
+            dims=q_oper.dims[0][::-1])
+            for val, vec in zip(vals, vecs) if abs(val) >= tol]
 
 
 def kraus_to_choi(kraus_list):
@@ -227,15 +236,14 @@ def kraus_to_choi(kraus_list):
     represented by the Kraus operators in `kraus_list`
     """
     kraus_mat_list = list(map(lambda x: matrix(x.data.todense()), kraus_list))
-    op_len = len(kraus_mat_list[0])
-    op_rng = range(op_len)
+    op_rng = range(kraus_mat_list[0].shape[1])
     choi_blocks = array([[sum([op[:, c_ix] * array([op.H[r_ix, :]])
                                for op in kraus_mat_list])
                           for r_ix in op_rng]
                          for c_ix in op_rng])
     return Qobj(inpt=hstack(hstack(choi_blocks)),
-                dims=[kraus_list[0].dims, kraus_list[0].dims], type='super',
-                superrep='choi')
+                dims=[kraus_list[0].dims[::-1], kraus_list[0].dims[::-1]],
+                type='super', superrep='choi')
 
 
 def kraus_to_super(kraus_list):
@@ -416,7 +424,7 @@ def to_choi(q_oper):
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
-        return super_to_choi(spre(q_oper) * spost(q_oper.dag()))
+        return super_to_choi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
@@ -461,7 +469,7 @@ def to_chi(q_oper):
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
-        return to_chi(spre(q_oper) * spost(q_oper.dag()))
+        return to_chi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
@@ -508,7 +516,7 @@ def to_super(q_oper):
             raise ValueError(
                 "Unrecognized superrep '{}'.".format(q_oper.superrep))
     elif q_oper.type == 'oper':  # Assume unitary
-        return spre(q_oper) * spost(q_oper.dag())
+        return sprepost(q_oper, q_oper.dag())
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
@@ -517,7 +525,7 @@ def to_super(q_oper):
         )
 
 
-def to_kraus(q_oper):
+def to_kraus(q_oper, tol=1e-9):
     """
     Converts a Qobj representing a quantum map to a list of quantum objects,
     each representing an operator in the Kraus decomposition of the given map.
@@ -528,6 +536,10 @@ def to_kraus(q_oper):
         Superoperator to be converted to Kraus representation. If
         ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
         such that ``to_kraus(A) == to_kraus(sprepost(A, A.dag())) == [A]``.
+
+    tol : Float
+        Optional threshold parameter for eigenvalues/Kraus ops to be discarded.
+        The default is to=1e-9.
 
     Returns
     -------
@@ -542,9 +554,9 @@ def to_kraus(q_oper):
     """
     if q_oper.type == 'super':
         if q_oper.superrep in ("super", "chi"):
-            return to_kraus(to_choi(q_oper))
+            return to_kraus(to_choi(q_oper), tol)
         elif q_oper.superrep == 'choi':
-            return choi_to_kraus(q_oper)
+            return choi_to_kraus(q_oper, tol)
     elif q_oper.type == 'oper':  # Assume unitary
         return [q_oper]
     else:

@@ -30,6 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import pytest
 from qutip import *
 import numpy as np
 from numpy.testing import (assert_equal, assert_, assert_almost_equal,
@@ -53,13 +54,10 @@ def _rand_cqobjevo(N=5):
     tlist=np.linspace(0,10,10001)
     tlistlog=np.logspace(-3,1,10001)
     O0, O1, O2 = rand_herm(N), rand_herm(N), rand_herm(N)
-
     cte = [QobjEvo([O0])]
-
     wargs = [QobjEvo([O0,[O1,_f1],[O2,_f2]], args={"w1":1,"w2":2}),
              QobjEvo([O0,[O1,"sin(w1*t)"],[O2,"cos(w2*t)"]],
                      args={"w1":1,"w2":2})]
-
     nargs = [QobjEvo([O0,[O1,np.sin(tlist)],[O2,np.cos(2*tlist)]],tlist=tlist),
              QobjEvo([O0,[O1,np.sin(tlistlog)],[O2,np.cos(2*tlistlog)]],
                      tlist=tlistlog),
@@ -78,12 +76,10 @@ def _random_QobjEvo(shape=(1,1), ops=[0,0,0], cte=True, tlist=None):
     """Create a list to make a QobjEvo with up to 3 coefficients"""
     if tlist is None:
         tlist = np.linspace(0,1,301)
-
     Qobj_list = []
     if cte:
         Qobj_list.append(Qobj(np.random.random(shape) + \
                               1j*np.random.random(shape)))
-
     coeff =  [[_f1, "sin(w1*t)",    np.sin(tlist),
                     Cubic_Spline(0,1,np.sin(tlist))],
               [_f2, "cos(w2*t)",    np.cos(tlist),
@@ -124,21 +120,49 @@ def test_QobjEvo_call():
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
+
+@pytest.mark.slow
+def test_QobjEvo_call_full():
+    "QobjEvo call"
+    N = 5
+    t = np.random.rand()+1
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
+    O0, O1, O2 = base_qobjs
+    O_target1 = O0+np.sin(t)*O1+np.cos(2*t)*O2
+
+    # Check the constant flag
+    assert_equal(cqobjevos[0].const, True)
+    # Check that the call return the Qobj
+    assert_equal(cqobjevos[0](t) == O0, True)
+    # Check that the call for the data return the data
+    assert_equal(_sp_eq(cqobjevos[0](t, data=True), O0.data), True)
+
+    for op in cqobjevos[1:]:
         op.compile(dense=1)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(matched=1)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(omp=2)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
         op.compile(matched=1, omp=2)
         assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
+
+        op.use_cython = False
+        op.compile()
+        assert_equal(_sp_eq(op(t, data=1) , O_target1.data), True)
+        assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
+        op.compiled = ""
 
 
 def test_QobjEvo_call_args():
@@ -166,6 +190,18 @@ def test_QobjEvo_call_args():
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
+
+@pytest.mark.slow
+def test_QobjEvo_call_args_full():
+    "QobjEvo with_args"
+    N = 5
+    t = np.random.rand()+1
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
+    O0, O1, O2 = base_qobjs
+    O_target1 = O0+np.sin(t)*O1+np.cos(2*t)*O2
+    O_target2 = O0+np.sin(t)*O1+np.cos(4*t)*O2
+
+    for op in cqobjevos[1:3]:
         op.compile(dense=1)
         assert_equal(len((op(t, args={"w2":4})
                           - O_target2).tidyup(1e-10).data.data),0)
@@ -174,6 +210,7 @@ def test_QobjEvo_call_args():
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
+        op.compiled = ""
         op.compile(matched=1)
         assert_equal(len((op(t, args={"w2":4})
                           - O_target2).tidyup(1e-10).data.data),0)
@@ -182,6 +219,7 @@ def test_QobjEvo_call_args():
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
+        op.compiled = ""
         op.compile(omp=2)
         assert_equal(len((op(t, args={"w2":4})
                           -O_target2).tidyup(1e-10).data.data),0)
@@ -190,6 +228,7 @@ def test_QobjEvo_call_args():
         op.arguments({"w2":2})
         assert_equal(len((op(t) - O_target1).tidyup(1e-10).data.data),0)
 
+        op.compiled = ""
         op.compile(matched=1, omp=2)
         assert_equal(len((op(t, args={"w2":4})
                           -O_target2).tidyup(1e-10).data.data),0)
@@ -200,11 +239,12 @@ def test_QobjEvo_call_args():
 
 
 def test_QobjEvo_step_coeff():
+    "QobjEvo step interpolation"
     coeff1 = np.random.rand(6)
     coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
     # uniform t
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
-    qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]], 
+    qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
                     tlist=tlist, args={"_step_func_coeff":True})
     assert_equal(qobjevo.ops[0].get_coeff(2.0), coeff1[0])
     assert_equal(qobjevo.ops[0].get_coeff(7.0), coeff1[5])
@@ -480,12 +520,26 @@ def test_QobjEvo_mul_vec():
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
         op.compile()
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+
+
+@pytest.mark.slow
+def test_QobjEvo_mul_vec_full():
+    "QobjEvo mul_vec"
+    N = 5
+    t = np.random.rand()+1
+    vec = np.arange(N)*.5+.5j
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
+
+    for op in cqobjevos:
         op.compile(dense=1)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        op.compiled = ""
         op.compile(matched=1)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        op.compiled = ""
         op.compile(omp=2)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        op.compiled = ""
         op.compile(matched=1,omp=2)
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
 
@@ -508,21 +562,38 @@ def test_QobjEvo_mul_mat():
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+
+
+@pytest.mark.slow
+def test_QobjEvo_mul_mat_full():
+    "QobjEvo mul_mat"
+    N = 5
+    t = np.random.rand()+1
+    mat = np.random.rand(N,N)+1 + 1j*np.random.rand(N,N)
+    matF = np.asfortranarray(mat)
+    matV = mat2vec(mat).flatten()
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
+
+    for op in cqobjevos:
+        Qo1 = op(t)
         op.compile(dense=1)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        op.compiled = ""
         op.compile(matched=1)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        op.compiled = ""
         op.compile(omp=2)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        op.compiled = ""
         op.compile(matched=1,omp=2)
         assert_allclose(Qo1.data * mat, op.mul_mat(t,mat))
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
@@ -542,12 +613,27 @@ def test_QobjEvo_expect_psi():
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
         op.compile()
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+
+
+@pytest.mark.slow
+def test_QobjEvo_expect_psi_full():
+    "QobjEvo expect psi"
+    N = 5
+    t = np.random.rand()+1
+    vec = np.arange(N)*.5+.5j
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
+
+    for op in cqobjevos:
+        Qo1 = op(t)
         op.compile(dense=1)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        op.compiled = ""
         op.compile(matched=1)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        op.compiled = ""
         op.compile(omp=2)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        op.compiled = ""
         op.compile(matched=1,omp=2)
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
 
@@ -557,6 +643,8 @@ def test_QobjEvo_expect_rho():
     N = 5
     t = np.random.rand()+1
     vec = np.random.rand(N*N)+1 + 1j*np.random.rand(N*N)
+    mat = vec2mat(vec)
+    qobj = Qobj(mat)
     cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
     for op_ in cqobjevos:
@@ -564,21 +652,96 @@ def test_QobjEvo_expect_rho():
         Qo1 = op(t)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+
         op.compile()
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+
+    tlist = np.linspace(0,1,300)
+    args={"w1":1, "w2":2, "w3":3}
+    data1 = np.random.random((3,3))
+    data2 = np.random.random((3,3))
+    td_obj_sa = QobjEvo(_random_QobjEvo((3,3), [0,3,2], tlist=tlist),
+                       args=args, tlist=tlist)
+    td_obj_m = QobjEvo(_random_QobjEvo((3,3), [1,2,3], tlist=tlist),
+                       args=args, tlist=tlist)
+    t = np.random.random()
+    td_obj_sa = td_obj_sa.apply(spre)
+    td_obj_m = td_obj_m.apply(spre)
+    rho = np.arange(3*3)*0.25+.25j
+    td_obj_sac = td_obj_sa.copy()
+    td_obj_sac.compile()
+    v1 = td_obj_sa.expect(t, rho, 0)
+    v2 = td_obj_sac.expect(t, rho, 0)
+    v3 = cy_expect_rho_vec(td_obj_sa(t, data=True), rho, 0)
+    # check not compiled rhs const
+    assert_allclose(v1, v3, rtol=1e-6)
+    # check compiled rhs
+    assert_allclose(v3, v2, rtol=1e-6)
+
+    td_obj_mc = td_obj_m.copy()
+    td_obj_mc.compile()
+    v1 = td_obj_m.expect(t, rho, 1)
+    v2 = td_obj_mc.expect(t, rho, 1)
+    v3 = cy_expect_rho_vec(td_obj_m(t, data=True), rho, 1)
+    # check not compiled rhs func
+    assert_allclose(v1, v3, rtol=1e-6)
+    # check compiled rhs func
+    assert_allclose(v3, v2, rtol=1e-6)
+
+
+@pytest.mark.slow
+def test_QobjEvo_expect_rho_full():
+    "QobjEvo expect rho"
+    N = 5
+    t = np.random.rand()+1
+    vec = np.random.rand(N*N)+1 + 1j*np.random.rand(N*N)
+    mat = vec2mat(vec)
+    qobj = Qobj(mat)
+    cqobjevos, base_qobjs = _rand_cqobjevo(N)
+
+    for op_ in cqobjevos:
+        op = liouvillian(op_)
+        Qo1 = op(t)
         op.compile(dense=1)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+        op.compiled = ""
         op.compile(matched=1)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+        op.compiled = ""
         op.compile(omp=2)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
+        op.compiled = ""
         op.compile(matched=1,omp=2)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,vec,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,mat,0), atol=1e-14)
+        assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
+                        op.expect(t,qobj,0), atol=1e-14)
 
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}
@@ -616,7 +779,7 @@ def test_QobjEvo_expect_rho():
 def test_QobjEvo_with_state():
     "QobjEvo dynamics_args"
     def coeff_state(t, args):
-        return np.mean(args["vec"]) * args["w"] * args["e"]
+        return np.mean(args["state_vec"]) * args["w"] * args["expect_op_0"]
     N = 5
     vec = np.arange(N)*.5+.5j
     t = np.random.random()
@@ -624,9 +787,9 @@ def test_QobjEvo_with_state():
     data2 = np.random.random((N, N))
     q1 = Qobj(data1)
     q2 = Qobj(data2)
-    args={"w":5, "vec=vec":None, "e=expect":2*qeye(N)}
+    args={"w":5, "state_vec":None, "expect_op_0":2*qeye(N)}
 
-    td_data = QobjEvo([q1, [q2, coeff_state]], args=args)
+    td_data = QobjEvo([q1, [q2, coeff_state]], args=args, e_ops=[2*qeye(N)])
     q_at_t = q1 + np.mean(vec) * args["w"] * expect(2*qeye(N), Qobj(vec.T)) * q2
     # Check that the with_state call
     assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
@@ -634,7 +797,8 @@ def test_QobjEvo_with_state():
     # Check that the with_state call compiled
     assert_allclose(td_data.mul_vec(t, vec), q_at_t * vec)
 
-    td_data = QobjEvo([q1, [q2, "vec[0] * cos(w*e*t)"]], args=args)
+    td_data = QobjEvo([q1, [q2, "state_vec[0] * cos(w*expect_op_0*t)"]],
+                      args=args, e_ops=[2*qeye(N)])
     data_at_t = q1 + q2 * vec[0] * np.cos(10 * t * expect(qeye(N), Qobj(vec.T)))
     # Check that the with_state call for str format
     assert_allclose(td_data.mul_vec(t, vec), data_at_t * vec)
@@ -642,26 +806,26 @@ def test_QobjEvo_with_state():
     # Check that the with_state call for str format and compiled
     assert_allclose(td_data.mul_vec(t, vec), data_at_t * vec)
 
-    args={"mat=mat":None, "vec=vec":None, "qobj=Qobj":None}
+    args={"state_mat":None, "state_vec":None, "state_qobj":None}
     mat = np.arange(N*N).reshape((N,N))
     def check_dyn_args(t, args):
-        if not isinstance(args["qobj"], Qobj):
-            raise TypeError("args['qobj'], Qobj")
-        if not isinstance(args["vec"], np.ndarray):
-            raise TypeError("args['vec'], np.ndarray")
-        if not isinstance(args["mat"], np.ndarray):
-            raise TypeError("args['mat'], np.ndarray")
+        if not isinstance(args["state_qobj"], Qobj):
+            raise TypeError("args['state_qobj'], Qobj")
+        if not isinstance(args["state_vec"], np.ndarray):
+            raise TypeError("args['state_vec'], np.ndarray")
+        if not isinstance(args["state_mat"], np.ndarray):
+            raise TypeError("args['state_mat'], np.ndarray")
 
-        if len(args["vec"].shape) != 1:
+        if len(args["state_vec"].shape) != 1:
             raise TypeError
-        if len(args["mat"].shape) != 2:
+        if len(args["state_mat"].shape) != 2:
             raise TypeError
 
-        if not np.all(args["vec"] == args["qobj"].full().ravel("F")):
+        if not np.all(args["state_vec"] == args["state_qobj"].full().ravel("F")):
             raise Exception
-        if not np.all(args["vec"] == args["mat"].ravel("F")):
+        if not np.all(args["state_vec"] == args["state_mat"].ravel("F")):
             raise Exception
-        if not np.all(args["mat"] == mat):
+        if not np.all(args["state_mat"] == mat):
             raise Exception
         return 1
     td_data = QobjEvo([q1, check_dyn_args], args=args)
@@ -710,6 +874,7 @@ def test_QobjEvo_safepickle():
     #used in parallel_map
     import pickle
     from qutip.qobjevo import safePickle
+    old_set = safePickle[0]
     safePickle[0] = True
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2}
@@ -742,6 +907,7 @@ def test_QobjEvo_safepickle():
     td_pick = pickle.loads(pickled)
     # Check for ct_cqobjevo
     assert_equal(td_obj_m(t) == td_pick(t), True)
+    safePickle[0] = old_set
 
 
 def test_QobjEvo_superoperator():

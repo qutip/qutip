@@ -257,7 +257,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     else:
         raise Exception("Invalid H type")
 
-    func, ode_args = ss.makefunc(ss, rho0, args, options)
+    func, ode_args = ss.makefunc(ss, rho0, args, e_ops, options)
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -282,13 +282,13 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
     """
-    H_td = QobjEvo(H, args, tlist)
+    H_td = QobjEvo(H, args, tlist=tlist)
     if not issuper(H_td.cte):
         L_td = liouvillian(H_td)
     else:
         L_td = H_td
     for op in c_ops:
-        op_td = QobjEvo(op, args, tlist)
+        op_td = QobjEvo(op, args, tlist=tlist)
         if not issuper(op_td.cte):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td
@@ -305,12 +305,12 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     solver_safe["mesolve"] = ss
     return ss
 
-def _qobjevo_set(HS, rho0, args, opt):
+def _qobjevo_set(HS, rho0, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.arguments(args)
+    H_td.solver_set_args(args, rho0, e_ops)
     if issuper(rho0):
         func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
     elif rho0.isket or rho0.isoper:
@@ -363,7 +363,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     """
     c_ops = []
     for op in c_op_list:
-        op_td = QobjEvo(op, args, tlist, copy=False)
+        op_td = QobjEvo(op, args, tlist=tlist, copy=False)
         if not issuper(op_td.cte):
             c_ops += [lindblad_dissipator(op_td)]
         else:
@@ -394,7 +394,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     return ss
 
 
-def _Lfunc_set(HS, rho0, args, opt):
+def _Lfunc_set(HS, rho0, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """

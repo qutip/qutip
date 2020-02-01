@@ -32,6 +32,7 @@
 ###############################################################################
 
 import numpy as np
+from numpy.random import rand
 import scipy.linalg as la
 from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
@@ -39,7 +40,7 @@ import scipy
 from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
                    operator_to_vector, mat2vec, vec2mat, vec2mat_index,
                    mat2vec_index, tensor, sprepost, to_super, reshuffle,
-                   identity, destroy, create, qeye, QobjEvo)
+                   identity, destroy, create, qeye, QobjEvo, Qobj)
 from qutip.superoperator import liouvillian, liouvillian_ref, \
                                 lindblad_dissipator
 
@@ -62,6 +63,28 @@ class TestMatVec:
         rho2 = vector_to_operator(operator_to_vector(rho1))
 
         assert_((rho1 - rho2).norm() < 1e-8)
+
+    def testOperatorVectorTensor(self):
+        """
+        Superoperator: Operator - vector - operator conversion with a tensor product state.
+        """
+        Na = 3
+        Nb = 2
+        rhoa = rand_dm(Na)
+        rhob = rand_dm(Nb)
+        rho1 = tensor(rhoa, rhob)
+        rho2 = vector_to_operator(operator_to_vector(rho1))
+
+        assert_((rho1 - rho2).norm() < 1e-8)
+
+    def testOperatorVectorNotSquare(self):
+        """
+        Superoperator: Operator - vector - operator conversion for non-square matrix.
+        """
+        op1 = Qobj(np.random.rand(6).reshape((3, 2)))
+        op2 = vector_to_operator(operator_to_vector(op1))
+
+        assert_((op1 - op2).norm() < 1e-8)
 
     def testOperatorSpreAppl(self):
         """
@@ -109,7 +132,7 @@ class TestMatVec:
         """
         Superoperator: Conversion matrix to vector to matrix
         """
-        M = scipy.rand(10, 10)
+        M = rand(10, 10)
         V = mat2vec(M)
         M2 = vec2mat(V)
         assert_(la.norm(M - M2) == 0.0)
@@ -118,7 +141,7 @@ class TestMatVec:
         """
         Superoperator: Conversion vector to matrix to vector
         """
-        V = scipy.rand(100)     # a row vector
+        V = rand(100)     # a row vector
         M = vec2mat(V)
         V2 = mat2vec(M).T  # mat2vec returns a column vector
         assert_(la.norm(V - V2) == 0.0)
@@ -139,7 +162,7 @@ class TestMatVec:
         corresponding index conversions.
         """
         N = 10
-        M = scipy.rand(N, N)
+        M = rand(N, N)
         V = mat2vec(M)
         for I in range(N * N):
             i, j = vec2mat_index(N, I)

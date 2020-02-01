@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+import pytest
 import numpy as np
 from scipy.special import laguerre
 from numpy.random import rand
@@ -76,12 +76,13 @@ def test_wigner_bell1_su2parity():
     assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
+@pytest.mark.slow
 def test_wigner_bell4_su2parity():
     """wigner: testing the SU2 parity of the fourth Bell state.
     """
     psi = bell_state('11')
 
-    steps = 100
+    steps = 25
     slicearray = ['l', 'l']
 
     wigner_analyt = np.zeros((steps, steps))
@@ -94,13 +95,14 @@ def test_wigner_bell4_su2parity():
     assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
+@pytest.mark.slow
 def test_wigner_bell4_fullparity():
     """wigner: testing the parity of the fourth Bell state using the parity of
     the full space.
     """
     psi = bell_state('11')
 
-    steps = 100
+    steps = 25
     slicearray = ['l', 'l']
 
     wigner_analyt = np.zeros((steps, steps))
@@ -125,11 +127,12 @@ def test_parity():
     assert_(_parity(2, j)[1, 0] < 1e-11)
 
 
+@pytest.mark.slow
 def test_wigner_pure_su2():
     """wigner: testing the SU2 wigner transformation of a pure state.
     """
     psi = (ket([1]))
-    steps = 100
+    steps = 25
     theta = np.linspace(0, np.pi, steps)
     phi = np.linspace(0, 2 * np.pi, steps)
     theta = theta[None, :]
@@ -146,12 +149,13 @@ def test_wigner_pure_su2():
     assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
+@pytest.mark.slow
 def test_wigner_ghz_su2parity():
     """wigner: testing the SU2 wigner transformation of the GHZ state.
     """
     psi = (ket([0, 0, 0]) + ket([1, 1, 1])) / np.sqrt(2)
 
-    steps = 100
+    steps = 25
     N = 3
     theta = np.tile(np.linspace(0, np.pi, steps), N).reshape(N, steps)
     phi = np.tile(np.linspace(0, 2 * np.pi, steps), N).reshape(N, steps)
@@ -189,6 +193,7 @@ def test_wigner_ghz_su2parity():
     assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
+@pytest.mark.slow
 def test_angle_slicing():
     """wigner: tests angle slicing.
     """
@@ -197,7 +202,7 @@ def test_angle_slicing():
     psi3 = bell_state('10')
     psi4 = bell_state('11')
 
-    steps = 100
+    steps = 25
     j = 0.5
 
     wigner1 = wigner_transform(psi1, j, False, steps, ['l', 'l'])

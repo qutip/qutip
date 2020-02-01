@@ -39,7 +39,7 @@ Created on Wed May 29 11:23:46 2013
 ###############################################################################
 from __future__ import division
 
-from numpy import abs, pi
+from numpy import abs, pi, asarray, kron
 from numpy.linalg import norm
 from numpy.testing import assert_, assert_almost_equal, run_module_suite, assert_equal
 
@@ -48,7 +48,7 @@ from unittest import expectedFailure
 from qutip.qobj import Qobj
 from qutip.states import basis
 from qutip.operators import identity, sigmax, sigmay, qeye, create
-from qutip.qip.gates import swap
+from qutip.qip.operations.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import tensor, super_tensor
 from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
@@ -111,6 +111,45 @@ class TestSuperopReps(object):
         assert_((test_choi - choi_matrix).norm() < tol)
         assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
         assert_(test_choi.type == "super" and test_choi.superrep == "choi")
+
+    def test_NonSquareKrausSuperChoi(self):
+        """
+        Superoperator: Convert non-square Kraus operator to Super + Choi matrix and back.
+        """
+        zero = asarray([[1], [0]], dtype=complex)
+        one = asarray([[0], [1]], dtype=complex)
+        zero_log = kron(kron(zero, zero), zero)
+        one_log = kron(kron(one, one), one)
+        # non-square Kraus operator (isometry)
+        kraus = Qobj(zero_log @ zero.T + one_log @ one.T)
+        super = sprepost(kraus, kraus.dag())
+        choi = to_choi(super)
+        op1 = to_kraus(super)
+        op2 = to_kraus(choi)
+        op3 = to_super(choi)
+        assert_(choi.type == "super" and choi.superrep == "choi")
+        assert_(super.type == "super" and super.superrep == "super")
+        assert_((op1[0] - kraus).norm() < 1e-8)
+        assert_((op2[0] - kraus).norm() < 1e-8)
+        assert_((op3 - super).norm() < 1e-8)
+
+    def test_NeglectSmallKraus(self):
+        """
+        Superoperator: Convert Kraus to Choi matrix and back. Neglect tiny Kraus operators.
+        """
+        zero = asarray([[1], [0]], dtype=complex)
+        one = asarray([[0], [1]], dtype=complex)
+        zero_log = kron(kron(zero, zero), zero)
+        one_log = kron(kron(one, one), one)
+        # non-square Kraus operator (isometry)
+        kraus = Qobj(zero_log @ zero.T + one_log @ one.T)
+        super = sprepost(kraus, kraus.dag())
+        # 1 non-zero Kraus operator the rest are zero
+        sixteen_kraus_ops = to_kraus(super, tol=0.0)
+        # default is tol=1e-9
+        one_kraus_op = to_kraus(super)
+        assert_(len(sixteen_kraus_ops) == 16 and len(one_kraus_op) == 1)
+        assert_((one_kraus_op[0] - kraus).norm() < tol)
 
     def test_SuperPreservesSelf(self):
         """
