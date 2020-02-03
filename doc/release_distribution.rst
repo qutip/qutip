@@ -179,16 +179,24 @@ All released versions will be saved in a subfolder like ::
 
     downloads/<MAJOR>.<MINOR>.<MICRO>
 
-Links will be kept to the highest micro release of the current and all legacy minor release.
-For a micro release the qutip.github.io will need to be updated as follows:
+Download links will be kept to the highest micro release of the current and all legacy minor release.
+Download links will also be kept to the PDF documentation for that version.
 
+For all releases
 - copy the ``.tar.gz`` and ``.zip`` created using sdist_ into the downloads folder.
-- alse copy the ``qutip-doc-<version>.pdf`` into this folder.
+- also move (no new docs) or copy (for new docs) the ``qutip-doc-<MAJOR>.<MINOR>.pdf`` into this folder.
 
-The html documentation will be in a subfolder like ::
+The legacy html documentation should be in a subfolder like ::
 
     docs/<MAJOR>.<MINOR>
+    
+For a major or minor release the previous version documentation should be moved into this folder. 
 
+The latest version HTML documentation should be the folder ::
+
+    docs/latest
+    
+For any release which new documentation is included
 - copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this. 
 https://github.com/qutip/qutip.github.io/blob/master/docs/remove_leading_underscores.py
 
@@ -210,7 +218,6 @@ HTML file updates
 - Edit ``documentation.html``
 
     * The previous release tags should be moved (copied) to the 'Previous releases' section.
-    * The 'Current release' tags and links should be updated.
 
 .. _cforge:
 
