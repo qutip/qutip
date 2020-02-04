@@ -30,136 +30,72 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
 import warnings
-
 import numpy as np
-from numpy.testing import assert_, run_module_suite, assert_allclose
-
+import pytest
+import qutip
+from qutip.qip.circuit import Gate
 from qutip.qip.operations.gates import gate_sequence_product
-from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.cavityqed import DispersiveCavityQED
-from qutip.random_objects import rand_ket
-from qutip.metrics import fidelity
-from qutip.operators import sigmaz, sigmax
-from qutip.solver import Options
-from qutip.states import basis
-from qutip.tensor import tensor
+
+_tol = 1e-2
+
+_iswap = Gate("ISWAP", targets=[0, 1])
+_sqrt_iswap = Gate("SQRTISWAP", targets=[0, 1])
+_rz = Gate("RZ", targets=[1], arg_value=np.pi/2, arg_label=r"\pi/2")
+_rx = Gate("RX", targets=[0], arg_value=np.pi/2, arg_label=r"\pi/2")
 
 
-class Testcqed:
-    """
-    A test class for the QuTiP functions for physical implementation of
-    resonator-qubit models.
-    """
+@pytest.mark.parametrize("gates", [
+    pytest.param([_iswap], id="ISWAP"),
+    pytest.param([_sqrt_iswap], id="SQRTISWAP", marks=pytest.mark.skip),
+    pytest.param([_iswap, _rz, _rx], id="ISWAP RZ RX"),
+])
+def test_device_against_gate_sequence(gates):
+    n_qubits = 3
+    circuit = qutip.qip.circuit.QubitCircuit(n_qubits)
+    for gate in gates:
+        circuit.add_gate(gate)
+    U_ideal = gate_sequence_product(circuit.propagators())
 
-    def test_DispersiveCavityQED_ISWAP(self):
-        """
-        Dispersive cQED Setup: compare unitary matrix for ISWAP and propogator
-        matrix of the implemented physical model.
-        """
-        N = 3
-
-        qc1 = QubitCircuit(N)
-        qc1.add_gate("ISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.propagators())
-
-        p = DispersiveCavityQED(N, correct_global_phase=True)
-        U_list = p.run(qc1)
-        U_physical = gate_sequence_product(U_list)
-
-        print((U_ideal - U_physical).norm())
-        assert_((U_ideal - U_physical).norm() < 1e-2)
-
-    def skip_DispersiveCavityQED_SQRTISWAP(self):
-        """
-        Dispersive cQED Setup: compare unitary matrix for SQRTISWAP and
-        propogator matrix of the implemented physical model.
-        """
-        N = 3
-
-        qc1 = QubitCircuit(N)
-        qc1.add_gate("SQRTISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.propagators())
-
-        p = DispersiveCavityQED(N, correct_global_phase=True)
-        U_list = p.run(qc1)
-        U_physical = gate_sequence_product(U_list)
-
-        print((U_ideal - U_physical).norm())
-        assert_((U_ideal - U_physical).norm() < 1e-4)
-
-    def test_DispersiveCavityQED_combination(self):
-        """
-        Dispersive cQED Setup: compare unitary matrix for ISWAP, SQRTISWAP,
-        RX and RY gates and the propogator matrix of the implemented physical
-        model.
-        """
-        N = 3
-
-        qc1 = QubitCircuit(N)
-        qc1.add_gate("ISWAP", targets=[0, 1])
-        qc1.add_gate("RZ", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[1])
-        qc1.add_gate("RX", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[0])
-        U_ideal = gate_sequence_product(qc1.propagators())
-
-        p = DispersiveCavityQED(N, correct_global_phase=True)
-        U_list = p.run(qc1)
-        U_physical = gate_sequence_product(U_list)
-
-        print((U_ideal - U_physical).norm())
-        assert_((U_ideal - U_physical).norm() < 1e-2)
-
-    def test_analytical_evo(self):
-        """
-        Test of run_state with exp(-iHt)
-        """
-        N = 3
-
-        qc = QubitCircuit(N)
-        qc.add_gate("ISWAP", targets=[0, 1])
-        qc.add_gate("RZ", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[1])
-        qc.add_gate("RX", arg_value=np.pi/2, arg_label=r"\pi/2", targets=[0])
-        U_ideal = gate_sequence_product(qc.propagators())
-
-        init_state = rand_ket(2**N)
-        init_state.dims = [[2]*N, [1]*N]
-        rho1 = gate_sequence_product([init_state] + qc.propagators())
-
-        p = DispersiveCavityQED(N, correct_global_phase=True)
-        U_list = p.run_state(init_state=init_state, qc=qc, analytical=True)
-        result = gate_sequence_product(U_list)
-        assert_allclose(
-            fidelity(result, rho1), 1., rtol=1e-2,
-            err_msg="Analytical run_state fails in DispersiveCavityQED")
-
-    def test_numerical_evo(self):
-        """
-        Test of run_state with qutip solver
-        """
-        N = 3
-        qc = QubitCircuit(N)
-        qc.add_gate("RX", targets=[0], arg_value=np.pi/2)
-        qc.add_gate("CNOT", targets=[0], controls=[1])
-        qc.add_gate("ISWAP", targets=[2, 1])
-        qc.add_gate("CNOT", targets=[0], controls=[2])
-        # qc.add_gate("SQRTISWAP", targets=[0, 2])
-
-        with warnings.catch_warnings(record=True):
-            test = DispersiveCavityQED(N, g=0.1)
-        tlist, coeff = test.load_circuit(qc)
-
-        # test numerical run_state
-        qu0 = rand_ket(2**N)
-        qu0.dims = [[2]*N, [1]*N]
-        init_state = tensor(basis(10, 0), qu0)
-        qu1 = gate_sequence_product([qu0] + qc.propagators())
-        result = test.run_state(
-            init_state=init_state, analytical=False,
-            options=Options(store_final_state=True, nsteps=50000)).final_state
-        assert_allclose(
-            fidelity(result, tensor(basis(10, 0), qu1)), 1., rtol=1e-2,
-            err_msg="Numerical run_state fails in DispersiveCavityQED")
+    device = DispersiveCavityQED(n_qubits, correct_global_phase=True)
+    U_physical = gate_sequence_product(device.run(circuit))
+    assert (U_ideal - U_physical).norm() < _tol
 
 
-if __name__ == "__main__":
-    run_module_suite()
+def test_analytical_evolution():
+    n_qubits = 3
+    circuit = qutip.qip.circuit.QubitCircuit(n_qubits)
+    for gate in [_iswap, _rz, _rx]:
+        circuit.add_gate(gate)
+    state = qutip.rand_ket(2**n_qubits)
+    state.dims = [[2]*n_qubits, [1]*n_qubits]
+    ideal = gate_sequence_product([state] + circuit.propagators())
+    device = DispersiveCavityQED(n_qubits, correct_global_phase=True)
+    operators = device.run_state(init_state=state, qc=circuit, analytical=True)
+    result = gate_sequence_product(operators)
+    assert abs(qutip.metrics.fidelity(result, ideal) - 1) < _tol
+
+
+def test_numerical_evolution():
+    n_qubits = 3
+    circuit = qutip.qip.circuit.QubitCircuit(n_qubits)
+    circuit.add_gate("RX", targets=[0], arg_value=np.pi/2)
+    circuit.add_gate("CNOT", targets=[0], controls=[1])
+    circuit.add_gate("ISWAP", targets=[2, 1])
+    circuit.add_gate("CNOT", targets=[0], controls=[2])
+    with warnings.catch_warnings(record=True):
+        device = DispersiveCavityQED(n_qubits, g=0.1)
+    device.load_circuit(circuit)
+
+    state = qutip.rand_ket(2**n_qubits)
+    state.dims = [[2]*n_qubits, [1]*n_qubits]
+    target = gate_sequence_product([state] + circuit.propagators())
+    extra = qutip.basis(10, 0)
+    options = qutip.Options(store_final_state=True, nsteps=50_000)
+    result = device.run_state(init_state=qutip.tensor(extra, state),
+                              analytical=False,
+                              options=options)
+    assert _tol > abs(1 - qutip.metrics.fidelity(result.final_state,
+                                                 qutip.tensor(extra, target)))
