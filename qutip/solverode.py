@@ -5,6 +5,18 @@ import numpy as np
 from scipy.integrate import solve_ivp, ode
 from qutip.solver import
 from qutip.qobjevo_maker import is_dynargs_pattern
+from qutip.cy.spmatfuncs import normalize_inplace
+
+
+def normalize_prop(state):
+    norms = la_norm(state, axis=0)
+    state /= norms
+    return np.mean(norms)
+
+
+def dummy_normalize(state):
+    return 0
+
 
 class OdeSolver:
     """Parent of OdeSolver used by Qutip quantum system solvers.
@@ -29,87 +41,82 @@ class OdeSolver:
 
     Child
     -----
-    OdeScipyAdam:
+    OdeScipyZvode:
 
-    OdeScipyDopri:
+    OdeScipyDop853:
 
-    OdeQutipDopri:
+    OdeScipyIVP:
 
-    OdeQutipAdam:
-
-    OdeDiagonalized:
-
-    OdeSparse:
-
-    OdeAdaptativeHilbertSpace:
-
-    OdeFloquet:
-
-    OdeMonteCarlo:
+    Futur:
+        ?OdeQutipDopri:
+        ?OdeQutipAdam:
+        ?OdeDiagonalized:
+        ?OdeSparse:
+        ?OdeAdaptativeHilbertSpace:
 
     """
-    def __init__(self, L, opt, e_ops, ode_args,
-                 normalize_func, progress_bar):
-        self.opt = opt
-        self.L = L
-        self.e_ops = e_ops
-        self.ode_args = ode_args
-        self.normalize_func = normalize_func
+    def __init__(self, LH, options, progress_bar):
+        self.LH = LH
+        self.options = options
         self.progress_bar = progress_bar
+        self.statetype = "dense"
 
     def run(self, state0, tlist, args={}):
         raise NotImplementedError
 
+    def step(self, state, t_in, t_out):
+        raise NotImplementedError
 
-class OdeScipyAdam(OdeSolver):
+    def prepare(self):
+        pass
+
+    def update_args(self, args):
+        self.LH.arguments(args)
+
+class OdeScipyZvode(OdeSolver):
     # -------------------------------------------------------------------------
     # Solve an ODE for func.
     # Calculate the required expectation values or invoke callback
     # function at each time step.
-    def run(self, state0, tlist, args={}):
+    def __init__(self, LH, options, progress_bar):
+        self.LH = LH
+        self.options = options
+        self.progress_bar = progress_bar
+        self.statetype = "dense"
+        self._r = None
+        self.normalize_func = dummy_normalize
+        self._error_msg = "ODE integration error: Try to increase "
+                          "the allowed number of substeps by increasing "
+                          "the nsteps parameter in the Options class."
+
+    def run(self, state0, tlist, args={}, e_ops=[]):
         """
         Internal function for solving ODEs.
         """
-        opt = self.opt
+        opt = self.options
         normalize_func = self.normalize_func
-        self.L.arguments(args, state=state0,
-                         e_ops=self.e_ops.raw_e_ops)
-        func = self.L._get_mul(state0)
+        e_ops = ExpectOps(e_ops)
+        self.LH.arguments(args)
         n_tsteps = len(tlist)
-        if opt.store_states:
-            states = np.zeros((n_tsteps, state0.shape[0]*state0.shape[1]),
-                              dtype=complex)
-        else:
-            states = np.zeros((1, state0.shape[0]*state0.shape[1]),
-                              dtype=complex)
+        state_size = state0.shape[0] * state0.shape[1]
+        num_saved_state = n_tsteps if opt.store_states else 1
 
-        r = ode(func)
-        r.set_integrator('zvode', method=opt.method, order=opt.order,
-                         atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                         first_step=opt.first_step, min_step=opt.min_step,
-                         max_step=opt.max_step)
-        if self.ode_args:
-            r.set_f_params(*self.ode_args)
-        initial_vector = state0.full().ravel('F')
-        r.set_initial_value(initial_vector, tlist[0])
+        states = np.zeros((num_saved_state, state_size), dtype=complex)
+        e_ops_store = bool(e_ops)
+        e_ops.init(tlist)
 
-        e_ops_store = bool(self.e_ops)
-        self.e_ops.init(tlist)
+        self.set(state0, tlist[0])
+        r = self._r
+
         self.progress_bar.start(n_tsteps-1)
         for t_idx, t in enumerate(tlist):
             if not r.successful():
-                raise Exception("ODE integration error: Try to increase "
-                                "the allowed number of substeps by increasing "
-                                "the nsteps parameter in the Options class.")
+                raise Exception(self._error_msg)
             # get the current state / oper data if needed
             if opt.store_states or opt.normalize_output or e_ops_store:
-                cdata = r.y
-            if opt.normalize_output:
-                norm = normalize_func(cdata)
-                if norm > 1e-12:
+                cdata = r._y
+                if self.normalize_func(cdata) > opt.atol:
                     r.set_initial_value(cdata, r.t)
-                else:
-                    r._y = cdata
             if opt.store_states:
                 states[t_idx, :] = cdata
             self.e_ops.step(t_idx, cdata)
@@ -117,9 +124,126 @@ class OdeScipyAdam(OdeSolver):
                 r.integrate(tlist[t_idx+1])
                 self.progress_bar.update(t_idx)
         self.progress_bar.finished()
-        if not opt.store_states:
-            states[0, :] = r.y
-        return states, self.e_ops.finish()
+        states[-1, :] = r.y
+        self.normalize_func(states)
+        return states
+
+    def step(self, t, reset=False):
+        if reset:
+            self.set(self._r.y, self._r.t)
+        self._r.integrate(t)
+        state = self._r.y
+        self.normalize_func(state)
+        return state
+
+    def set(self, state0, t0):
+        opt = self.options
+        func = self.LH.get_mul(state0)
+        r = ode(func)
+        r.set_integrator('zvode', method=opt.method, order=opt.order,
+                         atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                         first_step=opt.first_step, min_step=opt.min_step,
+                         max_step=opt.max_step)
+        if isinstance(state0, Qobj):
+            initial_vector = state0.full().ravel('F')
+        else:
+            initial_vector = state0
+        r.set_initial_value(initial_vector, t0)
+        self._r = r
+        if opt.normalize_output and state0.shape[1] == 1:
+            self.normalize_func = normalize_inplace
+        elif opt.normalize_output and state0.shape[0] == state0.shape[1]:
+            self.normalize_func = normalize_prop
+        elif opt.normalize_output:
+            self.normalize_func = normalize_mixed(state0.shape)
+
+
+class OdeScipyDop853(OdeSolver):
+    # -------------------------------------------------------------------------
+    # Solve an ODE for func.
+    # Calculate the required expectation values or invoke callback
+    # function at each time step.
+    def __init__(self, LH, options, progress_bar):
+        self.LH = LH
+        self.options = options
+        self.progress_bar = progress_bar
+        self.statetype = "dense"
+        self._r = None
+        self.normalize_func = dummy_normalize
+        self._error_msg = "ODE integration error: Try to increase "
+                          "the allowed number of substeps by increasing "
+                          "the nsteps parameter in the Options class."
+
+    def run(self, state0, tlist, args={}, e_ops=[]):
+        """
+        Internal function for solving ODEs.
+        """
+        opt = self.options
+        normalize_func = self.normalize_func
+        e_ops = ExpectOps(e_ops)
+        self.LH.arguments(args)
+        n_tsteps = len(tlist)
+        state_size = state0.shape[0] * state0.shape[1]
+        num_saved_state = n_tsteps if opt.store_states else 1
+
+        states = np.zeros((num_saved_state, state_size), dtype=complex)
+        e_ops_store = bool(e_ops)
+        e_ops.init(tlist)
+
+        self.set(state0, tlist[0])
+        r = self._r
+
+        self.progress_bar.start(n_tsteps-1)
+        for t_idx, t in enumerate(tlist):
+            if not r.successful():
+                raise Exception(self._error_msg)
+            # get the current state / oper data if needed
+            if opt.store_states or opt.normalize_output or e_ops_store:
+                cdata = r._y
+                if self.normalize_func(cdata) > opt.atol:
+                    r.set_initial_value(cdata, r.t)
+            if opt.store_states:
+                states[t_idx, :] = cdata
+            self.e_ops.step(t_idx, cdata)
+            if t_idx < n_tsteps - 1:
+                r.integrate(tlist[t_idx+1])
+                self.progress_bar.update(t_idx)
+        self.progress_bar.finished()
+        states[-1, :] = r.y
+        self.normalize_func(states)
+        return states
+
+    def step(self, t, reset=False):
+        if reset:
+            self.set(self._r.y, self._r.t)
+        self._r.integrate(t)
+        state = self._r.y
+        self.normalize_func(state)
+        return state
+
+    def set(self, state0, t0):
+        opt = self.options
+        func = self.LH.get_mul(state0)
+        r = ode(func)
+        options_keys = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
+                        'ifactor', 'dfactor', 'beta']
+        options = {key:getattr(opt, key)
+                   for key in options_keys
+                   if hasattr(opt, key)}
+        r.set_integrator('dop853', **options)
+        if isinstance(state0, Qobj):
+            initial_vector = state0.full().ravel('F')
+        else:
+            initial_vector = state0
+        r.set_initial_value(initial_vector, t0)
+        self._r = r
+        if opt.normalize_output and state0.shape[1] == 1:
+            self.normalize_func = normalize_inplace
+        elif opt.normalize_output and state0.shape[0] == state0.shape[1]:
+            self.normalize_func = normalize_prop
+        elif opt.normalize_output:
+            self.normalize_func = normalize_mixed(state0.shape)
+
 
 
 class OdeScipyIVP(OdeSolver):

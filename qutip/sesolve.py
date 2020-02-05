@@ -97,13 +97,12 @@ class SeSolver:
         check_use_openmp(options)
         self.args = args if args is not None else {}
 
-
-
         self.H = -1j* qobjevo_maker(H, args, tlist=tlist,
                                     e_ops=e_ops, state=psi0)
         nthread = opt.openmp_threads if opt.use_openmp else 0
         self.H.compile(omp=nthread)
         self.with_state = bool(self.H.dynamics_args)
+        self.cte = self.H.const
         self.shape = self.H.cte.shape
         self.dims = self.H.cte.dims
         if psi0 is not None:
@@ -132,10 +131,10 @@ class SeSolver:
                             " a ket as initial state"
                             " or a unitary as initial operator.")
 
-    def run(self, tlist, psi0=None, args=None):
+    def run(self, tlist, psi0=None, args=None, outtype=Qobj):
         if args is not None:
             self.H.arguments(args)
-        self.reset(psi0, tlist[0])
+        self.set(psi0, tlist[0])
         self._check_psi(psi0)
         self._check_system()
 
@@ -143,35 +142,42 @@ class SeSolver:
         output.solver = "sesolve"
         output.times = tlist
 
-        state, expect = self.solver.run(psi0, tlist, e_ops, dims=psi0.dims)
+        states, expect = self.solver.run(psi0, tlist, e_ops, dims=psi0.dims)
 
-        output.final_state
-        output.expect
-        output.num_expect
-        output.states
+        output.expect = expect
+        output.num_expect = len(self.e_ops)
+        if opt.store_final_state:
+            output.final_state = self.transform(states[-1],
+                                                dims=self.psi0.dims,
+                                                self.solver.statetype,
+                                                outtype)
+        if opt.store_states:
+            output.states = [self.transform(psi, dims=self.psi0.dims,
+                                            self.solver.statetype, outtype)
+                             for psi in states]
 
         if e_ops_dict:
             output.expect = {e: output.expect[n]
                              for n, e in enumerate(self.e_ops_dict.keys())}
         return res
 
-    def step(self, t, args=None, data=False):
+    def step(self, t, args=None, outtype=Qobj, e_ops=[]):
         if args is not None:
             self.H.arguments(args)
-        state, expect = self.solver.step(self.psi, [self.t, t])
+        state = self.solver.step(self.psi, [self.t, t])
         self.t = t
         self.psi = state
-        if expect:
-            return expect
-        if data:
-            return state
-        return Qobj(state, dims=self.psi0.dims)
+        if e_ops:
+            return [expect(op, state) for op in e_ops]
+        return self.transform(states, dims=self.psi0.dims,
+                              self.solver.statetype, outtype)
 
-    def reset(self, psi0=None, t0=0):
+    def set(self, psi0=None, t0=0):
         self.t0 = t0
         self.t = t0
         psi0 = psi0 if psi0 is not None else self.psi0
         self._set_psi(psi0)
+
 
 # -----------------------------------------------------------------------------
 # Solve an ODE for func.
@@ -315,7 +321,6 @@ def _se_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
         output.final_state = Qobj(cdata, dims=dims)
 
     return output
-
 
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
