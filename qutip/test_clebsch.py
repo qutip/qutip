@@ -11,7 +11,7 @@ import qutip as qu
 
 cgcoeff1 = qu.clebsch(0.5, 1, 0.5, 0.5, -1, -0.5)  # should be sqrt(2/3)
 
-print(round(cgcoeff1, 14) == round((2/3)**0.5, 14))  
+print(round(cgcoeff1, 14) == round((2/3)**0.5, 14))
 # round to account for error in final digit
 
 cgcoeff2 = qu.clebsch(1, 1, 1, 1, -1, 0)  # should be sqrt(1/2)
