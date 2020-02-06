@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
+import sys
 
 _latex_template = r"""
 \documentclass{standalone}
@@ -57,8 +58,8 @@ def _latex_compile(code, filename="qcirc", format="png"):
     os.system("mv %s-tmp.pdf %s.pdf" % (filename, filename))
 
     if format == 'png':
-        os.system("convert -density %s %s.pdf %s.png" % (100, filename,
-                                                         filename))
+        os.system("convert -density %s %s.pdf %s.png" % (100, filename,filename))
+        if sys.platform == 'win32': os.system("magick convert -density %s %s.pdf %s.png" % (100, filename,filename))
         with open("%s.png" % filename, "rb") as f:
             result = f.read()
     else:
