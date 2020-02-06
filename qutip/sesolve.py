@@ -148,11 +148,11 @@ class SeSolver:
         output.num_expect = len(self.e_ops)
         if opt.store_final_state:
             output.final_state = self.transform(states[-1],
-                                                dims=self.psi0.dims,
+                                                self.psi0.dims,
                                                 self.solver.statetype,
                                                 outtype)
         if opt.store_states:
-            output.states = [self.transform(psi, dims=self.psi0.dims,
+            output.states = [self.transform(psi, self.psi0.dims,
                                             self.solver.statetype, outtype)
                              for psi in states]
 
@@ -169,7 +169,7 @@ class SeSolver:
         self.psi = state
         if e_ops:
             return [expect(op, state) for op in e_ops]
-        return self.transform(states, dims=self.psi0.dims,
+        return self.transform(states, self.psi0.dims,
                               self.solver.statetype, outtype)
 
     def set(self, psi0=None, t0=0):
@@ -515,9 +515,9 @@ To be deprecated:
 # time dependent hamiltonians.
 #
 def _sesolve_func_td(H_func, args, opt):
-    """
-    Prepare the system for the solver, H is a function.
-    """
+    "#""
+    #Prepare the system for the solver, H is a function.
+    "#""
     ss = SolverSystem()
     ss.type = "func"
     ss.H = H_func
@@ -535,9 +535,9 @@ def _sesolve_func_td(H_func, args, opt):
     return ss
 
 def _Hfunc_set(HS, psi, args, e_ops, opt):
-    """
+    "#""
     From the system, get the ode function and args
-    """
+    "#""
     H_func = HS.H
     if psi.isunitary:
         if not opt.rhs_with_state:
@@ -553,9 +553,9 @@ def _Hfunc_set(HS, psi, args, e_ops, opt):
     return func, (H_func, args)
 
 def _Hfunc_set_oper(HS, psi, args, opt):
-    """
+    "#""
     From the system, get the ode function and args
-    """
+    "#""
     H_func = HS.H
 
     def _HO_OH(t, mat):

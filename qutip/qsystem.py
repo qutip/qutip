@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from qutip import mcsolve, sesolve, mesolve, steadystate
 from qutip import Options, BaseProgressBar
 
-
+"""
 class Qsystem:
     def __init__(self, H, c_ops=[], args={}, e_ops=[]):
         # system
@@ -145,9 +145,9 @@ class Qsystem:
 
 
 class SESolver(Solver):
-    """Schrodinger Equation Solver
+    ""#""Schrodinger Equation Solver
 
-    """
+    ""#""
     def __init__(self, H, args=None,
                  tlist=None, state0=None, e_ops=None,
                  options=None, cache_level="state", progress_bar=True):
@@ -283,7 +283,7 @@ class SESolver(Solver):
         return results
 
     def state(self, t, state0=None, args=None,  dtype="Qobj"):
-        """
+        ""#""
         Give the state at time t given an initial state0 at t=0.
         If the Hamiltonian is defined with arguments, the default can be
         overwritten.
@@ -291,7 +291,7 @@ class SESolver(Solver):
         t, state0, args can be list:
             results[a, s, t] = state(t, state0[s], args[a])
 
-        """
+        ""#""
         tlist, num_t = self._fix_input_time(t)
         state, num_state = self._fix_input_state(state0)
         args, num_args = self._fix_input_args(args)
@@ -415,9 +415,9 @@ class SESolver(Solver):
         return e_ops, num
 
     def _clean(self, results, depth):
-        """ If new results were partialy cached,
+        ""#"" If new results were partialy cached,
         merge the cached and new values.
-        """
+        ""#""
         if depth:
             # Get to the right depth in the lists of lists of lists...
             return [self._clean(res, depth-1) for res in results]
@@ -462,12 +462,12 @@ class SESolver(Solver):
         return out_vals
 
     def _sort_by_tlist(self, res, tlist, times, depth, check=True):
-        """
+        ""#""
         'tlist' is the list of user desired times.
         'times' are the computed times.
         If the 'tlist' is not sorted, these could be different.
         Force user desired order.
-        """
+        ""#""
         if check and np.allclose(tlist, times):
             # tlist sorted, all good
             return res
@@ -478,11 +478,11 @@ class SESolver(Solver):
         return [res[times.searchsorted(t)] for t in tlist]
 
     def _dprop(self, prop, times, tlist, starts_tlist):
-        """Used to optain propagator not starting from t0
+        ""#""Used to optain propagator not starting from t0
         input: prop are [U(t, t0) for t in times], tlist, starts_tlist
         return: [U(t1,t2) for t1 in tlist and t2 in starts_tlist]
         U(t1,t2) = U(t1,t0) * U(t2,t0).dag
-        """
+        ""#""
         new_results = []
         if len(tlist) > len(starts_tlist):
             starts_tlist *= len(tlist)
@@ -498,8 +498,8 @@ class SESolver(Solver):
         return new_results
 
     def _apply_type(self, results, dtype, dims, depth):
-        """ Change the state type: dense, sparse, Qobj.
-        """
+        ""#"" Change the state type: dense, sparse, Qobj.
+        ""#""
         # TODO: have from type for faster type conversion
         if depth:
             # Get to the right depth in the lists of lists of lists...
@@ -515,8 +515,8 @@ class SESolver(Solver):
         return results
 
     def _prop_core(self, t, args):
-        """return [(prop(t), t), ...] for each args
-        with ts sorted and duplicate removed """
+        ""#""return [(prop(t), t), ...] for each args
+        with ts sorted and duplicate removed ""#""
         run_set = []
         run_idx = []
         res = [None] * len(args_sets)
@@ -545,6 +545,7 @@ class SESolver(Solver):
         return results, t
 
     def _raw_expect(self, t, state0=None, args=None, e_ops=None):
+        pass
 
     def _run_sets(self, sets, prop=False):
         if len(sets) == 1:
@@ -573,9 +574,9 @@ class SESolver(Solver):
 
 
 class SESolverV1(Solver):
-    """Schrodinger Equation Solver
+    ""#""Schrodinger Equation Solver
 
-    """
+    ""#""
     def __init__(self, H, args={}, options=None):
         if options is None:
             options = Options()
@@ -1062,3 +1063,4 @@ class SESolverV1(Solver):
                                         e_ops, normalize_func, opt,
                                         BaseProgressBar())
         return state, e_ops
+"""

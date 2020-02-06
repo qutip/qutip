@@ -41,7 +41,7 @@ from scipy.interpolate import CubicSpline, interp1d
 from functools import partial, wraps
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
-from numpy.linalg import np_norm
+from numpy.linalg import norm as np_norm
 from numbers import Number
 from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
                                    _compiled_coeffs_python)
@@ -802,11 +802,11 @@ class QobjEvo:
         return list_qobj
 
     @property
-    def dims:
+    def dims(self):
         return self.cte.dims
 
     @property
-    def shape:
+    def shape(self):
         return self.cte.shape
 
     # Math function
@@ -1427,7 +1427,7 @@ class QobjEvo:
                 type_ = "vec"
             else:
                 type_ = "mat"
-        if compiled:
+        if self.compiled:
             if type_ == "oper":
                 return self.compiled_qobjevo.ode_mul_mat_f_oper
             elif type_ == "vec":
