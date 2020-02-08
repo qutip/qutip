@@ -30,11 +30,9 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import numpy as np
-from numpy.testing import assert_, assert_allclose, run_module_suite
 
-from qutip import (projection, sprepost, liouvillian, countstat_current,
-                   countstat_current_noise, steadystate)
+import numpy as np
+import qutip
 
 
 def test_dqd_current():
@@ -44,10 +42,10 @@ def test_dqd_current():
     L = 1
     R = 2
 
-    sz = projection(3, L, L) - projection(3, R, R)
-    sx = projection(3, L, R) + projection(3, R, L)
-    sR = projection(3, G, R)
-    sL = projection(3, G, L)
+    sz = qutip.projection(3, L, L) - qutip.projection(3, R, R)
+    sx = qutip.projection(3, L, R) + qutip.projection(3, R, L)
+    sR = qutip.projection(3, G, R)
+    sL = qutip.projection(3, G, L)
 
     w0 = 1
     tc = 0.6 * w0
@@ -56,41 +54,38 @@ def test_dqd_current():
     nth = 0.00
     eps_vec = np.linspace(-1.5*w0, 1.5*w0, 20)
 
-    J_ops = [GammaR * sprepost(sR, sR.dag())]
+    J_ops = [GammaR * qutip.sprepost(sR, sR.dag())]
 
     c_ops = [np.sqrt(GammaR * (1 + nth)) * sR,
              np.sqrt(GammaR * (nth)) * sR.dag(),
              np.sqrt(GammaL * (nth)) * sL,
-             np.sqrt(GammaL * (1 + nth)) * sL.dag(),
-             ]
+             np.sqrt(GammaL * (1 + nth)) * sL.dag()]
 
-    I = np.zeros(len(eps_vec))
-    S = np.zeros(len(eps_vec))
+    current = np.zeros(len(eps_vec))
+    noise = np.zeros(len(eps_vec))
 
     for n, eps in enumerate(eps_vec):
         H = (eps/2 * sz + tc * sx)
-        L = liouvillian(H, c_ops)
-        rhoss = steadystate(L)
-        I[n], S[n] = countstat_current_noise(L, [], rhoss=rhoss, J_ops=J_ops)
+        L = qutip.liouvillian(H, c_ops)
+        rhoss = qutip.steadystate(L)
+        current[n], noise[n] = qutip.countstat_current_noise(L, [],
+                                                             rhoss=rhoss,
+                                                             J_ops=J_ops)
 
-        I2 = countstat_current(L, rhoss=rhoss, J_ops=J_ops)
-        assert_(abs(I[n] - I2) < 1e-8)
+        current2 = qutip.countstat_current(L, rhoss=rhoss, J_ops=J_ops)
+        assert abs(current[n] - current2) < 1e-8
 
-        I2 = countstat_current(L, c_ops, J_ops=J_ops)
-        assert_(abs(I[n] - I2) < 1e-8)
+        current2 = qutip.countstat_current(L, c_ops, J_ops=J_ops)
+        assert abs(current[n] - current2) < 1e-8
 
-    Iref = tc**2 * GammaR / (tc**2 * (2 + GammaR/GammaL) +
-                             GammaR**2/4 + eps_vec**2)
-    Sref = 1 * Iref * (
-        1 - 8 * GammaL * tc**2 *
-        (4 * eps_vec**2 * (GammaR - GammaL) +
-         GammaR * (3 * GammaL * GammaR + GammaR**2 + 8*tc**2)) /
-        (4 * tc**2 * (2 * GammaL + GammaR) + GammaL * GammaR**2 +
-         4 * eps_vec**2 * GammaL)**2
+    current_target = (tc**2 * GammaR
+                      / (tc**2 * (2+GammaR/GammaL) + GammaR**2/4 + eps_vec**2))
+    noise_target = current_target * (
+        1 - (8*GammaL*tc**2*(4 * eps_vec**2 * (GammaR - GammaL)
+                             + GammaR*(3*GammaL*GammaR + GammaR**2 + 8*tc**2))
+             / (4*tc**2*(2*GammaL + GammaR) + GammaL*GammaR**2
+                + 4*eps_vec**2*GammaL)**2)
     )
 
-    assert_allclose(I, Iref, 1e-4)
-    assert_allclose(S, Sref, 1e-4)
-
-if __name__ == "__main__":
-    run_module_suite()
+    np.testing.assert_allclose(current, current_target, atol=1e-4)
+    np.testing.assert_allclose(noise, noise_target, atol=1e-4)
