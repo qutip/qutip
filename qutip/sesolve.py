@@ -40,90 +40,69 @@ import os
 import types
 import numpy as np
 import scipy.integrate
+from warnings import warn
+from itertools import product
+
 import qutip.settings as qset
 from qutip.qobj import Qobj
-from qutip.operators import qeye
+#from qutip.operators import qeye
 from qutip.qobjevo import QobjEvo
-from scipy.linalg import norm as la_norm
-from qutip.parallel import parallel_map, serial_map
 from qutip.qobjevo_maker import qobjevo_maker
+from scipy.linalg import norm as la_norm
+#from qutip.parallel import parallel_map, serial_map
+from qutip.solver import (Result, Options, config, solver_safe,
+                          SolverSystem, Solver, ExpectOps)
+from qutip.superoperator import vec2mat
+
+from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
+
+from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                 cy_ode_psi_func_td_with_state, normalize_inplace,
                                 normalize_op_inplace, normalize_mixed)
-from qutip.solver import (Result, Options, config, solver_safe,
-                          SolverSystem, Solver, ExpectOps)
-from qutip.superoperator import vec2mat
-from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
-from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
-from itertools import product
-
-def warn(text):
-    print(text)
-
-
-def stack_ket(kets):
-    # TODO: speedup, Qobj to dense to Qobj, probably slow
-    out = np.zeros((kets[0].shape[0], len(kets)), dtype=complex)
-    for i, ket in enumerate(kets):
-        out[:,i] = ket.full().ravel()
-    return [Qobj(out)]
-
-def _islistof(obj, type_, default, errmsg):
-    if isinstance(obj, type_):
-        obj = [obj]
-        n = 0
-    elif isinstance(obj, list):
-        if any((not isinstance(ele, type_) for ele in obj)):
-            raise TypeError(errmsg)
-        n = len(obj)
-    elif not obj and default is not None:
-        obj = default
-        n = len(obj)
-    else:
-        raise TypeError(errmsg)
-    return obj, n
-
 
 class SeSolver:
-    def __init__(self, H, psi0=None, t0=0, tlist=[], e_ops=None, args=None,
+    def __init__(self, H, psi0=None, tlist=[], e_ops=None, args=None,
                  options=None, progress_bar=None):
-        e_ops = e_ops if e_ops is not None else []
-        self.e_ops_dict = None
-        if isinstance(e_ops, Qobj):
-            self.e_ops = [e_ops]
-        elif isinstance(e_ops, dict):
-            self.e_ops_dict = e_ops
-            self.e_ops = [e for e in e_ops.values()]
+        self.e_ops = e_ops
+        self.args = args
         self.progress_bar = progress_bar
-        if progress_bar is None:
-            progress_bar = BaseProgressBar()
-        if progress_bar is True:
-            progress_bar = TextProgressBar()
         self.options = options
         check_use_openmp(options)
-        self.args = args if args is not None else {}
-
-        self.H = -1j* qobjevo_maker(H, args, tlist=tlist,
-                                    e_ops=e_ops, state=psi0)
         nthread = opt.openmp_threads if opt.use_openmp else 0
+
+        self.H = -1j* qobjevo_maker(H, self.args, tlist=tlist,
+                                    e_ops=self.e_ops, state=psi0)
         self.H.compile(omp=nthread)
+
         self.with_state = bool(self.H.dynamics_args)
         self.cte = self.H.const
         self.shape = self.H.cte.shape
-        self.dims = self.H.cte.dims
+        self.dims = self.H.cte.
+
         if psi0 is not None:
             self._set_psi(psi0)
         else:
             self.psi0 = None
             self.psi = None
             self.func = None
-        return self
+
+    def _get_solver(self):
+        solver = self.options.solver
+        if self.solver and self.solver.name == solver:
+            self.solver.arguments(self.args)
+            return self.solver
+        if solver == "scipy_ivp":
+            return OdeScipyIVP(self.H, self.options, self.progress_bar)
+        elif solver == "scipy_zvode":
+            return OdeScipyZvode(self.H, self.options, self.progress_bar)
+        elif solver == "scipy_dop853":
+            return OdeScipyDop853(self.H, self.options, self.progress_bar)
 
     def _set_psi(self, psi0):
         self.psi0 = psi0
         self.psi = psi0.full().ravel("F")
-        self.func = self.H.get_mul(self.psi)
         self.solver = self._get_solver()
 
     def _check(self, psi0):
@@ -134,18 +113,14 @@ class SeSolver:
         if psi0.dims[0] != self.H.dims[1]:
             raise ValueError("The dimension of psi0 does not "
                              "fit the Hamiltonian")
-        try:
-            v = self.psi0.full().ravel('F')
-            self.func(0., v) + v
-        except Exception as e:
-            raise ValueError("The Hamiltonian is invalid "
-                             "or does not fit psi0") from e
 
     def run(self, tlist, psi0=None, args=None, outtype=Qobj, _safe_mode=True):
-        psi0 = psi0 if psi0 is not None else self.psi0
         if args is not None:
+            self.args = args
             self.H.arguments(args)
+            [op.arguments(args) for op in self.c_ops]
         self.set(psi0, tlist[0])
+        opt = self.options
         if _safe_mode:
             self._check()
 
@@ -153,13 +128,12 @@ class SeSolver:
         output.solver = "sesolve"
         output.times = tlist
 
-        states, expect = self.solver.run(psi0, tlist, e_ops, dims=psi0.dims)
+        states, expect = self.solver.run(self.psi0, tlist, self.e_ops)
 
         output.expect = expect
         output.num_expect = len(self.e_ops)
         if opt.store_final_state:
-            output.final_state = self.transform(states[-1],
-                                                self.psi0.dims,
+            output.final_state = self.transform(states[-1], self.psi0.dims,
                                                 self.solver.statetype,
                                                 outtype)
         if opt.store_states:
@@ -167,7 +141,7 @@ class SeSolver:
                                             self.solver.statetype, outtype)
                              for psi in states]
 
-        if e_ops_dict:
+        if self._e_ops_dict:
             output.expect = {e: output.expect[n]
                              for n, e in enumerate(self.e_ops_dict.keys())}
         return res
@@ -175,7 +149,10 @@ class SeSolver:
     def step(self, t, args=None, outtype=Qobj, e_ops=[]):
         if args is not None:
             self.H.arguments(args)
-        state = self.solver.step(self.psi, [self.t, t])
+            changed=True
+        else:
+            changed=False
+        state = self.solver.step(self.psi, t, changed=changed)
         self.t = t
         self.psi = state
         if e_ops:
@@ -184,7 +161,6 @@ class SeSolver:
                               self.solver.statetype, outtype)
 
     def set(self, psi0=None, t0=0):
-        self.t0 = t0
         self.t = t0
         psi0 = psi0 if psi0 is not None else self.psi0
         self._set_psi(psi0)
@@ -259,10 +235,14 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
             solver = solver_safe["sesolve"]
         else:
             raise Exception("Could not find sesolve Hamiltonian to reuse")
+        solver.e_ops = e_ops
+        solver.options = options
+        solver.progress_bar = progress_bar
     else:
         solver = SeSolver(H, psi0, tlist[0], tlist, e_ops, args,
                           options, progress_bar)
         solver_safe["sesolve"] = solver
+    solver.e_ops = e_ops
     return solver.run(tlist, psi0, args, _safe_mode=_safe_mode)
 
 

@@ -63,25 +63,6 @@ class SolverSystem():
 
 
 class Solver:
-    def __init__(self, options, progress_bar):
-        if options is None:
-            options = Options()
-        self.options = options
-
-        if progress_bar is True:
-            progress_bar = TextProgressBar()
-
-        self._tlist = []
-        self._options = Options()
-        self._e_ops = ExpectOps([])
-
-        self.dims = None
-        self.shape = None
-
-        self._args = args
-        self._cache = None
-        self._optimization = {"period":0}
-
     @property
     def progress_bar(self):
         return self._tlist
@@ -123,6 +104,25 @@ class Solver:
         else:
             raise Exception("options must be an qutip.Options instance")
 
+    @property
+    def e_ops(self):
+        return self._e_ops
+
+    @e_ops.setter
+    def e_ops(self, _e_ops):
+        self._e_ops_dict = None
+        if isinstance(_e_ops, Qobj):
+            self._e_ops = [_e_ops]
+        elif _e_ops is None:
+            self._e_ops = []
+        elif isinstance(_e_ops, list):
+            self._e_ops = _e_ops
+        elif isinstance(_e_ops, dict):
+            self._e_ops_dict = _e_ops
+            self._e_ops = [e for e in _e_ops.values()]
+        else:
+            raise TypeError
+
     def transform(self, state, intype, outtype):
         if intype == "dense":
             _1D = (self.shape[1] == len(state))
@@ -161,9 +161,6 @@ class Solver:
                 return state.data
             if isinstance(outtype, spmatrix):
                 return outtype(state.data)
-
-
-
 
 
 class SysSolver:
@@ -412,6 +409,8 @@ class Options():
         Absolute tolerance.
     rtol : float {1e-6}
         Relative tolerance.
+    solver : str {'scipy_ivp', 'scipy_zvode', 'scipy_dop853'}
+        Which ode solver to use.
     method : str {'adams','bdf'}
         Integration method.
     order : int {12}
@@ -468,6 +467,7 @@ class Options():
     """
 
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
+                 solver="scipy_zvode",
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  average_expect=True, average_states=False, tidy=True,
                  num_cpus=0, norm_tol=1e-3, norm_t_tol=1e-6, norm_steps=5,

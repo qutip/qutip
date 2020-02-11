@@ -18,6 +18,38 @@ def dummy_normalize(state):
     return 0
 
 
+def stack_rho(rhos):
+    size = rhos[0].shape[0] * rhos[0].shape[1]
+    out = np.zeros((size, len(rhos)), dtype=complex)
+    for i, rho in enumerate(rhos):
+        out[:,i] = rho.full().ravel("F")
+    return [Qobj(out)]
+
+
+def _islistof(obj, type_, default, errmsg):
+    if isinstance(obj, type_):
+        obj = [obj]
+        n = 0
+    elif isinstance(obj, list):
+        if any((not isinstance(ele, type_) for ele in obj)):
+            raise TypeError(errmsg)
+        n = len(obj)
+    elif not obj and default is not None:
+        obj = default
+        n = len(obj)
+    else:
+        raise TypeError(errmsg)
+    return obj, n
+
+
+def stack_ket(kets):
+    # TODO: speedup, Qobj to dense to Qobj, probably slow
+    out = np.zeros((kets[0].shape[0], len(kets)), dtype=complex)
+    for i, ket in enumerate(kets):
+        out[:,i] = ket.full().ravel()
+    return [Qobj(out)]
+
+
 class OdeSolver:
     """Parent of OdeSolver used by Qutip quantum system solvers.
     Do not use directly, but use child class.
@@ -104,13 +136,14 @@ class OdeScipyZvode(OdeSolver):
         self.options = options
         self.progress_bar = progress_bar
         self.statetype = "dense"
+        self.name = "scipy_zvode"
         self._r = None
         self.normalize_func = dummy_normalize
         self._error_msg = ("ODE integration error: Try to increase "
                            "the allowed number of substeps by increasing "
                            "the nsteps parameter in the Options class.")
 
-    def run(self, state0, tlist, args={}, e_ops=ExpectOps([])):
+    def run(self, state0, tlist, args={}, e_ops=[]):
         """
         Internal function for solving ODEs.
         """
@@ -186,6 +219,7 @@ class OdeScipyDop853(OdeSolver):
         self.options = options
         self.progress_bar = progress_bar
         self.statetype = "dense"
+        self.name = "scipy_dop853"
         self._r = None
         self.normalize_func = dummy_normalize
         self._error_msg = ("ODE integration error: Try to increase "
@@ -272,6 +306,7 @@ class OdeScipyIVP(OdeSolver):
         self.options = options
         self.progress_bar = progress_bar
         self.statetype = "dense"
+        self.name = "scipy_ivp"
         self.normalize_func = dummy_normalize
 
     @staticmethod

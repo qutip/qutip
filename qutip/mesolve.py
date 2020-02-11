@@ -40,109 +40,106 @@ __all__ = ['mesolve']
 import numpy as np
 import scipy.integrate
 import warnings
-from qutip.qobj import Qobj, isket, isoper, issuper
+
 from qutip.superoperator import (spre, spost, liouvillian, mat2vec,
                                  vec2mat, lindblad_dissipator)
-from qutip.expect import expect_rho_vec
 from qutip.solver import (Result, Options, config, solver_safe,
                           SolverSystem, Solver, ExpectOps)
 from qutip.cy.spmatfuncs import spmv
-from qutip.parallel import parallel_map, serial_map
 from qutip.cy.spconvert import (dense2D_to_fastcsr_cmode,
                                 dense2D_to_fastcsr_fmode)
+
+from qutip.qobj import Qobj, isket, isoper, issuper
+from qutip.expect import expect_rho_vec
+from qutip.parallel import parallel_map, serial_map
 from qutip.states import ket2dm
-from qutip.settings import debug
 from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+
 from qutip.qobjevo import QobjEvo
 from qutip.qobjevo_maker import qobjevo_maker
-
-
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
 
-def stack_rho(rhos):
-    size = rhos[0].shape[0] * rhos[0].shape[1]
-    out = np.zeros((size, len(rhos)), dtype=complex)
-    for i, rho in enumerate(rhos):
-        out[:,i] = rho.full().ravel("F")
-    return [Qobj(out)]
 
 
 class MeSolver(Solver):
-    def __init__(self, H, psi0=None, t0=0, tlist=[], e_ops=None, args=None,
+    def __init__(self, H, c_ops, args=None,
+                 rho0=None, tlist=[], e_ops=None,
                  options=None, progress_bar=None):
-        e_ops = e_ops if e_ops is not None else []
-        self.e_ops_dict = None
-        if isinstance(e_ops, Qobj):
-            self.e_ops = [e_ops]
-        elif isinstance(e_ops, dict):
-            self.e_ops_dict = e_ops
-            self.e_ops = [e for e in e_ops.values()]
+        self.e_ops = e_ops
+        self.args = args
         self.progress_bar = progress_bar
         self.options = options
         check_use_openmp(options)
-        self.args = args
 
-        self.H = -1j* qobjevo_maker(H, args, tlist=tlist,
-                                    e_ops=e_ops, state=psi0)
-        nthread = opt.openmp_threads if opt.use_openmp else 0
-        self.H.compile(omp=nthread)
+        self.H = qobjevo_maker(H, self.args, tlist=tlist,
+                               e_ops=e_ops, state=rho0)
+        self.c_ops = [qobjevo_maker(op, self.args, tlist=tlist,
+                                    e_ops=e_ops, state=rho0) for op in c_ops]
+
         self.with_state = bool(self.H.dynamics_args)
         self.cte = self.H.const
         self.shape = self.H.cte.shape
         self.dims = self.H.cte.dims
-        if psi0 is not None:
-            self._set_psi(psi0)
+
+        if rho0 is not None:
+            self._set_rho(rho0)
         else:
-            self.psi0 = None
-            self.psi = None
-            self.func = None
+            self.rho0 = None
+            self.rho = None
+            self.solver = None
         return self
 
-    def _set_psi(self, psi0):
-        self._check_psi(psi0)
-        self.psi0 = psi0
-        self.psi = psi0.full().ravel("F")
-        self.func = self.H.get_mul(self.psi)
+    def _get_solver(self):
+        solver = self.options.solver
+        if self.solver and self.solver.name == solver:
+            self.solver.arguments(self.args)
+            return self.solver
+        L = liouvillian(self.H, self.c_ops)
+        L.compile(omp=opt.openmp_threads if opt.use_openmp else 0)
+        if solver == "scipy_ivp":
+            return OdeScipyIVP(L, self.options, self.progress_bar)
+        elif solver == "scipy_zvode":
+            return OdeScipyZvode(L, self.options, self.progress_bar)
+        elif solver == "scipy_dop853":
+            return OdeScipyDop853(L, self.options, self.progress_bar)
+
+    def _set_rho(self, rho0):
+        if rho0.isket:
+            rho0 = ket2dm(rho0)
+        self.rho0 = rho0
+        self.rho = rho0.full().ravel("F")
         self.solver = self._get_solver()
 
-    def _check_system(self):
-        if _safe_mode:
-            v = self.psi0.full().ravel('F')
-            self.func(0., v, *ode_args) + v
+    def _check(self, rho0):
+        if rho0.dims[0] != self.H.dims[1]:
+            raise ValueError("The dimension of rho0 does not "
+                             "fit the Hamiltonian")
 
-    def _check_psi(self, psi0):
-        if not (psi0.isket or psi0.isunitary):
-            raise TypeError("The unitary solver requires psi0 to be"
-                            " a ket as initial state"
-                            " or a unitary as initial operator.")
-
-    def run(self, tlist, psi0=None, args=None, outtype=Qobj):
+    def run(self, tlist, rho0=None, args=None, outtype=Qobj):
         if args is not None:
+            self.args = args
             self.H.arguments(args)
-        self.set(psi0, tlist[0])
-        self._check_psi(psi0)
-        self._check_system()
+        self.set(rho0, tlist[0])
+        opt = self.options
+        if _safe_mode:
+            self._check()
 
         output = Result()
         output.solver = "mesolve"
         output.times = tlist
-
-        states, expect = self.solver.run(psi0, tlist, e_ops, dims=psi0.dims)
-
+        states, expect = self.solver.run(self.rho0, tlist, e_ops)
         output.expect = expect
         output.num_expect = len(self.e_ops)
         if opt.store_final_state:
-            output.final_state = self.transform(states[-1],
-                                                self.psi0.dims,
+            output.final_state = self.transform(states[-1], self.rho0.dims,
                                                 self.solver.statetype,
                                                 outtype)
         if opt.store_states:
-            output.states = [self.transform(psi, self.psi0.dims,
+            output.states = [self.transform(rho, self.rho0.dims,
                                             self.solver.statetype, outtype)
-                             for psi in states]
-
+                             for rho in states]
         if e_ops_dict:
             output.expect = {e: output.expect[n]
                              for n, e in enumerate(self.e_ops_dict.keys())}
@@ -151,26 +148,21 @@ class MeSolver(Solver):
     def step(self, t, args=None, outtype=Qobj, e_ops=[]):
         if args is not None:
             self.solver.arguments(args)
-        state = self.solver.step(self.psi, [self.t, t])
+            changed=True
+        else:
+            changed=False
+        state = self.solver.step(self.rho, t, changed=changed)
         self.t = t
-        self.psi = state
+        self.rho = state
         if e_ops:
             return [expect(op, state) for op in e_ops]
-        return self.transform(states, self.psi0.dims,
+        return self.transform(states, self.rho0.dims,
                               self.solver.statetype, outtype)
 
-    def set(self, psi0=None, t0=0):
-        self.t0 = t0
+    def set(self, rho0=None, t0=0):
         self.t = t0
-        psi0 = psi0 if psi0 is not None else self.psi0
-        self._set_psi(psi0)
-
-
-
-
-
-class MESolver(Solver):
-    """Master Equation Solver"""
+        rho0 = rho0 if rho0 is not None else self.rho0
+        self._set_rho(rho0)
 
 
 # -----------------------------------------------------------------------------
