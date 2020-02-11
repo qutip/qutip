@@ -58,6 +58,9 @@ from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 from itertools import product
 
+def warn(text):
+    print(text)
+
 
 def stack_ket(kets):
     # TODO: speedup, Qobj to dense to Qobj, probably slow
@@ -93,6 +96,10 @@ class SeSolver:
             self.e_ops_dict = e_ops
             self.e_ops = [e for e in e_ops.values()]
         self.progress_bar = progress_bar
+        if progress_bar is None:
+            progress_bar = BaseProgressBar()
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
         self.options = options
         check_use_openmp(options)
         self.args = args if args is not None else {}
@@ -114,29 +121,33 @@ class SeSolver:
         return self
 
     def _set_psi(self, psi0):
-        self._check_psi(psi0)
         self.psi0 = psi0
         self.psi = psi0.full().ravel("F")
         self.func = self.H.get_mul(self.psi)
         self.solver = self._get_solver()
 
-    def _check_system(self):
-        if _safe_mode:
-            v = self.psi0.full().ravel('F')
-            func(0., v, *ode_args) + v
-
-    def _check_psi(self, psi0):
+    def _check(self, psi0):
         if not (psi0.isket or psi0.isunitary):
             raise TypeError("The unitary solver requires psi0 to be"
                             " a ket as initial state"
                             " or a unitary as initial operator.")
+        if psi0.dims[0] != self.H.dims[1]:
+            raise ValueError("The dimension of psi0 does not "
+                             "fit the Hamiltonian")
+        try:
+            v = self.psi0.full().ravel('F')
+            self.func(0., v) + v
+        except Exception as e:
+            raise ValueError("The Hamiltonian is invalid "
+                             "or does not fit psi0") from e
 
-    def run(self, tlist, psi0=None, args=None, outtype=Qobj):
+    def run(self, tlist, psi0=None, args=None, outtype=Qobj, _safe_mode=True):
+        psi0 = psi0 if psi0 is not None else self.psi0
         if args is not None:
             self.H.arguments(args)
         self.set(psi0, tlist[0])
-        self._check_psi(psi0)
-        self._check_system()
+        if _safe_mode:
+            self._check()
 
         output = Result()
         output.solver = "sesolve"
@@ -179,12 +190,88 @@ class SeSolver:
         self._set_psi(psi0)
 
 
+def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
+            progress_bar=None, _safe_mode=True):
+    """
+    Schrodinger equation evolution of a state vector or unitary matrix
+    for a given Hamiltonian.
+
+    Evolve the state vector (`psi0`) using a given
+    Hamiltonian (`H`), by integrating the set of ordinary differential
+    equations that define the system. Alternatively evolve a unitary matrix in
+    solving the Schrodinger operator equation.
+
+    The output is either the state vector or unitary matrix at arbitrary points
+    in time (`tlist`), or the expectation values of the supplied operators
+    (`e_ops`). If e_ops is a callback function, it is invoked for each
+    time in `tlist` with time and the state as arguments, and the function
+    does not use any return values. e_ops cannot be used in conjunction
+    with solving the Schrodinger operator equation
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj`, :class:`qutip.qobjevo`, *list*, *callable*
+        system Hamiltonian as a Qobj, list of Qobj and coefficient, QobjEvo,
+        or a callback function for time-dependent Hamiltonians.
+        list format and options can be found in QobjEvo's description.
+
+    psi0 : :class:`qutip.qobj`
+        initial state vector (ket)
+        or initial unitary operator `psi0 = U`
+
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    e_ops : None / list of :class:`qutip.qobj` / callback function
+        single operator or list of operators for which to evaluate
+        expectation values.
+        For list operator evolution, the overlapse is computed:
+            tr(e_ops[i].dag()*op(t))
+
+    args : None / *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians
+
+    options : None / :class:`qutip.Qdeoptions`
+        with options for the ODE solver.
+
+    progress_bar : None / BaseProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation.
+
+    Returns
+    -------
+
+    output: :class:`qutip.solver`
+
+        An instance of the class :class:`qutip.solver`, which contains either
+        an *array* of expectation values for the times specified by `tlist`, or
+        an *array* or state vectors corresponding to the
+        times in `tlist` [if `e_ops` is an empty list], or
+        nothing if a callback function was given inplace of operators for
+        which to calculate the expectation values.
+
+    """
+    if options is not None and options.rhs_reuse:
+        warn("'rhs_reuse' of Options will be deprecated. "
+             "Use the object interface of instead: 'SeSolver'")
+        if "sesolve" in solver_safe:
+            solver = solver_safe["sesolve"]
+        else:
+            raise Exception("Could not find sesolve Hamiltonian to reuse")
+    else:
+        solver = SeSolver(H, psi0, tlist[0], tlist, e_ops, args,
+                          options, progress_bar)
+        solver_safe["sesolve"] = solver
+    return solver.run(tlist, psi0, args, _safe_mode=_safe_mode)
+
+
 # -----------------------------------------------------------------------------
 # Solve an ODE for func.
 # Calculate the required expectation values or invoke callback
 # function at each time step.
-def _se_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
-                       progress_bar, dims=None):
+def _se_ode_solve(func, ode_args, psi0, tlist, e_ops,
+                  opt, progress_bar, dims=None):
     """
     Internal function for solving ODEs.
     """
@@ -323,7 +410,7 @@ def _se_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     return output
 
 
-def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
+def sesolve_old(H, psi0, tlist, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
     """
     Schrodinger equation evolution of a state vector or unitary matrix
@@ -408,13 +495,12 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if options is None:
         options = Options()
     if options.rhs_reuse and not isinstance(H, SolverSystem):
-        # TODO: deprecate when going to class based solver.
+        warn("'rhs_reuse' of Options will be deprecated. "
+             "Use the object interface of instead: 'SeSolver'")
         if "sesolve" in solver_safe:
-            # print(" ")
             H = solver_safe["sesolve"]
         else:
             pass
-            # raise Exception("Could not find the Hamiltonian to reuse.")
 
     if args is None:
         args = {}
@@ -427,13 +513,6 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
         H = qobjevo_maker(H, args, tlist=tlist, e_ops=e_ops, state=psi0)
         ss = _sesolve_QobjEvo(H, tlist, args, options)
 
-    # elif isinstance(H, (list, Qobj, QobjEvo)):
-    #    ss = _sesolve_QobjEvo(H, tlist, args, options)
-    # elif callable(H):
-    #    ss = _sesolve_func_td(H, args, options)
-    # else:
-    #     raise Exception("Invalid H type")
-
     func, ode_args = ss.makefunc(ss, psi0, args, e_ops, options)
 
     if _safe_mode:
@@ -445,7 +524,6 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if e_ops_dict:
         res.expect = {e: res.expect[n]
                       for n, e in enumerate(e_ops_dict.keys())}
-    res.SolverSystem = ss
     return res
 
 
@@ -505,83 +583,3 @@ def _qobjevo_set_oper(HS, psi, args, opt):
         return out.ravel("F")
 
     return _oper_evolution, ()
-
-
-
-"""
-To be deprecated:
-# -----------------------------------------------------------------------------
-# Wave function evolution using a ODE solver (unitary quantum evolution), for
-# time dependent hamiltonians.
-#
-def _sesolve_func_td(H_func, args, opt):
-    "#""
-    #Prepare the system for the solver, H is a function.
-    "#""
-    ss = SolverSystem()
-    ss.type = "func"
-    ss.H = H_func
-    ss.makefunc = _Hfunc_set
-    ss.makeoper = _Hfunc_set_oper
-    solver_safe["sesolve"] = ss
-    if not opt.rhs_with_state:
-        ss.shape = h_func(0., args).shape
-        ss.dims = h_func(0., args).dims
-        ss.with_state = False
-    else:
-        ss.shape = None
-        ss.dims = [[1],[1]]
-        ss.with_state = True
-    return ss
-
-def _Hfunc_set(HS, psi, args, e_ops, opt):
-    "#""
-    From the system, get the ode function and args
-    "#""
-    H_func = HS.H
-    if psi.isunitary:
-        if not opt.rhs_with_state:
-            func = _ode_oper_func_td
-        else:
-            func = _ode_oper_func_td_with_state
-    else:
-        if not opt.rhs_with_state:
-            func = cy_ode_psi_func_td
-        else:
-            func = cy_ode_psi_func_td_with_state
-
-    return func, (H_func, args)
-
-def _Hfunc_set_oper(HS, psi, args, opt):
-    "#""
-    From the system, get the ode function and args
-    "#""
-    H_func = HS.H
-
-    def _HO_OH(t, mat):
-        H = H_func(t, args).full()
-        op = mat.reshape((n, n)).T
-        return op @ H - H @ op
-
-    def _HO_OH_state(t, mat):
-        H = H_func(t, mat, args).full()
-        op = mat.reshape((n, n)).T
-        return op @ H - H @ op
-
-    return _HO_OH_state if opt.rhs_with_state else _HO_OH
-
-
-# -----------------------------------------------------------------------------
-# evaluate dU(t)/dt according to the schrodinger equation
-#
-def _ode_oper_func_td(t, y, H_func, args):
-    H = H_func(t, args).data * -1j
-    ym = vec2mat(y)
-    return (H * ym).ravel("F")
-
-def _ode_oper_func_td_with_state(t, y, H_func, args):
-    H = H_func(t, y, args).data * -1j
-    ym = vec2mat(y)
-    return (H * ym).ravel("F")
-
-"""
