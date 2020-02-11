@@ -40,6 +40,7 @@ import warnings
 import datetime
 import numpy as np
 import scipy.integrate
+from scipy.sparse import csr_matrix, spmatrix
 from qutip import __version__
 from collections import OrderedDict
 from types import FunctionType, BuiltinFunctionType
@@ -62,6 +63,110 @@ class SolverSystem():
 
 
 class Solver:
+    def __init__(self, options, progress_bar):
+        if options is None:
+            options = Options()
+        self.options = options
+
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+
+        self._tlist = []
+        self._options = Options()
+        self._e_ops = ExpectOps([])
+
+        self.dims = None
+        self.shape = None
+
+        self._args = args
+        self._cache = None
+        self._optimization = {"period":0}
+
+    @property
+    def progress_bar(self):
+        return self._tlist
+
+    @progress_bar.setter
+    def progress_bar(self, _progress_bar):
+        if _progress_bar in [None, False]:
+            self._progress_bar = BaseProgressBar()
+        elif _progress_bar is True:
+            self._progress_bar = TextProgressBar()
+        elif isinstance(_progress_bar, BaseProgressBar)
+            self._progress_bar = _progress_bar
+        else:
+            raise TypeError
+
+    @property
+    def args(self):
+        return self._args
+
+    @args.setter
+    def args(self, _args):
+        if _args is None:
+            self._args = {}
+        if isinstance(_args, dict):
+            self._args = _args
+        else:
+            raise TypeError
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, other):
+        if other is None:
+            self._options = Options()
+        elif isinstance(other, Options):
+            self._options = other
+        else:
+            raise Exception("options must be an qutip.Options instance")
+
+    def transform(self, state, intype, outtype):
+        if intype == "dense":
+            _1D = (self.shape[1] == len(state))
+            if not _1D:
+                state = state.reshape((self.shape[1], -1))
+            if outtype in ["Qobj", Qobj]:
+                if _1D:
+                    return Qobj(dense1D_to_fastcsr_ket(state),
+                                dims=self.dims, fast='mc')
+                else:
+                    return Qobj(state.reshape((self.shape[1], -1)),
+                                dims=self.dims)
+            if outtype == "dense":
+                return state if _1D else state.reshape((self.shape[1], -1))
+            if outtype == "sparse":
+                return csr_matrix(vec2mat(state))
+            if isinstance(outtype, spmatrix):
+                return outtype(vec2mat(state))
+
+        if intype == "sparse":
+            if outtype in ["Qobj", Qobj]:
+                return Qobj(state, dims=self.state_dims)
+            if outtype == "dense":
+                return state.todense()
+            if outtype == "sparse":
+                return state
+            if isinstance(outtype, spmatrix):
+                return outtype(state)
+
+        if intype == "Qobj":
+            if outtype in ["Qobj", Qobj]:
+                return state
+            if outtype == "dense":
+                return state.full()
+            if outtype == "sparse":
+                return state.data
+            if isinstance(outtype, spmatrix):
+                return outtype(state.data)
+
+
+
+
+
+class SysSolver:
     def __init__(self, options, progress_bar):
         if options is None:
             options = Options()

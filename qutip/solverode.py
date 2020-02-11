@@ -41,11 +41,11 @@ class OdeSolver:
 
     Child
     -----
-    OdeScipyZvode:
+    OdeScipyZvode
 
-    OdeScipyDop853:
+    OdeScipyDop853
 
-    OdeScipyIVP:
+    OdeScipyIVP
 
     Futur:
         ?OdeQutipDopri:
