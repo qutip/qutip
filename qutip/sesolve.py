@@ -55,44 +55,46 @@ from qutip.solver import (Result, Options, config, solver_safe,
 from qutip.superoperator import vec2mat
 
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
-
+from qutip.solverode import OdeScipyZvode, OdeScipyDop853, OdeScipyIVP
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                 cy_ode_psi_func_td_with_state, normalize_inplace,
                                 normalize_op_inplace, normalize_mixed)
 
-class SeSolver:
-    def __init__(self, H, psi0=None, tlist=[], e_ops=None, args=None,
+
+class SeSolver(Solver):
+    def __init__(self, H, args=None, psi0=None, tlist=[], e_ops=None,
                  options=None, progress_bar=None):
         self.e_ops = e_ops
         self.args = args
         self.progress_bar = progress_bar
         self.options = options
-        check_use_openmp(options)
-        nthread = opt.openmp_threads if opt.use_openmp else 0
+        check_use_openmp(self.options)
 
         self.H = -1j* qobjevo_maker(H, self.args, tlist=tlist,
                                     e_ops=self.e_ops, state=psi0)
-        self.H.compile(omp=nthread)
 
         self.with_state = bool(self.H.dynamics_args)
         self.cte = self.H.const
         self.shape = self.H.cte.shape
-        self.dims = self.H.cte.
+        self.dims = self.H.cte
 
         if psi0 is not None:
             self._set_psi(psi0)
         else:
             self.psi0 = None
             self.psi = None
-            self.func = None
+            self.solver = None
 
     def _get_solver(self):
         solver = self.options.solver
         if self.solver and self.solver.name == solver:
-            self.solver.arguments(self.args)
+            self.solver.update_args(self.args)
             return self.solver
+
+        self.H.compile(omp=self.options.openmp_threads
+                       if self.options.use_openmp else 0)
         if solver == "scipy_ivp":
             return OdeScipyIVP(self.H, self.options, self.progress_bar)
         elif solver == "scipy_zvode":
@@ -102,6 +104,8 @@ class SeSolver:
 
     def _set_psi(self, psi0):
         self.psi0 = psi0
+        self.state_dims = psi0.dims
+        self.state_shape = psi0.shape
         self.psi = psi0.full().ravel("F")
         self.solver = self._get_solver()
 
@@ -122,33 +126,37 @@ class SeSolver:
         self.set(psi0, tlist[0])
         opt = self.options
         if _safe_mode:
-            self._check()
+            self._check(self.psi0)
+        old_ss = opt.store_states
+        if not self.e_ops:
+            opt.store_states = True
 
         output = Result()
         output.solver = "sesolve"
         output.times = tlist
 
-        states, expect = self.solver.run(self.psi0, tlist, self.e_ops)
+        states, expect = self.solver.run(self.psi0, tlist, {}, self.e_ops)
 
         output.expect = expect
         output.num_expect = len(self.e_ops)
         if opt.store_final_state:
-            output.final_state = self.transform(states[-1], self.psi0.dims,
+            output.final_state = self.transform(states[-1],
                                                 self.solver.statetype,
                                                 outtype)
         if opt.store_states:
-            output.states = [self.transform(psi, self.psi0.dims,
+            output.states = [self.transform(psi,
                                             self.solver.statetype, outtype)
                              for psi in states]
 
         if self._e_ops_dict:
             output.expect = {e: output.expect[n]
-                             for n, e in enumerate(self.e_ops_dict.keys())}
-        return res
+                             for n, e in enumerate(self._e_ops_dict.keys())}
+        opt.store_states = old_ss
+        return output
 
     def step(self, t, args=None, outtype=Qobj, e_ops=[]):
         if args is not None:
-            self.H.arguments(args)
+            self.solver.update_args(args)
             changed=True
         else:
             changed=False
@@ -157,7 +165,7 @@ class SeSolver:
         self.psi = state
         if e_ops:
             return [expect(op, state) for op in e_ops]
-        return self.transform(states, self.psi0.dims,
+        return self.transform(states,
                               self.solver.statetype, outtype)
 
     def set(self, psi0=None, t0=0):
@@ -239,7 +247,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
         solver.options = options
         solver.progress_bar = progress_bar
     else:
-        solver = SeSolver(H, psi0, tlist[0], tlist, e_ops, args,
+        solver = SeSolver(H, args, psi0, tlist, e_ops,
                           options, progress_bar)
         solver_safe["sesolve"] = solver
     solver.e_ops = e_ops

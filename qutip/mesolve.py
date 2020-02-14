@@ -39,7 +39,7 @@ __all__ = ['mesolve']
 
 import numpy as np
 import scipy.integrate
-import warnings
+from warnings import warn
 
 from qutip.superoperator import (spre, spost, liouvillian, mat2vec,
                                  vec2mat, lindblad_dissipator)
@@ -55,6 +55,7 @@ from qutip.parallel import parallel_map, serial_map
 from qutip.states import ket2dm
 from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.solverode import OdeScipyZvode, OdeScipyDop853, OdeScipyIVP
 
 from qutip.qobjevo import QobjEvo
 from qutip.qobjevo_maker import qobjevo_maker
@@ -71,7 +72,7 @@ class MeSolver(Solver):
         self.args = args
         self.progress_bar = progress_bar
         self.options = options
-        check_use_openmp(options)
+        check_use_openmp(self.options)
 
         self.H = qobjevo_maker(H, self.args, tlist=tlist,
                                e_ops=e_ops, state=rho0)
@@ -82,22 +83,21 @@ class MeSolver(Solver):
         self.cte = self.H.const
         self.shape = self.H.cte.shape
         self.dims = self.H.cte.dims
+        self.rho0 = None
+        self.rho = None
+        self.solver = None
 
         if rho0 is not None:
             self._set_rho(rho0)
-        else:
-            self.rho0 = None
-            self.rho = None
-            self.solver = None
-        return self
 
     def _get_solver(self):
         solver = self.options.solver
         if self.solver and self.solver.name == solver:
-            self.solver.arguments(self.args)
+            self.solver.update_args(self.args)
             return self.solver
         L = liouvillian(self.H, self.c_ops)
-        L.compile(omp=opt.openmp_threads if opt.use_openmp else 0)
+        L.compile(omp=self.options.openmp_threads
+                  if self.options.use_openmp else 0)
         if solver == "scipy_ivp":
             return OdeScipyIVP(L, self.options, self.progress_bar)
         elif solver == "scipy_zvode":
@@ -109,45 +109,53 @@ class MeSolver(Solver):
         if rho0.isket:
             rho0 = ket2dm(rho0)
         self.rho0 = rho0
+        self.state_dims = rho0.dims
+        self.state_shape = rho0.shape
         self.rho = rho0.full().ravel("F")
         self.solver = self._get_solver()
 
     def _check(self, rho0):
-        if rho0.dims[0] != self.H.dims[1]:
+        super_ok = issuper(self.H.cte) and (rho0.dims == self.dims[1])
+        oper_ok = not issuper(self.H.cte) and (rho0.dims[0] == self.dims[1])
+        if not (super_ok or oper_ok):
             raise ValueError("The dimension of rho0 does not "
                              "fit the Hamiltonian")
 
-    def run(self, tlist, rho0=None, args=None, outtype=Qobj):
+    def run(self, tlist, rho0=None, args=None, outtype=Qobj, _safe_mode=False):
         if args is not None:
             self.args = args
             self.H.arguments(args)
         self.set(rho0, tlist[0])
         opt = self.options
         if _safe_mode:
-            self._check()
+            self._check(self.rho0)
+        old_ss = opt.store_states
+        if not self.e_ops:
+            opt.store_states = True
 
         output = Result()
         output.solver = "mesolve"
         output.times = tlist
-        states, expect = self.solver.run(self.rho0, tlist, e_ops)
+        states, expect = self.solver.run(self.rho0, tlist, {}, self.e_ops)
         output.expect = expect
         output.num_expect = len(self.e_ops)
         if opt.store_final_state:
-            output.final_state = self.transform(states[-1], self.rho0.dims,
+            output.final_state = self.transform(states[-1],
                                                 self.solver.statetype,
                                                 outtype)
         if opt.store_states:
-            output.states = [self.transform(rho, self.rho0.dims,
-                                            self.solver.statetype, outtype)
+            output.states = [self.transform(rho, self.solver.statetype,
+                                            outtype)
                              for rho in states]
-        if e_ops_dict:
+        if self._e_ops_dict:
             output.expect = {e: output.expect[n]
-                             for n, e in enumerate(self.e_ops_dict.keys())}
-        return res
+                             for n, e in enumerate(self._e_ops_dict.keys())}
+        opt.store_states = old_ss
+        return output
 
     def step(self, t, args=None, outtype=Qobj, e_ops=[]):
         if args is not None:
-            self.solver.arguments(args)
+            self.solver.update_args(args)
             changed=True
         else:
             changed=False
@@ -156,7 +164,7 @@ class MeSolver(Solver):
         self.rho = state
         if e_ops:
             return [expect(op, state) for op in e_ops]
-        return self.transform(states, self.rho0.dims,
+        return self.transform(states,
                               self.solver.statetype, outtype)
 
     def set(self, rho0=None, t0=0):
@@ -165,11 +173,159 @@ class MeSolver(Solver):
         self._set_rho(rho0)
 
 
+def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
+            progress_bar=None, _safe_mode=True):
+    """
+    Master equation evolution of a density matrix for a given Hamiltonian and
+    set of collapse operators, or a Liouvillian.
+
+    Evolve the state vector or density matrix (`rho0`) using a given
+    Hamiltonian (`H`) and an [optional] set of collapse operators
+    (`c_ops`), by integrating the set of ordinary differential equations
+    that define the system. In the absence of collapse operators the system is
+    evolved according to the unitary evolution of the Hamiltonian.
+
+    The output is either the state vector at arbitrary points in time
+    (`tlist`), or the expectation values of the supplied operators
+    (`e_ops`). If e_ops is a callback function, it is invoked for each
+    time in `tlist` with time and the state as arguments, and the function
+    does not use any return values.
+
+    If either `H` or the Qobj elements in `c_ops` are superoperators, they
+    will be treated as direct contributions to the total system Liouvillian.
+    This allows to solve master equations that are not on standard Lindblad
+    form by passing a custom Liouvillian in place of either the `H` or `c_ops`
+    elements.
+
+    **Time-dependent operators**
+
+    For time-dependent problems, `H` and `c_ops` can be callback
+    functions that takes two arguments, time and `args`, and returns the
+    Hamiltonian or Liouvillian for the system at that point in time
+    (*callback format*).
+
+    Alternatively, `H` and `c_ops` can be a specified in a nested-list format
+    where each element in the list is a list of length 2, containing an
+    operator (:class:`qutip.qobj`) at the first element and where the
+    second element is either a string (*list string format*), a callback
+    function (*list callback format*) that evaluates to the time-dependent
+    coefficient for the corresponding operator, or a NumPy array (*list
+    array format*) which specifies the value of the coefficient to the
+    corresponding operator for each value of t in tlist.
+
+    *Examples*
+
+        H = [[H0, 'sin(w*t)'], [H1, 'sin(2*w*t)']]
+
+        H = [[H0, f0_t], [H1, f1_t]]
+
+        where f0_t and f1_t are python functions with signature f_t(t, args).
+
+        H = [[H0, np.sin(w*tlist)], [H1, np.sin(2*w*tlist)]]
+
+    In the *list string format* and *list callback format*, the string
+    expression and the callback function must evaluate to a real or complex
+    number (coefficient for the corresponding operator).
+
+    In all cases of time-dependent operators, `args` is a dictionary of
+    parameters that is used when evaluating operators. It is passed to the
+    callback functions as second argument.
+
+    **Additional options**
+
+    Additional options to mesolve can be set via the `options` argument, which
+    should be an instance of :class:`qutip.solver.Options`. Many ODE
+    integration options can be set this way, and the `store_states` and
+    `store_final_state` options can be used to store states even though
+    expectation values are requested via the `e_ops` argument.
+
+    .. note::
+
+        If an element in the list-specification of the Hamiltonian or
+        the list of collapse operators are in superoperator form it will be
+        added to the total Liouvillian of the problem with out further
+        transformation. This allows for using mesolve for solving master
+        equations that are not on standard Lindblad form.
+
+    .. note::
+
+        On using callback function: mesolve transforms all :class:`qutip.qobj`
+        objects to sparse matrices before handing the problem to the integrator
+        function. In order for your callback function to work correctly, pass
+        all :class:`qutip.qobj` objects that are used in constructing the
+        Hamiltonian via args. mesolve will check for :class:`qutip.qobj` in
+        `args` and handle the conversion to sparse matrices. All other
+        :class:`qutip.qobj` objects that are not passed via `args` will be
+        passed on to the integrator in scipy which will raise an NotImplemented
+        exception.
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.Qobj`
+        System Hamiltonian, or a callback function for time-dependent
+        Hamiltonians, or alternatively a system Liouvillian.
+
+    rho0 : :class:`qutip.Qobj`
+        initial density matrix or state vector (ket).
+
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    c_ops : None / list of :class:`qutip.Qobj`
+        single collapse operator, or list of collapse operators, or a list
+        of Liouvillian superoperators.
+
+    e_ops : None / list of :class:`qutip.Qobj` / callback function single
+        single operator or list of operators for which to evaluate
+        expectation values.
+
+    args : None / *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
+
+    options : None / :class:`qutip.Options`
+        with options for the solver.
+
+    progress_bar : None / BaseProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation.
+
+    Returns
+    -------
+    result: :class:`qutip.Result`
+
+        An instance of the class :class:`qutip.Result`, which contains
+        either an *array* `result.expect` of expectation values for the times
+        specified by `tlist`, or an *array* `result.states` of state vectors or
+        density matrices corresponding to the times in `tlist` [if `e_ops` is
+        an empty list], or nothing if a callback function was given in place of
+        operators for which to calculate the expectation values.
+
+    """
+    if options is not None and options.rhs_reuse:
+        warn("'rhs_reuse' of Options will be deprecated. "
+             "Use the object interface of instead: 'SeSolver'")
+        if "mesolve" in solver_safe:
+            solver = solver_safe["mesolve"]
+        else:
+            raise Exception("Could not find mesolve Hamiltonian to reuse")
+        solver.options = options
+        solver.progress_bar = progress_bar
+    else:
+        c_ops = c_ops if c_ops is not None else []
+        solver = MeSolver(H, c_ops, args, rho0, tlist, e_ops,
+                          options, progress_bar)
+        solver_safe["mesolve"] = solver
+    solver.e_ops = e_ops
+    return solver.run(tlist, rho0, args, _safe_mode=_safe_mode)
+
+
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
+def mesolve_old(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and

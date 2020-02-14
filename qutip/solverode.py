@@ -5,8 +5,8 @@ import numpy as np
 from scipy.integrate import solve_ivp, ode
 from qutip.qobjevo_maker import is_dynargs_pattern
 from qutip.cy.spmatfuncs import normalize_inplace
-
-normalize_dm = None
+from qutip.solver import ExpectOps
+from qutip.qobj import Qobj
 
 def normalize_prop(state):
     norms = la_norm(state, axis=0)
@@ -16,6 +16,9 @@ def normalize_prop(state):
 
 def dummy_normalize(state):
     return 0
+
+
+normalize_dm = dummy_normalize
 
 
 def stack_rho(rhos):
@@ -374,11 +377,9 @@ class OdeScipyIVP(OdeSolver):
                         if hasattr(opt, key)}
         self._prepare_normalize_func(state0)
 
-
+"""
 class MESolver(Solver):
-    """Master Equation Solver
 
-    """
     def __init__(self, H, c_ops=[], args={}, tlist=[], options=None):
         if options is None:
             options = Options()
@@ -584,7 +585,7 @@ class MESolver(Solver):
         state = self._generic_ode_solve(func, ode_args, state0, self._tlist,
                                         e_ops, False, opt, BaseProgressBar())
         return state, e_ops
-
+"""
 #
 
 

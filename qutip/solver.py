@@ -49,6 +49,7 @@ import qutip.settings as qset
 from qutip.qobjevo import QobjEvo
 from qutip.superoperator import vec2mat
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket
+from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 
 try:
     import matplotlib.pyplot as plt
@@ -65,7 +66,7 @@ class SolverSystem():
 class Solver:
     @property
     def progress_bar(self):
-        return self._tlist
+        return self._progress_bar
 
     @progress_bar.setter
     def progress_bar(self, _progress_bar):
@@ -73,7 +74,7 @@ class Solver:
             self._progress_bar = BaseProgressBar()
         elif _progress_bar is True:
             self._progress_bar = TextProgressBar()
-        elif isinstance(_progress_bar, BaseProgressBar)
+        elif isinstance(_progress_bar, BaseProgressBar):
             self._progress_bar = _progress_bar
         else:
             raise TypeError
@@ -86,10 +87,10 @@ class Solver:
     def args(self, _args):
         if _args is None:
             self._args = {}
-        if isinstance(_args, dict):
+        elif isinstance(_args, dict):
             self._args = _args
         else:
-            raise TypeError
+            raise TypeError(type(_args))
 
     @property
     def options(self):
@@ -125,22 +126,21 @@ class Solver:
 
     def transform(self, state, intype, outtype):
         if intype == "dense":
-            _1D = (self.shape[1] == len(state))
-            if not _1D:
-                state = state.reshape((self.shape[1], -1))
-            if outtype in ["Qobj", Qobj]:
-                if _1D:
-                    return Qobj(dense1D_to_fastcsr_ket(state),
-                                dims=self.dims, fast='mc')
-                else:
-                    return Qobj(state.reshape((self.shape[1], -1)),
-                                dims=self.dims)
+            _1D = (self.state_shape[0] == len(state))
+            if _1D and outtype == "dense":
+                return state
+            elif _1D and outtype in ["Qobj", Qobj]:
+                return Qobj(dense1D_to_fastcsr_ket(state),
+                            dims=self.state_dims, fast='mc')
+            state = state.reshape(self.state_shape).T
             if outtype == "dense":
-                return state if _1D else state.reshape((self.shape[1], -1))
+                return state
+            if outtype in ["Qobj", Qobj]:
+                return Qobj(state, dims=self.state_dims)
             if outtype == "sparse":
-                return csr_matrix(vec2mat(state))
+                return csr_matrix(state)
             if isinstance(outtype, spmatrix):
-                return outtype(vec2mat(state))
+                return outtype(state)
 
         if intype == "sparse":
             if outtype in ["Qobj", Qobj]:
@@ -483,6 +483,8 @@ class Options():
         self.rtol = rtol
         # Integration method (default = 'adams', for stiff 'bdf')
         self.method = method
+        # Solver to use
+        self.solver = solver
         # Max. number of internal steps/call
         self.nsteps = nsteps
         # Size of initial step (0 = determined by solver)
