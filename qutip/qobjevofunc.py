@@ -449,6 +449,7 @@ class QobjEvoFunc(QobjEvo):
 
     def liouvillian(self, c_ops=[], chi=None):
         res = self.copy()
+        if res.cte.issuper: return res
         c_ops = [qobjevo_maker(c_op) for c_op in c_ops]
         res.operation_stack.append(_Block_liouvillian(c_ops, chi))
         self._reset_type()

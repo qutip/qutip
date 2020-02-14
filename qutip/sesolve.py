@@ -36,8 +36,6 @@ This module provides solvers for the unitary Schrodinger equation.
 
 __all__ = ['sesolve']
 
-import os
-import types
 import numpy as np
 import scipy.integrate
 from warnings import warn
@@ -79,13 +77,12 @@ class SeSolver(Solver):
         self.cte = self.H.const
         self.shape = self.H.cte.shape
         self.dims = self.H.cte
+        self.psi0 = None
+        self.psi = None
+        self.solver = None
 
         if psi0 is not None:
             self._set_psi(psi0)
-        else:
-            self.psi0 = None
-            self.psi = None
-            self.solver = None
 
     def _get_solver(self):
         solver = self.options.solver
@@ -122,7 +119,6 @@ class SeSolver(Solver):
         if args is not None:
             self.args = args
             self.H.arguments(args)
-            [op.arguments(args) for op in self.c_ops]
         self.set(psi0, tlist[0])
         opt = self.options
         if _safe_mode:
@@ -147,10 +143,6 @@ class SeSolver(Solver):
             output.states = [self.transform(psi,
                                             self.solver.statetype, outtype)
                              for psi in states]
-
-        if self._e_ops_dict:
-            output.expect = {e: output.expect[n]
-                             for n, e in enumerate(self._e_ops_dict.keys())}
         opt.store_states = old_ss
         return output
 
@@ -241,16 +233,17 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
              "Use the object interface of instead: 'SeSolver'")
         if "sesolve" in solver_safe:
             solver = solver_safe["sesolve"]
+            if e_ops: solver.e_ops = e_ops
+            if options: solver.options = options
+            if progress_bar: solver.progress_bar = progress_bar
         else:
-            raise Exception("Could not find sesolve Hamiltonian to reuse")
-        solver.e_ops = e_ops
-        solver.options = options
-        solver.progress_bar = progress_bar
+            solver = SeSolver(H, args, psi0, tlist, e_ops,
+                              options, progress_bar)
+            solver_safe["sesolve"] = solver
     else:
         solver = SeSolver(H, args, psi0, tlist, e_ops,
                           options, progress_bar)
-        solver_safe["sesolve"] = solver
-    solver.e_ops = e_ops
+        # solver_safe["sesolve"] = solver
     return solver.run(tlist, psi0, args, _safe_mode=_safe_mode)
 
 

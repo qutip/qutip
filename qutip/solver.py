@@ -111,16 +111,12 @@ class Solver:
 
     @e_ops.setter
     def e_ops(self, _e_ops):
-        self._e_ops_dict = None
         if isinstance(_e_ops, Qobj):
             self._e_ops = [_e_ops]
         elif _e_ops is None:
             self._e_ops = []
-        elif isinstance(_e_ops, list):
+        elif isinstance(_e_ops, (list, dict)):
             self._e_ops = _e_ops
-        elif isinstance(_e_ops, dict):
-            self._e_ops_dict = _e_ops
-            self._e_ops = [e for e in _e_ops.values()]
         else:
             raise TypeError
 
@@ -372,7 +368,7 @@ class ExpectOps:
                 result = {e: result[n]
                           for n, e in enumerate(self.e_ops_dict.keys())}
             else:
-                result = np.array(result)
+                pass
         return result
 
     def __eq__(self, other):

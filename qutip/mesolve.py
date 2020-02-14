@@ -147,9 +147,6 @@ class MeSolver(Solver):
             output.states = [self.transform(rho, self.solver.statetype,
                                             outtype)
                              for rho in states]
-        if self._e_ops_dict:
-            output.expect = {e: output.expect[n]
-                             for n, e in enumerate(self._e_ops_dict.keys())}
         opt.store_states = old_ss
         return output
 
@@ -303,21 +300,32 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         operators for which to calculate the expectation values.
 
     """
+    H_issuper = (isinstance(H, Qobj) and issuper(H)
+                 or isinstance(H, list) and isinstance(H[0], Qobj)
+                 and issuper(H[0])
+                 or not isinstance(H, Qobj) and callable(H))
+    if not c_ops and isket(rho0)) and not H_issuper:
+        warn("mesolve will no longer return ket for closed systems from v5")
+        sesolve(H, rho0, tlist, e_ops, args, 
+                options, progress_bar, _safe_mode)
     if options is not None and options.rhs_reuse:
         warn("'rhs_reuse' of Options will be deprecated. "
              "Use the object interface of instead: 'SeSolver'")
         if "mesolve" in solver_safe:
             solver = solver_safe["mesolve"]
+            if e_ops: solver.e_ops = e_ops
+            if options: solver.options = options
+            if progress_bar: solver.progress_bar = progress_bar
         else:
-            raise Exception("Could not find mesolve Hamiltonian to reuse")
-        solver.options = options
-        solver.progress_bar = progress_bar
+            c_ops = c_ops if c_ops is not None else []
+            solver = MeSolver(H, c_ops, args, rho0, tlist, e_ops,
+                              options, progress_bar)
+            solver_safe["mesolve"] = solver
     else:
         c_ops = c_ops if c_ops is not None else []
         solver = MeSolver(H, c_ops, args, rho0, tlist, e_ops,
                           options, progress_bar)
-        solver_safe["mesolve"] = solver
-    solver.e_ops = e_ops
+        # solver_safe["mesolve"] = solver
     return solver.run(tlist, rho0, args, _safe_mode=_safe_mode)
 
 

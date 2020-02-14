@@ -179,15 +179,20 @@ def liouvillian_func(H, c_ops, data_only, chi):
             qobj_elements.append(lindblad_dissipator(c_op, chi=chi_))
     if isinstance(H, QobjEvoFunc):
         L = H._liouvillian_h()
-        L += sum(qobj_elements)
-        L += sum(func_elements)
+        if qobj_elements:
+            L += sum(qobj_elements)
+        if func_elements:
+            L += sum(func_elements)
     elif H is not None:
         L = liouvillian(H)
-        L += sum(qobj_elements)
-        L += sum(func_elements)
+        if qobj_elements:
+            L += sum(qobj_elements)
+        if func_elements:
+            L += sum(func_elements)
     else:
-        L = sum(qobj_elements)
-        L += sum(func_elements)
+        L = sum(func_elements)
+        if qobj_elements:
+            L += sum(qobj_elements)
     return L
 
 
