@@ -37,14 +37,14 @@ import numpy as np
 
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
-from qutip.qip.gates import globalphase
+from qutip.qip.operations.gates import globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
 
 
-__all__ = ['ModelProcessor', 'GateDecomposer']
+__all__ = ['ModelProcessor']
 
 
 class ModelProcessor(Processor):
@@ -55,6 +55,8 @@ class ModelProcessor(Processor):
     The processor can simulate the evolution under the given
     control pulses either numerically or analytically.
     It cannot be used alone, please refer to the sub-classes.
+    (Only additional attributes are documented here, for others please
+    refer to the parent class :class:`qutip.qip.device.Processor`)
 
     Parameters
     ----------
@@ -67,57 +69,14 @@ class ModelProcessor(Processor):
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     Attributes
     ----------
-    N: int
-        The number of component systems.
-
-    ctrls: list
-        A list of the control Hamiltonians driving the evolution.
-
-    tlist: array_like
-        A NumPy array specifies the time of each coefficient.
-
-    coeffs: array_like
-        A 2d NumPy array of the shape, the length is dependent on the
-        spline type
-
-    t1: list
-        Characterize the decoherence of amplitude damping for
-        each qubit.
-
-    t2: list
-        Characterize the decoherence of dephasing for
-        each qubit.
-
-    noise: :class:`qutip.qip.Noise`, optional
-        A list of noise objects. They will be processed when creating the
-        noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
-
-    dims: list
-        The dimension of each component system.
-        Default is dim=[2,2,2,...,2]
-
-    spline_kind: str
-        Type of the coefficient interpolation.
-        Note that they have different requirement for the length of ``coeffs``.
-
-        -"step_func":
-        The coefficient will be treated as a step function.
-        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
-        is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
-        in the second case the last element has no effect.
-
-        -"cubic": Use cubic interpolation for the coefficient. It requires
-        ``coeffs.shape[1]=len(tlist)``
-
     params: dict
         A Python dictionary contains the name and the value of the parameters
         in the physical realization, such as laser frequency, detuning etc.
@@ -161,8 +120,8 @@ class ModelProcessor(Processor):
     def params(self, par):
         self.set_up_params(**par)
 
-    def run_state(self, rho0=None, analytical=False, qc=None, states=None,
-                  **kwargs):
+    def run_state(self, init_state=None, analytical=False, qc=None,
+                  states=None, **kwargs):
         """
         If `analytical` is False, use :func:`qutip.mesolve` to
         calculate the time of the state evolution
@@ -173,7 +132,7 @@ class ModelProcessor(Processor):
 
         Parameters
         ----------
-        rho0: Qobj
+        init_state: Qobj
             Initial density matrix or state vector (ket).
 
         analytical: boolean
@@ -184,7 +143,7 @@ class ModelProcessor(Processor):
             and then calculate the evolution.
 
         states: :class:`qutip.Qobj`, optional
-         Old API, same as rho0.
+         Old API, same as init_state.
 
         **kwargs
            Keyword arguments for the qutip solver.
@@ -201,7 +160,8 @@ class ModelProcessor(Processor):
         if qc is not None:
             self.load_circuit(qc)
         return super(ModelProcessor, self).run_state(
-            rho0=rho0, analytical=analytical, states=states, **kwargs)
+            init_state=init_state, analytical=analytical,
+            states=states, **kwargs)
 
     def get_ops_and_u(self):
         """
@@ -214,7 +174,7 @@ class ModelProcessor(Processor):
         coeffs: array_like
             The transposed pulse matrix
         """
-        return (self.ctrls, self.coeffs.T)
+        return (self.ctrls, self.get_full_coeffs().T)
 
     def pulse_matrix(self):
         """
@@ -228,7 +188,10 @@ class ModelProcessor(Processor):
         dt = 0.01
         H_ops, H_u = self.get_ops_and_u()
 
-        diff_tlist = self.tlist[1:] - self.tlist[:-1]
+        # FIXME This might becomes a problem if new tlist other than
+        # int the default pulses are added.
+        tlist = self.get_full_tlist()
+        diff_tlist = tlist[1:] - tlist[:-1]
         t_tot = sum(diff_tlist)
         n_t = int(np.ceil(t_tot / dt))
         n_ops = len(H_ops)
@@ -261,6 +224,7 @@ class ModelProcessor(Processor):
         fig, ax: Figure
             Maps the physical interaction between the circuit components.
         """
+        # TODO add test
         if noisy is not None:
             return super(ModelProcessor, self).plot_pulses(
                 title=title, noisy=noisy)
@@ -281,84 +245,3 @@ class ModelProcessor(Processor):
             ax.set_title(title)
         fig.tight_layout()
         return fig, ax
-
-
-class GateDecomposer(object):
-    """
-    Base class. It decomposes a :class:`qutip.QubitCircuit` into
-    the pulse sequence for the processor.
-
-    Parameters
-    ----------
-    N: int
-        The number of the component systems.
-
-    params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
-
-    num_ops: int
-        Number of control Hamiltonians in the processor.
-
-    Attributes
-    ----------
-    N: int
-        The number of the component systems.
-
-    params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
-
-    num_ops: int
-        Number of control Hamiltonians in the processor.
-
-    gate_decomps: dict
-        The Python dictionary in the form of {gate_name: decompose_function}.
-        It saves the decomposition scheme for each gate.
-    """
-    def __init__(self, N, params, num_ops):
-        self.gate_decomps = {}
-        self.N = N
-        self.params = params
-        self.num_ops = num_ops
-
-    def decompose(self, gates):
-        """
-        Decompose the the elementary gates
-        into control pulse sequence.
-
-        Parameters
-        ----------
-        gates: list
-            A list of elementary gates that can be implemented in this
-            model. The gate names have to be in `gate_decomps`.
-
-        Returns
-        -------
-        tlist: array_like
-            A NumPy array specifies the time of each coefficient
-
-        coeffs: array_like
-            A 2d NumPy array of the shape ``(len(ctrls), len(tlist))``. Each
-            row corresponds to the control pulse sequence for
-            one Hamiltonian.
-
-        global_phase: bool
-            Recorded change of global phase.
-        """
-        # TODO further enhancement can be made here,
-        # e.g. merge single qubit rotation gate, combine XX gates etc.
-        self.dt_list = []
-        self.coeff_list = []
-        for gate in gates:
-            if gate.name not in self.gate_decomps:
-                raise ValueError("Unsupported gate %s" % gate.name)
-            self.gate_decomps[gate.name](gate)
-        coeffs = np.vstack(self.coeff_list).T
-
-        tlist = np.empty(len(self.dt_list))
-        t = 0
-        for i in range(len(self.dt_list)):
-            t += self.dt_list[i]
-            tlist[i] = t
-        return np.hstack([[0], tlist]), coeffs

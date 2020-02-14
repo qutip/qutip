@@ -30,433 +30,285 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+import pytest
 import numpy as np
-from numpy.testing import assert_, run_module_suite, assert_allclose
-import unittest
-from qutip import *
-from qutip import _version2int
+import qutip
 
 try:
     import Cython
-except:
+except ImportError:
     Cython_OK = False
 else:
-    Cython_OK = _version2int(Cython.__version__) >= _version2int('0.14')
+    cython_version = qutip._version2int(Cython.__version__)
+    Cython_OK = cython_version >= qutip._version2int('0.14')
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_basic():
-    """
-    td_brmesolve: passes all brmesolve tests
-    """
+pytestmark = pytest.mark.skipif(not Cython_OK,
+                                reason="Cython not found, or version too low.",
+                                allow_module_level=True)
 
-    # Test #1
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
+
+def pauli_spin_operators():
+    return [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
+
+
+_simple_qubit_gamma = 0.25
+_m_c_op = np.sqrt(_simple_qubit_gamma) * qutip.sigmam()
+_z_c_op = np.sqrt(_simple_qubit_gamma) * qutip.sigmaz()
+_x_a_op = [qutip.sigmax(), '{0} * (w >= 0)'.format(_simple_qubit_gamma)]
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("me_c_ops, brme_c_ops, brme_a_ops", [
+        ([_m_c_op],          [],        [_x_a_op]),
+        ([_m_c_op],          [_m_c_op], []),
+        ([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op]),
+    ])
+def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
+    delta = 0.0 * 2*np.pi
+    epsilon = 0.5 * 2*np.pi
+    e_ops = pauli_spin_operators()
+    H = delta*0.5*qutip.sigmax() + epsilon*0.5*qutip.sigmaz()
+    psi0 = (2*qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 10, 100)
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam()]
-    a_ops = [[sigmax(),'{0}*(w >= 0)'.format(gamma)]]
-    e_ops = [sigmax(), sigmay(), sigmaz()]
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
+    me = qutip.mesolve(H, psi0, times, c_ops=me_c_ops, e_ops=e_ops).expect
+    brme = qutip.brmesolve([[H, '1']], psi0, times,
+                           brme_a_ops, e_ops, brme_c_ops).expect
+    for me_expectation, brme_expectation in zip(me, brme):
+        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
 
 
-    # Test #2
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
-    times = np.linspace(0, 10, 100)
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam()]
-    e_ops = [sigmax(), sigmay(), sigmaz()]
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve([[H,'1']], psi0, times, [], e_ops, c_ops=c_ops)
+def _harmonic_oscillator_spectrum_frequency(n_th, w0, kappa):
+    if n_th == 0:
+        return "{kappa} * (w >= 0)".format(kappa=kappa)
+    w_th = w0 / np.log(1 + 1/n_th)
+    scale = "((w<0)*exp(w/{w_th}) + (w>=0))".format(w_th=w_th)
+    return "({n_th}+1) * {kappa} * {scale}".format(
+            n_th=n_th, kappa=kappa, scale=scale)
 
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
 
-    # Test #3
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
-    times = np.linspace(0, 10, 100)
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam(), np.sqrt(gamma) * sigmaz()]
-    c_ops_brme = [np.sqrt(gamma) * sigmaz()]
-    a_ops = [[sigmax(),'{0}*(w >= 0)'.format(gamma)]]
-    e_ops = [sigmax(), sigmay(), sigmaz()]
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops,c_ops=c_ops_brme)
+def _harmonic_oscillator_c_ops(n_th, kappa, dimension):
+    a = qutip.destroy(dimension)
+    if n_th == 0:
+        return [np.sqrt(kappa) * a]
+    return [np.sqrt(kappa * (n_th+1)) * a,
+            np.sqrt(kappa * n_th) * a.dag()]
 
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
 
-    # Test #4
+@pytest.mark.slow
+@pytest.mark.parametrize("n_th", [0, 1.5])
+def test_harmonic_oscillator(n_th):
     N = 10
-    w0 = 1.0 * 2 * np.pi
+    w0 = 1.0 * 2*np.pi
     g = 0.05 * w0
     kappa = 0.15
+    S_w = _harmonic_oscillator_spectrum_frequency(n_th, w0, kappa)
 
+    a = qutip.destroy(N)
+    H = w0*a.dag()*a + g*(a+a.dag())
+    psi0 = (qutip.basis(N, 4) + qutip.basis(N, 2) + qutip.basis(N, 0)).unit()
+    psi0 = qutip.ket2dm(psi0)
     times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
 
-    c_ops = [np.sqrt(kappa) * a]
-    a_ops = [[a + a.dag(),'{0} * (w >= 0)'.format(kappa)]]
-    e_ops = [a.dag() * a, a + a.dag()]
+    c_ops = _harmonic_oscillator_c_ops(n_th, kappa, N)
+    a_ops = [[a + a.dag(), S_w]]
+    e_ops = [a.dag()*a, a+a.dag()]
 
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
+    brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
+    for me_expectation, brme_expectation in zip(me.expect, brme.expect):
+        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
 
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
+    num = qutip.num(N)
+    me_num = qutip.expect(num, me.states)
+    brme_num = qutip.expect(num, brme.states)
+    assert np.allclose(me_num, brme_num, atol=1e-2)
 
-    # Test #5
+
+@pytest.mark.slow
+def test_jaynes_cummings_zero_temperature():
     N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.15
-    times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-
-    n_th = 1.5
-    w_th = w0/np.log(1 + 1/n_th)
-
-    aop_str = "(({0} + 1) * {1})*(w>=0) + (({0}+1)*{1}*exp(w / {2}))*(w<0)" \
-        .format(n_th,kappa,w_th)
-
-    c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
-    a_ops = [[a + a.dag(),aop_str]]
-    e_ops = [a.dag() * a, a + a.dag()]
-
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
-
-    # Test #6
-    N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.25
-    times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-
-    n_th = 1.5
-    w_th = w0/np.log(1 + 1/n_th)
-
-    aop_str = "(({0} + 1) * {1})*(w>=0) + (({0}+1)*{1}*exp(w / {2}))*(w<0)" \
-        .format(n_th,kappa,w_th)
-
-    c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
-    a_ops = [[a + a.dag(),aop_str]]
-    e_ops = []
-
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    n_me = expect(a.dag() * a, res_me.states)
-    n_brme = expect(a.dag() * a, res_brme.states)
-
-    diff = abs(n_me - n_brme).max()
-    assert_(diff < 1e-2)
-
-    # Test #7
-    N = 10
+    a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
+    sp = qutip.tensor(qutip.qeye(N), qutip.sigmap())
+    psi0 = qutip.ket2dm(qutip.tensor(qutip.basis(N, 1), qutip.basis(2, 0)))
     kappa = 0.05
-    a = tensor(destroy(N), identity(2))
-    sm = tensor(identity(N), destroy(2))
-    psi0 = ket2dm(tensor(basis(N, 1), basis(2, 0)))
-    a_ops = [[(a + a.dag()),'{kappa} * (w >= 0)'.format(kappa=kappa)]]
-    e_ops = [a.dag() * a, sm.dag() * sm]
+    a_ops = [[(a + a.dag()), "{kappa} * (w >= 0)".format(kappa=kappa)]]
+    e_ops = [a.dag()*a, sp.dag()*sp]
 
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * 2 * np.pi
-    times = np.linspace(0, 2 * 2 * np.pi / g, 1000)
+    w0 = 1.0 * 2*np.pi
+    g = 0.05 * 2*np.pi
+    times = np.linspace(0, 2 * 2*np.pi / g, 1000)
 
     c_ops = [np.sqrt(kappa) * a]
-    H = w0 * a.dag() * a + w0 * sm.dag() * sm + \
-        g * (a + a.dag()) * (sm + sm.dag())
+    H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
 
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
+    brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
+    for me_expectation, brme_expectation in zip(me.expect, brme.expect):
+        # Accept 5% error.
+        assert np.allclose(me_expectation, brme_expectation, atol=5e-2)
 
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 5e-2)  # accept 5% error
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_aop():
-    """
-    td_brmesolve: time-dependent a_ops
-    """
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    a_ops = [[a+a.dag(), '{kappa}*exp(-t)*(w>=0)'.format(kappa=kappa)]]
-    tlist = np.linspace(0, 10, 100)
-    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a])
-    expt = medata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_(avg_diff < 1e-6)
+def _mixed_string(kappa, _):
+    return "{kappa} * exp(-t) * (w >= 0)".format(kappa=kappa)
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_aop_tuple1():
-    """
-    td_brmesolve: time-dependent a_ops tuple of strings
-    """
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    a_ops = [[a+a.dag(), ('{kappa}*(w>=0)'.format(kappa=kappa),'exp(-t)')]]
-    tlist = np.linspace(0, 10, 100)
-    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a])
-    expt = medata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_(avg_diff < 1e-6)
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_aop_tuple2():
-    """
-    td_brmesolve: time-dependent a_ops tuple interp
-    """
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    tlist = np.linspace(0, 10, 100)
-    S = Cubic_Spline(0,10,np.exp(-tlist))
-    a_ops = [[a+a.dag(), ('{kappa}*(w>=0)'.format(kappa=kappa), S)]]
-    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a])
-    expt = medata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_(avg_diff < 1e-5)
+def _separate_strings(kappa, _):
+    return ("{kappa} * (w >= 0)".format(kappa=kappa), "exp(-t)")
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_aop_tuple3():
-    """
-    td_brmesolve: time-dependent a_ops & c_ops interp
-    """
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    tlist = np.linspace(0, 10, 100)
-    S = Cubic_Spline(0,10,np.exp(-tlist))
-    S_c = Cubic_Spline(0,10,np.sqrt(kappa*np.exp(-tlist)))
-    a_ops = [[a+a.dag(), ('{kappa}*(w>=0)'.format(kappa=kappa), S)]]
-    medata = brmesolve(H, psi0, tlist, a_ops, e_ops=[a.dag() * a], c_ops=[[a,S_c]])
-    expt = medata.expect[0]
-    actual_answer = 9.0 * np.exp(-2*kappa * (1.0 - np.exp(-tlist)))
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_(avg_diff < 1e-5)
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_nonherm_eops():
-    """
-    td_brmesolve: non-Hermitian e_ops check
-    """
+def _string_w_interpolating_t(kappa, times):
+    spline = qutip.Cubic_Spline(times[0], times[-1], np.exp(-times))
+    return ("{kappa} * (w >= 0)".format(kappa=kappa), spline)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("time_dependence_tuple", [
+        _mixed_string,
+        _separate_strings,
+        _string_w_interpolating_t,
+    ])
+def test_time_dependence_tuples(time_dependence_tuple):
+    N = 10
+    a = qutip.destroy(N)
+    H = a.dag()*a
+    psi0 = qutip.basis(N, 9)
+    times = np.linspace(0, 10, 100)
+    kappa = 0.2
+    a_ops = [[a + a.dag(), time_dependence_tuple(kappa, times)]]
+    exact = 9 * np.exp(-kappa * (1 - np.exp(-times)))
+    brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops=[a.dag()*a])
+    assert np.mean(np.abs(brme.expect[0] - exact) / exact) < 1e-5
+
+
+def test_time_dependent_spline_in_c_ops():
+    N = 10
+    a = qutip.destroy(N)
+    H = a.dag()*a
+    psi0 = qutip.basis(N, 9)
+    times = np.linspace(0, 10, 100)
+    kappa = 0.2
+    exact = 9 * np.exp(-2 * kappa * (1 - np.exp(-times)))
+    a_ops = [[a + a.dag(), _string_w_interpolating_t(kappa, times)]]
+    collapse_points = np.sqrt(kappa) * np.exp(-0.5*times)
+    c_ops = [[a, qutip.Cubic_Spline(times[0], times[-1], collapse_points)]]
+    brme = qutip.brmesolve(H, psi0, times,
+                           a_ops, e_ops=[a.dag()*a], c_ops=c_ops)
+    assert np.mean(np.abs(brme.expect[0] - exact) / exact) < 1e-5
+
+
+@pytest.mark.slow
+def test_nonhermitian_e_ops():
     N = 5
-    a = destroy(N)
-    rnd = np.random.random() +1j*np.random.random()
-    H = a.dag()*a + rnd*a +np.conj(rnd)*a.dag()
-    H2 = [[H,'1']]
-    psi0 = basis(N,2)
-    tlist = np.linspace(0,10,10)
-    me = mesolve(H,psi0,tlist,c_ops=[],e_ops=[a],progress_bar=True)
-    br = brmesolve(H2,psi0,tlist,a_ops=[],e_ops=[a],progress_bar=True)
-    assert_(np.max(np.abs(me.expect[0]-br.expect[0])) < 1e-4)
+    a = qutip.destroy(N)
+    coefficient = np.random.random() + 1j*np.random.random()
+    H = a.dag()*a + coefficient*a + np.conj(coefficient)*a.dag()
+    H_brme = [[H, '1']]
+    psi0 = qutip.basis(N, 2)
+    times = np.linspace(0, 10, 10)
+    me = qutip.mesolve(H, psi0, times, c_ops=[], e_ops=[a]).expect[0]
+    brme = qutip.brmesolve(H_brme, psi0, times, a_ops=[], e_ops=[a]).expect[0]
+    assert np.allclose(me, brme, atol=1e-4)
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_states():
-    """
-    td_brmesolve: states check
-    """
+
+@pytest.mark.slow
+def test_result_states():
     N = 5
-    a = destroy(N)
-    rnd = np.random.random() +1j*np.random.random()
-    H = a.dag()*a + rnd*a +np.conj(rnd)*a.dag()
-    H2 = [[H,'1']]
-    psi0 = fock_dm(N,2)
-    tlist = np.linspace(0,10,10)
-    me = mesolve(H,psi0,tlist,c_ops=[],e_ops=[],progress_bar=True)
-    br = brmesolve(H2,psi0,tlist,a_ops=[],e_ops=[],progress_bar=True)
-    assert_(np.max([np.abs((me.states[kk]-br.states[kk]).full()).max()
-                for kk in range(len(tlist))]) < 1e-5)
+    a = qutip.destroy(N)
+    coefficient = np.random.random() + 1j*np.random.random()
+    H = a.dag()*a + coefficient*a + np.conj(coefficient)*a.dag()
+    H_brme = [[H, '1']]
+    psi0 = qutip.fock_dm(N, 2)
+    times = np.linspace(0, 10, 10)
+    me = qutip.mesolve(H, psi0, times).states
+    brme = qutip.brmesolve(H_brme, psi0, times).states
+    assert max(np.abs((me_state - brme_state).full()).max()
+               for me_state, brme_state in zip(me, brme)) < 1e-5
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_split_ops1():
-    """
-    td_brmesolve: split ops #1
-    """
+
+def _2_tuple_split(dimension, kappa, _):
+    a = qutip.destroy(dimension)
+    spectrum = "{kappa} * (w >= 0)".format(kappa=kappa)
+    return ([np.sqrt(kappa)*a, np.sqrt(kappa)*a],
+            [],
+            [[a + a.dag(), spectrum],
+             [(a, a.dag()), (spectrum, '1', '1')]])
+
+
+def _4_tuple_split(dimension, kappa, _):
+    a = qutip.destroy(dimension)
+    spectrum = "{kappa} * (w >= 0)".format(kappa=kappa)
+    return ([np.sqrt(kappa)*a, np.sqrt(4*kappa)*a],
+            [],
+            [[a + a.dag(), spectrum],
+             [(a, a.dag(), a, a.dag()), (spectrum, '1', '1', '1', '1')]])
+
+
+def _2_tuple_splines(dimension, kappa, times):
+    a = qutip.destroy(dimension)
+    spectrum = "{kappa} * (w >= 0)".format(kappa=kappa)
+    spline = qutip.Cubic_Spline(times[0], times[-1], np.ones_like(times))
+    return ([np.sqrt(kappa)*a, np.sqrt(kappa)*a, np.sqrt(kappa)*a],
+            [np.sqrt(kappa)*a],
+            [[a + a.dag(), spectrum],
+             [(a, a.dag()), (spectrum, spline, spline)]])
+
+
+def _2_list_entries_2_tuple_split(dimension, kappa, _):
+    a = qutip.destroy(dimension)
+    spectrum = "{kappa} * (w >= 0)".format(kappa=kappa)
+    return ([np.sqrt(kappa)*a, np.sqrt(kappa)*a, np.sqrt(kappa)*a],
+            [],
+            [[a + a.dag(), spectrum],
+             [(a, a.dag()), (spectrum, '1', '1')],
+             [(a, a.dag()), (spectrum, '1', '1')]])
+
+
+@pytest.mark.parametrize("collapse_operators", [
+        _2_tuple_split,
+        pytest.param(_4_tuple_split, marks=pytest.mark.slow),
+        pytest.param(_2_tuple_splines, marks=pytest.mark.slow),
+        pytest.param(_2_list_entries_2_tuple_split, marks=pytest.mark.slow),
+    ])
+def test_split_operators_maintain_answer(collapse_operators):
     N = 10
-    w0 = 1.0 * 2 * np.pi
+    w0 = 1.0 * 2*np.pi
     g = 0.05 * w0
     kappa = 0.15
 
+    a = qutip.destroy(N)
+    H = w0*a.dag()*a + g*(a+a.dag())
+    psi0 = (qutip.basis(N, 4) + qutip.basis(N, 2) + qutip.basis(N, 0)).unit()
+    psi0 = qutip.ket2dm(psi0)
     times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-    c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a]
-    a_ops = [[ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), '1', '1') ] ,
-                [a+a.dag(), '{0} * (w >= 0)'.format(kappa)]]
-    e_ops = [a.dag() * a, a + a.dag()]
+    e_ops = [a.dag()*a, a+a.dag()]
 
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me_c_ops, brme_c_ops, a_ops = collapse_operators(N, kappa, times)
+    me = qutip.mesolve(H, psi0, times, me_c_ops, e_ops)
+    brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops, brme_c_ops)
 
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
+    for me_expect, brme_expect in zip(me.expect, brme.expect):
+        assert np.allclose(me_expect, brme_expect, atol=1e-2)
 
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_split_ops2():
-    """
-    td_brmesolve: split ops #2
-    """
+
+@pytest.mark.slow
+def test_hamiltonian_taking_arguments():
     N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.15
-
-    times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-    c_ops = [np.sqrt(kappa) * a, np.sqrt(4*kappa) * a]
-    a_ops = [[a+a.dag(), '{0} * (w >= 0)'.format(kappa)], [ (a, a.dag(), a, a.dag()),
-                    ('{0} * (w >= 0)'.format(kappa), '1', '1', '1', '1') ]]
-
-    e_ops = [a.dag() * a, a + a.dag()]
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
-
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_split_ops3():
-    """
-    td_brmesolve: split ops, Cubic_Spline td-terms
-    """
-    N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.15
-
-    times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-
-    S1 = Cubic_Spline(times[0],times[-1], np.ones_like(times))
-    S2 = Cubic_Spline(times[0],times[-1], np.ones_like(times))
-
-    c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a, np.sqrt(kappa) * a]
-    a_ops = [ [a+a.dag(), '{0} * (w >= 0)'.format(kappa)],  [ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), S1, S2) ]]
-    c_ops_br = [np.sqrt(kappa) * a]
-    e_ops = [a.dag() * a, a + a.dag()]
-
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops, c_ops_br)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
-
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_split_ops4():
-    """
-    td_brmesolve: split ops, multiple
-    """
-    N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
+    w0 = 1.0 * 2*np.pi
+    g = 0.75 * 2*np.pi
     kappa = 0.05
+    a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
+    sp = qutip.tensor(qutip.qeye(N), qutip.sigmap())
+    psi0 = qutip.tensor(qutip.basis(N, 1), qutip.basis(2, 0))
+    psi0 = qutip.ket2dm(psi0)
+    times = np.linspace(0, 5 * 2*np.pi / g, 1000)
 
-    times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    H2 = [[w0 * a.dag() * a + g * (a + a.dag()),'1']]
+    a_ops = [[(a + a.dag()), "{kappa}*(w > 0)".format(kappa=kappa)]]
+    e_ops = [a.dag()*a, sp.dag()*sp]
 
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
+    H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
+    args = {'ii': 1}
 
-    c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a, np.sqrt(kappa) * a]
-    a1 = [(a, a.dag()), ('{0} * (w >= 0)'.format(kappa), '1', '1')]
-    a2 = [a+a.dag(),'{0} * (w >= 0)'.format(kappa)]
-    a3 = [(a, a.dag()), ('{0} * (w >= 0)'.format(kappa), '1', '1')]
-    a_ops = [a1, a2, a3]
-    e_ops = [a.dag() * a, a + a.dag()]
-
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
-
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_td_brmesolve_args():
-    """
-    td_brmesolve: Hamiltonian args
-    """
-    N = 10
-    a = tensor(destroy(N), identity(2))
-    sm = tensor(identity(N), destroy(2))
-    psi0 = ket2dm(tensor(basis(N, 1), basis(2, 0)))
-    e_ops = [a.dag() * a, sm.dag() * sm]
-
-    w0 = 1.0 * 2 * np.pi
-    g = 0.75 * 2 * np.pi
-    kappa = 0.05
-    times = np.linspace(0, 5 * 2 * np.pi / g, 1000)
-
-    a_ops = [[(a + a.dag()),'{k}*(w > 0)'.format(k=kappa)]]
-
-    c_ops = [np.sqrt(kappa) * a]
-    H = w0 * a.dag() * a + w0 * sm.dag() * sm + g * (a + a.dag()) * (sm + sm.dag())
-
-    brme1 = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    H2= [[w0 * a.dag() * a + w0 * sm.dag() * sm + g * (a + a.dag()) * (sm + sm.dag()),'ii']]
-
-    brme2 = brmesolve(H2, psi0, times, a_ops, e_ops, args={'ii': 1})
-
-    assert_allclose(brme2.expect[0], brme1.expect[0])
-    assert_allclose(brme2.expect[1], brme1.expect[1])
-
-if __name__ == "__main__":
-    run_module_suite()
+    no_args = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
+    args = qutip.brmesolve([[H, 'ii']], psi0, times, a_ops, e_ops, args=args)
+    for arg, no_arg in zip(args.expect, no_args.expect):
+        assert np.array_equal(arg, no_arg)

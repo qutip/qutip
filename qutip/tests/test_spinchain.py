@@ -33,7 +33,8 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_allclose
-from qutip.qip.gates import gate_sequence_product
+
+from qutip.qip.operations.gates import gate_sequence_product
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.spinchain import LinearSpinChain, CircularSpinChain
 from qutip.random_objects import rand_ket
@@ -175,11 +176,11 @@ class TestSpinChain:
         test = CircularSpinChain(N)
         tlist, coeffs = test.load_circuit(qc)
 
-        rho0 = rand_ket(2**N)
-        rho0.dims = [[2]*N, [1]*N]
-        rho1 = gate_sequence_product([rho0] + qc.propagators())
+        init_state = rand_ket(2**N)
+        init_state.dims = [[2]*N, [1]*N]
+        rho1 = gate_sequence_product([init_state] + qc.propagators())
         U_list = test.run_state(
-            rho0=rho0, analytical=True)
+            init_state=init_state, analytical=True)
         result = gate_sequence_product(U_list)
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
@@ -189,11 +190,11 @@ class TestSpinChain:
         test = LinearSpinChain(N)
         tlist, coeffs = test.load_circuit(qc)
 
-        rho0 = rand_ket(2**N)
-        rho0.dims = [[2]*N, [1]*N]
-        rho1 = gate_sequence_product([rho0] + qc.propagators())
+        init_state = rand_ket(2**N)
+        init_state.dims = [[2]*N, [1]*N]
+        rho1 = gate_sequence_product([init_state] + qc.propagators())
         U_list = test.run_state(
-            rho0=rho0, analytical=True)
+            init_state=init_state, analytical=True)
         result = gate_sequence_product(U_list)
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
@@ -216,11 +217,11 @@ class TestSpinChain:
         test = CircularSpinChain(N)
         tlist, coeffs = test.load_circuit(qc)
 
-        rho0 = rand_ket(2**N)
-        rho0.dims = [[2]*N, [1]*N]
-        rho1 = gate_sequence_product([rho0] + qc.propagators())
+        init_state = rand_ket(2**N)
+        init_state.dims = [[2]*N, [1]*N]
+        rho1 = gate_sequence_product([init_state] + qc.propagators())
         result = test.run_state(
-            rho0=rho0, analytical=False,
+            init_state=init_state, analytical=False,
             options=Options(store_final_state=True)).final_state
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
@@ -230,11 +231,11 @@ class TestSpinChain:
         test = LinearSpinChain(N)
         tlist, coeffs = test.load_circuit(qc)
 
-        rho0 = rand_ket(2**N)
-        rho0.dims = [[2]*N, [1]*N]
-        rho1 = gate_sequence_product([rho0] + qc.propagators())
+        init_state = rand_ket(2**N)
+        init_state.dims = [[2]*N, [1]*N]
+        rho1 = gate_sequence_product([init_state] + qc.propagators())
         result = test.run_state(
-            rho0=rho0, analytical=False,
+            init_state=init_state, analytical=False,
             options=Options(store_final_state=True)).final_state
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,

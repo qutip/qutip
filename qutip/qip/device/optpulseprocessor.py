@@ -43,7 +43,7 @@ from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
-from qutip.qip.gates import gate_sequence_product
+from qutip.qip.operations.gates import gate_sequence_product
 
 
 __all__ = ['OptPulseProcessor']
@@ -57,89 +57,36 @@ class OptPulseProcessor(Processor):
     to find an optimized pulse sequence for the desired quantum circuit.
     The processor can simulate the evolution under the given
     control pulses using :func:`qutip.mesolve`.
+    (For attributes documentation, please
+    refer to the parent class :class:`qutip.qip.device.Processor`)
 
     Parameters
     ----------
     N: int
         The number of component systems.
 
-    drift: :class:`Qobj`
-        The drift Hamiltonian with no time-dependent coefficient.
-
-    ctrls: list of :class:`Qobj`
-        The control Hamiltonian whose time-dependent coefficient
-        will be optimized.
+    drift: `:class:`qutip.Qobj`
+        The drift Hamiltonian. The size must match the whole quantum system.
 
     t1: list or float
         Characterize the decoherence of amplitude damping for
-        each qubit. A list of size ``N`` or a float for all qubits.
+        each qubit. A list of size `N` or a float for all qubits.
 
     t2: list of float
         Characterize the decoherence of dephasing for
-        each qubit. A list of size ``N`` or a float for all qubits.
-
-    Attributes
-    ----------
-    N: int
-        The number of component systems.
-
-    ctrls: list
-        A list of the control Hamiltonians driving the evolution.
-
-    drift: :class:`Qobj`
-        The drift Hamiltonian with no time-dependent amplitude.
-
-    tlist: array_like
-        A NumPy array specifies the time of each coefficient.
-
-    coeffs: array_like
-        A 2d NumPy array of the shape, the length is dependent on the
-        spline type
-
-    t1: list
-        Characterize the decoherence of amplitude damping for
-        each qubit.
-
-    t2: list
-        Characterize the decoherence of dephasing for
-        each qubit.
-
-    noise: :class:`qutip.qip.Noise`, optional
-        The noise object, they will be processed when creating the
-        noisy :class:`qutip.QobjEvo` or run the simulation.
+        each qubit. A list of size `N` or a float for all qubits.
 
     dims: list
         The dimension of each component system.
         Default value is a
         qubit system of ``dim=[2,2,2,...,2]``
-
-    spline_kind: str
-        Type of the coefficient interpolation.
-        Note that they have different requirement for the length of ``coeffs``.
-
-        -"step_func":
-        The coefficient will be treated as a step function.
-        E.g. ``tlist=[0,1,2]`` and ``coeffs=[3,2]``, means that the coefficient
-        is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        ``coeffs.shape[1]=len(tlist)-1`` or ``coeffs.shape[1]=len(tlist)``, but
-        in the second case the last element has no effect.
-
-        -"cubic": Use cubic interpolation for the coefficient. It requires
-        ``coeffs.shape[1]=len(tlist)``
-
     """
-    def __init__(self, N, drift=None, ctrls=None, t1=None, t2=None, dims=None):
+    def __init__(self, N, drift=None, t1=None, t2=None, dims=None):
         super(OptPulseProcessor, self).__init__(
             N, t1=t1, t2=t2, dims=dims)
-        if drift is None:  # zero matrix
-            self.drift = tensor(
-                [identity(self.dims[i]) for i in range(N)]
-                ) * 0.
-        else:
-            self.drift = drift
-        if ctrls is not None:
-            for H in ctrls:
-                self.add_ctrl(H)
+        if drift is not None:
+            self.add_drift(drift, list(range(N)))
+        self.spline_kind = "step_func"
 
     def load_circuit(self, qc, min_fid_err=np.inf, merge_gates=True,
                      setting_args=None, verbose=False, **kwargs):
@@ -172,9 +119,9 @@ class OptPulseProcessor(Processor):
         qc.add_gate('CNOT', controls=1, targets=[0])
 
         processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
-        processor.add_ctrl(sigmax(), cyclic_permutation=True)
-        processor.add_ctrl(sigmay(), cyclic_permutation=True)
-        processor.add_ctrl(tensor([sigmay(), sigmay()]))
+        processor.add_control(sigmax(), cyclic_permutation=True)
+        processor.add_control(sigmay(), cyclic_permutation=True)
+        processor.add_control(tensor([sigmay(), sigmay()]))
         setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
                         "SWAP": {"num_tslots": 30, "evo_time": 3},
                         "CNOT": {"num_tslots": 30, "evo_time": 3}}
@@ -256,8 +203,11 @@ class OptPulseProcessor(Processor):
             if gates is not None and setting_args:
                 kwargs.update(setting_args[gates[prop_ind]])
 
+            full_drift_ham = self.drift.get_ideal_qobjevo(self.dims).cte
+            full_ctrls_hams = [pulse.get_ideal_qobj(self.dims)
+                               for pulse in self.pulses]
             result = cpo.optimize_pulse_unitary(
-                self.drift, self.ctrls, U_0, U_targ, **kwargs)
+                full_drift_ham, full_ctrls_hams, U_0, U_targ, **kwargs)
 
             if result.fid_err > min_fid_err:
                 warnings.warn(
@@ -276,28 +226,11 @@ class OptPulseProcessor(Processor):
                                                 result.grad_norm_final))
                 print("Terminated due to {}".format(result.termination_reason))
                 print("Number of iterations {}".format(result.num_iter))
-        self.tlist = np.hstack([[0.]] + time_record)
-        self.coeffs = np.vstack([np.hstack(coeff_record)])
-        return self.tlist, self.coeffs
 
-    def get_unitary_qobjevo(self, args=None):
-        """
-        Create a :class:`qutip.QobjEvo` that can be given to
-        the open system solver.
+        tlist = np.hstack([[0.]] + time_record)
+        for i in range(len(self.pulses)):
+            self.pulses[i].tlist = tlist
+        coeffs = np.vstack([np.hstack(coeff_record)])
+        self.coeffs = coeffs
 
-        Parameters
-        ----------
-        args: dict, optional
-            Arguments for :class:`qutip.QobjEvo`
-
-        Returns
-        -------
-        unitary_qobjevo: :class:`qutip.QobjEvo`
-            The :class:`qutip.QobjEvo` representation of the unitary evolution.
-        """
-        proc_qobjevo = super(OptPulseProcessor, self).get_unitary_qobjevo(
-            args=args)
-        if self.drift is not None:
-            return proc_qobjevo + self.drift
-        else:
-            return proc_qobjevo
+        return tlist, coeffs

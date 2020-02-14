@@ -37,7 +37,7 @@ from numpy.testing import (assert_, run_module_suite, assert_allclose,
 import numpy as np
 
 from qutip.qip.device.optpulseprocessor import OptPulseProcessor
-from qutip.qip.gates import expand_operator
+from qutip.qip.operations.gates import expand_operator
 from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.qubits import qubit_states
@@ -45,23 +45,27 @@ from qutip.metrics import fidelity
 from qutip.qobj import Qobj
 from qutip.tensor import tensor
 from qutip.solver import Options
-from qutip.qip.gates import cnot, gate_sequence_product, hadamard_transform
+from qutip.qip.operations.gates import cnot, gate_sequence_product, hadamard_transform
 from qutip.random_objects import rand_ket
 from qutip.states import basis
 
 
 class TestOptPulseProcessor:
     def test_simple_hadamard(self):
+        """
+        Test for optimizing a simple hadamard gate
+        """
         N = 1
         H_d = sigmaz()
-        H_c = [sigmax()]
+        H_c = sigmax()
         qc = QubitCircuit(N)
         qc.add_gate("SNOT", 0)
 
         # test load_circuit, with verbose info
         num_tslots = 10
         evo_time = 10
-        test = OptPulseProcessor(N, H_d, H_c)
+        test = OptPulseProcessor(N, drift=H_d)
+        test.add_control(H_c, targets=0)
         tlist, coeffs = test.load_circuit(
             qc, num_tslots=num_tslots, evo_time=evo_time, verbose=True)
 
@@ -72,17 +76,20 @@ class TestOptPulseProcessor:
         assert_allclose(fidelity(result.states[-1], plus), 1, rtol=1.0e-6)
 
         # test add/remove ctrl
-        test.add_ctrl(sigmay())
-        test.remove_ctrl(0)
+        test.add_control(sigmay())
+        test.remove_pulse(0)
         assert_(
-            len(test.ctrls) == 1,
-            msg="Method of remove_ctrl could be wrong.")
-        assert_allclose(test.drift, H_d)
+            len(test.pulses) == 1,
+            msg="Method of remove_pulse could be wrong.")
+        assert_allclose(test.drift.drift_hamiltonians[0].qobj, H_d)
         assert_(
             sigmay() in test.ctrls,
-            msg="Method of remove_ctrl could be wrong.")
+            msg="Method of remove_pulse could be wrong.")
 
     def test_multi_qubits(self):
+        """
+        Test for multi-qubits system.
+        """
         N = 3
         H_d = tensor([sigmaz()]*3)
         H_c = []
@@ -90,18 +97,20 @@ class TestOptPulseProcessor:
         # test empty ctrls
         num_tslots = 30
         evo_time = 10
-        test = OptPulseProcessor(N, H_d, H_c)
-        test.add_ctrl(tensor([sigmax(), sigmax()]),
-                      cyclic_permutation=True)
-
+        test = OptPulseProcessor(N)
+        test.add_drift(H_d, [0, 1, 2])
+        test.add_control(tensor([sigmax(), sigmax()]),
+                          cyclic_permutation=True)
         # test periodically adding ctrls
         sx = sigmax()
         iden = identity(2)
+        # print(test.ctrls)
+        # print(Qobj(tensor([sx, iden, sx])))
         assert_(Qobj(tensor([sx, iden, sx])) in test.ctrls)
         assert_(Qobj(tensor([iden, sx, sx])) in test.ctrls)
         assert_(Qobj(tensor([sx, sx, iden])) in test.ctrls)
-        test.add_ctrl(sigmax(), cyclic_permutation=True)
-        test.add_ctrl(sigmay(), cyclic_permutation=True)
+        test.add_control(sigmax(), cyclic_permutation=True)
+        test.add_control(sigmay(), cyclic_permutation=True)
 
         # test pulse genration for cnot gate, with kwargs
         qc = [tensor([identity(2), cnot()])]
@@ -111,30 +120,29 @@ class TestOptPulseProcessor:
         rho1 = qubit_states(3, [1, 1, 0])
         result = test.run_state(
             rho0, options=Options(store_states=True))
-        print(result.states[-1])
-        print(rho1)
         assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
 
-        # test save and read coeffs
-        test.save_coeff("qutip_test_multi_qubits.txt")
-        test2 = OptPulseProcessor(N, H_d, H_c)
-        test2.drift = test.drift
-        test2.ctrls = test.ctrls
-        test2.read_coeff("qutip_test_multi_qubits.txt")
-        os.remove("qutip_test_multi_qubits.txt")
-        assert_(np.max((test.coeffs-test2.coeffs)**2) < 1.0e-13)
-        result = test2.run_state(rho0,)
-        assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
+        # # test save and read coeffs
+        # test.save_coeff("qutip_test_multi_qubits.txt")
+        # test2 = OptPulseProcessor(N, H_d, H_c)
+        # test2.drift = test.drift
+        # test2.ctrls = test.ctrls
+        # test2.read_coeff("qutip_test_multi_qubits.txt")
+        # os.remove("qutip_test_multi_qubits.txt")
+        # assert_(np.max((test.coeffs-test2.coeffs)**2) < 1.0e-13)
+        # result = test2.run_state(rho0,)
+        # assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
 
     def test_multi_gates(self):
         N = 2
         H_d = tensor([sigmaz()]*2)
         H_c = []
 
-        test = OptPulseProcessor(N, H_d, H_c)
-        test.add_ctrl(sigmax(), cyclic_permutation=True)
-        test.add_ctrl(sigmay(), cyclic_permutation=True)
-        test.add_ctrl(tensor([sigmay(), sigmay()]))
+        test = OptPulseProcessor(N)
+        test.add_drift(H_d, [0, 1])
+        test.add_control(sigmax(), cyclic_permutation=True)
+        test.add_control(sigmay(), cyclic_permutation=True)
+        test.add_control(tensor([sigmay(), sigmay()]))
 
         # qubits circuit with 3 gates
         setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
@@ -154,55 +162,6 @@ class TestOptPulseProcessor:
         result = test.run_state(rho0)
         assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
 
-    def test_T1_T2(self):
-        # setup
-        a = destroy(2)
-        Hadamard = hadamard_transform(1)
-        ex_state = basis(2, 1)
-        mines_state = (basis(2, 1)-basis(2, 0)).unit()
-        end_time = 2.
-        tlist = np.arange(0, end_time + 0.02, 0.02)
-        H_d = 10.*sigmaz()
-        t1 = 1.
-        t2 = 0.5
-
-        # test t1
-        test = OptPulseProcessor(1, drift=H_d, t1=t1)
-        test.tlist = tlist
-        result = test.run_state(ex_state, e_ops=[a.dag()*a])
-
-        assert_allclose(
-            result.expect[0][-1], np.exp(-1./t1*end_time),
-            rtol=1e-5, err_msg="Error in t1 time simulation")
-
-        # test t2
-        test = OptPulseProcessor(1, t2=t2)
-        test.tlist = tlist
-        result = test.run_state(
-            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
-        assert_allclose(
-            result.expect[0][-1], np.exp(-1./t2*end_time)*0.5+0.5,
-            rtol=1e-5, err_msg="Error in t2 time simulation")
-
-        # test t1 and t2
-        t1 = np.random.rand(1) + 0.5
-        t2 = np.random.rand(1) * 0.5 + 0.5
-        test = OptPulseProcessor(1, t1=t1, t2=t2)
-        test.tlist = tlist
-        result = test.run_state(
-            rho0=mines_state, e_ops=[Hadamard*a.dag()*a*Hadamard])
-        assert_allclose(
-            result.expect[0][-1], np.exp(-1./t2*end_time)*0.5+0.5,
-            rtol=1e-5,
-            err_msg="Error in t1 & t2 simulation, "
-                    "with t1={} and t2={}".format(t1, t2))
-
-    def TestGetQobjevo(self):
-        processor = OptPulseProcessor(N=1, drift=sigmaz())
-        processor.tlist = np.array([0., 1., 2.])
-        processor.pulses = np.array([1., 1., 1.])
-        unitary_qobjevo = processor.get_unitary_qobjevo()
-        assert_equal(unitary_qobjevo.cte, sigmaz())
 
 if __name__ == "__main__":
     run_module_suite()

@@ -284,9 +284,10 @@ def vector_to_operator(op):
         return op.apply(vector_to_operator)
 
     q = Qobj()
+    # e.g. op.dims = [ [[rows], [cols]], [1]]
     q.dims = op.dims[0]
-    n = int(np.sqrt(op.shape[0]))
-    q.data = sp_reshape(op.data.T, (n, n)).T
+    shape = (np.prod(q.dims[0]), np.prod(q.dims[1]))
+    q.data = sp_reshape(op.data.T, shape[::-1]).T
     return q
 
 
@@ -297,12 +298,14 @@ def mat2vec(mat):
     return mat.T.reshape(np.prod(np.shape(mat)), 1)
 
 
-def vec2mat(vec):
+def vec2mat(vec, shape=None):
     """
     Private function reshaping vector to matrix.
     """
-    n = int(np.sqrt(len(vec)))
-    return vec.reshape((n, n)).T
+    if shape is None:
+        n = int(np.sqrt(len(vec)))
+        shape = (n, n)
+    return vec.reshape(shape[::-1]).T
 
 
 def vec2mat_index(N, I):
