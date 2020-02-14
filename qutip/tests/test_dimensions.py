@@ -32,144 +32,201 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
-
-from numpy.testing import assert_equal, assert_, run_module_suite
-
+import pytest
+import collections
+import qutip
 from qutip.dimensions import (
-    type_from_dims,
-    flatten, enumerate_flat, deep_remove, unflatten,
-    dims_idxs_to_tensor_idxs, dims_to_tensor_shape,
-    collapse_dims_oper, collapse_dims_super
-)
-from qutip.qobj import Qobj
+    type_from_dims, flatten, unflatten, enumerate_flat, deep_remove, deep_map,
+    dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
+    collapse_dims_super, collapse_dims_oper)
+
+_v = "vector"
+_vo = "vectorized_oper"
 
 
-def test_flatten():
-    l = [[[0], 1], 2]
-    assert_equal(flatten(l), [0, 1, 2])
+@pytest.mark.parametrize(["rank", "actual_type", "scalar"], [
+    pytest.param([1], _v, True, id="scalar"),
+    pytest.param([1, 1], _v, True, id="tensor scalar"),
+    pytest.param([[1]], _vo, True, id="nested scalar"),
+    pytest.param([[1], [1]], _vo, True, id="nested tensor scalar 1"),
+    pytest.param([[1, 1]], _vo, True, id="nested tensor scalar 2"),
+    pytest.param([2], _v, False, id="vector"),
+    pytest.param([2, 3], _v, False, id="tensor vector"),
+    pytest.param([1, 2, 3], _v, False, id="tensor vector with 1d subspace 1"),
+    pytest.param([2, 1, 1], _v, False, id="tensor vector with 1d subspace 2"),
+    pytest.param([[2]], _vo, False, id="vectorised operator"),
+    pytest.param([[2, 3]], _vo, False, id="vector tensor operator"),
+    pytest.param([[1, 3]], _vo, False, id="vector tensor operator with 1d"),
+])
+@pytest.mark.parametrize("test_type", ["scalar", _v, _vo])
+def test_rank_type_detection(rank, actual_type, scalar, test_type):
+    """
+    Test the rank detection tests `is_scalar`, `is_vector` and
+    `is_vectorized_oper` for a range of different test cases.  These tests are
+    designed to be called on individual elements of the two-element `dims`
+    parameter of `Qobj`s, so they're testing the row-rank and column-rank.
+
+    It's possible to be both a scalar and something else, but "vector" and
+    "vectorized_oper" are mutually exclusive.
+
+    These functions aren't properly specified for improper dimension setups, so
+    there are no tests for those.
+    """
+    expected = scalar if test_type == "scalar" else (actual_type == test_type)
+    function = getattr(qutip.dimensions, "is_" + test_type)
+    assert function(rank) == expected
 
 
-def test_enumerate_flat():
-    l = [[[10], [20, 30]], 40]
-    labels = enumerate_flat(l)
-    assert_equal(labels, [[[0], [1, 2]], 3])
+@pytest.mark.parametrize(["base", "flat"], [
+    pytest.param([[[0], 1], 2], [0, 1, 2], id="standard"),
+    pytest.param([1, 2, [3, [4]], [5, 6], [7, [[[[[[[8]]]]]]]]],
+                 [1, 2, 3, 4, 5, 6, 7, 8], id="standard"),
+    pytest.param([1, 2, 3], [1, 2, 3], id="already flat"),
+    pytest.param([], [], id="empty list"),
+    pytest.param([[], [], [[[], [], []]]], [], id="nested empty lists"),
+])
+class TestFlattenUnflatten:
+    def test_flatten(self, base, flat):
+        assert flatten(base) == flat
+
+    def test_unflatten(self, base, flat):
+        labels = enumerate_flat(base)
+        assert unflatten(flat, labels) == base
 
 
-def test_deep_remove():
-    l = [[[0], 1], 2]
-    l = deep_remove(l, 1)
-    assert_equal(l, [[[0]], 2])
-
-    # Harder case...
-    l = [[[[0, 1, 2]], [3, 4], [5], [6, 7]]]
-    l = deep_remove(l, 0, 5)
-    assert l == [[[[1, 2]], [3, 4], [], [6, 7]]]
-
-
-def test_unflatten():
-    l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]
-    labels = enumerate_flat(l)
-    assert unflatten(flatten(l), labels) == l
+@pytest.mark.parametrize(["base", "expected"], [
+    pytest.param([1, 2, 3], [0, 1, 2], id="flat"),
+    pytest.param([[1], [2], [3]], [[0], [1], [2]], id="nested"),
+    pytest.param([[[1], [2, 3]], 4], [[[0], [1, 2]], 3], id="nested"),
+    pytest.param([], [], id="empty"),
+    pytest.param([[], [], [[[], [], []]]],
+                 [[], [], [[[], [], []]]], id="nested empty lists"),
+])
+def test_enumerate_flat(base, expected):
+    assert enumerate_flat(base) == expected
 
 
-def test_dims_idxs_to_tensor_idxs():
-    # Dims for a superoperator acting on linear operators on C^2 x C^3.
-    dims = [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
-    # Should swap the input and output subspaces of the left and right dims.
-    assert_equal(
-        dims_idxs_to_tensor_idxs(dims, list(range(len(flatten(dims))))),
-        [2, 3, 0, 1, 6, 7, 4, 5]
-    )
-    # TODO: more cases (oper-ket, oper-bra, and preserves
-    #       non-vectorized qobjs).
+@pytest.mark.parametrize(["base", "to_remove", "expected"], [
+    pytest.param([[[0], 1], 2], (1,), [[[0]], 2], id="simple"),
+    pytest.param([[[[0, 1, 2]], [3, 4], [5], [6, 7]]], (0, 5),
+                 [[[[1, 2]], [3, 4], [], [6, 7]]], id="harder"),
+    pytest.param([1, 2, 3], (), [1, 2, 3], id="no-op"),
+    pytest.param([], (), [], id="empty"),
+])
+def test_deep_remove(base, to_remove, expected):
+    assert deep_remove(base, *to_remove) == expected
 
 
-def test_dims_to_tensor_shape():
-    # Dims for a superoperator:
-    #     L(L(C⁰ × C¹, C² × C³), L(C³ × C⁴, C⁵ × C⁶)),
-    # where L(X, Y) is a linear operator from X to Y (dims [Y, X]).
-    in_dims  = [[2, 3], [0, 1]]
-    out_dims = [[3, 4], [5, 6]]
-    dims = [out_dims, in_dims]
+@pytest.mark.parametrize("mapping", [
+    pytest.param(lambda x: x*2, id="(x -> 2x)"),
+    pytest.param(lambda x: [x], id="(x -> [x])"),
+])
+@pytest.mark.parametrize("base", [
+    pytest.param([[[0], 1], 2], id="standard"),
+    pytest.param([1, 2, [3, [4]], [7, [[[[[[[8]]]]]]]]], id="standard"),
+    pytest.param([1, 2, 3], id="flat"),
+    pytest.param([], id="empty list"),
+    pytest.param([[], [], [[[], [], []]]], id="nested empty lists"),
+])
+def test_deep_map(base, mapping):
+    """
+    Test the deep mapping.  To simplify generation of edge-cases, this tests
+    against an equivalent (but slower) operation of flattening and unflattening
+    the list.  We can get false negatives if the `flatten` or `unflatten`
+    functions are broken, but other tests should catch those.
+    """
+    # This function might not need to be public, and consequently might not
+    # need to be tested here.
+    labels = enumerate_flat(base)
+    expected = unflatten([mapping(x) for x in flatten(base)], labels)
+    assert deep_map(mapping, base) == expected
 
-    # To make the expected shape, we want the left and right spaces to each
-    # be flipped, then the whole thing flattened.
-    shape = (5, 6, 3, 4, 0, 1, 2, 3)
 
-    assert_equal(
-        dims_to_tensor_shape(dims),
-        shape
-    )
-    # TODO: more cases (oper-ket, oper-bra, and preserves
-    #       non-vectorized qobjs).
+_Indices = collections.namedtuple('_Indices', ['base', 'permutation', 'shape'])
 
 
-def test_type_from_dims():
-    def dims_case(dims, expected_type, enforce_square=True):
-        actual_type = type_from_dims(dims, enforce_square=enforce_square)
+@pytest.mark.parametrize("indices", [
+    pytest.param(_Indices([[2], [1]], [0, 1], (2, 1)), id="ket preserved"),
+    pytest.param(_Indices([[2, 3], [1, 1]], [0, 1, 2, 3], (2, 3, 1, 1)),
+                 id="tensor-ket preserved"),
+    pytest.param(_Indices([[1], [2]], [0, 1], (1, 2)), id="bra preserved"),
+    pytest.param(_Indices([[1, 1], [2, 2]], [0, 1, 2, 3], (1, 1, 2, 2)),
+                 id="tensor-bra preserved"),
+    pytest.param(_Indices([[2], [3]], [0, 1], (2, 3)), id="oper preserved"),
+    pytest.param(_Indices([[2, 3], [1, 0]], [0, 1, 2, 3], (2, 3, 1, 0)),
+                 id="tensor-oper preserved"),
+    pytest.param(_Indices([[[2, 4], [6, 8]], [[1, 3], [5, 7]]],
+                          [2, 3, 0, 1, 6, 7, 4, 5],
+                          (6, 8, 2, 4, 5, 7, 1, 3)),
+                 id="super-oper"),
+    pytest.param(_Indices([[[2, 4], [6, 8]], [1]],
+                          [0, 1, 2, 3, 4], (2, 4, 6, 8, 1)),
+                 id="operator-ket"),
+    pytest.param(_Indices([[1], [[2, 4], [6, 8]]],
+                          [0, 1, 2, 3, 4], (1, 2, 4, 6, 8)),
+                 id="operator-bra"),
+])
+class TestSuperOperatorDimsModification:
+    def test_dims_to_tensor_perm(self, indices):
+        # This function might not need to be public, and consequently might not
+        # need to be tested here.
+        assert dims_to_tensor_perm(indices.base) == indices.permutation
 
-        assert_equal(
-            actual_type,
-            expected_type,
-            "Expected {} to be type='{}', but was type='{}'.".format(
-                dims, expected_type, actual_type
-            )
-        )
+    def test_dims_idxs_to_tensor_idxs(self, indices):
+        test_indices = list(range(len(flatten(indices.base))))
+        assert (dims_idxs_to_tensor_idxs(indices.base, test_indices)
+                == indices.permutation)
 
-    def qobj_case(qobj):
-        assert_equal(type_from_dims(qobj.dims), qobj.type)
+    def test_dims_to_tensor_shape(self, indices):
+        assert dims_to_tensor_shape(indices.base) == indices.shape
 
-    dims_case([[2], [2]], 'oper')
-    dims_case([[2, 3], [2, 3]], 'oper')
-    dims_case([[2], [3]], 'other')
-    dims_case([[2], [3]], 'oper', False)
 
-    dims_case([[2], [1]], 'ket')
-    dims_case([[1], [2]], 'bra')
+class TestTypeFromDims:
+    @pytest.mark.parametrize(["base", "expected", "enforce_square"], [
+        pytest.param([[2], [2]], 'oper', True),
+        pytest.param([[2, 3], [2, 3]], 'oper', True),
+        pytest.param([[2], [3]], 'other', True),
+        pytest.param([[2], [3]], 'oper', False),
+        pytest.param([[2], [1]], 'ket', True),
+        pytest.param([[1], [2]], 'bra', True),
+        pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket', True),
+        pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra', True),
+        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'other', True),
+        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super', False),
+        pytest.param([[[2], [3, 3]], [[3], [2, 3]]], 'other', True),
+    ])
+    def test_type_from_dims(self, base, expected, enforce_square):
+        assert type_from_dims(base, enforce_square=enforce_square) == expected
 
-    dims_case([[[2, 3], [2, 3]], [1]], 'operator-ket')
-    dims_case([[1], [[2, 3], [2, 3]]], 'operator-bra')
+    @pytest.mark.parametrize("qobj", [
+        pytest.param(qutip.rand_ket(10), id='ket'),
+        pytest.param(qutip.rand_ket(10).dag(), id='bra'),
+        pytest.param(qutip.rand_dm(10), id='oper'),
+        pytest.param(qutip.to_super(qutip.rand_dm(10)), id='super'),
+    ])
+    def test_qobj_dims_match_qobj(self, qobj):
+        assert type_from_dims(qobj.dims) == qobj.type
 
-    dims_case([[[3], [3]], [[2, 3], [2, 3]]], 'other')
-    dims_case([[[3], [3]], [[2, 3], [2, 3]]], 'super', False)
 
-    dims_case([[[2], [3, 3]], [[3], [2, 3]]], 'other')
+class TestCollapseDims:
+    @pytest.mark.parametrize(["base", "expected"], [
+        pytest.param([[1], [3]], [[1], [3]], id="ket trivial"),
+        pytest.param([[1, 1], [2, 3]], [[1], [6]], id="ket tensor"),
+        pytest.param([[2], [1]], [[2], [1]], id="bra trivial"),
+        pytest.param([[2, 3], [1, 1]], [[6], [1]], id="bra tensor"),
+        pytest.param([[5], [5]], [[5], [5]], id="oper trivial"),
+        pytest.param([[2, 3], [2, 3]], [[6], [6]], id="oper tensor"),
+    ])
+    def test_oper(self, base, expected):
+        assert collapse_dims_oper(base) == expected
 
-    ## Qobj CASES ##
-
-    N = int(np.ceil(10.0 * np.random.random())) + 5
-
-    ket_data = np.random.random((N, 1))
-    ket_qobj = Qobj(ket_data)
-    qobj_case(ket_qobj)
-
-    bra_data = np.random.random((1, N))
-    bra_qobj = Qobj(bra_data)
-    qobj_case(bra_qobj)
-
-    oper_data = np.random.random((N, N))
-    oper_qobj = Qobj(oper_data)
-    qobj_case(oper_qobj)
-
-    N = 9
-    super_data = np.random.random((N, N))
-    super_qobj = Qobj(super_data, dims=[[[3]], [[3]]])
-    qobj_case(super_qobj)
-
-def test_collapse():
-    # ket-type
-    # assert_equal(collapse_dims_oper([[1], [3]]), [[1], [3]], err_msg='ket-type, trivial')
-    # assert_equal(collapse_dims_oper([[1], [2, 3]]), [[1], [6]], err_msg='ket-type, bipartite')
-    # # bra-type
-    # assert_equal(collapse_dims_oper([[2], [1]]), [[2], [1]], err_msg='bra-type, trivial')
-    # assert_equal(collapse_dims_oper([[2, 3], [1]]), [[6], [1]], err_msg='bra-type, bipartite')
-    # # oper-type
-    # assert_equal(collapse_dims_oper([[2, 3], [2, 3]]), [[6], [6]], err_msg='oper-type, trivial')
-    # assert_equal(collapse_dims_oper([[2, 3], [4, 5]]), [[6], [20]], err_msg='oper-type, bipartite')
-    # # operator-ket-type
-    # assert_equal(collapse_dims_super([[[1]], [[2, 3], [2, 3]]]), [[[1]], [[6], [6]]])
-    # operator-bra-type
-    assert_equal(collapse_dims_super([[[2, 3], [2, 3]], [[1]]]), [[[6], [6]], [[1]]])
-    # super-type
-    assert_equal(collapse_dims_super([[[2, 3], [2, 3]], [[2, 3], [2, 3]]]), [[[6], [6]], [[6], [6]]])
+    @pytest.mark.parametrize(["base", "expected"], [
+        pytest.param([[[1]], [[2, 3], [2, 3]]],
+                     [[[1]], [[6], [6]]], id="operator-ket"),
+        pytest.param([[[2, 3], [2, 3]], [[1]]],
+                     [[[6], [6]], [[1]]], id="operator-bra"),
+        pytest.param([[[2, 3], [2, 3]], [[2, 3], [2, 3]]],
+                     [[[6], [6]], [[6], [6]]], id="super"),
+    ])
+    def test_super(self, base, expected):
+        assert collapse_dims_super(base) == expected
