@@ -31,6 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import pytest
+
+
 def _add_repeats_if_marked(metafunc):
     """
     If the metafunc is marked with the 'repeat' mark, then add the requisite
@@ -45,5 +48,6 @@ def _add_repeats_if_marked(metafunc):
                              ids=["rep({})".format(x+1) for x in range(count)])
 
 
+@pytest.hookimpl(trylast=True)
 def pytest_generate_tests(metafunc):
     _add_repeats_if_marked(metafunc)
