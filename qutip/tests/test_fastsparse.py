@@ -30,63 +30,45 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import numpy as np
-from numpy.testing import (run_module_suite, assert_,
-                        assert_equal, assert_almost_equal)
-import scipy.sparse as sp
-from qutip.random_objects import rand_herm
+
+import pytest
+import scipy.sparse
+import qutip
 from qutip.fastsparse import fast_csr_matrix
 
 
-def test_fast_sparse_basic():
-    "fastsparse: fast_csr_matrix operations"
-    H = rand_herm(5).data
-    assert_(isinstance(H, fast_csr_matrix))
-    Hadd = H + H
-    assert_(isinstance(Hadd, fast_csr_matrix))
-    Hsub = H + H
-    assert_(isinstance(Hsub, fast_csr_matrix))
-    Hmult = H * H
-    assert_(isinstance(Hmult, fast_csr_matrix))
-    Hcopy = H.copy()
-    assert_(isinstance(Hcopy, fast_csr_matrix))
-    assert_(isinstance(-1*H, fast_csr_matrix))
-    assert(isinstance(H/2., fast_csr_matrix))
-    
-    G = sp.csr_matrix((H.data, H.indices,H.indptr), 
-            copy=True, shape=H.shape)
-    assert_(not isinstance(G, fast_csr_matrix))
-    Hadd = H + G
-    assert_(not isinstance(Hadd, fast_csr_matrix))
-    Hadd = G + H
-    assert_(not isinstance(Hadd, fast_csr_matrix))
-    Hsub = H - G
-    assert_(not isinstance(Hsub, fast_csr_matrix))
-    Hsub = G - H
-    assert_(not isinstance(Hsub, fast_csr_matrix))
-    Hmult = H*G
-    assert_(not isinstance(Hmult, fast_csr_matrix))
-    Hmult = G*H
-    assert_(not isinstance(Hmult, fast_csr_matrix))
+class TestOperationEffectsOnType:
+    @pytest.mark.parametrize("operation", [
+        pytest.param(lambda x: x, id="identity"),
+        pytest.param(lambda x: x + x, id="addition"),
+        pytest.param(lambda x: x - x, id="subtraction"),
+        pytest.param(lambda x: x * x, id="multiplication by op"),
+        pytest.param(lambda x: 2*x, id="multiplication by scalar"),
+        pytest.param(lambda x: x/3, id="division by scalar"),
+        pytest.param(lambda x: -x, id="negation"),
+        pytest.param(lambda x: x.copy(), id="copy"),
+        pytest.param(lambda x: x.T, id="transpose [.T]"),
+        pytest.param(lambda x: x.trans(), id="transpose [.trans()]"),
+        pytest.param(lambda x: x.transpose(), id="transpose [.transpose()]"),
+        pytest.param(lambda x: x.H, id="adjoint [.H]"),
+        pytest.param(lambda x: x.getH(), id="adjoint [.getH()]"),
+        pytest.param(lambda x: x.adjoint(), id="adjoint [.adjoint()]"),
+    ])
+    def test_operations_preserve_type(self, operation):
+        op = qutip.rand_herm(5).data
+        assert isinstance(operation(op), fast_csr_matrix)
 
-    
-def test_fast_sparse_trans():
-    "fastsparse: transpose operations"
-    H = rand_herm(5).data
-    assert_(isinstance(H, fast_csr_matrix))
-    assert_(isinstance(H.T, fast_csr_matrix))
-    assert_(isinstance(H.trans(), fast_csr_matrix))
-    assert_(isinstance(H.transpose(), fast_csr_matrix))
-
-    
-def test_fast_sparse_adjoint():
-    "fastsparse: adjoint operations"
-    H = rand_herm(5).data
-    assert_(isinstance(H, fast_csr_matrix))
-    assert_(isinstance(H.H, fast_csr_matrix))
-    assert_(isinstance(H.getH(), fast_csr_matrix))
-    assert_(isinstance(H.adjoint(), fast_csr_matrix))
-
-
-if __name__ == "__main__":
-    run_module_suite()
+    @pytest.mark.parametrize("operation", [
+        pytest.param(lambda x, y: y, id="identity of other"),
+        pytest.param(lambda x, y: x + y, id="addition"),
+        pytest.param(lambda x, y: y + x, id="r-addition"),
+        pytest.param(lambda x, y: x - y, id="subtraction"),
+        pytest.param(lambda x, y: y - x, id="r-subtraction"),
+        pytest.param(lambda x, y: x * y, id="multiplication"),
+        pytest.param(lambda x, y: y * x, id="r-multiplication"),
+    ])
+    def test_mixed_operations_yield_type(self, operation):
+        op = qutip.rand_herm(5).data
+        other = scipy.sparse.csr_matrix((op.data, op.indices, op.indptr),
+                                        copy=True, shape=op.shape)
+        assert not isinstance(operation(op, other), fast_csr_matrix)
