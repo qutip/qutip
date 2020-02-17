@@ -133,7 +133,10 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             c_ = c_op
 
         if c_op.issuper:
-            data = data + c_op.data
+            if not chi:
+                data = data + c_op.data
+            else:
+                data = data + c_op.data * np.exp(1j * chi[idx])
         else:
             cd = c_op.data.getH()
             c = c_op.data

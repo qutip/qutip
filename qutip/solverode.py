@@ -2,13 +2,16 @@
 
 
 import numpy as np
+from numpy.linalg import norm as la_norm
 from scipy.integrate import solve_ivp, ode
 from qutip.qobjevo_maker import is_dynargs_pattern
-from qutip.cy.spmatfuncs import normalize_inplace
+from qutip.cy.spmatfuncs import normalize_inplace, normalize_op_inplace
 from qutip.solver import ExpectOps
 from qutip.qobj import Qobj
 
+
 def normalize_prop(state):
+    st = st.resize(())
     norms = la_norm(state, axis=0)
     state /= norms
     return np.mean(norms)
@@ -120,12 +123,16 @@ class OdeSolver:
         size = np.prod(state0.shape)
         if opt.normalize_output and size == self.LH.shape[1]:
             if self.LH.cte.issuper:
+                print("normalize_dm")
                 self.normalize_func = normalize_dm
             else:
+                print("normalize_inplace")
                 self.normalize_func = normalize_inplace
         elif opt.normalize_output and size == np.prod(self.LH.shape):
-            self.normalize_func = normalize_prop
+            print("normalize_prop")
+            self.normalize_func = normalize_op_inplace
         elif opt.normalize_output:
+            print("normalize_mixed")
             self.normalize_func = normalize_mixed(state0.shape)
 
 

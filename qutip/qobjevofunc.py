@@ -319,10 +319,15 @@ class QobjEvoFunc(QobjEvo):
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
         # remove dynamics_args that are to be refreshed
-        self.dynamics_args = [dargs for dargs in self.dynamics_args
-                              if dargs[0] not in new_args]
+        # self.dynamics_args = [dargs for dargs in self.dynamics_args
+        #                       if dargs[0] not in new_args]
         self.args.update(new_args)
-        self._args_checks(state=state, e_ops=e_ops)
+        # self._args_checks(state=state, e_ops=e_ops)
+        for key in new_args:
+            if isinstance(self.args[key], StateArgs):
+                self.dynamics_args = [dargs for dargs in self.dynamics_args
+                                      if dargs[0] != key]
+                self.dynamics_args += [(key, *self.args[key]())]
 
     def to_list(self):
         return self.func
@@ -458,6 +463,8 @@ class QobjEvoFunc(QobjEvo):
     def lindblad_dissipator(self, chi=0):
         res = self.copy()
         chi = 0 if chi is None else chi
+        if res.cte.issuper:
+            return res * np.exp(1j * chi) if chi else res
         res.operation_stack.append(_Block_lindblad_dissipator(chi))
         self._reset_type()
         return res
@@ -477,6 +484,7 @@ class QobjEvoFunc(QobjEvo):
     def _liouvillian_h(self):
         """return 1j * (spre(a) - spost(a)) """
         res = self.copy()
+        if res.cte.issuper: return res
         res.operation_stack.append(_Block_liouvillian_H())
         return res
 

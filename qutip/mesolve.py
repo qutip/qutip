@@ -62,8 +62,6 @@ from qutip.qobjevo_maker import qobjevo_maker
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 
 
-
-
 class MeSolver(Solver):
     def __init__(self, H, c_ops, args=None,
                  rho0=None, tlist=[], e_ops=None,
@@ -72,6 +70,7 @@ class MeSolver(Solver):
         self.args = args
         self.progress_bar = progress_bar
         self.options = options
+        if options is None: self.options.normalize_output = False
         check_use_openmp(self.options)
 
         self.H = qobjevo_maker(H, self.args, tlist=tlist,
@@ -115,9 +114,11 @@ class MeSolver(Solver):
         self.solver = self._get_solver()
 
     def _check(self, rho0):
-        super_ok = issuper(self.H.cte) and (rho0.dims == self.dims[1])
-        oper_ok = not issuper(self.H.cte) and (rho0.dims[0] == self.dims[1])
-        if not (super_ok or oper_ok):
+        dims_H = self.dims if not issuper(self.H.cte) else self.dims[1]
+        ket_ok = rho0.isket and (dims_H[1] == rho0.dims[0])
+        dm_ok = rho0.isoper and (dims_H == rho0.dims)
+        sp_ok = rho0.issuper and (dims_H == rho0.dims[0])
+        if not (ket_ok or dm_ok or sp_ok):
             raise ValueError("The dimension of rho0 does not "
                              "fit the Hamiltonian")
 
@@ -300,14 +301,15 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         operators for which to calculate the expectation values.
 
     """
-    H_issuper = (isinstance(H, Qobj) and issuper(H)
-                 or isinstance(H, list) and isinstance(H[0], Qobj)
-                 and issuper(H[0])
-                 or not isinstance(H, Qobj) and callable(H))
-    if not c_ops and isket(rho0)) and not H_issuper:
+    args = args if args is not None else {}
+    e_ops = e_ops if e_ops is not None else []
+    H_evo = qobjevo_maker(H, args=args, e_ops=e_ops, tlist=tlist)
+    H_issuper = H_evo.issuper
+    H_feedback = H_evo.feedback
+    if not c_ops and isket(rho0) and not H_issuper and not H_feedback:
         warn("mesolve will no longer return ket for closed systems from v5")
-        sesolve(H, rho0, tlist, e_ops, args, 
-                options, progress_bar, _safe_mode)
+        return sesolve(H, rho0, tlist, e_ops, args,
+                       options, progress_bar, _safe_mode)
     if options is not None and options.rhs_reuse:
         warn("'rhs_reuse' of Options will be deprecated. "
              "Use the object interface of instead: 'SeSolver'")

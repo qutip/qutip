@@ -57,8 +57,9 @@ from qutip.solverode import OdeScipyZvode, OdeScipyDop853, OdeScipyIVP
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
-                                cy_ode_psi_func_td_with_state, normalize_inplace,
-                                normalize_op_inplace, normalize_mixed)
+                                 cy_ode_psi_func_td_with_state,
+                                 normalize_inplace, normalize_op_inplace,
+                                 normalize_mixed)
 
 
 class SeSolver(Solver):

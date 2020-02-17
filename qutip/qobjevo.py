@@ -48,7 +48,7 @@ from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi,
                                  spmv, cy_spmm_tr)
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
-                                 CQobjEvoTdMatched, CQobjEvoTdDense)
+                               CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
                                       InterpolateCoeff, StrCoeff,
                                       StepCoeffCte, StepCoeffT)
@@ -615,6 +615,7 @@ class QobjEvo:
                 if dargs[1] == "expect" and isinstance(dargs[2], int):
                     self.dynamics_args[i] = (dargs[0], "expect",
                                              QobjEvo(e_ops[dargs[2]]))
+
         if state is not None:
             self._dynamics_args_update(0., state)
 
@@ -781,11 +782,12 @@ class QobjEvo:
     def arguments(self, new_args, state=None, e_ops=[]):
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
-        # remove dynamics_args that are to be refreshed
-        self.dynamics_args = [dargs for dargs in self.dynamics_args
-                              if dargs[0] not in new_args]
         self.args.update(new_args)
-        self._args_checks(state=state, e_ops=e_ops)
+        for key in new_args:
+            if isinstance(self.args[key], StateArgs):
+                self.dynamics_args = [dargs for dargs in self.dynamics_args
+                                      if dargs[0] != key]
+                self.dynamics_args += [(key, *self.args[key]())]
         if self.compiled and self.compiled.split()[2] is not "cte":
             if isinstance(self.coeff_get, StrCoeff):
                 self.coeff_get.set_args(self.args)
@@ -808,6 +810,18 @@ class QobjEvo:
     @property
     def shape(self):
         return self.cte.shape
+
+    @property
+    def issuper(self):
+        return self.cte.issuper
+
+    @property
+    def isoper(self):
+        return self.cte.isoper
+
+    @property
+    def feedback(self):
+        return bool(self.dynamics_args)
 
     # Math function
     def __add__(self, other):
@@ -835,7 +849,9 @@ class QobjEvo:
                                            new_coeff, op.type))
                 l += 1
             self.args.update(**other.args)
-            self.dynamics_args += other.dynamics_args
+            dyn_key = [dop[0] for dop in self.dynamics_args]
+            self.dynamics_args += [dop for dop in other.dynamics_args
+                                   if dop[0] not in dyn_key]
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
             if self.type != other.type:
@@ -932,7 +948,9 @@ class QobjEvo:
                                                         op_right))
                 self.ops = new_terms
                 self.args.update(other.args)
-                self.dynamics_args += other.dynamics_args
+                dyn_key = [dop[0] for dop in self.dynamics_args]
+                self.dynamics_args += [dop for dop in other.dynamics_args
+                                       if dop[0] not in dyn_key]
                 self.dummy_cte = self.dummy_cte and other.dummy_cte
                 self.num_obj = (len(self.ops) if
                               self.dummy_cte else len(self.ops) + 1)
