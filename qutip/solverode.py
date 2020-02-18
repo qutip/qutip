@@ -132,7 +132,7 @@ class OdeSolver:
             print("normalize_prop")
             self.normalize_func = normalize_op_inplace
         elif opt.normalize_output:
-            print("normalize_mixed")
+            print("normalize_mixed", size, self.LH.shape)
             self.normalize_func = normalize_mixed(state0.shape)
 
 

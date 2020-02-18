@@ -105,93 +105,90 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
     """
     kw = _default_kwargs()
-    if 'num_cpus' in kwargs:
-        num_cpus = kwargs['num_cpus']
-    else:
-        num_cpus = kw['num_cpus']
+    num_cpus = kwargs['num_cpus'] if 'num_cpus' in kwargs else kw['num_cpus']
 
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
         progress_bar = TextProgressBar()
 
-    if options is None:
-        options = Options()
-        options.rhs_reuse = True
-        rhs_clear()
+    #if options is None:
+    #    options = Options()
+    #    options.rhs_reuse = True
+    #    rhs_clear()
 
     if isinstance(t, (int, float, np.integer, np.floating)):
         tlist = [0, t]
+        t = [t]
     else:
         tlist = t
 
-    if _safe_mode:
-        _solver_safety_check(H, None, c_ops=c_op_list, e_ops=[], args=args)
+    #if _safe_mode:
+    #    _solver_safety_check(H, None, c_ops=c_op_list, e_ops=[], args=args)
+    # td_type = _td_format_check(H, c_op_list, solver='me')
 
-    td_type = _td_format_check(H, c_op_list, solver='me')
-
-    if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
-                      functools.partial)):
-        H0 = H(0.0, args)
-        if unitary_mode =='batch':
-            # batch don't work with function Hamiltonian
-            unitary_mode = 'single'
-    elif isinstance(H, list):
+    """
+    if isinstance(H, list):
         H0 = H[0][0] if isinstance(H[0], list) else H[0]
-    else:
+    elif isinstance(H, Qobj):
         H0 = H
+    elif isinstance(H, QobjEvo):
+        H0 = H(0)
+    elif callable(H):
+        H0 = H(0, args)
+    """
+        #if unitary_mode == 'batch':
+            # batch don't work with function Hamiltonian
+        #    unitary_mode = 'single'
+    H_td = qobjevo_maker(H, args, tlist=tlist)
 
-    if len(c_op_list) == 0 and H0.isoper:
+    if len(c_op_list) == 0 and not H_td.issuper:
         # calculate propagator for the wave function
-
-        N = H0.shape[0]
-        dims = H0.dims
-
+        N = H_td.shape[0]
+        dims = H_td.dims
         if parallel:
-            unitary_mode = 'single'
-            u = np.zeros([N, N, len(tlist)], dtype=complex)
+            unitary_mode = 'parallel'
+            system = SeSolver(H_td, args, tlist=tlist, options=options)
             output = parallel_map(_parallel_sesolve, range(N),
-                                  task_args=(N, H, tlist, args, options),
+                                  task_args=(N, system, tlist),
                                   progress_bar=progress_bar, num_cpus=num_cpus)
+
+            u = np.zeros([N, N, len(tlist)], dtype=complex)
             for n in range(N):
                 for k, t in enumerate(tlist):
-                    u[:, n, k] = output[n].states[k].full().T
-        else:
-            if unitary_mode == 'single':
-                output = sesolve(H, qeye(dims[0]), tlist, [], args, options,
-                                 _safe_mode=False)
-                if len(tlist) == 2:
-                    return output.states[-1]
-                else:
-                    return output.states
+                    u[:, n, k] = output[n].states[k]
 
-            elif unitary_mode =='batch':
-                u = np.zeros(len(tlist), dtype=object)
-                _rows = np.array([(N+1)*m for m in range(N)])
-                _cols = np.zeros_like(_rows)
-                _data = np.ones_like(_rows, dtype=complex)
-                psi0 = Qobj(sp.coo_matrix((_data, (_rows, _cols))).tocsr())
-                if td_type[1] > 0 or td_type[2] > 0:
-                    H2 = []
-                    for k in range(len(H)):
-                        if isinstance(H[k], list):
-                            H2.append([tensor(qeye(N), H[k][0]), H[k][1]])
-                        else:
-                            H2.append(tensor(qeye(N), H[k]))
-                else:
-                    H2 = tensor(qeye(N), H)
-                options.normalize_output = False
-                output = sesolve(H2, psi0, tlist, [],
-                                 args=args, options=options,
-                                 _safe_mode=False)
-                for k, t in enumerate(tlist):
-                    u[k] = sp_reshape(output.states[k].data, (N, N))
-                    unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
-                    u[k] = u[k].T.tocsr()
+        elif unitary_mode in ['single', 'batch']:
+            output = sesolve(H_td, qeye(dims[0]), tlist, [], args, options,
+                             _safe_mode=False).states
+            return output if len(t) > 1 else output[-1]
 
+        """elif unitary_mode =='batch':
+            u = np.zeros(len(tlist), dtype=object)
+            _rows = np.array([(N+1)*m for m in range(N)])
+            _cols = np.zeros_like(_rows)
+            _data = np.ones_like(_rows, dtype=complex)
+            psi0 = Qobj(sp.coo_matrix((_data, (_rows, _cols))).tocsr())
+            if td_type[1] > 0 or td_type[2] > 0:
+                H2 = []
+                for k in range(len(H)):
+                    if isinstance(H[k], list):
+                        H2.append([tensor(qeye(N), H[k][0]), H[k][1]])
+                    else:
+                        H2.append(tensor(qeye(N), H[k]))
             else:
-                raise Exception('Invalid unitary mode.')
+                H2 = tensor(qeye(N), H)
+            options.normalize_output = False
+            output = sesolve(H2, psi0, tlist, [],
+                             args=args, options=options,
+                             _safe_mode=False)
+            for k, t in enumerate(tlist):
+                u[k] = sp_reshape(output.states[k].data, (N, N))
+                unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
+                u[k] = u[k].T.tocsr()"""
 
+        else:
+            raise Exception('Invalid unitary mode.')
 
     elif len(c_op_list) == 0 and H0.issuper:
         # calculate the propagator for the vector representation of the
@@ -306,15 +303,14 @@ def propagator_steadystate(U):
     return rho
 
 
-def _parallel_sesolve(n, N, H, tlist, args, options):
+def _parallel_sesolve(n, N, system, tlist):
     psi0 = basis(N, n)
-    output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
-    return output
+    return system.run(tlist, psi0, outtype="dense")
 
-def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+def _parallel_mesolve(n, N, system, tlist):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
                               shape=(N,N), dtype=complex))
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                     _safe_mode=False)
-    return output
+    # output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
+    #                  _safe_mode=False)
+    return system.run(tlist, rho0, outtype="dense")

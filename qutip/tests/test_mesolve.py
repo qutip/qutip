@@ -853,8 +853,8 @@ class TestMESolveStepFuncCoeff:
             return np.sqrt(args["state_vec"][3])
 
         H = [qeye(2), [destroy(2)+create(2), f]]
-        res = mesolve(H, basis(2,1), tlist=np.linspace(0,10,11),
-                      c_ops=[qeye(2)],
+        res = mesolve(H, basis(2,1)*basis(2,1).dag(),
+                      tlist=np.linspace(0,10,11), c_ops=[qeye(2)],
                       e_ops=[num(2)], args={"state_vec":basis(2,1)})
         assert_(max(abs(res.expect[0][5:])) < tol,
             msg="evolution with feedback not proceding as expected")

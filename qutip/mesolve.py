@@ -70,7 +70,8 @@ class MeSolver(Solver):
         self.args = args
         self.progress_bar = progress_bar
         self.options = options
-        if options is None: self.options.normalize_output = False
+        #if options is None:
+        self.options.normalize_output = False
         check_use_openmp(self.options)
 
         self.H = qobjevo_maker(H, self.args, tlist=tlist,
@@ -311,6 +312,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         return sesolve(H, rho0, tlist, e_ops, args,
                        options, progress_bar, _safe_mode)
     if options is not None and options.rhs_reuse:
+        raise DeprecationWarning
         warn("'rhs_reuse' of Options will be deprecated. "
              "Use the object interface of instead: 'SeSolver'")
         if "mesolve" in solver_safe:

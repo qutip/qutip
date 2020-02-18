@@ -230,6 +230,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
 
     """
     if options is not None and options.rhs_reuse:
+        raise DeprecationWarning
         warn("'rhs_reuse' of Options will be deprecated. "
              "Use the object interface of instead: 'SeSolver'")
         if "sesolve" in solver_safe:

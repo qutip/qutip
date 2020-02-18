@@ -443,13 +443,13 @@ class QobjEvoFunc(QobjEvo):
     def spre(self):
         res = self.copy()
         res.operation_stack.append(_Block_pre())
-        self._reset_type()
+        res._reset_type()
         return res
 
     def spost(self):
         res = self.copy()
         res.operation_stack.append(_Block_post())
-        self._reset_type()
+        res._reset_type()
         return res
 
     def liouvillian(self, c_ops=[], chi=None):
@@ -457,7 +457,7 @@ class QobjEvoFunc(QobjEvo):
         if res.cte.issuper: return res
         c_ops = [qobjevo_maker(c_op) for c_op in c_ops]
         res.operation_stack.append(_Block_liouvillian(c_ops, chi))
-        self._reset_type()
+        res._reset_type()
         return res
 
     def lindblad_dissipator(self, chi=0):
@@ -466,7 +466,7 @@ class QobjEvoFunc(QobjEvo):
         if res.cte.issuper:
             return res * np.exp(1j * chi) if chi else res
         res.operation_stack.append(_Block_lindblad_dissipator(chi))
-        self._reset_type()
+        res._reset_type()
         return res
 
     def _cdc(self):
@@ -479,6 +479,7 @@ class QobjEvoFunc(QobjEvo):
         """return spre(a) * spost(a.dag()) """
         res = self.copy()
         res.operation_stack.append(_Block_prespostdag())
+        res._reset_type()
         return res
 
     def _liouvillian_h(self):
@@ -486,6 +487,7 @@ class QobjEvoFunc(QobjEvo):
         res = self.copy()
         if res.cte.issuper: return res
         res.operation_stack.append(_Block_liouvillian_H())
+        res._reset_type()
         return res
 
     def _shift(self):
