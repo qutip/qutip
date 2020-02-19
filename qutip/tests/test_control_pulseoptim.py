@@ -341,13 +341,14 @@ class TestFileIO:
         target = _optimize_pulse(system._replace(kwargs=kwargs))
         assert np.allclose(result.final_amps, target.final_amps, atol=1e-5)
 
-    def test_dumping_to_files(self, tmpdir):
+    @pytest.mark.usefixtures("in_temporary_directory")
+    def test_dumping_to_files(self):
         N_OPTIMDUMP_FILES = 10
         N_DYNDUMP_FILES = 49
         dumping = {'dumping': 'FULL', 'dump_to_file': True}
         kwargs = {'num_tslots': 1_000, 'evo_time': 4, 'fid_err_targ': 1e-9,
-                  'optim_params': {'dump_dir': str(tmpdir/'optim'), **dumping},
-                  'dyn_params': {'dump_dir': str(tmpdir / 'dyn'), **dumping}}
+                  'optim_params': {'dump_dir': 'optim', **dumping},
+                  'dyn_params': {'dump_dir': 'dyn', **dumping}}
         system = _merge_kwargs(hadamard, kwargs)
         result = _optimize_pulse(system)
 

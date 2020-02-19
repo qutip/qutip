@@ -36,6 +36,8 @@ import functools
 import numpy as np
 import qutip
 
+pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
+
 _equivalence_dimension = 20
 _equivalence_fock = qutip.fock(_equivalence_dimension, 1)
 _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
