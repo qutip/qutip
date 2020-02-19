@@ -37,6 +37,7 @@ import random
 import numpy as np
 import qutip
 
+
 def _n_enr_states(dimensions, n_excitations):
     """
     Calculate the total number of distinct ENR states for a given set of

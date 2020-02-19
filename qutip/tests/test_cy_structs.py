@@ -83,7 +83,7 @@ def test_coo2csr_inplace_nosort():
 @pytest.mark.repeat(20)
 def test_coo2csr_inplace_sort():
     "Cython structs : COO to CSR inplace (sorted)"
-    A = qutip.rand_dm(5,0.5).data
+    A = qutip.rand_dm(5, 0.5).data
     B = _test_coo2csr_inplace_struct(A.tocoo(), sorted=1)
     assert sparse_arrays_equal(A, B)
 
