@@ -34,18 +34,10 @@ import pytest
 import numpy as np
 import qutip
 
-try:
-    import Cython
-except ImportError:
-    Cython_OK = False
-else:
-    cython_version = qutip._version2int(Cython.__version__)
-    Cython_OK = cython_version >= qutip._version2int('0.14')
-
-pytestmark = [pytest.mark.skipif(not Cython_OK,
-                                 reason="Cython not found or version too low.",
-                                 allow_module_level=True),
-              pytest.mark.usefixtures("in_temporary_directory")]
+pytestmark = [
+    pytest.mark.requires_cython,
+    pytest.mark.usefixtures("in_temporary_directory"),
+]
 
 
 def pauli_spin_operators():
