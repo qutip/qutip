@@ -32,6 +32,8 @@
 ###############################################################################
 
 import pytest
+import os
+import tempfile
 
 
 def _add_repeats_if_marked(metafunc):
@@ -51,3 +53,28 @@ def _add_repeats_if_marked(metafunc):
 @pytest.hookimpl(trylast=True)
 def pytest_generate_tests(metafunc):
     _add_repeats_if_marked(metafunc)
+
+
+@pytest.fixture
+def in_temporary_directory():
+    """
+    Creates a temporary directory for the lifetime of the fixture and changes
+    into it.  All relative paths used will be in the temporary directory, and
+    everything will automatically be cleaned up at the end of the fixture's
+    life.
+    """
+    previous_dir = os.getcwd()
+    with tempfile.TemporaryDirectory() as temporary_dir:
+        os.chdir(temporary_dir)
+        yield
+        # pytest should catch exceptions occuring in functions using the
+        # fixture, so this should always be called.  We want it here rather
+        # than outside to prevent the case of the directory failing to be
+        # removed because it is 'busy'.
+        os.chdir(previous_dir)
+
+
+@pytest.fixture
+def tmpfile():
+    with tempfile.NamedTemporaryFile() as file:
+        yield file
