@@ -290,7 +290,7 @@ class QobjEvoFunc(QobjEvo):
         else:
             now_args = self.args
         if self.shifted:
-            t += args["_t0"]
+            t += now_args["_t0"]
         qobj = self.func(t, now_args)
         for transform in self.operation_stack:
             qobj = transform(qobj, t, now_args)
@@ -492,10 +492,9 @@ class QobjEvoFunc(QobjEvo):
 
     def _shift(self):
         """shift t by args("_t0") """
-        res = self.copy()
-        res.shifted = True
-        res.args["_t0"] = 0
-        return res
+        self.shifted = True
+        self.args["_t0"] = 0
+        return self
 
     # Unitary function of Qobj
     def tidyup(self, atol=1e-12):

@@ -47,7 +47,7 @@ import scipy.fftpack
 from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
 from qutip.expect import expect
-from qutip.mesolve import mesolve
+from qutip.mesolve import mesolve, MeSolver
 from qutip.mcsolve import mcsolve
 from qutip.operators import qeye
 from qutip.qobj import Qobj, isket, issuper
@@ -60,6 +60,8 @@ from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.superoperator import liouvillian, spre, mat2vec
 from qutip.tensor import tensor
+from qutip.qobjevo_maker import qobjevo_maker
+
 
 if debug:
     import inspect
@@ -1053,10 +1055,10 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
 
-    if config.tdname:
-        _cython_build_cleanup(config.tdname)
-    rhs_clear()
-    H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
+    #if config.tdname:
+    #    _cython_build_cleanup(config.tdname)
+    #rhs_clear()
+    #H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
     if solver == "me":
         return _correlation_me_2t(H, state0, tlist, taulist,
@@ -1095,28 +1097,31 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     else:
         rho0 = state0
 
-    if debug:
-        print(inspect.stack()[0][3])
+    #if debug:
+    #    print(inspect.stack()[0][3])
 
+    H = qobjevo_maker(H, args, tlist)
     rho_t = mesolve(H, rho0, tlist, c_ops, [],
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
-    if config.tdname:
-        _cython_build_cleanup(config.tdname)
-    rhs_clear()
+    #if config.tdname:
+    #    _cython_build_cleanup(config.tdname)
+    #rhs_clear()
 
+    system = MeSolver(H_shifted, c_ops_shifted, _args,
+                      e_ops=[b_op], tlist=tlist, options=options)
     for t_idx, rho in enumerate(rho_t):
-        if not isinstance(H, Qobj):
-            _args["_t0"] = tlist[t_idx]
+        _args["_t0"] = tlist[t_idx]
+        corr_mat[t_idx, :] = system.run(taulist, c_op * rho * a_op,
+                                        args=_args).expect[0]
+        #corr_mat[t_idx, :] = mesolve(
+        #    H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
+        #    [b_op], args=_args, options=options
+        #).expect[0]
 
-        corr_mat[t_idx, :] = mesolve(
-            H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
-            [b_op], args=_args, options=options
-        ).expect[0]
-
-        if t_idx == 1:
-            options.rhs_reuse = True
+        #if t_idx == 1:
+        #    options.rhs_reuse = True
 
     if config.tdname:
         _cython_build_cleanup(config.tdname)

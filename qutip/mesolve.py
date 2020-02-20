@@ -123,7 +123,8 @@ class MeSolver(Solver):
             raise ValueError("The dimension of rho0 does not "
                              "fit the Hamiltonian")
 
-    def run(self, tlist, rho0=None, args=None, outtype=Qobj, _safe_mode=False):
+    def run(self, tlist, rho0=None, args=None, e_ops=None,
+            outtype=Qobj, _safe_mode=False):
         if args is not None:
             self.args = args
             self.H.arguments(args)
@@ -132,15 +133,16 @@ class MeSolver(Solver):
         if _safe_mode:
             self._check(self.rho0)
         old_ss = opt.store_states
-        if not self.e_ops:
+        e_ops = ExpectOps(e_ops) if e_ops is not None else self.e_ops
+        if not e_ops:
             opt.store_states = True
 
         output = Result()
         output.solver = "mesolve"
         output.times = tlist
-        states, expect = self.solver.run(self.rho0, tlist, {}, self.e_ops)
+        states, expect = self.solver.run(self.rho0, tlist, {}, e_ops)
         output.expect = expect
-        output.num_expect = len(self.e_ops)
+        output.num_expect = len(e_ops)
         if opt.store_final_state:
             output.final_state = self.transform(states[-1],
                                                 self.solver.statetype,

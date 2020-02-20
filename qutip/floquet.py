@@ -48,11 +48,10 @@ from types import FunctionType
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
 #from qutip.mesolve import mesolve
-from qutip.sesolve import sesolve
+from qutip.sesolve import sesolve, SeSolver
 from qutip.rhs_generate import rhs_clear
 from qutip.steadystate import steadystate
-from qutip.states import ket2dm
-from qutip.states import projection
+from qutip.states import ket2dm, projection
 from qutip.solver import Options
 from qutip.propagator import propagator
 from qutip.solver import Result, _solver_safety_check
@@ -216,12 +215,9 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
 
     f_modes_table_t = [[] for t in tlist_period]
 
-    opt = Options()
-    opt.rhs_reuse = True
-    rhs_clear()
-
+    system = SeSolver(H, args, tlist=tlist_period)
     for n, f_mode in enumerate(f_modes_0):
-        output = sesolve(H, f_mode, tlist_period, [], args, opt)
+        output = system.run(tlist_period, f_mode)
         for t_idx, f_state_t in enumerate(output.states):
             f_modes_table_t[t_idx].append(
                 f_state_t * exp(1j * f_energies[n] * tlist_period[t_idx]))

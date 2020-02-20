@@ -108,8 +108,7 @@ class Evolver:
         t1, t2 = self.tlist[left], self.tlist[right]
         if self.propagators[t2][t1] is None:
             self.propagators[t2][t1] = propagator(self.H, [t1, t2],
-                                                  options=self.options,
-                                                  unitary_mode='single')
+                                                  options=self.options)[1]
             # Something is still broken about batch unitary mode (see #807)
         return self.propagators[t2][t1]
 
