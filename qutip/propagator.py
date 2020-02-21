@@ -132,7 +132,7 @@ def propagator(H, tlist, c_ops=[], args={}, options=None,
 
         else:
             Us = sesolve(H_td, qeye(dims[0]), tlist, [], args, options,
-                         _safe_mode=False).states
+                         progress_bar=progress_bar, _safe_mode=False).states
 
     elif len(c_ops) or H_td.issuper:
         # calculate the propagator for the vector representation of the
@@ -159,8 +159,8 @@ def propagator(H, tlist, c_ops=[], args={}, options=None,
         else:
             rho0 = qeye(N)
             rho0.dims = dims
-            Us = mesolve(H_td, rho0, tlist, c_ops,
-                         [], args, options).states
+            Us = mesolve(H_td, rho0, tlist, c_ops, [], args,
+                         options, progress_bar=progress_bar).states
 
 
     return Us if not one_time else Us[-1]
