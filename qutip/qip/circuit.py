@@ -1147,35 +1147,38 @@ class QubitCircuit(object):
             code += "\n"
 
         return code
-        
+
     @classmethod
     def read_qasm(cls, file_path):
         """
         Import a QSAM 1.0 file and return an equivalent QuTiP quantum
-        circuit.
+        circuit object of the class QubitCircuit.
 
         Parameters
         ----------
         file_path : string
             Path to the file.
-        """
 
+        Returns
+        -------
+        qc : QubitCircuit
+            Return equivalent qubit circuit object.
+        """
         # Defining the gates
-        version = ["version"]
         qubit_registary = ["qubits"]
-        static_gate = {'h':'SNOT', 'x':rx(np.pi), 'y':ry(np.pi), 'z':rz(np.pi),
-                       'x90':rx(np.pi/2), 'y90':ry(np.pi/2), 'z90':rz(np.pi/2),
-                                         'mx90':rx(-np.pi/2), 'my90':ry(-np.pi/2), 
-                                         'mz90':rz(-np.pi/2),'s':phasegate(np.pi/2),
-                                         'sdag':phasegate(-np.pi/2), 't':phasegate(np.pi/4),
-                                         'tdag':phasegate(-np.pi/4)}
-        param_gate = {'rx':'RX', 'ry':'RY', 'rz':'RZ'}
-        c_gate = {'cnot':'CNOT', 'cz':'CSIGN'}
-        crk = {'crk':'CPHASE'}
-        cr= {'cr':'CPHASE'}
-        toffoli_gate = {'toffoli':'TOFFOLI'}
+        static_gate = {'h': 'SNOT', 'x': rx(np.pi), 'y': ry(np.pi),
+                       'z': rz(np.pi), 'x90': rx(np.pi/2), 'y90': ry(np.pi/2),
+                       'z90': rz(np.pi/2), 'mx90': rx(-np.pi/2),
+                       'my90': ry(-np.pi/2), 'mz90': rz(-np.pi/2),
+                       's': phasegate(np.pi/2), 'sdag': phasegate(-np.pi/2),
+                       't': phasegate(np.pi/4), 'tdag': phasegate(-np.pi/4)}
+        param_gate = {'rx': 'RX', 'ry': 'RY', 'rz': 'RZ'}
+        c_gate = {'cnot': 'CNOT', 'cz': 'CSIGN'}
+        crk = {'crk': 'CPHASE'}
+        cr = {'cr': 'CPHASE'}
+        toffoli_gate = {'toffoli': 'TOFFOLI'}
         swap_gate = {'swap': 'SWAP'}
-        
+
         gates_keys = []
         gates_keys.extend(static_gate.keys())
         gates_keys.extend(param_gate.keys())
@@ -1196,7 +1199,7 @@ class QubitCircuit(object):
             line = line.replace('{', '').replace('}', '')
             line = [x.replace(']', ' ') for x in line.split("|")]
             line = [x.split() for x in line]
-            
+
             for command in line:
                 if command:
                     command = [x.split('[')[-1] for x in command]
@@ -1205,7 +1208,7 @@ class QubitCircuit(object):
                     command = [x for x in command if x]
 
                     lines.append(command)
-                    
+
                     # Checking for the size of the qubit register.
                     if command[0][0] in qubit_registary:
                         N = int(command[1][0])
@@ -1213,108 +1216,112 @@ class QubitCircuit(object):
                         loop_time = 1
                         qc_loop = QubitCircuit(N)
 
-                    # Checking for if the line is a function defination.
+                    # Checking for if the line is a function definition.
                     if command[0][0][0] == '.':
                         # Previous sub-circuit present in previous loop
-                        #  is added into the qc circuit.
-                        for i in range(loop_time):
+                        # is added into the qc circuit.
+                        for _ in range(loop_time):
                             qc.add_circuit(qc_loop)
-                            
+
                         qc_loop = QubitCircuit(N)
-                        
+
                         function_syntax = command[0][0][1:].split('(')
-                        function_name = function_syntax[0]
                         loop_time = function_syntax[-1].split(')')[0]
-                        
+
                         if loop_time.isdigit():
                             loop_time = int(loop_time)
                         else:
                             loop_time = 1
 
-                    #Parsing the Gates
+                    # Parsing the Gates
                     elif command[0][0].lower() in gates_keys:
                         gate_name = command[0][0].lower()
                         bits = command[1:]
-                        
+
                         bit_list = []
                         for bit in bits:
                             targets = np.array([], dtype=int)
                             for indices in bit:
                                 indices = indices.split(':')
-                                targets = np.append(targets, 
-                                                    np.arange(float(indices[0]),
-                                                              float(indices[-1]) +1,
-                                                              1))
+                                indices_range = np.arange(float(indices[0]),
+                                                          float(indices[-1])+1,
+                                                          1)
+
+                                targets = np.append(targets, indices_range)
+
                             bit_list.append(targets)
-                        
-                        #Adding the gates into the circuit.
+
+                        # Adding the gates into the circuit.
                         if gate_name in static_gate.keys():
                             for target_bits in bit_list:
                                 for target_bit in target_bits:
-                                    qc_loop.add_gate(static_gate[gate_name], 
-                                    targets=int(target_bit))
-                        
+                                    qc_loop.add_gate(static_gate[gate_name],
+                                                     targets=int(target_bit))
+
                         elif gate_name in param_gate.keys():
                             for target_bits in bit_list[:-1]:
                                 for target_bit in target_bits:
-                                    qc_loop.add_gate(param_gate[gate_name], 
-                                                     targets=int(target_bit), 
+                                    qc_loop.add_gate(param_gate[gate_name],
+                                                     targets=int(target_bit),
                                                      arg_value=bit_list[-1][0])
-                                    
+
                         elif gate_name in c_gate.keys():
                             targets = bit_list[-1]
                             controls = np.array([])
                             for contol_gate in bit_list[:-1]:
                                 controls = np.append(controls, contol_gate)
-                                
-                            for j in range(targets.size):
-                                qc_loop.add_gate(c_gate[gate_name], 
-                                                 targets=int(targets), 
+
+                            for _ in range(targets.size):
+                                qc_loop.add_gate(c_gate[gate_name],
+                                                 targets=int(targets),
                                                  controls=int(controls))
-                                
+
                         elif gate_name in crk.keys():
                             targets = bit_list[-2]
                             controls = np.array([])
                             for contol_gate in bit_list[:-2]:
                                 controls = np.append(controls, contol_gate)
-                                
-                            for j in range(targets.size):
-                                qc_loop.add_gate(crk[gate_name], 
-                                                 targets=int(targets), 
-                                                 controls=int(controls), 
-                                                 arg_value=np.pi/(np.power(2, 
-                                                 float(bit_list[-1][0]))))
-                                
+
+                            for _ in range(targets.size):
+                                power_value = float(bit_list[-1][0])
+                                arg_value = np.pi/np.power(2, power_value)
+                                qc_loop.add_gate(crk[gate_name],
+                                                 targets=int(targets),
+                                                 controls=int(controls),
+                                                 arg_value=arg_value)
+
                         elif gate_name in cr.keys():
                             targets = bit_list[-2]
                             controls = np.array([])
                             for contol_gate in bit_list[:-2]:
                                 controls = np.append(controls, contol_gate)
-                                
-                            for j in range(targets.size):
-                                qc_loop.add_gate(cr[gate_name], 
-                                                 targets=int(targets), 
-                                                 controls=int(controls), 
-                                                 arg_value=float(bit_list[-1][0]))
-                                
+
+                            for _ in range(targets.size):
+                                arg_value = float(bit_list[-1][0])
+                                qc_loop.add_gate(cr[gate_name],
+                                                 targets=int(targets),
+                                                 controls=int(controls),
+                                                 arg_value=arg_value)
+
                         elif gate_name in toffoli_gate.keys():
                             targets = int(bit_list[2])
-                            controls = [int(bit_list[0][0]), 
+                            controls = [int(bit_list[0][0]),
                                         int(bit_list[1][0])]
-                            
-                            qc_loop.add_gate(toffoli_gate[gate_name], 
-                                             targets=targets, 
+
+                            qc_loop.add_gate(toffoli_gate[gate_name],
+                                             targets=targets,
                                              controls=controls)
-                    
+
                         elif gate_name in swap_gate.keys():
-                            targets = [int(bit_list[0][0]), 
+                            targets = [int(bit_list[0][0]),
                                        int(bit_list[1][0])]
-                            
-                            qc_loop.add_gate(swap_gate[gate_name], 
+
+                            qc_loop.add_gate(swap_gate[gate_name],
                                              controls=targets)
-        
+
         # Adding the gate in the last function into the circuit.
-        for i in range(loop_time):
+        for _ in range(loop_time):
             qc.add_circuit(qc_loop)
-        
+
         return qc
+
