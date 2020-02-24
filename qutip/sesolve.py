@@ -137,12 +137,9 @@ class SeSolver(Solver):
         output.expect = expect
         output.num_expect = len(self.e_ops)
         if opt.store_final_state:
-            output.final_state = self.transform(states[-1],
-                                                self.solver.statetype,
-                                                outtype)
+            output.final_state = self.transform(states[-1], outtype)
         if opt.store_states:
-            output.states = [self.transform(psi,
-                                            self.solver.statetype, outtype)
+            output.states = [self.transform(psi, outtype)
                              for psi in states]
         opt.store_states = old_ss
         return output
@@ -158,8 +155,7 @@ class SeSolver(Solver):
         self.psi = state
         if e_ops:
             return [expect(op, state) for op in e_ops]
-        return self.transform(states,
-                              self.solver.statetype, outtype)
+        return self.transform(states, outtype)
 
     def set(self, psi0=None, t0=0):
         self.t = t0

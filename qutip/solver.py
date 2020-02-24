@@ -120,19 +120,22 @@ class Solver:
         else:
             raise TypeError
 
-    def transform(self, state, intype, outtype):
+    def transform(self, state, outtype, dims=False, shape=False):
+        dims = dims if dims else self.state_dims
+        shape = shape if shape else self.state_shape
+        intype = self.solver.statetype
         if intype == "dense":
-            _1D = (self.state_shape[0] == len(state))
+            _1D = (shape[0] == len(state))
             if _1D and outtype == "dense":
                 return state
             elif _1D and outtype in ["Qobj", Qobj]:
                 return Qobj(dense1D_to_fastcsr_ket(state),
-                            dims=self.state_dims, fast='mc')
-            state = state.reshape(self.state_shape).T
+                            dims=dims, fast='mc')
+            state = state.reshape(shape).T
             if outtype == "dense":
                 return state
             if outtype in ["Qobj", Qobj]:
-                return Qobj(state, dims=self.state_dims)
+                return Qobj(state, dims=dims)
             if outtype == "sparse":
                 return csr_matrix(state)
             if isinstance(outtype, spmatrix):
@@ -140,7 +143,7 @@ class Solver:
 
         if intype == "sparse":
             if outtype in ["Qobj", Qobj]:
-                return Qobj(state, dims=self.state_dims)
+                return Qobj(state, dims=dims)
             if outtype == "dense":
                 return state.todense()
             if outtype == "sparse":

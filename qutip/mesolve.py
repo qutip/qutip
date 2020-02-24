@@ -142,12 +142,9 @@ class MeSolver(Solver):
         output.expect = expect
         output.num_expect = len(e_ops)
         if opt.store_final_state:
-            output.final_state = self.transform(states[-1],
-                                                self.solver.statetype,
-                                                outtype)
+            output.final_state = self.transform(states[-1], outtype)
         if opt.store_states:
-            output.states = [self.transform(rho, self.solver.statetype,
-                                            outtype)
+            output.states = [self.transform(rho,  outtype)
                              for rho in states]
         opt.store_states = old_ss
         return output
@@ -163,8 +160,7 @@ class MeSolver(Solver):
         self.rho = state
         if e_ops:
             return [expect(op, state) for op in e_ops]
-        return self.transform(states,
-                              self.solver.statetype, outtype)
+        return self.transform(states, outtype)
 
     def set(self, rho0=None, t0=0):
         self.t = t0

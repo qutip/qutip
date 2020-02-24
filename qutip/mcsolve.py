@@ -231,6 +231,279 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     return mc.get_result(ntraj)
 
 
+
+class McSolver(Solver):
+    def __init__(self, H, c_ops, args=None,
+                 psi0=None, tlist=[], e_ops=None,
+                 options=None, progress_bar=None):
+        self.e_ops = e_ops
+        self.args = args
+        self.progress_bar = progress_bar
+        self.options = options
+        #if options is None:
+        self.options.normalize_output = False
+        check_use_openmp(self.options)
+
+        self.H = qobjevo_maker(H, self.args, tlist=tlist,
+                               e_ops=e_ops, state=psi0)
+        self.c_ops = [qobjevo_maker(op, self.args, tlist=tlist,
+                                    e_ops=e_ops, state=psi0) for op in c_ops]
+
+        self.with_state = bool(self.H.dynamics_args)
+        self.cte = self.H.const
+        self.shape = self.H.cte.shape
+        self.dims = self.H.cte.dims
+        self.psi0 = None
+        self.psi = None
+        self.solver = None
+        self._psi_out = []
+        self._expect_out = []
+        self._collapse = []
+        self._ss_out = []
+
+        if psi0 is not None:
+            self._set_psi(psi0)
+
+    def seed(self, ntraj, seeds=None):
+        # setup seeds array
+        if seeds is None:
+            np.random.seed()
+            seeds = []
+        elif isinstance(seeds, int):
+            np.random.seed(seed)
+            seeds = []
+        if len(seeds) < ntraj:
+            self.seeds = seeds + list(randint(0, 2**31-1,
+                                              size=ntraj-len(seeds)))
+        else:
+            self.seeds = seeds[:ntraj]
+
+    def _get_solver(self):
+        solver = self.options.solver
+        if self.solver and self.solver.name == solver:
+            self.solver.update_args(self.args)
+            return self.solver
+        L = liouvillian(self.H, self.c_ops)
+        L.compile(omp=self.options.openmp_threads
+                  if self.options.use_openmp else 0)
+        if solver == "scipy_ivp":
+            return OdeScipyIVP(L, self.options, self.progress_bar)
+        elif solver == "scipy_zvode":
+            return OdeScipyZvode(L, self.options, self.progress_bar)
+        elif solver == "scipy_dop853":
+            return OdeScipyDop853(L, self.options, self.progress_bar)
+
+    def _set_psi(self, psi0):
+        self.psi0 = psi0
+        self.state_dims = psi0.dims
+        self.state_shape = psi0.shape
+        self.psi = psi0.full().ravel("F")
+        self.solver = self._get_solver()
+
+    def _check(self, psi0):
+        if not psi0.isket and (self.dims[1] == psi0.dims[0]):
+            raise ValueError("The dimension of psi0 does not "
+                             "fit the Hamiltonian")
+
+    def run(self, tlist, num_traj,
+            psi0=None, args=None, e_ops=None, seed=None,
+            outtype=Qobj, _safe_mode=False):
+        if args is not None:
+            self.args = args
+
+        self.set(psi0, tlist[0])
+        opt = self.options
+        if _safe_mode: self._check(self.psi0)
+        old_ss = opt.store_states
+        e_ops = ExpectOps(e_ops) if e_ops is not None else self.e_ops
+        if not e_ops:
+            opt.store_states = True
+
+        self.times = tlist
+        self.outtype = outtype
+        self.nums_traj = num_traj if isinstance(num_traj, list) else [num_traj]
+        self.num_traj = max(self.nums_traj)
+        self.seeds(self.num_traj, seed)
+        results = self.solver.run(self.psi0, tlist, {}, e_ops, self.num_traj)
+
+        for result in results:
+            state_out, ss_out, expect, collapse = result
+            self._psi_out.append(state_out)
+            self._ss_out.append(ss_out)
+            self._expect_out.append(expect)
+            self._collapse.append(collapse)
+        self._psi_out = np.stack(self._psi_out)
+        self._ss_out = np.stack(self._ss_out)
+        result = self.get_result()
+        opt.store_states = old_ss
+        return result
+
+    def step(self, t, args=None, outtype=Qobj, e_ops=[]):
+        if args is not None:
+            self.solver.update_args(args)
+            changed=True
+        else:
+            changed=False
+        state = self.solver.step(self.psi, t, changed=changed)
+        self.t = t
+        self.psi = state
+        if e_ops:
+            return [expect(op, state) for op in e_ops]
+        return self.transform(states, outtype)
+
+    def set(self, psi0=None, t0=0):
+        self.t = t0
+        psi0 = psi0 if psi0 is not None else self.psi0
+        self._set_psi(psi0)
+
+    def _state2dm(self, t_idx):
+        dims = self.state_dims[0]
+        len_ = self.state_shape[0]
+        # dm_t = np.zeros((len_, len_), dtype=complex)
+        # for i in range(self.num_traj):
+        #    vec = self._psi_out[i,t_idx,:]
+        #    dm_t += np.outer(vec, vec.conj())
+        dm_t = np.einsum("ri,rj->ij", self._psi_out[:,t_idx,:],
+                         self._psi_out[:,t_idx,:].conj())
+        dm_t = self.transform(dm_t/self.num_traj, self.outtype,
+                              dims=[dims, dims], shape=(len_, len_))
+        return dm_t
+
+    @property
+    def states(self):
+        if self._psi_out.shape[1] == 1:
+            return _state2dm(-1)
+        else:
+            return [_state2dm(j) for j in range(len(self.tlist))]
+
+    @property
+    def final_state(self):
+        return _state2dm(-1)
+
+    @property
+    def runs_final_states(self):
+        return [self.transform(self._psi_out[i, -1, :], self.outtype)
+                for i in range(self.num_traj)]
+
+    @property
+    def runs_states(self):
+        return [[self.transform(self._psi_out[i, t, :], self.outtype)
+                 for t in range(len(self.tlist))]
+                 for i in range(self.num_traj)]
+
+    @property
+    def steady_state(self):
+        if len(self._ss_out):
+            dm_t = np.mean(self._ss_out, axis=0)
+        else:
+            dm_t = np.einsum("rti,rtj->ij", self._psi_out, self._psi_out.conj())
+            dm_t /= len(self.tlist) * len(self.num_traj)
+        dims = self.state_dims[0]
+        len_ = self.state_shape[0]
+        return self.transform(dm_t, self.outtype,
+                              dims=[dims, dims], shape=(len_, len_))
+
+    @property
+    def expect(self):
+        return self.expect_traj_avg()
+
+    @property
+    def runs_expect(self):
+        return self._expect_out
+
+    def expect_traj_avg(self, ntraj=0):
+        if not ntraj:
+            ntraj = self.num_traj
+        expect = np.mean(self._expect_out[:ntraj,:,:], axis=0)
+
+        result = []
+        for ii in range(self.e_ops.e_num):
+            if self.e_ops.e_ops_isherm[ii]:
+                result.append(np.real(expect[ii, :]))
+            else:
+                result.append(expect[ii, :])
+
+        if self.e_ops.e_ops_dict:
+            result = {e: result[n]
+                      for n, e in enumerate(self.e_ops.e_ops_dict.keys())}
+        return result
+
+    @property
+    def collapse(self):
+        return self._collapse
+
+    @property
+    def collapse_times(self):
+        out = []
+        for col_ in self._collapse:
+            col = list(zip(*col_))
+            col = ([] if len(col) == 0 else col[0])
+            out.append( np.array(col) )
+        return out
+        return [np.array(list(zip(*col_))[0]) for col_ in self._collapse]
+
+    @property
+    def collapse_which(self):
+        out = []
+        for col_ in self._collapse:
+            col = list(zip(*col_))
+            col = ([] if len(col) == 0 else col[1])
+            out.append( np.array(col) )
+        return out
+        return [np.array(list(zip(*col_))[1]) for col_ in self._collapse]
+
+    @property
+    def measurement(self):
+        times_per_op = [[] for _ in range(len(self.c_ops))]
+        for collapses in self._collapse:
+            for time, op in collapses:
+                times_per_op[op].append(time)
+        return [np.histogram(times, bins=tlist) for times in times_per_op]
+
+    def result(self, ntraj=[]):
+        # Store results in the Result object
+        if not ntraj:
+            ntraj = [self.num_traj]
+        elif not isinstance(ntraj, list):
+            ntraj = [ntraj]
+
+        output = Result()
+        output.solver = 'mcsolve'
+        output.seeds = self.seeds
+
+        options = self.options
+        output.options = options
+
+        if options.steady_state_average:
+            output.states = self.steady_state
+        elif options.average_states and options.store_states:
+            output.states = self.states
+        elif options.store_states:
+            output.states = self.runs_states
+
+        if options.store_final_state:
+            if options.average_states:
+                output.final_state = self.final_state
+            else:
+                output.final_state = self.runs_final_states
+
+        if options.average_expect:
+            output.expect = [self.expect_traj_avg(n) for n in ntraj]
+            if len(output.expect) == 1:
+                output.expect = output.expect[0]
+        else:
+            output.expect = self.runs_expect
+
+        # simulation parameters
+        output.times = self.tlist
+        output.num_expect = self.e_ops.e_num
+        output.num_collapse = len(self.ss.td_c_ops)
+        output.ntraj = self.num_traj
+        output.col_times = self.collapse_times
+        output.col_which = self.collapse_which
+
+        return output
+
 # -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
