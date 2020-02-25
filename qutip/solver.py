@@ -311,6 +311,11 @@ class ExpectOps:
 
         if isinstance(e_ops, (Qobj, QobjEvo)):
             e_ops = [e_ops]
+        elif isinstance(e_ops, ExpectOps):
+            self = e_ops.copy()
+            return
+        elif e_ops is None:
+            e_ops = []
         elif isinstance(e_ops, dict):
             self.e_ops_dict = e_ops
             e_ops = [e for e in e_ops.values()]

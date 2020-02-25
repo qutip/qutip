@@ -63,6 +63,7 @@ cdef np.ndarray[complex, ndim=1] normalize(complex[::1] psi):
         out[i] = psi[i] / norm
     return out
 
+
 cdef class CyMcOde:
     cdef:
         int steady_state, store_states, col_args
@@ -76,9 +77,10 @@ cdef class CyMcOde:
         complex[:,::1] ss_out
         double[::1] n_dp
 
-    def __init__(self, ss, opt):
-        self.c_ops = ss.td_c_ops
-        self.n_ops = ss.td_n_ops
+    def __init__(self, H, td_c_ops, td_n_ops, opt):
+        self.c_ops = td_c_ops
+        self.n_ops = td_n_ops
+
         self.norm_steps = opt.norm_steps
         self.norm_t_tol = opt.norm_t_tol
         self.norm_tol = opt.norm_tol
@@ -86,18 +88,21 @@ cdef class CyMcOde:
         self.store_states = opt.store_states or opt.average_states
         self.collapses = []
         self.l_vec = self.c_ops[0].cte.shape[0]
-        self.num_ops = len(ss.td_n_ops)
+        self.num_ops = len(td_n_ops)
         self.n_dp = np.zeros(self.num_ops)
+        args = H.args
 
-        if ss.col_args:
+        if "collapse" in args:
             self.col_args = 1
-            self.collapses_args = ss.args[ss.col_args]
-            if ss.type == "QobjEvo":
-                ss.H_td.coeff_get.get_args()[ss.col_args] = self.collapses_args
-                for c in ss.td_c_ops:
-                    c.coeff_get.get_args()[ss.col_args] = self.collapses_args
-                for c in ss.td_n_ops:
-                    c.coeff_get.get_args()[ss.col_args] = self.collapses_args
+            if not isinstance(args["collapse"], list):
+                self.collapses_args = []
+            else:
+                self.collapses_args = args["collapse"] # copy needed in serial?
+            H.coeff_get.get_args()["collapse"] = self.collapses_args
+            for c in td_c_ops:
+                c.coeff_get.get_args()["collapse"] = self.collapses_args
+            for c in td_n_ops:
+                c.coeff_get.get_args()["collapse"] = self.collapses_args
         else:
             self.col_args = 0
 
@@ -108,19 +113,10 @@ cdef class CyMcOde:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void sumsteadystate(self, complex[::1] state):
-        cdef int ii, jj, l_vec
-        l_vec = state.shape[0]
-        for ii in range(l_vec):
-          for jj in range(l_vec):
-            self.ss_out[ii,jj] += state[ii]*conj(state[jj])
-
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def run_ode(self, ODE, tlist_, e_call, prng):
         cdef np.ndarray[double, ndim=1] rand_vals
-        cdef np.ndarray[double, ndim=1] tlist = np.array(tlist_, dtype=np.double)
+        cdef np.ndarray[double, ndim=1] tlist = np.array(tlist_,
+                                                         dtype=np.double)
         cdef np.ndarray[complex, ndim=1] y_prev
         cdef np.ndarray[complex, ndim=1] out_psi = ODE._y
         cdef int num_times = tlist.shape[0]
@@ -170,7 +166,7 @@ cdef class CyMcOde:
                     if self.col_args:
                         self.collapses_args.append((t_prev, which))
                     rand_vals = prng.rand(2)
-                    norm2_prev = 1. # dznrm2(ODE._y)**2
+                    norm2_prev = 1.
                 else:
                     norm2_prev = norm2_psi
                     t_prev = ODE.t
@@ -190,6 +186,14 @@ cdef class CyMcOde:
                 self.states_out[0, ii] = out_psi[ii]
         return np.array(self.states_out), np.array(self.ss_out), self.collapses
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void sumsteadystate(self, complex[::1] state):
+        cdef int ii, jj, l_vec
+        l_vec = state.shape[0]
+        for ii in range(l_vec):
+          for jj in range(l_vec):
+            self.ss_out[ii,jj] += state[ii]*conj(state[jj])
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -266,7 +270,8 @@ cdef class CyMcOde:
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef np.ndarray[complex, ndim=1] _collapse(self, double t, int j, complex[::1] y):
+    cdef np.ndarray[complex, ndim=1] _collapse(self, double t, int j,
+                                               complex[::1] y):
                                                # np.ndarray[complex, ndim=1] y):
         cdef CQobjEvo cobj
         cdef np.ndarray[complex, ndim=1] state

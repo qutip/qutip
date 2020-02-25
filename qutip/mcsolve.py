@@ -50,11 +50,13 @@ from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket
 from qutip.sesolve import sesolve
-from qutip.solver import (Options, Result, ExpectOps,
+from qutip.solver import (Options, Result, ExpectOps, Solver,
                           solver_safe, SolverSystem)
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
 import qutip.settings
+
+from .mcsolverode import McOdeScipyZvode
 
 if debug:
     import inspect
@@ -75,6 +77,10 @@ class qutip_zvode(zvode):
         r = self.run(*args)
         self.call_args[2] = itask
         return r
+
+
+
+
 
 def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
             args={}, options=None, progress_bar=True,
@@ -231,18 +237,14 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     return mc.get_result(ntraj)
 
 
-
 class McSolver(Solver):
     def __init__(self, H, c_ops, args=None,
-                 psi0=None, tlist=[], e_ops=None,
+                 psi0=None, tlist=None, e_ops=None,
                  options=None, progress_bar=None):
         self.e_ops = e_ops
         self.args = args
         self.progress_bar = progress_bar
         self.options = options
-        #if options is None:
-        self.options.normalize_output = False
-        check_use_openmp(self.options)
 
         self.H = qobjevo_maker(H, self.args, tlist=tlist,
                                e_ops=e_ops, state=psi0)
@@ -283,15 +285,15 @@ class McSolver(Solver):
         if self.solver and self.solver.name == solver:
             self.solver.update_args(self.args)
             return self.solver
-        L = liouvillian(self.H, self.c_ops)
-        L.compile(omp=self.options.openmp_threads
-                  if self.options.use_openmp else 0)
-        if solver == "scipy_ivp":
-            return OdeScipyIVP(L, self.options, self.progress_bar)
-        elif solver == "scipy_zvode":
-            return OdeScipyZvode(L, self.options, self.progress_bar)
-        elif solver == "scipy_dop853":
-            return OdeScipyDop853(L, self.options, self.progress_bar)
+        if solver == "scipy_ivp_mc":
+            return McOdeScipyIVP(self.H, self.c_ops,
+                                 self.options, self.progress_bar)
+        elif solver == "qutip_diag_mc":
+            return OdeQutipDiag(self.H, self.c_ops,
+                                self.options, self.progress_bar)
+        elif solver == "scipy_zvode_mc":
+            return McOdeScipyZvode(self.H, self.c_ops, self.options,
+                                   True, self.progress_bar)
 
     def _set_psi(self, psi0):
         self.psi0 = psi0
@@ -315,16 +317,17 @@ class McSolver(Solver):
         opt = self.options
         if _safe_mode: self._check(self.psi0)
         old_ss = opt.store_states
-        e_ops = ExpectOps(e_ops) if e_ops is not None else self.e_ops
-        if not e_ops:
+        self.e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
+        if not self.e_ops:
             opt.store_states = True
 
-        self.times = tlist
+        self.tlist = tlist
         self.outtype = outtype
         self.nums_traj = num_traj if isinstance(num_traj, list) else [num_traj]
         self.num_traj = max(self.nums_traj)
-        self.seeds(self.num_traj, seed)
-        results = self.solver.run(self.psi0, tlist, {}, e_ops, self.num_traj)
+        self.seed(self.num_traj, seed)
+        results = self.solver.run(self.psi0, self.num_traj, self.seeds, tlist,
+                                  {}, self.e_ops)
 
         for result in results:
             state_out, ss_out, expect, collapse = result
@@ -334,6 +337,8 @@ class McSolver(Solver):
             self._collapse.append(collapse)
         self._psi_out = np.stack(self._psi_out)
         self._ss_out = np.stack(self._ss_out)
+        self._expect_out = np.stack(self._expect_out)
+        print(type(self.e_ops))
         result = self.get_result()
         opt.store_states = old_ss
         return result
@@ -359,10 +364,6 @@ class McSolver(Solver):
     def _state2dm(self, t_idx):
         dims = self.state_dims[0]
         len_ = self.state_shape[0]
-        # dm_t = np.zeros((len_, len_), dtype=complex)
-        # for i in range(self.num_traj):
-        #    vec = self._psi_out[i,t_idx,:]
-        #    dm_t += np.outer(vec, vec.conj())
         dm_t = np.einsum("ri,rj->ij", self._psi_out[:,t_idx,:],
                          self._psi_out[:,t_idx,:].conj())
         dm_t = self.transform(dm_t/self.num_traj, self.outtype,
@@ -460,13 +461,8 @@ class McSolver(Solver):
                 times_per_op[op].append(time)
         return [np.histogram(times, bins=tlist) for times in times_per_op]
 
-    def result(self, ntraj=[]):
+    def get_result(self, ntraj=[]):
         # Store results in the Result object
-        if not ntraj:
-            ntraj = [self.num_traj]
-        elif not isinstance(ntraj, list):
-            ntraj = [ntraj]
-
         output = Result()
         output.solver = 'mcsolve'
         output.seeds = self.seeds
@@ -488,7 +484,7 @@ class McSolver(Solver):
                 output.final_state = self.runs_final_states
 
         if options.average_expect:
-            output.expect = [self.expect_traj_avg(n) for n in ntraj]
+            output.expect = [self.expect_traj_avg(n) for n in self.nums_traj]
             if len(output.expect) == 1:
                 output.expect = output.expect[0]
         else:
@@ -504,13 +500,24 @@ class McSolver(Solver):
 
         return output
 
+
+
+
+
+
+
+
+
+
+
+"""
 # -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
 class _MC():
-    """
+    "#""
     Private class for solving Monte Carlo evolution from mcsolve
-    """
+    "#""
     def __init__(self, options=None):
         if options is None:
             options = Options()
@@ -903,10 +910,10 @@ class _MC():
     # single-trajectory for monte carlo
     # --------------------------------------------------------------------------
     def _single_traj(self, nt):
-        """
+        "#""
         Monte Carlo algorithm returning state-vector or expectation values
         at times tlist for a single trajectory.
-        """
+        "#""
         # SEED AND RNG AND GENERATE
         prng = RandomState(self.seeds[nt])
         opt = self.options
@@ -932,9 +939,9 @@ class _MC():
         return (states_out, ss_out, e_ops, collapses)
 
     def _build_integration_func(self, rhs, ode_args, opt):
-        """
+        "#""
         Create the integration function while fixing the parameters
-        """
+        "#""
         ODE = ode(rhs)
         if ode_args:
             ODE.set_f_params(ode_args)
@@ -991,10 +998,10 @@ class _MC():
         self.reset()
 
     def _single_traj_diag(self, nt):
-        """
+        "#""
         Monte Carlo algorithm returning state-vector or expectation values
         at times tlist for a single trajectory.
-        """
+        "#""
         # SEED AND RNG AND GENERATE
         prng = RandomState(self.seeds[nt])
         opt = self.options
@@ -1069,20 +1076,13 @@ def _funcrhs_with_state(t, psi, h_func, Hc_td, args):
     return h_func_term + Hc_td.mul_vec(t, psi)
 
 def _mc_dm_avg(psi_list):
-    """
+    "#""
     Private function that averages density matrices in parallel
     over all trajectories for a single time using parfor.
-    """
+    "#""
     ln = len(psi_list)
     dims = psi_list[0].dims
     shape = psi_list[0].shape
     out_data = sum([psi.data for psi in psi_list]) / ln
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
-
-def _collapse_args(args):
-    for key in args:
-        if key == "collapse":
-            if not isinstance(args[key], list):
-                args[key] = []
-            return key
-    return ""
+"""
