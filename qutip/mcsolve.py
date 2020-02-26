@@ -38,7 +38,7 @@ import numpy as np
 from numpy.random import RandomState, randint
 import scipy.sparse as sp
 from scipy.integrate import ode
-from scipy.integrate._ode import zvode
+
 
 from types import FunctionType, BuiltinFunctionType
 from functools import partial
@@ -69,22 +69,10 @@ if debug:
 def warn(text):
     print(text)
 
-class qutip_zvode(zvode):
-    def step(self, *args):
-        itask = self.call_args[2]
-        self.rwork[0] = args[4]
-        self.call_args[2] = 5
-        r = self.run(*args)
-        self.call_args[2] = itask
-        return r
 
-
-
-
-
-def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
-            args={}, options=None, progress_bar=True,
-            map_func=parallel_map, map_kwargs={}, _safe_mode=True):
+def mcsolve(H, psi0, tlist, c_ops, e_ops=[], ntraj=0,
+            args={}, options=None, progress_bar=True, seeds=None,
+            parallel=True, map_func=None, map_kwargs={}, _safe_mode=True):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -163,6 +151,13 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
     map_func: function
         A map function for managing the calls to the single-trajactory solver.
 
+    parallel : bool
+        True to run in parallel, map_func has priority.
+
+    seeds : int, list
+        list of seeds for random number for each trajectory or unique seed for
+        all generators.
+
     map_kwargs: dictionary
         Optional keyword arguments to the map_func function.
 
@@ -177,70 +172,48 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
         of the mcsolver by passing the output Result object seeds via the
         Options class, i.e. Options(seeds=prev_result.seeds).
     """
-    if isinstance(c_ops, (Qobj, QobjEvo)):
-        c_ops = [c_ops]
+    if isinstance(c_ops, (Qobj, QobjEvo)): c_ops = [c_ops]
 
-    if options is None:
-        options = Options()
-
-    if options.rhs_reuse and not isinstance(H, SolverSystem):
-        # TODO: deprecate when going to class based solver.
-        if "mcsolve" in solver_safe:
-            # print(" ")
-            H = solver_safe["mcsolve"]
-        else:
-            pass
-            # raise Exception("Could not find the Hamiltonian to reuse.")
-
-    if not ntraj:
-        ntraj = options.ntraj
-
-    if len(c_ops) == 0 and not options.rhs_reuse:
+    if len(c_ops) == 0:
         warn("No c_ops, using sesolve")
         return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
                        options=options, progress_bar=progress_bar,
                        _safe_mode=_safe_mode)
+    if options is None: options=Options()
+    if ntraj == 0: ntraj =  options.ntraj
+    nums_traj = ntraj if isinstance(ntraj, list) else [ntraj]
+    if seeds is None: seeds = options.seeds
+    if map_func is parallel_map:
+        parallel = True
+    elif map_func is serial_map:
+        parallel = False
 
-    try:
-        num_traj = int(ntraj)
-    except:
-        num_traj = max(ntraj)
-
-    # set the physics
-    if not psi0.isket:
-        raise Exception("Initial state must be a state vector.")
-
-    # load monte carlo class
-    mc = _MC(options)
-
-
-    if isinstance(H, SolverSystem):
-        mc.ss = H
+    if options is not None and options.rhs_reuse:
+        raise DeprecationWarning
+        warn("'rhs_reuse' of Options will be deprecated. "
+             "Use the object interface of instead: 'McSolver'")
+        if "mcsolve" in solver_safe:
+            solver = solver_safe["mcsolve"]
+            if e_ops: solver.e_ops = e_ops
+            if options is not None: solver.options = options
+            solver.progress_bar = progress_bar
+        else:
+            solver = McSolver(H, c_ops, args, psi0, tlist, e_ops,
+                              options, progress_bar, parallel)
+            solver_safe["mcsolve"] = solver
     else:
-        mc.make_system(H, c_ops, tlist, args, options)
-
-    mc.reset(tlist[0], psi0)
-
-    mc.set_e_ops(e_ops)
-
-    if options.seeds is not None:
-        mc.seed(num_traj, options.seeds)
-
-    if _safe_mode:
-        mc.run_test()
+        solver = McSolver(H, c_ops, args, psi0, tlist, e_ops,
+                          options, progress_bar, parallel)
 
     # Run the simulation
-    mc.run(num_traj=num_traj, tlist=tlist,
-           progress_bar=progress_bar,
-           map_func=map_func, map_kwargs=map_kwargs)
-
-    return mc.get_result(ntraj)
+    return solver.run(tlist, nums_traj, psi0, args, e_ops, seeds,
+                      _safe_mode=_safe_mode)
 
 
 class McSolver(Solver):
     def __init__(self, H, c_ops, args=None,
                  psi0=None, tlist=None, e_ops=None,
-                 options=None, progress_bar=None):
+                 options=None, progress_bar=None, parallel=True):
         self.e_ops = e_ops
         self.args = args
         self.progress_bar = progress_bar
@@ -258,10 +231,7 @@ class McSolver(Solver):
         self.psi0 = None
         self.psi = None
         self.solver = None
-        self._psi_out = []
-        self._expect_out = []
-        self._collapse = []
-        self._ss_out = []
+        self.parallel = parallel
 
         if psi0 is not None:
             self._set_psi(psi0)
@@ -285,17 +255,29 @@ class McSolver(Solver):
         if self.solver and self.solver.name == solver:
             self.solver.update_args(self.args)
             return self.solver
-        if solver == "scipy_ivp_mc":
+        if solver in ["scipy_ivp_mc", "scipy_ivp", "ivp"]:
+            self.options.solver = "scipy_ivp_mc"
             return McOdeScipyIVP(self.H, self.c_ops,
-                                 self.options, self.progress_bar)
-        elif solver == "qutip_diag_mc":
+                                 self.options, self.parallel,
+                                 self.progress_bar)
+        elif solver in ["qutip_diag_mc", "diagonal"]:
+            self.options.solver = "qutip_diag_mc"
             return OdeQutipDiag(self.H, self.c_ops,
-                                self.options, self.progress_bar)
-        elif solver == "scipy_zvode_mc":
-            return McOdeScipyZvode(self.H, self.c_ops, self.options,
-                                   True, self.progress_bar)
+                                self.options, self.parallel,
+                                self.progress_bar)
+        elif solver in ["scipy_zvode_mc", "zvode", "scipy_zvode"]:
+            self.options.solver = "scipy_zvode_mc"
+            return McOdeScipyZvode(self.H, self.c_ops,
+                                   self.options, self.parallel,
+                                   self.progress_bar)
+        else:
+            raise ValueError("Invalid solver")
 
     def _set_psi(self, psi0):
+        self._psi_out = []
+        self._expect_out = []
+        self._collapse = []
+        self._ss_out = []
         self.psi0 = psi0
         self.state_dims = psi0.dims
         self.state_shape = psi0.shape
@@ -317,8 +299,8 @@ class McSolver(Solver):
         opt = self.options
         if _safe_mode: self._check(self.psi0)
         old_ss = opt.store_states
-        self.e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
-        if not self.e_ops:
+        e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
+        if not e_ops:
             opt.store_states = True
 
         self.tlist = tlist
@@ -327,7 +309,7 @@ class McSolver(Solver):
         self.num_traj = max(self.nums_traj)
         self.seed(self.num_traj, seed)
         results = self.solver.run(self.psi0, self.num_traj, self.seeds, tlist,
-                                  {}, self.e_ops)
+                                  {}, e_ops)
 
         for result in results:
             state_out, ss_out, expect, collapse = result
@@ -338,7 +320,7 @@ class McSolver(Solver):
         self._psi_out = np.stack(self._psi_out)
         self._ss_out = np.stack(self._ss_out)
         self._expect_out = np.stack(self._expect_out)
-        print(type(self.e_ops))
+        self._expect = e_ops
         result = self.get_result()
         opt.store_states = old_ss
         return result
@@ -373,13 +355,13 @@ class McSolver(Solver):
     @property
     def states(self):
         if self._psi_out.shape[1] == 1:
-            return _state2dm(-1)
+            return self._state2dm(-1)
         else:
-            return [_state2dm(j) for j in range(len(self.tlist))]
+            return [self._state2dm(j) for j in range(len(self.tlist))]
 
     @property
     def final_state(self):
-        return _state2dm(-1)
+        return self._state2dm(-1)
 
     @property
     def runs_final_states(self):
@@ -410,7 +392,20 @@ class McSolver(Solver):
 
     @property
     def runs_expect(self):
-        return self._expect_out
+        result = []
+        for jj in range(self.num_traj):
+            res_traj = []
+            for ii in range(self._expect.e_num):
+                if self._expect.e_ops_isherm[ii]:
+                    res_traj.append(np.real(self._expect_out[jj, ii, :]))
+                else:
+                    res_traj.append(self._expect_out[jj, ii, :])
+            result.append(res_traj)
+
+        if self._expect.e_ops_dict:
+            result = {e: result[n]
+                      for n, e in enumerate(self._expect.e_ops_dict.keys())}
+        return result
 
     def expect_traj_avg(self, ntraj=0):
         if not ntraj:
@@ -418,15 +413,15 @@ class McSolver(Solver):
         expect = np.mean(self._expect_out[:ntraj,:,:], axis=0)
 
         result = []
-        for ii in range(self.e_ops.e_num):
-            if self.e_ops.e_ops_isherm[ii]:
+        for ii in range(self._expect.e_num):
+            if self._expect.e_ops_isherm[ii]:
                 result.append(np.real(expect[ii, :]))
             else:
                 result.append(expect[ii, :])
 
-        if self.e_ops.e_ops_dict:
+        if self._expect.e_ops_dict:
             result = {e: result[n]
-                      for n, e in enumerate(self.e_ops.e_ops_dict.keys())}
+                      for n, e in enumerate(self._expect.e_ops_dict.keys())}
         return result
 
     @property
@@ -471,11 +466,11 @@ class McSolver(Solver):
         output.options = options
 
         if options.steady_state_average:
-            output.states = self.steady_state
-        elif options.average_states and options.store_states:
-            output.states = self.states
+            output.steady_state = self.steady_state
+        if options.average_states and options.store_states:
+            output.states = np.array(self.states, dtype=object)
         elif options.store_states:
-            output.states = self.runs_states
+            output.states = np.array(self.runs_states, dtype=object)
 
         if options.store_final_state:
             if options.average_states:
@@ -492,8 +487,8 @@ class McSolver(Solver):
 
         # simulation parameters
         output.times = self.tlist
-        output.num_expect = self.e_ops.e_num
-        output.num_collapse = len(self.ss.td_c_ops)
+        output.num_expect = self._expect.e_num
+        output.num_collapse = len(self.c_ops)
         output.ntraj = self.num_traj
         output.col_times = self.collapse_times
         output.col_which = self.collapse_which

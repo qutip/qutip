@@ -103,6 +103,8 @@ class MeSolver(Solver):
             return OdeScipyZvode(L, self.options, self.progress_bar)
         elif solver == "scipy_dop853":
             return OdeScipyDop853(L, self.options, self.progress_bar)
+        else:
+            raise ValueError("Invalid options.solver", solver)
 
     def _set_rho(self, rho0):
         if rho0.isket:
@@ -310,12 +312,12 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     if options is not None and options.rhs_reuse:
         raise DeprecationWarning
         warn("'rhs_reuse' of Options will be deprecated. "
-             "Use the object interface of instead: 'SeSolver'")
+             "Use the object interface of instead: 'MeSolver'")
         if "mesolve" in solver_safe:
             solver = solver_safe["mesolve"]
             if e_ops: solver.e_ops = e_ops
-            if options: solver.options = options
-            if progress_bar: solver.progress_bar = progress_bar
+            if options is not None: solver.options = options
+            solver.progress_bar = progress_bar
         else:
             c_ops = c_ops if c_ops is not None else []
             solver = MeSolver(H, c_ops, args, rho0, tlist, e_ops,

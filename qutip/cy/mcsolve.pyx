@@ -45,6 +45,7 @@ from qutip.cy.spmatfuncs cimport cy_expect_psi
 # from qutip.cy.dopri5 import ode_td_dopri
 #from qutip.cy.complex_math cimport conj
 include "complex_math.pxi"
+import time
 
 cdef int ONE = 1
 
@@ -78,6 +79,7 @@ cdef class CyMcOde:
         double[::1] n_dp
 
     def __init__(self, H, td_c_ops, td_n_ops, opt):
+        self.num_ops = len(td_n_ops)
         self.c_ops = td_c_ops
         self.n_ops = td_n_ops
 
@@ -87,8 +89,7 @@ cdef class CyMcOde:
         self.steady_state = opt.steady_state_average
         self.store_states = opt.store_states or opt.average_states
         self.collapses = []
-        self.l_vec = self.c_ops[0].cte.shape[0]
-        self.num_ops = len(td_n_ops)
+        self.l_vec = H.cte.shape[0]
         self.n_dp = np.zeros(self.num_ops)
         args = H.args
 

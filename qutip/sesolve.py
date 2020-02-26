@@ -232,8 +232,8 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
         if "sesolve" in solver_safe:
             solver = solver_safe["sesolve"]
             if e_ops: solver.e_ops = e_ops
-            if options: solver.options = options
-            if progress_bar: solver.progress_bar = progress_bar
+            if options is not None: solver.options = options
+            solver.progress_bar = progress_bar
         else:
             solver = SeSolver(H, args, psi0, tlist, e_ops,
                               options, progress_bar)

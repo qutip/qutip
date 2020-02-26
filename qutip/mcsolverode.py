@@ -8,6 +8,16 @@ from qutip.parallel import parallel_map, serial_map
 from .qobjevo import QobjEvo
 from .qobj import Qobj
 from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
+from scipy.integrate._ode import zvode
+
+class qutip_zvode(zvode):
+    def step(self, *args):
+        itask = self.call_args[2]
+        self.rwork[0] = args[4]
+        self.call_args[2] = 5
+        r = self.run(*args)
+        self.call_args[2] = itask
+        return r
 
 
 def normalize_prop(state):
@@ -128,7 +138,8 @@ class McOdeScipyZvode(McOdeSolver):
         options = {key:getattr(opt, key)
                    for key in options_keys
                    if hasattr(opt, key)}
-        r.set_integrator('zvode', **options)
+        r.set_integrator('zvode', method="adams")
+        r._integrator = qutip_zvode(**options)
         if isinstance(state0, Qobj):
             initial_vector = state0.full().ravel('F')
         else:
