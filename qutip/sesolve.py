@@ -34,7 +34,7 @@
 This module provides solvers for the unitary Schrodinger equation.
 """
 
-__all__ = ['sesolve']
+__all__ = ['sesolve', 'SeSolver']
 
 import numpy as np
 import scipy.integrate
@@ -60,107 +60,6 @@ from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
                                  cy_ode_psi_func_td_with_state,
                                  normalize_inplace, normalize_op_inplace,
                                  normalize_mixed)
-
-
-class SeSolver(Solver):
-    def __init__(self, H, args=None, psi0=None, tlist=[], e_ops=None,
-                 options=None, progress_bar=None):
-        self.e_ops = e_ops
-        self.args = args
-        self.progress_bar = progress_bar
-        self.options = options
-        check_use_openmp(self.options)
-
-        self.H = -1j* qobjevo_maker(H, self.args, tlist=tlist,
-                                    e_ops=self.e_ops, state=psi0)
-
-        self.with_state = bool(self.H.dynamics_args)
-        self.cte = self.H.const
-        self.shape = self.H.cte.shape
-        self.dims = self.H.cte
-        self.psi0 = None
-        self.psi = None
-        self.solver = None
-
-        if psi0 is not None:
-            self._set_psi(psi0)
-
-    def _get_solver(self):
-        solver = self.options.solver
-        if self.solver and self.solver.name == solver:
-            self.solver.update_args(self.args)
-            return self.solver
-
-        self.H.compile(omp=self.options.openmp_threads
-                       if self.options.use_openmp else 0)
-        if solver == "scipy_ivp":
-            return OdeScipyIVP(self.H, self.options, self.progress_bar)
-        elif solver == "scipy_zvode":
-            return OdeScipyZvode(self.H, self.options, self.progress_bar)
-        elif solver == "scipy_dop853":
-            return OdeScipyDop853(self.H, self.options, self.progress_bar)
-
-    def _set_psi(self, psi0):
-        self.psi0 = psi0
-        self.state_dims = psi0.dims
-        self.state_shape = psi0.shape
-        self.psi = psi0.full().ravel("F")
-        self.solver = self._get_solver()
-
-    def _check(self, psi0):
-        if not (psi0.isket or psi0.isunitary):
-            raise TypeError("The unitary solver requires psi0 to be"
-                            " a ket as initial state"
-                            " or a unitary as initial operator.")
-        if psi0.dims[0] != self.H.dims[1]:
-            raise ValueError("The dimension of psi0 does not "
-                             "fit the Hamiltonian")
-
-    def run(self, tlist, psi0=None, args=None, outtype=Qobj, _safe_mode=True):
-        if args is not None:
-            self.args = args
-            self.H.arguments(args)
-        self.set(psi0, tlist[0])
-        opt = self.options
-        if _safe_mode:
-            self._check(self.psi0)
-        old_ss = opt.store_states
-        if not self.e_ops:
-            opt.store_states = True
-
-        output = Result()
-        output.solver = "sesolve"
-        output.times = tlist
-
-        states, expect = self.solver.run(self.psi0, tlist, {}, self.e_ops)
-
-        output.expect = expect
-        output.num_expect = len(self.e_ops)
-        if opt.store_final_state:
-            output.final_state = self.transform(states[-1], outtype)
-        if opt.store_states:
-            output.states = [self.transform(psi, outtype)
-                             for psi in states]
-        opt.store_states = old_ss
-        return output
-
-    def step(self, t, args=None, outtype=Qobj, e_ops=[]):
-        if args is not None:
-            self.solver.update_args(args)
-            changed=True
-        else:
-            changed=False
-        state = self.solver.step(self.psi, t, changed=changed)
-        self.t = t
-        self.psi = state
-        if e_ops:
-            return [expect(op, state) for op in e_ops]
-        return self.transform(states, outtype)
-
-    def set(self, psi0=None, t0=0):
-        self.t = t0
-        psi0 = psi0 if psi0 is not None else self.psi0
-        self._set_psi(psi0)
 
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
@@ -242,4 +141,107 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
         solver = SeSolver(H, args, psi0, tlist, e_ops,
                           options, progress_bar)
         # solver_safe["sesolve"] = solver
-    return solver.run(tlist, psi0, args, _safe_mode=_safe_mode)
+    return solver.run(psi0, tlist, args=args, _safe_mode=_safe_mode)
+    
+
+class SeSolver(Solver):
+    def __init__(self, H, args=None, psi0=None, tlist=[], e_ops=None,
+                 options=None, progress_bar=None, outtype=Qobj):
+        self.e_ops = e_ops
+        self.args = args
+        self.progress_bar = progress_bar
+        self.options = options
+        self.outtype = outtype
+        check_use_openmp(self.options)
+
+        self.H = -1j* qobjevo_maker(H, self.args, tlist=tlist,
+                                    e_ops=self.e_ops, state=psi0)
+
+        self.with_state = bool(self.H.dynamics_args)
+        self.cte = self.H.const
+        self.shape = self.H.cte.shape
+        self.dims = self.H.cte
+        self.psi0 = None
+        self.psi = None
+        self.solver = None
+
+        if psi0 is not None:
+            self._set_psi(psi0)
+
+    def _get_solver(self):
+        solver = self.options.solver
+        if self.solver and self.solver.name == solver:
+            self.solver.update_args(self.args)
+            return self.solver
+
+        self.H.compile(omp=self.options.openmp_threads
+                       if self.options.use_openmp else 0)
+        if solver == "scipy_ivp":
+            return OdeScipyIVP(self.H, self.options, self.progress_bar)
+        elif solver == "scipy_zvode":
+            return OdeScipyZvode(self.H, self.options, self.progress_bar)
+        elif solver == "scipy_dop853":
+            return OdeScipyDop853(self.H, self.options, self.progress_bar)
+
+    def _set_psi(self, psi0):
+        self.psi0 = psi0
+        self.state_dims = psi0.dims
+        self.state_shape = psi0.shape
+        self.psi = psi0.full().ravel("F")
+        self.solver = self._get_solver()
+
+    def _check(self, psi0):
+        if not (psi0.isket or psi0.isunitary):
+            raise TypeError("The unitary solver requires psi0 to be"
+                            " a ket as initial state"
+                            " or a unitary as initial operator.")
+        if psi0.dims[0] != self.H.dims[1]:
+            raise ValueError("The dimension of psi0 does not "
+                             "fit the Hamiltonian")
+
+    def run(self, psi0, tlist, e_ops=None, args=None, _safe_mode=True):
+        if args is not None:
+            self.args = args
+            self.H.arguments(args)
+        opt = self.options
+        old_ss = opt.store_states
+        e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
+        if not self.e_ops:
+            opt.store_states = True
+
+        self.set(psi0, tlist[0])
+        if _safe_mode:
+            self._check(self.psi0)
+        output = Result()
+        output.solver = "sesolve"
+        output.times = tlist
+
+        states, expect = self.solver.run(self.psi0, tlist, {}, self.e_ops)
+
+        output.expect = expect
+        output.num_expect = len(self.e_ops)
+        if opt.store_final_state:
+            output.final_state = self.transform(states[-1])
+        if opt.store_states:
+            output.states = [self.transform(psi)
+                             for psi in states]
+        opt.store_states = old_ss
+        return output
+
+    def step(self, t, args=None, e_ops=[]):
+        if args is not None:
+            self.solver.update_args(args)
+            changed=True
+        else:
+            changed=False
+        state = self.solver.step(self.psi, t, changed=changed)
+        self.t = t
+        self.psi = state
+        if e_ops:
+            return [expect(op, state) for op in e_ops]
+        return self.transform(states)
+
+    def set(self, psi0=None, t0=0):
+        self.t = t0
+        psi0 = psi0 if psi0 is not None else self.psi0
+        self._set_psi(psi0)

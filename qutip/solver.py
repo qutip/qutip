@@ -120,10 +120,23 @@ class Solver:
         else:
             raise TypeError
 
-    def transform(self, state, outtype, dims=False, shape=False):
+    @property
+    def outtype(self):
+        return self._outtype
+
+    @outtype.setter
+    def outtype(self, _outtype):
+        if (_outtype in ["Qobj", Qobj, "dense", "sparse"] or
+                isinstance(_outtype, spmatrix)):
+            self._outtype = _outtype
+        else:
+            raise TypeError
+
+    def transform(self, state, dims=False, shape=False):
         dims = dims if dims else self.state_dims
         shape = shape if shape else self.state_shape
         intype = self.solver.statetype
+        outtype = self.outtype
         if intype == "dense":
             _1D = (shape[0] == state.size)
             if _1D and outtype == "dense":
@@ -389,6 +402,9 @@ class ExpectOps:
 
     def __bool__(self):
         return bool(self.e_num)
+
+    def __len__(self):
+        return self.e_num
 
 
 class Options():

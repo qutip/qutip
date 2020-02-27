@@ -1055,11 +1055,6 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
 
-    #if config.tdname:
-    #    _cython_build_cleanup(config.tdname)
-    #rhs_clear()
-    #H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
-
     if solver == "me":
         return _correlation_me_2t(H, state0, tlist, taulist,
                                   c_ops, a_op, b_op, c_op,
@@ -1108,7 +1103,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                       e_ops=[b_op], tlist=tlist, options=options)
     for t_idx, rho in enumerate(rho_t):
         _args["_t0"] = tlist[t_idx]
-        corr_mat[t_idx, :] = system.run(taulist, c_op * rho * a_op,
+        corr_mat[t_idx, :] = system.run(c_op * rho * a_op, taulist,
                                         args=_args).expect[0]
 
     if config.tdname:
@@ -1225,9 +1220,6 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
-    #if config.tdname:
-    #    _cython_build_cleanup(config.tdname)
-    #rhs_clear()
 
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
     # averaging over both t and tau
@@ -1246,18 +1238,11 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                         psi_t_mat[trial_idx, t_idx]
 
                     # evolve these states and calculate expectation value of B
-                    c_tau = chi_0.norm()**2 * solver.run(taulist,
+                    c_tau = chi_0.norm()**2 * solver.run(chi_0/chi_0.norm(),
+                                                         taulist,
                                                          options.ntraj[1],
-                                                         chi_0/chi_0.norm(),
                                                          e_ops=[b_op]
                                                         ).expect[0]
-
-                    """mcsolve(
-                        H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
-                        [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options,
-                        progress_bar=None
-                    ).expect[0]"""
 
                     # final correlation vector computed by combining the
                     # averages
@@ -1278,21 +1263,11 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                          for x in range(4)]
 
                 # evolve these states and calculate expectation value of B
-                c_tau = [chi.norm()**2 * solver.run(taulist,
+                c_tau = [chi.norm()**2 * solver.run(chi/chi.norm(), taulist,
                                                     options.ntraj[1],
-                                                    chi/chi.norm(),
                                                     e_ops=[b_op]
                                                    ).expect[0]
                          for chi in chi_0]
-                """c_tau = [
-                    chi.norm()**2 * mcsolve(
-                        H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
-                        [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options,
-                        progress_bar=None
-                    ).expect[0]
-                    for chi in chi_0
-                ]"""
 
                 # final correlation vector computed by combining the averages
                 corr_mat_add = np.asarray(
@@ -1301,13 +1276,6 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     dtype=corr_mat.dtype
                 )
                 corr_mat[t_idx, :] += corr_mat_add
-
-    #    if t_idx == 1:
-    #        options.rhs_reuse = True
-
-    #if config.tdname:
-    #    _cython_build_cleanup(config.tdname)
-    #rhs_clear()
 
     return corr_mat
 

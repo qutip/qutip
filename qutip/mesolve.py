@@ -35,7 +35,7 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
-__all__ = ['mesolve']
+__all__ = ['mesolve', 'MeSolver']
 
 import numpy as np
 import scipy.integrate
@@ -59,115 +59,6 @@ from qutip.solverode import OdeScipyZvode, OdeScipyDop853, OdeScipyIVP
 from qutip.qobjevo import QobjEvo
 from qutip.qobjevo_maker import qobjevo_maker
 from qutip.cy.openmp.utilities import check_use_openmp
-
-
-class MeSolver(Solver):
-    def __init__(self, H, c_ops, args=None,
-                 rho0=None, tlist=[], e_ops=None,
-                 options=None, progress_bar=None):
-        self.e_ops = e_ops
-        self.args = args
-        self.progress_bar = progress_bar
-        self.options = options
-        #if options is None:
-        self.options.normalize_output = False
-        check_use_openmp(self.options)
-
-        self.H = qobjevo_maker(H, self.args, tlist=tlist,
-                               e_ops=e_ops, state=rho0)
-        self.c_ops = [qobjevo_maker(op, self.args, tlist=tlist,
-                                    e_ops=e_ops, state=rho0) for op in c_ops]
-
-        self.with_state = bool(self.H.dynamics_args)
-        self.cte = self.H.const
-        self.shape = self.H.cte.shape
-        self.dims = self.H.cte.dims
-        self.rho0 = None
-        self.rho = None
-        self.solver = None
-
-        if rho0 is not None:
-            self._set_rho(rho0)
-
-    def _get_solver(self):
-        solver = self.options.solver
-        if self.solver and self.solver.name == solver:
-            self.solver.update_args(self.args)
-            return self.solver
-        L = liouvillian(self.H, self.c_ops)
-        L.compile(omp=self.options.openmp_threads
-                  if self.options.use_openmp else 0)
-        if solver == "scipy_ivp":
-            return OdeScipyIVP(L, self.options, self.progress_bar)
-        elif solver == "scipy_zvode":
-            return OdeScipyZvode(L, self.options, self.progress_bar)
-        elif solver == "scipy_dop853":
-            return OdeScipyDop853(L, self.options, self.progress_bar)
-        else:
-            raise ValueError("Invalid options.solver", solver)
-
-    def _set_rho(self, rho0):
-        if rho0.isket:
-            rho0 = ket2dm(rho0)
-        self.rho0 = rho0
-        self.state_dims = rho0.dims
-        self.state_shape = rho0.shape
-        self.rho = rho0.full().ravel("F")
-        self.solver = self._get_solver()
-
-    def _check(self, rho0):
-        dims_H = self.dims if not issuper(self.H.cte) else self.dims[1]
-        ket_ok = rho0.isket and (dims_H[1] == rho0.dims[0])
-        dm_ok = rho0.isoper and (dims_H == rho0.dims)
-        sp_ok = rho0.issuper and (dims_H == rho0.dims[0])
-        if not (ket_ok or dm_ok or sp_ok):
-            raise ValueError("The dimension of rho0 does not "
-                             "fit the Hamiltonian")
-
-    def run(self, tlist, rho0=None, args=None, e_ops=None,
-            outtype=Qobj, _safe_mode=False):
-        if args is not None:
-            self.args = args
-        self.set(rho0, tlist[0])
-        opt = self.options
-        if _safe_mode:
-            self._check(self.rho0)
-        old_ss = opt.store_states
-        e_ops = ExpectOps(e_ops) if e_ops is not None else self.e_ops
-        if not e_ops:
-            opt.store_states = True
-
-        output = Result()
-        output.solver = "mesolve"
-        output.times = tlist
-        states, expect = self.solver.run(self.rho0, tlist, {}, e_ops)
-        output.expect = expect
-        output.num_expect = len(e_ops)
-        if opt.store_final_state:
-            output.final_state = self.transform(states[-1], outtype)
-        if opt.store_states:
-            output.states = [self.transform(rho,  outtype)
-                             for rho in states]
-        opt.store_states = old_ss
-        return output
-
-    def step(self, t, args=None, outtype=Qobj, e_ops=[]):
-        if args is not None:
-            self.solver.update_args(args)
-            changed=True
-        else:
-            changed=False
-        state = self.solver.step(self.rho, t, changed=changed)
-        self.t = t
-        self.rho = state
-        if e_ops:
-            return [expect(op, state) for op in e_ops]
-        return self.transform(states, outtype)
-
-    def set(self, rho0=None, t0=0):
-        self.t = t0
-        rho0 = rho0 if rho0 is not None else self.rho0
-        self._set_rho(rho0)
 
 
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
@@ -328,7 +219,116 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         solver = MeSolver(H, c_ops, args, rho0, tlist, e_ops,
                           options, progress_bar)
         # solver_safe["mesolve"] = solver
-    return solver.run(tlist, rho0, args, _safe_mode=_safe_mode)
+    return solver.run(rho0, tlist, args=args, _safe_mode=_safe_mode)
+
+
+class MeSolver(Solver):
+    def __init__(self, H, c_ops, args=None,
+                 rho0=None, tlist=[], e_ops=None, options=None,
+                 progress_bar=None, outtype=Qobj):
+        self.e_ops = e_ops
+        self.args = args
+        self.progress_bar = progress_bar
+        self.options = options
+        self.outtype = outtype
+        #if options is None:
+        self.options.normalize_output = False
+        check_use_openmp(self.options)
+
+        self.H = qobjevo_maker(H, self.args, tlist=tlist,
+                               e_ops=e_ops, state=rho0)
+        self.c_ops = [qobjevo_maker(op, self.args, tlist=tlist,
+                                    e_ops=e_ops, state=rho0) for op in c_ops]
+
+        self.with_state = bool(self.H.dynamics_args)
+        self.cte = self.H.const
+        self.shape = self.H.cte.shape
+        self.dims = self.H.cte.dims
+        self.rho0 = None
+        self.rho = None
+        self.solver = None
+
+        if rho0 is not None:
+            self._set_rho(rho0)
+
+    def _get_solver(self):
+        solver = self.options.solver
+        if self.solver and self.solver.name == solver:
+            self.solver.update_args(self.args)
+            return self.solver
+        L = liouvillian(self.H, self.c_ops)
+        L.compile(omp=self.options.openmp_threads
+                  if self.options.use_openmp else 0)
+        if solver == "scipy_ivp":
+            return OdeScipyIVP(L, self.options, self.progress_bar)
+        elif solver == "scipy_zvode":
+            return OdeScipyZvode(L, self.options, self.progress_bar)
+        elif solver == "scipy_dop853":
+            return OdeScipyDop853(L, self.options, self.progress_bar)
+        else:
+            raise ValueError("Invalid options.solver", solver)
+
+    def _set_rho(self, rho0):
+        if rho0.isket:
+            rho0 = ket2dm(rho0)
+        self.rho0 = rho0
+        self.state_dims = rho0.dims
+        self.state_shape = rho0.shape
+        self.rho = rho0.full().ravel("F")
+        self.solver = self._get_solver()
+
+    def _check(self, rho0):
+        dims_H = self.dims if not issuper(self.H.cte) else self.dims[1]
+        ket_ok = rho0.isket and (dims_H[1] == rho0.dims[0])
+        dm_ok = rho0.isoper and (dims_H == rho0.dims)
+        sp_ok = rho0.issuper and (dims_H == rho0.dims[0])
+        if not (ket_ok or dm_ok or sp_ok):
+            raise ValueError("The dimension of rho0 does not "
+                             "fit the Hamiltonian")
+
+    def run(self, rho0, tlist, e_ops=None, args=None, _safe_mode=False):
+        if args is not None:
+            self.args = args
+        opt = self.options
+        old_ss = opt.store_states
+        e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
+        if not e_ops:
+            opt.store_states = True
+
+        self.set(rho0, tlist[0])
+        if _safe_mode:
+            self._check(self.rho0)
+        output = Result()
+        output.solver = "mesolve"
+        output.times = tlist
+        states, expect = self.solver.run(self.rho0, tlist, {}, e_ops)
+        output.expect = expect
+        output.num_expect = len(e_ops)
+        if opt.store_final_state:
+            output.final_state = self.transform(states[-1])
+        if opt.store_states:
+            output.states = [self.transform(rho)
+                             for rho in states]
+        opt.store_states = old_ss
+        return output
+
+    def step(self, t, args=None, e_ops=[]):
+        if args is not None:
+            self.solver.update_args(args)
+            changed=True
+        else:
+            changed=False
+        state = self.solver.step(self.rho, t, changed=changed)
+        self.t = t
+        self.rho = state
+        if e_ops:
+            return [expect(op, state) for op in e_ops]
+        return self.transform(states)
+
+    def set(self, rho0=None, t0=0):
+        self.t = t0
+        rho0 = rho0 if rho0 is not None else self.rho0
+        self._set_rho(rho0)
 
 
 class Splited_Liouvillian:

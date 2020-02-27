@@ -119,7 +119,8 @@ def propagator(H, tlist, c_ops=[], args={}, options=None,
         N = H_td.shape[0]
         dims = H_td.dims
         if parallel:
-            system = SeSolver(H_td, args, tlist=tlist, options=options)
+            system = SeSolver(H_td, args, tlist=tlist,
+                              options=options, outtype="dense")
             output = parallel_map(_parallel_sesolve, range(N),
                                   task_args=(N, system, tlist),
                                   progress_bar=progress_bar, num_cpus=num_cpus)
@@ -148,7 +149,8 @@ def propagator(H, tlist, c_ops=[], args={}, options=None,
 
         if parallel:
             u = np.zeros([N, N, len(tlist)], dtype=complex)
-            system = MeSolver(H_td, c_ops, args, tlist=tlist, options=options)
+            system = MeSolver(H_td, c_ops, args, tlist=tlist, 
+                              options=options, outtype="dense")
             output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(sqrt_N, system, tlist),
                                   progress_bar=progress_bar, num_cpus=num_cpus)
@@ -197,10 +199,10 @@ def propagator_steadystate(U):
 
 def _parallel_sesolve(n, N, system, tlist):
     psi0 = basis(N, n)
-    return system.run(tlist, psi0, outtype="dense")
+    return system.run(psi0, tlist)
 
 def _parallel_mesolve(n, N, system, tlist):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
                               shape=(N,N), dtype=complex))
-    return system.run(tlist, rho0, outtype="dense")
+    return system.run(rho0, tlist)
