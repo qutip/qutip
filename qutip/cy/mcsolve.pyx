@@ -291,18 +291,18 @@ cdef class CyMcOdeDiag(CyMcOde):
         double t
         object prng
 
-    def __init__(self, ss, opt):
-        self.c_ops = ss.td_c_ops
-        self.n_ops = ss.td_n_ops
-        self.diag = ss.H_diag
+    def __init__(self, H_diag, td_c_ops, td_n_ops, opt):
+        self.c_ops = td_c_ops
+        self.n_ops = td_n_ops
+        self.diag = H_diag
         self.norm_steps = opt.norm_steps
         self.norm_t_tol = opt.norm_t_tol
         self.norm_tol = opt.norm_tol
         self.steady_state = opt.steady_state_average
         self.store_states = opt.store_states or opt.average_states
         self.collapses = []
-        self.l_vec = self.c_ops[0].cte.shape[0]
-        self.num_ops = len(ss.td_n_ops)
+        self.l_vec = H_diag.shape[0]
+        self.num_ops = len(td_n_ops)
         self.n_dp = np.zeros(self.num_ops)
         self.col_args = 0
 
@@ -330,7 +330,7 @@ cdef class CyMcOdeDiag(CyMcOde):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef double advance(self, double t_target, double norm2_prev,
-                      double[::1] rand_vals, int use_quick):
+                        double[::1] rand_vals, int use_quick):
         target_norm = rand_vals[0]
         if use_quick:
             self.qode(self.psi_temp)
@@ -340,7 +340,8 @@ cdef class CyMcOdeDiag(CyMcOde):
 
         if norm2_psi <= target_norm:
             # collapse has occured:
-            self._find_collapse_diag(norm2_psi, t_target, self.psi_temp, norm2_prev, target_norm)
+            self._find_collapse_diag(norm2_psi, t_target, self.psi_temp,
+                                     norm2_prev, target_norm)
             which = self._which_collapse(self.t, self.psi, rand_vals[1])
             self.psi = self._collapse(self.t, which, self.psi)
             self.collapses.append((self.t, which))

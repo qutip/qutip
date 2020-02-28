@@ -378,8 +378,7 @@ class OdeScipyIVP(OdeSolver):
         else:
             self._y = state0.view(np.float64)
 
-        options_keys = ['method', 'atol', 'rtol',
-                        'nsteps']
+        options_keys = ['method', 'atol', 'rtol', 'nsteps']
         self.ivp_opt = {key:getattr(opt, key)
                         for key in options_keys
                         if hasattr(opt, key)}

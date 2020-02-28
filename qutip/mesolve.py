@@ -304,6 +304,7 @@ class MeSolver(Solver):
         states, expect = self.solver.run(self.rho0, tlist, {}, e_ops)
         output.expect = expect
         output.num_expect = len(e_ops)
+        output.num_collapse = len(self.c_ops)
         if opt.store_final_state:
             output.final_state = self.transform(states[-1])
         if opt.store_states:

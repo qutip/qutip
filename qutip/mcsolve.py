@@ -47,7 +47,7 @@ from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.qobjevo_maker import qobjevo_maker
 from qutip.parallel import parfor, parallel_map, serial_map
-from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
+#from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result, ExpectOps, Solver,
@@ -56,7 +56,7 @@ from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
 import qutip.settings
 
-from .mcsolverode import McOdeScipyZvode
+from .mcsolverode import McOdeScipyZvode, McOdeQutipDiag
 
 if debug:
     import inspect
@@ -263,9 +263,9 @@ class McSolver(Solver):
                                  self.progress_bar)
         elif solver in ["qutip_diag_mc", "diagonal"]:
             self.options.solver = "qutip_diag_mc"
-            return OdeQutipDiag(self.H, self.c_ops,
-                                self.options, self.parallel,
-                                self.progress_bar)
+            return McOdeQutipDiag(self.H, self.c_ops,
+                                  self.options, self.parallel,
+                                  self.progress_bar)
         elif solver in ["scipy_zvode_mc", "zvode", "scipy_zvode"]:
             self.options.solver = "scipy_zvode_mc"
             return McOdeScipyZvode(self.H, self.c_ops,
