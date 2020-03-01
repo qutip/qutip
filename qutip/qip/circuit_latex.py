@@ -74,7 +74,7 @@ _qcircuit_latex_min = r"""
 %    Contributors: Steve Flammia, Bryan Eastin, Travis Scholten
 %    License: http://www.gnu.org/licenses/gpl-2.0.html
 %    Original file: https://github.com/CQuIC/qcircuit/blob/master/qcircuit.sty
-%    Edited for QuTiP : 02/29/2020    
+%    Edited for QuTiP : 02/29/2020
 
 \usepackage{xy}
 \xyoption{matrix}
@@ -147,7 +147,7 @@ _qcircuit_latex_min = r"""
 \newcommand{\meterB}[1]{*=<1.8em,2.6em>{\xy 0;<0em,-.8em>:
 0*{\begingroup
 \everymath{\scriptstyle}
-\tiny #1 \endgroup},<0em,.7em>*{\xy ="j","j"-<.778em,-.322em>;{"j"+<.778em,.322em> \ellipse ur,_{}},"j"-<0em,-.2em>;p+<.5em,.9em> **\dir{-},"j"+<2.2em,2.2em>*{},"j"-<2.2em,2.2em>*{} \endxy} 
+\tiny #1 \endgroup},<0em,.7em>*{\xy ="j","j"-<.778em,-.322em>;{"j"+<.778em,.322em> \ellipse ur,_{}},"j"-<0em,-.2em>;p+<.5em,.9em> **\dir{-},"j"+<2.2em,2.2em>*{},"j"-<2.2em,2.2em>*{} \endxy}
 \endxy} \POS ="i","i"+UR;"i"+UL **\dir{-};"i"+DL **\dir{-};"i"+DR **\dir{-};"i"+UR **\dir{-},"i" \qw}
     % A meter that allows for a measurement operator to be added below
 \newcommand{\smeterB}[2]{\meterB{#1} \qwx[#2] \qw}
@@ -176,9 +176,9 @@ _qcircuit_latex_min = r"""
 \newcommand{\ctrlo}[1]{\controlo \qwx[#1] \qw}
     % Inserts a control-on-0 and connects it to the object #1 wires below.
 \newcommand{\cctrl}[1]{\control \cwx[#1] \cw}
-    % Inserts a classical control and connects it to the object #1 wires below. 
+    % Inserts a classical control and connects it to the object #1 wires below.
 \newcommand{\cctrlo}[1]{\controlo \cwx[#1] \cw}
-    % Inserts a classical control-on-0 and connects it to the object #1 wires below.    
+    % Inserts a classical control-on-0 and connects it to the object #1 wires below.
 \newcommand{\targ}{*+<.02em,.02em>{\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-}, "i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy} \qw}
     % Inserts a CNOT target.
 \newcommand{\qswap}{*=<0em>{\times} \qw}
@@ -227,5 +227,5 @@ _qcircuit_latex_min = r"""
 \newcommand{\link}[2]{\ar @{-} [#1,#2]}
     % Draws a wire or connecting line to the element #1 rows down and #2 columns forward.
 \newcommand{\pureghost}[1]{*+<1em,.9em>{\hphantom{#1}}}
-    % Same as \ghost except it omits the wire leading to the left. 
+    % Same as \ghost except it omits the wire leading to the left.
 """
