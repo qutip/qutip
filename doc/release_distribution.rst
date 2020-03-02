@@ -78,13 +78,13 @@ If the final step in the release process was completed correctly last time,
 then the version should already being correct for this micro release,
 but check to be sure.
 That is, one micro release higher than the current release version.
-So you should just need to update the ``ISRELEASED`` flag from ``False`` to ``True`.
-For example, if the current released version is 4.0.0, 
+So you should just need to update the ``ISRELEASED`` flag from ``False`` to ``True``.
+For example, if the current released version is 4.0.1, 
 then the main ``setup.py`` for the project in this branch should now contain ::
 
     MAJOR = 4
     MINOR = 0
-    MICRO = 1
+    MICRO = 2
     ISRELEASED = True
 
 .. _newrelease:
