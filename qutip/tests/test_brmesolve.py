@@ -47,11 +47,16 @@ _x_a_op = [qutip.sigmax(), lambda w: _simple_qubit_gamma * (w >= 0)]
 
 
 @pytest.mark.parametrize("me_c_ops, brme_c_ops, brme_a_ops", [
-        ([_m_c_op],          [],        [_x_a_op]),
-        ([_m_c_op],          [_m_c_op], []),
-        ([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op]),
-    ])
+    pytest.param([_m_c_op], [], [_x_a_op], id="me collapse-br coupling"),
+    pytest.param([_m_c_op], [_m_c_op], [], id="me collapse-br collapse"),
+    pytest.param([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op],
+                 id="me collapse-br collapse-br coupling"),
+])
 def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
+    """
+    Test that the BR solver handles collapse and coupling operators correctly
+    relative to the standard ME solver.
+    """
     delta = 0.0 * 2*np.pi
     epsilon = 0.5 * 2*np.pi
     e_ops = pauli_spin_operators()

@@ -39,6 +39,9 @@ pytestmark = [
     pytest.mark.usefixtures("in_temporary_directory"),
 ]
 
+# A lot of this module is direct duplication of test_brmesolve.py, but using
+# string time dependence rather than functional.
+
 
 def pauli_spin_operators():
     return [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
@@ -52,11 +55,16 @@ _x_a_op = [qutip.sigmax(), '{0} * (w >= 0)'.format(_simple_qubit_gamma)]
 
 @pytest.mark.slow
 @pytest.mark.parametrize("me_c_ops, brme_c_ops, brme_a_ops", [
-        ([_m_c_op],          [],        [_x_a_op]),
-        ([_m_c_op],          [_m_c_op], []),
-        ([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op]),
-    ])
+    pytest.param([_m_c_op], [], [_x_a_op], id="me collapse-br coupling"),
+    pytest.param([_m_c_op], [_m_c_op], [], id="me collapse-br collapse"),
+    pytest.param([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op],
+                 id="me collapse-br collapse-br coupling"),
+])
 def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
+    """
+    Test that the BR solver handles collapse and coupling operators correctly
+    relative to the standard ME solver.
+    """
     delta = 0.0 * 2*np.pi
     epsilon = 0.5 * 2*np.pi
     e_ops = pauli_spin_operators()
