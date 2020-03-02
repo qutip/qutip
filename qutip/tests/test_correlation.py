@@ -53,6 +53,10 @@ _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
                  marks=pytest.mark.slow),
 ])
 def test_correlation_solver_equivalence(solver, start, legacy):
+    """
+    Test that all of the correlation solvers give the same results for a given
+    system.
+    """
     a = qutip.destroy(_equivalence_dimension)
     H = a.dag() * a
     G1 = 0.75
@@ -65,6 +69,11 @@ def test_correlation_solver_equivalence(solver, start, legacy):
     tol = 0.25 if solver == "mc" else 1e-4
     correlation = (qutip.correlation if legacy
                    else qutip.correlation_2op_2t)
+    # We use the master equation version as a base, but it doesn't actually
+    # matter - if all the tests fail, it implies that the "me" solver might be
+    # broken, whereas if only one fails, then it implies that only that one is
+    # broken.  We test that all solvers are equivalent by transitive equality
+    # to the "me" solver.
     base = correlation(H, start, None, times, c_ops, a.dag(), a, solver="me")
     cmp = correlation(H, start, None, times, c_ops, a.dag(), a, solver=solver)
     assert np.allclose(base, cmp, atol=tol)
@@ -92,6 +101,7 @@ def _spectrum_fft(H, c_ops, a, b):
     pytest.param(_spectrum_wrapper(qutip.spectrum_pi), id="pi-legacy"),
 ])
 def test_spectrum_solver_equivalence_to_es(spectrum):
+    """Test equivalence of the spectrum solvers to the base "es" method."""
     # Jaynes--Cummings model.
     dimension = 4
     wc = wa = 1.0 * 2*np.pi
@@ -113,11 +123,16 @@ def test_spectrum_solver_equivalence_to_es(spectrum):
 
 
 def _trapz_2d(z, xy):
+    """2D trapezium-method integration assuming a square grid."""
     dx = xy[1] - xy[0]
     return dx*dx * np.trapz(np.trapz(z, axis=0))
 
 
 def _n_correlation(times, n_expectation):
+    """
+    Numerical integration of the correlation function given an array of
+    expectation values.
+    """
     interp = qutip.Cubic_Spline(times[0], times[-1], n_expectation)
     n = interp(np.concatenate([times, times[1:] + times[-1]]))
     return np.array([[n[t] * n[t+tau] for tau in range(times.shape[0])]

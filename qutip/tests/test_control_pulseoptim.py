@@ -39,11 +39,6 @@
 # @supervisor: Daniel Burgarth
 # @date: Sep 2015
 
-"""
-Tests for main control.pulseoptim methods
-Some associated objects also tested.
-"""
-
 import pytest
 import collections
 import os
@@ -67,10 +62,19 @@ _si = qutip.identity(2)
 _project_0 = qutip.basis(2, 0).proj()
 _hadamard = hadamard_transform(1)
 
+# We have a whole bunch of different physical systems we want to test the
+# optimiser for, but the logic for testing them is largely the same.  To avoid
+# having to explicitly parametrise over five linked parameters repeatedly, we
+# group them into a record type, so that all the optimisation functions can
+# then simply be parametrised over a single argument.
+#
+# We supply `kwargs` as a property of the system because the initial pulse type
+# and dynamics solver to use vary, especially if the system is unitary.
 _System = collections.namedtuple('_System',
                                  ['system', 'controls', 'initial', 'target',
                                   'kwargs'])
 
+# Simple Hadamard gate.
 _hadamard_kwargs = {'num_tslots': 10, 'evo_time': 10, 'gen_stats': True,
                     'init_pulse_type': 'LIN', 'fid_err_targ': 1e-10,
                     'dyn_type': 'UNIT'}
@@ -80,6 +84,7 @@ hadamard = _System(system=_sz,
                    target=_hadamard,
                    kwargs=_hadamard_kwargs)
 
+# Quantum Fourier transform.
 _qft_system = 0.5 * sum(qutip.tensor(op, op) for op in (_sx, _sy, _sz))
 _qft_controls = [0.5*qutip.tensor(_sx, _si), 0.5*qutip.tensor(_sy, _si),
                  0.5*qutip.tensor(_si, _sx), 0.5*qutip.tensor(_si, _sy)]
@@ -92,7 +97,7 @@ qft = _System(system=_qft_system,
               target=qft.qft(2),
               kwargs=_qft_kwargs)
 
-# Arbitrary coupling constants.
+# Coupling constants are completely arbitrary.
 _ising_system = (0.9*qutip.tensor(_sx, _si) + 0.7*qutip.tensor(_si, _sx)
                  + 0.8*qutip.tensor(_sz, _si) + 0.9*qutip.tensor(_si, _sz))
 _ising_kwargs = {'num_tslots': 10, 'evo_time': 18, 'init_pulse_type': 'LIN',
@@ -103,6 +108,7 @@ ising = _System(system=_ising_system,
                 target=qutip.basis([2, 2], [1, 1]),
                 kwargs=_ising_kwargs)
 
+# Louivillian amplitude-damping channel system.
 _l_adc_system = 0.1 * (2*qutip.tensor(_sm, _sp.dag())
                        - qutip.tensor(_project_0, _si)
                        - qutip.tensor(_si, _project_0.dag()))
@@ -116,6 +122,7 @@ l_adc = _System(system=_l_adc_system,
                 target=hadamard_transform(2),
                 kwargs=_l_adc_kwargs)
 
+# Two coupled oscillators with symplectic dynamics.
 _g1, _g2 = 1.0, 0.2
 _A_rotate = qutip.qdiags([[1, 1, 0, 0]], [0])
 _A_squeeze = 0.4 * qutip.qdiags([[1, -1, 0, 0]], [0])
@@ -134,6 +141,11 @@ symplectic = _System(system=_sympl_system,
                      kwargs=_sympl_kwargs)
 
 
+# Parametrise the systems and the propagation method separately so that we test
+# all combinations of both.
+
+# Test propagation with the default settings and with internal Qobj use for all
+# test cases.
 @pytest.fixture(params=[
     pytest.param(None, id="default propagation"),
     pytest.param({'oper_dtype': qutip.Qobj}, id="Qobj propagation"),
@@ -142,6 +154,8 @@ def propagation(request):
     return {'dyn_params': request.param}
 
 
+# Any test requiring a system to test will parametrise over all of the ones we
+# defined above.
 @pytest.fixture(params=[
     pytest.param(hadamard, id="Hadamard gate"),
     pytest.param(qft, id="QFT"),
@@ -154,6 +168,10 @@ def system(request):
 
 
 def _optimize_pulse(system):
+    """
+    Unpack the `system` record type, optimise the result and assert that it
+    succeeded.
+    """
     result = cpo.optimize_pulse(system.system, system.controls,
                                 system.initial, system.target,
                                 **system.kwargs)
@@ -164,6 +182,10 @@ def _optimize_pulse(system):
 
 
 def _merge_kwargs(system, kwargs):
+    """
+    Return a copy of `system` with any passed `kwargs` updated in the
+    dictionary---this can be used to overwrite or to add new arguments.
+    """
     out = system.kwargs.copy()
     out.update(kwargs)
     return system._replace(kwargs=out)
@@ -171,11 +193,16 @@ def _merge_kwargs(system, kwargs):
 
 class TestOptimization:
     def test_basic_optimization(self, system, propagation):
+        """Test the optimiser in the base case for each system."""
         system = _merge_kwargs(system, propagation)
         result = _optimize_pulse(system)
         assert result.fid_err < system.kwargs['fid_err_targ']
 
     def test_object_oriented_approach_and_gradient(self, system, propagation):
+        """
+        Test the object-oriented version of the optimiser, and ensure that the
+        system truly appears to be at an extremum.
+        """
         system = _merge_kwargs(system, propagation)
         base = _optimize_pulse(system)
         optimizer = cpo.create_pulse_optimizer(system.system, system.controls,
@@ -202,10 +229,12 @@ class TestOptimization:
                      id="tau array")
     ])
     def test_modified_optimization(self, propagation, kwargs):
+        """Test a basic system with a few different combinations of options."""
         system = _merge_kwargs(hadamard, kwargs)
         self.test_basic_optimization(system, propagation)
 
     def test_optimizer_bounds(self):
+        """Test that bounds on the control fields are obeyed."""
         bound = 1.0
         kwargs = {'amp_lbound': -bound, 'amp_ubound': bound}
         system = _merge_kwargs(qft, kwargs)
@@ -214,6 +243,10 @@ class TestOptimization:
         assert np.all(result.final_amps <= bound)
 
     def test_unitarity_via_dump(self):
+        """
+        Test that unitarity is maintained at all times throughout the
+        optimisation of the controls.
+        """
         kwargs = {'num_tslots': 1000, 'evo_time': 4, 'fid_err_targ': 1e-9,
                   'dyn_params': {'dumping': 'FULL'}}
         system = _merge_kwargs(hadamard, kwargs)
@@ -256,6 +289,10 @@ class TestOptimization:
         assert abs(result.fid_err) < tol
         assert abs(result.final_amps[0, 0]) < tol, "Lead-in amplitude nonzero."
 
+
+# The full object-orientated interface to the optimiser is rather complex.  To
+# attempt to simplify the test of the configuration loading, we break it down
+# into steps here.
 
 def _load_configuration(path):
     configuration = qutip.control.optimconfig.OptimConfig()
@@ -369,12 +406,6 @@ class TestFileIO:
                     " ".join(["Empty", type_, "file."])
 
 
-@pytest.fixture(params=[pytest.param(x, id=x.lower())
-                        for x in ['SINE', 'SQUARE', 'TRIANGLE', 'SAW']])
-def pulse_type(request):
-    return request.param
-
-
 def _count_waves(system):
     optimizer = cpo.create_pulse_optimizer(system.system, system.controls,
                                            system.initial, system.target,
@@ -384,6 +415,9 @@ def _count_waves(system):
     return (sum(zero_crossings) + 1) // 2
 
 
+@pytest.mark.parametrize('pulse_type',
+                         [pytest.param(x, id=x.lower())
+                          for x in ['SINE', 'SQUARE', 'TRIANGLE', 'SAW']])
 class TestPeriodicControlFunction:
     num_tslots = 1_000
     evo_time = 10
@@ -409,7 +443,15 @@ class TestPeriodicControlFunction:
 
 
 class TestTimeDependence:
+    """
+    Test that systems where the system Hamiltonian is time-dependent behave as
+    expected under the optimiser.
+    """
     def test_drift(self):
+        """
+        Test that introducing time dependence to the system does change the
+        result of the optimisation.
+        """
         num_tslots = 20
         system = _merge_kwargs(hadamard, {'num_tslots': num_tslots,
                                           'evo_time': 10})
@@ -426,6 +468,10 @@ class TestTimeDependence:
             "Flat and step drights result in the same control pulses."
 
     def test_controls_all_time_slots_equal_to_no_time_dependence(self):
+        """
+        Test that simply duplicating the system in each time slot (i.e. no
+        actual time dependence has no effect on the final result.
+        """
         num_tslots = 20
         system = _merge_kwargs(hadamard, {'num_tslots': num_tslots,
                                           'evo_time': 10,
@@ -437,6 +483,11 @@ class TestTimeDependence:
                            atol=1e-9)
 
     def test_controls_identity_operators_ignored(self):
+        """
+        Test that moments in time where the control parameters are simply the
+        identity are just ignored by the optimiser (since they'll never be able
+        to do anything.
+        """
         num_tslots = 20
         controls = [[_sx] if k % 3 else [_si] for k in range(num_tslots)]
         system = _merge_kwargs(hadamard, {'num_tslots': num_tslots,

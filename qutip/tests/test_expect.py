@@ -37,6 +37,17 @@ import functools
 import numpy as np
 import qutip
 
+# We want to test the broadcasting rules for `qutip.expect` for a whole bunch
+# of different systems, without having to repeatedly specify the systems over
+# and over again.  We first store a small number of test cases for known
+# expectation value in the most bundled-up form, because it's easier to unroll
+# these by applying the expected broadcasting rules explicitly ourselves than
+# performing the inverse operation.
+#
+# We store a single test case in a record type, just to keep things neatly
+# together while we're munging them, so it's clear at all times what
+# constitutes a valid test case.
+
 _Case = collections.namedtuple('_Case', ['operator', 'state', 'expected'])
 
 
@@ -58,8 +69,10 @@ def _case_id(case):
     return op_part + "-" + state_part
 
 
-# Store cases for the tests of known expectation value in broadcasted form,
-# because it's easier to unroll broadcasted objects than roll up flat ones.
+# This is the minimal set of test cases, with a Fock system and a qubit system
+# both in ket form and dm form.  The reference expectations are a 2D array
+# which would be found by broadcasting `operator` against `state` and applying
+# `qutip.expect` to the pairs.
 _dim = 5
 _num, _a = qutip.num(_dim), qutip.destroy(_dim)
 _sx, _sz, _sp = qutip.sigmax(), qutip.sigmaz(), qutip.sigmap()
@@ -75,6 +88,17 @@ _known_cases = [_known_fock, _case_to_dm(_known_fock),
 
 class TestKnownExpectation:
     def pytest_generate_tests(self, metafunc):
+        """
+        Perform the parametrisation over the test cases, performing the
+        explicit broadcasting into separate test cases when required.
+
+        We detect whether to perform explicit broadcasting over one of the
+        arguments of the `_Case` by looking for a singular/plural name of the
+        parameter in the test.  If the parameter is singular, then we manually
+        perform the broadcasting rule for that fixture, and parametrise over
+        the resulting list, taking care to pick out the correct parts of the
+        reference array.
+        """
         cases = _known_cases
         op_name, state_name = 'operator', 'state'
         if op_name not in metafunc.fixturenames:

@@ -113,6 +113,10 @@ def test_fock_state(dimensions, n_excitations):
 
 
 def _reference_dm(dimensions, n_excitations, nbars):
+    """
+    Get the reference density matrix using `Qobj.eliminate_states` explicitly,
+    to compare to the direct ENR construction.
+    """
     if np.isscalar(nbars):
         nbars = [nbars] * len(dimensions)
     out = qutip.tensor([qutip.thermal_dm(dimension, nbar)

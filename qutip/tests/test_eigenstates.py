@@ -98,6 +98,8 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
         assert np.allclose(test, expected, atol=1e-10)
 
 
+# Specify parametrisation over a random Hamiltonian by specifying the
+# dimensions, rather than duplicating that logic.
 @pytest.fixture(params=[pytest.param([5], id="simple"),
                         pytest.param([5, 3, 4], id="tensor")])
 def random_hamiltonian(request):

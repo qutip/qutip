@@ -67,6 +67,11 @@ class Test_file_data_store_file_data_read:
 
 @pytest.mark.usefixtures("in_temporary_directory")
 def test_qsave_qload():
+    # qsave _always_ appends a suffix to the file name at the time of writing,
+    # but in case this changes in the future, to ensure that we never leak a
+    # temporary file into the user's folders, we simply apply this test in a
+    # temporary directory rather than manually creating a temporary file and
+    # modifying the name.
     ops_in = [qutip.sigmax(),
               qutip.num(_dimension),
               qutip.coherent_dm(_dimension, 1j)]
