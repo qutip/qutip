@@ -54,14 +54,15 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
     Import 'obj_name' defined in 'code'.
     Using a temporary file starting by 'basefilename'.
     """
-    filename = basefilename + str(hash(code))[1:6]
+    filename = (basefilename + str(hash(code))[1:4] +
+                str(os.getpid()) + time.strftime("%M%S"))
     tries = 0
     import_list = []
     ext = ".pyx" if cythonfile else ".py"
     if os.getcwd() not in sys.path:
         sys.path.insert(0, os.getcwd())
     while not import_list and tries < 3:
-        try_file = filename + time.strftime("%d%H%M%S") + str(tries)
+        try_file = filename + str(tries)
         file_ = open(try_file+ext, "w")
         file_.writelines(code)
         file_.close()
