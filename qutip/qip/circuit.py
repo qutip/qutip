@@ -37,7 +37,7 @@ import inspect
 
 import numpy as np
 
-from qutip.qip.circuit_latex import _latex_compile
+from qutip.qip import circuit_latex as _latex
 from qutip.qip.operations.gates import *
 from qutip.qip.qubits import qubit_states
 
@@ -1112,21 +1112,23 @@ class QubitCircuit(object):
 
         return code
 
-    def _repr_png_(self):
-        return _latex_compile(self.latex_code(), format="png")
+    if 'png' in _latex.CONVERTERS:
+        def _repr_png_(self):
+            return _latex.make_image(self.latex_code(), file_type="png")
 
-    def _repr_svg_(self):
-        return _latex_compile(self.latex_code(), format="svg")
+        @property
+        def png(self):
+            from IPython.display import Image
+            return Image(self._repr_png_(), embed=True)
 
-    @property
-    def png(self):
-        from IPython.display import Image
-        return Image(self._repr_png_(), embed=True)
+    if 'svg' in _latex.CONVERTERS:
+        def _repr_svg_(self):
+            return _latex.make_image(self.latex_code(), file_type="svg")
 
-    @property
-    def svg(self):
-        from IPython.display import SVG
-        return SVG(self._repr_svg_())
+        @property
+        def svg(self):
+            from IPython.display import SVG
+            return SVG(self._repr_svg_())
 
     def qasm(self):
 

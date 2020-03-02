@@ -30,7 +30,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import collections
+import functools
 import os
+import shutil
+import subprocess
+import warnings
 
 _latex_template = r"""
 \documentclass{standalone}
@@ -42,31 +47,161 @@ _latex_template = r"""
 """
 
 
-def _latex_compile(code, filename="qcirc", format="png"):
+def _find_system_command(names):
     """
-    Requires: pdflatex, pdfcrop, pdf2svg, imagemagick (convert)
+    Given a list of possible system commands (as strings), return the first one
+    which has a locatable executable form, or `None` if none of them do.
     """
-    os.system("rm -f %s.tex %s.pdf %s.png" % (filename, filename, filename))
+    for name in names:
+        if shutil.which(name) is not None:
+            return name
+    return None
 
-    with open(filename + ".tex", "w") as file:
-        file.write(_latex_template % (_qcircuit_latex_min, code))
 
-    os.system("pdflatex -interaction batchmode %s.tex" % filename)
-    os.system("rm -f %s.aux %s.log" % (filename, filename))
-    os.system("pdfcrop %s.pdf %s-tmp.pdf" % (filename, filename))
-    os.system("mv %s-tmp.pdf %s.pdf" % (filename, filename))
+_pdflatex = _find_system_command(['pdflatex'])
+_pdfcrop = _find_system_command(['pdfcrop'])
 
-    if format == 'png':
-        os.system("convert -density %s %s.pdf %s.png" % (100, filename,
-                                                         filename))
-        with open("%s.png" % filename, "rb") as f:
-            result = f.read()
+
+def _force_remove(*filenames):
+    """`rm -f`: try to remove a file, ignoring errors if it doesn't exist."""
+    for filename in filenames:
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            pass
+
+
+_run_command = functools.partial(subprocess.run, check=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+_run_command.__doc__ = \
+    """
+    Run a command with stdout and stderr explicitly thrown away, raising
+    `subprocess.CalledProcessError` if the command returned a non-zero exit
+    code.
+    """
+
+if _pdfcrop is not None:
+    def _crop_pdf(filename):
+        """Crop the pdf file `filename` in place."""
+        temporary = ".tmp." + filename
+        _run_command((_pdfcrop, filename, temporary))
+        # Windows does not allow renaming to an existing file (but unix does).
+        _force_remove(filename)
+        os.rename(temporary, filename)
+else:
+    def _crop_pdf(_):
+        # Warn, but do not raise - we can recover from a failed crop.
+        warnings.warn("Could not locate system 'pdfcrop':"
+                      " image output may have additional margins.")
+
+
+def _convert_pdf(file_stem):
+    """
+    'Convert' to pdf: since LaTeX outputs a PDF file, there's nothing to do.
+    """
+    with open(file_stem + ".pdf", "rb") as file:
+        return file.read()
+
+
+# Record type to hold definitions of possible conversions - this is just for
+# reading convenience.
+_ConverterConfiguration = collections.namedtuple(
+    '_ConverterConfiguration',
+    ['file_type', 'dependency', 'executables', 'arguments', 'binary'],
+)
+CONVERTERS = {"pdf": _convert_pdf}
+_CONVERTER_CONFIGURATIONS = [
+    _ConverterConfiguration('png', 'ImageMagick', ['magick', 'convert'],
+                            arguments=('-density', '100'), binary=True),
+    _ConverterConfiguration('svg', 'pdf2svg', ['pdf2svg'],
+                            arguments=(), binary=False),
+]
+
+
+def _make_converter(configuration):
+    """
+    Create the actual conversion function of signature
+        file_stem: str -> 'T,
+    where 'T is data in the format to be converted to.
+    """
+    which = _find_system_command(configuration.executables)
+    if which is None:
+        return None
+    mode = "rb" if configuration.binary else "r"
+
+    def converter(file_stem):
+        """
+        Convert a file located in the current directory named `<file_stem>.pdf`
+        to an image format with the name `<file_stem>.xxx`, where `xxx` is
+        converter-dependent.
+
+        Parameters
+        ----------
+        file_stem : str
+            The basename of the PDF file to be converted.
+        """
+        in_file = file_stem + ".pdf"
+        out_file = file_stem + "." + configuration.file_type
+        _run_command((which, *configuration.arguments, in_file, out_file))
+        with open(out_file, mode) as file:
+            return file.read()
+    return converter
+
+
+for configuration in _CONVERTER_CONFIGURATIONS:
+    # Make the converter using a higher-order function, because if we defined a
+    # function in the loop, it would be easy to later introduce bugs due to
+    # leaky closures over loop variables.
+    converter = _make_converter(configuration)
+    if converter:
+        CONVERTERS[configuration.file_type] = converter
     else:
-        os.system("pdf2svg %s.pdf %s.svg" % (filename, filename))
-        with open("%s.svg" % filename) as f:
-            result = f.read()
+        message = "".join(["Could not find system ", possible.dependency, ".",
+                           " Image conversion to '", possible.file_type, "'",
+                           " is unavailable."])
+        # ImportWarning is ignored by default, so the user won't actually see
+        # this warning...
+        warnings.warn(message, category=ImportWarning)
 
-    return result
+
+if _pdflatex is not None:
+    def make_image(code, filename="qcirc", file_type="png"):
+        """
+        Convert the LaTeX `code` into an image format, defined by the
+        `file_type`.  Returns a string or bytes object, depending on whether
+        the requested type is textual (e.g. svg) or binary (e.g. png).  The
+        known file types are in keys in this module's `CONVERTERS` dictionary.
+
+        Parameters
+        ----------
+        code: str
+            LaTeX code representing the circuit to be converted.
+
+        file_type: str ("png")
+            The file type that the image should be returned in.
+
+
+        Returns
+        -------
+        image: str or bytes
+            An encoded version of the image.  Whether the output type is str or
+            bytes depends on whether the requested image format is textual or
+            binary.
+        """
+        _force_remove(*[filename + suffix
+                        for suffix in [".tex", ".pdf", "." + file_type]])
+        with open(filename + ".tex", "w") as file:
+            file.write(_latex_template % (_qcircuit_latex_min, code))
+        _run_command((_pdflatex, '-interaction', 'batchmode', filename))
+        _force_remove(filename + ".aux", filename + ".log")
+        _crop_pdf(filename + ".pdf")
+        if file_type not in CONVERTERS:
+            raise ValueError("Unknown output format: '" + file_type + "'.")
+        return CONVERTERS[file_type](filename)
+else:
+    def make_image(*args, **kwargs):
+        raise RuntimeError("Could not find system 'pdflatex'.")
 
 
 _qcircuit_latex_min = r"""
