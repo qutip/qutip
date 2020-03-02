@@ -14,10 +14,11 @@ Preamble
 
 This document covers the process for managing updates to the current minor release and making new releases.
 
-If just an update (bug fix) to the current minor release is required, 
-then just bugfix_ is needed.
+If just a bug fix update(s) to the current minor release is required, 
+then first follow bugfix_. You will most likely then wish to make a micro release, 
+unless you are waiting for further bug fixes before doing so.
 
-To make a micro (patch) release follow distbuild_, docbuild_, web_, cforge_, pypi_
+To make a micro (patch) release follow newmicrorelease_, distbuild_, docbuild_, web_, cforge_, pypi_
 
 For a minor or major release follow newrelease_, distbuild_, docbuild_, web_, cforge_, pypi_
 
@@ -30,10 +31,12 @@ Git workflow
 
 Apply bug fix to latest release
 -------------------------------
-Assuming that bug has been fixed in some branch from the master called 'fix_bug12'.
-This bug fix should now be applied to the latest release.
+Assuming that the bug(s) has been fixed in some commit on the master,
+then this bug(s) fix should now be applied to the latest release.
+First checkout ``master``, use ``$ git log`` to list the commits,
+and copy the GUID(s) for the bug fix commit(s) to some temporary file or similar.
 
-Check out latest version branch, e.g.
+Now check out latest version branch, e.g.
 
 If you have checked out this branch previously, then ::
 
@@ -50,23 +53,39 @@ Create a branch for the patch ::
 
     $ git checkout -b patch4.0-fix_bug123 qutip-4.0.X
 
-pick the commit(s) from the fix_bug123 branch to be applied to the release, e.g.
+Pick the commit(s) to be applied to the release.
+Using the commit GUID(s) copied earlier, cherry pick them into the current bug fix branch, e.g. ::
 
-This will take the last commit only ::
+    $ git cherry-pick 69d1641239b897eeca158a93b121553284a29ee1
 
-    $ git cherry-pick fix_bug123
-
-This will take the last two commits only::
-
-    $ git cherry-pick fix_bug123 fix_bug123~1
-
-for further options see https://www.kernel.org/pub/software/scm/git/docs/git-cherry-pick.html
+for further info see https://www.kernel.org/pub/software/scm/git/docs/git-cherry-pick.html
 
 push changes to your fork ::
 
     $ git push --set-upstream origin patch4.0-fix_bug123
 
-Make a Pull Request to the latest release branch
+Make a Pull Request to the latest release branch on Github. 
+That is make a PR from the bug fix branch to the release branch (not the master), e.g. `qutip-4.0.X`
+
+Merge this PR when the tests have passed.
+
+.. _newmicrorelease:
+
+Create a new micro release
+--------------------------
+
+If the final step in the release process was completed correctly last time, 
+then the version should already being correct for this micro release,
+but check to be sure.
+That is, one micro release higher than the current release version.
+So you should just need to update the ``ISRELEASED`` flag from ``False`` to ``True`.
+For example, if the current released version is 4.0.0, 
+then the main ``setup.py`` for the project in this branch should now contain ::
+
+    MAJOR = 4
+    MINOR = 0
+    MICRO = 1
+    ISRELEASED = True
 
 .. _newrelease:
 
@@ -85,7 +104,7 @@ Create a new branch from this, e.g. ::
 
     $ git checkout -b 4.1-release_ready qutip-4.1.X
 
-Edit the main setup.py for the project.
+Edit the main ``setup.py`` for the project.
 Update the ``CLASSIFIERS`` to the correct ``Development Status`` ::
 
     CLASSIFIERS = """\
