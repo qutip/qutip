@@ -671,9 +671,9 @@ def spin_q_function(rho, theta, phi):
 
             Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
                   cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
-                  (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] + 
+                  (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] +
                    exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
-            
+
     return Q.real/pi, THETA, PHI
 
 def _rho_kq(rho, j, k, q):
@@ -688,7 +688,8 @@ def _rho_kq(rho, j, k, q):
 
 
 def spin_wigner(rho, theta, phi):
-    """Wigner function for a spin-j system on the 2-sphere of radius j (for j = 1/2 this is the Bloch sphere).
+    """Wigner function for a spin-j system on the 2-sphere of radius j
+       (for j = 1/2 this is the Bloch sphere).
 
     Parameters
     ----------
@@ -726,6 +727,7 @@ def spin_wigner(rho, theta, phi):
 
     for k in range(int(2 * j)+1):
         for q in arange(-k, k+1):
-            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA) # Azimuthal angle, then polar angle
+            # sph_harm takes azimuthal angle then polar angle as arguments
+            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
 
     return W, THETA, PHI
