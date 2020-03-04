@@ -679,8 +679,8 @@ def spin_q_function(rho, theta, phi):
 def _rho_kq(rho, j, k, q):
     v = 0j
 
-    for m1 in range(-j, j+1):
-        for m2 in range(-j, j+1):
+    for m1 in arange(-j, j+1):
+        for m2 in arange(-j, j+1):
             v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2,
                                               q) * rho.data[m1 + j, m2 + j]
 
@@ -688,16 +688,16 @@ def _rho_kq(rho, j, k, q):
 
 
 def spin_wigner(rho, theta, phi):
-    """Wigner function for spins on the Bloch sphere.
+    """Wigner function for a spin-j system on the 2-sphere of radius j (for j = 1/2 this is the Bloch sphere).
 
     Parameters
     ----------
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
-        theta-coordinates at which to calculate the Q function.
+        Polar angle at which to calculate the W function.
     phi : array_like
-        phi-coordinates at which to calculate the Q function.
+        Azimuthal angle at which to calculate the W function.
 
     Returns
     -------
@@ -718,14 +718,14 @@ def spin_wigner(rho, theta, phi):
         rho = ket2dm(rho)
 
     J = rho.shape[0]
-    j = int((J - 1) / 2)
+    j = (J - 1) / 2
 
     THETA, PHI = meshgrid(theta, phi)
 
     W = np.zeros_like(THETA, dtype=complex)
 
     for k in range(int(2 * j)+1):
-        for q in range(-k, k+1):
-            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
+        for q in arange(-k, k+1):
+            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA) # Azimuthal angle, then polar angle
 
     return W, THETA, PHI
