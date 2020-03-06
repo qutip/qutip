@@ -223,10 +223,153 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
 
 class MeSolver(Solver):
+    """Master equation solver for a given Hamiltonian and sets of collapse
+    operators, or Liouvillian
+
+    Evolve the state vector or density matrix (`rho0`) using a given
+    Hamiltonian (`H`) and a set of collapse operators (`c_ops`),
+    by integrating the set of ordinary differential equations
+    that define the system.
+
+    The output is either the state vector at arbitrary points in time
+    (`tlist`), or the expectation values of the supplied operators
+    (`e_ops`). If e_ops is a callback function, it is invoked for each
+    time in `tlist` with time and the state as arguments.
+
+    If either `H` or the Qobj elements in `c_ops` are superoperators, they
+    will be treated as direct contributions to the total system Liouvillian.
+    This allows to solve master equations that are not on standard Lindblad
+    form by passing a custom Liouvillian in place of either the `H` or `c_ops`
+    elements.
+
+    **Time-dependent operators**
+
+    For time-dependent problems, `H` and `c_ops` can be callback
+    functions that takes two arguments, time and `args`, and returns the
+    Hamiltonian or Liouvillian for the system at that point in time
+    (*callback format*).
+
+    Alternatively, `H` and `c_ops` can be a specified in a nested-list format
+    where each element in the list is a list of length 2, containing an
+    operator (:class:`qutip.qobj`) at the first element and where the
+    second element is either a string (*list string format*), a callback
+    function (*list callback format*) that evaluates to the time-dependent
+    coefficient for the corresponding operator, or a NumPy array (*list
+    array format*) which specifies the value of the coefficient to the
+    corresponding operator for each value of t in tlist.
+
+    As an example of a time-dependent problem, consider a Hamiltonian with two
+    terms ``H0`` and ``H1``, where ``H1`` is time-dependent with coefficient
+    ``sin(w*t)``, and collapse operators ``C0`` and ``C1``, where ``C1`` is
+    time-dependent with coeffcient ``exp(-a*t)``.  Here, w and a are constant
+    arguments with values ``W`` and ``A``.
+
+    Using the Python function time-dependent format requires two Python
+    functions, one for each collapse coefficient. Therefore, this problem could
+    be expressed as::
+
+        def H1_coeff(t,args):
+            return sin(args['w']*t)
+
+        def C1_coeff(t,args):
+            return exp(-args['a']*t)
+
+        H = [H0, [H1, H1_coeff]]
+
+        c_ops = [C0, [C1, C1_coeff]]
+
+        args={'a': A, 'w': W}
+
+    or in String (Cython) format we could write::
+
+        H = [H0, [H1, 'sin(w*t)']]
+
+        c_ops = [C0, [C1, 'exp(-a*t)']]
+
+        args={'a': A, 'w': W}
+
+    Constant terms are preferably placed first in the Hamiltonian and collapse
+    operator lists.
+
+    The Hamiltonian and collapse operators can also be represented a function,
+    but this is usually slower than the list format::
+        def H(t, args):
+            return H0 + H1 * sin(args['w']*t)
+
+        def C1(t, args):
+            return c1 * exp(-args['a']*t)
+
+        c_ops = [C0, C1]
+
+    Parameters
+    ----------
+    H : :class:`qutip.Qobj`, ``list``
+        System Hamiltonian.
+
+    c_ops : :class:`qutip.Qobj`, ``list``
+        single collapse operator or a ``list`` of collapse operators.
+
+    args : dict
+        Arguments for time-dependent Hamiltonian and collapse operator terms.
+
+    rho0 : :class:`qutip.Qobj`
+        Initial state
+
+    tlist : array_like
+        Times at array based coefficients of time-dependent systems are taken.
+
+    e_ops : :class:`qutip.Qobj`, ``list``
+        single operator as Qobj or ``list`` or equivalent of Qobj operators
+        for calculating expectation values for feedback. Use the 'e_ops' of the
+        'run' method to obtain the expectation values of the evolutions.
+
+    options : Options
+        Instance of ODE solver options.
+
+    progress_bar: BaseProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation. Set to None to disable the
+        progress bar.
+
+    outtype: [Qobj, dense, sparse]
+        Type of output states.
+
+    Attributes
+    ----------
+    options: :class:`qutip.Options`
+        options for the evolution, some to pass to scipy's solver, some for
+        the output control.
+
+    progress_bar: :class:`qutip.BaseProgressBar`
+        How to show the evolution's progress.
+
+    args: dict
+        arguments for the time-dependent system.
+
+    outtype: ["Qobj", Qobj, "dense", "sparse", scipy.sparse.spmatrix]
+        type of the states being returned.
+
+    Methods
+    -------
+    run(psi0, tlist, num_traj, e_ops=None, args=None, seed=None)
+        Compute num_traj trajectories returning a Result object containing.
+        the expectation values if e_ops is defined. If not defined or
+        options.store_states is set, states are also included in results.
+
+    set(rho0=None, t0=0)
+        Initiate a step by step evolution.
+
+    step(t, args=None, e_ops=[])
+        Evolve to t and return the expectation values if e_ops is given and the
+        state otherwise. If given, new args are used for the evolution. (Might
+        results in a slower step, does not check if the args changed, only that
+        they are given.)
+
+    """
     def __init__(self, H, c_ops, args=None,
                  rho0=None, tlist=[], e_ops=None, options=None,
                  progress_bar=None, outtype=Qobj):
-        self.e_ops = e_ops
+        # self.e_ops = e_ops
         self.args = args
         self.progress_bar = progress_bar
         self.options = options
@@ -240,7 +383,7 @@ class MeSolver(Solver):
         self.c_ops = [qobjevo_maker(op, self.args, tlist=tlist,
                                     e_ops=e_ops, state=rho0) for op in c_ops]
 
-        self.with_state = bool(self.H.dynamics_args)
+        self._with_state = bool(self.H.dynamics_args)
         self.cte = self.H.const
         self.shape = self.H.cte.shape
         self.dims = self.H.cte.dims
@@ -291,7 +434,7 @@ class MeSolver(Solver):
             self.args = args
         opt = self.options
         old_ss = opt.store_states
-        e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
+        e_ops = ExpectOps(e_ops)
         if not e_ops:
             opt.store_states = True
 

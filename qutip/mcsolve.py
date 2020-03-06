@@ -282,14 +282,15 @@ class McSolver(Solver):
         Arguments for time-dependent Hamiltonian and collapse operator terms.
 
     psi0 : :class:`qutip.Qobj`
-        Initial state vector
+        Initial state
 
     tlist : array_like
-        Times at which results are recorded.
+        Times at array based coefficients of time-dependent systems are taken.
 
     e_ops : :class:`qutip.Qobj`, ``list``
         single operator as Qobj or ``list`` or equivalent of Qobj operators
-        for calculating expectation values.
+        for calculating expectation values for feedback. Use the 'e_ops' of the
+        'run' method to obtain the expectation values of the evolutions.
 
     options : Options
         Instance of ODE solver options.
@@ -313,6 +314,12 @@ class McSolver(Solver):
 
     progress_bar: :class:`qutip.BaseProgressBar`
         How to show the evolution's progress.
+
+    args: dict
+        arguments for the time-dependent system.
+
+    outtype: ["Qobj", Qobj, "dense", "sparse", scipy.sparse.spmatrix]
+        type of the states being returned.
 
     states: list of :class:`qutip.Qobj`
         States computed during the last run averaged over trajectories as
@@ -368,13 +375,12 @@ class McSolver(Solver):
                  progress_bar=None, parallel=True, outtype=Qobj):
         self.progress_bar = progress_bar
         self.options = options
-        self._outtype = outtype
-        self._e_ops = e_ops
-        self._args = args
+        self.outtype = outtype
+        self.args = args
 
-        self.H = qobjevo_maker(H, self._args, tlist=tlist,
+        self.H = qobjevo_maker(H, self.args, tlist=tlist,
                                e_ops=e_ops, state=psi0)
-        self.c_ops = [qobjevo_maker(op, self._args, tlist=tlist,
+        self.c_ops = [qobjevo_maker(op, self.args, tlist=tlist,
                                     e_ops=e_ops, state=psi0) for op in c_ops]
 
         self._feedback = (self.H.feedback and
@@ -406,7 +412,7 @@ class McSolver(Solver):
     def _get_solver(self):
         solver = self.options.solver
         if self._solver and self._solver.name == solver:
-            self._solver.update_args(self._args)
+            self._solver.update_args(self.args)
             return self._solver
         if solver in ["scipy_ivp_mc", "scipy_ivp", "ivp"]:
             self.options.solver = "scipy_ivp_mc"
@@ -448,7 +454,7 @@ class McSolver(Solver):
     def run(self, psi0, tlist, num_traj, e_ops=None,
             args=None, seed=None, _safe_mode=False):
         if args is not None:
-            self._args = args
+            self.args = args
         opt = self.options
         old_ss = opt.store_states
         e_ops = ExpectOps(e_ops)
