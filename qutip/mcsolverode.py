@@ -1,14 +1,14 @@
-from numpy.random import RandomState, randint
 import numpy as np
+from numpy.random import RandomState, randint
 from numpy.linalg import norm as la_norm
 from scipy.integrate import solve_ivp, ode
-from qutip.solver import ExpectOps
-from qutip.cy.spmatfuncs import normalize_inplace
-from qutip.parallel import parallel_map, serial_map
-from .qobjevo import QobjEvo
-from .qobj import Qobj
-from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from scipy.integrate._ode import zvode
+from qutip.solver import ExpectOps
+from qutip.parallel import parallel_map, serial_map
+from qutip.cy.spmatfuncs import normalize_inplace
+from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
+from qutip.qobjevo import QobjEvo
+from qutip.qobj import Qobj
 
 class qutip_zvode(zvode):
     def step(self, *args):
@@ -161,7 +161,7 @@ class McOdeQutipDiag(McOdeSolver):
                     for e in e_ops.e_ops]
             self.e_ops = ExpectOps(e_op)
         self.state0 = state0
-        self.tlist = tlist
+        self.tlist = np.array(tlist, dtype=np.double)
         n_tsteps = len(tlist)
 
         map_func = self.map_func
@@ -187,15 +187,16 @@ class McOdeQutipDiag(McOdeSolver):
         for c in c_ops:
             H_ += -0.5 * c.dag() * c
 
-        w, v = np.linalg.eig(H_.full())
+        w, v = np.linalg.eig(H_.cte.full())
         arg = np.argsort(np.abs(w))
         eig = w[arg]
         U = v.T[arg].T
         Ud = U.T.conj()
 
         for c in c_ops:
-            c_diag = Qobj(Ud @ c.full() @ U, dims=c.dims)
-            cevo = QobjEvo(c_diag)
+            # c_diag = Qobj(Ud @ c.cte.full() @ U, dims=c.dims)
+            # cevo = QobjEvo(c_diag)
+            cevo = Qobj(Ud, dims=H_.dims) * c * Qobj(U, dims=H_.dims)
             cdc = cevo._cdc()
             cevo.compile()
             cdc.compile()
@@ -206,7 +207,7 @@ class McOdeQutipDiag(McOdeSolver):
         self.Ud = Ud
         self.U = U
 
-    def _single_traj_diag(self, seed):
+    def _single_traj(self, seed):
         """
         Monte Carlo algorithm returning state-vector or expectation values
         at times tlist for a single trajectory.
@@ -228,7 +229,7 @@ class McOdeQutipDiag(McOdeSolver):
         states_out = np.inner(self.U, states_out).T
         if opt.steady_state_average:
             ss_out /= float(len(tlist))
-        return (states_out, ss_out, e_ops, collapses)
+        return (states_out, ss_out, e_ops.raw_out, collapses)
 
 """
 class McOdeScipyIVP(McOdeSolver):

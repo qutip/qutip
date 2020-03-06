@@ -124,16 +124,12 @@ class OdeSolver:
         size = np.prod(state0.shape)
         if opt.normalize_output and size == self.LH.shape[1]:
             if self.LH.cte.issuper:
-                print("normalize_dm")
                 self.normalize_func = normalize_dm
             else:
-                print("normalize_inplace")
                 self.normalize_func = normalize_inplace
         elif opt.normalize_output and size == np.prod(self.LH.shape):
-            print("normalize_prop")
             self.normalize_func = normalize_op_inplace
         elif opt.normalize_output:
-            print("normalize_mixed", size, self.LH.shape)
             self.normalize_func = normalize_mixed(state0.shape)
 
 
