@@ -142,9 +142,123 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
                           options, progress_bar)
         # solver_safe["sesolve"] = solver
     return solver.run(psi0, tlist, args=args, _safe_mode=_safe_mode)
-    
+
 
 class SeSolver(Solver):
+    """Schrodinger equation solver for a given Hamiltonian.
+
+    Evolve the state vector using a given Hamiltonian (`H`), by integrating
+    the set of ordinary differential equations that define the system.
+
+    The output is either the state vector at arbitrary points in time
+    (`tlist`), or the expectation values of the supplied operators
+    (`e_ops`). If e_ops is a callback function, it is invoked for each
+    time in `tlist` with time and the state as arguments.
+
+    **Time-dependent operators**
+
+    For time-dependent problems, `H` can be a callback function that takes
+    two arguments, time and `args`, and returns the Hamiltonian  for the
+    system at that point in time (*callback format*).
+
+    Alternatively, `H` can be specified in a nested-list format where each
+    element in the list is a list of length 2, containing an operator
+    (:class:`qutip.qobj`) at the first element and where the
+    second element is either a string (*list string format*), a callback
+    function (*list callback format*) that evaluates to the time-dependent
+    coefficient for the corresponding operator, or a NumPy array (*list
+    array format*) which specifies the value of the coefficient to the
+    corresponding operator for each value of t in tlist.
+
+    As an example of a time-dependent problem, consider a Hamiltonian with two
+    terms ``H0`` and ``H1``, where ``H1`` is time-dependent with coefficient
+    ``sin(w*t)``.  Here, w is a constant arguments with values ``W``.
+
+    Using the Python function time-dependent format requires a Python
+    functions. Therefore, this problem could be expressed as::
+
+        def H1_coeff(t,args):
+            return sin(args['w']*t)
+
+        H = [H0, [H1, H1_coeff]]
+
+        args={'a': A}
+
+    or in String (Cython) format we could write::
+
+        H = [H0, [H1, 'sin(w*t)']]
+
+        args={'a': A}
+
+    Constant terms are preferably placed first in the Hamiltonian list.
+
+    The Hamiltonian and collapse operators can also be represented a function,
+    but this is usually slower than the list format::
+        def H(t, args):
+            return H0 + H1 * sin(args['w'] * t)
+
+    Parameters
+    ----------
+    H : :class:`qutip.Qobj`, ``list``
+        System Hamiltonian.
+
+    args : dict
+        Arguments for time-dependent Hamiltonian and collapse operator terms.
+
+    psi0 : :class:`qutip.Qobj`
+        Initial state
+
+    tlist : array_like
+        Times at array based coefficients of time-dependent systems are taken.
+
+    e_ops : :class:`qutip.Qobj`, ``list``
+        single operator as Qobj or ``list`` or equivalent of Qobj operators
+        for calculating expectation values for feedback. Use the 'e_ops' of the
+        'run' method to obtain the expectation values of the evolutions.
+
+    options : Options
+        Instance of ODE solver options.
+
+    progress_bar: BaseProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation. Set to None to disable the
+        progress bar.
+
+    outtype: ["Qobj", Qobj, "dense", "sparse", scipy.sparse.spmatrix]
+        Type of output states.
+
+    Attributes
+    ----------
+    options: :class:`qutip.Options`
+        options for the evolution, some to pass to scipy's solver, some for
+        the output control.
+
+    progress_bar: :class:`qutip.BaseProgressBar`
+        How to show the evolution's progress.
+
+    args: dict
+        arguments for the time-dependent system.
+
+    outtype: ["Qobj", Qobj, "dense", "sparse", scipy.sparse.spmatrix]
+        type of the states being returned.
+
+    Methods
+    -------
+    run(psi0, tlist, e_ops=None, args=None)
+        Compute num_traj trajectories returning a Result object containing.
+        the expectation values if e_ops is defined. If not defined or
+        options.store_states is set, states are also included in results.
+
+    set(psi0, t0=0)
+        Initiate a step by step evolution.
+
+    step(t, args=None, e_ops=[])
+        Evolve to t and return the expectation values if e_ops is given and the
+        state otherwise. If given, new args are used for the evolution. (Might
+        results in a slower step, does not check if the args changed, only that
+        they are given.)
+
+    """
     def __init__(self, H, args=None, psi0=None, tlist=[], e_ops=None,
                  options=None, progress_bar=None, outtype=Qobj):
         self.e_ops = e_ops

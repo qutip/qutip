@@ -303,7 +303,7 @@ class McSolver(Solver):
     parallel : bool
         True to run in parallel, map_func has priority.
 
-    outtype: [Qobj, dense, sparse]
+    outtype: ["Qobj", Qobj, "dense", "sparse", scipy.sparse.spmatrix]
         Type of output states.
 
     Attributes

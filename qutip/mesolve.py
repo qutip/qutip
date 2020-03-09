@@ -294,10 +294,10 @@ class MeSolver(Solver):
     The Hamiltonian and collapse operators can also be represented a function,
     but this is usually slower than the list format::
         def H(t, args):
-            return H0 + H1 * sin(args['w']*t)
+            return H0 + H1 * sin(args['w'] * t)
 
         def C1(t, args):
-            return c1 * exp(-args['a']*t)
+            return c1 * exp(-args['a'] * t)
 
         c_ops = [C0, C1]
 
@@ -331,7 +331,7 @@ class MeSolver(Solver):
         showing the progress of the simulation. Set to None to disable the
         progress bar.
 
-    outtype: [Qobj, dense, sparse]
+    outtype: [Qobj, 'dense', 'sparse']
         Type of output states.
 
     Attributes
@@ -351,12 +351,12 @@ class MeSolver(Solver):
 
     Methods
     -------
-    run(psi0, tlist, num_traj, e_ops=None, args=None, seed=None)
+    run(rho0, tlist, e_ops=None, args=None)
         Compute num_traj trajectories returning a Result object containing.
         the expectation values if e_ops is defined. If not defined or
         options.store_states is set, states are also included in results.
 
-    set(rho0=None, t0=0)
+    set(rho0, t0=0)
         Initiate a step by step evolution.
 
     step(t, args=None, e_ops=[])
