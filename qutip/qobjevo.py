@@ -864,10 +864,10 @@ class QobjEvo:
             self.compiled_qobjevo = None
             self.coeff_get = None
 
-            if self.tlist is None:
+            if self.tlist is None or len(self.tlist) == 0:
                 self.tlist = other.tlist
             else:
-                if other.tlist is None:
+                if other.tlist is None or len(self.tlist) == 0:
                     pass
                 elif len(other.tlist) != len(self.tlist) or \
                         other.tlist[-1] != self.tlist[-1]:

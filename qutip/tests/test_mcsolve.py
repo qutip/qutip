@@ -585,6 +585,24 @@ def test_mc_functd_sum():
     assert_(max([(medata.states[k]-mcdata.states[k]).norm()
                  for k in range(10)]) < 1e-5)
 
+def test_mc_solver():
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
+
+    mcs = McSolver(H, c_op_list, outtype='dense',
+                   options=Options(store_states=True))
+    mcs.run(psi0, tlist, ntraj, [a.dag() * a])
+    expt = mcs.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_equal(avg_diff < mc_error, True)
+    assert(isinstance(mcs.states[0], np.ndarray))
+
 
 if __name__ == "__main__":
     run_module_suite()

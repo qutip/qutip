@@ -45,7 +45,7 @@ from qutip.superoperator import (spre, spost, liouvillian, mat2vec,
                                  vec2mat, lindblad_dissipator)
 from qutip.solver import (Result, Options, config, solver_safe,
                           Solver, ExpectOps)
-from qutip.cy.spmatfuncs import spmv
+from qutip.cy.spmatfuncs import spmv, cy_expect_rho_vec
 from qutip.cy.spconvert import (dense2D_to_fastcsr_cmode,
                                 dense2D_to_fastcsr_fmode)
 
@@ -55,7 +55,7 @@ from qutip.states import ket2dm
 from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.solverode import OdeScipyZvode, OdeScipyDop853, OdeScipyIVP
-
+from qutip.expect import expect
 from qutip.qobjevo import QobjEvo
 from qutip.qobjevo_maker import qobjevo_maker
 from qutip.cy.openmp.utilities import check_use_openmp
@@ -219,7 +219,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         solver = MeSolver(H, c_ops, args, rho0, tlist, e_ops,
                           options, progress_bar)
         # solver_safe["mesolve"] = solver
-    return solver.run(rho0, tlist, args=args, _safe_mode=_safe_mode)
+    return solver.run(rho0, tlist, args=args, e_ops=e_ops,
+                      _safe_mode=_safe_mode)
 
 
 class MeSolver(Solver):
@@ -374,6 +375,7 @@ class MeSolver(Solver):
         self.progress_bar = progress_bar
         self.options = options
         self.outtype = outtype
+        self.e_ops = e_ops
         #if options is None:
         self.options.normalize_output = False
         check_use_openmp(self.options)
@@ -434,11 +436,12 @@ class MeSolver(Solver):
             self.args = args
         opt = self.options
         old_ss = opt.store_states
-        e_ops = ExpectOps(e_ops)
+        e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
         if not e_ops:
             opt.store_states = True
 
-        self.set(rho0, tlist[0])
+        #self.set(rho0, tlist[0])
+        self._set_rho(rho0)
         if _safe_mode:
             self._check(self.rho0)
         output = Result()
@@ -462,18 +465,22 @@ class MeSolver(Solver):
             changed=True
         else:
             changed=False
-        state = self.solver.step(self.rho, t, changed=changed)
+        state = self.solver.step(t, changed=changed)
         self.t = t
         self.rho = state
         if e_ops:
-            return [expect(op, state) for op in e_ops]
-        return self.transform(states)
+            return [self._expect_temp(op, state) for op in e_ops]
+        return self.transform(state)
 
     def set(self, rho0=None, t0=0):
         self.t = t0
         rho0 = rho0 if rho0 is not None else self.rho0
         self._set_rho(rho0)
+        self.solver.set(self.rho, self.t)
 
+    def _expect_temp(self, op, rho):
+        exp = (op.data @ rho.T.reshape(self.state_shape)).trace()
+        return exp.real if op.isherm else exp
 
 class Splited_Liouvillian:
     """apply liouvillian without using super operator.

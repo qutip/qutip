@@ -377,20 +377,21 @@ class McSolver(Solver):
         self.options = options
         self.outtype = outtype
         self.args = args
+        self.e_ops = e_ops
 
         self.H = qobjevo_maker(H, self.args, tlist=tlist,
                                e_ops=e_ops, state=psi0)
         self.c_ops = [qobjevo_maker(op, self.args, tlist=tlist,
                                     e_ops=e_ops, state=psi0) for op in c_ops]
 
-        self._feedback = (self.H.feedback and
-                          all(c.feedback for c in self.c_ops))
+        # self.feedback = (self.H.feedback and
+        #                  all(c.feedback for c in self.c_ops))
         self._const = self.H.const and all(c.const for c in self.c_ops)
-        self._dims = self.H.cte.dims
+        self.dims = self.H.cte.dims
         self._psi0 = None
         self._psi = None
-        self._solver = None
-        self._parallel = parallel
+        self.solver = None
+        self.parallel = parallel
 
         if psi0 is not None:
             self._set_psi(psi0)
@@ -411,13 +412,13 @@ class McSolver(Solver):
 
     def _get_solver(self):
         solver = self.options.solver
-        if self._solver and self._solver.name == solver:
-            self._solver.update_args(self.args)
-            return self._solver
+        if self.solver and self.solver.name == solver:
+            self.solver.update_args(self.args)
+            return self.solver
         if solver in ["scipy_ivp_mc", "scipy_ivp", "ivp"]:
             self.options.solver = "scipy_ivp_mc"
             return McOdeScipyIVP(self.H, self.c_ops,
-                                 self.options, self._parallel,
+                                 self.options, self.parallel,
                                  self.progress_bar)
         elif solver in ["qutip_diag_mc", "diagonal"]:
             if not self._const:
@@ -425,12 +426,12 @@ class McSolver(Solver):
                                  "for constant system")
             self.options.solver = "qutip_diag_mc"
             return McOdeQutipDiag(self.H, self.c_ops,
-                                  self.options, self._parallel,
+                                  self.options, self.parallel,
                                   self.progress_bar)
         elif solver in ["scipy_zvode_mc", "zvode", "scipy_zvode"]:
             self.options.solver = "scipy_zvode_mc"
             return McOdeScipyZvode(self.H, self.c_ops,
-                                   self.options, self._parallel,
+                                   self.options, self.parallel,
                                    self.progress_bar)
         else:
             raise ValueError("Invalid solver")
@@ -444,7 +445,7 @@ class McSolver(Solver):
         self._state_dims = psi0.dims
         self._state_shape = psi0.shape
         self._psi = psi0.full().ravel("F")
-        self._solver = self._get_solver()
+        self.solver = self._get_solver()
 
     def _check(self, psi0):
         if not psi0.isket and (self._dims[1] == psi0.dims[0]):
@@ -457,7 +458,7 @@ class McSolver(Solver):
             self.args = args
         opt = self.options
         old_ss = opt.store_states
-        e_ops = ExpectOps(e_ops)
+        e_ops = ExpectOps(e_ops if e_ops is not None else self.e_ops)
         if not e_ops:
             opt.store_states = True
         self.set(psi0, tlist[0])
@@ -467,7 +468,7 @@ class McSolver(Solver):
         self.nums_traj = num_traj if isinstance(num_traj, list) else [num_traj]
         self.num_traj = max(self.nums_traj)
         self.seed(self.num_traj, seed)
-        results = self._solver.run(self._psi, self.num_traj, self.seeds, tlist,
+        results = self.solver.run(self._psi, self.num_traj, self.seeds, tlist,
                                   {}, e_ops)
 
         for result in results:

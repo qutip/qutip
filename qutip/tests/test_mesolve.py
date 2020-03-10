@@ -854,7 +854,7 @@ class TestMESolveStepFuncCoeff:
 
         H = [qeye(2), [destroy(2)+create(2), f]]
         res = mesolve(H, basis(2,1)*basis(2,1).dag(), c_ops=[qeye(2)],
-                      tlist=np.linspace(0,10,11), e_ops=[num(2)], 
+                      tlist=np.linspace(0,10,11), e_ops=[num(2)],
                       args={"state_vec":basis(2,1)*basis(2,1).dag()})
         assert_(max(abs(res.expect[0][5:])) < tol,
             msg="evolution with feedback not proceding as expected")
@@ -869,6 +869,38 @@ class TestMESolveStepFuncCoeff:
         assert_(max(abs(res.expect[0][5:])) < tol,
             msg="evolution with feedback not proceding as expected")
 
+    def test_MeSolver(self):
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        kappa = 0.2  # coupling to oscillator
+        c_op_list = [np.sqrt(kappa) * a]
+        tlist = np.linspace(0, 10, 100)
+
+        mes = MeSolver(H, c_op_list, outtype='dense',
+                       options=Options(store_states=True))
+        res = mes.run(psi0, tlist, e_ops=[a.dag() * a])
+        actual_answer = 9.0 * np.exp(-kappa * tlist)
+        avg_diff = np.mean(abs(actual_answer - res.expect[0]))
+        assert_allclose(actual_answer, res.expect[0], atol=1e-6)
+        assert(isinstance(res.states[0], np.ndarray))
+
+    def test_stepper(self):
+        "mesolve: step evolution"
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        kappa = 0.2  # coupling to oscillator
+        c_op_list = [np.sqrt(kappa) * a]
+        tlist = np.linspace(0, 10, 100)
+
+        mes = MeSolver(H, c_op_list)
+        mes.set(psi0)
+        for t in tlist[1:]:
+            assert(abs(mes.step(t, e_ops=[a.dag() * a])[0] -
+                       9.0 * np.exp(-kappa * t) < 1e-5))
 
 if __name__ == "__main__":
     run_module_suite()

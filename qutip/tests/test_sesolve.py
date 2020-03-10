@@ -41,8 +41,10 @@ from qutip import sigmax, sigmay, sigmaz, qeye
 from qutip import basis, expect
 from qutip import num, destroy, create
 from qutip.interpolate import Cubic_Spline
-from qutip import sesolve
+from qutip import sesolve, SeSolver
 from qutip.solver import Options
+
+import pytest
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
@@ -376,6 +378,60 @@ class TestSESolve:
                       e_ops=[num(2)], args={"expect_op_0":num(2)})
         assert_(max(abs(res.expect[0][5:])) < tol,
                 msg="evolution with feedback not proceding as expected")
+
+    def test_SeSolver(self):
+        "sesolve: run as solver and outtype"
+        eps = 0.2 * 2*np.pi
+        delta = 1.0 * 2*np.pi
+        w0 = 0.5*eps
+        w1 = 0.5*delta
+        H0 = w0*sigmaz()
+        H1 = w1*sigmax()
+        H = H0 + H1
+        psi0 = basis(2, 0)
+        tlist = np.linspace(0, 20, 200)
+
+        ses = SeSolver(H, outtype='dense')
+        res = ses.run(psi0, tlist)
+        assert(isinstance(res.states[0], np.ndarray))
+
+    def test_stepper(self):
+        "sesolve: step evolution"
+        eps = 0.2 * 2*np.pi
+        delta = 1.0 * 2*np.pi
+        w0 = 0.5*eps
+        w1 = 0.5*delta
+        H0 = w0*sigmaz()
+        H1 = w1*sigmax()
+        H = H0 + H1
+        psi0 = basis(2, 0)
+        tlist = np.linspace(0, 20, 200)
+
+        res = sesolve(H, psi0, tlist, [sigmaz()],
+                      options=Options(normalize_output=False))
+        ses = SeSolver(H, options=Options(normalize_output=False))
+        ses.set(psi0)
+        for i,t in enumerate(tlist[1:]):
+            assert(abs(ses.step(t, e_ops=[sigmaz()])[0] -
+                       res.expect[0][i+1]) < 1e-7)
+
+    @pytest.mark.slow
+    def test_SeSolver(self):
+        "sesolve: run as solver and outtype"
+        eps = 0.2 * 2*np.pi
+        delta = 1.0 * 2*np.pi
+        w0 = 0.5*eps
+        w1 = 0.5*delta
+        H0 = w0*sigmaz()
+        H1 = w1*sigmax()
+        H = H0 + H1
+        psi0 = basis(2, 0)
+        tlist = np.linspace(0, 20, 200)
+
+        ses = SeSolver(H, outtype='dense')
+        res = ses.run(psi0, tlist)
+        assert(isinstance(res.states[0], np.ndarray))
+
 
 if __name__ == "__main__":
     run_module_suite()

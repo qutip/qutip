@@ -323,7 +323,8 @@ class SeSolver(Solver):
         if not self.e_ops:
             opt.store_states = True
 
-        self.set(psi0, tlist[0])
+        #self.set(psi0, tlist[0])
+        self._set_psi(psi0)
         if _safe_mode:
             self._check(self.psi0)
         output = Result()
@@ -348,14 +349,15 @@ class SeSolver(Solver):
             changed=True
         else:
             changed=False
-        state = self.solver.step(self.psi, t, changed=changed)
+        state = self.solver.step(t, changed=changed)
         self.t = t
         self.psi = state
         if e_ops:
-            return [expect(op, state) for op in e_ops]
-        return self.transform(states)
+            return [cy_expect_psi(op.data, state, op.isherm) for op in e_ops]
+        return self.transform(state)
 
     def set(self, psi0=None, t0=0):
         self.t = t0
         psi0 = psi0 if psi0 is not None else self.psi0
         self._set_psi(psi0)
+        self.solver.set(self.psi, self.t)
