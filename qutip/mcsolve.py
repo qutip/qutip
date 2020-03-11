@@ -442,8 +442,8 @@ class McSolver(Solver):
         self._collapse = []
         self._ss_out = []
         self._psi0 = psi0
-        self._state_dims = psi0.dims
-        self._state_shape = psi0.shape
+        self.state_dims = psi0.dims
+        self.state_shape = psi0.shape
         self._psi = psi0.full().ravel("F")
         self.solver = self._get_solver()
 
@@ -482,8 +482,9 @@ class McSolver(Solver):
         self._ss_out = np.stack(self._ss_out)
         self._expect_out = np.stack(self._expect_out)
         self._expect = e_ops
+        res = self.get_result()
         opt.store_states = old_ss
-        return self.get_result()
+        return res
 
     def step(self, t, args=None, e_ops=[]):
         raise NotImplementedError
@@ -494,8 +495,8 @@ class McSolver(Solver):
         self._set_psi(psi0)
 
     def _state2dm(self, t_idx):
-        dims = self._state_dims[0]
-        len_ = self._state_shape[0]
+        dims = self.state_dims[0]
+        len_ = self.state_shape[0]
         dm_t = np.einsum("ri,rj->ij", self._psi_out[:,t_idx,:],
                          self._psi_out[:,t_idx,:].conj())
         dm_t = self.transform(dm_t/self.num_traj,
@@ -531,8 +532,8 @@ class McSolver(Solver):
         else:
             dm_t = np.einsum("rti,rtj->ij", self._psi_out, self._psi_out.conj())
             dm_t /= len(self.tlist) * len(self.num_traj)
-        dims = self._state_dims[0]
-        len_ = self._state_shape[0]
+        dims = self.state_dims[0]
+        len_ = self.state_shape[0]
         return self.transform(dm_t, dims=[dims, dims], shape=(len_, len_))
 
     @property
@@ -617,7 +618,7 @@ class McSolver(Solver):
 
         if options.steady_state_average:
             output.steady_state = self.steady_state
-        if options.average_states and options.store_states:
+        if options.average_states:
             output.states = np.array(self.states, dtype=object)
         elif options.store_states:
             output.states = np.array(self.runs_states, dtype=object)
