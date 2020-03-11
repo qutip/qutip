@@ -38,8 +38,6 @@ import numpy as np
 from numpy.random import RandomState, randint
 import scipy.sparse as sp
 from scipy.integrate import ode
-
-
 from types import FunctionType, BuiltinFunctionType
 from functools import partial
 from qutip.fastsparse import csr2fast
@@ -47,23 +45,19 @@ from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.qobjevo_maker import qobjevo_maker
 from qutip.parallel import parfor, parallel_map, serial_map
-#from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result, ExpectOps, Solver,
                           solver_safe, SolverSystem)
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
+from qutip.mcsolverode import McOdeScipyZvode, McOdeQutipDiag
 import qutip.settings
 
-from .mcsolverode import McOdeScipyZvode, McOdeQutipDiag
 
 if debug:
     import inspect
 
-#
-# Internal, global variables for storing references to dynamically loaded
-# cython functions
 
 # Todo: use real warning
 def warn(text):
@@ -181,15 +175,18 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops=[], ntraj=0,
         of the mcsolver by passing the output Result object seeds via the
         Options class, i.e. Options(seeds=prev_result.seeds).
     """
-    if isinstance(c_ops, (Qobj, QobjEvo)): c_ops = [c_ops]
+    if isinstance(c_ops, (Qobj, QobjEvo)):
+        c_ops = [c_ops]
 
     if len(c_ops) == 0:
         warn("No c_ops, using sesolve")
         return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
                        options=options, progress_bar=progress_bar,
                        _safe_mode=_safe_mode)
-    if options is None: options=Options()
-    if ntraj == 0: ntraj =  options.ntraj
+    if options is None:
+        options=Options()
+    if ntraj == 0:
+        ntraj =  options.ntraj
     nums_traj = ntraj if isinstance(ntraj, list) else [ntraj]
     if seeds is None: seeds = options.seeds
     if map_func is parallel_map:
@@ -203,8 +200,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops=[], ntraj=0,
              "Use the object interface of instead: 'McSolver'")
         if "mcsolve" in solver_safe:
             solver = solver_safe["mcsolve"]
-            if e_ops: solver.e_ops = e_ops
-            if options is not None: solver.options = options
+            if e_ops:
+                solver.e_ops = e_ops
+            if options is not None:
+                solver.options = options
             solver.progress_bar = progress_bar
         else:
             solver = McSolver(H, c_ops, args, psi0, tlist, e_ops,

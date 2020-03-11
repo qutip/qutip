@@ -10,6 +10,7 @@ from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from qutip.qobjevo import QobjEvo
 from qutip.qobj import Qobj
 
+
 class qutip_zvode(zvode):
     def step(self, *args):
         itask = self.call_args[2]
@@ -78,7 +79,8 @@ class McOdeScipyZvode(McOdeSolver):
         """
         Internal function for solving ODEs.
         """
-        if args: self.update_args(args)
+        if args:
+            self.update_args(args)
         self.e_ops = self._prepare_e_ops(e_ops)
         self.state0 = state0
         self.tlist = tlist
@@ -99,8 +101,8 @@ class McOdeScipyZvode(McOdeSolver):
         func = self.Hevo._get_mul(state0)
         r = ode(func)
         options_keys = ['atol', 'rtol', 'nsteps', 'method', 'order'
-                        'first_step', 'max_step','min_step']
-        options = {key:getattr(opt, key)
+                        'first_step', 'max_step', 'min_step']
+        options = {key: getattr(opt, key)
                    for key in options_keys
                    if hasattr(opt, key)}
         r.set_integrator('zvode', method="adams")
@@ -154,7 +156,6 @@ class McOdeQutipDiag(McOdeSolver):
         """
         Internal function for solving ODEs.
         """
-        #if args: self.update_args(args)
         e_ops = self._prepare_e_ops(e_ops)
         if e_ops and not e_ops.isfunc:
             e_op = [Qobj(self.Ud @ e.full() @ self.U, dims=e.dims)
@@ -230,6 +231,7 @@ class McOdeQutipDiag(McOdeSolver):
         if opt.steady_state_average:
             ss_out /= float(len(tlist))
         return (states_out, ss_out, e_ops.raw_out, collapses)
+
 
 """
 class McOdeScipyIVP(McOdeSolver):

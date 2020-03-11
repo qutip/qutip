@@ -449,6 +449,33 @@ class TestSESolve:
         assert_allclose(res, res3, atol=5e-5)
         assert_allclose(res, res4, atol=5e-5)
 
+    # @pytest.mark.slow
+    def test_stepper(self):
+        "sesolve: step evolution"
+        eps = 0.2 * 2*np.pi
+        delta = 1.0 * 2*np.pi
+        w0 = 0.5*eps
+        w1 = 0.5*delta
+        H0 = w0*sigmaz()
+        H1 = w1*sigmax()
+        H = H0 + H1
+        psi0 = basis(2, 0)
+        tlist = np.linspace(0, 20, 200)
+
+        res = sesolve(H, psi0, tlist, [sigmaz()],
+                      options=Options(normalize_output=True))
+        ses2 = SeSolver(H, options=Options(normalize_output=True,
+                                           solver='scipy_dop853'))
+        ses3 = SeSolver(H, options=Options(normalize_output=True,
+                                           solver='scipy_ivp',
+                                           method='RK45'))
+        ses2.set(psi0)
+        ses3.set(psi0)
+        for i,t in enumerate(tlist[1:]):
+            assert(abs(ses2.step(t, e_ops=[sigmaz()])[0] 
+                       - res.expect[0][i+1])<5e-5)
+            assert(abs(ses3.step(t, e_ops=[sigmaz()])[0]
+                       - res.expect[0][i+1])<5e-5)
 
 if __name__ == "__main__":
     run_module_suite()

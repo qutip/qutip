@@ -1423,41 +1423,29 @@ class QobjEvo:
             return out
 
     def _get_mul(self, state):
-        type_ = ""
-        if isinstance(state, Qobj):
-            if self.cte.dims == state.dims:
-                type_ = "oper" # same shape and dims
-            elif self.cte.dims[1] == state.dims[0] and state.dims[1] == [1]:
-                type_ = "vec" # matching dims vector
-            else:
-                type_ = "mat" # anything else, not check if it really fit.
-        elif len(state.shape) == 2:
-            if self.cte.shape == state.shape:
-                type_ = "oper"
-            elif self.shape[1] == state.shape[0] and state.shape[1] == 1:
-                type_ = "vec"
-            else:
-                type_ = "mat"
-        elif len(state.shape) == 1:
-            if np.prod(self.cte.shape) == state.shape[0]:
-                type_ = "oper"
-            elif self.shape[1] == state.shape[0]:
-                type_ = "vec"
-            else:
-                type_ = "mat"
+        if len(state.shape) == 1:
+            shape = (state.shape[0], 1)
+        else:
+            shape = state.shape
+        if self.cte.shape == shape:
+            type_ = "oper"
+        elif self.shape[1] == shape[0] and shape[1] == 1:
+            type_ = "vec"
+        else:
+            type_ = "mat"
         if self.compiled:
             if type_ == "oper":
-                return self.compiled_qobjevo.ode_mul_mat_f_oper
+                func = self.compiled_qobjevo.ode_mul_mat_f_oper
             elif type_ == "vec":
-                return self.compiled_qobjevo.mul_vec
+                func = self.compiled_qobjevo.mul_vec
             elif type_ == "mat":
-                return self.compiled_qobjevo.ode_mul_mat_f_vec
+                func = self.compiled_qobjevo.ode_mul_mat_f_vec
         else:
             if type_ in ["oper", "mat"]:
-                return self.mul_mat
+                func = self.mul_mat
             else:
-                return self.mul_vec
-
+                func = self.mul_vec
+        return func
 
     def compile(self, code=False, matched=False, dense=False, omp=0):
         self.tidyup()

@@ -99,6 +99,11 @@ class OdeSolver:
         self.options = options
         self.progress_bar = progress_bar
         self.statetype = "dense"
+        self.normalize_func = dummy_normalize
+        self._r = None
+        self._error_msg = ("ODE integration error: Try to increase "
+                           "the allowed number of substeps by increasing "
+                           "the nsteps parameter in the Options class.")
 
     def run(self, state0, tlist, args={}):
         raise NotImplementedError
@@ -111,6 +116,14 @@ class OdeSolver:
 
     def update_args(self, args):
         self.LH.arguments(args)
+
+    @staticmethod
+    def funcwithfloat(func):
+        def new_func(t, y):
+            y_cplx = y.view(complex)
+            dy = func(t, y_cplx)
+            return dy.view(np.float64)
+        return new_func
 
     @staticmethod
     def _prepare_e_ops(e_ops):
@@ -138,17 +151,12 @@ class OdeScipyZvode(OdeSolver):
     # Solve an ODE for func.
     # Calculate the required expectation values or invoke callback
     # function at each time step.
+    #
+    # Use scipy's Ode, with zvode solver
+    #
     def __init__(self, LH, options, progress_bar):
-        self.LH = LH
-        self.options = options
-        self.progress_bar = progress_bar
-        self.statetype = "dense"
+        super(OdeScipyZvode, self).__init__(LH, options, progress_bar)
         self.name = "scipy_zvode"
-        self._r = None
-        self.normalize_func = dummy_normalize
-        self._error_msg = ("ODE integration error: Try to increase "
-                           "the allowed number of substeps by increasing "
-                           "the nsteps parameter in the Options class.")
 
     def run(self, state0, tlist, args={}, e_ops=[]):
         """
@@ -201,9 +209,9 @@ class OdeScipyZvode(OdeSolver):
         opt = self.options
         func = self.LH._get_mul(state0)
         r = ode(func)
-        options_keys = ['atol', 'rtol', 'nsteps', 'method', 'order'
-                        'first_step', 'max_step','min_step']
-        options = {key:getattr(opt, key)
+        options_keys = ['atol', 'rtol', 'nsteps', 'method', 'order',
+                        'first_step', 'max_step',' min_step']
+        options = {key: getattr(opt, key)
                    for key in options_keys
                    if hasattr(opt, key)}
         r.set_integrator('zvode', **options)
@@ -221,17 +229,12 @@ class OdeScipyDop853(OdeSolver):
     # Solve an ODE for func.
     # Calculate the required expectation values or invoke callback
     # function at each time step.
+    #
+    # Use scipy's Ode, with dop853 solver
+    #
     def __init__(self, LH, options, progress_bar):
-        self.LH = LH
-        self.options = options
-        self.progress_bar = progress_bar
-        self.statetype = "dense"
+        super(OdeScipyDop853, self).__init__(LH, options, progress_bar)
         self.name = "scipy_dop853"
-        self._r = None
-        self.normalize_func = dummy_normalize
-        self._error_msg = ("ODE integration error: Try to increase "
-                           "the allowed number of substeps by increasing "
-                           "the nsteps parameter in the Options class.")
 
     def run(self, state0, tlist, args={}, e_ops=[]):
         """
@@ -269,16 +272,8 @@ class OdeScipyDop853(OdeSolver):
                 self.progress_bar.update(t_idx)
         self.progress_bar.finished()
         states[-1, :] = r.y.view(complex)
-        self.normalize_func(states[-1,:])
+        self.normalize_func(states[-1, :])
         return states, e_ops.finish()
-
-    @staticmethod
-    def funcwithfloat(func):
-        def new_func(t, y):
-            y_cplx = y.view(complex)
-            dy = func(t, y_cplx)
-            return dy.view(np.float64)
-        return new_func
 
     def step(self, t, reset=False, changed=False):
         if reset:
@@ -294,7 +289,7 @@ class OdeScipyDop853(OdeSolver):
         r = ode(self.funcwithfloat(func))
         options_keys = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
                         'ifactor', 'dfactor', 'beta']
-        options = {key:getattr(opt, key)
+        options = {key: getattr(opt, key)
                    for key in options_keys
                    if hasattr(opt, key)}
         r.set_integrator('dop853', **options)
@@ -308,29 +303,24 @@ class OdeScipyDop853(OdeSolver):
 
 
 class OdeScipyIVP(OdeSolver):
+    # -------------------------------------------------------------------------
+    # Solve an ODE for func.
+    # Calculate the required expectation values or invoke callback
+    # function at each time step.
+    #
+    # Use scipy's Solve_ivp
+    #
     def __init__(self, LH, options, progress_bar):
-        self.LH = LH
-        self.options = options
-        self.progress_bar = progress_bar
-        self.statetype = "dense"
+        super(OdeScipyIVP, self).__init__(LH, options, progress_bar)
         self.name = "scipy_ivp"
-        self.normalize_func = dummy_normalize
-
-    @staticmethod
-    def funcwithfloat(func):
-        def new_func(t, y):
-            y_cplx = y.view(complex)
-            dy = func(t, y_cplx)
-            return dy.view(np.float64)
-        return new_func
 
     def run(self, state0, tlist, args={}, e_ops=[]):
         """
         Internal function for solving ODEs.
         """
-        #TODO: normalization in solver
-        # > v1: event, step when norm bad
-        # > v2: extra non-hermitian term to
+        # TODO: normalization in solver
+        # ?> v1: event, step when norm bad
+        # ?> v2: extra non-hermitian term to H
         opt = self.options
         normalize_func = self.normalize_func
         e_ops = self._prepare_e_ops(e_ops)
@@ -360,10 +350,11 @@ class OdeScipyIVP(OdeSolver):
     def step(self, t, reset=False, changed=False):
         ode_res = solve_ivp(self.func, [self._t, t], self._y,
                             t_eval=[t], **self.ivp_opt)
-        self._y = ode_res.y.T[0].view(complex)
+        self._y = ode_res.y.T[0]
+        state = self._y.copy().view(complex)
         self._t = t
-        self.normalize_func(self._y)
-        return self._y
+        self.normalize_func(state)
+        return state
 
     def set(self, state0, t0):
         opt = self.options
@@ -375,7 +366,7 @@ class OdeScipyIVP(OdeSolver):
             self._y = state0.view(np.float64)
 
         options_keys = ['method', 'atol', 'rtol', 'nsteps']
-        self.ivp_opt = {key:getattr(opt, key)
+        self.ivp_opt = {key: getattr(opt, key)
                         for key in options_keys
                         if hasattr(opt, key)}
         self._prepare_normalize_func(state0)

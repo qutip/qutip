@@ -46,8 +46,6 @@ except:
 else:
     Cython_found = 1
 
-kappa = 0.2
-
 
 def sqrt_kappa(t, args):
     return np.sqrt(kappa)
@@ -63,6 +61,7 @@ def const_H1_coeff(t, args):
 # average error for failure
 mc_error = 5e-2  # 5%
 ntraj = 750
+kappa = 0.2
 
 
 def test_MCNoCollExpt():
@@ -586,6 +585,7 @@ def test_mc_functd_sum():
     assert_(max([(medata.states[k]-mcdata.states[k]).norm()
                  for k in range(10)]) < 1e-5)
 
+
 def test_mc_solver():
     N = 10  # number of basis states to consider
     a = destroy(N)
@@ -619,6 +619,7 @@ def test_mc_solver():
     res2 = np.array(mcsolve(H, psi0, tlist, c_op_list, c_op_list,
                             options=Options(solver='qutip_diag_mc')).expect)
     assert_allclose(res, res2, atol=1e-6, rtol=1e-5)
+
 
 if __name__ == "__main__":
     run_module_suite()

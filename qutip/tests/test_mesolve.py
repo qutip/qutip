@@ -32,7 +32,7 @@
 ###############################################################################
 
 from functools import partial
-
+import pytest
 import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_allclose
 
@@ -743,7 +743,6 @@ class TestMESolverMisc:
 
     def testSEFinalState(self):
         "sesolve: final_state has correct dims"
-
         N = 5
         psi0 = tensor(basis(N+1,0), basis(N+1,0), basis(N+1,N))
         a = tensor(destroy(N+1), qeye(N+1), qeye(N+1))
@@ -923,6 +922,29 @@ class TestMESolveStepFuncCoeff:
                                ).expect[0])
         assert_allclose(res, res2, atol=1e-6, rtol=1e-5)
         assert_allclose(res, res3, atol=1e-6, rtol=1e-5)
+
+    # @pytest.mark.slow
+    def test_stepper_solver(self):
+        "mesolve: step evolution"
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        kappa = 0.2  # coupling to oscillator
+        c_op_list = [np.sqrt(kappa) * a]
+        tlist = np.linspace(0, 10, 100)
+
+        mes2 = MeSolver(H, c_op_list, options=Options(solver='scipy_dop853'))
+        mes3 = MeSolver(H, c_op_list, options=Options(solver='scipy_ivp',
+                                                      method='LSODA'))
+        mes2.set(psi0)
+        mes3.set(psi0)
+        for t in tlist[1:]:
+            assert(abs(mes2.step(t, e_ops=[a.dag() * a])[0] -
+                       9.0 * np.exp(-kappa * t) < 1e-5))
+            assert(abs(mes3.step(t, e_ops=[a.dag() * a])[0] -
+                       9.0 * np.exp(-kappa * t) < 1e-5))
+
 
 if __name__ == "__main__":
     run_module_suite()
