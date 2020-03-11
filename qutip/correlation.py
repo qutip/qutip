@@ -125,7 +125,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     if debug:
         print(inspect.stack()[0][3])
 
@@ -201,7 +202,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     if debug:
         print(inspect.stack()[0][3])
 
@@ -277,7 +279,8 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     if debug:
         print(inspect.stack()[0][3])
 
@@ -347,7 +350,8 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     if debug:
         print(inspect.stack()[0][3])
 
@@ -410,7 +414,8 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
         The normalized and unnormalized second-order coherence function.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     # first calculate the photon number
     if state0 is None:
         state0 = steadystate(H, c_ops)
@@ -477,7 +482,8 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
         The normalized and unnormalized second-order coherence function.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     # first calculate the photon number
     if state0 is None:
         state0 = steadystate(H, c_ops)
@@ -665,7 +671,8 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
 
     warn("correlation_ss() now legacy, please use correlation_2op_1t() with" +
          "initial state as None", FutureWarning)
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     if debug:
         print(inspect.stack()[0][3])
 
@@ -745,7 +752,8 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     warn("correlation() now legacy, please use correlation_2op_2t()",
          FutureWarning)
 
@@ -821,7 +829,8 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
               Use correlation_3op_1t() instead.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     warn("correlation_4op_1t() now legacy, please use correlation_3op_1t()",
          FutureWarning)
     warn("the reverse argument has been removed as it did not contain any" +
@@ -911,7 +920,8 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     warn("correlation_4op_2t() now legacy, please use correlation_3op_2t()",
          FutureWarning)
     warn("the reverse argument has been removed as it did not contain any" +
@@ -1091,7 +1101,8 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         rho0 = ket2dm(state0)
     else:
         rho0 = state0
-    if options is None: options = Options()
+    if options is None:
+        options = Options()
 
     H = qobjevo_maker(H, args, tlist)
     rho_t = mesolve(H, rho0, tlist, c_ops, [],
@@ -1195,7 +1206,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     <A(t)B(t+tau)C(t)>
     using a Monte Carlo solver.
     """
-    if options is None: options = Options(ntraj=[20, 100])
+    if options is None:
+        options = Options(ntraj=[20, 100])
     if not c_ops:
         raise TypeError("If no collapse operators are required, use the `me`" +
                         "or `es` solvers")
@@ -1242,7 +1254,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                                                          taulist,
                                                          options.ntraj[1],
                                                          e_ops=[b_op]
-                                                        ).expect[0]
+                                                         ).expect[0]
 
                     # final correlation vector computed by combining the
                     # averages
@@ -1266,7 +1278,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 c_tau = [chi.norm()**2 * solver.run(chi/chi.norm(), taulist,
                                                     options.ntraj[1],
                                                     e_ops=[b_op]
-                                                   ).expect[0]
+                                                    ).expect[0]
                          for chi in chi_0]
 
                 # final correlation vector computed by combining the averages

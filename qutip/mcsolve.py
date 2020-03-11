@@ -184,11 +184,12 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops=[], ntraj=0,
                        options=options, progress_bar=progress_bar,
                        _safe_mode=_safe_mode)
     if options is None:
-        options=Options()
+        options = Options()
     if ntraj == 0:
-        ntraj =  options.ntraj
+        ntraj = options.ntraj
     nums_traj = ntraj if isinstance(ntraj, list) else [ntraj]
-    if seeds is None: seeds = options.seeds
+    if seeds is None:
+        seeds = options.seeds
     if map_func is parallel_map:
         parallel = True
     elif map_func is serial_map:
@@ -461,7 +462,8 @@ class McSolver(Solver):
         if not e_ops:
             opt.store_states = True
         self.set(psi0, tlist[0])
-        if _safe_mode: self._check(self._psi0)
+        if _safe_mode:
+            self._check(self._psi0)
 
         self.tlist = tlist
         self.nums_traj = num_traj if isinstance(num_traj, list) else [num_traj]
@@ -519,8 +521,8 @@ class McSolver(Solver):
     @property
     def runs_states(self):
         return [[self.transform(self._psi_out[i, t, :])
-                 for t in range(len(self.tlist))]
-                 for i in range(self.num_traj)]
+                for t in range(len(self.tlist))]
+                for i in range(self.num_traj)]
 
     @property
     def steady_state(self):

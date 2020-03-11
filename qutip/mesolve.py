@@ -206,8 +206,10 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
              "Use the object interface of instead: 'MeSolver'")
         if "mesolve" in solver_safe:
             solver = solver_safe["mesolve"]
-            if e_ops: solver.e_ops = e_ops
-            if options is not None: solver.options = options
+            if e_ops:
+                solver.e_ops = e_ops
+            if options is not None:
+                solver.options = options
             solver.progress_bar = progress_bar
         else:
             c_ops = c_ops if c_ops is not None else []
@@ -218,7 +220,6 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         c_ops = c_ops if c_ops is not None else []
         solver = MeSolver(H, c_ops, args, rho0, tlist, e_ops,
                           options, progress_bar)
-        # solver_safe["mesolve"] = solver
     return solver.run(rho0, tlist, args=args, e_ops=e_ops,
                       _safe_mode=_safe_mode)
 
@@ -462,9 +463,9 @@ class MeSolver(Solver):
     def step(self, t, args=None, e_ops=[]):
         if args is not None:
             self.solver.update_args(args)
-            changed=True
+            changed = True
         else:
-            changed=False
+            changed = False
         state = self.solver.step(t, changed=changed)
         self.t = t
         self.rho = state

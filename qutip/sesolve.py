@@ -130,8 +130,10 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
              "Use the object interface of instead: 'SeSolver'")
         if "sesolve" in solver_safe:
             solver = solver_safe["sesolve"]
-            if e_ops: solver.e_ops = e_ops
-            if options is not None: solver.options = options
+            if e_ops:
+                solver.e_ops = e_ops
+            if options is not None:
+                solver.options = options
             solver.progress_bar = progress_bar
         else:
             solver = SeSolver(H, args, psi0, tlist, e_ops,
@@ -267,10 +269,8 @@ class SeSolver(Solver):
         self.options = options
         self.outtype = outtype
         check_use_openmp(self.options)
-
-        self.H = -1j* qobjevo_maker(H, self.args, tlist=tlist,
-                                    e_ops=self.e_ops, state=psi0)
-
+        self.H = -1j * qobjevo_maker(H, self.args, tlist=tlist,
+                                     e_ops=self.e_ops, state=psi0)
         self.with_state = bool(self.H.dynamics_args)
         self.cte = self.H.const
         self.shape = self.H.cte.shape
@@ -346,9 +346,9 @@ class SeSolver(Solver):
     def step(self, t, args=None, e_ops=[]):
         if args is not None:
             self.solver.update_args(args)
-            changed=True
+            changed = True
         else:
-            changed=False
+            changed = False
         state = self.solver.step(t, changed=changed)
         self.t = t
         self.psi = state

@@ -210,7 +210,7 @@ class OdeScipyZvode(OdeSolver):
         func = self.LH._get_mul(state0)
         r = ode(func)
         options_keys = ['atol', 'rtol', 'nsteps', 'method', 'order',
-                        'first_step', 'max_step',' min_step']
+                        'first_step', 'max_step', 'min_step']
         options = {key: getattr(opt, key)
                    for key in options_keys
                    if hasattr(opt, key)}

@@ -454,7 +454,8 @@ class QobjEvoFunc(QobjEvo):
 
     def liouvillian(self, c_ops=[], chi=None):
         res = self.copy()
-        if res.cte.issuper: return res
+        if res.cte.issuper:
+            return res
         c_ops = [qobjevo_maker(c_op) for c_op in c_ops]
         res.operation_stack.append(_Block_liouvillian(c_ops, chi))
         res._reset_type()
@@ -485,7 +486,8 @@ class QobjEvoFunc(QobjEvo):
     def _liouvillian_h(self):
         """return 1j * (spre(a) - spost(a)) """
         res = self.copy()
-        if res.cte.issuper: return res
+        if res.cte.issuper:
+            return res
         res.operation_stack.append(_Block_liouvillian_H())
         res._reset_type()
         return res

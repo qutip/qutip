@@ -149,7 +149,7 @@ def propagator(H, tlist, c_ops=[], args={}, options=None,
 
         if parallel:
             u = np.zeros([N, N, len(tlist)], dtype=complex)
-            system = MeSolver(H_td, c_ops, args, tlist=tlist, 
+            system = MeSolver(H_td, c_ops, args, tlist=tlist,
                               options=options, outtype="dense")
             output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(sqrt_N, system, tlist),
@@ -163,8 +163,6 @@ def propagator(H, tlist, c_ops=[], args={}, options=None,
             rho0.dims = dims
             Us = mesolve(H_td, rho0, tlist, c_ops, [], args,
                          options, progress_bar=progress_bar).states
-
-
     return Us if not one_time else Us[-1]
 
 
