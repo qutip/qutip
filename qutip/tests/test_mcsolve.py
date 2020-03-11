@@ -32,7 +32,8 @@
 ###############################################################################
 import pytest
 import numpy as np
-from numpy.testing import assert_equal, run_module_suite, assert_
+from numpy.testing import (assert_equal, run_module_suite,
+                           assert_, assert_allclose)
 import unittest
 from qutip import *
 from qutip import _version2int
@@ -603,6 +604,21 @@ def test_mc_solver():
     assert_equal(avg_diff < mc_error, True)
     assert(isinstance(mcs.states[0], np.ndarray))
 
+
+@pytest.mark.slow
+def test_mc_solver():
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
+
+    res = np.array(mcsolve(H, psi0, tlist, c_op_list, c_op_list).expect)
+    res2 = np.array(mcsolve(H, psi0, tlist, c_op_list, c_op_list,
+                            options=Options(solver='qutip_diag_mc')).expect)
+    assert_allclose(res, res2, atol=1e-6, rtol=1e-5)
 
 if __name__ == "__main__":
     run_module_suite()

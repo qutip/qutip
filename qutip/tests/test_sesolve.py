@@ -32,7 +32,7 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import (assert_, run_module_suite, assert_allclose)
 
 # disable the progress bar
 import os
@@ -416,21 +416,38 @@ class TestSESolve:
                        res.expect[0][i+1]) < 1e-7)
 
     @pytest.mark.slow
-    def test_SeSolver(self):
-        "sesolve: run as solver and outtype"
+    def test_Solvers(self):
+        "sesolve: all solver"
         eps = 0.2 * 2*np.pi
         delta = 1.0 * 2*np.pi
         w0 = 0.5*eps
         w1 = 0.5*delta
-        H0 = w0*sigmaz()
-        H1 = w1*sigmax()
+        H0 = w0 * sigmaz()
+        H1 = w1 * sigmax()
         H = H0 + H1
         psi0 = basis(2, 0)
         tlist = np.linspace(0, 20, 200)
 
-        ses = SeSolver(H, outtype='dense')
-        res = ses.run(psi0, tlist)
-        assert(isinstance(res.states[0], np.ndarray))
+        res = np.array(sesolve(H, psi0, tlist, [sigmax(), sigmay(), sigmaz()],
+                               options=Options(normalize_output=True)
+                              ).expect)
+        res2 = np.array(sesolve(H, psi0, tlist, [sigmax(), sigmay(), sigmaz()],
+                                options=Options(normalize_output=False,
+                                                solver='scipy_dop853')
+                               ).expect)
+        res3 = np.array(sesolve(H, psi0, tlist, [sigmax(), sigmay(), sigmaz()],
+                                options=Options(normalize_output=True,
+                                                solver='scipy_ivp',
+                                                method='LSODA')
+                               ).expect)
+        res4 = np.array(sesolve(H, psi0, tlist, [sigmax(), sigmay(), sigmaz()],
+                                options=Options(normalize_output=True,
+                                                solver='scipy_ivp',
+                                                method='RK45')
+                               ).expect)
+        assert_allclose(res, res2, atol=5e-5)
+        assert_allclose(res, res3, atol=5e-5)
+        assert_allclose(res, res4, atol=5e-5)
 
 
 if __name__ == "__main__":

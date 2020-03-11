@@ -902,5 +902,27 @@ class TestMESolveStepFuncCoeff:
             assert(abs(mes.step(t, e_ops=[a.dag() * a])[0] -
                        9.0 * np.exp(-kappa * t) < 1e-5))
 
+    @pytest.mark.slow
+    def test_Solvers(self):
+        "mesolve: all solver"
+        N = 10  # number of basis states to consider
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        kappa = 0.2  # coupling to oscillator
+        c_op_list = [np.sqrt(kappa) * a]
+        tlist = np.linspace(0, 10, 100)
+
+        res = np.array(mesolve(H, psi0, tlist, c_op_list, c_op_list).expect[0])
+        res2 = np.array(mesolve(H, psi0, tlist, c_op_list, c_op_list,
+                                options=Options(solver='scipy_dop853')
+                               ).expect[0])
+        res3 = np.array(mesolve(H, psi0, tlist, c_op_list, c_op_list,
+                                options=Options(solver='scipy_ivp',
+                                                method='LSODA')
+                               ).expect[0])
+        assert_allclose(res, res2, atol=1e-6, rtol=1e-5)
+        assert_allclose(res, res3, atol=1e-6, rtol=1e-5)
+
 if __name__ == "__main__":
     run_module_suite()

@@ -354,7 +354,7 @@ class OdeScipyIVP(OdeSolver):
                 states[t_idx, :] = y_cplx
             e_ops.step(t_idx, y_cplx)
         if not opt.store_states:
-            states[0, :] = cdata
+            states[0, :] = y_cplx
         return states, e_ops.finish()
 
     def step(self, t, reset=False, changed=False):
