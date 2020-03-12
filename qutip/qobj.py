@@ -1706,7 +1706,7 @@ class Qobj(object):
         else:
             phase = np.array([np.abs(ket[phase_fix,0]) / ket[phase_fix,0]
                               if ket[phase_fix,0] else 1
-                              for ket in ekets ])
+                              for ket in ekets])
         return evals, ekets / norms * phase
 
     def eigenenergies(self, sparse=False, sort='low',
