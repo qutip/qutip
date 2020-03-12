@@ -2,21 +2,21 @@ version: "2"
 checks:
   argument-count:
     config:
-      threshold: 10
+      threshold: 8
   complex-logic:
     config:
-      threshold: 20
+      threshold: 10
   file-lines:
     enabled: false
   method-complexity:
     config:
-      threshold: 20
+      threshold: 10
   method-count:
     config:
-      threshold: 70
+      threshold: 50
   method-lines:
     config:
-      threshold: 100
+      threshold: 70
   nested-control-flow:
     config:
       threshold: 4
@@ -25,10 +25,10 @@ checks:
       threshold: 4
   similar-code:
     config:
-      threshold: 64
+      threshold: 32
   identical-code:
     config:
-      threshold: 64
+      threshold: 32
 plugins:
   fixme:
     enabled: true
