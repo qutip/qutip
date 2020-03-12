@@ -78,9 +78,10 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
             time.sleep(0.05)
             tries += 1
             _try_remove(try_file+ext)
+            err = e
     if not import_list:
         raise Exception("Could not convert string to importable function, "
-                        "tmpfile:" + try_file + ext) from e
+                        "tmpfile:" + try_file + ext) from err
     coeff_obj = import_list[0]
     return coeff_obj, try_file + ext
 
