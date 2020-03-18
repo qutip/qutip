@@ -45,6 +45,13 @@ from qutip.cy.graph_utils import (
     _breadth_first_search, _node_degrees,
     _reverse_cuthill_mckee, _maximum_bipartite_matching,
     _weighted_bipartite_matching)
+import warnings
+
+
+def _deprecate():
+    warnings.warn(("qutip graph functions are deprecated."
+                   " Consider using scipy.sparse.csgraph instead."),
+                  DeprecationWarning)
 
 
 def graph_degree(A):
@@ -62,6 +69,7 @@ def graph_degree(A):
     degree : array
         Array of integers giving the degree for each node (row).
     """
+    _deprecate()
     if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
         raise TypeError('Input must be CSC or CSR sparse matrix.')
     return np.asarray(_node_degrees(A.indices, A.indptr, A.shape[0]))
@@ -90,6 +98,7 @@ def breadth_first_search(A, start):
         Level of the nodes in the order that they are traversed.
 
     """
+    _deprecate()
     if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
         raise TypeError('Input must be CSC or CSR sparse matrix.')
     num_rows = A.shape[0]
@@ -117,6 +126,7 @@ def column_permutation(A):
     perm : array
         Array of permuted row and column indices.
     """
+    _deprecate()
     if not sp.isspmatrix_csc(A):
         A = sp.csc_matrix(A)
     count = np.diff(A.indptr)
@@ -160,6 +170,7 @@ def reverse_cuthill_mckee(A, sym=False):
     Matrices", ACM '69 Proceedings of the 1969 24th national conference,
     (1969).
     """
+    _deprecate()
     if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
         raise TypeError('Input must be CSC or CSR sparse matrix.')
     nrows = A.shape[0]
@@ -201,6 +212,7 @@ def maximum_bipartite_matching(A, perm_type='row'):
     Analysis of Maximum Transversal Algorithms", ACM Trans. Math. Softw.
     38, no. 2, (2011).
     """
+    _deprecate()
     nrows = A.shape[0]
     if A.shape[0] != A.shape[1]:
         raise ValueError(
@@ -258,6 +270,7 @@ def weighted_bipartite_matching(A, perm_type='row'):
     large entries to the diagonal of sparse matrices", SIAM J.  Matrix Anal.
     and Applics. 20, no. 4, 889 (1997).
     """
+    _deprecate()
     nrows = A.shape[0]
     if A.shape[0] != A.shape[1]:
         raise ValueError('weighted_bfs_matching requires a square matrix.')
