@@ -44,7 +44,7 @@ from qutip.tensor import tensor
 from qutip.states import fock_dm
 
 
-__all__ = ['x_gate', 'y_gate', 'z_gate', 's_gate', 't_gate', 
+__all__ = ['x_gate', 'y_gate', 'z_gate', 's_gate', 't_gate',
            'rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
@@ -65,7 +65,7 @@ def x_gate(N=None, target=0):
     Returns
     -------
     result : qobj
-        Quantum object for operator describing 
+        Quantum object for operator describing
         a single-qubit rotation through pi radians around the x-axis.
 
     Examples
@@ -90,9 +90,9 @@ def y_gate(N=None, target=0):
     Returns
     -------
     result : qobj
-        Quantum object for operator describing 
+        Quantum object for operator describing
         a single-qubit rotation through pi radians around the y-axis.
-    
+
     Examples
     --------
     >>> sigmay()
@@ -115,9 +115,9 @@ def z_gate(N=None, target=0):
     Returns
     -------
     result : qobj
-        Quantum object for operator describing 
+        Quantum object for operator describing
         a single-qubit rotation through pi radians around the z-axis.
-    
+
     Examples
     --------
      >>> sigmaz()
@@ -131,7 +131,7 @@ def z_gate(N=None, target=0):
     if N is not None:
         return gate_expand_1toN(z_gate(), N, target)
     else:
-        return sigmaz()   
+        return sigmaz()
 
 
 def s_gate(N=None, target=0):
@@ -140,14 +140,15 @@ def s_gate(N=None, target=0):
     Returns
     -------
     result : qobj
-        Quantum object for operator describing a 90 degree rotation around the z-axis.
+        Quantum object for operator describing
+        a 90 degree rotation around the z-axis.
 
     """
     if N is not None:
         return gate_expand_1toN(s_gate(), N, target)
     else:
         return Qobj([[1, 0],
-                     [0, -1j]])
+                    [0, -1j]])
 
 
 def t_gate(N=None, target=0):
@@ -163,7 +164,7 @@ def t_gate(N=None, target=0):
         return gate_expand_1toN(t_gate(), N, target)
     else:
         return Qobj([[1, 0],
-                     [0, np.exp(1j*np.pi/4)]])
+                    [0, np.exp(1j*np.pi/4)]])
                      
 
 def rx(phi, N=None, target=0):
