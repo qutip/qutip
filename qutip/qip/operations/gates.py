@@ -165,7 +165,7 @@ def t_gate(N=None, target=0):
     else:
         return Qobj([[1, 0],
                     [0, np.exp(1j*np.pi/4)]])
-      
+
 
 def rx(phi, N=None, target=0):
     """Single-qubit rotation for operator sigmax with angle phi.
