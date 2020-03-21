@@ -39,12 +39,13 @@ from operator import mul
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
-from qutip.operators import identity, qeye, sigmax
+from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
 from qutip.tensor import tensor
 from qutip.states import fock_dm
 
 
-__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
+__all__ = ['x_gate','y_gate','z_gate','s_gate','t_gate',
+           'rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
            'sqrtiswap', 'fredkin', 'molmer_sorensen',
@@ -57,6 +58,109 @@ __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
 # Single Qubit Gates
 #
 
+def x_gate(N=None, target=0):
+    """Pauli-X gate or sigmax operator.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing a single-qubit rotation through pi radians around the x-axis.
+
+    Examples
+    --------
+    >>> sigmax()
+    Quantum object: dims = [[2], [2]], \
+    shape = [2, 2], type = oper, isHerm = False
+    Qobj data =
+    [[ 0.  1.]
+     [ 1.  0.]]
+
+    """
+    if N is not None:
+        return gate_expand_1toN(x_gate(), N, target)
+    else:
+        return sigmax()
+
+
+def y_gate(N=None, target=0):
+    """Pauli-Y gate or sigmay operator.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing a single-qubit rotation through pi radians around the y-axis.
+    
+    Examples
+    --------
+    >>> sigmay()
+    Quantum object: dims = [[2], [2]], \
+    shape = [2, 2], type = oper, isHerm = True
+    Qobj data =
+    [[ 0.+0.j  0.-1.j]
+     [ 0.+1.j  0.+0.j]]
+
+    """
+    if N is not None:
+        return gate_expand_1toN(y_gate(), N, target)
+    else:
+        return sigmay()
+
+
+def z_gate(N=None, target=0):
+    """Pauli-Z gate or sigmaz operator.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing a single-qubit rotation through pi radians around the z-axis.
+    
+    Examples
+    --------
+     >>> sigmaz()
+    Quantum object: dims = [[2], [2]], \
+    shape = [2, 2], type = oper, isHerm = True
+    Qobj data =
+    [[ 1.  0.]
+     [ 0. -1.]]
+
+    """
+    if N is not None:
+        return gate_expand_1toN(z_gate(), N, target)
+    else:
+        return sigmaz()   
+
+
+def s_gate(N=None, target=0):
+    """Single-qubit rotation also called Phase gate or the Z90 gate.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing a 90 degree rotation around the z-axis.
+
+    """
+    if N is not None:
+        return gate_expand_1toN(s_gate(), N, target)
+    else:
+        return Qobj([[1, 0],
+                     [0, -1j]])
+
+
+def t_gate(N=None, target=0):
+    """Single-qubit rotation related to the S gate by the relationship S=T*T.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing a phase shift of pi/4.
+
+    """
+    if N is not None:
+        return gate_expand_1toN(t_gate(), N, target)
+    else:
+        return Qobj([[1, 0],
+                     [0, np.exp(1j*np.pi/4)]])
+                     
 
 def rx(phi, N=None, target=0):
     """Single-qubit rotation for operator sigmax with angle phi.
