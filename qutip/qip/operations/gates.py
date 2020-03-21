@@ -44,7 +44,7 @@ from qutip.tensor import tensor
 from qutip.states import fock_dm
 
 
-__all__ = ['x_gate','y_gate','z_gate','s_gate','t_gate',
+__all__ = ['x_gate', 'y_gate', 'z_gate', 's_gate', 't_gate', 
            'rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
@@ -58,13 +58,15 @@ __all__ = ['x_gate','y_gate','z_gate','s_gate','t_gate',
 # Single Qubit Gates
 #
 
+
 def x_gate(N=None, target=0):
     """Pauli-X gate or sigmax operator.
 
     Returns
     -------
     result : qobj
-        Quantum object for operator describing a single-qubit rotation through pi radians around the x-axis.
+        Quantum object for operator describing 
+        a single-qubit rotation through pi radians around the x-axis.
 
     Examples
     --------
@@ -88,7 +90,8 @@ def y_gate(N=None, target=0):
     Returns
     -------
     result : qobj
-        Quantum object for operator describing a single-qubit rotation through pi radians around the y-axis.
+        Quantum object for operator describing 
+        a single-qubit rotation through pi radians around the y-axis.
     
     Examples
     --------
@@ -112,7 +115,8 @@ def z_gate(N=None, target=0):
     Returns
     -------
     result : qobj
-        Quantum object for operator describing a single-qubit rotation through pi radians around the z-axis.
+        Quantum object for operator describing 
+        a single-qubit rotation through pi radians around the z-axis.
     
     Examples
     --------

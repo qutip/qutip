@@ -110,7 +110,7 @@ class Gate(object):
                             "GLOBALPHASE", "CRX", "CRY", "CRZ"]:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
-        
+
         elif name in ["X", "Y", "Z", "S", "T"]:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
