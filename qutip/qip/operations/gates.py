@@ -157,7 +157,7 @@ def t_gate(N=None, target=0):
     Returns
     -------
     result : qobj
-        Quantum object for operator describing a phase shift of pi/4.S
+        Quantum object for operator describing a phase shift of pi/4.
 
     """
     if N is not None:
