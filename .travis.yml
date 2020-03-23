@@ -151,4 +151,6 @@ jobs:
     - stage: test
       <<: *stage_linux_37_openblas
     - stage: test
+      <<: *stage_linux_38
+    - stage: test
       <<: *stage_osx
