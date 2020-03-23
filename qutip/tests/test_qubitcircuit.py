@@ -169,7 +169,7 @@ class TestQubitCircuit:
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
         qc.add_gate("SNOT", targets=[3])
         qc.add_gate(test_gate, index = [3])
-        qc.add_1q_gate("RY", start = 4, end = 6, arg_value = 1.570796)
+        qc.add_1q_gate("RY", start = 4, end = 5, arg_value = 1.570796)
 
         # Test explicit gate addition
         assert_(qc.gates[0].name == "CNOT")
@@ -187,9 +187,10 @@ class TestQubitCircuit:
         assert_(qc.gates[3].controls == test_gate.controls)
 
         # Test adding 1 qubit gate on [start, end] qubits
-        for i in range(4, 7):
-            assert_(qc.gates[i].name == "RY")
-            assert_(qc.gates[i].targets == [i])
+        assert_(qc.gates[5].name == "RY")
+        assert_(qc.gates[5].targets == [4])
+        assert_(qc.gates[6].name == "RY")
+        assert_(qc.gates[6].targets == [5])
 
     def test_add_state(self):
         """
