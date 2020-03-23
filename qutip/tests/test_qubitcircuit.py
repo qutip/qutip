@@ -32,7 +32,7 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import assert_, assert_allclose, run_module_suite
+from numpy.testing import assert_raises, assert_, assert_allclose, run_module_suite
 from qutip.qip.operations.gates import (
     gate_sequence_product, rx, expand_operator)
 from qutip.operators import identity
@@ -247,6 +247,11 @@ class TestQubitCircuit:
         assert_(qc.input_states[2] == None)
         assert_(qc.output_states[1] == "+")
 
+    def test_exceptions(self):
+        qc = QubitCircuit(2)
+        for gate in ["X", "Y", "Z", "S", "T"]:
+            assert_raises(ValueError, qc.add_gate, gate, targets=[1], controls=[0])
+
     def test_user_gate(self):
         """
         User defined gate for QubitCircuit
@@ -264,9 +269,9 @@ class TestQubitCircuit:
 
         qc = QubitCircuit(3)
         qc.user_gates = {"CTRLRX": customer_gate1,
-                         "T": customer_gate2}
+                         "T1": customer_gate2}
         qc.add_gate("CTRLRX", targets=[1, 2], arg_value=np.pi/2)
-        qc.add_gate("T", targets=[1])
+        qc.add_gate("T1", targets=[1])
         props = qc.propagators()
         result1 = tensor(identity(2), customer_gate1(np.pi/2))
         assert_allclose(props[0], result1)
