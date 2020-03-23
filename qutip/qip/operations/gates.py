@@ -120,8 +120,7 @@ def x_gate(N=None, target=0):
         return gate_expand_1toN(x_gate(), N, target)
     else:
         return Qobj([[0, 1],
-                     [1, 0]],
-                    dims=[[2, 2], [2, 2]])
+                     [1, 0]])
 
 
 def y_gate(N=None, target=0):
@@ -160,7 +159,7 @@ def cy_gate(N=None, control=0, target=1):
                      [0, 1, 0, 0],
                      [0, 0, 0, -1j],
                      [0, 0, 1j, 0]],
-                    dims=[[2, 2], [2, 2]])
+                    )
 
 
 def z_gate(N=None, target=0):

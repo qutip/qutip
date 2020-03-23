@@ -37,8 +37,10 @@ from numpy.testing import (assert_, assert_allclose, assert_array_equal,
                            run_module_suite)
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
-from qutip.qip.operations.gates import (rx, ry, rz, phasegate, qrot, cnot, swap, iswap,
-                       sqrtswap, molmer_sorensen,
+from qutip.qip.operations.gates import (rx, ry, rz, x_gate, y_gate,
+                       z_gate, s_gate, t_gate, cy_gate, cz_gate, 
+                       cs_gate, ct_gate, phasegate, qrot, 
+                       cnot, swap, iswap, sqrtswap, molmer_sorensen,
                        toffoli, fredkin, gate_expand_3toN, 
                        qubit_clifford_group, expand_operator)
 from qutip.random_objects import rand_ket, rand_herm, rand_unitary, rand_dm
@@ -69,6 +71,31 @@ class TestGates:
 
         psi_res = swap() * swap() * psi_in
         assert_((psi_in - psi_res).norm() < 1e-12)
+
+    def test1QubitGates(self):
+        """
+        gates: X,Y,Z,S,T gates
+        """
+        N = 7
+        for g in [x_gate, y_gate, z_gate, s_gate, t_gate]:
+
+            a, b = np.random.rand(), np.random.rand()
+            psi1 = (a * basis(2, 0) + b * basis(2, 1)).unit()
+            psi2 = g() * psi1
+
+            psi_rand_list = [rand_ket(2) for k in range(N)]
+
+            for m in range(N):
+
+                psi_in = tensor([psi1 if k == m else psi_rand_list[k]
+                                 for k in range(N)])
+                psi_out = tensor([psi2 if k == m else psi_rand_list[k]
+                                  for k in range(N)])
+
+                G = g(N, m)
+                psi_res = G * psi_in
+
+                assert_((psi_out - psi_res).norm() < 1e-12)
 
     def test_clifford_group_len(self):
         assert_(len(list(qubit_clifford_group())) == 24)
