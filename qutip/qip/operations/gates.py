@@ -106,6 +106,178 @@ def rz(phi, N=None, target=0):
                      [0, np.exp(1j * phi / 2)]])
 
 
+def x_gate(N=None, target=0):
+    """Single-qubit rotation through pi radians around the x-axis.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if N is not None:
+        return gate_expand_1toN(x_gate(), N, target)
+    else:
+        return Qobj([[0, 1],
+                     [1, 0]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def y_gate(N=None, target=0):
+    """Single-qubit rotation through pi radians around the y-axis.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if N is not None:
+        return gate_expand_1toN(y_gate(), N, target)
+    else:
+        return Qobj([[0, -1j],
+                     [1j, 0]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def cy_gate(N=None, control=0, target=1):
+    """Controlled Y gate.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+
+    if N is not None:
+        return gate_expand_2toN(cy_gate(), N, control, target)
+    else:
+        return Qobj([[1, 0, 0, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 0, -1j],
+                     [0, 0, 1j, 0]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def z_gate(N=None, target=0):
+    """Single-qubit rotation through pi radians around the z-axis.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if N is not None:
+        return gate_expand_1toN(z_gate(), N, target)
+    else:
+        return Qobj([[1, 0],
+                     [0, -1j]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def cz_gate(N=None, control=0, target=1):
+    """Controlled Z gate.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+
+    if N is not None:
+        return gate_expand_2toN(cz_gate(), N, control, target)
+    else:
+        return Qobj([[1, 0, 0, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 0, 0, -1j]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def s_gate(N=None, target=0):
+    """Single-qubit rotation through half-pi radians around the z-axis.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if N is not None:
+        return gate_expand_1toN(s_gate(), N, target)
+    else:
+        return Qobj([[1, 0],
+                     [0, 1.0j]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def cs_gate(N=None, control=0, target=1):
+    """Controlled S gate.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+
+    if N is not None:
+        return gate_expand_2toN(cs_gate(), N, control, target)
+    else:
+        return Qobj([[1, 0, 0, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 0, 0, 1j]],
+                    dims=[[2, 2], [2, 2]])
+
+def t_gate(N=None, target=0):
+    """Single-qubit rotation through quarter-pi radians around the z-axis.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if N is not None:
+        return gate_expand_1toN(t_gate(), N, target)
+    else:
+        return Qobj([[1, 0],
+                     [0, np.exp(1j * np.pi / 4)]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def ct_gate(N=None, control=0, target=1):
+    """Controlled T gate.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+
+    if N is not None:
+        return gate_expand_2toN(ct_gate(), N, control, target)
+    else:
+        return Qobj([[1, 0, 0, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 0, 0, np.exp(1j * np.pi / 4)]],
+                    dims=[[2, 2], [2, 2]])
+    
+
 def sqrtnot(N=None, target=0):
     """Single-qubit square root NOT gate.
 
