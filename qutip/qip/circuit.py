@@ -96,13 +96,13 @@ class Gate(object):
             if self.controls is not None:
                 raise ValueError("Gate %s cannot have a control" % name)
 
-        elif name in ["CNOT", "CSIGN", "CRX", "CRY", "CRZ"]:
+        elif name in ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ", "CS", "CT"]:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
             if self.controls is None or len(self.controls) != 1:
                 raise ValueError("Gate %s requires one control" % name)
 
-        elif name in ["SNOT", "RX", "RY", "RZ", "PHASEGATE"]:
+        elif name in ["SNOT", "RX", "RY", "RZ", "PHASEGATE", "X", "Y", "Z", "S", "T"]:
             if self.controls is not None:
                 raise ValueError("Gate %s does not take controls" % name)
 
@@ -134,6 +134,15 @@ _gate_name_to_label = {
     'CRX': r'R_x',
     'CRY': r'R_y',
     'CRZ': r'R_z',
+    'X': r'X',
+    'Y': r'Y',
+    'CY': r'C_y',
+    'Z': r'Z',
+    'CZ': r'C_z',
+    'S': r'S',
+    'CS': r'C_s',
+    'T': r'T',
+    'CT': r'C_t',
     'SQRTNOT': r'\sqrt{\rm NOT}',
     'SNOT': r'{\rm H}',
     'PHASEGATE': r'{\rm PHASE}',
@@ -305,7 +314,7 @@ class QubitCircuit(object):
         arg_label : string
             Label for gate representation.
         """
-        if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
+        if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE", "X", "Y", "Z", "S", "T"]:
             raise ValueError("%s is not a single qubit gate" % name)
 
         if qubits is not None:
@@ -341,7 +350,10 @@ class QubitCircuit(object):
             if gate.name in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
                 self.add_gate(gate.name, gate.targets[0] + start, None,
                               gate.arg_value, gate.arg_label)
-            elif gate.name in ["CPHASE", "CNOT", "CSIGN", "CRX", "CRY", "CRZ"]:
+            elif gate.name in ["X", "Y", "Z", "S", "T"]:
+                self.add_gate(gate.name, gate.targets[0] + start, None,
+                              None, gate.arg_label)
+            elif gate.name in ["CPHASE", "CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ", "CS", "CT"]:
                 self.add_gate(gate.name, gate.targets[0] + start,
                               gate.controls[0] + start, gate.arg_value,
                               gate.arg_label)
@@ -478,6 +490,10 @@ class QubitCircuit(object):
             elif gate.name == "RY":
                 temp_resolved.append(gate)
             elif gate.name == "RZ":
+                temp_resolved.append(gate)
+            elif gate.name in ("X", "Y", "Z", "S", "T"):
+                temp_resolved.append(gate)
+            elif gate.name in ("CY", "CZ", "CS", "CT"):
                 temp_resolved.append(gate)
             elif gate.name == "SQRTNOT":
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
@@ -965,6 +981,28 @@ class QubitCircuit(object):
                 self.U_list.append(ry(gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "RZ":
                 self.U_list.append(rz(gate.arg_value, self.N, gate.targets[0]))
+            elif gate.name == "X":
+                self.U_list.append(x_gate(self.N, gate.targets[0]))
+            elif gate.name == "Y":
+                self.U_list.append(y_gate(self.N, gate.targets[0]))
+            elif gate.name == "CY":
+                self.U_list.append(cy_gate(self.N,
+                                        gate.controls[0], gate.targets[0]))
+            elif gate.name == "Z":
+                self.U_list.append(z_gate(self.N, gate.targets[0]))
+            elif gate.name == "CZ":
+                self.U_list.append(cz_gate(self.N,
+                                        gate.controls[0], gate.targets[0]))
+            elif gate.name == "T":
+                self.U_list.append(t_gate(self.N, gate.targets[0]))
+            elif gate.name == "CT":
+                self.U_list.append(ct_gate(self.N,
+                                        gate.controls[0], gate.targets[0]))
+            elif gate.name == "S":
+                self.U_list.append(s_gate(self.N, gate.targets[0]))
+            elif gate.name == "CS":
+                self.U_list.append(cs_gate(self.N,
+                                        gate.controls[0], gate.targets[0]))
             elif gate.name == "SQRTNOT":
                 self.U_list.append(sqrtnot(self.N, gate.targets[0]))
             elif gate.name == "SNOT":
@@ -1069,6 +1107,14 @@ class QubitCircuit(object):
                                                     gate.arg_label)))
 
                     elif gate.name == "CNOT":
+                        col.append(r" \targ ")
+                    elif gate.name == "CY":
+                        col.append(r" \targ ")
+                    elif gate.name == "CZ":
+                        col.append(r" \targ ")
+                    elif gate.name == "CS":
+                        col.append(r" \targ ")
+                    elif gate.name == "CT":
                         col.append(r" \targ ")
                     elif gate.name == "TOFFOLI":
                         col.append(r" \targ ")
