@@ -159,9 +159,9 @@ class TestQubitCircuit:
 
     def test_add_gate(self):
         """
-        Addition of a gate object directly to a `QubitCircuit` 
+        Addition of a gate object directly to a `QubitCircuit`
         """
-        qc = QubitCircuit(3)
+        qc = QubitCircuit(6)
         qc.add_gate("CNOT", targets=[1], controls=[0])
         test_gate = Gate("RZ", targets=[1], arg_value = 1.570796,
                          arg_label="P")
@@ -169,6 +169,7 @@ class TestQubitCircuit:
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
         qc.add_gate("SNOT", targets=[3])
         qc.add_gate(test_gate, index = [3])
+        qc.add_1q_gate("RY", start = 4, end = 6, arg_value = 1.570796)
 
         # Test explicit gate addition
         assert_(qc.gates[0].name == "CNOT")
@@ -184,6 +185,11 @@ class TestQubitCircuit:
         assert_(qc.gates[3].name == test_gate.name)
         assert_(qc.gates[3].targets == test_gate.targets)
         assert_(qc.gates[3].controls == test_gate.controls)
+
+        # Test adding 1 qubit gate on [start, end] qubits
+        for i in range(4, 7):
+            assert_(qc.gates[i].name == "RY")
+            assert_(qc.gates[i].targets == [i])
 
     def test_add_state(self):
         """
@@ -207,14 +213,14 @@ class TestQubitCircuit:
         qc1.add_state("A", targets=[1,4,9], state_type="output")
         qc1.add_state("beta", targets=[0], state_type="output")
         assert_(qc1.input_states[0] == None)
-        
+
         assert_(qc1.input_states[2] == "0")
         assert_(qc1.input_states[3] == "0")
         assert_(qc1.input_states[6] == "0")
         assert_(qc1.input_states[1] == "+")
         assert_(qc1.input_states[4] == "+")
 
-        assert_(qc1.output_states[2] == None)        
+        assert_(qc1.output_states[2] == None)
         assert_(qc1.output_states[1] == "A")
         assert_(qc1.output_states[4] == "A")
         assert_(qc1.output_states[9] == "A")
@@ -247,12 +253,14 @@ class TestQubitCircuit:
         assert_(qc.input_states[2] == None)
         assert_(qc.output_states[1] == "+")
 
+    def test_add_
+
     def test_user_gate(self):
         """
         User defined gate for QubitCircuit
         """
         def customer_gate1(arg_values):
-            mat = np.zeros((4, 4), dtype=np.complex)
+             mat = np.zeros((4, 4), dtype=np.complex)
             mat[0, 0] = mat[1, 1] = 1.
             mat[2:4, 2:4] = rx(arg_values)
             return Qobj(mat, dims=[[2, 2], [2, 2]])
@@ -286,7 +294,7 @@ class TestQubitCircuit:
             control_value = arg_value
             dim = mat3.dims[0][0]
             return (tensor(fock_dm(2, control_value), mat3) +
-                    tensor(fock_dm(2, 1 - control_value), identity(dim)))        
+                    tensor(fock_dm(2, 1 - control_value), identity(dim)))
 
         qc = QubitCircuit(2, dims=[3, 2])
         qc.user_gates = {"CTRLMAT3": controlled_mat3}

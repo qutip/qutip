@@ -317,7 +317,9 @@ class QubitCircuit(object):
         else:
             if end is None:
                 end = self.N - 1
-            for i in range(start, end):
+            if (end >= self.N):
+                raise ValueError("%d is not a valid qubit number" % end)
+            for i in range(start, end+1):
                 self.gates.append(Gate(name, targets=i, controls=None,
                                        arg_value=arg_value,
                                        arg_label=arg_label))
