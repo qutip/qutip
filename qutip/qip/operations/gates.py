@@ -45,7 +45,8 @@ from qutip.states import fock_dm
 
 
 __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
-           'cphase', 'cnot',
+           'x_gate', 'y_gate', 'z_gate', 'cy_gate', 'cz_gate', 's_gate', 
+           't_gate', 'cs_gate','ct_gate', 'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
            'sqrtiswap', 'fredkin', 'molmer_sorensen',
            'toffoli', 'rotation', 'controlled_gate',
@@ -137,7 +138,7 @@ def y_gate(N=None, target=0):
     else:
         return Qobj([[0, -1j],
                      [1j, 0]],
-                    dims=[[2, 2], [2, 2]])
+                    )
 
 
 def cy_gate(N=None, control=0, target=1):
@@ -176,7 +177,7 @@ def z_gate(N=None, target=0):
     else:
         return Qobj([[1, 0],
                      [0, -1j]],
-                    dims=[[2, 2], [2, 2]])
+                    )
 
 
 def cz_gate(N=None, control=0, target=1):
@@ -198,7 +199,7 @@ def cz_gate(N=None, control=0, target=1):
                      [0, 1, 0, 0],
                      [0, 0, 1, 0],
                      [0, 0, 0, -1j]],
-                    dims=[[2, 2], [2, 2]])
+                    )
 
 
 def s_gate(N=None, target=0):
@@ -215,7 +216,7 @@ def s_gate(N=None, target=0):
     else:
         return Qobj([[1, 0],
                      [0, 1.0j]],
-                    dims=[[2, 2], [2, 2]])
+                    )
 
 
 def cs_gate(N=None, control=0, target=1):
@@ -253,7 +254,7 @@ def t_gate(N=None, target=0):
     else:
         return Qobj([[1, 0],
                      [0, np.exp(1j * np.pi / 4)]],
-                    dims=[[2, 2], [2, 2]])
+                    )
 
 
 def ct_gate(N=None, control=0, target=1):
