@@ -248,9 +248,60 @@ class TestQubitCircuit:
         assert_(qc.output_states[1] == "+")
 
     def test_exceptions(self):
+        """
+        Text exceptions are thrown correctly for inadequate inputs
+        """
         qc = QubitCircuit(2)
         for gate in ["X", "Y", "Z", "S", "T"]:
-            assert_raises(ValueError, qc.add_gate, gate, targets=[1], controls=[0])
+            assert_raises(ValueError, qc.add_gate, gate,
+                          targets=[1], controls=[0])
+
+        for gate in ["CY", "CZ", "CS", "CT"]:
+            assert_raises(ValueError, qc.add_gate, gate,
+                          targets=[1])
+            assert_raises(ValueError, qc.add_gate, gate)
+
+
+    def test_single_qubit_gates(self):
+        """
+        Text single qubit gates are added correctly
+        """
+        qc = QubitCircuit(3)
+
+        qc.add_gate("X", targets=[0])
+        qc.add_gate("CY", targets=[1], controls=[0])
+        qc.add_gate("Y", targets=[2])
+        qc.add_gate("CS", targets=[0], controls=[1])
+        qc.add_gate("Z", targets=[1])
+        qc.add_gate("CT", targets=[2], controls=[2])
+        qc.add_gate("CZ", targets=[0], controls=[0])
+        qc.add_gate("S", targets=[1])
+        qc.add_gate("T", targets=[2])
+
+        assert_(qc.gates[8].name == "T")
+        assert_(qc.gates[7].name == "S")
+        assert_(qc.gates[6].name == "CZ")
+        assert_(qc.gates[5].name == "CT")
+        assert_(qc.gates[4].name == "Z")
+        assert_(qc.gates[3].name == "CS")
+        assert_(qc.gates[2].name == "Y")
+        assert_(qc.gates[1].name == "CY")
+        assert_(qc.gates[0].name == "X")
+
+        assert_(qc.gates[8].targets == [2])
+        assert_(qc.gates[7].targets == [1])
+        assert_(qc.gates[6].targets == [0])
+        assert_(qc.gates[5].targets == [2])
+        assert_(qc.gates[4].targets == [1])
+        assert_(qc.gates[3].targets == [0])
+        assert_(qc.gates[2].targets == [2])
+        assert_(qc.gates[1].targets == [1])
+        assert_(qc.gates[0].targets == [0])
+
+        assert_(qc.gates[6].controls == [0])
+        assert_(qc.gates[5].controls == [2])
+        assert_(qc.gates[3].controls == [1])
+        assert_(qc.gates[1].controls == [0])
 
     def test_user_gate(self):
         """

@@ -1129,8 +1129,8 @@ class QubitCircuit:
                                    _gate_label(gate.name, gate.arg_label))
 
                 elif gate.controls and n in gate.controls:
-                    control_tag = (-1 if 
-                                   self.reverse_states 
+                    control_tag = (-1 if
+                                   self.reverse_states
                                    else 1) * (gate.targets[0] - n)
                     col.append(r" \ctrl{%d} " % control_tag)
 
