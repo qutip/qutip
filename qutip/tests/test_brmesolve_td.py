@@ -34,10 +34,10 @@ import pytest
 import numpy as np
 import qutip
 
-pytest.importorskip('Cython', minversion="0.14",
-                    reason="Suitable Cython not found.")
-
-pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
+pytestmark = [
+    pytest.mark.requires_cython,
+    pytest.mark.usefixtures("in_temporary_directory"),
+]
 
 # A lot of this module is direct duplication of test_brmesolve.py, but using
 # string time dependence rather than functional.

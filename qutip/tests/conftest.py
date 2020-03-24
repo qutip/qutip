@@ -50,9 +50,24 @@ def _add_repeats_if_marked(metafunc):
                              ids=["rep({})".format(x+1) for x in range(count)])
 
 
+def _skip_cython_tests_if_unavailable(item):
+    """
+    Skip the current test item if Cython is unavailable for import, or isn't a
+    high enough version.
+    """
+    if item.get_closest_marker("requires_cython"):
+        # importorskip rather than mark.skipif because this way we get pytest's
+        # version-handling semantics.
+        pytest.importorskip('Cython', minversion='0.14')
+
+
 @pytest.hookimpl(trylast=True)
 def pytest_generate_tests(metafunc):
     _add_repeats_if_marked(metafunc)
+
+
+def pytest_runtest_setup(item):
+    _skip_cython_tests_if_unavailable(item)
 
 
 @pytest.fixture
