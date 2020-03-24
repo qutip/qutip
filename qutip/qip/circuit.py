@@ -979,11 +979,14 @@ class QubitCircuit:
 
         for gate in self.gates:
             if gate.name == "RX":
-                self.u_list.append(rx(gate.arg_value, self.n_qubits, gate.targets[0]))
+                self.u_list.append(rx(
+                    gate.arg_value, self.n_qubits, gate.targets[0]))
             elif gate.name == "RY":
-                self.u_list.append(ry(gate.arg_value, self.n_qubits, gate.targets[0]))
+                self.u_list.append(ry(
+                    gate.arg_value, self.n_qubits, gate.targets[0]))
             elif gate.name == "RZ":
-                self.u_list.append(rz(gate.arg_value, self.n_qubits, gate.targets[0]))
+                self.u_list.append(rz(
+                    gate.arg_value, self.n_qubits, gate.targets[0]))
             elif gate.name == "X":
                 self.u_list.append(x_gate(self.n_qubits, gate.targets[0]))
             elif gate.name == "Y":
@@ -1126,8 +1129,9 @@ class QubitCircuit:
                                    _gate_label(gate.name, gate.arg_label))
 
                 elif gate.controls and n in gate.controls:
-                    control_tag = (gate.targets[0] - n) * (-1 if self.reverse_states
-                                                           else 1)
+                    control_tag = (-1 if 
+                                   self.reverse_states 
+                                   else 1) * (gate.targets[0] - n)
                     col.append(r" \ctrl{%d} " % control_tag)
 
                 elif (not gate.controls and not gate.targets):

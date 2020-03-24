@@ -249,10 +249,10 @@ class SpinChain(ModelProcessor):
         # FIXME This huge block has been here for a long time.
         # It could be moved to the new compiler section and carefully
         # splitted into smaller peaces.
-        qc_t = QubitCircuit(qc.N, qc.reverse_states)
+        qc_t = QubitCircuit(qc.n_qubits, qc.reverse_states)
         swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                       "SWAPalpha"]
-        N = qc.N
+        N = qc.n_qubits
 
         for gate in qc.gates:
             if gate.name == "CNOT" or gate.name == "CSIGN":

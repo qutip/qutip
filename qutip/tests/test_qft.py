@@ -57,7 +57,7 @@ class TestQFT:
         """
         for N in range(1, 6):
             circuit = qft_gate_sequence(N, swapping=False)
-            assert_equal(circuit.N, N)
+            assert_equal(circuit.n_qubits, N)
 
             totsize = N * (N + 1) / 2
             assert_equal(len(circuit.gates), totsize)

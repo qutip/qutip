@@ -34,7 +34,7 @@
 import numpy as np
 from numpy.testing import assert_raises, assert_, assert_allclose, run_module_suite
 from qutip.qip.operations.gates import (
-    gate_sequence_product, rx, expand_operator)
+    gate_sequence_product, rx)
 from qutip.operators import identity
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.tensor import tensor
@@ -159,16 +159,16 @@ class TestQubitCircuit:
 
     def test_add_gate(self):
         """
-        Addition of a gate object directly to a `QubitCircuit` 
+        Addition of a gate object directly to a `QubitCircuit`
         """
         qc = QubitCircuit(3)
         qc.add_gate("CNOT", targets=[1], controls=[0])
-        test_gate = Gate("RZ", targets=[1], arg_value = 1.570796,
+        test_gate = Gate("RZ", targets=[1], arg_value=1.570796,
                          arg_label="P")
         qc.add_gate(test_gate)
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
         qc.add_gate("SNOT", targets=[3])
-        qc.add_gate(test_gate, index = [3])
+        qc.add_gate(test_gate, index=[3])
 
         # Test explicit gate addition
         assert_(qc.gates[0].name == "CNOT")
@@ -196,25 +196,25 @@ class TestQubitCircuit:
         qc.add_state("-", targets=[1])
 
         assert_(qc.input_states[0] == "0")
-        assert_(qc.input_states[2] == None)
+        assert_(qc.input_states[2] is None)
         assert_(qc.output_states[1] == "+")
 
         qc1 = QubitCircuit(10)
 
         qc1.add_state("0", targets=[2, 3, 5, 6])
-        qc1.add_state("+", targets=[1,4,9])
-        qc1.add_state("A", targets=[1,4,9], state_type="output")
-        qc1.add_state("A", targets=[1,4,9], state_type="output")
+        qc1.add_state("+", targets=[1, 4, 9])
+        qc1.add_state("A", targets=[1, 4, 9], state_type="output")
+        qc1.add_state("A", targets=[1, 4, 9], state_type="output")
         qc1.add_state("beta", targets=[0], state_type="output")
-        assert_(qc1.input_states[0] == None)
-        
+        assert_(qc1.input_states[0] is None)
+
         assert_(qc1.input_states[2] == "0")
         assert_(qc1.input_states[3] == "0")
         assert_(qc1.input_states[6] == "0")
         assert_(qc1.input_states[1] == "+")
         assert_(qc1.input_states[4] == "+")
 
-        assert_(qc1.output_states[2] == None)        
+        assert_(qc1.output_states[2] is None)
         assert_(qc1.output_states[1] == "A")
         assert_(qc1.output_states[4] == "A")
         assert_(qc1.output_states[9] == "A")
@@ -244,7 +244,7 @@ class TestQubitCircuit:
         assert_(qc.gates[0].name == "RX")
 
         assert_(qc.input_states[0] == "0")
-        assert_(qc.input_states[2] == None)
+        assert_(qc.input_states[2] is None)
         assert_(qc.output_states[1] == "+")
 
     def test_exceptions(self):
@@ -262,8 +262,8 @@ class TestQubitCircuit:
             mat[2:4, 2:4] = rx(arg_values)
             return Qobj(mat, dims=[[2, 2], [2, 2]])
 
-        def customer_gate2(arg_values):
-            mat = np.array([[1.,   0],
+        def customer_gate2():
+            mat = np.array([[1., 0],
                             [0., 1.j]])
             return Qobj(mat, dims=[[2], [2]])
 
@@ -275,7 +275,7 @@ class TestQubitCircuit:
         props = qc.propagators()
         result1 = tensor(identity(2), customer_gate1(np.pi/2))
         assert_allclose(props[0], result1)
-        result2 = tensor(identity(2), customer_gate2(None), identity(2))
+        result2 = tensor(identity(2), customer_gate2(), identity(2))
         assert_allclose(props[1], result2)
 
     def test_N_level_system(self):
@@ -291,7 +291,7 @@ class TestQubitCircuit:
             control_value = arg_value
             dim = mat3.dims[0][0]
             return (tensor(fock_dm(2, control_value), mat3) +
-                    tensor(fock_dm(2, 1 - control_value), identity(dim)))        
+                    tensor(fock_dm(2, 1 - control_value), identity(dim)))
 
         qc = QubitCircuit(2, dims=[3, 2])
         qc.user_gates = {"CTRLMAT3": controlled_mat3}

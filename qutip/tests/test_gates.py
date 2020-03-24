@@ -33,16 +33,17 @@
 
 import itertools
 import numpy as np
-from numpy.testing import (assert_, assert_allclose, assert_array_equal, 
+from numpy.testing import (assert_, assert_allclose, assert_array_equal,
                            run_module_suite)
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
-from qutip.qip.operations.gates import (rx, ry, rz, x_gate, y_gate,
-                       z_gate, s_gate, t_gate, cy_gate, cz_gate, 
-                       cs_gate, ct_gate, phasegate, qrot, 
-                       cnot, swap, iswap, sqrtswap, molmer_sorensen,
-                       toffoli, fredkin, gate_expand_3toN, 
-                       qubit_clifford_group, expand_operator)
+from qutip.qip.operations.gates import (rx, ry, rz, x_gate, y_gate, z_gate,
+                                        s_gate, t_gate, cy_gate, cz_gate,
+                                        cs_gate, ct_gate, phasegate, qrot,
+                                        cnot, swap, iswap, sqrtswap,
+                                        molmer_sorensen, toffoli, fredkin,
+                                        gate_expand_3toN, qubit_clifford_group,
+                                        expand_operator)
 from qutip.random_objects import rand_ket, rand_herm, rand_unitary, rand_dm
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
@@ -245,19 +246,19 @@ class TestGates:
 
             U = toffoli(N=3, controls=controls, target=target)
 
-            ops = [basis(2, 0).dag(),  basis(2, 0).dag(), identity(2)]
+            ops = [basis(2, 0).dag(), basis(2, 0).dag(), identity(2)]
             P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
             assert_(P * U * P.dag() == identity(2))
 
-            ops = [basis(2, 1).dag(),  basis(2, 0).dag(), identity(2)]
+            ops = [basis(2, 1).dag(), basis(2, 0).dag(), identity(2)]
             P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
             assert_(P * U * P.dag() == identity(2))
 
-            ops = [basis(2, 0).dag(),  basis(2, 1).dag(), identity(2)]
+            ops = [basis(2, 0).dag(), basis(2, 1).dag(), identity(2)]
             P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
             assert_(P * U * P.dag() == identity(2))
 
-            ops = [basis(2, 1).dag(),  basis(2, 1).dag(), identity(2)]
+            ops = [basis(2, 1).dag(), basis(2, 1).dag(), identity(2)]
             P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
             assert_(P * U * P.dag() == sigmax())
 
@@ -321,8 +322,8 @@ class TestGates:
         # oper size is N, no expansion
         oper = tensor(sigmax(), sigmay())
         assert_allclose(expand_operator(oper=oper, targets=[0, 1], N=2), oper)
-        assert_allclose(expand_operator(oper=oper, targets=[1, 0], N=2), 
-                            tensor(sigmay(), sigmax()))
+        assert_allclose(expand_operator(oper=oper, targets=[1, 0], N=2),
+                        tensor(sigmay(), sigmax()))
 
         # random single qubit gate test, integer as target
         r = rand_unitary(2)
@@ -341,16 +342,17 @@ class TestGates:
             [r2, identity(2)]).permute([0, 2, 1]))
 
         # cnot expantion, qubit 2 control qubit 0
-        assert_allclose(expand_operator(cnot(), 3, [2, 0]), Qobj([
-            [1., 0., 0., 0., 0., 0., 0., 0.],
-            [0., 0., 0., 0., 0., 1., 0., 0.],
-            [0., 0., 1., 0., 0., 0., 0., 0.],
-            [0., 0., 0., 0., 0., 0., 0., 1.],
-            [0., 0., 0., 0., 1., 0., 0., 0.],
-            [0., 1., 0., 0., 0., 0., 0., 0.],
-            [0., 0., 0., 0., 0., 0., 1., 0.],
-            [0., 0., 0., 1., 0., 0., 0., 0.]],
-            dims=[[2, 2, 2], [2, 2, 2]]))
+        assert_allclose(expand_operator(cnot(), 3, [2, 0]),
+                        Qobj([
+                            [1., 0., 0., 0., 0., 0., 0., 0.],
+                            [0., 0., 0., 0., 0., 1., 0., 0.],
+                            [0., 0., 1., 0., 0., 0., 0., 0.],
+                            [0., 0., 0., 0., 0., 0., 0., 1.],
+                            [0., 0., 0., 0., 1., 0., 0., 0.],
+                            [0., 1., 0., 0., 0., 0., 0., 0.],
+                            [0., 0., 0., 0., 0., 0., 1., 0.],
+                            [0., 0., 0., 1., 0., 0., 0., 0.]],
+                             dims=[[2, 2, 2], [2, 2, 2]]))
 
         # test expansion with cyclic permutation
         result = expand_operator(
@@ -384,18 +386,18 @@ class TestGates:
         assert_allclose(
             molmer_sorensen(np.pi, targets=[0, 1]),
             Qobj(-1j*np.array(
-                 [[0, 0, 0, 1],
-                  [0, 0, 1, 0],
-                  [0, 1, 0, 0],
-                  [1, 0, 0, 0]]), dims=[[2, 2], [2, 2]]),
+                [[0, 0, 0, 1],
+                 [0, 0, 1, 0],
+                 [0, 1, 0, 0],
+                 [1, 0, 0, 0]]), dims=[[2, 2], [2, 2]]),
             atol=1e-15)
         assert_allclose(
             molmer_sorensen(2*np.pi, targets=[0, 1]),
             Qobj(-np.array(
-                 [[1, 0, 0, 0],
-                  [0, 1, 0, 0],
-                  [0, 0, 1, 0],
-                  [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]]),
+                [[1, 0, 0, 0],
+                 [0, 1, 0, 0],
+                 [0, 0, 1, 0],
+                 [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]]),
             atol=1e-15)
         assert_allclose(
             molmer_sorensen(np.pi/2, N=4, targets=[1, 2]),
