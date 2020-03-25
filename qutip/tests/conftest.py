@@ -81,7 +81,6 @@ def in_temporary_directory():
     previous_dir = os.getcwd()
     with tempfile.TemporaryDirectory() as temporary_dir:
         os.chdir(temporary_dir)
-        print(temporary_dir)
         yield
         # pytest should catch exceptions occuring in functions using the
         # fixture, so this should always be called.  We want it here rather
