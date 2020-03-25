@@ -53,7 +53,7 @@ stage_linux_38: &stage_linux_38
     - conda install numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
-stage_linux_38_no_cython: &stage_linux_37_no_cython
+stage_linux_38_no_cython: &stage_linux_38_no_cython
   <<: *stage_generic_linux
   name: "Python 3.8 no cython"
   dist: xenial
@@ -73,7 +73,7 @@ stage_linux_38_no_cython: &stage_linux_37_no_cython
     - python setup.py install
     - conda uninstall cython
 
-stage_linux_38_openblas: &stage_linux_37_openblas
+stage_linux_38_openblas: &stage_linux_38_openblas
   <<: *stage_generic_linux
   name: "Python 3.8 OpenBLAS"
   dist: xenial
@@ -90,7 +90,7 @@ stage_linux_38_openblas: &stage_linux_37_openblas
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
-stage_linux_38_omp: &stage_linux_37_omp
+stage_linux_38_omp: &stage_linux_38_omp
   <<: *stage_generic_linux
   name: "Python 3.8 OpenMP"
   dist: xenial
