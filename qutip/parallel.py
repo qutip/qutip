@@ -51,6 +51,8 @@ if sys.platform == 'darwin':
     # in our tests.
     try:
         set_start_method('fork')
+    except Exception:
+        pass
 
 
 def _task_wrapper(args):
