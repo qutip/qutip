@@ -41,6 +41,17 @@ from qutip.qip import circuit_latex as _latex
 from qutip.qip.operations.gates import *
 from qutip.qip.qubits import qubit_states
 
+try:
+    from IPython.display import Image as DisplayImage, SVG as DisplaySVG
+except ImportError:
+    # If IPython doesn't exist, then we set the nice display hooks to be simple
+    # pass-throughs.
+    def DisplayImage(data, *args, **kwargs):
+        return data
+
+    def DisplaySVG(data, *args, **kwargs):
+        return data
+
 __all__ = ['Gate', 'QubitCircuit']
 
 
@@ -1112,23 +1123,34 @@ class QubitCircuit(object):
 
         return code
 
-    if 'png' in _latex.CONVERTERS:
-        def _repr_png_(self):
-            return _latex.make_image(self.latex_code(), file_type="png")
+    # This slightly convoluted dance with the conversion formats is because
+    # image conversion has optional dependencies.  We always want the `png` and
+    # `svg` methods to be available so that they are discoverable by the user,
+    # however if one is called without the required dependency, then they'll
+    # get a `RuntimeError` explaining the problem.  We only want the IPython
+    # magic methods `_repr_xxx_` to be defined if we know that the image
+    # conversion is available, so the user doesn't get exceptions on display
+    # because IPython tried to do something behind their back.
 
-        @property
-        def png(self):
-            from IPython.display import Image
-            return Image(self._repr_png_(), embed=True)
+    def _raw_png(self):
+        return _latex.image_from_latex(self.latex_code(), "png")
+
+    if 'png' in _latex.CONVERTERS:
+        _repr_png_ = _raw_png
+
+    @property
+    def png(self):
+        return DisplayImage(self._raw_png(), embed=True)
+
+    def _raw_svg(self):
+        return _latex.image_from_latex(self.latex_code(), "svg")
 
     if 'svg' in _latex.CONVERTERS:
-        def _repr_svg_(self):
-            return _latex.make_image(self.latex_code(), file_type="svg")
+        _repr_svg_ = _raw_svg
 
-        @property
-        def svg(self):
-            from IPython.display import SVG
-            return SVG(self._repr_svg_())
+    @property
+    def svg(self):
+        return DisplaySVG(self._raw_svg())
 
     def qasm(self):
 

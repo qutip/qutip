@@ -35,6 +35,7 @@ import functools
 import os
 import shutil
 import subprocess
+import tempfile
 import warnings
 
 _latex_template = r"""
@@ -47,19 +48,15 @@ _latex_template = r"""
 """
 
 
-def _find_system_command(names):
+_run_command = functools.partial(subprocess.run, check=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+_run_command.__doc__ = \
     """
-    Given a list of possible system commands (as strings), return the first one
-    which has a locatable executable form, or `None` if none of them do.
+    Run a command with stdout and stderr explicitly thrown away, raising
+    `subprocess.CalledProcessError` if the command returned a non-zero exit
+    code.
     """
-    for name in names:
-        if shutil.which(name) is not None:
-            return name
-    return None
-
-
-_pdflatex = _find_system_command(['pdflatex'])
-_pdfcrop = _find_system_command(['pdfcrop'])
 
 
 def _force_remove(*filenames):
@@ -71,15 +68,45 @@ def _force_remove(*filenames):
             pass
 
 
-_run_command = functools.partial(subprocess.run, check=True,
-                                 stdout=subprocess.DEVNULL,
+def _test_convert_is_imagemagick():
+    """
+    Test to see if the `convert` command behaves like we'd expect ImageMagick
+    to.  On Windows if ImageMagick is not installed then `convert` may refer to
+    a system utility.
+    """
+    try:
+        # Don't use `capture_output` because we're still supporting Python 3.6
+        process = subprocess.run(('convert', '-version'),
+                                 stdout=subprocess.PIPE,
                                  stderr=subprocess.DEVNULL)
-_run_command.__doc__ = \
+        return "imagemagick" in process.stdout.decode('utf-8').lower()
+    except FileNotFoundError:
+        return False
+
+
+_SPECIAL_CASES = {
+    'convert': _test_convert_is_imagemagick,
+}
+
+
+def _find_system_command(names):
     """
-    Run a command with stdout and stderr explicitly thrown away, raising
-    `subprocess.CalledProcessError` if the command returned a non-zero exit
-    code.
+    Given a list of possible system commands (as strings), return the first one
+    which has a locatable executable form, or `None` if none of them do.  We
+    also check some special cases of shadowing (e.g. ImageMagick 6's `convert`
+    is also a Windows system utility) to try and catch false-positives.
     """
+    for name in names:
+        if shutil.which(name) is not None:
+            is_valid = _SPECIAL_CASES.get(name, lambda: True)()
+            if is_valid:
+                return name
+    return None
+
+
+_pdflatex = _find_system_command(['pdflatex'])
+_pdfcrop = _find_system_command(['pdfcrop'])
+
 
 if _pdfcrop is not None:
     def _crop_pdf(filename):
@@ -111,6 +138,7 @@ _ConverterConfiguration = collections.namedtuple(
     ['file_type', 'dependency', 'executables', 'arguments', 'binary'],
 )
 CONVERTERS = {"pdf": _convert_pdf}
+_MISSING_CONVERTERS = {}
 _CONVERTER_CONFIGURATIONS = [
     _ConverterConfiguration('png', 'ImageMagick', ['magick', 'convert'],
                             arguments=('-density', '100'), binary=True),
@@ -157,16 +185,11 @@ for configuration in _CONVERTER_CONFIGURATIONS:
     if converter:
         CONVERTERS[configuration.file_type] = converter
     else:
-        message = "".join(["Could not find system ", possible.dependency, ".",
-                           " Image conversion to '", possible.file_type, "'",
-                           " is unavailable."])
-        # ImportWarning is ignored by default, so the user won't actually see
-        # this warning...
-        warnings.warn(message, category=ImportWarning)
+        _MISSING_CONVERTERS[configuration.file_type] = configuration.dependency
 
 
 if _pdflatex is not None:
-    def make_image(code, filename="qcirc", file_type="png"):
+    def image_from_latex(code, file_type="png"):
         """
         Convert the LaTeX `code` into an image format, defined by the
         `file_type`.  Returns a string or bytes object, depending on whether
@@ -189,18 +212,36 @@ if _pdflatex is not None:
             bytes depends on whether the requested image format is textual or
             binary.
         """
-        _force_remove(*[filename + suffix
-                        for suffix in [".tex", ".pdf", "." + file_type]])
-        with open(filename + ".tex", "w") as file:
-            file.write(_latex_template % (_qcircuit_latex_min, code))
-        _run_command((_pdflatex, '-interaction', 'batchmode', filename))
-        _force_remove(filename + ".aux", filename + ".log")
-        _crop_pdf(filename + ".pdf")
-        if file_type not in CONVERTERS:
-            raise ValueError("Unknown output format: '" + file_type + "'.")
-        return CONVERTERS[file_type](filename)
+        filename = "qcirc"  # Arbitrary and internal.
+        # We do all the image conversion in a temporary directory to prevent
+        # leftover files if something goes wrong (or we get a
+        # KeyboardInterrupt) during conversion.
+        previous_dir = os.getcwd()
+        try:
+            with tempfile.TemporaryDirectory() as temporary_dir:
+                os.chdir(temporary_dir)
+                with open(filename + ".tex", "w") as file:
+                    file.write(_latex_template % (_qcircuit_latex_min, code))
+                _run_command((_pdflatex, '-interaction', 'batchmode',
+                              filename))
+                _crop_pdf(filename + ".pdf")
+                if file_type in _MISSING_CONVERTERS:
+                    dependency = _MISSING_CONVERTERS[file_type]
+                    message = "".join([
+                        "Could not find system ", dependency, ".",
+                        " Image conversion to '", file_type, "'",
+                        " is not available."
+                    ])
+                    raise RuntimeError(message)
+                if file_type not in CONVERTERS:
+                    raise ValueError("".join(["Unknown output format: '",
+                                              file_type, "'."]))
+                out = CONVERTERS[file_type](filename)
+        finally:
+            os.chdir(previous_dir)
+        return out
 else:
-    def make_image(*args, **kwargs):
+    def image_from_latex(*args, **kwargs):
         raise RuntimeError("Could not find system 'pdflatex'.")
 
 
