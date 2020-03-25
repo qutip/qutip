@@ -390,6 +390,30 @@ class Bloch():
         else:
             self.vectors.append(vectors)
 
+    def update_view(self, azim=-60, elev=30):
+        """Update view with new azim and elev
+
+        Parameters
+        ----------
+        azim : float
+            Azimuthal viewing angle, defaults to -60.
+        elev: float
+            Elevation viewing angle, defaults to 30.
+
+        """
+        self.view = [azim, elev]
+
+    def _force_axe_update(self):
+        """Forces axe update with view
+
+        Parameters
+        ----------
+        void
+
+        """
+        self.axes.azim = self.view[0]
+        self.axes.elev = self.view[1]
+
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
         parametrized by a qubit state or a vector.
@@ -454,6 +478,8 @@ class Bloch():
 
         if not axes:
             self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+        else:
+            self._force_axe_update()
 
         if self.background:
             self.axes.clear()
