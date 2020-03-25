@@ -45,11 +45,13 @@ import signal
 import qutip.settings as qset
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
+
 if sys.platform == 'darwin':
     # from 3.8 mp on mac use 'spawn', suposely better than fork, but freeze
     # in our tests.
     try:
         set_start_method('fork')
+
 
 def _task_wrapper(args):
     try:
