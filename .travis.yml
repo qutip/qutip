@@ -29,12 +29,18 @@ stage_linux_36: &stage_linux_36
   name: "Python 3.6"
   dist: trusty
   python: 3.6
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
 
 stage_linux_37: &stage_linux_37
   <<: *stage_generic_linux
   name: "Python 3.7"
   dist: xenial
   python: 3.7
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
 
 stage_linux_38: &stage_linux_38
   <<: *stage_generic_linux
@@ -147,7 +153,7 @@ stage_osx_38: &stage_osx_38
   # command to run tests
   script:
     - python -m qutip.about
-    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -166,8 +172,6 @@ stages:
 
 jobs:
   include:
-    - stage: test
-      <<: *stage_linux_36
     - stage: test
       <<: *stage_linux_37
     - stage: test
