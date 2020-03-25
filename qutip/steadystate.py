@@ -58,7 +58,7 @@ from qutip.superoperator import liouvillian, vec2mat
 from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape,
                           sp_profile)
 from qutip.cy.spmath import zcsr_kron
-from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
+from qutip.graph import weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
@@ -353,7 +353,7 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
         if settings.debug:
             logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         _rcm_start = time.time()
-        perm2 = reverse_cuthill_mckee(L)
+        perm2 = sp.csgraph.reverse_cuthill_mckee(L)
         _rcm_end = time.time()
         rev_perm = np.argsort(perm2)
         L = sp_permute(L, perm2, perm2, form)
@@ -508,7 +508,7 @@ def _steadystate_eigen(L, ss_args):
         if settings.debug:
             old_band = sp_bandwidth(L)[0]
             logger.debug('Original bandwidth: %i' % old_band)
-        perm = reverse_cuthill_mckee(L)
+        perm = sp.csgraph.reverse_cuthill_mckee(L)
         rev_perm = np.argsort(perm)
         L = sp_permute(L, perm, perm, 'csc')
         if settings.debug:
@@ -780,7 +780,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
             logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         ss_args['info']['perm'].append('rcm')
         _rcm_start = time.time()
-        perm2 = reverse_cuthill_mckee(L)
+        perm2 = sp.csgraph.reverse_cuthill_mckee(L)
         _rcm_end = time.time()
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         rev_perm = np.argsort(perm2)
@@ -1147,7 +1147,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
             L = 1.0j*(1e-15)*spre(tr_op) + L
 
     if pseudo_args['use_rcm']:
-        perm = reverse_cuthill_mckee(L.data)
+        perm = sp.csgraph.reverse_cuthill_mckee(L.data)
         A = sp_permute(L.data, perm, perm)
         Q = sp_permute(Q, perm, perm)
     else:
