@@ -562,6 +562,11 @@ def test_mc_dyn_args():
                  ntraj, args={"collapse":[]})
     assert_(all(len(col)<=1 for col in mc.col_which))
 
+def H1_coeff(t,args):
+    return t-1
+
+def H2_coeff(t,args):
+    return -t
 
 def test_mc_functd_sum():
     "Monte-carlo: Test for #490"
@@ -569,11 +574,6 @@ def test_mc_functd_sum():
     H0 = sigmax()
     H1 = sigmay()
     H2 = sigmaz()
-    def H1_coeff(t,args):
-        return t-1
-
-    def H2_coeff(t,args):
-        return -t
 
     h_t = [H0,[H1, H1_coeff],
            [H2, H2_coeff]]
