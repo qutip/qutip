@@ -159,7 +159,7 @@ def cy_gate(N=None, control=0, target=1):
                      [0, 1, 0, 0],
                      [0, 0, 0, -1j],
                      [0, 0, 1j, 0]],
-                    )
+                    dims=[[2, 2], [2, 2]])
 
 
 def z_gate(N=None, target=0):
@@ -198,7 +198,7 @@ def cz_gate(N=None, control=0, target=1):
                      [0, 1, 0, 0],
                      [0, 0, 1, 0],
                      [0, 0, 0, -1j]],
-                    )
+                    dims=[[2, 2], [2, 2]])
 
 
 def s_gate(N=None, target=0):
