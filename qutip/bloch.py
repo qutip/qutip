@@ -423,7 +423,6 @@ class Bloch():
             else:
                 Exception("Operator must be + or *")
 
-
     def _force_axe_update(self):
         """Forces axe update with view
 
