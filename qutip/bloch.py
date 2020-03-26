@@ -390,7 +390,7 @@ class Bloch():
         else:
             self.vectors.append(vectors)
 
-    def update_view(self, azim=-60, elev=30):
+    def update_view(self, azim=-60, elev=30, azim_oper=None, elev_oper=None):
         """Update view with new azim and elev
 
         Parameters
@@ -399,9 +399,30 @@ class Bloch():
             Azimuthal viewing angle, defaults to -60.
         elev: float
             Elevation viewing angle, defaults to 30.
-
+        azim_oper: '+', '*'
+            Adds or multiplies current value by new value
+            If None then overrides
+        elev_oper: '+', '*'
+            Adds or multiplies current value by new value
+            If None then overrides
         """
-        self.view = [azim, elev]
+        if azim_oper is None and elev_oper is None:
+            self.view = [azim, elev]
+        else:
+            if self.view is None:
+                raise Exception("View not defined")
+            if elev_oper == '+':
+                self.view[1] += elev
+            elif elev_oper == '*':
+                self.view[1] *= elev
+
+            if azim_oper == '+':
+                self.view[0] += azim
+            elif azim_oper == '+':
+                self.view[0] *= azim
+            else:
+                Exception("Operator must be + or *")
+
 
     def _force_axe_update(self):
         """Forces axe update with view
