@@ -4,8 +4,9 @@ Please make sure you have finished the following tasks before opening the PR.
 - [ ] Please read [Contributing to QuTiP Development](https://github.com/qutip/qutip-doc/blob/master/qutip_dev_contrib.md)
 - [ ] Contributions to qutip should follow the [pep8 style](https://www.python.org/dev/peps/pep-0008/).
 You can use [pycodestyle](http://pycodestyle.pycqa.org/en/latest/index.html) to check your code automatically
+- [ ] Please add tests to cover your changes if applicable.
 
-Delete this section after you have complete all the tasks.
+Delete this section after you have completed all the tasks.
 
 **Description**
 Describe here the proposed change.
