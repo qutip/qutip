@@ -217,8 +217,8 @@ if _pdflatex is not None:
         # leftover files if something goes wrong (or we get a
         # KeyboardInterrupt) during conversion.
         previous_dir = os.getcwd()
-        try:
-            with tempfile.TemporaryDirectory() as temporary_dir:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            try:
                 os.chdir(temporary_dir)
                 with open(filename + ".tex", "w") as file:
                     file.write(_latex_template % (_qcircuit_latex_min, code))
@@ -237,8 +237,10 @@ if _pdflatex is not None:
                     raise ValueError("".join(["Unknown output format: '",
                                               file_type, "'."]))
                 out = CONVERTERS[file_type](filename)
-        finally:
-            os.chdir(previous_dir)
+            finally:
+                # Leave the temporary directory before it is removed (necessary
+                # on Windows, but it doesn't hurt on POSIX).
+                os.chdir(previous_dir)
         return out
 else:
     def image_from_latex(*args, **kwargs):
