@@ -406,25 +406,17 @@ class Bloch():
             Adds or multiplies current value by new value
             If None then overrides
         """
-        if azim_oper is not None:
-            if azim_oper == '+':
-                self.view[0] += azim
-            elif azim_oper == '*':
-                self.view[0] *= azim
+        new_values = [azim, elev]
+        for index, operator in enumerate([azim_oper, elev_oper]):
+            if operator is not None:
+                if operator == '+':
+                    self.view[index] += new_values[index]
+                elif operator == '*':
+                    self.view[index] *= new_values[index]
+                else:
+                    raise Exception("Operator must be + or *")
             else:
-                raise Exception("Operator must be + or *")
-        else:
-        	self.view[0] = azim
-
-        if elev_oper is not None:
-            if elev_oper == '+':
-                self.view[1] += elev
-            elif azim_oper == '*':
-                self.view[1] *= elev
-            else:
-                raise Exception("Operator must be + or *")
-        else:
-        	self.view[1] = elev
+                self.view[index] = new_values[index]
 
     def _force_axe_update(self):
         """Forces axe update with view
