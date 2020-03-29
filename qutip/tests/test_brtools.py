@@ -52,8 +52,8 @@ def test_zheevr():
         our_evals = np.zeros(dimension, dtype=np.float64)
         our_evecs = _test_zheevr(H.full('F'), our_evals)
         scipy_evals, scipy_evecs = scipy.linalg.eigh(H.full())
-        assert np.allclose(scipy_evals, our_evals)
-        assert np.allclose(scipy_evecs, our_evecs)
+        np.testing.assert_allclose(scipy_evals, our_evals, atol=1e-12)
+        np.testing.assert_allclose(scipy_evecs, our_evecs, atol=1e-12)
 
 
 @pytest.mark.parametrize("operator", [
@@ -72,7 +72,7 @@ def test_dense_operator_to_eigbasis(operator):
         basis_zheevr = _test_zheevr(H.full('F'), _eigenvalues)
         calculated = _test_dense_to_eigbasis(operator.full('F'), basis_zheevr,
                                              dimension, qutip.settings.atol)
-        assert np.allclose(target, calculated)
+        np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 
 def test_vec_to_eigbasis():
@@ -85,7 +85,7 @@ def test_vec_to_eigbasis():
         target = qutip.mat2vec(R.transform(basis).full()).ravel()
         flat_vector = qutip.mat2vec(R.full()).ravel()
         calculated = _test_vec_to_eigbasis(H.full('F'), flat_vector)
-        assert np.allclose(target, calculated)
+        np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 
 def test_eigvec_to_fockbasis():
@@ -101,7 +101,7 @@ def test_eigvec_to_fockbasis():
         flat_eigenvectors = qutip.mat2vec(R.transform(basis).full()).ravel()
         calculated = _test_eigvec_to_fockbasis(flat_eigenvectors, evecs_zheevr,
                                                dimension)
-        assert np.allclose(target, calculated)
+        np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 
 def test_vector_roundtrip():
@@ -110,7 +110,8 @@ def test_vector_roundtrip():
     for _ in range(50):
         H = qutip.rand_herm(dimension, 0.5).full('F')
         vector = qutip.mat2vec(qutip.rand_dm(dimension, 0.5).full()).ravel()
-        assert np.allclose(vector, _test_vector_roundtrip(H, vector))
+        np.testing.assert_allclose(vector, _test_vector_roundtrip(H, vector),
+                                   atol=1e-12)
 
 
 def test_diag_liou_mult():
@@ -123,7 +124,7 @@ def test_diag_liou_mult():
         calculated = np.zeros_like(coefficients)
         target = L.data.dot(coefficients)
         _test_diag_liou_mult(evals, coefficients, calculated, dimension)
-        assert np.allclose(target, calculated)
+        np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 
 def test_cop_super_mult():
@@ -140,7 +141,7 @@ def test_cop_super_mult():
         _eigenvalues = np.empty((dimension,), dtype=np.float64)
         _cop_super_mult(a.full('F'), _test_zheevr(H.full('F'), _eigenvalues),
                         vec, 1, calculated, dimension, qutip.settings.atol)
-        assert np.allclose(target, calculated)
+        np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 
 @pytest.mark.parametrize("secular",
@@ -165,4 +166,4 @@ def test_br_term_mult(secular):
         calculated = np.zeros_like(target)
         _test_br_term_mult(time, operator.full('F'), evecs, evals, vec,
                            calculated, secular, 0.1, atol)
-        assert np.allclose(target, calculated)
+        np.testing.assert_allclose(target, calculated, atol=atol)

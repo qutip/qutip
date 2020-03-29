@@ -67,7 +67,7 @@ def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
     brme = qutip.brmesolve([[H, '1']], psi0, times,
                            brme_a_ops, e_ops, brme_c_ops).expect
     for me_expectation, brme_expectation in zip(me, brme):
-        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
 
 def _harmonic_oscillator_spectrum_frequency(n_th, w0, kappa):
@@ -109,12 +109,12 @@ def test_harmonic_oscillator(n_th):
     me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
-        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
     num = qutip.num(N)
     me_num = qutip.expect(num, me.states)
     brme_num = qutip.expect(num, brme.states)
-    assert np.allclose(me_num, brme_num, atol=1e-2)
+    np.testing.assert_allclose(me_num, brme_num, atol=1e-2)
 
 
 @pytest.mark.slow
@@ -138,7 +138,7 @@ def test_jaynes_cummings_zero_temperature():
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         # Accept 5% error.
-        assert np.allclose(me_expectation, brme_expectation, atol=5e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=5e-2)
 
 
 def _mixed_string(kappa, _):
@@ -200,7 +200,7 @@ def test_nonhermitian_e_ops():
     times = np.linspace(0, 10, 10)
     me = qutip.mesolve(H, psi0, times, c_ops=[], e_ops=[a]).expect[0]
     brme = qutip.brmesolve(H_brme, psi0, times, a_ops=[], e_ops=[a]).expect[0]
-    assert np.allclose(me, brme, atol=1e-4)
+    np.testing.assert_allclose(me, brme, atol=1e-4)
 
 
 @pytest.mark.slow
@@ -280,7 +280,7 @@ def test_split_operators_maintain_answer(collapse_operators):
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops, brme_c_ops)
 
     for me_expect, brme_expect in zip(me.expect, brme.expect):
-        assert np.allclose(me_expect, brme_expect, atol=1e-2)
+        np.testing.assert_allclose(me_expect, brme_expect, atol=1e-2)
 
 
 @pytest.mark.slow

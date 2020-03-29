@@ -62,7 +62,7 @@ def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
     brme = qutip.brmesolve(H, psi0, times,
                            brme_a_ops, e_ops, brme_c_ops).expect
     for me_expectation, brme_expectation in zip(me, brme):
-        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
 
 def _harmonic_oscillator_spectrum_frequency(n_th, w0, kappa):
@@ -105,12 +105,12 @@ def test_harmonic_oscillator(n_th):
     me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
-        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
     num = qutip.num(N)
     me_num = qutip.expect(num, me.states)
     brme_num = qutip.expect(num, brme.states)
-    assert np.allclose(me_num, brme_num, atol=1e-2)
+    np.testing.assert_allclose(me_num, brme_num, atol=1e-2)
 
 
 def test_jaynes_cummings_zero_temperature():
@@ -136,7 +136,7 @@ def test_jaynes_cummings_zero_temperature():
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         # Accept 5% error.
-        assert np.allclose(me_expectation, brme_expectation, atol=5e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=5e-2)
 
 
 def test_pull_572_error():
@@ -175,7 +175,7 @@ def test_pull_572_error():
     # Solution of the master equation
     times = np.linspace(0, 10./gamma3, 1000)
     sol = qutip.bloch_redfield_solve(R, ekets, ini, times, [proj_up1])
-    assert np.allclose(sol[0], np.ones_like(times))
+    np.testing.assert_allclose(sol[0], np.ones_like(times))
 
 
 def test_solver_accepts_list_hamiltonian():
@@ -193,4 +193,4 @@ def test_solver_accepts_list_hamiltonian():
     me = qutip.mesolve(H, psi0, times, c_ops=c_ops, e_ops=e_ops).expect
     brme = qutip.brmesolve(H, psi0, times, [], e_ops, c_ops).expect
     for me_expectation, brme_expectation in zip(me, brme):
-        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-8)
