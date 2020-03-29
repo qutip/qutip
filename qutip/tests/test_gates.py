@@ -166,8 +166,8 @@ class TestExplicitForm:
         pytest.param(2*np.pi, -qutip.qeye([2, 2]), id="2pi"),
     ])
     def test_molmer_sorensen(self, angle, expected):
-        assert np.allclose(gates.molmer_sorensen(angle).full(),
-                           expected.full(), atol=1e-15)
+        np.testing.assert_allclose(gates.molmer_sorensen(angle).full(),
+                                   expected.full(), atol=1e-15)
 
     @pytest.mark.parametrize(["gate", "n_angles"], [
         pytest.param(gates.rx, 1, id="Rx"),
@@ -177,7 +177,8 @@ class TestExplicitForm:
         pytest.param(gates.qrot, 2, id="Rabi rotation"),
     ])
     def test_zero_rotations_are_identity(self, gate, n_angles):
-        assert np.allclose(np.eye(2), gate(*([0]*n_angles)), atol=1e-15)
+        np.testing.assert_allclose(np.eye(2), gate(*([0]*n_angles)),
+                                   atol=1e-15)
 
 
 class TestCliffordGroup:
@@ -293,7 +294,7 @@ class Test_expand_operator:
         test = gates.expand_operator(base,
                                      N=len(permutation), targets=permutation)
         expected = base.permute(_apply_permutation(permutation))
-        assert np.allclose(test.full(), expected.full(), atol=1e-15)
+        np.testing.assert_allclose(test.full(), expected.full(), atol=1e-15)
 
     @pytest.mark.parametrize('n_targets', range(1, 5))
     def test_general_qubit_expansion(self, n_targets):
@@ -304,7 +305,8 @@ class Test_expand_operator:
             expected = _tensor_with_entanglement([qutip.qeye(2)] * n_qubits,
                                                  operation, targets)
             test = gates.expand_operator(operation, n_qubits, targets)
-            assert np.allclose(test.full(), expected.full(), atol=1e-15)
+            np.testing.assert_allclose(test.full(), expected.full(),
+                                       atol=1e-15)
 
     def test_cnot_explicit(self):
         test = gates.expand_operator(gates.cnot(), 3, [2, 0]).full()
@@ -316,7 +318,7 @@ class Test_expand_operator:
                              [0, 1, 0, 0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 0, 0, 1, 0],
                              [0, 0, 0, 1, 0, 0, 0, 0]])
-        assert np.allclose(test, expected, atol=1e-15)
+        np.testing.assert_allclose(test, expected, atol=1e-15)
 
     def test_cyclic_permutation(self):
         operators = [qutip.sigmax(), qutip.sigmaz()]
@@ -345,4 +347,4 @@ class Test_expand_operator:
             test = gates.expand_operator(base_test, N=n_qubits,
                                          targets=targets, dims=dimensions)
             assert test.dims == expected.dims
-            assert np.allclose(test.full(), expected.full())
+            np.testing.assert_allclose(test.full(), expected.full())

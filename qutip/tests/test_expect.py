@@ -176,4 +176,4 @@ def test_compatibility_with_solver(solve):
         assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
         assert direct_.dtype == indirect_.dtype
-        assert np.allclose(direct_, indirect_, atol=1e-12)
+        np.testing.assert_allclose(direct_, indirect_, atol=1e-12)

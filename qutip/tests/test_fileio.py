@@ -47,7 +47,7 @@ class Test_file_data_store_file_data_read:
             data = data * (0.5*0.5j)
         qutip.file_data_store(filename, data, **kwargs)
         out = qutip.file_data_read(filename)
-        assert np.allclose(data, out, atol=1e-8)
+        np.testing.assert_allclose(data, out, atol=1e-8)
 
     def test_defaults(self, tmpfile):
         return self.case(tmpfile.name, {})

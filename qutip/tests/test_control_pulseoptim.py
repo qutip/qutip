@@ -376,7 +376,8 @@ class TestFileIO:
                   'amp_lbound': -1, 'amp_ubound': 1,
                   'gen_stats': True}
         target = _optimize_pulse(system._replace(kwargs=kwargs))
-        assert np.allclose(result.final_amps, target.final_amps, atol=1e-5)
+        np.testing.assert_allclose(result.final_amps, target.final_amps,
+                                   atol=1e-5)
 
     @pytest.mark.usefixtures("in_temporary_directory")
     def test_dumping_to_files(self):
@@ -461,9 +462,9 @@ class TestTimeDependence:
         step = [0.0]*(num_tslots//2) + [1.0]*(num_tslots//2)
         system_step = system._replace(system=[x*system.system for x in step])
         result_step = _optimize_pulse(system_step)
-        assert np.allclose(result_fixed.final_amps, result_flat.final_amps,
-                           rtol=1e-9),\
-            "Flat and fixed drifts result in different control pulses."
+        np.testing.assert_allclose(result_fixed.final_amps,
+                                   result_flat.final_amps,
+                                   rtol=1e-9)
         assert np.any((result_flat.final_amps-result_step.final_amps) > 1e-3),\
             "Flat and step drights result in the same control pulses."
 
@@ -479,8 +480,9 @@ class TestTimeDependence:
         result_single = _optimize_pulse(system)
         system_vary = system._replace(controls=[[_sx]]*num_tslots)
         result_vary = _optimize_pulse(system_vary)
-        assert np.allclose(result_single.final_amps, result_vary.final_amps,
-                           atol=1e-9)
+        np.testing.assert_allclose(result_single.final_amps,
+                                   result_vary.final_amps,
+                                   atol=1e-9)
 
     def test_controls_identity_operators_ignored(self):
         """
@@ -495,5 +497,6 @@ class TestTimeDependence:
         system = system._replace(controls=controls)
         result = _optimize_pulse(system)
         for k in range(0, num_tslots, 3):
-            assert np.allclose(result.initial_amps[k], result.final_amps[k],
-                               rtol=1e-9)
+            np.testing.assert_allclose(result.initial_amps[k],
+                                       result.final_amps[k],
+                                       rtol=1e-9)

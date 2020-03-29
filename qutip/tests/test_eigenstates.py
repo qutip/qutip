@@ -92,10 +92,11 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
     expected_order = np.argsort(eigenvalues)
     expected_vectors = [_canonicalise_eigenvector(eigenstates[i])
                         for i in expected_order]
-    assert np.allclose(test_values[test_order], eigenvalues[expected_order],
-                       atol=1e-10)
+    np.testing.assert_allclose(test_values[test_order],
+                               eigenvalues[expected_order],
+                               atol=1e-10)
     for test, expected in zip(test_vectors, expected_vectors):
-        assert np.allclose(test, expected, atol=1e-10)
+        np.testing.assert_allclose(test, expected, atol=1e-10)
 
 
 # Specify parametrisation over a random Hamiltonian by specifying the
@@ -109,6 +110,6 @@ def random_hamiltonian(request):
 
 def test_satisfy_eigenvalue_equation(random_hamiltonian):
     for eigenvalue, eigenstate in zip(*random_hamiltonian.eigenstates()):
-        assert np.allclose((random_hamiltonian * eigenstate).full(),
-                           (eigenvalue * eigenstate).full(),
-                           atol=1e-10)
+        np.testing.assert_allclose((random_hamiltonian * eigenstate).full(),
+                                   (eigenvalue * eigenstate).full(),
+                                   atol=1e-10)

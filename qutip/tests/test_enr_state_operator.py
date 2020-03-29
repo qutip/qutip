@@ -139,4 +139,4 @@ def test_thermal_dm(dimensions, n_excitations, nbar_type):
         nbars = (0.1 * n_excitations) / np.sum(nbars)
     test_dm = qutip.enr_thermal_dm(dimensions, n_excitations, nbars)
     expect_dm = _reference_dm(dimensions, n_excitations, nbars)
-    assert np.allclose(test_dm.full(), expect_dm.full(), atol=1e-12)
+    np.testing.assert_allclose(test_dm.full(), expect_dm.full(), atol=1e-12)

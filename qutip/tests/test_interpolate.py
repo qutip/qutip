@@ -62,7 +62,7 @@ def test_equivalence_to_scipy(noise):
     expected = scipy.interpolate.CubicSpline(x, y, bc_type="natural")
     # We use the bc_type="natural", i.e. zero second-derivatives at the
     # boundaries because that matches qutip.
-    assert np.allclose(test(x), expected(x), atol=1e-10), "Array argument"
+    np.testing.assert_allclose(test(x), expected(x), atol=1e-10)
     centres = 0.5 * (x[:-1] + x[1:])
     # Test some points not in the original.
     for point in centres:
@@ -149,4 +149,4 @@ def test_usage_in_solvers(solver, coefficients):
         H_test.append([operator, other])
     expected = solver(H_expected, state, times, e_ops=e_ops).expect[0]
     test = solver(H_test, state, times, e_ops=e_ops).expect[0]
-    assert np.allclose(test, expected, atol=1e-4)
+    np.testing.assert_allclose(test, expected, atol=1e-4)

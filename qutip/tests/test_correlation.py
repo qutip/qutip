@@ -76,7 +76,7 @@ def test_correlation_solver_equivalence(solver, start, legacy):
     # to the "me" solver.
     base = correlation(H, start, None, times, c_ops, a.dag(), a, solver="me")
     cmp = correlation(H, start, None, times, c_ops, a.dag(), a, solver=solver)
-    assert np.allclose(base, cmp, atol=tol)
+    np.testing.assert_allclose(base, cmp, atol=tol)
 
 
 def _spectrum_wrapper(spectrum):
@@ -119,7 +119,7 @@ def test_spectrum_solver_equivalence_to_es(spectrum):
 
     test, frequencies = spectrum(H, c_ops, a.dag(), a)
     base = qutip.spectrum(H, frequencies, c_ops, a.dag(), a, solver="es")
-    assert np.allclose(base, test, atol=1e-3)
+    np.testing.assert_allclose(base, test, atol=1e-3)
 
 
 def _trapz_2d(z, xy):
@@ -250,4 +250,4 @@ def test_hamiltonian_order_unimportant():
                                         sp.dag(), sp)
     backwards = qutip.correlation_2op_2t(H[::-1], start, times, times, [sp],
                                          sp.dag(), sp)
-    assert np.allclose(forwards, backwards, atol=1e-6)
+    np.testing.assert_allclose(forwards, backwards, atol=1e-6)

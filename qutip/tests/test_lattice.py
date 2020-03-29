@@ -39,7 +39,8 @@ _r2 = np.sqrt(2)
 
 def _assert_angles_close(test, expected, atol):
     """Assert that two arrays of angles are within tolerance of each other."""
-    assert np.allclose(test % (2*np.pi), expected % (2*np.pi), atol=atol)
+    np.testing.assert_allclose(test % (2*np.pi), expected % (2*np.pi),
+                               atol=atol)
 
 
 def _hamiltonian_expected(cells, periodic, sites_per_cell,
@@ -225,7 +226,7 @@ class TestLattice1d:
                                        cell_num_site=2, cell_site_dof=[2, 3])
         test = lattice_3223.x().full()
         expected = np.diag([n for n in range(3) for _ in [None]*12])
-        assert np.allclose(test, expected, atol=1e-12)
+        np.testing.assert_allclose(test, expected, atol=1e-12)
 
     def test_k(self):
         L = 7
@@ -245,7 +246,7 @@ class TestLattice1d:
         k_q = kq.eigenstates()[0]
         k_t = kt.eigenstates()[0]
         k_tC = k_t - (2*np.pi/L) * ((L-1) // 2)
-        assert np.allclose(k_tC, k_q, atol=1e-12)
+        np.testing.assert_allclose(k_tC, k_q, atol=1e-12)
 
     @pytest.mark.parametrize(["lattice", "k_expected", "energies_expected"], [
         pytest.param(qutip.Lattice1d(num_cell=8),
@@ -256,13 +257,13 @@ class TestLattice1d:
         pytest.param(_ssh_lattice(-0.5, -0.6,
                                   cells=6, sites_per_cell=2, freedom=[2, 2]),
                      _k_expected(6),
-                     np.array([[-_ssh_energies]*4 + [_ssh_energies]*4]),
+                     np.array([-_ssh_energies]*4 + [_ssh_energies]*4),
                      id="ssh model")
     ])
     def test_get_dispersion(self, lattice, k_expected, energies_expected):
         k_test, energies_test = lattice.get_dispersion()
         _assert_angles_close(k_test, k_expected, atol=1e-8)
-        assert np.allclose(energies_test, energies_expected, atol=1e-8)
+        np.testing.assert_allclose(energies_test, energies_expected, atol=1e-8)
 
     def test_cell_periodic_parts(self):
         lattice = _crow_lattice(2, np.pi/4)
@@ -272,9 +273,9 @@ class TestLattice1d:
         for hamiltonian, system in zip(hamiltonians, eigensystems):
             for eigenvalue, eigenstate in zip(*system):
                 eigenstate = qutip.Qobj(eigenstate)
-                assert np.allclose((hamiltonian * eigenstate).full(),
-                                   (eigenvalue * eigenstate).full(),
-                                   atol=1e-12)
+                np.testing.assert_allclose((hamiltonian * eigenstate).full(),
+                                           (eigenvalue * eigenstate).full(),
+                                           atol=1e-12)
 
     def test_bulk_Hamiltonians(self):
         test = _crow_lattice(2, np.pi/2).bulk_Hamiltonians()[1]
@@ -283,8 +284,9 @@ class TestLattice1d:
                     [[0, 4], [4, 0]],
                     [[-2, 2], [2, 2]]]
         for test_hamiltonian, expected_hamiltonian in zip(test, expected):
-            assert np.allclose(test_hamiltonian.full(), expected_hamiltonian,
-                               atol=1e-12)
+            np.testing.assert_allclose(test_hamiltonian.full(),
+                                       expected_hamiltonian,
+                                       atol=1e-12)
 
     def test_bloch_wave_functions(self):
         lattice = _crow_lattice(2, np.pi/2)
@@ -297,11 +299,11 @@ class TestLattice1d:
                              [0,    0,   1,   1j,  2,   0,   1,  -1j],
                              [1j,   1,   0,   0,  -1j,  1,   0,   2],
                              [1,   -1j,  0,   0,   1,   1j,  2,   0]])
-        assert np.allclose(hamiltonian.full(), expected, atol=1e-8)
+        np.testing.assert_allclose(hamiltonian.full(), expected, atol=1e-8)
         for eigenvalue, eigenstate in lattice.bloch_wave_functions():
-            assert np.allclose((hamiltonian * eigenstate).full(),
-                               (eigenvalue * eigenstate).full(),
-                               atol=1e-12)
+            np.testing.assert_allclose((hamiltonian * eigenstate).full(),
+                                       (eigenvalue * eigenstate).full(),
+                                       atol=1e-12)
 
 
 class TestIntegration:
@@ -317,17 +319,20 @@ class TestIntegration:
             [0, 0, 1, (1+1j)/_r2, _r2, 0, 1, (1-1j)/_r2],
             [(1+1j)/_r2, 1, 0, 0, (1-1j)/_r2, 1, 0, _r2],
             [1, (1-1j)/_r2, 0, 0, 1, (1+1j)/_r2, _r2, 0]])
-        assert np.allclose(hamiltonian, expected_hamiltonian, atol=1e-12)
+        np.testing.assert_allclose(hamiltonian, expected_hamiltonian,
+                                   atol=1e-12)
 
         test_k, test_energies = lattice.get_dispersion()
         expected_k = _k_expected(4)
         expected_energies = 2*np.array([[-1,    -1,    -1, -1],
                                         [1-_r2,  1, 1+_r2,  1]])
         _assert_angles_close(test_k, expected_k, atol=1e-12)
-        assert np.allclose(test_energies, expected_energies, atol=1e-12)
+        np.testing.assert_allclose(test_energies, expected_energies,
+                                   atol=1e-12)
 
         for value, state in lattice.bloch_wave_functions():
-            assert np.allclose(hamiltonian*state, value*state, atol=1e-12)
+            np.testing.assert_allclose(hamiltonian*state, value*state,
+                                       atol=1e-12)
 
         test_bulk_system = zip(test_energies.T,
                                lattice.cell_periodic_parts()[1])
@@ -338,13 +343,13 @@ class TestIntegration:
             [[_r2,  2+_r2], [2+_r2,  _r2]],
             [[-_r2,   _r2], [_r2,    _r2]]])
         for test, expected in zip(test_bulk_h, expected_bulk_h):
-            assert np.allclose(test.full(), expected, atol=1e-8)
+            np.testing.assert_allclose(test.full(), expected, atol=1e-8)
         for hamiltonian, system in zip(test_bulk_h, test_bulk_system):
             for eigenvalue, eigenstate in zip(*system):
                 eigenstate = qutip.Qobj(eigenstate)
-                assert np.allclose((hamiltonian * eigenstate).full(),
-                                   (eigenvalue * eigenstate).full(),
-                                   atol=1e-12)
+                np.testing.assert_allclose((hamiltonian * eigenstate).full(),
+                                           (eigenvalue * eigenstate).full(),
+                                           atol=1e-12)
 
     def test_random_crow(self):
         cells = np.random.randint(2, 60)
@@ -359,7 +364,8 @@ class TestIntegration:
         expected_energies = np.sort(expected_energies.T, axis=0)
         test_k, test_energies = lattice.get_dispersion()
         _assert_angles_close(test_k, expected_k, atol=1e-12)
-        assert np.allclose(test_energies, expected_energies, atol=1e-12)
+        np.testing.assert_allclose(test_energies, expected_energies,
+                                   atol=1e-12)
 
     def test_fixed_ssh(self):
         intra, inter = -0.5, -0.6
@@ -377,7 +383,8 @@ class TestIntegration:
         test_k, test_energies = lattice.get_dispersion()
         band = np.array([0.35297281, 0.89185772, 1.1, 0.89185772, 0.35297281])
         _assert_angles_close(test_k, _k_expected(cells), atol=1e-12)
-        assert np.allclose(test_energies, np.array([-band, band]), atol=1e-8)
+        np.testing.assert_allclose(test_energies, np.array([-band, band]),
+                                   atol=1e-8)
 
     def test_random_ssh(self):
         cells = np.random.randint(2, 60)
@@ -390,4 +397,5 @@ class TestIntegration:
         expected_energies = np.array([-band, band])
         test_k, test_energies = lattice.get_dispersion()
         _assert_angles_close(test_k, expected_k, atol=1e-12)
-        assert np.allclose(test_energies, expected_energies, atol=1e-12)
+        np.testing.assert_allclose(test_energies, expected_energies,
+                                   atol=1e-12)

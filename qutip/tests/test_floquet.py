@@ -52,4 +52,4 @@ def test_unitary_evolution_two_level_system():
     trial = qutip.fsesolve(H, psi0, tlist, e_ops, T, args).expect[0]
     expected = qutip.mesolve(H, psi0, tlist, [], e_ops, args).expect[0]
 
-    assert np.allclose(trial, expected, atol=1e-4)
+    np.testing.assert_allclose(trial, expected, atol=1e-4)

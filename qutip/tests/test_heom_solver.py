@@ -83,7 +83,7 @@ def test_pure_dephasing_model(renorm, bnd_cut_approx, stats, tol):
         assert hsolver.stats is not None
     else:
         assert hsolver.stats is None
-    assert np.allclose(test, expected, atol=tol)
+    np.testing.assert_allclose(test, expected, atol=tol)
 
 
 def test_set_unset_stats():

@@ -87,5 +87,5 @@ def test_dqd_current():
                 + 4*eps_vec**2*GammaL)**2)
     )
 
-    assert np.allclose(current, current_target, atol=1e-4)
-    assert np.allclose(noise, noise_target, atol=1e-4)
+    np.testing.assert_allclose(current, current_target, atol=1e-4)
+    np.testing.assert_allclose(noise, noise_target, atol=1e-4)
