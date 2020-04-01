@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.qip.operations.gates import (
+    x_gate, y_gate, z_gate, s_gate, t_gate,
     rx, ry, rz, sqrtnot, snot, phasegate, qrot,
     cphase, cnot,
     csign, berkeley, swapalpha, swap, iswap, sqrtswap,
