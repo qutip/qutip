@@ -64,18 +64,9 @@ def x_gate(N=None, target=0):
 
     Returns
     -------
-    result : qobj
+    result : :class:`qutip.Qobj`
         Quantum object for operator describing
         a single-qubit rotation through pi radians around the x-axis.
-
-    Examples
-    --------
-    >>> sigmax()
-    Quantum object: dims = [[2], [2]], \
-    shape = [2, 2], type = oper, isHerm = False
-    Qobj data =
-    [[ 0.  1.]
-     [ 1.  0.]]
 
     """
     if N is not None:
@@ -89,18 +80,9 @@ def y_gate(N=None, target=0):
 
     Returns
     -------
-    result : qobj
+    result : :class:`qutip.Qobj`
         Quantum object for operator describing
         a single-qubit rotation through pi radians around the y-axis.
-
-    Examples
-    --------
-    >>> sigmay()
-    Quantum object: dims = [[2], [2]], \
-    shape = [2, 2], type = oper, isHerm = True
-    Qobj data =
-    [[ 0.+0.j  0.-1.j]
-     [ 0.+1.j  0.+0.j]]
 
     """
     if N is not None:
@@ -114,18 +96,9 @@ def z_gate(N=None, target=0):
 
     Returns
     -------
-    result : qobj
+    result : :class:`qutip.Qobj`
         Quantum object for operator describing
         a single-qubit rotation through pi radians around the z-axis.
-
-    Examples
-    --------
-     >>> sigmaz()
-    Quantum object: dims = [[2], [2]], \
-    shape = [2, 2], type = oper, isHerm = True
-    Qobj data =
-    [[ 1.  0.]
-     [ 0. -1.]]
 
     """
     if N is not None:
@@ -139,7 +112,7 @@ def s_gate(N=None, target=0):
 
     Returns
     -------
-    result : qobj
+    result : :class:`qutip.Qobj`
         Quantum object for operator describing
         a 90 degree rotation around the z-axis.
 
@@ -148,7 +121,7 @@ def s_gate(N=None, target=0):
         return gate_expand_1toN(s_gate(), N, target)
     else:
         return Qobj([[1, 0],
-                    [0, -1j]])
+                    [0, 1j]])
 
 
 def t_gate(N=None, target=0):
@@ -156,7 +129,7 @@ def t_gate(N=None, target=0):
 
     Returns
     -------
-    result : qobj
+    result : :class:`qutip.Qobj`
         Quantum object for operator describing a phase shift of pi/4.
 
     """
