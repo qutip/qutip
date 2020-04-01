@@ -70,18 +70,6 @@ class StatesAndExpectOutputCase:
         for test, expected_part in zip(result.expect, expected):
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
-    def test_states(self, hamiltonian, c_ops, expected, tol):
-        options = qutip.Options(average_states=True, store_states=True)
-        result = qutip.mcsolve(hamiltonian, self.state, self.times,
-                               c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
-                               options=options)
-        self._assert_states(result, expected, tol)
-
-    def test_expect(self, hamiltonian, c_ops, expected, tol):
-        result = qutip.mcsolve(hamiltonian, self.state, self.times,
-                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj)
-        self._assert_expect(result, expected, tol)
-
     def test_states_and_expect(self, hamiltonian, c_ops, expected, tol):
         options = qutip.Options(average_states=True, store_states=True)
         result = qutip.mcsolve(hamiltonian, self.state, self.times,
@@ -110,11 +98,32 @@ class TestNoCollapse(StatesAndExpectOutputCase):
         ]
         cases = []
         for hamiltonian, id, slow in hamiltonian_types:
+            if slow and 'only' in metafunc.function.__name__:
+                # Skip the single-output test if it's a slow case.
+                continue
             marks = [pytest.mark.slow] if slow else []
             cases.append(pytest.param(hamiltonian, [], [expect], tol,
                                       id=id, marks=marks))
         metafunc.parametrize(['hamiltonian', 'c_ops', 'expected', 'tol'],
                              cases)
+
+    # Previously the "states_only" and "expect_only" tests were mixed in to
+    # every other test case.  We move them out into the simplest set so that
+    # their behaviour remains tested, but isn't repeated as often to keep test
+    # runtimes shorter.  The known-good cases are still tested in the other
+    # test cases, this is just testing the single-output behaviour.
+
+    def test_states_only(self, hamiltonian, c_ops, expected, tol):
+        options = qutip.Options(average_states=True, store_states=True)
+        result = qutip.mcsolve(hamiltonian, self.state, self.times,
+                               c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
+                               options=options)
+        self._assert_states(result, expected, tol)
+
+    def test_expect_only(self, hamiltonian, c_ops, expected, tol):
+        result = qutip.mcsolve(hamiltonian, self.state, self.times,
+                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj)
+        self._assert_expect(result, expected, tol)
 
 
 class TestConstantCollapse(StatesAndExpectOutputCase):
