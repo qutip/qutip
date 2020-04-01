@@ -125,7 +125,7 @@ class TestGates:
                     psi_list[n] = k2
                     psi_in = tensor(psi_list)
 
-                    G = m(N, m, n)
+                    G = g(N, m, n)
 
                     psi_out = G * psi_in
 
