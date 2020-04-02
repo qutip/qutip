@@ -37,13 +37,11 @@ from numpy.testing import (assert_, assert_allclose, assert_array_equal,
                            run_module_suite)
 from qutip.states import basis, ket2dm
 from qutip.operators import identity, qeye, sigmax, sigmay, sigmaz
-from qutip.qip.operations.gates import (rx, ry, rz, x_gate, y_gate, z_gate,
-                                        s_gate, t_gate, cy_gate, cz_gate,
-                                        cs_gate, ct_gate, phasegate, qrot,
-                                        cnot, swap, iswap, sqrtswap,
-                                        molmer_sorensen, toffoli, fredkin,
-                                        gate_expand_3toN, qubit_clifford_group,
-                                        expand_operator)
+from qutip.qip.operations.gates import (
+    rx, ry, rz, x_gate, y_gate, z_gate, s_gate, t_gate, cy_gate, cz_gate,
+    cs_gate, ct_gate, phasegate, qrot, cnot, swap, iswap, sqrtswap,
+    molmer_sorensen, toffoli, fredkin, gate_expand_3toN, qubit_clifford_group,
+    expand_operator)
 from qutip.random_objects import rand_ket, rand_herm, rand_unitary, rand_dm
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
@@ -73,7 +71,7 @@ class TestGates:
         psi_res = swap() * swap() * psi_in
         assert_((psi_in - psi_res).norm() < 1e-12)
 
-    def test1QubitGates(self):
+    def test_one_qubit_gates(self):
          """
          gates: X,Y,Z,S,T gates
          """
@@ -98,7 +96,7 @@ class TestGates:
 
                  assert_((psi_out - psi_res).norm() < 1e-12)
 
-    def testCtrld1QubitGates(self):
+    def test_controlled_one_qubit_gates(self):
         """
         gates: CY,CZ,CS, CT gates
         """
