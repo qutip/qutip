@@ -465,10 +465,9 @@ class QubitCircuit:
         """A dispatch method"""
         if gate.name in basis_2q:
             method = getattr(self, '_gate_basis_2q')
-            method(gate, temp_resolved)
         else:
             if gate.name == "SWAP" and "ISWAP" in basis_2q:
-                method = self._gate_IGNORED(gate, temp_resolved)
+                method = getattr(self, '_gate_IGNORED')
             else:
                 method = getattr(self, '_gate_' + str(gate.name))
         method(gate, temp_resolved)
@@ -865,182 +864,12 @@ class QubitCircuit:
                                  % basis)
 
         for gate in self.gates:
-<<<<<<< HEAD
-            if gate.name == "RX":
-                temp_resolved.append(gate)
-            elif gate.name == "RY":
-                temp_resolved.append(gate)
-            elif gate.name == "RZ":
-                temp_resolved.append(gate)
-            elif gate.name in ("X", "Y", "Z", "S", "T"):
-                temp_resolved.append(gate)
-            elif gate.name in ("CY", "CZ", "CS", "CT"):
-                temp_resolved.append(gate)
-            elif gate.name == "SQRTNOT":
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 4,
-                                          arg_label=r"\pi/4"))
-                temp_resolved.append(Gate("RX", gate.targets, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-            elif gate.name == "SNOT":
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RY", gate.targets, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RX", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-            elif gate.name == "PHASEGATE":
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=gate.arg_value / 2,
-                                          arg_label=gate.arg_label))
-                temp_resolved.append(Gate("RZ", gate.targets, None,
-                                          gate.arg_value, gate.arg_label))
-            elif gate.name in basis_2q:  # ignore all gate in 2q basis
-                temp_resolved.append(gate)
-            elif gate.name == "CPHASE":
-                raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "CNOT":
-                temp_resolved.append(gate)
-            elif gate.name == "CSIGN":
-                temp_resolved.append(Gate("RY", gate.targets, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RX", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-                temp_resolved.append(Gate("CNOT", gate.targets, gate.controls))
-                temp_resolved.append(Gate("RY", gate.targets, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RX", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-            elif gate.name == "BERKELEY":
-                raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "SWAPalpha":
-                raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "SWAP":
-                if "ISWAP" in basis_2q:  # dealed with separately
-                    temp_resolved.append(gate)
-                else:
-                    temp_resolved.append(
-                        Gate("CNOT", gate.targets[0], gate.targets[1]))
-                    temp_resolved.append(
-                        Gate("CNOT", gate.targets[1], gate.targets[0]))
-                    temp_resolved.append(
-                        Gate("CNOT", gate.targets[0], gate.targets[1]))
-            elif gate.name == "ISWAP":
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.targets[1]))
-                temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                          gate.targets[0]))
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.targets[1]))
-                temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RX", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.targets[1]))
-                temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RX", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-            elif gate.name == "SQRTSWAP":
-                raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "SQRTISWAP":
-                raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "FREDKIN":
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.targets[1]))
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.controls))
-                temp_resolved.append(Gate("RZ", gate.controls, None,
-                                          arg_value=np.pi / 8,
-                                          arg_label=r"\pi/8"))
-                temp_resolved.append(Gate("RZ", [gate.targets[0]], None,
-                                          arg_value=-np.pi / 8,
-                                          arg_label=r"-\pi/8"))
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.controls))
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RY", gate.targets, None,
-                                          arg_value=-np.pi / 2,
-                                          arg_label=r"-\pi/2"))
-                temp_resolved.append(Gate("RZ", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-                temp_resolved.append(Gate("RY", gate.targets, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                          arg_value=np.pi / 8,
-                                          arg_label=r"\pi/8"))
-                temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                          arg_value=np.pi / 8,
-                                          arg_label=r"\pi/8"))
-                temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                          gate.controls))
-                temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                          arg_value=-np.pi / 8,
-                                          arg_label=r"-\pi/8"))
-                temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                          gate.targets[0]))
-                temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                          arg_value=np.pi / 8,
-                                          arg_label=r"\pi/8"))
-                temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                          gate.controls))
-                temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                          arg_value=-np.pi / 8,
-                                          arg_label=r"-\pi/8"))
-                temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                          gate.targets[0]))
-                temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("RY", gate.targets, None,
-                                          arg_value=-np.pi / 2,
-                                          arg_label=r"-\pi/2"))
-                temp_resolved.append(Gate("RZ", gate.targets, None,
-                                          arg_value=np.pi, arg_label=r"\pi"))
-                temp_resolved.append(Gate("RY", gate.targets, None,
-                                          arg_value=np.pi / 2,
-                                          arg_label=r"\pi/2"))
-                temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                          gate.targets[1]))
-=======
             try:
                 self._gate_to_function(gate, temp_resolved,
                                        basis_1q, basis_2q)
             except:
                 exception = f"Gate {gate.name} cannot be resolved."
                 raise NotImplementedError(exception)
-
->>>>>>> fix: fixed return append
 
         for basis in ["CSIGN", "ISWAP", "SQRTSWAP", "SQRTISWAP"]:
             if basis in basis_2q:
