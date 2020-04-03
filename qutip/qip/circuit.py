@@ -464,7 +464,8 @@ class QubitCircuit:
     def _gate_to_function(self, gate, temp_resolved, basis_1q, basis_2q):
         """A dispatch method"""
         if gate.name in basis_2q:
-            return _gate_basis_2q(gate, temp_resolved)
+            method = getattr(self, '_gate_basis_2q')
+            return method(gate, temp_resolved)
         else:
             if gate.name == "SWAP" and "ISWAP" in basis_2q:
                 method = self._gate_IGNORED(gate, temp_resolved)
@@ -475,8 +476,10 @@ class QubitCircuit:
         return method(gate, temp_resolved)
 
     def _gate_IGNORED(self, gate, temp_resolved):
-        return temp_resolved.append(gate)
-    _gate_RY = _gate_RZ = _gate_basis_2q = _gate_CNOT = _gate_RX = _gate_IGNORED
+        temp_resolved.append(gate)
+        return temp_resolved
+    _gate_RY = _gate_RZ = _gate_basis_2q = _gate_IGNORED
+    _gate_CNOT = _gate_RX = _gate_IGNORED
 
     def _gate_SQRTNOT(self, gate, temp_resolved):
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
@@ -506,7 +509,7 @@ class QubitCircuit:
 
     def _gate_NOTIMPLEMENTED(self, gate, temp_resolved):
         raise NotImplementedError("Cannot be resolved in this basis")
-    _gate_PHASEGATE = _gate_BERKELEY = _gate_SWAPalpha = \
+    _gate_PHASEGATE = _gate_BERKELEY = _gate_SWAPalpha = _gate_NOTIMPLEMENTED
     _gate_SQRTSWAP = _gate_SQRTISWAP = _gate_NOTIMPLEMENTED
 
     def _gate_CSIGN(self, gate, temp_resolved):
