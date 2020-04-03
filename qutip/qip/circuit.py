@@ -354,22 +354,22 @@ class QubitCircuit:
                                        arg_value=arg_value,
                                        arg_label=arg_label))
 
-    def add_circuit(self, qubit_circuit, start=0):
+    def add_circuit(self, qc, start=0):
         """
         Adds a block of a qubit circuit to the main circuit.
         Globalphase gates are not added.
 
         Parameters
         ----------
-        qubit_circuit : QubitCircuit
+        qc : QubitCircuit
             The circuit block to be added to the main circuit.
         start : int
             The qubit on which the first gate is applied.
         """
-        if self.N - start < qubit_circuit.N:
+        if self.N - start < qc.N:
             raise NotImplementedError("Targets exceed number of qubits.")
 
-        for gate in qubit_circuit.gates:
+        for gate in qc.gates:
             if gate.name in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
                 self.add_gate(gate.name, gate.targets[0] + start, None,
                               gate.arg_value, gate.arg_label)
