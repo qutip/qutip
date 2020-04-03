@@ -465,19 +465,16 @@ class QubitCircuit:
         """A dispatch method"""
         if gate.name in basis_2q:
             method = getattr(self, '_gate_basis_2q')
-            return method(gate, temp_resolved)
+            method(gate, temp_resolved)
         else:
             if gate.name == "SWAP" and "ISWAP" in basis_2q:
                 method = self._gate_IGNORED(gate, temp_resolved)
             else:
-                exception = f"Gate {gate.name} cannot be resolved."
-                method = getattr(self, '_gate_' + str(gate),
-                                 exec('raise NotImplementedError(exception)'))
-        return method(gate, temp_resolved)
+                method = getattr(self, '_gate_' + str(gate.name))
+        method(gate, temp_resolved)
 
     def _gate_IGNORED(self, gate, temp_resolved):
         temp_resolved.append(gate)
-        return temp_resolved
     _gate_RY = _gate_RZ = _gate_basis_2q = _gate_IGNORED
     _gate_CNOT = _gate_RX = _gate_IGNORED
 
@@ -486,7 +483,6 @@ class QubitCircuit:
                                   arg_value=np.pi / 4, arg_label=r"\pi/4"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi / 2, arg_label=r"\pi/2"))
-        return temp_resolved
 
     def _gate_SNOT(self, gate, temp_resolved):
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
@@ -497,7 +493,6 @@ class QubitCircuit:
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
-        return temp_resolved
 
     def _gate_PHASEGATE(self, gate, temp_resolved):
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
@@ -505,7 +500,6 @@ class QubitCircuit:
                                   arg_label=gate.arg_label))
         temp_resolved.append(Gate("RZ", gate.targets, None,
                                   gate.arg_value, gate.arg_label))
-        return temp_resolved
 
     def _gate_NOTIMPLEMENTED(self, gate, temp_resolved):
         raise NotImplementedError("Cannot be resolved in this basis")
@@ -526,7 +520,6 @@ class QubitCircuit:
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
-        return temp_resolved
 
     def _gate_SWAP(self, gate, temp_resolved):
         temp_resolved.append(
@@ -535,7 +528,6 @@ class QubitCircuit:
             Gate("CNOT", gate.targets[1], gate.targets[0]))
         temp_resolved.append(
             Gate("CNOT", gate.targets[0], gate.targets[1]))
-        return temp_resolved
 
     def _gate_ISWAP(self, gate, temp_resolved):
         temp_resolved.append(Gate("CNOT", gate.targets[0],
@@ -567,7 +559,6 @@ class QubitCircuit:
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                   arg_value=np.pi / 2,
                                   arg_label=r"\pi/2"))
-        return temp_resolved
 
     def _gate_FREDKIN(self, gate, temp_resolved):
         temp_resolved.append(Gate("CNOT", gate.targets[0],
@@ -635,7 +626,6 @@ class QubitCircuit:
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
-        return temp_resolved
 
     def _gate_TOFFOLI(self, gate, temp_resolved):
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
@@ -693,18 +683,16 @@ class QubitCircuit:
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
-        return temp_resolved
 
     def _gate_GLOBALPHASE(self, gate, temp_resolved):
         temp_resolved.append(Gate(gate.name, gate.targets,
                                   gate.controls,
                                   gate.arg_value, gate.arg_label))
-        return temp_resolved
 
     def _basis_to_function(self, basis, qc_temp, temp_resolved):
         """Dispatch method"""
         method = getattr(self, '_basis_' + str(basis), temp_resolved)
-        return method(qc_temp, temp_resolved)
+        method(qc_temp, temp_resolved)
 
     def _basis_CSIGN(self, qc_temp, temp_resolved):
         for gate in temp_resolved:
@@ -719,7 +707,6 @@ class QubitCircuit:
                                           arg_label=r"\pi/2"))
             else:
                 qc_temp.gates.append(gate)
-        return qc_temp.gates
 
     def _basis_ISWAP(self, qc_temp, temp_resolved):
         for gate in temp_resolved:
@@ -768,7 +755,6 @@ class QubitCircuit:
                                           arg_label=r"-\pi/2"))
             else:
                 qc_temp.gates.append(gate)
-        return qc_temp.gates
 
     def _basis_SQRTSWAP(self, qc_temp, temp_resolved):
         for gate in temp_resolved:
@@ -796,7 +782,6 @@ class QubitCircuit:
                                           arg_label=r"-\pi/2"))
             else:
                 qc_temp.gates.append(gate)
-        return qc_temp.gates
 
     def _basis_SQRTISWAP(self, qc_temp, temp_resolved):
         for gate in temp_resolved:
@@ -880,6 +865,7 @@ class QubitCircuit:
                                  % basis)
 
         for gate in self.gates:
+<<<<<<< HEAD
             if gate.name == "RX":
                 temp_resolved.append(gate)
             elif gate.name == "RY":
@@ -1046,10 +1032,19 @@ class QubitCircuit:
                                           arg_label=r"\pi/2"))
                 temp_resolved.append(Gate("CNOT", gate.targets[0],
                                           gate.targets[1]))
+=======
+            try:
+                self._gate_to_function(gate, temp_resolved,
+                                       basis_1q, basis_2q)
+            except:
+                exception = f"Gate {gate.name} cannot be resolved."
+                raise NotImplementedError(exception)
+
+>>>>>>> fix: fixed return append
 
         for basis in ["CSIGN", "ISWAP", "SQRTSWAP", "SQRTISWAP"]:
             if basis in basis_2q:
-                qc_temp.gates = self._basis_to_function(basis, qc_temp, temp_resolved)
+                self._basis_to_function(basis, qc_temp, temp_resolved)
                 break
 
         if len(basis_1q) == 2:
