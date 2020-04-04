@@ -884,10 +884,14 @@ class QubitCircuit:
                 exception = f"Gate {gate.name} cannot be resolved."
                 raise NotImplementedError(exception)
 
+        match = False
         for basis in ["CSIGN", "ISWAP", "SQRTSWAP", "SQRTISWAP"]:
             if basis in basis_2q:
+                match = True
                 self._basis_to_function(basis, qc_temp, temp_resolved)
                 break
+        if not match:
+            qc_temp.gates = temp_resolved
 
         if len(basis_1q) == 2:
             temp_resolved = qc_temp.gates
