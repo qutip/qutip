@@ -38,8 +38,14 @@ import inspect
 import numpy as np
 
 from qutip.qip import circuit_latex as _latex
-from qutip.qip.operations.gates import *
-from qutip.qip.qubits import qubit_states
+from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
+                                        x_gate, y_gate, z_gate, cy_gate,
+                                        cz_gate, s_gate, t_gate, cs_gate,
+                                        ct_gate, cphase, cnot, csign,
+                                        berkeley, swapalpha, swap, iswap,
+                                        sqrtswap, sqrtiswap, fredkin,
+                                        toffoli, controlled_gate, globalphase,
+                                        expand_operator)
 
 try:
     from IPython.display import Image as DisplayImage, SVG as DisplaySVG
@@ -55,7 +61,7 @@ except ImportError:
 __all__ = ['Gate', 'QubitCircuit']
 
 
-class Gate(object):
+class Gate:
     """
     Representation of a quantum gate, with its required parametrs, and target
     and control qubits.
@@ -107,18 +113,20 @@ class Gate(object):
             if self.controls is not None:
                 raise ValueError("Gate %s cannot have a control" % name)
 
-        elif name in ["CNOT", "CSIGN", "CRX", "CRY", "CRZ"]:
+        elif name in ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
+                      "CS", "CT"]:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
             if self.controls is None or len(self.controls) != 1:
                 raise ValueError("Gate %s requires one control" % name)
 
-        elif name in ["SNOT", "RX", "RY", "RZ", "PHASEGATE"]:
+        elif name in ["SNOT", "RX", "RY", "RZ", "PHASEGATE", "X", "Y",
+                      "Z", "S", "T"]:
             if self.controls is not None:
                 raise ValueError("Gate %s does not take controls" % name)
 
         elif name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
-                            "GLOBALPHASE", "CRX", "CRY", "CRZ"]:
+                      "GLOBALPHASE", "CRX", "CRY", "CRZ"]:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
 
@@ -130,10 +138,10 @@ class Gate(object):
         self.arg_label = arg_label
 
     def __str__(self):
-        s = "Gate(%s, targets=%s, controls=%s)" % (self.name,
-                                                   self.targets,
-                                                   self.controls)
-        return s
+        string_name = "Gate(%s, targets=%s, controls=%s)" % (self.name,
+                                                             self.targets,
+                                                             self.controls)
+        return string_name
 
     def __repr__(self):
         return str(self)
@@ -142,12 +150,16 @@ class Gate(object):
         return str(self)
 
 
-_gate_name_to_label = {
+_GATE_NAME_TO_LABEL = {
     'X': r'X',
     'Y': r'Y',
+    'CY': r'C_y',
     'Z': r'Z',
+    'CZ': r'C_z',
     'S': r'S',
+    'CS': r'C_s',
     'T': r'T',
+    'CT': r'C_t',
     'RX': r'R_x',
     'RY': r'R_y',
     'RZ': r'R_z',
@@ -174,19 +186,18 @@ _gate_name_to_label = {
 
 def _gate_label(name, arg_label):
 
-    if name in _gate_name_to_label:
-        gate_label = _gate_name_to_label[name]
+    if name in _GATE_NAME_TO_LABEL:
+        gate_label = _GATE_NAME_TO_LABEL[name]
     else:
         warnings.warn("Unknown gate %s" % name)
         gate_label = name
 
     if arg_label:
         return r'%s(%s)' % (gate_label, arg_label)
-    else:
-        return r'%s' % gate_label
+    return r'%s' % gate_label
 
 
-class QubitCircuit(object):
+class QubitCircuit:
     """
     Representation of a quantum program/algorithm, maintaining a sequence
     of gates.
@@ -210,8 +221,8 @@ class QubitCircuit(object):
     ...     mat = np.array([[1.,   0],
     ...                     [0., 1.j]])
     ...     return Qobj(mat, dims=[[2], [2]])
-    >>> qc.QubitCircuit(2, user_gates={"T":user_gate})
-    >>> qc.add_gate("T", targets=[0])
+    >>> qubit_circuit.QubitCircuit(2, user_gates={"T":user_gate})
+    >>> qubit_circuit.add_gate("T", targets=[0])
     """
 
     def __init__(self, N, input_states=None, output_states=None,
@@ -325,11 +336,12 @@ class QubitCircuit(object):
         arg_label : string
             Label for gate representation.
         """
-        if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
+        if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
+                        "X", "Y", "Z", "S", "T"]:
             raise ValueError("%s is not a single qubit gate" % name)
 
         if qubits is not None:
-            for i in range(len(qubits)):
+            for _, i in enumerate(qubits):
                 self.gates.append(Gate(name, targets=qubits[i], controls=None,
                                        arg_value=arg_value,
                                        arg_label=arg_label))
@@ -361,7 +373,11 @@ class QubitCircuit(object):
             if gate.name in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
                 self.add_gate(gate.name, gate.targets[0] + start, None,
                               gate.arg_value, gate.arg_label)
-            elif gate.name in ["CPHASE", "CNOT", "CSIGN", "CRX", "CRY", "CRZ"]:
+            elif gate.name in ["X", "Y", "Z", "S", "T"]:
+                self.add_gate(gate.name, gate.targets[0] + start, None,
+                              None, gate.arg_label)
+            elif gate.name in ["CPHASE", "CNOT", "CSIGN", "CRX", "CRY",
+                               "CRZ", "CY", "CZ", "CS", "CT"]:
                 self.add_gate(gate.name, gate.targets[0] + start,
                               gate.controls[0] + start, gate.arg_value,
                               gate.arg_label)
@@ -381,8 +397,8 @@ class QubitCircuit(object):
                               gate.controls + start, None, None)
             elif gate.name in self.user_gates:
                 self.add_gate(
-                              gate.name, targets=gate.targets,
-                              arg_value=gate.arg_value)
+                    gate.name, targets=gate.targets,
+                    arg_value=gate.arg_value)
 
     def remove_gate(self, index=None, end=None, name=None, remove="first"):
         """
@@ -433,7 +449,7 @@ class QubitCircuit(object):
 
         Returns
         -------
-        qc : QubitCircuit
+        qubit_circuit : QubitCircuit
             Return QubitCircuit of resolved gates for the qubit circuit in the
             reverse order.
 
@@ -450,12 +466,10 @@ class QubitCircuit(object):
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right in the specified
         basis.
-
         Parameters
         ----------
         basis : list.
             Basis of the resolved circuit.
-
         Returns
         -------
         qc : QubitCircuit
@@ -481,7 +495,7 @@ class QubitCircuit(object):
                         "%s is not a valid basis gate" % gate)
             if len(basis_1q) == 1:
                 raise ValueError("Not sufficient single-qubit gates in basis")
-            elif len(basis_1q) == 0:
+            if len(basis_1q) == 0:
                 basis_1q = ["RX", "RY", "RZ"]
 
         else:  # only one 2q gate is given as basis
@@ -498,6 +512,10 @@ class QubitCircuit(object):
             elif gate.name == "RY":
                 temp_resolved.append(gate)
             elif gate.name == "RZ":
+                temp_resolved.append(gate)
+            elif gate.name in ("X", "Y", "Z", "S", "T"):
+                temp_resolved.append(gate)
+            elif gate.name in ("CY", "CZ", "CS", "CT"):
                 temp_resolved.append(gate)
             elif gate.name == "SQRTNOT":
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
@@ -889,7 +907,7 @@ class QubitCircuit(object):
 
         Returns
         -------
-        qc : QubitCircuit
+        qubit_circuit : QubitCircuit
             Return QubitCircuit of the gates for the qubit circuit with the
             resolved non-adjacent gates.
 
@@ -980,11 +998,36 @@ class QubitCircuit(object):
 
         for gate in self.gates:
             if gate.name == "RX":
-                self.U_list.append(rx(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(rx(
+                    gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "RY":
-                self.U_list.append(ry(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(ry(
+                    gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "RZ":
-                self.U_list.append(rz(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(rz(
+                    gate.arg_value, self.N, gate.targets[0]))
+            elif gate.name == "X":
+                self.U_list.append(x_gate(self.N, gate.targets[0]))
+            elif gate.name == "Y":
+                self.U_list.append(y_gate(self.N, gate.targets[0]))
+            elif gate.name == "CY":
+                self.U_list.append(cy_gate(
+                    self.N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "Z":
+                self.U_list.append(z_gate(self.N, gate.targets[0]))
+            elif gate.name == "CZ":
+                self.U_list.append(cz_gate(
+                    self.N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "T":
+                self.U_list.append(t_gate(self.N, gate.targets[0]))
+            elif gate.name == "CT":
+                self.U_list.append(ct_gate(
+                    self.N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "S":
+                self.U_list.append(s_gate(self.N, gate.targets[0]))
+            elif gate.name == "CS":
+                self.U_list.append(cs_gate(
+                    self.N, gate.controls[0], gate.targets[0]))
             elif gate.name == "SQRTNOT":
                 self.U_list.append(sqrtnot(self.N, gate.targets[0]))
             elif gate.name == "SNOT":
@@ -1052,8 +1095,7 @@ class QubitCircuit(object):
                     raise ValueError(
                         "gate function takes at most one parameters.")
                 self.U_list.append(expand_operator(
-                        oper, N=self.N,
-                        targets=gate.targets, dims=self.dims))
+                    oper, N=self.N, targets=gate.targets, dims=self.dims))
 
             else:
                 raise NotImplementedError(
@@ -1076,9 +1118,9 @@ class QubitCircuit(object):
                             col.append(r" \qswap \qwx ")
 
                         elif ((self.reverse_states and
-                                n == max(gate.targets)) or
-                                (not self.reverse_states and
-                                    n == min(gate.targets))):
+                               n == max(gate.targets)) or
+                              (not self.reverse_states and
+                               n == min(gate.targets))):
                             col.append(r" \multigate{%d}{%s} " %
                                        (len(gate.targets) - 1,
                                         _gate_label(gate.name,
@@ -1090,6 +1132,14 @@ class QubitCircuit(object):
 
                     elif gate.name == "CNOT":
                         col.append(r" \targ ")
+                    elif gate.name == "CY":
+                        col.append(r" \targ ")
+                    elif gate.name == "CZ":
+                        col.append(r" \targ ")
+                    elif gate.name == "CS":
+                        col.append(r" \targ ")
+                    elif gate.name == "CT":
+                        col.append(r" \targ ")
                     elif gate.name == "TOFFOLI":
                         col.append(r" \targ ")
                     else:
@@ -1097,9 +1147,10 @@ class QubitCircuit(object):
                                    _gate_label(gate.name, gate.arg_label))
 
                 elif gate.controls and n in gate.controls:
-                    m = (gate.targets[0] - n) * (-1 if self.reverse_states
-                                                 else 1)
-                    col.append(r" \ctrl{%d} " % m)
+                    control_tag = (-1 if
+                                   self.reverse_states
+                                   else 1) * (gate.targets[0] - n)
+                    col.append(r" \ctrl{%d} " % control_tag)
 
                 elif (not gate.controls and not gate.targets):
                     # global gate
@@ -1118,7 +1169,7 @@ class QubitCircuit(object):
             col.append(r" \qw ")
             rows.append(col)
 
-        input_states = ["\lstick{\ket{" + x + "}}" if x is not None
+        input_states = [r"\lstick{\ket{" + x + "}}" if x is not None
                         else "" for x in self.input_states]
 
         code = ""
