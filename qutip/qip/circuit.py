@@ -484,11 +484,12 @@ class QubitCircuit:
                                   arg_value=np.pi / 2, arg_label=r"\pi/2"))
 
     def _gate_SNOT(self, gate, temp_resolved):
+        half_pi = np.pi / 2
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
@@ -506,14 +507,15 @@ class QubitCircuit:
     _gate_SQRTSWAP = _gate_SQRTISWAP = _gate_NOTIMPLEMENTED
 
     def _gate_CSIGN(self, gate, temp_resolved):
+        half_pi = np.pi / 2
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("CNOT", gate.targets, gate.controls))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
@@ -529,6 +531,7 @@ class QubitCircuit:
             Gate("CNOT", gate.targets[0], gate.targets[1]))
 
     def _gate_ISWAP(self, gate, temp_resolved):
+        half_pi = np.pi / 2
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
         temp_resolved.append(Gate("CNOT", gate.targets[1],
@@ -536,149 +539,153 @@ class QubitCircuit:
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
         temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
         temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
 
     def _gate_FREDKIN(self, gate, temp_resolved):
+        half_pi = np.pi / 2
+        eigth_pi = np.pi / 8
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.controls))
         temp_resolved.append(Gate("RZ", gate.controls, None,
-                                  arg_value=np.pi / 8,
+                                  arg_value=eigth_pi,
                                   arg_label=r"\pi/8"))
         temp_resolved.append(Gate("RZ", [gate.targets[0]], None,
-                                  arg_value=-np.pi / 8,
+                                  arg_value=-eigth_pi,
                                   arg_label=r"-\pi/8"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.controls))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=-np.pi / 2,
+                                  arg_value=-half_pi,
                                   arg_label=r"-\pi/2"))
         temp_resolved.append(Gate("RZ", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                  arg_value=np.pi / 8,
+                                  arg_value=eigth_pi,
                                   arg_label=r"\pi/8"))
         temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=np.pi / 8,
+                                  arg_value=eigth_pi,
                                   arg_label=r"\pi/8"))
         temp_resolved.append(Gate("CNOT", gate.targets[1],
                                   gate.controls))
         temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=-np.pi / 8,
+                                  arg_value=-eigth_pi,
                                   arg_label=r"-\pi/8"))
         temp_resolved.append(Gate("CNOT", gate.targets[1],
                                   gate.targets[0]))
         temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=np.pi / 8,
+                                  arg_value=eigth_pi,
                                   arg_label=r"\pi/8"))
         temp_resolved.append(Gate("CNOT", gate.targets[1],
                                   gate.controls))
         temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=-np.pi / 8,
+                                  arg_value=-eigth_pi,
                                   arg_label=r"-\pi/8"))
         temp_resolved.append(Gate("CNOT", gate.targets[1],
                                   gate.targets[0]))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=-np.pi / 2,
+                                  arg_value=-half_pi,
                                   arg_label=r"-\pi/2"))
         temp_resolved.append(Gate("RZ", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
 
     def _gate_TOFFOLI(self, gate, temp_resolved):
+        half_pi = np.pi / 2
+        quarter_pi = np.pi / 4
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=1 * np.pi / 8,
+                                  arg_value=np.pi / 8,
                                   arg_label=r"\pi/8"))
         temp_resolved.append(Gate("RZ", gate.controls[1], None,
-                                  arg_value=np.pi/2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RZ", gate.controls[0], None,
-                                  arg_value=np.pi / 4,
+                                  arg_value=quarter_pi,
                                   arg_label=r"\pi/4"))
         temp_resolved.append(Gate("CNOT", gate.controls[1],
                                   gate.controls[0]))
         temp_resolved.append(Gate("RZ", gate.controls[1], None,
-                                  arg_value=-np.pi / 4,
+                                  arg_value=-quarter_pi,
                                   arg_label=r"-\pi/4"))
         temp_resolved.append(Gate("CNOT", gate.controls[1],
                                   gate.controls[0]))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("RZ", gate.controls[1], None,
-                                  arg_value=-np.pi / 4,
+                                  arg_value=-quarter_pi,
                                   arg_label=r"-\pi/4"))
         temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=np.pi / 4,
+                                  arg_value=quarter_pi,
                                   arg_label=r"\pi/4"))
         temp_resolved.append(Gate("CNOT", gate.targets,
                                   gate.controls[0]))
         temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=-np.pi / 4,
+                                  arg_value=-quarter_pi,
                                   arg_label=r"-\pi/4"))
         temp_resolved.append(Gate("CNOT", gate.targets,
                                   gate.controls[1]))
         temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=np.pi / 4,
+                                  arg_value=quarter_pi,
                                   arg_label=r"\pi/4"))
         temp_resolved.append(Gate("CNOT", gate.targets,
                                   gate.controls[0]))
         temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=-np.pi / 4,
+                                  arg_value=-quarter_pi,
                                   arg_label=r"-\pi/4"))
         temp_resolved.append(Gate("CNOT", gate.targets,
                                   gate.controls[1]))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=np.pi / 2,
+                                  arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RX", gate.targets, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
@@ -694,72 +701,76 @@ class QubitCircuit:
         method(qc_temp, temp_resolved)
 
     def _basis_CSIGN(self, qc_temp, temp_resolved):
+        half_pi = np.pi / 2
         for gate in temp_resolved:
             if gate.name == "CNOT":
                 qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("CSIGN", gate.targets,
                                           gate.controls))
                 qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                          arg_value=np.pi / 2,
+                                          arg_value=half_pi,
                                           arg_label=r"\pi/2"))
             else:
                 qc_temp.gates.append(gate)
 
     def _basis_ISWAP(self, qc_temp, temp_resolved):
+        half_pi = np.pi / 2
+        quarter_pi = np.pi / 4
         for gate in temp_resolved:
             if gate.name == "CNOT":
                 qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 4,
+                                          arg_value=quarter_pi,
                                           arg_label=r"\pi/4"))
                 qc_temp.gates.append(Gate("ISWAP", [gate.controls[0],
                                                     gate.targets[0]],
                                           None))
                 qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("RY", gate.controls, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("RZ", gate.controls, None,
-                                          arg_value=np.pi / 2,
+                                          arg_value=half_pi,
                                           arg_label=r"\pi/2"))
                 qc_temp.gates.append(Gate("ISWAP", [gate.controls[0],
                                                     gate.targets[0]],
                                           None))
                 qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                          arg_value=np.pi / 2,
+                                          arg_value=half_pi,
                                           arg_label=r"\pi/2"))
             elif gate.name == "SWAP":
                 qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 4,
+                                          arg_value=quarter_pi,
                                           arg_label=r"\pi/4"))
                 qc_temp.gates.append(Gate("ISWAP", gate.targets, None))
                 qc_temp.gates.append(Gate("RX", gate.targets[0], None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("ISWAP", gate.targets, None))
                 qc_temp.gates.append(Gate("RX", gate.targets[1], None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("ISWAP", [gate.targets[1],
                                                     gate.targets[0]],
                                           None))
                 qc_temp.gates.append(Gate("RX", gate.targets[0], None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
             else:
                 qc_temp.gates.append(gate)
 
     def _basis_SQRTSWAP(self, qc_temp, temp_resolved):
+        half_pi = np.pi / 2
         for gate in temp_resolved:
             if gate.name == "CNOT":
                 qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                          arg_value=np.pi / 2,
+                                          arg_value=half_pi,
                                           arg_label=r"\pi/2"))
                 qc_temp.gates.append(Gate("SQRTSWAP", [gate.controls[0],
                                                        gate.targets[0]],
@@ -771,28 +782,30 @@ class QubitCircuit:
                                                        gate.targets[0]],
                                           None))
                 qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("RZ", gate.controls, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
             else:
                 qc_temp.gates.append(gate)
 
     def _basis_SQRTISWAP(self, qc_temp, temp_resolved):
+        half_pi = np.pi / 2
+        quarter_pi = np.pi / 4
         for gate in temp_resolved:
             if gate.name == "CNOT":
                 qc_temp.gates.append(Gate("RY", gate.controls, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("RX", gate.controls, None,
-                                          arg_value=np.pi / 2,
+                                          arg_value=half_pi,
                                           arg_label=r"\pi/2"))
                 qc_temp.gates.append(Gate("RX", gate.targets, None,
-                                          arg_value=-np.pi / 2,
+                                          arg_value=-half_pi,
                                           arg_label=r"-\pi/2"))
                 qc_temp.gates.append(Gate("SQRTISWAP", [gate.controls[0],
                                                         gate.targets[0]],
@@ -804,16 +817,16 @@ class QubitCircuit:
                                                         gate.targets[0]],
                                           None))
                 qc_temp.gates.append(Gate("RY", gate.controls, None,
-                                          arg_value=np.pi / 2,
+                                          arg_value=half_pi,
                                           arg_label=r"\pi/2"))
                 qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=np.pi / 4,
+                                          arg_value=quarter_pi,
                                           arg_label=r"\pi/4"))
                 qc_temp.gates.append(Gate("RZ", gate.controls, None,
                                           arg_value=np.pi,
                                           arg_label=r"\pi"))
                 qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=3 * np.pi / 2,
+                                          arg_value=3 * half_pi,
                                           arg_label=r"3\pi/2"))
             else:
                 qc_temp.gates.append(gate)
@@ -867,7 +880,7 @@ class QubitCircuit:
             try:
                 self._gate_to_function(gate, temp_resolved,
                                        basis_1q, basis_2q)
-            except:
+            except AttributeError:
                 exception = f"Gate {gate.name} cannot be resolved."
                 raise NotImplementedError(exception)
 
@@ -880,32 +893,33 @@ class QubitCircuit:
             temp_resolved = qc_temp.gates
             qc_temp.gates = []
             for gate in temp_resolved:
+                half_pi = np.pi / 2
                 if gate.name == "RX" and "RX" not in basis_1q:
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                              arg_value=-np.pi / 2,
+                                              arg_value=-half_pi,
                                               arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
                                               gate.arg_value, gate.arg_label))
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
-                                              arg_value=np.pi / 2,
+                                              arg_value=half_pi,
                                               arg_label=r"\pi/2"))
                 elif gate.name == "RY" and "RY" not in basis_1q:
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                              arg_value=-np.pi / 2,
+                                              arg_value=-half_pi,
                                               arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("RX", gate.targets, None,
                                               gate.arg_value, gate.arg_label))
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
-                                              arg_value=np.pi / 2,
+                                              arg_value=half_pi,
                                               arg_label=r"\pi/2"))
                 elif gate.name == "RZ" and "RZ" not in basis_1q:
                     qc_temp.gates.append(Gate("RX", gate.targets, None,
-                                              arg_value=-np.pi / 2,
+                                              arg_value=-half_pi,
                                               arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
                                               gate.arg_value, gate.arg_label))
                     qc_temp.gates.append(Gate("RX", gate.targets, None,
-                                              arg_value=np.pi / 2,
+                                              arg_value=half_pi,
                                               arg_label=r"\pi/2"))
                 else:
                     qc_temp.gates.append(gate)
