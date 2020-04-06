@@ -1650,8 +1650,8 @@ class Qobj(object):
 
         raise TypeError("Can only calculate overlap for state vector Qobjs")
 
-    def eigenstates(self, sparse=False, sort='low',
-                    eigvals=0, tol=0, maxiter=100000):
+    def eigenstates(self, sparse=False, sort='low', eigvals=0,
+                    tol=0, maxiter=100000, phase_fix=None):
         """Eigenstates and eigenenergies.
 
         Eigenstates and eigenenergies are defined for operators and
@@ -1675,6 +1675,10 @@ class Qobj(object):
         maxiter : int
             Maximum number of iterations performed by sparse solver (if used).
 
+        phase_fix : int, None
+            If not None, set the phase of each kets so that ket[phase_fix,0]
+            is real positive.
+
         Returns
         -------
         eigvals : array
@@ -1697,7 +1701,13 @@ class Qobj(object):
         ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs],
                          dtype=object)
         norms = np.array([ket.norm() for ket in ekets])
-        return evals, ekets / norms
+        if phase_fix is None:
+            phase = np.array([1] * len(ekets))
+        else:
+            phase = np.array([np.abs(ket[phase_fix,0]) / ket[phase_fix,0]
+                              if ket[phase_fix,0] else 1
+                              for ket in ekets])
+        return evals, ekets / norms * phase
 
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):

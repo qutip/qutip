@@ -50,18 +50,18 @@ cdef class CQobjEvo:
     cdef complex[::1] coeff
     cdef complex* coeff_ptr
 
-    cdef void _factor(self, double t)
-    cdef void _factor_dyn(self, double t, complex* state, int[::1] state)
-    cdef void _mul_vec(self, double t, complex* vec, complex* out)
-    cdef void _mul_matf(self, double t, complex* mat, complex* out,
-                    int nrow, int ncols)
-    cdef void _mul_matc(self, double t, complex* mat, complex* out,
-                    int nrow, int ncols)
+    cdef int _factor(self, double t) except -1
+    cdef int _factor_dyn(self, double t, complex* state, int[::1] state) except -1
+    cdef int _mul_vec(self, double t, complex* vec, complex* out) except -1
+    cdef int _mul_matf(self, double t, complex* mat, complex* out,
+                    int nrow, int ncols) except -1
+    cdef int _mul_matc(self, double t, complex* mat, complex* out,
+                    int nrow, int ncols) except -1
 
     cpdef complex expect(self, double t, complex[::1] vec)
-    cdef complex _expect(self, double t, complex* vec)
-    cdef complex _expect_super(self, double t, complex* rho)
-    cdef complex _overlapse(self, double t, complex* oper)
+    cdef complex _expect(self, double t, complex* vec) except *
+    cdef complex _expect_super(self, double t, complex* rho) except *
+    cdef complex _overlapse(self, double t, complex* oper) except *
 
 
 cdef class CQobjCte(CQobjEvo):
@@ -93,7 +93,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
     cdef complex[:, ::1] data_t
     cdef complex* data_ptr
 
-    cdef void _factor(self, double t)
+    cdef int _factor(self, double t) except -1
     cdef void _call_core(self, complex[:,::1] out, complex* coeff)
 
 
@@ -109,5 +109,5 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
     cdef complex[::1] data_t
     cdef complex* data_ptr
 
-    cdef void _factor(self, double t)
+    cdef int _factor(self, double t) except -1
     cdef void _call_core(self, complex[::1] out, complex* coeff)
