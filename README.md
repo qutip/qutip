@@ -32,7 +32,7 @@ Build status and test coverage
 Support
 --------
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
-[![Unitary Fund](https://img.shields.io/badge/Supported%20By-UNITARY%20FUND-brightgreen.svg?style=plastic)](http://unitary.fund)
+[![Unitary Fund](https://img.shields.io/badge/Supported%20By-UNITARY%20FUND-brightgreen.svg?style=for-the-badge)](http://unitary.fund)
 
 QuTiP development is supported by [Nori's lab](http://dml.riken.jp/)
 at RIKEN, by the University of Sherbrooke, and by Aberystwyth University,
