@@ -37,7 +37,7 @@ mappings, using the builtin Python module multiprocessing.
 __all__ = ['parfor', 'parallel_map', 'serial_map']
 
 from scipy import array
-from multiprocessing import Pool, set_start_method
+import multiprocessing
 from functools import partial
 import os
 import sys
@@ -47,12 +47,9 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
 if sys.platform == 'darwin':
-    # from 3.8 mp on mac use 'spawn', suposely better than fork, but freeze
-    # in our tests.
-    try:
-        set_start_method('fork')
-    except Exception:
-        pass
+    Pool = multiprocessing.get_context('fork').Pool
+else:
+    Pool = multiprocessing.Pool
 
 
 def _task_wrapper(args):
