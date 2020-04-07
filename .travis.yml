@@ -1,7 +1,7 @@
 # After changing this file, check it on:
 #   http://lint.travis-ci.org/
 
-stage_generic_linux: &stage_generic_linux
+_stage_generic_linux: &stage_generic_linux
   os: linux
   language: python
   # change dir
@@ -24,7 +24,7 @@ stage_generic_linux: &stage_generic_linux
     - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
-stage_linux_36: &stage_linux_36
+_stage_linux_36: &stage_linux_36
   <<: *stage_generic_linux
   name: "Python 3.6"
   dist: trusty
@@ -33,7 +33,7 @@ stage_linux_36: &stage_linux_36
     - python -m qutip.about
     - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
 
-stage_linux_37: &stage_linux_37
+_stage_linux_37: &stage_linux_37
   <<: *stage_generic_linux
   name: "Python 3.7"
   dist: xenial
@@ -42,7 +42,7 @@ stage_linux_37: &stage_linux_37
     - python -m qutip.about
     - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
 
-stage_linux_38: &stage_linux_38
+_stage_linux_38: &stage_linux_38
   <<: *stage_generic_linux
   name: "Python 3.8"
   dist: xenial
@@ -59,7 +59,7 @@ stage_linux_38: &stage_linux_38
     - conda install numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
-stage_linux_38_no_cython: &stage_linux_38_no_cython
+_stage_linux_38_no_cython: &stage_linux_38_no_cython
   <<: *stage_generic_linux
   name: "Python 3.8 no cython"
   dist: xenial
@@ -79,7 +79,7 @@ stage_linux_38_no_cython: &stage_linux_38_no_cython
     - python setup.py install
     - conda uninstall cython
 
-stage_linux_38_openblas: &stage_linux_38_openblas
+_stage_linux_38_openblas: &stage_linux_38_openblas
   <<: *stage_generic_linux
   name: "Python 3.8 OpenBLAS"
   dist: xenial
@@ -96,7 +96,7 @@ stage_linux_38_openblas: &stage_linux_38_openblas
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
-stage_linux_38_omp: &stage_linux_38_omp
+_stage_linux_38_omp: &stage_linux_38_omp
   <<: *stage_generic_linux
   name: "Python 3.8 OpenMP"
   dist: xenial
@@ -115,7 +115,7 @@ stage_linux_38_omp: &stage_linux_38_omp
   after_success:
     - coveralls
 
-stage_osx_37: &stage_osx_37
+_stage_osx_37: &stage_osx_37
   os: osx
   name: "Python 3.7, OSX 10.13, XCode 10"
   osx_image: xcode10
@@ -141,7 +141,7 @@ stage_osx_37: &stage_osx_37
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
-stage_osx_38: &stage_osx_38
+_stage_osx_38: &stage_osx_38
   os: osx
   name: "Python 3.8, OSX 10.13, XCode 10"
   osx_image: xcode10
