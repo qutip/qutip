@@ -59,11 +59,11 @@ _stage_linux_38: &stage_linux_38
     - conda install numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
-_stage_linux_38_no_cython: &stage_linux_38_no_cython
+_stage_linux_no_cython: &stage_linux_no_cython
   <<: *stage_generic_linux
-  name: "Python 3.8 no cython"
+  name: "Python 3.6 no cython, openblas"
   dist: xenial
-  python: 3.8
+  python: 3.6
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -96,11 +96,11 @@ _stage_linux_38_openblas: &stage_linux_38_openblas
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
-_stage_linux_38_omp: &stage_linux_38_omp
+_stage_linux_omp: &stage_linux_38_omp
   <<: *stage_generic_linux
-  name: "Python 3.8 OpenMP"
+  name: "Python 3.7 OpenMP, mkl"
   dist: xenial
-  python: 3.8
+  python: 3.7
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -173,15 +173,11 @@ stages:
 jobs:
   include:
     - stage: test
-      <<: *stage_linux_37
-    - stage: test
       <<: *stage_linux_38
     - stage: test
-      <<: *stage_linux_38_omp
+      <<: *stage_linux_omp
     - stage: test
-      <<: *stage_linux_38_no_cython
-    - stage: test
-      <<: *stage_linux_38_openblas
+      <<: *stage_linux_no_cython
     - stage: test
       <<: *stage_osx_37
     - stage: test
