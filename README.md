@@ -34,6 +34,9 @@ Support
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
 [![Unitary Fund](https://img.shields.io/badge/Supported%20By-UNITARY%20FUND-brightgreen.svg?style=flat)](http://unitary.fund)
 
+QuTiP development is supported by [Nori's lab](http://dml.riken.jp/)
+at RIKEN, University of Sherbrooke, and Aberystwyth University,
+[among other organizations](http://qutip.org/#supporting-organizations).
 
 Download
 --------
