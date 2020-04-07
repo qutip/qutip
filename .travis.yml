@@ -96,7 +96,7 @@ _stage_linux_38_openblas: &stage_linux_38_openblas
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
-_stage_linux_omp: &stage_linux_38_omp
+_stage_linux_omp: &stage_linux_omp
   <<: *stage_generic_linux
   name: "Python 3.7 OpenMP, mkl"
   dist: xenial
