@@ -713,25 +713,51 @@ def floquet_master_equation_tensor(Alist, f_energies):
         N, M = np.shape(Alist[0])
 
     Rdata_lil = scipy.sparse.lil_matrix((N * N, N * N), dtype=complex)
-    for I in range(N * N):
-        a, b = vec2mat_index(N, I)
-        for J in range(N * N):
-            c, d = vec2mat_index(N, J)
 
-            R = -1.0j * (f_energies[a] - f_energies[b])*(a == c)*(b == d)
-            Rdata_lil[I, J] = R
+    ###
+    # Here there are transposition errors because the paper used in
+    # the documentation is wrong. Moreover line 726 should not be.
+    ###
+    #for I in range(N * N):
+    #    a, b = vec2mat_index(N, I)
+    #    for J in range(N * N):
+    #        c, d = vec2mat_index(N, J)
+    #
+    #        R = -1.0j * (f_energies[a] - f_energies[b])*(a == c)*(b == d)
+    #        Rdata_lil[I, J] = R
 
-            for A in Alist:
-                s1 = s2 = 0
-                for n in range(N):
-                    s1 += A[a, n] * (n == c) * (n == d) - A[n, a] * \
-                        (a == c) * (a == d)
-                    s2 += (A[n, a] + A[n, b]) * (a == c) * (b == d)
+    #        for A in Alist:
+    #            s1 = s2 = 0
+    #            for n in range(N):
+    #                s1 += A[a, n] * (n == c) * (n == d) - A[n, a] * \
+    #                    (a == c) * (a == d)
+    #                s2 += (A[n, a] + A[n, b]) * (a == c) * (b == d)
 
-                dR = (a == b) * s1 - 0.5 * (1 - (a == b)) * s2
+    #            dR = (a == b) * s1 - 0.5 * (1 - (a == b)) * s2
 
-                if dR != 0.0:
-                    Rdata_lil[I, J] += dR
+    #            if dR != 0.0:
+    #                Rdata_lil[I, J] += dR
+
+    A = Alist[0]
+    R = np.zeros((N,N,N,N))
+    Asum = np.sum(A,axis=1)
+
+    for i in range(N):
+        R[i,i,i,i] -= -A[i,i]+Asum[i]
+    for i in range(N):
+        for j in range(i+1, N):
+            R[i,i,j,j] += A[j,i]
+            R[j,j,i,i] += A[i,j]
+            R[i,j,i,j]+=-(1/2)*(Asum[i]+Asum[j])
+            R[j,i,j,i]+=R[i,j,i,j]
+
+    R_temp = np.zeros((N*N,N,N))
+    for i in range(N):
+        for j in range(N):
+            R_temp[i+N*j,:,:] += R[i,j,:,:]
+    for i in range(N):
+        for j in range(N):
+            Rdata_lil[:,i+N*j] += R_temp[:,i,j].reshape((-1,1))
 
     return Qobj(Rdata_lil, [[N, N], [N, N]], [N*N, N*N])
 
