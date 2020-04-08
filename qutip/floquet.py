@@ -614,15 +614,21 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         # instead of the propagator.
 
         # f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
-        f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-        for a in range(N):
-            for b in range(N):
-                k_idx = 0
-                for k in range(-kmax, kmax + 1, 1):
-                    # [:1,:1][0, 0] patch around scipy 1.3.0 bug
-                    X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
-                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[:1, :1][0, 0]
-                    k_idx += 1
+        #f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
+        #for a in range(N):
+        #    for b in range(N):
+        #        k_idx = 0
+        #        for k in range(-kmax, kmax + 1, 1):
+        #            # [:1,:1][0, 0] patch around scipy 1.3.0 bug
+        #            X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
+        #                (f_modes_t[a].dag() * c_op * f_modes_t[b])[:1, :1][0, 0]
+        #            k_idx += 1
+
+  		#Does the same as before but much faster
+        f_modes_t = np.hstack([f.full() for f in floquet_modes_t_lookup(f_modes_table_t, t, T)])
+        FF = f_modes_t.T.conj() @ c_op.full() @ f_modes_t
+        phi = exp(-1j * np.arange(-kmax, kmax+1) * omega * t)
+        X += (dT / T) * np.einsum("ij,k->ijk",FF, phi)
 
     Heaviside = lambda x: ((np.sign(x) + 1) / 2.0)
     for a in range(N):
