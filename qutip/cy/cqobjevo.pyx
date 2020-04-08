@@ -282,18 +282,32 @@ cdef class CQobjEvo:
     def has_dyn_args(self, int dyn_args):
         self.dyn_args = dyn_args
 
+    def set_factor(self, func=None, ptr=False, obj=None):
+        if func is not None:
+            self.factor_use_cobj = 0
+            self.factor_func = func
+        elif obj is not None:
+            self.factor_use_cobj = 1
+            self.factor_cobj = obj
+        else:
+            self.factor_use_cobj = -1
+
     cdef int _factor(self, double t) except -1:
         cdef int i
-        if self.factor_use_cobj:
+        if self.factor_use_cobj == 1:
             self.factor_cobj._call_core(t, self.coeff_ptr)
-        else:
+        elif self.factor_use_cobj == 0:
             coeff = self.factor_func(t)
             PyErr_CheckSignals()
             for i in range(self.num_ops):
                 self.coeff_ptr[i] = coeff[i]
+        else:
+            # for const QobjEvo
+            pass
         return 0
 
-    cdef int _factor_dyn(self, double t, complex* state, int[::1] shape) except -1:
+    cdef int _factor_dyn(self, double t, complex* state,
+                         int[::1] shape) except -1:
         cdef int len_
         if self.dyn_args:
             if self.factor_use_cobj:
@@ -313,7 +327,7 @@ cdef class CQobjEvo:
     def __setstate__(self, state):
         pass
 
-
+"""
 cdef class CQobjCte(CQobjEvo):
     def set_data(self, cte):
         self.shape0 = cte.shape[0]
@@ -416,7 +430,7 @@ cdef class CQobjCte(CQobjEvo):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef complex _overlapse(self, double t, complex* oper) except *:
-        """tr( self * oper )"""
+        "#""tr( self * oper )""#"
         cdef int row
         cdef int jj, row_start, row_end
         cdef int num_rows = self.shape0
@@ -530,7 +544,7 @@ cdef class CQobjCteDense(CQobjEvo):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef complex _overlapse(self, double t, complex* oper) except *:
-        """tr( self * oper )"""
+        "#""tr( self * oper )""#"
         cdef int i, j
         cdef complex tr = 0.0
 
@@ -539,11 +553,12 @@ cdef class CQobjCteDense(CQobjEvo):
                 tr += self.cte[i,j] * oper[j + i*self.shape0]
         return tr
 
-
+"""
 cdef class CQobjEvoTd(CQobjEvo):
     def __init__(self):
         self.num_ops = 0
         self.ops = <CSR_Matrix**> PyDataMem_NEW(0 * sizeof(CSR_Matrix*))
+        self.factor_use_cobj = -1
 
     def __del__(self):
         for i in range(self.num_ops):
@@ -560,28 +575,22 @@ cdef class CQobjEvoTd(CQobjEvo):
         self.super = cte.issuper
 
         self.num_ops = len(ops)
-        self.coeff = np.empty((self.num_ops,), dtype=complex)
-        self.coeff_ptr = &self.coeff[0]
-        PyDataMem_FREE(self.ops)
-        self.ops = <CSR_Matrix**> PyDataMem_NEW(self.num_ops * sizeof(CSR_Matrix*))
-        self.sum_elem = np.zeros(self.num_ops, dtype=int)
-        for i, op in enumerate(ops):
-            self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
-            CSR_from_scipy_inplace(op[0].data, self.ops[i])
-            cummulative_op += op[0].data
-            self.sum_elem[i] = cummulative_op.data.shape[0]
-
-        self.total_elem = self.sum_elem[self.num_ops-1]
-
-    def set_factor(self, func=None, ptr=False, obj=None):
-        self.factor_use_cobj = 0
-        if func is not None:
-            self.factor_func = func
-        elif obj is not None:
-            self.factor_use_cobj = 1
-            self.factor_cobj = obj
+        if self.num_ops == 0:
+            self.total_elem = cte.data.shape[0]
         else:
-            raise Exception("Could not set coefficient function")
+            self.coeff = np.empty((self.num_ops,), dtype=complex)
+            self.coeff_ptr = &self.coeff[0]
+            PyDataMem_FREE(self.ops)
+            self.ops = <CSR_Matrix**> PyDataMem_NEW(self.num_ops *
+                                                    sizeof(CSR_Matrix*))
+            self.sum_elem = np.zeros(self.num_ops, dtype=int)
+            for i, op in enumerate(ops):
+                self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
+                CSR_from_scipy_inplace(op[0].data, self.ops[i])
+                cummulative_op += op[0].data
+                self.sum_elem[i] = cummulative_op.data.shape[0]
+
+            self.total_elem = self.sum_elem[self.num_ops-1]
 
     def __getstate__(self):
         shape_info = (self.shape0, self.shape1, self.dims, self.total_elem)
@@ -613,8 +622,9 @@ cdef class CQobjEvoTd(CQobjEvo):
             self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
             self.sum_elem[i] = state[4][i]
             _shallow_set_state(self.ops[i], state[6][i])
-        self.coeff = np.empty((self.num_ops,), dtype=complex)
-        self.coeff_ptr = &self.coeff[0]
+        if self.num_ops > 0:
+            self.coeff = np.empty((self.num_ops,), dtype=complex)
+            self.coeff_ptr = &self.coeff[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -623,12 +633,18 @@ cdef class CQobjEvoTd(CQobjEvo):
         cdef int i
         cdef CSR_Matrix previous, next
 
-        if(self.num_ops ==1):
+        if self.num_ops == 0:
+            out.is_set = 0
+            copy_CSR(out, &self.cte)
+
+        elif self.num_ops == 1:
+            init_CSR(out, self.total_elem, self.shape0, self.shape1)
             _zcsr_add_core(self.cte.data, self.cte.indices, self.cte.indptr,
                          self.ops[0].data, self.ops[0].indices,
                          self.ops[0].indptr,
                          coeff[0], out, self.shape0, self.shape1)
         else:
+            init_CSR(out, self.total_elem, self.shape0, self.shape1)
             # Ugly with a loop for 1 to N-2...
             # It save the copy of data from cte and out
             # no init/free to cte, out
@@ -660,7 +676,6 @@ cdef class CQobjEvoTd(CQobjEvo):
 
     def call(self, double t, int data=0):
         cdef CSR_Matrix out
-        init_CSR(&out, self.total_elem, self.shape0, self.shape1)
         self._factor(t)
         self._call_core(&out, self.coeff_ptr)
         scipy_obj = CSR_to_scipy(&out)
@@ -672,7 +687,6 @@ cdef class CQobjEvoTd(CQobjEvo):
 
     def call_with_coeff(self, complex[::1] coeff, int data=0):
         cdef CSR_Matrix out
-        init_CSR(&out, self.total_elem, self.shape0, self.shape1)
         self._call_core(&out, &coeff[0])
         scipy_obj = CSR_to_scipy(&out)
         # free_CSR(&out)? data is own by the scipy_obj?
@@ -803,6 +817,9 @@ cdef class CQobjEvoTd(CQobjEvo):
 
 
 cdef class CQobjEvoTdDense(CQobjEvo):
+    def __init__(self):
+        self.factor_use_cobj = -1
+
     def set_data(self, cte, ops):
         cdef int i, j, k
         self.shape0 = cte.shape[0]
@@ -815,23 +832,14 @@ cdef class CQobjEvoTdDense(CQobjEvo):
                             dtype=complex)
         self.data_t = np.empty((self.shape0, self.shape1), dtype=complex)
         self.data_ptr = &self.data_t[0,0]
-        self.coeff = np.empty((self.num_ops,), dtype=complex)
-        self.coeff_ptr = &self.coeff[0]
-        for i, op in enumerate(ops):
-          oparray = op[0].data.toarray()
-          for j in range(self.shape0):
-            for k in range(self.shape1):
-              self.ops[i,j,k] = oparray[j,k]
-
-    def set_factor(self, func=None, ptr=False, obj=None):
-        self.factor_use_cobj = 0
-        if func is not None:
-            self.factor_func = func
-        elif obj is not None:
-            self.factor_use_cobj = 1
-            self.factor_cobj = obj
-        else:
-            raise Exception("Could not set coefficient function")
+        if self.num_ops > 0:
+            self.coeff = np.empty((self.num_ops,), dtype=complex)
+            self.coeff_ptr = &self.coeff[0]
+            for i, op in enumerate(ops):
+                oparray = op[0].data.toarray()
+                for j in range(self.shape0):
+                    for k in range(self.shape1):
+                        self.ops[i,j,k] = oparray[j,k]
 
     def __getstate__(self):
         return (self.shape0, self.shape1, self.dims, self.super,
@@ -854,8 +862,9 @@ cdef class CQobjEvoTdDense(CQobjEvo):
         self.ops = state[10]
         self.data_t = np.empty((self.shape0, self.shape1), dtype=complex)
         self.data_ptr = &self.data_t[0,0]
-        self.coeff = np.empty((self.num_ops,), dtype=complex)
-        self.coeff_ptr = &self.coeff[0]
+        if self.num_ops > 0:
+            self.coeff = np.empty((self.num_ops,), dtype=complex)
+            self.coeff_ptr = &self.coeff[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -868,11 +877,12 @@ cdef class CQobjEvoTdDense(CQobjEvo):
         ptr = &self.cte[0,0]
         out_ptr = &out[0,0]
         for i in range(self.shape0 * self.shape0):
+            # use blas?
             out_ptr[i] = ptr[i]
         for i in range(self.num_ops):
             ptr = &self.ops[i,0,0]
             for j in range(self.shape0 * self.shape0):
-                out_ptr[j] += ptr[j]*coeff[i]
+                out_ptr[j] += ptr[j] * coeff[i]
 
     def call(self, double t, int data=0):
         cdef np.ndarray[complex, ndim=2] data_t = \
@@ -881,9 +891,10 @@ cdef class CQobjEvoTdDense(CQobjEvo):
         self._call_core(data_t, self.coeff_ptr)
 
         if data:
+            # return as np.array?
             return sp.csr_matrix(data_t, dtype=complex, copy=True)
         else:
-            return Qobj(data_t, dims = self.dims)
+            return Qobj(data_t, dims=self.dims)
 
     def call_with_coeff(self, complex[::1] coeff, int data=0):
         cdef np.ndarray[complex, ndim=2] data_t = \
@@ -1025,8 +1036,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
 
         self.ops = np.zeros((self.num_ops, self.nnz), dtype=complex)
         for i, op in enumerate(matched[:-1]):
-          for j in range(self.nnz):
-            self.ops[i,j] = op.data[j]
+            for j in range(self.nnz):
+                self.ops[i,j] = op.data[j]
 
     def set_factor(self, func=None, ptr=False, obj=None):
         self.factor_use_cobj = 0

@@ -46,8 +46,7 @@ from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
                                    _compiled_coeffs_python)
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi,
                                  spmv, cy_spmm_tr)
-from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
-                                 CQobjEvoTdMatched, CQobjEvoTdDense)
+from qutip.cy.cqobjevo import (CQobjEvoTd, CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
                                       InterpolateCoeff, StrCoeff,
                                       StepCoeffCte, StepCoeffT)
@@ -1470,7 +1469,7 @@ class QobjEvo:
             if all(qset.openmp_thresh < nz for nz in nnz):
                 omp = 0
 
-        if self.const:
+        if False:
             if dense:
                 self.compiled_qobjevo = CQobjCteDense()
                 self.compiled = "dense single cte"
@@ -1484,7 +1483,7 @@ class QobjEvo:
                 self.compiled = "csr single cte"
             self.compiled_qobjevo.set_data(self.cte)
         else:
-            if matched:
+            if matched and not self.const:
                 if omp:
                     self.compiled_qobjevo = CQobjEvoTdMatchedOmp()
                     self.compiled = "matched omp "
@@ -1507,13 +1506,13 @@ class QobjEvo:
             self.compiled_qobjevo.set_data(self.cte, self.ops)
             self.compiled_qobjevo.has_dyn_args(bool(self.dynamics_args))
 
-            if self.type in ["func"]:
-                # funclist = []
-                # for part in self.ops:
-                #    funclist.append(part.get_coeff)
+            if self.type in ["cte"]:
+                self.compiled += "cte"
+            elif self.type in ["func"]:
                 funclist = [part.get_coeff for part in self.ops]
                 self.coeff_get = _UnitedFuncCaller(funclist, self.args,
-                                                   self.dynamics_args, self.cte)
+                                                   self.dynamics_args,
+                                                   self.cte)
                 self.compiled += "pyfunc"
                 self.compiled_qobjevo.set_factor(func=self.coeff_get)
 
@@ -1521,9 +1520,8 @@ class QobjEvo:
                 funclist = []
                 for part in self.ops:
                     if isinstance(part.get_coeff, _StrWrapper):
-                        get_coeff, file_ = _compile_str_single(
-                                                                part.coeff,
-                                                                self.args)
+                        get_coeff, file_ = _compile_str_single(part.coeff,
+                                                               self.args)
                         coeff_files.add(file_)
                         self.coeff_files.append(file_)
                         funclist.append(get_coeff)
@@ -1635,7 +1633,7 @@ class QobjEvo:
                 if self.safePickle:
                     # __getstate__ and __setstate__ of compiled_qobjevo pass pointers
                     # In 'safe' mod, these pointers are not used.
-                    if td == "cte":
+                    if False:
                         if threading == "single":
                             self.compiled_qobjevo = CQobjCte()
                             self.compiled_qobjevo.set_data(self.cte)
@@ -1658,7 +1656,7 @@ class QobjEvo:
                         elif td == "cyfactor":
                             self.compiled_qobjevo.set_factor(obj=self.coeff_get)
                 else:
-                    if td == "cte":
+                    if False:
                         if threading == "single":
                             self.compiled_qobjevo = CQobjCte.__new__(CQobjCte)
                         elif threading == "omp":
@@ -1674,7 +1672,7 @@ class QobjEvo:
                     self.compiled_qobjevo.__setstate__(state[1])
 
             elif mat_type == "dense":
-                if td == "cte":
+                if False:
                     self.compiled_qobjevo = \
                         CQobjCteDense.__new__(CQobjCteDense)
                 else:
