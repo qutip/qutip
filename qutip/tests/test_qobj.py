@@ -591,6 +591,16 @@ def test_QobjNorm():
     b = rand_herm(10, 0.25) - 1j*rand_herm(10, 0.25)
     assert np.allclose(b.norm(), (b*b.dag()).sqrtm().tr().real)
 
+def test_isdensity():
+    "Tests the is density method of Qobj"
+     rho = fock_dm(2,1)
+     # check the validity of a density matrix of a pure state
+     assert isdensity(rho)
+     rho2 = (fock_dm(2,0) + fock_dm(2,1)).unit()
+     # check the validity of a density matrix of a mixed state
+     assert isdensity(rho2)
+
+
 
 def test_QobjPurity():
     "Tests the purity method of `Qobj`"
