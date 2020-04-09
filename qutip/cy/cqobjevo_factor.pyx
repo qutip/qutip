@@ -78,7 +78,7 @@ cdef class CoeffFunc:
         self._call_core(t, &coeff[0])
         return coeff
 
-    def set_args(self, args, dyn_args):
+    def set_args(self, args, dyn_args=[]):
         pass
 
     cdef void _call_core(self, double t, complex* coeff):
@@ -269,8 +269,7 @@ cdef class StrCoeff(CoeffFunc):
         self._num_ops = len(ops)
         self._args = args
         self._dyn_args_list = dyn_args
-        self.set_args(args)
-        self._set_dyn_args(dyn_args)
+        self.set_args(args, dyn_args)
 
     def _set_dyn_args(self, dyn_args):
         self._num_expect = 0
@@ -345,5 +344,4 @@ cdef class StrCoeff(CoeffFunc):
         self._num_ops = state[0]
         self._args = state[1]
         self._dyn_args_list = state[2]
-        self.set_args(self._args)
-        self._set_dyn_args(self._dyn_args_list)
+        self.set_args(self._args, self._dyn_args_list)
