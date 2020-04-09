@@ -38,11 +38,16 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_csr_openmp(complex[::1] data,
                 int[::1] ind, int[::1] ptr, complex[::1] vec, unsigned int nthr)
 
 
-cdef void spmvpy_openmp(complex * data,
-                int * ind,
-                int *  ptr,
-                complex * vec,
-                complex a,
-                complex * out,
-                unsigned int nrows,
-                unsigned int nthr)
+cdef void spmvpy_openmp(complex * data, int * ind, int *  ptr,
+                        complex * vec, complex a, complex * out,
+                        unsigned int nrows, unsigned int nthr)
+
+cdef void spmmcpy_par(complex* data, int* ind, int* ptr,
+                      complex* mat, complex a, complex* out,
+                      int sp_rows, unsigned int nrows, unsigned int ncols,
+                      int nthr)
+
+cdef void spmmfpy_omp(complex* data, int* ind, int* ptr,
+                      complex* mat, complex a, complex* out,
+                      int sp_rows, unsigned int nrows, unsigned int ncols,
+                      int nthr)

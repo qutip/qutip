@@ -150,7 +150,7 @@ cy_exts = ['spmatfuncs', 'math', 'spconvert', 'spmath',
            'sparse_utils', 'graph_utils', 'interpolate', 'ptrace',
            'inter', 'cqobjevo', 'cqobjevo_factor',
            'stochastic', 'brtools', 'mcsolve', 'br_tensor', 'piqs', 'heom',
-           'brtools_checks', 'checks']
+           'brtools_checks', 'checks', 'mmath']
 
 # Extra link args
 _link_flags = []
@@ -192,10 +192,11 @@ _mod = Extension('qutip.control.cy_grape',
                  language='c++')
 EXT_MODULES.append(_mod)
 
-
+HAVE_OPENMP = False
 # Add optional ext modules here
 if "--with-openmp" in sys.argv:
     sys.argv.remove("--with-openmp")
+    HAVE_OPENMP = True
     if (sys.platform == 'win32'
             and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35):
         omp_flags = ['/openmp']
@@ -254,7 +255,6 @@ cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
 
-
 # Setup commands go here
 setup(name = NAME,
       version = FULLVERSION,
@@ -262,7 +262,8 @@ setup(name = NAME,
       include_package_data=True,
       include_dirs = INCLUDE_DIRS,
       # headers = HEADERS,
-      ext_modules = cythonize(EXT_MODULES),
+      ext_modules = cythonize(EXT_MODULES,
+                              compile_time_env={"HAVE_OPENMP":HAVE_OPENMP}),
       cmdclass = {'build_ext': build_ext},
       author = AUTHOR,
       author_email = AUTHOR_EMAIL,

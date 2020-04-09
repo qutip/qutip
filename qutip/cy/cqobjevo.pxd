@@ -41,6 +41,7 @@ cdef class CQobjEvo:
     cdef int super
     cdef int num_ops
     cdef int dyn_args
+    cdef int num_threads
 
     #cdef void (*factor_ptr)(double, complex*)
     cdef object factor_func
@@ -62,17 +63,6 @@ cdef class CQobjEvo:
     cdef complex _expect(self, double t, complex* vec) except *
     cdef complex _expect_super(self, double t, complex* rho) except *
     cdef complex _overlapse(self, double t, complex* oper) except *
-
-
-cdef class CQobjCte(CQobjEvo):
-    cdef int total_elem
-    # pointer to data
-    cdef CSR_Matrix cte
-
-
-cdef class CQobjCteDense(CQobjEvo):
-    # pointer to data
-    cdef complex[:, ::1] cte
 
 
 cdef class CQobjEvoTd(CQobjEvo):

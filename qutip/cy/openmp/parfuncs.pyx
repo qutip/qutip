@@ -34,6 +34,11 @@
 import numpy as np
 cimport numpy as cnp
 cimport cython
+from cython.parallel import prange
+
+include "../complex_math.pxi"
+
+
 
 cdef extern from "src/zspmv_openmp.hpp" nogil:
     void zspmvpy_openmp(double complex *data, int *ind, int *ptr, double complex *vec,
@@ -166,3 +171,34 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rho_func_td_openmp(
     cdef object L
     L = L0 + L_func(t, args).data
     return spmv_csr_openmp(L.data, L.indices, L.indptr, rho, nthr)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void spmmcpy_par(complex* data, int* ind, int* ptr, complex* mat,
+                      complex a, complex* out, int sp_rows,
+                      unsigned int nrows, unsigned int ncols, int nthr):
+    """
+    sparse*dense "C" ordered.
+    """
+    cdef int row, col, ii, jj, row_start, row_end
+    for row in prange(sp_rows, nogil=True, num_threads=nthr):
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj from row_start <= jj < row_end:
+            for col in range(ncols):
+                out[row * ncols + col] += a*data[jj]*mat[ind[jj] * ncols + col]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void spmmfpy_omp(complex* data, int* ind, int* ptr, complex* mat,
+                      complex a, complex* out, unsigned int sp_rows,
+                      unsigned int nrows, unsigned int ncols, int nthr):
+    """
+    sparse*dense "F" ordered.
+    """
+    cdef int col
+    for col in range(ncols):
+        spmvpy_openmp(data, ind, ptr, mat+nrows*col, a,
+                      out+sp_rows*col, sp_rows, nthr)

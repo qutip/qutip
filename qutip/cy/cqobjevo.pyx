@@ -36,16 +36,6 @@
 Contain the cython interface of QobjEvo.
 The parent class "CQobjEvo" set the interface.
 
-CQobjCte:
-  QobjEvo that does not depend on times.
-  sparse matrix
-
-CQobjCteDense:
-  QobjEvo that does not depend on times.
-  dense matrix
-  - Hidden feature in the sense that it's not really documented and need to be
-    explicitly used. Does not seems to results in significant speedup.
-
 CQobjEvoTd:
   QobjEvo that does depend on times.
   sparse matrix
@@ -76,9 +66,10 @@ cimport numpy as np
 import cython
 cimport cython
 from qutip.qobj import Qobj
+from qutip.qobjevo import _UnitedFuncCaller
 from cpython.exc cimport PyErr_CheckSignals
 from qutip.cy.spmath cimport _zcsr_add_core
-from qutip.cy.spmatfuncs cimport spmvpy, _spmm_c_py, _spmm_f_py
+from qutip.cy.mmath cimport spmvpy, spmmcpy, spmmfpy
 from qutip.cy.spmath import zcsr_add
 from qutip.cy.cqobjevo_factor cimport CoeffFunc, zptr2array1d
 cimport libc.math
@@ -96,6 +87,7 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_RENEW(void * ptr, size_t size)
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_NEW(size_t size)
+
 
 def _zcsr_match(sparses_list):
     """
@@ -282,13 +274,16 @@ cdef class CQobjEvo:
     def has_dyn_args(self, int dyn_args):
         self.dyn_args = dyn_args
 
-    def set_factor(self, func=None, ptr=False, obj=None):
-        if func is not None:
+    def set_num_threads(self, int num_threads):
+        self.num_threads = num_threads
+
+    def set_factor(self, coeff_obj):
+        if isinstance(coeff_obj, _UnitedFuncCaller):
             self.factor_use_cobj = 0
-            self.factor_func = func
-        elif obj is not None:
+            self.factor_func = coeff_obj
+        elif isinstance(coeff_obj, CoeffFunc):
             self.factor_use_cobj = 1
-            self.factor_cobj = obj
+            self.factor_cobj = coeff_obj
         else:
             self.factor_use_cobj = -1
 
@@ -310,9 +305,9 @@ cdef class CQobjEvo:
                          int[::1] shape) except -1:
         cdef int len_
         if self.dyn_args:
-            if self.factor_use_cobj:
+            if self.factor_use_cobj == 1:
                 self.factor_cobj._dyn_args(t, state, shape)
-            else:
+            elif self.factor_use_cobj == 0:
                 len_ = shape[0] * shape[1]
                 self.factor_func.dyn_args(t, np.array(<complex[:len_]> state),
                                           np.array(shape))
@@ -327,238 +322,13 @@ cdef class CQobjEvo:
     def __setstate__(self, state):
         pass
 
-"""
-cdef class CQobjCte(CQobjEvo):
-    def set_data(self, cte):
-        self.shape0 = cte.shape[0]
-        self.shape1 = cte.shape[1]
-        self.dims = cte.dims
-        self.cte = CSR_from_scipy(cte.data)
-        self.total_elem = cte.data.data.shape[0]
-        self.super = cte.issuper
 
-    def __getstate__(self):
-        CSR_info = _shallow_get_state(&self.cte)
-        return (self.shape0, self.shape1, self.dims,
-                self.total_elem, self.super, CSR_info)
-
-    def __setstate__(self, state):
-        self.shape0 = state[0]
-        self.shape1 = state[1]
-        self.dims = state[2]
-        self.total_elem = state[3]
-        self.super = state[4]
-        _shallow_set_state(&self.cte, state[5])
-
-    def call(self, double t, int data=0):
-        cdef CSR_Matrix out
-        out.is_set = 0
-        copy_CSR(&out, &self.cte)
-        scipy_obj = CSR_to_scipy(&out)
-        # free_CSR(&out)? data is own by the scipy_obj?
-        if data:
-            return scipy_obj
-        else:
-            return Qobj(scipy_obj, dims=self.dims)
-
-    def call_with_coeff(self, complex[::1] coeff, int data=0):
-        cdef CSR_Matrix out
-        out.is_set = 0
-        copy_CSR(&out, &self.cte)
-        scipy_obj = CSR_to_scipy(&out)
-        # free_CSR(&out)? data is own by the scipy_obj?
-        if data:
-            return scipy_obj
-        else:
-            return Qobj(scipy_obj)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int _mul_vec(self, double t, complex* vec, complex* out) except -1:
-        spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
-               out, self.shape0)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int _mul_matf(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol) except -1:
-        _spmm_f_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
-               out, self.shape0, nrow, ncol)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int _mul_matc(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol) except -1:
-        _spmm_c_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
-               out, self.shape0, nrow, ncol)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec) except *:
-        cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
-        spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
-               &y[0], self.shape0)
-        cdef int row
-        cdef complex dot = 0
-        for row from 0 <= row < self.shape0:
-            dot += conj(vec[row])*y[row]
-        return dot
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef complex _expect_super(self, double t, complex* vec) except *:
-        cdef int row
-        cdef int jj, row_start, row_end
-        cdef int num_rows = self.shape0
-        cdef int n = <int>libc.math.sqrt(num_rows)
-        cdef complex dot = 0.0
-
-        for row from 0 <= row < num_rows by n+1:
-            row_start = self.cte.indptr[row]
-            row_end = self.cte.indptr[row+1]
-            for jj from row_start <= jj < row_end:
-                dot += self.cte.data[jj]*vec[self.cte.indices[jj]]
-
-        return dot
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef complex _overlapse(self, double t, complex* oper) except *:
-        "#""tr( self * oper )""#"
-        cdef int row
-        cdef int jj, row_start, row_end
-        cdef int num_rows = self.shape0
-        cdef complex tr = 0.0
-
-        for row in range(num_rows):
-            row_start = self.cte.indptr[row]
-            row_end = self.cte.indptr[row+1]
-            for jj from row_start <= jj < row_end:
-                tr += self.cte.data[jj] * \
-                      oper[num_rows * row + self.cte.indices[jj]]
-        return tr
-
-
-cdef class CQobjCteDense(CQobjEvo):
-    def set_data(self, cte):
-        self.shape0 = cte.shape[0]
-        self.shape1 = cte.shape[1]
-        self.dims = cte.dims
-        self.cte = cte.data.toarray()
-        self.super = cte.issuper
-
-    def __getstate__(self):
-        return (self.shape0, self.shape1, self.dims,
-                self.super, np.array(self.cte))
-
-    def __setstate__(self, state):
-        self.shape0 = state[0]
-        self.shape1 = state[1]
-        self.dims = state[2]
-        self.super = state[3]
-        self.cte = state[4]
-
-    def call(self, double t, int data=0):
-        if data:
-            return sp.csr_matrix(self.cte, dtype=complex, copy=True)
-        else:
-            return Qobj(self.cte, dims = self.dims)
-
-    def call_with_coeff(self, complex[::1] coeff, int data=0):
-        if data:
-            return sp.csr_matrix(self.cte, dtype=complex, copy=True)
-        else:
-            return Qobj(self.cte, dims = self.dims)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int _mul_vec(self, double t, complex* vec, complex* out) except -1:
-        cdef int i, j
-        cdef complex* ptr
-        for i in range(self.shape0):
-            ptr = &self.cte[i,0]
-            for j in range(self.shape1):
-                out[i] += ptr[j]*vec[j]
-        return 0
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int _mul_matf(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol) except -1:
-        cdef int i, j, k
-        cdef complex* ptr = &self.cte[0,0]
-        for i in range(self.shape0):
-            for j in range(ncol):
-                for k in range(nrow):
-                    out[i + j*self.shape0] += ptr[i*nrow + k]*mat[k + j*nrow]
-        return 0
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int _mul_matc(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol) except -1:
-        cdef int i, j, k
-        cdef complex* ptr = &self.cte[0,0]
-        for i in range(self.shape0):
-            for j in range(ncol):
-                for k in range(nrow):
-                    out[i*ncol + j] += ptr[i*nrow + k]*mat[k*ncol + j]
-        return 0
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec) except *:
-        cdef int i, j
-        cdef complex dot = 0
-        for i in range(self.shape0):
-          for j in range(self.shape1):
-            dot += conj(vec[i])*self.cte[i,j]*vec[j]
-
-        return dot
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef complex _expect_super(self, double t, complex* vec) except *:
-        cdef int row, i
-        cdef int num_rows = self.shape0
-        cdef int n = <int>libc.math.sqrt(num_rows)
-        cdef complex dot = 0.0
-        for row from 0 <= row < num_rows by n+1:
-          for i in range(self.shape1):
-            dot += self.cte[row,i]*vec[i]
-
-        return dot
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef complex _overlapse(self, double t, complex* oper) except *:
-        "#""tr( self * oper )""#"
-        cdef int i, j
-        cdef complex tr = 0.0
-
-        for i in range(self.shape0):
-            for j in range(self.shape0):
-                tr += self.cte[i,j] * oper[j + i*self.shape0]
-        return tr
-
-"""
 cdef class CQobjEvoTd(CQobjEvo):
     def __init__(self):
         self.num_ops = 0
         self.ops = <CSR_Matrix**> PyDataMem_NEW(0 * sizeof(CSR_Matrix*))
         self.factor_use_cobj = -1
+        self.num_threads = 1
 
     def __del__(self):
         for i in range(self.num_ops):
@@ -604,7 +374,7 @@ cdef class CQobjEvoTd(CQobjEvo):
             sum_elem += (self.sum_elem[i],)
 
         return (shape_info, self.super, factor_info,
-                self.num_ops, sum_elem, cte_info, ops_info)
+                self.num_ops, sum_elem, cte_info, ops_info, self.num_threads)
 
     def __setstate__(self, state):
         self.shape0, self.shape1, self.dims, self.total_elem = state[0]
@@ -625,6 +395,7 @@ cdef class CQobjEvoTd(CQobjEvo):
         if self.num_ops > 0:
             self.coeff = np.empty((self.num_ops,), dtype=complex)
             self.coeff_ptr = &self.coeff[0]
+        self.num_threads = state[7]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -705,10 +476,10 @@ cdef class CQobjEvoTd(CQobjEvo):
         self._factor_dyn(t, vec, shape)
         cdef int i
         spmvpy(self.cte.data, self.cte.indices, self.cte.indptr, vec,
-               1., out, self.shape0)
+               1., out, self.shape0, self.num_threads)
         for i in range(self.num_ops):
             spmvpy(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
-                   vec, self.coeff_ptr[i], out, self.shape0)
+                   vec, self.coeff_ptr[i], out, self.shape0, self.num_threads)
         return 0
 
     @cython.boundscheck(False)
@@ -721,11 +492,13 @@ cdef class CQobjEvoTd(CQobjEvo):
         shape[1] = ncol
         self._factor_dyn(t, mat, shape)
         cdef int i
-        _spmm_f_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
-               out, self.shape0, nrow, ncol)
+        spmmfpy(self.cte.data, self.cte.indices, self.cte.indptr,
+                mat, 1., out,
+                self.shape0, nrow, ncol, self.num_threads)
         for i in range(self.num_ops):
-             _spmm_f_py(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
-                 mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol)
+             spmmfpy(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
+                     mat, self.coeff_ptr[i], out,
+                     self.shape0, nrow, ncol, self.num_threads)
         return 0
 
     @cython.boundscheck(False)
@@ -738,11 +511,13 @@ cdef class CQobjEvoTd(CQobjEvo):
         shape[1] = ncol
         self._factor_dyn(t, mat, shape)
         cdef int i
-        _spmm_c_py(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
-               out, self.shape0, nrow, ncol)
+        spmmcpy(self.cte.data, self.cte.indices, self.cte.indptr,
+                mat, 1., out,
+                self.shape0, nrow, ncol, self.num_threads)
         for i in range(self.num_ops):
-             _spmm_c_py(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
-                 mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol)
+             spmmcpy(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
+                     mat, self.coeff_ptr[i], out,
+                     self.shape0, nrow, ncol, self.num_threads)
         return 0
 
     @cython.boundscheck(False)
@@ -761,6 +536,7 @@ cdef class CQobjEvoTd(CQobjEvo):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef complex _expect_super(self, double t, complex* vec) except *:
+        #TODO: call from func to have omp version?
         cdef int[2] shape
         cdef int row, i
         cdef int jj, row_start, row_end
@@ -790,6 +566,7 @@ cdef class CQobjEvoTd(CQobjEvo):
     @cython.cdivision(True)
     cdef complex _overlapse(self, double t, complex* oper) except *:
         """tr( self * oper )"""
+        #TODO: call from func to have omp version?
         cdef int jj, row_start, row_end, row
         cdef int num_rows = self.shape0
         cdef complex tr = 0.0
@@ -819,6 +596,7 @@ cdef class CQobjEvoTd(CQobjEvo):
 cdef class CQobjEvoTdDense(CQobjEvo):
     def __init__(self):
         self.factor_use_cobj = -1
+        self.num_threads = 1
 
     def set_data(self, cte, ops):
         cdef int i, j, k
@@ -1011,6 +789,10 @@ cdef class CQobjEvoTdDense(CQobjEvo):
 
 
 cdef class CQobjEvoTdMatched(CQobjEvo):
+    def __init__(self):
+        self.factor_use_cobj = -1
+        self.num_threads = 1
+
     def set_data(self, cte, ops):
         cdef int i, j
         self.shape0 = cte.shape[0]
@@ -1138,7 +920,7 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         self._factor_dyn(t, vec, shape)
         self._call_core(self.data_t, self.coeff_ptr)
         spmvpy(self.data_ptr, &self.indices[0], &self.indptr[0], vec,
-               1., out, self.shape0)
+               1., out, self.shape0, self.num_threads)
         return 0
 
     @cython.boundscheck(False)
@@ -1151,8 +933,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         shape[1] = ncol
         self._factor_dyn(t, mat, shape)
         self._call_core(self.data_t, self.coeff_ptr)
-        _spmm_f_py(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
-               out, self.shape0, nrow, ncol)
+        spmmfpy(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
+                out, self.shape0, nrow, ncol, self.num_threads)
         return 0
 
     @cython.boundscheck(False)
@@ -1165,8 +947,8 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
         shape[1] = ncol
         self._factor_dyn(t, mat, shape)
         self._call_core(self.data_t, self.coeff_ptr)
-        _spmm_c_py(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
-               out, self.shape0, nrow, ncol)
+        spmmcpy(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
+                out, self.shape0, nrow, ncol, self.num_threads)
         return 0
 
     @cython.boundscheck(False)

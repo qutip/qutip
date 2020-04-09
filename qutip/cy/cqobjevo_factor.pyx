@@ -78,7 +78,7 @@ cdef class CoeffFunc:
         self._call_core(t, &coeff[0])
         return coeff
 
-    def set_args(self, args):
+    def set_args(self, args, dyn_args):
         pass
 
     cdef void _call_core(self, double t, complex* coeff):
@@ -95,6 +95,11 @@ cdef class CoeffFunc:
 
     def get_args(self):
         return self._args
+
+    def copy(self):
+        out = self.__class__.__new__(self.__class__)
+        out.__setstate__(self.__getstate__())
+        return out
 
 
 cdef class InterpolateCoeff(CoeffFunc):
@@ -123,9 +128,6 @@ cdef class InterpolateCoeff(CoeffFunc):
         cdef int i
         for i in range(self._num_ops):
             coeff[i] = zinterp(t, self.a, self.b, self.c[i,:])
-
-    def set_args(self, args):
-        pass
 
     def __getstate__(self):
         return (self._num_ops, self.a, self.b, np.array(self.c))
@@ -165,10 +167,8 @@ cdef class InterCoeffCte(CoeffFunc):
         cdef int i
         for i in range(self._num_ops):
             coeff[i] = _spline_complex_cte_second(t, self.tlist,
-                                    self.y[i,:], self.M[i,:], self.n_t, self.dt)
-
-    def set_args(self, args):
-        pass
+                                                  self.y[i,:], self.M[i,:],
+                                                  self.n_t, self.dt)
 
     def __getstate__(self):
         return (self._num_ops, self.n_t, self.dt, np.array(self.tlist),
@@ -211,9 +211,6 @@ cdef class InterCoeffT(CoeffFunc):
             coeff[i] = _spline_complex_t_second(t, self.tlist,
                                     self.y[i,:], self.M[i,:], self.n_t)
 
-    def set_args(self, args):
-        pass
-
     def __getstate__(self):
         return (self._num_ops, self.n_t, None, np.array(self.tlist),
                 np.array(self.y), np.array(self.M))
@@ -241,9 +238,6 @@ cdef class StepCoeff(CoeffFunc):
         for i in range(self._num_ops):
             for j in range(self.n_t):
                 self.y[i,j] = ops[i][2][j]
-        
-    def set_arg(self, args):
-        pass
 
     def __getstate__(self):
         return (self._num_ops, self.n_t, None, np.array(self.tlist),
@@ -263,7 +257,7 @@ cdef class StepCoeffT(StepCoeff):
             coeff[i] = _step_complex_t(t, self.tlist, self.y[i, :], self.n_t)
 
 
-cdef class StepCoeffCte(StepCoeff): 
+cdef class StepCoeffCte(StepCoeff):
     cdef void _call_core(self, double t, complex* coeff):
         cdef int i
         for i in range(self._num_ops):
@@ -295,11 +289,11 @@ cdef class StrCoeff(CoeffFunc):
                 elif what == "mat":
                     self._vec = self._args[name].ravel("F")
                     self._mat_shape[0] = self._args[name].shape[0]
-                    self._mat_shape[1] = self._args[name].shape[0]
+                    self._mat_shape[1] = self._args[name].shape[1]
                 elif what == "Qobj":
                     self._vec = self._args[name].full().ravel("F")
                     self._mat_shape[0] = self._args[name].shape[0]
-                    self._mat_shape[1] = self._args[name].shape[0]
+                    self._mat_shape[1] = self._args[name].shape[1]
         self._expect_vec = np.array(expect_def, dtype=complex)
 
     cdef void _dyn_args(self, double t, complex* state, int[::1] shape):

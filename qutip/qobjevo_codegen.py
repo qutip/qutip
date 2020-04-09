@@ -54,21 +54,30 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
     Import 'obj_name' defined in 'code'.
     Using a temporary file starting by 'basefilename'.
     """
-    filename = (basefilename + str(hash(code))[1:4] +
-                str(os.getpid()) + time.strftime("%M%S"))
+    qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
+    if not os.path.exists(qutip_conf_dir):
+        os.mkdir(qutip_conf_dir)
+    root = os.path.join(qutip_conf_dir, 'temp')
+    if not os.path.exists(root):
+        os.mkdir(root)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+
+
+    filename = (basefilename + str(hash(code))[1:4] + str(os.getpid()) +
+                "_" + time.strftime("%s") + "_" + time.strftime("%j") + "_")
     tries = 0
     import_list = []
-    ext = ".pyx" if cythonfile else ".py"
-    if os.getcwd() not in sys.path:
-        sys.path.insert(0, os.getcwd())
+    ext =  ".pyx" if cythonfile else ".py"
     while not import_list and tries < 3:
-        try_file = filename + str(tries)
-        file_ = open(try_file+ext, "w")
+        try_name = filename + str(tries)
+        file_name = os.path.join(root, try_name + ext)
+        file_ = open(file_name, "w")
         file_.writelines(code)
         file_.close()
-        if not os.access(try_file, os.R_OK):
+        if not os.access(file_name, os.R_OK):
             time.sleep(0.1)
-        codeString = str("from " + try_file +
+        codeString = str("from " + try_name +
                          " import " + obj_name + '\n' +
                          "import_list.append(" + obj_name + ")")
         try:
@@ -77,13 +86,13 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
         except (ModuleNotFoundError, ImportError) as e:
             time.sleep(0.05)
             tries += 1
-            _try_remove(try_file+ext)
+            _try_remove(file_name)
             err = e
     if not import_list:
         raise Exception("Could not convert string to importable function, "
-                        "tmpfile:" + try_file + ext) from err
+                        "tmpfile:" + try_name + ext) from err
     coeff_obj = import_list[0]
-    return coeff_obj, try_file + ext
+    return coeff_obj, file_name
 
 
 def _compile_str_single(string, args):
@@ -255,7 +264,9 @@ include """ + _include_string + "\n\n"
 
     code += "\n"
     if normal_args:
-        code += "    def set_args(self, args):\n"
+        code += "    def set_args(self, args, dyn_args=[]):\n"
+        code += "        if dyn_args:\n"
+        code += "            self._set_dyn_args(dyn_args)\n"
         for name, value in normal_args.items():
             code += "        self." + name + "=args['" + name + "']\n"
         code += "\n"
@@ -351,38 +362,6 @@ norm = lambda x: np.abs(x)**2
 arg = np.angle
 
 class _UnitedStrCaller(_UnitedFuncCaller):
-    def __init__(self, funclist, args, dynamics_args, cte):
-        self.funclist = funclist
-        self.args = args
-        self.dynamics_args = dynamics_args
-        self.dims = cte.dims
-        self.shape = cte.shape
-
-    def set_args(self, args, dynamics_args):
-        self.args = args
-        self.dynamics_args = dynamics_args
-
-    def dyn_args(self, t, state, shape):
-        # 1d array are to F ordered
-        mat = state.reshape(shape, order="F")
-        for name, what, op in self.dynamics_args:
-            if what == "vec":
-                self.args[name] = state
-            elif what == "mat":
-                self.args[name] = mat
-            elif what == "Qobj":
-                if self.shape[1] == shape[1]:  # oper
-                    self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1:
-                    self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
-                else:  # rho
-                    self.args[name] = Qobj(mat, dims=self.dims[1])
-            elif what == "expect":  # ket
-                if shape[1] == op.cte.shape[1]: # same shape as object
-                    self.args[name] = op.mul_mat(t, mat).trace()
-                else:
-                    self.args[name] = op.expect(t, state)
-
     def __call__(self, t, args={}):
         if args:
             now_args = self.args.copy()
