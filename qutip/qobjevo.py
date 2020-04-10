@@ -127,31 +127,23 @@ class _file_list:
         for i in to_del[::-1]:
             del self.files[i]
 
-    def clean_old(self):
+    def clean_old(self, max_age=qset.max_age):
         # On importing Qutip, remove temp files left-over for more than 1 week.
         import glob
         import time
-        today = time.gmtime().tm_yday
-        # todo: max_age and root should be set in qutiprc
-        max_age = 7
-        qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
-        if not os.path.exists(qutip_conf_dir):
-            os.mkdir(qutip_conf_dir)
-        root = os.path.join(qutip_conf_dir, 'temp')
-        if not os.path.exists(root):
-            os.mkdir(root)
+        root = qset.tmproot
         bases = ["td_Qobj_single_str",
-                "qobjevo_compiled_coeff_",
-                "cqobjevo_compiled_coeff_"]
+                 "qobjevo_compiled_coeff_",
+                 "cqobjevo_compiled_coeff_"]
         for base in bases:
             for file in glob.glob(os.path.join(root, base + "*")):
                 try:
-                    creation = file.split(".")[0].split("_")[-2]
-                    creation = int(creation)
-                    if (today - creation) % 365 > max_age:
+                    age = (time.time() - os.path.getctime(file) ) / 3600
+                    if age > max_age:
                         os.remove(file)
                 except:
                     pass
+                    # Warn that the  file could not be deleted?
 
 
 coeff_files = _file_list()
@@ -1682,7 +1674,6 @@ class _UnitedFuncCaller:
                                 self.args,
                                 self.dynamics_args,
                                 self)
-
 
 
 class _Norm2():

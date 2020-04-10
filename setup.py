@@ -239,15 +239,6 @@ if "--with-openmp" in sys.argv:
                      language='c++')
     EXT_MODULES.append(_mod)
 
-    # Add cqobjevo_omp
-    _mod = Extension('qutip.cy.openmp.cqobjevo_omp',
-                     sources=['qutip/cy/openmp/cqobjevo_omp.pyx'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags+omp_flags,
-                     extra_link_args=omp_args,
-                     language='c++')
-    EXT_MODULES.append(_mod)
-
 
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig

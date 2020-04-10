@@ -68,7 +68,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
                 "_" + time.strftime("%s") + "_" + time.strftime("%j") + "_")
     tries = 0
     import_list = []
-    ext =  ".pyx" if cythonfile else ".py"
+    ext = ".pyx" if cythonfile else ".py"
     while not import_list and tries < 3:
         try_name = filename + str(tries)
         file_name = os.path.join(root, try_name + ext)

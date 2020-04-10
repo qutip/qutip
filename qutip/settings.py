@@ -35,6 +35,8 @@ This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
 from __future__ import absolute_import
+import os
+import sys
 # use auto tidyup
 auto_tidyup = True
 # use auto tidyup dims on multiplication
@@ -70,10 +72,29 @@ log_handler = 'default'
 # and plotting options by default.
 colorblind_safe = False
 # Sets the threshold for matrix NNZ where OPENMP
-# turns on. This is automatically calculated and 
+# turns on. This is automatically calculated and
 # put in the qutiprc file.  This value is here in case
-# that failts
+# that fails
 openmp_thresh = 10000
+# folder for files created at runtime by QobjEvo for string coefficients.
+# Would be better if set in qutiprc
+try:
+    qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
+    if not os.path.exists(qutip_conf_dir):
+        os.mkdir(qutip_conf_dir)
+    tmproot = os.path.join(qutip_conf_dir, 'temp')
+    if not os.path.exists(tmproot):
+        os.mkdir(tmproot)
+    assert os.access('tmproot', os.W_OK)
+    del qutip_conf_dir
+except Exception:
+    tmproot = "."
+if tmproot not in sys.path:
+    sys.path.insert(0, tmproot)
+
+# At importing Qutip, temp file created more than this age will be erased.
+# Would be better if set in qutiprc
+max_age = 7 * 24 # hours
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
 # configured, rather than through _logging.get_logger().
@@ -84,3 +105,6 @@ try:
     del logging  # Don't leak names!
 except:
     _logger = None
+
+del sys
+del os
