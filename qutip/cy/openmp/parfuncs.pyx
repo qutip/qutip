@@ -1,4 +1,4 @@
-#cython: language_level=3
+# cython: language_level=3
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -41,8 +41,9 @@ include "../complex_math.pxi"
 
 
 cdef extern from "src/zspmv_openmp.hpp" nogil:
-    void zspmvpy_openmp(double complex *data, int *ind, int *ptr, double complex *vec,
-                double complex a, double complex *out, int nrows, int nthr)
+    void zspmvpy_openmp(double complex *data, int *ind, int *ptr,
+                        double complex *vec, double complex a,
+                        double complex *out, int nrows, int nthr)
 
 
 @cython.boundscheck(False)
@@ -68,7 +69,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_openmp(
         Returns dense array.
 
     """
-    return spmv_csr_openmp(super_op.data, super_op.indices, super_op.indptr, vec, nthr)
+    return spmv_csr_openmp(super_op.data, super_op.indices, super_op.indptr,
+                           vec, nthr)
 
 
 @cython.boundscheck(False)
@@ -98,8 +100,10 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_csr_openmp(complex[::1] data,
 
     """
     cdef unsigned int num_rows = vec.shape[0]
-    cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros(num_rows, dtype=complex)
-    zspmvpy_openmp(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows, nthr)
+    cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros(num_rows,
+                                                               dtype=complex)
+    zspmvpy_openmp(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0],
+                   num_rows, nthr)
     return out
 
 @cython.boundscheck(False)
@@ -128,8 +132,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs_openmp(
     cdef unsigned int nrows = rho.shape[0]
     cdef cnp.ndarray[complex, ndim=1, mode="c"] out = \
         np.zeros((nrows), dtype=complex)
-    zspmvpy_openmp(&data[0], &ind[0], &ptr[0], &rho[0], 1.0, &out[0], nrows, nthr)
-
+    zspmvpy_openmp(&data[0], &ind[0], &ptr[0], &rho[0], 1.0, &out[0],
+                   nrows, nthr)
     return out
 
 
