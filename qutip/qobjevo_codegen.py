@@ -49,23 +49,20 @@ def _try_remove(filename):
         pass
 
 
+file_num = 0
+
+
 def _import_str(code, basefilename, obj_name, cythonfile=False):
     """
     Import 'obj_name' defined in 'code'.
     Using a temporary file starting by 'basefilename'.
     """
     qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
-    if not os.path.exists(qutip_conf_dir):
-        os.mkdir(qutip_conf_dir)
-    root = os.path.join(qutip_conf_dir, 'temp')
-    if not os.path.exists(root):
-        os.mkdir(root)
-    if root not in sys.path:
-        sys.path.insert(0, root)
-
+    root = qset.tmproot
 
     filename = (basefilename + str(hash(code))[1:4] + str(os.getpid()) +
-                "_" + time.strftime("%s") + "_" + time.strftime("%j") + "_")
+                file_num)
+    file_num += 1
     tries = 0
     import_list = []
     ext = ".pyx" if cythonfile else ".py"
