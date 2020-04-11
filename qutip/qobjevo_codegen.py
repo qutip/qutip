@@ -40,6 +40,7 @@ import numpy as np
 from qutip.cy.inter import _prep_cubic_spline
 import time
 import sys
+import qutip.settings as qset
 
 
 def _try_remove(filename):
@@ -49,7 +50,7 @@ def _try_remove(filename):
         pass
 
 
-file_num = 0
+file_num = [0]
 
 
 def _import_str(code, basefilename, obj_name, cythonfile=False):
@@ -57,12 +58,11 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
     Import 'obj_name' defined in 'code'.
     Using a temporary file starting by 'basefilename'.
     """
-    qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
     root = qset.tmproot
 
     filename = (basefilename + str(hash(code))[1:4] + str(os.getpid()) +
-                file_num)
-    file_num += 1
+                str(file_num[0]))
+    file_num[0] += 1
     tries = 0
     import_list = []
     ext = ".pyx" if cythonfile else ".py"

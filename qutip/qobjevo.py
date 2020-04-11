@@ -138,7 +138,7 @@ class _file_list:
         for base in bases:
             for file in glob.glob(os.path.join(root, base + "*")):
                 try:
-                    age = (time.time() - os.path.getctime(file) ) / 3600
+                    age = (time.time() - os.path.getctime(file)) / 3600
                     if age > max_age:
                         os.remove(file)
                 except:
@@ -1497,6 +1497,8 @@ class QobjEvo:
     def _recompile(self):
         if self.compiled:
             self.compiled_qobjevo.set_data(self.cte, self.ops)
+            self.compiled_qobjevo.has_dyn_args(bool(self.dynamics_args))
+            self.compiled_qobjevo.set_num_threads(self.omp)
 
     def _compile_coeff(self):
         Code = None

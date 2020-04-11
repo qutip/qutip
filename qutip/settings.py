@@ -94,7 +94,7 @@ if tmproot not in sys.path:
 
 # At importing Qutip, temp file created more than this age will be erased.
 # Would be better if set in qutiprc
-max_age = 7 * 24 # hours
+max_age = 7 * 24  # hours
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
 # configured, rather than through _logging.get_logger().
