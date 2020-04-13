@@ -282,7 +282,9 @@ class _MC():
             pass
 
         if len(seeds) < ntraj:
-            self.seeds = seeds + list(randint(0, 2**31-1, size=ntraj-len(seeds)))
+            self.seeds = seeds + list(randint(0, 2**32,
+                                              size=ntraj-len(seeds),
+                                              dtype=np.uint32))
         else:
             self.seeds = seeds[:ntraj]
 

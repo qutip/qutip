@@ -400,7 +400,7 @@ class StochasticSolverOptions:
             if isinstance(noise, int):
                 # noise contain a seed
                 np.random.seed(noise)
-                noise = np.random.randint(0, 2**32, ntraj)
+                noise = np.random.randint(0, 2**32, ntraj, dtype=np.uint32)
             noise = np.array(noise)
             if len(noise.shape) == 1:
                 if noise.shape[0] < ntraj:
@@ -429,7 +429,7 @@ class StochasticSolverOptions:
                 self.noise = noise
 
         else:
-            self.noise = np.random.randint(0, 2**32, ntraj).astype("u4")
+            self.noise = np.random.randint(0, 2**32, ntraj, dtype=np.uint32)
             self.noise_type = 0
 
         # Map
