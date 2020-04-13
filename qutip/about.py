@@ -59,7 +59,7 @@ def about():
     print("Previous lead developers: Chris Granade & A. Grimsmo.")
     print("Current admin team: Alexander Pitchford, Paul D. Nation, "
             "Nathan Shammah, Shahnawaz Ahmed, "
-            "Neill Lambert, and Eric Giguère.")
+            "Neill Lambert, Eric Giguère, and Boxi Li")
     print("Project Manager: Franco Nori.")
     print("Currently developed through wide collaboration. "
           "See https://github.com/qutip for details.")
