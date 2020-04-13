@@ -1345,7 +1345,7 @@ class QobjEvo:
                 new_op[1] = _StrWrapper(new_op[2])
             elif op.type == "array":
                 new_op[2] = _Shift(op.get_coeff)
-                new_op[1] = new_op[1]
+                new_op[1] = new_op[2]
                 new_op[3] = "func"
                 self.type = "mixed_callable"
             elif op.type == "spline":
