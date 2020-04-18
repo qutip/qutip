@@ -196,6 +196,38 @@ def test_QobjUnitaryOper():
     assert_unitarity(Sx+4, False)
 
 
+def assert_density(oper, density):
+    # Check any cached density matrix
+    assert oper.isdensity == density 
+    # Force a reset of the cached density matrix
+    oper.isdensity = None 
+    # Force a reevaluation of isdenisty
+    assert oper.isdensity == density  
+
+
+def test_Qobjisdensity():
+    "Qobj isdensity"
+    rho = fock_dm(2,1)
+    rho2 = (fock_dm(2,0)+fock_dm(2,1)).unit()
+    ket = basis(2,0)
+    max_mixed = maximally_mixed_state(2)
+    non_spd = Qobj(np.array([[1, 1], [-1, 1]]))
+    # Check standard density matrices
+    assert_density(rho, True)
+    assert_density(rho2, True)
+    assert_density(coherent_dm(3, 0.25j), True)
+    assert_density(max_mixed, True)
+    assert_density(ket2dm(ket), True)
+    asser_isdensity(thermal_dm(5,1), True)
+    # Check for multiplication
+    assert_density(ket*ket.dag(), True)
+    # Check when matrix is non-hermitian
+    assert_density(sigmax()*sigmay(), False)
+    # Check when trace is non-unity
+    assert_density(qeye(2)*2, False)
+    # Check when matrix is non-semi-positive-definite
+    assert_density(non_spd, False)
+
 def test_QobjDimsShape():
     "Qobj shape"
     N = 10
@@ -590,16 +622,6 @@ def test_QobjNorm():
     assert np.allclose(a.norm(), (a*a.dag()).sqrtm().tr().real)
     b = rand_herm(10, 0.25) - 1j*rand_herm(10, 0.25)
     assert np.allclose(b.norm(), (b*b.dag()).sqrtm().tr().real)
-
-def test_check_isdensity():
-    "Tests the is density method of Qobj"
-    rho = fock_dm(2,1)
-    # check the validity of a density matrix of a pure state
-    assert rho.check_isdensity()
-    rho2 = (fock_dm(2,0) + fock_dm(2,1)).unit() 
-    # check the validity of a density matrix of a mixed state
-    assert rho2.check_isdensity()
-
 
 
 def test_QobjPurity():

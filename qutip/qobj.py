@@ -1,61 +1,49 @@
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#	 Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#	 All rights reserved.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#	 Redistribution and use in source and binary forms, with or without
-#	 modification, are permitted provided that the following conditions are
-#	 met:
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
 #
-#	 1. Redistributions of source code must retain the above copyright notice,
-#		this list of conditions and the following disclaimer.
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
 #
-#	 2. Redistributions in binary form must reproduce the above copyright
-#		notice, this list of conditions and the following disclaimer in the
-#		documentation and/or other materials provided with the distribution.
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-#	 3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#		of its contributors may be used to endorse or promote products derived
-#		from this software without specific prior written permission.
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
 #
-#	 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#	 "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#	 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#	 PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#	 HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#	 SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#	 LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#	 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#	 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#	 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#	 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """The Quantum Object (Qobj) class, for representing quantum states and
 operators, and related functions.
 """
 
-__all__ = [
-    'Qobj',
-    'qobj_list_evaluate',
-    'ptrace',
-    'dag',
-    'isequal',
-    'issuper',
-    'isoper',
-    'isoperket',
-    'isoperbra',
-    'isket',
-    'isbra',
-    'isherm',
-    'shape',
-    'dims']
+__all__ = ['Qobj', 'qobj_list_evaluate', 'ptrace', 'dag', 'isequal',
+           'issuper', 'isoper', 'isoperket', 'isoperbra', 'isket', 'isbra',
+           'isherm', 'shape', 'dims']
 
 import warnings
 import types
 
 try:
     import builtins
-except BaseException:
+except:
     import __builtin__ as builtins
 
 # import math functions from numpy.math: required for td string evaluation
@@ -77,7 +65,7 @@ from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
 from qutip.dimensions import (type_from_dims, enumerate_flat,
                               collapse_dims_super)
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm,
-                             zcsr_trace, zcsr_proj, zcsr_inner)
+                            zcsr_trace, zcsr_proj, zcsr_inner)
 from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
 import sys
@@ -100,127 +88,127 @@ class Qobj(object):
     The Qobj class is the QuTiP representation of quantum operators and state
     vectors. This class also implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.	The Qobj constructor optionally takes a
+    operator/state operations.  The Qobj constructor optionally takes a
     dimension ``list`` and/or shape ``list`` as arguments.
 
     Parameters
     ----------
     inpt : array_like
-            Data for vector/matrix representation of the quantum object.
+        Data for vector/matrix representation of the quantum object.
     dims : list
-            Dimensions of object used for tensor products.
+        Dimensions of object used for tensor products.
     shape : list
-            Shape of underlying data structure (matrix shape).
+        Shape of underlying data structure (matrix shape).
     copy : bool
-            Flag specifying whether Qobj should get a copy of the
-            input data, or use the original.
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
     fast : bool
-            Flag for fast qobj creation when running ode solvers.
-            This parameter is used internally only.
+        Flag for fast qobj creation when running ode solvers.
+        This parameter is used internally only.
 
 
     Attributes
     ----------
     data : array_like
-            Sparse matrix characterizing the quantum object.
+        Sparse matrix characterizing the quantum object.
     dims : list
-            List of dimensions keeping track of the tensor structure.
+        List of dimensions keeping track of the tensor structure.
     shape : list
-            Shape of the underlying `data` array.
+        Shape of the underlying `data` array.
     type : str
-            Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
-            'operator-bra', or 'super'.
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
     superrep : str
-            Representation used if `type` is 'super'. One of 'super'
-            (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+        Representation used if `type` is 'super'. One of 'super'
+        (Liouville form) or 'choi' (Choi matrix with tr = dimension).
     isherm : bool
-            Indicates if quantum object represents Hermitian operator.
+        Indicates if quantum object represents Hermitian operator.
     isunitary : bool
-            Indictaes if quantum object represents unitary operator.
+        Indictaes if quantum object represents unitary operator.
+    isdensity : bool
+        Indicates if a quantum object represents a density matrix.
     iscp : bool
-            Indicates if the quantum object represents a map, and if that map is
-            completely positive (CP).
+        Indicates if the quantum object represents a map, and if that map is
+        completely positive (CP).
     ishp : bool
-            Indicates if the quantum object represents a map, and if that map is
-            hermicity preserving (HP).
+        Indicates if the quantum object represents a map, and if that map is
+        hermicity preserving (HP).
     istp : bool
-            Indicates if the quantum object represents a map, and if that map is
-            trace preserving (TP).
+        Indicates if the quantum object represents a map, and if that map is
+        trace preserving (TP).
     iscptp : bool
-            Indicates if the quantum object represents a map that is completely
-            positive and trace preserving (CPTP).
+        Indicates if the quantum object represents a map that is completely
+        positive and trace preserving (CPTP).
     isket : bool
-            Indicates if the quantum object represents a ket.
+        Indicates if the quantum object represents a ket.
     isbra : bool
-            Indicates if the quantum object represents a bra.
+        Indicates if the quantum object represents a bra.
     isoper : bool
-            Indicates if the quantum object represents an operator.
+        Indicates if the quantum object represents an operator.
     issuper : bool
-            Indicates if the quantum object represents a superoperator.
+        Indicates if the quantum object represents a superoperator.
     isoperket : bool
-            Indicates if the quantum object represents an operator in column vector
-            form.
+        Indicates if the quantum object represents an operator in column vector
+        form.
     isoperbra : bool
-            Indicates if the quantum object represents an operator in row vector
-            form.
+        Indicates if the quantum object represents an operator in row vector
+        form.
 
     Methods
     -------
     copy()
-            Create copy of Qobj
+        Create copy of Qobj
     conj()
-            Conjugate of quantum object.
+        Conjugate of quantum object.
     cosm()
-            Cosine of quantum object.
+        Cosine of quantum object.
     dag()
-            Adjoint (dagger) of quantum object.
+        Adjoint (dagger) of quantum object.
     dnorm()
-            Diamond norm of quantum operator.
+        Diamond norm of quantum operator.
     dual_chan()
-            Dual channel of quantum object representing a CP map.
+        Dual channel of quantum object representing a CP map.
     eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
-            Returns eigenenergies (eigenvalues) of a quantum object.
+        Returns eigenenergies (eigenvalues) of a quantum object.
     eigenstates(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
-            Returns eigenenergies and eigenstates of quantum object.
+        Returns eigenenergies and eigenstates of quantum object.
     expm()
-            Matrix exponential of quantum object.
+        Matrix exponential of quantum object.
     full(order='C')
-            Returns dense array of quantum object `data` attribute.
+        Returns dense array of quantum object `data` attribute.
     groundstate(sparse=False, tol=0, maxiter=100000)
-            Returns eigenvalue and eigenket for the groundstate of a quantum
-            object.
+        Returns eigenvalue and eigenket for the groundstate of a quantum
+        object.
     inv()
-            Return a Qobj corresponding to the matrix inverse of the operator.
+        Return a Qobj corresponding to the matrix inverse of the operator.
     matrix_element(bra, ket)
-            Returns the matrix element of operator between `bra` and `ket` vectors.
+        Returns the matrix element of operator between `bra` and `ket` vectors.
     norm(norm='tr', sparse=False, tol=0, maxiter=100000)
-            Returns norm of a ket or an operator.
+        Returns norm of a ket or an operator.
     permute(order)
-            Returns composite qobj with indices reordered.
+        Returns composite qobj with indices reordered.
     proj()
-            Computes the projector for a ket or bra vector.
+        Computes the projector for a ket or bra vector.
     ptrace(sel)
-            Returns quantum object for selected dimensions after performing
-            partial trace.
-    purity()
-            Calculates purity of a Qobj quantum state
+        Returns quantum object for selected dimensions after performing
+        partial trace.
     sinm()
-            Sine of quantum object.
+        Sine of quantum object.
     sqrtm()
-            Matrix square root of quantum object.
+        Matrix square root of quantum object.
     tidyup(atol=1e-12)
-            Removes small elements from quantum object.
+        Removes small elements from quantum object.
     tr()
-            Trace of quantum object.
+        Trace of quantum object.
     trans()
-            Transpose of quantum object.
+        Transpose of quantum object.
     transform(inpt, inverse=False)
-            Performs a basis transformation defined by `inpt` matrix.
+        Performs a basis transformation defined by `inpt` matrix.
     trunc_neg(method='clip')
-            Removes negative eigenvalues and returns a new Qobj that is
-            a valid density operator.
+        Removes negative eigenvalues and returns a new Qobj that is
+        a valid density operator.
     unit(norm='tr', sparse=False, tol=0, maxiter=100000)
-            Returns normalized quantum object.
+        Returns normalized quantum object.
 
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
@@ -255,7 +243,7 @@ class Qobj(object):
 
             self._data = fast_csr_matrix((inpt.data.data, inpt.data.indices,
                                           inpt.data.indptr),
-                                         shape=inpt.shape, copy=copy)
+                                          shape=inpt.shape, copy=copy)
 
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
@@ -292,8 +280,8 @@ class Qobj(object):
                 data = data.transpose()
 
             _tmp = sp.csr_matrix(data, dtype=complex)
-            self._data = fast_csr_matrix(
-                (_tmp.data, _tmp.indices, _tmp.indptr), shape=_tmp.shape)
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                         shape=_tmp.shape)
             if not np.any(dims):
                 self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
@@ -307,12 +295,12 @@ class Qobj(object):
             do_copy = copy
             if not isinstance(inpt, fast_csr_matrix):
                 _tmp = sp.csr_matrix(inpt, dtype=complex, copy=do_copy)
-                _tmp.sort_indices()  # Make sure indices are sorted.
+                _tmp.sort_indices() #Make sure indices are sorted.
                 do_copy = 0
             else:
                 _tmp = inpt
-            self._data = fast_csr_matrix(
-                (_tmp.data, _tmp.indices, _tmp.indptr), shape=_tmp.shape, copy=do_copy)
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                        shape=_tmp.shape, copy=do_copy)
 
             if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -323,8 +311,8 @@ class Qobj(object):
                                np.integer, np.floating, np.complexfloating)):
             # if input is int, float, or complex then convert to array
             _tmp = sp.csr_matrix([[inpt]], dtype=complex)
-            self._data = fast_csr_matrix(
-                (_tmp.data, _tmp.indices, _tmp.indptr), shape=_tmp.shape)
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                        shape=_tmp.shape)
             if not np.any(dims):
                 self.dims = [[1], [1]]
             else:
@@ -335,13 +323,12 @@ class Qobj(object):
                           builtins.type(inpt))
             inpt = np.array([[0]])
             _tmp = sp.csr_matrix(inpt, dtype=complex, copy=copy)
-            self._data = fast_csr_matrix(
-                (_tmp.data, _tmp.indices, _tmp.indptr), shape=_tmp.shape)
+            self._data = fast_csr_matrix((_tmp.data, _tmp.indices, _tmp.indptr),
+                                        shape=_tmp.shape)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
         if type == 'super':
-            # Type is not super, i.e. dims not explicitly passed, but oper
-            # shape
+            # Type is not super, i.e. dims not explicitly passed, but oper shape
             if dims == [[], []] and self.shape[0] == self.shape[1]:
                 sub_shape = np.sqrt(self.shape[0])
                 # check if root of shape is int
@@ -349,7 +336,8 @@ class Qobj(object):
                     raise Exception('Invalid shape for a super operator.')
                 else:
                     sub_shape = int(sub_shape)
-                    self.dims = [[[sub_shape], [sub_shape]]] * 2
+                    self.dims = [[[sub_shape], [sub_shape]]]*2
+
 
         if superrep:
             self.superrep = superrep
@@ -367,7 +355,6 @@ class Qobj(object):
     def get_data(self):
         return self._data
     # Here we perfrom a check of the csr matrix type during setting of Q.data
-
     def set_data(self, data):
         if not isinstance(data, fast_csr_matrix):
             raise TypeError('Qobj data must be in fast_csr format.')
@@ -385,17 +372,9 @@ class Qobj(object):
             return other.__radd__(self)
 
         if not isinstance(other, Qobj):
-            if isinstance(
-                other,
-                (int,
-                 float,
-                 complex,
-                 np.integer,
-                 np.floating,
-                 np.complexfloating,
-                 np.ndarray,
-                 list,
-                 tuple)) or sp.issparse(other):
+            if isinstance(other, (int, float, complex, np.integer, np.floating,
+                          np.complexfloating, np.ndarray, list, tuple)) \
+                          or sp.issparse(other):
                 other = Qobj(other)
             else:
                 return NotImplemented
@@ -417,8 +396,7 @@ class Qobj(object):
 
             out.dims = self.dims
 
-            if settings.auto_tidyup:
-                out.tidyup()
+            if settings.auto_tidyup: out.tidyup()
 
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
@@ -426,7 +404,7 @@ class Qobj(object):
                 # We use _isherm here to prevent recalculating on self and
                 # other, relying on that bool(None) == False.
                 out._isherm = (True if self._isherm and other._isherm
-                               else out.isherm)
+                                    else out.isherm)
 
             out.superrep = self.superrep
 
@@ -446,8 +424,7 @@ class Qobj(object):
                 out.data.data = out.data.data + dat
             out.dims = other.dims
 
-            if settings.auto_tidyup:
-                out.tidyup()
+            if settings.auto_tidyup: out.tidyup()
 
             if isinstance(dat, complex):
                 out._isherm = out.isherm
@@ -468,8 +445,7 @@ class Qobj(object):
             out = Qobj()
             out.data = self.data + other.data
             out.dims = self.dims
-            if settings.auto_tidyup:
-                out.tidyup()
+            if settings.auto_tidyup: out.tidyup()
 
             if self.type in ['ket', 'bra', 'operator-ket', 'operator-bra']:
                 out._isherm = False
@@ -520,10 +496,9 @@ class Qobj(object):
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
-                if settings.auto_tidyup:
-                    out.tidyup()
+                if settings.auto_tidyup: out.tidyup()
                 if (settings.auto_tidyup_dims
-                    and not isinstance(dims[0][0], list)
+                        and not isinstance(dims[0][0], list)
                         and not isinstance(dims[1][0], list)):
                     # If neither left or right is a superoperator,
                     # we should implicitly partial trace over
@@ -532,21 +507,18 @@ class Qobj(object):
                     # to have uneven length (non-square Qobjs).
                     # We use None as padding so that it doesn't match anything,
                     # and will never cause a partial trace on the other side.
-                    mask = [
-                        l == r == 1 for l,
-                        r in zip_longest(
-                            dims[0],
-                            dims[1],
-                            fillvalue=None)]
+                    mask = [l == r == 1 for l, r in zip_longest(dims[0],
+                                                                dims[1],
+                                                                fillvalue=None)]
                     # To ensure that there are still any dimensions left, we
                     # use max() to add a dimensions list of [1] if all matching
                     # dims are traced out of that side.
                     out.dims = [max([1],
                                     [dim for dim, m in zip(dims[0], mask)
-                                     if not m]),
+                                    if not m]),
                                 max([1],
                                     [dim for dim, m in zip(dims[1], mask)
-                                     if not m])]
+                                    if not m])]
 
                 else:
                     out.dims = dims
@@ -591,6 +563,7 @@ class Qobj(object):
             else:
                 return self.data * other
 
+
         elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
             return np.array([self * item for item in other],
@@ -605,8 +578,7 @@ class Qobj(object):
             out.data = self.data * other
             out.dims = self.dims
             out.superrep = self.superrep
-            if settings.auto_tidyup:
-                out.tidyup()
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -624,7 +596,7 @@ class Qobj(object):
         if isinstance(other, np.ndarray):
             if other.dtype == 'object':
                 return np.array([item * self for item in other],
-                                dtype=object)
+                                            dtype=object)
             else:
                 return other * self.data
 
@@ -637,13 +609,12 @@ class Qobj(object):
             return other.__mul__(self)
 
         elif isinstance(other, (int, float, complex,
-                                np.integer, np.floating, np.complexfloating)):
+                              np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
             out.superrep = self.superrep
-            if settings.auto_tidyup:
-                out.tidyup()
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -670,8 +641,7 @@ class Qobj(object):
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
-            if settings.auto_tidyup:
-                out.tidyup()
+            if settings.auto_tidyup: out.tidyup()
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -692,8 +662,7 @@ class Qobj(object):
         out.data = -self.data
         out.dims = self.dims
         out.superrep = self.superrep
-        if settings.auto_tidyup:
-            out.tidyup()
+        if settings.auto_tidyup: out.tidyup()
         out._isherm = self._isherm
         out._isunitary = self._isunitary
         return out
@@ -713,9 +682,9 @@ class Qobj(object):
         EQUALITY operator.
         """
         if (isinstance(other, Qobj) and
-            self.dims == other.dims and
-            not np.any(np.abs((self.data - other.data).data) >
-                       settings.atol)):
+                self.dims == other.dims and
+                not np.any(np.abs((self.data - other.data).data) >
+                           settings.atol)):
             return True
         else:
             return False
@@ -743,7 +712,7 @@ class Qobj(object):
             out.superrep = self.superrep
             return out.tidyup() if settings.auto_tidyup else out
 
-        except BaseException:
+        except:
             raise ValueError('Invalid choice of exponent.')
 
     def __abs__(self):
@@ -870,7 +839,7 @@ class Qobj(object):
 
         def _format_element(m, n, d):
             s = " & " if n > 0 else ""
-            if isinstance(d, str):
+            if type(d) == str:
                 return s + d
             else:
                 if abs(np.imag(d)) < settings.atol:
@@ -967,11 +936,12 @@ class Qobj(object):
         J = sr.to_choi(self)
         tensor_idxs = enumerate_flat(J.dims)
         J_dual = tensor.tensor_swap(J, *(
-            list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
-            list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
+                list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
+                list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
         )).trans()
         J_dual.superrep = 'choi'
         return J_dual
+
 
     def conj(self):
         """Conjugate operator of quantum object.
@@ -991,26 +961,26 @@ class Qobj(object):
         Parameters
         ----------
         norm : str
-                Which norm to use for ket/bra vectors: L2 'l2', max norm 'max',
-                or for operators: trace 'tr', Frobius 'fro', one 'one', or max
-                'max'.
+            Which norm to use for ket/bra vectors: L2 'l2', max norm 'max',
+            or for operators: trace 'tr', Frobius 'fro', one 'one', or max
+            'max'.
 
         sparse : bool
-                Use sparse eigenvalue solver for trace norm.  Other norms are not
-                affected by this parameter.
+            Use sparse eigenvalue solver for trace norm.  Other norms are not
+            affected by this parameter.
 
         tol : float
-                Tolerance for sparse solver (if used) for trace norm. The sparse
-                solver may not converge if the tolerance is set too low.
+            Tolerance for sparse solver (if used) for trace norm. The sparse
+            solver may not converge if the tolerance is set too low.
 
         maxiter : int
-                Maximum number of iterations performed by sparse solver (if used)
-                for trace norm.
+            Maximum number of iterations performed by sparse solver (if used)
+            for trace norm.
 
         Returns
         -------
         norm : float
-                The requested norm of the operator or state quantum object.
+            The requested norm of the operator or state quantum object.
 
 
         Notes
@@ -1021,7 +991,7 @@ class Qobj(object):
         """
         if self.type in ['oper', 'super']:
             if norm is None or norm == 'tr':
-                _op = self * self.dag()
+                _op = self*self.dag()
                 vals = sp_eigs(_op.data, _op.isherm, vecs=False,
                                sparse=sparse, tol=tol, maxiter=maxiter)
                 return np.sum(np.sqrt(np.abs(vals)))
@@ -1048,12 +1018,12 @@ class Qobj(object):
         Parameters
         ----------
         Q : :class:`qutip.Qobj`
-                Input bra or ket vector
+            Input bra or ket vector
 
         Returns
         -------
         P : :class:`qutip.Qobj`
-                Projection operator.
+            Projection operator.
         """
         if self.isket:
             _out = zcsr_proj(self.data, 1)
@@ -1072,35 +1042,10 @@ class Qobj(object):
         Returns
         -------
         trace : float
-                Returns the trace of the quantum object.
+            Returns the trace of the quantum object.
 
         """
         return zcsr_trace(self.data, self.isherm)
-
-
-
-    def check_isdensity(self):
-        """Evaluates if a given matrix is a valid density matrix
-
-        Returns
-        ------
-        True if Qobj is a valid density matrix, false otherwise
-        """
-       
-        if (self.type != "oper"):
-            raise TypeError("check_isdensity() is only defined on operators")
-
-        if (self.isherm == False):
-            raise TypeError("Density matrix should be Hermitian.")
-
-        if(not np.allclose(self.tr(), 1, atol=1e-09)):
-            raise TypeError("Density matrix should have unity trace.")
-
-        for eig in self.eigenenergies():
-            if (eig < 0):
-                raise TypeError("Density matrix should be semi-positive definite => All eigenvalues should be non-negative")
-
-        return True
 
     def purity(self):
         """Calculate purity of a quantum object.
@@ -1108,26 +1053,20 @@ class Qobj(object):
         Returns
         -------
         state_purity : float
-                Returns the purity of a quantum object.
-                For a pure state, the purity is 1.
-                For a mixed state of dimension `d`, 1/d<=purity<1.
+            Returns the purity of a quantum object.
+            For a pure state, the purity is 1.
+            For a mixed state of dimension `d`, 1/d<=purity<1.
 
         """
         rho = self
         if (rho.type == "super"):
-            raise TypeError(
-                'Purity is defined on a valid density matrix or state.')
+            raise TypeError('Purity is defined on a density matrix or state.')
 
-        if (rho.type == "ket") or rho.type == "bra":
-            if (not math.isclose(rho.norm(), 1)):
-                raise TypeError(
-                    "Ket is not normalized. Consider using unit() to normalize.")
-            state_purity = (rho * rho.dag()).tr()
-
+        if rho.type == "ket" or rho.type == "bra":
+            state_purity = (rho*rho.dag()).tr()
 
         if rho.type == "oper":
-            if (rho.check_isdensity()):
-                state_purity = (rho * rho).tr()
+            state_purity = (rho*rho).tr()
 
         return state_purity
 
@@ -1137,14 +1076,14 @@ class Qobj(object):
         Parameters
         ----------
         order : str {'C', 'F'}
-                Return array in C (default) or Fortran ordering.
+            Return array in C (default) or Fortran ordering.
         squeeze : bool {False, True}
-                Squeeze output array.
+            Squeeze output array.
 
         Returns
         -------
         data : array
-                Array of complex data from quantum objects `data` attribute.
+            Array of complex data from quantum objects `data` attribute.
         """
         if squeeze:
             return self.data.toarray(order=order).squeeze()
@@ -1163,8 +1102,8 @@ class Qobj(object):
         Returns
         -------
         diags : array
-                Returns array of ``real`` values if operators is Hermitian,
-                otherwise ``complex`` values are returned.
+            Returns array of ``real`` values if operators is Hermitian,
+            otherwise ``complex`` values are returned.
 
         """
         out = self.data.diagonal()
@@ -1181,20 +1120,20 @@ class Qobj(object):
         Parameters
         ----------
         method : str {'dense', 'sparse'}
-                Use set method to use to calculate the matrix exponentiation. The
-                available choices includes 'dense' and 'sparse'.  Since the
-                exponential of a matrix is nearly always dense, method='dense'
-                is set as default.s
+            Use set method to use to calculate the matrix exponentiation. The
+            available choices includes 'dense' and 'sparse'.  Since the
+            exponential of a matrix is nearly always dense, method='dense'
+            is set as default.s
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Exponentiated quantum operator.
+            Exponentiated quantum operator.
 
         Raises
         ------
         TypeError
-                Quantum operator is not square.
+            Quantum operator is not square.
 
         """
         if self.dims[0][0] != self.dims[1][0]:
@@ -1218,7 +1157,7 @@ class Qobj(object):
         Returns
         -------
         isherm : bool
-                Returns the new value of isherm property.
+            Returns the new value of isherm property.
         """
         self._isherm = None
         return self.isherm
@@ -1231,21 +1170,21 @@ class Qobj(object):
         Parameters
         ----------
         sparse : bool
-                Use sparse eigenvalue/vector solver.
+            Use sparse eigenvalue/vector solver.
         tol : float
-                Tolerance used by sparse solver (0 = machine precision).
+            Tolerance used by sparse solver (0 = machine precision).
         maxiter : int
-                Maximum number of iterations used by sparse solver.
+            Maximum number of iterations used by sparse solver.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Matrix square root of operator.
+            Matrix square root of operator.
 
         Raises
         ------
         TypeError
-                Quantum object is not square.
+            Quantum object is not square.
 
         Notes
         -----
@@ -1278,12 +1217,12 @@ class Qobj(object):
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Matrix cosine of operator.
+            Matrix cosine of operator.
 
         Raises
         ------
         TypeError
-                Quantum object is not square.
+            Quantum object is not square.
 
         Notes
         -----
@@ -1303,12 +1242,12 @@ class Qobj(object):
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Matrix sine of operator.
+            Matrix sine of operator.
 
         Raises
         ------
         TypeError
-                Quantum object is not square.
+            Quantum object is not square.
 
         Notes
         -----
@@ -1328,12 +1267,12 @@ class Qobj(object):
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Matrix inverse of operator.
+            Matrix inverse of operator.
 
         Raises
         ------
         TypeError
-                Quantum object is not square.
+            Quantum object is not square.
         """
         if self.shape[0] != self.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
@@ -1344,8 +1283,8 @@ class Qobj(object):
         return Qobj(inv_mat, dims=self.dims[::-1])
 
     def unit(self, inplace=False,
-             norm=None, sparse=False,
-             tol=0, maxiter=100000):
+            norm=None, sparse=False,
+            tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
         Uses norm from Qobj.norm().
@@ -1353,26 +1292,26 @@ class Qobj(object):
         Parameters
         ----------
         inplace : bool
-                Do an in-place normalization
+            Do an in-place normalization
         norm : str
-                Requested norm for states / operators.
+            Requested norm for states / operators.
         sparse : bool
-                Use sparse eigensolver for trace norm. Does not affect other norms.
+            Use sparse eigensolver for trace norm. Does not affect other norms.
         tol : float
-                Tolerance used by sparse eigensolver.
+            Tolerance used by sparse eigensolver.
         maxiter : int
-                Number of maximum iterations performed by sparse eigensolver.
+            Number of maximum iterations performed by sparse eigensolver.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Normalized quantum object if not in-place,
-                else None.
+            Normalized quantum object if not in-place,
+            else None.
 
         """
         if inplace:
             nrm = self.norm(norm=norm, sparse=sparse,
-                            tol=tol, maxiter=maxiter)
+                           tol=tol, maxiter=maxiter)
 
             self.data /= nrm
         elif not inplace:
@@ -1391,13 +1330,13 @@ class Qobj(object):
         Parameters
         ----------
         sel : int/list
-                An ``int`` or ``list`` of components to keep after partial trace.
+            An ``int`` or ``list`` of components to keep after partial trace.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Quantum object representing partial trace with selected components
-                remaining.
+            Quantum object representing partial trace with selected components
+            remaining.
 
         Notes
         -----
@@ -1423,12 +1362,12 @@ class Qobj(object):
         Parameters
         ----------
         order : list/array
-                List specifying new tensor order.
+            List specifying new tensor order.
 
         Returns
         -------
         P : :class:`qutip.Qobj`
-                Permuted quantum object.
+            Permuted quantum object.
 
         """
         q = Qobj()
@@ -1442,24 +1381,24 @@ class Qobj(object):
         Parameters
         ----------
         atol : float
-                Absolute tolerance used by tidyup. Default is set
-                via qutip global settings parameters.
+            Absolute tolerance used by tidyup. Default is set
+            via qutip global settings parameters.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Quantum object with small elements removed.
+            Quantum object with small elements removed.
 
         """
         if self.data.nnz:
             # This does the tidyup and returns True if
             # The sparse data needs to be shortened
             if use_openmp() and self.data.nnz > 500:
-                if omp_tidyup(self.data.data, atol, self.data.nnz,
-                              settings.num_cpus):
-                    self.data.eliminate_zeros()
+                if omp_tidyup(self.data.data,atol, self.data.nnz,
+                            settings.num_cpus):
+                            self.data.eliminate_zeros()
             else:
-                if cy_tidyup(self.data.data, atol, self.data.nnz):
+                if cy_tidyup(self.data.data,atol, self.data.nnz):
                     self.data.eliminate_zeros()
             return self
         else:
@@ -1475,16 +1414,16 @@ class Qobj(object):
         Parameters
         ----------
         inpt : array_like
-                A ``matrix`` or ``list`` of kets defining the transformation.
+            A ``matrix`` or ``list`` of kets defining the transformation.
         inverse : bool
-                Whether to return inverse transformation.
+            Whether to return inverse transformation.
         sparse : bool
-                Use sparse matrices when possible. Can be slower.
+            Use sparse matrices when possible. Can be slower.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Operator in new basis.
+            Operator in new basis.
 
         Notes
         -----
@@ -1499,10 +1438,10 @@ class Qobj(object):
                     'Invalid size of ket list for basis transformation')
             if sparse:
                 S = sp.hstack([psi.data for psi in inpt],
-                              format='csr', dtype=complex).conj().T
+                            format='csr', dtype=complex).conj().T
             else:
                 S = np.hstack([psi.full() for psi in inpt],
-                              dtype=complex).conj().T
+                               dtype=complex).conj().T
         elif isinstance(inpt, Qobj) and inpt.isoper:
             S = inpt.data
         elif isinstance(inpt, np.ndarray):
@@ -1511,10 +1450,11 @@ class Qobj(object):
         else:
             raise TypeError('Invalid operand for basis transformation')
 
+
         # transform data
         if inverse:
             if self.isket:
-                data = (S.conj().T) * self.data
+                  data = (S.conj().T) * self.data
             elif self.isbra:
                 data = self.data.dot(S)
             else:
@@ -1553,20 +1493,20 @@ class Qobj(object):
         Parameters
         ----------
         method : str
-                Algorithm to use to remove negative eigenvalues. "clip"
-                simply discards negative eigenvalues, then renormalizes.
-                "sgs" uses the SGS algorithm (doi:10/bb76) to find the
-                positive operator that is nearest in the Shatten 2-norm.
+            Algorithm to use to remove negative eigenvalues. "clip"
+            simply discards negative eigenvalues, then renormalizes.
+            "sgs" uses the SGS algorithm (doi:10/bb76) to find the
+            positive operator that is nearest in the Shatten 2-norm.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                A valid density operator.
+            A valid density operator.
 
         """
         if not self.isherm:
             raise ValueError("Must be a Hermitian operator to remove negative "
-                             "eigenvalues.")
+                            "eigenvalues.")
 
         if method not in ('clip', 'sgs'):
             raise ValueError("Method {} not recognized.".format(method))
@@ -1596,12 +1536,12 @@ class Qobj(object):
                     acc += eigvals[idx]
                     eigvals[idx] = 0.0
 
-            eigvals[:idx + 1] += acc / (idx + 1)
+            eigvals[:idx+1] += acc / (idx + 1)
 
         return sum([
-            val * qutip.states.ket2dm(state)
-            for val, state in zip(eigvals, eigstates)
-        ], Qobj(np.zeros(self.shape), dims=self.dims)
+                val * qutip.states.ket2dm(state)
+                for val, state in zip(eigvals, eigstates)
+            ], Qobj(np.zeros(self.shape), dims=self.dims)
         ).unit()
 
     def matrix_element(self, bra, ket):
@@ -1613,15 +1553,15 @@ class Qobj(object):
         Parameters
         -----------
         bra : :class:`qutip.Qobj`
-                Quantum object of type 'bra' or 'ket'
+            Quantum object of type 'bra' or 'ket'
 
         ket : :class:`qutip.Qobj`
-                Quantum object of type 'ket'.
+            Quantum object of type 'ket'.
 
         Returns
         -------
         elem : complex
-                Complex valued matrix element.
+            Complex valued matrix element.
 
         Note
         ----
@@ -1653,19 +1593,19 @@ class Qobj(object):
         Parameters
         -----------
         other : :class:`qutip.Qobj`
-                Quantum object for a state vector of type 'ket', 'bra' or density
-                matrix.
+            Quantum object for a state vector of type 'ket', 'bra' or density
+            matrix.
 
         Returns
         -------
         overlap : complex
-                Complex valued overlap.
+            Complex valued overlap.
 
         Raises
         ------
         TypeError
-                Can only calculate overlap between a bra, ket and density matrix
-                quantum objects.
+            Can only calculate overlap between a bra, ket and density matrix
+            quantum objects.
 
         Notes
         -----
@@ -1709,6 +1649,7 @@ class Qobj(object):
                     err = "Can only calculate overlap for state vector Qobjs"
                     raise TypeError(err)
 
+
         raise TypeError("Can only calculate overlap for state vector Qobjs")
 
     def eigenstates(self, sparse=False, sort='low', eigvals=0,
@@ -1721,33 +1662,33 @@ class Qobj(object):
         Parameters
         ----------
         sparse : bool
-                Use sparse Eigensolver
+            Use sparse Eigensolver
 
         sort : str
-                Sort eigenvalues (and vectors) 'low' to high, or 'high' to low.
+            Sort eigenvalues (and vectors) 'low' to high, or 'high' to low.
 
         eigvals : int
-                Number of requested eigenvalues. Default is all eigenvalues.
+            Number of requested eigenvalues. Default is all eigenvalues.
 
         tol : float
-                Tolerance used by sparse Eigensolver (0 = machine precision).
-                The sparse solver may not converge if the tolerance is set too low.
+            Tolerance used by sparse Eigensolver (0 = machine precision).
+            The sparse solver may not converge if the tolerance is set too low.
 
         maxiter : int
-                Maximum number of iterations performed by sparse solver (if used).
+            Maximum number of iterations performed by sparse solver (if used).
 
         phase_fix : int, None
-                If not None, set the phase of each kets so that ket[phase_fix,0]
-                is real positive.
+            If not None, set the phase of each kets so that ket[phase_fix,0]
+            is real positive.
 
         Returns
         -------
         eigvals : array
-                Array of eigenvalues for operator.
+            Array of eigenvalues for operator.
 
         eigvecs : array
-                Array of quantum operators representing the oprator eigenkets.
-                Order of eigenkets is determined by order of eigenvalues.
+            Array of quantum operators representing the oprator eigenkets.
+            Order of eigenkets is determined by order of eigenvalues.
 
         Notes
         -----
@@ -1765,8 +1706,8 @@ class Qobj(object):
         if phase_fix is None:
             phase = np.array([1] * len(ekets))
         else:
-            phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
-                              if ket[phase_fix, 0] else 1
+            phase = np.array([np.abs(ket[phase_fix,0]) / ket[phase_fix,0]
+                              if ket[phase_fix,0] else 1
                               for ket in ekets])
         return evals, ekets / norms * phase
 
@@ -1780,21 +1721,21 @@ class Qobj(object):
         Parameters
         ----------
         sparse : bool
-                Use sparse Eigensolver
+            Use sparse Eigensolver
         sort : str
-                Sort eigenvalues 'low' to high, or 'high' to low.
+            Sort eigenvalues 'low' to high, or 'high' to low.
         eigvals : int
-                Number of requested eigenvalues. Default is all eigenvalues.
+            Number of requested eigenvalues. Default is all eigenvalues.
         tol : float
-                Tolerance used by sparse Eigensolver (0=machine precision).
-                The sparse solver may not converge if the tolerance is set too low.
+            Tolerance used by sparse Eigensolver (0=machine precision).
+            The sparse solver may not converge if the tolerance is set too low.
         maxiter : int
-                Maximum number of iterations performed by sparse solver (if used).
+            Maximum number of iterations performed by sparse solver (if used).
 
         Returns
         -------
         eigvals : array
-                Array of eigenvalues for operator.
+            Array of eigenvalues for operator.
 
         Notes
         -----
@@ -1813,21 +1754,21 @@ class Qobj(object):
         Parameters
         ----------
         sparse : bool
-                Use sparse Eigensolver
+            Use sparse Eigensolver
         tol : float
-                Tolerance used by sparse Eigensolver (0 = machine precision).
-                The sparse solver may not converge if the tolerance is set too low.
+            Tolerance used by sparse Eigensolver (0 = machine precision).
+            The sparse solver may not converge if the tolerance is set too low.
         maxiter : int
-                Maximum number of iterations performed by sparse solver (if used).
+            Maximum number of iterations performed by sparse solver (if used).
         safe : bool (default=True)
-                Check for degenerate ground state
+            Check for degenerate ground state
 
         Returns
         -------
         eigval : float
-                Eigenvalue for the ground state of quantum operator.
+            Eigenvalue for the ground state of quantum operator.
         eigvec : :class:`qutip.Qobj`
-                Eigenket for the ground state of quantum operator.
+            Eigenket for the ground state of quantum operator.
 
         Notes
         -----
@@ -1842,11 +1783,10 @@ class Qobj(object):
         grndval, grndvec = sp_eigs(self.data, self.isherm, sparse=sparse,
                                    eigvals=evals, tol=tol, maxiter=maxiter)
         if safe:
-            if tol == 0:
-                tol = 1e-15
-            if (grndval[1] - grndval[0]) <= 10 * tol:
+            if tol == 0: tol = 1e-15
+            if (grndval[1]-grndval[0]) <= 10*tol:
                 print("WARNING: Ground state may be degenerate. "
-                      "Use Q.eigenstates()")
+                        "Use Q.eigenstates()")
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
         grndvec = Qobj(grndvec[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
@@ -1858,7 +1798,7 @@ class Qobj(object):
         Returns
         -------
         oper : :class:`qutip.Qobj`
-                Transpose of input operator.
+            Transpose of input operator.
 
         """
         out = Qobj()
@@ -1872,20 +1812,20 @@ class Qobj(object):
         Parameters
         ----------
         states_inds : list of integer
-                The states that should be kept.
+            The states that should be kept.
 
         normalize : True / False
-                Weather or not the new Qobj instance should be normalized (default
-                is False). For Qobjs that represents density matrices or state
-                vectors normalized should probably be set to True, but for Qobjs
-                that represents operators in for example an Hamiltonian, normalize
-                should be False.
+            Weather or not the new Qobj instance should be normalized (default
+            is False). For Qobjs that represents density matrices or state
+            vectors normalized should probably be set to True, but for Qobjs
+            that represents operators in for example an Hamiltonian, normalize
+            should be False.
 
         Returns
         -------
         q : :class:`qutip.Qobj`
-                A new instance of :class:`qutip.Qobj` that contains only the states
-                corresponding to the indices in `state_inds`.
+            A new instance of :class:`qutip.Qobj` that contains only the states
+            corresponding to the indices in `state_inds`.
 
         Notes
         -----
@@ -1910,20 +1850,20 @@ class Qobj(object):
         Parameters
         ----------
         states_inds : list of integer
-                The states that should be removed.
+            The states that should be removed.
 
         normalize : True / False
-                Weather or not the new Qobj instance should be normalized (default
-                is False). For Qobjs that represents density matrices or state
-                vectors normalized should probably be set to True, but for Qobjs
-                that represents operators in for example an Hamiltonian, normalize
-                should be False.
+            Weather or not the new Qobj instance should be normalized (default
+            is False). For Qobjs that represents density matrices or state
+            vectors normalized should probably be set to True, but for Qobjs
+            that represents operators in for example an Hamiltonian, normalize
+            should be False.
 
         Returns
         -------
         q : :class:`qutip.Qobj`
-                A new instance of :class:`qutip.Qobj` that contains only the states
-                corresponding to indices that are **not** in `state_inds`.
+            A new instance of :class:`qutip.Qobj` that contains only the states
+            corresponding to indices that are **not** in `state_inds`.
 
         Notes
         -----
@@ -1942,14 +1882,14 @@ class Qobj(object):
         Parameters
         ----------
         B : :class:`qutip.Qobj` or None
-                If B is not None, the diamond distance d(A, B) = dnorm(A - B)
-                between this operator and B is returned instead of the diamond norm.
+            If B is not None, the diamond distance d(A, B) = dnorm(A - B)
+            between this operator and B is returned instead of the diamond norm.
 
         Returns
         -------
         d : float
-                Either the diamond norm of this operator, or the diamond distance
-                from this operator to B.
+            Either the diamond norm of this operator, or the diamond distance
+            from this operator to B.
 
         """
         return mts.dnorm(self, B)
@@ -1961,7 +1901,7 @@ class Qobj(object):
             try:
                 J = sr.to_choi(self)
                 return J.isherm
-            except BaseException:
+            except:
                 return False
         else:
             return False
@@ -1988,13 +1928,10 @@ class Qobj(object):
                     return False
                 eigs = J.eigenenergies()
                 return all(eigs >= -settings.atol)
-            except BaseException:
+            except:
                 return False
         else:
             return False
-
-    
-
 
     @property
     def istp(self):
@@ -2012,7 +1949,7 @@ class Qobj(object):
 
                 # Possibly collapse dims.
                 if any([len(index) > 1 for super_index in qobj.dims
-                        for index in super_index]):
+                                            for index in super_index]):
                     qobj = Qobj(qobj, dims=collapse_dims_super(qobj.dims))
                 else:
                     qobj = qobj
@@ -2022,7 +1959,7 @@ class Qobj(object):
                 tr_oper = qobj.ptrace([0])
                 ident = ops.identity(tr_oper.shape[0])
                 return isequal(tr_oper, ident)
-            except BaseException:
+            except:
                 return False
         else:
             return False
@@ -2057,13 +1994,13 @@ class Qobj(object):
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
-            return not (np.any(np.abs((self.data * self.dag().data
+            return not (np.any(np.abs((self.data*self.dag().data
                                        - eye_data).data)
-                               > settings.atol)
+                                > settings.atol)
                         or
-                        np.any(np.abs((self.dag().data * self.data
+                        np.any(np.abs((self.dag().data*self.data
                                        - eye_data).data) >
-                               settings.atol)
+                              settings.atol)
                         )
 
         else:
@@ -2082,6 +2019,28 @@ class Qobj(object):
     @isunitary.setter
     def isunitary(self, isunitary):
         self._isunitary = isunitary
+    
+    def check_isdensity(self):
+    """
+    Checks whether qobj is a valid density matrix
+    """
+    isdensity = True
+
+    if (self.type != "oper" or self.isherm  == False or 
+           not np.allclose(self.tr(), 1, atol=1e-09)):
+        isdensity = False 
+
+    else:
+        for eig in self.eigenenergies():
+            if not np.allclose(eig, 0, atol=1e-05):
+                isdensity = False
+                break
+
+    return isdensity  
+        
+    @property
+    def isdensity(self):
+        return self.check_isdensity()
 
     @property
     def type(self):
@@ -2126,35 +2085,35 @@ class Qobj(object):
         """Evaluate a time-dependent quantum object in list format. For
         example,
 
-                qobj_list = [H0, [H1, func_t]]
+            qobj_list = [H0, [H1, func_t]]
 
         is evaluated to
 
-                Qobj(t) = H0 + H1 * func_t(t, args)
+            Qobj(t) = H0 + H1 * func_t(t, args)
 
         and
 
-                qobj_list = [H0, [H1, 'sin(w * t)']]
+            qobj_list = [H0, [H1, 'sin(w * t)']]
 
         is evaluated to
 
-                Qobj(t) = H0 + H1 * sin(args['w'] * t)
+            Qobj(t) = H0 + H1 * sin(args['w'] * t)
 
         Parameters
         ----------
         qobj_list : list
-                A nested list of Qobj instances and corresponding time-dependent
-                coefficients.
+            A nested list of Qobj instances and corresponding time-dependent
+            coefficients.
         t : float
-                The time for which to evaluate the time-dependent Qobj instance.
+            The time for which to evaluate the time-dependent Qobj instance.
         args : dictionary
-                A dictionary with parameter values required to evaluate the
-                time-dependent Qobj intance.
+            A dictionary with parameter values required to evaluate the
+            time-dependent Qobj intance.
 
         Returns
         -------
         output : :class:`qutip.Qobj`
-                A Qobj instance that represents the value of qobj_list at time t.
+            A Qobj instance that represents the value of qobj_list at time t.
 
         """
 
@@ -2211,12 +2170,12 @@ def dag(A):
     Parameters
     ----------
     A : :class:`qutip.Qobj`
-            Input quantum object.
+        Input quantum object.
 
     Returns
     -------
     oper : :class:`qutip.Qobj`
-            Adjoint of input operator
+        Adjoint of input operator
 
     Notes
     -----
@@ -2236,15 +2195,15 @@ def ptrace(Q, sel):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Composite quantum object.
+        Composite quantum object.
     sel : int/list
-            An ``int`` or ``list`` of components to keep after partial trace.
+        An ``int`` or ``list`` of components to keep after partial trace.
 
     Returns
     -------
     oper : :class:`qutip.Qobj`
-            Quantum object representing partial trace with selected components
-            remaining.
+        Quantum object representing partial trace with selected components
+        remaining.
 
     Notes
     -----
@@ -2294,12 +2253,12 @@ def dims(inpt):
     Parameters
     ----------
     inpt : :class:`qutip.Qobj`
-            Input quantum object.
+        Input quantum object.
 
     Returns
     -------
     dims : list
-            A ``list`` of the quantum objects dimensions.
+        A ``list`` of the quantum objects dimensions.
 
     Notes
     -----
@@ -2319,12 +2278,12 @@ def shape(inpt):
     Parameters
     ----------
     inpt : :class:`qutip.Qobj`
-            Input quantum object.
+        Input quantum object.
 
     Returns
     -------
     shape : list
-            A ``list`` of the quantum objects shape.
+        A ``list`` of the quantum objects shape.
 
     Notes
     -----
@@ -2345,12 +2304,12 @@ def isket(Q):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Quantum object
+        Quantum object
 
     Returns
     -------
     isket : bool
-            True if qobj is ket-vector, False otherwise.
+        True if qobj is ket-vector, False otherwise.
 
     Examples
     --------
@@ -2373,12 +2332,12 @@ def isbra(Q):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Quantum object
+        Quantum object
 
     Returns
     -------
     isbra : bool
-            True if Qobj is bra-vector, False otherwise.
+        True if Qobj is bra-vector, False otherwise.
 
     Examples
     --------
@@ -2402,12 +2361,12 @@ def isoperket(Q):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Quantum object
+        Quantum object
 
     Returns
     -------
     isoperket : bool
-            True if Qobj is operator-ket, False otherwise.
+        True if Qobj is operator-ket, False otherwise.
 
     Notes
     -----
@@ -2425,12 +2384,12 @@ def isoperbra(Q):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Quantum object
+        Quantum object
 
     Returns
     -------
     isoperbra : bool
-            True if Qobj is operator-bra, False otherwise.
+        True if Qobj is operator-bra, False otherwise.
 
     Notes
     -----
@@ -2447,12 +2406,12 @@ def isoper(Q):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Quantum object
+        Quantum object
 
     Returns
     -------
     isoper : bool
-            True if Qobj is operator, False otherwise.
+        True if Qobj is operator, False otherwise.
 
     Examples
     --------
@@ -2475,12 +2434,12 @@ def issuper(Q):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Quantum object
+        Quantum object
 
     Returns
     -------
     issuper  : bool
-            True if Qobj is superoperator, False otherwise.
+        True if Qobj is superoperator, False otherwise.
 
     Notes
     -----
@@ -2497,16 +2456,16 @@ def isequal(A, B, tol=None):
     Parameters
     ----------
     A : :class:`qutip.Qobj`
-            Qobj one
+        Qobj one
     B : :class:`qutip.Qobj`
-            Qobj two
+        Qobj two
     tol : float
-            Tolerence for equality to be valid
+        Tolerence for equality to be valid
 
     Returns
     -------
     isequal : bool
-            True if qobjs are equal, False otherwise.
+        True if qobjs are equal, False otherwise.
 
     Notes
     -----
@@ -2538,12 +2497,12 @@ def isherm(Q):
     Parameters
     ----------
     Q : :class:`qutip.Qobj`
-            Quantum object
+        Quantum object
 
     Returns
     -------
     isherm : bool
-            True if operator is Hermitian, False otherwise.
+        True if operator is Hermitian, False otherwise.
 
     Examples
     --------
