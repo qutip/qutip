@@ -32,17 +32,16 @@
 ###############################################################################
 
 import pytest
-import functools
 import numpy as np
 import qutip
 
 
-def _return_constant(constant, *args, **kwargs):
-    return constant
+def _return_constant(t, args):
+    return args['constant']
 
 
-def _return_decay(constant, rate, t, *args, **kwargs):
-    return constant * np.exp(-rate * t)
+def _return_decay(t, args):
+    return args['constant'] * np.exp(-args['rate'] * t)
 
 
 @pytest.mark.usefixtures("in_temporary_directory")
@@ -70,9 +69,9 @@ class StatesAndExpectOutputCase:
         for test, expected_part in zip(result.expect, expected):
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
-    def test_states_and_expect(self, hamiltonian, c_ops, expected, tol):
+    def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol):
         options = qutip.Options(average_states=True, store_states=True)
-        result = qutip.mcsolve(hamiltonian, self.state, self.times,
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
                                options=options)
         self._assert_expect(result, expected, tol)
@@ -88,23 +87,23 @@ class TestNoCollapse(StatesAndExpectOutputCase):
         tol = 1e-8
         expect = (qutip.expect(self.e_ops[0], self.state)
                   * np.ones_like(self.times))
-        # Use partial to allow pickling.
-        zero_function = functools.partial(_return_constant, 0)
         hamiltonian_types = [
-            (self.h, "Qobj", False),
-            ([self.h], "list", False),
-            ([self.h, [self.h, '0']], "string", True),
-            ([self.h, [self.h, zero_function]], "function", False),
+            (self.h, {}, "Qobj", False),
+            ([self.h], {}, "list", False),
+            ([self.h, [self.h, '0']], {}, "string", True),
+            ([self.h, [self.h, _return_constant]], {'constant': 0},
+             "function", False),
         ]
         cases = []
-        for hamiltonian, id, slow in hamiltonian_types:
+        for hamiltonian, args, id, slow in hamiltonian_types:
             if slow and 'only' in metafunc.function.__name__:
                 # Skip the single-output test if it's a slow case.
                 continue
             marks = [pytest.mark.slow] if slow else []
-            cases.append(pytest.param(hamiltonian, [], [expect], tol,
+            cases.append(pytest.param(hamiltonian, args, [], [expect], tol,
                                       id=id, marks=marks))
-        metafunc.parametrize(['hamiltonian', 'c_ops', 'expected', 'tol'],
+        metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
+                              'tol'],
                              cases)
 
     # Previously the "states_only" and "expect_only" tests were mixed in to
@@ -113,15 +112,15 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # runtimes shorter.  The known-good cases are still tested in the other
     # test cases, this is just testing the single-output behaviour.
 
-    def test_states_only(self, hamiltonian, c_ops, expected, tol):
+    def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
         options = qutip.Options(average_states=True, store_states=True)
-        result = qutip.mcsolve(hamiltonian, self.state, self.times,
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
                                options=options)
         self._assert_states(result, expected, tol)
 
-    def test_expect_only(self, hamiltonian, c_ops, expected, tol):
-        result = qutip.mcsolve(hamiltonian, self.state, self.times,
+    def test_expect_only(self, hamiltonian, args, c_ops, expected, tol):
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj)
         self._assert_expect(result, expected, tol)
 
@@ -137,19 +136,18 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         expect = (qutip.expect(self.e_ops[0], self.state)
                   * np.exp(-coupling * self.times))
         collapse_op = qutip.destroy(self.size)
-        # Use partial to allow pickling.
-        collapse_function = functools.partial(_return_constant,
-                                              np.sqrt(coupling))
         c_op_types = [
-            (np.sqrt(coupling)*collapse_op, "constant"),
-            ([collapse_op, 'sqrt({})'.format(coupling)], "string"),
-            ([collapse_op, collapse_function], "function"),
+            (np.sqrt(coupling)*collapse_op, {}, "constant"),
+            ([collapse_op, 'sqrt({})'.format(coupling)], {}, "string"),
+            ([collapse_op, _return_constant], {'constant': np.sqrt(coupling)},
+             "function"),
         ]
         cases = []
-        for c_op, id in c_op_types:
-            cases.append(pytest.param(self.h, [c_op], [expect], tol,
+        for c_op, args, id in c_op_types:
+            cases.append(pytest.param(self.h, args, [c_op], [expect], tol,
                                       id=id, marks=[pytest.mark.slow]))
-        metafunc.parametrize(['hamiltonian', 'c_ops', 'expected', 'tol'],
+        metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
+                              'tol'],
                              cases)
 
 
@@ -164,20 +162,18 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
         expect = (qutip.expect(self.e_ops[0], self.state)
                   * np.exp(-coupling * (1 - np.exp(-self.times))))
         collapse_op = qutip.destroy(self.size)
-        # Use partial to allow pickling.
-        collapse_function = functools.partial(_return_decay,
-                                              np.sqrt(coupling),
-                                              0.5)
+        collapse_args = {'constant': np.sqrt(coupling), 'rate': 0.5}
         collapse_string = 'sqrt({} * exp(-t))'.format(coupling)
         c_op_types = [
-            ([collapse_op, collapse_function], "function"),
-            ([collapse_op, collapse_string], "string"),
+            ([collapse_op, _return_decay], collapse_args, "function"),
+            ([collapse_op, collapse_string], {}, "string"),
         ]
         cases = []
-        for c_op, id in c_op_types:
-            cases.append(pytest.param(self.h, [c_op], [expect], tol,
+        for c_op, args, id in c_op_types:
+            cases.append(pytest.param(self.h, args, [c_op], [expect], tol,
                                       id=id, marks=[pytest.mark.slow]))
-        metafunc.parametrize(['hamiltonian', 'c_ops', 'expected', 'tol'],
+        metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
+                              'tol'],
                              cases)
 
 
@@ -299,11 +295,19 @@ def test_dynamic_arguments():
     assert all(len(collapses) <= 1 for collapses in mc.col_which)
 
 
+def _regression_490_f1(t, args):
+    return t-1
+
+
+def _regression_490_f2(t, args):
+    return -t
+
+
 def test_regression_490():
     """Test for regression of gh-490."""
     h = [qutip.sigmax(),
-         [qutip.sigmay(), lambda t, args: t-1],
-         [qutip.sigmaz(), lambda t, args: -t]]
+         [qutip.sigmay(), _regression_490_f1],
+         [qutip.sigmaz(), _regression_490_f2]]
     state = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 3, 10)
     result_me = qutip.mesolve(h, state, times)
