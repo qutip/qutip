@@ -787,7 +787,7 @@ def _positive_map(sso, e_ops_dict):
         sops = []
         for c in sso.sc_ops:
             if sso.m_ops is None:
-                m_ops += [c + c.dag(), -1j * c - c.dag()]
+                m_ops += [c + c.dag(), 1j * (c - c.dag())]
             sops += [c / np.sqrt(2), -1j / np.sqrt(2) * c]
         sso.m_ops = m_ops
         if not isinstance(sso.dW_factors, list):
