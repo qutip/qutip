@@ -37,6 +37,8 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Eric Giguere
 
+:Author: Boxi Li
+
 :version: 4.5
 :status: Released (January 30, 2020)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
@@ -61,14 +63,19 @@ which may also be download from http://arxiv.org/abs/1211.6518 or http://arxiv.o
 
 Funding
 =======
-QuTiP is developed under the auspice of the non-profit organization:
+QuTiP is developed under the auspice of the non-profit organizations:
 
-.. _image-qustar:
+.. _image-numfocus:
 
 .. figure:: figures/NumFocus_logo.png
    :width: 3in
    :figclass: align-center
 
+.. _image-unitaryfund:
+
+.. figure:: figures/unitaryfund_logo.png
+   :width: 3in
+   :figclass: align-center
 
 QuTiP was partially supported by
 
