@@ -66,7 +66,7 @@ Gate name                           Description
 "GLOBALPHASE"         Global phase
 ====================  ========================================
 
-For some of the gates listed above, :class:`qutip.qip.QubitCircuit` also has a primitive :meth:`qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates. However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. Apart from it, there is also a function drawing the circuit with LaTeX code using the ``Q-qircuit`` package from http://physics.unm.edu/CQuIC/Qcircuit.
+For some of the gates listed above, :class:`qutip.qip.QubitCircuit` also has a primitive :meth:`qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates. However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates.
 
 In addition to these pre-defined gates, QuTiP also allows the user to define their own gate. The following example shows how to define a customized gate.
 
@@ -127,6 +127,25 @@ In addition to these pre-defined gates, QuTiP also allows the user to define the
       [0.+0.j 0.+1.j 0.+0.j 0.+0.j]
       [0.+0.j 0.+0.j 1.+0.j 0.+0.j]
       [0.+0.j 0.+0.j 0.+0.j 0.+1.j]]
+
+Plotting a Quantum Circuit
+===================================
+A quantum circuit (described above) can directly be plotted using the QCircuit library ( https://github.com/CQuIC/qcircuit ).
+QCiruit is a quantum circuit drawing application and is implemented directly into QuTiP. As QCircuit uses LaTex for plotting you need to have several tools installed to use the plotting function within QuTip:
+*pdflatex*, *pdfcrop* and *imagemagick (to convert pdf to png)*.
+An example code for plotting the example quantum circuit from above is given:
+
+.. code-block::
+
+   >>> from qutip.qip.circuit import QubitCircuit, Gate
+   >>> # create the quantum circuit
+   >>> qc = QubitCircuit(N=2)
+   >>> swap_gate = Gate(name="SWAP", targets=[0, 1])
+   >>> qc.add_gate(swap_gate)
+   >>> qc.add_gate("CNOT", controls=0, targets=1)
+   >>> qc.add_gate(swap_gate)
+   >>> # plot the quantum circuit
+   >>> qc.png
 
 Processor for QIP simulation
 ===================================
