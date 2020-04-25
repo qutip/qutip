@@ -40,7 +40,7 @@ For example, a random Hermitian operator can be sampled by calling `rand_herm` f
 | CPTP channel (``super``)      | `rand_super`, `rand_super_bcsz`            | :math:`(N \times N) \times (N \times N)` |
 +-------------------------------+--------------------------------------------+------------------------------------------+
 
-In all cases, these functions can be called with a single parameter :math:`N` that dimension of the relevant Hilbert space. The optional
+In all cases, these functions can be called with a single parameter :math:`N` that specifies the dimension of the relevant Hilbert space. The optional
 ``dims`` keyword argument allows for the dimensions of a random state, unitary or channel to be broken down into subsystems.
 
 .. ipython::
