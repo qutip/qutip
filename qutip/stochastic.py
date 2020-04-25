@@ -601,7 +601,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         sso.sops = []
         for c in sso.sc_ops:
             if sso.m_ops is None:
-                m_ops += [c + c.dag(), 1j * (c - c.dag())]
+                m_ops += [c + c.dag(), -1j * (c - c.dag())]
             sso.sops += [(spre(c) + spost(c.dag())) / np.sqrt(2),
                          (spre(c) - spost(c.dag())) * -1j / np.sqrt(2)]
         sso.m_ops = m_ops
@@ -787,7 +787,7 @@ def _positive_map(sso, e_ops_dict):
         sops = []
         for c in sso.sc_ops:
             if sso.m_ops is None:
-                m_ops += [c + c.dag(), 1j * (c - c.dag())]
+                m_ops += [c + c.dag(), -1j * (c - c.dag())]
             sops += [c / np.sqrt(2), -1j / np.sqrt(2) * c]
         sso.m_ops = m_ops
         if not isinstance(sso.dW_factors, list):
