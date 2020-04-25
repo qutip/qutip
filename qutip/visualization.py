@@ -42,7 +42,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb', 'matrix_histogram',
-           'matrix_histogram_complex', 'sphereplot']
+           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere']
 
 import warnings
 import itertools as it
@@ -69,8 +69,84 @@ from qutip.tensor import flatten
 from qutip import settings
 
 
+def plot_wigner_sphere(fig, ax, wigner, reflections):
+    """Plots a coloured Bloch sphere.
+
+    Parameters
+    ----------
+        fig
+            An instance of matplotlib.pyplot.figure.
+        ax
+            An axes instance in fig.
+        wigner : list of float
+            the wigner transformation at `steps` different theta and phi.
+        reflections : bool
+            If the reflections of the sphere should be plotted as well.
+
+    Notes
+    ------
+    Special thanks to Russell P Rundle for writing this function.
+    """
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+
+    steps = len(wigner)
+
+    theta = np.linspace(0, np.pi, steps)
+    phi = np.linspace(0, 2 * np.pi, steps)
+    x = np.outer(np.sin(theta), np.cos(phi))
+    y = np.outer(np.sin(theta), np.sin(phi))
+    z = np.outer(np.cos(theta), np.ones(steps))
+    wigner = np.real(wigner)
+    wigner_max = np.real(np.amax(np.abs(wigner)))
+
+    wigner_c1 = cm.seismic_r((wigner + wigner_max) / (2 * wigner_max))
+
+    # Plot coloured Bloch sphere:
+    ax.plot_surface(x, y, z, facecolors=wigner_c1, vmin=-wigner_max,
+                    vmax=wigner_max, rcount=steps, ccount=steps, linewidth=0,
+                    zorder=0.5, antialiased=None)
+
+    if reflections:
+        wigner_c2 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+                                 (2*wigner_max))  # bottom
+        wigner_c3 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+                                 (2*wigner_max))  # side
+        wigner_c4 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+                                 (2*wigner_max))  # back
+
+        # Plot bottom reflection:
+        ax.plot_surface(x[0:steps, 0:steps], y[0:steps, 0:steps],
+                        -1.5*np.ones((steps, steps)), facecolors=wigner_c2,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
+                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        antialiased=False)
+
+        # Plot side reflection:
+        ax.plot_surface(-1.5*np.ones((steps, steps)), y[0:steps, 0:steps],
+                        z[0:steps, 0:steps], facecolors=wigner_c3,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
+                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        antialiased=False)
+
+        # Plot back reflection:
+        ax.plot_surface(x[0:steps, 0:steps], 1.5*np.ones((steps, steps)),
+                        z[0:steps, 0:steps], facecolors=wigner_c4,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
+                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        antialiased=False)
+
+    # Create colourbar:
+    m = cm.ScalarMappable(cmap=cm.seismic_r)
+    m.set_array([-wigner_max, wigner_max])
+    plt.colorbar(m, shrink=0.5, aspect=10)
+
+    plt.show()
+
+
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area, cmap=None):
+def _blob(x, y, w, w_max, area, cmap=None, ax=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -79,9 +155,13 @@ def _blob(x, y, w, w_max, area, cmap=None):
     xcorners = array([x - hs, x + hs, x + hs, x - hs])
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
-    plt.fill(xcorners, ycorners,
-             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+    if ax is not None:
+        handle = ax
+    else:
+        handle = plt
 
+    handle.fill(xcorners, ycorners,
+             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
 
 def _cb_labels(left_dims):
@@ -226,10 +306,10 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             _y = y + 1
             if np.real(W[x, y]) > 0.0:
                 _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
             else:
                 _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
 
     # color axis
     norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
@@ -592,7 +672,7 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
     yticks = []
 
     x = 0
-    evals0 = H.eigenenergies(eigvals=N) / (2 * np.pi)
+    evals0 = H.eigenenergies(eigvals=N)
     for e_idx, e in enumerate(evals0[:N]):
         ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
         yticks.append(e)
@@ -602,7 +682,7 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
     for H1 in H_list[1:]:
 
         H = H + H1
-        evals1 = H.eigenenergies() / (2 * np.pi)
+        evals1 = H.eigenenergies()
 
         for e_idx, e in enumerate(evals1[:N]):
             ax.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
@@ -680,7 +760,7 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
 
     N = rho.shape[0]
 
-    ax.bar(np.arange(offset, offset + N) - .4, np.real(rho.diag()),
+    ax.bar(np.arange(offset, offset + N), np.real(rho.diag()),
            color="green", alpha=0.6, width=0.8)
     if unit_y_range:
         ax.set_ylim(0, 1)
@@ -703,9 +783,9 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
                                   unit_y_range=unit_y_range)
 
 
-def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
+def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
                 cmap=None, alpha_max=7.5, colorbar=False,
-                method='iterative', projection='2d'):
+                method='clenshaw', projection='2d'):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -735,7 +815,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
-    method : string {'iterative', 'laguerre', 'fft'}
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 

@@ -32,222 +32,125 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite, assert_allclose
-from qutip import *
+import pytest
+import qutip
 
 
-def testTLS():
-    """
-    brmesolve: simple qubit
-    """
+def pauli_spin_operators():
+    return [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
 
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
+
+_simple_qubit_gamma = 0.25
+_m_c_op = np.sqrt(_simple_qubit_gamma) * qutip.sigmam()
+_z_c_op = np.sqrt(_simple_qubit_gamma) * qutip.sigmaz()
+_x_a_op = [qutip.sigmax(), lambda w: _simple_qubit_gamma * (w >= 0)]
+
+
+@pytest.mark.parametrize("me_c_ops, brme_c_ops, brme_a_ops", [
+        ([_m_c_op],          [],        [_x_a_op]),
+        ([_m_c_op],          [_m_c_op], []),
+        ([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op]),
+    ])
+def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
+    delta = 0.0 * 2*np.pi
+    epsilon = 0.5 * 2*np.pi
+    e_ops = pauli_spin_operators()
+    H = delta*0.5*qutip.sigmax() + epsilon*0.5*qutip.sigmaz()
+    psi0 = (2*qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 10, 100)
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam()]
-    a_ops = [[sigmax(),lambda w: gamma * (w >= 0)]]
-    e_ops = [sigmax(), sigmay(), sigmaz()]
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
+    me = qutip.mesolve(H, psi0, times, c_ops=me_c_ops, e_ops=e_ops).expect
+    brme = qutip.brmesolve(H, psi0, times,
+                           brme_a_ops, e_ops, brme_c_ops).expect
+    for me_expectation, brme_expectation in zip(me, brme):
+        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
 
 
-def testCOPS():
-    """
-    brmesolve: c_ops alone
-    """
+def _harmonic_oscillator_spectrum_frequency(n_th, w0, kappa):
+    if n_th == 0:
+        return lambda w: kappa * (w >= 0)
+    w_th = w0 / np.log(1 + 1/n_th)
 
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
-    times = np.linspace(0, 10, 100)
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam()]
-    e_ops = [sigmax(), sigmay(), sigmaz()]
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, [], e_ops, c_ops=c_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
+    def f(w):
+        scale = np.exp(w / w_th) if w < 0 else 1
+        return (n_th + 1) * kappa * scale
+    return f
 
 
-def testCOPSwithAOPS():
-    """
-    brmesolve: c_ops with a_ops
-    """
-
-    delta = 0.0 * 2 * np.pi
-    epsilon = 0.5 * 2 * np.pi
-    gamma = 0.25
-    times = np.linspace(0, 10, 100)
-    H = delta/2 * sigmax() + epsilon/2 * sigmaz()
-    psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-    c_ops = [np.sqrt(gamma) * sigmam(), np.sqrt(gamma) * sigmaz()]
-    c_ops_brme = [np.sqrt(gamma) * sigmaz()]
-    a_ops = [[sigmax(),lambda w: gamma * (w >= 0)]]
-    e_ops = [sigmax(), sigmay(), sigmaz()]
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops,c_ops=c_ops_brme)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
+def _harmonic_oscillator_c_ops(n_th, kappa, dimension):
+    a = qutip.destroy(dimension)
+    if n_th == 0:
+        return [np.sqrt(kappa) * a]
+    return [np.sqrt(kappa * (n_th+1)) * a,
+            np.sqrt(kappa * n_th) * a.dag()]
 
 
-def testHOZeroTemperature():
-    """
-    brmesolve: harmonic oscillator, zero temperature
-    """
-
+@pytest.mark.parametrize("n_th", [0, 0.15])
+def test_harmonic_oscillator(n_th):
     N = 10
-    w0 = 1.0 * 2 * np.pi
+    w0 = 1.0 * 2*np.pi
     g = 0.05 * w0
     kappa = 0.15
+    S_w = _harmonic_oscillator_spectrum_frequency(n_th, w0, kappa)
 
+    a = qutip.destroy(N)
+    H = w0*a.dag()*a + g*(a+a.dag())
+    psi0 = (qutip.basis(N, 4) + qutip.basis(N, 2) + qutip.basis(N, 0)).unit()
+    psi0 = qutip.ket2dm(psi0)
     times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
 
-    c_ops = [np.sqrt(kappa) * a]
-    a_ops = [[a + a.dag(),lambda w: kappa * (w >= 0)]]
-    e_ops = [a.dag() * a, a + a.dag()]
+    c_ops = _harmonic_oscillator_c_ops(n_th, kappa, N)
+    a_ops = [[a + a.dag(), S_w]]
+    e_ops = [a.dag()*a, a+a.dag()]
 
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
+    brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
+    for me_expectation, brme_expectation in zip(me.expect, brme.expect):
+        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
 
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
-
-
-def testHOFiniteTemperature():
-    """
-    brmesolve: harmonic oscillator, finite temperature
-    """
-
-    N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.15
-    times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-
-    n_th = 1.5
-    w_th = w0/np.log(1 + 1/n_th)
-
-    def S_w(w):
-        if w >= 0:
-            return (n_th + 1) * kappa
-        else:
-            return (n_th + 1) * kappa * np.exp(w / w_th)
-
-    c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
-    a_ops = [[a + a.dag(),S_w]]
-    e_ops = [a.dag() * a, a + a.dag()]
-
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 1e-2)
+    num = qutip.num(N)
+    me_num = qutip.expect(num, me.states)
+    brme_num = qutip.expect(num, brme.states)
+    assert np.allclose(me_num, brme_num, atol=1e-2)
 
 
-def testHOFiniteTemperatureStates():
-    """
-    brmesolve: harmonic oscillator, finite temperature, states
-    """
-
-    N = 10
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * w0
-    kappa = 0.25
-    times = np.linspace(0, 25, 1000)
-    a = destroy(N)
-    H = w0 * a.dag() * a + g * (a + a.dag())
-    psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
-
-    n_th = 1.5
-    w_th = w0/np.log(1 + 1/n_th)
-
-    def S_w(w):
-        if w >= 0:
-            return (n_th + 1) * kappa
-        else:
-            return (n_th + 1) * kappa * np.exp(w / w_th)
-
-    c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
-    a_ops = [[a + a.dag(),S_w]]
-    e_ops = []
-
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    n_me = expect(a.dag() * a, res_me.states)
-    n_brme = expect(a.dag() * a, res_brme.states)
-
-    diff = abs(n_me - n_brme).max()
-    assert_(diff < 1e-2)
-
-
-def testJCZeroTemperature():
+def test_jaynes_cummings_zero_temperature():
     """
     brmesolve: Jaynes-Cummings model, zero temperature
     """
-
     N = 10
-    a = tensor(destroy(N), identity(2))
-    sm = tensor(identity(N), destroy(2))
-    psi0 = ket2dm(tensor(basis(N, 1), basis(2, 0)))
-    a_ops = [[(a + a.dag()),lambda w: kappa * (w >= 0)]]
-    e_ops = [a.dag() * a, sm.dag() * sm]
+    a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
+    sp = qutip.tensor(qutip.qeye(N), qutip.sigmap())
+    psi0 = qutip.ket2dm(qutip.tensor(qutip.basis(N, 1), qutip.basis(2, 0)))
+    a_ops = [[(a + a.dag()), lambda w: kappa * (w >= 0)]]
+    e_ops = [a.dag()*a, sp.dag()*sp]
 
-    w0 = 1.0 * 2 * np.pi
-    g = 0.05 * 2 * np.pi
+    w0 = 1.0 * 2*np.pi
+    g = 0.05 * 2*np.pi
     kappa = 0.05
-    times = np.linspace(0, 2 * 2 * np.pi / g, 1000)
+    times = np.linspace(0, 2 * 2*np.pi / g, 1000)
 
     c_ops = [np.sqrt(kappa) * a]
-    H = w0 * a.dag() * a + w0 * sm.dag() * sm + \
-        g * (a + a.dag()) * (sm + sm.dag())
+    H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
 
-    res_me = mesolve(H, psi0, times, c_ops, e_ops)
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
-
-    for idx, e in enumerate(e_ops):
-        diff = abs(res_me.expect[idx] - res_brme.expect[idx]).max()
-        assert_(diff < 5e-2)  # accept 5% error
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
+    brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
+    for me_expectation, brme_expectation in zip(me.expect, brme.expect):
+        # Accept 5% error.
+        assert np.allclose(me_expectation, brme_expectation, atol=5e-2)
 
 
 def test_pull_572_error():
     """
     brmesolve: Check for #572 bug.
     """
-    # Parameters
-    w1 = 1.
-    w2 = 2.
-    w3 = 3.
-    gamma2 = 0.1
-    gamma3 = 0.1
-
-    # Identity for a 2x2 system
-    id2 = Qobj(identity(2))
+    w1, w2, w3 = 1, 2, 3
+    gamma2, gamma3 = 0.1, 0.1
+    id2 = qutip.qeye(2)
 
     # Hamiltonian for three uncoupled qubits
-    H = w1/2. * tensor(sigmaz(),id2,id2)\
-            + w2/2. * tensor(id2,sigmaz(),id2)\
-            + w3/2. * tensor(id2,id2,sigmaz())
+    H = (w1/2. * qutip.tensor(qutip.sigmaz(), id2, id2)
+         + w2/2. * qutip.tensor(id2, qutip.sigmaz(), id2)
+         + w3/2. * qutip.tensor(id2, id2, qutip.sigmaz()))
 
     # White noise
     def S2(w):
@@ -256,21 +159,38 @@ def test_pull_572_error():
     def S3(w):
         return gamma3
 
+    qubit_2_x = qutip.tensor(id2, qutip.sigmax(), id2)
+    qubit_3_x = qutip.tensor(id2, id2, qutip.sigmax())
     # Bloch-Redfield tensor including dissipation for qubits 2 and 3 only
-    R, ekets = bloch_redfield_tensor(H,\
-            [[tensor(id2,sigmax(),id2),S2], [tensor(id2,id2,sigmax()),S3]])
+    R, ekets = qutip.bloch_redfield_tensor(H,
+                                           [[qubit_2_x, S2], [qubit_3_x, S3]])
     # Initial state : first qubit is excited
-    grnd2 = sigmam()*sigmap()    # 2x2 ground
-    exc2 = sigmap()*sigmam()     # 2x2 excited state
-    ini = tensor(exc2,grnd2,grnd2)  # Full system
+    grnd2 = qutip.sigmam() * qutip.sigmap()  # 2x2 ground
+    exc2 = qutip.sigmap() * qutip.sigmam()   # 2x2 excited state
+    ini = qutip.tensor(exc2, grnd2, grnd2)   # Full system
 
     # Projector on the excited state of qubit 1
-    proj_up1 = tensor(exc2, id2, id2)
+    proj_up1 = qutip.tensor(exc2, id2, id2)
 
     # Solution of the master equation
-    times = np.linspace(0,10./gamma3,1000)
-    sol = bloch_redfield_solve(R, ekets, ini, times, [proj_up1])
-    assert_allclose(sol[0],np.ones_like(times))
+    times = np.linspace(0, 10./gamma3, 1000)
+    sol = qutip.bloch_redfield_solve(R, ekets, ini, times, [proj_up1])
+    assert np.allclose(sol[0], np.ones_like(times))
 
-if __name__ == "__main__":
-    run_module_suite()
+
+def test_solver_accepts_list_hamiltonian():
+    """
+    brmesolve: input list of Qobj
+    """
+    delta = 0.0 * 2*np.pi
+    epsilon = 0.5 * 2*np.pi
+    gamma = 0.25
+    c_ops = [np.sqrt(gamma) * qutip.sigmam()]
+    e_ops = pauli_spin_operators()
+    H = [delta*0.5*qutip.sigmax(), epsilon*0.5*qutip.sigmaz()]
+    psi0 = (2*qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
+    times = np.linspace(0, 10, 100)
+    me = qutip.mesolve(H, psi0, times, c_ops=c_ops, e_ops=e_ops).expect
+    brme = qutip.brmesolve(H, psi0, times, [], e_ops, c_ops).expect
+    for me_expectation, brme_expectation in zip(me, brme):
+        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)

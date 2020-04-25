@@ -40,8 +40,9 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'ghz_state', 'enr_state_dictionaries', 'enr_fock',
            'enr_thermal_dm']
 
+import numbers
 import numpy as np
-from scipy import arange, conj, prod
+from numpy import arange, conj, prod
 import scipy.sparse as sp
 
 from qutip.qobj import Qobj
@@ -51,41 +52,77 @@ from qutip.tensor import tensor
 from qutip.fastsparse import fast_csr_matrix
 
 
-def basis(N, n=0, offset=0):
+def _promote_to_zero_list(arg, length):
+    """
+    Ensure `arg` is a list of length `length`.  If `arg` is None it is promoted
+    to `[0]*length`.  All other inputs are checked that they match the correct
+    form.
+
+    Returns
+    -------
+    list_ : list
+        A list of integers of length `length`.
+    """
+    if arg is None:
+        arg = [0]*length
+    elif not isinstance(arg, list):
+        arg = [arg]
+    if not len(arg) == length:
+        raise ValueError("All list inputs must be the same length.")
+    if all(isinstance(x, numbers.Integral) for x in arg):
+        return arg
+    raise TypeError("Dimensions must be an integer or list of integers.")
+
+
+def basis(dimensions, n=None, offset=None):
     """Generates the vector representation of a Fock state.
 
     Parameters
     ----------
-    N : int
-        Number of Fock states in Hilbert space.
+    dimensions : int or list of ints
+        Number of Fock states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
-    n : int
-        Integer corresponding to desired number state, defaults
-        to 0 if omitted.
+    n : int or list of ints, optional (default 0 for all dimensions)
+        Integer corresponding to desired number state, defaults to 0 for all
+        dimensions if omitted.  The shape must match ``dimensions``, e.g. if
+        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        of equal length.
 
-    offset : int (default 0)
+    offset : int or list of ints, optional (default 0 for all dimensions)
         The lowest number state that is included in the finite number state
-        representation of the state.
+        representation of the state in the relevant dimension.
 
     Returns
     -------
-    state : qobj
+    state : :class:`qutip.Qobj`
       Qobj representing the requested number state ``|n>``.
 
     Examples
     --------
     >>> basis(5,2)
-    Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
     [[ 0.+0.j]
      [ 0.+0.j]
      [ 1.+0.j]
      [ 0.+0.j]
      [ 0.+0.j]]
+    >>> basis([2,2,2], [0,1,0])
+    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = (8, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [1.]
+     [0.]
+     [0.]
+     [0.]
+     [0.]
+     [0.]]
+
 
     Notes
     -----
-
     A subtle incompatibility with the quantum optics toolbox: In QuTiP::
 
         basis(N, 0) = ground state
@@ -95,20 +132,26 @@ def basis(N, n=0, offset=0):
         basis(N, 1) = ground state
 
     """
-    if (not isinstance(N, (int, np.integer))) or N < 0:
-        raise ValueError("N must be integer N >= 0")
-
-    if (not isinstance(n, (int, np.integer))) or n < offset:
-        raise ValueError("n must be integer n >= 0")
-
-    if n - offset > (N - 1):  # check if n is within bounds
-        raise ValueError("basis vector index need to be in n <= N-1")
-
+    # Promote all parameters to lists to simplify later logic.
+    if not isinstance(dimensions, list):
+        dimensions = [dimensions]
+    n_dimensions = len(dimensions)
+    ns = [m-off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
+                                  _promote_to_zero_list(offset, n_dimensions))]
+    if any((not isinstance(x, numbers.Integral)) or x < 0 for x in dimensions):
+        raise ValueError("All dimensions must be >= 0.")
+    if not all(0 <= n < dimension for n, dimension in zip(ns, dimensions)):
+        raise ValueError("All basis indices must be "
+                         "`offset <= n < dimension+offset`.")
+    location, size = 0, 1
+    for m, dimension in zip(reversed(ns), reversed(dimensions)):
+        location += m*size
+        size *= dimension
     data = np.array([1], dtype=complex)
     ind = np.array([0], dtype=np.int32)
-    ptr = np.array([0]*((n - offset)+1)+[1]*(N-(n-offset)),dtype=np.int32)
-
-    return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,1)), isherm=False)
+    ptr = np.array([0]*(location+1) + [1]*(size-location), dtype=np.int32)
+    return Qobj(fast_csr_matrix((data, ind, ptr), shape=(size, 1)),
+                dims=[dimensions, [1]*n_dimensions], isherm=False)
 
 
 def qutrit_basis():
@@ -260,18 +303,26 @@ shape = [3, 3], type = oper, isHerm = True
             "The method option can only take values 'operator' or 'analytic'")
 
 
-def fock_dm(N, n=0, offset=0):
+def fock_dm(dimensions, n=None, offset=None):
     """Density matrix representation of a Fock state
 
     Constructed via outer product of :func:`qutip.states.fock`.
 
     Parameters
     ----------
-    N : int
-        Number of Fock states in Hilbert space.
+    dimensions : int or list of ints
+        Number of Fock states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
-    n : int
-        ``int`` for desired number state, defaults to 0 if omitted.
+    n : int or list of ints, optional (default 0 for all dimensions)
+        Integer corresponding to desired number state, defaults to 0 for all
+        dimensions if omitted.  The shape must match ``dimensions``, e.g. if
+        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        of equal length.
+
+    offset : int or list of ints, optional (default 0 for all dimensions)
+        The lowest number state that is included in the finite number state
+        representation of the state in the relevant dimension.
 
     Returns
     -------
@@ -289,23 +340,32 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    psi = basis(N, n, offset=offset)
+    psi = basis(dimensions, n, offset=offset)
 
     return psi * psi.dag()
 
 
-def fock(N, n=0, offset=0):
+def fock(dimensions, n=None, offset=None):
     """Bosonic Fock (number) state.
 
     Same as :func:`qutip.states.basis`.
 
     Parameters
     ----------
-    N : int
-        Number of states in the Hilbert space.
+    dimensions : int or list of ints
+        Number of Fock states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
-    n : int
-        ``int`` for desired number state, defaults to 0 if omitted.
+    n : int or list of ints, optional (default 0 for all dimensions)
+        Integer corresponding to desired number state, defaults to 0 for all
+        dimensions if omitted.  The shape must match ``dimensions``, e.g. if
+        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        of equal length.
+
+    offset : int or list of ints, optional (default 0 for all dimensions)
+        The lowest number state that is included in the finite number state
+        representation of the state in the relevant dimension.
+
 
     Returns
     -------
@@ -322,7 +382,7 @@ def fock(N, n=0, offset=0):
      [ 1.+0.j]]
 
     """
-    return basis(N, n, offset=offset)
+    return basis(dimensions, n, offset=offset)
 
 
 def thermal_dm(N, n, method='operator'):
@@ -459,7 +519,7 @@ shape = [3, 3], type = oper, isHerm = True
 #
 # projection operator
 #
-def projection(N, n, m, offset=0):
+def projection(N, n, m, offset=None):
     """The projection operator that projects state :math:`|m>` on state :math:`|n>`.
 
     Parameters
@@ -927,7 +987,7 @@ def enr_fock(dims, excitations, state):
         raise ValueError("The state tuple %s is not in the restricted "
                          "state space" % str(tuple(state)))
 
-    return Qobj(data, dims=[dims, 1])
+    return Qobj(data, dims=[dims, [1]*len(dims)])
 
 
 def enr_thermal_dm(dims, excitations, n):
@@ -1060,8 +1120,7 @@ def spin_state(j, m, type='ket'):
 
 
 def spin_coherent(j, theta, phi, type='ket'):
-    """Generates the spin state |j, m>, i.e.  the eigenstate
-    of the spin-j Sz operator with eigenvalue m.
+    """Generate the coherent spin state |theta, phi>.
 
     Parameters
     ----------

@@ -42,11 +42,13 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
            'enr_identity', 'charge', 'tunneling']
 
+import numbers
 import numpy as np
 import scipy
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.fastsparse import fast_csr_matrix, fast_identity
+from qutip.dimensions import flatten
 
 #
 # Spin operators
@@ -97,11 +99,11 @@ shape = [3, 3], type = oper, isHerm = True
     If no 'args' input, then returns array of ['x','y','z'] operators.
 
     """
-    if (scipy.fix(2 * j) != 2 * j) or (j < 0):
+    if (np.fix(2 * j) != 2 * j) or (j < 0):
         raise TypeError('j must be a non-negative integer or half-integer')
 
     if not args:
-        return jmat(j, 'x'), jmat(j, 'y'), jmat(j, 'z') 
+        return jmat(j, 'x'), jmat(j, 'y'), jmat(j, 'z')
 
     if args[0] == '+':
         A = _jplus(j)
@@ -266,7 +268,7 @@ def sigmap():
 
     Examples
     --------
-    >>> sigmam()
+    >>> sigmap()
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =
@@ -422,20 +424,74 @@ shape = [4, 4], type = oper, isHerm = False
     return qo.dag()
 
 
-#
-# QEYE returns identity operator for an N dimensional space
-# a = qeye(N), N is integer & N>0
-#
-def qeye(N):
+def _implicit_tensor_dimensions(dimensions):
     """
-    Identity operator
+    Total flattened size and operator dimensions for operator creation routines
+    that automatically perform tensor products.
 
     Parameters
     ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    dimensions : (int) or (list of int) or (list of list of int)
+        First dimension of an operator which can create an implicit tensor
+        product.  If the type is `int`, it is promoted first to `[dimensions]`.
+        From there, it should be one of the two-elements `dims` parameter of a
+        `qutip.Qobj` representing an `oper` or `super`, with possible tensor
+        products.
+
+    Returns
+    -------
+    size : int
+        Dimension of backing matrix required to represent operator.
+    dimensions : list
+        Dimension list in the form required by ``Qobj`` creation.
+    """
+    if not isinstance(dimensions, list):
+        dimensions = [dimensions]
+    flat = flatten(dimensions)
+    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
+        raise ValueError("All dimensions must be integers >= 0")
+    return np.prod(flat), [dimensions, dimensions]
+
+
+def qzero(dimensions):
+    """
+    Zero operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
+
+    Returns
+    -------
+    qzero : qobj
+        Zero operator Qobj.
+
+    """
+    size, dimensions = _implicit_tensor_dimensions(dimensions)
+    # A sparse matrix with no data is equal to a zero matrix.
+    return Qobj(fast_csr_matrix(shape=(size, size), dtype=complex),
+                dims=dimensions, isherm=True)
+
+
+#
+# QEYE returns identity operator for a Hilbert space with dimensions dims.
+# a = qeye(N), N is integer or list of integers & all elements >= 0
+#
+def qeye(dimensions):
+    """
+    Identity operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     Returns
     -------
@@ -445,38 +501,44 @@ def qeye(N):
     Examples
     --------
     >>> qeye(3)
-    Quantum object: dims = [[3], [3]], \
-shape = [3, 3], type = oper, isHerm = True
+    Quantum object: dims = [[3], [3]], shape = (3, 3), type = oper, \
+isherm = True
     Qobj data =
     [[ 1.  0.  0.]
      [ 0.  1.  0.]
      [ 0.  0.  1.]]
+    >>> qeye([2,2])
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, \
+isherm = True
+    Qobj data =
+    [[1. 0. 0. 0.]
+     [0. 1. 0. 0.]
+     [0. 0. 1. 0.]
+     [0. 0. 0. 1.]]
 
     """
-    if isinstance(N, list):
-        return tensor(*[identity(n) for n in N])
-    N = int(N)
-    if N < 0:
-        raise ValueError("N must be integer N>=0")
-    return Qobj(fast_identity(N), isherm=True)
+    size, dimensions = _implicit_tensor_dimensions(dimensions)
+    return Qobj(fast_identity(size),
+                dims=dimensions, isherm=True, isunitary=True)
 
 
-def identity(N):
+def identity(dims):
     """Identity operator. Alternative name to :func:`qeye`.
 
     Parameters
     ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     Returns
     -------
     oper : qobj
         Identity operator Qobj.
     """
-    return qeye(N)
+    return qeye(dims)
 
 
 def position(N, offset=0):
@@ -562,7 +624,7 @@ shape = [4, 4], type = oper, isHerm = True
         ind = np.arange(N, dtype=np.int32)
         ptr = np.arange(N+1,dtype=np.int32)
         ptr[-1] = N
-    
+
     return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,N)), isherm=True)
 
 
@@ -717,6 +779,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
     ----------
     diagonals : sequence of array_like
         Array of elements to place along the selected diagonals.
+
     offsets : sequence of ints
         Sequence for diagonals to be set:
             - k=0 main diagonal
@@ -724,13 +787,14 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
             - k<0 kth lower diagonal
     dims : list, optional
         Dimensions for operator
+
     shape : list, tuple, optional
         Shape of operator.  If omitted, a square operator large enough
         to contain the diagonals is generated.
 
     See Also
     --------
-    scipy.sparse.diags for usage information.
+    scipy.sparse.diags : for usage information.
 
     Notes
     -----
@@ -738,7 +802,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     Examples
     --------
-    >>> qdiags(sqrt(range(1,4)),1)
+    >>> qdiags(sqrt(range(1, 4)), 1)
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isherm = False
     Qobj data =
@@ -748,10 +812,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
-    try:
-        data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
-    except:
-        raise NotImplementedError("This function requires SciPy 0.11+.")
+    data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
     if not dims:
         dims = [[], []]
     if not shape:
@@ -786,32 +847,6 @@ def phase(N, phi0=0):
                        for kk in phim])
     ops = np.array([np.outer(st, st.conj()) for st in states])
     return Qobj(np.sum(ops, axis=0))
-
-
-def qzero(N):
-    """
-    Zero operator
-
-    Parameters
-    ----------
-    N : int or list of ints
-        Dimension of Hilbert space. If provided as a list of ints,
-        then the dimension is the product over this list, but the
-        ``dims`` property of the new Qobj are set to this list.
-
-    Returns
-    -------
-    qzero : qobj
-        Zero operator Qobj.
-
-    """
-
-    if isinstance(N, list):
-        return tensor(*[qzero(n) for n in N])
-    N = int(N)
-    if (not isinstance(N, (int, np.integer))) or N < 0:
-        raise ValueError("N must be integer N>=0")
-    return Qobj(sp.csr_matrix((N, N), dtype=complex), isherm=True)
 
 
 def enr_destroy(dims, excitations):
@@ -911,27 +946,27 @@ def charge(Nmax, Nmin=None, frac = 1):
     """
     Generate the diagonal charge operator over charge states
     from Nmin to Nmax.
-    
+
     Parameters
     ----------
     Nmax : int
         Maximum charge state to consider.
-    
+
     Nmin : int (default = -Nmax)
         Lowest charge state to consider.
-    
+
     frac : float (default = 1)
         Specify fractional charge if needed.
-    
+
     Returns
     -------
     C : Qobj
         Charge operator over [Nmin,Nmax].
-    
+
     Notes
     -----
     .. versionadded:: 3.2
-    
+
     """
     if Nmin is None:
         Nmin = -Nmax
@@ -945,25 +980,25 @@ def charge(Nmax, Nmin=None, frac = 1):
 
 def tunneling(N, m=1):
     """
-    Tunneling operator with elements of the form 
+    Tunneling operator with elements of the form
     :math:`\sum |N><N+m| + |N+m><N|`.
-    
+
     Parameters
     ----------
     N : int
         Number of basis states in Hilbert space.
     m : int (default = 1)
         Number of excitations in tunneling event.
-    
+
     Returns
     -------
     T : Qobj
         Tunneling operator.
-    
+
     Notes
     -----
     .. versionadded:: 3.2
-    
+
     """
     diags = [np.ones(N-m,dtype=int),np.ones(N-m,dtype=int)]
     T = sp.diags(diags,[m,-m],format='csr', dtype=complex)

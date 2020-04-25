@@ -53,10 +53,16 @@ def about():
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
-    print("Copyright (c) 2011 and later.")
-    print(("A. J. Pitchford, P. D. Nation, "
-            "R. J. Johansson, A. Grimsmo, "
-            "and C. Granade"))
+    print("================================")
+    print("Copyright (c) QuTiP team 2011 and later.")
+    print("Original developers: R. J. Johansson & P. D. Nation.")
+    print("Previous lead developers: Chris Granade & A. Grimsmo.")
+    print("Current admin team: Alexander Pitchford, Paul D. Nation, "
+            "Nathan Shammah, Shahnawaz Ahmed, "
+            "Neill Lambert, Eric Giguère, and Boxi Li")
+    print("Project Manager: Franco Nori.")
+    print("Currently developed through wide collaboration. "
+          "See https://github.com/qutip for details.")
     print("")
     print("QuTiP Version:      %s" % qutip.__version__)
     print("Numpy Version:      %s" % numpy.__version__)
@@ -82,9 +88,17 @@ def about():
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
     print("Installation path:  %s" % qutip_install_path)
-    print("")
+
+    # citation
+    longbar = "=============================================================="
+    longbar += "================"
+    cite_msg = "For your convenience a bibtex reference can be easily generated"
+    cite_msg += " using `qutip.cite()`"
+    print(longbar)
+    print("Please cite QuTiP in your publication.")
+    print(longbar)
+    print(cite_msg)
+
 
 if __name__ == "__main__":
     about()
-
-

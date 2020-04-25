@@ -111,6 +111,21 @@ def linspace_with(start, stop, num=50, elems=[]):
     return np.union1d(lspace, elems)
 
 
+def _factorial_prod(N, arr):
+    arr[:int(N)] += 1
+
+
+def _factorial_div(N, arr):
+    arr[:int(N)] -= 1
+
+
+def _to_long(arr):
+    prod = 1
+    for i, v in enumerate(arr):
+        prod *= (i+1)**int(v)
+    return prod
+
+
 def clebsch(j1, j2, j3, m1, m2, m3):
     """Calculates the Clebsch-Gordon coefficient
     for coupling (j1,m1) and (j2,m2) to give (j3,m3).
@@ -141,27 +156,39 @@ def clebsch(j1, j2, j3, m1, m2, m3):
         Requested Clebsch-Gordan coefficient.
 
     """
-    from scipy.misc import factorial
-    
     if m3 != m1 + m2:
         return 0
     vmin = int(np.max([-j1 + j2 + m3, -j1 + m1, 0]))
     vmax = int(np.min([j2 + j3 + m1, j3 - j1 + j2, j3 + m3]))
 
-    C = np.sqrt((2.0 * j3 + 1.0) * factorial(j3 + j1 - j2) *
-                factorial(j3 - j1 + j2) * factorial(j1 + j2 - j3) *
-                factorial(j3 + m3) * factorial(j3 - m3) /
-                (factorial(j1 + j2 + j3 + 1) *
-                factorial(j1 - m1) * factorial(j1 + m1) *
-                factorial(j2 - m2) * factorial(j2 + m2)))
-    S = 0
-    for v in range(vmin, vmax + 1):
-        S += (-1.0) ** (v + j2 + m2) / factorial(v) * \
-            factorial(j2 + j3 + m1 - v) * factorial(j1 - m1 + v) / \
-            factorial(j3 - j1 + j2 - v) / factorial(j3 + m3 - v) / \
-            factorial(v + j1 - j2 - m3)
-    C = C * S
-    return C
+    c_factor = np.zeros((int(j1 + j2 + j3 + 1)), np.int32)
+    _factorial_prod(j3 + j1 - j2, c_factor)
+    _factorial_prod(j3 - j1 + j2, c_factor)
+    _factorial_prod(j1 + j2 - j3, c_factor)
+    _factorial_prod(j3 + m3, c_factor)
+    _factorial_prod(j3 - m3, c_factor)
+    _factorial_div(j1 + j2 + j3 + 1, c_factor)
+    _factorial_div(j1 - m1, c_factor)
+    _factorial_div(j1 + m1, c_factor)
+    _factorial_div(j2 - m2, c_factor)
+    _factorial_div(j2 + m2, c_factor)
+    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
+
+    s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
+    sign = (-1) ** (vmin + j2 + m2)
+    for i,v in enumerate(range(vmin, vmax + 1)):
+        factor = s_factors[i,:]
+        _factorial_prod(j2 + j3 + m1 - v, factor)
+        _factorial_prod(j1 - m1 + v, factor)
+        _factorial_div(j3 - j1 + j2 - v, factor)
+        _factorial_div(j3 + m3 - v, factor)
+        _factorial_div(v + j1 - j2 - m3, factor)
+        _factorial_div(v, factor)
+    common_denominator = -np.min(s_factors, axis=0)
+    numerators = s_factors + common_denominator
+    S = sum([(-1)**i * _to_long(vec) for i,vec in enumerate(numerators)]) * \
+        sign / _to_long(common_denominator)
+    return C * S
 
 
 # -----------------------------------------------------------------------------

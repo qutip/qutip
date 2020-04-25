@@ -31,12 +31,14 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['wigner', 'qfunc', 'spin_q_function', 'spin_wigner']
+__all__ = ['wigner', 'qfunc', 'spin_q_function',
+           'spin_wigner', 'wigner_transform']
 
 import numpy as np
-from scipy import (zeros, array, arange, exp, real, conj, pi,
-                   copy, sqrt, meshgrid, size, polyval, fliplr, conjugate,
+from numpy import (zeros, array, arange, exp, real, conj, pi,
+                   copy, sqrt, meshgrid, size, conjugate,
                    cos, sin)
+from scipy import polyval, fliplr
 import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
@@ -48,12 +50,152 @@ from qutip.qobj import Qobj, isket, isoper
 from qutip.states import ket2dm
 from qutip.parallel import parfor
 from qutip.utilities import clebsch
-from scipy.misc import factorial
+from qutip.operators import jmat
+from scipy.special import factorial
 from qutip.cy.sparse_utils import _csr_get_diag
+import qutip as qt
 
 
-def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2), 
-            sparse=False, parfor=False):
+def wigner_transform(psi, j, fullparity, steps, slicearray):
+    """takes the density matrix or state vector of any finite state and
+    generates the Wigner function for that state on a sphere, generating a spin
+    Wigner function useful for displaying the quasi-probability for a qubit or
+    any qudit. For the standard, continuous-variable Wigner function for
+    position and momentum variables, wigner() should be used.
+
+    Parameters
+    ----------
+        psi : qobj
+              a state vector or density matrix.
+        j : int
+            the total angular momentum of the quantum state.
+        fullparity : bool
+                     should the parity of the full SU space be used?
+        steps : int
+                number of points at which the Wigner transform is calculated.
+        slicearray : list of str
+                     the angle slice to be used for each particle in case of a
+                     multi-particle quantum state. 'l' yields an equal angle
+                     slice. 'x', 'y' and 'z' angle slices can also be chosen.
+
+    Returns
+    ----------
+        wigner : list of float
+                 the wigner transformation at `steps` different theta and phi.
+
+    Raises
+    ------
+    ComplexWarning
+        This can be ignored as it is caused due to rounding errors.
+
+    Notes
+    ------
+    See example notebook wigner_visualisation.
+
+    References
+    ------
+    [1] T. Tilma, M. J. Everitt, J. H. Samson, W. J. Munro,
+        and K. Nemoto, Phys. Rev. Lett. 117, 180401 (2016).
+    [2] R. P. Rundle, P. W. Mills, T. Tilma, J. H. Samson, and
+        M. J. Everitt, Phys. Rev. A 96, 022117 (2017).
+    """
+    if not (psi.type == 'ket' or psi.type == 'operator' or psi.type == 'bra'):
+        raise TypeError('Input state is not a valid operator.')
+
+    if psi.type == 'ket' or psi.type == 'bra':
+        rho = ket2dm(psi)
+    else:
+        rho = psi
+
+    sun = 2   # The order of the SU group
+
+    # calculate total number of particles in quantum state:
+    N = np.int32(np.log(np.shape(rho)[0]) / np.log(2 * j + 1))
+
+    theta = np.zeros((N, steps))
+    phi = np.zeros((N, steps))
+
+    for i in range(N):
+        theta[i, :] = np.linspace(0, np.pi, steps)
+        phi[i, :] = np.linspace(0, 2 * np.pi, steps)
+
+    theta, phi = _angle_slice(np.array(slicearray, dtype=str), theta, phi)
+
+    wigner = np.zeros((steps, steps))
+    if fullparity:
+        pari = _parity(sun**N, j)
+    else:
+        pari = _parity(sun, j)
+    for t in range(steps):
+        for p in range(steps):
+            wigner[t, p] = np.real(np.trace(rho.data @ _kernelsu2(
+                theta[:, t], phi[:, p], N, j, pari, fullparity)))
+    return wigner
+
+
+def _parity(N, j):
+    """Private function to calculate the parity of the quantum system.
+    """
+    if j == 0.5:
+        pi = np.identity(N) - np.sqrt((N - 1) * N * (N + 1) / 2) * _lambda_f(N)
+        return pi / N
+    elif j > 0.5:
+        mult = np.int32(2 * j + 1)
+        matrix = np.zeros((mult, mult))
+        foo = np.ones(mult)
+        for n in np.arange(-j, j + 1, 1):
+            for l in np.arange(0, mult, 1):
+                foo[l] = (2 * l + 1) * qt.clebsch(j, l, j, n, 0, n)
+            matrix[np.int32(n + j), np.int32(n + j)] = np.sum(foo)
+        return matrix / mult
+
+
+def _lambda_f(N):
+    """Private function needed for the calculation of the parity.
+    """
+    matrix = np.sqrt(2 / (N * (N - 1))) * np.identity(N)
+    matrix[-1, -1] = - np.sqrt(2 * (N - 1) / N)
+    return matrix
+
+
+def _kernelsu2(theta, phi, N, j, parity, fullparity):
+    """Private function that calculates the kernel for the SU2 unitary group.
+    """
+    U = np.ones(1)
+    # calculate the total rotation matrix (tensor product for each particle):
+    for i in range(0, N):
+        U = np.kron(U, _rotation_matrix(theta[i], phi[i], j))
+    if not fullparity:
+        op_parity = parity   # The parity for a one particle system
+        for i in range(1, N):
+            parity = np.kron(parity, op_parity)
+    matrix = U @ parity @ U.conj().T
+    return matrix
+
+
+def _rotation_matrix(theta, phi, j):
+    """Private function to calculate the rotation operator for the SU2 kernel.
+    """
+    return la.expm(1j * phi * jmat(j, 'z').full()) @ \
+           la.expm(1j * theta * jmat(j, 'y').full())
+
+
+def _angle_slice(slicearray, theta, phi):
+    """Private function to modify theta and phi for angle slicing.
+    """
+    xind = np.where(slicearray == 'x')
+    theta[xind, :] = np.pi - theta[xind, :]
+    phi[xind, :] = -phi[xind, :]
+    yind = np.where(slicearray == 'y')
+    theta[yind, :] = np.pi - theta[yind, :]
+    phi[yind, :] = np.pi - phi[yind, :]
+    zind = np.where(slicearray == 'z')
+    phi[zind, :] = phi[zind, :] + np.pi
+    return theta, phi
+
+
+def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
+           sparse=False, parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
 
@@ -72,9 +214,12 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
 
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        The value of `g` is related to the value of `hbar` in the commutation
+        relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default
+        value `hbar=1`.
 
     method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
-        Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw' 
+        Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw'
         and 'iterative' use an iterative method to evaluate the Wigner functions for density
         matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
         in scipy for the same task. The 'fft' method evaluates the Fourier
@@ -89,7 +234,7 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         Tells the default solver whether or not to keep the input density
         matrix in sparse format.  As the dimensions of the density matrix
         grow, setthing this flag can result in increased performance.
-    
+
     parfor : bool {False, True}
         Flag for calculating the Laguerre polynomial based Wigner function
         method='laguerre' in parallel using the parfor function.
@@ -135,7 +280,7 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
 
     elif method == 'laguerre':
         return _wigner_laguerre(rho, xvec, yvec, g, parfor)
-        
+
     elif method == 'clenshaw':
         return _wigner_clenshaw(rho, xvec, yvec, g, sparse=sparse)
 
@@ -336,19 +481,19 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
     """
     Using Clenshaw summation - numerically stable and efficient
     iterative algorithm to evaluate polynomial series.
-    
+
     The Wigner function is calculated as
-    :math:`W = e^(-0.5*x^2)/pi * \sum_{L} c_L (2x)^L / sqrt(L!)` where 
+    :math:`W = e^(-0.5*x^2)/pi * \sum_{L} c_L (2x)^L / sqrt(L!)` where
     :math:`c_L = \sum_n \\rho_{n,L+n} LL_n^L` where
     :math:`LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]`
-    
+
     """
 
     M = np.prod(rho.shape[0])
     X,Y = np.meshgrid(xvec, yvec)
     #A = 0.5 * g * (X + 1.0j * Y)
     A2 = g * (X + 1.0j * Y) #this is A2 = 2*A
-    
+
     B = np.abs(A2)
     B *= B
     w0 = (2*rho.data[0,-1])*np.ones_like(A2)
@@ -370,17 +515,17 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
                 diag *= 2
             #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
             w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
-        
+
     return w0.real * np.exp(-B*0.5) * (g*g*0.5 / pi)
 
 
 def _wig_laguerre_val(L, x, c):
     """
-    this is evaluation of polynomial series inspired by hermval from numpy.    
+    this is evaluation of polynomial series inspired by hermval from numpy.
     Returns polynomial series
     \sum_n b_n LL_n^L,
     where
-    LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]    
+    LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]
     The evaluation uses Clenshaw recursion
     """
 
@@ -398,10 +543,10 @@ def _wig_laguerre_val(L, x, c):
             k -= 1
             y0,    y1 = c[-i] - y1 * (float((k - 1)*(L + k - 1))/((L+k)*k))**0.5, \
             y0 - y1 * ((L + 2*k -1) - x) * ((L+k)*k)**-0.5
-            
+
     return y0 - y1 * ((L + 1) - x) * (L + 1)**-0.5
-    
-    
+
+
 
 # -----------------------------------------------------------------------------
 # Q FUNCTION
@@ -416,13 +561,17 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
         A state vector or density matrix.
 
     xvec : array_like
-        x-coordinates at which to calculate the Wigner function.
+        x-coordinates at which to calculate the Husimi-Q function.
 
     yvec : array_like
-        y-coordinates at which to calculate the Wigner function.
+        y-coordinates at which to calculate the Husimi-Q function.
 
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        The value of `g` is related to the value of `hbar` in the commutation
+        relation `[x, y] = 1j * hbar` via `hbar=2/g^2` giving the default
+        value `hbar=1`.
+
 
     Returns
     --------
@@ -488,14 +637,14 @@ def spin_q_function(rho, theta, phi):
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
-        theta-coordinates at which to calculate the Q function.
+        Polar angle at which to calculate the Husimi-Q function.
     phi : array_like
-        phi-coordinates at which to calculate the Q function.
+        Azimuthal angle at which to calculate the Husimi-Q function.
 
     Returns
     -------
     Q, THETA, PHI : 2d-array
-        Values representing the spin Q function at the values specified
+        Values representing the spin Husimi Q function at the values specified
         by THETA and PHI.
 
     """
@@ -507,32 +656,31 @@ def spin_q_function(rho, theta, phi):
         rho = ket2dm(rho)
 
     J = rho.shape[0]
-    j = int((J - 1) / 2)
+    j = (J - 1) / 2
 
     THETA, PHI = meshgrid(theta, phi)
 
     Q = np.zeros_like(THETA, dtype=complex)
 
-    for m1 in range(-j, j+1):
+    for m1 in arange(-j, j+1):
 
         Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j-m1)) * sin(THETA/2) ** (2*(j+m1)) * \
-            rho.data[int(j-m1), int(j-m1)]
+             rho.data[int(j-m1), int(j-m1)]
 
-        for m2 in range(m1+1, j+1):
+        for m2 in arange(m1+1, j+1):
 
             Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
                   cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
-                (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] +
-                 exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
+                  (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] +
+                   exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
 
-    return Q.real, THETA, PHI
-
+    return Q.real/pi, THETA, PHI
 
 def _rho_kq(rho, j, k, q):
     v = 0j
 
-    for m1 in range(-j, j+1):
-        for m2 in range(-j, j+1):
+    for m1 in arange(-j, j+1):
+        for m2 in arange(-j, j+1):
             v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2,
                                               q) * rho.data[m1 + j, m2 + j]
 
@@ -540,16 +688,17 @@ def _rho_kq(rho, j, k, q):
 
 
 def spin_wigner(rho, theta, phi):
-    """Wigner function for spins on the Bloch sphere.
+    """Wigner function for a spin-j system on the 2-sphere of radius j
+       (for j = 1/2 this is the Bloch sphere).
 
     Parameters
     ----------
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
-        theta-coordinates at which to calculate the Q function.
+        Polar angle at which to calculate the W function.
     phi : array_like
-        phi-coordinates at which to calculate the Q function.
+        Azimuthal angle at which to calculate the W function.
 
     Returns
     -------
@@ -570,14 +719,15 @@ def spin_wigner(rho, theta, phi):
         rho = ket2dm(rho)
 
     J = rho.shape[0]
-    j = int((J - 1) / 2)
+    j = (J - 1) / 2
 
     THETA, PHI = meshgrid(theta, phi)
 
     W = np.zeros_like(THETA, dtype=complex)
 
     for k in range(int(2 * j)+1):
-        for q in range(-k, k+1):
+        for q in arange(-k, k+1):
+            # sph_harm takes azimuthal angle then polar angle as arguments
             W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
 
     return W, THETA, PHI

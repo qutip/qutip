@@ -35,49 +35,30 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
-__all__ = ['mesolve', 'odesolve']
+__all__ = ['mesolve']
 
-import os
-import types
-from functools import partial
 import numpy as np
-import scipy.sparse as sp
 import scipy.integrate
 import warnings
-import qutip.settings as qset
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
+from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat, lindblad_dissipator
 from qutip.expect import expect_rho_vec
-from qutip.solver import Options, Result, config, _solver_safety_check
-from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td, spmvpy_csr
-from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
-from qutip.cy.codegen import Codegen
-from qutip.cy.utilities import _cython_build_cleanup
-from qutip.rhs_generate import rhs_generate
+from qutip.solver import Options, Result, config, solver_safe, SolverSystem
+from qutip.cy.spmatfuncs import spmv
+from qutip.cy.spconvert import dense2D_to_fastcsr_cmode, dense2D_to_fastcsr_fmode
 from qutip.states import ket2dm
-from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
-from qutip.interpolate import Cubic_Spline
 from qutip.settings import debug
-
-from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
-                           _sesolve_list_td, _sesolve_func_td, _sesolve_const)
-
+from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.qobjevo import QobjEvo
 
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
-if qset.has_openmp:
-    from qutip.cy.openmp.parfuncs import cy_ode_rhs_openmp
-
-
-if debug:
-    import inspect
-
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
+def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
@@ -176,22 +157,22 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : None / list of :class:`qutip.Qobj`
         single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators.
 
-    e_ops : list of :class:`qutip.Qobj` / callback function single
+    e_ops : None / list of :class:`qutip.Qobj` / callback function single
         single operator or list of operators for which to evaluate
         expectation values.
 
-    args : *dictionary*
+    args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Options`
+    options : None / :class:`qutip.Options`
         with options for the solver.
 
-    progress_bar : BaseProgressBar
+    progress_bar : None / BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation.
 
@@ -207,11 +188,13 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         operators for which to calculate the expectation values.
 
     """
-    # check whether c_ops or e_ops is is a single operator
-    # if so convert it to a list containing only that operator
-    if isinstance(c_ops, Qobj):
+    if c_ops is None:
+        c_ops = []
+    if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
 
+    if e_ops is None:
+        e_ops = []
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
@@ -220,127 +203,70 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
-    if _safe_mode:
-        _solver_safety_check(H, rho0, c_ops, e_ops, args)
-    
+
     if progress_bar is None:
         progress_bar = BaseProgressBar()
-    elif progress_bar is True:
+    if progress_bar is True:
         progress_bar = TextProgressBar()
 
     # check if rho0 is a superoperator, in which case e_ops argument should
     # be empty, i.e., e_ops = []
+    # TODO: e_ops for superoperator
     if issuper(rho0) and not e_ops == []:
         raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
                 " a superoperator.")
 
-    # convert array based time-dependence to string format
-    H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
-
-    # check for type (if any) of time-dependent inputs
-    _, n_func, n_str = _td_format_check(H, c_ops)
-
     if options is None:
         options = Options()
+    if options.rhs_reuse and not isinstance(H, SolverSystem):
+        # TODO: deprecate when going to class based solver.
+        if "mesolve" in solver_safe:
+            # print(" ")
+            H = solver_safe["mesolve"]
+        else:
+            pass
+            # raise Exception("Could not find the Hamiltonian to reuse.")
 
-    if (not options.rhs_reuse) or (not config.tdfunc):
-        # reset config collapse and time-dependence flags to default values
-        config.reset()
-    
-    #check if should use OPENMP
+    if args is None:
+        args = {}
+
     check_use_openmp(options)
-    
-    
-    res = None
 
-    #
-    # dispatch the appropriate solver
-    #
-    if ((c_ops and len(c_ops) > 0)
-        or (not isket(rho0))
-        or (isinstance(H, Qobj) and issuper(H))
-        or (isinstance(H, list) and
-            isinstance(H[0], Qobj) and issuper(H[0]))):
+    use_mesolve = ((c_ops and len(c_ops) > 0)
+                   or (not isket(rho0))
+                   or (isinstance(H, Qobj) and issuper(H))
+                   or (isinstance(H, QobjEvo) and issuper(H.cte))
+                   or (isinstance(H, list) and isinstance(H[0], Qobj) and
+                            issuper(H[0]))
+                   or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
+                            not options.rhs_with_state and issuper(H(0., args)))
+                   or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
+                            options.rhs_with_state))
 
-        #
-        # we have collapse operators, or rho0 is not a ket,
-        # or H is a Liouvillian
-        #
+    if not use_mesolve:
+        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
+                    progress_bar=progress_bar, _safe_mode=_safe_mode)
 
-        #
-        # find out if we are dealing with all-constant hamiltonian and
-        # collapse operators or if we have at least one time-dependent
-        # operator. Then delegate to appropriate solver...
-        #
 
-        if isinstance(H, Qobj):
-            # constant hamiltonian
-            if n_func == 0 and n_str == 0:
-                # constant collapse operators
-                res = _mesolve_const(H, rho0, tlist, c_ops,
-                                     e_ops, args, options,
-                                     progress_bar)
-            elif n_str > 0:
-                # constant hamiltonian but time-dependent collapse
-                # operators in list string format
-                res = _mesolve_list_str_td([H], rho0, tlist, c_ops,
-                                           e_ops, args, options,
-                                           progress_bar)
-            elif n_func > 0:
-                # constant hamiltonian but time-dependent collapse
-                # operators in list function format
-                res = _mesolve_list_func_td([H], rho0, tlist, c_ops,
-                                            e_ops, args, options,
-                                            progress_bar)
-
-        elif isinstance(H, (types.FunctionType,
-                            types.BuiltinFunctionType, partial)):
-            # function-callback style time-dependence: must have constant
-            # collapse operators
-            if n_str > 0:  # or n_func > 0:
-                raise TypeError("Incorrect format: function-format " +
-                                "Hamiltonian cannot be mixed with " +
-                                "time-dependent collapse operators.")
-            else:
-                res = _mesolve_func_td(H, rho0, tlist, c_ops,
-                                       e_ops, args, options,
-                                       progress_bar)
-
-        elif isinstance(H, list):
-            # determine if we are dealing with list of [Qobj, string] or
-            # [Qobj, function] style time-dependencies (for pure python and
-            # cython, respectively)
-            if n_func > 0:
-                res = _mesolve_list_func_td(H, rho0, tlist, c_ops,
-                                            e_ops, args, options,
-                                            progress_bar)
-            else:
-                res = _mesolve_list_str_td(H, rho0, tlist, c_ops,
-                                           e_ops, args, options,
-                                           progress_bar)
-
-        else:
-            raise TypeError("Incorrect specification of Hamiltonian " +
-                            "or collapse operators.")
-
+    if isinstance(H, SolverSystem):
+        ss = H
+    elif isinstance(H, (list, Qobj, QobjEvo)):
+        ss = _mesolve_QobjEvo(H, c_ops, tlist, args, options)
+    elif callable(H):
+        ss = _mesolve_func_td(H, c_ops, rho0, tlist, args, options)
     else:
-        #
-        # no collapse operators: unitary dynamics
-        #
-        if n_func > 0:
-            res = _sesolve_list_func_td(H, rho0, tlist,
-                                        e_ops, args, options, progress_bar)
-        elif n_str > 0:
-            res = _sesolve_list_str_td(H, rho0, tlist,
-                                       e_ops, args, options, progress_bar)
-        elif isinstance(H, (types.FunctionType,
-                            types.BuiltinFunctionType, partial)):
-            res = _sesolve_func_td(H, rho0, tlist,
-                                   e_ops, args, options, progress_bar)
-        else:
-            res = _sesolve_const(H, rho0, tlist,
-                                 e_ops, args, options, progress_bar)
+        raise Exception("Invalid H type")
+
+    func, ode_args = ss.makefunc(ss, rho0, args, e_ops, options)
+    if isket(rho0):
+        rho0 = ket2dm(rho0)
+
+    if _safe_mode:
+        v = rho0.full().ravel('F')
+        func(0., v, *ode_args) + v
+
+    res = _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, options,
+                             progress_bar, dims=rho0.dims)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -350,662 +276,214 @@ def mesolve(H, rho0, tlist, c_ops=[], e_ops=[], args={}, options=None,
 
 
 # -----------------------------------------------------------------------------
-# A time-dependent dissipative master equation on the list-function format
-#
-def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
-                          progress_bar):
+# A time-dependent unitary wavefunction equation on the list-function format
+#_mesolve_QobjEvo(H, c_ops, tlist, args, options)
+def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     """
-    Internal function for solving the master equation. See mesolve for usage.
+    Prepare the system for the solver, H can be an QobjEvo.
     """
+    H_td = QobjEvo(H, args, tlist=tlist)
+    if not issuper(H_td.cte):
+        L_td = liouvillian(H_td)
+    else:
+        L_td = H_td
+    for op in c_ops:
+        op_td = QobjEvo(op, args, tlist=tlist)
+        if not issuper(op_td.cte):
+            op_td = lindblad_dissipator(op_td)
+        L_td += op_td
 
-    if debug:
-        print(inspect.stack()[0][3])
-
-    #
-    # check initial state
-    #
-    if isket(rho0):
-        rho0 = rho0 * rho0.dag()
-
-    #
-    # construct liouvillian in list-function format
-    #
-    L_list = []
     if opt.rhs_with_state:
-        constant_func = lambda x, y, z: 1.0
-    else:
-        constant_func = lambda x, y: 1.0
+        L_td._check_old_with_state()
 
-    # add all hamitonian terms to the lagrangian list
-    for h_spec in H_list:
+    nthread = opt.openmp_threads if opt.use_openmp else 0
+    L_td.compile(omp=nthread)
 
-        if isinstance(h_spec, Qobj):
-            h = h_spec
-            h_coeff = constant_func
+    ss = SolverSystem()
+    ss.H = L_td
+    ss.makefunc = _qobjevo_set
+    solver_safe["mesolve"] = ss
+    return ss
 
-        elif isinstance(h_spec, list) and isinstance(h_spec[0], Qobj):
-            h = h_spec[0]
-            h_coeff = h_spec[1]
-
-        else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "Hamiltonian (expected callback function)")
-
-        if isoper(h):
-            L_list.append([(-1j * (spre(h) - spost(h))).data, h_coeff, False])
-
-        elif issuper(h):
-            L_list.append([h.data, h_coeff, False])
-
-        else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "Hamiltonian (expected operator or superoperator)")
-
-    # add all collapse operators to the liouvillian list
-    for c_spec in c_list:
-
-        if isinstance(c_spec, Qobj):
-            c = c_spec
-            c_coeff = constant_func
-            c_square = False
-
-        elif isinstance(c_spec, list) and isinstance(c_spec[0], Qobj):
-            c = c_spec[0]
-            c_coeff = c_spec[1]
-            c_square = True
-
-        else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "collapse operators (expected callback function)")
-
-        if isoper(c):
-            L_list.append([liouvillian(None, [c], data_only=True),
-                           c_coeff, c_square])
-
-        elif issuper(c):
-            L_list.append([c.data, c_coeff, c_square])
-
-        else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "collapse operators (expected operator or " +
-                            "superoperator)")
-
-    #
-    # setup integrator
-    #
-    initial_vector = mat2vec(rho0.full()).ravel('F')
+def _qobjevo_set(HS, rho0, args, e_ops, opt):
+    """
+    From the system, get the ode function and args
+    """
+    H_td = HS.H
+    H_td.solver_set_args(args, rho0, e_ops)
     if issuper(rho0):
-        if opt.rhs_with_state:
-            r = scipy.integrate.ode(dsuper_list_td_with_state)
-        else:
-            r = scipy.integrate.ode(dsuper_list_td)
+        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
+    elif rho0.isket or rho0.isoper:
+        func = H_td.compiled_qobjevo.mul_vec
     else:
-        if opt.rhs_with_state:
-            r = scipy.integrate.ode(drho_list_td_with_state)
-        else:
-            r = scipy.integrate.ode(drho_list_td)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L_list, args)
-
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
-
-
-#
-# evaluate drho(t)/dt according to the master equation using the
-# [Qobj, function] style time dependence API
-#
-def drho_list_td(t, rho, L_list, args):
-    out = np.zeros(rho.shape[0],dtype=complex)
-    L = L_list[0][0]
-    L_td = L_list[0][1]
-    spmvpy_csr(L.data, L.indices, L.indptr,
-                rho, L_td(t, args), out)
-    for n in range(1, len(L_list)):
-        #
-        # L_args[n][0] = the sparse data for a Qobj in super-operator form
-        # L_args[n][1] = function callback giving the coefficient
-        #
-        L = L_list[n][0]
-        L_td = L_list[n][1]
-        if L_list[n][2]:
-            spmvpy_csr(L.data, L.indices, L.indptr,
-                        rho, L_td(t, args)**2, out)
-        else:
-            spmvpy_csr(L.data, L.indices, L.indptr,
-                        rho, L_td(t, args), out)
-    return out
-
-
-def drho_list_td_with_state(t, rho, L_list, args):
-
-    out = np.zeros(rho.shape[0],dtype=complex)
-    L = L_list[0][0]
-    L_td = L_list[0][1]
-    spmvpy_csr(L.data, L.indices, L.indptr,
-                rho, L_td(t, rho, args), out)
-    for n in range(1, len(L_list)):
-        #
-        # L_args[n][0] = the sparse data for a Qobj in super-operator form
-        # L_args[n][1] = function callback giving the coefficient
-        #
-        L = L_list[n][0]
-        L_td = L_list[n][1]
-        if L_list[n][2]:
-            spmvpy_csr(L.data, L.indices, L.indptr,
-                        rho, L_td(t, rho, args)**2, out)
-        else:
-            spmvpy_csr(L.data, L.indices, L.indptr,
-                        rho, L_td(t, rho, args), out)
-
-    return out
-
-#
-# evaluate dE(t)/dt according to the master equation using the
-# [Qobj, function] style time dependence API, where E is a superoperator
-#
-def dsuper_list_td(t, y, L_list, args):
-
-    L = L_list[0][0] * L_list[0][1](t, args)
-    for n in range(1, len(L_list)):
-        #
-        # L_args[n][0] = the sparse data for a Qobj in super-operator form
-        # L_args[n][1] = function callback giving the coefficient
-        #
-        if L_list[n][2]:
-            L = L + L_list[n][0] * (L_list[n][1](t, args)) ** 2
-        else:
-            L = L + L_list[n][0] * L_list[n][1](t, args)
-
-    return _ode_super_func(t, y, L)
-
-def dsuper_list_td_with_state(t, y, L_list, args):
-
-    L = L_list[0][0] * L_list[0][1](t, y, args)
-    for n in range(1, len(L_list)):
-        #
-        # L_args[n][0] = the sparse data for a Qobj in super-operator form
-        # L_args[n][1] = function callback giving the coefficient
-        #
-        if L_list[n][2]:
-            L = L + L_list[n][0] * (L_list[n][1](t, y, args)) ** 2
-        else:
-            L = L + L_list[n][0] * L_list[n][1](t, y, args)
-
-    return _ode_super_func(t, y, L)
-
-# -----------------------------------------------------------------------------
-# A time-dependent dissipative master equation on the list-string format for
-# cython compilation
-#
-def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
-                         progress_bar):
-    """
-    Internal function for solving the master equation. See mesolve for usage.
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    #
-    # check initial state: must be a density matrix
-    #
-    if isket(rho0):
-        rho0 = rho0 * rho0.dag()
-
-    #
-    # construct liouvillian
-    #
-    Lconst = 0
-
-    Ldata = []
-    Linds = []
-    Lptrs = []
-    Lcoeff = []
-    Lobj = []
-
-    # loop over all hamiltonian terms, convert to superoperator form and
-    # add the data of sparse matrix representation to
-    for h_spec in H_list:
-
-        if isinstance(h_spec, Qobj):
-            h = h_spec
-
-            if isoper(h):
-                Lconst += -1j * (spre(h) - spost(h))
-            elif issuper(h):
-                Lconst += h
-            else:
-                raise TypeError("Incorrect specification of time-dependent " +
-                                "Hamiltonian (expected operator or " +
-                                "superoperator)")
-
-        elif isinstance(h_spec, list):
-            h = h_spec[0]
-            h_coeff = h_spec[1]
-
-            if isoper(h):
-                L = -1j * (spre(h) - spost(h))
-            elif issuper(h):
-                L = h
-            else:
-                raise TypeError("Incorrect specification of time-dependent " +
-                                "Hamiltonian (expected operator or " +
-                                "superoperator)")
-
-            Ldata.append(L.data.data)
-            Linds.append(L.data.indices)
-            Lptrs.append(L.data.indptr)
-            if isinstance(h_coeff, Cubic_Spline):
-                Lobj.append(h_coeff.coeffs)
-            Lcoeff.append(h_coeff)
-
-        else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "Hamiltonian (expected string format)")
-
-    # loop over all collapse operators
-    for c_spec in c_list:
-
-        if isinstance(c_spec, Qobj):
-            c = c_spec
-
-            if isoper(c):
-                cdc = c.dag() * c
-                Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) \
-                                                   - 0.5 * spost(cdc)
-            elif issuper(c):
-                Lconst += c
-            else:
-                raise TypeError("Incorrect specification of time-dependent " +
-                                "Liouvillian (expected operator or " +
-                                "superoperator)")
-
-        elif isinstance(c_spec, list):
-            c = c_spec[0]
-            c_coeff = c_spec[1]
-
-            if isoper(c):
-                cdc = c.dag() * c
-                L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) \
-                                             - 0.5 * spost(cdc)
-                c_coeff = "(" + c_coeff + ")**2"
-            elif issuper(c):
-                L = c
-            else:
-                raise TypeError("Incorrect specification of time-dependent " +
-                                "Liouvillian (expected operator or " +
-                                "superoperator)")
-
-            Ldata.append(L.data.data)
-            Linds.append(L.data.indices)
-            Lptrs.append(L.data.indptr)
-            Lcoeff.append(c_coeff)
-
-        else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "collapse operators (expected string format)")
-
-    # add the constant part of the lagrangian
-    if Lconst != 0:
-        Ldata.append(Lconst.data.data)
-        Linds.append(Lconst.data.indices)
-        Lptrs.append(Lconst.data.indptr)
-        Lcoeff.append("1.0")
-
-    # the total number of liouvillian terms (hamiltonian terms +
-    # collapse operators)
-    n_L_terms = len(Ldata)
-    
-    # Check which components should use OPENMP
-    omp_components = None
-    if qset.has_openmp:
-        if opt.use_openmp:
-            omp_components = openmp_components(Lptrs)
-
-    #
-    # setup ode args string: we expand the list Ldata, Linds and Lptrs into
-    # and explicit list of parameters
-    #
-    string_list = []
-    for k in range(n_L_terms):
-        string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
-    # Add object terms to end of ode args string
-    for k in range(len(Lobj)):
-        string_list.append("Lobj[%d]" % k)
-    for name, value in args.items():
-        if isinstance(value, np.ndarray):
-            string_list.append(name)
-        else:
-            string_list.append(str(value))
-    parameter_string = ",".join(string_list)
-
-    #
-    # generate and compile new cython code if necessary
-    #
-    if not opt.rhs_reuse or config.tdfunc is None:
-        if opt.rhs_filename is None:
-            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
-        else:
-            config.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       config=config, use_openmp=opt.use_openmp,
-                       omp_components=omp_components,
-                       omp_threads=opt.openmp_threads)
-        cgen.generate(config.tdname + ".pyx")
-
-        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
-                       '<string>', 'exec')
-        exec(code, globals())
-        config.tdfunc = cy_td_ode_rhs
-
-    #
-    # setup integrator
-    #
-    initial_vector = mat2vec(rho0.full()).ravel('F')
-    if issuper(rho0):
-        r = scipy.integrate.ode(_td_ode_rhs_super)
-        code = compile('r.set_f_params([' + parameter_string + '])',
-                       '<string>', 'exec')
-    else:
-        r = scipy.integrate.ode(config.tdfunc)
-        code = compile('r.set_f_params(' + parameter_string + ')',
-                       '<string>', 'exec')
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, tlist[0])
-
-    exec(code, locals(), args)
-
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
-
-def _td_ode_rhs_super(t, y, arglist):
-    N = int(np.sqrt(len(y)))
-    out = np.zeros(N, dtype=complex)
-    y2 = np.zeros(len(y), dtype=complex)
-    for i in range(N):
-        out = cy_td_ode_rhs(t, y[i*N:(i+1)*N], *arglist)
-        y2[i*N:(i+1)*N] = out
-    return y2
-
-# -----------------------------------------------------------------------------
-# Master equation solver
-#
-def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
-                   progress_bar):
-    """
-    Evolve the density matrix using an ODE solver, for constant hamiltonian
-    and collapse operators.
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    #
-    # check initial state
-    #
-    if isket(rho0):
-        # if initial state is a ket and no collapse operator where given,
-        # fall back on the unitary schrodinger equation solver
-        if len(c_op_list) == 0 and isoper(H):
-            return _sesolve_const(H, rho0, tlist, e_ops, args, opt,
-                                  progress_bar)
-
-        # Got a wave function as initial state: convert to density matrix.
-        rho0 = ket2dm(rho0)
-
-    #
-    # construct liouvillian
-    #
-    if opt.tidy:
-        H = H.tidyup(opt.atol)
-
-    L = liouvillian(H, c_op_list)
-    
-
-    #
-    # setup integrator
-    #
-    initial_vector = mat2vec(rho0.full()).ravel('F')
-    if issuper(rho0):
-        r = scipy.integrate.ode(_ode_super_func)
-        r.set_f_params(L.data)
-    else:
-        if opt.use_openmp and L.data.nnz >= qset.openmp_thresh:
-            r = scipy.integrate.ode(cy_ode_rhs_openmp)
-            r.set_f_params(L.data.data, L.data.indices, L.data.indptr, 
-                            opt.openmp_threads)
-        else:
-            r = scipy.integrate.ode(cy_ode_rhs)
-            r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
-        # r = scipy.integrate.ode(_ode_rho_test)
-        # r.set_f_params(L.data)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, tlist[0])
-
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
-
-
-#
-# evaluate drho(t)/dt according to the master eqaution
-# [no longer used, replaced by cython function]
-#
-def _ode_rho_func(t, rho, L):
-    return L * rho
-
-def _ode_rho_test(t, rho, data):
-    # for performance comparison of cython code
-    return data*(np.transpose(rho))
-#
-# Evaluate d E(t)/dt for E a super-operator
-#
-
-def _ode_super_func(t, y, data):
-    ym = vec2mat(y)
-    return (data*ym).ravel('F')
+        raise TypeError("The unitary solver requires rho0 to be"
+                        " a ket or dm as initial state"
+                        " or a super operator as initial state.")
+    return func, ()
 
 # -----------------------------------------------------------------------------
 # Master equation solver for python-function time-dependence.
 #
-def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
-                     progress_bar):
+class _LiouvillianFromFunc:
+    def __init__(self, func, c_ops):
+        self.f = func
+        self.c_ops = c_ops
+
+    def H2L(self, t, rho, args):
+        Ht = self.f(t, args)
+        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
+        for op in self.c_ops:
+            Lt += op(t).data
+        return Lt
+
+    def H2L_with_state(self, t, rho, args):
+        Ht = self.f(t, rho, args)
+        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
+        for op in self.c_ops:
+            Lt += op(t).data
+        return Lt
+
+    def L(self, t, rho, args):
+        Lt = self.f(t, args).data
+        for op in self.c_ops:
+            Lt += op(t).data
+        return Lt
+
+    def L_with_state(self, t, rho, args):
+        Lt = self.f(t, rho, args).data
+        for op in self.c_ops:
+            Lt += op(t).data
+        return Lt
+
+
+def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     """
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    #
-    # check initial state
-    #
-    if isket(rho0):
-        rho0 = ket2dm(rho0)
-
-    #
-    # construct liouvillian
-    #
-    new_args = None
-
-    if len(c_op_list) > 0:
-        L_data = liouvillian(None, c_op_list).data
-    else:
-        n, m = rho0.shape
-        if issuper(rho0):
-            L_data = sp.csr_matrix((n, m), dtype=complex)
+    c_ops = []
+    for op in c_op_list:
+        op_td = QobjEvo(op, args, tlist=tlist, copy=False)
+        if not issuper(op_td.cte):
+            c_ops += [lindblad_dissipator(op_td)]
         else:
-            L_data = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
-
-    if type(args) is dict:
-        new_args = {}
-        for key in args:
-            if isinstance(args[key], Qobj):
-                if isoper(args[key]):
-                    new_args[key] = (
-                        -1j * (spre(args[key]) - spost(args[key])))
-                else:
-                    new_args[key] = args[key]
-            else:
-                new_args[key] = args[key]
-
-    elif type(args) is list or type(args) is tuple:
-        new_args = []
-        for arg in args:
-            if isinstance(arg, Qobj):
-                if isoper(arg):
-                    new_args.append((-1j * (spre(arg) - spost(arg))).data)
-                else:
-                    new_args.append(arg.data)
-            else:
-                new_args.append(arg)
-
-        if type(args) is tuple:
-            new_args = tuple(new_args)
+            c_ops += [op_td]
+    if c_op_list:
+        c_ops_ = [sum(c_ops)]
     else:
-        if isinstance(args, Qobj):
-            if isoper(args):
-                new_args = (-1j * (spre(args) - spost(args)))
-            else:
-                new_args = args
-        else:
-            new_args = args
+        c_ops_ = []
 
-    #
-    # setup integrator
-    #
-    initial_vector = mat2vec(rho0.full()).ravel('F')
+    if opt.rhs_with_state:
+        state0 = rho0.full().ravel("F")
+        obj = L_func(0., state0, args)
+        if not issuper(obj):
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).H2L_with_state
+        else:
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).L_with_state
+    else:
+        obj = L_func(0., args)
+        if not issuper(obj):
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).H2L
+        else:
+            L_func = _LiouvillianFromFunc(L_func, c_ops_).L
+
+    ss = SolverSystem()
+    ss.L = L_func
+    ss.makefunc = _Lfunc_set
+    solver_safe["mesolve"] = ss
+    return ss
+
+
+def _Lfunc_set(HS, rho0, args, e_ops, opt):
+    """
+    From the system, get the ode function and args
+    """
+    L_func = HS.L
     if issuper(rho0):
-        if not opt.rhs_with_state:
-            r = scipy.integrate.ode(_ode_super_func_td)
-        else:
-            r = scipy.integrate.ode(_ode_super_func_td_with_state)
+        func = _ode_super_func_td
     else:
-        if not opt.rhs_with_state:
-            r = scipy.integrate.ode(cy_ode_rho_func_td)
-        else:
-            r = scipy.integrate.ode(_ode_rho_func_td_with_state)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L_data, L_func, new_args)
+        func = _ode_rho_func_td
 
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
+    return func, (L_func, args)
 
+def _ode_rho_func_td(t, y, L_func, args):
+    L = L_func(t, y, args)
+    return spmv(L, y)
 
-#
-# evaluate drho(t)/dt according to the master equation
-#
-def _ode_rho_func_td(t, rho, L0, L_func, args):
-    L = L0 + L_func(t, args).data
-    return L * rho
-
-
-#
-# evaluate drho(t)/dt according to the master equation
-#
-def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
-    L = L0 + L_func(t, rho, args).data
-    return L * rho
-
-#
-# evaluate dE(t)/dt according to the master equation, where E is a 
-# superoperator
-#
-def _ode_super_func_td(t, y, L0, L_func, args):
-    L = L0 + L_func(t, args).data
-    return _ode_super_func(t, y, L)
-
-#
-# evaluate dE(t)/dt according to the master equation, where E is a 
-# superoperator
-#
-def _ode_super_func_td_with_state(t, y, L0, L_func, args):
-    L = L0 + L_func(t, y, args).data
-    return _ode_super_func(t, y, L)
-
-
+def _ode_super_func_td(t, y, L_func, args):
+    L = L_func(t, y, args)
+    ym = vec2mat(y)
+    return (L*ym).ravel('F')
 
 # -----------------------------------------------------------------------------
 # Generic ODE solver: shared code among the various ODE solver
 # -----------------------------------------------------------------------------
 
-def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
+def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
+                       progress_bar, dims=None):
     """
-    Internal function for solving ME. Solve an ODE which solver parameters
-    already setup (r). Calculate the required expectation values or invoke
+    Internal function for solving ME.
+    Calculate the required expectation values or invoke
     callback function at each time step.
     """
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # This function is made similar to sesolve's one for futur merging in a
+    # solver class
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    #
     # prepare output array
-    #
     n_tsteps = len(tlist)
-    e_sops_data = []
-
     output = Result()
     output.solver = "mesolve"
     output.times = tlist
+    size = rho0.shape[0]
 
-    if opt.store_states:
-        output.states = []
+    initial_vector = rho0.full().ravel('F')
 
-    if isinstance(e_ops, types.FunctionType):
+    r = scipy.integrate.ode(func)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
+    if ode_args:
+        r.set_f_params(*ode_args)
+    r.set_initial_value(initial_vector, tlist[0])
+
+    e_ops_data = []
+    output.expect = []
+    if callable(e_ops):
         n_expt_op = 0
         expt_callback = True
-
+        output.num_expect = 1
     elif isinstance(e_ops, list):
-
         n_expt_op = len(e_ops)
         expt_callback = False
-
+        output.num_expect = n_expt_op
         if n_expt_op == 0:
             # fall back on storing states
-            output.states = []
             opt.store_states = True
         else:
-            output.expect = []
-            output.num_expect = n_expt_op
             for op in e_ops:
-                e_sops_data.append(spre(op).data)
+                e_ops_data.append(spre(op).data)
                 if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
-
     else:
         raise TypeError("Expectation parameter must be a list or a function")
+
+    if opt.store_states:
+        output.states = []
+
+    def get_curr_state_data(r):
+        return vec2mat(r.y)
 
     #
     # start evolution
     #
-    progress_bar.start(n_tsteps)
-
-    rho = Qobj(rho0)
-
     dt = np.diff(tlist)
+    cdata = None
+    progress_bar.start(n_tsteps)
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
 
@@ -1015,249 +493,31 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
                             "the nsteps parameter in the Options class.")
 
         if opt.store_states or expt_callback:
-            rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
+            cdata = get_curr_state_data(r)
 
-            if opt.store_states:
-                output.states.append(Qobj(rho, isherm=True))
+        if opt.store_states:
+            if issuper(rho0):
+                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+                output.states.append(Qobj(fdata, dims=dims))
+            else:
+                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+                output.states.append(Qobj(fdata, dims=dims, fast="mc-dm"))
 
-            if expt_callback:
-                # use callback method
-                e_ops(t, rho)
+        if expt_callback:
+            # use callback method
+            output.expect.append(e_ops(t, Qobj(cdata, dims=dims)))
 
         for m in range(n_expt_op):
-            if output.expect[m].dtype == complex:
-                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m],
-                                                         r.y, 0)
-            else:
-                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m],
-                                                         r.y, 1)
+            output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
+                                                     e_ops[m].isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
 
     progress_bar.finished()
 
-    if (not opt.rhs_reuse) and (config.tdname is not None):
-        _cython_build_cleanup(config.tdname)
-
     if opt.store_final_state:
-        rho.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho.shape[0], rho.shape[1])
-        output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
+        cdata = get_curr_state_data(r)
+        output.final_state = Qobj(cdata, dims=dims, isherm=True)
 
     return output
-
-
-# -----------------------------------------------------------------------------
-# Old style API below.
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-# Master equation solver: deprecated in 2.0.0. No support for time-dependent
-# collapse operators. Only used by the deprecated odesolve function.
-#
-def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
-                     progress_bar):
-    """
-    Evolve the density matrix using an ODE solver with time dependent
-    Hamiltonian.
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    #
-    # check initial state
-    #
-    if isket(rho0):
-        # if initial state is a ket and no collapse operator where given,
-        # fall back on the unitary schrodinger equation solver
-        if len(c_op_list) == 0:
-            return _sesolve_list_td(H_func, rho0, tlist, e_ops, args, opt,
-                                    progress_bar)
-
-        # Got a wave function as initial state: convert to density matrix.
-        rho0 = ket2dm(rho0)
-
-    #
-    # construct liouvillian
-    #
-    if len(H_func) != 2:
-        raise TypeError('Time-dependent Hamiltonian list must have two terms.')
-    if not isinstance(H_func[0], (list, np.ndarray)) or len(H_func[0]) <= 1:
-        raise TypeError('Time-dependent Hamiltonians must be a list ' +
-                        'with two or more terms')
-    if (not isinstance(H_func[1], (list, np.ndarray))) or \
-       (len(H_func[1]) != (len(H_func[0]) - 1)):
-        raise TypeError('Time-dependent coefficients must be list with ' +
-                        'length N-1 where N is the number of ' +
-                        'Hamiltonian terms.')
-
-    if opt.rhs_reuse and config.tdfunc is None:
-        rhs_generate(H_func, args)
-
-    lenh = len(H_func[0])
-    if opt.tidy:
-        H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
-    L_func = [[liouvillian(H_func[0][0], c_op_list)], H_func[1]]
-    for m in range(1, lenh):
-        L_func[0].append(liouvillian(H_func[0][m], []))
-
-    # create data arrays for time-dependent RHS function
-    Ldata = [L_func[0][k].data.data for k in range(lenh)]
-    Linds = [L_func[0][k].data.indices for k in range(lenh)]
-    Lptrs = [L_func[0][k].data.indptr for k in range(lenh)]
-    # setup ode args string
-    string = ""
-    for k in range(lenh):
-        string += ("Ldata[%d], Linds[%d], Lptrs[%d]," % (k, k, k))
-
-    if args:
-        td_consts = args.items()
-        for elem in td_consts:
-            string += str(elem[1])
-            if elem != td_consts[-1]:
-                string += (",")
-
-    # run code generator
-    if not opt.rhs_reuse or config.tdfunc is None:
-        if opt.rhs_filename is None:
-            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
-        else:
-            config.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       config=config)
-        cgen.generate(config.tdname + ".pyx")
-
-        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
-                       '<string>', 'exec')
-        exec(code, globals())
-        config.tdfunc = cy_td_ode_rhs
-
-    #
-    # setup integrator
-    #
-    initial_vector = mat2vec(rho0.full()).ravel()
-    r = scipy.integrate.ode(config.tdfunc)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, tlist[0])
-    code = compile('r.set_f_params(' + string + ')', '<string>', 'exec')
-    exec(code)
-
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
-
-
-# -----------------------------------------------------------------------------
-# pass on to wavefunction solver or master equation solver depending on whether
-# any collapse operators were given.
-#
-def odesolve(H, rho0, tlist, c_op_list, e_ops, args=None, options=None):
-    """
-    Master equation evolution of a density matrix for a given Hamiltonian.
-
-    Evolution of a state vector or density matrix (`rho0`) for a given
-    Hamiltonian (`H`) and set of collapse operators (`c_op_list`), by
-    integrating the set of ordinary differential equations that define the
-    system. The output is either the state vector at arbitrary points in time
-    (`tlist`), or the expectation values of the supplied operators
-    (`e_ops`).
-
-    For problems with time-dependent Hamiltonians, `H` can be a callback
-    function that takes two arguments, time and `args`, and returns the
-    Hamiltonian at that point in time. `args` is a list of parameters that is
-    passed to the callback function `H` (only used for time-dependent
-    Hamiltonians).
-
-    Parameters
-    ----------
-
-    H : :class:`qutip.qobj`
-        system Hamiltonian, or a callback function for time-dependent
-        Hamiltonians.
-
-    rho0 : :class:`qutip.qobj`
-        initial density matrix or state vector (ket).
-
-    tlist : *list* / *array*
-        list of times for :math:`t`.
-
-    c_op_list : list of :class:`qutip.qobj`
-        list of collapse operators.
-
-    e_ops : list of :class:`qutip.qobj` / callback function
-        list of operators for which to evaluate expectation values.
-
-    args : *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians and
-        collapse operators.
-
-    options : :class:`qutip.Options`
-        with options for the ODE solver.
-
-
-    Returns
-    -------
-    output :array
-    Expectation values of wavefunctions/density matrices
-    for the times specified by `tlist`.
-
-    Notes
-    -----
-    On using callback function: odesolve transforms all :class:`qutip.qobj`
-    objects to sparse matrices before handing the problem to the integrator
-    function. In order for your callback function to work correctly, pass
-    all :class:`qutip.qobj` objects that are used in constructing the
-    Hamiltonian via args. odesolve will check for :class:`qutip.qobj` in
-    `args` and handle the conversion to sparse matrices. All other
-    :class:`qutip.qobj` objects that are not passed via `args` will be
-    passed on to the integrator to scipy who will raise an NotImplemented
-    exception.
-
-    Deprecated in QuTiP 2.0.0. Use :func:`mesolve` instead.
-
-    """
-
-    warnings.warn("odesolve is deprecated since 2.0.0. Use mesolve instead.",
-                  DeprecationWarning)
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    if options is None:
-        options = Options()
-
-    if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
-        if isinstance(H, list):
-            output = _mesolve_list_td(H, rho0, tlist,
-                                      c_op_list, e_ops, args, options,
-                                      BaseProgressBar())
-        if isinstance(H, (types.FunctionType,
-                          types.BuiltinFunctionType, partial)):
-            output = _mesolve_func_td(H, rho0, tlist,
-                                      c_op_list, e_ops, args, options,
-                                      BaseProgressBar())
-        else:
-            output = _mesolve_const(H, rho0, tlist,
-                                    c_op_list, e_ops, args, options,
-                                    BaseProgressBar())
-    else:
-        if isinstance(H, list):
-            output = _sesolve_list_td(H, rho0, tlist, e_ops, args, options,
-                                      BaseProgressBar())
-        if isinstance(H, (types.FunctionType,
-                          types.BuiltinFunctionType, partial)):
-            output = _sesolve_func_td(H, rho0, tlist, e_ops, args, options,
-                                      BaseProgressBar())
-        else:
-            output = _sesolve_const(H, rho0, tlist, e_ops, args, options,
-                                    BaseProgressBar())
-
-    if len(e_ops) > 0:
-        return output.expect
-    else:
-        return output.states

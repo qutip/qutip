@@ -34,12 +34,13 @@
 from functools import partial
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, run_module_suite, assert_allclose
 
 # disable the MC progress bar
 import os
 
 from qutip import *
+from qutip.random_objects import rand_ket
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
@@ -646,6 +647,76 @@ class TestMESolveSuperInit:
         fid = self.fidelitycheck(out1, out2, rho0vec)
         assert_(max(abs(1.0-fid)) < me_error, True)
 
+    def test_me_interp1(self):
+        "mesolve: interp time-dependent collapse operator #1"
+
+        N = 10  # number of basis states to consider
+        kappa = 0.2  # coupling to oscillator
+        tlist = np.linspace(0, 10, 100)
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)  # initial state
+        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        c_op_list = [[a, S]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 1e-5)
+
+    def test_me_interp2(self):
+         "mesolve: interp time-dependent collapse operator #2"
+
+         N = 10  # number of basis states to consider
+         kappa = 0.2  # coupling to oscillator
+         tlist = np.linspace(0, 10, 100)
+         C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
+         S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+         a = destroy(N)
+         H = [[a.dag() * a, C]]
+         psi0 = basis(N, 9)  # initial state
+         c_op_list = [[a, S]]
+         medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+         expt = medata.expect[0]
+         actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+         assert_(avg_diff < 1e-5)
+
+    def test_me_interp3(self):
+        "mesolve: interp time-dependent collapse operator #3"
+
+        N = 10  # number of basis states to consider
+        kappa = 0.2  # coupling to oscillator
+        tlist = np.linspace(0, 10, 100)
+        C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
+        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        a = destroy(N)
+        H = [a.dag() * a, [a.dag() * a, C]]
+        psi0 = basis(N, 9)  # initial state
+        c_op_list = [[a, S]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 1e-5)
+
+    def test_me_interp4(self):
+        "mesolve: interp time-dependent collapse operator #4"
+
+        N = 10  # number of basis states to consider
+        kappa = 0.2  # coupling to oscillator
+        tlist = np.linspace(0, 10, 100)
+        C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
+        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        a = destroy(N)
+        H = [a.dag() * a, [a.dag() * a, C]]
+        psi0 = basis(N, 9)  # initial state
+        c_op_list = [[a, S],[a, S]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-2*kappa * (1.0 - np.exp(-tlist)))
+        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 1e-5)
 
 class TestMESolverMisc:
     """
@@ -665,10 +736,11 @@ class TestMESolverMisc:
         times = np.linspace(0.0, 2.0, 100)
         opts = Options(store_states=False, store_final_state=True)
         rho0 = ket2dm(psi0)
-        result = mesolve(H, rho0, times, [], [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
+        result = mesolve(H, rho0, times, [], [a.dag()*a, b.dag()*b, c.dag()*c],
+                         options=opts)
         assert_(rho0.dims == result.final_state.dims)
-        
-    
+
+
     def testSEFinalState(self):
         "sesolve: final_state has correct dims"
 
@@ -681,10 +753,121 @@ class TestMESolverMisc:
 
         times = np.linspace(0.0, 2.0, 100)
         opts = Options(store_states=False, store_final_state=True)
-        result = mesolve(H, psi0, times, [], [a.dag()*a,b.dag()*b,c.dag()*c],options=opts)
+        result = mesolve(H, psi0, times, [], [a.dag()*a, b.dag()*b, c.dag()*c],
+                         options=opts)
         assert_(psi0.dims == result.final_state.dims)
 
 
+class TestMESolveStepFuncCoeff:
+    """
+    A Test class for using time-dependent array coefficients
+    as step functions instead of doing interpolation
+    """
+    def python_coeff(self, t, args):
+        if t < np.pi/2:
+            return 1.
+        else:
+            return 0.
+
+    def test_py_coeff(self):
+        """
+        Test for Python function as coefficient as step function coeff
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0, np.pi/2])
+        qu = QobjEvo([[sigmax(), self.python_coeff]],
+                     tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "func")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_cte_coeff(self):
+        """
+        Test for Array coefficient with uniform tlist as step function coeff
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/2, np.pi], dtype=float)
+        npcoeff = np.array([0.25, 0.75, 0.75])
+        qu = QobjEvo([[sigmax(), npcoeff]],
+                     tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "array")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_t_coeff(self):
+        """
+        Test for Array with non-uniform tlist as step function coeff
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
+        npcoeff = np.array([0.5, 0.25, 0.25])
+        qu = QobjEvo([[sigmax(), npcoeff]],
+                     tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "array")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_str_coeff(self):
+        """
+        Test for Array and string as step function coeff.
+        qobjevo_codegen is used and uniform tlist
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/2, np.pi], dtype=float)
+        npcoeff1 = np.array([0.25, 0.75, 0.75], dtype=complex)
+        npcoeff2 = np.array([0.5, 1.5, 1.5], dtype=float)
+        strcoeff = "1."
+        qu = QobjEvo(
+            [[sigmax(), npcoeff1], [sigmax(), strcoeff], [sigmax(), npcoeff2]],
+            tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_array_str_py_coeff(self):
+        """
+        Test for Array, string and Python function as step function coeff.
+        qobjevo_codegen is used and non non-uniform tlist
+        """
+        rho0 = rand_ket(2)
+        tlist = np.array([0., np.pi/4, np.pi/2, np.pi], dtype=float)
+        npcoeff1 = np.array([0.4, 1.6, 1.0, 1.0], dtype=complex)
+        npcoeff2 = np.array([0.4, 1.6, 1.0, 1.0], dtype=float)
+        strcoeff = "1."
+        qu = QobjEvo(
+            [[sigmax(), npcoeff1], [sigmax(), npcoeff2],
+             [sigmax(), self.python_coeff], [sigmax(), strcoeff]],
+            tlist=tlist, args={"_step_func_coeff": 1})
+        result = mesolve(qu, rho0=rho0, tlist=tlist)
+        assert(qu.type == "mixed_callable")
+        assert_allclose(
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+
+    def test_dynamic_args(self):
+        "sesolve: state feedback"
+        tol = 1e-3
+        def f(t, args):
+            return np.sqrt(args["state_vec"][3])
+
+        H = [qeye(2), [destroy(2)+create(2), f]]
+        res = mesolve(H, basis(2,1), tlist=np.linspace(0,10,11),
+                      c_ops=[qeye(2)],
+                      e_ops=[num(2)], args={"state_vec":basis(2,1)})
+        assert_(max(abs(res.expect[0][5:])) < tol,
+            msg="evolution with feedback not proceding as expected")
+
+        def f(t, args):
+            return np.sqrt(args["expect_op_0"])
+
+        H = [qeye(2), [destroy(2)+create(2), f]]
+        res = mesolve(H, basis(2,1), tlist=np.linspace(0,10,11),
+                      c_ops=[qeye(2)],
+                      e_ops=[num(2)], args={"expect_op_0":num(2)})
+        assert_(max(abs(res.expect[0][5:])) < tol,
+            msg="evolution with feedback not proceding as expected")
 
 
 if __name__ == "__main__":

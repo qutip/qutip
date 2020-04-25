@@ -31,10 +31,11 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['brmesolve', 'bloch_redfield_solve', 'bloch_redfield_tensor']
+__all__ = ['brmesolve', 'bloch_redfield_solve']
 
 import numpy as np
 import os
+import time
 import types
 import warnings
 from functools import partial
@@ -42,6 +43,7 @@ import scipy.integrate
 import scipy.sparse as sp
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
+from qutip.operators import qdiags
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
 from qutip.solver import Options, Result, config, _solver_safety_check
@@ -57,7 +59,7 @@ from qutip.expect import expect_rho_vec
 from qutip.rhs_generate import _td_format_check
 from qutip.cy.openmp.utilities import check_use_openmp
 import qutip.settings as qset
-
+from qutip.cy.br_tensor import bloch_redfield_tensor
 
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
@@ -66,7 +68,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
               args={}, use_secular=True, sec_cutoff = 0.1,
               tol=qset.atol,
               spectra_cb=None, options=None,
-              progress_bar=None, _safe_mode=True):
+              progress_bar=None, _safe_mode=True, verbose=False):
     """
     Solves for the dynamics of a system using the Bloch-Redfield master equation,
     given an input Hamiltonian, Hermitian bath-coupling terms and their associated 
@@ -135,7 +137,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         List of system collapse operators, or nested list in
         string-based format.
 
-    args : dict (not implimented)
+    args : dict 
         Placeholder for future implementation, kept for API consistency.
 
     use_secular : bool {True}
@@ -166,6 +168,13 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by `tlist`.
     """
+    _prep_time = time.time()
+    #This allows for passing a list of time-independent Qobj
+    #as allowed by mesolve
+    if isinstance(H, list):
+        if np.all([isinstance(h,Qobj) for h in H]):
+            H = sum(H)
+    
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
 
@@ -227,11 +236,12 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         
     elif n_str != 0 and n_func == 0:
         output = _td_brmesolve(H, psi0, tlist, a_ops=a_ops, e_ops=e_ops, 
-                        c_ops=c_ops, use_secular=use_secular, 
+                        c_ops=c_ops, args=args, use_secular=use_secular, 
                         sec_cutoff=sec_cutoff,
                         tol=tol, options=options, 
                          progress_bar=progress_bar,
-                         _safe_mode=_safe_mode)
+                         _safe_mode=_safe_mode, verbose=verbose, 
+                         _prep_time=_prep_time)
                          
         return output
         
@@ -357,151 +367,13 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
     return result_list
 
 
-# -----------------------------------------------------------------------------
-# Functions for calculating the Bloch-Redfield tensor for a time-independent
-# system.
-#
-def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True, sec_cutoff=0.1):
-    """
-    Calculate the Bloch-Redfield tensor for a system given a set of operators
-    and corresponding spectral functions that describes the system's coupling
-    to its environment.
 
-    .. note::
-
-        This tensor generation requires a time-independent Hamiltonian.
-
-    Parameters
-    ----------
-
-    H : :class:`qutip.qobj`
-        System Hamiltonian.
-
-    a_ops : list of :class:`qutip.qobj`
-        List of system operators that couple to the environment.
-
-    spectra_cb : list of callback functions
-        List of callback functions that evaluate the noise power spectrum
-        at a given frequency.
-
-    c_ops : list of :class:`qutip.qobj`
-        List of system collapse operators.
-
-    use_secular : bool
-        Flag (True of False) that indicates if the secular approximation should
-        be used.
-    
-    sec_cutoff : float {0.1}
-        Threshold for secular approximation.
-
-    Returns
-    -------
-
-    R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
-
-        R is the Bloch-Redfield tensor and kets is a list eigenstates of the
-        Hamiltonian.
-
-    """
-    
-    if not (spectra_cb is None):
-        warnings.warn("The use of spectra_cb is depreciated.", DeprecationWarning)
-        _a_ops = []
-        for kk, a in enumerate(a_ops):
-            _a_ops.append([a,spectra_cb[kk]])
-        a_ops = _a_ops
-    
-    # Sanity checks for input parameters
-    if not isinstance(H, Qobj):
-        raise TypeError("H must be an instance of Qobj")
-
-    for a in a_ops:
-        if not isinstance(a[0], Qobj) or not a[0].isherm:
-            raise TypeError("Operators in a_ops must be Hermitian Qobj.")
-
-    if c_ops is None:
-        c_ops = []
-
-    # use the eigenbasis
-    evals, ekets = H.eigenstates()
-
-    N = len(evals)
-    K = len(a_ops)
-    
-    #only Lindblad collapse terms
-    if K==0:
-        Heb = H.transform(ekets)
-        L = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
-        return L, ekets
-    
-    
-    A = np.array([a_ops[k][0].transform(ekets).full() for k in range(K)])
-    Jw = np.zeros((K, N, N), dtype=complex)
-
-    # pre-calculate matrix elements and spectral densities
-    # W[m,n] = real(evals[m] - evals[n])
-    W = np.real(evals[:,np.newaxis] - evals[np.newaxis,:])
-
-    for k in range(K):
-        # do explicit loops here in case spectra_cb[k] can not deal with array arguments
-        for n in range(N):
-            for m in range(N):
-                Jw[k, n, m] = a_ops[k][1](W[n, m])
-
-    dw_min = np.abs(W[W.nonzero()]).min()
-
-    # pre-calculate mapping between global index I and system indices a,b
-    Iabs = np.empty((N*N,3),dtype=int)
-    for I, Iab in enumerate(Iabs):
-        # important: use [:] to change array values, instead of creating new variable Iab
-        Iab[0]  = I
-        Iab[1:] = vec2mat_index(N, I)
-
-    # unitary part + dissipation from c_ops (if given):
-    Heb = H.transform(ekets)
-    L = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
-    
-    # dissipative part:
-    rows = []
-    cols = []
-    data = []
-    for I, a, b in Iabs:
-        # only check use_secular once per I
-        if use_secular:
-            # only loop over those indices J which actually contribute
-            Jcds = Iabs[np.where(np.abs(W[a, b] - W[Iabs[:,1], Iabs[:,2]]) < dw_min * sec_cutoff)]
-        else:
-            Jcds = Iabs
-        for J, c, d in Jcds:
-            elem = 0+0j
-            # summed over k, i.e., each operator coupling the system to the environment
-            elem += 0.5 * np.sum(A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))
-            if b==d:
-                #                  sum_{k,n} A[k, a, n] * A[k, n, c] * Jw[k, c, n])
-                elem -= 0.5 * np.sum(A[:, a, :] * A[:, :, c] * Jw[:, c, :])
-            if a==c:
-                #                  sum_{k,n} A[k, d, n] * A[k, n, b] * Jw[k, d, n])
-                elem -= 0.5 * np.sum(A[:, d, :] * A[:, :, b] * Jw[:, d, :])
-            if elem != 0:
-                rows.append(I)
-                cols.append(J)
-                data.append(elem)
-
-    R = arr_coo2fast(np.array(data, dtype=complex),
-                    np.array(rows, dtype=np.int32),
-                    np.array(cols, dtype=np.int32), N**2, N**2)
-    
-    L.data = L.data + R
-    
-    return L, ekets
-
-
-
-
-def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
+def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                  use_secular=True, sec_cutoff=0.1,
                  tol=qset.atol, options=None, 
-                 progress_bar=None,_safe_mode=True):
+                 progress_bar=None,_safe_mode=True,
+                 verbose=False,
+                 _prep_time=0):
     
     if isket(psi0):
         rho0 = ket2dm(psi0)
@@ -551,7 +423,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 spline_count[0] += 1
             C_td_terms.append(c[1])
         else:
-            raise Exception('Invalid collape operator specification.')
+            raise Exception('Invalid collapse operator specification.')
             
     coupled_offset = 0
     for kk, a in enumerate(a_ops):
@@ -603,8 +475,15 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         string_list.append("A_terms[{0}]".format(kk))
     #Add nrows to parameters
     string_list.append('nrows')
+    for name, value in args.items():
+        if isinstance(value, np.ndarray):
+            raise TypeError('NumPy arrays not valid args for BR solver.')
+        else:
+            string_list.append(str(value))
     parameter_string = ",".join(string_list)
     
+    if verbose:
+        print('BR prep time:', time.time()-_prep_time)
     #
     # generate and compile new cython code if necessary
     #
@@ -613,6 +492,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
+        if verbose:
+            _st = time.time()
         cgen = BR_Codegen(h_terms=len(H_terms), 
                     h_td_terms=H_td_terms, h_obj=H_obj,
                     c_terms=len(C_terms), 
@@ -625,6 +506,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                     config=config, sparse=False,
                     use_secular = use_secular,
                     sec_cutoff = sec_cutoff,
+                    args=args,
                     use_openmp=options.use_openmp, 
                     omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
                     omp_threads=options.num_cpus, 
@@ -635,7 +517,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                        '<string>', 'exec')
         exec(code, globals())
         config.tdfunc = cy_td_ode_rhs
-    
+        if verbose:
+            print('BR compile time:', time.time()-_st)
     initial_vector = mat2vec(rho0.full()).ravel()
     
     _ode = scipy.integrate.ode(config.tdfunc)
@@ -691,6 +574,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     #
     # start evolution
     #
+    if type(progress_bar)==BaseProgressBar and verbose:
+        _run_time = time.time()
+    
     progress_bar.start(n_tsteps)
 
     rho = Qobj(rho0)
@@ -726,6 +612,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             _ode.integrate(_ode.t + dt[t_idx])
 
     progress_bar.finished()
+    
+    if type(progress_bar)==BaseProgressBar and verbose:
+        print('BR runtime:', time.time()-_run_time)
 
     if (not options.rhs_reuse) and (config.tdname is not None):
         _cython_build_cleanup(config.tdname)

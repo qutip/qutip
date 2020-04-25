@@ -51,6 +51,7 @@ from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
 from qutip.operators import qeye
 from qutip.qobj import Qobj, isket, issuper
+from qutip.qobjevo import QobjEvo
 from qutip.rhs_generate import rhs_clear, _td_wrap_array_str
 from qutip.cy.utilities import _cython_build_cleanup
 from qutip.settings import debug
@@ -457,6 +458,8 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
         `me` or `mc`.
     a_op : Qobj
         operator A.
+    args : dict
+        Dictionary of arguments to be passed to solver.
     solver : str
         choice of solver (`me` for master-equation and
         `es` for exponential series).
@@ -478,7 +481,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
         state0 = steadystate(H, c_ops)
         n = np.array([expect(state0, a_op.dag() * a_op)])
     else:
-        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op]).expect[0]
+        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op], args=args).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_3op_1t(H, state0, taulist, c_ops,
@@ -545,7 +548,7 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
                          "%s (use es or pi)." % solver)
 
 
-def spectrum_correlation_fft(tlist, y):
+def spectrum_correlation_fft(tlist, y, inverse=False):
     """
     Calculate the power spectrum corresponding to a two-time correlation
     function using FFT.
@@ -556,12 +559,14 @@ def spectrum_correlation_fft(tlist, y):
         list/array of times :math:`t` which the correlation function is given.
     y : array_like
         list/array of correlations corresponding to time delays :math:`t`.
+    inverse: boolean
+        boolean parameter for using a positive exponent in the Fourier Transform instead. Default is False.
 
     Returns
     -------
     w, S : tuple
         Returns an array of angular frequencies 'w' and the corresponding
-        one-sided power spectrum 'S(w)'.
+        two-sided power spectrum 'S(w)'.
 
     """
 
@@ -572,16 +577,21 @@ def spectrum_correlation_fft(tlist, y):
     dt = tlist[1] - tlist[0]
     if not np.allclose(np.diff(tlist), dt*np.ones(N-1,dtype=float)):
         raise Exception('tlist must be equally spaced for FFT.')
-    
-    F = scipy.fftpack.fft(y)
+
+    if inverse:
+           F = N * scipy.fftpack.ifft(y)
+    else:
+           F = scipy.fftpack.fft(y)
+
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(N, dt)
 
-    # select only indices for elements that corresponds
-    # to positive frequencies
-    indices = np.where(f > 0.0)
+    # re-order frequencies from most negative to most positive (centre on 0)
+    idx = np.array([], dtype = 'int')
+    idx = np.append(idx, np.where(f < 0.0))
+    idx = np.append(idx, np.where(f >= 0.0))
 
-    return 2 * np.pi * f[indices], 2 * dt * np.real(F[indices])
+    return 2 * np.pi * f[idx], 2 * dt * np.real(F[idx])
 
 
 # -----------------------------------------------------------------------------
@@ -804,7 +814,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     References
     ----------
     See, Gardiner, Quantum Noise, Section 5.2.
-                       
+
     .. note:: Deprecated in QuTiP 3.1
               Use correlation_3op_1t() instead.
 
@@ -1091,7 +1101,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     rho_t = mesolve(H, rho0, tlist, c_ops, [],
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1220,7 +1230,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1282,10 +1292,10 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     dtype=corr_mat.dtype
                 )
                 corr_mat[t_idx, :] += corr_mat_add
-                    
+
         if t_idx == 1:
             options.rhs_reuse = True
-    
+
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1294,7 +1304,6 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 
 # pseudo-inverse solvers
-
 def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     """
     Internal function for calculating the spectrum of the correlation function
@@ -1335,126 +1344,52 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 
 # auxiliary
+def _transform_shift_one_coeff(op, args):
+    if isinstance(op, types.FunctionType):
+        # function-list based time-dependence
+        if isinstance(args, dict):
+            def fn(t, args_i):
+                return op(t + args_i["_t0"], args_i)
+            fn = lambda t, args_i: \
+                op(t + args_i["_t0"], args_i)
+        else:
+            def fn(t, args_i):
+                return op(t + args_i["_t0"], args_i["_user_args"])
+    else:
+        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                 "(t+_t0)", " " + op + " ")
+    return fn
 
-def _transform_L_t_shift(H, c_ops, args={}):
-    """
-    Time shift the Hamiltonian with private time-shift variable _t0
-    """
 
-    # while this list doesn't seem exhaustive, mesolve has already been called
-    # and has hence called _td_format_check from qutip.rhs_generate. important
-    # to keep in mind is that mesolve already requires the types of
-    # time-dependence to be the same for the hamiltonian as for the collapse
-    # operators.
-
-
-    if isinstance(H, Qobj):
-        # constant hamiltonian
-        H_shifted = H  # not shifted!
-
-    c_ops_is_td = False
-    if isinstance(c_ops, list):
-        for i in range(len(c_ops)):
-            # test is collapse operators are time-dependent
-            if isinstance(c_ops[i], list):
-                c_ops_is_td = True
-
-    if not c_ops_is_td:
-        # constant collapse operators
-        c_ops_shifted = c_ops  # not shifted!
-
-    if isinstance(H, Qobj) and not c_ops_is_td:
-        # constant hamiltonian and collapse operators
-        _args = args  # not shifted!
-
-    if isinstance(H, types.FunctionType):
-        # function-callback based time-dependence
-        if isinstance(args, dict) or args is None:
-            if args is None:
-                _args = {"_t0": 0}
+def _transform_shift_one_op(op, args={}):
+    if isinstance(op, Qobj):
+        new_op = op
+    elif isinstance(op, QobjEvo):
+        new_op = op
+        new_op._shift
+    elif callable(op):
+        def new_op(t, args_i):
+            return op(t + args_i["_t0"], args_i)
+    elif isinstance(op, list):
+        new_op = []
+        for block in op:
+            if isinstance(block, list):
+                new_op.append([block[0],
+                               _transform_shift_one_coeff(block[1], args)])
             else:
-                _args = args.copy()
-                _args["_t0"] = 0
-            H_shifted = lambda t, args_i: H(t+args_i["_t0"], args_i)
-        else:
-            raise TypeError("If using function-callback based Hamiltonian" +
-                            "time-dependence, args must be a dictionary")
+                new_op.append(block)
+    return new_op
 
-    if isinstance(H, list) or c_ops_is_td:
-        # string/function-list based time-dependence
-        if args is None:
-            _args = {"_t0": 0}
-        elif isinstance(args, dict):
-            _args = args.copy()
-            _args["_t0"] = 0
-        else:
-            _args = {"_user_args": args, "_t0": 0}
 
-        if isinstance(H, list):
-            # hamiltonian is time-dependent
-            H_shifted = []
-
-            for i in range(len(H)):
-                if isinstance(H[i], list):
-                    # modify Hamiltonian time dependence in accordance with the
-                    # quantum regression theorem
-                    if isinstance(args, dict) or args is None:
-                        if isinstance(H[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            fn = lambda t, args_i: \
-                                H[i][1](t + args_i["_t0"], args_i)
-                        else:
-                            # string-list based time-dependence
-                            # Again, note: _td_format_check already raises
-                            # errors formixed td formatting
-                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                     "(t+_t0)", H[i][1])
-                    else:
-                        if isinstance(H[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            fn = lambda t, args_i: \
-                                H[i][1](t + args_i["_t0"],
-                                        args_i["_user_args"])
-                        else:
-                            raise TypeError("If using string-list based" +
-                                            "Hamiltonian time-dependence, " +
-                                            "args must be a dictionary")
-                    H_shifted.append([H[i][0], fn])
-                else:
-                    H_shifted.append(H[i])
-
-        if c_ops_is_td:
-            # collapse operators are time-dependent
-            c_ops_shifted = []
-
-            for i in range(len(c_ops)):
-                if isinstance(c_ops[i], list):
-                    # modify collapse operators time dependence in accordance
-                    # with the quantum regression theorem
-                    if isinstance(args, dict) or args is None:
-                        if isinstance(c_ops[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            fn = lambda t, args_i: \
-                                c_ops[i][1](t + args_i["_t0"], args_i)
-                        else:
-                            # string-list based time-dependence
-                            # Again, note: _td_format_check already raises
-                            # errors formixed td formatting
-                            fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                                     "(t+_t0)", c_ops[i][1])
-                    else:
-                        if isinstance(H[i][1], types.FunctionType):
-                            # function-list based time-dependence
-                            fn = lambda t, args_i: \
-                                c_ops[i][1](t + args_i["_t0"],
-                                            args_i["_user_args"])
-                        else:
-                            raise TypeError("If using string-list based" +
-                                            "collapse operator" +
-                                            "time-dependence, " +
-                                            "args must be a dictionary")
-                    c_ops_shifted.append([c_ops[i][0], fn])
-                else:
-                    c_ops_shifted.append(c_ops[i])
+def _transform_L_t_shift_new(H, c_ops, args={}):
+    H_shifted = _transform_shift_one_op(H, args)
+    c_ops_shifted = [_transform_shift_one_op(op, args) for op in c_ops]
+    if args is None:
+        _args = {"_t0": 0}
+    elif isinstance(args, dict):
+        _args = args.copy()
+        _args["_t0"] = 0
+    else:
+        _args = {"_user_args": args, "_t0": 0}
 
     return H_shifted, c_ops_shifted, _args

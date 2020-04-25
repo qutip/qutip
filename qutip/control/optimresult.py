@@ -102,6 +102,9 @@ class OptimResult(object):
     evo_full_final : Qobj
         The evolution operator from t=0 to t=T based on the final amps
 
+    evo_full_initial : Qobj
+        The evolution operator from t=0 to t=T based on the initial amps
+        
     stats : Stats
         Object contaning the stats for the run (if any collected)
         
@@ -129,5 +132,6 @@ class OptimResult(object):
         self.initial_amps = None
         self.final_amps = None
         self.evo_full_final = None
+        self.evo_full_initial = None
         self.stats = None
         self.optimizer = None

@@ -30,12 +30,22 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import pytest
 import numpy as np
 import scipy.interpolate as sint
 from numpy.testing import assert_, assert_equal, run_module_suite
+import unittest
 from qutip import *
+from qutip import _version2int
 
-    
+try:
+    import Cython
+except:
+    Cython_OK = False
+else:
+    Cython_OK = _version2int(Cython.__version__) >= _version2int('0.14')
+
+
 def testInterpolate1():
     "Interpolate: Sine + noise (array)"
     x = np.linspace(0,2*np.pi,200)
@@ -43,6 +53,7 @@ def testInterpolate1():
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
     assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
+
 
 def testInterpolate2():
     "Interpolate: Sine + noise (point)"
@@ -53,6 +64,7 @@ def testInterpolate2():
     for k in range(x.shape[0]):
         assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
 
+
 def testInterpolate3():
     "Interpolate: Complex sine + noise (array)"
     x = np.linspace(0,2*np.pi,200)
@@ -61,6 +73,7 @@ def testInterpolate3():
     S1 = Cubic_Spline(x[0],x[-1],y)
     S2 = sint.interp1d(x,y,'cubic')
     assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
+
 
 def testInterpolate4():
     "Interpolate: Complex sine + noise (point)"
@@ -72,6 +85,8 @@ def testInterpolate4():
     for k in range(x.shape[0]):
         assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve1():
     """
     Interpolate: sesolve str-based (real)
@@ -88,6 +103,8 @@ def test_interpolate_evolve1():
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve2():
     """
     Interpolate: mesolve str-based (real)
@@ -104,6 +121,8 @@ def test_interpolate_evolve2():
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve3():
     """
     Interpolate: mcsolve str-based (real)
@@ -120,6 +139,8 @@ def test_interpolate_evolve3():
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve4():
     """
     Interpolate: sesolve str + interp (real)
@@ -136,6 +157,8 @@ def test_interpolate_evolve4():
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve5():
     """
     Interpolate: sesolve func + interp (real)
@@ -153,6 +176,8 @@ def test_interpolate_evolve5():
     out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve6():
     """
     Interpolate: mesolve str + interp (real)
@@ -169,6 +194,8 @@ def test_interpolate_evolve6():
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve7():
     """
     Interpolate: mesolve func + interp (real)
@@ -186,6 +213,8 @@ def test_interpolate_evolve7():
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve8():
     """
     Interpolate: mcsolve str + interp (real)
@@ -202,6 +231,8 @@ def test_interpolate_evolve8():
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve9():
     """
     Interpolate: mcsolve func + interp (real)
@@ -219,6 +250,8 @@ def test_interpolate_evolve9():
     out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve10():
     """
     Interpolate: mesolve str + interp (complex)
@@ -235,6 +268,8 @@ def test_interpolate_evolve10():
     out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
 def test_interpolate_evolve11():
     """
     Interpolate: mesolve func + interp (complex)
@@ -253,6 +288,8 @@ def test_interpolate_evolve11():
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 
+@pytest.mark.slow
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_interpolate_brevolve1():
     """
     Interpolate: brmesolve str + interp (real)
@@ -270,6 +307,8 @@ def test_interpolate_brevolve1():
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
 
+@pytest.mark.slow
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_interpolate_brevolve2():
     """
     Interpolate: brmesolve str + interp (complex)
@@ -286,6 +325,9 @@ def test_interpolate_brevolve2():
     out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
     assert_(np.max(np.abs(out1-out2)) < 1e-4)
 
+
+@pytest.mark.slow
+@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
 def test_interpolate_brevolve3():
     """
     Interpolate: brmesolve c_op as interp (str)

@@ -3,6 +3,7 @@
 *.so
 .DS_Store
 .f2py_f2cmap
+.idea/
 
 # Packages
 *.egg
@@ -34,4 +35,5 @@ qutip/cy/openmp/*.cpp
 
 benchmark/benchmark_data.js
 *-tasks.txt
+*compiled_coeff*
 

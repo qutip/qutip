@@ -92,7 +92,7 @@ import scipy.optimize as spopt
 import copy
 import collections
 # QuTiP
-from qutip import Qobj
+from qutip.qobj import Qobj
 import qutip.logging_utils as logging
 logger = logging.get_logger()
 # QuTiP control modules
@@ -374,7 +374,8 @@ class Optimizer(object):
         result = optimresult.OptimResult()
         result.initial_fid_err = self.dynamics.fid_computer.get_fid_err()
         result.initial_amps = self.dynamics.ctrl_amps.copy()
-        result.time = self.dynamics.time
+        result.evo_full_initial = self.dynamics.full_evo.copy()
+        result.time = self.dynamics.time.copy()
         result.optimizer = self
         return result
 
@@ -1066,7 +1067,7 @@ class OptimizerCrab(Optimizer):
         if self.pulse_generator is None:
             pulse_gen_valid = False
             err_msg = "pulse_generator attribute is None"
-        elif not isinstance(self.pulse_generator, collections.Iterable):
+        elif not isinstance(self.pulse_generator, collections.abc.Iterable):
             pulse_gen_valid = False
             err_msg = "pulse_generator is not iterable"
 

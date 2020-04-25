@@ -37,11 +37,12 @@ This module contains a collection of functions for calculating metrics
 """
 
 __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
-           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity',
-           'unitarity', 'dnorm']
+           'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
+           'process_fidelity', 'unitarity', 'dnorm']
 
 import numpy as np
 from scipy import linalg as la
+import scipy.sparse as sp
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
 from qutip.superop_reps import to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
@@ -291,6 +292,63 @@ def bures_angle(A, B):
     return np.arccos(fidelity(A, B))
 
 
+def hellinger_dist(A, B, sparse=False, tol=0):
+    """
+    Calculates the quantum Hellinger distance between two density matrices.
+
+    Formula:
+    hellinger_dist(A, B) = sqrt(2-2*Tr(sqrt(A)*sqrt(B)))
+
+    See: D. Spehner, F. Illuminati, M. Orszag, and W. Roga, "Geometric
+    measures of quantum correlations with Bures and Hellinger distances"
+    arXiv:1611.03449
+
+    Parameters
+    ----------
+    A : :class:`qutip.Qobj`
+        Density matrix or state vector.
+    B : :class:`qutip.Qobj`
+        Density matrix or state vector with same dimensions as A.
+    tol : float
+        Tolerance used by sparse eigensolver, if used. (0=Machine precision)
+    sparse : {False, True}
+        Use sparse eigensolver.
+
+    Returns
+    -------
+    hellinger_dist : float
+        Quantum Hellinger distance between A and B. Ranges from 0 to sqrt(2).
+
+    Examples
+    --------
+    >>> x=fock_dm(5,3)
+    >>> y=coherent_dm(5,1)
+    >>> hellinger_dist(x,y)
+    1.3725145002591095
+
+    """
+    if A.dims != B.dims:
+        raise TypeError("A and B do not have same dimensions.")
+
+    if A.isket or A.isbra:
+        sqrtmA = ket2dm(A)
+    else:
+        sqrtmA = A.sqrtm(sparse=sparse, tol=tol)
+    if B.isket or B.isbra:
+        sqrtmB = ket2dm(B)
+    else:
+        sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
+
+    product = sqrtmA*sqrtmB
+
+    eigs = sp_eigs(product.data,
+                   isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
+    #np.maximum() is to avoid nan appearing sometimes due to numerical
+    #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
+    #when hellinger_dist(A, B) is called for A=B
+    return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
+
+
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     """
     Calculates the diamond norm of the quantum map q_oper, using
@@ -389,7 +447,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     # of the dual map of Lambda. We can evaluate that norm much more
     # easily if Lambda is completely positive, since then the largest
     # eigenvalue is the same as the largest singular value.
-
+    
     if not force_solve and J.iscp:
         S_dual = to_super(J.dual_chan())
         vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
@@ -397,7 +455,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
         return la.norm(op.data.todense(), 2)
-
+    
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
@@ -409,11 +467,15 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     
     # Load the parameters with the Choi matrix passed in.
     J_dat = J.data
-    Jr.value, Ji.value = J_dat.real, J_dat.imag
-        
+    
+    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr), 
+                             shape=J_dat.shape)
+   
+    Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
+                             shape=J_dat.shape)
     # Finally, set up and run the problem.
     problem.solve(solver=solver, verbose=verbose)
-
+    
     return problem.value
 
 

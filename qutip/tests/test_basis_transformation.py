@@ -32,133 +32,78 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import assert_equal, assert_, run_module_suite
-import scipy
-from qutip import sigmax, sigmay, sigmaz, Qobj, rand_ket, rand_dm, ket2dm, rand_herm
-from qutip.sparse import sp_eigs
+import pytest
+import qutip
 
 
-def test_Transformation1():
-    "Transform 2-level to eigenbasis and back"
-    H1 = scipy.rand() * sigmax() + scipy.rand() * sigmay() + \
-        scipy.rand() * sigmaz()
-    evals, ekets = H1.eigenstates()
-    Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
-    H2 = Heb.transform(ekets, True)  # back to original basis
-    assert_equal((H1 - H2).norm() < 1e-6, True)
+def real_hermitian(n_levels):
+    qobj = qutip.Qobj(0.5 - np.random.random_sample((n_levels, n_levels)))
+    return qobj + qobj.dag()
 
 
-def test_Transformation2():
-    "Transform 10-level real-values to eigenbasis and back"
-    N = 10
-    H1 = Qobj((0.5 - scipy.rand(N, N)))
-    H1 = H1 + H1.dag()
-    evals, ekets = H1.eigenstates()
-    Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
-    H2 = Heb.transform(ekets, True)  # back to original basis
-    assert_equal((H1 - H2).norm() < 1e-6, True)
+def imaginary_hermitian(n_levels):
+    qobj = qutip.Qobj(1j*(0.5 - np.random.random_sample((n_levels, n_levels))))
+    return qobj + qobj.dag()
 
 
-def test_Transformation3():
-    "Transform 10-level to eigenbasis and back"
-    N = 10
-    H1 = Qobj((0.5 - scipy.rand(N, N)) + 1j * (0.5 - scipy.rand(N, N)))
-    H1 = H1 + H1.dag()
-    evals, ekets = H1.eigenstates()
-    Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
-    H2 = Heb.transform(ekets, True)  # back to original basis
-    assert_equal((H1 - H2).norm() < 1e-6, True)
+def complex_hermitian(n_levels):
+    return real_hermitian(n_levels) + imaginary_hermitian(n_levels)
 
 
-def test_Transformation4():
-    "Transform 10-level imag to eigenbasis and back"
-    N = 10
-    H1 = Qobj(1j * (0.5 - scipy.rand(N, N)))
-    H1 = H1 + H1.dag()
-    evals, ekets = H1.eigenstates()
-    Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
-    H2 = Heb.transform(ekets, True)  # back to original basis
-    assert_equal((H1 - H2).norm() < 1e-6, True)
+def rand_bra(n_levels):
+    return qutip.rand_ket(n_levels).dag()
 
 
-def test_Transformation5():
-    "Consistency between transformations of kets and density matrices"
-
-    N = 4
-    psi0 = rand_ket(N)
-
-    # generate a random basis
-    evals, rand_basis = rand_dm(N, density=1).eigenstates()
-
-    rho1 = ket2dm(psi0).transform(rand_basis, True)
-    rho2 = ket2dm(psi0.transform(rand_basis, True))
-
-    assert_((rho1 - rho2).norm() < 1e-6)
-
-
-def test_Transformation6():
-    "Check diagonalization via eigenbasis transformation"
-
-    cx, cy, cz = np.random.rand(), np.random.rand(), np.random.rand()
-    H = cx * sigmax() + cy * sigmay() + cz * sigmaz()
-    evals, evecs = H.eigenstates()
-    Heb = H.transform(evecs).tidyup()  # Heb should be diagonal
-    assert_(abs(Heb.full() - np.diag(Heb.full().diagonal())).max() < 1e-6)
+@pytest.mark.parametrize("hermitian_constructor", [real_hermitian,
+                                                   imaginary_hermitian,
+                                                   complex_hermitian])
+@pytest.mark.parametrize("n_levels", [2, 10])
+def test_transformation_to_eigenbasis_is_reversible(hermitian_constructor,
+                                                    n_levels):
+    """Transform n-level real-values to eigenbasis and back"""
+    H1 = hermitian_constructor(n_levels)
+    _, ekets = H1.eigenstates()
+    Heb = H1.transform(ekets)  # In the eigenbasis (should be diagonal)
+    H2 = Heb.transform(ekets, True)  # Back to original basis
+    assert (H1 - H2).norm() < 1e-6
 
 
-def test_Transformation7():
-    "Check Qobj eigs and direct eig solver transformations match"
-
-    N = 10
-    H = rand_herm(N)
-
-    # generate a random basis
-    rand = rand_dm(N, density=1)
-    
-    evals, rand_basis = rand.eigenstates()
-    evals2, rand_basis2 = sp_eigs(rand.data, isherm=1)
-    H1 = H.transform(rand_basis)
-    H2 = H.transform(rand_basis2)
-    assert_((H1 - H2).norm() < 1e-6)
-    
-    ket = rand_ket(N)
-    K1 = ket.transform(rand_basis)
-    K2 = ket.transform(rand_basis2)
-    assert_((K1 - K2).norm() < 1e-6)
-    
-    bra = rand_ket(N).dag()
-    B1 = bra.transform(rand_basis)
-    B2 = bra.transform(rand_basis2)
-    assert_((B1 - B2).norm() < 1e-6)
+@pytest.mark.parametrize("n_levels", [4])
+def test_ket_and_dm_transformations_equivalent(n_levels):
+    """Consistency between transformations of kets and density matrices."""
+    psi0 = qutip.rand_ket(n_levels)
+    # Generate a random basis
+    _, rand_basis = qutip.rand_dm(n_levels, density=1).eigenstates()
+    rho1 = qutip.ket2dm(psi0).transform(rand_basis, True)
+    rho2 = qutip.ket2dm(psi0.transform(rand_basis, True))
+    assert (rho1 - rho2).norm() < 1e-6
 
 
-def test_Transformation8():
-    "Check Qobj eigs and direct eig solver reverse transformations match"
-
-    N = 10
-    H = rand_herm(N)
-
-    # generate a random basis
-    rand = rand_dm(N, density=1)
-    
-    evals, rand_basis = rand.eigenstates()
-    evals2, rand_basis2 = sp_eigs(rand.data, isherm=1)
-    
-    H1 = H.transform(rand_basis, True)
-    H2 = H.transform(rand_basis2, True)
-    assert_((H1 - H2).norm() < 1e-6)
-    
-    ket = rand_ket(N)
-    K1 = ket.transform(rand_basis,1)
-    K2 = ket.transform(rand_basis2,1)
-    assert_((K1 - K2).norm() < 1e-6)
-    
-    bra = rand_ket(N).dag()
-    B1 = bra.transform(rand_basis,1)
-    B2 = bra.transform(rand_basis2,1)
-    assert_((B1 - B2).norm() < 1e-6)
+def test_eigenbasis_transformation_makes_diagonal_operator():
+    """Check diagonalization via eigenbasis transformation."""
+    cx, cy, cz = np.random.random_sample((3,))
+    H = cx*qutip.sigmax() + cy*qutip.sigmay() + cz*qutip.sigmaz()
+    _, ekets = H.eigenstates()
+    Heb = H.transform(ekets).tidyup()  # Heb should be diagonal
+    assert abs(Heb.full() - np.diag(Heb.full().diagonal())).max() < 1e-6
 
 
-
-if __name__ == "__main__":
-    run_module_suite()
+_state_constructors = [qutip.rand_herm, qutip.rand_ket, rand_bra]
+@pytest.mark.parametrize("constructor", _state_constructors)
+@pytest.mark.parametrize("n_levels", [2, 10])
+@pytest.mark.parametrize("inverse", [True, False])
+def test_transformations_from_qobj_and_direct_eigenbases_match(constructor,
+                                                               n_levels,
+                                                               inverse):
+    """
+    Check transformations from the Qobj-calculated eigenbasis matches the one
+    from the scipy-calculated basis.
+    """
+    qobj = constructor(n_levels)
+    # Generate a random basis
+    random_dm = qutip.rand_dm(n_levels, density=1)
+    _, qobj_basis = random_dm.eigenstates()
+    _, direct_basis = qutip.sparse.sp_eigs(random_dm.data, isherm=1)
+    H1 = qobj.transform(qobj_basis, inverse=inverse)
+    H2 = qobj.transform(direct_basis, inverse=inverse)
+    assert (H1 - H2).norm() < 1e-6

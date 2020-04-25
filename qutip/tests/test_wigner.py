@@ -30,15 +30,190 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+import pytest
 import numpy as np
 from scipy.special import laguerre
 from numpy.random import rand
 from numpy.testing import assert_, run_module_suite, assert_equal
 
-from qutip.states import coherent, fock
-from qutip.wigner import wigner
+from qutip.states import coherent, fock, ket, bell_state
+from qutip.wigner import wigner, wigner_transform, _parity
 from qutip.random_objects import rand_dm, rand_ket
+
+
+def test_wigner_bell1_su2parity():
+    """wigner: testing the SU2 parity of the first Bell state.
+    """
+    psi = bell_state('00')
+
+    steps = 25
+    theta = np.tile(np.linspace(0, np.pi, steps), 2).reshape(2, steps)
+    phi = np.tile(np.linspace(0, 2 * np.pi, steps), 2).reshape(2, steps)
+    slicearray = ['l', 'l']
+
+    wigner_analyt = np.zeros((steps, steps))
+    for t in range(steps):
+        for p in range(steps):
+            wigner_analyt[t, p] = np.real(((1 + np.sqrt(3)
+                                            * np.cos(theta[0, t]))
+                                           * (1 + np.sqrt(3)
+                                           * np.cos(theta[1, t]))
+                                           + 3 * (np.sin(theta[0, t])
+                                           * np.exp(-1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(-1j * phi[1, p])
+                                           + np.sin(theta[0, t])
+                                           * np.exp(1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(1j * phi[1, p]))
+                                           + (1 - np.sqrt(3)
+                                           * np.cos(theta[0, t]))
+                                           * (1 - np.sqrt(3)
+                                           * np.cos(theta[1, t]))) / 8.)
+
+    wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
+
+    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+
+
+@pytest.mark.slow
+def test_wigner_bell4_su2parity():
+    """wigner: testing the SU2 parity of the fourth Bell state.
+    """
+    psi = bell_state('11')
+
+    steps = 25
+    slicearray = ['l', 'l']
+
+    wigner_analyt = np.zeros((steps, steps))
+    for t in range(steps):
+        for p in range(steps):
+            wigner_analyt[t, p] = -0.5
+
+    wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
+
+    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+
+
+@pytest.mark.slow
+def test_wigner_bell4_fullparity():
+    """wigner: testing the parity of the fourth Bell state using the parity of
+    the full space.
+    """
+    psi = bell_state('11')
+
+    steps = 25
+    slicearray = ['l', 'l']
+
+    wigner_analyt = np.zeros((steps, steps))
+    for t in range(steps):
+        for p in range(steps):
+            wigner_analyt[t, p] = -0.30901699
+
+    print("wigner anal: ", wigner_analyt)
+    wigner_theo = wigner_transform(psi, 0.5, True, steps, slicearray)
+
+    print("wigner theo: ", wigner_theo)
+    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-4)
+
+
+def test_parity():
+    """wigner: testing the parity function.
+    """
+    j = 0.5
+    assert_(_parity(2, j)[0, 0] - (1 - np.sqrt(3)) / 2. < 1e-11)
+    assert_(_parity(2, j)[0, 1] < 1e-11)
+    assert_(_parity(2, j)[1, 1] - (1 + np.sqrt(3)) / 2. < 1e-11)
+    assert_(_parity(2, j)[1, 0] < 1e-11)
+
+
+@pytest.mark.slow
+def test_wigner_pure_su2():
+    """wigner: testing the SU2 wigner transformation of a pure state.
+    """
+    psi = (ket([1]))
+    steps = 25
+    theta = np.linspace(0, np.pi, steps)
+    phi = np.linspace(0, 2 * np.pi, steps)
+    theta = theta[None, :]
+    phi = phi[None, :]
+    slicearray = ['l']
+
+    wigner_analyt = np.zeros((steps, steps))
+    for t in range(steps):
+        for p in range(steps):
+            wigner_analyt[t, p] = (1 + np.sqrt(3) * np.cos(theta[0, t])) / 2.
+
+    wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
+
+    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+
+
+@pytest.mark.slow
+def test_wigner_ghz_su2parity():
+    """wigner: testing the SU2 wigner transformation of the GHZ state.
+    """
+    psi = (ket([0, 0, 0]) + ket([1, 1, 1])) / np.sqrt(2)
+
+    steps = 25
+    N = 3
+    theta = np.tile(np.linspace(0, np.pi, steps), N).reshape(N, steps)
+    phi = np.tile(np.linspace(0, 2 * np.pi, steps), N).reshape(N, steps)
+    slicearray = ['l', 'l', 'l']
+
+    wigner_analyt = np.zeros((steps, steps))
+    for t in range(steps):
+        for p in range(steps):
+            wigner_analyt[t, p] = np.real(((1 + np.sqrt(3)*np.cos(theta[0, t]))
+                                           * (1 + np.sqrt(3)
+                                           * np.cos(theta[1, t]))
+                                           * (1 + np.sqrt(3)
+                                           * np.cos(theta[2, t]))
+                                           + 3**(3 / 2) * (np.sin(theta[0, t])
+                                           * np.exp(-1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(-1j * phi[1, p])
+                                           * np.sin(theta[2, t])
+                                           * np.exp(-1j * phi[2, p])
+                                           + np.sin(theta[0, t])
+                                           * np.exp(1j * phi[0, p])
+                                           * np.sin(theta[1, t])
+                                           * np.exp(1j * phi[1, p])
+                                           * np.sin(theta[2, t])
+                                           * np.exp(1j * phi[2, p]))
+                                           + (1 - np.sqrt(3)
+                                           * np.cos(theta[0, t]))
+                                           * (1 - np.sqrt(3)
+                                           * np.cos(theta[1, t]))
+                                           * (1 - np.sqrt(3)
+                                           * np.cos(theta[2, t]))) / 16.)
+
+    wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
+
+    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+
+
+@pytest.mark.slow
+def test_angle_slicing():
+    """wigner: tests angle slicing.
+    """
+    psi1 = bell_state('00')
+    psi2 = bell_state('01')
+    psi3 = bell_state('10')
+    psi4 = bell_state('11')
+
+    steps = 25
+    j = 0.5
+
+    wigner1 = wigner_transform(psi1, j, False, steps, ['l', 'l'])
+    wigner2 = wigner_transform(psi2, j, False, steps, ['l', 'z'])
+    wigner3 = wigner_transform(psi3, j, False, steps, ['l', 'x'])
+    wigner4 = wigner_transform(psi4, j, False, steps, ['l', 'y'])
+
+    assert_(np.sum(np.abs(wigner2 - wigner1)) < 1e-11)
+    assert_(np.sum(np.abs(wigner3 - wigner2)) < 1e-11)
+    assert_(np.sum(np.abs(wigner4 - wigner3)) < 1e-11)
+    assert_(np.sum(np.abs(wigner4 - wigner1)) < 1e-11)
 
 
 def test_wigner_coherent():

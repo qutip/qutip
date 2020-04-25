@@ -44,7 +44,7 @@ from numpy.testing import (
     assert_, run_module_suite, assert_approx_equal,
     assert_almost_equal
 )
-import scipy
+from numpy.random import rand
 
 from qutip.operators import (
     create, destroy, jmat, identity, qdiags, sigmax, sigmay, sigmaz, qeye
@@ -57,12 +57,13 @@ from qutip.random_objects import (
 )
 from qutip.qobj import Qobj
 from qutip.superop_reps import to_super, to_choi
-from qutip.qip.gates import hadamard_transform, swap
+from qutip.qip.operations.gates import hadamard_transform, swap
+from qutip.tensor import tensor
 from qutip.metrics import *
 
 import qutip.settings
 
-
+import platform
 import unittest
 
 try:
@@ -73,9 +74,15 @@ except:
 
 # Disable dnorm tests if MKL is present (see Issue #484).
 if qutip.settings.has_mkl:
-    dnorm_test = unittest.skipIf(True, "Known failure; CVXPY/MKL incompatibility.")
+    dnorm_test = unittest.skipIf(True,
+                                 "Known failure; CVXPY/MKL incompatibility.")
 else:
     dnorm_test = unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+
+#FIXME: Try to resolve the average_gate_fidelity issues on MACOS
+avg_gate_fidelity_test = unittest.skipIf(platform.system().startswith("Darwin"),
+                "average_gate_fidelity tests were failing on MacOS "
+                "as of July 2019.")
 
 """
 A test class for the metrics and pseudo-metrics included with QuTiP.
@@ -237,13 +244,91 @@ def test_tracedist3():
         assert_(1-F**2 <= D)
 
 
+def test_hellinger_corner():
+    """
+    Metrics: Hellinger dist.: check corner cases:
+    same states, orthogonal states
+    """
+    orth1 = basis(40, 1)
+    orth2 = basis(40, 3)
+    orth3 = basis(40, 38)
+    s2 = np.sqrt(2.0)
+    assert_almost_equal(hellinger_dist(orth1, orth2), s2)
+    assert_almost_equal(hellinger_dist(orth2, orth3), s2)
+    assert_almost_equal(hellinger_dist(orth3, orth1), s2)
+    for _ in range(10):
+        ket = rand_ket(25, 0.25)
+        rho = rand_dm(18, 0.75)
+        assert_almost_equal(hellinger_dist(ket, ket), 0.)
+        assert_almost_equal(hellinger_dist(rho, rho), 0.)
+
+
+def test_hellinger_pure():
+    """
+    Metrics: Hellinger dist.: check against a simple
+    expression which applies to pure states
+    """
+    for _ in range(10):
+        ket1 = rand_ket(25, 0.25)
+        ket2 = rand_ket(25, 0.25)
+        hellinger = hellinger_dist(ket1, ket2)
+        sqr_overlap = np.square(np.abs(ket1.overlap(ket2)))
+        simple_expr = np.sqrt(2.0*(1.0-sqr_overlap))
+        assert_almost_equal(hellinger, simple_expr)
+
+
+def test_hellinger_inequality():
+    """
+    Metrics: Hellinger dist.: check whether Hellinger
+    distance is indeed larger than Bures distance
+    """
+    for _ in range(10):
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        hellinger = hellinger_dist(rho1, rho2)
+        bures = bures_dist(rho1, rho2)
+        assert_(hellinger >= bures)
+        ket1 = rand_ket(40, 0.25)
+        ket2 = rand_ket(40, 0.25)
+        hellinger = hellinger_dist(ket1, ket2)
+        bures = bures_dist(ket1, ket2)
+        assert_(hellinger >= bures)
+
+
+def test_hellinger_monotonicity():
+    """
+    Metrics: Hellinger dist.: check monotonicity
+    w.r.t. tensor product, see. Eq. (45) in
+    arXiv:1611.03449v2:
+    hellinger_dist(rhoA*rhoB, sigmaA*sigmaB)>=
+    hellinger_dist(rhoA, sigmaA)
+    with equality iff sigmaB=rhoB
+    """
+    for _ in range(10):
+        rhoA = rand_dm(8, 0.5)
+        sigmaA = rand_dm(8, 0.5)
+        rhoB = rand_dm(8, 0.5)
+        sigmaB = rand_dm(8, 0.5)
+        hellA = hellinger_dist(rhoA, sigmaA)
+        hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
+                                     tensor(sigmaA, sigmaB))
+        #inequality when sigmaB!=rhoB
+        assert_(hell_tensor >= hellA)
+        #equality iff sigmaB=rhoB
+        rhoB = sigmaB
+        hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
+                                     tensor(sigmaA, sigmaB))
+        assert_almost_equal(hell_tensor, hellA)
+
+
 def rand_super():
     h_5 = rand_herm(5)
-    return propagator(h_5, scipy.rand(), [
+    return propagator(h_5, rand(), [
         create(5), destroy(5), jmat(2, 'z')
     ])
 
 
+@avg_gate_fidelity_test
 def test_average_gate_fidelity():
     """
     Metrics: Check avg gate fidelities for random
@@ -253,6 +338,7 @@ def test_average_gate_fidelity():
         assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
     assert_(0 <= average_gate_fidelity(rand_super()) <= 1)
 
+@avg_gate_fidelity_test
 def test_average_gate_fidelity_target():
     """
     Metrics: Tests that for random unitaries U, AGF(U, U) = 1.
@@ -391,7 +477,7 @@ def test_dnorm_qubit_known_cases():
     # Finally, we add a known case from Johnston's QETLAB documentation,
     # || Phi - I ||,_♢ where Phi(X) = UXU⁺ and U = [[1, 1], [-1, 1]] / sqrt(2).
     yield case, Qobj([[1, 1], [-1, 1]]) / np.sqrt(2), qeye(2), np.sqrt(2)
-    
+
 
 @dnorm_test
 def test_dnorm_qubit_scalar():
