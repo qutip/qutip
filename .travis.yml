@@ -1,7 +1,7 @@
 # After changing this file, check it on:
 #   http://lint.travis-ci.org/
 
-stage_generic_linux: &stage_generic_linux
+_stage_generic_linux: &stage_generic_linux
   os: linux
   language: python
   # change dir
@@ -24,19 +24,25 @@ stage_generic_linux: &stage_generic_linux
     - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
-stage_linux_36: &stage_linux_36
+_stage_linux_36: &stage_linux_36
   <<: *stage_generic_linux
   name: "Python 3.6"
   dist: trusty
   python: 3.6
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
 
-stage_linux_37: &stage_linux_37
+_stage_linux_37: &stage_linux_37
   <<: *stage_generic_linux
   name: "Python 3.7"
   dist: xenial
   python: 3.7
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
 
-stage_linux_38: &stage_linux_38
+_stage_linux_38: &stage_linux_38
   <<: *stage_generic_linux
   name: "Python 3.8"
   dist: xenial
@@ -53,11 +59,11 @@ stage_linux_38: &stage_linux_38
     - conda install numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
-stage_linux_37_no_cython: &stage_linux_37_no_cython
+_stage_linux_no_cython: &stage_linux_no_cython
   <<: *stage_generic_linux
-  name: "Python 3.7 no cython"
+  name: "Python 3.6 no cython, openblas"
   dist: xenial
-  python: 3.7
+  python: 3.6
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -73,11 +79,11 @@ stage_linux_37_no_cython: &stage_linux_37_no_cython
     - python setup.py install
     - conda uninstall cython
 
-stage_linux_37_openblas: &stage_linux_37_openblas
+_stage_linux_38_openblas: &stage_linux_38_openblas
   <<: *stage_generic_linux
-  name: "Python 3.7 OpenBLAS"
+  name: "Python 3.8 OpenBLAS"
   dist: xenial
-  python: 3.7
+  python: 3.8
   install:
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -90,9 +96,9 @@ stage_linux_37_openblas: &stage_linux_37_openblas
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
-stage_linux_37_omp: &stage_linux_37_omp
+_stage_linux_omp: &stage_linux_omp
   <<: *stage_generic_linux
-  name: "Python 3.7 OpenMP"
+  name: "Python 3.7 OpenMP, mkl"
   dist: xenial
   python: 3.7
   install:
@@ -109,7 +115,7 @@ stage_linux_37_omp: &stage_linux_37_omp
   after_success:
     - coveralls
 
-stage_osx: &stage_osx
+_stage_osx_37: &stage_osx_37
   os: osx
   name: "Python 3.7, OSX 10.13, XCode 10"
   osx_image: xcode10
@@ -135,20 +141,44 @@ stage_osx: &stage_osx
     - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
     - python setup.py install
 
+_stage_osx_38: &stage_osx_38
+  os: osx
+  name: "Python 3.8, OSX 10.13, XCode 10"
+  osx_image: xcode10
+  language: generic
+  # change dir
+  before_script:
+    - mkdir qutip_testing
+    - cd qutip_testing
+  # command to run tests
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=3.8
+    - source activate test-environment
+    # - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - python setup.py install
+
 stages:
   - test
 
 jobs:
   include:
     - stage: test
-      <<: *stage_linux_36
+      <<: *stage_linux_38
     - stage: test
-      <<: *stage_linux_37
+      <<: *stage_linux_omp
     - stage: test
-      <<: *stage_linux_37_omp
+      <<: *stage_linux_no_cython
     - stage: test
-      <<: *stage_linux_37_no_cython
+      <<: *stage_osx_37
     - stage: test
-      <<: *stage_linux_37_openblas
-    - stage: test
-      <<: *stage_osx
+      <<: *stage_osx_38
