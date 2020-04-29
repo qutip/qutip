@@ -34,6 +34,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
+from cpython.exc cimport PyErr_CheckSignals
 from libc.math cimport fabs
 from qutip.cy.cqobjevo cimport CQobjEvo
 from qutip.cy.brtools cimport ZHEEVR
@@ -526,6 +527,7 @@ cdef class StochasticSolver:
         measurements = np.zeros((len(times), len(sso.cm_ops)), dtype=complex)
         states_list = []
         for t_idx, t in enumerate(times):
+            PyErr_CheckSignals()
             if sso.ce_ops:
                 for e_idx, e in enumerate(sso.ce_ops):
                     s = e.compiled_qobjevo.expect(t, rho_t)

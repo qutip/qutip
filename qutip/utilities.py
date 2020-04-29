@@ -112,11 +112,11 @@ def linspace_with(start, stop, num=50, elems=[]):
 
 
 def _factorial_prod(N, arr):
-    arr[:N] += 1
+    arr[:int(N)] += 1
 
 
 def _factorial_div(N, arr):
-    arr[:N] -= 1
+    arr[:int(N)] -= 1
 
 
 def _to_long(arr):
@@ -161,7 +161,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     vmin = int(np.max([-j1 + j2 + m3, -j1 + m1, 0]))
     vmax = int(np.min([j2 + j3 + m1, j3 - j1 + j2, j3 + m3]))
 
-    c_factor = np.zeros((j1 + j2 + j3 + 1), np.int32)
+    c_factor = np.zeros((int(j1 + j2 + j3 + 1)), np.int32)
     _factorial_prod(j3 + j1 - j2, c_factor)
     _factorial_prod(j3 - j1 + j2, c_factor)
     _factorial_prod(j1 + j2 - j3, c_factor)
@@ -174,7 +174,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     _factorial_div(j2 + m2, c_factor)
     C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
 
-    s_factors = np.zeros(((vmax + 1 - vmin), (j1 + j2 + j3)), np.int32)
+    s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     sign = (-1) ** (vmin + j2 + m2)
     for i,v in enumerate(range(vmin, vmax + 1)):
         factor = s_factors[i,:]

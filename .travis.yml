@@ -59,6 +59,7 @@ _stage_linux_38: &stage_linux_38
     - conda install numpy scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
+
 _stage_linux_no_cython: &stage_linux_no_cython
   <<: *stage_generic_linux
   name: "Python 3.6 no cython, openblas"
