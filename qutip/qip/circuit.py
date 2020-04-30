@@ -438,7 +438,7 @@ class QubitCircuit:
                     break
 
         elif name is not None and remove == "all":
-            for i in range(len(self.gates)):
+            for i in reversed(range(len(self.gates))):
                 if name == self.gates[i].name:
                     self.gates.pop(i)
 
