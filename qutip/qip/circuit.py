@@ -414,7 +414,9 @@ class QubitCircuit:
         remove : string
             If first or all gate are to be removed.
         """
-        if index is not None and index <= len(self.gates):
+        if index is not None:
+            if index > len(self.gates):
+                raise ValueError("Index exceeds number of gates.")
             if end is not None and end <= len(self.gates):
                 for i in range(end - index):
                     self.gates.pop(index + i)
@@ -422,8 +424,6 @@ class QubitCircuit:
                 raise ValueError("End target exceeds number of gates.")
             else:
                 self.gates.pop(index)
-        else:
-            raise ValueError("Index exceeds number of gates.")
 
         elif name is not None and remove == "first":
             for gate in self.gates:
