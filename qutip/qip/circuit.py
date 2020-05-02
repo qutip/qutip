@@ -461,7 +461,7 @@ class QubitCircuit:
 
         return temp
 
-    def _gate_to_function(self, gate, temp_resolved, basis_1q, basis_2q):
+    def _resolve_to_universal(self, gate, temp_resolved, basis_1q, basis_2q):
         """A dispatch method"""
         if gate.name in basis_2q:
             method = getattr(self, '_gate_basis_2q')
@@ -695,7 +695,7 @@ class QubitCircuit:
                                   gate.controls,
                                   gate.arg_value, gate.arg_label))
 
-    def _basis_to_function(self, basis, qc_temp, temp_resolved):
+    def _resolve_2q_basis(self, basis, qc_temp, temp_resolved):
         """Dispatch method"""
         method = getattr(self, '_basis_' + str(basis), temp_resolved)
         method(qc_temp, temp_resolved)
@@ -836,6 +836,10 @@ class QubitCircuit:
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right in the specified
         basis.
+        Calls '_resolve_to_universal' for each gate, this function maps 
+        each 'GATENAME' with its corresponding '_gate_basis_2q'
+        Subsequently calls _resolve_2q_basis for each basis, this function maps
+        each '2QGATENAME' with its corresponding '_basis_'
         Parameters
         ----------
         basis : list.
@@ -878,17 +882,17 @@ class QubitCircuit:
 
         for gate in self.gates:
             try:
-                self._gate_to_function(gate, temp_resolved,
+                self._resolve_to_universal(gate, temp_resolved,
                                        basis_1q, basis_2q)
             except AttributeError:
                 exception = f"Gate {gate.name} cannot be resolved."
                 raise NotImplementedError(exception)
 
         match = False
-        for basis in ["CSIGN", "ISWAP", "SQRTSWAP", "SQRTISWAP"]:
-            if basis in basis_2q:
+        for basis_unit in ["CSIGN", "ISWAP", "SQRTSWAP", "SQRTISWAP"]:
+            if basis_unit in basis_2q:
                 match = True
-                self._basis_to_function(basis, qc_temp, temp_resolved)
+                self._resolve_2q_basis(basis_unit, qc_temp, temp_resolved)
                 break
         if not match:
             qc_temp.gates = temp_resolved
@@ -896,8 +900,8 @@ class QubitCircuit:
         if len(basis_1q) == 2:
             temp_resolved = qc_temp.gates
             qc_temp.gates = []
+            half_pi = np.pi / 2
             for gate in temp_resolved:
-                half_pi = np.pi / 2
                 if gate.name == "RX" and "RX" not in basis_1q:
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
                                               arg_value=-half_pi,
