@@ -223,7 +223,7 @@ class Pulse():
 
     """
     def __init__(self, qobj, targets, tlist=None, coeff=None,
-                 spline_kind=None, label=None):
+                 spline_kind=None, label=""):
         self.spline_kind = spline_kind
         self.ideal_pulse = _EvoElement(qobj, targets, tlist, coeff)
         self.coherent_noise = []

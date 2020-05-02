@@ -163,10 +163,11 @@ class SpinChain(ModelProcessor):
         The coefficient of sxsy is defined in the submethods.
         All parameters will be multiplied by 2*pi for simplicity
         """
-        sx_para = super(SpinChain, self)._para_list(sx, self.N)
-        self._paras["sx"] = sx_para
-        sz_para = super(SpinChain, self)._para_list(sz, self.N)
-        self._paras["sz"] = sz_para
+        to_array = super(SpinChain, self).to_array
+        sx_para = 2 * np.pi * to_array(sx, self.N)
+        self._params["sx"] = sx_para
+        sz_para = 2 * np.pi * to_array(sz, self.N)
+        self._params["sz"] = sz_para
 
     @property
     def sx_ops(self):
@@ -217,13 +218,11 @@ class SpinChain(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
 
-        dec = SpinChainCompiler(
-            self.N, self._paras, setup=setup,
+        compiler = SpinChainCompiler(
+            self.N, self._params, setup=setup,
             global_phase=0., num_ops=len(self.ctrls))
-        tlist, self.coeffs, self.global_phase = dec.decompose(gates)
-        for i in range(len(self.pulses)):
-            self.pulses[i].tlist = tlist
-
+        tlist, self.coeffs, self.global_phase = compiler.decompose(gates)
+        self.set_all_tlist(tlist)
         return tlist, self.coeffs
 
     def adjacent_gates(self, qc, setup="linear"):
@@ -512,8 +511,8 @@ class LinearSpinChain(SpinChain):
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
         super(LinearSpinChain, self).set_up_params(sx, sz)
-        sxsy_para = self._para_list(sxsy, self.N-1)
-        self._paras["sxsy"] = sxsy_para
+        sxsy_para = 2 * np.pi * self.to_array(sxsy, self.N-1)
+        self._params["sxsy"] = sxsy_para
 
     @property
     def sxsy_ops(self):
@@ -589,8 +588,8 @@ class CircularSpinChain(SpinChain):
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
         super(CircularSpinChain, self).set_up_params(sx, sz)
-        sxsy_para = self._para_list(sxsy, self.N)
-        self._paras["sxsy"] = sxsy_para
+        sxsy_para = 2 * np.pi * self.to_array(sxsy, self.N)
+        self._params["sxsy"] = sxsy_para
 
     @property
     def sxsy_ops(self):

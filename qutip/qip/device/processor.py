@@ -143,7 +143,8 @@ class Processor(object):
 
     def add_drift(self, qobj, targets, cyclic_permutation=False):
         """
-        Add one Hamiltonian to the drift Hamiltonians
+        Add a drift Hamiltonians. The drift Hamiltonians are intrinsic
+        of the quantum system and cannot be controlled by external field.
 
         Parameters
         ----------
@@ -222,7 +223,7 @@ class Processor(object):
     @property
     def ctrls(self):
         """
-        list: A list of Hamiltonian of all pulses.
+        A list of Hamiltonians of all pulses.
         """
         result = []
         for pulse in self.pulses:
@@ -250,8 +251,8 @@ class Processor(object):
     def get_full_tlist(self):
         """
         Return the full tlist of the ideal pulses.
-        It means that if different `tlist`s are present, they will be merged
-        to one with all time points stored in a sorted array.
+        If different pulses have different time steps,
+        it will collect all the time steps in a sorted array.
 
         Returns
         -------
@@ -285,15 +286,15 @@ class Processor(object):
         full_tlist = self.get_full_tlist()
         coeffs_list = []
         for pulse in self.pulses:
+            if not isinstance(pulse.coeff, (bool, np.ndarray)):
+                raise ValueError(
+                    "get_full_coeffs only works for "
+                    "NumPy array or bool coeff.")
             if isinstance(pulse.coeff, bool):
                 if pulse.coeff:
                     coeffs_list.append(np.ones(full_tlist))
                 else:
                     coeffs_list.append(np.zeros(full_tlist))
-            if not isinstance(pulse.coeff, np.ndarray):
-                raise ValueError(
-                    "get_full_coeffs only works for "
-                    "NumPy array or bool coeff.")
             if self.spline_kind == "step_func":
                 arg = {"_step_func_coeff": True}
                 coeffs_list.append(
@@ -306,10 +307,8 @@ class Processor(object):
         return np.array(coeffs_list)
 
     def set_all_tlist(self, tlist):
-        # TODO add tests
         """
-        Set `tlist` for all the pulses. It can be used to set `tlist` if
-        all pulses are controlled by the same time sequence.
+        Set the same `tlist` for all the pulses.
 
         Parameters
         ----------
@@ -336,7 +335,7 @@ class Processor(object):
         else:
             raise ValueError("Invalid input, pulse must be a Pulse object")
 
-    def remove_pulse(self, indices):
+    def remove_pulse(self, indices=None, label=None):
         """
         Remove the control pulse with given indices.
 
@@ -344,12 +343,19 @@ class Processor(object):
         ----------
         indices: int or list of int
             The indices of the control Hamiltonians to be removed.
+        label: str
+            The label of the pulse
         """
-        if not isinstance(indices, Iterable):
-            indices = [indices]
-        indices.sort(reverse=True)
-        for ind in indices:
-            del self.pulses[ind]
+        if indices is not None:
+            if not isinstance(indices, Iterable):
+                indices = [indices]
+            indices.sort(reverse=True)
+            for ind in indices:
+                del self.pulses[ind]
+        else:
+            for ind, pulse in enumerate(self.pulses):
+                if pulse.label == label:
+                    del self.pulses[ind]
 
     def _is_pulses_valid(self):
         """
@@ -419,8 +425,6 @@ class Processor(object):
             True if the time list should be included in the first column.
         """
         self._is_pulses_valid()
-        # TODO this works only for step_func
-        # TODO replace this by get_complete_coeffs
         coeffs = np.array(self.get_full_coeffs())
         if inctime:
             shp = coeffs.T.shape
@@ -485,7 +489,6 @@ class Processor(object):
         noisy_pulses: list of :class"`qutip.qip.Pulse`/:class:`qutip.qip.Drift`
             A list of noisy pulses.
         """
-        # TODO add tests
         pulses = deepcopy(self.pulses)
         noisy_pulses = process_noise(
             pulses, self.noise, self.dims, t1=self.t1, t2=self.t2,
@@ -571,14 +574,13 @@ class Processor(object):
             An instance of the class
             :class:`qutip.Result` will be returned.
         """
-        # TODO change init_state to init_state
         if init_state is not None:
             U_list = [init_state]
         else:
             U_list = []
         tlist = self.get_full_tlist()
         # TODO replace this by get_complete_coeff
-        coeffs = np.array(self.coeffs)
+        coeffs = self.get_full_coeffs()
         for n in range(len(tlist)-1):
             H = sum([coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
@@ -622,9 +624,10 @@ class Processor(object):
         calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
         given as keyword arguments.
+
         If `analytical` is True, calculate the propagator
         with matrix exponentiation and return a list of matrices.
-        Noise will be neglected in this choice.
+        Noise will be neglected in this option.
 
         Parameters
         ----------

@@ -90,16 +90,16 @@ class ModelProcessor(Processor):
         super(ModelProcessor, self).__init__(N, t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
         self.global_phase = 0.
-        self._paras = {}
+        self._params = {}
 
-    def _para_list(self, para, N):
+    def to_array(self, params, N):
         """
-        Transfer a parameter to list form and multiplied by 2*pi.
+        Transfer a parameter to an array.
         """
-        if isinstance(para, numbers.Real):
-            return [para * 2 * np.pi] * N
-        elif isinstance(para, Iterable):
-            return [c * 2 * np.pi for c in para]
+        if isinstance(params, numbers.Real):
+            return np.asarray([params] * N)
+        elif isinstance(params, Iterable):
+            return np.asarray(params)
 
     def set_up_params(self):
         """
@@ -114,7 +114,7 @@ class ModelProcessor(Processor):
 
     @property
     def params(self):
-        return self._paras
+        return self._params
 
     @params.setter
     def params(self, par):

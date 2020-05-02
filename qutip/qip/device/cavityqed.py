@@ -75,10 +75,10 @@ class DispersiveCavityQED(ModelProcessor):
         The number of energy levels in the resonator.
 
     deltamax: int or list, optional
-        The sigma-x paraicient for each of the qubits in the system.
+        The coefficients of sigma-x for each of the qubits in the system.
 
     epsmax: int or list, optional
-        The sigma-z paraicient for each of the qubits in the system.
+        The coefficients of sigma-z for each of the qubits in the system.
 
     w0: int, optional
         The base frequency of the resonator.
@@ -126,7 +126,7 @@ class DispersiveCavityQED(ModelProcessor):
         eps and delta for each qubit.
 
     Delta: list of float
-        The detuning with repect to w0 calculated
+        The detuning with respect to w0 calculated
         from wq and w0 for each qubit.
     """
 
@@ -140,7 +140,7 @@ class DispersiveCavityQED(ModelProcessor):
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
         self.num_levels = num_levels
-        self._paras = {}
+        self._params = {}
         self.set_up_params(
             N=N, num_levels=num_levels, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
@@ -148,12 +148,6 @@ class DispersiveCavityQED(ModelProcessor):
         self.set_up_ops(N)
         self.dims = [num_levels] + [2] * N
 
-    @property
-    def ctrls(self):
-        result = []
-        for pulse in self.pulses:
-            result.append(pulse.get_ideal_qobj(self.dims))
-        return result
 
     def set_up_ops(self, N):
         """
@@ -166,9 +160,9 @@ class DispersiveCavityQED(ModelProcessor):
             The number of qubits in the system.
         """
         # single qubit terms
-        self.a = tensor(destroy(self.num_levels))
+        a = tensor(destroy(self.num_levels))
         self.pulses.append(
-            Pulse(self.a.dag() * self.a, [0], spline_kind=self.spline_kind))
+            Pulse(a.dag() * a, [0], spline_kind=self.spline_kind))
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
@@ -186,9 +180,6 @@ class DispersiveCavityQED(ModelProcessor):
                 Pulse(a_full.dag() * sm + a_full * sm.dag(),
                       list(range(N+1)), spline_kind=self.spline_kind))
 
-        self.psi_proj = tensor([basis(self.num_levels, 0)] +
-                               [identity(2) for n in range(N)])
-
     def set_up_params(
             self, N, num_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
@@ -204,10 +195,10 @@ class DispersiveCavityQED(ModelProcessor):
             The number of energy levels in the resonator.
 
         deltamax: list
-            The sigma-x paraicient for each of the qubits in the system.
+            The coefficients of sigma-x for each of the qubits in the system.
 
         epsmax: list
-            The sigma-z paraicient for each of the qubits in the system.
+            The coefficients of sigma-z for each of the qubits in the system.
 
         wo: int
             The base frequency of the resonator.
@@ -228,18 +219,19 @@ class DispersiveCavityQED(ModelProcessor):
         -----
         All parameters will be multiplied by 2*pi for simplicity
         """
-        sx_para = super(DispersiveCavityQED, self)._para_list(deltamax, N)
-        self._paras["sx"] = sx_para
-        sz_para = super(DispersiveCavityQED, self)._para_list(epsmax, N)
-        self._paras["sz"] = sz_para
-        w0 = w0 * 2 * np.pi
-        self._paras["w0"] = w0
-        eps = super(DispersiveCavityQED, self)._para_list(eps, N)
-        self._paras["eps"] = eps
-        delta = super(DispersiveCavityQED, self)._para_list(delta, N)
-        self._paras["delta"] = delta
-        g = super(DispersiveCavityQED, self)._para_list(g, N)
-        self._paras["g"] = g
+        to_array = super(DispersiveCavityQED, self).to_array
+        sx_para = 2 * np.pi * to_array(deltamax, N)
+        self._params["sx"] = sx_para
+        sz_para = 2 * np.pi * to_array(epsmax, N)
+        self._params["sz"] = sz_para
+        w0 = 2 * np.pi * w0
+        self._params["w0"] = w0
+        eps = 2 * np.pi * to_array(eps, N)
+        self._params["eps"] = eps
+        delta = 2 * np.pi * to_array(delta, N)
+        self._params["delta"] = delta
+        g = 2 * np.pi * to_array(g, N)
+        self._params["g"] = g
 
         # computed
         self.wq = [np.sqrt(eps[i]**2 + delta[i]**2) for i in range(N)]
@@ -311,7 +303,9 @@ class DispersiveCavityQED(ModelProcessor):
         """
         Eliminate the auxillary modes like the cavity modes in cqed.
         """
-        return self.psi_proj.dag() * U * self.psi_proj
+        psi_proj = tensor([basis(self.num_levels, 0)] +
+                               [identity(2) for n in range(self.N)])
+        return psi_proj.dag() * U * psi_proj
 
     def load_circuit(self, qc):
         """
@@ -334,17 +328,9 @@ class DispersiveCavityQED(ModelProcessor):
             one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
-
-        dec = CavityQEDCompiler(
-            self.N, self._paras, self.wq, self.Delta,
+        compiler = CavityQEDCompiler(
+            self.N, self._params, self.wq, self.Delta,
             global_phase=0., num_ops=len(self.ctrls))
-        tlist, self.coeffs, self.global_phase = dec.decompose(gates)
-        for i in range(len(self.pulses)):
-            self.pulses[i].tlist = tlist
-        # TODO The amplitude of the first control a.dag()*a
-        # was set to zero before I made this refactoring.
-        # It is probably due to the fact that
-        # it contributes only a constant (N) and can be neglected.
-        # but change the below line to np.ones leads to test error.
-        self.coeffs[0] = self._paras["w0"] * np.zeros(len(tlist))
+        tlist, self.coeffs, self.global_phase = compiler.decompose(gates)
+        self.set_all_tlist(tlist)
         return tlist, self.coeffs
