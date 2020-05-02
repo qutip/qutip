@@ -836,7 +836,7 @@ class QubitCircuit:
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right in the specified
         basis.
-        Calls '_resolve_to_universal' for each gate, this function maps 
+        Calls '_resolve_to_universal' for each gate, this function maps
         each 'GATENAME' with its corresponding '_gate_basis_2q'
         Subsequently calls _resolve_2q_basis for each basis, this function maps
         each '2QGATENAME' with its corresponding '_basis_'
@@ -883,7 +883,7 @@ class QubitCircuit:
         for gate in self.gates:
             try:
                 self._resolve_to_universal(gate, temp_resolved,
-                                       basis_1q, basis_2q)
+                                           basis_1q, basis_2q)
             except AttributeError:
                 exception = f"Gate {gate.name} cannot be resolved."
                 raise NotImplementedError(exception)
