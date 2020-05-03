@@ -330,6 +330,19 @@ class TestCircuitProcessor:
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)
         assert_equal(ideal_qobjevo.cte, sigmaz())
 
+    def TestChooseSolver(self):
+        # setup and fidelity without noise
+        init_state = qubit_states(2, [0, 0, 0, 0])
+        tlist = np.array([0., np.pi/2.])
+        a = destroy(2)
+        proc = Processor(N=2)
+        proc.add_control(sigmax(), targets=1)
+        proc.pulses[0].tlist = tlist
+        proc.pulses[0].coeff = np.array([1])
+        result = proc.run_state(init_state=init_state, solver="mcsolve")
+        assert_allclose(
+            fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
+            1, rtol=1.e-7) 
 
 if __name__ == "__main__":
     run_module_suite()

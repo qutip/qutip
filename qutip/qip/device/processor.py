@@ -43,6 +43,7 @@ from qutip.operators import identity
 from qutip.qip.operations.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
+from qutip.mcsolve import mcsolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
@@ -618,7 +619,7 @@ class Processor(object):
         return self.run_analytically(qc=qc, init_state=None)
 
     def run_state(self, init_state=None, analytical=False, states=None,
-                  noisy=True, **kwargs):
+                  noisy=True, solver="mesolve", **kwargs):
         """
         If `analytical` is False, use :func:`qutip.mesolve` to
         calculate the time of the state evolution
@@ -639,6 +640,9 @@ class Processor(object):
 
         states: :class:`qutip.Qobj`, optional
             Old API, same as init_state.
+
+        solver: str
+            "mesolve" or "mcsolve"
 
         **kwargs
             Keyword arguments for the qutip solver.
@@ -691,6 +695,12 @@ class Processor(object):
                 kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
+
+        # choose solver:
+        if solver == "mesolve":
+            solver = mesolve
+        elif solver == "mcsolve":
+            solver = mcsolve
 
         evo_result = mesolve(
             H=noisy_qobjevo, rho0=init_state,
