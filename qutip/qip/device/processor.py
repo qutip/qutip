@@ -266,7 +266,7 @@ class Processor(object):
             return None
         return np.unique(np.sort(np.hstack(all_tlists)))
 
-    def get_full_coeffs(self):
+    def get_full_coeffs(self, full_tlist=None):
         """
         Return the full coefficients in a 2d matrix form.
         Each row corresponds to one pulse. If the `tlist` are
@@ -284,7 +284,8 @@ class Processor(object):
         self._is_pulses_valid()
         if not self.pulses:
             return np.array((0, 0), dtype=float)
-        full_tlist = self.get_full_tlist()
+        if full_tlist is None:
+            full_tlist = self.get_full_tlist()
         coeffs_list = []
         for pulse in self.pulses:
             if not isinstance(pulse.coeff, (bool, np.ndarray)):
@@ -721,15 +722,24 @@ class Processor(object):
         """
         return U
 
-    def plot_pulses(self, title=None, figsize=None, dpi=None):
+    def get_operators_labels(self):
         """
-        Plot the pulse amplitude
+        Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
+        """
+        label_list = []
+        for pulse in self.pulses:
+            label_list.append(pulse.label)
+        return [label_list]
+
+    def plot_pulses(self, title=None, figsize=(12, 6), dpi=None):
+        """
+        Plot the ideal pulse coefficients.
 
         Parameters
         ----------
-        noisy: bool, optional
-            If true, plot the noisy pulses.
-
         title: str
             Title for the plot.
 
@@ -752,32 +762,42 @@ class Processor(object):
         ``plot_pulses`` only works for array_like coefficients
         """
         import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+        color_list = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
-        ax.set_ylabel("Control pulse amplitude")
-        ax.set_xlabel("Time")
+        # create a axis for each pulse
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+        grids = gridspec.GridSpec(len(self.pulses), 1)
+        grids.update(wspace=0., hspace=0.)
 
-        # TODO add test
-        coeffs = self.coeffs
-        tlist = self.get_full_tlist()
+        tlist = np.linspace(0., self.get_full_tlist()[-1], 1000)
+        coeffs = self.get_full_coeffs(tlist)
+        # make sure coeffs start with zero, for ax.fill
+        tlist = np.hstack(([-1.e-20], tlist))
+        coeffs = np.hstack((np.array([[0.]] * len(self.pulses)), coeffs))
 
-        for i in range(len(coeffs)):
-            if not isinstance(coeffs[i], (Iterable, np.ndarray)):
-                raise ValueError(
-                    "plot_pulse only accepts array_like coefficients.")
-            if self.spline_kind == "step_func":
-                if len(coeffs[i]) == len(tlist) - 1:
-                    coeffs[i] = np.hstack(
-                        [coeffs[i], coeffs[i][-1:]])
-                else:
-                    coeffs[i][-1] = coeffs[i][-2]
-                ax.step(tlist, coeffs[i], where='post')
-            elif self.spline_kind == "cubic":
-                sp = CubicSpline(tlist, coeffs[i])
-                t_line = np.linspace(tlist[0], tlist[-1], 200)
-                c_line = [sp(t) for t in t_line]
-                ax.plot(t_line, c_line)
+        pulse_ind = 0
+        for i, label_group in enumerate(self.get_operators_labels()):
+            for label in label_group:
+                grid = grids[pulse_ind]
+                ax = plt.subplot(grid)
+                ax.fill(tlist, coeffs[pulse_ind], color_list[i], alpha=0.7)
+                ax.plot(tlist, coeffs[pulse_ind], color_list[i])
+                ymax = max(np.abs(coeffs[pulse_ind])) * 1.1
+                if ymax != 0.:
+                    ax.set_ylim((-ymax, ymax))
+
+                # disable frame and ticks
+                ax.set_xticks([])
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['bottom'].set_visible(False)
+                ax.spines['left'].set_visible(False)
+                ax.set_yticks([])
+                ax.set_ylabel(label,  rotation=0)
+                pulse_ind += 1
         if title is not None:
             ax.set_title(title)
         fig.tight_layout()
         return fig, ax
+

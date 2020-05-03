@@ -605,7 +605,7 @@ def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
             if t > old_tlist[-1]:
                 new_coeff[new_ind] = 0.
                 continue
-            if old_tlist[old_ind+1] == t:
+            if old_tlist[old_ind+1] <= t:
                 old_ind += 1
             new_coeff[new_ind] = old_coeffs[old_ind]
     else:

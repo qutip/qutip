@@ -524,11 +524,18 @@ class LinearSpinChain(SpinChain):
     def load_circuit(self, qc):
         return super(LinearSpinChain, self).load_circuit(qc, "linear")
 
-    def get_ops_labels(self):
-        return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
-                [r"$\sigma_z^%d$" % n for n in range(self.N)] +
+    def get_operators_labels(self):
+        """
+        Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
+        """
+        return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
+                [r"$\sigma_z^%d$" % n for n in range(self.N)],
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
-                 % (n, n, n + 1, n + 1) for n in range(self.N - 1)])
+                 % (n, n, n + 1, n + 1) for n in range(self.N - 1)],
+                 ])
 
     def adjacent_gates(self, qc):
         return super(LinearSpinChain, self).adjacent_gates(qc, "linear")
@@ -601,12 +608,18 @@ class CircularSpinChain(SpinChain):
     def load_circuit(self, qc):
         return super(CircularSpinChain, self).load_circuit(qc, "circular")
 
-    def get_ops_labels(self):
-        return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
-                [r"$\sigma_z^%d$" % n for n in range(self.N)] +
+    def get_operators_labels(self):
+        """
+        Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
+        """
+        return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
+                [r"$\sigma_z^%d$" % n for n in range(self.N)],
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
                  % (n, n, (n + 1) % self.N, (n + 1) % self.N)
-                 for n in range(self.N)])
+                 for n in range(self.N)]])
 
     def adjacent_gates(self, qc):
         return super(CircularSpinChain, self).adjacent_gates(qc, "circular")

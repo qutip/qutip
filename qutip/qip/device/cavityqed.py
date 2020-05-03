@@ -265,14 +265,16 @@ class DispersiveCavityQED(ModelProcessor):
     def g_u(self):
         return self.coeffs[2*self.N: 3*self.N]
 
-    def get_ops_labels(self):
+    def get_operators_labels(self):
         """
         Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
         """
-        return ([r"$a^\dagger a$"] +
-                [r"$\sigma_x^%d$" % n for n in range(self.N)] +
-                [r"$\sigma_z^%d$" % n for n in range(self.N)] +
-                [r"$g_{%d}$" % (n) for n in range(self.N)])
+        return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
+                 [r"$\sigma_z^%d$" % n for n in range(self.N)],
+                 [r"$g_{%d}$" % (n) for n in range(self.N)]])
 
     def optimize_circuit(self, qc):
         """
