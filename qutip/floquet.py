@@ -613,18 +613,6 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         # inefficient...  make a and b outer loops and use the mesolve
         # instead of the propagator.
 
-        # f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
-        #f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-        #for a in range(N):
-        #    for b in range(N):
-        #        k_idx = 0
-        #        for k in range(-kmax, kmax + 1, 1):
-        #            # [:1,:1][0, 0] patch around scipy 1.3.0 bug
-        #            X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
-        #                (f_modes_t[a].dag() * c_op * f_modes_t[b])[:1, :1][0, 0]
-        #            k_idx += 1
-
-  		#Does the same as before but much faster
         f_modes_t = np.hstack([f.full() for f in floquet_modes_t_lookup(f_modes_table_t, t, T)])
         FF = f_modes_t.T.conj() @ c_op.full() @ f_modes_t
         phi = exp(-1j * np.arange(-kmax, kmax+1) * omega * t)
@@ -715,28 +703,9 @@ def floquet_master_equation_tensor(Alist, f_energies):
     Rdata_lil = scipy.sparse.lil_matrix((N * N, N * N), dtype=complex)
 
     ###
-    # Here there are transposition errors because the paper used in
-    # the documentation is wrong. Moreover line 726 should not be.
+    # Here there were transposition errors because the paper used in
+    # the documentation seemed to have typos.
     ###
-    #for I in range(N * N):
-    #    a, b = vec2mat_index(N, I)
-    #    for J in range(N * N):
-    #        c, d = vec2mat_index(N, J)
-    #
-    #        R = -1.0j * (f_energies[a] - f_energies[b])*(a == c)*(b == d)
-    #        Rdata_lil[I, J] = R
-
-    #        for A in Alist:
-    #            s1 = s2 = 0
-    #            for n in range(N):
-    #                s1 += A[a, n] * (n == c) * (n == d) - A[n, a] * \
-    #                    (a == c) * (a == d)
-    #                s2 += (A[n, a] + A[n, b]) * (a == c) * (b == d)
-
-    #            dR = (a == b) * s1 - 0.5 * (1 - (a == b)) * s2
-
-    #            if dR != 0.0:
-    #                Rdata_lil[I, J] += dR
 
     A = Alist[0]
     R = np.zeros((N,N,N,N))
