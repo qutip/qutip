@@ -163,10 +163,9 @@ class SpinChain(ModelProcessor):
         The coefficient of sxsy is defined in the submethods.
         All parameters will be multiplied by 2*pi for simplicity
         """
-        to_array = super(SpinChain, self).to_array
-        sx_para = 2 * np.pi * to_array(sx, self.N)
+        sx_para = 2 * np.pi * self.to_array(sx, self.N)
         self._params["sx"] = sx_para
-        sz_para = 2 * np.pi * to_array(sz, self.N)
+        sz_para = 2 * np.pi * self.to_array(sz, self.N)
         self._params["sz"] = sz_para
 
     @property

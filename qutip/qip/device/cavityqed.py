@@ -160,24 +160,21 @@ class DispersiveCavityQED(ModelProcessor):
             The number of qubits in the system.
         """
         # single qubit terms
-        a = tensor(destroy(self.num_levels))
-        self.pulses.append(
-            Pulse(a.dag() * a, [0], spline_kind=self.spline_kind))
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
-        # interaction terms
-        a_full = tensor([destroy(self.num_levels)] +
+        # coupling terms
+        a = tensor([destroy(self.num_levels)] +
                         [identity(2) for n in range(N)])
         for n in range(N):
             sm = tensor([identity(self.num_levels)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
             self.pulses.append(
-                Pulse(a_full.dag() * sm + a_full * sm.dag(),
+                Pulse(a.dag() * sm + a * sm.dag(),
                       list(range(N+1)), spline_kind=self.spline_kind))
 
     def set_up_params(
@@ -219,55 +216,54 @@ class DispersiveCavityQED(ModelProcessor):
         -----
         All parameters will be multiplied by 2*pi for simplicity
         """
-        to_array = super(DispersiveCavityQED, self).to_array
-        sx_para = 2 * np.pi * to_array(deltamax, N)
+        sx_para = 2 * np.pi * self.to_array(deltamax, N)
         self._params["sx"] = sx_para
-        sz_para = 2 * np.pi * to_array(epsmax, N)
+        sz_para = 2 * np.pi * self.to_array(epsmax, N)
         self._params["sz"] = sz_para
         w0 = 2 * np.pi * w0
         self._params["w0"] = w0
-        eps = 2 * np.pi * to_array(eps, N)
+        eps = 2 * np.pi * self.to_array(eps, N)
         self._params["eps"] = eps
-        delta = 2 * np.pi * to_array(delta, N)
+        delta = 2 * np.pi * self.to_array(delta, N)
         self._params["delta"] = delta
-        g = 2 * np.pi * to_array(g, N)
+        g = 2 * np.pi * self.to_array(g, N)
         self._params["g"] = g
 
         # computed
-        self.wq = [np.sqrt(eps[i]**2 + delta[i]**2) for i in range(N)]
-        self.Delta = [self.wq[i] - w0 for i in range(N)]
+        self.wq = np.sqrt(eps**2 + delta**2)
+        self.Delta = self.wq - w0
 
         # rwa/dispersive regime tests
-        if any([g[i] / (w0 - self.wq[i]) > 0.05 for i in range(N)]):
+        if any(g / (w0 - self.wq) > 0.05):
             warnings.warn("Not in the dispersive regime")
 
-        if any([(w0 - self.wq[i])/(w0 + self.wq[i]) > 0.05 for i in range(N)]):
+        if any((w0 - self.wq)/(w0 + self.wq) > 0.05):
             warnings.warn(
                 "The rotating-wave approximation might not be valid.")
 
     @property
     def sx_ops(self):
-        return self.ctrls[1: self.N + 1]
+        return self.ctrls[0: self.N]
 
     @property
     def sz_ops(self):
-        return self.ctrls[self.N + 1: 2*self.N + 1]
+        return self.ctrls[self.N: 2*self.N]
 
     @property
     def cavityqubit_ops(self):
-        return self.ctrls[2*self.N + 1: 3*self.N + 1]
+        return self.ctrls[2*self.N: 3*self.N]
 
     @property
     def sx_u(self):
-        return self.coeffs[1: self.N + 1]
+        return self.coeffs[: self.N]
 
     @property
     def sz_u(self):
-        return self.coeffs[self.N + 1: 2*self.N + 1]
+        return self.coeffs[self.N: 2*self.N]
 
     @property
     def g_u(self):
-        return self.coeffs[2*self.N + 1: 3*self.N + 1]
+        return self.coeffs[2*self.N: 3*self.N]
 
     def get_ops_labels(self):
         """
@@ -329,7 +325,7 @@ class DispersiveCavityQED(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
         compiler = CavityQEDCompiler(
-            self.N, self._params, self.wq, self.Delta,
+            self.N, self._params,
             global_phase=0., num_ops=len(self.ctrls))
         tlist, self.coeffs, self.global_phase = compiler.decompose(gates)
         self.set_all_tlist(tlist)
