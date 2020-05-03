@@ -785,6 +785,48 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                            options=None, floquet_basis=True):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
+    
+	Parameters
+    ----------
+
+    R : array
+    	The Floquet-Markov master equation tensor `R`.
+
+    f_energies : array
+        The Floquet energies.
+
+    ekets : list of :class:`qutip.qobj` (kets)
+        A list of initial Floquet modes.
+
+    rho0 : :class:`qutip.qobj`
+        initial density matrix.
+
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    e_ops : list of :class:`qutip.qobj` / callback function
+        list of operators for which to evaluate expectation values.
+
+    f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
+        A lookup-table of Floquet modes at times precalculated by
+        :func:`qutip.floquet.floquet_modes_table` (optional).
+
+    options : :class:`qutip.solver`
+        options for the ODE solver.
+
+    floquet_basis : bool
+        Will return results in Floquet basis or computational basis
+        (optional).
+
+
+    Returns
+    -------
+
+    output : :class:`qutip.solver.Result`
+
+        An instance of the class :class:`qutip.solver.Result`, which
+        contains either an *array* of expectation values or an array of
+        state vectors, for the times specified by `tlist`.
     """
 
     if options is None:
@@ -873,9 +915,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
             if floquet_basis:
                 e_ops(t, Qobj(rho))
             else:
-                f_modes_table_t, T = f_modes_table
-                f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                e_ops(t, Qobj(rho).transform(f_modes_t, True))
+                e_ops(t, Qobj(rho).transform(ekets, False))
         else:
             # calculate all the expectation values, or output rho if
             # no operators
@@ -883,15 +923,11 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 if floquet_basis:
                     output.states.append(Qobj(rho))
                 else:
-                    f_modes_table_t, T = f_modes_table
-                    f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                    output.states.append(Qobj(rho).transform(f_modes_t, True))
+                    output.states.append(Qobj(rho).transform(ekets, False))
             else:
-                f_modes_table_t, T = f_modes_table
-                f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                 for m in range(0, n_expt_op):
                     output.expect[m][t_idx] = \
-                        expect(e_ops[m], rho.transform(f_modes_t, False))
+                        expect(e_ops[m], rho.transform(ekets, False))
 
         r.integrate(r.t + dt)
         t_idx += 1
