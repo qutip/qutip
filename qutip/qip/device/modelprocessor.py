@@ -176,7 +176,7 @@ class ModelProcessor(Processor):
         """
         return (self.ctrls, self.get_full_coeffs().T)
 
-    def pulse_matrix(self, dt = 0.01):
+    def pulse_matrix(self, dt=0.01):
         """
         Generates the pulse matrix for the desired physical system.
 
@@ -185,7 +185,6 @@ class ModelProcessor(Processor):
         t, u, labels:
             Returns the total time and label for every operation.
         """
-        
         ctrls = self.ctrls
         coeffs = self.get_full_coeffs().T
 

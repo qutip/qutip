@@ -148,7 +148,6 @@ class DispersiveCavityQED(ModelProcessor):
         self.set_up_ops(N)
         self.dims = [num_levels] + [2] * N
 
-
     def set_up_ops(self, N):
         """
         Generate the Hamiltonians for the spinchain model and save them in the
@@ -167,8 +166,9 @@ class DispersiveCavityQED(ModelProcessor):
             self.pulses.append(
                 Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
         # coupling terms
-        a = tensor([destroy(self.num_levels)] +
-                        [identity(2) for n in range(N)])
+        a = tensor(
+            [destroy(self.num_levels)] +
+            [identity(2) for n in range(N)])
         for n in range(N):
             sm = tensor([identity(self.num_levels)] +
                         [destroy(2) if m == n else identity(2)
@@ -301,8 +301,9 @@ class DispersiveCavityQED(ModelProcessor):
         """
         Eliminate the auxillary modes like the cavity modes in cqed.
         """
-        psi_proj = tensor([basis(self.num_levels, 0)] +
-                               [identity(2) for n in range(self.N)])
+        psi_proj = tensor(
+            [basis(self.num_levels, 0)] +
+            [identity(2) for n in range(self.N)])
         return psi_proj.dag() * U * psi_proj
 
     def load_circuit(self, qc):

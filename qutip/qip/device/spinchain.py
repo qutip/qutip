@@ -534,7 +534,7 @@ class LinearSpinChain(SpinChain):
         return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
                 [r"$\sigma_z^%d$" % n for n in range(self.N)],
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
-                 % (n, n, n + 1, n + 1) for n in range(self.N - 1)],
+                 % (n, n + 1, n, n + 1) for n in range(self.N - 1)],
                  ])
 
     def adjacent_gates(self, qc):
@@ -618,7 +618,7 @@ class CircularSpinChain(SpinChain):
         return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
                 [r"$\sigma_z^%d$" % n for n in range(self.N)],
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
-                 % (n, n, (n + 1) % self.N, (n + 1) % self.N)
+                 % (n, (n + 1) % self.N, n, (n + 1) % self.N)
                  for n in range(self.N)]])
 
     def adjacent_gates(self, qc):

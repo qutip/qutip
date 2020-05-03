@@ -137,7 +137,7 @@ class SpinChainCompiler(GateCompiler):
         pulse = np.zeros(self.num_ops)
         q1, q2 = min(gate.targets), max(gate.targets)
         g = self.params["sxsy"][q1]
-        if q1 == 0 and q2 == self.N - 1:
+        if self.N != 2 and q1 == 0 and q2 == self.N - 1:
             pulse[self._sxsy_ind[self.N - 1]] = -g
         else:
             pulse[self._sxsy_ind[q1]] = -g
@@ -152,7 +152,7 @@ class SpinChainCompiler(GateCompiler):
         pulse = np.zeros(self.num_ops)
         q1, q2 = min(gate.targets), max(gate.targets)
         g = self.params["sxsy"][q1]
-        if q1 == 0 and q2 == self.N - 1:
+        if self.N != 2 and q1 == 0 and q2 == self.N - 1:
             pulse[self._sxsy_ind[self.N - 1]] = -g
         else:
             pulse[self._sxsy_ind[q1]] = -g

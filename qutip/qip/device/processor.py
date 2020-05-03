@@ -800,4 +800,3 @@ class Processor(object):
             ax.set_title(title)
         fig.tight_layout()
         return fig, ax
-
