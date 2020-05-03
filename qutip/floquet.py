@@ -704,7 +704,8 @@ def floquet_master_equation_tensor(Alist, f_energies):
 
     ###
     # Here there were transposition errors because the paper used in
-    # the documentation seemed to have typos.
+    # the documentation has typos.
+    # NB: Works only for 1 rate matrix. 
     ###
 
     A = Alist[0]
@@ -727,6 +728,7 @@ def floquet_master_equation_tensor(Alist, f_energies):
     for i in range(N):
         for j in range(N):
             Rdata_lil[:,i+N*j] += R_temp[:,i,j].reshape((-1,1))
+
 
     return Qobj(Rdata_lil, [[N, N], [N, N]], [N*N, N*N])
 
