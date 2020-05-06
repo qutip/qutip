@@ -613,10 +613,11 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         # inefficient...  make a and b outer loops and use the mesolve
         # instead of the propagator.
 
-        f_modes_t = np.hstack([f.full() for f in floquet_modes_t_lookup(f_modes_table_t, t, T)])
+        f_modes_t = np.hstack([f.full() for f in floquet_modes_t_lookup( \
+        	f_modes_table_t, t, T)])
         FF = f_modes_t.T.conj() @ c_op.full() @ f_modes_t
         phi = exp(-1j * np.arange(-kmax, kmax+1) * omega * t)
-        X += (dT / T) * np.einsum("ij,k->ijk",FF, phi)
+        X += (dT / T) * np.einsum("ij,k->ijk", FF, phi)
 
     Heaviside = lambda x: ((np.sign(x) + 1) / 2.0)
     for a in range(N):
@@ -705,30 +706,29 @@ def floquet_master_equation_tensor(Alist, f_energies):
     ###
     # Here there were transposition errors because the paper used in
     # the documentation has typos.
-    # NB: Works only for 1 rate matrix. 
+    # NB: Works only for 1 rate matrix.
     ###
 
     A = Alist[0]
-    R = np.zeros((N,N,N,N))
-    Asum = np.sum(A,axis=1)
+    R = np.zeros((N, N, N, N))
+    Asum = np.sum(A, axis=1)
 
     for i in range(N):
-        R[i,i,i,i] -= -A[i,i]+Asum[i]
+        R[i, i, i, i] -= -A[i, i]+Asum[i]
     for i in range(N):
         for j in range(i+1, N):
-            R[i,i,j,j] += A[j,i]
-            R[j,j,i,i] += A[i,j]
-            R[i,j,i,j]+=-(1/2)*(Asum[i]+Asum[j])
-            R[j,i,j,i]+=R[i,j,i,j]
+            R[i, i, j, j] += A[j, i]
+            R[j, j, i, i] += A[i, j]
+            R[i, j, i, j]+=-(1/2)*(Asum[i]+Asum[j])
+            R[j, i, j, i]+=R[i, j, i, j]
 
     R_temp = np.zeros((N*N,N,N))
     for i in range(N):
         for j in range(N):
-            R_temp[i+N*j,:,:] += R[i,j,:,:]
+            R_temp[i+N*j, :, :] += R[i, j, :, :]
     for i in range(N):
         for j in range(N):
-            Rdata_lil[:,i+N*j] += R_temp[:,i,j].reshape((-1,1))
-
+            Rdata_lil[:, i+N*j] += R_temp[:, i, j].reshape((-1, 1))
 
     return Qobj(Rdata_lil, [[N, N], [N, N]], [N*N, N*N])
 
@@ -756,12 +756,12 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                            options=None, floquet_basis=True):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
-    
-	Parameters
+
+    Parameters
     ----------
 
     R : array
-    	The Floquet-Markov master equation tensor `R`.
+        The Floquet-Markov master equation tensor `R`.
 
     f_energies : array
         The Floquet energies.
