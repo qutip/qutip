@@ -614,7 +614,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         # instead of the propagator.
 
         f_modes_t = np.hstack([f.full() for f in floquet_modes_t_lookup(
-        	f_modes_table_t, t, T)])
+            f_modes_table_t, t, T)])
         FF = f_modes_t.T.conj() @ c_op.full() @ f_modes_t
         phi = exp(-1j * np.arange(-kmax, kmax+1) * omega * t)
         X += (dT / T) * np.einsum("ij,k->ijk", FF, phi)
