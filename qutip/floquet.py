@@ -613,7 +613,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         # inefficient...  make a and b outer loops and use the mesolve
         # instead of the propagator.
 
-        f_modes_t = np.hstack([f.full() for f in floquet_modes_t_lookup( \
+        f_modes_t = np.hstack([f.full() for f in floquet_modes_t_lookup(
         	f_modes_table_t, t, T)])
         FF = f_modes_t.T.conj() @ c_op.full() @ f_modes_t
         phi = exp(-1j * np.arange(-kmax, kmax+1) * omega * t)
@@ -719,10 +719,10 @@ def floquet_master_equation_tensor(Alist, f_energies):
         for j in range(i+1, N):
             R[i, i, j, j] += A[j, i]
             R[j, j, i, i] += A[i, j]
-            R[i, j, i, j]+=-(1/2)*(Asum[i]+Asum[j])
-            R[j, i, j, i]+=R[i, j, i, j]
+            R[i, j, i, j] += -(1/2)*(Asum[i]+Asum[j])
+            R[j, i, j, i] += R[i, j, i, j]
 
-    R_temp = np.zeros((N*N,N,N))
+    R_temp = np.zeros((N*N, N, N))
     for i in range(N):
         for j in range(N):
             R_temp[i+N*j, :, :] += R[i, j, :, :]
