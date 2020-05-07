@@ -38,6 +38,9 @@ the qutip.metrics module.
 ###############################################################################
 from __future__ import division
 
+import pytest
+import platform
+
 import numpy as np
 from numpy import abs, sqrt, ones, diag
 from numpy.testing import (
@@ -294,7 +297,7 @@ def test_hellinger_inequality():
         bures = bures_dist(ket1, ket2)
         assert_(hellinger >= bures)
 
-
+@pytest.mark.skipif("platform.system() == 'Darwin'")
 def test_hellinger_monotonicity():
     """
     Metrics: Hellinger dist.: check monotonicity

@@ -40,8 +40,9 @@ from qutip.cy.brtools_checks import (
     _test_vec_to_eigbasis, _test_eigvec_to_fockbasis, _test_vector_roundtrip,
     _cop_super_mult, _test_br_term_mult
 )
+import platform
 
-
+@pytest.mark.skipif("platform.system() == 'Darwin'")
 def test_zheevr():
     """
     zheevr: store eigenvalues in the passed array, and return the eigenvectors
@@ -54,6 +55,7 @@ def test_zheevr():
         scipy_evals, scipy_evecs = scipy.linalg.eigh(H.full())
         assert np.allclose(scipy_evals, our_evals)
         assert np.allclose(scipy_evecs, our_evecs)
+
 
 
 @pytest.mark.parametrize("operator", [
