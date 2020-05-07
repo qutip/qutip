@@ -1,7 +1,16 @@
 QuTiP: Quantum Toolbox in Python
 ================================
 
-[A. Pitchford](https://github.com/ajgpitch), [C. Granade](https://github.com/cgranade), [A. Grimsmo](https://github.com/arnelg), [N. Shammah](https://github.com/nathanshammah), [S. Ahmed](https://github.com/quantshah), [N. Lambert](https://github.com/nwlambert), [E. Giguère](https://github.com/ericgig), [P. D. Nation](https://github.com/nonhermitian), and [J. R. Johansson](https://github.com/jrjohansson)
+[A. Pitchford](https://github.com/ajgpitch),
+[C. Granade](https://github.com/cgranade),
+[A. Grimsmo](https://github.com/arnelg),
+[N. Shammah](https://github.com/nathanshammah),
+[S. Ahmed](https://github.com/quantshah),
+[N. Lambert](https://github.com/nwlambert),
+[E. Giguère](https://github.com/ericgig),
+[B. Li](https://github.com/boxili),
+[P. D. Nation](https://github.com/nonhermitian),
+and [J. R. Johansson](https://github.com/jrjohansson)
 
 
 QuTiP is open-source software for simulating the dynamics of closed and open
@@ -19,6 +28,15 @@ Build status and test coverage
 [![build-status](https://secure.travis-ci.org/qutip/qutip.svg?branch=master)](http://travis-ci.org/qutip/qutip)
 [![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg)](https://coveralls.io/r/qutip/qutip)
 [![Maintainability](https://api.codeclimate.com/v1/badges/df502674f1dfa1f1b67a/maintainability)](https://codeclimate.com/github/qutip/qutip/maintainability)
+
+Support
+--------
+[![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
+[![Unitary Fund](https://img.shields.io/badge/Supported%20By-UNITARY%20FUND-brightgreen.svg?style=for-the-badge)](http://unitary.fund)
+
+QuTiP development is supported by [Nori's lab](http://dml.riken.jp/)
+at RIKEN, by the University of Sherbrooke, and by Aberystwyth University,
+[among other supporting organizations](http://qutip.org/#supporting-organizations).
 
 Download
 --------
