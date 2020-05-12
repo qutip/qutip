@@ -37,6 +37,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
+from cpython.exc cimport PyErr_CheckSignals
 import scipy.sparse as sp
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
 from qutip.qobj import Qobj
@@ -144,6 +145,7 @@ cdef class CyMcOde:
         # RUN ODE UNTIL EACH TIME IN TLIST
         norm2_prev = dznrm2(ODE._y) ** 2
         for k in range(1, num_times):
+            PyErr_CheckSignals()
             # ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
             t_prev = ODE.t
             y_prev = ODE.y
@@ -386,6 +388,7 @@ cdef class CyMcOdeDiag(CyMcOde):
         self.t = tlist[0]
         norm2_prev = dznrm2(self.psi) ** 2
         for k in range(1, num_times):
+            PyErr_CheckSignals()
             norm2_prev = self.advance(tlist[k], norm2_prev, rand_vals, use_quick)
             while self.t < tlist[k]:
                 norm2_prev = self.advance(tlist[k], norm2_prev, rand_vals, 0)

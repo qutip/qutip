@@ -55,7 +55,7 @@ from Cython.Distutils import build_ext
 # all information about QuTiP goes here
 MAJOR = 4
 MINOR = 5
-MICRO = 0
+MICRO = 1
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
@@ -83,12 +83,12 @@ INCLUDE_DIRS = [np.get_include()] if np is not None else []
 NAME = "qutip"
 AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
           "Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, "
-          "Neill Lambert, Eric Giguere")
+          "Neill Lambert, Eric Giguere, Boxi Li")
 AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
                 "jrjohansson@gmail.com, cgranade@cgranade.com, "
                 "arne.grimsmo@gmail.com, nathan.shammah@gmail.com, "
                 "shahnawaz.ahmed95@gmail.com, nwlambert@gmail.com, "
-                "eric.giguere@usherbrooke.ca")
+                "eric.giguere@usherbrooke.ca, etamin1201@gmail.com")
 LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])

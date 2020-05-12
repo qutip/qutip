@@ -90,14 +90,15 @@ cdef class CQobjCteOmp(CQobjCte):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_vec(self, double t, complex* vec, complex* out):
+    cdef int _mul_vec(self, double t, complex* vec, complex* out) except -1:
         spmvpy_openmp(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
                out, self.shape0, self.nthr)
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex _expect(self, double t, complex* vec):
+    cdef complex _expect(self, double t, complex* vec) except *:
         cdef complex[::1] y = np.zeros(self.shape0, dtype=complex)
         spmvpy_openmp(self.cte.data, self.cte.indices, self.cte.indptr, vec, 1.,
                &y[0], self.shape0, self.nthr)
@@ -110,18 +111,20 @@ cdef class CQobjCteOmp(CQobjCte):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_matf(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol):
+    cdef int _mul_matf(self, double t, complex* mat, complex* out,
+                        int nrow, int ncol) except -1:
         _spmmfpy_omp(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_matc(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol):
+    cdef int _mul_matc(self, double t, complex* mat, complex* out,
+                        int nrow, int ncol) except -1:
         _spmmcpy_par(self.cte.data, self.cte.indices, self.cte.indptr, mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
+        return 0
 
 
 cdef class CQobjEvoTdOmp(CQobjEvoTd):
@@ -133,7 +136,7 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_vec(self, double t, complex* vec, complex* out):
+    cdef int _mul_vec(self, double t, complex* vec, complex* out) except -1:
         cdef int[2] shape
         shape[0] = self.shape1
         shape[1] = 1
@@ -144,12 +147,13 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
         for i in range(self.num_ops):
             spmvpy_openmp(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                    vec, self.coeff_ptr[i], out, self.shape0, self.nthr)
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_matf(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol):
+    cdef int _mul_matf(self, double t, complex* mat, complex* out,
+                        int nrow, int ncol) except -1:
         cdef int[2] shape
         shape[0] = nrow
         shape[1] = ncol
@@ -160,12 +164,13 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
         for i in range(self.num_ops):
              _spmmfpy_omp(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol, self.nthr)
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_matc(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol):
+    cdef int _mul_matc(self, double t, complex* mat, complex* out,
+                        int nrow, int ncol) except -1:
         cdef int[2] shape
         shape[0] = nrow
         shape[1] = ncol
@@ -176,6 +181,7 @@ cdef class CQobjEvoTdOmp(CQobjEvoTd):
         for i in range(self.num_ops):
              _spmmcpy_par(self.ops[i].data, self.ops[i].indices, self.ops[i].indptr,
                  mat, self.coeff_ptr[i], out, self.shape0, nrow, ncol, self.nthr)
+        return 0
 
 
 cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
@@ -187,7 +193,7 @@ cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_vec(self, double t, complex* vec, complex* out):
+    cdef int _mul_vec(self, double t, complex* vec, complex* out) except -1:
         cdef int[2] shape
         shape[0] = self.shape1
         shape[1] = 1
@@ -195,12 +201,13 @@ cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
         self._call_core(self.data_t, self.coeff_ptr)
         spmvpy_openmp(self.data_ptr, &self.indices[0], &self.indptr[0], vec,
                1., out, self.shape0, self.nthr)
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_matf(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol):
+    cdef int _mul_matf(self, double t, complex* mat, complex* out,
+                        int nrow, int ncol) except -1:
         cdef int[2] shape
         shape[0] = nrow
         shape[1] = ncol
@@ -208,12 +215,13 @@ cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
         self._call_core(self.data_t, self.coeff_ptr)
         _spmmfpy_omp(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mul_matc(self, double t, complex* mat, complex* out,
-                        int nrow, int ncol):
+    cdef int _mul_matc(self, double t, complex* mat, complex* out,
+                        int nrow, int ncol) except -1:
         cdef int[2] shape
         shape[0] = nrow
         shape[1] = ncol
@@ -221,3 +229,4 @@ cdef class CQobjEvoTdMatchedOmp(CQobjEvoTdMatched):
         self._call_core(self.data_t, self.coeff_ptr)
         _spmmcpy_par(self.data_ptr, &self.indices[0], &self.indptr[0], mat, 1.,
                out, self.shape0, nrow, ncol, self.nthr)
+        return 0
