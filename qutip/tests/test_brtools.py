@@ -34,6 +34,7 @@
 import numpy as np
 import scipy.linalg
 import pytest
+import platform
 import qutip
 from qutip.cy.brtools_checks import (
     _test_zheevr, _test_diag_liou_mult, _test_dense_to_eigbasis,
@@ -42,6 +43,7 @@ from qutip.cy.brtools_checks import (
 )
 
 
+@pytest.mark.skipif("platform.system() == 'Darwin'")
 def test_zheevr():
     """
     zheevr: store eigenvalues in the passed array, and return the eigenvectors
