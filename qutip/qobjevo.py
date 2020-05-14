@@ -808,7 +808,7 @@ class QobjEvo:
                               if dargs[0] not in new_args]
         self.args.update(new_args)
         self._args_checks()
-        if self.compiled and self.compiled.split()[2] is not "cte":
+        if self.compiled and self.compiled.split()[2] != "cte":
             if isinstance(self.coeff_get, StrCoeff):
                 self.coeff_get.set_args(self.args)
                 self.coeff_get._set_dyn_args(self.dynamics_args)
@@ -826,7 +826,7 @@ class QobjEvo:
                 if self.compiled:
                     self.dynamics_args[i][2].compile()
         self._dynamics_args_update(0., state)
-        if self.compiled and self.compiled.split()[2] is not "cte":
+        if self.compiled and self.compiled.split()[2] != "cte":
             if isinstance(self.coeff_get, StrCoeff):
                 self.coeff_get.set_args(self.args)
                 self.coeff_get._set_dyn_args(self.dynamics_args)
@@ -1092,7 +1092,7 @@ class QobjEvo:
                 for j, op2 in enumerate(self.ops[i+1:]):
                     if op1.type != op2.type:
                         pass
-                    elif op1.type is "array":
+                    elif op1.type == "array":
                         if np.allclose(op1.coeff, op2.coeff):
                             this_set.append(j+i+1)
                     else:
@@ -1117,7 +1117,7 @@ class QobjEvo:
                 new_op[2] = new_op[1]
                 new_ops.append(EvoElement.make(new_op))
 
-            elif self.ops[_set[0]].type is "string":
+            elif self.ops[_set[0]].type == "string":
                 new_op = [self.ops[_set[0]].qobj, None, None, "string"]
                 new_str = "(" + self.ops[_set[0]].coeff + ")"
                 for i in _set[1:]:
@@ -1126,7 +1126,7 @@ class QobjEvo:
                 new_op[2] = new_str
                 new_ops.append(EvoElement.make(new_op))
 
-            elif self.ops[_set[0]].type is "array":
+            elif self.ops[_set[0]].type == "array":
                 new_op = [self.ops[_set[0]].qobj, None, None, "array"]
                 new_array = (self.ops[_set[0]].coeff).copy()
                 for i in _set[1:]:
@@ -1620,7 +1620,7 @@ class QobjEvo:
 
     def __getstate__(self):
         _dict_ = {key: self.__dict__[key]
-                  for key in self.__dict__ if key is not "compiled_qobjevo"}
+                  for key in self.__dict__ if key != "compiled_qobjevo"}
         if self.compiled:
             return (_dict_, self.compiled_qobjevo.__getstate__())
         else:
