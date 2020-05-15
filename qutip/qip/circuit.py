@@ -383,9 +383,8 @@ class QubitCircuit:
                               gate.arg_label)
             elif gate.name in ["BERKELEY", "SWAPalpha", "SWAP", "ISWAP",
                                "SQRTSWAP", "SQRTISWAP"]:
-                self.add_gate(gate.name, None,
-                              [gate.controls[0] + start,
-                               gate.controls[1] + start], None, None)
+                self.add_gate(gate.name, [gate.targets[0] + start,
+                              gate.targets[1] + start], None, None)
             elif gate.name in ["TOFFOLI"]:
                 self.add_gate(gate.name, gate.targets[0] + start,
                               [gate.controls[0] + start,
