@@ -445,7 +445,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     dx = dy = 0.8 * np.ones(n)
     dz = np.real(M.flatten())
 
-    if limits and type(limits) is list and len(limits) == 2:
+    if isinstance(limits, list) and len(limits) == 2:
         z_min = limits[0]
         z_max = limits[1]
     else:
@@ -845,7 +845,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
     xvec = np.linspace(-alpha_max, alpha_max, 200)
     W0 = wigner(rho, xvec, xvec, method=method)
 
-    W, yvec = W0 if type(W0) is tuple else (W0, xvec)
+    W, yvec = W0 if isinstance(W0, tuple) else (W0, xvec)
 
     wlim = abs(W).max()
 

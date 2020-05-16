@@ -68,7 +68,7 @@ def n_thermal(w, w_th):
 
     """
 
-    if type(w) is np.ndarray:
+    if isinstance(w, np.ndarray):
         return 1.0 / (np.exp(w / w_th) - 1.0)
 
     else:
