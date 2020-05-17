@@ -36,7 +36,9 @@ from numpy.testing import assert_raises, assert_, assert_allclose, run_module_su
 from qutip.qip.operations.gates import (
     gate_sequence_product, rx)
 from qutip.operators import identity
-from qutip.qip.circuit import QubitCircuit, Gate
+from qutip.qip.circuit import (
+    QubitCircuit, Gate, __ctrl_gates, __single_qubit_gates, __swap_like, __toffoli_like,
+    __fredkin_like, __para_gates)
 from qutip.tensor import tensor
 from qutip.qobj import Qobj, ptrace
 from qutip.random_objects import rand_dm
@@ -163,8 +165,7 @@ class TestQubitCircuit:
         """
         qc = QubitCircuit(6)
         qc.add_gate("CNOT", targets=[1], controls=[0])
-        test_gate = Gate("RZ", targets=[1], arg_value=1.570796,
-                         arg_label="P")
+        test_gate = Gate("SWAP", targets=[1,4])
         qc.add_gate(test_gate)
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
         qc.add_gate("SNOT", targets=[3])
@@ -179,18 +180,109 @@ class TestQubitCircuit:
         # Test direct gate addition
         assert_(qc.gates[1].name == test_gate.name)
         assert_(qc.gates[1].targets == test_gate.targets)
-        assert_(qc.gates[1].controls == test_gate.controls)
 
         # Test specified position gate addition
         assert_(qc.gates[3].name == test_gate.name)
         assert_(qc.gates[3].targets == test_gate.targets)
-        assert_(qc.gates[3].controls == test_gate.controls)
 
         # Test adding 1 qubit gate on [start, end] qubits
         assert_(qc.gates[5].name == "RY")
         assert_(qc.gates[5].targets == [4])
+        assert_(qc.gates[5].arg_value == 1.570796)
         assert_(qc.gates[6].name == "RY")
         assert_(qc.gates[6].targets == [5])
+        assert_(qc.gates[5].arg_value == 1.570796)
+
+        # Test Exceptions
+        for gate in __single_qubit_gates:
+            if gate not in __para_gates:
+                # No target
+                assert_raises(ValueError, qc.add_gate, gate,None,None)
+                # Multiple targets
+                assert_raises(ValueError, qc.add_gate, gate,[0,1,2],None)
+                # With control
+                assert_raises(ValueError, qc.add_gate, gate,[0],[1])
+            else:
+                # No target
+                assert_raises(ValueError, qc.add_gate, gate,None,None,1)
+                # Multiple targets
+                assert_raises(ValueError, qc.add_gate, gate,[0,1,2],None,1)
+                # With control
+                assert_raises(ValueError, qc.add_gate, gate,[0],[1],1)
+        for gate in __ctrl_gates:
+            if gate not in __para_gates:
+                # No target
+                assert_raises(ValueError, qc.add_gate, gate,None,[1])
+                # No control
+                assert_raises(ValueError, qc.add_gate, gate,[0],None)
+            else:
+                # No target
+                assert_raises(ValueError, qc.add_gate, gate,None,[1],1)
+                # No control
+                assert_raises(ValueError, qc.add_gate, gate,[0],None,1)
+        for gate in __swap_like:
+            if gate not in __para_gates:
+                # Single target
+                assert_raises(ValueError, qc.add_gate, gate,[0],None)
+                # With control
+                assert_raises(ValueError, qc.add_gate, gate,[0,1],[3])
+            else:
+                # Single target
+                assert_raises(ValueError, qc.add_gate, gate,[0],None,1)
+                # With control
+                assert_raises(ValueError, qc.add_gate, gate,[0,1],[3],1)
+        for gate in __fredkin_like:
+            # Single target
+            assert_raises(ValueError, qc.add_gate, gate,[0],[2])
+            # No control
+            assert_raises(ValueError, qc.add_gate, gate,[0,1],None)
+        for gate in __toffoli_like:
+            # No target
+            assert_raises(ValueError, qc.add_gate, gate,None,[1,2])
+            # Single control
+            assert_raises(ValueError, qc.add_gate, gate,[0],[1])
+    
+    def test_add_circuit(self):
+        """
+        Addition of a circuit to a `QubitCircuit`
+        """
+        qc = QubitCircuit(6)
+        qc.add_gate("CNOT", targets=[1], controls=[0])
+        test_gate = Gate("SWAP", targets=[1,4])
+        qc.add_gate(test_gate)
+        qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
+        qc.add_gate("SNOT", targets=[3])
+        qc.add_gate(test_gate, index=[3])
+        qc.add_1q_gate("RY", start=4, end=5, arg_value=1.570796)
+
+        qc1 = QubitCircuit(6)
+
+        qc1.add_circuit(qc)
+
+        # Test if all gates are added
+        assert_(len(qc1.gates) == len(qc.gates))
+
+        # Test each gate
+        for i in range(qc1.gates):
+            assert_(qc1.gates[i].name == qc.gates[i].name)
+            assert_(qc1.gates[i].targets == qc.gates[i].targets)
+            assert_(qc1.gates[i].controls == qc.gates[i].controls)
+
+        # Test exception when qubit out of range
+        assert_raises(NotImplementedError, qc1.add_circuit, qc,start=4)
+
+        qc2 = QubitCircuit(8)
+        qc2.add_circuit(qc,start=2)
+
+        # Test if all gates are added
+        assert_(len(qc2.gates) == len(qc.gates))
+
+        # Test if the positions are correct
+        for i in range(qc2.gates):
+            if qc.gates[i].targets is not None:
+                assert_(qc2.gates[i].targets[0] == qc.gates[i].targets[0]+2)
+            if qc.gates[i].controls is not None:
+                assert_(qc2.gates[i].controls[0] == qc.gates[i].controls[0]+2)
 
     def test_add_state(self):
         """
