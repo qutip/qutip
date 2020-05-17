@@ -37,8 +37,8 @@ from qutip.qip.operations.gates import (
     gate_sequence_product, rx)
 from qutip.operators import identity
 from qutip.qip.circuit import (
-    QubitCircuit, Gate, __ctrl_gates, __single_qubit_gates, __swap_like, __toffoli_like,
-    __fredkin_like, __para_gates)
+    QubitCircuit, Gate, _ctrl_gates, _single_qubit_gates, _swap_like, _toffoli_like,
+    _fredkin_like, _para_gates)
 from qutip.tensor import tensor
 from qutip.qobj import Qobj, ptrace
 from qutip.random_objects import rand_dm
@@ -193,9 +193,9 @@ class TestQubitCircuit:
         assert_(qc.gates[6].targets == [5])
         assert_(qc.gates[5].arg_value == 1.570796)
 
-        # Test Exceptions
-        for gate in __single_qubit_gates:
-            if gate not in __para_gates:
+        # Test Exceptions  # Global phase is not included
+        for gate in _single_qubit_gates:
+            if gate not in _para_gates:
                 # No target
                 assert_raises(ValueError, qc.add_gate, gate,None,None)
                 # Multiple targets
@@ -209,8 +209,8 @@ class TestQubitCircuit:
                 assert_raises(ValueError, qc.add_gate, gate,[0,1,2],None,1)
                 # With control
                 assert_raises(ValueError, qc.add_gate, gate,[0],[1],1)
-        for gate in __ctrl_gates:
-            if gate not in __para_gates:
+        for gate in _ctrl_gates:
+            if gate not in _para_gates:
                 # No target
                 assert_raises(ValueError, qc.add_gate, gate,None,[1])
                 # No control
@@ -220,8 +220,8 @@ class TestQubitCircuit:
                 assert_raises(ValueError, qc.add_gate, gate,None,[1],1)
                 # No control
                 assert_raises(ValueError, qc.add_gate, gate,[0],None,1)
-        for gate in __swap_like:
-            if gate not in __para_gates:
+        for gate in _swap_like:
+            if gate not in _para_gates:
                 # Single target
                 assert_raises(ValueError, qc.add_gate, gate,[0],None)
                 # With control
@@ -231,12 +231,12 @@ class TestQubitCircuit:
                 assert_raises(ValueError, qc.add_gate, gate,[0],None,1)
                 # With control
                 assert_raises(ValueError, qc.add_gate, gate,[0,1],[3],1)
-        for gate in __fredkin_like:
+        for gate in _fredkin_like:
             # Single target
             assert_raises(ValueError, qc.add_gate, gate,[0],[2])
             # No control
             assert_raises(ValueError, qc.add_gate, gate,[0,1],None)
-        for gate in __toffoli_like:
+        for gate in _toffoli_like:
             # No target
             assert_raises(ValueError, qc.add_gate, gate,None,[1,2])
             # Single control

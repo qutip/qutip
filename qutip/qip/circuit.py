@@ -60,16 +60,17 @@ except ImportError:
 
 __all__ = ['Gate', 'QubitCircuit']
 
-__single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
+_single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
                         "X", "Y", "Z", "S", "T"]
-__para_gates = ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
+_para_gates = ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
                 "GLOBALPHASE", "CRX", "CRY", "CRZ"]
-__ctrl_gates = ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
+_ctrl_gates = ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
                 "CS", "CT"]
-__swap_like = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
+_swap_like = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                "SWAPalpha"]
-__toffoli_like = ["TOFFOLI"]
-__fredkin_like = ["FREDKIN"]
+_toffoli_like = ["TOFFOLI"]
+_fredkin_like = ["FREDKIN"]
+
 
 class Gate:
     """
@@ -116,42 +117,38 @@ class Gate:
                 if not all_integer:
                     raise ValueError("Index of a qubit must be an integer")
 
-        if name in __swap_like:
+        if name in _single_qubit_gates:
+            if self.targets is None or len(self.targets) != 1:
+                raise ValueError("Gate %s requires one target" % name)
+            if self.controls is not None:
+                raise ValueError("Gate %s cannot have a control" % name)
+        elif name in _swap_like:
             if (self.targets is None) or (len(self.targets) != 2):
                 raise ValueError("Gate %s requires two targets" % name)
             if self.controls is not None:
                 raise ValueError("Gate %s cannot have a control" % name)
-
-        if name in __ctrl_gates:
+        elif name in _ctrl_gates:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
             if self.controls is None or len(self.controls) != 1:
                 raise ValueError("Gate %s requires one control" % name)
-
-        if name in __fredkin_like:
+        elif name in _fredkin_like:
             if self.targets is None or len(self.targets) != 2:
                 raise ValueError("Gate %s requires one target" % name)
             if self.controls is None or len(self.controls) != 1:
                 raise ValueError("Gate %s requires two control" % name)
-
-        if name in __toffoli_like:
+        elif name in _toffoli_like:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
             if self.controls is None or len(self.controls) != 2:
                 raise ValueError("Gate %s requires two control" % name)
 
-        if name in __para_gates:
+        if name in _para_gates:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
         else:
             if arg_value is not None:
                 raise ValueError("Gate %s does not take argument value" % name)
-
-        if name in __single_qubit_gates:
-            if self.targets is None or len(self.targets) != 1:
-                raise ValueError("Gate %s requires one target" % name)
-            if self.controls is not None:
-                raise ValueError("Gate %s cannot have a control" % name)
 
         self.arg_value = arg_value
         self.arg_label = arg_label
