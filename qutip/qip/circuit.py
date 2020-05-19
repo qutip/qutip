@@ -61,13 +61,13 @@ except ImportError:
 __all__ = ['Gate', 'QubitCircuit']
 
 _single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
-                        "X", "Y", "Z", "S", "T"]
+                       "X", "Y", "Z", "S", "T"]
 _para_gates = ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
-                "GLOBALPHASE", "CRX", "CRY", "CRZ"]
+               "GLOBALPHASE", "CRX", "CRY", "CRZ"]
 _ctrl_gates = ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
-                "CS", "CT"]
+               "CS", "CT"]
 _swap_like = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
-               "SWAPalpha"]
+              "SWAPalpha"]
 _toffoli_like = ["TOFFOLI"]
 _fredkin_like = ["FREDKIN"]
 
@@ -147,7 +147,7 @@ class Gate:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
         else:
-            if arg_value is not None:
+            if (name in _GATE_NAME_TO_LABEL) and (arg_value is not None):
                 raise ValueError("Gate %s does not take argument value" % name)
 
         self.arg_value = arg_value
@@ -564,14 +564,14 @@ class QubitCircuit:
         temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RX", gate.targets, None,
+        temp_resolved.append(Gate("RX", gate.targets[1], None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
         temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RX", gate.targets, None,
+        temp_resolved.append(Gate("RX", gate.targets[1], None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                   arg_value=np.pi, arg_label=r"\pi"))

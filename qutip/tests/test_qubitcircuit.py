@@ -263,7 +263,7 @@ class TestQubitCircuit:
         assert_(len(qc1.gates) == len(qc.gates))
 
         # Test each gate
-        for i in range(qc1.gates):
+        for i in range(len(qc1.gates)):
             assert_(qc1.gates[i].name == qc.gates[i].name)
             assert_(qc1.gates[i].targets == qc.gates[i].targets)
             assert_(qc1.gates[i].controls == qc.gates[i].controls)
