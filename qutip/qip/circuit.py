@@ -564,14 +564,14 @@ class QubitCircuit:
         temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RX", gate.targets[1], None,
+        temp_resolved.append(Gate("RX", gate.targets[0], None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
         temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RX", gate.targets[1], None,
+        temp_resolved.append(Gate("RX", gate.targets[0], None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                   arg_value=np.pi, arg_label=r"\pi"))

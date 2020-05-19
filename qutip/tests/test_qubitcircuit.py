@@ -278,7 +278,7 @@ class TestQubitCircuit:
         assert_(len(qc2.gates) == len(qc.gates))
 
         # Test if the positions are correct
-        for i in range(qc2.gates):
+        for i in range(len(qc2.gates)):
             if qc.gates[i].targets is not None:
                 assert_(qc2.gates[i].targets[0] == qc.gates[i].targets[0]+2)
             if qc.gates[i].controls is not None:
