@@ -384,8 +384,8 @@ def _make_code_4_python_import(ops, args, dyn_args, tlist):
         code += "        " + key + " = now_args['" + key + "']\n"
 
     for i, op in enumerate(ops):
-        if op.type == "string":
-            code += "        out.append(" + op.coeff + ")\n"
+        if op._type == "string":
+            code += "        out.append(" + op._base + ")\n"
         else:
             code += "        out.append(self.funclist[" + str(i) + \
                     "](t, now_args))\n"
