@@ -86,7 +86,7 @@ section in the documentation.
 
 Note that all contributions must adhere to the [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
-For more information, including technical advice, please see [Contributing to QuTiP development](https://github.com/qutip/qutip-doc/blob/master/qutip_dev_contrib.md).
+For more information, including technical advice, please see [Contributing to QuTiP development](https://github.com/qutip/qutip-doc/blob/master/CONTRIBUTING.md).
 
 Changelog
 ---------
