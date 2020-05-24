@@ -403,7 +403,7 @@ class Scheduler():
     It schedules a given circuit or instructions
     to reduce the total execution time by parallelization.
     It uses heuristic methods mainly from
-    described in https://doi.org/10.1117/12.666419.
+    in https://doi.org/10.1117/12.666419.
 
     The scheduler includes two methods,
     "ASAP", as soon as possible, and "ALAP", as late as possible.
@@ -449,8 +449,8 @@ class Scheduler():
         by the execution time of the instruction
         (By default, it is 1 for all gates).
         This is used as a priority measure in the next step.
-        The gate with longer distance to the end node and
-        shorter distance to the start node has higher priority.
+        The gate with a longer distance to the end node and
+        a shorter distance to the start node has higher priority.
         In the last step, it uses a list-schedule algorithm
         with hardware constraint and priority and
         returns a list of cycles for gates/instructions.
@@ -459,7 +459,7 @@ class Scheduler():
         to compute the start time of each instruction.
         It adds the additional dependency
         caused by hardware constraint to the graph
-        and recompute the distance of each node to the start and end node.
+        and recomputes the distance of each node to the start and end node.
         This distance is then converted to
         the start time of each instruction.
 
@@ -491,6 +491,27 @@ class Scheduler():
             The cycle indices for each gate or
             the start time for each instruction.
 
+        Examples
+        --------
+        >>> from qutip.qip.circuit import QubitCircuit
+        >>> from qutip.qip.scheduler import Scheduler
+        >>> circuit = QubitCircuit(7) 
+        >>> circuit.add_gate("SNOT", 3)  # gate0
+        >>> circuit.add_gate("CZ", 5, 3)  # gate1
+        >>> circuit.add_gate("CZ", 4, 3)  # gate2
+        >>> circuit.add_gate("CZ", 2, 3)  # gate3
+        >>> circuit.add_gate("CZ", 6, 5)  # gate4
+        >>> circuit.add_gate("CZ", 2, 6)  # gate5
+        >>> circuit.add_gate("SWAP", [0, 2])  # gate6
+        >>>
+        >>> scheduler = Scheduler("ASAP")
+        >>> scheduler.schedule(circuit, gates_schedule=True)      
+        [0, 1, 3, 2, 2, 3, 4]
+        The result list is the cycle indices for each gate.
+        It means that the circuit can be executed in 5 gate cycles:
+        ``[gate0, gate1, (gate3, gate4), (gate2, gate5), gate6]``
+        Notice that gate3 and gate4 commute with gate2,
+        therefore, the order is changed to reduce the number of cycles.
         """
         if isinstance(circuit, QubitCircuit):
             gates_schedule = True
