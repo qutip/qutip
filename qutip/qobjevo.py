@@ -53,17 +53,6 @@ import scipy
 import os
 from re import sub
 
-safePickle = [False]
-if sys.platform == 'win32':
-    safePickle[0] = True
-
-try:
-    import cython
-    use_cython = [True]
-except:
-    use_cython = [False]
-
-
 def proj(x):
     if np.isfinite(x):
         return (x)
@@ -484,8 +473,8 @@ class QobjEvo:
         self.coeff_get = None
         self.type = "none"
         self.omp = 0
-        self.use_cython = use_cython[0]
-        self.safePickle = safePickle[0]
+        self.use_cython = qset.use_cython
+        self.safePickle = qset.safePickle
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
@@ -564,7 +553,6 @@ class QobjEvo:
 
             if not self.ops:
                 self.const = True
-        self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
         self._args_checks()
         if e_ops:
             for i, dargs in enumerate(self.dynamics_args):
@@ -749,6 +737,10 @@ class QobjEvo:
         else:
             raise TypeError("state must be a Qobj or np.ndarray")
 
+    @property
+    def num_obj(self):
+        return (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
+
     def copy(self):
         new = QobjEvo(self.cte.copy())
         new.const = self.const
@@ -756,7 +748,6 @@ class QobjEvo:
         new.dynamics_args = self.dynamics_args.copy()
         new.tlist = self.tlist
         new.dummy_cte = self.dummy_cte
-        new.num_obj = self.num_obj
         new.type = self.type
         new.compiled = False
         new.compiled_qobjevo = None
@@ -785,9 +776,8 @@ class QobjEvo:
         self.dynamics_args = other.dynamics_args
         self.tlist = other.tlist
         self.dummy_cte = other.dummy_cte
-        self.num_obj = other.num_obj
         self.type = other.type
-        self.compiled = ""
+        self.compiled = False
         self.compiled_qobjevo = None
         if other.coeff_get is not None:
             self.coeff_get = other.coeff_get.copy()
@@ -865,15 +855,7 @@ class QobjEvo:
             self.dynamics_args += other.dynamics_args
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
-            if self.type != other.type:
-                if self.type in ["func", "mixed_callable"] or \
-                        other.type in ["func", "mixed_callable"]:
-                    self.type = "mixed_callable"
-                else:
-                    self.type = "mixed_compilable"
-            self.compiled = ""
-            self.compiled_qobjevo = None
-            self.coeff_get = None
+
 
             if self.tlist is None:
                 self.tlist = other.tlist
@@ -883,13 +865,13 @@ class QobjEvo:
                 elif len(other.tlist) != len(self.tlist) or \
                         other.tlist[-1] != self.tlist[-1]:
                     raise Exception("tlist are not compatible")
-            self._reset_type()
+            if not other.const:
+                self._reset_type()
         else:
             self.cte += other
             self.dummy_cte = False
             self._recompile()
 
-        self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
         return self
 
     def __sub__(self, other):
@@ -963,8 +945,6 @@ class QobjEvo:
                 self.args.update(other.args)
                 self.dynamics_args += other.dynamics_args
                 self.dummy_cte = self.dummy_cte and other.dummy_cte
-                self.num_obj = (len(self.ops) if
-                              self.dummy_cte else len(self.ops) + 1)
                 self._reset_type()
 
         else:
@@ -1213,8 +1193,6 @@ class QobjEvo:
             self.type = "mixed_callable"
         else:
             self.type = "mixed_compilable"
-
-        self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
 
     def permute(self, order):
         res = self.copy()
