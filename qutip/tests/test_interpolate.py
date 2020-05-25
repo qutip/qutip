@@ -30,325 +30,145 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import pytest
+import functools
 import numpy as np
-import scipy.interpolate as sint
-from numpy.testing import assert_, assert_equal, run_module_suite
-import unittest
-from qutip import *
-from qutip import _version2int
+import scipy.interpolate
+import pytest
+import qutip
 
-try:
-    import Cython
-except:
-    Cython_OK = False
-else:
-    Cython_OK = _version2int(Cython.__version__) >= _version2int('0.14')
+pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
 
 
-def testInterpolate1():
-    "Interpolate: Sine + noise (array)"
-    x = np.linspace(0,2*np.pi,200)
-    y = np.sin(x)+0.1*np.random.randn(x.shape[0])
-    S1 = Cubic_Spline(x[0],x[-1],y)
-    S2 = sint.interp1d(x,y,'cubic')
-    assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
+def pytest_generate_tests(metafunc):
+    """
+    Perform more complex parametrisation logic for tests in this module.  This
+    was originally needed because the `brmesolve` solver cannot mix splines and
+    functions in the Hamiltonian (it can only accept string-formatted
+    time-dependence), but we want to parametrize this for all the other tests.
+    """
+    if ("solver" in metafunc.fixturenames
+            and "coefficients" in metafunc.fixturenames):
+        _parametrize_solver_coefficients(metafunc)
 
 
-def testInterpolate2():
-    "Interpolate: Sine + noise (point)"
-    x = np.linspace(0,2*np.pi,200)
-    y = np.sin(x)+0.1*np.random.randn(x.shape[0])
-    S1 = Cubic_Spline(x[0],x[-1],y)
-    S2 = sint.interp1d(x,y,'cubic')
-    for k in range(x.shape[0]):
-        assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
+@pytest.mark.parametrize('noise', [
+    pytest.param(lambda n: 0.1*np.random.rand(n), id="real"),
+    pytest.param(lambda n: 0.1j*np.random.rand(n), id="complex"),
+])
+def test_equivalence_to_scipy(noise):
+    x = np.linspace(0, 2*np.pi, 200)
+    y = np.sin(x) + noise(x.shape[0])
+    test = qutip.Cubic_Spline(x[0], x[-1], y)
+    expected = scipy.interpolate.CubicSpline(x, y, bc_type="natural")
+    # We use the bc_type="natural", i.e. zero second-derivatives at the
+    # boundaries because that matches qutip.
+    np.testing.assert_allclose(test(x), expected(x), atol=1e-10)
+    centres = 0.5 * (x[:-1] + x[1:])
+    # Test some points not in the original.
+    for point in centres:
+        assert np.abs(test(point) - expected(point)) < 1e-10, "Scalar argument"
 
 
-def testInterpolate3():
-    "Interpolate: Complex sine + noise (array)"
-    x = np.linspace(0,2*np.pi,200)
-    y = np.sin(x)+0.1*np.random.randn(x.shape[0]) + \
-        0.1j*np.random.randn(x.shape[0])
-    S1 = Cubic_Spline(x[0],x[-1],y)
-    S2 = sint.interp1d(x,y,'cubic')
-    assert_(np.max(np.abs(S2(x)-S1(x))) < 1e-9)
+class _Case:
+    """
+    Represents a time-dependent coefficient test case for
+    test_usage_in_solvers.  The functions `function`, `spline` and `string`
+    return a tuple of (reference, test), where the reference is a function type
+    and the test is the type of whatever was requested.  This lets us build up
+    test cases where we can get the same coefficient in different formats, so
+    the tests can be parametrised.
+    """
+    def __init__(self, amplitude, function, string):
+        self.amplitude = amplitude
+        self._function = function
+        self.string_coefficient = string
+
+    def __call__(self, t, *_):
+        return self.amplitude * self._function(t)
+
+    def function(self):
+        return self, self
+
+    def spline(self, times):
+        return self, qutip.Cubic_Spline(times[0], times[-1], self(times))
+
+    def string(self):
+        return self, self.string_coefficient
 
 
-def testInterpolate4():
-    "Interpolate: Complex sine + noise (point)"
-    x = np.linspace(0,2*np.pi,200)
-    y = np.sin(x)+0.1*np.random.randn(x.shape[0]) + \
-        0.1j*np.random.randn(x.shape[0])
-    S1 = Cubic_Spline(x[0],x[-1],y)
-    S2 = sint.interp1d(x,y,'cubic')
-    for k in range(x.shape[0]):
-        assert_(np.abs(S2(x[k])-S1(x[k])) < 1e-9)
+_real_cos = _Case(0.25, np.cos, '0.25*cos(t)')
+_real_sin = _Case(0.25, np.sin, '0.25*sin(t)')
+_complex_pos = _Case(0.1j, np.sin, '0.1j*sin(t)')
+_complex_neg = _Case(-0.1j, np.sin, '-0.1j*sin(t)')
+
+
+def _parametrize_solver_coefficients(metafunc):
+    """
+    Perform the parametrisation for test cases using a solver and some
+    time-dependent coefficients.  This is necessary because not all solvers can
+    accept all combinations of time-dependence specifications.
+    """
+    size = 10
+    times = np.linspace(0, 5, 50)
+    c_ops = [qutip.qzero(size)]
+    solvers = [
+        (qutip.sesolve, 'sesolve'),
+        (functools.partial(qutip.mesolve, c_ops=c_ops), 'mesolve'),
+        (functools.partial(qutip.mcsolve, c_ops=c_ops), "mcsolve"),
+        (qutip.brmesolve, 'brmesolve'),
+    ]
+    # A list of (reference, test) pairs, where the reference is in function
+    # form because that's the fastest, and the test is named type.
+    coefficients = [
+        ([_real_cos.spline(times)], "real-spline"),
+        ([_real_cos.string(), _real_sin.spline(times)], "real-string,spline"),
+        ([_real_cos.spline(times), _real_sin.function()],
+            "real-spline,function"),
+        ([_complex_pos.spline(times), _complex_neg.string()],
+            "complex-spline,string"),
+    ]
+
+    def _valid_case(solver_id, coefficient_id):
+        invalids = [
+            "brmesolve" in solver_id and "function" in coefficient_id,
+        ]
+        return not any(invalids)
+
+    def _make_case(solver, solver_id, coefficients, coefficient_id):
+        marks = []
+        if "brmesolve" in solver_id:
+            # We must use the string as the reference type instead of the
+            # function if brmesolve is in use.
+            marks.append(pytest.mark.requires_cython)
+            coefficients = [(c.string_coefficient, other)
+                            for c, other in coefficients]
+        id_ = "-".join([solver_id, coefficient_id])
+        return pytest.param(solver, coefficients, size, times,
+                            id=id_, marks=marks)
+
+    cases = [_make_case(solver, solver_id, coefficients_, coefficient_id)
+             for solver, solver_id in solvers
+             for coefficients_, coefficient_id in coefficients
+             if _valid_case(solver_id, coefficient_id)]
+    metafunc.parametrize(["solver", "coefficients", "size", "times"], cases)
 
 
 @pytest.mark.slow
-def test_interpolate_evolve1():
+def test_usage_in_solvers(solver, coefficients, size, times):
     """
-    Interpolate: sesolve str-based (real)
+    Test that the Cubic_Spline can be used as a time-dependent argument to all
+    three principle solvers, both alone and in combination with other forms of
+    time-dependence.
     """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
-    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
-    out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
-    out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve2():
-    """
-    Interpolate: mesolve str-based (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
-    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
-    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve3():
-    """
-    Interpolate: mcsolve str-based (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
-    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
-    out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
-    out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a],ntraj=500).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve4():
-    """
-    Interpolate: sesolve str + interp (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
-    out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
-    out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve5():
-    """
-    Interpolate: sesolve func + interp (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    func = lambda t, *args: 0.25*np.cos(t)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
-    out1 = sesolve(H, psi0, tlist, [a.dag()*a]).expect[0]
-    out2 = sesolve(H2, psi0, tlist, [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve6():
-    """
-    Interpolate: mesolve str + interp (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock_dm(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
-    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve7():
-    """
-    Interpolate: mesolve func + interp (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    func = lambda t, *args: 0.25*np.cos(t)
-    N = 10
-    psi0 = fock_dm(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
-    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve8():
-    """
-    Interpolate: mcsolve str + interp (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'0.25*cos(t)']]
-    out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve9():
-    """
-    Interpolate: mcsolve func + interp (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    func = lambda t, *args: 0.25*np.cos(t)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)'], [a**2+a.dag()**2,'0.25*cos(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
-    out1 = mcsolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = mcsolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve10():
-    """
-    Interpolate: mesolve str + interp (complex)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.1j*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock_dm(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.1j*sin(t)'], [a**2+a.dag()**2,'-0.1j*sin(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'-0.1j*sin(t)']]
-    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-def test_interpolate_evolve11():
-    """
-    Interpolate: mesolve func + interp (complex)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.1j*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    func = lambda t, *args: -0.1j*np.sin(t)
-    N = 10
-    psi0 = fock_dm(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.1j*sin(t)'], [a**2+a.dag()**2,'-0.1j*sin(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,func]]
-    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = mesolve(H2, psi0, tlist, [], [a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_interpolate_brevolve1():
-    """
-    Interpolate: brmesolve str + interp (real)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.25*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.25*sin(t)']]
-    H2 = [a.dag()*a,[a**2+a.dag()**2, S]]
-    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_interpolate_brevolve2():
-    """
-    Interpolate: brmesolve str + interp (complex)
-    """
-    tlist = np.linspace(0,5,50)
-    y = 0.1j*np.sin(tlist)
-    S = Cubic_Spline(tlist[0], tlist[-1], y)
-    N = 10
-    psi0 = fock_dm(N,1)
-    a = destroy(N)
-    H = [a.dag()*a,[a**2+a.dag()**2,'0.1j*sin(t)'], [a**2+a.dag()**2,'-0.1j*sin(t)']]
-    H2 = [a.dag()*a, [a**2+a.dag()**2, S], [a**2+a.dag()**2,'-0.1j*sin(t)']]
-    out1 = mesolve(H, psi0, tlist, [], [a.dag()*a]).expect[0]
-    out2 = brmesolve(H2, psi0, tlist, a_ops=[], e_ops=[a.dag()*a]).expect[0]
-    assert_(np.max(np.abs(out1-out2)) < 1e-4)
-
-
-@pytest.mark.slow
-@unittest.skipIf(not Cython_OK, 'Cython not found or version too low.')
-def test_interpolate_brevolve3():
-    """
-    Interpolate: brmesolve c_op as interp (str)
-    """
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    tlist = np.linspace(0, 10, 100)
-
-    f = lambda t: np.sqrt(kappa*np.exp(-t))
-
-    S = Cubic_Spline(tlist[0],tlist[-1],f(tlist))
-    c_ops = [[a, S]]
-    brdata = brmesolve(H, psi0, tlist, a_ops=[], e_ops=[a.dag() * a], c_ops=c_ops)
-    expt = brdata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_(avg_diff < 1e-4)
-
-
-if __name__ == "__main__":
-    run_module_suite()
+    a = qutip.destroy(size)
+    state = qutip.basis(size, 1)
+    e_ops = [a.dag() * a]
+    H_expected = [a.dag()*a]
+    H_test = H_expected.copy()
+    operator = a**2 + a.dag()**2
+    for expected, test in coefficients:
+        H_expected.append([operator, expected])
+        H_test.append([operator, test])
+    expected = solver(H_expected, state, times, e_ops=e_ops).expect[0]
+    test = solver(H_test, state, times, e_ops=e_ops).expect[0]
+    np.testing.assert_allclose(test, expected, atol=1e-4)

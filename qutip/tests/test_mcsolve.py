@@ -30,561 +30,287 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
 import pytest
 import numpy as np
-from numpy.testing import assert_equal, run_module_suite, assert_
-import unittest
-from qutip import *
-from qutip import _version2int
-
-# find Cython if it exists
-try:
-    import Cython
-except:
-    Cython_found = 0
-else:
-    Cython_found = 1
-
-kappa = 0.2
+import qutip
 
 
-def sqrt_kappa(t, args):
-    return np.sqrt(kappa)
+def _return_constant(t, args):
+    return args['constant']
 
 
-def sqrt_kappa2(t, args):
-    return np.sqrt(kappa * np.exp(-t))
+def _return_decay(t, args):
+    return args['constant'] * np.exp(-args['rate'] * t)
 
 
-def const_H1_coeff(t, args):
-    return 0.0
+@pytest.mark.usefixtures("in_temporary_directory")
+class StatesAndExpectOutputCase:
+    """
+    Mixin class to test the states and expectation values from ``mcsolve``.
+    """
+    size = 10
+    h = qutip.num(size)
+    state = qutip.basis(size, size-1)
+    times = np.linspace(0, 1, 101)
+    e_ops = [qutip.num(size)]
+    ntraj = 750
 
-# average error for failure
-mc_error = 5e-2  # 5%
-ntraj = 750
+    def _assert_states(self, result, expected, tol):
+        assert hasattr(result, 'states')
+        assert len(result.states) == len(self.times)
+        for test_operator, expected_part in zip(self.e_ops, expected):
+            test = qutip.expect(test_operator, result.states)
+            np.testing.assert_allclose(test, expected_part, rtol=tol)
 
+    def _assert_expect(self, result, expected, tol):
+        assert hasattr(result, 'expect')
+        assert len(result.expect) == len(self.e_ops)
+        for test, expected_part in zip(result.expect, expected):
+            np.testing.assert_allclose(test, expected_part, rtol=tol)
 
-def test_MCNoCollExpt():
-    "Monte-carlo: Constant H with no collapse ops (expect)"
-    error = 1e-8
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    c_op_list = []
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.ones(len(tlist))
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
-
-
-def test_MCNoCollStates():
-    "Monte-carlo: Constant H with no collapse ops (states)"
-    error = 1e-8
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    c_op_list = []
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
-    states = mcdata.states
-    expt = expect(a.dag() * a, states)
-    actual_answer = 9.0 * np.ones(len(tlist))
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
+    def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol):
+        options = qutip.Options(average_states=True, store_states=True)
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
+                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
+                               options=options)
+        self._assert_expect(result, expected, tol)
+        self._assert_states(result, expected, tol)
 
 
-def test_MCNoCollExpectStates():
-    "Monte-carlo: Constant H with no collapse ops (expect and states)"
-    error = 1e-8
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    c_op_list = []
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj,
-                     options=Options(store_states=True))
-    actual_answer = 9.0 * np.ones(len(tlist))
-    expt = mcdata.expect[0]
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
-    assert_(len(mcdata.states) == len(tlist))
-    assert_(isinstance(mcdata.states[0], Qobj))
-    expt = expect(a.dag() * a, mcdata.states)
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
+class TestNoCollapse(StatesAndExpectOutputCase):
+    """
+    Test that `mcsolve` correctly solves the system when there is a constant
+    Hamiltonian and no collapses.
+    """
+    def pytest_generate_tests(self, metafunc):
+        tol = 1e-8
+        expect = (qutip.expect(self.e_ops[0], self.state)
+                  * np.ones_like(self.times))
+        hamiltonian_types = [
+            (self.h, {}, "Qobj", False),
+            ([self.h], {}, "list", False),
+            ([self.h, [self.h, '0']], {}, "string", True),
+            ([self.h, [self.h, _return_constant]], {'constant': 0},
+             "function", False),
+        ]
+        cases = []
+        for hamiltonian, args, id, slow in hamiltonian_types:
+            if slow and 'only' in metafunc.function.__name__:
+                # Skip the single-output test if it's a slow case.
+                continue
+            marks = [pytest.mark.slow] if slow else []
+            cases.append(pytest.param(hamiltonian, args, [], [expect], tol,
+                                      id=id, marks=marks))
+        metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
+                              'tol'],
+                             cases)
+
+    # Previously the "states_only" and "expect_only" tests were mixed in to
+    # every other test case.  We move them out into the simplest set so that
+    # their behaviour remains tested, but isn't repeated as often to keep test
+    # runtimes shorter.  The known-good cases are still tested in the other
+    # test cases, this is just testing the single-output behaviour.
+
+    def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
+        options = qutip.Options(average_states=True, store_states=True)
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
+                               c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
+                               options=options)
+        self._assert_states(result, expected, tol)
+
+    def test_expect_only(self, hamiltonian, args, c_ops, expected, tol):
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
+                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj)
+        self._assert_expect(result, expected, tol)
 
 
-@pytest.mark.slow
-def test_MCNoCollStrExpt():
-    "Monte-carlo: Constant H (str format) with no collapse ops (expect)"
-    error = 1e-8
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = [a.dag() * a, [a.dag() * a, 'c']]
-    psi0 = basis(N, 9)  # initial state
-    c_op_list = []
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'c': 0.0},
-                     ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.ones(len(tlist))
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
+class TestConstantCollapse(StatesAndExpectOutputCase):
+    """
+    Test that `mcsolve` correctly solves the system when there is a constant
+    collapse operator.
+    """
+    def pytest_generate_tests(self, metafunc):
+        tol = 0.05
+        coupling = 0.2
+        expect = (qutip.expect(self.e_ops[0], self.state)
+                  * np.exp(-coupling * self.times))
+        collapse_op = qutip.destroy(self.size)
+        c_op_types = [
+            (np.sqrt(coupling)*collapse_op, {}, "constant"),
+            ([collapse_op, 'sqrt({})'.format(coupling)], {}, "string"),
+            ([collapse_op, _return_constant], {'constant': np.sqrt(coupling)},
+             "function"),
+        ]
+        cases = []
+        for c_op, args, id in c_op_types:
+            cases.append(pytest.param(self.h, args, [c_op], [expect], tol,
+                                      id=id, marks=[pytest.mark.slow]))
+        metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
+                              'tol'],
+                             cases)
 
 
-def test_MCNoCollFuncExpt():
-    "Monte-carlo: Constant H (func format) with no collapse ops (expect)"
-    error = 1e-8
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = [a.dag() * a, [a.dag() * a, const_H1_coeff]]
-    psi0 = basis(N, 9)  # initial state
-    c_op_list = []
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.ones(len(tlist))
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
+class TestTimeDependentCollapse(StatesAndExpectOutputCase):
+    """
+    Test that `mcsolve` correctly solves the system when the collapse operators
+    are time-dependent.
+    """
+    def pytest_generate_tests(self, metafunc):
+        tol = 0.1
+        coupling = 0.2
+        expect = (qutip.expect(self.e_ops[0], self.state)
+                  * np.exp(-coupling * (1 - np.exp(-self.times))))
+        collapse_op = qutip.destroy(self.size)
+        collapse_args = {'constant': np.sqrt(coupling), 'rate': 0.5}
+        collapse_string = 'sqrt({} * exp(-t))'.format(coupling)
+        c_op_types = [
+            ([collapse_op, _return_decay], collapse_args, "function"),
+            ([collapse_op, collapse_string], {}, "string"),
+        ]
+        cases = []
+        for c_op, args, id in c_op_types:
+            cases.append(pytest.param(self.h, args, [c_op], [expect], tol,
+                                      id=id, marks=[pytest.mark.slow]))
+        metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
+                              'tol'],
+                             cases)
 
 
-@pytest.mark.slow
-def test_MCNoCollStrStates():
-    "Monte-carlo: Constant H (str format) with no collapse ops (states)"
-    error = 1e-8
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = [a.dag() * a, [a.dag() * a, 'c']]
-    psi0 = basis(N, 9)  # initial state
-    c_op_list = []
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], args={'c': 0.0})
-    states = mcdata.states
-    expt = expect(a.dag() * a, states)
-    actual_answer = 9.0 * np.ones(len(tlist))
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
-
-
-def test_MCNoCollFuncStates():
-    "Monte-carlo: Constant H (func format) with no collapse ops (states)"
-    error = 1e-8
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = [a.dag() * a, [a.dag() * a, const_H1_coeff]]
-    psi0 = basis(N, 9)  # initial state
-    c_op_list = []
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
-    states = mcdata.states
-    expt = expect(a.dag() * a, states)
-    actual_answer = 9.0 * np.ones(len(tlist))
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
-
-
-def test_MCCollapseTimesOperators():
-    "Monte-carlo: Check for stored collapse operators and times"
-    N = 10
-    kappa = 5.0
+def test_stored_collapse_operators_and_times():
+    """
+    Test that the output contains information on which collapses happened and
+    at what times, and make sure that this information makes sense.
+    """
+    size = 10
+    a = qutip.destroy(size)
+    H = qutip.num(size)
+    state = qutip.basis(size, size-1)
     times = np.linspace(0, 10, 100)
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)
-    c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a]
-    result = mcsolve(H, psi0, times, c_ops, [], ntraj=1)
-    assert_(len(result.col_times[0]) > 0)
-    assert_(len(result.col_which) == len(result.col_times))
-    assert_(all([col in [0, 1] for col in result.col_which[0]]))
+    c_ops = [a, a]
+    result = qutip.mcsolve(H, state, times, c_ops, ntraj=1)
+    assert len(result.col_times[0]) > 0
+    assert len(result.col_which) == len(result.col_times)
+    assert all(col in [0, 1] for col in result.col_which[0])
 
 
-@pytest.mark.slow
-def test_MCSimpleConst():
-    "Monte-carlo: Constant H with constant collapse"
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [np.sqrt(kappa) * a]
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * tlist)
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
+@pytest.mark.parametrize('options', [
+    pytest.param(qutip.Options(average_expect=True), id="average_expect=True"),
+    pytest.param(qutip.Options(average_states=False),
+                 id="average_states=False"),
+])
+def test_expectation_dtype(options):
+    # We're just testing the output value, so it's important whether certain
+    # things are complex or real, but not what the magnitudes of constants are.
+    focks = 5
+    a = qutip.tensor(qutip.destroy(focks), qutip.qeye(2))
+    sm = qutip.tensor(qutip.qeye(focks), qutip.sigmam())
+    H = 1j*a.dag()*sm + a
+    H = H + H.dag()
+    state = qutip.basis([focks, 2], [0, 1])
+    times = np.linspace(0, 10, 5)
+    c_ops = [a, sm]
+    e_ops = [a.dag()*a, sm.dag()*sm, a]
+    data = qutip.mcsolve(H, state, times, c_ops, e_ops, ntraj=5,
+                         options=options)
+    assert isinstance(data.expect[0][1], float)
+    assert isinstance(data.expect[1][1], float)
+    assert isinstance(data.expect[2][1], complex)
 
 
-@pytest.mark.slow
-def test_MCSimpleConstStates():
-    "Monte-carlo: Constant H with constant collapse (states)"
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [np.sqrt(kappa) * a]
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj,
-                     options=Options(average_states=True))
-    assert_(len(mcdata.states) == len(tlist))
-    assert_(isinstance(mcdata.states[0], Qobj))
-    expt = expect(a.dag() * a, mcdata.states)
-    actual_answer = 9.0 * np.exp(-kappa * tlist)
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
+class TestSeeds:
+    sizes = [6, 6, 6]
+    dampings = [0.1, 0.4, 0.1]
+    ntraj = 25  # Big enough to ensure there are differences without being slow
+    a = [qutip.destroy(size) for size in sizes]
+    H = 1j * (qutip.tensor(a[0], a[1].dag(), a[2].dag())
+              - qutip.tensor(a[0].dag(), a[1], a[2]))
+    state = qutip.tensor(qutip.coherent(sizes[0], np.sqrt(2)),
+                         qutip.basis(sizes[1:], [0, 0]))
+    times = np.linspace(0, 10, 2)
+    c_ops = [
+        np.sqrt(2*dampings[0]) * qutip.tensor(a[0], qutip.qeye(sizes[1:])),
+        (np.sqrt(2*dampings[1])
+         * qutip.tensor(qutip.qeye(sizes[0]), a[1], qutip.qeye(sizes[2]))),
+        np.sqrt(2*dampings[2]) * qutip.tensor(qutip.qeye(sizes[:2]), a[2]),
+    ]
+
+    def test_seeds_can_be_reused(self):
+        args = (self.H, self.state, self.times)
+        kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
+        first = qutip.mcsolve(*args, **kwargs)
+        options = qutip.Options(seeds=first.seeds)
+        second = qutip.mcsolve(*args, options=options, **kwargs)
+        for first_t, second_t in zip(first.col_times, second.col_times):
+            np.testing.assert_equal(first_t, second_t)
+        for first_w, second_w in zip(first.col_which, second.col_which):
+            np.testing.assert_equal(first_w, second_w)
+
+    def test_seeds_are_not_reused_by_default(self):
+        args = (self.H, self.state, self.times)
+        kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
+        first = qutip.mcsolve(*args, **kwargs)
+        second = qutip.mcsolve(*args, **kwargs)
+        assert not all(np.array_equal(first_t, second_t)
+                       for first_t, second_t in zip(first.col_times,
+                                                    second.col_times))
+        assert not all(np.array_equal(first_w, second_w)
+                       for first_w, second_w in zip(first.col_which,
+                                                    second.col_which))
 
 
-@pytest.mark.slow
-def test_MCSimpleConstExptStates():
-    "Monte-carlo: Constant H with constant collapse (states)"
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [np.sqrt(kappa) * a]
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj,
-                     options=Options(average_states=True, store_states=True))
-    actual_answer = 9.0 * np.exp(-kappa * tlist)
-    expt1 = mcdata.expect[0]
-    avg_diff = np.mean(abs(actual_answer - expt1) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
-    assert_(len(mcdata.states) == len(tlist))
-    assert_(isinstance(mcdata.states[0], Qobj))
-    expt2 = expect(a.dag() * a, mcdata.states)
-    avg_diff = np.mean(abs(actual_answer - expt2) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
+def test_list_ntraj():
+    """Test that `ntraj` can be a list."""
+    size = 5
+    a = qutip.destroy(size)
+    H = qutip.num(size)
+    state = qutip.basis(size, 1)
+    times = np.linspace(0, 0.8, 100)
+    # Arbitrary coupling and bath temperature.
+    coupling = 1 / 0.129
+    n_th = 0.063
+    c_ops = [np.sqrt(coupling * (n_th + 1)) * a,
+             np.sqrt(coupling * n_th) * a.dag()]
+    e_ops = [qutip.num(size)]
+    ntraj = [1, 5, 15, 100]
+    mc = qutip.mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj)
+    assert len(ntraj) == len(mc.expect)
 
 
-@pytest.mark.slow
-def test_MCSimpleSingleCollapse():
-    """Monte-carlo: Constant H with single collapse operator"""
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [np.sqrt(kappa) * a]
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * tlist)
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
-
-
-@pytest.mark.slow
-def test_MCSimpleSingleExpect():
-    """Monte-carlo: Constant H with single expect operator"""
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [np.sqrt(kappa) * a]
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * tlist)
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
-
-
-@pytest.mark.slow
-def test_MCSimpleConstFunc():
-    "Monte-carlo: Collapse terms constant (func format)"
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [[a, sqrt_kappa]]
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * tlist)
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
-
-
-@pytest.mark.slow
-def test_MCSimpleConstStr():
-    "Monte-carlo: Collapse terms constant (str format)"
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [[a, 'sqrt(k)']]
-    args = {'k': kappa}
-    tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
-                     ntraj=ntraj)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * tlist)
-    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(avg_diff < mc_error, True)
-
-
-def test_MCTDFunc():
-    "Monte-carlo: Time-dependent H (func format)"
-    error = 5e-2*4
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [[a, sqrt_kappa2]]
-    tlist = np.linspace(0, 5, 51)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a],
-                     ntraj=ntraj//2)
-    expt = mcdata.expect[0]
-    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
-    diff = np.mean(abs(actual_answer - expt) / actual_answer)
-    assert_equal(diff < error, True)
-
-
-def test_MCTDStr():
-    "Monte-carlo: Time-dependent H (str format)"
-    error = 5e-2*4
-    N = 10  # number of basis states to consider
-    a = destroy(N)
-    H = a.dag() * a
-    psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
-    c_op_list = [[a, 'sqrt(k*exp(-t))']]
-    args = {'k': kappa}
-    tlist = np.linspace(0, 5, 51)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
-                     ntraj=ntraj//2)
-    expt = mcdata.expect[0]
-    actual = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
-    diff = np.mean(abs(actual - expt) / actual)
-    assert_equal(diff < error, True)
-
-
-def test_mc_dtypes1():
-    "Monte-carlo: check for correct dtypes (average_states=True)"
-    # set system parameters
-    kappa = 2.0  # mirror coupling
-    gamma = 0.2  # spontaneous emission rate
-    g = 1  # atom/cavity coupling strength
-    wc = 0  # cavity frequency
-    w0 = 0  # atom frequency
-    wl = 0  # driving frequency
-    E = 0.5  # driving amplitude
-    N = 5  # number of cavity energy levels (0->3 Fock states)
-    tlist = np.linspace(0, 10, 5)  # times for expectation values
-    # construct Hamiltonian
-    ida = qeye(N)
-    idatom = qeye(2)
-    a = tensor(destroy(N), idatom)
-    sm = tensor(ida, sigmam())
-    H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
-        1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
-    # collapse operators
-    C1 = np.sqrt(2 * kappa) * a
-    C2 = np.sqrt(gamma) * sm
-    C1dC1 = C1.dag() * C1
-    C2dC2 = C2.dag() * C2
-    # intial state
-    psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Options(average_expect=True)
-    data = mcsolve(
-        H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
-    assert_equal(isinstance(data.expect[0][1], float), True)
-    assert_equal(isinstance(data.expect[1][1], float), True)
-    assert_equal(isinstance(data.expect[2][1], complex), True)
-
-
-def test_mc_dtypes2():
-    "Monte-carlo: check for correct dtypes (average_states=False)"
-    # set system parameters
-    kappa = 2.0  # mirror coupling
-    gamma = 0.2  # spontaneous emission rate
-    g = 1  # atom/cavity coupling strength
-    wc = 0  # cavity frequency
-    w0 = 0  # atom frequency
-    wl = 0  # driving frequency
-    E = 0.5  # driving amplitude
-    N = 5  # number of cavity energy levels (0->3 Fock states)
-    tlist = np.linspace(0, 10, 5)  # times for expectation values
-    # construct Hamiltonian
-    ida = qeye(N)
-    idatom = qeye(2)
-    a = tensor(destroy(N), idatom)
-    sm = tensor(ida, sigmam())
-    H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
-        1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
-    # collapse operators
-    C1 = np.sqrt(2 * kappa) * a
-    C2 = np.sqrt(gamma) * sm
-    C1dC1 = C1.dag() * C1
-    C2dC2 = C2.dag() * C2
-    # intial state
-    psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Options(average_expect=False)
-    data = mcsolve(
-        H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
-    assert_equal(isinstance(data.expect[0][0][1], float), True)
-    assert_equal(isinstance(data.expect[0][1][1], float), True)
-    assert_equal(isinstance(data.expect[0][2][1], complex), True)
-
-
-@pytest.mark.slow
-def test_mc_seed_reuse():
-    "Monte-carlo: check reusing seeds"
-    N0 = 6
-    N1 = 6
-    N2 = 6
-    # damping rates
-    gamma0 = 0.1
-    gamma1 = 0.4
-    gamma2 = 0.1
-    alpha = np.sqrt(2)  # initial coherent state param for mode 0
-    tlist = np.linspace(0, 10, 2)
-    ntraj = 500  # number of trajectories
-    # define operators
-    a0 = tensor(destroy(N0), qeye(N1), qeye(N2))
-    a1 = tensor(qeye(N0), destroy(N1), qeye(N2))
-    a2 = tensor(qeye(N0), qeye(N1), destroy(N2))
-    # number operators for each mode
-    num0 = a0.dag() * a0
-    num1 = a1.dag() * a1
-    num2 = a2.dag() * a2
-    # dissipative operators for zero-temp. baths
-    C0 = np.sqrt(2.0 * gamma0) * a0
-    C1 = np.sqrt(2.0 * gamma1) * a1
-    C2 = np.sqrt(2.0 * gamma2) * a2
-    # initial state: coherent mode 0 & vacuum for modes #1 & #2
-    psi0 = tensor(coherent(N0, alpha), basis(N1, 0), basis(N2, 0))
-    # trilinear Hamiltonian
-    H = 1j * (a0 * a1.dag() * a2.dag() - a0.dag() * a1 * a2)
-    # run Monte-Carlo
-    data1 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
-                    ntraj=ntraj)
-    data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
-                    ntraj=ntraj, options=Options(seeds=data1.seeds))
-    for k in range(ntraj):
-        assert_equal(np.allclose(data1.col_times[k],data2.col_times[k]), True)
-        assert_equal(np.allclose(data1.col_which[k],data2.col_which[k]), True)
-
-
-@pytest.mark.slow
-def test_mc_seed_noreuse():
-    "Monte-carlo: check not reusing seeds"
-    N0 = 6
-    N1 = 6
-    N2 = 6
-    # damping rates
-    gamma0 = 0.1
-    gamma1 = 0.4
-    gamma2 = 0.1
-    alpha = np.sqrt(2)  # initial coherent state param for mode 0
-    tlist = np.linspace(0, 10, 2)
-    ntraj = 500  # number of trajectories
-    # define operators
-    a0 = tensor(destroy(N0), qeye(N1), qeye(N2))
-    a1 = tensor(qeye(N0), destroy(N1), qeye(N2))
-    a2 = tensor(qeye(N0), qeye(N1), destroy(N2))
-    # number operators for each mode
-    num0 = a0.dag() * a0
-    num1 = a1.dag() * a1
-    num2 = a2.dag() * a2
-    # dissipative operators for zero-temp. baths
-    C0 = np.sqrt(2.0 * gamma0) * a0
-    C1 = np.sqrt(2.0 * gamma1) * a1
-    C2 = np.sqrt(2.0 * gamma2) * a2
-    # initial state: coherent mode 0 & vacuum for modes #1 & #2
-    psi0 = tensor(coherent(N0, alpha), basis(N1, 0), basis(N2, 0))
-    # trilinear Hamiltonian
-    H = 1j * (a0 * a1.dag() * a2.dag() - a0.dag() * a1 * a2)
-    # run Monte-Carlo
-    data1 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
-                    ntraj=ntraj)
-    data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
-                    ntraj=ntraj)
-    diff_flag = False
-    for k in range(ntraj):
-        if len(data1.col_times[k]) != len(data2.col_times[k]):
-            diff_flag = 1
-            break
-        else:
-            if not np.allclose(data1.col_which[k],data2.col_which[k]):
-                diff_flag = 1
-                break
-    assert_equal(diff_flag, 1)
-
-
-@pytest.mark.slow
-def test_mc_ntraj_list():
-    "Monte-carlo: list of trajectories"
-    N = 5
-    a = destroy(N)
-    H = a.dag()*a       # Simple oscillator Hamiltonian
-    psi0 = basis(N, 1)  # Initial Fock state with one photon
-    kappa = 1.0/0.129   # Coupling rate to heat bath
-    nth = 0.063         # Temperature with <n>=0.063
-    # Build collapse operators for the thermal bath
-    c_ops = []
-    c_ops.append(np.sqrt(kappa * (1 + nth)) * a)
-    c_ops.append(np.sqrt(kappa * nth) * a.dag())
-    ntraj = [1, 5, 15, 100]  # number of MC trajectories
-    tlist = np.linspace(0, 0.8, 100)
-    mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a], ntraj)
-    assert_equal(len(mc.expect), 4)
-
-
-def f_dargs(t, args):
-    # allows only one collapse
+# Defined in module-scope so it's pickleable.
+def _dynamic(t, args):
     return 0 if args["collapse"] else 1
 
 
-def test_mc_dyn_args():
-    "Monte-carlo: dynamics arguments"
-    N = 5
-    a = destroy(N)
-    H = a.dag()*a       # Simple oscillator Hamiltonian
-    psi0 = basis(N, 2)  # Initial Fock state with one photon
-    c_ops = []
-    c_ops.append([a, f_dargs])
-    c_ops.append([a.dag(), f_dargs])
-    ntraj = [10]  # number of MC trajectories
-    tlist = np.linspace(0, 1, 11)
-    mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a],
-                 ntraj, args={"collapse":[]})
-    assert_(all(len(col)<=1 for col in mc.col_which))
+def test_dynamic_arguments():
+    """Test dynamically updated arguments are usable."""
+    size = 5
+    a = qutip.destroy(size)
+    H = qutip.num(size)
+    times = np.linspace(0, 1, 11)
+    state = qutip.basis(size, 2)
 
-def H1_coeff(t,args):
+    c_ops = [[a, _dynamic], [a.dag(), _dynamic]]
+    mc = qutip.mcsolve(H, state, times, c_ops, ntraj=25, args={"collapse": []})
+    assert all(len(collapses) <= 1 for collapses in mc.col_which)
+
+
+def _regression_490_f1(t, args):
     return t-1
 
-def H2_coeff(t,args):
+
+def _regression_490_f2(t, args):
     return -t
 
-def test_mc_functd_sum():
-    "Monte-carlo: Test for #490"
-    psi0 = (basis(2,0) + basis(2,1)).unit()
-    H0 = sigmax()
-    H1 = sigmay()
-    H2 = sigmaz()
 
-    h_t = [H0,[H1, H1_coeff],
-           [H2, H2_coeff]]
-    ntraj = 1
-
-    tlist = np.linspace(0, 3, 10)
-    medata = mesolve(h_t, psi0, tlist, [], [], args = {})
-    mcdata = mcsolve(h_t, psi0, tlist, [], [], ntraj = ntraj, args = {})
-    assert_(max([(medata.states[k]-mcdata.states[k]).norm()
-                 for k in range(10)]) < 1e-5)
-
-
-if __name__ == "__main__":
-    run_module_suite()
+def test_regression_490():
+    """Test for regression of gh-490."""
+    h = [qutip.sigmax(),
+         [qutip.sigmay(), _regression_490_f1],
+         [qutip.sigmaz(), _regression_490_f2]]
+    state = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
+    times = np.linspace(0, 3, 10)
+    result_me = qutip.mesolve(h, state, times)
+    result_mc = qutip.mcsolve(h, state, times, ntraj=1)
+    for state_me, state_mc in zip(result_me.states, result_mc.states):
+        np.testing.assert_allclose(state_me.full(), state_mc.full(), atol=1e-8)

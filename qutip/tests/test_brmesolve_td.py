@@ -34,17 +34,13 @@ import pytest
 import numpy as np
 import qutip
 
-try:
-    import Cython
-except ImportError:
-    Cython_OK = False
-else:
-    cython_version = qutip._version2int(Cython.__version__)
-    Cython_OK = cython_version >= qutip._version2int('0.14')
+pytestmark = [
+    pytest.mark.requires_cython,
+    pytest.mark.usefixtures("in_temporary_directory"),
+]
 
-pytestmark = pytest.mark.skipif(not Cython_OK,
-                                reason="Cython not found, or version too low.",
-                                allow_module_level=True)
+# A lot of this module is direct duplication of test_brmesolve.py, but using
+# string time dependence rather than functional.
 
 
 def pauli_spin_operators():
@@ -59,11 +55,16 @@ _x_a_op = [qutip.sigmax(), '{0} * (w >= 0)'.format(_simple_qubit_gamma)]
 
 @pytest.mark.slow
 @pytest.mark.parametrize("me_c_ops, brme_c_ops, brme_a_ops", [
-        ([_m_c_op],          [],        [_x_a_op]),
-        ([_m_c_op],          [_m_c_op], []),
-        ([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op]),
-    ])
+    pytest.param([_m_c_op], [], [_x_a_op], id="me collapse-br coupling"),
+    pytest.param([_m_c_op], [_m_c_op], [], id="me collapse-br collapse"),
+    pytest.param([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op],
+                 id="me collapse-br collapse-br coupling"),
+])
 def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
+    """
+    Test that the BR solver handles collapse and coupling operators correctly
+    relative to the standard ME solver.
+    """
     delta = 0.0 * 2*np.pi
     epsilon = 0.5 * 2*np.pi
     e_ops = pauli_spin_operators()
@@ -74,7 +75,7 @@ def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
     brme = qutip.brmesolve([[H, '1']], psi0, times,
                            brme_a_ops, e_ops, brme_c_ops).expect
     for me_expectation, brme_expectation in zip(me, brme):
-        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
 
 def _harmonic_oscillator_spectrum_frequency(n_th, w0, kappa):
@@ -116,12 +117,12 @@ def test_harmonic_oscillator(n_th):
     me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
-        assert np.allclose(me_expectation, brme_expectation, atol=1e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
     num = qutip.num(N)
     me_num = qutip.expect(num, me.states)
     brme_num = qutip.expect(num, brme.states)
-    assert np.allclose(me_num, brme_num, atol=1e-2)
+    np.testing.assert_allclose(me_num, brme_num, atol=1e-2)
 
 
 @pytest.mark.slow
@@ -145,7 +146,7 @@ def test_jaynes_cummings_zero_temperature():
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         # Accept 5% error.
-        assert np.allclose(me_expectation, brme_expectation, atol=5e-2)
+        np.testing.assert_allclose(me_expectation, brme_expectation, atol=5e-2)
 
 
 def _mixed_string(kappa, _):
@@ -207,7 +208,7 @@ def test_nonhermitian_e_ops():
     times = np.linspace(0, 10, 10)
     me = qutip.mesolve(H, psi0, times, c_ops=[], e_ops=[a]).expect[0]
     brme = qutip.brmesolve(H_brme, psi0, times, a_ops=[], e_ops=[a]).expect[0]
-    assert np.allclose(me, brme, atol=1e-4)
+    np.testing.assert_allclose(me, brme, atol=1e-4)
 
 
 @pytest.mark.slow
@@ -287,7 +288,7 @@ def test_split_operators_maintain_answer(collapse_operators):
     brme = qutip.brmesolve(H, psi0, times, a_ops, e_ops, brme_c_ops)
 
     for me_expect, brme_expect in zip(me.expect, brme.expect):
-        assert np.allclose(me_expect, brme_expect, atol=1e-2)
+        np.testing.assert_allclose(me_expect, brme_expect, atol=1e-2)
 
 
 @pytest.mark.slow

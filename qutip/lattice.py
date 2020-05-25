@@ -1070,7 +1070,7 @@ class Lattice1d():
             else:
                 Phi_m_k[ks] = 2*np.pi + np.angle(mx_k[ks]+1j*my_k[ks])
 
-        if winding_number is 'defined':
+        if winding_number == 'defined':
             ddk_Phi_m_k = np.roll(Phi_m_k, -1) - Phi_m_k
             intg_over_k = -np.sum(ddk_Phi_m_k[0:knpoints//2])+np.sum(
                     ddk_Phi_m_k[knpoints//2:knpoints])

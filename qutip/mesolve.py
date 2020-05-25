@@ -65,7 +65,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     set of collapse operators, or a Liouvillian.
 
     Evolve the state vector or density matrix (`rho0`) using a given
-    Hamiltonian (`H`) and an [optional] set of collapse operators
+    Hamiltonian or Liouvillian (`H`) and an optional set of collapse operators
     (`c_ops`), by integrating the set of ordinary differential equations
     that define the system. In the absence of collapse operators the system is
     evolved according to the unitary evolution of the Hamiltonian.
@@ -78,25 +78,25 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     If either `H` or the Qobj elements in `c_ops` are superoperators, they
     will be treated as direct contributions to the total system Liouvillian.
-    This allows to solve master equations that are not on standard Lindblad
-    form by passing a custom Liouvillian in place of either the `H` or `c_ops`
-    elements.
+    This allows the solution of master equations that are not in standard
+    Lindblad form.
 
     **Time-dependent operators**
 
-    For time-dependent problems, `H` and `c_ops` can be callback
-    functions that takes two arguments, time and `args`, and returns the
-    Hamiltonian or Liouvillian for the system at that point in time
-    (*callback format*).
-
-    Alternatively, `H` and `c_ops` can be a specified in a nested-list format
-    where each element in the list is a list of length 2, containing an
-    operator (:class:`qutip.qobj`) at the first element and where the
-    second element is either a string (*list string format*), a callback
+    For time-dependent problems, `H` and `c_ops` can be a specified in a
+    nested-list format where each element in the list is a list of length 2,
+    containing an operator (:class:`qutip.qobj`) at the first element and where
+    the second element is either a string (*list string format*), a callback
     function (*list callback format*) that evaluates to the time-dependent
     coefficient for the corresponding operator, or a NumPy array (*list
     array format*) which specifies the value of the coefficient to the
-    corresponding operator for each value of t in tlist.
+    corresponding operator for each value of t in `tlist`.
+
+    Alternatively, `H` (but not `c_ops`) can be a callback function with the
+    signature `f(t, args) -> Qobj` (*callback format*), which can return the
+    Hamiltonian or Liouvillian superoperator at any point in time.  If the
+    equation cannot be put in standard Lindblad form, then this time-dependence
+    format must be used.
 
     *Examples*
 
@@ -114,7 +114,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     In all cases of time-dependent operators, `args` is a dictionary of
     parameters that is used when evaluating operators. It is passed to the
-    callback functions as second argument.
+    callback functions as their second argument.
 
     **Additional options**
 
@@ -128,20 +128,20 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
         If an element in the list-specification of the Hamiltonian or
         the list of collapse operators are in superoperator form it will be
-        added to the total Liouvillian of the problem with out further
+        added to the total Liouvillian of the problem without further
         transformation. This allows for using mesolve for solving master
-        equations that are not on standard Lindblad form.
+        equations that are not in standard Lindblad form.
 
     .. note::
 
-        On using callback function: mesolve transforms all :class:`qutip.qobj`
+        On using callback functions: mesolve transforms all :class:`qutip.Qobj`
         objects to sparse matrices before handing the problem to the integrator
         function. In order for your callback function to work correctly, pass
-        all :class:`qutip.qobj` objects that are used in constructing the
-        Hamiltonian via args. mesolve will check for :class:`qutip.qobj` in
+        all :class:`qutip.Qobj` objects that are used in constructing the
+        Hamiltonian via `args`. mesolve will check for :class:`qutip.Qobj` in
         `args` and handle the conversion to sparse matrices. All other
-        :class:`qutip.qobj` objects that are not passed via `args` will be
-        passed on to the integrator in scipy which will raise an NotImplemented
+        :class:`qutip.Qobj` objects that are not passed via `args` will be
+        passed on to the integrator in scipy which will raise a NotImplemented
         exception.
 
     Parameters
