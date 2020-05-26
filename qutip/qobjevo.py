@@ -53,6 +53,7 @@ import scipy
 import os
 from re import sub
 
+
 def proj(x):
     if np.isfinite(x):
         return (x)
@@ -856,7 +857,6 @@ class QobjEvo:
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
 
-
             if self.tlist is None:
                 self.tlist = other.tlist
             else:
@@ -1077,7 +1077,7 @@ class QobjEvo:
                 for j, op2 in enumerate(self.ops[i+1:]):
                     if op1.type != op2.type:
                         pass
-                    elif op1.type is "array":
+                    elif op1.type == "array":
                         if np.allclose(op1.coeff, op2.coeff):
                             this_set.append(j+i+1)
                     else:
@@ -1102,7 +1102,7 @@ class QobjEvo:
                 new_op[2] = new_op[1]
                 new_ops.append(EvoElement.make(new_op))
 
-            elif self.ops[_set[0]].type is "string":
+            elif self.ops[_set[0]].type == "string":
                 new_op = [self.ops[_set[0]].qobj, None, None, "string"]
                 new_str = "(" + self.ops[_set[0]].coeff + ")"
                 for i in _set[1:]:
@@ -1111,7 +1111,7 @@ class QobjEvo:
                 new_op[2] = new_str
                 new_ops.append(EvoElement.make(new_op))
 
-            elif self.ops[_set[0]].type is "array":
+            elif self.ops[_set[0]].type == "array":
                 new_op = [self.ops[_set[0]].qobj, None, None, "array"]
                 new_array = (self.ops[_set[0]].coeff).copy()
                 for i in _set[1:]:
@@ -1328,7 +1328,7 @@ class QobjEvo:
                 new_op[1] = _StrWrapper(new_op[2])
             elif op.type == "array":
                 new_op[2] = _Shift(op.get_coeff)
-                new_op[1] = new_op[1]
+                new_op[1] = new_op[2]
                 new_op[3] = "func"
                 self.type = "mixed_callable"
             elif op.type == "spline":
@@ -1566,7 +1566,7 @@ class QobjEvo:
 
     def __getstate__(self):
         _dict_ = {key: self.__dict__[key]
-                  for key in self.__dict__ if key is not "compiled_qobjevo"}
+                  for key in self.__dict__ if key != "compiled_qobjevo"}
         if self.compiled:
             return (_dict_, self.compiled_qobjevo.__getstate__())
         else:

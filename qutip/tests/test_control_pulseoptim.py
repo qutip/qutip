@@ -39,991 +39,464 @@
 # @supervisor: Daniel Burgarth
 # @date: Sep 2015
 
-"""
-Tests for main control.pulseoptim methods
-Some associated objects also tested.
-"""
-from __future__ import division
-
+import pytest
+import collections
 import os
-import uuid
-import shutil
+import pathlib
+import tempfile
 import numpy as np
-from numpy.testing import (
-    assert_, assert_almost_equal, run_module_suite, assert_equal)
-from scipy.optimize import check_grad
+import scipy.optimize
 
-from qutip import Qobj, identity, sigmax, sigmay, sigmaz, tensor
-from qutip.qip.operations.gates import hadamard_transform
+import qutip
+from qutip.control import pulseoptim as cpo
 from qutip.qip.algorithms import qft
-import qutip.control.optimconfig as optimconfig
-import qutip.control.dynamics as dynamics
-import qutip.control.termcond as termcond
-import qutip.control.optimizer as optimizer
-import qutip.control.stats as stats
-import qutip.control.pulsegen as pulsegen
-import qutip.control.errors as errors
-import qutip.control.loadparams as loadparams
-import qutip.control.pulseoptim as cpo
-import qutip.control.symplectic as sympl
+from qutip.qip.operations.gates import hadamard_transform
+import qutip.control.loadparams
 
-class TestPulseOptim:
+_sx = qutip.sigmax()
+_sy = qutip.sigmay()
+_sz = qutip.sigmaz()
+_sp = qutip.sigmap()
+_sm = qutip.sigmam()
+_si = qutip.identity(2)
+_project_0 = qutip.basis(2, 0).proj()
+_hadamard = hadamard_transform(1)
+
+# We have a whole bunch of different physical systems we want to test the
+# optimiser for, but the logic for testing them is largely the same.  To avoid
+# having to explicitly parametrise over five linked parameters repeatedly, we
+# group them into a record type, so that all the optimisation functions can
+# then simply be parametrised over a single argument.
+#
+# We supply `kwargs` as a property of the system because the initial pulse type
+# and dynamics solver to use vary, especially if the system is unitary.
+_System = collections.namedtuple('_System',
+                                 ['system', 'controls', 'initial', 'target',
+                                  'kwargs'])
+
+# Simple Hadamard gate.
+_hadamard_kwargs = {'num_tslots': 10, 'evo_time': 10, 'gen_stats': True,
+                    'init_pulse_type': 'LIN', 'fid_err_targ': 1e-10,
+                    'dyn_type': 'UNIT'}
+hadamard = _System(system=_sz,
+                   controls=[_sx],
+                   initial=_si,
+                   target=_hadamard,
+                   kwargs=_hadamard_kwargs)
+
+# Quantum Fourier transform.
+_qft_system = 0.5 * sum(qutip.tensor(op, op) for op in (_sx, _sy, _sz))
+_qft_controls = [0.5*qutip.tensor(_sx, _si), 0.5*qutip.tensor(_sy, _si),
+                 0.5*qutip.tensor(_si, _sx), 0.5*qutip.tensor(_si, _sy)]
+_qft_kwargs = {'num_tslots': 10, 'evo_time': 10, 'gen_stats': True,
+               'init_pulse_type': 'LIN', 'fid_err_targ': 1e-9,
+               'dyn_type': 'UNIT'}
+qft = _System(system=_qft_system,
+              controls=_qft_controls,
+              initial=qutip.identity([2, 2]),
+              target=qft.qft(2),
+              kwargs=_qft_kwargs)
+
+# Coupling constants are completely arbitrary.
+_ising_system = (0.9*qutip.tensor(_sx, _si) + 0.7*qutip.tensor(_si, _sx)
+                 + 0.8*qutip.tensor(_sz, _si) + 0.9*qutip.tensor(_si, _sz))
+_ising_kwargs = {'num_tslots': 10, 'evo_time': 18, 'init_pulse_type': 'LIN',
+                 'fid_err_targ': 1e-10, 'dyn_type': 'UNIT'}
+ising = _System(system=_ising_system,
+                controls=[qutip.tensor(_sz, _sz)],
+                initial=qutip.basis([2, 2], [0, 0]),
+                target=qutip.basis([2, 2], [1, 1]),
+                kwargs=_ising_kwargs)
+
+# Louivillian amplitude-damping channel system.
+_l_adc_system = 0.1 * (2*qutip.tensor(_sm, _sp.dag())
+                       - qutip.tensor(_project_0, _si)
+                       - qutip.tensor(_si, _project_0.dag()))
+_l_adc_controls = [1j * (qutip.tensor(_si, _sz) - qutip.tensor(_sz, _si)),
+                   1j * (qutip.tensor(_si, _sx) - qutip.tensor(_sx, _si))]
+_l_adc_kwargs = {'num_tslots': 10, 'evo_time': 5, 'init_pulse_type': 'LIN',
+                 'max_iter': 200, 'fid_err_targ': 1e-1, 'gen_stats': True}
+l_adc = _System(system=_l_adc_system,
+                controls=_l_adc_controls,
+                initial=qutip.identity([2, 2]),
+                target=hadamard_transform(2),
+                kwargs=_l_adc_kwargs)
+
+# Two coupled oscillators with symplectic dynamics.
+_g1, _g2 = 1.0, 0.2
+_A_rotate = qutip.qdiags([[1, 1, 0, 0]], [0])
+_A_squeeze = 0.4 * qutip.qdiags([[1, -1, 0, 0]], [0])
+_A_target = qutip.qdiags([[1, 1], [1, 1]], [2, -2])
+_Omega = qutip.Qobj(qutip.control.symplectic.calc_omega(2))
+_sympl_system = qutip.qdiags([[1, 1, 1, 1], [_g1, _g2], [_g1, _g2]],
+                             [0, 2, -2])
+_sympl_target = (-0.5 * _A_target * _Omega * np.pi).expm()
+_sympl_kwargs = {'num_tslots': 20, 'evo_time': 10, 'fid_err_targ': 1e-3,
+                 'max_iter': 200, 'dyn_type': 'SYMPL',
+                 'init_pulse_type': 'ZERO', 'gen_stats': True}
+symplectic = _System(system=_sympl_system,
+                     controls=[_A_rotate, _A_squeeze],
+                     initial=qutip.identity(4),
+                     target=_sympl_target,
+                     kwargs=_sympl_kwargs)
+
+
+# Parametrise the systems and the propagation method separately so that we test
+# all combinations of both.
+
+# Test propagation with the default settings and with internal Qobj use for all
+# test cases.
+@pytest.fixture(params=[
+    pytest.param(None, id="default propagation"),
+    pytest.param({'oper_dtype': qutip.Qobj}, id="Qobj propagation"),
+])
+def propagation(request):
+    return {'dyn_params': request.param}
+
+
+# Any test requiring a system to test will parametrise over all of the ones we
+# defined above.
+@pytest.fixture(params=[
+    pytest.param(hadamard, id="Hadamard gate"),
+    pytest.param(qft, id="QFT"),
+    pytest.param(ising, id="Ising state-to-state"),
+    pytest.param(l_adc, id="Lindbladian amplitude damping channel"),
+    pytest.param(symplectic, id="Symplectic coupled oscillators"),
+])
+def system(request):
+    return request.param
+
+
+def _optimize_pulse(system):
     """
-    A test class for the QuTiP functions for generating quantum gates
+    Unpack the `system` record type, optimise the result and assert that it
+    succeeded.
     """
-
-    def setUp(self):
-        # list of file paths to be removed after test
-        self.tmp_files = []
-        # list of folder paths to be removed after test
-        self.tmp_dirs = []
-
-    def tearDown(self):
-        for f in self.tmp_files:
-            try:
-                os.remove(f)
-            except:
-                pass
-
-        for d in self.tmp_dirs:
-            shutil.rmtree(d, ignore_errors=True)
+    result = cpo.optimize_pulse(system.system, system.controls,
+                                system.initial, system.target,
+                                **system.kwargs)
+    error = " ".join(["Infidelity: {:7.4e}".format(result.fid_err),
+                      "reason:", result.termination_reason])
+    assert result.goal_achieved, error
+    return result
 
 
-    def test_01_1_unitary_hadamard(self):
+def _merge_kwargs(system, kwargs):
+    """
+    Return a copy of `system` with any passed `kwargs` updated in the
+    dictionary---this can be used to overwrite or to add new arguments.
+    """
+    out = system.kwargs.copy()
+    out.update(kwargs)
+    return system._replace(kwargs=out)
+
+
+class TestOptimization:
+    def test_basic_optimization(self, system, propagation):
+        """Test the optimiser in the base case for each system."""
+        system = _merge_kwargs(system, propagation)
+        result = _optimize_pulse(system)
+        assert result.fid_err < system.kwargs['fid_err_targ']
+
+    def test_object_oriented_approach_and_gradient(self, system, propagation):
         """
-        control.pulseoptim: Hadamard gate with linear initial pulses
-        assert that goal is achieved and fidelity error is below threshold
+        Test the object-oriented version of the optimiser, and ensure that the
+        system truly appears to be at an extremum.
         """
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
+        system = _merge_kwargs(system, propagation)
+        base = _optimize_pulse(system)
+        optimizer = cpo.create_pulse_optimizer(system.system, system.controls,
+                                               system.initial, system.target,
+                                               **system.kwargs)
+        init_amps = np.array([optimizer.pulse_generator.gen_pulse()
+                              for _ in system.controls]).T
+        optimizer.dynamics.initialize_controls(init_amps)
+        # Check the gradient numerically.
+        func = optimizer.fid_err_func_wrapper
+        grad = optimizer.fid_err_grad_wrapper
+        loc = optimizer.dynamics.ctrl_amps.flatten()
+        assert abs(scipy.optimize.check_grad(func, grad, loc)) < 1e-5,\
+            "Gradient outside tolerance."
+        result = optimizer.run_optimization()
+        tol = system.kwargs['fid_err_targ']
+        assert abs(result.fid_err-base.fid_err) < tol,\
+            "Direct and indirect methods produce different results."
 
-        n_ts = 10
-        evo_time = 10
+    @pytest.mark.parametrize("kwargs", [
+        pytest.param({'gen_stats': False}, id="no stats"),
+        pytest.param({'num_tslots': None, 'evo_time': None,
+                      'tau': np.arange(1, 10, 1, dtype=np.float64)},
+                     id="tau array")
+    ])
+    def test_modified_optimization(self, propagation, kwargs):
+        """Test a basic system with a few different combinations of options."""
+        system = _merge_kwargs(hadamard, kwargs)
+        self.test_basic_optimization(system, propagation)
 
-        # Run the optimisation
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-        assert_almost_equal(result.fid_err, 0.0, decimal=10,
-                            err_msg="Hadamard infidelity too high")
+    def test_optimizer_bounds(self):
+        """Test that bounds on the control fields are obeyed."""
+        bound = 1.0
+        kwargs = {'amp_lbound': -bound, 'amp_ubound': bound}
+        system = _merge_kwargs(qft, kwargs)
+        result = _optimize_pulse(system)
+        assert np.all(result.final_amps >= -bound)
+        assert np.all(result.final_amps <= bound)
 
-    def test_01_2_unitary_hadamard_no_stats(self):
+    def test_unitarity_via_dump(self):
         """
-        control.pulseoptim: Hadamard gate with linear initial pulses (no stats)
-        assert that goal is achieved
+        Test that unitarity is maintained at all times throughout the
+        optimisation of the controls.
         """
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 10
-        evo_time = 10
-
-        # Run the optimisation
-        #Try without stats
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=False)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(no stats). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-
-    def test_01_3_unitary_hadamard_tau(self):
-        """
-        control.pulseoptim: Hadamard gate with linear initial pulses (tau)
-        assert that goal is achieved
-        """
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        # Run the optimisation
-        #Try setting timeslots with tau array
-        tau = np.arange(1.0, 10.0, 1.0)
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        tau=tau,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=False)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(tau as timeslots). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-
-    def test_01_4_unitary_hadamard_qobj(self):
-        """
-        control.pulseoptim: Hadamard gate with linear initial pulses (Qobj)
-        assert that goal is achieved
-        """
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 10
-        evo_time = 10
-
-        # Run the optimisation
-        #Try with Qobj propagation
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        dyn_params={'oper_dtype':Qobj},
-                        gen_stats=True)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
-                                            "(Qobj propagation). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-
-    def test_01_5_unitary_hadamard_oo(self):
-        """
-        control.pulseoptim: Hadamard gate with linear initial pulses (OO)
-        assert that goal is achieved and pulseoptim method achieves
-        same result as OO method
-        """
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 10
-        evo_time = 10
-
-        # Run the optimisation
-        optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        dyn_type='UNIT',
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        dyn = optim.dynamics
-
-        init_amps = optim.pulse_generator.gen_pulse().reshape([-1, 1])
-        dyn.initialize_controls(init_amps)
-
-        result_oo = optim.run_optimization()
-
-        # Run the pulseoptim func
-        result_po = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-
-        assert_almost_equal(result_oo.fid_err, result_po.fid_err, decimal=10,
-                            err_msg="OO and pulseoptim methods produce "
-                                    "different results for Hadamard")
-
-    def test_01_6_unitary_hadamard_grad(self):
-        """
-        control.pulseoptim: Hadamard gate gradient check
-        assert that gradient approx and exact gradient match in tolerance
-        """
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 10
-        evo_time = 10
-
-        # Create the optim objects
-        optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        dyn_type='UNIT',
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        dyn = optim.dynamics
-
-        init_amps = optim.pulse_generator.gen_pulse().reshape([-1, 1])
-        dyn.initialize_controls(init_amps)
-
-        # Check the exact gradient
-        func = optim.fid_err_func_wrapper
-        grad = optim.fid_err_grad_wrapper
-        x0 = dyn.ctrl_amps.flatten()
-        grad_diff = check_grad(func, grad, x0)
-        assert_almost_equal(grad_diff, 0.0, decimal=6,
-                            err_msg="Unitary gradient outside tolerance")
-
-    def test_02_1_qft(self):
-        """
-        control.pulseoptim: QFT gate with linear initial pulses
-        assert that goal is achieved and fidelity error is below threshold
-        """
-        Sx = sigmax()
-        Sy = sigmay()
-        Sz = sigmaz()
-        Si = 0.5*identity(2)
-
-        H_d = 0.5*(tensor(Sx, Sx) + tensor(Sy, Sy) + tensor(Sz, Sz))
-        H_c = [tensor(Sx, Si), tensor(Sy, Si), tensor(Si, Sx), tensor(Si, Sy)]
-        U_0 = identity(4)
-        # Target for the gate evolution - Quantum Fourier Transform gate
-        U_targ = qft.qft(2)
-
-        n_ts = 10
-        evo_time = 10
-
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-9,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-
-        assert_(result.goal_achieved, msg="QFT goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-        assert_almost_equal(result.fid_err, 0.0, decimal=7,
-                            err_msg="QFT infidelity too high")
-
-        # check bounds
-        result2 = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-9,
-                        amp_lbound=-1.0, amp_ubound=1.0,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_((result2.final_amps >= -1.0).all() and
-                    (result2.final_amps <= 1.0).all(),
-                    msg="Amplitude bounds exceeded for QFT")
-
-    def test_02_2_qft_bounds(self):
-        """
-        control.pulseoptim: QFT gate with linear initial pulses (bounds)
-        assert that amplitudes remain in bounds
-        """
-        Sx = sigmax()
-        Sy = sigmay()
-        Sz = sigmaz()
-        Si = 0.5*identity(2)
-
-        H_d = 0.5*(tensor(Sx, Sx) + tensor(Sy, Sy) + tensor(Sz, Sz))
-        H_c = [tensor(Sx, Si), tensor(Sy, Si), tensor(Si, Sx), tensor(Si, Sy)]
-        U_0 = identity(4)
-        # Target for the gate evolution - Quantum Fourier Transform gate
-        U_targ = qft.qft(2)
-
-        n_ts = 10
-        evo_time = 10
-
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-9,
-                        amp_lbound=-1.0, amp_ubound=1.0,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_((result.final_amps >= -1.0).all() and
-                    (result.final_amps <= 1.0).all(),
-                    msg="Amplitude bounds exceeded for QFT")
-
-    def test_03_dumping(self):
-        """
-        control: data dumping
-        Dump out processing data, check file counts
-        """
-        self.setUp()
-        N_EXP_OPTIMDUMP_FILES = 10
-        N_EXP_DYNDUMP_FILES = 49
-
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 1000
-        evo_time = 4
-
-        dump_folder = str(uuid.uuid4())
-        qtrl_dump_dir = os.path.expanduser(os.path.join('~', dump_folder))
-        self.tmp_dirs.append(qtrl_dump_dir)
-        optim_dump_dir = os.path.join(qtrl_dump_dir, 'optim')
-        dyn_dump_dir = os.path.join(qtrl_dump_dir, 'dyn')
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-9,
-                        init_pulse_type='LIN',
-                        optim_params={'dumping':'FULL', 'dump_to_file':True,
-                                    'dump_dir':optim_dump_dir},
-                        dyn_params={'dumping':'FULL', 'dump_to_file':True,
-                                    'dump_dir':dyn_dump_dir},
-                        gen_stats=True)
-
-        # check dumps were generated
-        optim = result.optimizer
-        dyn = optim.dynamics
-        assert_(optim.dump is not None, msg='optimizer dump not created')
-        assert_(dyn.dump is not None, msg='dynamics dump not created')
-
-        # Count files that were output
-        nfiles = len(os.listdir(optim.dump.dump_dir))
-        assert_(nfiles == N_EXP_OPTIMDUMP_FILES,
-                msg="{} optimizer dump files generated, {} expected".format(
-                    nfiles, N_EXP_OPTIMDUMP_FILES))
-
-        nfiles = len(os.listdir(dyn.dump.dump_dir))
-        assert_(nfiles == N_EXP_DYNDUMP_FILES,
-                msg="{} dynamics dump files generated, {} expected".format(
-                    nfiles, N_EXP_DYNDUMP_FILES))
-
-        # dump all to specific file stream
-        fpath = os.path.expanduser(os.path.join('~', str(uuid.uuid4())))
-        self.tmp_files.append(fpath)
-        with open(fpath, 'wb') as f:
-            optim.dump.writeout(f)
-
-        assert_(os.stat(fpath).st_size > 0,
-                msg="Nothing written to optimizer dump file")
-
-        fpath = os.path.expanduser(os.path.join('~', str(uuid.uuid4())))
-        self.tmp_files.append(fpath)
-        with open(fpath, 'wb') as f:
-            dyn.dump.writeout(f)
-        assert_(os.stat(fpath).st_size > 0,
-                msg="Nothing written to dynamics dump file")
-        self.tearDown()
-
-    def test_04_unitarity(self):
-        """
-        control: unitarity checking (via dump)
-        Dump out processing data and use to check unitary evolution
-        """
-
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 1000
-        evo_time = 4
-
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-9,
-                        init_pulse_type='LIN',
-                        dyn_params={'dumping':'FULL'},
-                        gen_stats=True)
-
-        # check dumps were generated
-        optim = result.optimizer
-        dyn = optim.dynamics
-        assert_(dyn.dump is not None, msg='dynamics dump not created')
-
+        kwargs = {'num_tslots': 1000, 'evo_time': 4, 'fid_err_targ': 1e-9,
+                  'dyn_params': {'dumping': 'FULL'}}
+        system = _merge_kwargs(hadamard, kwargs)
+        result = _optimize_pulse(system)
+        dynamics = result.optimizer.dynamics
+        assert dynamics.dump is not None, "Dynamics dump not created"
         # Use the dump to check unitarity of all propagators and evo_ops
-        dyn.unitarity_tol = 1e-14
-        nu_prop = 0
-        nu_fwd_evo = 0
-        nu_onto_evo = 0
-        for d in dyn.dump.evo_dumps:
-            for k in range(dyn.num_tslots):
-                if not dyn._is_unitary(d.prop[k]): nu_prop += 1
-                if not dyn._is_unitary(d.fwd_evo[k]): nu_fwd_evo += 1
-                if not dyn._is_unitary(d.onto_evo[k]): nu_onto_evo += 1
-        assert_(nu_prop==0,
-                msg="{} propagators found to be non-unitary".format(nu_prop))
-        assert_(nu_fwd_evo==0,
-                msg="{} fwd evo ops found to be non-unitary".format(
-                                                                nu_fwd_evo))
-        assert_(nu_onto_evo==0,
-                msg="{} onto evo ops found to be non-unitary".format(
-                                                                nu_onto_evo))
+        dynamics.unitarity_tol = 1e-14
+        for item, description in [('prop', 'propagators'),
+                                  ('fwd_evo', 'forward evolution operators'),
+                                  ('onto_evo', 'onto evolution operators')]:
+            non_unitary = sum(not dynamics._is_unitary(x)
+                              for dump in dynamics.dump.evo_dumps
+                              for x in getattr(dump, item))
+            assert non_unitary == 0, "Found non-unitary " + description + "."
 
-    def test_05_1_state_to_state(self):
-        """
-        control.pulseoptim: state-to-state transfer
-        linear initial pulse used
-        assert that goal is achieved
-        """
-        # 2 qubits with Ising interaction
-        # some arbitary coupling constants
-        alpha = [0.9, 0.7]
-        beta  = [0.8, 0.9]
-        Sx = sigmax()
-        Sz = sigmaz()
-        H_d = (alpha[0]*tensor(Sx,identity(2)) +
-              alpha[1]*tensor(identity(2),Sx) +
-              beta[0]*tensor(Sz,identity(2)) +
-              beta[1]*tensor(identity(2),Sz))
-        H_c = [tensor(Sz,Sz)]
-
-        q1_0 = q2_0 = Qobj([[1], [0]])
-        q1_T = q2_T = Qobj([[0], [1]])
-
-        psi_0 = tensor(q1_0, q2_0)
-        psi_T = tensor(q1_T, q2_T)
-
-        n_ts = 10
-        evo_time = 18
-
-        # Run the optimisation
-        result = cpo.optimize_pulse_unitary(H_d, H_c, psi_0, psi_T,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result.goal_achieved, msg="State-to-state goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-        assert_almost_equal(result.fid_err, 0.0, decimal=10,
-                            err_msg="Hadamard infidelity too high")
-
-    def test_05_2_state_to_state_qobj(self):
-        """
-        control.pulseoptim: state-to-state transfer (Qobj)
-        linear initial pulse used
-        assert that goal is achieved
-        """
-        # 2 qubits with Ising interaction
-        # some arbitary coupling constants
-        alpha = [0.9, 0.7]
-        beta  = [0.8, 0.9]
-        Sx = sigmax()
-        Sz = sigmaz()
-        H_d = (alpha[0]*tensor(Sx,identity(2)) +
-              alpha[1]*tensor(identity(2),Sx) +
-              beta[0]*tensor(Sz,identity(2)) +
-              beta[1]*tensor(identity(2),Sz))
-        H_c = [tensor(Sz,Sz)]
-
-        q1_0 = q2_0 = Qobj([[1], [0]])
-        q1_T = q2_T = Qobj([[0], [1]])
-
-        psi_0 = tensor(q1_0, q2_0)
-        psi_T = tensor(q1_T, q2_T)
-
-        n_ts = 10
-        evo_time = 18
-
-        #Try with Qobj propagation
-        result = cpo.optimize_pulse_unitary(H_d, H_c, psi_0, psi_T,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        dyn_params={'oper_dtype':Qobj},
-                        gen_stats=True)
-        assert_(result.goal_achieved, msg="State-to-state goal not achieved "
-                    "(Qobj propagation)"
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-
-    def test_06_lindbladian(self):
-        """
-        control.pulseoptim: amplitude damping channel
-        Lindbladian dynamics
-        assert that fidelity error is below threshold
-        """
-
-        Sx = sigmax()
-        Sz = sigmaz()
-        Si = identity(2)
-
-        Sd = Qobj(np.array([[0, 1], [0, 0]]))
-        Sm = Qobj(np.array([[0, 0], [1, 0]]))
-        Sd_m = Qobj(np.array([[1, 0], [0, 0]]))
-
-        gamma = 0.1
-        L0_Ad = gamma*(2*tensor(Sm, Sd.trans()) -
-                    (tensor(Sd_m, Si) + tensor(Si, Sd_m.trans())))
-        LC_x = -1j*(tensor(Sx, Si) - tensor(Si, Sx))
-        LC_z = -1j*(tensor(Sz, Si) - tensor(Si, Sz))
-
-        drift = L0_Ad
-        ctrls = [LC_z, LC_x]
-        n_ctrls = len(ctrls)
-        initial = tensor(Si, Si)
-        had_gate = hadamard_transform(1)
-        target_DP = tensor(had_gate, had_gate)
-
-        n_ts = 10
-        evo_time = 5
-
-        result = cpo.optimize_pulse(drift, ctrls, initial, target_DP,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-3,
-                        max_iter=200,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result.fid_err < 0.1,
-                msg="Fidelity higher than expected")
-
-        # Repeat with Qobj propagation
-        result = cpo.optimize_pulse(drift, ctrls, initial, target_DP,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-3,
-                        max_iter=200,
-                        init_pulse_type='LIN',
-                        dyn_params={'oper_dtype':Qobj},
-                        gen_stats=True)
-        assert_(result.fid_err < 0.1,
-                msg="Fidelity higher than expected (Qobj propagation)")
-
-        # Check same result is achieved using the create objects method
-        optim = cpo.create_pulse_optimizer(drift, ctrls,
-                        initial, target_DP,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-3,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        dyn = optim.dynamics
-
-        p_gen = optim.pulse_generator
-        init_amps = np.zeros([n_ts, n_ctrls])
-        for j in range(n_ctrls):
-            init_amps[:, j] = p_gen.gen_pulse()
-        dyn.initialize_controls(init_amps)
-
-        # Check the exact gradient
-        func = optim.fid_err_func_wrapper
-        grad = optim.fid_err_grad_wrapper
-        x0 = dyn.ctrl_amps.flatten()
-        grad_diff = check_grad(func, grad, x0)
-        assert_almost_equal(grad_diff, 0.0, decimal=7,
-                            err_msg="Frechet gradient outside tolerance")
-
-        result2 = optim.run_optimization()
-        assert_almost_equal(result.fid_err, result2.fid_err, decimal=3,
-                            err_msg="Direct and indirect methods produce "
-                                    "different results for ADC")
-
-    def test_07_symplectic(self):
-        """
-        control.pulseoptim: coupled oscillators (symplectic dynamics)
-        assert that fidelity error is below threshold
-        """
-        g1 = 1.0
-        g2 = 0.2
-        A0 = Qobj(np.array([[1, 0, g1, 0],
-                           [0, 1, 0, g2],
-                           [g1, 0, 1, 0],
-                           [0, g2, 0, 1]]))
-        A_rot = Qobj(np.array([
-                            [1, 0, 0, 0],
-                            [0, 1, 0, 0],
-                            [0, 0, 0, 0],
-                            [0, 0, 0, 0]
-                            ]))
-
-        A_sqz = Qobj(0.4*np.array([
-                            [1, 0, 0, 0],
-                            [0, -1, 0, 0],
-                            [0, 0, 0, 0],
-                            [0, 0, 0, 0]
-                            ]))
-
-        A_c = [A_rot, A_sqz]
-        n_ctrls = len(A_c)
-        initial = identity(4)
-        A_targ = Qobj(np.array([
-                        [0, 0, 1, 0],
-                        [0, 0, 0, 1],
-                        [1, 0, 0, 0],
-                        [0, 1, 0, 0]
-                        ]))
-        Omg = Qobj(sympl.calc_omega(2))
-        S_targ = (-A_targ*Omg*np.pi/2.0).expm()
-
-        n_ts = 20
+    def test_crab(self, propagation):
+        tol = 1e-5
         evo_time = 10
+        result = cpo.opt_pulse_crab_unitary(
+            hadamard.system, hadamard.controls,
+            hadamard.initial, hadamard.target,
+            num_tslots=12, evo_time=evo_time, fid_err_targ=tol,
+            **propagation,
+            alg_params={'crab_pulse_params': {'randomize_coeffs': False,
+                                              'randomize_freqs': False}},
+            init_coeff_scaling=0.5,
+            guess_pulse_type='GAUSSIAN',
+            guess_pulse_params={'variance': evo_time * 0.1},
+            guess_pulse_scaling=1.0,
+            guess_pulse_offset=1.0,
+            amp_lbound=None,
+            amp_ubound=None,
+            ramping_pulse_type='GAUSSIAN_EDGE',
+            ramping_pulse_params={'decay_time': evo_time * 0.01},
+            gen_stats=True)
+        error = " ".join(["Infidelity: {:7.4e}".format(result.fid_err),
+                          "reason:", result.termination_reason])
+        assert result.goal_achieved, error
+        assert abs(result.fid_err) < tol
+        assert abs(result.final_amps[0, 0]) < tol, "Lead-in amplitude nonzero."
 
-        result = cpo.optimize_pulse(A0, A_c, initial, S_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-3,
-                        max_iter=200,
-                        dyn_type='SYMPL',
-                        init_pulse_type='ZERO',
-                        gen_stats=True)
-        assert_(result.goal_achieved, msg="Symplectic goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-        assert_almost_equal(result.fid_err, 0.0, decimal=2,
-                            err_msg="Symplectic infidelity too high")
 
-        # Repeat with Qobj integration
-        resultq = cpo.optimize_pulse(A0, A_c, initial, S_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-3,
-                        max_iter=200,
-                        dyn_type='SYMPL',
-                        init_pulse_type='ZERO',
-                        dyn_params={'oper_dtype':Qobj},
-                        gen_stats=True)
-        assert_(resultq.goal_achieved, msg="Symplectic goal not achieved "
-                                        "(Qobj integration). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    resultq.termination_reason, result.fid_err))
+# The full object-orientated interface to the optimiser is rather complex.  To
+# attempt to simplify the test of the configuration loading, we break it down
+# into steps here.
 
-        # Check same result is achieved using the create objects method
-        optim = cpo.create_pulse_optimizer(A0, list(A_c),
-                        initial, S_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-3,
-                        dyn_type='SYMPL',
-                        init_pulse_type='ZERO',
-                        gen_stats=True)
-        dyn = optim.dynamics
+def _load_configuration(path):
+    configuration = qutip.control.optimconfig.OptimConfig()
+    configuration.param_fname = path.name
+    configuration.param_fpath = str(path)
+    configuration.pulse_type = "ZERO"
+    qutip.control.loadparams.load_parameters(str(path), config=configuration)
+    return configuration
 
-        p_gen = optim.pulse_generator
-        init_amps = np.zeros([n_ts, n_ctrls])
-        for j in range(n_ctrls):
-            init_amps[:, j] = p_gen.gen_pulse()
-        dyn.initialize_controls(init_amps)
 
-        # Check the exact gradient
-        func = optim.fid_err_func_wrapper
-        grad = optim.fid_err_grad_wrapper
-        x0 = dyn.ctrl_amps.flatten()
-        grad_diff = check_grad(func, grad, x0)
-        assert_almost_equal(grad_diff, 0.0, decimal=5,
-                            err_msg="Frechet gradient outside tolerance "
-                                    "(SYMPL)")
+def _load_dynamics(path, system, configuration, stats):
+    dynamics = qutip.control.dynamics.DynamicsUnitary(configuration)
+    dynamics.drift_dyn_gen = system.system
+    dynamics.ctrl_dyn_gen = system.controls
+    dynamics.initial = system.initial
+    dynamics.target = system.target
+    qutip.control.loadparams.load_parameters(str(path), dynamics=dynamics)
+    dynamics.init_timeslots()
+    dynamics.stats = stats
+    return dynamics
 
-        result2 = optim.run_optimization()
-        assert_almost_equal(result.fid_err, result2.fid_err, decimal=6,
-                            err_msg="Direct and indirect methods produce "
-                                    "different results for Symplectic")
 
-    def test_08_crab(self):
+def _load_pulse_generator(path, configuration, dynamics):
+    pulse_generator = qutip.control.pulsegen.create_pulse_gen(
+            pulse_type=configuration.pulse_type,
+            dyn=dynamics)
+    qutip.control.loadparams.load_parameters(str(path),
+                                             pulsegen=pulse_generator)
+    return pulse_generator
+
+
+def _load_termination_conditions(path):
+    conditions = qutip.control.termcond.TerminationConditions()
+    qutip.control.loadparams.load_parameters(str(path), term_conds=conditions)
+    return conditions
+
+
+def _load_optimizer(path, configuration, dynamics, pulse_generator,
+                    termination_conditions, stats):
+    method = configuration.optim_method
+    if method is None:
+        raise qutip.control.errors.UsageError(
+            "Optimization algorithm must be specified using the 'optim_method'"
+            " parameter.")
+    known = {'BFGS': 'OptimizerBFGS', 'FMIN_L_BFGS_B': 'OptimizerLBFGSB'}
+    constructor = getattr(qutip.control.optimizer,
+                          known.get(method, 'Optimizer'))
+    optimizer = constructor(configuration, dynamics)
+    optimizer.method = method
+    qutip.control.loadparams.load_parameters(str(path), optim=optimizer)
+    optimizer.config = configuration
+    optimizer.dynamics = dynamics
+    optimizer.pulse_generator = pulse_generator
+    optimizer.termination_conditions = termination_conditions
+    optimizer.stats = stats
+    return optimizer
+
+
+class TestFileIO:
+    def test_load_parameters_from_file(self):
+        system = hadamard
+        path = pathlib.Path(__file__).parent / "Hadamard_params.ini"
+        stats = qutip.control.stats.Stats()
+        configuration = _load_configuration(path)
+        dynamics = _load_dynamics(path, system, configuration, stats)
+        pulse_generator = _load_pulse_generator(path, configuration, dynamics)
+        termination_conditions = _load_termination_conditions(path)
+        optimizer = _load_optimizer(path,
+                                    configuration,
+                                    dynamics,
+                                    pulse_generator,
+                                    termination_conditions,
+                                    stats)
+        init_amps = np.array([optimizer.pulse_generator.gen_pulse()
+                              for _ in system.controls]).T
+        optimizer.dynamics.initialize_controls(init_amps)
+        result = optimizer.run_optimization()
+
+        kwargs = {'num_tslots': 6, 'evo_time': 6, 'fid_err_targ': 1e-10,
+                  'init_pulse_type': 'LIN', 'dyn_type': 'UNIT',
+                  'amp_lbound': -1, 'amp_ubound': 1,
+                  'gen_stats': True}
+        target = _optimize_pulse(system._replace(kwargs=kwargs))
+        np.testing.assert_allclose(result.final_amps, target.final_amps,
+                                   atol=1e-5)
+
+    @pytest.mark.usefixtures("in_temporary_directory")
+    def test_dumping_to_files(self):
+        N_OPTIMDUMP_FILES = 10
+        N_DYNDUMP_FILES = 49
+        dumping = {'dumping': 'FULL', 'dump_to_file': True}
+        kwargs = {'num_tslots': 1_000, 'evo_time': 4, 'fid_err_targ': 1e-9,
+                  'optim_params': {'dump_dir': 'optim', **dumping},
+                  'dyn_params': {'dump_dir': 'dyn', **dumping}}
+        system = _merge_kwargs(hadamard, kwargs)
+        result = _optimize_pulse(system)
+
+        # Check dumps were generated and have the right number of files.
+        assert result.optimizer.dump is not None
+        assert result.optimizer.dynamics.dump is not None
+        assert (len(os.listdir(result.optimizer.dump.dump_dir))
+                == N_OPTIMDUMP_FILES)
+        assert (len(os.listdir(result.optimizer.dynamics.dump.dump_dir))
+                == N_DYNDUMP_FILES)
+
+        # Dump all to specific file stream.
+        for dump, type_ in [(result.optimizer.dump, 'optimizer'),
+                            (result.optimizer.dynamics.dump, 'dynamics')]:
+            with tempfile.NamedTemporaryFile() as file:
+                dump.writeout(file)
+                assert os.stat(file.name).st_size > 0,\
+                    " ".join(["Empty", type_, "file."])
+
+
+def _count_waves(system):
+    optimizer = cpo.create_pulse_optimizer(system.system, system.controls,
+                                           system.initial, system.target,
+                                           **system.kwargs)
+    pulse = optimizer.pulse_generator.gen_pulse()
+    zero_crossings = pulse[0:-2]*pulse[1:-1] < 0
+    return (sum(zero_crossings) + 1) // 2
+
+
+@pytest.mark.parametrize('pulse_type',
+                         [pytest.param(x, id=x.lower())
+                          for x in ['SINE', 'SQUARE', 'TRIANGLE', 'SAW']])
+class TestPeriodicControlFunction:
+    num_tslots = 1_000
+    evo_time = 10
+
+    @pytest.mark.parametrize('n_waves', [1, 5, 10, 100])
+    def test_number_of_waves(self, pulse_type, n_waves):
+        kwargs = {'num_tslots': self.num_tslots, 'evo_time': self.evo_time,
+                  'init_pulse_type': pulse_type,
+                  'init_pulse_params': {'num_waves': n_waves},
+                  'gen_stats': False}
+        system = _merge_kwargs(hadamard, kwargs)
+        assert _count_waves(system) == n_waves
+
+    @pytest.mark.parametrize('frequency', [0.1, 1, 10, 20])
+    def test_frequency(self, pulse_type, frequency):
+        kwargs = {'num_tslots': self.num_tslots, 'evo_time': self.evo_time,
+                  'init_pulse_type': pulse_type,
+                  'init_pulse_params': {'freq': frequency},
+                  'fid_err_targ': 1e-5,
+                  'gen_stats': False}
+        system = _merge_kwargs(hadamard, kwargs)
+        assert _count_waves(system) == self.evo_time*frequency
+
+
+class TestTimeDependence:
+    """
+    Test that systems where the system Hamiltonian is time-dependent behave as
+    expected under the optimiser.
+    """
+    def test_drift(self):
         """
-        control.pulseoptim: Hadamard gate using CRAB algorithm
-        Apply guess and ramping pulse
-        assert that goal is achieved and fidelity error is below threshold
-        assert that starting amplitude is zero
+        Test that introducing time dependence to the system does change the
+        result of the optimisation.
         """
-        # Hadamard
-        H_d = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
+        num_tslots = 20
+        system = _merge_kwargs(hadamard, {'num_tslots': num_tslots,
+                                          'evo_time': 10})
+        result_fixed = _optimize_pulse(system)
+        system_flat = system._replace(system=[system.system]*num_tslots)
+        result_flat = _optimize_pulse(system_flat)
+        step = [0.0]*(num_tslots//2) + [1.0]*(num_tslots//2)
+        system_step = system._replace(system=[x*system.system for x in step])
+        result_step = _optimize_pulse(system_step)
+        np.testing.assert_allclose(result_fixed.final_amps,
+                                   result_flat.final_amps,
+                                   rtol=1e-9)
+        assert np.any((result_flat.final_amps-result_step.final_amps) > 1e-3),\
+            "Flat and step drights result in the same control pulses."
 
-        n_ts = 12
-        evo_time = 10
-
-        # Run the optimisation
-        result = cpo.opt_pulse_crab_unitary(H_d, H_c, U_0, U_targ,
-                n_ts, evo_time,
-                fid_err_targ=1e-5,
-                alg_params={'crab_pulse_params':{'randomize_coeffs':False,
-                                                 'randomize_freqs':False}},
-                init_coeff_scaling=0.5,
-                guess_pulse_type='GAUSSIAN',
-                guess_pulse_params={'variance':0.1*evo_time},
-                guess_pulse_scaling=1.0, guess_pulse_offset=1.0,
-                amp_lbound=None, amp_ubound=None,
-                ramping_pulse_type='GAUSSIAN_EDGE',
-                ramping_pulse_params={'decay_time':evo_time/100.0},
-                gen_stats=True)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-        assert_almost_equal(result.fid_err, 0.0, decimal=3,
-                            err_msg="Hadamard infidelity too high")
-        assert_almost_equal(result.final_amps[0, 0], 0.0, decimal=3,
-                            err_msg="lead in amplitude not zero")
-        # Repeat with Qobj integration
-        result = cpo.opt_pulse_crab_unitary(H_d, H_c, U_0, U_targ,
-                n_ts, evo_time,
-                fid_err_targ=1e-5,
-                alg_params={'crab_pulse_params':{'randomize_coeffs':False,
-                                                 'randomize_freqs':False}},
-                dyn_params={'oper_dtype':Qobj},
-                init_coeff_scaling=0.5,
-                guess_pulse_type='GAUSSIAN',
-                guess_pulse_params={'variance':0.1*evo_time},
-                guess_pulse_scaling=1.0, guess_pulse_offset=1.0,
-                amp_lbound=None, amp_ubound=None,
-                ramping_pulse_type='GAUSSIAN_EDGE',
-                ramping_pulse_params={'decay_time':evo_time/100.0},
-                gen_stats=True)
-        assert_(result.goal_achieved, msg="Hadamard goal not achieved"
-                                        "(Qobj integration). "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result.termination_reason, result.fid_err))
-
-    def test_09_load_params(self):
+    def test_controls_all_time_slots_equal_to_no_time_dependence(self):
         """
-        control.pulseoptim: Hadamard gate (loading config from file)
-        compare with result produced by pulseoptim method
+        Test that simply duplicating the system in each time slot (i.e. no
+        actual time dependence has no effect on the final result.
         """
-        H_d = sigmaz()
-        H_c = sigmax()
+        num_tslots = 20
+        system = _merge_kwargs(hadamard, {'num_tslots': num_tslots,
+                                          'evo_time': 10,
+                                          'fid_err_targ': 1e-10})
+        result_single = _optimize_pulse(system)
+        system_vary = system._replace(controls=[[_sx]]*num_tslots)
+        result_vary = _optimize_pulse(system_vary)
+        np.testing.assert_allclose(result_single.final_amps,
+                                   result_vary.final_amps,
+                                   atol=1e-9)
 
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        cfg = optimconfig.OptimConfig()
-        cfg.param_fname = "Hadamard_params.ini"
-        cfg.param_fpath = os.path.join(os.path.dirname(__file__),
-                                           cfg.param_fname)
-        cfg.pulse_type = "ZERO"
-        loadparams.load_parameters(cfg.param_fpath, config=cfg)
-
-        dyn = dynamics.DynamicsUnitary(cfg)
-        dyn.target = U_targ
-        dyn.initial = U_0
-        dyn.drift_dyn_gen = H_d
-        dyn.ctrl_dyn_gen = [H_c]
-        loadparams.load_parameters(cfg.param_fpath, dynamics=dyn)
-        dyn.init_timeslots()
-        n_ts = dyn.num_tslots
-        n_ctrls = dyn.num_ctrls
-
-        pgen = pulsegen.create_pulse_gen(pulse_type=cfg.pulse_type, dyn=dyn)
-        loadparams.load_parameters(cfg.param_fpath, pulsegen=pgen)
-
-        tc = termcond.TerminationConditions()
-        loadparams.load_parameters(cfg.param_fpath, term_conds=tc)
-
-        if cfg.optim_method == 'BFGS':
-            optim = optimizer.OptimizerBFGS(cfg, dyn)
-        elif cfg.optim_method == 'FMIN_L_BFGS_B':
-            optim = optimizer.OptimizerLBFGSB(cfg, dyn)
-        elif cfg.optim_method is None:
-            raise errors.UsageError("Optimisation algorithm must be specified "
-                                    "via 'optim_method' parameter")
-        else:
-            optim = optimizer.Optimizer(cfg, dyn)
-            optim.method = cfg.optim_method
-        loadparams.load_parameters(cfg.param_fpath, optim=optim)
-
-        sts = stats.Stats()
-        dyn.stats = sts
-        optim.stats = sts
-        optim.config = cfg
-        optim.dynamics = dyn
-        optim.pulse_generator = pgen
-        optim.termination_conditions = tc
-
-        init_amps = np.zeros([n_ts, n_ctrls])
-        for j in range(n_ctrls):
-            init_amps[:, j] = pgen.gen_pulse()
-        dyn.initialize_controls(init_amps)
-        result = optim.run_optimization()
-
-        result2 = cpo.optimize_pulse_unitary(H_d, list([H_c]), U_0, U_targ,
-                        6, 6, fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        amp_lbound=-1.0, amp_ubound=1.0,
-                        gen_stats=True)
-
-        assert_almost_equal(result.final_amps, result2.final_amps, decimal=5,
-                            err_msg="Pulses do not match")
-
-
-    def test_10_init_pulse_params(self):
+    def test_controls_identity_operators_ignored(self):
         """
-        control.pulsegen: Check periodic control functions
+        Test that moments in time where the control parameters are simply the
+        identity are just ignored by the optimiser (since they'll never be able
+        to do anything.
         """
-
-        def count_waves(n_ts, evo_time, ptype, freq=None, num_waves=None):
-
-            # Any dyn config will do
-            #Hadamard
-            H_d = sigmaz()
-            H_c = [sigmax()]
-            U_0 = identity(2)
-            U_targ = hadamard_transform(1)
-
-            pulse_params = {}
-            if freq is not None:
-                pulse_params['freq'] = freq
-            if num_waves is not None:
-                pulse_params['num_waves'] = num_waves
-
-            optim = cpo.create_pulse_optimizer(H_d, H_c, U_0, U_targ,
-                                        n_ts, evo_time,
-                                        dyn_type='UNIT',
-                                        init_pulse_type=ptype,
-                                        init_pulse_params=pulse_params,
-                                        gen_stats=False)
-            pgen = optim.pulse_generator
-            pulse = pgen.gen_pulse()
-
-            # count number of waves
-            zero_cross = pulse[0:-2]*pulse[1:-1] < 0
-
-            return (sum(zero_cross) + 1) / 2
-
-        n_ts = 1000
-        evo_time = 10
-
-        ptypes = ['SINE', 'SQUARE', 'TRIANGLE', 'SAW']
-        numws = [1, 5, 10, 100]
-        freqs = [0.1, 1, 10, 20]
-
-        for ptype in ptypes:
-            for freq in freqs:
-                exp_num_waves = evo_time*freq
-                fnd_num_waves = count_waves(n_ts, evo_time, ptype, freq=freq)
-#                print("Found {} waves for pulse type '{}', "
-#                    "freq {}".format(fnd_num_waves, ptype, freq))
-                assert_equal(exp_num_waves, fnd_num_waves, err_msg=
-                    "Number of waves incorrect for pulse type '{}', "
-                    "freq {}".format(ptype, freq))
-
-            for num_waves in numws:
-                exp_num_waves = num_waves
-                fnd_num_waves = count_waves(n_ts, evo_time, ptype,
-                                            num_waves=num_waves)
-#                print("Found {} waves for pulse type '{}', "
-#                    "num_waves {}".format(fnd_num_waves, ptype, num_waves))
-                assert_equal(exp_num_waves, fnd_num_waves, err_msg=
-                    "Number of waves incorrect for pulse type '{}', "
-                    "num_waves {}".format(ptype, num_waves))
-
-    def test_11_time_dependent_drift(self):
-        """
-        control.pulseoptim: Hadamard gate with fixed and time varying drift
-        assert that goal is achieved for both and that different control
-        pulses are produced (only) when they should be
-        """
-        # Hadamard
-        H_0 = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 20
-        evo_time = 10
-
-        drift_amps_flat = np.ones([n_ts], dtype=float)
-        dript_amps_step = [np.round(float(k)/n_ts) for k in range(n_ts)]
-
-        # Run the optimisations
-        result_fixed = cpo.optimize_pulse_unitary(H_0, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result_fixed.goal_achieved,
-                    msg="Fixed drift goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result_fixed.termination_reason, result_fixed.fid_err))
-
-        H_d = [drift_amps_flat[k]*H_0 for k in range(n_ts)]
-        result_flat = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result_flat.goal_achieved, msg="Flat drift goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result_flat.termination_reason, result_flat.fid_err))
-
-        # Check fixed and flat produced the same pulse
-        assert_almost_equal(result_fixed.final_amps, result_flat.final_amps,
-                            decimal=9,
-                            err_msg="Flat and fixed drift result in "
-                                    "different control pules")
-
-        H_d = [dript_amps_step[k]*H_0 for k in range(n_ts)]
-        result_step = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result_step.goal_achieved, msg="Step drift goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result_step.termination_reason, result_step.fid_err))
-
-        # Check step and flat produced different results
-        assert_(np.any(
-            np.abs(result_flat.final_amps - result_step.final_amps) > 1e-3),
-                            msg="Flat and step drift result in "
-                                    "the same control pules")
-
-    def test_12_time_dependent_ctrls(self):
-        """
-        control.pulseoptim: Hadamard gate with fixed and time varying ctrls
-        assert that goal is achieved for both and that different control
-        pulses are produced (only) when they should be.
-        """
-        # Hadamard
-        H_0 = sigmaz()
-        H_c = [sigmax()]
-        U_0 = identity(2)
-        U_targ = hadamard_transform(1)
-
-        n_ts = 20
-        evo_time = 10
-
-        # Run the optimisations
-        result_fixed = cpo.optimize_pulse_unitary(H_0, H_c, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result_fixed.goal_achieved,
-                    msg="Fixed ctrls goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result_fixed.termination_reason, result_fixed.fid_err))
-
-        H_c_t = []
-        for k in range(n_ts):
-            H_c_t.append([sigmax()])
-        result_tdcs = cpo.optimize_pulse_unitary(H_0, H_c_t, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result_tdcs.goal_achieved,
-                msg="td same ctrl goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result_tdcs.termination_reason, result_tdcs.fid_err))
-
-        # Check fixed and same produced the same pulse
-        assert_almost_equal(result_fixed.final_amps, result_tdcs.final_amps,
-                            decimal=9,
-                            err_msg="same and fixed ctrls result in "
-                                    "different control pules")
-
-        H_c_t = []
-        for k in range(n_ts):
-            if k % 3 == 0:
-                H_c_t.append([sigmax()])
-            else:
-                H_c_t.append([identity(2)])
-        result_tdcv = cpo.optimize_pulse_unitary(H_0, H_c_t, U_0, U_targ,
-                        n_ts, evo_time,
-                        fid_err_targ=1e-10,
-                        init_pulse_type='LIN',
-                        gen_stats=True)
-        assert_(result_tdcv.goal_achieved,
-                msg="true td ctrls goal not achieved. "
-                    "Terminated due to: {}, with infidelity: {}".format(
-                    result_tdcv.termination_reason, result_tdcv.fid_err))
-
-        # Check that identity control tslots don't vary
-
-        for k in range(n_ts):
-            if k % 3 != 0:
-                assert_almost_equal(result_tdcv.initial_amps[k, 0],
-                                    result_tdcv.final_amps[k, 0],
-                                    decimal=9,
-                                    err_msg=("timeslot {} amps should remain "
-                                            "fixed").format(k))
-
-if __name__ == "__main__":
-    run_module_suite()
-
+        num_tslots = 20
+        controls = [[_sx] if k % 3 else [_si] for k in range(num_tslots)]
+        system = _merge_kwargs(hadamard, {'num_tslots': num_tslots,
+                                          'evo_time': 10})
+        system = system._replace(controls=controls)
+        result = _optimize_pulse(system)
+        for k in range(0, num_tslots, 3):
+            np.testing.assert_allclose(result.initial_amps[k],
+                                       result.final_amps[k],
+                                       rtol=1e-9)

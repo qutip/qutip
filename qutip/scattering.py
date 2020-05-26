@@ -276,9 +276,9 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
 
     if construct_effective_hamiltonian:
         # Construct an effective Hamiltonian from system hamiltonian and c_ops
-        if type(H) is Qobj:
+        if isinstance(H, Qobj):
             Heff = H - 1j / 2 * sum([op.dag() * op for op in c_ops])
-        elif type(H) is list:
+        elif isinstance(H, list):
             Heff = H + [-1j / 2 * sum([op.dag() * op for op in c_ops])]
         else:
             raise TypeError("Hamiltonian must be Qobj or list-callback format")
