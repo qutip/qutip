@@ -59,16 +59,16 @@ has_mkl = False
 has_openmp = False
 # debug mode for development
 debug = False
-# use cython for compiling string coefficients
+# Refrain from sharing pointer between threads
+safePickle = False
+if sys.platform == 'win32':
+    safePickle = True
+# use cython for compiling string coefficient.
 try:
     import cython
     use_cython = True
 except:
     use_cython = False
-# share pointer between threads?
-safePickle = False
-if sys.platform == 'win32':
-    safePickle = True
 # are we in IPython? Note that this cannot be
 # set by the RC file.
 ipython = False

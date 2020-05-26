@@ -53,40 +53,6 @@ import scipy
 import os
 from re import sub
 
-safePickle = [False]
-if sys.platform == 'win32':
-    safePickle[0] = True
-
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# object for each time dependent element of the QobjEvo
-# qobj : the Qobj of element ([*Qobj*, f])
-# get_coeff : a callable that take (t, args) and return the coeff at that t
-# coeff : The coeff as a string, array or function as provided by the user.
-# type : flag for the type of coeff
-"""
-class EvoElement:
-    def __init__(self, qobj, get_coeff, coeff, type):
-        self.qobj = qobj
-        self.get_coeff = get_coeff
-        self.coeff = coeff
-        self.type = type
-
-    @classmethod
-    def make(cls, list_):
-        return cls(*list_)
-
-    def __getitem__(self, i):
-        if i == 0:
-            return self.qobj
-        if i == 1:
-            return self.get_coeff
-        if i == 2:
-            return self.coeff
-        if i == 3:
-            return self.type
-"""
-
 EvoElement = namedtuple("EvoElement", "qobj coeff")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -357,8 +323,8 @@ class QobjEvo:
         self.coeff_get = None
         self.type = "none"
         self.omp = 0
-        self.use_cython = use_cython[0]
-        self.safePickle = safePickle[0]
+        self.use_cython = qset.use_cython
+        self.safePickle = qset.safePickle
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
@@ -539,6 +505,10 @@ class QobjEvo:
         else:
             raise TypeError("state must be a Qobj or np.ndarray")
 
+    @property
+    def num_obj(self):
+        return (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
+
     def copy(self):
         new = QobjEvo(self.cte.copy())
         new.const = self.const
@@ -546,7 +516,6 @@ class QobjEvo:
         new.dynamics_args = self.dynamics_args.copy()
         new.tlist = self.tlist
         new.dummy_cte = self.dummy_cte
-        new.num_obj = self.num_obj
         new.type = self.type
         new.compiled = False
         new.compiled_qobjevo = None
@@ -570,9 +539,8 @@ class QobjEvo:
         self.dynamics_args = other.dynamics_args
         self.tlist = other.tlist
         self.dummy_cte = other.dummy_cte
-        self.num_obj = other.num_obj
         self.type = other.type
-        self.compiled = ""
+        self.compiled = False
         self.compiled_qobjevo = None
         if other.coeff_get is not None:
             self.coeff_get = other.coeff_get.copy()
@@ -643,9 +611,10 @@ class QobjEvo:
             self.dynamics_args += other.dynamics_args
             self.const = self.const and other.const
             self.dummy_cte = self.dummy_cte and other.dummy_cte
-            self.compiled = ""
-            self.compiled_qobjevo = None
-            self.coeff_get = None
+            if not other.const:
+                self.compiled = ""
+                self.compiled_qobjevo = None
+                self.coeff_get = None
         else:
             self.cte += other
             self.dummy_cte = False
@@ -721,6 +690,9 @@ class QobjEvo:
                 self.args.update(other.args)
                 self.dynamics_args += other.dynamics_args
                 self.dummy_cte = self.dummy_cte and other.dummy_cte
+                self.compiled = ""
+                self.compiled_qobjevo = None
+                self.coeff_get = None
 
         else:
             raise TypeError("QobjEvo can only be multiplied"
@@ -838,7 +810,7 @@ class QobjEvo:
                 # Would be nice but need to defined addition with 0 (int)
                 # new_coeff = sum(self.ops[i].coeff for i in _set)
                 new_coeff = self.ops[_set[0]].coeff
-                for i in _set:
+                for i in _set[1:]:
                     new_coeff += self.ops[i].coeff
                 new_ops.append(EvoElement(self.ops[_set[0]].qobj, new_coeff))
 
@@ -1057,7 +1029,7 @@ class QobjEvo:
 
     def __getstate__(self):
         _dict_ = {key: self.__dict__[key]
-                  for key in self.__dict__ if key is not "compiled_qobjevo"}
+                  for key in self.__dict__ if key != "compiled_qobjevo"}
         if self.compiled:
             return (_dict_, self.compiled_qobjevo.__getstate__())
         else:
