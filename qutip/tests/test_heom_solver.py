@@ -33,103 +33,65 @@
 ###############################################################################
 
 """
-Tests for main control.pulseoptim methods
+Test the Hierarchical Model Solver from qutip.nonmarkov.heom.
 """
 
-from __future__ import division
-
-import os
 import numpy as np
-from numpy import pi, real, cos, tanh
-from numpy.testing import (
-    assert_, assert_almost_equal, run_module_suite, assert_equal)
-from scipy.integrate import quad, IntegrationWarning
-from qutip import Qobj, sigmaz, basis, expect
+from scipy.integrate import quad
+import pytest
+import qutip
 from qutip.nonmarkov.heom import HSolverDL
-from qutip.solver import Options
-import warnings
-warnings.simplefilter('ignore', IntegrationWarning)
-    
-class TestHSolver:
-    """
-    A test class for the hierarchy model solver
-    """
-    
-    def test_pure_dephasing(self):
-        """
-        HSolverDL: Compare with pure-dephasing analytical
-        assert that the analytical result and HEOM produce the 
-        same time dephasing evoltion.
-        """
-        resid_tol = 1e-4
-        
-        def spectral_density(omega, lam_c, omega_c):
-            return 2.0*lam_c*omega*omega_c / (omega_c**2 + omega**2)
-    
-        def integrand(omega, lam_c, omega_c, Temp, t):
-            J = spectral_density(omega, lam_c, omega_c)
-            return (-4.0*J*(1.0 - cos(omega*t)) / 
-                        (tanh(omega/(2.0*Temp))*omega**2))
-                        
-                        
-        cut_freq = 0.05 
-        coup_strength = 0.025
-        temperature = 1.0/0.95
-        tlist = np.linspace(0, 10, 21)
-        
-        # Calculate the analytical results by numerical integration
-        lam_c = coup_strength/pi
-        PEG_DL = [0.5*np.exp(quad(integrand, 0, np.inf, 
-                              args=(lam_c, cut_freq, temperature, t))[0])
-                              for t in tlist]
-        
-      
-        H_sys = Qobj(np.zeros((2, 2)))
-        Q = sigmaz()
-        initial_state = 0.5*Qobj(np.ones((2, 2)))
-        P12p = basis(2,0)*basis(2,1).dag()
 
-        integ_options = Options(nsteps=15000, store_states=True)
-        
-        test_desc = "renorm, bnd_cut_approx, and stats"
-        hsolver = HSolverDL(H_sys, Q, coup_strength, temperature, 
-                            20, 2, cut_freq, 
-                         renorm=True, bnd_cut_approx=True, 
-                         options=integ_options, stats=True)
-        
-        result = hsolver.run(initial_state, tlist)
-        P12_result1 = expect(result.states, P12p)
-        resid = abs(real(P12_result1 - PEG_DL))
-        max_resid = max(resid)
-        assert_(max_resid < resid_tol, "Max residual {} outside tolerence {}, "
-                "for hsolve with {}".format(max_resid, resid_tol, test_desc))
-        
-        resid_tol = 1e-3
-        test_desc = "renorm"
-        hsolver.configure(H_sys, Q, coup_strength, temperature, 
-                            20, 2, cut_freq, 
-                         renorm=True, bnd_cut_approx=False, 
-                         options=integ_options, stats=False)
-        assert_(hsolver.stats == None, "Failed to unset stats")
-        result = hsolver.run(initial_state, tlist)
-        P12_result1 = expect(result.states, P12p)
-        resid = abs(real(P12_result1 - PEG_DL))
-        max_resid = max(resid)
-        assert_(max_resid < resid_tol, "Max residual {} outside tolerence {}, "
-                "for hsolve with {}".format(max_resid, resid_tol, test_desc))
-        
-        resid_tol = 1e-4
-        test_desc = "bnd_cut_approx"
-        hsolver.configure(H_sys, Q, coup_strength, temperature, 
-                            20, 2, cut_freq, 
-                         renorm=False, bnd_cut_approx=True, 
-                         options=integ_options, stats=False)
-        assert_(hsolver.stats == None, "Failed to unset stats")
-        result = hsolver.run(initial_state, tlist)
-        P12_result1 = expect(result.states, P12p)
-        resid = abs(real(P12_result1 - PEG_DL))
-        max_resid = max(resid)
-        assert_(max_resid < resid_tol, "Max residual {} outside tolerence {}, "
-                "for hsolve with {}".format(max_resid, resid_tol, test_desc))
-        
-        
+
+@pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+@pytest.mark.parametrize(['renorm', 'bnd_cut_approx', 'stats', 'tol'], [
+    pytest.param(True, True, True, 1e-4, id="renorm-bnd_cut_approx-stats"),
+    pytest.param(True, False, False, 1e-3, id="renorm"),
+    pytest.param(False, True, False, 1e-4, id="bnd_cut_approx"),
+])
+def test_pure_dephasing_model(renorm, bnd_cut_approx, stats, tol):
+    """
+    HSolverDL: Compare with pure-dephasing analytical assert that the
+    analytical result and HEOM produce the same time dephasing evoltion.
+    """
+    cut_frequency = 0.05
+    coupling_strength = 0.025
+    lam_c = coupling_strength / np.pi
+    temperature = 1 / 0.95
+    times = np.linspace(0, 10, 21)
+
+    def _integrand(omega, t):
+        J = 2*lam_c * omega * cut_frequency / (omega**2 + cut_frequency**2)
+        return (-4 * J * (1 - np.cos(omega*t))
+                / (np.tanh(0.5*omega / temperature) * omega**2))
+
+    # Calculate the analytical results by numerical integration
+    expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
+                for t in times]
+
+    H_sys = qutip.Qobj(np.zeros((2, 2)))
+    Q = qutip.sigmaz()
+    initial_state = 0.5*qutip.Qobj(np.ones((2, 2)))
+    projector = qutip.basis(2, 0) * qutip.basis(2, 1).dag()
+    options = qutip.Options(nsteps=15_000, store_states=True)
+    hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
+                        20, 2, cut_frequency,
+                        renorm=renorm, bnd_cut_approx=bnd_cut_approx,
+                        options=options, stats=stats)
+    test = qutip.expect(hsolver.run(initial_state, times).states, projector)
+    if stats:
+        assert hsolver.stats is not None
+    else:
+        assert hsolver.stats is None
+    np.testing.assert_allclose(test, expected, atol=tol)
+
+
+def test_set_unset_stats():
+    # Arbitrary system, just checking that stats can be unset by `configure`
+    args = [qutip.qeye(2), qutip.sigmaz(),
+            0.1, 0.1, 10, 1, 0.1]
+    hsolver = HSolverDL(*args, stats=True)
+    hsolver.run(qutip.basis(2, 0).proj(), [0, 1])
+    assert hsolver.stats is not None
+    hsolver.configure(*args, stats=False)
+    assert hsolver.stats is None
