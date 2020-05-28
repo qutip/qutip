@@ -200,7 +200,7 @@ def assert_density(oper, density):
     # Check any cached density matrix
     assert oper.isdensity == density 
     # Force a reset of the cached density matrix
-    oper.isdensity = None 
+    oper._isdensity = None 
     # Force a reevaluation of isdenisty
     assert oper.isdensity == density  
 
@@ -210,16 +210,12 @@ def test_Qobjisdensity():
     rho = fock_dm(2,1)
     rho2 = (fock_dm(2,0)+fock_dm(2,1)).unit()
     ket = basis(2,0)
-    max_mixed = maximally_mixed_state(2)
     non_spd = Qobj(np.array([[1, 1], [-1, 1]]))
     # Check standard density matrices
     assert_density(rho, True)
     assert_density(rho2, True)
-    assert_density(coherent_dm(3, 0.25j), True)
-    assert_density(max_mixed, True)
     assert_density(ket2dm(ket), True)
-    asser_isdensity(thermal_dm(5,1), True)
-    # Check for multiplication
+    # Check outer product
     assert_density(ket*ket.dag(), True)
     # Check when matrix is non-hermitian
     assert_density(sigmax()*sigmay(), False)

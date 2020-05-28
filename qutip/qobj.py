@@ -2021,22 +2021,22 @@ class Qobj(object):
         self._isunitary = isunitary
     
     def check_isdensity(self):
-    """
-    Checks whether qobj is a valid density matrix
-    """
-    isdensity = True
+        """
+        Checks whether qobj is a valid density matrix
+        """
+        isdensity = True
 
-    if (self.type != "oper" or self.isherm  == False or 
-           not np.allclose(self.tr(), 1, atol=1e-09)):
-        isdensity = False 
+        if (self.type != "oper" or self.isherm  == False or 
+            np.allclose(self.tr(), 1, atol=1e-09) == False):
+            isdensity = False 
+        
+        else:
+            for eig in self.eigenenergies():
+                if eig<0 and np.allclose(eig, 0, atol=1e-09) == False:
+                    isdensity = False
+                    break
 
-    else:
-        for eig in self.eigenenergies():
-            if not np.allclose(eig, 0, atol=1e-05):
-                isdensity = False
-                break
-
-    return isdensity  
+        return isdensity  
         
     @property
     def isdensity(self):
