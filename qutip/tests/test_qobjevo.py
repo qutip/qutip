@@ -246,15 +246,15 @@ def test_QobjEvo_step_coeff():
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
                     tlist=tlist, args={"_step_func_coeff":True})
-    assert_equal(qobjevo.ops[0].get_coeff(2.0), coeff1[0])
-    assert_equal(qobjevo.ops[0].get_coeff(7.0), coeff1[5])
-    assert_equal(qobjevo.ops[0].get_coeff(5.0001), coeff1[3])
-    assert_equal(qobjevo.ops[0].get_coeff(3.9999), coeff1[1])
+    assert_equal(qobjevo.ops[0].coeff(2.0), coeff1[0])
+    assert_equal(qobjevo.ops[0].coeff(7.0), coeff1[5])
+    assert_equal(qobjevo.ops[0].coeff(5.0001), coeff1[3])
+    assert_equal(qobjevo.ops[0].coeff(3.9999), coeff1[1])
 
-    assert_equal(qobjevo.ops[1].get_coeff(2.0), coeff2[0])
-    assert_equal(qobjevo.ops[1].get_coeff(7.0), coeff2[5])
-    assert_equal(qobjevo.ops[1].get_coeff(5.0001), coeff2[3])
-    assert_equal(qobjevo.ops[1].get_coeff(3.9999), coeff2[1])
+    assert_equal(qobjevo.ops[1].coeff(2.0), coeff2[0])
+    assert_equal(qobjevo.ops[1].coeff(7.0), coeff2[5])
+    assert_equal(qobjevo.ops[1].coeff(5.0001), coeff2[3])
+    assert_equal(qobjevo.ops[1].coeff(3.9999), coeff2[1])
 
     qobjevo.compile()
     assert_equal(qobjevo.coeff_get(2.0), [coeff1[0], coeff2[0]])
@@ -266,17 +266,17 @@ def test_QobjEvo_step_coeff():
     tlist = np.array([1, 2, 4, 5, 6, 8], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
         tlist=tlist, args={"_step_func_coeff":True})
-    assert_equal(qobjevo.ops[0].get_coeff(1.0), coeff1[0])
-    assert_equal(qobjevo.ops[0].get_coeff(8.0), coeff1[5])
-    assert_equal(qobjevo.ops[0].get_coeff(3.9999), coeff1[1])
-    assert_equal(qobjevo.ops[0].get_coeff(4.23), coeff1[2])
-    assert_equal(qobjevo.ops[0].get_coeff(1.23), coeff1[0])
+    assert_equal(qobjevo.ops[0].coeff(1.0), coeff1[0])
+    assert_equal(qobjevo.ops[0].coeff(8.0), coeff1[5])
+    assert_equal(qobjevo.ops[0].coeff(3.9999), coeff1[1])
+    assert_equal(qobjevo.ops[0].coeff(4.23), coeff1[2])
+    assert_equal(qobjevo.ops[0].coeff(1.23), coeff1[0])
 
-    assert_equal(qobjevo.ops[1].get_coeff(1.0), coeff2[0])
-    assert_equal(qobjevo.ops[1].get_coeff(8.0), coeff2[5])
-    assert_equal(qobjevo.ops[1].get_coeff(6.7), coeff2[4])
-    assert_equal(qobjevo.ops[1].get_coeff(7.9999), coeff2[4])
-    assert_equal(qobjevo.ops[1].get_coeff(3.9999), coeff2[1])
+    assert_equal(qobjevo.ops[1].coeff(1.0), coeff2[0])
+    assert_equal(qobjevo.ops[1].coeff(8.0), coeff2[5])
+    assert_equal(qobjevo.ops[1].coeff(6.7), coeff2[4])
+    assert_equal(qobjevo.ops[1].coeff(7.9999), coeff2[4])
+    assert_equal(qobjevo.ops[1].coeff(3.9999), coeff2[1])
 
     qobjevo.compile()
     assert_equal(qobjevo.coeff_get(1.0), [coeff1[0], coeff2[0]])
@@ -471,7 +471,7 @@ def test_QobjEvo_apply():
     # check that data is still valid
     assert_equal(td_obj.apply(multiply,2,factor=2)(t) == td_obj(t)*4, True)
 
-
+"""
 def test_QobjEvo_apply_decorator():
     "QobjEvo apply_decorator"
     def rescale_time_and_scale(f_original, time_scale, factor=1.):
@@ -506,7 +506,7 @@ def test_QobjEvo_apply_decorator():
     td_obj_array_2 = td_obj_array.apply_decorator(square_f, inplace_np=True)
     _assert_qobj_almost_eq(td_obj_array_2(t),
                            td_list[0][0] * np.sin(t)**2, tol=3e-7)
-    assert_equal(td_obj_array_2.ops[0][3], "array")
+    assert_equal(td_obj_array_2.ops[0][3], "array")"""
 
 
 def test_QobjEvo_mul_vec():
@@ -873,9 +873,9 @@ def test_QobjEvo_safepickle():
     "QobjEvo with safe pickle"
     #used in parallel_map
     import pickle
-    from qutip.qobjevo import safePickle
-    old_set = safePickle[0]
-    safePickle[0] = True
+    import qutip.settings as qset
+    old_set = qset.safePickle
+    qset.safePickle = True
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2}
     t = np.random.random()
@@ -907,7 +907,7 @@ def test_QobjEvo_safepickle():
     td_pick = pickle.loads(pickled)
     # Check for ct_cqobjevo
     assert_equal(td_obj_m(t) == td_pick(t), True)
-    safePickle[0] = old_set
+    qset.safePickle = old_set
 
 
 def test_QobjEvo_superoperator():

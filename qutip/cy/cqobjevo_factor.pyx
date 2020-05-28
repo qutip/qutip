@@ -110,13 +110,13 @@ cdef class InterpolateCoeff(CoeffFunc):
         cdef int i, j, l
         self._args = {}
         self._num_ops = len(ops)
-        self.a = ops[0][2].a
-        self.b = ops[0][2].b
-        l = len(ops[0][2].coeffs)
+        self.a = ops[0].base.a
+        self.b = ops[0].base.b
+        l = len(ops[0].base.coeffs)
         self.c = np.zeros((self._num_ops, l), dtype=complex)
         for i in range(self._num_ops):
             for j in range(l):
-                self.c[i,j] = ops[i][2].coeffs[j]
+                self.c[i,j] = ops[i].base.coeffs[j]
 
     def __call__(self, t, args={}):
         cdef np.ndarray[ndim=1, dtype=complex] coeff = \
@@ -156,11 +156,11 @@ cdef class InterCoeffCte(CoeffFunc):
         self.M = np.zeros((self._num_ops, self.n_t), dtype=complex)
 
         for i in range(self._num_ops):
-            m, cte = _prep_cubic_spline(ops[i][2], tlist)
+            m, cte = _prep_cubic_spline(ops[i].base, tlist)
             if not cte:
                 raise Exception("tlist not sampled uniformly")
             for j in range(self.n_t):
-                self.y[i,j] = ops[i][2][j]
+                self.y[i,j] = ops[i].base[j]
                 self.M[i,j] = m[j]
 
     cdef void _call_core(self, double t, complex* coeff):
@@ -198,11 +198,11 @@ cdef class InterCoeffT(CoeffFunc):
         self.y = np.zeros((self._num_ops, self.n_t), dtype=complex)
         self.M = np.zeros((self._num_ops, self.n_t), dtype=complex)
         for i in range(self._num_ops):
-            m, cte = _prep_cubic_spline(ops[i][2], tlist)
+            m, cte = _prep_cubic_spline(ops[i].base, tlist)
             if cte:
                 print("tlist not uniform?")
             for j in range(self.n_t):
-                self.y[i,j] = ops[i][2][j]
+                self.y[i,j] = ops[i].base[j]
                 self.M[i,j] = m[j]
 
     cdef void _call_core(self, double t, complex* coeff):
@@ -237,7 +237,7 @@ cdef class StepCoeff(CoeffFunc):
         self.y = np.zeros((self._num_ops, self.n_t), dtype=complex)
         for i in range(self._num_ops):
             for j in range(self.n_t):
-                self.y[i,j] = ops[i][2][j]
+                self.y[i,j] = ops[i].base[j]
 
     def __getstate__(self):
         return (self._num_ops, self.n_t, None, np.array(self.tlist),
@@ -265,7 +265,7 @@ cdef class StepCoeffCte(StepCoeff):
 
 
 cdef class StrCoeff(CoeffFunc):
-    def __init__(self, ops, args, tlist, dyn_args=[]):
+    def __init__(self, ops, args, dyn_args=[]):
         self._num_ops = len(ops)
         self._args = args
         self._dyn_args_list = dyn_args

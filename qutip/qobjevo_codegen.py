@@ -123,17 +123,17 @@ def f(double t, args):
     return _import_str(Code, "td_Qobj_single_str", "f", True)
 
 
-def _compiled_coeffs(ops, args, dyn_args, tlist):
+def _compiled_coeffs(ops, args, dyn_args):
     """Create and import a cython compiled class for coeff that
     need compilation.
     """
-    code = _make_code_4_cimport(ops, args, dyn_args, tlist)
+    code = _make_code_4_cimport(ops, args, dyn_args)
     coeff_obj, filename = _import_str(code, "cqobjevo_compiled_coeff_",
                                       "CompiledStrCoeff", True)
-    return coeff_obj(ops, args, tlist, dyn_args), code, filename
+    return coeff_obj(ops, args, dyn_args), code, filename
 
 
-def _make_code_4_cimport(ops, args, dyn_args, tlist):
+def _make_code_4_cimport(ops, args, dyn_args):
     """
     Create the code for a CoeffFunc cython class the wraps
     the string coefficients, array_like coefficients and Cubic_Spline.
@@ -172,10 +172,11 @@ include """ + _include_string + "\n\n"
 
     for op in ops:
         if op.type == "string":
-            compile_list.append(op.coeff)
+            compile_list.append(op.base)
 
         elif op.type == "array":
-            spline, dt_cte = _prep_cubic_spline(op[2], tlist)
+            tlist = op.tlist
+            spline, dt_cte = _prep_cubic_spline(op.base, tlist)
             t_str = "_tlist"
             y_str = "_array_" + str(N_np)
             s_str = "_spline_" + str(N_np)
@@ -186,7 +187,7 @@ include """ + _include_string + "\n\n"
             except KeyError:
                 use_step_func = 0
             if dt_cte:
-                if isinstance(op.coeff[0], (float, np.float32, np.float64)):
+                if isinstance(op.base[0], (float, np.float32, np.float64)):
                     if use_step_func:
                         string = "_step_float_cte(t, " + t_str + ", " +\
                                 y_str + ", " + N_times + ")"
@@ -195,7 +196,7 @@ include """ + _include_string + "\n\n"
                                 y_str + ", " + s_str + ", " + N_times + ", " +\
                                 dt_times + ")"
 
-                elif isinstance(op.coeff[0], (complex, np.complex128)):
+                elif isinstance(op.base[0], (complex, np.complex128)):
                     if use_step_func:
                         string = "_step_complex_cte(t, " + t_str + ", " +\
                                 y_str + ", " + N_times + ")"
@@ -204,14 +205,14 @@ include """ + _include_string + "\n\n"
                                 y_str + ", " + s_str + ", " + N_times + ", " +\
                                 dt_times + ")"
             else:
-                if isinstance(op.coeff[0], (float, np.float32, np.float64)):
+                if isinstance(op.base[0], (float, np.float32, np.float64)):
                     if use_step_func:
                         string = "_step_float_t(t, " + t_str + ", " +\
                              y_str + ", " + N_times + ")"
                     else:
                         string = "_spline_float_t_second(t, " + t_str + ", " +\
                              y_str + ", " + s_str + ", " + N_times + ")"
-                elif isinstance(op.coeff[0], (complex, np.complex128)):
+                elif isinstance(op.base[0], (complex, np.complex128)):
                     if use_step_func:
                         string = "_step_complex_t(t, " + t_str + ", " +\
                              y_str + ", " + N_times + ")"
@@ -220,20 +221,20 @@ include """ + _include_string + "\n\n"
                              y_str + ", " + s_str + ", " + N_times + ")"
             compile_list.append(string)
             args[t_str] = tlist
-            args[y_str] = op.coeff
+            args[y_str] = op.base
             args[s_str] = spline
             N_np += 1
 
         elif op.type == "spline":
             y_str = "_array_" + str(N_np)
-            if op[1].is_complex:
+            if op.base.is_complex:
                 string = "zinterp(t, _CSstart, _CSend, " + y_str + ")"
             else:
                 string = "interp(t, _CSstart, _CSend, " + y_str + ")"
             compile_list.append(string)
-            args["_CSstart"] = op.coeff.a
-            args["_CSend"] = op.coeff.b
-            args[y_str] = op.coeff.coeffs
+            args["_CSstart"] = op.base.a
+            args["_CSend"] = op.base.b
+            args[y_str] = op.base.coeffs
             N_np += 1
 
     code += "cdef class CompiledStrCoeff(StrCoeff):\n"
@@ -309,11 +310,11 @@ include """ + _include_string + "\n\n"
     return code
 
 
-def _compiled_coeffs_python(ops, args, dyn_args, tlist):
+def _compiled_coeffs_python(ops, args, dyn_args):
     """Create and import a cython compiled class for coeff that
     need compilation.
     """
-    code = _make_code_4_python_import(ops, args, dyn_args, tlist)
+    code = _make_code_4_python_import(ops, args, dyn_args)
     coeff_obj, filename = _import_str(code, "qobjevo_compiled_coeff_",
                                       "_UnitedStrCaller", False)
     return coeff_obj, code, filename
@@ -324,7 +325,7 @@ code_python_pre = """
 import numpy as np
 import scipy.special as spe
 import scipy
-from qutip.qobjevo import _UnitedFuncCaller
+from qutip.coefficient import _UnitedFuncCaller
 
 def proj(x):
     if np.isfinite(x):
@@ -378,14 +379,14 @@ code_python_post = """
 """
 
 
-def _make_code_4_python_import(ops, args, dyn_args, tlist):
+def _make_code_4_python_import(ops, args, dyn_args):
     code = code_python_pre
     for key in args:
         code += "        " + key + " = now_args['" + key + "']\n"
 
     for i, op in enumerate(ops):
-        if op._type == "string":
-            code += "        out.append(" + op._base + ")\n"
+        if op.type == "string":
+            code += "        out.append(" + op.base + ")\n"
         else:
             code += "        out.append(self.funclist[" + str(i) + \
                     "](t, now_args))\n"

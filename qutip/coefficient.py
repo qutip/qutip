@@ -52,6 +52,16 @@ import os
 from re import sub
 
 
+def try_delete(file):
+    erased = True
+    try:
+        os.remove(file)
+    except Exception:
+        if os.path.isfile(file):
+            erased = False
+    return erased
+
+
 class _file_list:
     """
     Contain temp a list .pyx to clean
@@ -67,12 +77,9 @@ class _file_list:
         import os
         to_del = []
         for i, file_ in enumerate(self.files):
-            try:
-                os.remove(file_)
+            erased = try_delete(file_)
+            if erased:
                 to_del.append(i)
-            except Exception:
-                if not os.path.isfile(file_):
-                    to_del.append(i)
 
         for i in to_del[::-1]:
             del self.files[i]
@@ -95,6 +102,7 @@ class _file_list:
                     pass
                     # Warn that the  file could not be deleted?
 
+
 coeff_files = _file_list()
 atexit.register(coeff_files.clean)
 
@@ -104,6 +112,7 @@ def proj(x):
         return (x)
     else:
         return np.inf + 0j * np.imag(x)
+
 
 str_env = {
     "sin": np.sin,
@@ -194,23 +203,23 @@ class Coefficient:
         elif isinstance(base, str):
             self._call = _StrWrapper(base)
             self.type = "string"
-        elif isinstance(op_k[1], np.ndarray):
+            self.file = ""
+        elif isinstance(base, np.ndarray):
             if not isinstance(tlist, np.ndarray) or not \
-                    len(op_k[1]) == len(tlist):
+                    len(base) == len(tlist):
                 raise TypeError("Time list does not match")
-            self._call = _CubicSplineWrapper(tlist, base, args=args),
+            self._call = _CubicSplineWrapper(tlist, base, args=args)
             self.type = "array"
 
     def _check_old_with_state(self):
         if self.type == "func":
             try:
-                op.get_coeff(0., self.args)
+                self.base(0., self.args)
+                add_vec = False
             except TypeError as e:
-                self._call = _StateAsArgs(self._call)
-                op = EvoElement((op.qobj, nfunc, nfunc, "func"))
+                self._call = _StateAsArgs(self.base)
                 add_vec = True
-        if add_vec:
-            self.dynamics_args += [("_state_vec", "vec", None)]
+        return add_vec
 
     def copy(self):
         if self.type == "array":
@@ -218,109 +227,121 @@ class Coefficient:
                                tlist=self.tlist,
                                args=self.args)
         else:
-            return Coefficient(self.base)
+            return Coefficient(self.base, args=self.args)
 
     def __add__(self, other):
         if not isinstance(other, Coefficient):
             raise TypeError
         if self.type == "str" and other.type == "str":
-            return Coefficient("(" + self.base + ") + (" + other.base + ")")
+            return Coefficient("(" + self.base + ") + (" + other.base + ")",
+                               args=self.args)
         if self.type == "array" and other.type == "array":
             if np.allclose(self.tlist, other.tlist):
                 return Coefficient(self.base + other.base,
                                    tlist=self.tlist,
                                    args=self.args)
-        return _Add([self, other])
+        return _Add(self, other)
 
     def __mul__(self, other):
         if not isinstance(other, Coefficient):
             raise TypeError
         if self.type == "str" and other.type == "str":
-            return Coefficient("(" + self.base + ") * (" + other.base + ")")
+            return Coefficient("(" + self.base + ") * (" + other.base + ")",
+                               args=self.args)
         if self.type == "array" and other.type == "array":
             if np.allclose(self.tlist, other.tlist):
                 return Coefficient(self.base * other.base,
                                    tlist=self.tlist,
                                    args=self.args)
-        return _Prod([self, other])
+        return _Prod(self, other)
 
     def _cdc(self):
-        if op.type == "string":
-            return Coefficient("norm(" + self.base + ")")
-        elif op.type == "array":
-            return = Coefficient(np.abs(self.base)**2,
-                                 tlist=self.tlist,
-                                 args=self.args)
+        if self.type == "string":
+            return Coefficient("norm(" + self.base + ")", args=self.args)
+        elif self.type == "array":
+            return Coefficient(np.abs(self.base)**2,
+                               tlist=self.tlist,
+                               args=self.args)
         else:
             return _Norm2(self)
 
     def conj(self):
-        if op.type == "string":
-            return Coefficient("conj(" + self.base + ")")
-        elif op.type == "array":
-            return = Coefficient(np.conj(self.base)**2,
-                                 tlist=self.tlist,
-                                 args=self.args)
+        if self.type == "string":
+            return Coefficient("conj(" + self.base + ")", args=self.args)
+        elif self.type == "array":
+            return Coefficient(np.conj(self.base),
+                               tlist=self.tlist,
+                               args=self.args)
         else:
             return _Conj(self)
 
     def _shift(self):
-        if op.type == "string":
+        if self.type == "string":
             return Coefficient("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                               "(t+_t0)", " " + self.base + " ")
+                               "(t+_t0)", " " + self.base + " ", args=self.args)
         else:
             return _Shift(self)
 
-    def __call__(self, t, args):
+    def __call__(self, t, args={}):
         return self._call(t, args)
 
-    def compile(self, use_cython=qset.use_cython, self.args):
-        if use_cython:
-            self._call, file_ = _compile_str_single(part.coeff, self.args)
-        else:
-            self._call, file_ = _compile_str_single(part.coeff, self.args)
-        coeff_files.add(file_)
-        funclist.append(get_coeff)
+    def compile(self):
+        if self.type == "string":
+            self._call, file_ = _compile_str_single(self.base, self.args)
+            coeff_files.add(file_)
+            self.file = file_
+
+    def __del__(self):
+        if self.type == "string":
+            try_delete(self.file)
+
+    @property
+    def compilable(self):
+        return self.type in ["string", "array", "spline"]
 
 
 class _Norm2(Coefficient):
     def __init__(self, f):
+        self.base = self
         self.func = f
         self.type = "decorated"
 
     def __call__(self, t, args):
         return self.func(t, args)*np.conj(self.func(t, args))
 
-    def copy():
+    def copy(self):
         return _Norm2(self.func.copy())
 
 
 class _Shift(Coefficient):
     def __init__(self, f):
+        self.base = self
         self.func = f
         self.type = "decorated"
 
     def __call__(self, t, args):
         return np.conj(self.func(t + args["_t0"], args))
 
-    def copy():
+    def copy(self):
         return _Shift(self.func.copy())
 
 
 class _Conj(Coefficient):
     def __init__(self, f):
+        self.base = self
         self.func = f
         self.type = "decorated"
 
     def __call__(self, t, args):
         return np.conj(self.func(t, args))
 
-    def copy():
+    def copy(self):
         return _Conj(self.func.copy())
 
 
 class _Prod(Coefficient):
     def __init__(self, f, g):
+        self.base = self
         self.func_1 = f
         self.func_2 = g
         self.type = "decorated"
@@ -328,12 +349,13 @@ class _Prod(Coefficient):
     def __call__(self, t, args):
         return self.func_1(t, args) * self.func_2(t, args)
 
-    def copy():
+    def copy(self):
         return _Prod(self.func_1.copy(), self.func_2.copy())
 
 
 class _Add(Coefficient):
     def __init__(self, f, g):
+        self.base = self
         self.func_1 = f
         self.func_2 = g
         self.type = "decorated"
@@ -341,31 +363,34 @@ class _Add(Coefficient):
     def __call__(self, t, args):
         return self.func_1(t, args) + self.func_2(t, args)
 
-    def copy():
+    def copy(self):
         return _Add(self.func_1.copy(), self.func_2.copy())
 
 
 def compile_coeff(coeffs, args, dyn_args, dims, shape,
                   use_cython=qset.use_cython):
     Code = None
-    compilable = all(op.type in ["string", "array", "spline"]
-                     for op in coeffs)
+    compilable = all(op.compilable for op in coeffs)
     need_compile = any(op.type == "string" for op in coeffs)
 
-    if not compilable and (not need_compile or use_cython):
+    if len(coeffs) == 0:
+        coeff_get = None
+
+    elif not compilable and (not need_compile or use_cython):
         for op in coeffs:
-            op.compile(use_cython=True)
+            op.compile()
         coeff_get = _UnitedFuncCaller(coeffs, args, dyn_args, dims, shape)
 
     elif not compilable:
         _UnitedStrCaller, Code, file_ = _compiled_coeffs_python(coeffs,
-                                                                args, dyn_args)
+                                                                args,
+                                                                dyn_args)
         coeff_files.add(file_)
-        self.coeff_get = _UnitedStrCaller(coeffs, args, dyn_args, dims, shape)
+        coeff_get = _UnitedStrCaller(coeffs, args, dyn_args, dims, shape)
 
     elif all(op.type == "array" for op in coeffs):
         try:
-            use_step_func = self.args["_step_func_coeff"]
+            use_step_func = args["_step_func_coeff"]
         except KeyError:
             use_step_func = 0
         tlist = coeffs[0].tlist
@@ -384,7 +409,7 @@ def compile_coeff(coeffs, args, dyn_args, dims, shape,
     elif all(op.type == "spline" for op in coeffs):
         coeff_get = InterpolateCoeff(coeffs, None, None)
 
-    else
+    else:
         if use_cython:
             # All factor can be compiled
             coeff_get, Code, file_ = _compiled_coeffs(coeffs, args, dyn_args)
@@ -458,8 +483,13 @@ class _UnitedFuncCaller:
 
 
 
+from qutip.cy.cqobjevo_factor import (InterpolateCoeff, InterCoeffCte,
+                                      InterCoeffT, StepCoeffT, StepCoeffCte)
 
-def _compile_coeff(self):
+"""
+
+
+def __compile_coeff(self):
     Code = None
     if self.type in ["func"]:
         funclist = [part.get_coeff for part in self.ops]
@@ -539,7 +569,7 @@ def _compile_coeff(self):
     return Code
 
 
-def type(coeffs):
+def _type(coeffs):
     compilable = all(op.type in ["string", "array", "spline"] for op in coeffs)
 
         self.compiled = ""
@@ -573,3 +603,4 @@ def type(coeffs):
             self.type = "mixed_compilable"
 
         self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
+"""

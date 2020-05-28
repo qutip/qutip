@@ -66,7 +66,7 @@ cimport numpy as np
 import cython
 cimport cython
 from qutip.qobj import Qobj
-from qutip.qobjevo import _UnitedFuncCaller
+from qutip.coefficient import _UnitedFuncCaller
 from cpython.exc cimport PyErr_CheckSignals
 from qutip.cy.spmath cimport _zcsr_add_core
 from qutip.cy.mmath cimport spmvpy, spmmcpy, spmmfpy
@@ -356,8 +356,8 @@ cdef class CQobjEvoTd(CQobjEvo):
             self.sum_elem = np.zeros(self.num_ops, dtype=int)
             for i, op in enumerate(ops):
                 self.ops[i] = <CSR_Matrix*> PyDataMem_NEW(sizeof(CSR_Matrix))
-                CSR_from_scipy_inplace(op[0].data, self.ops[i])
-                cummulative_op += op[0].data
+                CSR_from_scipy_inplace(op.qobj.data, self.ops[i])
+                cummulative_op += op.qobj.data
                 self.sum_elem[i] = cummulative_op.data.shape[0]
 
             self.total_elem = self.sum_elem[self.num_ops-1]
@@ -614,7 +614,7 @@ cdef class CQobjEvoTdDense(CQobjEvo):
             self.coeff = np.empty((self.num_ops,), dtype=complex)
             self.coeff_ptr = &self.coeff[0]
             for i, op in enumerate(ops):
-                oparray = op[0].data.toarray()
+                oparray = op.qobj.data.toarray()
                 for j in range(self.shape0):
                     for k in range(self.shape1):
                         self.ops[i,j,k] = oparray[j,k]
@@ -805,7 +805,7 @@ cdef class CQobjEvoTdMatched(CQobjEvo):
 
         sparse_list = []
         for op in ops:
-            sparse_list.append(op[0].data)
+            sparse_list.append(op.qobj.data)
         sparse_list += [cte.data]
         matched = _zcsr_match(sparse_list)
 

@@ -36,24 +36,20 @@ __all__ = ['QobjEvo']
 
 from qutip.qobj import Qobj
 import qutip.settings as qset
-from qutip.interpolate import Cubic_Spline
-from scipy.interpolate import CubicSpline, interp1d
-from functools import partial, wraps
-from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
-from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
-                                   _compiled_coeffs_python)
-from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi,
-                                 spmv, cy_spmm_tr)
-import atexit
-import pickle
-import sys
+from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 import scipy
-import os
-from re import sub
+from qutip.coefficient import Coefficient, compile_coeff
+from collections import namedtuple
+from dataclasses import dataclass
 
-EvoElement = namedtuple("EvoElement", "qobj coeff")
+#EvoElement = namedtuple("EvoElement", "qobj coeff")
+
+@dataclass
+class EvoElement:
+    qobj : Qobj
+    coeff : Coefficient
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 class StateArgs:
@@ -332,7 +328,6 @@ class QobjEvo:
                 # The format is [Qobj, coeff]
                 Q_object = [Q_object]
 
-        op_type = self._td_format_check_single(Q_object, tlist)
         self.ops = []
 
         if isinstance(Q_object, Qobj):
@@ -347,7 +342,9 @@ class QobjEvo:
                     else:
                         self.cte += op
                 else:
-                    self.ops.append(EvoElement(op[0], Coeff(op[1])))
+                    self.ops.append(EvoElement(op[0], Coefficient(op[1],
+                                                                  tlist=tlist,
+                                                                  args=args)))
 
             if self.cte is None:
                 self.cte = self.ops[0].qobj * 0
@@ -363,6 +360,7 @@ class QobjEvo:
 
             if not self.ops:
                 self.const = True
+
         self._args_checks()
         if e_ops:
             for i, dargs in enumerate(self.dynamics_args):
@@ -583,7 +581,7 @@ class QobjEvo:
         if not self.dummy_cte:
             list_qobj.append(self.cte)
         for op in self.ops:
-            list_qobj.append([op.qobj, op.coeff])
+            list_qobj.append([op.qobj, op.coeff.base])
         return list_qobj
 
     @property
@@ -606,7 +604,7 @@ class QobjEvo:
             self.cte += other.cte
             for op in other.ops:
                 self.ops.append(EvoElement(op.qobj.copy(),
-                                           op.get_coeff.copy() ))
+                                           op.coeff.copy() ))
             self.args.update(**other.args)
             self.dynamics_args += other.dynamics_args
             self.const = self.const and other.const
@@ -732,7 +730,7 @@ class QobjEvo:
         res = self.copy()
         res.cte = res.cte.trans()
         res.ops = [EvoElement(op.qobj.trans(), op.coeff)
-                   for op in self.ops)]
+                   for op in self.ops]
         res._recompile()
         return res
 
@@ -740,14 +738,14 @@ class QobjEvo:
         res = self.copy()
         res.cte = res.cte.conj()
         res.ops = [EvoElement(op.qobj.conj(), op.coeff.conj())
-                   for op in self.ops)]
+                   for op in self.ops]
         return res
 
     def dag(self):
         res = self.copy()
         res.cte = res.cte.dag()
         res.ops = [EvoElement(op.qobj.dag(), op.coeff.conj())
-                   for op in self.ops)]
+                   for op in self.ops]
         return res
 
     def _cdc(self):
@@ -759,14 +757,22 @@ class QobjEvo:
             res = self.copy()
             res.cte = res.cte.dag() * res.cte
             res.ops = [EvoElement(op.qobj.dag() * op.qobj, op.coeff._cdc())
-                       for op in self.ops)]
+                       for op in self.ops]
         return res
 
     def _shift(self):
         self.compiled = ""
         self.coeff_get = None
         self.args.update({"_t0": 0})
-        self.ops = [EvoElement(op.qobj, op.coeff._shift()) for op in self.ops)]
+        self.ops = [EvoElement(op.qobj, op.coeff._shift()) for op in self.ops]
+        return self
+
+    def _f_norm2(self):
+        """np.norm on the coefficient"""
+        # used for spre(a) * spost(a)
+        # adding superoperator support would work better
+        self.ops = [EvoElement(op.qobj, op.coeff._cdc())
+                       for op in self.ops]
         return self
 
     # Unitary function of Qobj
@@ -821,7 +827,6 @@ class QobjEvo:
         for _set in fsets:
             base = self.ops[_set[0]]
             new_op = [None, base.coeff]
-            new_op[0] += sum(self.ops[i].qobj for
 
             if len(_set) == 1:
                 new_op[0] = base.qobj
@@ -838,6 +843,8 @@ class QobjEvo:
         N_sets = len(sets)
         N_fsets = len(fsets)
         num_ops = len(self.ops)
+        self.compiled = ""
+        self.coeff_get = None
 
         if N_sets < num_ops and N_fsets < num_ops:
             # Both could be better
@@ -849,14 +856,11 @@ class QobjEvo:
             N_sets = len(sets)
             N_fsets = len(fsets)
             num_ops = len(self.ops)
-            self._reset_type()
 
         if N_sets < num_ops:
             self._compress_merge_qobj(sets)
-            self._reset_type()
         elif N_fsets < num_ops:
             self._compress_merge_func(fsets)
-            self._reset_type()
 
     def permute(self, order):
         res = self.copy()
@@ -874,8 +878,6 @@ class QobjEvo:
         res.cte = cte_res
         for op in res.ops:
             op.qobj = function(op.qobj, *args, **kw_args)
-        if self.compiled:
-            self._recompile()
         return res
 
     def expect(self, t, state, herm=0):
@@ -1012,7 +1014,12 @@ class QobjEvo:
 
     def _compile_coeff(self):
         coeffs = [op.coeff for op in self.ops]
-        self._get_coeff, code = compile_united_coeff(coeffs)
+        self.coeff_get, code = compile_coeff(coeffs,
+                                             self.args,
+                                             self.dynamics_args,
+                                             self.cte.dims,
+                                             self.cte.shape,
+                                             self.use_cython)
         return code
 
     def _recompile(self):
@@ -1024,7 +1031,7 @@ class QobjEvo:
     def _get_coeff(self, t):
         out = []
         for part in self.ops:
-            out.append(part.get_coeff(t, self.args))
+            out.append(part.coeff(t, self.args))
         return out
 
     def __getstate__(self):
@@ -1061,8 +1068,5 @@ class QobjEvo:
                 CQobjEvoTdMatched.__new__(CQobjEvoTdMatched)
             self.compiled_qobjevo.__setstate__(state[1])
 
-from qutip.superoperator import vec2mat
+
 from qutip.cy.cqobjevo import (CQobjEvoTd, CQobjEvoTdMatched, CQobjEvoTdDense)
-from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
-                                      InterpolateCoeff, StrCoeff,
-                                      StepCoeffCte, StepCoeffT)
