@@ -2027,7 +2027,7 @@ class Qobj(object):
         isdensity = True
 
         if (self.type != "oper" or self.isherm is False or
-            np.allclose(self.tr(), 1, atol=1e-09) is False):
+                np.allclose(self.tr(), 1, atol=1e-09) is False):
             isdensity = False
 
         else:
