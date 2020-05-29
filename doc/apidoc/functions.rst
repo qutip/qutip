@@ -33,6 +33,7 @@ Quantum Objects
     :members: qobj_list_evaluate, ptrace, dag, isequal, issuper, isoper, isoperket, isoperbra, isket, isbra,
     isherm, shape, dims
 
+
 Random Operators and States
 ---------------------------
 
@@ -114,6 +115,16 @@ Continuous Variables
 
 .. automodule:: qutip.continuous_variables
     :members: correlation_matrix, covariance_matrix, correlation_matrix_field, correlation_matrix_quadrature, wigner_covariance_matrix, logarithmic_negativity
+
+
+Measurement
+===========
+
+Measurement of quantum states
+-----------------------------
+
+.. automodule:: qutip.measurement
+    :members: measure, measurement_statistics
 
 
 Dynamics and Time-Evolution
