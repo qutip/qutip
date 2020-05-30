@@ -163,10 +163,10 @@ class SpinChain(ModelProcessor):
         The coefficient of sxsy is defined in the submethods.
         All parameters will be multiplied by 2*pi for simplicity
         """
-        sx_para = super(SpinChain, self)._para_list(sx, self.N)
-        self._paras["sx"] = sx_para
-        sz_para = super(SpinChain, self)._para_list(sz, self.N)
-        self._paras["sz"] = sz_para
+        sx_para = 2 * np.pi * self.to_array(sx, self.N)
+        self._params["sx"] = sx_para
+        sz_para = 2 * np.pi * self.to_array(sz, self.N)
+        self._params["sz"] = sz_para
 
     @property
     def sx_ops(self):
@@ -217,13 +217,11 @@ class SpinChain(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
 
-        dec = SpinChainCompiler(
-            self.N, self._paras, setup=setup,
+        compiler = SpinChainCompiler(
+            self.N, self._params, setup=setup,
             global_phase=0., num_ops=len(self.ctrls))
-        tlist, self.coeffs, self.global_phase = dec.decompose(gates)
-        for i in range(len(self.pulses)):
-            self.pulses[i].tlist = tlist
-
+        tlist, self.coeffs, self.global_phase = compiler.decompose(gates)
+        self.set_all_tlist(tlist)
         return tlist, self.coeffs
 
     def adjacent_gates(self, qc, setup="linear"):
@@ -512,8 +510,8 @@ class LinearSpinChain(SpinChain):
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
         super(LinearSpinChain, self).set_up_params(sx, sz)
-        sxsy_para = self._para_list(sxsy, self.N-1)
-        self._paras["sxsy"] = sxsy_para
+        sxsy_para = 2 * np.pi * self.to_array(sxsy, self.N-1)
+        self._params["sxsy"] = sxsy_para
 
     @property
     def sxsy_ops(self):
@@ -526,11 +524,18 @@ class LinearSpinChain(SpinChain):
     def load_circuit(self, qc):
         return super(LinearSpinChain, self).load_circuit(qc, "linear")
 
-    def get_ops_labels(self):
-        return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
-                [r"$\sigma_z^%d$" % n for n in range(self.N)] +
+    def get_operators_labels(self):
+        """
+        Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
+        """
+        return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
+                [r"$\sigma_z^%d$" % n for n in range(self.N)],
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
-                 % (n, n, n + 1, n + 1) for n in range(self.N - 1)])
+                 % (n, n + 1, n, n + 1) for n in range(self.N - 1)],
+                 ])
 
     def adjacent_gates(self, qc):
         return super(LinearSpinChain, self).adjacent_gates(qc, "linear")
@@ -589,8 +594,8 @@ class CircularSpinChain(SpinChain):
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
         super(CircularSpinChain, self).set_up_params(sx, sz)
-        sxsy_para = self._para_list(sxsy, self.N)
-        self._paras["sxsy"] = sxsy_para
+        sxsy_para = 2 * np.pi * self.to_array(sxsy, self.N)
+        self._params["sxsy"] = sxsy_para
 
     @property
     def sxsy_ops(self):
@@ -603,12 +608,18 @@ class CircularSpinChain(SpinChain):
     def load_circuit(self, qc):
         return super(CircularSpinChain, self).load_circuit(qc, "circular")
 
-    def get_ops_labels(self):
-        return ([r"$\sigma_x^%d$" % n for n in range(self.N)] +
-                [r"$\sigma_z^%d$" % n for n in range(self.N)] +
+    def get_operators_labels(self):
+        """
+        Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
+        """
+        return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
+                [r"$\sigma_z^%d$" % n for n in range(self.N)],
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
-                 % (n, n, (n + 1) % self.N, (n + 1) % self.N)
-                 for n in range(self.N)])
+                 % (n, (n + 1) % self.N, n, (n + 1) % self.N)
+                 for n in range(self.N)]])
 
     def adjacent_gates(self, qc):
         return super(CircularSpinChain, self).adjacent_gates(qc, "circular")

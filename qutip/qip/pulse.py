@@ -223,7 +223,7 @@ class Pulse():
 
     """
     def __init__(self, qobj, targets, tlist=None, coeff=None,
-                 spline_kind=None, label=None):
+                 spline_kind=None, label=""):
         self.spline_kind = spline_kind
         self.ideal_pulse = _EvoElement(qobj, targets, tlist, coeff)
         self.coherent_noise = []
@@ -605,7 +605,7 @@ def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
             if t > old_tlist[-1]:
                 new_coeff[new_ind] = 0.
                 continue
-            if old_tlist[old_ind+1] == t:
+            if old_tlist[old_ind+1] <= t:
                 old_ind += 1
             new_coeff[new_ind] = old_coeffs[old_ind]
     else:

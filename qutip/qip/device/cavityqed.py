@@ -75,10 +75,10 @@ class DispersiveCavityQED(ModelProcessor):
         The number of energy levels in the resonator.
 
     deltamax: int or list, optional
-        The sigma-x paraicient for each of the qubits in the system.
+        The coefficients of sigma-x for each of the qubits in the system.
 
     epsmax: int or list, optional
-        The sigma-z paraicient for each of the qubits in the system.
+        The coefficients of sigma-z for each of the qubits in the system.
 
     w0: int, optional
         The base frequency of the resonator.
@@ -126,7 +126,7 @@ class DispersiveCavityQED(ModelProcessor):
         eps and delta for each qubit.
 
     Delta: list of float
-        The detuning with repect to w0 calculated
+        The detuning with respect to w0 calculated
         from wq and w0 for each qubit.
     """
 
@@ -140,20 +140,13 @@ class DispersiveCavityQED(ModelProcessor):
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
         self.num_levels = num_levels
-        self._paras = {}
+        self._params = {}
         self.set_up_params(
             N=N, num_levels=num_levels, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
             delta=delta, g=g)
         self.set_up_ops(N)
         self.dims = [num_levels] + [2] * N
-
-    @property
-    def ctrls(self):
-        result = []
-        for pulse in self.pulses:
-            result.append(pulse.get_ideal_qobj(self.dims))
-        return result
 
     def set_up_ops(self, N):
         """
@@ -166,28 +159,23 @@ class DispersiveCavityQED(ModelProcessor):
             The number of qubits in the system.
         """
         # single qubit terms
-        self.a = tensor(destroy(self.num_levels))
-        self.pulses.append(
-            Pulse(self.a.dag() * self.a, [0], spline_kind=self.spline_kind))
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
-        # interaction terms
-        a_full = tensor([destroy(self.num_levels)] +
-                        [identity(2) for n in range(N)])
+        # coupling terms
+        a = tensor(
+            [destroy(self.num_levels)] +
+            [identity(2) for n in range(N)])
         for n in range(N):
             sm = tensor([identity(self.num_levels)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
             self.pulses.append(
-                Pulse(a_full.dag() * sm + a_full * sm.dag(),
+                Pulse(a.dag() * sm + a * sm.dag(),
                       list(range(N+1)), spline_kind=self.spline_kind))
-
-        self.psi_proj = tensor([basis(self.num_levels, 0)] +
-                               [identity(2) for n in range(N)])
 
     def set_up_params(
             self, N, num_levels, deltamax,
@@ -204,10 +192,10 @@ class DispersiveCavityQED(ModelProcessor):
             The number of energy levels in the resonator.
 
         deltamax: list
-            The sigma-x paraicient for each of the qubits in the system.
+            The coefficients of sigma-x for each of the qubits in the system.
 
         epsmax: list
-            The sigma-z paraicient for each of the qubits in the system.
+            The coefficients of sigma-z for each of the qubits in the system.
 
         wo: int
             The base frequency of the resonator.
@@ -228,63 +216,65 @@ class DispersiveCavityQED(ModelProcessor):
         -----
         All parameters will be multiplied by 2*pi for simplicity
         """
-        sx_para = super(DispersiveCavityQED, self)._para_list(deltamax, N)
-        self._paras["sx"] = sx_para
-        sz_para = super(DispersiveCavityQED, self)._para_list(epsmax, N)
-        self._paras["sz"] = sz_para
-        w0 = w0 * 2 * np.pi
-        self._paras["w0"] = w0
-        eps = super(DispersiveCavityQED, self)._para_list(eps, N)
-        self._paras["eps"] = eps
-        delta = super(DispersiveCavityQED, self)._para_list(delta, N)
-        self._paras["delta"] = delta
-        g = super(DispersiveCavityQED, self)._para_list(g, N)
-        self._paras["g"] = g
+        sx_para = 2 * np.pi * self.to_array(deltamax, N)
+        self._params["sx"] = sx_para
+        sz_para = 2 * np.pi * self.to_array(epsmax, N)
+        self._params["sz"] = sz_para
+        w0 = 2 * np.pi * w0
+        self._params["w0"] = w0
+        eps = 2 * np.pi * self.to_array(eps, N)
+        self._params["eps"] = eps
+        delta = 2 * np.pi * self.to_array(delta, N)
+        self._params["delta"] = delta
+        g = 2 * np.pi * self.to_array(g, N)
+        self._params["g"] = g
 
         # computed
-        self.wq = [np.sqrt(eps[i]**2 + delta[i]**2) for i in range(N)]
-        self.Delta = [self.wq[i] - w0 for i in range(N)]
+        self.wq = np.sqrt(eps**2 + delta**2)
+        self.Delta = self.wq - w0
 
         # rwa/dispersive regime tests
-        if any([g[i] / (w0 - self.wq[i]) > 0.05 for i in range(N)]):
+        if any(g / (w0 - self.wq) > 0.05):
             warnings.warn("Not in the dispersive regime")
 
-        if any([(w0 - self.wq[i])/(w0 + self.wq[i]) > 0.05 for i in range(N)]):
+        if any((w0 - self.wq)/(w0 + self.wq) > 0.05):
             warnings.warn(
                 "The rotating-wave approximation might not be valid.")
 
     @property
     def sx_ops(self):
-        return self.ctrls[1: self.N + 1]
+        return self.ctrls[0: self.N]
 
     @property
     def sz_ops(self):
-        return self.ctrls[self.N + 1: 2*self.N + 1]
+        return self.ctrls[self.N: 2*self.N]
 
     @property
     def cavityqubit_ops(self):
-        return self.ctrls[2*self.N + 1: 3*self.N + 1]
+        return self.ctrls[2*self.N: 3*self.N]
 
     @property
     def sx_u(self):
-        return self.coeffs[1: self.N + 1]
+        return self.coeffs[: self.N]
 
     @property
     def sz_u(self):
-        return self.coeffs[self.N + 1: 2*self.N + 1]
+        return self.coeffs[self.N: 2*self.N]
 
     @property
     def g_u(self):
-        return self.coeffs[2*self.N + 1: 3*self.N + 1]
+        return self.coeffs[2*self.N: 3*self.N]
 
-    def get_ops_labels(self):
+    def get_operators_labels(self):
         """
         Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
         """
-        return ([r"$a^\dagger a$"] +
-                [r"$\sigma_x^%d$" % n for n in range(self.N)] +
-                [r"$\sigma_z^%d$" % n for n in range(self.N)] +
-                [r"$g_{%d}$" % (n) for n in range(self.N)])
+        return ([[r"$\sigma_x^%d$" % n for n in range(self.N)],
+                 [r"$\sigma_z^%d$" % n for n in range(self.N)],
+                 [r"$g_{%d}$" % (n) for n in range(self.N)]])
 
     def optimize_circuit(self, qc):
         """
@@ -311,7 +301,10 @@ class DispersiveCavityQED(ModelProcessor):
         """
         Eliminate the auxillary modes like the cavity modes in cqed.
         """
-        return self.psi_proj.dag() * U * self.psi_proj
+        psi_proj = tensor(
+            [basis(self.num_levels, 0)] +
+            [identity(2) for n in range(self.N)])
+        return psi_proj.dag() * U * psi_proj
 
     def load_circuit(self, qc):
         """
@@ -334,17 +327,9 @@ class DispersiveCavityQED(ModelProcessor):
             one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
-
-        dec = CavityQEDCompiler(
-            self.N, self._paras, self.wq, self.Delta,
+        compiler = CavityQEDCompiler(
+            self.N, self._params,
             global_phase=0., num_ops=len(self.ctrls))
-        tlist, self.coeffs, self.global_phase = dec.decompose(gates)
-        for i in range(len(self.pulses)):
-            self.pulses[i].tlist = tlist
-        # TODO The amplitude of the first control a.dag()*a
-        # was set to zero before I made this refactoring.
-        # It is probably due to the fact that
-        # it contributes only a constant (N) and can be neglected.
-        # but change the below line to np.ones leads to test error.
-        self.coeffs[0] = self._paras["w0"] * np.zeros(len(tlist))
+        tlist, self.coeffs, self.global_phase = compiler.decompose(gates)
+        self.set_all_tlist(tlist)
         return tlist, self.coeffs
