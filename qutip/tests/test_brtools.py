@@ -43,7 +43,6 @@ from qutip.cy.brtools_checks import (
 )
 
 
-@pytest.mark.skipif("platform.system() == 'Darwin'")
 def test_zheevr():
     """
     zheevr: store eigenvalues in the passed array, and return the eigenvectors
