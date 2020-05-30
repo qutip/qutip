@@ -60,6 +60,17 @@ except ImportError:
 
 __all__ = ['Gate', 'QubitCircuit']
 
+_single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
+                       "X", "Y", "Z", "S", "T"]
+_para_gates = ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
+               "GLOBALPHASE", "CRX", "CRY", "CRZ"]
+_ctrl_gates = ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
+               "CS", "CT"]
+_swap_like = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
+              "SWAPalpha"]
+_toffoli_like = ["TOFFOLI"]
+_fredkin_like = ["FREDKIN"]
+
 
 class Gate:
     """
@@ -106,33 +117,38 @@ class Gate:
                 if not all_integer:
                     raise ValueError("Index of a qubit must be an integer")
 
-        if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
-                    "SWAPalpha"]:
+        if name in _single_qubit_gates:
+            if self.targets is None or len(self.targets) != 1:
+                raise ValueError("Gate %s requires one target" % name)
+            if self.controls is not None:
+                raise ValueError("Gate %s cannot have a control" % name)
+        elif name in _swap_like:
             if (self.targets is None) or (len(self.targets) != 2):
                 raise ValueError("Gate %s requires two targets" % name)
             if self.controls is not None:
                 raise ValueError("Gate %s cannot have a control" % name)
-
-        elif name in ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
-                      "CS", "CT"]:
+        elif name in _ctrl_gates:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
             if self.controls is None or len(self.controls) != 1:
                 raise ValueError("Gate %s requires one control" % name)
-
-        elif name in ["SNOT", "RX", "RY", "RZ", "PHASEGATE", "X", "Y",
-                      "Z", "S", "T"]:
-            if self.controls is not None:
-                raise ValueError("Gate %s does not take controls" % name)
-
-        elif name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
-                      "GLOBALPHASE", "CRX", "CRY", "CRZ"]:
-            if arg_value is None:
-                raise ValueError("Gate %s requires an argument value" % name)
-
-        elif name in ["X", "Y", "Z", "S", "T"]:
+        elif name in _fredkin_like:
+            if self.targets is None or len(self.targets) != 2:
+                raise ValueError("Gate %s requires one target" % name)
+            if self.controls is None or len(self.controls) != 1:
+                raise ValueError("Gate %s requires two control" % name)
+        elif name in _toffoli_like:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
+            if self.controls is None or len(self.controls) != 2:
+                raise ValueError("Gate %s requires two control" % name)
+
+        if name in _para_gates:
+            if arg_value is None:
+                raise ValueError("Gate %s requires an argument value" % name)
+        else:
+            if (name in _GATE_NAME_TO_LABEL) and (arg_value is not None):
+                raise ValueError("Gate %s does not take argument value" % name)
 
         self.arg_value = arg_value
         self.arg_label = arg_label
@@ -383,9 +399,8 @@ class QubitCircuit:
                               gate.arg_label)
             elif gate.name in ["BERKELEY", "SWAPalpha", "SWAP", "ISWAP",
                                "SQRTSWAP", "SQRTISWAP"]:
-                self.add_gate(gate.name, None,
-                              [gate.controls[0] + start,
-                               gate.controls[1] + start], None, None)
+                self.add_gate(gate.name, [gate.targets[0] + start,
+                              gate.targets[1] + start], None, None)
             elif gate.name in ["TOFFOLI"]:
                 self.add_gate(gate.name, gate.targets[0] + start,
                               [gate.controls[0] + start,
@@ -549,14 +564,14 @@ class QubitCircuit:
         temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RX", gate.targets, None,
+        temp_resolved.append(Gate("RX", gate.targets[0], None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
                                   gate.targets[1]))
         temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RX", gate.targets, None,
+        temp_resolved.append(Gate("RX", gate.targets[0], None,
                                   arg_value=np.pi, arg_label=r"\pi"))
         temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                   arg_value=np.pi, arg_label=r"\pi"))
