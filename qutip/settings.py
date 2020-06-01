@@ -48,6 +48,7 @@ auto_tidyup_atol = 1e-12
 # number of cpus (set at qutip import)
 num_cpus = 0
 # flag indicating if fortran module is installed
+# never used
 fortran = False
 # path to the MKL library
 mkl_lib = None
@@ -70,7 +71,7 @@ log_handler = 'default'
 # and plotting options by default.
 colorblind_safe = False
 # Sets the threshold for matrix NNZ where OPENMP
-# turns on. This is automatically calculated and 
+# turns on. This is automatically calculated and
 # put in the qutiprc file.  This value is here in case
 # that failts
 openmp_thresh = 10000
@@ -84,3 +85,102 @@ try:
     del logging  # Don't leak names!
 except:
     _logger = None
+
+
+def _valid_config(key):
+    environment_keys = ["ipython", 'has_mkl', 'has_openmp',
+                        'mkl_lib', 'fortran', 'num_cpus']
+    if key in environment_keys:
+        return False
+    if key.startswith("_"):
+        return False
+    val = getattr(__self, key)
+    if isinstance(val, (bool, int, flaot, complex, str)):
+        return True
+    return False
+
+
+__self = locals()  # Not ideal, having access to itself as qset would be better
+__all = [key for key in __self if _valid_config(key)]
+__default = {key:getattr(__self, key) for key in __all}
+__section = "qutip"
+del _valid_config
+
+
+def save(file='qutiprc', all_config=False):
+    """
+    Write the settings to a file.
+    Default file is 'qutiprc' which is loaded when importing qutip.
+    File are stored in .qutip directory in the user home.
+    The file can be a full path or relative to home to save elsewhere.
+    If 'all_config' is used, also load other available configs.
+    """
+    from qutip.configrc import write_rc_qset, write_rc_config
+    if save_all_config:
+        write_rc_config(file)
+    else:
+        write_rc_qset(file)
+
+
+def load(file='qutiprc', all_config=False):
+    """
+    Loads the settings from a file.
+    Default file is 'qutiprc' which is loaded when importing qutip.
+    File are stored in .qutip directory in the user home.
+    The file can be a full path or relative to home to save elsewhere.
+    If 'all_config' is used, also load other available configs.
+    """
+    from qutip.configrc import load_rc_qset, load_rc_config
+    if save_all_config:
+        load_rc_config(file)
+    else:
+        load_rc_qset(file)
+
+
+def reset():
+    """Hard reset of the qutip.settings values
+    Recompute the threshold for openmp, so it may be slow.
+    """
+    for key in __default:
+        __self[key] = __default[key]
+
+    import os
+    if 'QUTIP_NUM_PROCESSES' in os.environ:
+        num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
+    elif 'cpus' in info:
+        import qutip.hardware_info
+        info =  qutip.hardware_info.hardware_info()
+        num_cpus = info['cpus']
+    else:
+        try:
+            num_cpus = multiprocessing.cpu_count()
+        except:
+            num_cpus = 1
+    __self["num_cpus"] = num_cpus
+
+    try:
+        from qutip.cy.openmp.parfuncs import spmv_csr_openmp
+    except:
+        __self["has_openmp"] = False
+        __self["openmp_thresh"] = 10000
+    else:
+        __self["has_openmp"] = True
+        from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
+        thrsh = calculate_openmp_thresh()
+        __self["openmp_thresh"] = thrsh
+
+    try:
+        __IPYTHON__
+        __self["ipython"] = True
+    except:
+        __self"ipython"] = False
+
+    from qutip._mkl.utilities import _set_mkl
+    _set_mkl()
+
+
+def __repr__():
+    out = "qutip settings:\n"
+    longest = max(len(key) for key in __all)
+    for key in __all:
+        out += "{}"
