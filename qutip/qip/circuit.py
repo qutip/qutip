@@ -32,6 +32,8 @@
 ###############################################################################
 
 from collections.abc import Iterable
+from collections import defaultdict
+
 import warnings
 import inspect
 
@@ -49,6 +51,7 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         expand_operator)
 from qutip import tensor, basis, identity
 from qutip.qobj import Qobj
+
 
 try:
     from IPython.display import Image as DisplayImage, SVG as DisplaySVG
@@ -261,23 +264,66 @@ class Measurement:
                 if not all_integer:
                     raise ValueError("Index of a qubit must be an integer")
 
-    def density_measurement(self, measurement_ops, density_mat):
+    def measurement_ket(self, measurement_ops, state):
 
         '''
-        Returns measurement statistics for a set of observables and a density
-        matrix.
+        Returns measurement outcomes for a set of projection operators
+        and a specified ket state vector.
 
         Parameters
         ----------
         measurement_ops : list
-                list of observables
-        density_mat : oper
+                list of projection operators
+        state : ket
+                state to be measured specified by the ket.
+
+        Returns
+        -------
+        probabilities : List of floats
+                        the probability of measuring a state in a the state
+                        specified by the index.
+        collapsed_states : List of Qobjs
+                        the collapsed state obtained after measuring the qubits
+                        and obtaining the qubit specified by the target in the
+                        state specified by the index.
+        '''
+
+        probabilities = []
+        collapsed_states = []
+
+        for i, op in enumerate(measurement_ops):
+          p = np.absolute((state.dag() * op * state)[0][0][0])
+          probabilities.append(p)
+          if p != 0:
+              collapsed_states.append((op * state) / np.sqrt(p))
+          else:
+              collapsed_states.append(None)
+
+        return probabilities, collapsed_states
+
+
+    def measurement_density(self, measurement_ops, density_mat):
+
+        '''
+        Returns measurement outcomes for a set of projection operators
+        and a specified density matrix.
+
+        Parameters
+        ----------
+        measurement_ops : list
+                list of projection operators
+        state : ket
                 state to be observed on specified by density matrix.
 
         Returns
         -------
-        result : [probability_array, collapsed_state_array]
-                 Return measurement statistics of the measurement.
+        probabilities : List of floats
+                        the probability of measuring a state in a the state
+                        specified by the index.
+        collapsed_states : List of Qobjs
+                        the collapsed state obtained after measuring the qubits
+                        and obtaining the qubit specified by the target in the
+                        state specified by the index.
         '''
 
         probabilities = []
@@ -291,15 +337,16 @@ class Measurement:
           else:
               collapsed_states.append(op * density_mat * op)
 
-        return [probabilities, collapsed_states]
+        return probabilities, collapsed_states
 
 
     def measurement_comp_basis(self, state):
 
         '''
-        Measures a particular qubit whose state vector / density matrix
-        is specified in the computational basis and returns
-        probabilities and collapsed state vectors (retains full dimension)
+        Measures a particular qubit (determined by the target)
+        whose ket vector/ density matrix is specified in the
+        computational basis and returns probabilities and collapsed states
+        (retains full dimension).
 
         Parameters
         ----------
@@ -308,18 +355,17 @@ class Measurement:
 
         Returns
         -------
-        result : [probability_array, collapsed_state_array]
-                 Return measurement statistics of the measurement
+        probabilities : List of floats
+                        the probability of measuring a state in a the state
+                        specified by the index.
+        collapsed_states : List of Qobjs
+                        the collapsed state obtained after measuring the qubits
+                        and obtaining the qubit specified by the target in the
+                        state specified by the index.
         '''
 
-        if state.isket:
-            density_mat = state * state.dag()
-        elif state.isoper:
-            density_mat = state
-        else:
-            raise ValueError("state must be a ket or a density matrix")
 
-        n = int(np.log2(density_mat.shape[0]))
+        n = int(np.log2(state.shape[0]))
         target = self.targets[0]
 
         if target < n:
@@ -333,11 +379,12 @@ class Measurement:
         else:
             raise ValueError("target is not valid")
 
-        result = self.density_measurement(measurement_ops, density_mat)
-
-        return result
-
-
+        if state.isket:
+            return self.measurement_ket(measurement_ops, state)
+        elif state.isoper:
+            return elf.measurement_density(measurement_ops, state)
+        else:
+            raise ValueError("state must be a ket or a density matrix")
 
 
 class QubitCircuit:
@@ -374,7 +421,7 @@ class QubitCircuit:
         self.N = N
         self.reverse_states = reverse_states
         self.gates = []
-        self.measurements = []
+        self.gates_and_measurements = []
         self.U_list = []
         self.output_states = [None for i in range(N+num_cbits)]
         self.dims = dims
@@ -497,17 +544,28 @@ class QubitCircuit:
             self.gates.append(Gate(name, targets=targets, controls=controls,
                                    arg_value=arg_value, arg_label=arg_label,
                                    classical_controls = classical_controls))
+            self.gates_and_measurements.append(Gate(name, targets=targets, controls=controls,
+                                   arg_value=arg_value, arg_label=arg_label,
+                                   classical_controls = classical_controls))
 
         else:
             for position in index:
-                self.gates.insert(position, Gate(name, targets=targets,
+                num_measurements_before_index = sum(isinstance(op, Measurement) for op in self.gates_and_measurements[:index])
+                self.gates.insert(position - num_measurements_before_index, Gate(name, targets=targets,
                                                  controls=controls,
                                                  arg_value=arg_value,
                                                  arg_label=arg_label,
                                                  classical_controls =
                                                   classical_controls))
+                self.gates_and_measurements.insert(position,
+                                                Gate(name, targets=targets,
+                                                controls=controls,
+                                                arg_value=arg_value,
+                                                arg_label=arg_label,
+                                                classical_controls =
+                                                classical_controls))
 
-        self.gates_and_measurements = deepcopy(self.gates)
+        #self.gates_and_measurements = deepcopy(self.gates)
 
     def add_1q_gate(self, name, start=0, end=None, qubits=None,
                     arg_value=None, arg_label=None, classical_controls=None):
@@ -551,7 +609,10 @@ class QubitCircuit:
                                        arg_label=arg_label,
                                        classical_controls = classical_controls))
 
-        self.gates_and_measurements = self.gates
+                self.gates_and_measurements.append(Gate(name, targets=i, controls=None,
+                                       arg_value=arg_value,
+                                       arg_label=arg_label,
+                                       classical_controls = classical_controls))
 
     def add_circuit(self, qc, start=0):
         """
@@ -1034,6 +1095,22 @@ class QubitCircuit:
 
     def run(self, state, cbits = []):
 
+        '''
+        This is the primary circuit run function for 1 run, must be called after
+        adding all the gates and measurements on the circuit and returns the
+        resultant state after evolution
+        Parameters
+        ----------
+        state : ket
+                state to be observed on specified by density matrix.
+        cbits : List of ints
+                initialization of the classical bits
+
+        Returns
+        -------
+        state : returns the ket of the output state after running the circuit.
+        '''
+
         if len(cbits) == self.num_cbits:
             if cbits:
                 self.cbits = cbits
@@ -1049,16 +1126,10 @@ class QubitCircuit:
 
         for operation in self.gates_and_measurements:
             if isinstance(operation, Measurement):
-                result = operation.measurement_comp_basis(state)
-                probabilities = result[0]
-                density_mats = result[1]
+                probabilities, states = operation.measurement_comp_basis(state)
                 i = np.random.choice([0, 1],
-                                    p = [probabilities[0], 1 - probabilities[0]])
-                state_density_mat = density_mats[i]
-
-                u, s, vh = np.linalg.svd(state_density_mat)
-                state = Qobj(u[:,[0]], dims = state.dims)
-
+                p = [probabilities[0], 1 - probabilities[0]])
+                state = states[i]
                 self.cbits[operation.classical_store] = i
 
             elif isinstance(operation, Gate):
@@ -1076,6 +1147,47 @@ class QubitCircuit:
                 raise TypeError("Not a correct operation ")
 
         return state
+
+
+    def run_statistics(self, state, cbits = [], num_runs = 1024):
+
+        '''
+        This is the circuit run function for num_runs run, must be called after
+        adding all the gates and measurements on the circuit and returns the
+        frequency with which each output state is observed after num_runs runs.
+
+        Parameters
+        ----------
+        state : ket
+                state to be observed on specified by density matrix.
+        cbits : List of ints
+                initialization of the classical bits.
+        num_runs : int
+                number of times the circuit is run with the specified input.
+
+        Returns
+        -------
+        results : List of [ket, int]
+                returns the number of times each state is observed as
+                output state on running the circuit num_runs times. 
+        '''
+
+        state_freq = defaultdict(int)
+        tuple_to_state = defaultdict()
+
+        for i in range(paths):
+            final_state = self.run(state, cbits = [])
+            state_freq[tuple([complex(a) for a in final_state.full()])] += 1
+            tuple_to_state[tuple([complex(a) for a in final_state.full()])] = final_state
+
+        results = []
+
+        for key, state in tuple_to_state.items():
+            results.append([state, state_freq[key]])
+
+        return results
+
+
 
 
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
@@ -1179,7 +1291,7 @@ class QubitCircuit:
                 else:
                     qc_temp.gates.append(gate)
 
-        qc_temp.gates_and_measurements = qc_temp.gates
+        qc_temp.gates_and_measurements = deepcopy(qc_temp.gates)
 
         return qc_temp
 
@@ -1263,6 +1375,8 @@ class QubitCircuit:
                 raise NotImplementedError(
                     "`adjacent_gates` is not defined for "
                     "gate {}.".format(gate.name))
+
+        temp.gates_and_measurements = deepcopy(temp.gates)
 
         return temp
 
@@ -1457,18 +1571,17 @@ class QubitCircuit:
                         col.append(r" \qw ")
 
             else:
-                gate = op
+                measurement = op
                 col = []
                 for n in range(self.N+self.num_cbits):
 
-                    if gate.targets and n in gate.targets:
+                    if gate.targets and n in measurement.targets:
                         col.append(r" \meter")
-                    elif gate.targets and (n-self.N) == gate.classical_store:
-                        store_tag = n - gate.targets[0]
+                    elif measurement.targets and (n-self.N) == measurement.classical_store:
+                        store_tag = n - measurement.targets[0]
                         col.append(r" \cwx[%d] " % store_tag)
                     else:
                         col.append(r" \qw ")
-
 
             col.append(r" \qw ")
             rows.append(col)
