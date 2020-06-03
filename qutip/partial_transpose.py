@@ -38,9 +38,9 @@ __all__ = ['partial_transpose']
 import numpy as np
 import scipy.sparse as sp
 
-from qutip.qobj import Qobj
-from qutip.states import (state_index_number, state_number_index,
-                          state_number_enumerate)
+from . import (
+    Qobj, state_index_number, state_number_index, state_number_enumerate,
+)
 
 
 def partial_transpose(rho, mask, method='dense'):

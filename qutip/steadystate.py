@@ -49,20 +49,16 @@ import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
                                  LinearOperator, gmres, lgmres, bicgstab)
-from qutip.qobj import Qobj, issuper, isoper
 
-from qutip.superoperator import liouvillian, vec2mat, spre
-from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
+from . import (
+    Qobj, issuper, isoper, liouvillian, vec2mat, mat2vec, spre, sp_permute,
+    sp_bandwidth, sp_profile, weighted_bipartite_matching, tensor, identity,
+    operator_to_vector, settings
+)
 
-from qutip.superoperator import liouvillian, vec2mat
-from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape,
-                          sp_profile)
-from qutip.cy.spmath import zcsr_kron
-from qutip.graph import weighted_bipartite_matching
-from qutip import (mat2vec, tensor, identity, operator_to_vector)
-import qutip.settings as settings
-from qutip.utilities import _version2int
-from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
+from .core.cy.spmath import zcsr_kron
+from .core.cy.spconvert import dense2D_to_fastcsr_fmode
+from .utilities import _version2int
 
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()

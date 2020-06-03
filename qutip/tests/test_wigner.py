@@ -36,9 +36,8 @@ from scipy.special import laguerre
 from numpy.random import rand
 from numpy.testing import assert_, run_module_suite, assert_equal
 
-from qutip.states import coherent, fock, ket, bell_state
+from qutip import coherent, fock, ket, bell_state, rand_dm, rand_ket
 from qutip.wigner import wigner, wigner_transform, _parity
-from qutip.random_objects import rand_dm, rand_ket
 
 
 def test_wigner_bell1_su2parity():

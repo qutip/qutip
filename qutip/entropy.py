@@ -36,12 +36,7 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
 
 from numpy import e, real, sort, sqrt
 from numpy.lib.scimath import log, log2
-from qutip.qobj import ptrace
-from qutip.states import ket2dm
-from qutip.tensor import tensor
-from qutip.operators import sigmay
-from qutip.sparse import sp_eigs
-from qutip.partial_transpose import partial_transpose
+from . import ptrace, ket2dm, tensor, sigmay, sp_eigs, partial_transpose
 
 
 def entropy_vn(rho, base=e, sparse=False):

@@ -36,7 +36,7 @@ Module for measuring quantum objects.
 
 import numpy as np
 
-from qutip.qobj import Qobj
+from . import Qobj
 
 
 def measurement_statistics(op, state):

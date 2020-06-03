@@ -39,12 +39,11 @@ import sys
 import warnings
 import datetime
 import numpy as np
-from qutip.qobjevo import QobjEvo
 from collections import OrderedDict
-from qutip import __version__
-from qutip.qobj import Qobj
-import qutip.settings as qset
 from types import FunctionType, BuiltinFunctionType
+
+from . import __version__, Qobj, QobjEvo
+from . import settings as qset
 
 solver_safe = {}
 

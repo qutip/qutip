@@ -42,17 +42,16 @@ except:
 
 from numpy.random import RandomState
 
-from qutip.qobj import Qobj, isket
-from qutip.states import ket2dm
-from qutip.solver import Result
-from qutip.expect import expect, expect_rho_vec
-from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
-                                 liouvillian, lindblad_dissipator)
-from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
-from qutip.parallel import serial_map
-from qutip.ui.progressbar import TextProgressBar
-from qutip.solver import Options, _solver_safety_check
-from qutip.settings import debug
+from . import (
+    Qobj, isket, ket2dm, expect, spre, spost, mat2vec, vec2mat,
+    liouvillian, lindblad_dissipator,
+)
+from .core.expect import expect_rho_vec
+from .core.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
+from .solver import Result, Options, _solver_safety_check
+from .parallel import serial_map
+from .ui.progressbar import TextProgressBar
+from .settings import debug
 
 class StochasticSolverOptions:
     """Class of options for stochastic (piecewse deterministic process) PDP

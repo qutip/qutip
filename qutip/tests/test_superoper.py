@@ -37,12 +37,13 @@ import scipy.linalg as la
 from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
 
-from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
-                   operator_to_vector, mat2vec, vec2mat, vec2mat_index,
-                   mat2vec_index, tensor, sprepost, to_super, reshuffle,
-                   identity, destroy, create, qeye, QobjEvo, Qobj)
-from qutip.superoperator import liouvillian, liouvillian_ref, \
-                                lindblad_dissipator
+from qutip import (
+    rand_dm, rand_unitary, spre, spost, vector_to_operator, operator_to_vector,
+    mat2vec, vec2mat, vec2mat_index, mat2vec_index, tensor, sprepost, to_super,
+    identity, destroy, create, qeye, QobjEvo, Qobj, liouvillian,
+    liouvillian_ref, lindblad_dissipator,
+)
+from qutip.core.permute import reshuffle
 
 
 def f(t, args):

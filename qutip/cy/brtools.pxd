@@ -32,7 +32,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-cimport numpy as np
+cimport numpy as cnp
 
 #Spectral function with signature (w,t)
 ctypedef complex (*spec_func)(double, double)
@@ -54,9 +54,11 @@ cdef void diag_liou_mult(double * diags, double complex * vec,
 cdef double complex * vec_to_eigbasis(complex[::1] vec, complex[::1,:] evecs,
                                     unsigned int nrows)
 
-cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig_vec,
-                                                complex[::1,:] evecs,
-                                                unsigned int nrows)
+cdef cnp.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(
+    double complex * eig_vec,
+    complex[::1,:] evecs,
+    unsigned int nrows,
+)
 
 cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,  double complex * vec,
                     double complex alpha,

@@ -35,7 +35,7 @@ __all__ = ['simdiag']
 
 import numpy as np
 import scipy.linalg as la
-from qutip.qobj import Qobj
+from . import Qobj
 
 
 def simdiag(ops, evals=True):

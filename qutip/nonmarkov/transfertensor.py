@@ -47,9 +47,8 @@ import numpy as np
 
 
 from qutip import (Options, spre, vector_to_operator, operator_to_vector,
-                   ket2dm, isket)
+                   ket2dm, isket, expect_rho_vec)
 from qutip.solver import Result
-from qutip.expect import expect_rho_vec
 
 
 class TTMSolverOptions:

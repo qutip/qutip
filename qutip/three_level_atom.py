@@ -66,8 +66,8 @@ Contributed by Markus Baden, Oct. 07, 2011
 
 __all__ = ['three_level_basis', 'three_level_ops']
 
-from qutip.states import qutrit_basis
 from numpy import array
+from . import qutrit_basis
 
 
 def three_level_basis():

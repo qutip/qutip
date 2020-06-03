@@ -34,18 +34,18 @@
 ###############################################################################
 import numpy as np
 import scipy.sparse as sp
-from qutip.cy.stochastic import (SSESolver, SMESolver, PcSSESolver, PcSMESolver,
-                                 PmSMESolver, GenericSSolver, Solvers)
-from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.states import ket2dm
-from qutip.solver import Result
-from qutip.qobjevo import QobjEvo
-from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
-                                 liouvillian, lindblad_dissipator)
-from qutip.solver import Options, _solver_safety_check
-from qutip.parallel import serial_map
-from qutip.ui.progressbar import TextProgressBar
-from qutip.pdpsolve import main_ssepdpsolve, main_smepdpsolve
+from . import (
+    Qobj, QobjEvo, isket, isoper, issuper, ket2dm, spre, spost, mat2vec,
+    vec2mat, liouvillian, lindblad_dissipator,
+)
+from .cy.stochastic import (
+    SSESolver, SMESolver, PcSSESolver, PcSMESolver, PmSMESolver,
+    GenericSSolver, Solvers
+)
+from .solver import Result, Options, _solver_safety_check
+from .parallel import serial_map
+from .ui.progressbar import TextProgressBar
+from .pdpsolve import main_ssepdpsolve, main_smepdpsolve
 
 __all__ = ['ssesolve', 'photocurrent_sesolve', 'smepdpsolve',
            'smesolve', 'photocurrent_mesolve', 'ssepdpsolve',

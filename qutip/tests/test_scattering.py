@@ -41,8 +41,7 @@ module. Tests are approximate with low resolution to minimize runtime.
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip.operators import create, destroy
-from qutip.states import basis
+from qutip import create, destroy, basis
 from qutip.scattering import *
 
 

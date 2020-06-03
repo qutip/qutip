@@ -34,7 +34,7 @@
 import pytest
 import scipy.sparse
 import qutip
-from qutip.fastsparse import fast_csr_matrix
+from qutip.core.fastsparse import fast_csr_matrix
 
 
 class TestOperationEffectsOnType:

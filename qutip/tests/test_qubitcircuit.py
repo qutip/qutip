@@ -33,16 +33,13 @@
 
 import numpy as np
 from numpy.testing import assert_raises, assert_, assert_allclose, run_module_suite
+from qutip import identity, tensor, Qobj, ptrace, fock_dm
 from qutip.qip.operations.gates import (
     gate_sequence_product, rx)
-from qutip.operators import identity
 from qutip.qip.circuit import (
     QubitCircuit, Gate, _ctrl_gates, _single_qubit_gates, _swap_like, _toffoli_like,
     _fredkin_like, _para_gates)
-from qutip.tensor import tensor
-from qutip.qobj import Qobj, ptrace
 from qutip.random_objects import rand_dm
-from qutip.states import fock_dm
 
 
 class TestQubitCircuit:

@@ -35,10 +35,11 @@
 import pytest
 import collections
 import qutip
-from qutip.dimensions import (
+from qutip.core.dimensions import (
     type_from_dims, flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
-    collapse_dims_super, collapse_dims_oper)
+    collapse_dims_super, collapse_dims_oper,
+)
 
 _v = "vector"
 _vo = "vectorized_oper"

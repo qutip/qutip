@@ -37,11 +37,10 @@ from numpy.testing import assert_, run_module_suite
 # disable the progress bar
 import os
 
-from qutip import sigmax, sigmay, sigmaz, qeye
-from qutip import basis, expect
-from qutip import num, destroy, create
-from qutip.interpolate import Cubic_Spline
-from qutip import sesolve
+from qutip import (
+    sigmax, sigmay, sigmaz, qeye, basis, expect, num, destroy, create,
+    Cubic_Spline, sesolve,
+)
 from qutip.solver import Options
 
 os.environ['QUTIP_GRAPHICS'] = "NO"

@@ -40,12 +40,12 @@ cimport cython
 from cpython.exc cimport PyErr_CheckSignals
 import scipy.sparse as sp
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
-from qutip.qobj import Qobj
-from qutip.cy.cqobjevo cimport CQobjEvo
-from qutip.cy.spmatfuncs cimport cy_expect_psi
+from .. import Qobj
+from ..core.cy.cqobjevo cimport CQobjEvo
+from ..core.cy.spmatfuncs cimport cy_expect_psi
+from ..core.cy.complex_math cimport *
 # from qutip.cy.dopri5 import ode_td_dopri
-#from qutip.cy.complex_math cimport conj
-include "complex_math.pxi"
+
 
 cdef int ONE = 1
 

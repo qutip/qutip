@@ -33,11 +33,10 @@
 
 __all__ = ['qpt_plot', 'qpt_plot_combined', 'qpt']
 
-from qutip.tensor import tensor
-from qutip.superoperator import spre, spost, mat2vec, vec2mat
 from numpy import hstack, real, imag
 import scipy.linalg as la
-from qutip.visualization import matrix_histogram, matrix_histogram_complex
+from . import tensor, spre, spost, mat2vec, vec2mat
+from .visualization import matrix_histogram, matrix_histogram_complex
 
 try:
     import matplotlib.pyplot as plt

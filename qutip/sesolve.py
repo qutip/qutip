@@ -41,17 +41,16 @@ import types
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm as la_norm
-from qutip.cy.stochastic import normalize_inplace
-import qutip.settings as qset
-from qutip.qobj import Qobj
-from qutip.qobjevo import QobjEvo
-from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
-from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
-                                cy_ode_psi_func_td_with_state)
-from qutip.solver import Result, Options, config, solver_safe, SolverSystem
-from qutip.superoperator import vec2mat
-from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
-from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
+from . import Qobj, QobjEvo, vec2mat
+from . import settings as qset
+from .core.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
+from .core.cy.spmatfuncs import (
+    cy_expect_psi, cy_ode_psi_func_td, cy_ode_psi_func_td_with_state,
+)
+from .core.cy.openmp.utilities import check_use_openmp, openmp_components
+from .cy.stochastic import normalize_inplace
+from .solver import Result, Options, config, solver_safe, SolverSystem
+from .ui.progressbar import (BaseProgressBar, TextProgressBar)
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):

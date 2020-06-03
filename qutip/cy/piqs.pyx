@@ -37,7 +37,7 @@ Cythonized code for permutationally invariant Lindbladian generation
 import numpy as np
 
 from scipy.sparse import csr_matrix, dok_matrix
-from qutip import Qobj
+from .. import Qobj
 
 cimport numpy as cnp
 cimport cython

@@ -50,10 +50,8 @@ from scipy.linalg import sqrtm
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse as sp
-from qutip.qobj import Qobj
-from qutip.operators import create, destroy, jmat
-from qutip.states import basis
-import qutip.superop_reps as sr
+from . import Qobj, create, destroy, jmat, basis
+from . import superop_reps as sr
 
 
 UNITS = np.array([1, 1j])

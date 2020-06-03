@@ -35,7 +35,7 @@ __all__ = []
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.sparse import sp_reshape
+from qutip.core.sparse import sp_reshape
 
 
 def _ptrace(rho, sel):

@@ -31,8 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip.operators import sigmax, sigmay, sigmaz, identity
-from qutip.tensor import tensor
+from qutip import sigmax, sigmay, sigmaz, identity, tensor
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor

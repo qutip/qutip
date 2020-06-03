@@ -37,12 +37,11 @@ import numpy as np
 import scipy.linalg as la
 import scipy.sparse as sp
 
-from qutip.qobj import Qobj, issuper, isket, isoper
-from qutip.eseries import eseries, estidy, esval
-from qutip.expect import expect
-from qutip.superoperator import liouvillian, mat2vec, vec2mat
-from qutip.solver import Result
-from qutip.operators import qzero
+from . import (
+    Qobj, issuper, isket, isoper, eseries, estidy, esval, expect, liouvillian,
+    mat2vec, vec2mat, qzero
+)
+from .solver import Result
 
 
 # -----------------------------------------------------------------------------

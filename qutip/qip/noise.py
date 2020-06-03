@@ -4,11 +4,10 @@ from copy import deepcopy
 import numpy as np
 from numpy.random import normal
 
-from qutip.qobjevo import QobjEvo, EvoElement
+from qutip import (
+    Qobj, QobjEvo, sigmaz, destroy, identity, tensor,
+)
 from qutip.qip.operations import expand_operator
-from qutip.qobj import Qobj
-from qutip.operators import sigmaz, destroy, identity
-from qutip.tensor import tensor
 from qutip.qip.pulse import Pulse
 
 

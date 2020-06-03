@@ -57,16 +57,13 @@ try:
 except:
     pass
 
-from qutip.qobj import Qobj, isket
-from qutip.states import ket2dm
-from qutip.wigner import wigner
-from qutip.tensor import tensor
-from qutip.matplotlib_utilities import complex_phase_cmap
-from qutip.superoperator import vector_to_operator
-from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
-from qutip.tensor import flatten
-
-from qutip import settings
+from . import (
+    Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings
+)
+from .core.dimensions import flatten
+from .core.superop_reps import _super_to_superpauli, _isqubitdims, _pauli_basis
+from .wigner import wigner
+from .matplotlib_utilities import complex_phase_cmap
 
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):

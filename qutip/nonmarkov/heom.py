@@ -45,15 +45,15 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
 from copy import copy
-from qutip import Qobj, qeye
-from qutip.states import enr_state_dictionaries
-from qutip.superoperator import liouvillian, spre, spost
-from qutip.cy.spmatfuncs import cy_ode_rhs
+from qutip import (
+    Qobj, qeye, enr_state_dictionaries, liouvillian, spre, spost,
+)
+from qutip.core.fastsparse import fast_csr_matrix, fast_identity
 from qutip.solver import Options, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.core.cy.spmatfuncs import cy_ode_rhs
+from qutip.core.cy.spmath import zcsr_kron
 from qutip.cy.heom import cy_pad_csr
-from qutip.cy.spmath import zcsr_kron
-from qutip.fastsparse import fast_csr_matrix, fast_identity
 
 
 class HEOMSolver(object):

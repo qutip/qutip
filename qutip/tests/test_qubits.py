@@ -1,7 +1,6 @@
 from numpy.testing import assert_, run_module_suite
+from qutip import tensor, basis
 from qutip.qip.qubits import qubit_states
-from qutip.tensor import tensor
-from qutip.states import basis
 
 
 class TestQubits:

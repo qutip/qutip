@@ -33,9 +33,34 @@
 import os
 import numpy as np
 import qutip.settings as qset
-from qutip.interpolate import Cubic_Spline
+from qutip import Cubic_Spline
 _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
-_include_string = "'"+_cython_path+"/complex_math.pxi'"
+_math_header = """\
+cdef extern from "<complex>" namespace "std" nogil:
+    double         abs(double complex x)
+    double complex acos(double complex x)
+    double complex acosh(double complex x)
+    double         arg(double complex x)
+    double complex asin(double complex x)
+    double complex asinh(double complex x)
+    double complex atan(double complex x)
+    double complex atanh(double complex x)
+    double complex conj(double complex x)
+    double complex cos(double complex x)
+    double complex cosh(double complex x)
+    double complex exp(double complex x)
+    double         imag(double complex x)
+    double complex log(double complex x)
+    double complex log10(double complex x)
+    double         norm(double complex x)
+    double complex proj(double complex x)
+    double         real(double complex x)
+    double complex sin(double complex x)
+    double complex sinh(double complex x)
+    double complex sqrt(double complex x)
+    double complex tan(double complex x)
+    double complex tanh(double complex x)
+"""
 __all__ = ['BR_Codegen']
 
 
@@ -429,17 +454,14 @@ cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
     void PyDataMem_FREE(void * ptr)
-from qutip.cy.interpolate cimport interp, zinterp
-from qutip.cy.math cimport erf, zerf
+from qutip.core.cy.interpolate cimport interp, zinterp
+from qutip.core.cy.math cimport erf, zerf
 cdef double pi = 3.14159265358979323
 from qutip.cy.brtools cimport (dense_add_mult, ZHEEVR, dense_to_eigbasis,
         vec_to_eigbasis, vec_to_fockbasis, skew_and_dwmin,
         diag_liou_mult, spec_func, farray_alloc)
 """
-+call_str+
-"""
-include """+_include_string+"""
-"""]
++call_str+"\n"+_math_header+"\n"]
 
 
 

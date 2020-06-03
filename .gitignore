@@ -26,9 +26,7 @@ qutip/__config__.py
 rhs*.pyx
 
 qutip/cy/*.c
-qutip/cy/*.cpp
-qutip/control/*.cpp
-qutip/cy/openmp/*.cpp
+*.cpp
 *.dat
 
 *.qo
