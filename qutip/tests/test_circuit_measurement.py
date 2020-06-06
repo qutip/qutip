@@ -50,11 +50,8 @@ class TestCircuitMeasurement:
         computational basis measurments on a 3 qubit state
         """
 
-
         qubit_kets = [rand_ket(2), rand_ket(2), rand_ket(2)]
-        qubit_dms = [ket2dm(qubit_kets[0]),
-                        ket2dm(qubit_kets[1]),
-                        ket2dm(qubit_kets[2])]
+        qubit_dms = [ket2dm(qubit_kets[i]) for i in range(3)]
 
         state = tensor(qubit_kets)
         density_mat = tensor(qubit_dms)
@@ -72,7 +69,6 @@ class TestCircuitMeasurement:
             for j, final_state in enumerate(final_states):
                 np.testing.assert_allclose(final_dms[j], ket2dm(final_state))
 
-
     @pytest.mark.parametrize("index", [0, 1])
     def test_measurement_collapse(self, index):
         """
@@ -80,22 +76,23 @@ class TestCircuitMeasurement:
         the Bell state
         """
 
-        bell_state = (tensor(basis(2, 0), basis(2,0)) + tensor(basis(2, 1), basis(2, 1)))/sqrt(2)
+        state_00 = tensor(basis(2, 0), basis(2, 0))
+        state_11 = tensor(basis(2, 1), basis(2, 1))
 
-        M = Measurement("BM", targets = [index])
+        bell_state = (state_00 + state_11)/sqrt(2)
+        M = Measurement("BM", targets=[index])
 
         probabilities, states = M.measurement_comp_basis(bell_state)
-
         np.testing.assert_allclose(probabilities, [0.5, 0.5])
 
         for i, state in enumerate(states):
             if i == 0:
-                Mprime = Measurement("00", targets = [1-index])
+                Mprime = Measurement("00", targets=[1-index])
                 probability_00, states_00 = Mprime.measurement_comp_basis(state)
                 assert probability_00[0] == 1
                 assert states_00[1] is None
             else:
-                Mprime = Measurement("11", targets = [1-index])
+                Mprime = Measurement("11", targets=[1-index])
                 probability_11, states_11 = Mprime.measurement_comp_basis(state)
                 assert probability_11[1] == 1
                 assert states_11[0] is None
@@ -106,37 +103,35 @@ class TestCircuitMeasurement:
         the quantum state discrimination example
         """
 
-        E_1 = (sqrt(2)/(1+sqrt(2))) * ket2dm(basis(2,1))
-        E_2 = (sqrt(2)/(1+sqrt(2))) * ket2dm((basis(2, 0) - basis(2, 1))/(sqrt(2)))
+        coeff = (sqrt(2)/(1+sqrt(2)))
+
+        E_1 = coeff * ket2dm(basis(2, 1))
+        E_2 = coeff * ket2dm((basis(2, 0) - basis(2, 1))/(sqrt(2)))
         E_3 = identity(2) - E_1 - E_2
 
         M_1 = Qobj(scipy.linalg.sqrtm(E_1))
         M_2 = Qobj(scipy.linalg.sqrtm(E_2))
         M_3 = Qobj(scipy.linalg.sqrtm(E_3))
 
-        ket1 = basis(2,0)
+        ket1 = basis(2, 0)
         ket2 = (basis(2, 0) + basis(2, 1))/(sqrt(2))
 
         dm1 = ket2dm(ket1)
         dm2 = ket2dm(ket2)
 
-        probabilities, _ = Measurement("uqsd").measurement_ket([M_1, M_2, M_3],
-                                                                ket1)
+        M = Measurement("uqsd")
+
+        probabilities, _ = M.measurement_ket([M_1, M_2, M_3], ket1)
         np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
 
-        probabilities, _ = Measurement("uqsd").measurement_ket([M_1, M_2, M_3],
-                                                                ket2)
+        probabilities, _ = M.measurement_ket([M_1, M_2, M_3], ket2)
         np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
 
-        probabilities, _ = Measurement("uqsd").measurement_density([M_1, M_2, M_3],
-                                                                dm1)
+        probabilities, _ = M.measurement_density([M_1, M_2, M_3], dm1)
         np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
 
-        probabilities, _ = Measurement("uqsd").measurement_density([M_1, M_2, M_3],
-                                                                dm2)
+        probabilities, _ = M.measurement_density([M_1, M_2, M_3], dm2)
         np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
-
-
 
 
 if __name__ == "__main__":

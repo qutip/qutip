@@ -35,16 +35,18 @@ import numpy as np
 from qutip.qip.operations import gates
 from qutip.operators import identity
 from qutip.qip.circuit import (
-    QubitCircuit, Gate, Measurement, _ctrl_gates, _single_qubit_gates, _swap_like, _toffoli_like,
-    _fredkin_like, _para_gates)
+    QubitCircuit, Gate, Measurement, _ctrl_gates, _single_qubit_gates,
+    _swap_like, _toffoli_like, _fredkin_like, _para_gates)
 from qutip import tensor, Qobj, ptrace, rand_ket, fock_dm, basis, rand_dm
+
 
 def _op_dist(A, B):
     return (A - B).norm()
 
+
 def _teleportation_circuit():
-    teleportation = QubitCircuit(3, num_cbits = 2,
-                    input_states = ["q0", "0", "0", "c0", "c1"])
+    teleportation = QubitCircuit(3, num_cbits=2,
+                                    input_states=["q0", "0", "0", "c0", "c1"])
 
     teleportation.add_gate("SNOT", targets=[1])
     teleportation.add_gate("CNOT", targets=[2], controls=[1])
@@ -57,19 +59,27 @@ def _teleportation_circuit():
 
     return teleportation
 
+
 class TestQubitCircuit:
     """
     A test class for the QuTiP functions for Circuit resolution.
     """
 
-    @pytest.mark.parametrize(["gate_from", "gate_to", "targets", "controls"] , [
-                        pytest.param("SWAP", "CNOT", [0,1], None, id="SWAPtoCNOT"),
-                        pytest.param("ISWAP", "CNOT", [0, 1], None, id="ISWAPtoCNOT"),
-                        pytest.param("CSIGN", "CNOT", [1], [0], id="CSIGNtoCNOT"),
-                        pytest.param("CNOT", "CSIGN", [0], [1], id="CNOTtoCSIGN"),
-                        pytest.param("CNOT", "SQRTSWAP", [0], [1], id="CNOTtoSQRTSWAP"),
-                        pytest.param("CNOT", "SQRTISWAP", [0], [1], id="CNOTtoSQRTISWAP"),
-                        pytest.param("CNOT", "ISWAP", [0], [1], id="CNOTtoISWAP")])
+    @pytest.mark.parametrize(["gate_from", "gate_to", "targets", "controls"], [
+                        pytest.param("SWAP", "CNOT",
+                                        [0, 1], None, id="SWAPtoCNOT"),
+                        pytest.param("ISWAP", "CNOT",
+                                        [0, 1], None, id="ISWAPtoCNOT"),
+                        pytest.param("CSIGN", "CNOT",
+                                        [1], [0], id="CSIGNtoCNOT"),
+                        pytest.param("CNOT", "CSIGN",
+                                        [0], [1], id="CNOTtoCSIGN"),
+                        pytest.param("CNOT", "SQRTSWAP",
+                                        [0], [1], id="CNOTtoSQRTSWAP"),
+                        pytest.param("CNOT", "SQRTISWAP",
+                                        [0], [1], id="CNOTtoSQRTISWAP"),
+                        pytest.param("CNOT", "ISWAP",
+                                        [0], [1], id="CNOTtoISWAP")])
     def testresolve(self, gate_from, gate_to, targets, controls):
         qc1 = QubitCircuit(2)
         qc1.add_gate(gate_from, targets=targets, controls=controls)
@@ -90,7 +100,6 @@ class TestQubitCircuit:
         U2 = gates.gate_sequence_product(qc2.propagators())
         assert _op_dist(U1, U2) < 1e-12
 
-
     def testadjacentgates(self):
         """
         Adjacent Gates: compare unitary matrix for ISWAP and product of
@@ -104,14 +113,13 @@ class TestQubitCircuit:
         U2 = gates.gate_sequence_product(qc2.propagators())
         assert _op_dist(U1, U2) < 1e-12
 
-
     def test_add_gate(self):
         """
         Addition of a gate object directly to a `QubitCircuit`
         """
         qc = QubitCircuit(6)
         qc.add_gate("CNOT", targets=[1], controls=[0])
-        test_gate = Gate("SWAP", targets=[1,4])
+        test_gate = Gate("SWAP", targets=[1, 4])
         qc.add_gate(test_gate)
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
         qc.add_gate("SNOT", targets=[3])
@@ -143,50 +151,50 @@ class TestQubitCircuit:
         for gate in _single_qubit_gates:
             if gate not in _para_gates:
                 # No target
-                pytest.raises(ValueError, qc.add_gate, gate,None,None)
+                pytest.raises(ValueError, qc.add_gate, gate, None, None)
                 # Multiple targets
-                pytest.raises(ValueError, qc.add_gate, gate,[0,1,2],None)
+                pytest.raises(ValueError, qc.add_gate, gate, [0, 1, 2], None)
                 # With control
-                pytest.raises(ValueError, qc.add_gate, gate,[0],[1])
+                pytest.raises(ValueError, qc.add_gate, gate, [0], [1])
             else:
                 # No target
-                pytest.raises(ValueError, qc.add_gate, gate,None,None,1)
+                pytest.raises(ValueError, qc.add_gate, gate, None, None, 1)
                 # Multiple targets
-                pytest.raises(ValueError, qc.add_gate, gate,[0,1,2],None,1)
+                pytest.raises(ValueError, qc.add_gate, gate, [0, 1, 2], None, 1)
                 # With control
-                pytest.raises(ValueError, qc.add_gate, gate,[0],[1],1)
+                pytest.raises(ValueError, qc.add_gate, gate, [0], [1], 1)
         for gate in _ctrl_gates:
             if gate not in _para_gates:
                 # No target
-                pytest.raises(ValueError, qc.add_gate, gate,None,[1])
+                pytest.raises(ValueError, qc.add_gate, gate, None, [1])
                 # No control
-                pytest.raises(ValueError, qc.add_gate, gate,[0],None)
+                pytest.raises(ValueError, qc.add_gate, gate, [0], None)
             else:
                 # No target
-                pytest.raises(ValueError, qc.add_gate, gate,None,[1],1)
+                pytest.raises(ValueError, qc.add_gate, gate, None, [1], 1)
                 # No control
-                pytest.raises(ValueError, qc.add_gate, gate,[0],None,1)
+                pytest.raises(ValueError, qc.add_gate, gate, [0], None, 1)
         for gate in _swap_like:
             if gate not in _para_gates:
                 # Single target
-                pytest.raises(ValueError, qc.add_gate, gate,[0],None)
+                pytest.raises(ValueError, qc.add_gate, gate, [0], None)
                 # With control
-                pytest.raises(ValueError, qc.add_gate, gate,[0,1],[3])
+                pytest.raises(ValueError, qc.add_gate, gate, [0, 1], [3])
             else:
                 # Single target
-                pytest.raises(ValueError, qc.add_gate, gate,[0],None,1)
+                pytest.raises(ValueError, qc.add_gate, gate, [0], None, 1)
                 # With control
-                pytest.raises(ValueError, qc.add_gate, gate,[0,1],[3],1)
+                pytest.raises(ValueError, qc.add_gate, gate, [0, 1], [3], 1)
         for gate in _fredkin_like:
             # Single target
-            pytest.raises(ValueError, qc.add_gate, gate,[0],[2])
+            pytest.raises(ValueError, qc.add_gate, gate, [0], [2])
             # No control
-            pytest.raises(ValueError, qc.add_gate, gate,[0,1],None)
+            pytest.raises(ValueError, qc.add_gate, gate, [0, 1], None)
         for gate in _toffoli_like:
             # No target
-            pytest.raises(ValueError, qc.add_gate, gate,None,[1,2])
+            pytest.raises(ValueError, qc.add_gate, gate, None, [1, 2])
             # Single control
-            pytest.raises(ValueError, qc.add_gate, gate,[0],[1])
+            pytest.raises(ValueError, qc.add_gate, gate, [0], [1])
 
     def test_add_circuit(self):
         """
@@ -194,12 +202,12 @@ class TestQubitCircuit:
         """
         qc = QubitCircuit(6)
         qc.add_gate("CNOT", targets=[1], controls=[0])
-        test_gate = Gate("SWAP", targets=[1,4])
+        test_gate = Gate("SWAP", targets=[1, 4])
         qc.add_gate(test_gate)
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
         qc.add_gate("SNOT", targets=[3])
         qc.add_gate(test_gate, index=[3])
-        qc.add_measurement("M0", targets = [0], classical_store = [1])
+        qc.add_measurement("M0", targets=[0], classical_store=[1])
         qc.add_1q_gate("RY", start=4, end=5, arg_value=1.570796)
 
         qc1 = QubitCircuit(6)
@@ -220,10 +228,10 @@ class TestQubitCircuit:
             assert qc1.gates_and_measurements[i].targets == qc.gates_and_measurements[i].targets
 
         # Test exception when qubit out of range
-        pytest.raises(NotImplementedError, qc1.add_circuit, qc,start=4)
+        pytest.raises(NotImplementedError, qc1.add_circuit, qc, start=4)
 
         qc2 = QubitCircuit(8)
-        qc2.add_circuit(qc,start=2)
+        qc2.add_circuit(qc, start=2)
 
         # Test if all gates are added
         assert len(qc2.gates) == len(qc.gates)
@@ -276,13 +284,13 @@ class TestQubitCircuit:
         Addition of Measurement Object to a circuit.
         """
 
-        qc = QubitCircuit(3, num_cbits = 2)
+        qc = QubitCircuit(3, num_cbits=2)
 
-        qc.add_measurement("M0", targets = [0], classical_store = 1)
+        qc.add_measurement("M0", targets=[0], classical_store=1)
         qc.add_gate("CNOT", targets=[1], controls=[0])
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
-        qc.add_measurement("M1", targets = [2], classical_store = 0)
-        qc.add_gate("SNOT", targets=[1], classical_controls = [0, 1])
+        qc.add_measurement("M1", targets=[2], classical_store=0)
+        qc.add_gate("SNOT", targets=[1], classical_controls=[0, 1])
         qc.add_measurement("M2", targets=[1])
 
         # checking correct addition of measurements
@@ -291,20 +299,20 @@ class TestQubitCircuit:
         assert qc.gates_and_measurements[3].name == "M1"
         assert qc.gates_and_measurements[5].classical_store is None
 
-        #checking if gates are added correctly with measurements
+        # checking if gates are added correctly with measurements
         assert qc.gates[1].name == "TOFFOLI"
         assert qc.gates[2].classical_controls == [0, 1]
 
-    @pytest.mark.parametrize('gate', ['X', 'Y', 'Z', 'S' ,'T'])
+    @pytest.mark.parametrize('gate', ['X', 'Y', 'Z', 'S', 'T'])
     def test_exceptions(self, gate):
         """
         Text exceptions are thrown correctly for inadequate inputs
         """
         qc = QubitCircuit(2)
         pytest.raises(ValueError, qc.add_gate, gate,
-                    targets=[1], controls=[0])
+                        targets=[1], controls=[0])
 
-    @pytest.mark.parametrize('gate', ['CY', 'CZ', 'CS' ,'CT'])
+    @pytest.mark.parametrize('gate', ['CY', 'CZ', 'CS', 'CT'])
     def test_exceptions_controlled(self, gate):
         """
         Text exceptions are thrown correctly for inadequate inputs
@@ -318,7 +326,6 @@ class TestQubitCircuit:
         pytest.raises(ValueError, qc.add_gate, gate,
                       targets=[1])
         pytest.raises(ValueError, qc.add_gate, gate)
-
 
     def test_single_qubit_gates(self):
         """
@@ -361,7 +368,6 @@ class TestQubitCircuit:
         assert qc.gates[3].controls == [1]
         assert qc.gates[1].controls == [0]
 
-
     def test_reverse(self):
         """
         Reverse a quantum circuit
@@ -389,7 +395,6 @@ class TestQubitCircuit:
         assert qc_rev.input_states[0] == "0"
         assert qc_rev.input_states[2] is None
         assert qc_rev.output_states[1] == "+"
-
 
     def test_user_gate(self):
         """
@@ -447,7 +452,7 @@ class TestQubitCircuit:
 
         teleportation = _teleportation_circuit()
 
-        state = tensor(rand_ket(2), basis(2,0), basis(2,0))
+        state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
         initial_measurement = Measurement("start", targets=[0])
         initial_probabilities, _ = initial_measurement.measurement_comp_basis(state)
 
@@ -462,23 +467,24 @@ class TestQubitCircuit:
         """
         Test circuit run_statistics on teleportation circuit
         """
-        num_runs=4096
+        num_runs = 4096
         teleportation = _teleportation_circuit()
         final_measurement = Measurement("start", targets=[2])
         initial_measurement = Measurement("start", targets=[0])
 
-        state = tensor(rand_ket(2), basis(2,0), basis(2,0))
+        state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
         initial_probabilities, _ = initial_measurement.measurement_comp_basis(state)
 
-
-        results = teleportation.run_statistics(state, num_runs = num_runs)
+        results = teleportation.run_statistics(state, num_runs=num_runs)
 
         for state in results:
             state_final = state[0]
             state_freq = state[1]
             final_probabilities, _ = final_measurement.measurement_comp_basis(state_final)
-            np.testing.assert_allclose(initial_probabilities, final_probabilities)
-            assert state_freq/num_runs == pytest.approx(0.25, abs = 0.01)
+            np.testing.assert_allclose(initial_probabilities,
+                                        final_probabilities)
+            assert state_freq/num_runs == pytest.approx(0.25, abs=0.02)
+
 
 if __name__ == "__main__":
     run_module_suite()
