@@ -3,7 +3,7 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without
+#    Redistribution and use in sourc e and binary forms, with or without
 #    modification, are permitted provided that the following conditions are
 #    met:
 #
@@ -99,15 +99,15 @@ class Gate:
         Label for gate representation.
     """
 
-    def __init__(self, name, targets=None, controls=None, classical_controls = None, arg_value=None,
-                 arg_label=None):
+    def __init__(self, name, targets=None, controls=None, arg_value=None,
+                 arg_label=None, classical_controls = None):
         """
         Create a gate with specified parameters.
         """
         self.name = name
         self.targets = None
         self.controls = None
-        self.classical_controls = classical_controls
+        self.classical_controls = None
 
         if not isinstance(targets, Iterable) and targets is not None:
             self.targets = [targets]
@@ -267,8 +267,8 @@ class Measurement:
     def measurement_ket(self, measurement_ops, state):
 
         '''
-        Returns measurement outcomes for a set of projection operators
-        and a specified ket state vector.
+        Returns measurement statistics for a set of positive operator valued
+        measurements on a specified ket.
 
         Parameters
         ----------
@@ -292,7 +292,7 @@ class Measurement:
         collapsed_states = []
 
         for i, op in enumerate(measurement_ops):
-          p = np.absolute((state.dag() * op * state)[0][0][0])
+          p = np.absolute((state.dag() * op.dag() * op * state)[0][0][0])
           probabilities.append(p)
           if p != 0:
               collapsed_states.append((op * state) / np.sqrt(p))
@@ -305,8 +305,8 @@ class Measurement:
     def measurement_density(self, measurement_ops, density_mat):
 
         '''
-        Returns measurement outcomes for a set of projection operators
-        and a specified density matrix.
+        Returns measurement statistics for a set of positive operator valued
+        measurements on a specified density matrix.
 
         Parameters
         ----------
@@ -330,12 +330,12 @@ class Measurement:
         collapsed_states = []
 
         for i, op in enumerate(measurement_ops):
-          p = (density_mat * op).tr()
+          p = (density_mat * op.dag() * op).tr()
           probabilities.append(p)
           if p != 0:
-              collapsed_states.append((op * density_mat * op) / p)
+              collapsed_states.append((op * density_mat * op.dag()) / p)
           else:
-              collapsed_states.append(op * density_mat * op)
+              collapsed_states.append(None)
 
         return probabilities, collapsed_states
 
@@ -382,7 +382,7 @@ class Measurement:
         if state.isket:
             return self.measurement_ket(measurement_ops, state)
         elif state.isoper:
-            return elf.measurement_density(measurement_ops, state)
+            return self.measurement_density(measurement_ops, state)
         else:
             raise ValueError("state must be a ket or a density matrix")
 
@@ -423,7 +423,6 @@ class QubitCircuit:
         self.gates = []
         self.gates_and_measurements = []
         self.U_list = []
-        self.output_states = [None for i in range(N+num_cbits)]
         self.dims = dims
         self.num_cbits = num_cbits
 
@@ -432,6 +431,11 @@ class QubitCircuit:
             self.input_states = input_states
         else:
             self.input_states =  [None for i in range(N+num_cbits)]
+
+        if output_states:
+            self.output_states = output_states
+        else:
+            self.output_states =  [None for i in range(N+num_cbits)]
 
         if user_gates is None:
             self.user_gates = {}
@@ -470,8 +474,8 @@ class QubitCircuit:
             for i in targets:
                 self.output_states[i] = state
 
-    def add_measurement(self, name, targets=None,
-                 arg_label=None, index=None, classical_store=None):
+    def add_measurement(self, measurement, targets=None,
+                    index=None, classical_store=None):
         """
         Adds a measurement with specified parameters to the circuit.
 
@@ -487,13 +491,14 @@ class QubitCircuit:
         classical_store : int
             Classical register where result of measurement is stored.
         """
-        if isinstance(name, Measurement):
+
+        if isinstance(measurement, Measurement):
             name = measurement.name
             targets = measurement.targets
             classical_store = measurement.classical_store
 
         else:
-            name = name
+            name = measurement
 
         if index is None:
             self.gates_and_measurements.append(Measurement(name, targets=targets,
@@ -505,8 +510,8 @@ class QubitCircuit:
                                         targets=targets,
                                         classical_store = classical_store))
 
-    def add_gate(self, gate, targets=None, controls=None, classical_controls=None, arg_value=None,
-                 arg_label=None, index=None):
+    def add_gate(self, gate, targets=None, controls=None, arg_value=None,
+                 arg_label=None, index=None, classical_controls=None):
         """
         Adds a gate with specified parameters to the circuit.
 
@@ -550,7 +555,7 @@ class QubitCircuit:
 
         else:
             for position in index:
-                num_measurements_before_index = sum(isinstance(op, Measurement) for op in self.gates_and_measurements[:index])
+                num_measurements_before_index = sum(isinstance(op, Measurement) for op in self.gates_and_measurements[:position])
                 self.gates.insert(position - num_measurements_before_index, Gate(name, targets=targets,
                                                  controls=controls,
                                                  arg_value=arg_value,
@@ -564,8 +569,6 @@ class QubitCircuit:
                                                 arg_label=arg_label,
                                                 classical_controls =
                                                 classical_controls))
-
-        #self.gates_and_measurements = deepcopy(self.gates)
 
     def add_1q_gate(self, name, start=0, end=None, qubits=None,
                     arg_value=None, arg_label=None, classical_controls=None):
@@ -599,6 +602,11 @@ class QubitCircuit:
                                        arg_value=arg_value,
                                        arg_label=arg_label,
                                        classical_controls = classical_controls))
+                self.gates_and_measurements.append(Gate(name, targets=qubits[i],
+                                        controls=None,
+                                        arg_value=arg_value,
+                                        arg_label=arg_label,
+                                        classical_controls = classical_controls))
 
         else:
             if end is None:
@@ -629,35 +637,45 @@ class QubitCircuit:
         if self.N - start < qc.N:
             raise NotImplementedError("Targets exceed number of qubits.")
 
-        for gate in qc.gates:
-            if gate.name in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
-                self.add_gate(gate.name, gate.targets[0] + start, None,
-                              gate.arg_value, gate.arg_label)
-            elif gate.name in ["X", "Y", "Z", "S", "T"]:
-                self.add_gate(gate.name, gate.targets[0] + start, None,
-                              None, gate.arg_label)
-            elif gate.name in ["CPHASE", "CNOT", "CSIGN", "CRX", "CRY",
-                               "CRZ", "CY", "CZ", "CS", "CT"]:
-                self.add_gate(gate.name, gate.targets[0] + start,
-                              gate.controls[0] + start, gate.arg_value,
-                              gate.arg_label)
-            elif gate.name in ["BERKELEY", "SWAPalpha", "SWAP", "ISWAP",
-                               "SQRTSWAP", "SQRTISWAP"]:
-                self.add_gate(gate.name, [gate.targets[0] + start,
-                              gate.targets[1] + start], None, None)
-            elif gate.name in ["TOFFOLI"]:
-                self.add_gate(gate.name, gate.targets[0] + start,
-                              [gate.controls[0] + start,
-                               gate.controls[1] + start], None, None)
-            elif gate.name in ["FREDKIN"]:
-                self.add_gate(gate.name,
-                              [gate.targets[0] + start,
-                               gate.targets[1] + start],
-                              gate.controls + start, None, None)
-            elif gate.name in self.user_gates:
-                self.add_gate(
-                    gate.name, targets=gate.targets,
-                    arg_value=gate.arg_value)
+        for circuit_op in qc.gates_and_measurements:
+
+            if isinstance(circuit_op, Gate):
+                gate = circuit_op
+
+                if gate.name in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
+                    self.add_gate(gate.name, gate.targets[0] + start, None,
+                                  gate.arg_value, gate.arg_label)
+                elif gate.name in ["X", "Y", "Z", "S", "T"]:
+                    self.add_gate(gate.name, gate.targets[0] + start, None,
+                                  None, gate.arg_label)
+                elif gate.name in ["CPHASE", "CNOT", "CSIGN", "CRX", "CRY",
+                                   "CRZ", "CY", "CZ", "CS", "CT"]:
+                    self.add_gate(gate.name, gate.targets[0] + start,
+                                  gate.controls[0] + start, gate.arg_value,
+                                  gate.arg_label)
+                elif gate.name in ["BERKELEY", "SWAPalpha", "SWAP", "ISWAP",
+                                   "SQRTSWAP", "SQRTISWAP"]:
+                    self.add_gate(gate.name,
+                                  [gate.targets[0] + start,
+                                   gate.targets[1] + start])
+                elif gate.name in ["TOFFOLI"]:
+                    self.add_gate(gate.name, gate.targets[0] + start,
+                                  [gate.controls[0] + start,
+                                   gate.controls[1] + start], None, None)
+                elif gate.name in ["FREDKIN"]:
+                    self.add_gate(gate.name,
+                                  [gate.targets[0] + start,
+                                   gate.targets[1] + start],
+                                  gate.controls + start, None, None)
+                elif gate.name in self.user_gates:
+                    self.add_gate(
+                        gate.name, targets=gate.targets,
+                        arg_value=gate.arg_value)
+            else:
+                measurement = circuit_op
+                self.add_measurement(measurement.name,
+                            targets = [measurement.targets[0] + start],
+                             classical_store = measurement.classical_store)
 
     def remove_gate(self, index=None, end=None, name=None, remove="first"):
         """
@@ -715,10 +733,13 @@ class QubitCircuit:
             reverse order.
 
         """
-        temp = QubitCircuit(self.N, self.reverse_states)
+        temp = QubitCircuit(self.N, reverse_states = self.reverse_states, num_cbits = self.num_cbits, input_states = self.input_states, output_states = self.output_states)
 
-        for gate in reversed(self.gates):
-            temp.add_gate(gate)
+        for circuit_op in reversed(self.gates_and_measurements):
+            if isinstance(circuit_op, Gate):
+                temp.add_gate(circuit_op)
+            else:
+                temp.add_measurement(circuit_op)
 
         return temp
 
@@ -1130,7 +1151,8 @@ class QubitCircuit:
                 i = np.random.choice([0, 1],
                 p = [probabilities[0], 1 - probabilities[0]])
                 state = states[i]
-                self.cbits[operation.classical_store] = i
+                if operation.classical_store is not None:
+                    self.cbits[operation.classical_store] = i
 
             elif isinstance(operation, Gate):
                 if (operation.classical_controls):
@@ -1138,11 +1160,11 @@ class QubitCircuit:
                         state = self.U_list[ulistindex] * state
                         ulistindex += 1
                     else:
+                        ulistindex += 1
                         continue
                 else:
                     state = self.U_list[ulistindex] * state
                     ulistindex += 1
-
             else:
                 raise TypeError("Not a correct operation ")
 
@@ -1169,13 +1191,13 @@ class QubitCircuit:
         -------
         results : List of [ket, int]
                 returns the number of times each state is observed as
-                output state on running the circuit num_runs times. 
+                output state on running the circuit num_runs times.
         '''
 
         state_freq = defaultdict(int)
         tuple_to_state = defaultdict()
 
-        for i in range(paths):
+        for i in range(num_runs):
             final_state = self.run(state, cbits = [])
             state_freq[tuple([complex(a) for a in final_state.full()])] += 1
             tuple_to_state[tuple([complex(a) for a in final_state.full()])] = final_state
@@ -1209,7 +1231,7 @@ class QubitCircuit:
             Return QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
-        qc_temp = QubitCircuit(self.N, self.reverse_states)
+        qc_temp = QubitCircuit(self.N, reverse_states = self.reverse_states, num_cbits = self.num_cbits)
         temp_resolved = []
 
         basis_1q_valid = ["RX", "RY", "RZ"]
@@ -1307,7 +1329,8 @@ class QubitCircuit:
             resolved non-adjacent gates.
 
         """
-        temp = QubitCircuit(self.N, reverse_states=self.reverse_states)
+        temp = QubitCircuit(self.N, reverse_states=self.reverse_states,
+                        num_cbits = self.num_cbits)
         swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
                       "SWAPalpha"]
 
@@ -1575,9 +1598,9 @@ class QubitCircuit:
                 col = []
                 for n in range(self.N+self.num_cbits):
 
-                    if gate.targets and n in measurement.targets:
+                    if n in measurement.targets:
                         col.append(r" \meter")
-                    elif measurement.targets and (n-self.N) == measurement.classical_store:
+                    elif (n-self.N) == measurement.classical_store:
                         store_tag = n - measurement.targets[0]
                         col.append(r" \cwx[%d] " % store_tag)
                     else:
