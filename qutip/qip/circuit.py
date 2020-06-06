@@ -367,11 +367,15 @@ class Measurement:
         n = int(np.log2(state.shape[0]))
         target = self.targets[0]
 
+        def _op_i(i, index, target):
+            if index == target:
+                return basis(2, i) * basis(2, i).dag()
+            else:
+                return identity(2)
+
         if target < n:
-            op0 = tensor(list(map(lambda x: basis(2, 0) * basis(2, 0).dag()
-                                if x == target else identity(2), range(n))))
-            op1 = tensor(list(map(lambda x: basis(2, 1) * basis(2, 1).dag()
-                                if x == target else identity(2), range(n))))
+            op0 = tensor(list(map(lambda ind: _op_i(0, ind, target), range(n))))
+            op1 = tensor(list(map(lambda ind: _op_i(1, ind, target), range(n))))
             measurement_ops = [op0, op1]
         else:
             raise ValueError("target is not valid")
@@ -470,8 +474,8 @@ class QubitCircuit:
             for i in targets:
                 self.output_states[i] = state
 
-    def add_measurement(self, measurement, targets=None,
-                    index=None, classical_store=None):
+    def add_measurement(self, measurement, targets=None, index=None,
+                        classical_store=None):
         """
         Adds a measurement with specified parameters to the circuit.
 
@@ -497,15 +501,16 @@ class QubitCircuit:
             name = measurement
 
         if index is None:
-            self.gates_and_measurements.append(Measurement(name,
-                                    targets=targets,
-                                    classical_store=classical_store))
+            self.gates_and_measurements.append(
+                    Measurement(name, targets=targets,
+                                classical_store=classical_store))
 
         else:
             for position in index:
-                self.gates_and_measurements.insert(position, Measurement(name,
-                                        targets=targets,
-                                        classical_store=classical_store))
+                self.gates_and_measurements.insert(
+                    position,
+                    Measurement(name, targets=targets,
+                                classical_store=classical_store))
 
     def add_gate(self, gate, targets=None, controls=None, arg_value=None,
                  arg_label=None, index=None, classical_controls=None):
@@ -546,16 +551,18 @@ class QubitCircuit:
             self.gates.append(Gate(name, targets=targets, controls=controls,
                                    arg_value=arg_value, arg_label=arg_label,
                                    classical_controls=classical_controls))
-            self.gates_and_measurements.append(Gate(name, targets=targets,
-                                    controls=controls, arg_value=arg_value,
-                                    arg_label=arg_label,
-                                    classical_controls=classical_controls))
+            self.gates_and_measurements.append(
+                                    Gate(name,
+                                        targets=targets, controls=controls,
+                                        arg_value=arg_value,
+                                        arg_label=arg_label,
+                                        classical_controls=classical_controls))
 
         else:
             for position in index:
-                num_measurements_before_index = (sum(isinstance(op, Measurement)
-                for op in self.gates_and_measurements[:position]))
-                self.gates.insert(position - num_measurements_before_index,
+                num_mes = (sum(isinstance(op, Measurement)
+                            for op in self.gates_and_measurements[:position]))
+                self.gates.insert(position - num_mes,
                                 Gate(name, targets=targets, controls=controls,
                                     arg_value=arg_value, arg_label=arg_label,
                                     classical_controls=classical_controls))
