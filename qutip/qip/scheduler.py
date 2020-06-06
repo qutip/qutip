@@ -30,10 +30,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip.qip.circuit import QubitCircuit, Gate
 from collections import deque
 from copy import deepcopy
 from functools import cmp_to_key
+from random import shuffle
+
+from qutip.qip.circuit import QubitCircuit, Gate
 
 
 class Instruction():
@@ -221,7 +223,8 @@ class InstructionsGraph():
                 pass
         self.start, self.end = self.end, self.start
 
-    def find_topological_order(self, priority=True, apply_constraint=None):
+    def find_topological_order(
+            self, priority=True, apply_constraint=None, random=False):
         """
         A list-schedule algorithm, it
         finds the topological order of the directed graph
@@ -261,6 +264,8 @@ class InstructionsGraph():
         constraint_dependency = set()
 
         while available_nodes:
+            if random:
+                shuffle(available_nodes)
             if priority:
                 available_nodes.sort(key=cmp_to_key(self._compare_priority))
             current_cycle = []
@@ -430,7 +435,8 @@ class Scheduler():
         self.constraint_functions = [qubit_constraint]
 
     def schedule(self, circuit, gates_schedule=False,
-                 return_cycles_list=False):
+                 return_cycles_list=False, random_shuffle=False,
+                 repeat_num=0):
         """
         Schedule a `QubitCircuit`,
         a list of `Gates` or a list of `Instruction`.
@@ -495,7 +501,7 @@ class Scheduler():
         --------
         >>> from qutip.qip.circuit import QubitCircuit
         >>> from qutip.qip.scheduler import Scheduler
-        >>> circuit = QubitCircuit(7) 
+        >>> circuit = QubitCircuit(7)
         >>> circuit.add_gate("SNOT", 3)  # gate0
         >>> circuit.add_gate("CZ", 5, 3)  # gate1
         >>> circuit.add_gate("CZ", 4, 3)  # gate2
@@ -505,7 +511,7 @@ class Scheduler():
         >>> circuit.add_gate("SWAP", [0, 2])  # gate6
         >>>
         >>> scheduler = Scheduler("ASAP")
-        >>> scheduler.schedule(circuit, gates_schedule=True)      
+        >>> scheduler.schedule(circuit, gates_schedule=True)
         [0, 1, 3, 2, 2, 3, 4]
 
         The result list is the cycle indices for each gate.
@@ -514,8 +520,23 @@ class Scheduler():
         Notice that gate3 and gate4 commute with gate2,
         therefore, the order is changed to reduce the number of cycles.
         """
+        circuit = deepcopy(circuit)
+        if repeat_num > 0:
+            random_shuffle = True
+            result = [0]
+            max_length = 4294967296
+            for i in range(repeat_num):
+                gate_cycle_indices = self.schedule(
+                    circuit, gates_schedule=gates_schedule,
+                    return_cycles_list=return_cycles_list,
+                    random_shuffle=random_shuffle, repeat_num=0)
+                current_length = max(gate_cycle_indices)
+                if current_length < max_length:
+                    result = gate_cycle_indices
+                    max_length = current_length
+            return result
+
         if isinstance(circuit, QubitCircuit):
-            gates_schedule = True
             gates = circuit.gates
         else:
             gates = circuit
@@ -530,13 +551,14 @@ class Scheduler():
         # Schedule without hardware constraints, then
         # use this cycles_list to compute the distance.
         cycles_list, _ = instructions_graph.find_topological_order(
-            priority=False, apply_constraint=None)
+            priority=False, apply_constraint=None, random=random_shuffle)
         instructions_graph.compute_distance(cycles_list=cycles_list)
 
         # Schedule again with priority and hardware constraint.
         cycles_list, constraint_dependency = \
             instructions_graph.find_topological_order(
-                priority=True, apply_constraint=self.apply_constraint)
+                priority=True, apply_constraint=self.apply_constraint,
+                random=random_shuffle)
 
         # If we only need gates schedule, we can output the result here.
         if gates_schedule or return_cycles_list:
