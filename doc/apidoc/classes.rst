@@ -135,6 +135,9 @@ Quantum information processing
 .. autoclass:: qutip.qip.Gate
     :members:
 
+.. autoclass:: qutip.qip.Measurement
+    :members:
+
 .. autoclass:: qutip.qip.QubitCircuit
     :members:
 
@@ -165,7 +168,11 @@ Quantum information processing
     :members:
     :inherited-members:
 
+<<<<<<< HEAD
 .. autoclass:: qutip.qip.noise.Noise
+=======
+.. autoclass:: qutip.qip.Noise
+>>>>>>> added run functions to qip guide, autodoc
     :members:
 
 .. autoclass:: qutip.qip.noise.DecoherenceNoise
