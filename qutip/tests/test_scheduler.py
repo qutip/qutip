@@ -30,42 +30,88 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import pytest
+from copy import deepcopy
+
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.scheduler import Instruction, Scheduler
-
-def test_scheduling_gates():
-    circuit = QubitCircuit(7)
-    circuit.add_gate("SNOT", 3)
-    circuit.add_gate("CZ", 5, 3)
-    circuit.add_gate("CZ", 4, 3)
-    circuit.add_gate("CZ", 2, 3)
-    circuit.add_gate("CZ", 6, 5)
-    circuit.add_gate("CZ", 2, 6)
-    circuit.add_gate("SWAP", [0, 2])
-
-    scheduler = Scheduler("ASAP")
-    cycles_list = scheduler.schedule(circuit, gates_schedule=True)
-    assert(cycles_list == [0, 1, 3, 2, 2, 3, 4])
-
-    scheduler = Scheduler()
-    cycles_list = scheduler.schedule(circuit)
-    assert(cycles_list == [0, 1, 4, 2, 2, 3, 4])
+from qutip.qip.operations.gates import gate_sequence_product
+from qutip import process_fidelity, qeye, tracedist
 
 
-def test_scheduling_pulses():
-    instruction_list = [
-        Instruction("H", [0], duration=1),
-        Instruction("H", [1], duration=1),
-        Instruction("CNOT", [2], [3], duration=2),
-        Instruction("CNOT", [1], [2], duration=2),
-        Instruction("CNOT", [1], [0], duration=2),
-        Instruction("H", [3], duration=1),
-        Instruction("CNOT", [1], [3], duration=2),
-        Instruction("SWAP", [1], [3], duration=2),
-    ]
-    scheduler = Scheduler("ASAP")
-    cycles_list = scheduler.schedule(instruction_list)
-    assert(cycles_list == [0, 0, 0, 3, 1, 2, 5, 7])
-    scheduler = Scheduler("ALAP")
-    cycles_list = scheduler.schedule(instruction_list)
-    assert(cycles_list == [0, 0, 1, 3, 1, 4, 5, 7])
+circuit1 = QubitCircuit(7)
+circuit1.add_gate("SNOT", 3)
+circuit1.add_gate("CZ", 5, 3)
+circuit1.add_gate("CZ", 4, 3)
+circuit1.add_gate("CZ", 2, 3)
+circuit1.add_gate("CZ", 6, 5)
+circuit1.add_gate("CZ", 2, 6)
+circuit1.add_gate("SWAP", [0, 2])
+
+circuit2 = QubitCircuit(8)
+circuit2.add_gate("SNOT", 1)
+circuit2.add_gate("SNOT", 2)
+circuit2.add_gate("SNOT", 3)
+circuit2.add_gate("CNOT", 4, 5)
+circuit2.add_gate("CNOT", 4, 6)
+circuit2.add_gate("CNOT", 3, 4)
+circuit2.add_gate("CNOT", 3, 5)
+circuit2.add_gate("CNOT", 3, 7)
+circuit2.add_gate("CNOT", 2, 4)
+circuit2.add_gate("CNOT", 2, 6)
+circuit2.add_gate("CNOT", 2, 7)
+circuit2.add_gate("CNOT", 1, 5)
+circuit2.add_gate("CNOT", 1, 6)
+circuit2.add_gate("CNOT", 1, 7)
+
+circuit3 = QubitCircuit(4)
+instruction_list1 = [
+    Instruction("X", [0], duration=1),
+    Instruction("X", [1], duration=1),
+    Instruction("CNOT", [2], [3], duration=2),
+    Instruction("CNOT", [1], [2], duration=2),
+    Instruction("CNOT", [1], [0], duration=2),
+    Instruction("X", [3], duration=1),
+    Instruction("CNOT", [1], [3], duration=2),
+    Instruction("CNOT", [1], [3], duration=2)
+]
+circuit3.gates = instruction_list1
+
+
+@pytest.mark.parametrize(
+    "circuit, method, expected_length, random_shuffle, gates_schedule",
+    [
+        (circuit1, "ASAP", 4, False, False),
+        (circuit1, "ALAP", 4, False, False),
+        (circuit2, "ASAP", 4, False, False),
+        # (circuit2, "ALAP", 5, False, False),
+        (circuit2, "ALAP", 4, True,  False),  # with random shuffling
+        (circuit3, "ASAP", 7, False, False),
+        (circuit3, "ALAP", 7, False, False),
+        (circuit3, "ASAP", 4, False, True),  # treat instructions as gates
+        (circuit3, "ALAP", 4, False, True),  # treat instructions as gates
+    ])
+def test_scheduling_gates(
+        circuit, method, expected_length, random_shuffle, gates_schedule):
+    if random_shuffle:
+        repeat_num = 5
+    else:
+        repeat_num = 0
+    circuit = deepcopy(circuit)
+    result0 = gate_sequence_product(circuit.propagators())
+
+    # run the scheduler
+    scheduler = Scheduler(method)
+    gate_cycle_indices = scheduler.schedule(
+        circuit, gates_schedule=gates_schedule, repeat_num=repeat_num)
+
+    # check if the scheduled length is expected
+    assert(max(gate_cycle_indices) == expected_length)
+    scheduled_gate = [[] for i in range(max(gate_cycle_indices)+1)]
+
+    # check if the scheduled circuit is correct
+    for i, cycles in enumerate(gate_cycle_indices):
+        scheduled_gate[cycles].append(circuit.gates[i])
+    circuit.gates = sum(scheduled_gate, [])
+    result1 = gate_sequence_product(circuit.propagators())
+    assert(tracedist(result0*result1.dag(), qeye(result0.dims[0])) < 1.0e-7)
