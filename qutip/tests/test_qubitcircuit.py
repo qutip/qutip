@@ -44,7 +44,7 @@ from qutip.random_objects import rand_dm
 from qutip.states import fock_dm
 =======
     QubitCircuit, Gate, Measurement)
-from qutip import tensor, Qobj, ptrace, rand_ket, fock_dm, basis
+from qutip import tensor, Qobj, ptrace, rand_ket, fock_dm, basis, rand_dm
 
 def _op_dist(A, B):
     return (A - B).norm()
@@ -119,7 +119,8 @@ class TestQubitCircuit:
         """
         qc = QubitCircuit(6)
         qc.add_gate("CNOT", targets=[1], controls=[0])
-        test_gate = Gate("SWAP", targets=[1,4])
+        test_gate = Gate("RZ", targets=[1], arg_value=1.570796,
+                         arg_label="P")
         qc.add_gate(test_gate)
         qc.add_gate("TOFFOLI", controls=[0, 1], targets=[2])
         qc.add_gate("SNOT", targets=[3])
@@ -127,11 +128,12 @@ class TestQubitCircuit:
         qc.add_1q_gate("RY", start=4, end=5, arg_value=1.570796)
 
         # Test explicit gate addition
-        assert qc.gates[0].name == "CNOT"
-        assert qc.gates[0].targets == [1]
-        assert qc.gates[0].controls == [0]
+        assert_(qc.gates[0].name == "CNOT")
+        assert_(qc.gates[0].targets == [1])
+        assert_(qc.gates[0].controls == [0])
 
         # Test direct gate addition
+<<<<<<< HEAD
 <<<<<<< HEAD
         assert_(qc.gates[1].name == test_gate.name)
         assert_(qc.gates[1].targets == test_gate.targets)
@@ -150,12 +152,19 @@ class TestQubitCircuit:
 =======
         assert qc.gates[1].name == test_gate.name
         assert qc.gates[1].targets == test_gate.targets
+=======
+        assert_(qc.gates[1].name == test_gate.name)
+        assert_(qc.gates[1].targets == test_gate.targets)
+        assert_(qc.gates[1].controls == test_gate.controls)
+>>>>>>> small fixes
 
         # Test specified position gate addition
-        assert qc.gates[3].name == test_gate.name
-        assert qc.gates[3].targets == test_gate.targets
+        assert_(qc.gates[3].name == test_gate.name)
+        assert_(qc.gates[3].targets == test_gate.targets)
+        assert_(qc.gates[3].controls == test_gate.controls)
 
         # Test adding 1 qubit gate on [start, end] qubits
+<<<<<<< HEAD
         assert qc.gates[5].name == "RY"
         assert qc.gates[5].targets == [4]
         assert qc.gates[5].arg_value == 1.570796
@@ -259,6 +268,12 @@ class TestQubitCircuit:
             pytest.raises(ValueError, qc.add_gate, gate,None,[1,2])
             # Single control
             pytest.raises(ValueError, qc.add_gate, gate,[0],[1])
+=======
+        assert_(qc.gates[5].name == "RY")
+        assert_(qc.gates[5].targets == [4])
+        assert_(qc.gates[6].name == "RY")
+        assert_(qc.gates[6].targets == [5])
+>>>>>>> small fixes
 
 >>>>>>> added tests for measurement, circuit run functions, fixed a number of bugs
     def test_add_circuit(self):
