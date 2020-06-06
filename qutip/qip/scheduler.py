@@ -221,11 +221,11 @@ class InstructionsGraph():
                 pass
         self.start, self.end = self.end, self.start
 
-    def find_topological_order(self, priority=True, constraints=None):
+    def find_topological_order(self, priority=True, apply_constraint=None):
         """
         A list-schedule algorithm, it
         finds the topological order of the directed graph
-        under certain constraints and priority indicator.
+        under certain apply_constraint and priority indicator.
         The function returns a list of cycles,
         where each cycle is a list of instructions
         that can be executed in parallel.
@@ -264,13 +264,13 @@ class InstructionsGraph():
             if priority:
                 available_nodes.sort(key=cmp_to_key(self._compare_priority))
             current_cycle = []
-            if constraints is None:  # if no constraits
+            if apply_constraint is None:  # if no constraits
                 current_cycle = deepcopy(available_nodes)
             else:  # check if constraits allow the parallelization
                 for node1 in available_nodes:
                     approval = True
                     for node2 in current_cycle:
-                        if not constraints(node1, node2, graph):
+                        if not apply_constraint(node1, node2, graph):
                             approval = False
                             # save the conflicted pairs of instructions
                             constraint_dependency.add((node2, node1))
@@ -507,6 +507,7 @@ class Scheduler():
         >>> scheduler = Scheduler("ASAP")
         >>> scheduler.schedule(circuit, gates_schedule=True)      
         [0, 1, 3, 2, 2, 3, 4]
+
         The result list is the cycle indices for each gate.
         It means that the circuit can be executed in 5 gate cycles:
         ``[gate0, gate1, (gate3, gate4), (gate2, gate5), gate6]``
@@ -529,13 +530,13 @@ class Scheduler():
         # Schedule without hardware constraints, then
         # use this cycles_list to compute the distance.
         cycles_list, _ = instructions_graph.find_topological_order(
-            priority=False, constraints=None)
+            priority=False, apply_constraint=None)
         instructions_graph.compute_distance(cycles_list=cycles_list)
 
         # Schedule again with priority and hardware constraint.
         cycles_list, constraint_dependency = \
             instructions_graph.find_topological_order(
-                priority=True, constraints=self.apply_constraint)
+                priority=True, apply_constraint=self.apply_constraint)
 
         # If we only need gates schedule, we can output the result here.
         if gates_schedule or return_cycles_list:
