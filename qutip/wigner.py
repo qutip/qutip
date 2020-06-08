@@ -42,18 +42,12 @@ from scipy import polyval, fliplr
 import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
-from scipy.special import genlaguerre
-from scipy.special import binom
-from scipy.special import sph_harm
+from scipy.special import genlaguerre, binom, sph_harm, factorial
 
-from qutip.qobj import Qobj, isket, isoper
-from qutip.states import ket2dm
-from qutip.parallel import parfor
-from qutip.utilities import clebsch
-from qutip.operators import jmat
-from scipy.special import factorial
-from qutip.cy.sparse_utils import _csr_get_diag
-import qutip as qt
+from . import Qobj, isket, isoper, ket2dm, jmat
+from .parallel import parfor
+from .utilities import clebsch
+from .core.cy.sparse_utils import _csr_get_diag
 
 
 def wigner_transform(psi, j, fullparity, steps, slicearray):
@@ -145,7 +139,7 @@ def _parity(N, j):
         foo = np.ones(mult)
         for n in np.arange(-j, j + 1, 1):
             for l in np.arange(0, mult, 1):
-                foo[l] = (2 * l + 1) * qt.clebsch(j, l, j, n, 0, n)
+                foo[l] = (2 * l + 1) * clebsch(j, l, j, n, 0, n)
             matrix[np.int32(n + j), np.int32(n + j)] = np.sum(foo)
         return matrix / mult
 

@@ -44,22 +44,18 @@ import types
 import numpy as np
 import scipy.fftpack
 
-from qutip.eseries import esval, esspec
-from qutip.essolve import ode2es
-from qutip.expect import expect
-from qutip.mesolve import mesolve
-from qutip.mcsolve import mcsolve
-from qutip.operators import qeye
-from qutip.qobj import Qobj, isket, issuper
-from qutip.qobjevo import QobjEvo
-from qutip.rhs_generate import rhs_clear, _td_wrap_array_str
-from qutip.cy.utilities import _cython_build_cleanup
-from qutip.settings import debug
-from qutip.solver import Options, config
-from qutip.steadystate import steadystate
-from qutip.states import ket2dm
-from qutip.superoperator import liouvillian, spre, mat2vec
-from qutip.tensor import tensor
+from . import (
+    esval, esspec, expect, qeye, Qobj, isket, issuper, QobjEvo, ket2dm,
+    liouvillian, spre, mat2vec, tensor,
+)
+from .essolve import ode2es
+from .mesolve import mesolve
+from .mcsolve import mcsolve
+from .rhs_generate import rhs_clear, _td_wrap_array_str
+from .cy.utilities import _cython_build_cleanup
+from .settings import debug
+from .solver import Options, config
+from .steadystate import steadystate
 
 if debug:
     import inspect

@@ -39,7 +39,7 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.qip.operations.gates import snot, cphase, swap
 from qutip.qip.circuit import QubitCircuit
-from qutip.qobj import Qobj
+from qutip import Qobj
 
 
 __all__ = ['qft', 'qft_steps', 'qft_gate_sequence']

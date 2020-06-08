@@ -46,25 +46,23 @@ from numpy.testing import (
 )
 from numpy.random import rand
 
-from qutip.operators import (
-    create, destroy, jmat, identity, qdiags, sigmax, sigmay, sigmaz, qeye
-)
-from qutip.states import fock_dm, basis
 from qutip.propagator import propagator
 from qutip.random_objects import (
     rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz,
     rand_ket_haar, rand_dm_ginibre, rand_unitary_haar
 )
-from qutip.qobj import Qobj
-from qutip.superop_reps import to_super, to_choi
+from qutip import (
+    Qobj, to_super, to_choi, tensor, create, destroy, jmat, identity, qdiags,
+    sigmax, sigmay, sigmaz, qeye, fock_dm, basis,
+)
+from qutip.core.metrics import *
 from qutip.qip.operations.gates import hadamard_transform, swap
-from qutip.tensor import tensor
-from qutip.metrics import *
 
 import qutip.settings
 
 import platform
 import unittest
+import pytest
 
 try:
     import cvxpy
@@ -295,6 +293,7 @@ def test_hellinger_inequality():
         assert_(hellinger >= bures)
 
 
+@pytest.mark.skipif("platform.system() == 'Darwin'")
 def test_hellinger_monotonicity():
     """
     Metrics: Hellinger dist.: check monotonicity

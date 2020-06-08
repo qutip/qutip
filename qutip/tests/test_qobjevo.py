@@ -34,11 +34,11 @@ import pytest
 from qutip import *
 import numpy as np
 from numpy.testing import (assert_equal, assert_, assert_almost_equal,
-                            run_module_suite, assert_allclose)
+                           run_module_suite, assert_allclose)
 from functools import partial
 from types import FunctionType, BuiltinFunctionType
-from qutip.interpolate import Cubic_Spline
-from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
+from qutip import Cubic_Spline
+from qutip.core.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 
 def _f1(t,args):
     return np.sin(t*args['w1'])
@@ -873,7 +873,7 @@ def test_QobjEvo_safepickle():
     "QobjEvo with safe pickle"
     #used in parallel_map
     import pickle
-    from qutip.qobjevo import safePickle
+    from qutip.core.qobjevo import safePickle
     old_set = safePickle[0]
     safePickle[0] = True
     tlist = np.linspace(0,1,300)

@@ -35,9 +35,11 @@ import pytest
 import numpy as np
 import scipy.sparse
 import qutip
-from qutip.fastsparse import fast_csr_matrix
-from qutip.cy.checks import (_test_sorting, _test_coo2csr_inplace_struct,
-                             _test_csr2coo_struct, _test_coo2csr_struct)
+from qutip.core.fastsparse import fast_csr_matrix
+from qutip.cy.checks import (
+    _test_sorting, _test_coo2csr_inplace_struct, _test_csr2coo_struct,
+    _test_coo2csr_struct,
+)
 from qutip.random_objects import rand_jacobi_rotation
 
 

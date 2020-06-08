@@ -38,9 +38,7 @@ import os
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
 
-from qutip.qobj import Qobj
-from qutip.expect import expect
-from qutip.operators import sigmax, sigmay, sigmaz
+from . import Qobj, expect, sigmax, sigmay, sigmaz
 
 try:
     import matplotlib.pyplot as plt

@@ -38,11 +38,9 @@ import numpy as np
 from types import FunctionType, BuiltinFunctionType
 from functools import partial
 
-from qutip.cy.codegen import Codegen
-from qutip.solver import Options, config, solver_safe
-from qutip.qobj import Qobj
-from qutip.superoperator import spre, spost
-from qutip.interpolate import Cubic_Spline
+from . import Qobj, spre, spost, Cubic_Spline
+from .cy.codegen import Codegen
+from .solver import Options, config, solver_safe
 
 
 def rhs_clear():

@@ -36,12 +36,10 @@ cimport numpy as np
 cimport cython
 from cpython.exc cimport PyErr_CheckSignals
 from libc.math cimport fabs
-from qutip.cy.cqobjevo cimport CQobjEvo
-from qutip.cy.brtools cimport ZHEEVR
-from qutip.qobj import Qobj
-from qutip.superoperator import vec2mat
-include "parameters.pxi"
-include "complex_math.pxi"
+from ..core.cy.cqobjevo cimport CQobjEvo
+from ..core.cy.complex_math cimport conj, real
+from .brtools cimport ZHEEVR
+from .. import Qobj, vec2mat
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg.cython_blas cimport zaxpy, zdotu, zdotc, zcopy, zdscal, zscal

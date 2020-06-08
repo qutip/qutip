@@ -35,12 +35,9 @@ import numpy as np
 
 from numpy.testing import assert_equal, assert_, run_module_suite
 
-from qutip.qobj import Qobj
-from qutip.operators import identity, sigmax, sigmay
-from qutip.superop_reps import to_super, to_choi
-from qutip.random_objects import rand_super_bcsz
-from qutip.tensor import (
-    tensor_contract, tensor_swap
+from qutip import (
+    Qobj, identity, sigmax, sigmay, to_super, to_choi, rand_super_bcsz,
+    tensor_contract, tensor_swap,
 )
 
 import warnings

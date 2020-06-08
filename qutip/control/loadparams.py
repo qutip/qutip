@@ -57,7 +57,7 @@ except:
     from ConfigParser import SafeConfigParser
 
 # QuTiP logging
-from qutip.qobj import Qobj
+from qutip import Qobj
 
 import qutip.logging_utils as logging
 logger = logging.get_logger()

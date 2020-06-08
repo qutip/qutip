@@ -31,8 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
-import qutip
-import qutip.settings as qset
+from . import settings as qset
 import warnings
 try:
     import ConfigParser as configparser #py27

@@ -37,13 +37,8 @@ from copy import deepcopy
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-from qutip.qobj import Qobj
-from qutip.qobjevo import QobjEvo
-from qutip.operators import identity
+from qutip import Qobj, QobjEvo, identity, tensor, mesolve, mcsolve
 from qutip.qip.operations.gates import expand_operator, globalphase
-from qutip.tensor import tensor
-from qutip.mesolve import mesolve
-from qutip.mcsolve import mcsolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,

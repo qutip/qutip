@@ -35,18 +35,17 @@ import os
 import sys
 import warnings
 
-import qutip.settings
-import qutip.version
-from qutip.version import version as __version__
-from qutip.utilities import _version2int
+from . import settings, version
+from .version import version as __version__
+from .utilities import _version2int
 
 # -----------------------------------------------------------------------------
 # Check if we're in IPython.
 try:
     __IPYTHON__
-    qutip.settings.ipython = True
+    settings.ipython = True
 except:
-    qutip.settings.ipython = False
+    settings.ipython = False
 
 # -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
@@ -82,7 +81,7 @@ try:
 except:
     pass
 else:
-    if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip.version.release:
+    if ('QuTiP' in setup_file.readlines()[1][3:]) and version.release:
         print("You are in the installation directory. " +
               "Change directories before running QuTiP.")
     setup_file.close()
@@ -98,13 +97,30 @@ del top_path
 os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
 try:
-    from qutip.cy.openmp.parfuncs import spmv_csr_openmp
-except:
-    qutip.settings.has_openmp = False
-else:
-    qutip.settings.has_openmp = True
+    # Test to see whether a generated OpenMP library exists.  The actual
+    # library we test for is arbitrary, but we must use this importlib approach
+    # to import the module as a module, not as part of the core package.  If it
+    # is part of the core package, then core.__init__.py will be run first,
+    # which will import Qobj and other components which assume that we have
+    # already set has_openmp in here, and so will falsely believe that OpenMP
+    # is unavailable.
+    import importlib
+    import pathlib
+    # Create an import spec as if 'parfuncs' is a stand-alone module ...
+    _path = str(pathlib.Path(__file__).parent / 'core' / 'cy' / 'openmp')
+    _spec = importlib.machinery.PathFinder.find_spec('parfuncs',
+                                                     path=[_path])
+    if _spec is None:
+        raise ImportError
+    # ... and then try to import it.
+    _spec.loader.exec_module(importlib.util.module_from_spec(_spec))
+    settings.has_openmp = True
     # See Pull #652 for why this is here.
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+except ImportError:
+    settings.has_openmp = False
+finally:
+    del importlib, pathlib
 
 
 # -----------------------------------------------------------------------------
@@ -118,7 +134,7 @@ try:
               ("(%s), requiring %s." %
                (Cython.__version__, _cython_requirement)))
     # Setup pyximport
-    import qutip.cy.pyxbuilder as pbldr
+    from .cy import pyxbuilder as pbldr
     pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
     del pbldr
 except Exception as e:
@@ -134,25 +150,25 @@ import multiprocessing
 
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
-    qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
+    settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
 else:
-    os.environ['QUTIP_NUM_PROCESSES'] = str(qutip.settings.num_cpus)
+    os.environ['QUTIP_NUM_PROCESSES'] = str(settings.num_cpus)
 
-if qutip.settings.num_cpus == 0:
+if settings.num_cpus == 0:
     # if num_cpu is 0 set it to the available number of cores
-    import qutip.hardware_info
-    info =  qutip.hardware_info.hardware_info()
+    from . import hardware_info
+    info = hardware_info.hardware_info()
     if 'cpus' in info:
-        qutip.settings.num_cpus = info['cpus']
+        settings.num_cpus = info['cpus']
     else:
         try:
-            qutip.settings.num_cpus = multiprocessing.cpu_count()
+            settings.num_cpus = multiprocessing.cpu_count()
         except:
-            qutip.settings.num_cpus = 1
+            settings.num_cpus = 1
 
 
 # Find MKL library if it exists
-import qutip._mkl
+from . import _mkl
 
 
 # -----------------------------------------------------------------------------
@@ -172,77 +188,63 @@ else:
 # Load modules
 #
 
-# core
-from qutip.qobj import *
-from qutip.qobjevo import *
-from qutip.states import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.tensor import *
-from qutip.superoperator import *
-from qutip.superop_reps import *
-from qutip.subsystem_apply import *
-from qutip.graph import *
+from .core import *
 
 # graphics
-from qutip.bloch import *
-from qutip.visualization import *
-from qutip.orbital import *
-from qutip.bloch3d import *
-from qutip.matplotlib_utilities import *
+from .bloch import *
+from .visualization import *
+from .orbital import *
+from .bloch3d import *
+from .matplotlib_utilities import *
 
 # library functions
-from qutip.tomography import *
-from qutip.wigner import *
-from qutip.random_objects import *
-from qutip.simdiag import *
-from qutip.entropy import *
-from qutip.metrics import *
-from qutip.partial_transpose import *
-from qutip.permute import *
-from qutip.continuous_variables import *
-from qutip.distributions import *
-from qutip.three_level_atom import *
+from .tomography import *
+from .wigner import *
+from .random_objects import *
+from .simdiag import *
+from .entropy import *
+from .partial_transpose import *
+from .continuous_variables import *
+from .distributions import *
+from .three_level_atom import *
 
 # evolution
-from qutip.solver import *
-from qutip.rhs_generate import *
-from qutip.mesolve import *
-from qutip.sesolve import *
-from qutip.mcsolve import *
-from qutip.stochastic import *
-from qutip.essolve import *
-from qutip.eseries import *
-from qutip.propagator import *
-from qutip.floquet import *
-from qutip.bloch_redfield import *
-from qutip.cy.br_tensor import bloch_redfield_tensor
-from qutip.steadystate import *
-from qutip.correlation import *
-from qutip.countstat import *
-from qutip.rcsolve import *
-from qutip.nonmarkov import *
-from qutip.interpolate import *
-from qutip.scattering import *
+from .solver import *
+from .rhs_generate import *
+from .mesolve import *
+from .sesolve import *
+from .mcsolve import *
+from .stochastic import *
+from .essolve import *
+from .propagator import *
+from .floquet import *
+from .bloch_redfield import *
+from .cy.br_tensor import bloch_redfield_tensor
+from .steadystate import *
+from .correlation import *
+from .countstat import *
+from .rcsolve import *
+from .nonmarkov import *
+from .scattering import *
 
 # lattice models
-from qutip.lattice import *
-from qutip.topology import *
+from .lattice import *
+from .topology import *
 
 ########################################################################
 # This section exists only for the deprecation warning of qip importation.
 # It can be deleted for a major release.
 
 # quantum information
-from qutip.qip import *
+from .qip import *
 ########################################################################
 
 # utilities
-from qutip.parallel import *
-from qutip.utilities import *
-from qutip.fileio import *
-from qutip.about import *
-from qutip.cite import *
+from .parallel import *
+from .utilities import *
+from .fileio import *
+from .about import *
+from .cite import *
 
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig
@@ -253,31 +255,31 @@ if "CFLAGS" in cfg_vars:
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
-import qutip.configrc
-has_rc, rc_file = qutip.configrc.has_qutip_rc()
+from . import configrc
+has_rc, rc_file = configrc.has_qutip_rc()
 
 # Make qutiprc and benchmark OPENMP if has_rc = False
-if qutip.settings.has_openmp and (not has_rc):
-    qutip.configrc.generate_qutiprc()
-    has_rc, rc_file = qutip.configrc.has_qutip_rc()
-    if has_rc and qutip.settings.num_cpus > 1:
-        from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
+if settings.has_openmp and (not has_rc):
+    configrc.generate_qutiprc()
+    has_rc, rc_file = configrc.has_qutip_rc()
+    if has_rc and settings.num_cpus > 1:
+        from .core.cy.openmp.bench_openmp import calculate_openmp_thresh
         #bench OPENMP
         print('Calibrating OPENMP threshold...')
         thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+        configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
 # Make OPENMP if has_rc but 'openmp_thresh' not in keys
-elif qutip.settings.has_openmp and has_rc:
-    has_omp_key = qutip.configrc.has_rc_key(rc_file, 'openmp_thresh')
-    if not has_omp_key and qutip.settings.num_cpus > 1:
-        from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
+elif settings.has_openmp and has_rc:
+    has_omp_key = configrc.has_rc_key(rc_file, 'openmp_thresh')
+    if not has_omp_key and settings.num_cpus > 1:
+        from .core.cy.openmp.bench_openmp import calculate_openmp_thresh
         print('Calibrating OPENMP threshold...')
         thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+        configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
 
 # Load the config file
 if has_rc:
-    qutip.configrc.load_rc_config(rc_file)
+    configrc.load_rc_config(rc_file)
 
 # -----------------------------------------------------------------------------
 # Clean name space

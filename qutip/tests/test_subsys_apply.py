@@ -34,12 +34,11 @@
 from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite
 
-from qutip.random_objects import rand_dm, rand_unitary, rand_kraus_map
-from qutip.subsystem_apply import subsystem_apply
-from qutip.superop_reps import kraus_to_super
-from qutip.superoperator import mat2vec, vec2mat
-from qutip.tensor import tensor
-from qutip.qobj import Qobj
+from qutip import (
+    Qobj, tensor, mat2vec, vec2mat, kraus_to_super, subsystem_apply, rand_dm,
+    rand_unitary,
+)
+from qutip.random_objects import rand_kraus_map
 
 
 class TestSubsysApply(object):

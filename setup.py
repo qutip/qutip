@@ -61,20 +61,23 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
 EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
+PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy',
             'qutip/qip', 'qutip/qip/device', 'qutip/qip/operations',
             'qutip/qip/compiler',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
-            'qutip/cy/openmp', 'qutip/cy/openmp/src']
+            'qutip/core', 'qutip/core/cy',
+            'qutip/core/cy/openmp', 'qutip/cy/openmp']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
-    'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
+    'qutip/core/cy': ['*.pxd', '*.pyx'],
+    'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
+    'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
+    'qutip/cy': ['*.pxd', '*.pyx'],
+    'qutip/cy/openmp': ['*.pxd', '*.pyx'],
     'qutip/cy/src': ['*.cpp', '*.hpp'],
     'qutip/control': ['*.pyx'],
-    'qutip/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/cy/openmp/src': ['*.cpp', '*.hpp']
 }
 # If we're missing numpy, exclude import directories until we can
 # figure them out properly.
@@ -144,12 +147,52 @@ if os.path.exists('qutip/version.py'):
 
 write_version_py()
 
-# Add Cython extensions here
-cy_exts = ['spmatfuncs', 'math', 'spconvert', 'spmath',
-           'sparse_utils', 'graph_utils', 'interpolate', 'ptrace',
-           'inter', 'cqobjevo', 'cqobjevo_factor',
-           'stochastic', 'brtools', 'mcsolve', 'br_tensor', 'piqs', 'heom',
-           'brtools_checks', 'checks']
+# Cython extensions to be compiled.  The key is the relative package name, the
+# value is a list of the Cython modules in that package.
+cy_exts = {
+    '.cy': [
+        'br_tensor',
+        'brtools',
+        'brtools_checks',
+        'checks',
+        'heom',
+        'mcsolve',
+        'piqs',
+        'stochastic',
+    ],
+    '.core.cy': [
+        'cqobjevo',
+        'cqobjevo_factor',
+        'graph_utils',
+        'inter',
+        'interpolate',
+        'math',
+        'parameters',
+        'ptrace',
+        'sparse_pyobjects',
+        'sparse_routines',
+        'sparse_utils',
+        'spconvert',
+        'spmatfuncs',
+        'spmath',
+    ],
+    '.control': [
+        'cy_grape',
+    ],
+}
+
+# Cython extensions for OpenMP
+cy_exts_omp = {
+    '.core.cy.openmp': [
+        'parfuncs',
+        'benchmark',
+        'omp_sparse_utils',
+        'cqobjevo_omp',
+    ],
+    '.cy.openmp': [
+        'br_omp',
+    ],
+}
 
 # Extra link args
 _link_flags = []
@@ -168,28 +211,23 @@ else:
         _compiler_flags.append('-mmacosx-version-min=10.9')
         _link_flags.append('-mmacosx-version-min=10.9')
 
+EXT_MODULES = []
+_include = [
+    np.get_include(),
+]
 
-
-EXT_MODULES =[]
 # Add Cython files from qutip/cy
-for ext in cy_exts:
-    _mod = Extension('qutip.cy.' + ext,
-                     sources=['qutip/cy/' + ext +
-                              '.pyx', 'qutip/cy/src/zspmv.cpp'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags,
-                     extra_link_args=_link_flags,
-                     language='c++')
-    EXT_MODULES.append(_mod)
-
-# Add Cython files from qutip/control
-_mod = Extension('qutip.control.cy_grape',
-                 sources=['qutip/control/cy_grape.pyx'],
-                 include_dirs=[np.get_include()],
-                 extra_compile_args=_compiler_flags,
-                 extra_link_args=_link_flags,
-                 language='c++')
-EXT_MODULES.append(_mod)
+for package, files in cy_exts.items():
+    for file in files:
+        _module = 'qutip' + package + '.' + file
+        _file = 'qutip' + package.replace(".", "/") + '/' + file + '.pyx'
+        _sources = [_file, 'qutip/core/cy/src/zspmv.cpp']
+        EXT_MODULES.append(Extension(_module,
+                                     sources=_sources,
+                                     include_dirs=_include,
+                                     extra_compile_args=_compiler_flags,
+                                     extra_link_args=_link_flags,
+                                     language='c++'))
 
 
 # Add optional ext modules here
@@ -202,49 +240,19 @@ if "--with-openmp" in sys.argv:
     else:
         omp_flags = ['-fopenmp']
         omp_args = omp_flags
-    _mod = Extension('qutip.cy.openmp.parfuncs',
-                     sources=['qutip/cy/openmp/parfuncs.pyx',
-                              'qutip/cy/openmp/src/zspmv_openmp.cpp'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags+omp_flags,
-                     extra_link_args=omp_args+_link_flags,
-                     language='c++')
-    EXT_MODULES.append(_mod)
-    # Add benchmark pyx
-    _mod = Extension('qutip.cy.openmp.benchmark',
-                     sources=['qutip/cy/openmp/benchmark.pyx'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags,
-                     extra_link_args=_link_flags,
-                     language='c++')
-    EXT_MODULES.append(_mod)
-
-    # Add brtools_omp
-    _mod = Extension('qutip.cy.openmp.br_omp',
-                     sources=['qutip/cy/openmp/br_omp.pyx'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags,
-                     extra_link_args=_link_flags,
-                     language='c++')
-    EXT_MODULES.append(_mod)
-
-    # Add omp_sparse_utils
-    _mod = Extension('qutip.cy.openmp.omp_sparse_utils',
-                     sources=['qutip/cy/openmp/omp_sparse_utils.pyx'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags+omp_flags,
-                     extra_link_args=omp_args+_link_flags,
-                     language='c++')
-    EXT_MODULES.append(_mod)
-
-    # Add cqobjevo_omp
-    _mod = Extension('qutip.cy.openmp.cqobjevo_omp',
-                     sources=['qutip/cy/openmp/cqobjevo_omp.pyx'],
-                     include_dirs=[np.get_include()],
-                     extra_compile_args=_compiler_flags+omp_flags,
-                     extra_link_args=omp_args,
-                     language='c++')
-    EXT_MODULES.append(_mod)
+    _cflags = _compiler_flags + omp_flags
+    _lflags = _link_flags + omp_args
+    for package, files in cy_exts_omp.items():
+        for file in files:
+            _module = 'qutip' + package + '.' + file
+            _file = 'qutip' + package.replace(".", "/") + '/' + file + '.pyx'
+            _sources = [_file, 'qutip/core/cy/openmp/src/zspmv_openmp.cpp']
+            EXT_MODULES.append(Extension(_module,
+                                         sources=_sources,
+                                         include_dirs=_include,
+                                         extra_compile_args=_cflags,
+                                         extra_link_args=_lflags,
+                                         language='c++'))
 
 
 # Remove -Wstrict-prototypes from cflags

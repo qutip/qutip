@@ -38,6 +38,7 @@ import qutip
 from qutip.qip.circuit import Gate
 from qutip.qip.operations.gates import gate_sequence_product
 from qutip.qip.device.cavityqed import DispersiveCavityQED
+import platform
 
 _tol = 1e-2
 
@@ -78,6 +79,7 @@ def test_analytical_evolution():
     assert abs(qutip.metrics.fidelity(result, ideal) - 1) < _tol
 
 
+@pytest.mark.skipif("platform.system() == 'Darwin'")
 def test_numerical_evolution():
     n_qubits = 3
     circuit = qutip.qip.circuit.QubitCircuit(n_qubits)

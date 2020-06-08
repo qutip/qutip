@@ -3,10 +3,8 @@ from copy import deepcopy
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-from qutip.qobjevo import QobjEvo
-from qutip.qobj import Qobj
+from qutip import Qobj, QobjEvo, identity
 from qutip.qip.operations import expand_operator
-from qutip.operators import identity
 
 
 __all__ = ["Pulse", "Drift"]

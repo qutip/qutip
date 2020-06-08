@@ -35,15 +35,13 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
 
-from qutip.qobj import Qobj
+from qutip import (
+    Qobj, basis, fock_dm, ket2dm, create, destroy, num, sigmax, sigmay, sigmam,
+    qeye, spre, spost, operator_to_vector, vector_to_operator, to_super,
+    to_choi, to_chi, tensor, super_tensor, composite,
+)
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_super_bcsz, rand_dm_ginibre)
-from qutip.states import basis, fock_dm, ket2dm
-from qutip.operators import create, destroy, num, sigmax, sigmay, sigmam, qeye
-from qutip.superoperator import (spre, spost, operator_to_vector,
-                                 vector_to_operator)
-from qutip.superop_reps import to_super, to_choi, to_chi
-from qutip.tensor import tensor, super_tensor, composite
 
 from operator import add, mul, truediv, sub
 import pytest

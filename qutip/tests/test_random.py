@@ -36,11 +36,11 @@ import scipy.linalg as la
 import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
+from qutip import qeye
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_ket_haar, rand_dm_hs,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
                                   rand_super_bcsz)
-from qutip.operators import qeye
 
 def test_rand_unitary_haar_unitarity():
     """

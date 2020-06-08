@@ -39,12 +39,14 @@ __all__ = ['countstat_current', 'countstat_current_noise']
 import numpy as np
 import scipy.sparse as sp
 
-from qutip.expect import expect_rho_vec
-from qutip.steadystate import pseudo_inverse, steadystate
-from qutip.superoperator import mat2vec, sprepost, spre
-from qutip import operator_to_vector, identity, tensor
-import qutip.settings as settings
-from qutip.qobj import Qobj, issuper, isoper
+from .core import (
+    mat2vec, sprepost, spre, operator_to_vector, identity, tensor, Qobj,
+    issuper, isoper,
+)
+from .core.expect import expect_rho_vec
+from .steadystate import pseudo_inverse, steadystate
+from . import settings
+
 # Load MKL spsolve if avaiable
 if settings.has_mkl:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)

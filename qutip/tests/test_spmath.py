@@ -37,8 +37,9 @@ import scipy.sparse as sp
 
 from qutip.random_objects import (rand_dm, rand_herm,
                                   rand_ket, rand_unitary)
-from qutip.cy.spmath import (zcsr_kron, zcsr_transpose, zcsr_adjoint,
-                            zcsr_isherm)
+from qutip.core.cy.spmath import (
+    zcsr_kron, zcsr_transpose, zcsr_adjoint, zcsr_isherm,
+)
 
 
 def test_csr_kron():

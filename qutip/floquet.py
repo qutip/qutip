@@ -45,20 +45,18 @@ import scipy.linalg as la
 import scipy
 from numpy import angle, pi, exp, sqrt
 from types import FunctionType
-from qutip.qobj import Qobj, isket
-from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
-#from qutip.mesolve import mesolve
-from qutip.sesolve import sesolve
-from qutip.rhs_generate import rhs_clear
-from qutip.steadystate import steadystate
-from qutip.states import ket2dm
-from qutip.states import projection
-from qutip.solver import Options
-from qutip.propagator import propagator
-from qutip.solver import Result, _solver_safety_check
-from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.expect import expect
-from qutip.utilities import n_thermal
+from . import (
+    Qobj, isket, vec2mat_index, mat2vec, vec2mat, ket2dm, projection, expect,
+)
+from .core.cy.spmatfuncs import cy_ode_rhs
+#from .mesolve import mesolve
+from .sesolve import sesolve
+from .rhs_generate import rhs_clear
+from .steadystate import steadystate
+from .solver import Options
+from .propagator import propagator
+from .solver import Result, _solver_safety_check
+from .utilities import n_thermal
 
 def floquet_modes(H, T, args=None, sort=False, U=None):
     """

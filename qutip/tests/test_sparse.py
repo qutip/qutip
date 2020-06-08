@@ -34,12 +34,14 @@ import numpy as np
 from numpy.testing import run_module_suite, assert_equal, assert_almost_equal
 import scipy.sparse as sp
 
+from qutip import coherent
 from qutip.random_objects import (rand_dm, rand_herm,
                                   rand_ket)
-from qutip.states import coherent
-from qutip.sparse import (sp_bandwidth, sp_permute, sp_reverse_permute,
-                          sp_profile, sp_one_norm, sp_inf_norm)
-from qutip.cy.spmath import zcsr_kron
+from qutip.core.sparse import (
+    sp_bandwidth, sp_permute, sp_reverse_permute, sp_profile, sp_one_norm,
+    sp_inf_norm,
+)
+from qutip.core.cy.spmath import zcsr_kron
 
 
 def _permutateIndexes(array, row_perm, col_perm):

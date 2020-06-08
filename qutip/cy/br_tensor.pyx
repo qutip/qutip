@@ -34,16 +34,28 @@
 import warnings
 import numpy as np
 import qutip.settings as qset
-from qutip.qobj import Qobj
+from ..core import Qobj
 cimport numpy as np
 cimport cython
-from libcpp cimport bool
-from qutip.cy.brtools cimport (vec2mat_index, dense_to_eigbasis,
-                              ZHEEVR, skew_and_dwmin)
-from qutip.cy.brtools import (liou_from_diag_ham, cop_super_term)
 from libc.math cimport fabs
+from libcpp cimport bool
+from libcpp.vector cimport vector
+from ..core.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
+from ..core.cy.sparse_routines cimport COO_to_CSR
+from ..core.cy.sparse_pyobjects cimport CSR_to_scipy
+from .brtools cimport (
+    vec2mat_index, dense_to_eigbasis, ZHEEVR, skew_and_dwmin
+)
+from .brtools import liou_from_diag_ham, cop_super_term
 
-include "sparse_routines.pxi"
+np.import_array()
+
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+    void PyDataMem_FREE(void * ptr)
+    void PyDataMem_RENEW(void * ptr, size_t size)
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyDataMem_NEW(size_t size)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

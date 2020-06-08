@@ -36,10 +36,8 @@ import numbers
 
 import numpy as np
 
-from qutip.qobj import Qobj
+from qutip import Qobj, identity, tensor
 import qutip.control.pulseoptim as cpo
-from qutip.operators import identity
-from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor

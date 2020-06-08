@@ -33,11 +33,24 @@
 ###############################################################################
 import numpy as np
 import scipy.sparse as sp
-from qutip.fastsparse import fast_csr_matrix
+from ..core.fastsparse import fast_csr_matrix
 cimport numpy as cnp
 cimport cython
+from ..core.cy.sparse_structs cimport COO_Matrix, CSR_Matrix
+from ..core.cy.sparse_routines cimport (
+    COO_to_CSR, sort_indices, CSR_to_COO, CSR_from_scipy, COO_to_CSR_inplace,
+    COO_from_scipy,
+)
+from ..core.cy.sparse_pyobjects cimport CSR_to_scipy, COO_to_scipy
 
-include "sparse_routines.pxi"
+cnp.import_array()
+
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyArray_ENABLEFLAGS(cnp.ndarray arr, int flags)
+    void PyDataMem_FREE(void * ptr)
+    void PyDataMem_RENEW(void * ptr, size_t size)
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyDataMem_NEW(size_t size)
 
 
 def _test_coo2csr_struct(object A):

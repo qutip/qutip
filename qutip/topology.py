@@ -33,7 +33,7 @@
 
 __all__ = ['berry_curvature', 'plot_berry_curvature']
 
-from qutip import (Qobj, tensor, basis, qeye, isherm, sigmax, sigmay, sigmaz)
+from . import (Qobj, tensor, basis, qeye, isherm, sigmax, sigmay, sigmaz)
 import numpy as np
 
 try:

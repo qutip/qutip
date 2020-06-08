@@ -33,8 +33,10 @@
 
 import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
-from qutip import rand_unitary, qeye, rand_herm, rand_dm, rand_ket, rand_stochastic
-from qutip.sparse import sp_eigs
+from qutip import (
+    rand_unitary, qeye, rand_herm, rand_dm, rand_ket, rand_stochastic,
+)
+from qutip.core.sparse import sp_eigs
 
 
 class TestRand:

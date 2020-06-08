@@ -31,20 +31,34 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+cimport cython
+cimport numpy as np
 from scipy.linalg.cython_blas cimport zgemv
-from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron,
-                    _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
-                    _zcsr_mult)
-from qutip.cy.spconvert cimport fdense2D_to_CSR
-from qutip.cy.spmatfuncs cimport spmvpy
-from qutip.cy.openmp.parfuncs cimport spmvpy_openmp
-from qutip.cy.brtools cimport (spec_func, vec2mat_index, dense_to_eigbasis)
+from qutip.core.cy.spmath cimport (
+    _zcsr_kron_core, _zcsr_kron, _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
+    _zcsr_mult,
+)
+from qutip.core.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
+from qutip.core.cy.sparse_routines cimport (
+    init_CSR, free_CSR, identity_CSR, COO_to_CSR,
+)
+from qutip.core.cy.spconvert cimport fdense2D_to_CSR
+from qutip.core.cy.spmatfuncs cimport spmvpy
+from qutip.core.cy.openmp.parfuncs cimport spmvpy_openmp
+from ..brtools cimport (spec_func, vec2mat_index, dense_to_eigbasis)
 from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 from libcpp.vector cimport vector
-from qutip.cy.sparse_structs cimport (CSR_Matrix, COO_Matrix)
 
-include "../sparse_routines.pxi"
+np.import_array()
+
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+    void PyDataMem_FREE(void * ptr)
+    void PyDataMem_RENEW(void * ptr, size_t size)
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyDataMem_NEW(size_t size)
+
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)

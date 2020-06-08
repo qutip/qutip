@@ -92,7 +92,7 @@ import numpy as np
 import warnings
 
 # QuTiP
-from qutip.qobj import Qobj
+from qutip import Qobj
 import qutip.logging_utils as logging
 logger = logging.get_logger()
 # QuTiP control modules

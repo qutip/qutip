@@ -35,7 +35,7 @@
 __all__ = ['Lattice1d', 'cell_structures']
 
 from scipy.sparse import (csr_matrix)
-from qutip import (Qobj, tensor, basis, qeye, isherm, sigmax, sigmay, sigmaz)
+from . import (Qobj, tensor, basis, qeye, isherm, sigmax, sigmay, sigmaz)
 
 import numpy as np
 

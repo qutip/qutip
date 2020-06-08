@@ -31,20 +31,36 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+cimport cython
+cimport numpy as cnp
+import numpy as np
 from scipy.linalg.cython_lapack cimport zheevr
 from scipy.linalg.cython_blas cimport zgemm, zgemv, zaxpy
-from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron,
-                    _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
-                    _zcsr_mult)
-from qutip.cy.spconvert cimport fdense2D_to_CSR
-from qutip.cy.spmatfuncs cimport spmvpy
-from qutip.cy.brtools cimport spec_func
+from ..core.cy.spmath cimport (
+    _zcsr_kron_core, _zcsr_kron, _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
+    _zcsr_mult
+)
+from ..core.cy.spconvert cimport fdense2D_to_CSR
+from ..core.cy.spmatfuncs cimport spmvpy
+from ..core.cy.sparse_structs cimport (CSR_Matrix, COO_Matrix)
+from ..core.cy.sparse_routines cimport (
+    init_CSR, free_CSR, identity_CSR, sort_indices, COO_to_CSR,
+)
+from ..core.cy.sparse_pyobjects cimport CSR_to_scipy
+from ..core.fastsparse import fast_csr_matrix
+from .brtools cimport spec_func
 from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 from libcpp.vector cimport vector
-from qutip.cy.sparse_structs cimport (CSR_Matrix, COO_Matrix)
 
-include "sparse_routines.pxi"
+cnp.import_array()
+
+cdef extern from "numpy/arrayobject.h" nogil:
+    void PyArray_ENABLEFLAGS(cnp.ndarray arr, int flags)
+    void PyDataMem_FREE(void * ptr)
+    void PyDataMem_RENEW(void * ptr, size_t size)
+    void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
+    void PyDataMem_NEW(size_t size)
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -150,9 +166,9 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
 @cython.wraparound(False)
 def liou_from_diag_ham(double[::1] diags):
     cdef unsigned int nrows = diags.shape[0]
-    cdef np.ndarray[complex, ndim=1, mode='c'] data = np.empty(nrows**2, dtype=complex)
-    cdef np.ndarray[int, ndim=1, mode='c'] ind = np.empty(nrows**2, dtype=np.int32)
-    cdef np.ndarray[int, ndim=1, mode='c'] ptr = np.empty(nrows**2+1, dtype=np.int32)
+    cdef cnp.ndarray[complex, ndim=1, mode='c'] data = np.empty(nrows**2, dtype=complex)
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ind = np.empty(nrows**2, dtype=np.int32)
+    cdef cnp.ndarray[int, ndim=1, mode='c'] ptr = np.empty(nrows**2+1, dtype=np.int32)
     cdef unsigned int idx, nnz = 0
     cdef size_t ii, jj
     cdef double complex val1, val2, ans
@@ -292,20 +308,20 @@ cdef double complex * vec_to_eigbasis(complex[::1] vec, complex[::1,:] evecs,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig_vec,
+cdef cnp.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * eig_vec,
                                                 complex[::1,:] evecs,
                                                 unsigned int nrows):
 
     cdef size_t ii, jj
-    cdef np.npy_intp nrows2 = nrows**2
+    cdef cnp.npy_intp nrows2 = nrows**2
     cdef double complex * temp1 = ZGEMM(&eig_vec[0], &evecs[0,0],
                                        nrows, nrows, nrows, nrows, 0, 2)
     cdef double complex * fock_vec = ZGEMM(&evecs[0,0], temp1,
                                        nrows, nrows, nrows, nrows, 0, 0)
     PyDataMem_FREE(temp1)
-    cdef np.ndarray[complex, ndim=1, mode='c'] out = \
-                np.PyArray_SimpleNewFromData(1, &nrows2, np.NPY_COMPLEX128, fock_vec)
-    PyArray_ENABLEFLAGS(out, np.NPY_OWNDATA)
+    cdef cnp.ndarray[complex, ndim=1, mode='c'] out = \
+                cnp.PyArray_SimpleNewFromData(1, &nrows2, cnp.NPY_COMPLEX128, fock_vec)
+    PyArray_ENABLEFLAGS(out, cnp.NPY_OWNDATA)
     return out
 
 

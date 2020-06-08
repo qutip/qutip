@@ -41,25 +41,22 @@ import warnings
 from functools import partial
 import scipy.integrate
 import scipy.sparse as sp
-from qutip.qobj import Qobj, isket
-from qutip.states import ket2dm
-from qutip.operators import qdiags
-from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
-from qutip.expect import expect
-from qutip.solver import Options, Result, config, _solver_safety_check
-from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
-from qutip.superoperator import liouvillian
-from qutip.interpolate import Cubic_Spline
-from qutip.cy.spconvert import arr_coo2fast
-from qutip.cy.br_codegen import BR_Codegen
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
-from qutip.cy.utilities import _cython_build_cleanup
-from qutip.expect import expect_rho_vec
-from qutip.rhs_generate import _td_format_check
-from qutip.cy.openmp.utilities import check_use_openmp
-import qutip.settings as qset
-from qutip.cy.br_tensor import bloch_redfield_tensor
+from .core import (
+    Qobj, isket, ket2dm, qdiags, spre, spost, vec2mat, mat2vec, vec2mat_index,
+    expect, liouvillian, Cubic_Spline,
+)
+from .core.expect import expect_rho_vec
+from . import settings as qset
+from .solver import Options, Result, config, _solver_safety_check
+from .core.cy.spmatfuncs import cy_ode_rhs
+from .core.cy.spconvert import dense2D_to_fastcsr_fmode
+from .core.cy.spconvert import arr_coo2fast
+from .core.cy.openmp.utilities import check_use_openmp
+from .cy.br_codegen import BR_Codegen
+from .cy.br_tensor import bloch_redfield_tensor
+from .cy.utilities import _cython_build_cleanup
+from .ui.progressbar import BaseProgressBar, TextProgressBar
+from .rhs_generate import _td_format_check
 
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation

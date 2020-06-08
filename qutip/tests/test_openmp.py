@@ -36,8 +36,8 @@ import unittest
 from qutip import *
 import qutip.settings as qset
 if qset.has_openmp:
-    from qutip.cy.openmp.benchmark import _spmvpy, _spmvpy_openmp
-    
+    from qutip.core.cy.openmp.benchmark import _spmvpy, _spmvpy_openmp
+
 
 @unittest.skipIf(qset.has_openmp == False, 'OPENMP not available.')
 def test_openmp_spmv():

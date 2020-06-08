@@ -38,20 +38,17 @@ import numpy as np
 import scipy.linalg as la
 import functools
 import scipy.sparse as sp
-from qutip.qobj import Qobj
-from qutip.tensor import tensor
-from qutip.operators import qeye
-from qutip.rhs_generate import (rhs_generate, rhs_clear, _td_format_check)
-from qutip.superoperator import (vec2mat, mat2vec,
-                                 vector_to_operator, operator_to_vector)
-from qutip.sparse import sp_reshape
-from qutip.cy.sparse_utils import unit_row_norm
-from qutip.mesolve import mesolve
-from qutip.sesolve import sesolve
-from qutip.states import basis
-from qutip.solver import Options, _solver_safety_check, config
-from qutip.parallel import parallel_map, _default_kwargs
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from . import (
+    Qobj, tensor, qeye, vec2mat, mat2vec, vector_to_operator,
+    operator_to_vector, sp_reshape, basis,
+)
+from .core.cy.sparse_utils import unit_row_norm
+from .rhs_generate import (rhs_generate, rhs_clear, _td_format_check)
+from .mesolve import mesolve
+from .sesolve import sesolve
+from .solver import Options, _solver_safety_check, config
+from .parallel import parallel_map, _default_kwargs
+from .ui.progressbar import BaseProgressBar, TextProgressBar
 
 
 def propagator(H, t, c_op_list=[], args={}, options=None,
