@@ -84,8 +84,8 @@ circuit3.gates = instruction_list1
         (circuit1, "ASAP", 4, False, False),
         (circuit1, "ALAP", 4, False, False),
         (circuit2, "ASAP", 4, False, False),
-        # (circuit2, "ALAP", 5, False, False),
-        (circuit2, "ALAP", 4, True,  False),  # with random shuffling
+        (circuit2, "ALAP", 5, False, False),
+        # (circuit2, "ALAP", 4, True,  False),  # with random shuffling
         (circuit3, "ASAP", 7, False, False),
         (circuit3, "ALAP", 7, False, False),
         (circuit3, "ASAP", 4, False, True),  # treat instructions as gates

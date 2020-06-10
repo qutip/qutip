@@ -521,20 +521,20 @@ class Scheduler():
         therefore, the order is changed to reduce the number of cycles.
         """
         circuit = deepcopy(circuit)
-        if repeat_num > 0:
-            random_shuffle = True
-            result = [0]
-            max_length = 4294967296
-            for i in range(repeat_num):
-                gate_cycle_indices = self.schedule(
-                    circuit, gates_schedule=gates_schedule,
-                    return_cycles_list=return_cycles_list,
-                    random_shuffle=random_shuffle, repeat_num=0)
-                current_length = max(gate_cycle_indices)
-                if current_length < max_length:
-                    result = gate_cycle_indices
-                    max_length = current_length
-            return result
+        # if repeat_num > 0:
+        #     random_shuffle = True
+        #     result = [0]
+        #     max_length = 4294967296
+        #     for i in range(repeat_num):
+        #         gate_cycle_indices = self.schedule(
+        #             circuit, gates_schedule=gates_schedule,
+        #             return_cycles_list=return_cycles_list,
+        #             random_shuffle=random_shuffle, repeat_num=0)
+        #         current_length = max(gate_cycle_indices)
+        #         if current_length < max_length:
+        #             result = gate_cycle_indices
+        #             max_length = current_length
+        #     return result
 
         if isinstance(circuit, QubitCircuit):
             gates = circuit.gates
