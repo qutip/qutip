@@ -122,8 +122,8 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     elif isinstance(H, Qobj):
         if H.isoper:
             Ht = H.data.T
-            data = -1j * zcsr_kron(spI, H.data)
-            data += 1j * zcsr_kron(Ht, spI)
+            data = -1j * zcsr_kron(H.data, spI)
+            data += 1j * zcsr_kron(spI, Ht)
         else:
             data = H.data
     else:
