@@ -49,7 +49,7 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
                                         expand_operator)
-from qutip import tensor, basis, identity
+from qutip import tensor, basis, identity, fidelity
 from qutip.qobj import Qobj
 
 
@@ -1122,7 +1122,7 @@ class QubitCircuit:
             else:
                 qc_temp.gates.append(gate)
 
-    def run(self, state, cbits=[]):
+    def run(self, state, cbits=[], U_list=None):
         '''
         This is the primary circuit run function for 1 run, must be called
         after adding all the gates and measurements on the circuit and returns
@@ -1133,7 +1133,8 @@ class QubitCircuit:
                 state to be observed on specified by density matrix.
         cbits : List of ints
                 initialization of the classical bits
-
+        U_list : List of unitaries
+                optional parameter to pass in the propagator list
         Returns
         -------
         state : returns the ket of the output state after running the circuit.
@@ -1147,9 +1148,13 @@ class QubitCircuit:
         if state.shape[0] != 2 ** self.N:
             return ValueError("dimension of state is incorrect")
 
-        self.U_list = self.propagators()
+        if U_list:
+            self.U_list = U_list
+        else:
+            self.U_list = self.propagators()
 
         ulistindex = 0
+        probability = 1
 
         for operation in self.gates_and_measurements:
 
@@ -1158,6 +1163,7 @@ class QubitCircuit:
                 probabilities, states = operation.measurement_comp_basis(state)
                 i = np.random.choice([0, 1],
                                 p=[probabilities[0], 1 - probabilities[0]])
+                probability *= probabilities[i]
                 state = states[i]
                 if operation.classical_store is not None:
                     self.cbits[operation.classical_store] = i
@@ -1177,7 +1183,7 @@ class QubitCircuit:
                     state = self.U_list[ulistindex] * state
                     ulistindex += 1
 
-        return state
+        return state, probability
 
     def run_statistics(self, state, cbits=[], num_runs=1024):
         '''
@@ -1201,21 +1207,28 @@ class QubitCircuit:
                 output state on running the circuit num_runs times.
         '''
 
-        state_freq = defaultdict(int)
-        tuple_to_state = defaultdict()
+        state_freqs = []
+        states = []
+
+        U_list = self.propagators()
 
         for i in range(num_runs):
-            final_state = self.run(state, cbits=[])
-            state_freq[tuple([complex(a) for a in final_state.full()])] += 1
-            tuple_to_state[tuple([complex(a)
-                        for a in final_state.full()])] = final_state
+            found = 0
+            final_state = self.run(state, cbits=[], U_list=U_list)
+            if states == []:
+                states.append(final_state)
+                state_freqs.append(1)
+                continue
+            for j, out_state in enumerate(states):
+                if 1 - fidelity(final_state, out_state) <= 1e-12:
+                    state_freqs[j] += 1
+                    found = 1
+                    break
+            if not found:
+                states.append(final_state)
+                state_freqs.append(1)
 
-        results = []
-
-        for key, state in tuple_to_state.items():
-            results.append([state, state_freq[key]])
-
-        return results
+        return states, state_freqs
 
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
