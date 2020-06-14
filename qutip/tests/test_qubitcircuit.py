@@ -454,36 +454,37 @@ class TestQubitCircuit:
 
         state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
         initial_measurement = Measurement("start", targets=[0])
-        initial_probabilities, _ = initial_measurement.measurement_comp_basis(state)
+        _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-        state_final = teleportation.run(state)
+        state_final, probability = teleportation.run(state)
 
         final_measurement = Measurement("start", targets=[2])
-        final_probabilities, _ = final_measurement.measurement_comp_basis(state_final)
+        _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
 
         np.testing.assert_allclose(initial_probabilities, final_probabilities)
+
 
     def test_runstatistics_teleportation(self):
         """
         Test circuit run_statistics on teleportation circuit
         """
-        num_runs = 4096
+
         teleportation = _teleportation_circuit()
         final_measurement = Measurement("start", targets=[2])
         initial_measurement = Measurement("start", targets=[0])
 
         state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
-        initial_probabilities, _ = initial_measurement.measurement_comp_basis(state)
+        _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-        results = teleportation.run_statistics(state, num_runs=num_runs)
+        states, probabilites = teleportation.run_statistics(state)
 
-        for state in results:
-            state_final = state[0]
-            state_freq = state[1]
-            final_probabilities, _ = final_measurement.measurement_comp_basis(state_final)
+        for i, state in enumerate(states):
+            state_final = state
+            prob = probabilites[i]
+            _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
             np.testing.assert_allclose(initial_probabilities,
                                         final_probabilities)
-            assert state_freq/num_runs == pytest.approx(0.25, abs=0.02)
+            assert prob == pytest.approx(0.25, abs=1e-7)
 
 
 if __name__ == "__main__":

@@ -35,11 +35,50 @@ Module for measuring quantum objects.
 """
 
 import numpy as np
-
+import pytest
 from qutip.qobj import Qobj
 
 
 def measurement_statistics(op, state):
+
+    if isinstance(op, list):
+        op_lst = op
+    else:
+        op_lst = [op]
+
+    for op1 in op_lst:
+        if not isinstance(op1, Qobj):
+            raise TypeError("op must be a Qobj")
+        if not op1.isoper:
+            raise ValueError("op must be an operator")
+        if not isinstance(state, Qobj):
+            raise TypeError("state must be a Qobj")
+        if state.isket:
+            if op1.dims[-1] != state.dims[0]:
+                raise ValueError(
+                    "op and state dims should be compatible when state is a ket")
+        elif state.isoper:
+            if op1.dims != state.dims:
+                raise ValueError(
+                    "op and state dims should match"
+                    " when state is a density matrix")
+        else:
+            raise ValueError("state must be a ket or a density matrix")
+
+    if isinstance(op, list):
+        return _measurement_statistics_povm(op, state)
+    else:
+        return _measurement_statistics_observable(op, state)
+
+
+def _measurement_statistics_povm(ops, state):
+    if state.isket:
+        return _measurement_statistics_povm_ket(ops, state)
+    else:
+        return _measurement_statistics_povm_dm(ops, state)
+
+
+def _measurement_statistics_observable(op, state):
     """
     Return the measurement eigenvalues, eigenstates (or projectors) and
     measurement probabilities for the given state and measurement operator.
@@ -63,27 +102,7 @@ def measurement_statistics(op, state):
         corresponding eigenstate (and the measurement result being
         the corresponding eigenvalue).
     """
-    if not isinstance(op, Qobj):
-        raise TypeError("op must be a Qobj")
-    if not op.isoper:
-        raise ValueError("op must be an operator")
-    if not isinstance(state, Qobj):
-        raise TypeError("state must be a Qobj")
-    if state.isket:
-        if op.dims[-1] != state.dims[0]:
-            raise ValueError(
-                "op and state dims should be compatible when state is a ket")
-    elif state.isoper:
-        if op.dims != state.dims:
-            raise ValueError(
-                "op and state dims should match"
-                " when state is a density matrix")
-    else:
-        raise ValueError("state must be a ket or a density matrix")
-    return _measurement_statistics(op, state)
 
-
-def _measurement_statistics(op, state):
     eigenvalues, eigenstates = op.eigenstates()
     if state.isket:
         probabilities = [(e.dag() * state).norm() ** 2 for e in eigenstates]
@@ -94,7 +113,83 @@ def _measurement_statistics(op, state):
         return eigenvalues, projectors, probabilities
 
 
-def measure(op, state):
+def _measurement_statistics_povm_ket(measurement_ops, state):
+
+    '''
+    Returns measurement statistics for a set of positive operator valued
+    measurements on a specified ket.
+
+    Parameters
+    ----------
+    measurement_ops : list
+            list of projection operators
+    state : ket
+            state to be measured specified by the ket.
+
+    Returns
+    -------
+    probabilities : List of floats
+                    the probability of measuring a state in a the state
+                    specified by the index.
+    collapsed_states : List of Qobjs
+                    the collapsed state obtained after measuring the qubits
+                    and obtaining the qubit specified by the target in the
+                    state specified by the index.
+    '''
+
+    probabilities = []
+    collapsed_states = []
+
+    for i, op in enumerate(measurement_ops):
+        p = np.absolute((state.dag() * op.dag() * op * state)[0][0][0])
+        probabilities.append(p)
+        if p != 0:
+            collapsed_states.append((op * state) / np.sqrt(p))
+        else:
+            collapsed_states.append(None)
+
+    return collapsed_states, probabilities
+
+
+def _measurement_statistics_povm_dm(measurement_ops, density_mat):
+
+    '''
+    Returns measurement statistics for a set of positive operator valued
+    measurements on a specified density matrix.
+
+    Parameters
+    ----------
+    measurement_ops : list
+            list of projection operators
+    state : ket
+            state to be observed on specified by density matrix.
+
+    Returns
+    -------
+    probabilities : List of floats
+                    the probability of measuring a state in a the state
+                    specified by the index.
+    collapsed_states : List of Qobjs
+                    the collapsed state obtained after measuring the qubits
+                    and obtaining the qubit specified by the target in the
+                    state specified by the index.
+    '''
+
+    probabilities = []
+    collapsed_states = []
+
+    for i, op in enumerate(measurement_ops):
+        p = (density_mat * op.dag() * op).tr()
+        probabilities.append(p)
+        if p != 0:
+            collapsed_states.append((op * density_mat * op.dag()) / p)
+        else:
+            collapsed_states.append(None)
+
+    return collapsed_states, probabilities
+
+
+def measure_observable(op, state):
     """
     Perform a measurement specified by an operator on the given state.
 
@@ -169,3 +264,19 @@ def measure(op, state):
         projectors = eigenstates_or_projectors
         state = (projectors[i] * state * projectors[i]) / probabilities[i]
     return eigenvalues[i], state
+
+
+def measure_povm(ops, state):
+
+    collapsed_states, probabilites = measurement_statistics(ops, state)
+    i = np.random.choice(collapsed_states, p=probabilities)
+    state = collapsed_states[i]
+    return i, state
+
+
+def measure(op, state):
+
+    if isinstance(op, list):
+        return measure_povm(op, state)
+    else:
+        return measure_observable(op, state)

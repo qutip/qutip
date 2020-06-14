@@ -33,6 +33,7 @@
 
 from collections.abc import Iterable
 from collections import defaultdict
+from itertools import product
 
 import warnings
 import inspect
@@ -51,6 +52,7 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         expand_operator)
 from qutip import tensor, basis, identity, fidelity
 from qutip.qobj import Qobj
+from qutip.measurement import measurement_statistics
 
 
 try:
@@ -265,79 +267,6 @@ class Measurement:
                 if not all_integer:
                     raise ValueError("Index of a qubit must be an integer")
 
-    def measurement_ket(self, measurement_ops, state):
-
-        '''
-        Returns measurement statistics for a set of positive operator valued
-        measurements on a specified ket.
-
-        Parameters
-        ----------
-        measurement_ops : list
-                list of projection operators
-        state : ket
-                state to be measured specified by the ket.
-
-        Returns
-        -------
-        probabilities : List of floats
-                        the probability of measuring a state in a the state
-                        specified by the index.
-        collapsed_states : List of Qobjs
-                        the collapsed state obtained after measuring the qubits
-                        and obtaining the qubit specified by the target in the
-                        state specified by the index.
-        '''
-
-        probabilities = []
-        collapsed_states = []
-
-        for i, op in enumerate(measurement_ops):
-            p = np.absolute((state.dag() * op.dag() * op * state)[0][0][0])
-            probabilities.append(p)
-            if p != 0:
-                collapsed_states.append((op * state) / np.sqrt(p))
-            else:
-                collapsed_states.append(None)
-
-        return probabilities, collapsed_states
-
-    def measurement_density(self, measurement_ops, density_mat):
-
-        '''
-        Returns measurement statistics for a set of positive operator valued
-        measurements on a specified density matrix.
-
-        Parameters
-        ----------
-        measurement_ops : list
-                list of projection operators
-        state : ket
-                state to be observed on specified by density matrix.
-
-        Returns
-        -------
-        probabilities : List of floats
-                        the probability of measuring a state in a the state
-                        specified by the index.
-        collapsed_states : List of Qobjs
-                        the collapsed state obtained after measuring the qubits
-                        and obtaining the qubit specified by the target in the
-                        state specified by the index.
-        '''
-
-        probabilities = []
-        collapsed_states = []
-
-        for i, op in enumerate(measurement_ops):
-            p = (density_mat * op.dag() * op).tr()
-            probabilities.append(p)
-            if p != 0:
-                collapsed_states.append((op * density_mat * op.dag()) / p)
-            else:
-                collapsed_states.append(None)
-
-        return probabilities, collapsed_states
 
     def measurement_comp_basis(self, state):
 
@@ -380,12 +309,7 @@ class Measurement:
         else:
             raise ValueError("target is not valid")
 
-        if state.isket:
-            return self.measurement_ket(measurement_ops, state)
-        elif state.isoper:
-            return self.measurement_density(measurement_ops, state)
-        else:
-            raise ValueError("state must be a ket or a density matrix")
+        return measurement_statistics(measurement_ops, state)
 
 
 class QubitCircuit:
@@ -1122,7 +1046,7 @@ class QubitCircuit:
             else:
                 qc_temp.gates.append(gate)
 
-    def run(self, state, cbits=[], U_list=None):
+    def run(self, state, cbits=[], U_list=None, measure_results=()):
         '''
         This is the primary circuit run function for 1 run, must be called
         after adding all the gates and measurements on the circuit and returns
@@ -1155,13 +1079,18 @@ class QubitCircuit:
 
         ulistindex = 0
         probability = 1
+        measure_ind = 0
 
         for operation in self.gates_and_measurements:
 
             if isinstance(operation, Measurement):
 
-                probabilities, states = operation.measurement_comp_basis(state)
-                i = np.random.choice([0, 1],
+                states, probabilities = operation.measurement_comp_basis(state)
+                if measure_results:
+                    i = int(measure_results[measure_ind])
+                    measure_ind += 1
+                else:
+                    i = np.random.choice([0, 1],
                                 p=[probabilities[0], 1 - probabilities[0]])
                 probability *= probabilities[i]
                 state = states[i]
@@ -1185,7 +1114,7 @@ class QubitCircuit:
 
         return state, probability
 
-    def run_statistics(self, state, cbits=[], num_runs=1024):
+    def run_statistics(self, state, cbits=[]):
         '''
         This is the circuit run function for num_runs run, must be called after
         adding all the gates and measurements on the circuit and returns the
@@ -1197,8 +1126,6 @@ class QubitCircuit:
                 state to be observed on specified by density matrix.
         cbits : List of ints
                 initialization of the classical bits.
-        num_runs : int
-                number of times the circuit is run with the specified input.
 
         Returns
         -------
@@ -1207,28 +1134,23 @@ class QubitCircuit:
                 output state on running the circuit num_runs times.
         '''
 
-        state_freqs = []
+        state_probs = []
         states = []
 
         U_list = self.propagators()
 
-        for i in range(num_runs):
-            found = 0
-            final_state = self.run(state, cbits=[], U_list=U_list)
-            if states == []:
-                states.append(final_state)
-                state_freqs.append(1)
-                continue
-            for j, out_state in enumerate(states):
-                if 1 - fidelity(final_state, out_state) <= 1e-12:
-                    state_freqs[j] += 1
-                    found = 1
-                    break
-            if not found:
-                states.append(final_state)
-                state_freqs.append(1)
+        num_measurements = len(list(filter(
+                                lambda x : isinstance(x, Measurement),
+                                self.gates_and_measurements)))
 
-        return states, state_freqs
+        for measure_results in product("01", repeat=num_measurements):
+            found = 0
+            final_state, probability = self.run(state, cbits=[], U_list=U_list,
+                                            measure_results=measure_results)
+            states.append(final_state)
+            state_probs.append(probability)
+
+        return states, state_probs
 
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
