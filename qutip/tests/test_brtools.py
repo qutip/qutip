@@ -40,16 +40,8 @@ from qutip.cy.brtools_checks import (
     _test_vec_to_eigbasis, _test_eigvec_to_fockbasis, _test_vector_roundtrip,
     _cop_super_mult, _test_br_term_mult
 )
-from qutip.settings import debug, eigh_unsafe
-
-if eigh_unsafe:
-    def eigh(mat):
-        val, vec = scipy.linalg.eig(mat)
-        val = np.real(val)
-        idx = np.argsort(val)
-        return val[idx], vec[:,idx]
-else:
-    eigh = scipy.linalg.eigh
+from qutip.settings import debug
+from qutip.sparse import eigh
 
 
 def test_zheevr():

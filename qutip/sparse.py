@@ -54,15 +54,31 @@ from qutip.cy.spconvert import (arr_coo2fast, zcsr_reshape)
 from qutip.settings import debug, eigh_unsafe
 
 if eigh_unsafe:
+    def _orthogonalize(vec, other):
+        cross = np.sum(np.conj(other) * vec)
+        vec -= cross * other
+        norm = np.sum(np.conj(vec) * vec)**0.5
+        vec /= norm
+
     def eigh(mat, eigvals=[]):
         val, vec = la.eig(mat)
         val = np.real(val)
         idx = np.argsort(val)
+        val = val[idx]
+        vec = vec[:, idx]
         if eigvals:
-            return (val[idx[eigvals[0]:eigvals[1]+1]],
-                    vec[:, idx[eigvals[0]:eigvals[1]+1]])
-        return val[idx], vec[:, idx]
-    
+            val = val[eigvals[0]:eigvals[1]+1]
+            vec = vec[:, eigvals[0]:eigvals[1]+1]
+        same_eigv = 0
+        for i in range(1, len(val)):
+            if abs(val[i] - val[i-1]) < 1e-12:
+                same_eigv += 1
+                for j in range(same_eigv):
+                    _orthogonalize(vec[:, i], vec[:, i-j-1])
+            else:
+                same_eigv = 0
+        return val, vec
+
     def eigvalsh(a, UPLO="L", eigvals=[]):
         val = la.eigvals(a)
         val = np.sort(np.real(val))

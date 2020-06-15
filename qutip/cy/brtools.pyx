@@ -52,6 +52,7 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
     double         real(double complex x)
     double cabs   "abs" (double complex x)
+    double complex sqrt(double complex x)
 
 
 cdef int use_zgeev = eigh_unsafe
@@ -176,7 +177,9 @@ cdef void ZGEEV(complex[::1,:] H, double * eigvals,
     """
     cdef char jobvl = b'N'
     cdef char jobvr = b'V'
-    cdef int i, j, lwork = -1
+    cdef int i, j, k, lwork = -1
+    cdef int same_eigv = 0
+    cdef complex dot
     cdef complex wkopt
     cdef int info=0
     cdef complex * work
@@ -209,6 +212,25 @@ cdef void ZGEEV(complex[::1,:] H, double * eigvals,
         eigvals[i] = real(eival[idx[i]])
         for j in range(nrows):
             Z[j,i] = vr[j + idx[i]*nrows]
+
+    for i in range(1, nrows):
+        if cabs(eigvals[i] - eigvals[i-1]) < 1e-12:
+            same_eigv += 1
+            for j in range(same_eigv):
+                dot = 0.
+                for k in range(nrows):
+                    dot += conj(Z[k,i-j-1]) * Z[k,i]
+                for k in range(nrows):
+                    Z[k,i] -= Z[k,i-j-1] * dot
+                dot = 0.
+                for k in range(nrows):
+                    dot += conj(Z[k,i]) * Z[k,i]
+                dot = sqrt(dot)
+                for k in range(nrows):
+                    Z[k,i] /= dot
+        else:
+            same_eigv = 0
+
     PyDataMem_FREE(work)
     PyDataMem_FREE(rwork)
     PyDataMem_FREE(vl)

@@ -75,15 +75,7 @@ import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
 import qutip.control.dump as qtrldump
-
-if settings.eigh_unsafe:
-    def eigh(mat):
-        val, vec = la.eig(mat)
-        val = np.real(val)
-        idx = np.argsort(val)
-        return val[idx], vec[:, idx]
-else:
-    eigh = la.eigh
+from qutip.sparse import eigh
 
 DEF_NUM_TSLOTS = 10
 DEF_EVO_TIME = 1.0
