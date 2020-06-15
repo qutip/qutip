@@ -50,6 +50,14 @@ class EigenPairs:
     def __getitem__(self, i):
         return self.pairs[i]
 
+    def __contains__(self, other):
+        for i, val in enumerate(self.eigenvalues):
+            if abs(val - other[0]) < 1e-8:
+                break
+        else:
+            return False
+        return _equivalent(other[1], self.eigenstates[i])
+
 
 def pairs2dm(pairs):
     """ Convert eigenpair entries into eigenvalue and density matrix pairs. """
@@ -72,20 +80,25 @@ SIGMAY = EigenPairs([
 ])
 
 
+def _equivalent(left, right, tol=1e-8):
+    """ Equal up to a phase """
+    return 1 - abs( (left.dag() * right).tr()) < tol
+
+
 def check_measurement_statistics(
         op, state, pairs, probabilities):
     evs, ess_or_projs, probs = measurement_statistics(op, state)
-    assert_array_equal(evs, pairs.eigenvalues)
+    assert_almost_equal(evs, pairs.eigenvalues, decimal=1e-14)
     if state.isket:
         ess = ess_or_projs
         assert_(len(ess), len(pairs.eigenstates))
         for a, b in zip(ess, pairs.eigenstates):
-            assert_(isequal(a, b))
+            assert_(_equivalent(a, b))
     else:
         projs = ess_or_projs
         assert_(len(projs), len(pairs.projectors))
         for a, b in zip(projs, pairs.projectors):
-            assert_(isequal(a, b))
+            assert_(_equivalent(a, b))
     assert_almost_equal(probs, probabilities)
 
 
@@ -143,64 +156,37 @@ def test_measurement_statistics_input_errors():
         measurement_statistics, sigmaz(), ket2dm(basis(3, 0)))
 
 
-def check_measure(op, state, expected_measurements, seed=0):
-    np.random.seed(seed)
-    measurements = []
-    for _ in expected_measurements:
-        value, new_state = measure(op, state)
-        measurements.append((value, new_state))
-    assert_(measurements == expected_measurements)
+def check_measure(op, state):
+    """ Check that all measure results are in measurement_statistics which
+    was previously tested.
+    This remove the depandance on the prng.
+    """
+    evs, ess_or_projs, prob = measurement_statistics(op, state)
+    expected_measurements = EigenPairs(list(zip(evs, ess_or_projs)))
+    for _ in range(10):
+        assert_(measure(op, state) in expected_measurements)
 
 
 def test_measure_sigmaz():
     """ measure: basis states using sigmaz """
-    check_measure(sigmaz(), basis(2, 0), [SIGMAZ[1]] * 5)
-    check_measure(sigmaz(), basis(2, 1), [SIGMAZ[0]] * 5)
-    check_measure(sigmaz(), ket2dm(basis(2, 0)), pairs2dm([SIGMAZ[1]] * 5))
-    check_measure(sigmaz(), ket2dm(basis(2, 1)), pairs2dm([SIGMAZ[0]] * 5))
+    check_measure(sigmaz(), basis(2, 0) )
+    check_measure(sigmaz(), basis(2, 1) )
+    check_measure(sigmaz(), ket2dm(basis(2, 0)) )
+    check_measure(sigmaz(), ket2dm(basis(2, 1)) )
 
 
 def test_measure_sigmax():
     """ measure: basis states using sigmax """
-    check_measure(
-        sigmax(), basis(2, 0),
-        [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
-    )
-    check_measure(
-        sigmax(), basis(2, 1),
-        [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
-    )
-    check_measure(
-        sigmax(), basis(2, 0),
-        [SIGMAX[0], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
-        seed=42,
-    )
-    check_measure(
-        sigmax(), ket2dm(basis(2, 0)),
-        pairs2dm([SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]]),
-    )
+    check_measure( sigmax(), basis(2, 0) )
+    check_measure( sigmax(), basis(2, 1) )
+    check_measure( sigmax(), ket2dm(basis(2, 0)) )
 
 
 def test_measure_sigmay():
     """ measure: basis states using sigmay """
-    check_measure(
-        sigmay(), basis(2, 0),
-        [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
-    )
-    check_measure(
-        sigmay(), basis(2, 1),
-        [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
-    )
-    check_measure(
-        sigmay(), basis(2, 1),
-        [SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
-        seed=42,
-    )
-    check_measure(
-        sigmay(), ket2dm(basis(2, 1)),
-        pairs2dm([SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]]),
-        seed=42,
-    )
+    check_measure( sigmay(), basis(2, 0) )
+    check_measure( sigmay(), basis(2, 1) )
+    check_measure( sigmay(), ket2dm(basis(2, 0)) )
 
 
 def test_measure_input_errors():

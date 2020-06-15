@@ -54,7 +54,16 @@ from qutip.operators import jmat
 from scipy.special import factorial
 from qutip.cy.sparse_utils import _csr_get_diag
 import qutip as qt
+from qutip.settings import eigh_unsafe
 
+if eigh_unsafe:
+    def eigh(mat):
+        val, vec = la.eig(mat)
+        val = np.real(val)
+        idx = np.argsort(val)
+        return val[idx], vec[:,idx]
+else:
+    eigh = la.eigh
 
 def wigner_transform(psi, j, fullparity, steps, slicearray):
     """takes the density matrix or state vector of any finite state and
@@ -416,7 +425,7 @@ def _wigner_fourier(psi, xvec, g=np.sqrt(2)):
     if psi.type == 'ket':
         return _psi_wigner_fft(psi.full(), xvec, g)
     elif psi.type == 'oper':
-        eig_vals, eig_vecs = la.eigh(psi.full())
+        eig_vals, eig_vecs = eigh(psi.full())
         W = 0
         for ii in range(psi.shape[0]):
             W1, yvec = _psi_wigner_fft(

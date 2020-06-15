@@ -76,6 +76,17 @@ import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
 import qutip.control.dump as qtrldump
 
+if settings.eigh_unsafe:
+    def eigh(mat):
+        val, vec = la.eig(mat)
+        val = np.real(val)
+        idx = np.argsort(val)
+        #for i in range(len(val)):
+        #    vec[:,i] *= np.exp(-1j*np.angle(vec[0,i]))
+        return val[idx], vec[:,idx]
+else:
+    eigh = la.eigh
+
 DEF_NUM_TSLOTS = 10
 DEF_EVO_TIME = 1.0
 
@@ -1601,14 +1612,14 @@ class DynamicsUnitary(Dynamics):
         elif self.oper_dtype == np.ndarray:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = np.linalg.eigh(H)
+            eig_val, eig_vec = eigh(H)
         else:
             if sparse:
                 H = self._dyn_gen[k].toarray()
             else:
                 H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = la.eigh(H)
+            eig_val, eig_vec = eigh(H)
 
         # assuming H is an nxn matrix, find n
         n = self.get_drift_dim()
