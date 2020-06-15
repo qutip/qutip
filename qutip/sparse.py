@@ -60,8 +60,9 @@ if eigh_unsafe:
         idx = np.argsort(val)
         if eigvals:
             return (val[idx[eigvals[0]:eigvals[1]+1]],
-                    vec[:,idx[eigvals[0]:eigvals[1]+1]])
-        return val[idx], vec[:,idx]
+                    vec[:, idx[eigvals[0]:eigvals[1]+1]])
+        return val[idx], vec[:, idx]
+    
     def eigvalsh(a, UPLO="L", eigvals=[]):
         val = la.eigvals(a)
         val = np.sort(np.real(val))

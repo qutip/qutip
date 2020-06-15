@@ -81,9 +81,7 @@ if settings.eigh_unsafe:
         val, vec = la.eig(mat)
         val = np.real(val)
         idx = np.argsort(val)
-        #for i in range(len(val)):
-        #    vec[:,i] *= np.exp(-1j*np.angle(vec[0,i]))
-        return val[idx], vec[:,idx]
+        return val[idx], vec[:, idx]
 else:
     eigh = la.eigh
 
