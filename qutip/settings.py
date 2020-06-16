@@ -97,12 +97,13 @@ def _valid_config(key):
         return True
     return False
 
+
 _environment_keys = ["ipython", 'has_mkl', 'has_openmp',
                      'mkl_lib', 'fortran', 'num_cpus']
 __self = locals().copy()  # Not ideal, making an object would be better
 __all_out = [key for key in __self if _valid_config(key)]
 __all = [key for key in __all_out if key not in _environment_keys]
-__default = {key:__self[key] for key in __all}
+__default = {key: __self[key] for key in __all}
 __section = "qutip"
 del _valid_config
 __self = locals()
@@ -150,7 +151,7 @@ def reset():
         num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
     elif 'cpus' in info:
         import qutip.hardware_info
-        info =  qutip.hardware_info.hardware_info()
+        info = qutip.hardware_info.hardware_info()
         num_cpus = info['cpus']
     else:
         try:

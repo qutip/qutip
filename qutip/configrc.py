@@ -198,7 +198,7 @@ def read_rc_key(key, datatype, section='qutip', rc_file="qutiprc"):
         raise ValueError("key not found")
     reader = get_reader(datatype(0), config)
     opts = config.options(section)
-    if not key in opts:
+    if key not in opts:
         raise ValueError("key not found")
     return reader(section, key)
 
