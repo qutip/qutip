@@ -63,7 +63,7 @@ import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
 from qutip.qobj import Qobj
-from qutip.sparse import sp_eigs, _dense_eigs
+from qutip.sparse import sp_eigs, _dense_eigs, eigh
 import qutip.settings as settings
 # QuTiP logging
 import qutip.logging_utils as logging
@@ -75,7 +75,6 @@ import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
 import qutip.control.dump as qtrldump
-from qutip.sparse import eigh
 
 DEF_NUM_TSLOTS = 10
 DEF_EVO_TIME = 1.0
