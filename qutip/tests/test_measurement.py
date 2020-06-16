@@ -159,7 +159,7 @@ def test_measurement_statistics_input_errors():
 def check_measure(op, state):
     """ Check that all measure results are in measurement_statistics which
     was previously tested.
-    This remove the depandance on the prng.
+    This removes the dependance on the prng.
     """
     evs, ess_or_projs, prob = measurement_statistics(op, state)
     expected_measurements = EigenPairs(list(zip(evs, ess_or_projs)))
