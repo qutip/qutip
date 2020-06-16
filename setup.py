@@ -66,11 +66,12 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy',
             'qutip/qip/compiler',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
-            'qutip/core', 'qutip/core/cy',
+            'qutip/core', 'qutip/core/cy', 'qutip/core/data/',
             'qutip/core/cy/openmp', 'qutip/cy/openmp']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
+    'qutip/core/data': ['*.pxd', '*.pyx'],
     'qutip/core/cy': ['*.pxd', '*.pyx'],
     'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
     'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
@@ -159,6 +160,9 @@ cy_exts = {
         'mcsolve',
         'piqs',
         'stochastic',
+    ],
+    '.core.data': [
+        'dispatch',
     ],
     '.core.cy': [
         'cqobjevo',
