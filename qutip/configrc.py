@@ -54,7 +54,7 @@ sections = [('qutip', qset)]
 
 def full_path(rc_file):
     rc_file = os.path.expanduser(rc_file)
-    if op.path.isabs(rc_file):
+    if os.path.isabs(rc_file):
         return rc_file
     qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
     return os.path.join(qutip_conf_dir, rc_file)
@@ -67,7 +67,7 @@ def has_qutip_rc():
     """
     qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
     if os.path.exists(qutip_conf_dir):
-        qutip_rc_file = os.path.join(qutip_conf_dir,rc_file)
+        qutip_rc_file = os.path.join(qutip_conf_dir, "qutiprc")
         qrc_exists = os.path.isfile(qutip_rc_file)
         if qrc_exists:
             return True, qutip_rc_file
@@ -83,10 +83,11 @@ def generate_qutiprc(rc_file="qutiprc"):
     """
     # Check for write access to home dir
     qutip_rc_file = full_path(rc_file)
-    qutip_conf_dir = os.path.dirname(rc_file)
+    qutip_conf_dir = os.path.dirname(qutip_rc_file)
     os.makedirs(qutip_conf_dir, exist_ok=True)
 
-    if os.path.isfile(rc_file):
+    if os.path.isfile(qutip_rc_file):
+        config = configparser.ConfigParser()
         config.read(qutip_rc_file)
         modified = False
         for section, settings_object in sections:
@@ -127,7 +128,7 @@ def has_rc_key(key, section=None, rc_file="qutiprc"):
     Verify if key exist in section of rc_file
     """
     rc_file = full_path(rc_file)
-    if not os.path.isfile(rc_file)
+    if not os.path.isfile(rc_file):
         return False
     config = configparser.ConfigParser()
     config.read(rc_file)
@@ -270,7 +271,7 @@ def write_rc_qset(rc_file):
     write_rc_object(rc_file, "qutip", qset)
 
 
-def load_rc_qset(rc_file, section, object):
+def load_rc_qset(rc_file):
     """
     Read qutip.settings to a qutiprc file.
 
@@ -326,7 +327,7 @@ def load_rc_config(rc_file):
                                   + op)
                     # raise Exception('Invalid config variable in qutiprc.')
         else:
-            warnings.warn("Section " section + " not found ")
+            warnings.warn("Section " + section + " not found ")
             # raise configparser.NoSectionError('qutip')
 
     if config.has_section('compiler'):

@@ -88,26 +88,27 @@ except:
 
 
 def _valid_config(key):
-    environment_keys = ["ipython", 'has_mkl', 'has_openmp',
-                        'mkl_lib', 'fortran', 'num_cpus']
-    if key in environment_keys:
+    if key == "absolute_import":
         return False
     if key.startswith("_"):
         return False
-    val = getattr(__self, key)
-    if isinstance(val, (bool, int, flaot, complex, str)):
+    val = __self[key]
+    if isinstance(val, (bool, int, float, complex, str)):
         return True
     return False
 
-
-__self = locals()  # Not ideal, having access to itself as qset would be better
-__all = [key for key in __self if _valid_config(key)]
-__default = {key:getattr(__self, key) for key in __all}
+_environment_keys = ["ipython", 'has_mkl', 'has_openmp',
+                     'mkl_lib', 'fortran', 'num_cpus']
+__self = locals().copy()  # Not ideal, making an object would be better
+__all_out = [key for key in __self if _valid_config(key)]
+__all = [key for key in __all_out if key not in _environment_keys]
+__default = {key:__self[key] for key in __all}
 __section = "qutip"
 del _valid_config
+__self = locals()
 
 
-def save(file='qutiprc', all_config=False):
+def save(file='qutiprc', all_config=True):
     """
     Write the settings to a file.
     Default file is 'qutiprc' which is loaded when importing qutip.
@@ -116,13 +117,13 @@ def save(file='qutiprc', all_config=False):
     If 'all_config' is used, also load other available configs.
     """
     from qutip.configrc import write_rc_qset, write_rc_config
-    if save_all_config:
+    if all_config:
         write_rc_config(file)
     else:
         write_rc_qset(file)
 
 
-def load(file='qutiprc', all_config=False):
+def load(file='qutiprc', all_config=True):
     """
     Loads the settings from a file.
     Default file is 'qutiprc' which is loaded when importing qutip.
@@ -131,7 +132,7 @@ def load(file='qutiprc', all_config=False):
     If 'all_config' is used, also load other available configs.
     """
     from qutip.configrc import load_rc_qset, load_rc_config
-    if save_all_config:
+    if all_config:
         load_rc_config(file)
     else:
         load_rc_qset(file)
@@ -173,7 +174,7 @@ def reset():
         __IPYTHON__
         __self["ipython"] = True
     except:
-        __self"ipython"] = False
+        __self["ipython"] = False
 
     from qutip._mkl.utilities import _set_mkl
     _set_mkl()
@@ -181,6 +182,7 @@ def reset():
 
 def __repr__():
     out = "qutip settings:\n"
-    longest = max(len(key) for key in __all)
-    for key in __all:
-        out += "{}"
+    longest = max(len(key) for key in __all_out)
+    for key in __all_out:
+        out += "{:{width}} : {}\n".format(key, __self[key], width=longest)
+    return out
