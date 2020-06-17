@@ -1456,18 +1456,24 @@ class QubitCircuit:
                 self.U_list.append(globalphase(gate.arg_value, self.N))
             elif gate.name in self.user_gates:
                 if gate.controls is not None:
-                    raise ValueError(
-                        "A user defined gate {} takes only  "
-                        "`targets` variable.".format(gate.name))
-                func = self.user_gates[gate.name]
-                para_num = len(inspect.getfullargspec(func)[0])
-                if para_num == 0:
-                    oper = func()
-                elif para_num == 1:
-                    oper = func(gate.arg_value)
+                  raise ValueError(
+                      "A user defined gate {} takes only  "
+                      "`targets` variable.".format(gate.name))
+                func_or_oper = self.user_gates[gate.name]
+                if isfunction(func_or_oper):
+                  para_num = len(inspect.getfullargspec(func)[0])
+                  if para_num == 0:
+                      oper = func()
+                  elif para_num == 1:
+                      oper = func(gate.arg_value)
+                  else:
+                      raise ValueError(
+                          "gate function takes at most one parameters.")
+                elif isinstance(func_or_oper, Qobj):
+                  oper = func_or_oper
                 else:
-                    raise ValueError(
-                        "gate function takes at most one parameters.")
+                  raise ValueError(
+                          "gate is neither function nor operator")
                 self.U_list.append(expand_operator(
                     oper, N=self.N, targets=gate.targets, dims=self.dims))
 
