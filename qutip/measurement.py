@@ -35,7 +35,6 @@ Module for measuring quantum objects.
 """
 
 import numpy as np
-import pytest
 from qutip.qobj import Qobj
 
 
