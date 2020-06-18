@@ -37,8 +37,10 @@ import pytest
 from math import sqrt
 from qutip.qip.circuit import Measurement
 from qutip import (Qobj, basis, isequal, ket2dm,
-            sigmax, sigmay, sigmaz, identity, tensor, rand_ket)
-from qutip.measurement import measure, measurement_statistics
+                    sigmax, sigmay, sigmaz, identity, tensor, rand_ket)
+from qutip.measurement import (measure, measurement_statistics,
+                                measure_observable,
+                                measurement_statistics_observable)
 
 
 class EigenPairs:
@@ -74,9 +76,9 @@ SIGMAY = EigenPairs([
 ])
 
 
-def check_measurement_statistics(
+def check_measurement_statistics_observable(
         op, state, pairs, probabilities):
-    evs, ess_or_projs, probs = measurement_statistics(op, state)
+    evs, ess_or_projs, probs = measurement_statistics_observable(op, state)
     np.testing.assert_array_equal(evs, pairs.eigenvalues)
     if state.isket:
         ess = ess_or_projs
@@ -104,40 +106,48 @@ def check_measurement_statistics(
                             SIGMAY, [0.5, 0.5], id="sigmay_ket"),
                     pytest.param(sigmay(), ket2dm(basis(2, 0)),
                             SIGMAY, [0.5, 0.5], id="sigmay_dm")])
-def test_measurement_statistics(op, state, pairs, probabilities):
+def test_measurement_statistics_observable(op, state, pairs, probabilities):
     """ measurement statistics: sigmaz applied to basis states. """
-    check_measurement_statistics(op, state, pairs, probabilities)
+    check_measurement_statistics_observable(op, state, pairs, probabilities)
 
 
-def test_measurement_statistics_input_errors():
+@pytest.mark.parametrize(["measurement_statistics_fn", "op1", "op2", "op3"],
+                [pytest.param(measurement_statistics,
+                            ["notqobj"], [basis(2, 1)], [sigmaz()],
+                            id = "measurement_statistics_input"),
+                pytest.param(measurement_statistics_observable,
+                            "notqobj", basis(2, 1), sigmaz(),
+                            id = "measurement_statistics_observable_input")])
+def test_measurement_statistics_input_errors(measurement_statistics_fn,
+                                            op1, op2, op3):
     """ measurement_statistics: check input errors """
     np.testing.assert_raises_regex(
         TypeError, "op must be a Qobj",
-        measurement_statistics, "notqobj", basis(2, 0))
+        measurement_statistics_fn, op1, basis(2, 0))
     np.testing.assert_raises_regex(
         ValueError, "op must be an operator",
-        measurement_statistics, basis(2, 1), basis(2, 0))
+        measurement_statistics_fn, op2, basis(2, 0))
     np.testing.assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measurement_statistics, sigmaz(), "notqobj")
+        measurement_statistics_fn, op3, "notqobj")
     np.testing.assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measurement_statistics, sigmaz(), basis(2, 0).dag())
+        measurement_statistics_fn, op3, basis(2, 0).dag())
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measurement_statistics, sigmaz(), basis(3, 0))
+        measurement_statistics_fn, op3, basis(3, 0))
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measurement_statistics, sigmaz(), ket2dm(basis(3, 0)))
+        measurement_statistics_fn, op3, ket2dm(basis(3, 0)))
 
 
-def check_measure(op, state, expected_measurements, seed=0):
+def check_measure_observable(op, state, expected_measurements, seed=0):
     np.random.seed(seed)
     measurements = []
     for _ in expected_measurements:
-        value, new_state = measure(op, state)
+        value, new_state = measure_observable(op, state)
         measurements.append((value, new_state))
     assert measurements == expected_measurements
 
@@ -179,34 +189,40 @@ def check_measure(op, state, expected_measurements, seed=0):
                     pytest.param(sigmay(), ket2dm(basis(2, 1)),
                     pairs2dm([SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1],
                             SIGMAY[0]]), 42,
-                    id="sigmay_dm")])
-def test_measure(op, state, expected_measurements, seed):
+                            id="sigmay_dm")])
+def test_measure_observable(op, state, expected_measurements, seed):
     """ measure: basis states using different observables """
-    check_measure(op, state, expected_measurements, seed)
+    check_measure_observable(op, state, expected_measurements, seed)
 
 
-def test_measure_input_errors():
+@pytest.mark.parametrize(["measure_fn", "op1", "op2", "op3"], [
+                pytest.param(measure, ["notqobj"], [basis(2, 1)], [sigmaz()],
+                            id="measure_input"),
+                pytest.param(measure_observable,
+                            "notqobj", basis(2, 1), sigmaz(),
+                            id="measure_observable_input")])
+def test_measure_input_errors(measure_fn, op1, op2, op3):
     """ measure: check input errors """
     np.testing.assert_raises_regex(
         TypeError, "op must be a Qobj",
-        measure, "notqobj", basis(2, 0))
+        measure_fn, op1, basis(2, 0))
     np.testing.assert_raises_regex(
         ValueError, "op must be an operator",
-        measure, basis(2, 1), basis(2, 0))
+        measure_fn, op2, basis(2, 0))
     np.testing.assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measure, sigmaz(), "notqobj")
+        measure_fn, op3, "notqobj")
     np.testing.assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measure, sigmaz(), basis(2, 0).dag())
+        measure_fn, op3, basis(2, 0).dag())
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measure, sigmaz(), basis(3, 0))
-    assert_raises_regex(
+        measure_fn, op3, basis(3, 0))
+    np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measure, sigmaz(), ket2dm(basis(3, 0)))
+        measure_fn, op3, ket2dm(basis(3, 0)))
 
 
 def test_povm():

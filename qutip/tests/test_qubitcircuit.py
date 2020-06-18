@@ -46,7 +46,7 @@ def _op_dist(A, B):
 
 def _teleportation_circuit():
     teleportation = QubitCircuit(3, num_cbits=2,
-                                    input_states=["q0", "0", "0", "c0", "c1"])
+                                input_states=["q0", "0", "0", "c0", "c1"])
 
     teleportation.add_gate("SNOT", targets=[1])
     teleportation.add_gate("CNOT", targets=[2], controls=[1])
@@ -224,8 +224,10 @@ class TestQubitCircuit:
             assert qc1.gates[i].controls == qc.gates[i].controls
 
         for i in range(len(qc1.gates_and_measurements)):
-            assert qc1.gates_and_measurements[i].name == qc.gates_and_measurements[i].name
-            assert qc1.gates_and_measurements[i].targets == qc.gates_and_measurements[i].targets
+            assert (qc1.gates_and_measurements[i].name
+                    == qc.gates_and_measurements[i].name)
+            assert (qc1.gates_and_measurements[i].targets
+                    == qc.gates_and_measurements[i].targets)
 
         # Test exception when qubit out of range
         pytest.raises(NotImplementedError, qc1.add_circuit, qc, start=4)
@@ -309,8 +311,7 @@ class TestQubitCircuit:
         Text exceptions are thrown correctly for inadequate inputs
         """
         qc = QubitCircuit(2)
-        pytest.raises(ValueError, qc.add_gate, gate,
-                        targets=[1], controls=[0])
+        pytest.raises(ValueError, qc.add_gate, gate, targets=[1], controls=[0])
 
     @pytest.mark.parametrize('gate', ['CY', 'CZ', 'CS', 'CT'])
     def test_exceptions_controlled(self, gate):
@@ -462,7 +463,6 @@ class TestQubitCircuit:
         _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
 
         np.testing.assert_allclose(initial_probabilities, final_probabilities)
-
 
     def test_runstatistics_teleportation(self):
         """
