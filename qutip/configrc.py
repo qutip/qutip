@@ -49,6 +49,15 @@ def getcomplex(self, section, option):
 configparser.ConfigParser.getcomplex = getcomplex
 
 
+getter = {
+    bool : "getboolean",
+    int : "getint",
+    float : "getint",
+    complex : "getint",
+    str : "get",
+}
+
+
 sections = [('qutip', qset)]
 
 
@@ -110,17 +119,7 @@ def generate_qutiprc(rc_file="qutiprc"):
 
 def get_reader(val, config):
     # The type of the read value is the same as the one presently loaded.
-    if isinstance(val, bool):
-        reader = config.getboolean
-    elif isinstance(val, int):
-        reader = config.getint
-    elif isinstance(val, float):
-        reader = config.getfloat
-    elif isinstance(val, complex):
-        reader = config.getcomplex
-    elif isinstance(val, str):
-        reader = config.get
-    return reader
+    return getattr(config, getter[type(val)])
 
 
 def has_rc_key(key, section=None, rc_file="qutiprc"):
@@ -203,6 +202,23 @@ def read_rc_key(key, datatype, section='qutip', rc_file="qutiprc"):
     return reader(section, key)
 
 
+def has_rc_object(rc_file, section):
+    """
+    Read keys and values corresponding to one settings location
+    to the qutiprc file.
+
+    Parameters
+    ----------
+    rc_file : str
+        String specifying file location.
+    section : str
+        Tags for the saved data.
+    """
+    config = configparser.ConfigParser()
+    config.read(full_path(rc_file))
+    return config.has_section(section)
+
+
 def write_rc_object(rc_file, section, object):
     """
     Writes all keys and values corresponding to one object qutiprc file.
@@ -222,7 +238,7 @@ def write_rc_object(rc_file, section, object):
     config.read(full_path(rc_file))
     if not config.has_section(section):
         config.add_section(section)
-    keys = object.__all
+    keys = object._all
     for key in keys:
         config.set(section, key, str(getattr(object, key)))
     with open(full_path(rc_file), 'w') as cfgfile:
@@ -249,7 +265,7 @@ def load_rc_object(rc_file, section, object):
     config.read(full_path(rc_file))
     if not config.has_section(section):
         raise configparser.NoSectionError(section)
-    keys = object.__all
+    keys = object._all
     opts = config.options(section)
     for op in opts:
         if op in keys:
@@ -297,7 +313,7 @@ def write_rc_config(rc_file):
     config = configparser.ConfigParser()
     config.read(full_path(rc_file))
     for section, settings_object in sections:
-        keys = settings_object.__all
+        keys = settings_object._all
         for key in keys:
             config.set(section, key, str(getattr(settings_object, key)))
 
@@ -315,7 +331,7 @@ def load_rc_config(rc_file):
     config.read(full_path(rc_file))
     for section, settings_object in sections:
         if config.has_section(section):
-            keys = settings_object.__all
+            keys = settings_object._all
             opts = config.options(section)
             for op in opts:
                 if op in keys:

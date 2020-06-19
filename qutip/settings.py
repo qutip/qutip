@@ -101,10 +101,9 @@ def _valid_config(key):
 _environment_keys = ["ipython", 'has_mkl', 'has_openmp',
                      'mkl_lib', 'fortran', 'num_cpus']
 __self = locals().copy()  # Not ideal, making an object would be better
-__all_out = [key for key in __self if _valid_config(key)]
-__all = [key for key in __all_out if key not in _environment_keys]
-__default = {key: __self[key] for key in __all}
-__section = "qutip"
+_all_out = [key for key in __self if _valid_config(key)]
+_all = [key for key in _all_out if key not in _environment_keys]
+_default = {key: __self[key] for key in _all}
 del _valid_config
 __self = locals()
 
@@ -143,8 +142,8 @@ def reset():
     """Hard reset of the qutip.settings values
     Recompute the threshold for openmp, so it may be slow.
     """
-    for key in __default:
-        __self[key] = __default[key]
+    for key in _default:
+        __self[key] = _default[key]
 
     import os
     if 'QUTIP_NUM_PROCESSES' in os.environ:
@@ -181,9 +180,98 @@ def reset():
     _set_mkl()
 
 
-def __repr__():
+def list():
     out = "qutip settings:\n"
-    longest = max(len(key) for key in __all_out)
-    for key in __all_out:
+    longest = max(len(key) for key in _all_out)
+    for key in _all_out:
         out += "{:{width}} : {}\n".format(key, __self[key], width=longest)
     return out
+
+
+class _QtConfig:
+    _all = []
+    _all_set = []
+    _repr_keys = []
+    _name = ""
+    _fullname = ""
+    _isDefault = False
+    _defaultInstance = False
+
+    def __init__(self, *, file="", _default=False, **kwargs):
+        if _default:
+            cls = self.__class__
+            self._buildCts(cls)
+            self._name = "Default " + cls._name
+            self._fullname = "Default " + cls._fullname
+            self._isDefault = True
+            cls._defaultInstance = self
+        elif self._defaultInstance:
+            [setattr(self, key, getattr(self._defaultInstance, key))
+                for key in self._all_set]
+            for key in kwargs:
+                if key in self._all_set:
+                    setattr(self, key, kwargs[key])
+        else:
+            self._buildCts(self)
+        if file:
+            self.load(file)
+
+    def __repr__(self):
+        out = self._fullname + ":\n"
+        longest = max(len(key) for key in self._repr_keys)
+        for key in self._repr_keys:
+            out += "{:{width}} : {}\n".format(key, getattr(self, key),
+                                              width=longest)
+        return out
+
+    def reset(self):
+        if self._isDefault:
+            [setattr(self, key,getattr(self.__class__, key))
+             for key in self._all]
+        else:
+            [setattr(self, key, getattr(self._defaultInstance, key))
+             for key in self._all]
+
+    def save(self, file="qutiprc"):
+        import qutip.configrc as qrc
+        qrc.write_rc_object(file, self._name, self)
+
+    def load(self, file="qutiprc"):
+        import qutip.configrc as qrc
+        qrc.load_rc_object(file, self._name, self)
+
+    @classmethod
+    def _buildCts(cls, target):
+        target._all = [key for key in cls.__dict__
+                       if cls._valid(key)]
+        target._all_set = [key for key in cls.__dict__
+                           if cls._valid(key, _set=True)]
+        target._repr_keys = [key for key in cls.__dict__
+                             if cls._valid(key, _repr=True)]
+        target._name = cls.__name__
+        target._fullname = ".".join([cls.__module__, cls.__name__])
+
+    @classmethod
+    def _valid(cls, key, _repr=False, _set=False):
+        import qutip.configrc as qrc
+        if key.startswith("_"):
+            return False
+        data = getattr(cls, key)
+        if _repr and isinstance(data, property):
+            # Print all properties
+            return True
+        if _set and isinstance(data, property) and data.fset is not None:
+            # Properties with a setter can be set in __init__
+            return True
+        # Only these types can be saved
+        return type(data) in qrc.getter
+
+
+def _register(obj, name):
+    import qutip.configrc as qrc
+    default = obj(_default=True)
+    obj._name = name
+    if qrc.has_rc_object("qutiprc", name):
+        default.load("qutiprc")
+    __self[name] = default
+    qrc.sections.append((name, default))
