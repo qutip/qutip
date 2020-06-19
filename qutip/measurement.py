@@ -45,7 +45,6 @@ def _verify_input(op, state):
         raise ValueError("op must be an operator")
     if not isinstance(state, Qobj):
         raise TypeError("state must be a Qobj")
-
     if state.isket:
         if op.dims[-1] != state.dims[0]:
             raise ValueError(
@@ -312,7 +311,7 @@ def measure(ops, state):
         matrix).
     """
 
-    collapsed_states, probabilites = measurement_statistics(ops, state)
-    index = np.random.choice(collapsed_states, p=probabilities)
+    collapsed_states, probabilities = measurement_statistics(ops, state)
+    index = np.random.choice(range(len(collapsed_states)), p=probabilities)
     state = collapsed_states[index]
     return index, state
