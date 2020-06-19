@@ -45,10 +45,12 @@ state and a *down* state:
 which represent spin-1/2 particles with their spin pointing either up or down
 along the z-axis.
 
-We choose what to measure by selecting a *measurement operator*. For example,
-we could select :func:`~qutip.sigmaz` which measures the z-component of the
-spin of a spin-1/2 particle, or :func:`~qutip.sigmax` which measures the
-x-component:
+There are two ways to do measurements:
+
+- We choose what to measure by selecting a *measurement operator*. For example,
+  we could select :func:`~qutip.sigmaz` which measures the z-component of the
+  spin of a spin-1/2 particle, or :func:`~qutip.sigmax` which measures the
+  x-component:
 
 .. testcode:: [measurement]
 
@@ -129,10 +131,67 @@ When `left` is chosen, the result of the measurement will be `(-1.0, -left)`.
 
 When `right` is chosen, the result of measurement with be `(1.0, right)`.
 
+- We choose what to measure by specifying a *list of projection operators*. For
+  example, we could select the projection operators :math:`\ket{0} \bra{0}` and
+  :math:`\ket{1} \bra{1}` which measure the state in the :math:`\ket{0}, \ket{1}`
+  basis. Note that these projection operators are simply the eigenstates of
+  the :func:`~qutip.sigmaz` operator.
+
+  .. ipython::
+
+     In [1]: Z0, Z1 = ket2dm(basis(2, 0)), ket2dm(basis(2, 1))
+
+The probabilities are calculated for each projection operator as well
+as the respective output state.
+
+  .. ipython::
+
+     In [1]: measure([Z0, Z1], up) == (0, up)
+
+     In [1]: measure_observable([Z0, Z1], down) == (1, down)
+
+In this case, the projection operators are conveniently eigenstates corresponding
+to subspaces of dimension :math: `1`. However, this might not be
+the case, in which case it is not possible to have unique eigenvalues for each
+eigenstate. Suppose we want to measure only the first
+qubit in a two-qubit system. Consider the two qubit state :math: `\ket{0+}`
+
+.. ipython::
+
+   In [1]: state_0 = basis(2, 0)
+
+   In [2]: state_plus = (1/sqrt(2)) * (basis(2, 0) + basis(2, 1))
+
+   In [2]: state_0plus = tensor(state_0, state_plus)
+
+Now, suppose we want to measure only the first qubit in the computational basis.
+We can do that by measuring with the projection operators
+:math: `\ket{0}\bra{0} \otimes I` and  :math: `\ket{1}\bra{1} \otimes I`.
+
+.. ipython::
+
+   In [1]: P0 = tensor(Z0, identity(2))
+
+   In [1]: P1 = tensor(Z1, identity(2))
+
+Now, as in the previous example, we can measure by supplying a list of projection operators
+and the state.
+
+.. ipython::
+
+   In [1]: measure([Z0, Z1], state_0plus) == (0, state_0plus)
+
+The output of the measurement is the index of the measurement outcome as well
+as the output state on the full space of the input state. It is crucial to
+note that we do not discard the particular qubit after measurement as is the
+case in doing it on hardware.
+
+
 Now you know how to measure quantum states in QuTiP!
 
-The `measure` function can perform measurements on density matrices too. You
-can read about these and other details at :func:`~qutip.measurement.measure`.
+The `measure` and  `measure_observable` function can perform measurements on
+density matrices too. You can read about these and other details at
+:func:`~qutip.measurement.measure` and :func:`~qutip.measurement.measure_observable`.
 
 .. _measurement-statistics:
 
@@ -201,7 +260,7 @@ distribution of the outcomes exactly in a single line:
    >>> probabilities  # doctest: +NORMALIZE_WHITESPACE
    [0.5000000000000001, 0.4999999999999999]
 
-The :func:`~qutip.measurement.measure` function returns three values:
+The :func:`~qutip.measurement.measurement_statistics_observable` function returns three values:
 
 * `eigenvalues` is an array of eigenvalues of the measurement operator, i.e.
   a list of the possible measurement results. In our example
@@ -219,6 +278,23 @@ The :func:`~qutip.measurement.measure` function returns three values:
 All three lists are in the same order -- i.e. the first eigenvalue is
 `eigenvalues[0]`, its corresponding eigenstate is `eigenstates[0]`, and
 its probability is `probabilities[0]`, and so on.
+
+Similarly, when we want to measure using projection operators, we can use the
+`measurement_statistics` functions. Consider again the state :math: `\ket{0+}`.
+Suppose, now we want to obtain the probabilities for the second qubit.
+
+.. ipython::
+
+   In [1]: eigenvalues, eigenstates, probabilities = measurement_statistics_observable(spin_x, up)
+
+   In [1]: eigenvalues
+   Out[1]: array([-1., -1.])
+
+   In [1]: eigenstates
+
+   In [1]: probabilities
+   Out[1]: [0.5000000000000001, 0.5000000000000001]
+
 
 The `measurement_statistics` function can provide statistics for measurements
 of density matrices too. In this case `projectors` from the density matrix
