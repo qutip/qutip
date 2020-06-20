@@ -75,6 +75,15 @@ SIGMAY = EigenPairs([
     (1.0, (-basis(2, 0) - 1j * basis(2, 1)).unit()),
 ])
 
+state0 = basis(2, 0)
+state1 = basis(2, 1)
+stateplus = (basis(2, 0) + basis(2, 1)).unit()
+stateminus = (basis(2, 0) - basis(2, 1)).unit()
+stateR = (basis(2, 0) + 1j * basis(2, 1)).unit()
+stateL = (basis(2, 0) - 1j * basis(2, 1)).unit()
+PZ = [ket2dm(state0), ket2dm(state1)]
+PX = [ket2dm(stateplus), ket2dm(stateminus)]
+PY = [ket2dm(stateR), ket2dm(stateL)]
 
 def check_measurement_statistics_observable(
         op, state, pairs, probabilities):
@@ -107,8 +116,39 @@ def check_measurement_statistics_observable(
                     pytest.param(sigmay(), ket2dm(basis(2, 0)),
                             SIGMAY, [0.5, 0.5], id="sigmay_dm")])
 def test_measurement_statistics_observable(op, state, pairs, probabilities):
-    """ measurement statistics: sigmaz applied to basis states. """
+    """ measurement_statistics_observable: observables on basis states. """
     check_measurement_statistics_observable(op, state, pairs, probabilities)
+
+
+def check_measurement_statistics(ops, state, final_states, probabilities):
+    collapsed_states, probs = measurement_statistics(ops, state)
+    for i, final_state in enumerate(final_states):
+        collapsed_state = collapsed_states[i]
+        if final_state:
+            assert isequal(collapsed_state, final_state)
+        else:
+            assert collapsed_state is None
+    np.testing.assert_almost_equal(probs, probabilities)
+
+
+@pytest.mark.parametrize(["ops", "state", "final_states", "probabilities"], [
+                    pytest.param(PZ, basis(2, 0),
+                            [state0, None], [1, 0], id="PZ_ket"),
+                    pytest.param(PZ, ket2dm(basis(2, 0)),
+                            [ket2dm(state0), None], [1, 0], id="PZ_dm"),
+                    pytest.param(PX, basis(2, 0),
+                            [stateplus, stateminus], [0.5, 0.5], id="PX_ket"),
+                    pytest.param(PX, ket2dm(basis(2, 0)),
+                            [ket2dm(stateplus), ket2dm(stateminus)],
+                            [0.5, 0.5], id="PX_dm"),
+                    pytest.param(PY, basis(2, 0),
+                            [stateR, stateL], [0.5, 0.5], id="PY_ket"),
+                    pytest.param(PY, ket2dm(basis(2, 0)),
+                            [ket2dm(stateR), ket2dm(stateL)],
+                            [0.5, 0.5], id="PY_dm")])
+def test_measurement_statistics(ops, state, final_states, probabilities):
+    """ measurement_statistics: projectors applied to basis states. """
+    check_measurement_statistics(ops, state, final_states, probabilities)
 
 
 @pytest.mark.parametrize(["measurement_statistics_fn", "op1", "op2", "op3"],
@@ -191,8 +231,34 @@ def check_measure_observable(op, state, expected_measurements, seed=0):
                             SIGMAY[0]]), 42,
                             id="sigmay_dm")])
 def test_measure_observable(op, state, expected_measurements, seed):
-    """ measure: basis states using different observables """
+    """ measure_observable: basis states using different observables """
     check_measure_observable(op, state, expected_measurements, seed)
+
+
+def check_measure(ops, state):
+    collapsed_states, _ = measurement_statistics(ops, state)
+    for _ in range(10):
+        index, final_state = measure(ops, state)
+        assert isequal(final_state, collapsed_states[index])
+
+
+@pytest.mark.parametrize(["op", "state"], [
+
+                    pytest.param(PZ, basis(2, 0), id="PZ_ket1"),
+                    pytest.param(PZ, basis(2, 1), id="PZ_ket2"),
+                    pytest.param(PZ, ket2dm(basis(2, 0)), id="PZ_dm1"),
+                    pytest.param(PZ, ket2dm(basis(2, 1)), id="PZ_dm2"),
+
+                    pytest.param(PX, basis(2, 0), id="PX_ket1"),
+                    pytest.param(PX, basis(2, 1), id="PX_ket2"),
+                    pytest.param(PX, ket2dm(basis(2, 0)), id="PX_dm"),
+
+                    pytest.param(PY, basis(2, 0), id="PY_ket1"),
+                    pytest.param(PY, basis(2, 1), id="PY_ket2"),
+                    pytest.param(PY, ket2dm(basis(2, 1)), id="PY_dm")])
+def test_measure(op, state):
+    """measure: test on basis states using different projectors """
+    check_measure(op, state)
 
 
 @pytest.mark.parametrize(["measure_fn", "op1", "op2", "op3"], [
