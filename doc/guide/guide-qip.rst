@@ -19,14 +19,14 @@ The most common model for quantum computing is the quantum circuit model. In QuT
 To get the matrix representation of each gate, we can call the class method :meth:`qutip.qip.QubitCircuit.propagators()`. Carrying out the matrices product, one gets the matrix representation of the whole evolution. This process is demonstrated in the following example.
 
 We can also carry out measurements on individual qubits (both in the middle and at the end of the circuit).
-Each measurement is saved as a class object :class:`qutip.qip.Measurement` with parameters such as target,
-the target qubit on which the measurement will be carried out and classical_store,
-the index of the classical register on which stores the result of the measurement.
+Each measurement is saved as a class object :class:`qutip.qip.Measurement` with parameters such as `target`,
+the target qubit on which the measurement will be carried out and `classical_store`,
+the index of the classical register which stores the measurement result.
 
 Finally, once we have constructed the circuit, we can use the
-`qutip.qip.QubitCircuit.run()` function to carry out one run of the circuit from start to finish which will return the final state.
+`qutip.qip.QubitCircuit.run()` function to carry out one run of the circuit from start to finish which will return the final state as well as the probability of that state being outputs.
 Moreover, `qutip.qip.QubitCircuit.run_statistics()` function can return all the possible output states along with the respective
-probability of observing them.
+probabilities.
 
 .. code-block:: python
 

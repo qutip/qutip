@@ -45,9 +45,9 @@ state and a *down* state:
 which represent spin-1/2 particles with their spin pointing either up or down
 along the z-axis.
 
-There are two ways to do measurements:
+There are two ways to do measurements.
 
-- We choose what to measure by selecting a *measurement operator*. For example,
+  In the first one, we choose what to measure by selecting a *measurement operator*. For example,
   we could select :func:`~qutip.sigmaz` which measures the z-component of the
   spin of a spin-1/2 particle, or :func:`~qutip.sigmax` which measures the
   x-component:
@@ -102,7 +102,7 @@ Neither eigenvector has any component in the direction of the other (they are
 orthogonal), so `measure(spin_z, up)` returns the state `up` 100% percent of the
 time and `measure(spin_z, down)` returns the state `down` 100% of the time.
 
-Note how :func:`~qutip.measurement.measure` returns a pair of values. The
+Note how :func:`~qutip.measurement.measure_observable` returns a pair of values. The
 first is the measured value, i.e. an eigenvalue of the operator (e.g. `1.0`),
 and the second is the state of the quantum system after the measurement,
 i.e. an eigenvector of the operator (e.g. `up`).
@@ -131,29 +131,31 @@ When `left` is chosen, the result of the measurement will be `(-1.0, -left)`.
 
 When `right` is chosen, the result of measurement with be `(1.0, right)`.
 
-- We choose what to measure by specifying a *list of projection operators*. For
-  example, we could select the projection operators :math:`\ket{0} \bra{0}` and
-  :math:`\ket{1} \bra{1}` which measure the state in the :math:`\ket{0}, \ket{1}`
-  basis. Note that these projection operators are simply the eigenstates of
-  the :func:`~qutip.sigmaz` operator.
 
-  .. ipython::
+We can also choose what to measure by specifying a *list of projection operators*. For
+example, we could select the projection operators :math:`\ket{0} \bra{0}` and
+:math:`\ket{1} \bra{1}` which measure the state in the :math:`\ket{0}, \ket{1}`
+basis. Note that these projection operators are simply the projectors determined by
+the eigenstates of the :func:`~qutip.sigmaz` operator.
 
-     In [1]: Z0, Z1 = ket2dm(basis(2, 0)), ket2dm(basis(2, 1))
+.. ipython::
+
+   In [1]: Z0, Z1 = ket2dm(basis(2, 0)), ket2dm(basis(2, 1))
 
 The probabilities and respective output state
 are calculated for each projection operator.
-  .. ipython::
 
-     In [1]: measure([Z0, Z1], up) == (0, up)
+.. ipython::
 
-     In [2]: measure([Z0, Z1], down) == (1, down)
+   In [1]: measure([Z0, Z1], up) == (0, up)
+
+   In [2]: measure([Z0, Z1], down) == (1, down)
 
 In this case, the projection operators are conveniently eigenstates corresponding
-to subspaces of dimension :math: `1`. However, this might not be
+to subspaces of dimension :math:`1`. However, this might not be
 the case, in which case it is not possible to have unique eigenvalues for each
 eigenstate. Suppose we want to measure only the first
-qubit in a two-qubit system. Consider the two qubit state :math: `\ket{0+}`
+qubit in a two-qubit system. Consider the two qubit state :math:`\ket{0+}`
 
 .. ipython::
 
@@ -165,7 +167,7 @@ qubit in a two-qubit system. Consider the two qubit state :math: `\ket{0+}`
 
 Now, suppose we want to measure only the first qubit in the computational basis.
 We can do that by measuring with the projection operators
-:math: `\ket{0}\bra{0} \otimes I` and  :math: `\ket{1}\bra{1} \otimes I`.
+:math:`\ket{0}\bra{0} \otimes I` and  :math:`\ket{1}\bra{1} \otimes I`.
 
 .. ipython::
 
@@ -258,30 +260,30 @@ distribution of the outcomes exactly in a single line:
    >>> probabilities  # doctest: +NORMALIZE_WHITESPACE
    [0.5000000000000001, 0.4999999999999999]
 
-   The :func:`~qutip.measurement.measurement_statistics_observable` function returns three values:
+ The :func:`~qutip.measurement.measurement_statistics_observable` function returns three values:
 
-   * `eigenvalues` is an array of eigenvalues of the measurement operator, i.e.
-     a list of the possible measurement results. In our example
-     the value is `array([-1., -1.])`.
+ * `eigenvalues` is an array of eigenvalues of the measurement operator, i.e.
+   a list of the possible measurement results. In our example
+   the value is `array([-1., -1.])`.
 
-   * `eigenstates` is an array of the eigenstates of the measurement operator, i.e.
-     a list of the possible final states after the measurement is complete.
-     Each element of the array is a :obj:`~qutip.Qobj`.
+ * `eigenstates` is an array of the eigenstates of the measurement operator, i.e.
+   a list of the possible final states after the measurement is complete.
+   Each element of the array is a :obj:`~qutip.Qobj`.
 
-   * `probabilities` is a list of the probabilities of each measurement result.
-     In our example the value is `[0.5, 0.5]` since the `up` state has equal
-     probability of being measured to be in the left (`-1.0`) or
-     right (`1.0`) eigenstates.
+ * `probabilities` is a list of the probabilities of each measurement result.
+   In our example the value is `[0.5, 0.5]` since the `up` state has equal
+   probability of being measured to be in the left (`-1.0`) or
+   right (`1.0`) eigenstates.
 
-   All three lists are in the same order -- i.e. the first eigenvalue is
-   `eigenvalues[0]`, its corresponding eigenstate is `eigenstates[0]`, and
-   its probability is `probabilities[0]`, and so on.
+ All three lists are in the same order -- i.e. the first eigenvalue is
+ `eigenvalues[0]`, its corresponding eigenstate is `eigenstates[0]`, and
+ its probability is `probabilities[0]`, and so on.
 
 Similarly, when we want to measure using projection operators, we can use the
-`measurement_statistics` functions. Consider again, the state :math: `\ket{0+}`.
+`measurement_statistics` functions. Consider again, the state :math:`\ket{0+}`.
 Suppose, now we want to obtain the measurement outcomes for the second qubit. We
 must use the projectors specified earlier by `PZ2` which allow us to measure only
-on the second qubit. Since the second qubit has the state :math: `\ket{+}`, we get
+on the second qubit. Since the second qubit has the state :math:`\ket{+}`, we get
 the following result.
 
 .. ipython::
@@ -311,7 +313,7 @@ The :func:`~qutip.measurement.measurement_statistics` function returns two value
 
 * `probabilities` is a list of the probabilities of each measurement outcome.
 
-Note that the collapsed_states are exactly :math: `\ket{00}` and :math: `\ket{01}`
+Note that the collapsed_states are exactly :math:`\ket{00}` and :math:`\ket{01}`
 with equal probability, as expected. The two lists are in the same order.
 
 
@@ -319,4 +321,4 @@ The `measurement_statistics` function can provide statistics for measurements
 of density matrices too. In this case `projectors` from the density matrix
 onto the corresponding `eigenstates` are returned instead of the `eigenstates`.
 You can read about these and other details at
-:func:`~qutip.measurement.measurement_statistics`.
+:func:`~qutip.measurement.measurement_statistics` and :func:`~qutip.measurement.measurement_statistics_observable`.
