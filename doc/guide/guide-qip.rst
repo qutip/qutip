@@ -18,11 +18,15 @@ Quantum Circuit
 The most common model for quantum computing is the quantum circuit model. In QuTiP, we use :class:`qutip.qip.QubitCircuit` to represent a quantum circuit. Each quantum gate is saved as a class object :class:`qutip.qip.operations.Gate` with information such as gate name, target qubits and arguments.
 To get the matrix representation of each gate, we can call the class method :meth:`qutip.qip.QubitCircuit.propagators()`. Carrying out the matrices product, one gets the matrix representation of the whole evolution. This process is demonstrated in the following example.
 
-We can also carry out measurements on individual qubits (both in the middle and at the end of the circuit). Each measurement is saved as a class object :class:`qutip.qip.Measurement` with parameters such as target, the target qubit on which the measurement will be carried out and classical_store, the index of the classical register on which stores the result of the measurement.
+We can also carry out measurements on individual qubits (both in the middle and at the end of the circuit).
+Each measurement is saved as a class object :class:`qutip.qip.Measurement` with parameters such as target,
+the target qubit on which the measurement will be carried out and classical_store,
+the index of the classical register on which stores the result of the measurement.
 
 Finally, once we have constructed the circuit, we can use the
 `qutip.qip.QubitCircuit.run()` function to carry out one run of the circuit from start to finish which will return the final state.
-Moreover, we can run the circuit multiple times and obtain the various resulting states along with their respective observed frequencies.
+Moreover, `qutip.qip.QubitCircuit.run_statistics()` function can return all the possible output states along with the respective
+probability of observing them.
 
 .. code-block:: python
 
@@ -65,7 +69,7 @@ Moreover, we can run the circuit multiple times and obtain the various resulting
   [0. 0. 0. 1.]
   [0. 0. 1. 0.]
   [0. 1. 0. 0.]]
-  >>> final_state = qc.run(state=tensor(basis(2, 0), basis(2, 1)))
+  >>> probability, final_state = qc.run(state=tensor(basis(2, 0), basis(2, 1)))
   >>> print(final_state)
   Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
   Qobj data =
@@ -73,14 +77,18 @@ Moreover, we can run the circuit multiple times and obtain the various resulting
   [0.]
   [0.]
   [1.]]
-  >>> qc.run_statistics(state=tensor(basis(2, 0), basis(2, 1)), num_runs=1024)
-  [[Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
+  >>> qc.run_statistics(state=tensor(basis(2, 0), basis(2, 1)))
+  ([Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
   Qobj data =
   [[0.]
    [0.]
    [0.]
+<<<<<<< HEAD
    [1.]], 1024]]
 >>>>>>> added run functions to qip guide, autodoc
+=======
+   [1.]], [1.0])
+>>>>>>> added new fns to apidoc, guide
 
 The pre-defined gates for the class :class:`qutip.qip.Gate` are shown in the table below:
 
@@ -110,9 +118,13 @@ Gate name                           Description
 "GLOBALPHASE"         Global phase
 ====================  ========================================
 
-For some of the gates listed above, :class:`qutip.qip.QubitCircuit` also has a primitive :meth:`qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates. However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. It is required that the gate resolution be carried out before the measurements to the circuit are added.
+For some of the gates listed above, :class:`qutip.qip.QubitCircuit` also has a primitive :meth:`qutip.qip.QubitCircuit.resolve_gates()`
+method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates.
+However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates.
+It is required that the gate resolution be carried out before the measurements to the circuit are added.
 
-In addition to these pre-defined gates, QuTiP also allows the user to define their own gate. The following example shows how to define a customized gate.
+In addition to these pre-defined gates, QuTiP also allows the user to define their own gate.
+The following example shows how to define a customized gate.
 
 .. note::
 

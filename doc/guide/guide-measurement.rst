@@ -141,14 +141,13 @@ When `right` is chosen, the result of measurement with be `(1.0, right)`.
 
      In [1]: Z0, Z1 = ket2dm(basis(2, 0)), ket2dm(basis(2, 1))
 
-The probabilities are calculated for each projection operator as well
-as the respective output state.
-
+The probabilities and respective output state
+are calculated for each projection operator.
   .. ipython::
 
      In [1]: measure([Z0, Z1], up) == (0, up)
 
-     In [1]: measure_observable([Z0, Z1], down) == (1, down)
+     In [2]: measure([Z0, Z1], down) == (1, down)
 
 In this case, the projection operators are conveniently eigenstates corresponding
 to subspaces of dimension :math: `1`. However, this might not be
@@ -160,7 +159,7 @@ qubit in a two-qubit system. Consider the two qubit state :math: `\ket{0+}`
 
    In [1]: state_0 = basis(2, 0)
 
-   In [2]: state_plus = (1/sqrt(2)) * (basis(2, 0) + basis(2, 1))
+   In [2]: state_plus = (basis(2, 0) + basis(2, 1)).unit()
 
    In [2]: state_0plus = tensor(state_0, state_plus)
 
@@ -170,22 +169,21 @@ We can do that by measuring with the projection operators
 
 .. ipython::
 
-   In [1]: P0 = tensor(Z0, identity(2))
+   In [1]: PZ1 = [tensor(Z0, identity(2)), tensor(Z1, identity(2))]
 
-   In [1]: P1 = tensor(Z1, identity(2))
+   In [1]: PZ2 = [tensor(identity(2), Z0), tensor(identity(2), Z1)]
 
 Now, as in the previous example, we can measure by supplying a list of projection operators
 and the state.
 
 .. ipython::
 
-   In [1]: measure([Z0, Z1], state_0plus) == (0, state_0plus)
+   In [1]: measure(PZ1, state_0plus) == (0, state_0plus)
 
 The output of the measurement is the index of the measurement outcome as well
-as the output state on the full space of the input state. It is crucial to
-note that we do not discard the particular qubit after measurement as is the
-case in doing it on hardware.
-
+as the output state on the full hilbert space of the input state. It is crucial to
+note that we do not discard the measured qubit after measurement (as opposed to
+when measuring on quantum hardware).
 
 Now you know how to measure quantum states in QuTiP!
 
@@ -260,40 +258,61 @@ distribution of the outcomes exactly in a single line:
    >>> probabilities  # doctest: +NORMALIZE_WHITESPACE
    [0.5000000000000001, 0.4999999999999999]
 
-The :func:`~qutip.measurement.measurement_statistics_observable` function returns three values:
+   The :func:`~qutip.measurement.measurement_statistics_observable` function returns three values:
 
-* `eigenvalues` is an array of eigenvalues of the measurement operator, i.e.
-  a list of the possible measurement results. In our example
-  the value is `array([-1., -1.])`.
+   * `eigenvalues` is an array of eigenvalues of the measurement operator, i.e.
+     a list of the possible measurement results. In our example
+     the value is `array([-1., -1.])`.
 
-* `eigenstates` is an array of the eigenstates of the measurement operator, i.e.
-  a list of the possible final states after the measurement is complete.
-  Each element of the array is a :obj:`~qutip.Qobj`.
+   * `eigenstates` is an array of the eigenstates of the measurement operator, i.e.
+     a list of the possible final states after the measurement is complete.
+     Each element of the array is a :obj:`~qutip.Qobj`.
 
-* `probabilities` is a list of the probabilities of each measurement result.
-  In our example the value is `[0.5, 0.5]` since the `up` state has equal
-  probability of being measured to be in the left (`-1.0`) or
-  right (`1.0`) eigenstates.
+   * `probabilities` is a list of the probabilities of each measurement result.
+     In our example the value is `[0.5, 0.5]` since the `up` state has equal
+     probability of being measured to be in the left (`-1.0`) or
+     right (`1.0`) eigenstates.
 
-All three lists are in the same order -- i.e. the first eigenvalue is
-`eigenvalues[0]`, its corresponding eigenstate is `eigenstates[0]`, and
-its probability is `probabilities[0]`, and so on.
+   All three lists are in the same order -- i.e. the first eigenvalue is
+   `eigenvalues[0]`, its corresponding eigenstate is `eigenstates[0]`, and
+   its probability is `probabilities[0]`, and so on.
 
 Similarly, when we want to measure using projection operators, we can use the
-`measurement_statistics` functions. Consider again the state :math: `\ket{0+}`.
-Suppose, now we want to obtain the probabilities for the second qubit.
+`measurement_statistics` functions. Consider again, the state :math: `\ket{0+}`.
+Suppose, now we want to obtain the measurement outcomes for the second qubit. We
+must use the projectors specified earlier by `PZ2` which allow us to measure only
+on the second qubit. Since the second qubit has the state :math: `\ket{+}`, we get
+the following result.
 
 .. ipython::
 
-   In [1]: eigenvalues, eigenstates, probabilities = measurement_statistics_observable(spin_x, up)
+   In [1]: collapsed_states, probabilities = measurement_statistics(PZ2, state_0plus)
 
-   In [1]: eigenvalues
-   Out[1]: array([-1., -1.])
+   In [2]: collapsed_states
+   Out[2]: [Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
+            Qobj data =
+            [[1.]
+            [0.]
+            [0.]
+            [0.]], Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
+            Qobj data =
+            [[0.]
+            [1.]
+            [0.]
+            [0.]]]
 
-   In [1]: eigenstates
+   In [3]: probabilities
+   Out[3]: [0.4999999999999999, 0.4999999999999999]
 
-   In [1]: probabilities
-   Out[1]: [0.5000000000000001, 0.5000000000000001]
+The :func:`~qutip.measurement.measurement_statistics` function returns two values:
+
+* `collapsed_states` is an array of the possible final states after the
+  measurement is complete. Each element of the array is a :obj:`~qutip.Qobj`.
+
+* `probabilities` is a list of the probabilities of each measurement outcome.
+
+Note that the collapsed_states are exactly :math: `\ket{00}` and :math: `\ket{01}`
+with equal probability, as expected. The two lists are in the same order.
 
 
 The `measurement_statistics` function can provide statistics for measurements

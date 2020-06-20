@@ -124,7 +124,7 @@ Measurement of quantum states
 -----------------------------
 
 .. automodule:: qutip.measurement
-    :members: measure, measurement_statistics
+    :members: measure, measure_observable, measurement_statistics, measurement_statistics_observable
 
 
 Dynamics and Time-Evolution
