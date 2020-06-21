@@ -84,22 +84,7 @@ stateL = (basis(2, 0) - 1j * basis(2, 1)).unit()
 PZ = [ket2dm(state0), ket2dm(state1)]
 PX = [ket2dm(stateplus), ket2dm(stateminus)]
 PY = [ket2dm(stateR), ket2dm(stateL)]
-
-def check_measurement_statistics_observable(
-        op, state, pairs, probabilities):
-    evs, ess_or_projs, probs = measurement_statistics_observable(op, state)
-    np.testing.assert_array_equal(evs, pairs.eigenvalues)
-    if state.isket:
-        ess = ess_or_projs
-        assert len(ess) == len(pairs.eigenstates)
-        for a, b in zip(ess, pairs.eigenstates):
-            assert isequal(a, b)
-    else:
-        projs = ess_or_projs
-        assert len(projs) == len(pairs.projectors)
-        for a, b in zip(projs, pairs.projectors):
-            assert isequal(a, b)
-    np.testing.assert_almost_equal(probs, probabilities)
+PZ_ket = [state0, state1]
 
 
 @pytest.mark.parametrize(["op", "state", "pairs", "probabilities"], [
@@ -117,17 +102,19 @@ def check_measurement_statistics_observable(
                             SIGMAY, [0.5, 0.5], id="sigmay_dm")])
 def test_measurement_statistics_observable(op, state, pairs, probabilities):
     """ measurement_statistics_observable: observables on basis states. """
-    check_measurement_statistics_observable(op, state, pairs, probabilities)
 
-
-def check_measurement_statistics(ops, state, final_states, probabilities):
-    collapsed_states, probs = measurement_statistics(ops, state)
-    for i, final_state in enumerate(final_states):
-        collapsed_state = collapsed_states[i]
-        if final_state:
-            assert isequal(collapsed_state, final_state)
-        else:
-            assert collapsed_state is None
+    evs, ess_or_projs, probs = measurement_statistics_observable(op, state)
+    np.testing.assert_array_equal(evs, pairs.eigenvalues)
+    if state.isket:
+        ess = ess_or_projs
+        assert len(ess) == len(pairs.eigenstates)
+        for a, b in zip(ess, pairs.eigenstates):
+            assert isequal(a, b)
+    else:
+        projs = ess_or_projs
+        assert len(projs) == len(pairs.projectors)
+        for a, b in zip(projs, pairs.projectors):
+            assert isequal(a, b)
     np.testing.assert_almost_equal(probs, probabilities)
 
 
@@ -136,6 +123,10 @@ def check_measurement_statistics(ops, state, final_states, probabilities):
                             [state0, None], [1, 0], id="PZ_ket"),
                     pytest.param(PZ, ket2dm(basis(2, 0)),
                             [ket2dm(state0), None], [1, 0], id="PZ_dm"),
+                    pytest.param(PZ_ket, basis(2, 0),
+                            [state0, None], [1, 0], id="PZket_ket"),
+                    pytest.param(PZ_ket, ket2dm(basis(2, 0)),
+                            [ket2dm(state0), None], [1, 0], id="PZket_dm"),
                     pytest.param(PX, basis(2, 0),
                             [stateplus, stateminus], [0.5, 0.5], id="PX_ket"),
                     pytest.param(PX, ket2dm(basis(2, 0)),
@@ -148,52 +139,74 @@ def check_measurement_statistics(ops, state, final_states, probabilities):
                             [0.5, 0.5], id="PY_dm")])
 def test_measurement_statistics(ops, state, final_states, probabilities):
     """ measurement_statistics: projectors applied to basis states. """
-    check_measurement_statistics(ops, state, final_states, probabilities)
+
+    collapsed_states, probs = measurement_statistics(ops, state)
+    for i, final_state in enumerate(final_states):
+        collapsed_state = collapsed_states[i]
+        if final_state:
+            assert isequal(collapsed_state, final_state)
+        else:
+            assert collapsed_state is None
+    np.testing.assert_almost_equal(probs, probabilities)
 
 
-@pytest.mark.parametrize(["measurement_statistics_fn", "op1", "op2", "op3"],
-                [pytest.param(measurement_statistics,
-                            ["notqobj"], [basis(2, 1)], [sigmaz()],
-                            id = "measurement_statistics_input"),
-                pytest.param(measurement_statistics_observable,
-                            "notqobj", basis(2, 1), sigmaz(),
-                            id = "measurement_statistics_observable_input")])
-def test_measurement_statistics_input_errors(measurement_statistics_fn,
-                                            op1, op2, op3):
+def test_measurement_statistics_input_errors():
     """ measurement_statistics: check input errors """
+
     np.testing.assert_raises_regex(
-        TypeError, "op must be a Qobj",
-        measurement_statistics_fn, op1, basis(2, 0))
-    np.testing.assert_raises_regex(
-        ValueError, "op must be an operator",
-        measurement_statistics_fn, op2, basis(2, 0))
+        ValueError, "op must be all operators or all kets",
+        measurement_statistics,
+        [basis(2, 0), ket2dm(basis(2, 0))], basis(2, 0))
     np.testing.assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measurement_statistics_fn, op3, "notqobj")
+        measurement_statistics, [sigmaz()], "notqobj")
     np.testing.assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measurement_statistics_fn, op3, basis(2, 0).dag())
+        measurement_statistics, [sigmaz()], basis(2, 0).dag())
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measurement_statistics_fn, op3, basis(3, 0))
+        measurement_statistics, [sigmaz()], basis(3, 0))
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measurement_statistics_fn, op3, ket2dm(basis(3, 0)))
+        measurement_statistics, [sigmaz()], ket2dm(basis(3, 0)))
+    np.testing.assert_raises_regex(
+        ValueError,
+        "measurement operators must sum to identity",
+        measurement_statistics, [basis(2, 0)], basis(2, 0))
+    np.testing.assert_raises_regex(
+        ValueError,
+        "measurement operators must sum to identity",
+        measurement_statistics, [ket2dm(basis(2, 0))], basis(2, 0))
 
 
-def check_measure_observable(op, state, expected_measurements, seed=0):
-    np.random.seed(seed)
-    measurements = []
-    for _ in expected_measurements:
-        value, new_state = measure_observable(op, state)
-        measurements.append((value, new_state))
-    assert measurements == expected_measurements
+def test_measurement_statistics_observable_input_errors():
+    """ measurement_statistics_observable: check input errors """
+
+    np.testing.assert_raises_regex(
+        TypeError, "op must be a Qobj",
+        measurement_statistics_observable, "notqobj", basis(2, 0))
+    np.testing.assert_raises_regex(
+        ValueError, "op must be all operators or all kets",
+        measurement_statistics_observable, basis(2, 1), basis(2, 0))
+    np.testing.assert_raises_regex(
+        TypeError, "state must be a Qobj",
+        measurement_statistics_observable, sigmaz(), "notqobj")
+    np.testing.assert_raises_regex(
+        ValueError, "state must be a ket or a density matrix",
+        measurement_statistics_observable, sigmaz(), basis(2, 0).dag())
+    np.testing.assert_raises_regex(
+        ValueError,
+        "op and state dims should be compatible when state is a ket",
+        measurement_statistics_observable, sigmaz(), basis(3, 0))
+    np.testing.assert_raises_regex(
+        ValueError,
+        "op and state dims should match when state is a density matrix",
+        measurement_statistics_observable, sigmaz(), ket2dm(basis(3, 0)))
 
 
 @pytest.mark.parametrize(["op", "state", "expected_measurements", "seed"], [
-
                     pytest.param(sigmaz(), basis(2, 0),
                             [SIGMAZ[1]] * 5, 0, id="sigmaz_ket1"),
                     pytest.param(sigmaz(), basis(2, 1),
@@ -232,22 +245,26 @@ def check_measure_observable(op, state, expected_measurements, seed=0):
                             id="sigmay_dm")])
 def test_measure_observable(op, state, expected_measurements, seed):
     """ measure_observable: basis states using different observables """
-    check_measure_observable(op, state, expected_measurements, seed)
+
+    np.random.seed(seed)
+    measurements = []
+    for _ in expected_measurements:
+        value, new_state = measure_observable(op, state)
+        measurements.append((value, new_state))
+    assert measurements == expected_measurements
 
 
-def check_measure(ops, state):
-    collapsed_states, _ = measurement_statistics(ops, state)
-    for _ in range(10):
-        index, final_state = measure(ops, state)
-        assert isequal(final_state, collapsed_states[index])
-
-
-@pytest.mark.parametrize(["op", "state"], [
+@pytest.mark.parametrize(["ops", "state"], [
 
                     pytest.param(PZ, basis(2, 0), id="PZ_ket1"),
                     pytest.param(PZ, basis(2, 1), id="PZ_ket2"),
                     pytest.param(PZ, ket2dm(basis(2, 0)), id="PZ_dm1"),
                     pytest.param(PZ, ket2dm(basis(2, 1)), id="PZ_dm2"),
+
+                    pytest.param(PZ_ket, basis(2, 0), id="PZket_ket1"),
+                    pytest.param(PZ_ket, basis(2, 1), id="PZket_ket2"),
+                    pytest.param(PZ_ket, ket2dm(basis(2, 0)), id="PZket_dm1"),
+                    pytest.param(PZ_ket, ket2dm(basis(2, 1)), id="PZket_dm2"),
 
                     pytest.param(PX, basis(2, 0), id="PX_ket1"),
                     pytest.param(PX, basis(2, 1), id="PX_ket2"),
@@ -256,39 +273,66 @@ def check_measure(ops, state):
                     pytest.param(PY, basis(2, 0), id="PY_ket1"),
                     pytest.param(PY, basis(2, 1), id="PY_ket2"),
                     pytest.param(PY, ket2dm(basis(2, 1)), id="PY_dm")])
-def test_measure(op, state):
+def test_measure(ops, state):
     """measure: test on basis states using different projectors """
-    check_measure(op, state)
+
+    collapsed_states, _ = measurement_statistics(ops, state)
+    for _ in range(10):
+        index, final_state = measure(ops, state)
+        assert isequal(final_state, collapsed_states[index])
 
 
-@pytest.mark.parametrize(["measure_fn", "op1", "op2", "op3"], [
-                pytest.param(measure, ["notqobj"], [basis(2, 1)], [sigmaz()],
-                            id="measure_input"),
-                pytest.param(measure_observable,
-                            "notqobj", basis(2, 1), sigmaz(),
-                            id="measure_observable_input")])
-def test_measure_input_errors(measure_fn, op1, op2, op3):
+def test_measure_input_errors():
     """ measure: check input errors """
     np.testing.assert_raises_regex(
-        TypeError, "op must be a Qobj",
-        measure_fn, op1, basis(2, 0))
-    np.testing.assert_raises_regex(
-        ValueError, "op must be an operator",
-        measure_fn, op2, basis(2, 0))
+        ValueError, "op must be all operators or all kets",
+        measure, [basis(2, 0), ket2dm(basis(2, 0))], basis(2, 0))
     np.testing.assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measure_fn, op3, "notqobj")
+        measure, [sigmaz()], "notqobj")
     np.testing.assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measure_fn, op3, basis(2, 0).dag())
+        measure, [sigmaz()], basis(2, 0).dag())
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measure_fn, op3, basis(3, 0))
+        measure, [sigmaz()], basis(3, 0))
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measure_fn, op3, ket2dm(basis(3, 0)))
+        measure, [sigmaz()], ket2dm(basis(3, 0)))
+    np.testing.assert_raises_regex(
+        ValueError,
+        "measurement operators must sum to identity",
+        measure, [basis(2, 0)], basis(2, 0))
+    np.testing.assert_raises_regex(
+        ValueError,
+        "measurement operators must sum to identity",
+        measure, [ket2dm(basis(2, 0))], basis(2, 0))
+
+
+def test_measure_observable_input_errors():
+    """ measure: check input errors """
+    np.testing.assert_raises_regex(
+        TypeError, "op must be a Qobj",
+        measure_observable, "notqobj", basis(2, 0))
+    np.testing.assert_raises_regex(
+        ValueError, "op must be all operators or all kets",
+        measure_observable,  basis(2, 1), basis(2, 0))
+    np.testing.assert_raises_regex(
+        TypeError, "state must be a Qobj",
+        measure_observable, sigmaz(), "notqobj")
+    np.testing.assert_raises_regex(
+        ValueError, "state must be a ket or a density matrix",
+        measure_observable, sigmaz(), basis(2, 0).dag())
+    np.testing.assert_raises_regex(
+        ValueError,
+        "op and state dims should be compatible when state is a ket",
+        measure_observable, sigmaz(), basis(3, 0))
+    np.testing.assert_raises_regex(
+        ValueError,
+        "op and state dims should match when state is a density matrix",
+        measure_observable, sigmaz(), ket2dm(basis(3, 0)))
 
 
 def test_povm():

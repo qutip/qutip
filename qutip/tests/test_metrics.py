@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Simple tests for metrics and pseudometrics implemented in
+the qutip.metrics module.
+"""
+
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -31,11 +36,6 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Simple tests for metrics and pseudometrics implemented in
-the qutip.metrics module.
-"""
-
 from __future__ import division
 
 import numpy as np

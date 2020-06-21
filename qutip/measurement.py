@@ -36,13 +36,14 @@ Module for measuring quantum objects.
 
 import numpy as np
 from qutip.qobj import Qobj
+from qutip import identity
 
 
 def _verify_input(op, state):
     if not isinstance(op, Qobj):
         raise TypeError("op must be a Qobj")
     if not op.isoper:
-        raise ValueError("op must be an operator")
+        raise ValueError("op must be all operators or all kets")
     if not isinstance(state, Qobj):
         raise TypeError("state must be a Qobj")
     if state.isket:
@@ -62,7 +63,7 @@ def _measurement_statistics_povm_ket(ops, state):
     '''
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
-    measurements on a specified ket or density matrix.
+    measurements on a specified ket.
 
     Parameters
     ----------
@@ -128,10 +129,11 @@ def _measurement_statistics_povm_dm(ops, density_mat):
     collapsed_states = []
 
     for i, op in enumerate(ops):
-        p = (density_mat * op.dag() * op).tr()
+        st = op * density_mat * op.dag()
+        p = st.tr()
         probabilities.append(p)
         if p != 0:
-            collapsed_states.append((op * density_mat * op.dag()) / p)
+            collapsed_states.append(st/p)
         else:
             collapsed_states.append(None)
 
@@ -147,8 +149,12 @@ def measurement_statistics(ops, state):
     Parameters
     ----------
     ops : list of Qobjs
-          list of measurement operators M_i
-          (specifying a POVM s.t. E_i = dagger(M_i) * M_i)
+          list of measurement operators M_i or kets
+          Either:
+          1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
+          2. projection operators if ops correspond to
+             projectors (s.t. E_i = dagger(M_i) = M_i)
+          3. kets (transformed to projectors)
     state : Qobj
             The ket or density matrix specifying the state to measure.
 
@@ -163,8 +169,17 @@ def measurement_statistics(ops, state):
                     state specified by the index.
     '''
 
+    if all(map(lambda x: x.isket, ops)):
+        ops = [op * op.dag() for op in ops]
+
     for op in ops:
         _verify_input(op, state)
+
+    E = [op.dag() * op for op in ops]
+    is_ID = sum(E)
+    if not is_ID == identity(is_ID.dims[0]):
+        raise ValueError("measurement operators must sum to identity")
+
     if state.isket:
         return _measurement_statistics_povm_ket(ops, state)
     else:
@@ -296,11 +311,15 @@ def measure(ops, state):
 
     Parameters
     ----------
-    ops : list of Qobj
-        list of measurement operators M_i
-        (specifying a POVM s.t. E_i = dagger(M_i) * M_i)
+    ops : list of Qobjs
+          list of measurement operators M_i or kets
+          Either:
+          1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
+          2. projection operators if ops correspond to
+             projectors (s.t. E_i = dagger(M_i) = M_i)
+          3. kets (transformed to projectors)
     state : Qobj
-        The ket or density matrix specifying the state to measure.
+            The ket or density matrix specifying the state to measure.
 
     Returns
     -------

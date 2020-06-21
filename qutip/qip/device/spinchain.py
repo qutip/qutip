@@ -215,7 +215,7 @@ class SpinChain(ModelProcessor):
             row corresponds to the control pulse sequence for
             one Hamiltonian.
         """
-        gates = self.optimize_circuit(qc).gates
+        gates = self.optimize_circuit(qc).circuit_ops
 
         compiler = SpinChainCompiler(
             self.N, self._params, setup=setup,
@@ -252,7 +252,7 @@ class SpinChain(ModelProcessor):
                       "SWAPalpha"]
         N = qc.N
 
-        for gate in qc.gates:
+        for gate in qc.circuit_ops:
             if gate.name == "CNOT" or gate.name == "CSIGN":
                 start = min([gate.targets[0], gate.controls[0]])
                 end = max([gate.targets[0], gate.controls[0]])
@@ -337,7 +337,7 @@ class SpinChain(ModelProcessor):
                         i += 1
 
                     j = 0
-                    for gate in temp.gates:
+                    for gate in temp.circuit_ops:
                         if (j < N - end - 2):
                             if gate.name in ["CNOT", "CSIGN"]:
                                 qc_t.add_gate(gate.name, end + gate.targets[0],
@@ -414,7 +414,7 @@ class SpinChain(ModelProcessor):
                         i += 1
 
                     j = 0
-                    for gate in temp.gates:
+                    for gate in temp.circuit_ops:
                         if(j < N - end - 2):
                             qc_t.add_gate(gate.name, [end + gate.targets[0],
                                                       end + gate.targets[1]])
