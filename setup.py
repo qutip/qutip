@@ -167,6 +167,7 @@ cy_exts = {
         'csr',
         'dense',
         'dispatch',
+        'matmul',
     ],
     '.core.cy': [
         'cqobjevo',
