@@ -162,6 +162,7 @@ cy_exts = {
         'stochastic',
     ],
     '.core.data': [
+        'add',
         'base',
         'csr',
         'dense',
