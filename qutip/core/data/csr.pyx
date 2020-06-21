@@ -1,12 +1,15 @@
 #cython: language_level=3
 
-from scipy.sparse import csr_matrix as scipy_csr_matrix
-from scipy.sparse.data import _data_matrix as scipy_data_matrix
+from libc.string cimport memset, memcpy
+from libcpp.algorithm cimport sort
+from libcpp.vector cimport vector
 
-from libc.string cimport memset
+cimport cython
+
 import numpy as np
 cimport numpy as cnp
-cimport cython
+from scipy.sparse import csr_matrix as scipy_csr_matrix
+from scipy.sparse.data import _data_matrix as scipy_data_matrix
 
 from . cimport base
 
@@ -18,7 +21,7 @@ cdef extern from *:
     void PyDataMem_FREE(void *ptr)
 
 
-cdef _csr_matrix(data, indices, indptr, shape):
+cdef object _csr_matrix(data, indices, indptr, shape):
     """
     Factory method of scipy csr_matrix: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
@@ -35,6 +38,8 @@ cdef _csr_matrix(data, indices, indptr, shape):
     return out
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef class CSR(base.Data):
     """
     Data type for quantum objects storing its data in compressed sparse row
@@ -44,8 +49,6 @@ cdef class CSR(base.Data):
     using the `as_scipy()` method.
     """
 
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
     def __init__(self, arg=None, shape=None, copy=False):
         if not isinstance(arg, tuple) or len(arg) != 3:
             raise ValueError
@@ -65,8 +68,16 @@ cdef class CSR(base.Data):
             self.shape = shape
         self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
+    cpdef CSR copy(self):
+        """Return a complete (deep) copy of this object."""
+        cdef base.idxint nnz_ = nnz(self)
+        cdef CSR out = empty(self.shape[0], self.shape[1], nnz_)
+        memcpy(&out.data[0], &self.data[0], nnz_*sizeof(out.data[0]))
+        memcpy(&out.col_index[0], &self.col_index[0], nnz_*sizeof(out.col_index[0]))
+        memcpy(&out.row_index[0], &self.row_index[0],
+               (self.shape[0] + 1)*sizeof(out.row_index[0]))
+        return out
+
     def as_scipy(self):
         """
         Get a view onto this object as a `scipy.sparse.csr_matrix`.  The
@@ -97,6 +108,14 @@ cdef class CSR(base.Data):
         self._scipy = _csr_matrix(data, indices, indptr, self.shape)
         return self._scipy
 
+    def __repr__(self):
+        return "".join([
+            "CSR(shape=", str(self.shape), ", nnz=", str(nnz(self)), ")"
+        ])
+
+    def __str__(self):
+        return self.__repr__()
+
     def __dealloc__(self):
         # If we have a reference to a scipy type, then we've passed ownership
         # of the data to numpy, so we let it handle refcounting.
@@ -104,6 +123,41 @@ cdef class CSR(base.Data):
             PyDataMem_FREE(&self.data[0])
             PyDataMem_FREE(&self.col_index[0])
             PyDataMem_FREE(&self.row_index[0])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef inline base.idxint nnz(CSR matrix):
+    """Get the number of non-zero elements of a CSR matrix."""
+    return matrix.row_index[matrix.shape[0]]
+
+
+# Internal structure for sorting pairs of elements.
+cdef struct _data_col:
+    double complex data
+    base.idxint col
+
+cdef int _sort_indices_compare(_data_col x, _data_col y):
+    return x.col < y.col
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void sort_indices(CSR matrix):
+    """Sort the column indices and data of the matrix inplace."""
+    cdef base.idxint ii, jj, row_start, row_end, length
+    cdef vector[_data_col] pairs
+    for ii in range(matrix.shape[0]):
+        row_start = matrix.row_index[ii]
+        row_end = matrix.row_index[ii + 1]
+        length = row_end - row_start
+        pairs.resize(length)
+        for jj in range(length):
+            pairs[jj].data = matrix.data[row_start + jj]
+            pairs[jj].col = matrix.col_index[row_start + jj]
+        sort(pairs.begin(), pairs.end(), _sort_indices_compare)
+        for jj in range(length):
+            matrix.data[row_start + jj] = pairs[jj].data
+            matrix.col_index[row_start + jj] = pairs[jj].col
 
 
 cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
