@@ -606,11 +606,11 @@ class QubitCircuit:
         Parameters
         ----------
         index : int
-            Location of gate to be removed.
+            Location of gate or measurement to be removed.
         name : string
-            Gate name to be removed.
+            Gate or Measurement name to be removed.
         remove : string
-            If first or all gate are to be removed.
+            If first or all gates/measurements are to be removed.
         """
         if index is not None:
             if index > len(self.circuit_ops):
