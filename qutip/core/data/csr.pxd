@@ -11,6 +11,6 @@ cdef class CSR(base.Data):
     cdef base.idxint [::1] row_index
     cdef object _scipy
 
-cpdef CSR empty((base.idxint, base.idxint) shape, base.idxint size)
-cpdef CSR zeroes((base.idxint, base.idxint) shape)
+cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size)
+cpdef CSR zeroes(base.idxint rows, base.idxint cols)
 cpdef CSR identity(base.idxint dimension, double complex scale=*)

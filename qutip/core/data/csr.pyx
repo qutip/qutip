@@ -106,7 +106,7 @@ cdef class CSR(base.Data):
             PyDataMem_FREE(&self.row_index[0])
 
 
-cpdef CSR empty((base.idxint, base.idxint) shape, base.idxint size):
+cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
     """
     Allocate an empty CSR matrix of the given shape, with space for `size`
     elements in the `data` and `col_index` arrays.
@@ -114,11 +114,14 @@ cpdef CSR empty((base.idxint, base.idxint) shape, base.idxint size):
     This does not initialise any of the memory returned, but sets the last
     element of `row_index` to 0 to indicate that there are 0 non-zero elements.
     """
-    if size < 1:
+    if size < 0:
         raise ValueError("size must be a positive integer.")
+    # Python doesn't like allocating nothing.
+    if size == 0:
+        size += 1
     cdef CSR out = CSR.__new__(CSR)
-    cdef base.idxint row_size = shape[0] + 1
-    out.shape = shape
+    cdef base.idxint row_size = rows + 1
+    out.shape = (rows, cols)
     out.data =\
         <double complex [:size]> PyDataMem_NEW(size * sizeof(double complex))
     out.col_index =\
@@ -126,22 +129,22 @@ cpdef CSR empty((base.idxint, base.idxint) shape, base.idxint size):
     out.row_index =\
         <base.idxint [:row_size]> PyDataMem_NEW(row_size * sizeof(base.idxint))
     # Set the number of non-zero elements to 0.
-    out.row_index[shape[0]] = 0
+    out.row_index[rows] = 0
     return out
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef CSR zeroes((base.idxint, base.idxint) shape):
+cpdef CSR zeroes(base.idxint rows, base.idxint cols):
     """
     Allocate the zero matrix with a given shape.  There will not be any room in
     the `data` and `col_index` buffers to add new elements.
     """
     # We always allocate matrices with at least one element to ensure that we
     # actually _are_ asking for memory (Python doesn't like allocating nothing)
-    cdef CSR out = empty(shape, 1)
+    cdef CSR out = empty(rows, cols, 1)
     out.data[0] = out.col_index[0] = 0
-    memset(&out.row_index[0], 0, shape[0] + 1)
+    memset(&out.row_index[0], 0, rows + 1)
     return out
 
 
