@@ -127,6 +127,26 @@ cdef class CSR(base.Data):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef CSR copy_structure(CSR matrix):
+    """
+    Return a copy of the input matrix with identical `col_index` and
+    `row_index` matrices, and an allocated, but empty, `data`.  The returned
+    pointers are all separately allocated, but contain the same information.
+
+    This is intended for unary functions on CSR types that maintain the exact
+    structure, but modify each non-zero data element without change their
+    location.
+    """
+    cdef base.idxint nnz_ = nnz(matrix)
+    cdef CSR out = empty(matrix.shape[0], matrix.shape[1], nnz_)
+    memcpy(&out.col_index[0], &matrix.col_index[0], nnz_*sizeof(out.col_index[0]))
+    memcpy(&out.row_index[0], &matrix.row_index[0],
+           (matrix.shape[0] + 1)*sizeof(out.row_index[0]))
+    return out
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef inline base.idxint nnz(CSR matrix) nogil:
     """Get the number of non-zero elements of a CSR matrix."""
     return matrix.row_index[matrix.shape[0]]
