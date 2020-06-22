@@ -163,6 +163,7 @@ cy_exts = {
     ],
     '.core.data': [
         'add',
+        'adjoint',
         'base',
         'csr',
         'dense',
