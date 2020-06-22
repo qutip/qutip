@@ -167,6 +167,7 @@ cy_exts = {
         'csr',
         'dense',
         'dispatch',
+        'kron',
         'matmul',
     ],
     '.core.cy': [
