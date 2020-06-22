@@ -19,11 +19,6 @@ cdef extern from "../cy/src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec,
                  double complex a, double complex *out, int nrows)
 
-cdef extern from *:
-    void *PyDataMem_NEW(size_t size)
-    void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
-    void PyDataMem_FREE(void *ptr)
-
 
 cdef void mv_csr(CSR matrix, double complex *vector, double complex *out) nogil:
     """
