@@ -141,7 +141,8 @@ class ExpectOps:
         return bool(self.e_num)
 
 
-class Options(qset._QtConfig):
+@qset.QtOptionClass("options")
+class Options:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
@@ -155,6 +156,10 @@ class Options(qset._QtConfig):
         opts.order = 10
 
     Returns options class to be used as options in evolution solvers.
+
+    The default can be changed by::
+
+        qutip.settings.options.order = 10
 
     Attributes
     ----------
@@ -299,9 +304,6 @@ class Options(qset._QtConfig):
     openmp_threads = qset.num_cpus
     # small value in mc solver for computing correlations
     mc_corr_eps = 1e-10
-
-
-qset._register(Options, "options")
 
 
 class Result():

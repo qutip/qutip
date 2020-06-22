@@ -52,8 +52,8 @@ configparser.ConfigParser.getcomplex = getcomplex
 getter = {
     bool : "getboolean",
     int : "getint",
-    float : "getint",
-    complex : "getint",
+    float : "getfloat",
+    complex : "getcomplex",
     str : "get",
 }
 

@@ -92,7 +92,7 @@ def _valid_config(key):
         return False
     if key.startswith("_"):
         return False
-    val = __self[key]
+    val = _self[key]
     if isinstance(val, (bool, int, float, complex, str)):
         return True
     return False
@@ -100,12 +100,12 @@ def _valid_config(key):
 
 _environment_keys = ["ipython", 'has_mkl', 'has_openmp',
                      'mkl_lib', 'fortran', 'num_cpus']
-__self = locals().copy()  # Not ideal, making an object would be better
-_all_out = [key for key in __self if _valid_config(key)]
+_self = locals().copy()  # Not ideal, making an object would be better
+_all_out = [key for key in _self if _valid_config(key)]
 _all = [key for key in _all_out if key not in _environment_keys]
-_default = {key: __self[key] for key in _all}
+_default = {key: _self[key] for key in _all}
 del _valid_config
-__self = locals()
+_self = locals()
 
 
 def save(file='qutiprc', all_config=True):
@@ -143,7 +143,7 @@ def reset():
     Recompute the threshold for openmp, so it may be slow.
     """
     for key in _default:
-        __self[key] = _default[key]
+        _self[key] = _default[key]
 
     import os
     if 'QUTIP_NUM_PROCESSES' in os.environ:
@@ -157,24 +157,24 @@ def reset():
             num_cpus = multiprocessing.cpu_count()
         except:
             num_cpus = 1
-    __self["num_cpus"] = num_cpus
+    _self["num_cpus"] = num_cpus
 
     try:
         from qutip.cy.openmp.parfuncs import spmv_csr_openmp
     except:
-        __self["has_openmp"] = False
-        __self["openmp_thresh"] = 10000
+        _self["has_openmp"] = False
+        _self["openmp_thresh"] = 10000
     else:
-        __self["has_openmp"] = True
+        _self["has_openmp"] = True
         from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
         thrsh = calculate_openmp_thresh()
-        __self["openmp_thresh"] = thrsh
+        _self["openmp_thresh"] = thrsh
 
     try:
         __IPYTHON__
-        __self["ipython"] = True
+        _self["ipython"] = True
     except:
-        __self["ipython"] = False
+        _self["ipython"] = False
 
     from qutip._mkl.utilities import _set_mkl
     _set_mkl()
@@ -184,75 +184,117 @@ def list():
     out = "qutip settings:\n"
     longest = max(len(key) for key in _all_out)
     for key in _all_out:
-        out += "{:{width}} : {}\n".format(key, __self[key], width=longest)
+        out += "{:{width}} : {}\n".format(key, _self[key], width=longest)
     return out
 
 
-class _QtConfig:
-    _all = []
-    _all_set = []
-    _repr_keys = []
-    _name = ""
-    _fullname = ""
-    _isDefault = False
-    _defaultInstance = False
+def QtOptionClass(name):
+    """Make the class an Options object of Qutip and register the object
+    default as qutip.settings."name".
 
-    def __init__(self, *, file="", _default=False, **kwargs):
-        if _default:
-            cls = self.__class__
-            self._buildCts(cls)
-            self._name = "Default " + cls._name
-            self._fullname = "Default " + cls._fullname
-            self._isDefault = True
-            cls._defaultInstance = self
-        elif self._defaultInstance:
-            [setattr(self, key, getattr(self._defaultInstance, key))
-                for key in self._all_set]
-            for key in kwargs:
-                if key in self._all_set:
-                    setattr(self, key, kwargs[key])
-        else:
-            self._buildCts(self)
-        if file:
-            self.load(file)
+    Add the methods:
+        __init__:
+            Allow to create from data in files or from default with attributes
+            overwritten by keywords.
+            Properties with setter can also be set as kwargs.
+        save(file), load(file), reset():
+            Save, load, reset will affect all attributes that can be saved
+            as defined in qutip.configrc.getter.
+        __repr__():
+            Make a clean print of all attribute and properties.
+    and the attributes:
+        _all
+        _repr_keys
+        _name
+        _fullname
+        _isDefault
+        _defaultInstance
 
-    def __repr__(self):
-        out = self._fullname + ":\n"
-        longest = max(len(key) for key in self._repr_keys)
-        for key in self._repr_keys:
-            out += "{:{width}} : {}\n".format(key, getattr(self, key),
-                                              width=longest)
-        return out
+    * Any attribute starting with "_" are excluded.
 
-    def reset(self):
-        if self._isDefault:
-            [setattr(self, key,getattr(self.__class__, key))
-             for key in self._all]
-        else:
-            [setattr(self, key, getattr(self._defaultInstance, key))
-             for key in self._all]
+    Usage:
+        ``
+        @QtOptionClass(name)
+        class Options:
+            ...
+        ``
+    or
+        ``
+        @QtOptionClass
+        class Options
+            ...
+        ``
+    * default name is `Options.__name__`
+    """
+    # The real work is in _QtOptionMaker
+    if isinstance(name, str):
+        # Called as
+        # @QtOptionClass(name)
+        # class Options:
+        return _QtOptionMaker(name)
+    else:
+        # Called as
+        # @QtOptionClass
+        # class Options:
+        return _QtOptionMaker(name.__name__)(name)
 
-    def save(self, file="qutiprc"):
-        import qutip.configrc as qrc
-        qrc.write_rc_object(file, self._name, self)
 
-    def load(self, file="qutiprc"):
-        import qutip.configrc as qrc
-        qrc.load_rc_object(file, self._name, self)
+class _QtOptionMaker:
+    def __init__(self, name):
+        self.name = name
 
-    @classmethod
-    def _buildCts(cls, target):
-        target._all = [key for key in cls.__dict__
-                       if cls._valid(key)]
-        target._all_set = [key for key in cls.__dict__
-                           if cls._valid(key, _set=True)]
-        target._repr_keys = [key for key in cls.__dict__
-                             if cls._valid(key, _repr=True)]
-        target._name = cls.__name__
-        target._fullname = ".".join([cls.__module__, cls.__name__])
+    def __call__(self, cls):
+        if hasattr(cls, "_isDefault"):
+            # Already a QtOptionClass
+            if self.name not in __self:
+                self._make_default(cls)
+            return
 
-    @classmethod
+        # attributes that to be saved
+        cls._all = [key for key in cls.__dict__
+                       if self._valid(cls, key)]
+        # attributes to print
+        cls._repr_keys = [key for key in cls.__dict__
+                             if self._valid(cls, key, _repr=True)]
+        # Name in settings and in files
+        cls._name = self.name
+        # Name when printing
+        cls._fullname = ".".join([cls.__module__, cls.__name__])
+        # Is this instance the default for the other.
+        cls._isDefault = False
+        # Build the default instance
+        # Do it before setting __init__ since it use this default
+        self._make_default(cls)
+
+        # add methods
+        # __init__ is dynamically build to get a meaningful signature
+        _all_set = [key for key in cls.__dict__
+             if self._valid(cls, key, _set=True)]
+        attributes_kw = ["             {}=None,".format(var)
+                         for var in _all_set]
+        attributes_kw[-1] = attributes_kw[-1][:-1]
+        attributes_set = ["    self.{0} = {0} if {0} is not None "
+                          "else self._defaultInstance.{0}".format(var)
+                          for var in _all_set]
+        code = ["def __init__(self, file='', *,"] + \
+               attributes_kw + \
+               ["            ):"] + \
+               attributes_set + \
+               ["    if file:"] + \
+               ["        self.load(file)"]
+        code = "\n".join(code)
+        ns = {}
+        exec(code, globals(), ns)
+        cls.__init__ = ns["__init__"]
+        cls.__repr__ = _qoc_repr_
+        cls.reset = _qoc_reset
+        cls.save = _qoc_save
+        cls.load = _qoc_load
+        return cls
+
+    @staticmethod
     def _valid(cls, key, _repr=False, _set=False):
+        # Can it be saved, printed, initialed?
         import qutip.configrc as qrc
         if key.startswith("_"):
             return False
@@ -266,12 +308,42 @@ class _QtConfig:
         # Only these types can be saved
         return type(data) in qrc.getter
 
+    def _make_default(self, cls):
+        import qutip.configrc as qrc
+        default = cls()
+        for key in cls._all:
+            default.__dict__[key] = cls.__dict__[key]
+        default._isDefault = True
+        default._fullname = "qutip.settings." + self.name
+        _self[self.name] = default
+        cls._defaultInstance = default
+        qrc.sections.append((self.name, default))
 
-def _register(obj, name):
+
+
+def _qoc_repr_(self):
+    out = self._fullname + ":\n"
+    longest = max(len(key) for key in self._repr_keys)
+    for key in self._repr_keys:
+        out += "{:{width}} : {}\n".format(key, getattr(self, key),
+                                          width=longest)
+    return out
+
+def _qoc_reset(self):
+    """Reset instance to the default value or the default to Qutip's default"""
+    if self._isDefault:
+        [setattr(self, key,getattr(self.__class__, key))
+         for key in self._all]
+    else:
+        [setattr(self, key, getattr(self._defaultInstance, key))
+         for key in self._all]
+
+def _qoc_save(self, file="qutiprc"):
+    """Save to desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
-    default = obj(_default=True)
-    obj._name = name
-    if qrc.has_rc_object("qutiprc", name):
-        default.load("qutiprc")
-    __self[name] = default
-    qrc.sections.append((name, default))
+    qrc.write_rc_object(file, self._name, self)
+
+def _qoc_load(self, file="qutiprc"):
+    """Load from desired file. 'qutiprc' if not specified"""
+    import qutip.configrc as qrc
+    qrc.load_rc_object(file, self._name, self)
