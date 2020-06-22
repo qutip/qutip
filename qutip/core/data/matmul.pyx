@@ -1,6 +1,7 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False
 
+from libc.stdlib cimport malloc, calloc, free
 from libc.string cimport memset
 
 cimport cython
@@ -24,7 +25,7 @@ cdef extern from *:
     void PyDataMem_FREE(void *ptr)
 
 
-cdef void mv_csr(CSR matrix, double complex *vector, double complex *out):
+cdef void mv_csr(CSR matrix, double complex *vector, double complex *out) nogil:
     """
     Perform the operation
         ``out := (matrix @ vector) + out``
@@ -44,7 +45,7 @@ cdef void mv_csr(CSR matrix, double complex *vector, double complex *out):
     return
 
 
-cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
+cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) nogil:
     """
     Produce a sensible upper-bound for the number of non-zero elements that
     will be present in a matrix multiplication between the two matrices.
@@ -53,7 +54,7 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     cdef idxint ii, jj, kk
     cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     # Setup mask array
-    cdef int *mask = <int *> PyDataMem_NEW(ncols * sizeof(int))
+    cdef idxint *mask = <idxint *> malloc(ncols * sizeof(idxint))
     for ii in range(ncols):
         mask[ii] = -1
     for ii in range(nrows):
@@ -64,7 +65,7 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
                 if mask[k] != ii:
                     mask[k] = ii
                     nnz += 1
-    PyDataMem_FREE(mask)
+    free(mask)
     return nnz
 
 
@@ -101,7 +102,8 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None):
     if nnz == 0 or csr.nnz(left) == 0 or csr.nnz(right) == 0:
         # Ensure the out array row_index is zeroed.  The others need not be,
         # because they don't represent valid entries since row_index is zeroed.
-        memset(&out.row_index[0], 0, out.shape[0] + 1)
+        with nogil:
+            memset(&out.row_index[0], 0, out.shape[0] + 1)
         return out
 
     # Initialise actual matrix multiplication.
@@ -109,42 +111,42 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None):
     cdef idxint head, length, temp, j, k, ii, jj, kk
     cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     cdef double complex val
-    cdef double complex *sums = (
-        <double complex *>
-        PyDataMem_NEW_ZEROED(ncols, sizeof(double complex))
-    )
-    cdef idxint *nxt = <idxint *> PyDataMem_NEW(ncols * sizeof(idxint))
-    for ii in range(ncols):
-        nxt[ii] = -1
+    cdef double complex *sums
+    cdef idxint *nxt
+    with nogil:
+        sums = <double complex *> calloc(ncols, sizeof(double complex))
+        nxt = <idxint *> malloc(ncols * sizeof(idxint))
+        for ii in range(ncols):
+            nxt[ii] = -1
 
-    # Perform operation.
-    out.row_index[0] = 0
-    for ii in range(nrows):
-        head = -2
-        length = 0
-        for jj in range(left.row_index[ii], left.row_index[ii+1]):
-            j = left.col_index[jj]
-            val = left.data[jj]
-            for kk in range(right.row_index[j], right.row_index[j+1]):
-                k = right.col_index[kk]
-                sums[k] += val * right.data[kk]
-                if nxt[k] == -1:
-                    nxt[k] = head
-                    head = k
-                    length += 1
-        for jj in range(length):
-            if sums[head] != 0:
-                out.col_index[nnz] = head
-                out.data[nnz] = sums[head]
-                nnz += 1
-            temp = head
-            head = nxt[head]
-            nxt[temp] = -1
-            sums[temp] = 0
-        out.row_index[ii+1] = nnz
-    # Free temp arrays
-    PyDataMem_FREE(sums)
-    PyDataMem_FREE(nxt)
+        # Perform operation.
+        out.row_index[0] = 0
+        for ii in range(nrows):
+            head = -2
+            length = 0
+            for jj in range(left.row_index[ii], left.row_index[ii+1]):
+                j = left.col_index[jj]
+                val = left.data[jj]
+                for kk in range(right.row_index[j], right.row_index[j+1]):
+                    k = right.col_index[kk]
+                    sums[k] += val * right.data[kk]
+                    if nxt[k] == -1:
+                        nxt[k] = head
+                        head = k
+                        length += 1
+            for jj in range(length):
+                if sums[head] != 0:
+                    out.col_index[nnz] = head
+                    out.data[nnz] = sums[head]
+                    nnz += 1
+                temp = head
+                head = nxt[head]
+                nxt[temp] = -1
+                sums[temp] = 0
+            out.row_index[ii+1] = nnz
+        # Free temp arrays
+        free(sums)
+        free(nxt)
     return out
 
 
