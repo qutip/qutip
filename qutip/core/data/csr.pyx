@@ -174,7 +174,7 @@ cdef void sort_indices(CSR matrix) nogil:
         for ptr in range(length):
             pairs[ptr].data = matrix.data[ptr_start + ptr]
             pairs[ptr].col = matrix.col_index[ptr_start + ptr]
-        sort(pairs.begin(), pairs.end(), _sort_indices_compare)
+        sort(pairs.begin(), pairs.end(), &_sort_indices_compare)
         for ptr in range(length):
             matrix.data[ptr_start + ptr] = pairs[ptr].data
             matrix.col_index[ptr_start + ptr] = pairs[ptr].col
