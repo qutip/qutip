@@ -12,8 +12,8 @@ cdef class CSR(base.Data):
     cdef object _scipy
     cpdef CSR copy(CSR self)
 
-cdef void sort_indices(CSR matrix)
-cpdef base.idxint nnz(CSR matrix)
+cdef void sort_indices(CSR matrix) nogil
+cpdef base.idxint nnz(CSR matrix) nogil
 cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size)
 cpdef CSR zeroes(base.idxint rows, base.idxint cols)
 cpdef CSR identity(base.idxint dimension, double complex scale=*)

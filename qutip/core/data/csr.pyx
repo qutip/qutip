@@ -127,7 +127,7 @@ cdef class CSR(base.Data):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef inline base.idxint nnz(CSR matrix):
+cpdef inline base.idxint nnz(CSR matrix) nogil:
     """Get the number of non-zero elements of a CSR matrix."""
     return matrix.row_index[matrix.shape[0]]
 
@@ -137,27 +137,27 @@ cdef struct _data_col:
     double complex data
     base.idxint col
 
-cdef int _sort_indices_compare(_data_col x, _data_col y):
+cdef int _sort_indices_compare(_data_col x, _data_col y) nogil:
     return x.col < y.col
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void sort_indices(CSR matrix):
+cdef void sort_indices(CSR matrix) nogil:
     """Sort the column indices and data of the matrix inplace."""
-    cdef base.idxint ii, jj, row_start, row_end, length
+    cdef base.idxint row, ptr, ptr_start, ptr_end, length
     cdef vector[_data_col] pairs
-    for ii in range(matrix.shape[0]):
-        row_start = matrix.row_index[ii]
-        row_end = matrix.row_index[ii + 1]
-        length = row_end - row_start
+    for row in range(matrix.shape[0]):
+        ptr_start = matrix.row_index[row]
+        ptr_end = matrix.row_index[row + 1]
+        length = ptr_end - ptr_start
         pairs.resize(length)
-        for jj in range(length):
-            pairs[jj].data = matrix.data[row_start + jj]
-            pairs[jj].col = matrix.col_index[row_start + jj]
+        for ptr in range(length):
+            pairs[ptr].data = matrix.data[ptr_start + ptr]
+            pairs[ptr].col = matrix.col_index[ptr_start + ptr]
         sort(pairs.begin(), pairs.end(), _sort_indices_compare)
-        for jj in range(length):
-            matrix.data[row_start + jj] = pairs[jj].data
-            matrix.col_index[row_start + jj] = pairs[jj].col
+        for ptr in range(length):
+            matrix.data[ptr_start + ptr] = pairs[ptr].data
+            matrix.col_index[ptr_start + ptr] = pairs[ptr].col
 
 
 cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
