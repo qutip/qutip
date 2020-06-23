@@ -1460,7 +1460,7 @@ class QubitCircuit:
                       "A user defined gate {} takes only  "
                       "`targets` variable.".format(gate.name))
                 func_or_oper = self.user_gates[gate.name]
-                if isfunction(func_or_oper):
+                if inspect.isfunction(func_or_oper):
                   para_num = len(inspect.getfullargspec(func)[0])
                   if para_num == 0:
                       oper = func()

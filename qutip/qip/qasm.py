@@ -18,14 +18,14 @@ class QASMGate:
         self.gates_inside = []
 
 
-def _tokenize(tok_commands):
+def _tokenize(token_cmds):
     '''
     Tokenizes QASM code for processing
     '''
 
     processed_commands = []
 
-    for line in tok_commands:
+    for line in token_cmds:
 
         # carry out some pre-processing for convenience
         for c in "[]()":
@@ -225,6 +225,7 @@ class QASMProcessor:
                 return [(qubit, cbit)]
             # processes register tokens of the form q -> c
             else:
+                print(regs)
                 qubit_name = regs[0]
                 cbit_name = regs[2]
                 qubits = self.qubit_regs[qubit_name]
@@ -252,7 +253,7 @@ class QASMProcessor:
                     expand = len(qubit)
                 new_regs.append(qubit)
             if expand:
-                return ip(*list(map(
+                return zip(*list(map(
                         lambda x: x if isinstance(x, list) else [x] * expand,
                         new_regs)))
             else:
@@ -341,7 +342,7 @@ class QASMProcessor:
                 args, regs = _gate_processor(command)
                 reg_set = self._regs_processor(regs, "gate")
 
-                gate_name = command[0] + "(" + ",".join(args) + ")"
+                gate_name = command[0] + "" + ",".join(args) + ""
 
                 # creates custom-gate using gate defn and provided args
                 if gate_name not in custom_gates:
@@ -356,6 +357,7 @@ class QASMProcessor:
                 # adds gate to the QubitCircuit
                 for regs in reg_set:
                     regs = [int(i) for i in regs]
+                    if self.mode == "QISKIT" and gate_name not in inbuilt_gates:
                     if command[0] == "CX":
                         qc.add_gate("CNOT",
                                     targets=[regs[1]],
@@ -381,7 +383,7 @@ def read_qasm(file):
     QASM file.
     '''
 
-    f = open("f2.qasm", "r")
+    f = open(file, "r")
     # split input into lines and ignore comments
     qasm_lines = [line.strip() for line in f.read().splitlines()]
     qasm_lines = list(filter(lambda x: x[:2] != "//" and x != "", qasm_lines))
@@ -395,6 +397,6 @@ def read_qasm(file):
     qasm_obj._process_includes()
 
     qasm_obj._initialize_pass()
-    qc = QubitCircuit(qasm_obj.num_qubits, num_cbits=qasm_obj.num_cbits)
+    qc = QubitCircuit(qasm_obj.num_qubits) # num_cbits=qasm_obj.num_cbits)
     qasm_obj._final_pass(qc)
     return qc
