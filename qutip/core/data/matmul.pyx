@@ -64,7 +64,7 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) nogil:
     return nnz
 
 
-cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None):
+cpdef CSR matmul_csr(CSR left, CSR right):
     """
     Multiply two CSR matrices together to produce another CSR.  If `out` is
     specified, it must be pre-allocated with enough space to hold the output
@@ -92,8 +92,7 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None):
     """
     # We assume the shapes are compatible, since this is a C routine.
     cdef idxint nnz = _matmul_csr_estimate_nnz(left, right)
-    if out is None:
-        out = csr.empty(left.shape[0], right.shape[1], nnz if nnz != 0 else 1)
+    cdef CSR out = csr.empty(left.shape[0], right.shape[1], nnz if nnz != 0 else 1)
     if nnz == 0 or csr.nnz(left) == 0 or csr.nnz(right) == 0:
         # Ensure the out array row_index is zeroed.  The others need not be,
         # because they don't represent valid entries since row_index is zeroed.
