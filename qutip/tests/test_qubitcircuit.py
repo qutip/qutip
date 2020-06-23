@@ -127,25 +127,25 @@ class TestQubitCircuit:
         qc.add_1q_gate("RY", start=4, end=5, arg_value=1.570796)
 
         # Test explicit gate addition
-        assert qc.circuit_ops[0].name == "CNOT"
-        assert qc.circuit_ops[0].targets == [1]
-        assert qc.circuit_ops[0].controls == [0]
+        assert qc.gates[0].name == "CNOT"
+        assert qc.gates[0].targets == [1]
+        assert qc.gates[0].controls == [0]
 
         # Test direct gate addition
-        assert qc.circuit_ops[1].name == test_gate.name
-        assert qc.circuit_ops[1].targets == test_gate.targets
+        assert qc.gates[1].name == test_gate.name
+        assert qc.gates[1].targets == test_gate.targets
 
         # Test specified position gate addition
-        assert qc.circuit_ops[3].name == test_gate.name
-        assert qc.circuit_ops[3].targets == test_gate.targets
+        assert qc.gates[3].name == test_gate.name
+        assert qc.gates[3].targets == test_gate.targets
 
         # Test adding 1 qubit gate on [start, end] qubits
-        assert qc.circuit_ops[5].name == "RY"
-        assert qc.circuit_ops[5].targets == [4]
-        assert qc.circuit_ops[5].arg_value == 1.570796
-        assert qc.circuit_ops[6].name == "RY"
-        assert qc.circuit_ops[6].targets == [5]
-        assert qc.circuit_ops[5].arg_value == 1.570796
+        assert qc.gates[5].name == "RY"
+        assert qc.gates[5].targets == [4]
+        assert qc.gates[5].arg_value == 1.570796
+        assert qc.gates[6].name == "RY"
+        assert qc.gates[6].targets == [5]
+        assert qc.gates[5].arg_value == 1.570796
 
         # Test Exceptions  # Global phase is not included
         for gate in _single_qubit_gates:
@@ -215,23 +215,23 @@ class TestQubitCircuit:
         qc1.add_circuit(qc)
 
         # Test if all gates and measurements are added
-        assert len(qc1.circuit_ops) == len(qc.circuit_ops)
+        assert len(qc1.gates) == len(qc.gates)
 
-        for i in range(len(qc1.circuit_ops)):
-            assert (qc1.circuit_ops[i].name
-                    == qc.circuit_ops[i].name)
-            assert (qc1.circuit_ops[i].targets
-                    == qc.circuit_ops[i].targets)
-            if (isinstance(qc1.circuit_ops[i], Gate) and
-                    isinstance(qc.circuit_ops[i], Gate)):
-                assert (qc1.circuit_ops[i].controls
-                        == qc.circuit_ops[i].controls)
-                assert (qc1.circuit_ops[i].classical_controls
-                        == qc.circuit_ops[i].classical_controls)
-            elif (isinstance(qc1.circuit_ops[i], Measurement) and
-                    isinstance(qc.circuit_ops[i], Measurement)):
-                assert (qc1.circuit_ops[i].classical_store
-                        == qc.circuit_ops[i].classical_store)
+        for i in range(len(qc1.gates)):
+            assert (qc1.gates[i].name
+                    == qc.gates[i].name)
+            assert (qc1.gates[i].targets
+                    == qc.gates[i].targets)
+            if (isinstance(qc1.gates[i], Gate) and
+                    isinstance(qc.gates[i], Gate)):
+                assert (qc1.gates[i].controls
+                        == qc.gates[i].controls)
+                assert (qc1.gates[i].classical_controls
+                        == qc.gates[i].classical_controls)
+            elif (isinstance(qc1.gates[i], Measurement) and
+                    isinstance(qc.gates[i], Measurement)):
+                assert (qc1.gates[i].classical_store
+                        == qc.gates[i].classical_store)
 
         # Test exception when qubit out of range
         pytest.raises(NotImplementedError, qc1.add_circuit, qc, start=4)
@@ -240,17 +240,17 @@ class TestQubitCircuit:
         qc2.add_circuit(qc, start=2)
 
         # Test if all gates are added
-        assert len(qc2.circuit_ops) == len(qc.circuit_ops)
+        assert len(qc2.gates) == len(qc.gates)
 
         # Test if the positions are correct
-        for i in range(len(qc2.circuit_ops)):
-            if qc.circuit_ops[i].targets is not None:
-                assert (qc2.circuit_ops[i].targets[0]
-                        == qc.circuit_ops[i].targets[0]+2)
-            if (isinstance(qc.circuit_ops[i], Gate) and
-                    qc.circuit_ops[i].controls is not None):
-                assert (qc2.circuit_ops[i].controls[0]
-                        == qc.circuit_ops[i].controls[0]+2)
+        for i in range(len(qc2.gates)):
+            if qc.gates[i].targets is not None:
+                assert (qc2.gates[i].targets[0]
+                        == qc.gates[i].targets[0]+2)
+            if (isinstance(qc.gates[i], Gate) and
+                    qc.gates[i].controls is not None):
+                assert (qc2.gates[i].controls[0]
+                        == qc.gates[i].controls[0]+2)
 
     def test_add_state(self):
         """
@@ -303,14 +303,14 @@ class TestQubitCircuit:
         qc.add_measurement("M2", targets=[1])
 
         # checking correct addition of measurements
-        assert qc.circuit_ops[0].targets[0] == 0
-        assert qc.circuit_ops[0].classical_store == 1
-        assert qc.circuit_ops[3].name == "M1"
-        assert qc.circuit_ops[5].classical_store is None
+        assert qc.gates[0].targets[0] == 0
+        assert qc.gates[0].classical_store == 1
+        assert qc.gates[3].name == "M1"
+        assert qc.gates[5].classical_store is None
 
         # checking if gates are added correctly with measurements
-        assert qc.circuit_ops[2].name == "TOFFOLI"
-        assert qc.circuit_ops[4].classical_controls == [0, 1]
+        assert qc.gates[2].name == "TOFFOLI"
+        assert qc.gates[4].classical_controls == [0, 1]
 
     @pytest.mark.parametrize('gate', ['X', 'Y', 'Z', 'S', 'T'])
     def test_exceptions(self, gate):
@@ -351,30 +351,30 @@ class TestQubitCircuit:
         qc.add_gate("S", targets=[1])
         qc.add_gate("T", targets=[2])
 
-        assert qc.circuit_ops[8].name == "T"
-        assert qc.circuit_ops[7].name == "S"
-        assert qc.circuit_ops[6].name == "CZ"
-        assert qc.circuit_ops[5].name == "CT"
-        assert qc.circuit_ops[4].name == "Z"
-        assert qc.circuit_ops[3].name == "CS"
-        assert qc.circuit_ops[2].name == "Y"
-        assert qc.circuit_ops[1].name == "CY"
-        assert qc.circuit_ops[0].name == "X"
+        assert qc.gates[8].name == "T"
+        assert qc.gates[7].name == "S"
+        assert qc.gates[6].name == "CZ"
+        assert qc.gates[5].name == "CT"
+        assert qc.gates[4].name == "Z"
+        assert qc.gates[3].name == "CS"
+        assert qc.gates[2].name == "Y"
+        assert qc.gates[1].name == "CY"
+        assert qc.gates[0].name == "X"
 
-        assert qc.circuit_ops[8].targets == [2]
-        assert qc.circuit_ops[7].targets == [1]
-        assert qc.circuit_ops[6].targets == [0]
-        assert qc.circuit_ops[5].targets == [2]
-        assert qc.circuit_ops[4].targets == [1]
-        assert qc.circuit_ops[3].targets == [0]
-        assert qc.circuit_ops[2].targets == [2]
-        assert qc.circuit_ops[1].targets == [1]
-        assert qc.circuit_ops[0].targets == [0]
+        assert qc.gates[8].targets == [2]
+        assert qc.gates[7].targets == [1]
+        assert qc.gates[6].targets == [0]
+        assert qc.gates[5].targets == [2]
+        assert qc.gates[4].targets == [1]
+        assert qc.gates[3].targets == [0]
+        assert qc.gates[2].targets == [2]
+        assert qc.gates[1].targets == [1]
+        assert qc.gates[0].targets == [0]
 
-        assert qc.circuit_ops[6].controls == [0]
-        assert qc.circuit_ops[5].controls == [2]
-        assert qc.circuit_ops[3].controls == [1]
-        assert qc.circuit_ops[1].controls == [0]
+        assert qc.gates[6].controls == [0]
+        assert qc.gates[5].controls == [2]
+        assert qc.gates[3].controls == [1]
+        assert qc.gates[1].controls == [0]
 
     def test_reverse(self):
         """
@@ -395,10 +395,10 @@ class TestQubitCircuit:
 
         qc_rev = qc.reverse_circuit()
 
-        assert qc_rev.circuit_ops[0].name == "SNOT"
-        assert qc_rev.circuit_ops[1].name == "M1"
-        assert qc_rev.circuit_ops[2].name == "CNOT"
-        assert qc_rev.circuit_ops[3].name == "RX"
+        assert qc_rev.gates[0].name == "SNOT"
+        assert qc_rev.gates[1].name == "M1"
+        assert qc_rev.gates[2].name == "CNOT"
+        assert qc_rev.gates[3].name == "RX"
 
         assert qc_rev.input_states[0] == "0"
         assert qc_rev.input_states[2] is None

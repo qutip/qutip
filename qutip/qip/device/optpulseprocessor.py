@@ -179,7 +179,7 @@ class OptPulseProcessor(Processor):
             setting_args = {}
         if isinstance(qc, QubitCircuit):
             props = qc.propagators()
-            gates = [g.name for g in qc.circuit_ops]
+            gates = [g.name for g in qc.gates]
         elif isinstance(qc, Iterable):
             props = qc
             gates = None  # using list of Qobj, no gates name

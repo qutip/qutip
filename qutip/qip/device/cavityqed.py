@@ -326,7 +326,7 @@ class DispersiveCavityQED(ModelProcessor):
             row corresponds to the control pulse sequence for
             one Hamiltonian.
         """
-        gates = self.optimize_circuit(qc).circuit_ops
+        gates = self.optimize_circuit(qc).gates
         compiler = CavityQEDCompiler(
             self.N, self._params,
             global_phase=0., num_ops=len(self.ctrls))
