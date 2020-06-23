@@ -332,7 +332,7 @@ def _qoc_repr_(self):
 def _qoc_reset(self):
     """Reset instance to the default value or the default to Qutip's default"""
     if self._isDefault:
-        [setattr(self, key,getattr(self.__class__, key))
+        [setattr(self, key, getattr(self.__class__, key))
          for key in self._all]
     else:
         [setattr(self, key, getattr(self._defaultInstance, key))
