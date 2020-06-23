@@ -170,6 +170,7 @@ cy_exts = {
         'dispatch',
         'kron',
         'matmul',
+        'mul',
     ],
     '.core.cy': [
         'cqobjevo',
