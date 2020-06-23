@@ -252,10 +252,10 @@ class _QtOptionMaker:
 
         # attributes that to be saved
         cls._all = [key for key in cls.__dict__
-                       if self._valid(cls, key)]
+                    if self._valid(cls, key)]
         # attributes to print
         cls._repr_keys = [key for key in cls.__dict__
-                             if self._valid(cls, key, _repr=True)]
+                          if self._valid(cls, key, _repr=True)]
         # Name in settings and in files
         cls._name = self.name
         # Name when printing
@@ -269,7 +269,7 @@ class _QtOptionMaker:
         # add methods
         # __init__ is dynamically build to get a meaningful signature
         _all_set = [key for key in cls.__dict__
-             if self._valid(cls, key, _set=True)]
+                    if self._valid(cls, key, _set=True)]
         attributes_kw = ["             {}=None,".format(var)
                          for var in _all_set]
         attributes_kw[-1] = attributes_kw[-1][:-1]
@@ -277,11 +277,11 @@ class _QtOptionMaker:
                           "else self._defaultInstance.{0}".format(var)
                           for var in _all_set]
         code = ["def __init__(self, file='', *,"] + \
-               attributes_kw + \
-               ["            ):"] + \
-               attributes_set + \
-               ["    if file:"] + \
-               ["        self.load(file)"]
+            attributes_kw + \
+            ["            ):"] + \
+            attributes_set + \
+            ["    if file:"] + \
+            ["        self.load(file)"]
         code = "\n".join(code)
         ns = {}
         exec(code, globals(), ns)
@@ -320,7 +320,6 @@ class _QtOptionMaker:
         qrc.sections.append((self.name, default))
 
 
-
 def _qoc_repr_(self):
     out = self._fullname + ":\n"
     longest = max(len(key) for key in self._repr_keys)
@@ -328,6 +327,7 @@ def _qoc_repr_(self):
         out += "{:{width}} : {}\n".format(key, getattr(self, key),
                                           width=longest)
     return out
+
 
 def _qoc_reset(self):
     """Reset instance to the default value or the default to Qutip's default"""
@@ -338,10 +338,12 @@ def _qoc_reset(self):
         [setattr(self, key, getattr(self._defaultInstance, key))
          for key in self._all]
 
+
 def _qoc_save(self, file="qutiprc"):
     """Save to desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
     qrc.write_rc_object(file, self._name, self)
+
 
 def _qoc_load(self, file="qutiprc"):
     """Load from desired file. 'qutiprc' if not specified"""

@@ -33,7 +33,6 @@
 import os
 import qutip
 import qutip.settings as qset
-import qutip.solver as def_options
 import warnings
 try:
     import ConfigParser as configparser #py27

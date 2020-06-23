@@ -255,6 +255,7 @@ class Options:
     norm_steps = 5
     # Use preexisting RHS function for time-dependent solvers
     rhs_reuse = False
+
     # Use filename for preexisting RHS function (will default to last
     # compiled function if None & rhs_exists=True)
     @property
@@ -277,6 +278,7 @@ class Options:
     store_states = False
     # average mcsolver density matricies assuming steady state evolution
     steady_state_average = False
+
     # Holds seeds for rand num gen
     @property
     def seeds(self):
@@ -290,6 +292,7 @@ class Options:
     # Normalize output of solvers
     # (turned off for batch unitary propagator mode)
     normalize_output = True
+
     # Use OPENMP for sparse matrix vector multiplication
     @property
     def use_openmp(self):
