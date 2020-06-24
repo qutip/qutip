@@ -59,7 +59,7 @@ def _verify_input(op, state):
         raise ValueError("state must be a ket or a density matrix")
 
 
-def _measurement_statistics_povm_ket(ops, state):
+def _measurement_statistics_povm_ket(state, ops):
     '''
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
@@ -67,11 +67,12 @@ def _measurement_statistics_povm_ket(ops, state):
 
     Parameters
     ----------
+    state : Qobj(ket)
+            The ket specifying the state to measure.
     ops : list of Qobjs
           list of measurement operators M_i
           (specifying a POVM s.t. E_i = dagger(M_i) * M_i)
-    state : Qobj(ket)
-            The ket specifying the state to measure.
+
 
     Returns
     -------
@@ -99,7 +100,7 @@ def _measurement_statistics_povm_ket(ops, state):
     return collapsed_states, probabilities
 
 
-def _measurement_statistics_povm_dm(ops, density_mat):
+def _measurement_statistics_povm_dm(density_mat, ops):
     '''
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
@@ -107,11 +108,12 @@ def _measurement_statistics_povm_dm(ops, density_mat):
 
     Parameters
     ----------
+    state : Qobj (density matrix)
+            The ket or density matrix specifying the state to measure.
     ops : list of Qobjs
           list of measurement operators M_i
           (specifying a POVM s.t. E_i = dagger(M_i) * M_i)
-    state : Qobj (density matrix)
-            The ket or density matrix specifying the state to measure.
+
 
     Returns
     -------
@@ -140,7 +142,7 @@ def _measurement_statistics_povm_dm(ops, density_mat):
     return collapsed_states, probabilities
 
 
-def measurement_statistics(ops, state):
+def measurement_statistics(state, ops):
     '''
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
@@ -148,6 +150,8 @@ def measurement_statistics(ops, state):
 
     Parameters
     ----------
+    state : Qobj
+            The ket or density matrix specifying the state to measure.
     ops : list of Qobjs
           list of measurement operators M_i or kets
           Either:
@@ -155,8 +159,7 @@ def measurement_statistics(ops, state):
           2. projection operators if ops correspond to
              projectors (s.t. E_i = dagger(M_i) = M_i)
           3. kets (transformed to projectors)
-    state : Qobj
-            The ket or density matrix specifying the state to measure.
+
 
     Returns
     -------
@@ -181,22 +184,23 @@ def measurement_statistics(ops, state):
         raise ValueError("measurement operators must sum to identity")
 
     if state.isket:
-        return _measurement_statistics_povm_ket(ops, state)
+        return _measurement_statistics_povm_ket(state, ops)
     else:
-        return _measurement_statistics_povm_dm(ops, state)
+        return _measurement_statistics_povm_dm(state, ops)
 
 
-def measurement_statistics_observable(op, state):
+def measurement_statistics_observable(state, op):
     """
     Return the measurement eigenvalues, eigenstates (or projectors) and
     measurement probabilities for the given state and measurement operator.
 
     Parameters
     ----------
-    op : Qobj
-        The measurement operator.
     state : Qobj
         The ket or density matrix specifying the state to measure.
+    op : Qobj
+        The measurement operator.
+
 
     Returns
     -------
@@ -223,7 +227,7 @@ def measurement_statistics_observable(op, state):
         return eigenvalues, projectors, probabilities
 
 
-def measure_observable(op, state):
+def measure_observable(state, op):
     """
     Perform a measurement specified by an operator on the given state.
 
@@ -235,10 +239,11 @@ def measure_observable(op, state):
 
     Parameters
     ----------
-    op : Qobj
-        The measurement operator.
     state : Qobj
         The ket or density matrix specifying the state to measure.
+    op : Qobj
+        The measurement operator.
+
 
     Returns
     -------
@@ -253,7 +258,7 @@ def measure_observable(op, state):
 
     Measure the z-component of the spin of the spin-up basis state:
 
-    >>> measure(sigmaz(), basis(2, 0))
+    >>> measure_observable(basis(2, 0), sigmaz())
     (1.0, Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
     [[-1.]
@@ -265,7 +270,7 @@ def measure_observable(op, state):
 
     Measure the x-component of the spin of the spin-down basis state:
 
-    >>> measure(sigmax(), basis(2, 1))
+    >>> measure_observable(basis(2, 1), sigmax())
     (-1.0, Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
     [[-0.70710678]
@@ -279,7 +284,7 @@ def measure_observable(op, state):
     the same measurement as above, but on the density matrix representing the
     pure spin-down state:
 
-    >>> measure(sigmax(), ket2dm(basis(2, 1)))
+    >>> measure_observable(ket2dm(basis(2, 1)), sigmax())
     (-1.0, Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper
     Qobj data =
     [[ 0.5 -0.5]
@@ -289,7 +294,7 @@ def measure_observable(op, state):
     density matrix.
     """
     eigenvalues, eigenstates_or_projectors, probabilities = (
-        measurement_statistics_observable(op, state))
+        measurement_statistics_observable(state, op))
     i = np.random.choice(range(len(eigenvalues)), p=probabilities)
     if state.isket:
         eigenstates = eigenstates_or_projectors
@@ -300,7 +305,7 @@ def measure_observable(op, state):
     return eigenvalues[i], state
 
 
-def measure(ops, state):
+def measure(state, ops):
     """
     Perform a measurement specified by list of POVMs.
 
@@ -311,6 +316,8 @@ def measure(ops, state):
 
     Parameters
     ----------
+    state : Qobj
+            The ket or density matrix specifying the state to measure.
     ops : list of Qobjs
           list of measurement operators M_i or kets
           Either:
@@ -318,8 +325,6 @@ def measure(ops, state):
           2. projection operators if ops correspond to
              projectors (s.t. E_i = dagger(M_i) = M_i)
           3. kets (transformed to projectors)
-    state : Qobj
-            The ket or density matrix specifying the state to measure.
 
     Returns
     -------
@@ -330,7 +335,7 @@ def measure(ops, state):
         matrix).
     """
 
-    collapsed_states, probabilities = measurement_statistics(ops, state)
+    collapsed_states, probabilities = measurement_statistics(state, ops)
     index = np.random.choice(range(len(collapsed_states)), p=probabilities)
     state = collapsed_states[index]
     return index, state

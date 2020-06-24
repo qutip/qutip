@@ -309,7 +309,7 @@ class Measurement:
         else:
             raise ValueError("target is not valid")
 
-        return measurement_statistics(measurement_ops, state)
+        return measurement_statistics(state, measurement_ops)
 
     def __str__(self):
         str_name = (("Measurement(%s, target=%s, classical_store=%s") %
