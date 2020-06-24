@@ -69,9 +69,9 @@ except ImportError:
 __all__ = ['Gate', 'QubitCircuit', 'Measurement']
 
 _single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
-                       "X", "Y", "Z", "S", "T"]
+                       "X", "Y", "Z", "S", "T", "QASMU"]
 _para_gates = ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
-               "GLOBALPHASE", "CRX", "CRY", "CRZ"]
+               "GLOBALPHASE", "CRX", "CRY", "CRZ", "QASMU"]
 _ctrl_gates = ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
                "CS", "CT"]
 _swap_like = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
@@ -203,6 +203,7 @@ _GATE_NAME_TO_LABEL = {
     'SQRTNOT': r'\sqrt{\rm NOT}',
     'SNOT': r'{\rm H}',
     'PHASEGATE': r'{\rm PHASE}',
+    'QASMU': r'{\rm QASM-U}',
     'CPHASE': r'{\rm R}',
     'CNOT': r'{\rm CNOT}',
     'CSIGN': r'{\rm Z}',
@@ -516,7 +517,7 @@ class QubitCircuit:
             Label for gate representation.
         """
         if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
-                        "X", "Y", "Z", "S", "T"]:
+                        "X", "Y", "Z", "S", "T", "QASMU"]:
             raise ValueError("%s is not a single qubit gate" % name)
 
         if qubits is not None:
@@ -556,7 +557,7 @@ class QubitCircuit:
                 gate = circuit_op
 
                 if gate.name in ["RX", "RY", "RZ",
-                                 "SNOT", "SQRTNOT", "PHASEGATE"]:
+                                 "SNOT", "SQRTNOT", "PHASEGATE", "QASMU"]:
                     self.add_gate(gate.name, gate.targets[0] + start, None,
                                   gate.arg_value, gate.arg_label)
                 elif gate.name in ["X", "Y", "Z", "S", "T"]:
@@ -703,7 +704,6 @@ class QubitCircuit:
                                   arg_label=gate.arg_label))
         temp_resolved.append(Gate("RZ", gate.targets, None,
                                   gate.arg_value, gate.arg_label))
-
     def _gate_NOTIMPLEMENTED(self, gate, temp_resolved):
         raise NotImplementedError("Cannot be resolved in this basis")
     _gate_PHASEGATE = _gate_BERKELEY = _gate_SWAPalpha = _gate_NOTIMPLEMENTED
@@ -1409,6 +1409,9 @@ class QubitCircuit:
             elif gate.name == "PHASEGATE":
                 self.U_list.append(phasegate(gate.arg_value, self.N,
                                              gate.targets[0]))
+            elif gate.name == "QASMU":
+                self.U_list.append(qasmu_gate(gate.arg_value, self.N,
+                                                gate.targets[0]))
             elif gate.name == "CRX":
                 self.U_list.append(controlled_gate(rx(gate.arg_value),
                                                    N=self.N,

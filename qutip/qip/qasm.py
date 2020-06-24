@@ -329,12 +329,20 @@ class QASMProcessor:
 
         self.commands = [self.commands[i] for i in unprocessed]
 
-    def _final_pass(self, qc):
+    def _final_pass(self, qc, mode="qiskit"):
         '''
         Takes a blank circuit and adds all the gates and measurements specified.
         '''
 
         custom_gates = {}
+        defined_gates = set()
+
+        if mode == "qiskit":
+            qiskit_gates = set(["u3", "u2", "u1", "cx", "id", "x", "y", "z",
+                                "h", "s", "sdg", "t", "tdg", "rx", "ry", "rz",
+                                "cz", "cy", "ch", "ccx", "crz", "cu1", "cu3"])
+            defined_gates = qiskit_gates
+
         for command in self.commands:
 
             if command[0] in self.gate_names:
@@ -345,7 +353,7 @@ class QASMProcessor:
                 gate_name = command[0] + "" + ",".join(args) + ""
 
                 # creates custom-gate using gate defn and provided args
-                if gate_name not in custom_gates:
+                if gate_name not in defined_gates and gate_name not in custom_gates:
                     n = len(reg_set[0])
                     qc_temp = QubitCircuit(n)
                     self._custom_gate(qc_temp, [command[0], args,
@@ -357,7 +365,6 @@ class QASMProcessor:
                 # adds gate to the QubitCircuit
                 for regs in reg_set:
                     regs = [int(i) for i in regs]
-                    if self.mode == "QISKIT" and gate_name not in inbuilt_gates:
                     if command[0] == "CX":
                         qc.add_gate("CNOT",
                                     targets=[regs[1]],
