@@ -37,6 +37,7 @@ Module for measuring quantum objects.
 import numpy as np
 from qutip.qobj import Qobj
 from qutip import identity
+from qutip.qip.operations.gates import expand_operator
 
 
 def _verify_input(op, state):
@@ -142,7 +143,7 @@ def _measurement_statistics_povm_dm(density_mat, ops):
     return collapsed_states, probabilities
 
 
-def measurement_statistics(state, ops):
+def measurement_statistics(state, ops, targets=None):
     '''
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
@@ -159,6 +160,10 @@ def measurement_statistics(state, ops):
           2. projection operators if ops correspond to
              projectors (s.t. E_i = dagger(M_i) = M_i)
           3. kets (transformed to projectors)
+    targets : list of ints, optional
+              Specifies a list of target "qubit" indices on which to apply
+              the measurement using qutip.qip.gates.expand_operator to expand
+              ops into full dimension.
 
 
     Returns
@@ -175,6 +180,10 @@ def measurement_statistics(state, ops):
     if all(map(lambda x: x.isket, ops)):
         ops = [op * op.dag() for op in ops]
 
+    if targets:
+        N = int(np.log2(state.shape[0]))
+        ops = [expand_operator(op, N=N, targets=targets) for op in ops]
+
     for op in ops:
         _verify_input(op, state)
 
@@ -189,7 +198,7 @@ def measurement_statistics(state, ops):
         return _measurement_statistics_povm_dm(state, ops)
 
 
-def measurement_statistics_observable(state, op):
+def measurement_statistics_observable(state, op, targets=None):
     """
     Return the measurement eigenvalues, eigenstates (or projectors) and
     measurement probabilities for the given state and measurement operator.
@@ -200,6 +209,10 @@ def measurement_statistics_observable(state, op):
         The ket or density matrix specifying the state to measure.
     op : Qobj
         The measurement operator.
+    targets : list of ints, optional
+              Specifies a list of targets "qubit" indices on which to apply
+              the measurement using qutip.qip.gates.expand_operator to expand
+              op into full dimension.
 
 
     Returns
@@ -215,6 +228,10 @@ def measurement_statistics_observable(state, op):
         the corresponding eigenvalue).
     """
 
+    if targets:
+        N = int(np.log2(state.shape[0]))
+        op = expand_operator(op, N=N, targets=targets)
+
     _verify_input(op, state)
 
     eigenvalues, eigenstates = op.eigenstates()
@@ -227,7 +244,7 @@ def measurement_statistics_observable(state, op):
         return eigenvalues, projectors, probabilities
 
 
-def measure_observable(state, op):
+def measure_observable(state, op, targets=None):
     """
     Perform a measurement specified by an operator on the given state.
 
@@ -252,6 +269,10 @@ def measure_observable(state, op):
     state : Qobj
         The new state (a ket if a ket was given, otherwise a density
         matrix).
+    targets : list of ints, optional
+              Specifies a list of target "qubit" indices on which to apply
+              the measurement using qutip.qip.gates.expand_operator to expand
+              op into full dimension.
 
     Examples
     --------
@@ -294,7 +315,7 @@ def measure_observable(state, op):
     density matrix.
     """
     eigenvalues, eigenstates_or_projectors, probabilities = (
-        measurement_statistics_observable(state, op))
+        measurement_statistics_observable(state, op, targets))
     i = np.random.choice(range(len(eigenvalues)), p=probabilities)
     if state.isket:
         eigenstates = eigenstates_or_projectors
@@ -305,7 +326,7 @@ def measure_observable(state, op):
     return eigenvalues[i], state
 
 
-def measure(state, ops):
+def measure(state, ops, targets=None):
     """
     Perform a measurement specified by list of POVMs.
 
@@ -325,6 +346,10 @@ def measure(state, ops):
           2. projection operators if ops correspond to
              projectors (s.t. E_i = dagger(M_i) = M_i)
           3. kets (transformed to projectors)
+    targets : list of ints, optional
+              Specifies a list of target "qubit" indices on which to apply
+              the measurement using qutip.qip.gates.expand_operator to expand
+              ops into full dimension.
 
     Returns
     -------
@@ -335,7 +360,7 @@ def measure(state, ops):
         matrix).
     """
 
-    collapsed_states, probabilities = measurement_statistics(state, ops)
+    collapsed_states, probabilities = measurement_statistics(state, ops, targets)
     index = np.random.choice(range(len(collapsed_states)), p=probabilities)
     state = collapsed_states[index]
     return index, state

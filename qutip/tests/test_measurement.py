@@ -118,6 +118,26 @@ def test_measurement_statistics_observable(op, state, pairs, probabilities):
     np.testing.assert_almost_equal(probs, probabilities)
 
 
+@pytest.mark.parametrize(["op", "state"], [
+                    pytest.param(sigmax(), tensor(basis(2, 0), basis(2, 0)),
+                                id="partial_ket_observable"),
+                    pytest.param(sigmaz(), tensor(ket2dm(basis(2, 0)),
+                                                    ket2dm(basis(2, 0))),
+                                id="partial_dm_observable")])
+def test_measurement_statistics_observable_ind(op, state):
+    """ measurement_statistics_observable: observables on basis
+        states with targets. """
+
+    evs1, ess_or_projs1, probs1 = measurement_statistics_observable(
+                                                state, tensor(op, identity(2)))
+    evs2, ess_or_projs2, probs2 = measurement_statistics_observable(
+                                                state, op, targets=[0])
+    np.testing.assert_array_equal(evs1, evs2)
+    for a, b in zip(ess_or_projs1, ess_or_projs2):
+        assert isequal(a, b)
+    np.testing.assert_almost_equal(probs1, probs2)
+
+
 @pytest.mark.parametrize(["ops", "state", "final_states", "probabilities"], [
                     pytest.param(PZ, basis(2, 0),
                             [state0, None], [1, 0], id="PZ_ket"),
@@ -148,6 +168,26 @@ def test_measurement_statistics(ops, state, final_states, probabilities):
         else:
             assert collapsed_state is None
     np.testing.assert_almost_equal(probs, probabilities)
+
+
+@pytest.mark.parametrize(["ops", "state"], [
+                    pytest.param(PX, tensor(basis(2, 0), basis(2, 0)),
+                                id="partial_ket"),
+                    pytest.param(PX,
+                                tensor(ket2dm(basis(2, 0)),
+                                        ket2dm(basis(2, 0))),
+                                id="partial_dm")])
+def test_measurement_statistics_ind(ops, state):
+    """ measurement_statistics: projectors on basis states with targets. """
+
+    states1, probs1 = measurement_statistics(
+                                    state,
+                                    [tensor(op, identity(2)) for op in ops])
+    states2, probs2 = measurement_statistics(state, ops, targets=[0])
+
+    for a, b in zip(states1, states2):
+        assert isequal(a, b)
+    np.testing.assert_almost_equal(probs1, probs2)
 
 
 def test_measurement_statistics_input_errors():

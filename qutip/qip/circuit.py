@@ -296,20 +296,15 @@ class Measurement:
         n = int(np.log2(state.shape[0]))
         target = self.targets[0]
 
-        def _op_i(i, index, target):
-            if index == target:
-                return basis(2, i) * basis(2, i).dag()
-            else:
-                return identity(2)
-
         if target < n:
-            op0 = tensor(list(map(lambda ind: _op_i(0, ind, target), range(n))))
-            op1 = tensor(list(map(lambda ind: _op_i(1, ind, target), range(n))))
+            op0 = basis(2, 0) * basis(2, 0).dag()
+            op1 = basis(2, 1) * basis(2, 1).dag()
             measurement_ops = [op0, op1]
         else:
             raise ValueError("target is not valid")
 
-        return measurement_statistics(state, measurement_ops)
+        return measurement_statistics(state, measurement_ops,
+                                        targets=self.targets)
 
     def __str__(self):
         str_name = (("Measurement(%s, target=%s, classical_store=%s") %
