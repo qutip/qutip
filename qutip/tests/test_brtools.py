@@ -40,8 +40,6 @@ from qutip.cy.brtools_checks import (
     _test_vec_to_eigbasis, _test_eigvec_to_fockbasis, _test_vector_roundtrip,
     _cop_super_mult, _test_br_term_mult
 )
-from qutip.settings import debug
-from qutip.sparse import eigh
 
 
 def test_zheevr():
@@ -49,8 +47,6 @@ def test_zheevr():
     zheevr: store eigenvalues in the passed array, and return the eigenvectors
     of a complex Hermitian matrix.
     """
-    # This really test that our lapack wrapper give the same result as numpy
-    # The order and phase of the eigenvectors, must be the same.
     for dimension in range(2, 100):
         H = qutip.rand_herm(dimension, 1/dimension)
         Hf = H.full()
