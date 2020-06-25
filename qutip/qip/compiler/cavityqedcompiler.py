@@ -83,7 +83,7 @@ class CavityQEDCompiler(GateCompiler):
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
     """
-    def __init__(self, N, params, wq, Delta, global_phase, num_ops):
+    def __init__(self, N, params, global_phase, num_ops):
         super(CavityQEDCompiler, self).__init__(
             N=N, params=params, num_ops=num_ops)
         self.gate_decomps = {"ISWAP": self.iswap_dec,
@@ -92,11 +92,11 @@ class CavityQEDCompiler(GateCompiler):
                              "RX": self.rx_dec,
                              "GLOBALPHASE": self.globalphase_dec
                              }
-        self._sx_ind = list(range(1, N + 1))
-        self._sz_ind = list(range(N + 1, 2*N + 1))
-        self._g_ind = list(range(2*N + 1, 3*N + 1))
-        self.wq = wq
-        self.Delta = Delta
+        self._sx_ind = list(range(0, N))
+        self._sz_ind = list(range(N, 2*N))
+        self._g_ind = list(range(2*N, 3*N))
+        self.wq = np.sqrt(self.params["eps"]**2 + self.params["delta"]**2)
+        self.Delta = self.wq - self.params["w0"]
         self.global_phase = global_phase
 
     def decompose(self, gates):

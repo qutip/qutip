@@ -57,7 +57,7 @@ For instructions on how to install QuTiP, see:
 
 Run notebooks online
 -----
-A selection of demonstration notebooks is available at [http://qutip.org/tutorials.html](http://qutip.org/tutorials.html) and can be run online here: [![Binder](http://img.shields.io/badge/launch-binder-ff69b4.svg?style=flat)](http://mybinder.org/repo/qutip/qutip-notebooks/binder)
+A selection of demonstration notebooks is available at [http://qutip.org/tutorials.html](http://qutip.org/tutorials.html) and can be run online here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/qutip/qutip-notebooks/master?filepath=index.ipynb)
 
 or may be found at: [github.com/qutip/qutip-notebooks](http://github.com/qutip/qutip-notebooks).
 
