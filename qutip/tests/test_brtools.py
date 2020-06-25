@@ -51,11 +51,18 @@ def test_zheevr():
     """
     for dimension in range(2, 100):
         H = qutip.rand_herm(dimension, 1/dimension)
-        our_evals = np.zeros(dimension, dtype=np.float64)
-        our_evecs = _test_zheevr(H.full('F'), our_evals)
-        scipy_evals, scipy_evecs = scipy.linalg.eigh(H.full())
-        np.testing.assert_allclose(scipy_evals, our_evals, atol=1e-12)
-        np.testing.assert_allclose(scipy_evecs, our_evecs, atol=1e-12)
+        Hf = H.full()
+        evals = np.zeros(dimension, dtype=np.float64)
+        # This routine modifies its arguments inplace, so we must make a copy.
+        evecs = _test_zheevr(Hf.copy(order='F'), evals).T
+        # Assert linear independence of all the eigenvectors.
+        assert abs(scipy.linalg.det(evecs)) > 1e-12
+        for value, vector in zip(evals, evecs):
+            # Assert the eigenvector satisfies the eigenvalue equation.
+            unit = vector / scipy.linalg.norm(vector)
+            test_value = np.conj(unit.T) @ Hf @ unit
+            assert abs(test_value.imag) < 1e-12
+            assert abs(test_value - value) < 1e-12
 
 
 @pytest.mark.parametrize("operator", [

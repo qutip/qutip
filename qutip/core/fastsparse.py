@@ -180,10 +180,10 @@ class fast_csr_matrix(csr_matrix):
         Do the sparse matrix mult returning fast_csr_matrix only
         when other is also fast_csr_matrix.
         """
-        M, K1 = self.shape
-        K2, N = other.shape
+        M, _ = self.shape
+        _, N = other.shape
 
-        major_axis = self._swap((M,N))[0]
+        major_axis = self._swap((M, N))[0]
         if isinstance(other, fast_csr_matrix):
             A = zcsr_mult(self, other, sorted=1)
             return A
@@ -192,25 +192,42 @@ class fast_csr_matrix(csr_matrix):
         idx_dtype = get_index_dtype((self.indptr, self.indices,
                                      other.indptr, other.indices),
                                     maxval=M*N)
-        indptr = np.empty(major_axis + 1, dtype=idx_dtype)
 
-        fn = getattr(_sparsetools, self.format + '_matmat_pass1')
-        fn(M, N,
-           np.asarray(self.indptr, dtype=idx_dtype),
-           np.asarray(self.indices, dtype=idx_dtype),
-           np.asarray(other.indptr, dtype=idx_dtype),
-           np.asarray(other.indices, dtype=idx_dtype),
-           indptr)
+        # scipy 1.5 renamed the older csr_matmat_pass1 to the much more
+        # descriptive csr_matmat_maxnnz, but also changed the call and logic
+        # structure of constructing the indices.
+        try:
+            fn = getattr(_sparsetools, self.format + '_matmat_maxnnz')
+            nnz = fn(M, N,
+                     np.asarray(self.indptr, dtype=idx_dtype),
+                     np.asarray(self.indices, dtype=idx_dtype),
+                     np.asarray(other.indptr, dtype=idx_dtype),
+                     np.asarray(other.indices, dtype=idx_dtype))
+            idx_dtype = get_index_dtype((self.indptr, self.indices,
+                                         other.indptr, other.indices),
+                                        maxval=nnz)
+            indptr = np.empty(major_axis + 1, dtype=idx_dtype)
+        except AttributeError:
+            indptr = np.empty(major_axis + 1, dtype=idx_dtype)
+            fn = getattr(_sparsetools, self.format + '_matmat_pass1')
+            fn(M, N,
+               np.asarray(self.indptr, dtype=idx_dtype),
+               np.asarray(self.indices, dtype=idx_dtype),
+               np.asarray(other.indptr, dtype=idx_dtype),
+               np.asarray(other.indices, dtype=idx_dtype),
+               indptr)
+            nnz = indptr[-1]
+            idx_dtype = get_index_dtype((self.indptr, self.indices,
+                                         other.indptr, other.indices),
+                                        maxval=nnz)
 
-        nnz = indptr[-1]
-        idx_dtype = get_index_dtype((self.indptr, self.indices,
-                                     other.indptr, other.indices),
-                                    maxval=nnz)
-        indptr = np.asarray(indptr, dtype=idx_dtype)
         indices = np.empty(nnz, dtype=idx_dtype)
         data = np.empty(nnz, dtype=upcast(self.dtype, other.dtype))
 
-        fn = getattr(_sparsetools, self.format + '_matmat_pass2')
+        try:
+            fn = getattr(_sparsetools, self.format + '_matmat')
+        except AttributeError:
+            fn = getattr(_sparsetools, self.format + '_matmat_pass2')
         fn(M, N, np.asarray(self.indptr, dtype=idx_dtype),
            np.asarray(self.indices, dtype=idx_dtype),
            self.data,
@@ -218,7 +235,7 @@ class fast_csr_matrix(csr_matrix):
            np.asarray(other.indices, dtype=idx_dtype),
            other.data,
            indptr, indices, data)
-        A = csr_matrix((data,indices,indptr),shape=(M,N))
+        A = csr_matrix((data, indices, indptr), shape=(M, N))
         return A
 
     def _scalar_binopt(self, other, op):
