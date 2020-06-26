@@ -3,7 +3,9 @@ import re
 import os
 from itertools import chain
 from qutip.qip import gate_sequence_product
+from qutip.qip.operations.gates import controlled_gate, qasmu_gate, rz, snot
 from math import pi
+from copy import deepcopy
 
 
 class QASMGate:
@@ -16,6 +18,28 @@ class QASMGate:
         self.gate_args = gate_args
         self.gate_regs = gate_regs
         self.gates_inside = []
+
+def qiskit_gates():
+
+    def u2(args):
+        return qasmu_gate([np.pi/2, args[0], args[1]])
+
+    def id():
+        return qasmu_gate([0, 0, 0])
+
+    def sdg():
+        return rz(-1 * np.pi/2)
+
+    def tdg():
+        return rz(-1 * np.pi/4)
+
+    def cu3(args):
+        return controlled_gate(qasmu_gate([args]))
+
+    def ch():
+        return controlled_gate(snot())
+
+    return {"ch":ch, "tdg":tdg, "id":id, "u2":u2, "sdg":sdg, "cu3":cu3}
 
 
 def _tokenize(token_cmds):
@@ -89,16 +113,16 @@ class QASMProcessor:
         self.cbit_regs = {}
         self.num_qubits = 0
         self.num_cbits = 0
-        self.gate_names = set(["CX", "U"])
         self.qasm_gates = {}
         self.mode = mode
         self.predefined_gates = set(["CX", "U"])
 
         if self.mode == "qiskit":
-            qiskit_gates = set(["u3", "u2", "u1", "cx",  "id", "x", "y", "z",
+            qiskitgates = set(["u3", "u2", "u1", "cx",  "id", "x", "y", "z",
                                 "h", "s", "sdg", "t", "tdg", "rx", "ry", "rz",
                                 "cz", "cy", "ch", "ccx", "crz", "cu1", "cu3"])
-            self.predefined_gates.union(qiskit_gates)
+            self.predefined_gates.union(qiskitgates)
+        self.gate_names = deepcopy(self.predefined_gates)
         self.qasm_gates["U"] = QASMGate("U", ["alpha", "beta", "gamma"], ["q"])
         self.qasm_gates["CX"] = QASMGate("CX", [], ["c", "t"])
         self.commands = commands
@@ -140,6 +164,35 @@ class QASMProcessor:
         expanded_commands += self.commands[prev_index:]
         self.commands = expanded_commands
 
+    def _add_qiskit_gates(self, qc, name, regs, args=None):
+
+        gate_name_map_1q = {"x":"X", "y":"Y", "z":"Z", "h":"SQRTNOT",
+                    "t":"T", "s":"S", "sdg":"sdg", "tdg":"tdg"}
+        if len(args) == 1:
+            args = args[0]
+
+        if name == "u3":
+            qc.add_gate("QASMU", targets=regs[0], arg_value=args)
+        elif name == "u2":
+            qc.add_gate("u2", targets=regs[0], arg_value=args)
+        elif name == "u1":
+            qc.add_gate("RZ", targets=regs[0], arg_value=args)
+        elif name == "cz":
+            qc.add_gate("CZ", targets=regs[1], controls=regs)
+        elif name == "cy":
+            qc.add_gate("CY", targets=regs[1], controls=regs)
+        elif name == "ch":
+            qc.add_gate("ch", targets=regs)
+        elif name == "ccx":
+            qc.add_gate("TOFFOLI", targets=regs[1:], controls=regs)
+        elif name == "crz":
+            qc.add_gate("CRZ", targets=regs[1], controls=regs)
+        elif name == "cu1":
+            qc.add_gate("CPHASE", targets=regs[1], controls=regs[0], arg_value=args)
+        elif name == "cu3":
+            qc.add_gate("QASMU", targets=regs[1], controls=regs[0], arg_value=args)
+        elif name in gate_name_map:
+            qc.add_gate(gate_name_map_1q[name], targets=regs[0])
 
     def _add_predefined_gates(self, qc, name, com_regs, com_args):
 
@@ -186,6 +239,7 @@ class QASMProcessor:
 
 
             if name in self.predefined_gates:
+                qc_temp.user_gates = qiskit_gates()
                 self._add_gate(qc_temp, name, com_regs, com_args)
             '''
             if name == "CX":
@@ -358,12 +412,14 @@ class QASMProcessor:
 
         self.commands = [self.commands[i] for i in unprocessed]
 
-    def _final_pass(self, qc, mode="qiskit"):
+    def _final_pass(self, qc):
         '''
         Takes a blank circuit and adds all the gates and measurements specified.
         '''
 
         custom_gates = {}
+        if self.mode == "qiskit":
+            custom_gates = qiskit_gates()
         defined_gates = set()
 
         if mode == "qiskit":
@@ -379,10 +435,13 @@ class QASMProcessor:
                 args, regs = _gate_processor(command)
                 reg_set = self._regs_processor(regs, "gate")
 
+
+
+                #if gate_name not in self.gate_names:
                 gate_name = command[0] + "" + ",".join(args) + ""
 
                 # creates custom-gate using gate defn and provided args
-                if gate_name not in defined_gates and gate_name not in custom_gates:
+                if gate_name not in self.gate_names:
                     n = len(reg_set[0])
                     qc_temp = QubitCircuit(n)
                     self._custom_gate(qc_temp, [command[0], args,
@@ -390,18 +449,24 @@ class QASMProcessor:
                     p = gate_sequence_product(qc_temp.propagators())
                     custom_gates[gate_name] = p
                     qc.user_gates = custom_gates
+                    self.gate_names.append(gate_name)
 
                 # adds gate to the QubitCircuit
                 for regs in reg_set:
                     regs = [int(i) for i in regs]
-                    if command[0] == "CX":
+                    if command[0] in self.predefined_gates:
+                        args = [eval(arg) for arg in args]
+                        self._add_predefined_gates(qc, command[0], regs, args)
+                        '''
                         qc.add_gate("CNOT",
                                     targets=[regs[1]],
                                     controls=[regs[0]])
+                        '''
                     else:
                         if not isinstance(regs, list):
                             regs = [regs]
                         qc.add_gate(gate_name, targets=regs)
+
 
             elif command[0] == "measure":
                 # adds measurement to the QubitCircuit
