@@ -84,13 +84,21 @@ class QASMProcessor:
     Class which holds variables used in processing QASM code.
     '''
 
-    def __init__(self, commands):
+    def __init__(self, commands, mode=None):
         self.qubit_regs = {}
         self.cbit_regs = {}
         self.num_qubits = 0
         self.num_cbits = 0
         self.gate_names = set(["CX", "U"])
         self.qasm_gates = {}
+        self.mode = mode
+        self.predefined_gates = set(["CX", "U"])
+
+        if self.mode == "qiskit":
+            qiskit_gates = set(["u3", "u2", "u1", "cx",  "id", "x", "y", "z",
+                                "h", "s", "sdg", "t", "tdg", "rx", "ry", "rz",
+                                "cz", "cy", "ch", "ccx", "crz", "cu1", "cu3"])
+            self.predefined_gates.union(qiskit_gates)
         self.qasm_gates["U"] = QASMGate("U", ["alpha", "beta", "gamma"], ["q"])
         self.qasm_gates["CX"] = QASMGate("CX", [], ["c", "t"])
         self.commands = commands
@@ -112,6 +120,10 @@ class QASMProcessor:
                 continue
 
             filename = command[1].strip('"')
+
+            if self.mode == "qasm" and filename == "qelib1.inc":
+                continue
+
             if os.path.exists(filename):
                 with open(filename, "r") as f:
                     qasm_lines = [line.strip() for line in f.read().splitlines()]
@@ -127,6 +139,18 @@ class QASMProcessor:
 
         expanded_commands += self.commands[prev_index:]
         self.commands = expanded_commands
+
+
+    def _add_predefined_gates(self, qc, name, com_regs, com_args):
+
+        if name == "CX":
+            qc_temp.add_gate("CNOT",  targets=int(com_regs[1]),
+                        controls=int(com_regs[0]))
+        elif name == "U":
+            qc_temp.add_gate("QASMU", targets=int(com_regs[0]), arg_value=[float(arg) for for arg in com_args])
+        elif name in qiskit_gates and self.mode == "qiskit":
+            self._add_qiskit_gates(self, qc, name, com_regs, com_args)
+
 
     def _custom_gate(self, qc_temp, gate_call):
         '''
@@ -160,6 +184,10 @@ class QASMProcessor:
                                                             in com_regs]
             com_args = [eval(arg) for arg in com_args]
 
+
+            if name in self.predefined_gates:
+                self._add_gate(qc_temp, name, com_regs, com_args)
+            '''
             if name == "CX":
                 qc_temp.add_gate("CNOT",  targets=int(com_regs[1]),
                             controls=int(com_regs[0]))
@@ -171,6 +199,7 @@ class QASMProcessor:
                             arg_value=float(com_args[0]))
                 qc_temp.add_gate("RZ", targets=target,
                             arg_value=float(com_args[1]))
+            '''
             else:
                 self._custom_gate(qc_temp, [name, com_args, com_regs])
 
@@ -382,7 +411,7 @@ class QASMProcessor:
                     continue
 
 
-def read_qasm(file):
+def read_qasm(file, mode="qasm"):
     '''
     Read OpenQASM intermediate representation
     (https://github.com/Qiskit/openqasm) and return
