@@ -77,14 +77,14 @@ def _measurement_statistics_povm_ket(state, ops):
 
     Returns
     -------
-    probabilities : List of floats
-                    the probability of measuring a state in a the state
-                    specified by the index.
     collapsed_states : List of Qobjs (kets)
                     the collapsed states (kets)
                     obtained after measuring the qubits
                     and obtaining the qubit specified by the target in the
                     state specified by the index.
+    probabilities : List of floats
+                    the probability of measuring a state in a the state
+                    specified by the index.
     '''
 
     probabilities = []
@@ -118,13 +118,13 @@ def _measurement_statistics_povm_dm(density_mat, ops):
 
     Returns
     -------
-    probabilities : List of floats
-                    the probability of measuring a state in a the state
-                    specified by the index.
     collapsed_states : List of Qobjs
                     the collapsed states (density matrices) obtained after
                     measuring the qubits and obtaining the
                     qubit specified by the target in the state
+                    specified by the index.
+    probabilities : List of floats
+                    the probability of measuring a state in a the state
                     specified by the index.
     '''
 
@@ -143,7 +143,7 @@ def _measurement_statistics_povm_dm(density_mat, ops):
     return collapsed_states, probabilities
 
 
-def measurement_statistics(state, ops, targets=None):
+def measurement_statistics_povm(state, ops, targets=None):
     '''
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
@@ -168,13 +168,13 @@ def measurement_statistics(state, ops, targets=None):
 
     Returns
     -------
-    probabilities : List of floats
-                    the probability of measuring a state in a the state
-                    specified by the index.
     collapsed_states : List of Qobjs
                     the collapsed states obtained after measuring the qubits
                     and obtaining the qubit specified by the target in the
                     state specified by the index.
+    probabilities : List of floats
+                    the probability of measuring a state in a the state
+                    specified by the index.
     '''
 
     if all(map(lambda x: x.isket, ops)):
@@ -260,6 +260,10 @@ def measure_observable(state, op, targets=None):
         The ket or density matrix specifying the state to measure.
     op : Qobj
         The measurement operator.
+    targets : list of ints, optional
+              Specifies a list of target "qubit" indices on which to apply
+              the measurement using qutip.qip.gates.expand_operator to expand
+              op into full dimension.
 
 
     Returns
@@ -269,10 +273,7 @@ def measure_observable(state, op, targets=None):
     state : Qobj
         The new state (a ket if a ket was given, otherwise a density
         matrix).
-    targets : list of ints, optional
-              Specifies a list of target "qubit" indices on which to apply
-              the measurement using qutip.qip.gates.expand_operator to expand
-              op into full dimension.
+
 
     Examples
     --------
@@ -326,7 +327,7 @@ def measure_observable(state, op, targets=None):
     return eigenvalues[i], state
 
 
-def measure(state, ops, targets=None):
+def measure_povm(state, ops, targets=None):
     """
     Perform a measurement specified by list of POVMs.
 
@@ -360,7 +361,107 @@ def measure(state, ops, targets=None):
         matrix).
     """
 
-    collapsed_states, probabilities = measurement_statistics(state, ops, targets)
+    collapsed_states, probabilities = measurement_statistics_povm(state,
+                                                                ops, targets)
     index = np.random.choice(range(len(collapsed_states)), p=probabilities)
     state = collapsed_states[index]
     return index, state
+
+
+def measurement_statistics(state, ops, targets):
+    """
+    A dispatch method that provides measurement statistics
+    handling both observable style measurements
+    and projector style measurements(POVMs and PVMs).
+
+    Parameters
+    ----------
+    state : Qobj
+            The ket or density matrix specifying the state to measure.
+    ops : Qobj or list of Qobjs
+          - measurement observable
+          or
+          - list of measurement operators M_i or kets
+            Either:
+            1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
+            2. projection operators if ops correspond to
+               projectors (s.t. E_i = dagger(M_i) = M_i)
+            3. kets (transformed to projectors)
+    targets : list of ints, optional
+              Specifies a list of target "qubit" indices on which to apply
+              the measurement using qutip.qip.gates.expand_operator to expand
+              ops into full dimension.
+
+    Returns
+    -------
+    case : ops is a measurement observable (Qobj)
+    eigenvalues: List of floats
+        The list of eigenvalues of the measurement operator.
+    eigenstates_or_projectors: List of Qobj
+        If the state was a ket, return the eigenstates of the measurement
+        operator. Otherwise return the projectors onto the eigenstates.
+    probabilities: List of floats
+        The probability of measuring the state as being in the
+        corresponding eigenstate (and the measurement result being
+        the corresponding eigenvalue).
+    case : ops is a list of measurement operators (list of Qobjs)
+    collapsed_states : List of Qobjs
+                    the collapsed states obtained after measuring the qubits
+                    and obtaining the qubit specified by the target in the
+                    state specified by the index.
+    probabilities : List of floats
+                    the probability of measuring a state in a the state
+                    specified by the index.
+
+    """
+
+    if isinstance(ops, list):
+        return measurement_statistics_povm(state, ops)
+    else:
+        return measurement_statistics_observable(state, ops)
+
+
+def measure(state, ops, targets):
+    """
+    A dispatch method that provides measurement results
+    handling both observable style measurements
+    and projector style measurements(POVMs and PVMs).
+
+    Parameters
+    ----------
+    state : Qobj
+            The ket or density matrix specifying the state to measure.
+    ops : Qobj or list of Qobjs
+          - measurement observable
+          or
+          - list of measurement operators M_i or kets
+            Either:
+            1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
+            2. projection operators if ops correspond to
+               projectors (s.t. E_i = dagger(M_i) = M_i)
+            3. kets (transformed to projectors)
+    targets : list of ints, optional
+              Specifies a list of target "qubit" indices on which to apply
+              the measurement using qutip.qip.gates.expand_operator to expand
+              ops into full dimension.
+
+    Returns
+    -------
+     case : ops is a measurement observable (Qobj)
+     measured_value : float
+         The result of the measurement (one of the eigenvalues of op).
+     state : Qobj
+         The new state (a ket if a ket was given, otherwise a density
+         matrix).
+     case : ops is a list of measurement operators (list of Qobjs)
+     index : float
+         The resultant index of the measurement.
+     state : Qobj
+         The new state (a ket if a ket was given, otherwise a density
+         matrix).
+    """
+
+    if isinstance(ops, list):
+        return measure_povm(state, ops)
+    else:
+        return measure_observable(state, ops)
