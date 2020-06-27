@@ -45,8 +45,8 @@ from qutip.qip import circuit_latex as _latex
 from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         x_gate, y_gate, z_gate, cy_gate,
                                         cz_gate, s_gate, t_gate, cs_gate,
-                                        ct_gate, cphase, cnot, csign,
-                                        berkeley, swapalpha, swap, iswap,
+                                        qasmu_gate, ct_gate, cphase, cnot,
+                                        csign, berkeley, swapalpha, swap, iswap,
                                         sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
                                         expand_operator)
@@ -1464,6 +1464,7 @@ class QubitCircuit:
                       "`targets` variable.".format(gate.name))
                 func_or_oper = self.user_gates[gate.name]
                 if inspect.isfunction(func_or_oper):
+                  func = func_or_oper
                   para_num = len(inspect.getfullargspec(func)[0])
                   if para_num == 0:
                       oper = func()
