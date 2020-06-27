@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 
 
-class QASMGate:
+class QasmGate:
     '''
     Class which stores the gate definitions as specified in QASM.
     '''
@@ -22,7 +22,7 @@ class QASMGate:
 
 def get_qiskit_gates():
     '''
-    Creates a dictionary containing custom gates needed
+    Create a dictionary containing custom gates needed
     for qiskit-style qasm imports.
     '''
 
@@ -49,7 +49,7 @@ def get_qiskit_gates():
 
 def _tokenize(token_cmds):
     '''
-    Tokenizes QASM code for processing
+    Tokenize QASM code for processing.
     '''
 
     processed_commands = []
@@ -87,7 +87,7 @@ def _tokenize(token_cmds):
 
 def _gate_processor(command):
     '''
-    Procsesses tokens for a gate call statement separating into args and regs
+    Procsess tokens for a gate call statement separating them into args and regs.
     '''
 
     gate_args = []
@@ -108,7 +108,7 @@ def _gate_processor(command):
     return gate_args, gate_regs
 
 
-class QASMProcessor:
+class QasmProcessor:
     '''
     Class which holds variables used in processing QASM code.
     '''
@@ -128,16 +128,16 @@ class QASMProcessor:
                                 "cz", "cy", "ch", "ccx", "crz", "cu1", "cu3"])
             self.predefined_gates = self.predefined_gates.union(self.qiskitgates)
         self.gate_names = deepcopy(self.predefined_gates)
-        self.qasm_gates["U"] = QASMGate("U", ["alpha", "beta", "gamma"], ["q"])
-        self.qasm_gates["CX"] = QASMGate("CX", [], ["c", "t"])
+        self.qasm_gates["U"] = QasmGate("U", ["alpha", "beta", "gamma"], ["q"])
+        self.qasm_gates["CX"] = QasmGate("CX", [], ["c", "t"])
         self.commands = commands
 
     def _process_includes(self):
         '''
         QASM allows for code to be specified in additional files with the
         ".inc" extension, espcially to specify gate definitions in terms of
-        the built-in gates. This function processes into tokens all the additional
-        files and inserts it into previously processed tokens
+        the built-in gates. This function is to process into tokens all the additional
+        files and insert it into previously processed list.
         '''
 
         prev_index = 0
@@ -171,7 +171,7 @@ class QASMProcessor:
 
     def _add_qiskit_gates(self, qc, name, regs, args=None):
         """
-        Adds any gates that are pre-defined in qiskit-style  exported
+        Add any gates that are pre-defined in qiskit-style exported
         qasm file with included "qelib1.inc".
         """
 
@@ -208,7 +208,7 @@ class QASMProcessor:
 
     def _add_predefined_gates(self, qc, name, com_regs, com_args):
         """
-        Adds any gates that are pre-defined and/or inbuilt
+        Add any gates that are pre-defined and/or inbuilt
         in our circuit.
         """
 
@@ -223,7 +223,7 @@ class QASMProcessor:
 
     def _custom_gate(self, qc_temp, gate_call):
         '''
-        Recursively processes a custom-defined gate with specified arguments
+        Recursively process a custom-defined gate with specified arguments
         to produce a dummy circuit with all the gates constituting it.
         '''
 
@@ -263,7 +263,7 @@ class QASMProcessor:
 
     def _regs_processor(self, regs, reg_type):
         '''
-        Processes register tokens mapping them to the QubitCircuit index
+        Process register tokens: map them to the QubitCircuit index
         of the respective registers.
         '''
 
@@ -347,8 +347,8 @@ class QASMProcessor:
 
     def _initialize_pass(self):
         '''
-        Passes through the tokenized commands to create QASMGate objects for
-        each user-defined gate, as well as process register declarations.
+        Passes through the tokenized commands, create QasmGate objects for
+        each user-defined gate, process register declarations.
         '''
 
         gate_defn_mode = False
@@ -382,7 +382,7 @@ class QASMProcessor:
             elif command[0] == "gate":
                 gate_name = command[1]
                 gate_args, gate_regs = _gate_processor(command[1:])
-                curr_gate = QASMGate(gate_name, gate_args, gate_regs)
+                curr_gate = QasmGate(gate_name, gate_args, gate_regs)
                 gate_defn_mode = True
 
             elif command[0] == "qreg":
@@ -417,7 +417,7 @@ class QASMProcessor:
 
     def _final_pass(self, qc):
         '''
-        Takes a blank circuit and adds all the gates and measurements specified.
+        Take a blank circuit and add all the gates and measurements specified.
         '''
 
         custom_gates = {}
@@ -490,7 +490,7 @@ def read_qasm(file, mode="qiskit"):
     if qasm_lines.pop(0) != "OPENQASM 2.0;":
         raise SyntaxError("File does not contain QASM header")
 
-    qasm_obj = QASMProcessor(qasm_lines, mode=mode)
+    qasm_obj = QasmProcessor(qasm_lines, mode=mode)
     qasm_obj.commands = _tokenize(qasm_obj.commands)
 
     qasm_obj._process_includes()

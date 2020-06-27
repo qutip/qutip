@@ -36,7 +36,7 @@ from collections import defaultdict
 from itertools import product
 
 import warnings
-import inspect
+from inspect import isfunction
 
 import numpy as np
 from copy import deepcopy
@@ -1463,7 +1463,7 @@ class QubitCircuit:
                       "A user defined gate {} takes only  "
                       "`targets` variable.".format(gate.name))
                 func_or_oper = self.user_gates[gate.name]
-                if inspect.isfunction(func_or_oper):
+                if isfunction(func_or_oper):
                   func = func_or_oper
                   para_num = len(inspect.getfullargspec(func)[0])
                   if para_num == 0:
