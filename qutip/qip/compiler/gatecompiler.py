@@ -31,9 +31,23 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
+from ..scheduler import Instruction
 
 
 __all__ = ['GateCompiler']
+
+
+class _PulseInstruction(Instruction):
+    def __init__(self, gate, tlist, pulse_coeffs):
+        super(_PulseInstruction, self).__init__(
+            gate)
+        self.pulse_coeffs = pulse_coeffs
+        self.tlist = tlist
+        self.duration = tlist[-1]
+    
+    @property
+    def step_num(self):
+        return len(self.tlist)
 
 
 class GateCompiler(object):
@@ -99,19 +113,29 @@ class GateCompiler(object):
         global_phase: bool
             Recorded change of global phase.
         """
-        # TODO further improvement can be made here,
-        # e.g. merge single qubit rotation gate, combine XX gates etc.
-        self.dt_list = []
-        self.coeff_list = []
+        instruction_list = []
         for gate in gates:
             if gate.name not in self.gate_decomps:
                 raise ValueError("Unsupported gate %s" % gate.name)
-            self.gate_decomps[gate.name](gate)
-        coeffs = np.vstack(self.coeff_list).T
+            compilered_gate = self.gate_decomps[gate.name](gate)
+            if compilered_gate is None:
+                continue  # neglecting global phase gate
+            instruction_list += compilered_gate
 
-        tlist = np.empty(len(self.dt_list))
+        max_step_num = sum([instruction.step_num for instruction in instruction_list])
+        dt_list = np.zeros(max_step_num)
+        coeff_list = np.zeros((self.num_ops, max_step_num))
+        last_time_step = 0
+        for instruction in instruction_list:
+            for pulse_ind, coeff in instruction.pulse_coeffs:
+                dt_list[last_time_step: last_time_step + instruction.step_num] = instruction.tlist
+                coeff_list[pulse_ind, last_time_step: last_time_step + instruction.step_num] = coeff
+            last_time_step += instruction.step_num
+        coeffs = np.asarray(coeff_list)
+
+        tlist = np.empty(len(dt_list))
         t = 0
-        for i in range(len(self.dt_list)):
-            t += self.dt_list[i]
+        for i in range(len(dt_list)):
+            t += dt_list[i]
             tlist[i] = t
         return np.hstack([[0], tlist]), coeffs

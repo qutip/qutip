@@ -33,7 +33,7 @@
 import numpy as np
 
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.compiler.gatecompiler import GateCompiler
+from qutip.qip.compiler.gatecompiler import GateCompiler, _PulseInstruction
 
 
 __all__ = ['SpinChainCompiler']
@@ -110,55 +110,57 @@ class SpinChainCompiler(GateCompiler):
         """
         Compiler for the RZ gate
         """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sz"][q_ind]
-        pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+        targets = gate.targets
+        pulse_ind = self._sz_ind[targets[0]]
+        g = self.params["sz"][targets[0]]
+        coeff = np.array([np.sign(gate.arg_value) * g])
+        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        pulse_coeffs = [(pulse_ind, coeff)]
+        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def rx_dec(self, gate):
         """
         Compiler for the RX gate
         """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sx"][q_ind]
-        pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+        targets = gate.targets
+        pulse_ind = self._sx_ind[targets[0]]
+        g = self.params["sx"][targets[0]]
+        coeff = np.array([np.sign(gate.arg_value) * g])
+        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        pulse_coeffs = [(pulse_ind, coeff)]
+        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def iswap_dec(self, gate):
         """
         Compiler for the ISWAP gate
         """
-        pulse = np.zeros(self.num_ops)
-        q1, q2 = min(gate.targets), max(gate.targets)
-        g = self.params["sxsy"][q1]
+        targets = gate.targets
+        q1, q2 = min(targets), max(targets)
         if self.N != 2 and q1 == 0 and q2 == self.N - 1:
-            pulse[self._sxsy_ind[self.N - 1]] = -g
+            pulse_ind = self._sxsy_ind[q2]
         else:
-            pulse[self._sxsy_ind[q1]] = -g
-        t = np.pi / (4 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+            pulse_ind = self._sxsy_ind[q1]
+        g = self.params["sxsy"][q1]
+        coeff = np.array([-g])
+        tlist = np.array([np.pi / (4 * g)])
+        pulse_coeffs = [(pulse_ind, coeff)]
+        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def sqrtiswap_dec(self, gate):
         """
         Compiler for the SQRTISWAP gate
         """
-        pulse = np.zeros(self.num_ops)
-        q1, q2 = min(gate.targets), max(gate.targets)
-        g = self.params["sxsy"][q1]
+        targets = gate.targets
+        q1, q2 = min(targets), max(targets)
         if self.N != 2 and q1 == 0 and q2 == self.N - 1:
-            pulse[self._sxsy_ind[self.N - 1]] = -g
+            pulse_ind = self._sxsy_ind[q2]
         else:
-            pulse[self._sxsy_ind[q1]] = -g
-        t = np.pi / (8 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+            pulse_ind = self._sxsy_ind[q1]
+        g = self.params["sxsy"][q1]
+        coeff = np.array([-g])
+        tlist = np.array([np.pi / (8 * g)])
+        pulse_coeffs = [(pulse_ind, coeff)]
+        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def globalphase_dec(self, gate):
         """

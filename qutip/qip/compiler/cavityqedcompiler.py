@@ -33,7 +33,7 @@
 import numpy as np
 
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.compiler.gatecompiler import GateCompiler
+from qutip.qip.compiler.gatecompiler import GateCompiler, _PulseInstruction
 
 
 __all__ = ['CavityQEDCompiler']
@@ -107,25 +107,25 @@ class CavityQEDCompiler(GateCompiler):
         """
         Compiler for the RZ gate
         """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sz"][q_ind]
-        pulse[self._sz_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+        targets = gate.targets
+        pulse_ind = self._sz_ind[targets[0]]
+        g = self.params["sz"][targets[0]]
+        coeff = np.array([np.sign(gate.arg_value) * g])
+        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        pulse_coeffs = [(pulse_ind, coeff)]
+        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def rx_dec(self, gate):
         """
         Compiler for the RX gate
         """
-        pulse = np.zeros(self.num_ops)
-        q_ind = gate.targets[0]
-        g = self.params["sx"][q_ind]
-        pulse[self._sx_ind[q_ind]] = np.sign(gate.arg_value) * g
-        t = abs(gate.arg_value) / (2 * g)
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+        targets = gate.targets
+        pulse_ind = self._sx_ind[targets[0]]
+        g = self.params["sx"][targets[0]]
+        coeff = np.array([np.sign(gate.arg_value) * g])
+        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        pulse_coeffs = [(pulse_ind, coeff)]
+        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def sqrtiswap_dec(self, gate):
         """
@@ -137,49 +137,71 @@ class CavityQEDCompiler(GateCompiler):
         iswap
         """
         # FIXME This decomposition has poor behaviour
-        pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
-        pulse[self._sz_ind[q1]] = self.wq[q1] - self.params["w0"]
-        pulse[self._sz_ind[q2]] = self.wq[q2] - self.params["w0"]
-        pulse[self._g_ind[q1]] = self.params["g"][q1]
-        pulse[self._g_ind[q2]] = self.params["g"][q2]
+        pulse_coeffs = []
+        pulse_ind = self._sz_ind[q1]
+        coeff = np.array([self.wq[q1] - self.params["w0"]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_ind = self._sz_ind[q2]
+        coeff = np.array([self.wq[q2] - self.params["w0"]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_ind = self._g_ind[q1]
+        coeff = np.array([self.params["g"][q1]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_ind = self._g_ind[q2]
+        coeff = np.array([self.params["g"][q2]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
-        t = (4 * np.pi / abs(J)) / 8
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+        tlist = np.array([(4 * np.pi / abs(J)) / 8])
+        instruction_list = [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
         # corrections
-        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4)
-        self.rz_dec(gate1)
+        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4) 
+        compiled_gate1 = self.rz_dec(gate1)
+        instruction_list += compiled_gate1
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/4)
-        self.rz_dec(gate2)
+        compiled_gate2 = self.rz_dec(gate2)
+        instruction_list += compiled_gate2
         gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/4)
         self.globalphase_dec(gate3)
+        return instruction_list
 
     def iswap_dec(self, gate):
         """
         Compiler for the ISWAP gate
         """
-        pulse = np.zeros(self.num_ops)
         q1, q2 = gate.targets
-        pulse[self._sz_ind[q1]] = self.wq[q1] - self.params["w0"]
-        pulse[self._sz_ind[q2]] = self.wq[q2] - self.params["w0"]
-        pulse[self._g_ind[q1]] = self.params["g"][q1]
-        pulse[self._g_ind[q2]] = self.params["g"][q2]
+        pulse_coeffs = []
+        pulse_ind = self._sz_ind[q1]
+        coeff = np.array([self.wq[q1] - self.params["w0"]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_ind = self._sz_ind[q2]
+        coeff = np.array([self.wq[q2] - self.params["w0"]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_ind = self._g_ind[q1]
+        coeff = np.array([self.params["g"][q1]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_ind = self._g_ind[q2]
+        coeff = np.array([self.params["g"][q2]])
+        pulse_coeffs += [(pulse_ind, coeff)]
+
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
-        t = (4 * np.pi / abs(J)) / 4
-        self.dt_list.append(t)
-        self.coeff_list.append(pulse)
+        tlist = np.array([(4 * np.pi / abs(J)) / 4])
+        instruction_list = [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/2.)
-        self.rz_dec(gate1)
+        compiled_gate1 = self.rz_dec(gate1)
+        instruction_list += compiled_gate1
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/2)
-        self.rz_dec(gate2)
+        compiled_gate2 = self.rz_dec(gate2)
+        instruction_list += compiled_gate2
         gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/2)
         self.globalphase_dec(gate3)
+        return instruction_list
 
     def globalphase_dec(self, gate):
         """

@@ -58,17 +58,23 @@ class Instruction():
     used_qubits: set
         Union of the control and target qubits.
     """
-    def __init__(self, name, targets=None, controls=None, duration=None):
-        self.name = name
-        if targets is None:
-            self.targets = []
+    def __init__(self, name, targets=None, controls=None, duration=1):
+        if isinstance(name, Gate):
+            gate = name
+            self.name = gate.name
+            self.targets = gate.targets
+            self.controls = gate.controls
         else:
-            self.targets = sorted(targets)
-        if controls is not None:
-            self.controls = sorted(controls)
+            self.name = name
+            self.targets = targets
+            self.controls = controls
+        if self.targets is not None:
+            self.targets.sort()
+        if self.controls is None:
+            self.used_qubits = set(self.targets)
         else:
-            self.controls = []
-        self.used_qubits = set(self.controls).union(set(self.targets))
+            self.controls.sort()
+            self.used_qubits = set(self.controls).union(set(self.targets))
         self.duration = duration
 
 
