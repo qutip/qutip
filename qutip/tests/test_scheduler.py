@@ -87,12 +87,12 @@ def _circuit3():
 @pytest.mark.parametrize(
     "circuit, method, expected_length, random_shuffle, gates_schedule",
     [
-        (deepcopy(_circuit1()), "ASAP", 4, False, False),
-        (deepcopy(_circuit1()), "ALAP", 4, False, False),
-        (deepcopy(_circuit3()), "ASAP", 7, False, False),
-        (deepcopy(_circuit3()), "ALAP", 7, False, False),
-        (deepcopy(_circuit3()), "ASAP", 4, False, True),  # treat instructions as gates
-        (deepcopy(_circuit3()), "ALAP", 4, False, True),  # treat instructions as gates
+        pytest.param(deepcopy(_circuit1()), "ASAP", 4, False, False, id="circuit1 ASAP)"),
+        pytest.param(deepcopy(_circuit1()), "ALAP", 4, False, False, id="circuit1 ALAP)"),
+        pytest.param(deepcopy(_circuit3()), "ASAP", 7, False, False, id="circuit1 pulse ASAP)"),
+        pytest.param(deepcopy(_circuit3()), "ALAP", 7, False, False, id="circuit1 pulse ALAP)"),
+        pytest.param(deepcopy(_circuit3()), "ASAP", 4, False, True, id="circuit1 gate ASAP)"),  # treat instructions as gates
+        pytest.param(deepcopy(_circuit3()), "ALAP", 4, False, True, id="circuit1 gate ALAP)"),  # treat instructions as gates
     ])
 def test_scheduling_gates1(
         circuit, method, expected_length, random_shuffle, gates_schedule):
@@ -125,7 +125,7 @@ def test_scheduling_gates1(
 @pytest.mark.parametrize(
     "circuit, method, expected_length, random_shuffle, gates_schedule",
     [
-        (deepcopy(_circuit2()), "ASAP", 4, False, False),
+        pytest.param(deepcopy(_circuit2()), "ASAP", 4, False, False, id="circuit2 ASAP"),
     ])
 def test_scheduling_gates2(
         circuit, method, expected_length, random_shuffle, gates_schedule):
@@ -154,7 +154,7 @@ def test_scheduling_gates2(
 @pytest.mark.parametrize(
     "circuit, method, expected_length, random_shuffle, gates_schedule",
     [
-        (deepcopy(_circuit2()), "ALAP", 5, False, False),
+        pytest.param(deepcopy(_circuit2()), "ALAP", 5, False, False, id="circuit2 ALAP no shuffle")
     ])
 def test_scheduling_gates4(
         circuit, method, expected_length, random_shuffle, gates_schedule):
@@ -183,7 +183,7 @@ def test_scheduling_gates4(
 @pytest.mark.parametrize(
     "circuit, method, expected_length, random_shuffle, gates_schedule",
     [
-        (deepcopy(_circuit2()), "ALAP", 4, True,  False),  # with random shuffling
+        pytest.param(deepcopy(_circuit2()), "ALAP", 4, True, False, id="circuit2 ALAP shuffle"),  # with random shuffling
     ])
 def test_scheduling_gates5(
         circuit, method, expected_length, random_shuffle, gates_schedule):
