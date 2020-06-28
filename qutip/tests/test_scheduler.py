@@ -89,6 +89,10 @@ def _circuit3():
     [
         (deepcopy(_circuit1()), "ASAP", 4, False, False),
         (deepcopy(_circuit1()), "ALAP", 4, False, False),
+        (deepcopy(_circuit3()), "ASAP", 7, False, False),
+        (deepcopy(_circuit3()), "ALAP", 7, False, False),
+        (deepcopy(_circuit3()), "ASAP", 4, False, True),  # treat instructions as gates
+        (deepcopy(_circuit3()), "ALAP", 4, False, True),  # treat instructions as gates
     ])
 def test_scheduling_gates1(
         circuit, method, expected_length, random_shuffle, gates_schedule):
@@ -115,6 +119,9 @@ def test_scheduling_gates1(
     assert(tracedist(result0*result1.dag(), qeye(result0.dims[0])) < 1.0e-7)
 
 
+# There is some problem with circuit2 on Mac.
+# When I list all three tests together, a segment fault arise.
+# I suspect it has something to do with pytest.
 @pytest.mark.parametrize(
     "circuit, method, expected_length, random_shuffle, gates_schedule",
     [
@@ -149,7 +156,7 @@ def test_scheduling_gates2(
     [
         (deepcopy(_circuit2()), "ALAP", 5, False, False),
     ])
-def test_scheduling_gates2(
+def test_scheduling_gates4(
         circuit, method, expected_length, random_shuffle, gates_schedule):
     if random_shuffle:
         repeat_num = 5
@@ -178,39 +185,7 @@ def test_scheduling_gates2(
     [
         (deepcopy(_circuit2()), "ALAP", 4, True,  False),  # with random shuffling
     ])
-def test_scheduling_gates2(
-        circuit, method, expected_length, random_shuffle, gates_schedule):
-    if random_shuffle:
-        repeat_num = 5
-    else:
-        repeat_num = 0
-    result0 = gate_sequence_product(circuit.propagators())
-
-    # run the scheduler
-    scheduler = Scheduler(method)
-    gate_cycle_indices = scheduler.schedule(
-        circuit, gates_schedule=gates_schedule, repeat_num=repeat_num)
-
-    # check if the scheduled length is expected
-    assert(max(gate_cycle_indices) == expected_length)
-    scheduled_gate = [[] for i in range(max(gate_cycle_indices)+1)]
-
-    # check if the scheduled circuit is correct
-    for i, cycles in enumerate(gate_cycle_indices):
-        scheduled_gate[cycles].append(circuit.gates[i])
-    circuit.gates = sum(scheduled_gate, [])
-    result1 = gate_sequence_product(circuit.propagators())
-    assert(tracedist(result0*result1.dag(), qeye(result0.dims[0])) < 1.0e-7)
-
-@pytest.mark.parametrize(
-    "circuit, method, expected_length, random_shuffle, gates_schedule",
-    [
-        (deepcopy(_circuit3()), "ASAP", 7, False, False),
-        (deepcopy(_circuit3()), "ALAP", 7, False, False),
-        (deepcopy(_circuit3()), "ASAP", 4, False, True),  # treat instructions as gates
-        (deepcopy(_circuit3()), "ALAP", 4, False, True),  # treat instructions as gates
-    ])
-def test_scheduling_gates3(
+def test_scheduling_gates5(
         circuit, method, expected_length, random_shuffle, gates_schedule):
     if random_shuffle:
         repeat_num = 5
