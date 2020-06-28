@@ -175,7 +175,7 @@ class QasmProcessor:
         qasm file with included "qelib1.inc".
         """
 
-        gate_name_map_1q = {"x":"X", "y":"Y", "z":"Z", "h":"SQRTNOT",
+        gate_name_map_1q = {"x":"X", "y":"Y", "z":"Z", "h":"SNOT",
                     "t":"T", "s":"S", "sdg":"sdg", "tdg":"tdg"}
         if len(args) == 1:
             args = args[0]
