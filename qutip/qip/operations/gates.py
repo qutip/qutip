@@ -59,6 +59,7 @@ __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
 #
 
 
+
 def x_gate(N=None, target=0):
     """Pauli-X gate or sigmax operator.
 
