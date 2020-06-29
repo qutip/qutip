@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from ..scheduler import Instruction
+from ..scheduler import Instruction, Scheduler
 
 
 __all__ = ['GateCompiler']
@@ -89,9 +89,9 @@ class GateCompiler(object):
         self.params = params
         self.num_ops = num_ops
 
-    def decompose(self, gates):
+    def compile(self, gates, schedule_mode=None):
         """
-        Decompose the the elementary gates
+        Compile the the elementary gates
         into control pulse sequence.
 
         Parameters
@@ -122,20 +122,45 @@ class GateCompiler(object):
                 continue  # neglecting global phase gate
             instruction_list += compilered_gate
 
-        max_step_num = sum([instruction.step_num for instruction in instruction_list])
-        dt_list = np.zeros(max_step_num)
-        coeff_list = np.zeros((self.num_ops, max_step_num))
-        last_time_step = 0
-        for instruction in instruction_list:
-            for pulse_ind, coeff in instruction.pulse_coeffs:
-                dt_list[last_time_step: last_time_step + instruction.step_num] = instruction.tlist
-                coeff_list[pulse_ind, last_time_step: last_time_step + instruction.step_num] = coeff
-            last_time_step += instruction.step_num
-        coeffs = np.asarray(coeff_list)
+        # If not scheduling
+        if schedule_mode is None or not schedule_mode:
+            max_step_num = sum([instruction.step_num for instruction in instruction_list])
+            tlist = np.zeros(max_step_num + 1)  # always start form 0
+            coeffs = np.zeros((self.num_ops, max_step_num))
+            last_time_step = 0
+            for instruction in instruction_list:
+                for pulse_ind, coeff in instruction.pulse_coeffs:
+                    tlist[last_time_step + 1: last_time_step + instruction.step_num + 1] = instruction.tlist + tlist[last_time_step]
+                    coeffs[pulse_ind, last_time_step: last_time_step + instruction.step_num] = coeff
+                last_time_step += instruction.step_num
 
-        tlist = np.empty(len(dt_list))
-        t = 0
-        for i in range(len(dt_list)):
-            t += dt_list[i]
-            tlist[i] = t
-        return np.hstack([[0], tlist]), coeffs
+            return tlist, coeffs
+
+
+        # If scheduling
+        scheduler = Scheduler(schedule_mode)
+        scheduled_start_time = scheduler.schedule(instruction_list)
+        time_ordered_pos = np.argsort(scheduled_start_time)
+
+        tlist = [[[0.]] for tmp in range(self.num_ops)]
+        coeffs = [[] for tmp in range(self.num_ops)]
+        for ind in time_ordered_pos:
+            if ind == 3:
+                print("here")
+            instruction = instruction_list[ind]
+            start_time = scheduled_start_time[ind]
+            for pulse_ind, coeff in instruction.pulse_coeffs:
+                if np.abs(start_time - tlist[pulse_ind][-1]) > instruction.tlist * 1.0e-6:
+                    tlist[pulse_ind].append([start_time])
+                    coeffs[pulse_ind].append([0.])
+                tlist[pulse_ind].append(instruction.tlist + start_time)
+                coeffs[pulse_ind].append(coeff)
+        for i in range(self.num_ops):
+            if not coeffs[i]:
+                tlist[i] = None
+                coeffs[i] = None
+            else:
+                tlist[i] = np.concatenate(tlist[i])
+                coeffs[i] = np.concatenate(coeffs[i])
+        return tlist, coeffs
+
