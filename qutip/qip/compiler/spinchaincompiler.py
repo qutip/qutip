@@ -41,7 +41,7 @@ __all__ = ['SpinChainCompiler']
 
 class SpinChainCompiler(GateCompiler):
     """
-    Decompose a :class:`qutip.QubitCircuit` into
+    Compile a :class:`qutip.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters
@@ -54,7 +54,7 @@ class SpinChainCompiler(GateCompiler):
         such as laser frequency, detuning etc.
 
     setup: string
-        "linear" or "circular" for two sub-calsses.
+        "linear" or "circular" for two sub-classes.
 
     global_phase: bool
         Record of the global phase change and will be returned.
@@ -79,7 +79,7 @@ class SpinChainCompiler(GateCompiler):
         It saves the decomposition scheme for each gate.
 
     setup: string
-        "linear" or "circular" for two sub-calsses.
+        "linear" or "circular" for two sub-classes.
 
     global_phase: bool
         Record of the global phase change and will be returned.
@@ -102,8 +102,8 @@ class SpinChainCompiler(GateCompiler):
             self._sxsy_ind = list(range(2*N, 3*N-1))
         self.global_phase = global_phase
 
-    def decompose(self, gates):
-        tlist, coeffs = super(SpinChainCompiler, self).decompose(gates)
+    def compile(self, gates, schedule_mode=None):
+        tlist, coeffs = super(SpinChainCompiler, self).compile(gates, schedule_mode=schedule_mode)
         return tlist, coeffs, self.global_phase
 
     def rz_dec(self, gate):
