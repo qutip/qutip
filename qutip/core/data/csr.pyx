@@ -127,7 +127,7 @@ cdef class CSR(base.Data):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef CSR copy_structure(CSR matrix):
+cpdef CSR copy_structure(CSR matrix):
     """
     Return a copy of the input matrix with identical `col_index` and
     `row_index` matrices, and an allocated, but empty, `data`.  The returned
@@ -162,7 +162,7 @@ cdef int _sort_indices_compare(_data_col x, _data_col y) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void sort_indices(CSR matrix) nogil:
+cpdef void sort_indices(CSR matrix) nogil:
     """Sort the column indices and data of the matrix inplace."""
     cdef base.idxint row, ptr, ptr_start, ptr_end, length
     cdef vector[_data_col] pairs
