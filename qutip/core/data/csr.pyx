@@ -230,7 +230,7 @@ cpdef CSR identity(base.idxint dimension, double complex scale=1):
     the diagonal.  By default this will be the identity matrix, but if `scale`
     is passed, then the result will be `scale` times the identity.
     """
-    cdef CSR out = empty((dimension, dimension), size=dimension)
+    cdef CSR out = empty(dimension, dimension, dimension)
     cdef base.idxint i
     for i in range(dimension):
         out.data[i] = scale
