@@ -6,4 +6,5 @@ from .adjoint import *
 from .kron import *
 from .matmul import *
 from .mul import *
+from .properties import *
 from .sub import *

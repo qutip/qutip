@@ -171,6 +171,7 @@ cy_exts = {
         'kron',
         'matmul',
         'mul',
+        'properties',
         'sub',
     ],
     '.core.cy': [
