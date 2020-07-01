@@ -38,7 +38,7 @@ from math import sqrt
 from qutip.qip.circuit import Measurement
 from qutip import (Qobj, basis, isequal, ket2dm,
                     sigmax, sigmay, sigmaz, identity, tensor, rand_ket)
-from qutip.measurement import (measure, measurement_statistics,
+from qutip.measurement import (measure_povm, measurement_statistics_povm,
                                 measure_observable,
                                 measurement_statistics_observable)
 
@@ -157,10 +157,10 @@ def test_measurement_statistics_observable_ind(op, state):
                     pytest.param(PY, ket2dm(basis(2, 0)),
                             [ket2dm(stateR), ket2dm(stateL)],
                             [0.5, 0.5], id="PY_dm")])
-def test_measurement_statistics(ops, state, final_states, probabilities):
-    """ measurement_statistics: projectors applied to basis states. """
+def test_measurement_statistics_povm(ops, state, final_states, probabilities):
+    """ measurement_statistics_povm: projectors applied to basis states. """
 
-    collapsed_states, probs = measurement_statistics(state, ops)
+    collapsed_states, probs = measurement_statistics_povm(state, ops)
     for i, final_state in enumerate(final_states):
         collapsed_state = collapsed_states[i]
         if final_state:
@@ -178,47 +178,47 @@ def test_measurement_statistics(ops, state, final_states, probabilities):
                                         ket2dm(basis(2, 0))),
                                 id="partial_dm")])
 def test_measurement_statistics_ind(ops, state):
-    """ measurement_statistics: projectors on basis states with targets. """
+    """ measurement_statistics_povm: projectors on basis states with targets. """
 
-    states1, probs1 = measurement_statistics(
+    states1, probs1 = measurement_statistics_povm(
                                     state,
                                     [tensor(op, identity(2)) for op in ops])
-    states2, probs2 = measurement_statistics(state, ops, targets=[0])
+    states2, probs2 = measurement_statistics_povm(state, ops, targets=[0])
 
     for a, b in zip(states1, states2):
         assert isequal(a, b)
     np.testing.assert_almost_equal(probs1, probs2)
 
 
-def test_measurement_statistics_input_errors():
-    """ measurement_statistics: check input errors """
+def test_measurement_statistics_povm_input_errors():
+    """ measurement_statistics_povm: check input errors """
 
     np.testing.assert_raises_regex(
         ValueError, "op must be all operators or all kets",
-        measurement_statistics,
+        measurement_statistics_povm,
         basis(2, 0), [basis(2, 0), ket2dm(basis(2, 0))])
     np.testing.assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measurement_statistics, "notqobj", [sigmaz()])
+        measurement_statistics_povm, "notqobj", [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measurement_statistics, basis(2, 0).dag(), [sigmaz()])
+        measurement_statistics_povm, basis(2, 0).dag(), [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measurement_statistics, basis(3, 0), [sigmaz()])
+        measurement_statistics_povm, basis(3, 0), [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measurement_statistics, ket2dm(basis(3, 0)), [sigmaz()])
+        measurement_statistics_povm, ket2dm(basis(3, 0)), [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError,
         "measurement operators must sum to identity",
-        measurement_statistics, basis(2, 0), [basis(2, 0)])
+        measurement_statistics_povm, basis(2, 0), [basis(2, 0)])
     np.testing.assert_raises_regex(
         ValueError,
         "measurement operators must sum to identity",
-        measurement_statistics, basis(2, 0), [ket2dm(basis(2, 0))])
+        measurement_statistics_povm, basis(2, 0), [ket2dm(basis(2, 0))])
 
 
 def test_measurement_statistics_observable_input_errors():
@@ -314,45 +314,45 @@ def test_measure_observable(op, state, expected_measurements, seed):
                     pytest.param(PY, basis(2, 1), id="PY_ket2"),
                     pytest.param(PY, ket2dm(basis(2, 1)), id="PY_dm")])
 def test_measure(ops, state):
-    """measure: test on basis states using different projectors """
+    """measure_povm: test on basis states using different projectors """
 
-    collapsed_states, _ = measurement_statistics(state, ops)
+    collapsed_states, _ = measurement_statistics_povm(state, ops)
     for _ in range(10):
-        index, final_state = measure(state, ops)
+        index, final_state = measure_povm(state, ops)
         assert isequal(final_state, collapsed_states[index])
 
 
 def test_measure_input_errors():
-    """ measure: check input errors """
+    """ measure_povm: check input errors """
     np.testing.assert_raises_regex(
         ValueError, "op must be all operators or all kets",
-        measure, basis(2, 0), [basis(2, 0), ket2dm(basis(2, 0))])
+        measure_povm, basis(2, 0), [basis(2, 0), ket2dm(basis(2, 0))])
     np.testing.assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measure, "notqobj", [sigmaz()])
+        measure_povm, "notqobj", [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measure, basis(2, 0).dag(), [sigmaz()])
+        measure_povm, basis(2, 0).dag(), [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measure, basis(3, 0), [sigmaz()])
+        measure_povm, basis(3, 0), [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measure, ket2dm(basis(3, 0)), [sigmaz()])
+        measure_povm, ket2dm(basis(3, 0)), [sigmaz()])
     np.testing.assert_raises_regex(
         ValueError,
         "measurement operators must sum to identity",
-        measure, basis(2, 0), [basis(2, 0)])
+        measure_povm, basis(2, 0), [basis(2, 0)])
     np.testing.assert_raises_regex(
         ValueError,
         "measurement operators must sum to identity",
-        measure, basis(2, 0), [ket2dm(basis(2, 0))])
+        measure_povm, basis(2, 0), [ket2dm(basis(2, 0))])
 
 
 def test_measure_observable_input_errors():
-    """ measure: check input errors """
+    """ measure_observable: check input errors """
     np.testing.assert_raises_regex(
         TypeError, "op must be a Qobj",
         measure_observable, basis(2, 0), "notqobj")
@@ -399,16 +399,16 @@ def test_povm():
 
     M = [M_1, M_2, M_3]
 
-    _, probabilities = measurement_statistics(ket1, M)
+    _, probabilities = measurement_statistics_povm(ket1, M)
     np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
 
-    _, probabilities = measurement_statistics(ket2, M)
+    _, probabilities = measurement_statistics_povm(ket2, M)
     np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
 
-    _, probabilities = measurement_statistics(dm1, M)
+    _, probabilities = measurement_statistics_povm(dm1, M)
     np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
 
-    _, probabilities = measurement_statistics(dm2, M)
+    _, probabilities = measurement_statistics_povm(dm2, M)
     np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
 
 
