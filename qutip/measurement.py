@@ -211,8 +211,8 @@ def measurement_statistics_observable(state, op, targets=None):
         The measurement operator.
     targets : list of ints, optional
               Specifies a list of targets "qubit" indices on which to apply
-              the measurement using qutip.qip.gates.expand_operator to expand
-              op into full dimension.
+              the measurement using :func:qutip.qip.gates.expand_operator
+              to expand op into full dimension.
 
 
     Returns
@@ -394,8 +394,8 @@ def measurement_statistics(state, ops, targets=None):
             3. kets (transformed to projectors)
     targets : list of ints, optional
               Specifies a list of target "qubit" indices on which to apply
-              the measurement using qutip.qip.gates.expand_operator to expand
-              ops into full dimension.
+              the measurement using :func:qutip.qip.gates.expand_operator
+              to expand ops into full dimension.
     """
 
     if isinstance(ops, list):
@@ -429,8 +429,8 @@ def measure(state, ops, targets=None):
             3. kets (transformed to projectors)
     targets : list of ints, optional
               Specifies a list of target "qubit" indices on which to apply
-              the measurement using qutip.qip.gates.expand_operator to expand
-              ops into full dimension.
+              the measurement using :func:qutip.qip.gates.expand_operator
+              to expand ops into full dimension.
     """
 
     if isinstance(ops, list):
