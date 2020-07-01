@@ -79,6 +79,26 @@ _swap_like = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
 _toffoli_like = ["TOFFOLI"]
 _fredkin_like = ["FREDKIN"]
 
+_GATE_NAME_TO_QASM_NAME = {
+    "RX":"rx",
+    "RY":"ry",
+    "RZ":"rz",
+    "SNOT":"h",
+    "X":"x",
+    "Y":"y",
+    "Z":"z",
+    "S":"s",
+    "T":"t",
+    "CRZ":"crz",
+    "CNOT":"cx",
+    "TOFFOLI":"ccx"
+}
+
+_GATE_QASM_RESOLVED = {
+    "SWAP":"swap"
+    ""
+}
+
 
 class Gate:
     """
@@ -195,6 +215,26 @@ class Gate:
 
     def _repr_latex_(self):
         return str(self)
+
+    def _qasm_output(self, output_fn):
+
+        if self.name in _GATE_NAME_TO_QASM_NAME:
+            qasm_gate = _GATE_NAME_TO_QASM_NAME[self.name]
+            regs = self.controls + self.targets
+            regs = ",".join(['q[{}]'.format(reg) for reg in regs])
+            if self.arg_value:
+                output_fn("{}({}) {};".format(qasm_gate, self.arg_value, regs))
+            else:
+                output_fn("{} {};".format(qasm_gate, regs))
+        elif self.name in _QASM_RESOLVED:
+
+
+        else:
+            raise NotImplementedError("{} gate's qasm defn is not specified".format(self.name))
+
+
+
+
 
 
 _GATE_NAME_TO_LABEL = {
@@ -1293,6 +1333,7 @@ class QubitCircuit:
 
         return qc_temp
 
+
     def adjacent_gates(self):
         """
         Method to resolve two qubit gates with non-adjacent control/s or
@@ -1649,6 +1690,31 @@ class QubitCircuit:
     @property
     def svg(self):
         return DisplaySVG(self._raw_svg())
+
+
+    def _qasm_output(self, output_fn):
+
+        lines = []
+        output_fn("qreg\tq[{}];".format(self.N))
+        output_fn(n=1)
+        '''
+        if self.num_cbits:
+            output_fn("creg\tc[{}];").format(self.num_cbits)
+        '''
+
+
+        for op in self.gates:
+            op._qasm_output(output_fn)
+
+
+        # define any gates not in qelib1.inc
+
+        # apply gates and measurements
+
+
+
+
+
 
     def qasm(self):
 
