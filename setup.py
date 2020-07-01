@@ -173,6 +173,7 @@ cy_exts = {
         'mul',
         'properties',
         'sub',
+        'trace',
     ],
     '.core.cy': [
         'cqobjevo',

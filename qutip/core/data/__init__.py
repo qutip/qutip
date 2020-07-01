@@ -8,3 +8,4 @@ from .matmul import *
 from .mul import *
 from .properties import *
 from .sub import *
+from .trace import *
