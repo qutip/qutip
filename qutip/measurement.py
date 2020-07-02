@@ -146,7 +146,7 @@ def _measurement_statistics_povm_dm(density_mat, ops):
 def measurement_statistics_povm(state, ops, targets=None):
     '''
     Returns measurement statistics (resultant states and probabilities)
-    for a measurements specified by a set of positive operator valued
+    for a measurement specified by a set of positive operator valued
     measurements on a specified ket or density matrix.
 
     Parameters
