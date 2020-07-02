@@ -741,17 +741,14 @@ def zcsr_inner(object A, object B, bool bra_ket):
     cdef int nrows = B.shape[0]
 
     cdef double complex inner = 0
-    cdef size_t jj, kk
+    cdef size_t kk
     cdef int a_idx, b_idx
 
     if bra_ket:
         for kk in range(a_ind.shape[0]):
             a_idx = a_ind[kk]
-            for jj in range(nrows):
-                if (b_ptr[jj+1]-b_ptr[jj]) != 0:
-                    if jj == a_idx:
-                        inner += a_data[kk]*b_data[b_ptr[jj]]
-                        break
+            if b_ptr[a_idx + 1] != b_ptr[a_idx]:
+                inner += a_data[kk] * b_data[b_ptr[a_idx]]
     else:
         for kk in range(nrows):
             a_idx = a_ptr[kk]
