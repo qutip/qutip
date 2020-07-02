@@ -9,5 +9,6 @@ from .matmul import *
 from .mul import *
 from .project import *
 from .properties import *
+from .reshape import *
 from .sub import *
 from .trace import *

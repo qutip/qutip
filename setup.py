@@ -174,6 +174,7 @@ cy_exts = {
         'mul',
         'project',
         'properties',
+        'reshape',
         'sub',
         'trace',
     ],
