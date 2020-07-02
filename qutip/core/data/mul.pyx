@@ -1,5 +1,5 @@
 #cython: language_level=3
-#cython: boundscheck=False, wrapround=False
+#cython: boundscheck=False, wrapround=False, initializedcheck=False
 
 from qutip.core.data cimport idxint, csr, CSR
 

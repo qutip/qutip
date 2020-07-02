@@ -1,4 +1,5 @@
 #cython: language_level=3
+#cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
 from libcpp.algorithm cimport sort
@@ -38,8 +39,6 @@ cdef object _csr_matrix(data, indices, indptr, shape):
     return out
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef class CSR(base.Data):
     """
     Data type for quantum objects storing its data in compressed sparse row
@@ -125,8 +124,6 @@ cdef class CSR(base.Data):
             PyDataMem_FREE(&self.row_index[0])
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef CSR copy_structure(CSR matrix):
     """
     Return a copy of the input matrix with identical `col_index` and
@@ -145,8 +142,6 @@ cpdef CSR copy_structure(CSR matrix):
     return out
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef inline base.idxint nnz(CSR matrix) nogil:
     """Get the number of non-zero elements of a CSR matrix."""
     return matrix.row_index[matrix.shape[0]]
@@ -160,8 +155,6 @@ cdef struct _data_col:
 cdef int _sort_indices_compare(_data_col x, _data_col y) nogil:
     return x.col < y.col
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef void sort_indices(CSR matrix) nogil:
     """Sort the column indices and data of the matrix inplace."""
     cdef base.idxint row, ptr, ptr_start, ptr_end, length
@@ -207,8 +200,6 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
     return out
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef CSR zeroes(base.idxint rows, base.idxint cols):
     """
     Allocate the zero matrix with a given shape.  There will not be any room in
@@ -222,8 +213,6 @@ cpdef CSR zeroes(base.idxint rows, base.idxint cols):
     return out
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef CSR identity(base.idxint dimension, double complex scale=1):
     """
     Return a square matrix of the specified dimension, with a constant along

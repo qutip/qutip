@@ -1,4 +1,5 @@
 #cython: language_level=3
+#cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 cimport cython
 
@@ -11,8 +12,6 @@ cdef cython.numeric _mul_checked(cython.numeric a, cython.numeric b):
     return a * b
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef CSR kron_csr(CSR left, CSR right):
     """Kronecker product of two CSR matrices."""
     cdef idxint nrows_l=left.shape[0], nrows_r=right.shape[0]

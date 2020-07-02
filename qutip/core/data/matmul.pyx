@@ -1,5 +1,5 @@
 #cython: language_level=3
-#cython: boundscheck=False, wraparound=False
+#cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.stdlib cimport malloc, calloc, free
 from libc.string cimport memset

@@ -1,5 +1,5 @@
 #cython: language_level=3
-#cython: boundscheck=False, wraparound=False
+#cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
