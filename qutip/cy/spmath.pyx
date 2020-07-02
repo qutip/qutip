@@ -745,11 +745,21 @@ def zcsr_inner(object A, object B, bool bra_ket):
     cdef int a_idx, b_idx
 
     if bra_ket:
+        if A.shape[1] != nrows:
+            message = "".join([
+                "incompatible lengths ", str(A.shape[1]), " and ", str(nrows),
+            ])
+            raise TypeError(message)
         for kk in range(a_ind.shape[0]):
             a_idx = a_ind[kk]
             if b_ptr[a_idx + 1] != b_ptr[a_idx]:
                 inner += a_data[kk] * b_data[b_ptr[a_idx]]
     else:
+        if A.shape[0] != nrows:
+            message = "".join([
+                "incompatible lengths ", str(A.shape[0]), " and ", str(nrows),
+            ])
+            raise TypeError(message)
         for kk in range(nrows):
             a_idx = a_ptr[kk]
             b_idx = b_ptr[kk]
