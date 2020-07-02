@@ -706,6 +706,8 @@ def zcsr_proj(object A, bool is_ket=1):
                 out.data[jj*nnz+kk] = data[jj]*conj(data[kk])
 
     else:
+        # a bra _may_ have unsorted indices (a ket may not in CSR format)
+        A.sort_indices()
         count = nnz**2
         new_idx = nrows
         for kk in range(nnz-1,-1,-1):
