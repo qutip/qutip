@@ -11,6 +11,7 @@ from qutip.core.data.csr cimport CSR
 cdef double complex _inner_csr_bra_ket(CSR left, CSR right) nogil:
     cdef size_t col, ptr_bra, ptr_ket
     cdef double complex out = 0
+    # We actually don't care if left is sorted or not.
     for ptr_bra in range(csr.nnz(left)):
         col = left.col_index[ptr_bra]
         ptr_ket = right.row_index[col]
@@ -39,8 +40,6 @@ cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) no
     to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
     all other times.
     """
-    # At this level we simply assume that we were passed objects of the correct
-    # shape, and don't check `right.shape[0]`.
     if left.shape[0] == left.shape[1] == right.shape[1] == 1:
         if csr.nnz(left) and csr.nnz(right):
             return (
@@ -51,3 +50,57 @@ cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) no
     if left.shape[0] == 1:
         return _inner_csr_bra_ket(left, right)
     return _inner_csr_ket_ket(left, right)
+
+
+cdef double complex _inner_op_csr_bra_ket(CSR left, CSR op, CSR right) nogil:
+    cdef size_t ptr_l, ptr_op, ptr_r, row, col
+    cdef double complex sum, out=0
+    # left does not need to be sorted.
+    for ptr_l in range(csr.nnz(left)):
+        row = left.col_index[ptr_l]
+        sum = 0
+        for ptr_op in range(op.row_index[row], op.row_index[row + 1]):
+            col = op.col_index[ptr_op]
+            ptr_r = right.row_index[col]
+            if ptr_r != right.row_index[col + 1]:
+                sum += op.data[ptr_op] * right.data[ptr_r]
+        out += left.data[ptr_l] * sum
+    return out
+
+cdef double complex _inner_op_csr_ket_ket(CSR left, CSR op, CSR right) nogil:
+    cdef size_t ptr_l, ptr_op, ptr_r, row, col
+    cdef double complex sum, out=0
+    for row in range(op.shape[0]):
+        ptr_l = left.row_index[row]
+        if left.row_index[row + 1] == ptr_l:
+            continue
+        sum = 0
+        for ptr_op in range(op.row_index[row], op.row_index[row + 1]):
+            col = op.col_index[ptr_op]
+            ptr_r = right.row_index[col]
+            if ptr_r != right.row_index[col + 1]:
+                sum += op.data[ptr_op] * right.data[ptr_r]
+        out += conj(left.data[ptr_l]) * sum
+    return out
+
+cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
+                                  bint scalar_is_ket=False) nogil:
+    """
+    Compute the complex inner product <left|op|right>.  The shape of `left` is
+    used to determine if it has been supplied as a ket or a bra.  The result of
+    this function will be identical if passed `left` or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+    """
+    cdef double complex l
+    if left.shape[0] == left.shape[1] == op.shape[0] == op.shape[1] == right.shape[1] == 1:
+        if not (csr.nnz(left) and csr.nnz(op) and csr.nnz(right)):
+            return 0
+        l = conj(left.data[0]) if scalar_is_ket else left.data[0]
+        return l * op.data[0] * right.data[0]
+    if left.shape[0] == 1:
+        return _inner_op_csr_bra_ket(left, op, right)
+    return _inner_op_csr_ket_ket(left, op, right)
