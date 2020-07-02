@@ -209,7 +209,7 @@ cpdef CSR zeroes(base.idxint rows, base.idxint cols):
     # actually _are_ asking for memory (Python doesn't like allocating nothing)
     cdef CSR out = empty(rows, cols, 1)
     out.data[0] = out.col_index[0] = 0
-    memset(&out.row_index[0], 0, rows + 1)
+    memset(&out.row_index[0], 0, (rows + 1) * sizeof(base.idxint))
     return out
 
 

@@ -97,7 +97,7 @@ cpdef CSR matmul_csr(CSR left, CSR right):
         # Ensure the out array row_index is zeroed.  The others need not be,
         # because they don't represent valid entries since row_index is zeroed.
         with nogil:
-            memset(&out.row_index[0], 0, out.shape[0] + 1)
+            memset(&out.row_index[0], 0, (out.shape[0] + 1) * sizeof(idxint))
         return out
 
     # Initialise actual matrix multiplication.
