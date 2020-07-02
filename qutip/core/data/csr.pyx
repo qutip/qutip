@@ -49,6 +49,13 @@ cdef class CSR(base.Data):
     """
 
     def __init__(self, arg=None, shape=None, copy=False):
+        if isinstance(arg, scipy_csr_matrix):
+            if shape is not None and shape != arg.shape:
+                raise ValueError("".join([
+                    "shapes do not match: ", str(shape), " and ", str(arg.shape),
+                ]))
+            shape = arg.shape
+            arg = (arg.data, arg.indices, arg.indptr)
         if not isinstance(arg, tuple) or len(arg) != 3:
             raise ValueError
         data = np.array(arg[0], dtype=np.complex128, copy=copy)
