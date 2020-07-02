@@ -1,8 +1,6 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.string cimport memset
-
 cimport cython
 import numpy as np
 cimport numpy as cnp

@@ -1,7 +1,7 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.string cimport memset, memcpy
+from libc.string cimport memcpy
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport csr
