@@ -168,6 +168,7 @@ cy_exts = {
         'csr',
         'dense',
         'dispatch',
+        'inner',
         'kron',
         'matmul',
         'mul',
