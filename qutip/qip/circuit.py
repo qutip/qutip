@@ -216,19 +216,95 @@ class Gate:
     def _repr_latex_(self):
         return str(self)
 
+
+    def _qasm_defn_from_resolved(self, gates_lst, output_fn):
+
+        forbidden_gates = ["GLOBALPHASE", "PHASEGATE"]
+        reg_map = ['a', 'b', 'c']
+
+        ctrls = None
+        if self.controls:
+            ctrls = [reg_map[i] for i in self.controls]
+        trgts = [reg_map[i] for i in self.targets]
+        arg_name = None
+        if self.arg_value:
+            arg_name = "theta"
+
+        output_fn("gate {} {{".format(self._qasm_str(self.name.lower(), ctrls, trgts, arg_name)[:-1]))
+
+        for gate in gates_lst:
+            if gate.name in _GATE_NAME_TO_QASM_NAME:
+                gate.targets = [reg_map[i] for i in gate.targets]
+                if gate.controls:
+                    gate.controls = [reg_map[i] for i in gate.controls]
+                output_fn(self._qasm_str(_GATE_NAME_TO_QASM_NAME[gate.name], gate.controls, gate.targets, gate.arg_value))
+            elif gate.name in forbidden_gates:
+                continue
+            else:
+                raise ValueError("The given resolved gate {} cannot be converted to ")
+        output_fn("}")
+
+
+    def _qasm_defn_resolve(self, output_fn):
+
+        qc = QubitCircuit(3)
+        gates_lst = []
+        if self.name == "CSIGN":
+            qc._gate_CSIGN(self, gates_lst)
+        elif self.name == "ISWAP":
+            qc._gate_ISWAP(self, gates_lst)
+        elif self.name == "FREDKIN":
+            qc._gate_FREDKIN(self, gates_lst)
+        else:
+            raise NotImplementedError("No definition specified for {} gate".format(self.name))
+        self._qasm_defn_from_resolved(gates_lst, output_fn)
+
+
+
+
+
+
+    def _qasm_str(self, name, ctrls, trgts, arg):
+        if not ctrls:
+            ctrls = []
+        regs = ctrls + trgts
+
+        if isinstance(trgts[0], int):
+            regs = ",".join(['q[{}]'.format(reg) for reg in regs])
+        else:
+            regs = ",".join(regs)
+
+        if arg:
+            return "{}({}) {};".format(name, arg, regs)
+        else:
+            return "{} {};".format(name, regs)
+
+
+    def _qasm_defns(self, output_fn):
+        if self.name == "CRY":
+            gate_def = "gate cry(theta) a,b { cu3(theta,0,0) a,b; }"
+        elif self.name == "CRX":
+            gate_def = "gate crx(theta) a,b { cu3(theta,-pi/2,pi/2) a,b; }"
+        elif self.name == "SQRTNOT":
+            gate_def = "gate sqrtnot a { rx(pi/2) a; }"
+        elif self.name == "CS":
+            gate_def = "gate cs a,b { cu1(pi/2) a,b; }"
+        elif self.name == "CT":
+            gate_def = "gate ct a,b { cu1(pi/4) a,b; }"
+        elif self.name == "SWAP":
+            gate_def = "gate swap a,b { cx a,b; cx b,a; cx a,b; }"
+        else:
+            self._qasm_defn_resolve(output_fn)
+            return 0
+
+        output_fn("// QuTiP definition for gate {}".format(self.name))
+        output_fn(gate_def)
+
     def _qasm_output(self, output_fn):
 
         if self.name in _GATE_NAME_TO_QASM_NAME:
             qasm_gate = _GATE_NAME_TO_QASM_NAME[self.name]
-            regs = self.controls + self.targets
-            regs = ",".join(['q[{}]'.format(reg) for reg in regs])
-            if self.arg_value:
-                output_fn("{}({}) {};".format(qasm_gate, self.arg_value, regs))
-            else:
-                output_fn("{} {};".format(qasm_gate, regs))
-        elif self.name in _QASM_RESOLVED:
-
-
+            output_fn(self._qasm_str(qasm_gate, self.controls, self.targets, self.arg_value))
         else:
             raise NotImplementedError("{} gate's qasm defn is not specified".format(self.name))
 
@@ -1695,13 +1771,17 @@ class QubitCircuit:
     def _qasm_output(self, output_fn):
 
         lines = []
-        output_fn("qreg\tq[{}];".format(self.N))
-        output_fn(n=1)
+        output_fn("qreg q[{}];".format(self.N))
+        #output_fn(n=1)
         '''
         if self.num_cbits:
-            output_fn("creg\tc[{}];").format(self.num_cbits)
+            output_fn("creg c[{}];").format(self.num_cbits)
         '''
 
+        for op in self.gates:
+            if op.name not in _GATE_NAME_TO_QASM_NAME:
+                op._qasm_defns(output_fn)
+                _GATE_NAME_TO_QASM_NAME[op.name] = op.name.lower()
 
         for op in self.gates:
             op._qasm_output(output_fn)
