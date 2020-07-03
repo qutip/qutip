@@ -7,6 +7,8 @@ from libcpp.vector cimport vector
 
 cimport cython
 
+import warnings
+
 import numpy as np
 cimport numpy as cnp
 from scipy.sparse import csr_matrix as scipy_csr_matrix
@@ -65,11 +67,16 @@ cdef class CSR(base.Data):
         self.col_index = col_index
         self.row_index = row_index
         if shape is None:
-            # row_index contains an extra element which is nnz.  We assume a
-            # square matrix, like the original qutip.fast_csr_matrix, as
-            # without a shape, the number of columns could be anything and
-            # iterating to find the maximum column stored is slow.
-            self.shape[0] = self.shape[1] = self.row_index.shape[0] - 1
+            warnings.warn("instantiating CSR matrix of unknown shape")
+            # row_index contains an extra element which is nnz.  We assume the
+            # smallest matrix which can hold all these values by iterating
+            # through the columns.  This is slow and probably inaccurate, since
+            # there could be columns containing zero (hence the warning).
+            self.shape[0] = self.row_index.shape[0] - 1
+            col = 1
+            for ptr in range(self.col_index.shape[0]):
+                col = self.col_index[ptr] if self.col_index[ptr] > col else col
+            self.shape[1] = col
         else:
             self.shape = shape
         self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
