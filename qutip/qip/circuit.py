@@ -36,7 +36,7 @@ from collections import defaultdict
 from itertools import product
 
 import warnings
-from inspect import isfunction
+import inspect
 
 import numpy as np
 from copy import deepcopy
@@ -308,7 +308,7 @@ class Measurement:
                                       targets=self.targets)
 
     def __str__(self):
-        str_name = (("Measurement(%s, target=%s, classical_store=%s") %
+        str_name = (("Measurement(%s, target=%s, classical_store=%s)") %
                     (self.name, self.targets, self.classical_store))
         return str_name
 
@@ -704,8 +704,10 @@ class QubitCircuit:
                                   arg_label=gate.arg_label))
         temp_resolved.append(Gate("RZ", gate.targets, None,
                                   gate.arg_value, gate.arg_label))
+
     def _gate_NOTIMPLEMENTED(self, gate, temp_resolved):
         raise NotImplementedError("Cannot be resolved in this basis")
+
     _gate_PHASEGATE = _gate_BERKELEY = _gate_SWAPalpha = _gate_NOTIMPLEMENTED
     _gate_SQRTSWAP = _gate_SQRTISWAP = _gate_NOTIMPLEMENTED
 
@@ -1321,8 +1323,8 @@ class QubitCircuit:
                         # qubit to bring them closer.
                         temp.gates.append(Gate("SWAP", targets=[i, i + 1]))
                         temp.gates.append(Gate("SWAP",
-                                                targets=[start + end - i - 1,
-                                                         start + end - i]))
+                                               targets=[start + end - i - 1,
+                                                        start + end - i]))
                     i += 1
 
             elif gate.name in swap_gates:
@@ -1342,8 +1344,8 @@ class QubitCircuit:
                     else:
                         temp.gates.append(Gate("SWAP", targets=[i, i + 1]))
                         temp.gates.append(Gate("SWAP",
-                                                targets=[start + end - i - 1,
-                                                         start + end - i]))
+                                               targets=[start + end - i - 1,
+                                                        start + end - i]))
                     i += 1
 
             else:
@@ -1411,7 +1413,7 @@ class QubitCircuit:
                                              gate.targets[0]))
             elif gate.name == "QASMU":
                 self.U_list.append(qasmu_gate(gate.arg_value, self.N,
-                                                gate.targets[0]))
+                                              gate.targets[0]))
             elif gate.name == "CRX":
                 self.U_list.append(controlled_gate(rx(gate.arg_value),
                                                    N=self.N,
@@ -1459,28 +1461,25 @@ class QubitCircuit:
                 self.U_list.append(globalphase(gate.arg_value, self.N))
             elif gate.name in self.user_gates:
                 if gate.controls is not None:
-                  raise ValueError(
-                      "A user defined gate {} takes only  "
-                      "`targets` variable.".format(gate.name))
+                    raise ValueError("A user defined gate {} takes only  "
+                                     "`targets` variable.".format(gate.name))
                 func_or_oper = self.user_gates[gate.name]
-                if isfunction(func_or_oper):
-                  func = func_or_oper
-                  para_num = len(inspect.getfullargspec(func)[0])
-                  if para_num == 0:
-                      oper = func()
-                  elif para_num == 1:
-                      oper = func(gate.arg_value)
-                  else:
-                      raise ValueError(
-                          "gate function takes at most one parameters.")
+                if inspect.isfunction(func_or_oper):
+                    func = func_or_oper
+                    para_num = len(inspect.getfullargspec(func)[0])
+                    if para_num == 0:
+                        oper = func()
+                    elif para_num == 1:
+                        oper = func(gate.arg_value)
+                    else:
+                        raise ValueError(
+                                "gate function takes at most one parameters.")
                 elif isinstance(func_or_oper, Qobj):
-                  oper = func_or_oper
+                    oper = func_or_oper
                 else:
-                  raise ValueError(
-                          "gate is neither function nor operator")
+                    raise ValueError("gate is neither function nor operator")
                 self.U_list.append(expand_operator(
                     oper, N=self.N, targets=gate.targets, dims=self.dims))
-
             else:
                 raise NotImplementedError(
                     "{} gate is an unknown gate.".format(gate.name))

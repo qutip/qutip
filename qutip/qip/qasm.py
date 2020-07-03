@@ -20,6 +20,7 @@ class QasmGate:
         self.gate_regs = gate_regs
         self.gates_inside = []
 
+
 def get_qiskit_gates():
     '''
     Create a dictionary containing custom gates needed
@@ -44,7 +45,7 @@ def get_qiskit_gates():
     def ch():
         return controlled_gate(snot())
 
-    return {"ch":ch, "tdg":tdg, "id":id, "u2":u2, "sdg":sdg, "cu3":cu3}
+    return {"ch": ch, "tdg": tdg, "id": id, "u2": u2, "sdg": sdg, "cu3": cu3}
 
 
 def _tokenize(token_cmds):
@@ -464,12 +465,11 @@ class QasmProcessor:
                             regs = [regs]
                         qc.add_gate(gate_name, targets=regs)
 
-
             elif command[0] == "measure":
                 # adds measurement to the QubitCircuit
                 reg_set = self._regs_processor(command[1:], "measure")
                 for regs in reg_set:
-                    # qc.add_measurement("M", targets = [regs[0]], classical_store = regs[1])
+                    qc.add_measurement("M", targets=[regs[0]], classical_store=regs[1])
                     continue
 
 
@@ -496,6 +496,8 @@ def read_qasm(file, mode="qiskit"):
     qasm_obj._process_includes()
 
     qasm_obj._initialize_pass()
-    qc = QubitCircuit(qasm_obj.num_qubits) # num_cbits=qasm_obj.num_cbits)
+    qc = QubitCircuit(qasm_obj.num_qubits, num_cbits=qasm_obj.num_cbits)
+
     qasm_obj._final_pass(qc)
+
     return qc

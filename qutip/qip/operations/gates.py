@@ -391,7 +391,8 @@ def qasmu_gate(args, N=None, target=0):
 
     theta, phi, gamma = args
     if N is not None:
-        return expand_operator(qasmu_gate([theta, phi, gamma]), N=N, targets=target)
+        return expand_operator(qasmu_gate([theta, phi, gamma]), N=N,
+                               targets=target)
     return Qobj(rz(phi) * ry(theta) * rz(gamma))
 
 
