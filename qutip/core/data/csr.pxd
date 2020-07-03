@@ -10,6 +10,7 @@ cdef class CSR(base.Data):
     cdef base.idxint [::1] col_index
     cdef base.idxint [::1] row_index
     cdef object _scipy
+    cdef bint _deallocate
     cpdef CSR copy(CSR self)
 
 cpdef CSR copy_structure(CSR matrix)
