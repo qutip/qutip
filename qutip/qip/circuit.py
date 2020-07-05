@@ -101,8 +101,9 @@ class Gate:
         Label for gate representation.
     """
 
-    def __init__(self, name, targets=None, controls=None, arg_value=None,
-                 arg_label=None, classical_controls=None):
+    def __init__(self, name, targets=None, controls=None,
+                 arg_value=None, arg_label=None,
+                 classical_controls=None, control_value=None):
         """
         Create a gate with specified parameters.
         """
@@ -111,6 +112,7 @@ class Gate:
         self.targets = None
         self.controls = None
         self.classical_controls = None
+        self.control_value = None
 
         if not isinstance(targets, Iterable) and targets is not None:
             self.targets = [targets]
@@ -127,6 +129,10 @@ class Gate:
             self.classical_controls = [classical_controls]
         else:
             self.classical_controls = classical_controls
+
+        if (control_value is not None
+                and control_value < 2 ** len(classical_controls)):
+            self.control_value = control_value
 
         for ind_list in [self.targets, self.controls, self.classical_controls]:
             if isinstance(ind_list, Iterable):
@@ -173,8 +179,10 @@ class Gate:
 
     def __str__(self):
         str_name = (("Gate(%s, targets=%s, controls=%s,"
-                    " classical controls=%s)") % (self.name, self.targets,
-                    self.controls, self.classical_controls))
+                    " classical controls=%s, control_value=%s)")
+                    % (self.name, self.targets,
+                       self.controls, self.classical_controls,
+                       self.control_value))
         return str_name
 
     def __repr__(self):
@@ -444,7 +452,8 @@ class QubitCircuit:
                                 classical_store=classical_store))
 
     def add_gate(self, gate, targets=None, controls=None, arg_value=None,
-                 arg_label=None, index=None, classical_controls=None):
+                 arg_label=None, index=None,
+                 classical_controls=None, control_value=None):
         """
         Adds a gate with specified parameters to the circuit.
 
@@ -465,7 +474,15 @@ class QubitCircuit:
             Positions to add the gate.
         classical_controls: list
             Classical Controls for Gate. If multiple controls,
-            it applies gate when all are 1.
+            it applies gate when all bits have value 1 when no control value is
+            specified.
+            If control value is specified, the gate is applied when
+            the value of classical registers interpreted
+            as an integer (lowest bit is the first bit) is equal to the control value.
+        control_value: list
+             the gate is applied when
+            the value of classical registers interpreted
+            as an integer (lowest bit is the first bit) is equal to the control value.
         """
 
         if isinstance(gate, Gate):
@@ -475,6 +492,7 @@ class QubitCircuit:
             arg_value = gate.arg_value
             arg_label = gate.arg_label
             classical_controls = gate.classical_controls
+            control_value = gate.control_value
 
         else:
             name = gate
@@ -482,7 +500,8 @@ class QubitCircuit:
         if index is None:
             gate = Gate(name, targets=targets, controls=controls,
                         arg_value=arg_value, arg_label=arg_label,
-                        classical_controls=classical_controls)
+                        classical_controls=classical_controls,
+                        control_value=control_value)
             self.gates.append(gate)
 
         else:
@@ -491,11 +510,13 @@ class QubitCircuit:
                                in self.gates[:position]))
                 gate = Gate(name, targets=targets, controls=controls,
                             arg_value=arg_value, arg_label=arg_label,
-                            classical_controls=classical_controls)
+                            classical_controls=classical_controls,
+                            control_value=control_value)
                 self.gates.insert(position, gate)
 
     def add_1q_gate(self, name, start=0, end=None, qubits=None,
-                    arg_value=None, arg_label=None, classical_controls=None):
+                    arg_value=None, arg_label=None,
+                    classical_controls=None, control_value=None):
         """
         Adds a single qubit gate with specified parameters on a variable
         number of qubits in the circuit. By default, it applies the given gate
@@ -524,7 +545,8 @@ class QubitCircuit:
             for _, i in enumerate(qubits):
                 gate = Gate(name, targets=qubits[i], controls=None,
                             arg_value=arg_value, arg_label=arg_label,
-                            classical_controls=classical_controls)
+                            classical_controls=classical_controls,
+                            control_value=control_value)
                 self.gates.append(gate)
 
         else:
@@ -533,7 +555,8 @@ class QubitCircuit:
             for i in range(start, end+1):
                 gate = Gate(name, targets=i, controls=None,
                             arg_value=arg_value, arg_label=arg_label,
-                            classical_controls=classical_controls)
+                            classical_controls=classical_controls,
+                            control_value=control_value)
                 self.gates.append(gate)
 
     def add_circuit(self, qc, start=0):
@@ -1083,9 +1106,8 @@ class QubitCircuit:
                     i = int(measure_results[measure_ind])
                     measure_ind += 1
                 else:
-                    i = np.random.choice(
-                                    [0, 1],
-                                    p=[probabilities[0], 1 - probabilities[0]])
+                    print(probabilities)
+                    i = np.random.choice([0, 1], p=probabilities)
                 probability *= probabilities[i]
                 state = states[i]
                 if operation.classical_store is not None:
@@ -1094,8 +1116,15 @@ class QubitCircuit:
             else:
 
                 if (operation.classical_controls):
-                    apply_gate = all([self.cbits[i] for i
-                                      in operation.classical_controls])
+                    if operation.control_value is None:
+                        apply_gate = all([self.cbits[i] for i
+                                         in operation.classical_controls])
+                    else:
+                        bitstring = "".join([str(
+                                        self.cbits[i]) for i
+                                        in operation.classical_controls[::-1]])
+                        register_value = int(bitstring, 2)
+                        apply_gate = (register_value == operation.control_value)
                     if apply_gate:
                         state = self.U_list[ulistindex] * state
                         ulistindex += 1
@@ -1106,6 +1135,7 @@ class QubitCircuit:
                     state = self.U_list[ulistindex] * state
                     ulistindex += 1
 
+        print(probability)
         return state, probability
 
     def run_statistics(self, state, cbits=None):
@@ -1140,6 +1170,7 @@ class QubitCircuit:
 
         for measure_results in product("01", repeat=num_measurements):
             found = 0
+            print(measure_results)
             final_state, probability = self.run(
                                             state, cbits=cbits, U_list=U_list,
                                             measure_results=measure_results)

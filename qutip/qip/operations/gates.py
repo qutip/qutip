@@ -384,9 +384,9 @@ def qasmu_gate(args, N=None, target=0):
 
     Returns
     -------
-    qrot_gate : :class:`qutip.Qobj`
-        Quantum object representation of physical qubit rotation under
-        a rabi pulse.
+    qasmu_gate : :class:`qutip.Qobj`
+        Quantum object representation of the QASM U-gate as defined in the
+        OpenQASM standard.
     """
 
     theta, phi, gamma = args
