@@ -15,7 +15,8 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 
-def coefficient(base, tlist=None, args={}, _stepInterpolation=False):
+def coefficient(base, *, tlist=None, args={},
+                _stepInterpolation=False, use_cython=True):
     if isinstance(base, Cubic_Spline):
         return InterpolateCoefficient(base)
 
@@ -32,7 +33,7 @@ def coefficient(base, tlist=None, args={}, _stepInterpolation=False):
             return StepCoefficient(base, tlist)
 
     elif isinstance(base, str):
-        return coeff_from_str(base, args)
+        return coeff_from_str(base, args, use_cython)
     elif callable(base):
         # TODO add tests?
         return FunctionCoefficient(base)
@@ -112,7 +113,7 @@ def coeff_from_str(base, args, use_cython=True, _debug=False):
         raise Exception("Invalid string coefficient") from err
     # Do we even compile?
     if not qset.use_cython or not use_cython:
-        return _str_as_func(base, args)
+        return str_as_func(base, args)
     # Parsing tries to make the code in common pattern
     parsed, variables, constants = try_parse(base, args)
     if _debug:
@@ -134,6 +135,15 @@ def coeff_from_str(base, args, use_cython=True, _debug=False):
     return coeff(keys, const)
 
 
+def str_as_func(base, args):
+    code = """
+def coeff(t, args):
+    return {}""".format(base)
+    lc = {}
+    exec(code, str_env, lc)
+    return FunctionCoefficient(ls["coeff"])
+
+
 def try_import(file_name, parsed_in):
     coeff = None
     try:
@@ -143,10 +153,9 @@ def try_import(file_name, parsed_in):
     except Exception as e:
         print(e)
         parsed_saved = ""
-    if parsed_in != parsed_saved:
+    if parsed_saved and parsed_in != parsed_saved:
         # hash collision!
         coeff = None
-        print("hash!?")
     return coeff
 
 
@@ -354,18 +363,27 @@ def try_parse(code, args, accept_int=None, accept_float=True):
     if test_parsed(ncode, variables, ordered_constants, args):
         return ncode, variables, ordered_constants
     else:
-        variables = [(name, name, ctype) for _, name, ctype in variables]
-        return code, variables, []
+        unique_keys = []
+        remaped_variable = []
+        for _, name, ctype in variables:
+            if name in unique_keys:
+                continue
+            remaped_variable.append((name, name, ctype))
+            unique_keys.append(name)
+        return code, remaped_variable, []
 
 
 def test_parsed(code, variables, constants, args):
-    cte_dict = {cte[0]:fromstr(cte[1]) for cte in constants}
+    class cteObj:
+        pass
+    [setattr(cteObj, cte[0][5:], fromstr(cte[1])) for cte in constants]
     var_dict = {var[0]:args[var[1]] for var in variables}
-    var_dict.update(cte_dict)
+    var_dict["self"] = cteObj
     var_dict["t"] = 1
     try:
         exec(code, str_env, var_dict)
-    except Exception:
+    except Exception as e:
+        print("failed", e)
         return False
     return True
 

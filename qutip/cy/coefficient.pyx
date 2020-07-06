@@ -30,12 +30,12 @@ cdef class Coefficient:
 
     def __add__(self, other):
         if not isinstance(other, Coefficient):
-            raise TypeError
+            return NotImplemented
         return Add(self, other)
 
     def __mul__(self, other):
         if not isinstance(other, Coefficient):
-            raise TypeError
+            return NotImplemented
         return Mul(self, other)
 
 
