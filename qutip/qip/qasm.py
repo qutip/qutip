@@ -77,7 +77,7 @@ def _tokenize_line(command):
     else:
         groups = re.match(r"(^.*?)\((.*)\)(.*)", command)
         if not groups:
-            raise SyntaxError("QASM : Incorrect bracket formatting")
+            raise SyntaxError("QASM: Incorrect bracket formatting")
         tokens = groups.group(1).split()
         tokens.append("(")
         tokens += groups.group(2).split(",")
@@ -386,7 +386,7 @@ class QasmProcessor:
                 if len(qubits) == len(cbits):
                     return zip(qubits, cbits)
                 else:
-                    raise ValueError("QASM : qubit and cbit \
+                    raise ValueError("QASM: qubit and cbit \
                                      register sizes are different")
         else:
             # processes gate tokens to create sets of registers to
@@ -434,7 +434,9 @@ class QasmProcessor:
                 else:
                     raise SyntaxError("QASM: incorrect bracket formatting")
             elif open_bracket_mode:
-                if command[0] == "}":
+                if command[0] == "{":
+                    raise SyntaxError("QASM: incorrect bracket formatting")
+                elif command[0] == "}":
                     if not curr_gate.gates_inside:
                         raise NotImplementedError("QASM: opaque gate {} are  \
                                                    not allowed, please define \
@@ -467,7 +469,7 @@ class QasmProcessor:
                                                 self.num_qubits + num_regs))
                     self.num_qubits += num_regs
                 else:
-                    raise SyntaxError("QASM : Incorrect Formatting")
+                    raise SyntaxError("QASM: incorrect bracket formatting")
 
             elif command[0] == "creg":
                 groups = re.match(r"(.*)\[(.*)\]", "".join(command[1:]))
@@ -478,7 +480,7 @@ class QasmProcessor:
                                                      self.num_cbits + num_regs))
                     self.num_cbits += num_regs
                 else:
-                    raise SyntaxError("QASM : Incorrect Formatting")
+                    raise SyntaxError("QASM: incorrect bracket formatting")
             elif command[0] in ["barrier", "include", "reset"]:
                 continue
             else:
@@ -486,7 +488,7 @@ class QasmProcessor:
                 continue
 
         if open_bracket_mode:
-            raise SyntaxError("QASM : Incorrect Formatting")
+            raise SyntaxError("QASM: incorrect bracket formatting")
 
         self.commands = [self.commands[i] for i in unprocessed]
 
@@ -560,8 +562,7 @@ class QasmProcessor:
                 self._gate_add(qc, command[4:], custom_gates,
                                cbit_inds, control_value)
             else:
-                raise SyntaxError("QASM : {} is not a valid \
-                                  QASM command.".format(command[0]))
+                raise SyntaxError("QASM: {} is not a valid QASM command.".format(command[0]))
 
 
 def read_qasm(file, mode="qiskit", version="2.0"):
@@ -596,11 +597,11 @@ def read_qasm(file, mode="qiskit", version="2.0"):
     f.close()
 
     if version != "2.0":
-        raise NotImplementedError("QASM : Only OpenQASM 2.0 \
+        raise NotImplementedError("QASM: Only OpenQASM 2.0 \
                                   is currently supported.")
 
     if qasm_lines.pop(0) != "OPENQASM 2.0;":
-        raise SyntaxError("QASM : File does not contain QASM header")
+        raise SyntaxError("QASM: File does not contain QASM 2.0 header")
 
     qasm_obj = QasmProcessor(qasm_lines, mode=mode, version=version)
     qasm_obj.commands = _tokenize(qasm_obj.commands)
