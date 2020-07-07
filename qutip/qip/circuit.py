@@ -1106,7 +1106,6 @@ class QubitCircuit:
                     i = int(measure_results[measure_ind])
                     measure_ind += 1
                 else:
-                    print(probabilities)
                     i = np.random.choice([0, 1], p=probabilities)
                 probability *= probabilities[i]
                 state = states[i]
@@ -1135,7 +1134,6 @@ class QubitCircuit:
                     state = self.U_list[ulistindex] * state
                     ulistindex += 1
 
-        print(probability)
         return state, probability
 
     def run_statistics(self, state, cbits=None):
@@ -1170,7 +1168,6 @@ class QubitCircuit:
 
         for measure_results in product("01", repeat=num_measurements):
             found = 0
-            print(measure_results)
             final_state, probability = self.run(
                                             state, cbits=cbits, U_list=U_list,
                                             measure_results=measure_results)

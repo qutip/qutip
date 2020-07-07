@@ -305,7 +305,6 @@ class QasmProcessor:
             args_map[arg] = eval(str(args[i]))
         for i, reg in enumerate(gate.gate_regs):
             regs_map[reg] = regs[i]
-
         # process all the constituent gates with supplied arguments, registers
         for call in gate.gates_inside:
 
