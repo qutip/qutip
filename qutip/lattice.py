@@ -851,7 +851,7 @@ class Lattice1d():
         if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
         (knxA, qH_ks, val_kns, vec_kns, vec_xs) = self._k_space_calculations()
-        dtype = [('eigen_value', '<f16'), ('eigen_vector', Qobj)]
+        dtype = [('eigen_value', np.longdouble), ('eigen_vector', Qobj)]
         values = list()
         for i in range(self.num_cell):
             for j in range(self._length_of_unit_cell):
