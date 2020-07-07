@@ -432,7 +432,7 @@ class TestPulseOptim:
         assert_(dyn.dump is not None, msg='dynamics dump not created')
 
         # Use the dump to check unitarity of all propagators and evo_ops
-        dyn.unitarity_tol = 1e-14
+        dyn.unitarity_tol = 1e-13
         nu_prop = 0
         nu_fwd_evo = 0
         nu_onto_evo = 0
@@ -1026,4 +1026,3 @@ class TestPulseOptim:
 
 if __name__ == "__main__":
     run_module_suite()
-

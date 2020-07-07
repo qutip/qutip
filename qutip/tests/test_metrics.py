@@ -296,7 +296,6 @@ def test_hellinger_inequality():
         assert_(hellinger >= bures)
 
 
-@pytest.mark.skipif("platform.system() == 'Darwin'")
 def test_hellinger_monotonicity():
     """
     Metrics: Hellinger dist.: check monotonicity

@@ -706,6 +706,8 @@ def zcsr_proj(object A, bool is_ket=1):
                 out.data[jj*nnz+kk] = data[jj]*conj(data[kk])
 
     else:
+        # a bra _may_ have unsorted indices (a ket may not in CSR format)
+        A.sort_indices()
         count = nnz**2
         new_idx = nrows
         for kk in range(nnz-1,-1,-1):
@@ -741,18 +743,25 @@ def zcsr_inner(object A, object B, bool bra_ket):
     cdef int nrows = B.shape[0]
 
     cdef double complex inner = 0
-    cdef size_t jj, kk
+    cdef size_t kk
     cdef int a_idx, b_idx
 
     if bra_ket:
+        if A.shape[1] != nrows:
+            message = "".join([
+                "incompatible lengths ", str(A.shape[1]), " and ", str(nrows),
+            ])
+            raise TypeError(message)
         for kk in range(a_ind.shape[0]):
             a_idx = a_ind[kk]
-            for jj in range(nrows):
-                if (b_ptr[jj+1]-b_ptr[jj]) != 0:
-                    if jj == a_idx:
-                        inner += a_data[kk]*b_data[b_ptr[jj]]
-                        break
+            if b_ptr[a_idx + 1] != b_ptr[a_idx]:
+                inner += a_data[kk] * b_data[b_ptr[a_idx]]
     else:
+        if A.shape[0] != nrows:
+            message = "".join([
+                "incompatible lengths ", str(A.shape[0]), " and ", str(nrows),
+            ])
+            raise TypeError(message)
         for kk in range(nrows):
             a_idx = a_ptr[kk]
             b_idx = b_ptr[kk]

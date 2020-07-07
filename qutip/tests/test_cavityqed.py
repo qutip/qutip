@@ -133,7 +133,7 @@ class Testcqed:
             fidelity(result, rho1), 1., rtol=1e-2,
             err_msg="Analytical run_state fails in DispersiveCavityQED")
 
-    @pytest.mark.skipif("platform.system() == 'Darwin'")
+
     def test_numerical_evo(self):
         """
         Test of run_state with qutip solver

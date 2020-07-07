@@ -51,7 +51,43 @@ from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _isdiag, zcsr_one_norm, zcsr_inf_norm)
 from qutip.fastsparse import fast_csr_matrix
 from qutip.cy.spconvert import (arr_coo2fast, zcsr_reshape)
-from qutip.settings import debug
+from qutip.settings import debug, eigh_unsafe
+
+if eigh_unsafe:
+    def _orthogonalize(vec, other):
+        cross = np.sum(np.conj(other) * vec)
+        vec -= cross * other
+        norm = np.sum(np.conj(vec) * vec)**0.5
+        vec /= norm
+
+    def eigh(mat, eigvals=[]):
+        val, vec = la.eig(mat)
+        val = np.real(val)
+        idx = np.argsort(val)
+        val = val[idx]
+        vec = vec[:, idx]
+        if eigvals:
+            val = val[eigvals[0]:eigvals[1]+1]
+            vec = vec[:, eigvals[0]:eigvals[1]+1]
+        same_eigv = 0
+        for i in range(1, len(val)):
+            if abs(val[i] - val[i-1]) < 1e-12:
+                same_eigv += 1
+                for j in range(same_eigv):
+                    _orthogonalize(vec[:, i], vec[:, i-j-1])
+            else:
+                same_eigv = 0
+        return val, vec
+
+    def eigvalsh(a, UPLO="L", eigvals=[]):
+        val = la.eigvals(a)
+        val = np.sort(np.real(val))
+        if eigvals:
+            return val[eigvals[0]:eigvals[1]+1]
+        return val
+else:
+    eigh = la.eigh
+    eigvalsh = la.eigvalsh
 
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
@@ -72,7 +108,7 @@ def sp_inf_norm(A):
     """
     Infinity norm for sparse matrix
     """
-    return zcsr_inf_norm(A.data, A.indices, 
+    return zcsr_inf_norm(A.data, A.indices,
                 A.indptr, A.shape[0], A.shape[1])
 
 
@@ -100,7 +136,7 @@ def sp_one_norm(A):
     """
     One norm for sparse matrix
     """
-    return zcsr_one_norm(A.data, A.indices, 
+    return zcsr_one_norm(A.data, A.indices,
                 A.indptr, A.shape[0], A.shape[1])
 
 
@@ -130,10 +166,10 @@ def sp_reshape(A, shape, format='csr'):
     """
     if not hasattr(shape, '__len__') or len(shape) != 2:
         raise ValueError('Shape must be a list of two integers')
-    
+
     if format == 'csr':
         return zcsr_reshape(A, shape[0], shape[1])
-    
+
     C = A.tocoo()
     nrows, ncols = C.shape
     size = nrows * ncols
@@ -169,25 +205,25 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
     if vecs:
         if isherm:
             if eigvals == 0:
-                evals, evecs = la.eigh(data)
+                evals, evecs = eigh(data)
             else:
                 if num_small > 0:
-                    evals, evecs = la.eigh(
+                    evals, evecs = eigh(
                         data, eigvals=[0, num_small - 1])
                 if num_large > 0:
-                    evals, evecs = la.eigh(
+                    evals, evecs = eigh(
                         data, eigvals=[N - num_large, N - 1])
         else:
             evals, evecs = la.eig(data)
     else:
         if isherm:
             if eigvals == 0:
-                evals = la.eigvalsh(data)
+                evals = eigvalsh(data)
             else:
                 if num_small > 0:
-                    evals = la.eigvalsh(data, eigvals=[0, num_small - 1])
+                    evals = eigvalsh(data, eigvals=[0, num_small - 1])
                 if num_large > 0:
-                    evals = la.eigvalsh(data, eigvals=[N - num_large, N - 1])
+                    evals = eigvalsh(data, eigvals=[N - num_large, N - 1])
         else:
             evals = la.eigvals(data)
 
@@ -383,10 +419,10 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
 
 def sp_expm(A, sparse=False):
     """
-    Sparse matrix exponential.    
+    Sparse matrix exponential.
     """
     if _isdiag(A.indices, A.indptr, A.shape[0]):
-        A = sp.diags(np.exp(A.diagonal()), shape=A.shape, 
+        A = sp.diags(np.exp(A.diagonal()), shape=A.shape,
                     format='csr', dtype=complex)
         return A
     if sparse:
@@ -394,7 +430,7 @@ def sp_expm(A, sparse=False):
     else:
         E = spla.expm(A.toarray())
     return sp.csr_matrix(E)
-    
+
 
 
 def sp_permute(A, rperm=(), cperm=(), safe=True):
@@ -574,17 +610,17 @@ def sp_profile(A):
 
 def sp_isdiag(A):
     """Determine if sparse CSR matrix is diagonal.
-    
+
     Parameters
     ----------
     A : csr_matrix, csc_matrix
         Input matrix
-        
+
     Returns
     -------
     isdiag : int
         True if matix is diagonal, False otherwise.
-    
+
     """
     if not sp.isspmatrix_csr(A):
         raise TypeError('Input sparse matrix must be in CSR format.')
