@@ -17,6 +17,9 @@ from Cython.Build import cythonize
 
 def coefficient(base, *, tlist=None, args={},
                 _stepInterpolation=False, use_cython=True):
+    """
+
+    """
     if isinstance(base, Cubic_Spline):
         return InterpolateCoefficient(base)
 
@@ -34,12 +37,14 @@ def coefficient(base, *, tlist=None, args={},
 
     elif isinstance(base, str):
         return coeff_from_str(base, args, use_cython)
+
     elif callable(base):
         # TODO add tests?
         return FunctionCoefficient(base)
 
-
-# Everything under if for string compilation
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 _link_flags = []
 if (sys.platform == 'win32'
     and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
@@ -92,19 +97,15 @@ str_env = {
     "spe": scipy.special}
 
 
-typeCodes = [
-    ("double[::1]", "_adbl"),
-    ("complex[::1]", "_acpl"),
-    ("complex", "_cpl"),
-    ("double", "_dbl"),
-    ("int", "_int"),
-    ("str", "_str"),
-    ("object", "_obj")
-]
-
-
 def coeff_from_str(base, args, use_cython=True, _debug=False):
-    # First a sanity check before thinking of compiling
+    """
+    Entry point for string based coefficients
+    - Test if the string is valid
+    - Parse: "cos(a*t)" and "cos( w1 * t )"
+        should be recognised as the same compiled object.
+    - Verify if already compiled and compile if not
+    """
+    # First, a sanity check before thinking of compiling
     try:
         env = {"t": 0}
         env.update(args)
@@ -136,6 +137,8 @@ def coeff_from_str(base, args, use_cython=True, _debug=False):
 
 
 def str_as_func(base, args):
+    """ If cython is not used, make a function from the string and make a
+    function coefficient"""
     code = """
 def coeff(t, args):
     return {}""".format(base)
@@ -145,6 +148,9 @@ def coeff(t, args):
 
 
 def try_import(file_name, parsed_in):
+    """ Import the compiled coefficient if existing and check for
+    name collision.
+    """
     coeff = None
     try:
         mod = importlib.import_module(file_name)
@@ -160,6 +166,9 @@ def try_import(file_name, parsed_in):
 
 
 def make_cy_code(code, variables, constants, base):
+    """
+
+    """
     #_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
                     "\\", "/")
@@ -209,6 +218,7 @@ cdef class StrCoefficient(Coefficient):
     def __init__(self, var, cte):
         self.codeString = "{}"
 {}{}
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
 {}
         return {}
@@ -250,10 +260,46 @@ def compile_code(code, file_name, parsed):
     return try_import(file_name, parsed)
 
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%        Everything under this is for parsing string        %%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Parsing here is extracting constants and args name to replace them with
+# attribute of the Coefficient so similar string like:
+# "2.*cos(a*t)", "5.2 * cos(w1 *t)", "5 * cos(w3 * t)"
+# are all reconized as the same compiled object and only compiled once.
+# Weakness:
+#   typing: "1" and "1j" or the type of args ("w1") make different object
+#   complex: "1+1j" is seens as cte(double) + cte(complex)
+#   negative: "-1" is not seens as a constant but "- constant"
+#
+# int and double can be seens as complex with flags in qutip.settings
+
+def fromstr(base):
+    """Read a varibles in a string"""
+    ls = {}
+    exec("out = "+ base, {}, ls)
+    return ls["out"]
+
+
+typeCodes = [
+    ("double[::1]", "_adbl"),
+    ("complex[::1]", "_acpl"),
+    ("complex", "_cpl"),
+    ("double", "_dbl"),
+    ("int", "_int"),
+    ("str", "_str"),
+    ("object", "_obj")
+]
+
+
 def compileType(value):
-    if isinstance(value, np.ndarray) and isinstance(value[0], (float, np.float32, np.float64)):
+    """Obtain the index of typeCodes that correspond to the value
+    4.5 -> 'double'..."""
+    if (isinstance(value, np.ndarray) and
+        isinstance(value[0], (float, np.float32, np.float64))):
         ctype = 0
-    elif isinstance(value, np.ndarray) and isinstance(value[0], (complex, np.complex128)):
+    elif (isinstance(value, np.ndarray) and
+          isinstance(value[0], (complex, np.complex128))):
         ctype = 1
     elif isinstance(value, (complex, np.complex128)):
         ctype = 2
@@ -269,6 +315,7 @@ def compileType(value):
 
 
 def find_type_from_str(chars):
+    """ '1j' -> complex """
     try:
         lc = {}
         exec("out = " + chars, {}, lc)
@@ -278,6 +325,9 @@ def find_type_from_str(chars):
 
 
 def fix_type(ctype, accept_int, accept_float):
+    """int and double could be complex to limit the number of compiled object.
+    change the types is we choose not to support all.
+    """
     if ctype == 4 and not accept_int:
         ctype = 3
     if ctype == 3 and not accept_float:
@@ -286,6 +336,8 @@ def fix_type(ctype, accept_int, accept_float):
 
 
 def extract_constant(code):
+    """ look for floating and complex constants
+    """
     code = " " + code + " "
     contants = []
     code = extract_cte_pattern(code, contants,
@@ -300,6 +352,7 @@ def extract_constant(code):
 
 
 def extract_cte_pattern(code, constants, pattern):
+    """ replace the constant following a pattern with variable """
     const_strs = re.findall(pattern, code)
     for cte in const_strs:
         name = " _cteX{}_ ".format(len(constants))
@@ -309,6 +362,7 @@ def extract_cte_pattern(code, constants, pattern):
 
 
 def space_parts(code, names):
+    """ Force spacing"""
     for name in names:
         code = re.sub("(?<=[^0-9a-zA-Z_])" + name + "(?=[^0-9a-zA-Z_])",
                       " " + name + " ", code)
@@ -316,11 +370,15 @@ def space_parts(code, names):
     return code
 
 
-def parse(code, args, accept_int=None, accept_float=True):
+def parse(code, args):
     """
-    Read the code and change variables names and constant so
-    '2.*cos(w1*t)' and '1.5 * cos( w2 * t )' be compiled as the same
-    Coefficient object.
+    Read the code and rewrite it in a reutilisable form:
+    Ins:
+        '2.*cos(a*t)', {"a":5+1j} ->
+    Outs:
+        code = 'self._cte_dbl0 * cos( _cpl0 * t )'
+        variables = [('_cpl0', 'a', 'complex')]
+        ordered_constants = [('self._cte_dbl0', 2, 'double')]
     """
     code, constants = extract_constant(code)
     names = re.findall("[0-9a-zA-Z_]+", code)
@@ -330,6 +388,8 @@ def parse(code, args, accept_int=None, accept_float=True):
     ordered_constants = []
     variables = []
     typeCounts = [0,0,0,0,0,0,0]
+    accept_int = qset.accept_int
+    accept_float = qset.accept_float
     if accept_int is None:
         accept_int = "SUBSCR" in dis.Bytecode(code).dis()
     for word in code.split():
@@ -357,9 +417,11 @@ def parse(code, args, accept_int=None, accept_float=True):
     return code, variables, ordered_constants
 
 
-def try_parse(code, args, accept_int=None, accept_float=True):
-    ncode, variables, ordered_constants = parse(code, args,
-                                                accept_int, accept_float)
+def try_parse(code, args):
+    """
+    Try to parse and verify that the result is still usable.
+    """
+    ncode, variables, ordered_constants = parse(code, args)
     if test_parsed(ncode, variables, ordered_constants, args):
         return ncode, variables, ordered_constants
     else:
@@ -374,6 +436,9 @@ def try_parse(code, args, accept_int=None, accept_float=True):
 
 
 def test_parsed(code, variables, constants, args):
+    """
+    Test if parsed code broke anything.
+    """
     class cteObj:
         pass
     [setattr(cteObj, cte[0][5:], fromstr(cte[1])) for cte in constants]
@@ -386,9 +451,3 @@ def test_parsed(code, variables, constants, args):
         print("failed", e)
         return False
     return True
-
-
-def fromstr(base):
-    ls = {}
-    exec("out = "+ base, {}, ls)
-    return ls["out"]

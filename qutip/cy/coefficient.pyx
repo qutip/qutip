@@ -12,6 +12,7 @@ from qutip.cy.inter cimport (_spline_complex_cte_second,
 from qutip.cy.interpolate cimport (interp, zinterp)
 import numpy as np
 cimport numpy as cnp
+cimport cython
 
 cdef class Coefficient:
     def __cinit__(self):
@@ -58,6 +59,7 @@ cdef class InterpolateCoefficient(Coefficient):
         self.b = splineObj.b
         self.c = splineObj.coeffs.astype(np.complex128)
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         return zinterp(t, self.a, self.b, self.c)
 
@@ -76,6 +78,7 @@ cdef class InterCoefficient(Coefficient):
         self.dt = tlist[1] - tlist[0]
         self.n_t = len(tlist)
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         cdef complex coeff
         if self.cte:
@@ -104,6 +107,7 @@ cdef class StepCoefficient(Coefficient):
         self.dt = tlist[1] - tlist[0]
         self.n_t = len(tlist)
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         cdef complex coeff
         if self.cte:
@@ -121,6 +125,7 @@ cdef class Add(Coefficient):
         self.first = first
         self.second = second
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         return self.first._call(t, args) + self.second._call(t, args)
 
@@ -140,6 +145,7 @@ cdef class Mul(Coefficient):
         self.first = first
         self.second = second
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         return self.first._call(t, args) * self.second._call(t, args)
 
@@ -157,6 +163,7 @@ cdef class Conj(Coefficient):
     def __init__(self, Coefficient base):
         self.base = base
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         return conj(self.base._call(t, args))
 
@@ -173,6 +180,7 @@ cdef class Norm(Coefficient):
     def __init__(self, Coefficient base):
         self.base = base
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         return norm(self.base._call(t, args))
 
@@ -189,6 +197,7 @@ cdef class Shift(Coefficient):
     def __init__(self, Coefficient base):
         self.base = base
 
+    @cython.initializedcheck=False
     cdef complex _call(self, double t, dict args):
         cdef _t0 = args["_t0"]
         return self.base._call(t+_t0, args)
