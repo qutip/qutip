@@ -176,22 +176,25 @@ def measurement_statistics_povm(state, ops, targets=None):
                     the probability of measuring a state in a the state
                     specified by the index.
     '''
+    '''
 
     if all(map(lambda x: x.isket, ops)):
         ops = [op * op.dag() for op in ops]
-
+    '''
     if targets:
         N = int(np.log2(state.shape[0]))
         ops = [expand_operator(op, N=N, targets=targets) for op in ops]
-
+    '''
     for op in ops:
         _verify_input(op, state)
 
+
     E = [op.dag() * op for op in ops]
+
     is_ID = sum(E)
     if not is_ID == identity(is_ID.dims[0]):
         raise ValueError("measurement operators must sum to identity")
-
+    '''
     if state.isket:
         return _measurement_statistics_povm_ket(state, ops)
     else:

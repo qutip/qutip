@@ -96,7 +96,6 @@ _GATE_NAME_TO_QASM_NAME = {
 
 _GATE_QASM_RESOLVED = {
     "SWAP":"swap"
-    ""
 }
 
 
@@ -217,7 +216,7 @@ class Gate:
         return str(self)
 
 
-    def _qasm_defn_from_resolved(self, gates_lst, output_fn):
+    def _qasm_defn_from_resolved(self, gates_lst, output_fn, gate_name_map):
 
         forbidden_gates = ["GLOBALPHASE", "PHASEGATE"]
         reg_map = ['a', 'b', 'c']
@@ -233,11 +232,11 @@ class Gate:
         output_fn("gate {} {{".format(self._qasm_str(self.name.lower(), ctrls, trgts, arg_name)[:-1]))
 
         for gate in gates_lst:
-            if gate.name in _GATE_NAME_TO_QASM_NAME:
+            if gate.name in gate_name_map:
                 gate.targets = [reg_map[i] for i in gate.targets]
                 if gate.controls:
                     gate.controls = [reg_map[i] for i in gate.controls]
-                output_fn(self._qasm_str(_GATE_NAME_TO_QASM_NAME[gate.name], gate.controls, gate.targets, gate.arg_value))
+                output_fn(self._qasm_str(gate_name_map[gate.name], gate.controls, gate.targets, gate.arg_value))
             elif gate.name in forbidden_gates:
                 continue
             else:
@@ -245,7 +244,7 @@ class Gate:
         output_fn("}")
 
 
-    def _qasm_defn_resolve(self, output_fn):
+    def _qasm_defn_resolve(self, output_fn, gate_name_map):
 
         qc = QubitCircuit(3)
         gates_lst = []
@@ -257,10 +256,7 @@ class Gate:
             qc._gate_FREDKIN(self, gates_lst)
         else:
             raise NotImplementedError("No definition specified for {} gate".format(self.name))
-        self._qasm_defn_from_resolved(gates_lst, output_fn)
-
-
-
+        self._qasm_defn_from_resolved(gates_lst, output_fn, gate_name_map)
 
 
 
@@ -280,7 +276,7 @@ class Gate:
             return "{} {};".format(name, regs)
 
 
-    def _qasm_defns(self, output_fn):
+    def _qasm_defns(self, output_fn, gate_name_map):
         if self.name == "CRY":
             gate_def = "gate cry(theta) a,b { cu3(theta,0,0) a,b; }"
         elif self.name == "CRX":
@@ -294,24 +290,24 @@ class Gate:
         elif self.name == "SWAP":
             gate_def = "gate swap a,b { cx a,b; cx b,a; cx a,b; }"
         else:
-            self._qasm_defn_resolve(output_fn)
+            self._qasm_defn_resolve(output_fn, gate_name_map)
             return 0
 
         output_fn("// QuTiP definition for gate {}".format(self.name))
         output_fn(gate_def)
 
-    def _qasm_output(self, output_fn):
+    def _qasm_output(self, output_fn, gate_name_map):
 
-        if self.name in _GATE_NAME_TO_QASM_NAME:
-            qasm_gate = _GATE_NAME_TO_QASM_NAME[self.name]
-            output_fn(self._qasm_str(qasm_gate, self.controls, self.targets, self.arg_value))
+        if self.name in gate_name_map:
+            qasm_gate = gate_name_map[self.name]
+            if self.classical_controls:
+                raise NotImplementedError("Exporting controlled gates is not implemented yet.")
+            else:
+                output_fn(self._qasm_str(qasm_gate, self.controls,
+                                         self.targets, self.arg_value))
         else:
-            raise NotImplementedError("{} gate's qasm defn is not specified".format(self.name))
-
-
-
-
-
+            error_str = "{} gate's qasm defn is not specified".format(self.name)
+            raise NotImplementedError(error_str)
 
 _GATE_NAME_TO_LABEL = {
     'X': r'X',
@@ -446,6 +442,10 @@ class Measurement:
 
     def _repr_latex_(self):
         return str(self)
+
+    def _qasm_output(self, output_fn, gate_name_map):
+        output_fn("measure q[{}] -> c[{}]".format(self.targets[0],
+                                                  self.classical_store))
 
 
 class QubitCircuit:
@@ -1221,6 +1221,7 @@ class QubitCircuit:
 
                 states, probabilities = operation.measurement_comp_basis(state)
                 if measure_results:
+                    print("here")
                     i = int(measure_results[measure_ind])
                     measure_ind += 1
                 else:
@@ -1770,29 +1771,20 @@ class QubitCircuit:
 
     def _qasm_output(self, output_fn):
 
-        lines = []
         output_fn("qreg q[{}];".format(self.N))
-        #output_fn(n=1)
-        '''
         if self.num_cbits:
-            output_fn("creg c[{}];").format(self.num_cbits)
-        '''
+            output_fn("creg c[{}];".format(self.num_cbits))
+
+        gate_name_map = deepcopy(_GATE_NAME_TO_QASM_NAME)
 
         for op in self.gates:
-            if op.name not in _GATE_NAME_TO_QASM_NAME:
-                op._qasm_defns(output_fn)
-                _GATE_NAME_TO_QASM_NAME[op.name] = op.name.lower()
+            if ((not isinstance(op, Measurement))
+                    and op.name not in gate_name_map):
+                op._qasm_defns(output_fn, gate_name_map)
+                gate_name_map[op.name] = op.name.lower()
 
         for op in self.gates:
-            op._qasm_output(output_fn)
-
-
-        # define any gates not in qelib1.inc
-
-        # apply gates and measurements
-
-
-
+            op._qasm_output(output_fn, gate_name_map)
 
 
 
