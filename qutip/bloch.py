@@ -173,7 +173,7 @@ class Bloch():
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
-        # Dictionary of vectors whose color is specified, where the vector-index and color are key-value pair 
+        # Dictionary of vectors-indices whose color is specified
         self.vector_color_specified = {}
         #: Width of Bloch vectors, default = 5
         self.vector_width = 3
@@ -392,7 +392,7 @@ class Bloch():
             for k in range(len(vectors)):
                 if colors is not None:
                     vector_index = len(self.vectors)
-                    self.vector_color_specified[vector_index] = colors[k] 
+                    self.vector_color_specified[vector_index] = colors[k]
                 self.vectors.append(vectors[k])
         else:
             if colors is not None:
@@ -570,7 +570,8 @@ class Bloch():
             ys3d = -self.vectors[k][0] * array([0, 1])
             zs3d = self.vectors[k][2] * array([0, 1])
 
-            color = self.vector_color_specified.get(k, self.vector_color[mod(k, len(self.vector_color))])
+            default = self.vector_color[mod(k, len(self.vector_color))]
+            color = self.vector_color_specified.get(k, default)
 
             if self.vector_style == '':
                 # simple line style
