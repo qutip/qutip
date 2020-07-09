@@ -10,7 +10,10 @@ import importlib
 import qutip.settings as qset
 from qutip import Cubic_Spline
 from qutip.cy.coefficient import (InterpolateCoefficient, InterCoefficient,
-                                  StepCoefficient, FunctionCoefficient)
+                                  StepCoefficient, FunctionCoefficient,
+                                  SumCoefficient, MulCoefficient,
+                                  ConjCoefficient, NormCoefficient,
+                                  ShiftCoefficient)
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 
@@ -40,7 +43,39 @@ def coefficient(base, *, tlist=None, args={},
 
     elif callable(base):
         # TODO add tests?
-        return FunctionCoefficient(base)
+        return FunctionCoefficient(base, args)
+    else:
+        raise ValueError("coefficient format not understood")
+
+def norm(coeff):
+    """ return a Coefficient with is the norm: |c|^2.
+    """
+    return NormCoefficient(coeff)
+
+
+def conj(coeff):
+    """ return a Coefficient with is the conjugate.
+    """
+    return ConjCoefficient(coeff)
+
+
+def shift(coeff, _t0=0):
+    """ return a Coefficient in which t is shifted by _t0.
+    """
+    return ShiftCoefficient(coeff, _t0)
+
+
+def reduce(coeff, args):
+    """ Reduce decorated string coefficient to 1 object:
+    c = coefficient("t")
+    optimize(c + conj(c)) => coefficient("t+conj(t)")
+    """
+    reduced = coeff.optstr()
+    if reduced:
+        return coefficient(reduced, args=args)
+    else:
+        return coeff
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
@@ -116,7 +151,7 @@ def coeff_from_str(base, args, use_cython=True, _debug=False):
     if not qset.use_cython or not use_cython:
         return str_as_func(base, args)
     # Parsing tries to make the code in common pattern
-    parsed, variables, constants = try_parse(base, args)
+    parsed, variables, constants, raw = try_parse(base, args)
     if _debug:
         print(parsed, variables, constants)
     # Once parsed, the code should be unique enough to get a filename
@@ -127,13 +162,13 @@ def coeff_from_str(base, args, use_cython=True, _debug=False):
     # See if it already exist, if not write and cythonize it
     coeff = try_import(file_name, parsed)
     if coeff is None:
-        code = make_cy_code(parsed, variables, constants, base)
+        code = make_cy_code(parsed, variables, constants, raw)
         if _debug:
             print(code)
         coeff = compile_code(code, file_name, parsed)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
-    return coeff(keys, const)
+    return coeff(base, keys, const, args)
 
 
 def str_as_func(base, args):
@@ -157,7 +192,6 @@ def try_import(file_name, parsed_in):
         coeff = getattr(mod, "StrCoefficient")
         parsed_saved = getattr(mod, "parsed_code")
     except Exception as e:
-        print(e)
         parsed_saved = ""
     if parsed_saved and parsed_in != parsed_saved:
         # hash collision!
@@ -165,7 +199,7 @@ def try_import(file_name, parsed_in):
     return coeff
 
 
-def make_cy_code(code, variables, constants, base):
+def make_cy_code(code, variables, constants, raw):
     """
 
     """
@@ -185,15 +219,23 @@ def make_cy_code(code, variables, constants, base):
         set_cte += "        {} = state[{}]\n".format(name, i)
     cdef_var = ""
     init_var = ""
+    args_var = ""
     call_var = ""
     get_var = ""
     set_var = ""
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
+        cdef_var += "        {} {}\n".format(ctype, name[5:])
         init_var += "        self.key{} = var[{}]\n".format(i, i)
-        call_var += "        cdef {} {} = args[self.key{}]\n".format(ctype, name, i)
+        args_var += "        {} = args[self.key{}]\n".format(name, i)
+        if raw:
+            call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
         get_var += "             self.key{},\n".format(i)
-        set_var += "        self.key{} = state[{}]\n".format(i, i + len(constants))
+        get_var += "             {},\n".format(name)
+        set_var += "        self.key{} = state[{}]\n".format(i, 2*i +
+                                                             len(constants))
+        set_var += "        {} = state[{}]\n".format(name, 2*i + 1 +
+                                                     len(constants))
 
     code = """#cython: language_level=3
 # This file is generated automatically by QuTiP.
@@ -213,25 +255,32 @@ parsed_code = "{}"
 cdef class StrCoefficient(Coefficient):
     cdef:
         int dummy
+        str codeString
 {}{}
 
-    def __init__(self, var, cte):
-        self.codeString = "{}"
-{}{}
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
-{}
-        return {}
+    def __init__(self, base, var, cte, args):
+        self.codeString = base
+{}{}        self.arguments(args)
+
+    cpdef void arguments(self, dict args) except *:
+{}        pass
+
+    @cython.initializedcheck(False)
+    @cython.cdivision(True)
+    cdef complex _call(self, double t) except *:
+{}        return {}
+
+    def optstr(self):
+        return self.codeString
 
     def __getstate__(self):
         return (
 {}{}               )
 
     def __setstate__(self, state):
-{}{}
-        pass
-""".format(_include_string, code, cdef_cte, cdef_var, base,
-           init_cte, init_var, call_var, code,
+{}{}        pass
+""".format(_include_string, code, cdef_cte, cdef_var,
+           init_cte, init_var, args_var, call_var, code,
            get_cte, get_var, set_cte, set_var
           )
     return code
@@ -374,10 +423,10 @@ def parse(code, args):
     """
     Read the code and rewrite it in a reutilisable form:
     Ins:
-        '2.*cos(a*t)', {"a":5+1j} ->
+        '2.*cos(a*t)', {"a":5+1j}
     Outs:
-        code = 'self._cte_dbl0 * cos( _cpl0 * t )'
-        variables = [('_cpl0', 'a', 'complex')]
+        code = 'self._cte_dbl0 * cos ( self._arg_cpl0 * t )'
+        variables = [('self._arg_cpl0', 'a', 'complex')]
         ordered_constants = [('self._cte_dbl0', 2, 'double')]
     """
     code, constants = extract_constant(code)
@@ -397,12 +446,19 @@ def parse(code, args):
             # syntax
             new_code.append(word)
         elif word in args:
-            ctype = compileType(args[word])
-            ctype = fix_type(ctype, accept_int, accept_float)
-            var_name = typeCodes[ctype][1] + str(typeCounts[ctype])
-            typeCounts[ctype] += 1
+            # find first if the variable is use more than once and reuse
+            var_name = [var_name for var_name, name, _ in variables
+                        if word == name]
+            if var_name:
+                var_name = var_name[0]
+            else:
+                ctype = compileType(args[word])
+                ctype = fix_type(ctype, accept_int, accept_float)
+                var_name = ("self._arg" + typeCodes[ctype][1] +
+                            str(typeCounts[ctype]))
+                typeCounts[ctype] += 1
+                variables.append((var_name, word, typeCodes[ctype][0]))
             new_code.append(var_name)
-            variables.append((var_name, word, typeCodes[ctype][0]))
         elif word in constants_names:
             name, val, ctype = constants[int(word[5:-1])]
             ctype = fix_type(ctype, accept_int, accept_float)
@@ -421,32 +477,27 @@ def try_parse(code, args):
     """
     Try to parse and verify that the result is still usable.
     """
-    ncode, variables, ordered_constants = parse(code, args)
-    if test_parsed(ncode, variables, ordered_constants, args):
-        return ncode, variables, ordered_constants
+    ncode, variables, constants = parse(code, args)
+    if test_parsed(ncode, variables, constants, args):
+        return ncode, variables, constants, False
     else:
-        unique_keys = []
         remaped_variable = []
         for _, name, ctype in variables:
-            if name in unique_keys:
-                continue
-            remaped_variable.append((name, name, ctype))
-            unique_keys.append(name)
-        return code, remaped_variable, []
+            remaped_variable.append(("self." + name, name, ctype))
+        return code, remaped_variable, [], True
 
 
 def test_parsed(code, variables, constants, args):
     """
     Test if parsed code broke anything.
     """
-    class cteObj:
+    class DummySelf:
         pass
-    [setattr(cteObj, cte[0][5:], fromstr(cte[1])) for cte in constants]
-    var_dict = {var[0]:args[var[1]] for var in variables}
-    var_dict["self"] = cteObj
-    var_dict["t"] = 1
+    [setattr(DummySelf, cte[0][5:], fromstr(cte[1])) for cte in constants]
+    [setattr(DummySelf, var[0][5:], args[var[1]]) for var in variables]
+    loc_env = {"t":0, 'self':DummySelf}
     try:
-        exec(code, str_env, var_dict)
+        exec(code, str_env, loc_env)
     except Exception as e:
         print("failed", e)
         return False

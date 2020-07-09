@@ -15,53 +15,76 @@ cimport numpy as cnp
 cimport cython
 
 cdef class Coefficient:
-    def __cinit__(self):
-        self.codeString = ""
-
-    cdef complex _call(self, double t, dict args):
-        # Both def and cdef instead of cpdef to catch mistakes calling the
-        # python function when not needed
+    cdef complex _call(self, double t) except *:
         return 0j
 
-    def __call__(self, double t, dict args):
-        return self._call(t, args)
+    cpdef void arguments(self, dict args) except *:
+        self.args = args
+
+    def __call__(self, double t, dict args={}):
+        """update args and return the
+        """
+        if args:
+            self.arguments(args)
+        return self._call(t)
 
     def optstr(self):
-        return self.codeString
+        return ""
 
     def __add__(self, other):
         if not isinstance(other, Coefficient):
             return NotImplemented
-        return Add(self, other)
+        return SumCoefficient(self, other)
 
     def __mul__(self, other):
         if not isinstance(other, Coefficient):
             return NotImplemented
-        return Mul(self, other)
+        return MulCoefficient(self, other)
 
 
 cdef class FunctionCoefficient(Coefficient):
     cdef object func
 
-    def __init__(self, func):
+    def __init__(self, func, args):
         self.func = func
+        self.args = args
 
-    cdef complex _call(self, double t, dict args):
-        return self.func(t, args)
+    cdef complex _call(self, double t) except *:
+        return self.func(t, self.args)
+
+    def __setstate__(self, state):
+        self.func = state[0]
+        self.args = state[1]
+
+    def __getstate__(self):
+        return self.func, self.args
 
 
 cdef class InterpolateCoefficient(Coefficient):
-    cdef double a, b
-    cdef complex[::1] c
+    cdef double lower_bound, higher_bound
+    cdef complex[::1] spline_data
 
     def __init__(self, splineObj):
-        self.a = splineObj.a
-        self.b = splineObj.b
-        self.c = splineObj.coeffs.astype(np.complex128)
+        self.lower_bound = splineObj.a
+        self.higher_bound = splineObj.b
+        self.spline_data = splineObj.coeffs.astype(np.complex128)
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
-        return zinterp(t, self.a, self.b, self.c)
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
+        return zinterp(t,
+                       self.lower_bound,
+                       self.higher_bound,
+                       self.spline_data)
+
+    def __setstate__(self, state):
+        self.lower_bound = state[0]
+        self.higher_bound = state[1]
+        self.spline_data = state[2]
+
+    def __getstate__(self):
+        return (self.lower_bound,
+                self.higher_bound,
+                np.array(self.spline_data))
 
 
 cdef class InterCoefficient(Coefficient):
@@ -78,20 +101,37 @@ cdef class InterCoefficient(Coefficient):
         self.dt = tlist[1] - tlist[0]
         self.n_t = len(tlist)
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
         cdef complex coeff
         if self.cte:
-            coeff = _spline_complex_cte_second(t, self.tlist,
+            coeff = _spline_complex_cte_second(t,
+                                               self.tlist,
                                                self.coeff_arr,
                                                self.second_derr,
-                                               self.n_t, self.dt)
+                                               self.n_t,
+                                               self.dt)
         else:
-            coeff = _spline_complex_t_second(t, self.tlist,
+            coeff = _spline_complex_t_second(t,
+                                             self.tlist,
                                              self.coeff_arr,
                                              self.second_derr,
                                              self.n_t)
         return coeff
+
+    def __setstate__(self, state):
+        self.n_t = state[0]
+        self.cte = state[1]
+        self.dt = state[2]
+        self.tlist = state[3]
+        self.coeff_arr = state[4]
+        self.second_derr = state[5]
+
+    def __getstate__(self):
+        return (self.n_t, self.cte, self.dt,
+                np.array(self.tlist),
+                np.array(self.coeff_arr),
+                np.array(self.second_derr))
 
 
 cdef class StepCoefficient(Coefficient):
@@ -107,8 +147,8 @@ cdef class StepCoefficient(Coefficient):
         self.dt = tlist[1] - tlist[0]
         self.n_t = len(tlist)
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
         cdef complex coeff
         if self.cte:
             coeff = _step_complex_cte(t, self.tlist, self.coeff_arr, self.n_t)
@@ -116,8 +156,20 @@ cdef class StepCoefficient(Coefficient):
             coeff = _step_complex_t(t, self.tlist, self.coeff_arr, self.n_t)
         return coeff
 
+    def __setstate__(self, state):
+        self.n_t = state[0]
+        self.cte = state[1]
+        self.dt = state[2]
+        self.tlist = state[3]
+        self.coeff_arr = state[4]
 
-cdef class Add(Coefficient):
+    def __getstate__(self):
+        return (self.n_t, self.cte, self.dt,
+                np.array(self.tlist),
+                np.array(self.coeff_arr))
+
+
+cdef class SumCoefficient(Coefficient):
     cdef Coefficient first
     cdef Coefficient second
 
@@ -125,9 +177,20 @@ cdef class Add(Coefficient):
         self.first = first
         self.second = second
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
-        return self.first._call(t, args) + self.second._call(t, args)
+    cpdef void arguments(self, dict args) except *:
+        self.first.arguments(args)
+        self.second.arguments(args)
+
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
+        return self.first._call(t) + self.second._call(t)
+
+    def __setstate__(self, state):
+        self.first.__setstate__(state[0])
+        self.second.__setstate__(state[1])
+
+    def __getstate__(self):
+        return (self.first.__getstate__(), self.second.__getstate__())
 
     def optstr(self):
         str1 = self.first.optstr()
@@ -137,7 +200,7 @@ cdef class Add(Coefficient):
         return ""
 
 
-cdef class Mul(Coefficient):
+cdef class MulCoefficient(Coefficient):
     cdef Coefficient first
     cdef Coefficient second
 
@@ -145,9 +208,20 @@ cdef class Mul(Coefficient):
         self.first = first
         self.second = second
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
-        return self.first._call(t, args) * self.second._call(t, args)
+    cpdef void arguments(self, dict args) except *:
+        self.first.arguments(args)
+        self.second.arguments(args)
+
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
+        return self.first._call(t) * self.second._call(t)
+
+    def __setstate__(self, state):
+        self.first.__setstate__(state[0])
+        self.second.__setstate__(state[1])
+
+    def __getstate__(self):
+        return (self.first.__getstate__(), self.second.__getstate__())
 
     def optstr(self):
         str1 = self.first.optstr()
@@ -157,15 +231,24 @@ cdef class Mul(Coefficient):
         return ""
 
 
-cdef class Conj(Coefficient):
+cdef class ConjCoefficient(Coefficient):
     cdef Coefficient base
 
     def __init__(self, Coefficient base):
         self.base = base
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
-        return conj(self.base._call(t, args))
+    cpdef void arguments(self, dict args) except *:
+        self.base.arguments(args)
+
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
+        return conj(self.base._call(t))
+
+    def __setstate__(self, state):
+        self.base.__setstate__(state)
+
+    def __getstate__(self):
+        return self.base.__getstate__()
 
     def optstr(self):
         str1 = self.base.optstr()
@@ -174,15 +257,24 @@ cdef class Conj(Coefficient):
         return ""
 
 
-cdef class Norm(Coefficient):
+cdef class NormCoefficient(Coefficient):
     cdef Coefficient base
 
     def __init__(self, Coefficient base):
         self.base = base
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
-        return norm(self.base._call(t, args))
+    cpdef void arguments(self, dict args) except *:
+        self.base.arguments(args)
+
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
+        return norm(self.base._call(t))
+
+    def __setstate__(self, state):
+        self.base.__setstate__(state)
+
+    def __getstate__(self):
+        return self.base.__getstate__()
 
     def optstr(self):
         str1 = self.base.optstr()
@@ -191,16 +283,27 @@ cdef class Norm(Coefficient):
         return ""
 
 
-cdef class Shift(Coefficient):
+cdef class ShiftCoefficient(Coefficient):
     cdef Coefficient base
+    cdef double _t0
 
-    def __init__(self, Coefficient base):
+    def __init__(self, Coefficient base, double _t0):
         self.base = base
+        self._t0 = _t0
 
-    @cython.initializedcheck=False
-    cdef complex _call(self, double t, dict args):
-        cdef _t0 = args["_t0"]
-        return self.base._call(t+_t0, args)
+    cpdef void arguments(self, dict args) except *:
+        self._t0 = args["_t0"]
+        self.base.arguments(args)
+
+    @cython.initializedcheck(False)
+    cdef complex _call(self, double t) except *:
+        return self.base._call(t + self._t0)
+
+    def __setstate__(self, state):
+        self.base.__setstate__(state)
+
+    def __getstate__(self):
+        return self.base.__getstate__()
 
     def optstr(self):
         from re import sub
