@@ -65,7 +65,8 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy',
             'qutip/qip', 'qutip/qip/device', 'qutip/qip/operations',
             'qutip/qip/compiler',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
-            'qutip/_mkl', 'qutip/tests', 'qutip/legacy',
+            'qutip/_mkl', 'qutip/legacy',
+            'qutip/tests', 'qutip/tests/core', 'qutip/tests/core/data',
             'qutip/core', 'qutip/core/cy', 'qutip/core/data/',
             'qutip/core/cy/openmp', 'qutip/cy/openmp']
 PACKAGE_DATA = {
