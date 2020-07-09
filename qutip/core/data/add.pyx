@@ -5,7 +5,7 @@ cimport cython
 import numpy as np
 cimport numpy as cnp
 
-from qutip.core.data.base cimport idxint
+from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr
@@ -16,6 +16,16 @@ cdef extern from *:
     void *PyDataMem_NEW(size_t size)
     void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_FREE(void *ptr)
+
+
+cdef void _check_shape(Data left, Data right) nogil except *:
+    if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
 
 
 cdef idxint _add_csr(CSR a, CSR b, CSR c) nogil:
@@ -132,17 +142,11 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     out : CSR
         The result `left + scale*right`.
     """
+    _check_shape(left, right)
     cdef idxint left_nnz = csr.nnz(left)
     cdef idxint right_nnz = csr.nnz(right)
     cdef idxint worst_nnz = left_nnz + right_nnz
     cdef idxint i
-    if left.shape != right.shape:
-        raise ValueError(
-            "incompatible matrix shapes "
-            + str(left.shape)
-            + " and "
-            + str(right.shape)
-        )
     cdef CSR out
     # Fast paths for zero matrices.
     if right_nnz == 0:

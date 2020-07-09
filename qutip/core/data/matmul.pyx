@@ -8,7 +8,7 @@ cimport cython
 import numpy as np
 cimport numpy as cnp
 
-from qutip.core.data.base cimport idxint
+from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr
@@ -38,6 +38,16 @@ cdef void mv_csr(CSR matrix, double complex *vector, double complex *out) nogil:
             out,
             matrix.shape[0])
     return
+
+
+cdef void _check_shape(Data left, Data right) nogil except *:
+    if left.shape[1] != right.shape[0]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
 
 
 cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) nogil:
@@ -90,7 +100,7 @@ cpdef CSR matmul_csr(CSR left, CSR right):
         The result of the matrix multiplication.  This will be the same object
         as the input parameter `out` if that was supplied.
     """
-    # We assume the shapes are compatible, since this is a C routine.
+    _check_shape(left, right)
     cdef idxint nnz = _matmul_csr_estimate_nnz(left, right)
     cdef CSR out = csr.empty(left.shape[0], right.shape[1], nnz if nnz != 0 else 1)
     if nnz == 0 or csr.nnz(left) == 0 or csr.nnz(right) == 0:

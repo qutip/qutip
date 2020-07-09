@@ -4,9 +4,39 @@
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
-from qutip.core.data.base cimport idxint
+from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr
 from qutip.core.data.csr cimport CSR
+
+cdef void _check_shape_inner(Data left, Data right) nogil except *:
+    if (
+        (left.shape[0] != 1 and left.shape[1] != 1)
+        or right.shape[1] != 1
+    ):
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
+
+cdef void _check_shape_inner_op(Data left, Data op, Data right) nogil except *:
+    cdef bint left_shape = left.shape[0] == 1 or left.shape[1] == 1
+    cdef bint left_op = (
+        (left.shape[0] == 1 and left.shape[1] == op.shape[0])
+        or (left.shape[1] == 1 and left.shape[0] == op.shape[0])
+    )
+    cdef bint op_right = op.shape[1] == right.shape[0]
+    cdef bint right_shape = right.shape[1] == 1
+    if not (left_shape and left_op and op_right and right_shape):
+        raise ValueError("".join([
+            "incompatible matrix shapes ",
+            str(left.shape),
+            ", ",
+            str(op.shape),
+            " and ",
+            str(right.shape),
+        ]))
 
 cdef double complex _inner_csr_bra_ket(CSR left, CSR right) nogil:
     cdef size_t col, ptr_bra, ptr_ket
@@ -29,7 +59,7 @@ cdef double complex _inner_csr_ket_ket(CSR left, CSR right) nogil:
             out += conj(left.data[ptr_l]) * right.data[ptr_r]
     return out
 
-cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) nogil:
+cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) nogil except *:
     """
     Compute the complex inner product <left|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -40,6 +70,7 @@ cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) no
     to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
     all other times.
     """
+    _check_shape_inner(left, right)
     if left.shape[0] == left.shape[1] == right.shape[1] == 1:
         if csr.nnz(left) and csr.nnz(right):
             return (
@@ -84,7 +115,7 @@ cdef double complex _inner_op_csr_ket_ket(CSR left, CSR op, CSR right) nogil:
     return out
 
 cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
-                                  bint scalar_is_ket=False) nogil:
+                                  bint scalar_is_ket=False) nogil except *:
     """
     Compute the complex inner product <left|op|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -95,6 +126,7 @@ cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
     to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
     all other times.
     """
+    _check_shape_inner_op(left, op, right)
     cdef double complex l
     if left.shape[0] == left.shape[1] == op.shape[0] == op.shape[1] == right.shape[1] == 1:
         if not (csr.nnz(left) and csr.nnz(op) and csr.nnz(right)):
