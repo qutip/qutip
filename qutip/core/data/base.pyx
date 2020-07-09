@@ -7,4 +7,5 @@ idxint_dtype = np.int32
 idxint_DTYPE = cnp.NPY_INT32
 
 cdef class Data:
-    pass
+    cpdef object to_array(self):
+        raise NotImplementedError

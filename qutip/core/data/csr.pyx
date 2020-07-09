@@ -134,6 +134,21 @@ cdef class CSR(base.Data):
                (self.shape[0] + 1)*sizeof(out.row_index[0]))
         return out
 
+    cpdef object to_array(self):
+        """
+        Get a copy of this data as a full 2D, C-contiguous NumPy array.  This
+        is not a view onto the data, and changes to new array will not affect
+        the original data structure.
+        """
+        cdef cnp.npy_intp *dims = [self.shape[0], self.shape[1]]
+        cdef object out = cnp.PyArray_ZEROS(2, dims, cnp.NPY_COMPLEX128, 0)
+        cdef double complex [:, ::1] buffer = out
+        cdef size_t row, ptr
+        for row in range(self.shape[0]):
+            for ptr in range(self.row_index[row], self.row_index[row + 1]):
+                buffer[row, self.col_index[ptr]] = self.data[ptr]
+        return out
+
     def as_scipy(self):
         """
         Get a view onto this object as a `scipy.sparse.csr_matrix`.  The

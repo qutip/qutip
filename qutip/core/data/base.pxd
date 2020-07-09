@@ -10,3 +10,4 @@ cdef int idxint_DTYPE
 
 cdef class Data:
     cdef readonly (idxint, idxint) shape
+    cpdef object to_array(self)
