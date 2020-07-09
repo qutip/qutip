@@ -19,7 +19,7 @@ from Cython.Build import cythonize
 
 
 def coefficient(base, *, tlist=None, args={},
-                _stepInterpolation=False, use_cython=True):
+                _stepInterpolation=False, compile_opt=None):
     """
 
     """
@@ -39,7 +39,9 @@ def coefficient(base, *, tlist=None, args={},
             return StepCoefficient(base, tlist)
 
     elif isinstance(base, str):
-        return coeff_from_str(base, args, use_cython)
+        if compile_opt is None:
+            compile_opt = CompilationOptions()
+        return coeff_from_str(base, args, compile_opt)
 
     elif callable(base):
         # TODO add tests?
@@ -80,6 +82,40 @@ def reduce(coeff, args):
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+class CompilationOptions:
+    # use cython for compiling string coefficient.
+    try:
+        import cython
+        use_cython = True
+    except:
+        use_cython = False
+    # In compiled Coefficient, are int kept as int?
+    # None indicate to look for list subscription
+    accept_int = None
+    # In compiled Coefficient, are float considered as complex?
+    accept_float = True
+    # In compiled Coefficient, is static typing used?
+    # Result is faster, but can cause errors if subscription
+    # (a[1], b["a"]) if used.
+    no_types = False
+    # TODO: add compilation flags?
+
+    def __init__(self,
+                 use_cython=None,
+                 accept_int=None,
+                 accept_float=None,
+                 no_types=None):
+        # Will be merged to Core option and use the
+        # Options decorator once merged
+        if use_cython is not None:
+            self.use_cython = use_cython
+        if accept_int is not None:
+            self.accept_int = accept_int
+        if accept_float is not None:
+            self.accept_float = accept_float
+        if no_types is not None:
+            self.no_types = no_types
+
 _link_flags = []
 if (sys.platform == 'win32'
     and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
@@ -132,7 +168,7 @@ str_env = {
     "spe": scipy.special}
 
 
-def coeff_from_str(base, args, use_cython=True, _debug=False):
+def coeff_from_str(base, args, compopt, _debug=False):
     """
     Entry point for string based coefficients
     - Test if the string is valid
@@ -151,7 +187,7 @@ def coeff_from_str(base, args, use_cython=True, _debug=False):
     if not qset.use_cython or not use_cython:
         return str_as_func(base, args)
     # Parsing tries to make the code in common pattern
-    parsed, variables, constants, raw = try_parse(base, args)
+    parsed, variables, constants, raw = try_parse(base, args, no_types)
     if _debug:
         print(parsed, variables, constants)
     # Once parsed, the code should be unique enough to get a filename
@@ -385,7 +421,7 @@ def fix_type(ctype, accept_int, accept_float):
 
 
 def extract_constant(code):
-    """ look for floating and complex constants
+    """Look for floating and complex constants and replace them with variable.
     """
     code = " " + code + " "
     contants = []
@@ -401,17 +437,17 @@ def extract_constant(code):
 
 
 def extract_cte_pattern(code, constants, pattern):
-    """ replace the constant following a pattern with variable """
+    """replace the constant following a pattern with variable"""
     const_strs = re.findall(pattern, code)
     for cte in const_strs:
-        name = " _cteX{}_ ".format(len(constants))
+        name = " _cte_temp{}_ ".format(len(constants))
         code = code.replace(cte, cte[0] + name, 1)
         constants.append(( name[1:-1], cte[1:], find_type_from_str(cte[1:]) ))
     return code
 
 
 def space_parts(code, names):
-    """ Force spacing"""
+    """Force spacing: single space between element"""
     for name in names:
         code = re.sub("(?<=[^0-9a-zA-Z_])" + name + "(?=[^0-9a-zA-Z_])",
                       " " + name + " ", code)
@@ -440,6 +476,8 @@ def parse(code, args):
     accept_int = qset.accept_int
     accept_float = qset.accept_float
     if accept_int is None:
+        # If there is a subscript: a[b] int are always accepted to be safe
+        # with TypeError
         accept_int = "SUBSCR" in dis.Bytecode(code).dis()
     for word in code.split():
         if word not in names:
@@ -473,11 +511,15 @@ def parse(code, args):
     return code, variables, ordered_constants
 
 
-def try_parse(code, args):
+def try_parse(code, args, no_types=False):
     """
     Try to parse and verify that the result is still usable.
     """
     ncode, variables, constants = parse(code, args)
+    if no_types:
+        # Fallback to all object
+        variables = [(f, s, "object") for f, s, _ in variables]
+        constants = [(f, s, "object") for f, s, _ in constants]
     if test_parsed(ncode, variables, constants, args):
         return ncode, variables, constants, False
     else:

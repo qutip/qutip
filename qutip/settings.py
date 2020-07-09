@@ -99,11 +99,6 @@ try:
     use_cython = True
 except:
     use_cython = False
-# In compiled Coefficient, are int kept as int?
-# None is only kept if indexing is used.
-accept_int = None
-# In compiled Coefficient, are float considered as complex?
-accept_float = True
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
 # configured, rather than through _logging.get_logger().
