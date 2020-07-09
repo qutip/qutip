@@ -41,17 +41,18 @@ from qutip import tensor, rand_ket, basis, rand_dm, identity
 from qutip.qip.operations.gates import cnot, ry
 
 
-@pytest.mark.parametrize(["filename", "error", "error_regex"], [
+@pytest.mark.parametrize(["filename", "error", "error_message"], [
     pytest.param("command_error.qasm", SyntaxError,
                  "QASM: post is not a valid QASM command."),
     pytest.param("bracket_error.qasm", SyntaxError,
                  "QASM: incorrect bracket formatting"),
     pytest.param("qasm_error.qasm", SyntaxError,
                  "QASM: File does not contain QASM 2.0 header")])
-def test_qasm_errors(filename, error, error_regex):
-    filepath = Path(__file__).parent
-    np.testing.assert_raises_regex(error, error_regex, read_qasm,
-                                   "{}/qasm_files/{}".format(filepath, filename))
+def test_qasm_errors(filename, error, error_message):
+    filepath = Path(__file__).parent / 'qasm_files' / filename
+    with pytest.raises(error) as exc_info:
+        read_qasm(filepath)
+    assert error_message in str(exc_info.value)
 
 
 def check_gate_defn(gate, gate_name, targets, controls=None,
@@ -70,9 +71,9 @@ def check_measurement_defn(gate, gate_name, targets, classical_store):
 
 
 def test_qasm_addcircuit():
-    filepath = Path(__file__).parent
-    file = "{}/qasm_files/test_add.qasm".format(filepath)
-    qc = read_qasm(file)
+    filename = "test_add.qasm"
+    filepath = Path(__file__).parent / 'qasm_files' / filename
+    qc = read_qasm(filepath)
     assert qc.N == 2
     assert qc.num_cbits == 2
     check_gate_defn(qc.gates[0], "X", [1])
@@ -87,9 +88,9 @@ def test_qasm_addcircuit():
 
 
 def test_custom_gates():
-    filepath = Path(__file__).parent
-    file = "{}/qasm_files/test_custom_gates.qasm".format(filepath)
-    qc = read_qasm(file)
+    filename = "test_custom_gates.qasm"
+    filepath = Path(__file__).parent / 'qasm_files' / filename
+    qc = read_qasm(filepath)
     unitaries = qc.propagators()
     assert (unitaries[0] - unitaries[1]).norm() < 1e-12
     ry_cx = cnot() * tensor(identity(2), ry(np.pi/2))
@@ -97,9 +98,9 @@ def test_custom_gates():
 
 
 def test_qasm_teleportation():
-    filepath = Path(__file__).parent
-    file = "{}/qasm_files/teleportation.qasm".format(filepath)
-    teleportation = read_qasm(file)
+    filename = "teleportation.qasm"
+    filepath = Path(__file__).parent / 'qasm_files' / filename
+    teleportation = read_qasm(filepath)
     final_measurement = Measurement("start", targets=[2])
     initial_measurement = Measurement("start", targets=[0])
 

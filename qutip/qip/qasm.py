@@ -2,6 +2,7 @@ import re
 import os
 from itertools import chain
 from copy import deepcopy
+import warnings
 
 from math import pi
 import numpy as np
@@ -670,6 +671,8 @@ class QasmProcessor:
                     qc.add_measurement("M", targets=[regs[0]],
                                        classical_store=regs[1])
             elif command[0] == "if":
+                warnings.warn(("Information about individual registers"
+                              " is not preserved in QubitCircuit"))
                 # adds classically controlled gates to the QubitCircuit
                 cbit_reg, control_value = command[2].split("==")
                 cbit_inds = self.cbit_regs[cbit_reg]
