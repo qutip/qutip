@@ -93,12 +93,17 @@ class Gate:
         Gate targets.
     controls : list or int
         Gate controls.
-    classical_controls : list or int
-        Gate classical controls. Gate applied in circuit if all are 1.
     arg_value : float
         Argument value(phi).
     arg_label : string
         Label for gate representation.
+    classical_controls : int or list of int, optional
+        indices of classical bits to control gate on.
+    control_value : int, optional
+        value of classical bits to control on, the classical controls are
+        interpreted as an integer with lowest bit being the first one.
+        If not specified, then the value is interpreted to be
+        2 ** len(classical_controls) - 1 (i.e. all classical controls are 1).
     """
 
     def __init__(self, name, targets=None, controls=None,
@@ -472,17 +477,14 @@ class QubitCircuit:
             Label for gate representation.
         index : list
             Positions to add the gate.
-        classical_controls: list
-            Classical Controls for Gate. If multiple controls,
-            it applies gate when all bits have value 1 when no control value is
-            specified.
-            If control value is specified, the gate is applied when
-            the value of classical registers interpreted
-            as an integer (lowest bit is the first bit) is equal to the control value.
-        control_value: list
-             the gate is applied when
-            the value of classical registers interpreted
-            as an integer (lowest bit is the first bit) is equal to the control value.
+        classical_controls : int or list of int, optional
+            indices of classical bits to control gate on.
+        control_value : int, optional
+            value of classical bits to control on, the classical controls are
+            interpreted as an integer with lowest bit being the first one.
+            If not specified, then the value is interpreted to be
+            2 ** len(classical_controls) - 1
+            (i.e. all classical controls are 1).
         """
 
         if isinstance(gate, Gate):

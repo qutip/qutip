@@ -32,9 +32,13 @@
 ###############################################################################
 
 import pytest
-from qutip.qip.qasm import read_qasm
 import numpy as np
 from pathlib import Path
+
+from qutip.qip.qasm import read_qasm
+from qutip.qip import Measurement
+from qutip import tensor, rand_ket, basis, rand_dm, identity
+from qutip.qip.operations.gates import cnot, ry
 
 
 @pytest.mark.parametrize(["filename", "error", "error_regex"], [
@@ -50,7 +54,8 @@ def test_qasm_errors(filename, error, error_regex):
                                    "{}/qasm_files/{}".format(filepath, filename))
 
 
-def check_gate_defn(gate, gate_name, targets, controls=None, classical_controls=None, control_value=None):
+def check_gate_defn(gate, gate_name, targets, controls=None,
+                    classical_controls=None, control_value=None):
     assert gate.name == gate_name
     assert gate.targets == targets
     assert gate.controls == controls
@@ -79,3 +84,34 @@ def test_qasm_addcircuit():
     check_gate_defn(qc.gates[6], "SNOT", [0], None, [0, 1], 0)
     check_measurement_defn(qc.gates[7], "M", [0], 0)
     check_measurement_defn(qc.gates[8], "M", [1], 1)
+
+
+def test_custom_gates():
+    filepath = Path(__file__).parent
+    file = "{}/qasm_files/test_custom_gates.qasm".format(filepath)
+    qc = read_qasm(file)
+    unitaries = qc.propagators()
+    assert (unitaries[0] - unitaries[1]).norm() < 1e-12
+    ry_cx = cnot() * tensor(identity(2), ry(np.pi/2))
+    assert (unitaries[2] - ry_cx).norm() < 1e-12
+
+
+def test_qasm_teleportation():
+    filepath = Path(__file__).parent
+    file = "{}/qasm_files/teleportation.qasm".format(filepath)
+    teleportation = read_qasm(file)
+    final_measurement = Measurement("start", targets=[2])
+    initial_measurement = Measurement("start", targets=[0])
+
+    state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
+    _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
+
+    states, probabilites = teleportation.run_statistics(state)
+
+    for i, state in enumerate(states):
+        final = state
+        prob = probabilites[i]
+        _, final_probabilities = final_measurement.measurement_comp_basis(final)
+        np.testing.assert_allclose(initial_probabilities,
+                                   final_probabilities)
+        assert prob == pytest.approx(0.25, abs=1e-7)
