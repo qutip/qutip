@@ -20,8 +20,41 @@ from Cython.Build import cythonize
 
 def coefficient(base, *, tlist=None, args={},
                 _stepInterpolation=False, compile_opt=None):
-    """
+    """Coefficient for Qutip time dependent systems.
+    The coefficients are either a function, a string or a numpy array.
 
+    For function format, the function signature must be f(t, args).
+    *Examples*
+        def f1_t(t, args):
+            return np.exp(-1j * t * args["w1"])
+
+        coeff = coefficient(f1_t, args={"w1":1.})
+
+    For string based coeffients, the string must be a compilable python code
+    resulting in a complex. The following symbols are defined:
+        sin cos tan asin acos atan pi
+        sinh cosh tanh asinh acosh atanh
+        exp log log10 erf zerf sqrt
+        real imag conj abs norm arg proj
+        numpy as np, and scipy.special as spe.
+    *Examples*
+        coeff = coefficient('exp(-1j*w1*t)', args={"w1":1.})
+    'args' is needed for string coefficient at compilation.
+    It is a dict of (name:object). The keys must be a valid variables string.
+
+    Compilation options can be passed as "compile_opt=CompilationOptions(...)".
+
+    For numpy array format, the array must be an 1d of dtype float or complex.
+    A list of times (float64) at which the coeffients must be given (tlist).
+    The coeffients array must have the same len as the tlist.
+    The time of the tlist do not need to be equidistant, but must be sorted.
+    By default, a cubic spline interpolation will be used for the coefficient
+    at time t.
+    If the coefficients are to be treated as step function, use the arguments
+    args = {"_step_func_coeff": True}
+    *Examples*
+        tlist = np.logspace(-5,0,100)
+        H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
     """
     if isinstance(base, Cubic_Spline):
         return InterpolateCoefficient(base)
@@ -83,6 +116,22 @@ def reduce(coeff, args):
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 class CompilationOptions:
+    """
+    Options for compilation.
+    use_cython: bool
+        execute strings as python code instead of cython.
+
+    Type management options.
+    accept_int : None, bool
+        Whether integer constants and args are kept or upgraded to float
+        If `None`, use in if array subscrition is used.
+    accept_float : bool
+        Whether float are kept as float or upgraded to complex.
+    no_types : bool
+        Give up on detecting and using c types.
+    """
+    # TODO: use the Options decorator when merged and put in Core options (v5)
+
     # use cython for compiling string coefficient.
     try:
         import cython
@@ -105,8 +154,6 @@ class CompilationOptions:
                  accept_int=None,
                  accept_float=None,
                  no_types=None):
-        # Will be merged to Core option and use the
-        # Options decorator once merged
         if use_cython is not None:
             self.use_cython = use_cython
         if accept_int is not None:
@@ -168,7 +215,7 @@ str_env = {
     "spe": scipy.special}
 
 
-def coeff_from_str(base, args, compopt, _debug=False):
+def coeff_from_str(base, args, compile_opt, _debug=False):
     """
     Entry point for string based coefficients
     - Test if the string is valid
@@ -184,10 +231,10 @@ def coeff_from_str(base, args, compopt, _debug=False):
     except Exception as err:
         raise Exception("Invalid string coefficient") from err
     # Do we even compile?
-    if not qset.use_cython or not use_cython:
+    if not qset.use_cython or not compile_opt.use_cython:
         return str_as_func(base, args)
     # Parsing tries to make the code in common pattern
-    parsed, variables, constants, raw = try_parse(base, args, no_types)
+    parsed, variables, constants, raw = try_parse(base, args, compile_opt)
     if _debug:
         print(parsed, variables, constants)
     # Once parsed, the code should be unique enough to get a filename
@@ -215,7 +262,7 @@ def coeff(t, args):
     return {}""".format(base)
     lc = {}
     exec(code, str_env, lc)
-    return FunctionCoefficient(ls["coeff"])
+    return FunctionCoefficient(lc["coeff"], args)
 
 
 def try_import(file_name, parsed_in):
@@ -246,19 +293,19 @@ def make_cy_code(code, variables, constants, raw):
 
     cdef_cte = ""
     init_cte = ""
-    get_cte = ""
-    set_cte = ""
+    #get_cte = ""
+    #set_cte = ""
     for i, (name, val, ctype) in enumerate(constants):
         cdef_cte += "        {} {}\n".format(ctype, name[5:])
         init_cte += "        {} = cte[{}]\n".format(name, i)
-        get_cte += "             {},\n".format(name)
-        set_cte += "        {} = state[{}]\n".format(name, i)
+        #get_cte += "             {},\n".format(name)
+        #set_cte += "        {} = state[{}]\n".format(name, i)
     cdef_var = ""
     init_var = ""
     args_var = ""
     call_var = ""
-    get_var = ""
-    set_var = ""
+    #get_var = ""
+    #set_var = ""
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
@@ -266,12 +313,12 @@ def make_cy_code(code, variables, constants, raw):
         args_var += "        {} = args[self.key{}]\n".format(name, i)
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
-        get_var += "             self.key{},\n".format(i)
-        get_var += "             {},\n".format(name)
-        set_var += "        self.key{} = state[{}]\n".format(i, 2*i +
-                                                             len(constants))
-        set_var += "        {} = state[{}]\n".format(name, 2*i + 1 +
-                                                     len(constants))
+        #get_var += "             self.key{},\n".format(i)
+        #get_var += "             {},\n".format(name)
+        #set_var += "        self.key{} = state[{}]\n".format(i, 2*i +
+        #                                                     len(constants))
+        #set_var += "        {} = state[{}]\n".format(name, 2*i + 1 +
+        #                                             len(constants))
 
     code = """#cython: language_level=3
 # This file is generated automatically by QuTiP.
@@ -288,6 +335,7 @@ include {}
 parsed_code = "{}"
 
 
+@cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
     cdef:
         int dummy
@@ -308,18 +356,18 @@ cdef class StrCoefficient(Coefficient):
 
     def optstr(self):
         return self.codeString
-
-    def __getstate__(self):
+""".format(_include_string, code, cdef_cte, cdef_var,
+           init_cte, init_var, args_var, call_var, code#,
+           #get_cte, get_var, set_cte, set_var
+          )
+    return code
+"""    def __getstate__(self):
         return (
 {}{}               )
 
     def __setstate__(self, state):
 {}{}        pass
-""".format(_include_string, code, cdef_cte, cdef_var,
-           init_cte, init_var, args_var, call_var, code,
-           get_cte, get_var, set_cte, set_var
-          )
-    return code
+"""
 
 
 def compile_code(code, file_name, parsed):
@@ -455,7 +503,7 @@ def space_parts(code, names):
     return code
 
 
-def parse(code, args):
+def parse(code, args, compile_opt):
     """
     Read the code and rewrite it in a reutilisable form:
     Ins:
@@ -473,8 +521,8 @@ def parse(code, args):
     ordered_constants = []
     variables = []
     typeCounts = [0,0,0,0,0,0,0]
-    accept_int = qset.accept_int
-    accept_float = qset.accept_float
+    accept_int = compile_opt.accept_int
+    accept_float = compile_opt.accept_float
     if accept_int is None:
         # If there is a subscript: a[b] int are always accepted to be safe
         # with TypeError
@@ -498,7 +546,7 @@ def parse(code, args):
                 variables.append((var_name, word, typeCodes[ctype][0]))
             new_code.append(var_name)
         elif word in constants_names:
-            name, val, ctype = constants[int(word[5:-1])]
+            name, val, ctype = constants[int(word[9:-1])]
             ctype = fix_type(ctype, accept_int, accept_float)
             cte_name = "self._cte" + typeCodes[ctype][1] +\
                        str(len(ordered_constants))
@@ -511,12 +559,12 @@ def parse(code, args):
     return code, variables, ordered_constants
 
 
-def try_parse(code, args, no_types=False):
+def try_parse(code, args, compile_opt):
     """
     Try to parse and verify that the result is still usable.
     """
-    ncode, variables, constants = parse(code, args)
-    if no_types:
+    ncode, variables, constants = parse(code, args, compile_opt)
+    if compile_opt.no_types:
         # Fallback to all object
         variables = [(f, s, "object") for f, s, _ in variables]
         constants = [(f, s, "object") for f, s, _ in constants]

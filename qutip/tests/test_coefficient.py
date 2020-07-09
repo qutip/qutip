@@ -30,8 +30,8 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
 import pytest
+import pickle
 import qutip as qt
 import numpy as np
 import qutip.coefficient as qtcoeff
@@ -69,7 +69,6 @@ f_asarraylog = f(tlistlog, args)
     pytest.param("exp(w * t * pi)", {'args':args},
                  1e-10, id="string")
 ])
-@pytest.mark.repeat(3)
 def test_CoeffCreationCall(base, kwargs, tol):
     t = np.random.rand() * 0.9 + 0.05
     val = np.exp(1j * t * np.pi)
@@ -83,7 +82,6 @@ def test_CoeffCreationCall(base, kwargs, tol):
     pytest.param("exp(w * t * pi)", {'args':args},
                  1e-10, id="string")
 ])
-@pytest.mark.repeat(3)
 def test_CoeffCallArgs(base, kwargs, tol):
     t = np.random.rand() * 0.9 + 0.05
     w = np.random.rand() + 0.5j
@@ -102,7 +100,6 @@ def test_CoeffCallArgs(base, kwargs, tol):
     pytest.param(qtcoeff.coefficient("exp(w * t * pi)", args=args),
                  id="string")
 ])
-@pytest.mark.repeat(3)
 def test_CoeffUnitaryTransform(coeff):
     t = np.random.rand() * 0.7 + 0.05
     dt = np.random.rand() * 0.2
@@ -129,7 +126,6 @@ def test_CoeffUnitaryTransform(coeff):
     pytest.param(qtcoeff.coefficient("cos(w * t * pi)", args=args),
                  id="string")
 ])
-@pytest.mark.repeat(3)
 def test_CoeffOperation(coeff_left, coeff_right):
     t = np.random.rand() * 0.9 + 0.05
     val_l = np.exp(1j * t * np.pi)
@@ -149,7 +145,21 @@ def test_CoeffReuse():
     assert isinstance(coeff3, coeff1.__class__)
 
 
-@pytest.mark.slow
+@pytest.mark.requires_cython
+def test_CoeffOptions():
+    from itertools import combinations
+    t = np.random.rand() * 0.9 + 0.05
+    base = "1 + 1. + 1j"
+    options = []
+    options.append(qtcoeff.CompilationOptions(accept_int=True))
+    options.append(qtcoeff.CompilationOptions(accept_float=False))
+    options.append(qtcoeff.CompilationOptions(no_types=True))
+    options.append(qtcoeff.CompilationOptions(use_cython=False))
+    coeffs = [qtcoeff.coefficient(base, compile_opt=opt) for opt in options]
+    for coeff1, coeff2 in combinations(coeffs, 2):
+        assert not isinstance(coeff1, coeff2.__class__)
+
+
 @pytest.mark.requires_cython
 @pytest.mark.parametrize(['codestring', 'args', 'reference'], [
     pytest.param("cos(2*t)*cos(t*w1) + sin(w1*w2/2*t)*sin(t*w2)"
@@ -163,6 +173,8 @@ def test_CoeffReuse():
                  lambda t: 1, id="complexarray"),
     pytest.param("cos(t*dictionary['key'])", {'dictionary':{'key':1}},
                  lambda t: np.cos(t), id="dictargs"),
+    pytest.param("cos(t*a); print(a)", {'a':1},
+                 lambda t: np.cos(t), id="print"),
     pytest.param("t + (0 if not 'something' else 1)", {},
                  lambda t: t + 1, id="branch")
 ])
@@ -173,7 +185,6 @@ def test_CoeffParsingStressTest(codestring, args, reference):
 
 
 @pytest.mark.requires_cython
-@pytest.mark.repeat(3)
 def test_CoeffReduce():
     t = np.random.rand() * 0.9 + 0.05
     coeff = qtcoeff.coefficient("exp(w * t * pi)", args={'w':1.0j})
@@ -181,4 +192,52 @@ def test_CoeffReduce():
     reduced = qtcoeff.reduce(apad, {'w':1.0j})
     assert np.allclose(apad(t), reduced(t))
 
-def test_pickling(...)
+
+def _add(coeff):
+    return coeff + coeff
+
+
+def _pass(coeff):
+    return coeff
+
+
+def _mul(coeff):
+    return coeff * coeff
+
+
+def _shift(coeff):
+    return qtcoeff.shift(coeff, 0.05)
+
+
+@pytest.mark.parametrize(['coeff'], [
+    pytest.param(qtcoeff.coefficient(f, args=args),
+                 id="func"),
+    pytest.param(qtcoeff.coefficient(f_asarray, tlist=tlist),
+                 id="array"),
+    pytest.param(qtcoeff.coefficient(f_asarraylog, tlist=tlistlog),
+                 id="arraylog"),
+    pytest.param(qtcoeff.coefficient(f_asarray, tlist=tlist,
+                                     _stepInterpolation=True),
+                 id="steparray"),
+    pytest.param(qtcoeff.coefficient(f_asarraylog, tlist=tlistlog,
+                                     _stepInterpolation=True),
+                 id="steparraylog"),
+    pytest.param(qtcoeff.coefficient("exp(w * t * pi)", args=args),
+                 id="string"),
+    pytest.param(qtcoeff.coefficient(qt.Cubic_Spline(0,1,g_asarray)),
+                 id="Cubic_Spline")
+])
+@pytest.mark.parametrize(['transform'], [
+    pytest.param(_pass, id="single"),
+    pytest.param(_add, id="sum"),
+    pytest.param(_mul, id="prod"),
+    pytest.param(qtcoeff.norm, id="norm"),
+    pytest.param(qtcoeff.conj, id="conj"),
+    pytest.param(_shift, id="shift"),
+])
+def test_Coeffpickle(coeff, transform):
+    t = np.random.rand() * 0.85 + 0.05
+    coeff = transform(coeff)
+    coeff_pick = pickle.loads(pickle.dumps(coeff, -1))
+    # Check for const case
+    assert coeff(t) == coeff_pick(t)

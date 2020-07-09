@@ -42,6 +42,7 @@ cdef class Coefficient:
         return MulCoefficient(self, other)
 
 
+@cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
     cdef object func
 
@@ -51,13 +52,6 @@ cdef class FunctionCoefficient(Coefficient):
 
     cdef complex _call(self, double t) except *:
         return self.func(t, self.args)
-
-    def __setstate__(self, state):
-        self.func = state[0]
-        self.args = state[1]
-
-    def __getstate__(self):
-        return self.func, self.args
 
 
 cdef class InterpolateCoefficient(Coefficient):
@@ -76,15 +70,20 @@ cdef class InterpolateCoefficient(Coefficient):
                        self.higher_bound,
                        self.spline_data)
 
-    def __setstate__(self, state):
+    def __reduce__(self):
+        return (MakeInterpolateCoefficient,
+            (self.lower_bound, self.higher_bound, np.array(self.spline_data)))
+
+    def _setstate_(self, state):
         self.lower_bound = state[0]
         self.higher_bound = state[1]
         self.spline_data = state[2]
 
-    def __getstate__(self):
-        return (self.lower_bound,
-                self.higher_bound,
-                np.array(self.spline_data))
+
+def MakeInterpolateCoefficient(*state):
+    obj = InterpolateCoefficient.__new__(InterpolateCoefficient)
+    obj._setstate_(state)
+    return obj
 
 
 cdef class InterCoefficient(Coefficient):
@@ -119,7 +118,12 @@ cdef class InterCoefficient(Coefficient):
                                              self.n_t)
         return coeff
 
-    def __setstate__(self, state):
+    def __reduce__(self):
+        return MakeInterCoefficient, (self.n_t, self.cte, self.dt,
+            np.array(self.tlist), np.array(self.coeff_arr),
+            np.array(self.second_derr))
+
+    def _setstate_(self, state):
         self.n_t = state[0]
         self.cte = state[1]
         self.dt = state[2]
@@ -127,11 +131,11 @@ cdef class InterCoefficient(Coefficient):
         self.coeff_arr = state[4]
         self.second_derr = state[5]
 
-    def __getstate__(self):
-        return (self.n_t, self.cte, self.dt,
-                np.array(self.tlist),
-                np.array(self.coeff_arr),
-                np.array(self.second_derr))
+
+def MakeInterCoefficient(*state):
+    obj = InterCoefficient.__new__(InterCoefficient)
+    obj._setstate_(state)
+    return obj
 
 
 cdef class StepCoefficient(Coefficient):
@@ -156,19 +160,16 @@ cdef class StepCoefficient(Coefficient):
             coeff = _step_complex_t(t, self.tlist, self.coeff_arr, self.n_t)
         return coeff
 
-    def __setstate__(self, state):
-        self.n_t = state[0]
-        self.cte = state[1]
-        self.dt = state[2]
-        self.tlist = state[3]
-        self.coeff_arr = state[4]
-
-    def __getstate__(self):
-        return (self.n_t, self.cte, self.dt,
-                np.array(self.tlist),
-                np.array(self.coeff_arr))
+    def __reduce__(self):
+        return (MakeStepCoefficient,
+            (np.array(self.coeff_arr), np.array(self.tlist)))
 
 
+def MakeStepCoefficient(coeff_arr, tlist):
+    return StepCoefficient(coeff_arr, tlist)
+
+
+@cython.auto_pickle(True)
 cdef class SumCoefficient(Coefficient):
     cdef Coefficient first
     cdef Coefficient second
@@ -185,12 +186,13 @@ cdef class SumCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return self.first._call(t) + self.second._call(t)
 
+    """
     def __setstate__(self, state):
         self.first.__setstate__(state[0])
         self.second.__setstate__(state[1])
 
     def __getstate__(self):
-        return (self.first.__getstate__(), self.second.__getstate__())
+        return (self.first.__getstate__(), self.second.__getstate__())"""
 
     def optstr(self):
         str1 = self.first.optstr()
@@ -200,6 +202,7 @@ cdef class SumCoefficient(Coefficient):
         return ""
 
 
+@cython.auto_pickle(True)
 cdef class MulCoefficient(Coefficient):
     cdef Coefficient first
     cdef Coefficient second
@@ -216,12 +219,12 @@ cdef class MulCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return self.first._call(t) * self.second._call(t)
 
-    def __setstate__(self, state):
+    """def __setstate__(self, state):
         self.first.__setstate__(state[0])
         self.second.__setstate__(state[1])
 
     def __getstate__(self):
-        return (self.first.__getstate__(), self.second.__getstate__())
+        return (self.first.__getstate__(), self.second.__getstate__())"""
 
     def optstr(self):
         str1 = self.first.optstr()
@@ -231,6 +234,7 @@ cdef class MulCoefficient(Coefficient):
         return ""
 
 
+@cython.auto_pickle(True)
 cdef class ConjCoefficient(Coefficient):
     cdef Coefficient base
 
@@ -244,11 +248,11 @@ cdef class ConjCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return conj(self.base._call(t))
 
-    def __setstate__(self, state):
+    """def __setstate__(self, state):
         self.base.__setstate__(state)
 
     def __getstate__(self):
-        return self.base.__getstate__()
+        return self.base.__getstate__()"""
 
     def optstr(self):
         str1 = self.base.optstr()
@@ -257,6 +261,7 @@ cdef class ConjCoefficient(Coefficient):
         return ""
 
 
+@cython.auto_pickle(True)
 cdef class NormCoefficient(Coefficient):
     cdef Coefficient base
 
@@ -270,11 +275,11 @@ cdef class NormCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return norm(self.base._call(t))
 
-    def __setstate__(self, state):
+    """def __setstate__(self, state):
         self.base.__setstate__(state)
 
     def __getstate__(self):
-        return self.base.__getstate__()
+        return self.base.__getstate__()"""
 
     def optstr(self):
         str1 = self.base.optstr()
@@ -283,6 +288,7 @@ cdef class NormCoefficient(Coefficient):
         return ""
 
 
+@cython.auto_pickle(True)
 cdef class ShiftCoefficient(Coefficient):
     cdef Coefficient base
     cdef double _t0
@@ -299,11 +305,11 @@ cdef class ShiftCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return self.base._call(t + self._t0)
 
-    def __setstate__(self, state):
+    """def __setstate__(self, state):
         self.base.__setstate__(state)
 
     def __getstate__(self):
-        return self.base.__getstate__()
+        return self.base.__getstate__()"""
 
     def optstr(self):
         from re import sub
