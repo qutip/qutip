@@ -17,7 +17,7 @@ cdef void _project_ket_csr(CSR ket, CSR out) nogil:
     """
     cdef size_t row, ptr, offset=0
     cdef idxint nnz_in = csr.nnz(ket)
-    for row in range(ket.shape[1]):
+    for row in range(ket.shape[0]):
         out.row_index[row] = ket.row_index[row] * nnz_in
         if ket.row_index[row + 1] != ket.row_index[row]:
             for ptr in range(nnz_in):
