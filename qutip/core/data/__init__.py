@@ -1,5 +1,6 @@
 from .dense import Dense
 from .csr import CSR
+from .base import Data
 
 from .add import *
 from .adjoint import *
