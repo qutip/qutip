@@ -7,7 +7,8 @@ cimport cython
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr
+from qutip.core.data.dense cimport Dense
+from qutip.core.data cimport csr, dense
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -74,4 +75,34 @@ cpdef CSR conj_csr(CSR matrix):
     with nogil:
         for ptr in range(csr.nnz(matrix)):
             out.data[ptr] = conj(matrix.data[ptr])
+    return out
+
+
+cpdef Dense adjoint_dense(Dense matrix):
+    cdef Dense out = dense.empty(matrix.shape[1], matrix.shape[0])
+    cdef size_t row, col
+    with nogil:
+        for row in range(matrix.shape[0]):
+            for col in range(matrix.shape[1]):
+                out.data[col, row] = conj(matrix.data[row, col])
+    return out
+
+
+cpdef Dense transpose_dense(Dense matrix):
+    cdef Dense out = dense.empty(matrix.shape[1], matrix.shape[0])
+    cdef size_t row, col
+    with nogil:
+        for row in range(matrix.shape[0]):
+            for col in range(matrix.shape[1]):
+                out.data[col, row] = matrix.data[row, col]
+    return out
+
+
+cpdef Dense conj_dense(Dense matrix):
+    cdef Dense out = dense.empty(matrix.shape[0], matrix.shape[1])
+    cdef size_t row, col
+    with nogil:
+        for row in range(matrix.shape[0]):
+            for col in range(matrix.shape[1]):
+                out.data[row, col] = conj(matrix.data[row, col])
     return out

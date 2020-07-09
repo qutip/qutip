@@ -8,7 +8,7 @@ cimport numpy as cnp
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr
+from qutip.core.data cimport csr, dense
 
 cnp.import_array()
 
@@ -164,4 +164,20 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
         _add_csr(left, right, out)
     else:
         _add_csr_scale(left, right, out, scale)
+    return out
+
+
+cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
+    _check_shape(left, right)
+    cdef Dense out = dense.empty(left.shape[0], left.shape[1])
+    cdef size_t row, col
+    with nogil:
+        if scale == 1:
+            for row in range(left.shape[0]):
+                for col in range(left.shape[1]):
+                    out.data[row, col] = left.data[row, col] + right.data[row, col]
+        else:
+            for row in range(left.shape[0]):
+                for col in range(left.shape[1]):
+                    out.data[row, col] = left.data[row, col] + scale * right.data[row, col]
     return out
