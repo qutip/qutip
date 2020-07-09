@@ -149,7 +149,7 @@ cdef class CSR(base.Data):
                 buffer[row, self.col_index[ptr]] = self.data[ptr]
         return out
 
-    def as_scipy(self):
+    cpdef object as_scipy(self):
         """
         Get a view onto this object as a `scipy.sparse.csr_matrix`.  The
         underlying data structures are exposed, such that modifications to the
