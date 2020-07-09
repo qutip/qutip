@@ -121,7 +121,7 @@ cdef class CSR(base.Data):
         If the type currently has a scipy backing, such as that produced by
         `as_scipy`, this will not be copied.  The backing is a view onto our
         data, and a straight copy of this view would be incorrect.  We do not
-        create a new view at copy time, since the user may only accesses this
+        create a new view at copy time, since the user may only access this
         through a creation method, and creating it ahead of time would incur an
         unnecessary speed penalty for users who do not need it (including
         low-level C code).
@@ -182,7 +182,7 @@ cdef class CSR(base.Data):
 
     def __repr__(self):
         return "".join([
-            "CSR(shape=", str(self.shape), ", nnz=", str(nnz(self)), ")"
+            "CSR(shape=", str(self.shape), ", nnz=", str(nnz(self)), ")",
         ])
 
     def __str__(self):
@@ -289,7 +289,7 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
     return out
 
 
-cpdef CSR zeroes(base.idxint rows, base.idxint cols):
+cpdef CSR zeros(base.idxint rows, base.idxint cols):
     """
     Allocate the zero matrix with a given shape.  There will not be any room in
     the `data` and `col_index` buffers to add new elements.
