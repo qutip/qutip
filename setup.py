@@ -46,8 +46,8 @@ except:
 
 try:
     import numpy as np
-except:
-    np = None
+except ImportError as e:
+    raise ImportError("numpy is required at installation") from e
 
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
