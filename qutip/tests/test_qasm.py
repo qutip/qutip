@@ -116,3 +116,6 @@ def test_qasm_teleportation():
         np.testing.assert_allclose(initial_probabilities,
                                    final_probabilities)
         assert prob == pytest.approx(0.25, abs=1e-7)
+
+
+def test_

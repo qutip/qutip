@@ -221,7 +221,7 @@ class Gate:
 
         qasm_out.output("gate {} {{".format(self._qasm_str(self.name.lower(),
                                                            q_controls,
-                                                           q_controls,
+                                                           q_targets,
                                                            arg_name)[:-1]))
 
         for gate in gates_lst:
@@ -299,11 +299,16 @@ class Gate:
         name, registers, arguments.
         '''
 
+        print(q_name)
+        print(q_controls)
+        print(q_targets)
+
         if not q_controls:
             q_controls = []
         q_regs = q_controls + q_targets
 
         if isinstance(q_targets[0], int):
+            print(q_regs)
             q_regs = ",".join(['q[{}]'.format(reg) for reg in q_regs])
         else:
             q_regs = ",".join(q_regs)

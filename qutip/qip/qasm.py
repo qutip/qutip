@@ -864,4 +864,5 @@ def save_qasm(qc, file_loc):
     qasm_out = QasmOutput("2.0")
     lines = qasm_out._qasm_output(qc)
     with open(file_loc, "w") as f:
-        f.writelines(lines)
+        for line in lines:
+            f.write("{}\n".format(line))
