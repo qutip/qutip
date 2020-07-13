@@ -279,7 +279,7 @@ class Gate:
         elif self.name == "CRX":
             gate_def = "gate crx(theta) a,b { cu3(theta,-pi/2,pi/2) a,b; }"
         elif self.name == "SQRTNOT":
-            gate_def = "gate sqrtnot a { rx(pi/2) a; }"
+            gate_def = "gate sqrtnot a {h a; u1(-pi/2) a; h a; }"
         elif self.name == "CS":
             gate_def = "gate cs a,b { cu1(pi/2) a,b; }"
         elif self.name == "CT":
@@ -299,16 +299,11 @@ class Gate:
         name, registers, arguments.
         '''
 
-        print(q_name)
-        print(q_controls)
-        print(q_targets)
-
         if not q_controls:
             q_controls = []
         q_regs = q_controls + q_targets
 
         if isinstance(q_targets[0], int):
-            print(q_regs)
             q_regs = ",".join(['q[{}]'.format(reg) for reg in q_regs])
         else:
             q_regs = ",".join(q_regs)
@@ -1264,7 +1259,6 @@ class QubitCircuit:
 
                 states, probabilities = operation.measurement_comp_basis(state)
                 if measure_results:
-                    print("here")
                     i = int(measure_results[measure_ind])
                     measure_ind += 1
                 else:
@@ -1823,6 +1817,7 @@ class QubitCircuit:
         qasm_out.output("qreg q[{}];".format(self.N))
         if self.num_cbits:
             qasm_out.output("creg c[{}];".format(self.num_cbits))
+        qasm_out.output(n=1)
 
         for op in self.gates:
             if ((not isinstance(op, Measurement))
