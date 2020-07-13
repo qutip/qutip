@@ -851,6 +851,29 @@ def print_qasm(qc):
         print(line)
 
 
+def str_qasm(qc):
+    '''
+    Return QASM output of circuit object as string
+
+    Parameters
+    ----------
+    qc: QubitCircuit
+        circuit object to produce QASM output for.
+
+    Returns
+    -------
+    output: str
+        string corresponding to QASM output.
+    '''
+
+    qasm_out = QasmOutput("2.0")
+    lines = qasm_out._qasm_output(qc)
+    output = ""
+    for line in lines:
+        output += line + "\n"
+    return output
+
+
 def save_qasm(qc, file_loc):
     '''
     Save QASM output of circuit object to file.
