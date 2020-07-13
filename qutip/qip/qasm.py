@@ -12,7 +12,8 @@ from qutip.qip.circuit import QubitCircuit
 from qutip.qip.operations.gates import controlled_gate, qasmu_gate, rz, snot
 
 
-__all__= ["read_qasm"]
+__all__ = ["read_qasm"]
+
 
 class QasmGate:
     '''
@@ -731,7 +732,6 @@ def read_qasm(qasm_input, mode="qiskit", version="2.0", strmode=False):
     # split input into lines and ignore comments
     qasm_lines = [line.strip() for line in qasm_lines]
     qasm_lines = list(filter(lambda x: x[:2] != "//" and x != "", qasm_lines))
-
 
     if version != "2.0":
         raise NotImplementedError("QASM: Only OpenQASM 2.0 \
