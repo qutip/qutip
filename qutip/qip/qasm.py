@@ -12,7 +12,7 @@ from qutip.qip.circuit import QubitCircuit
 from qutip.qip.operations.gates import controlled_gate, qasmu_gate, rz, snot
 
 
-__all__ = ["read_qasm"]
+__all__ = ["read_qasm", "write_qasm", "print_qasm", "str_qasm"]
 
 
 class QasmGate:
@@ -827,7 +827,8 @@ class QasmOutput():
         if self.version == "2.0":
             self.output("OPENQASM 2.0;")
         else:
-            raise NotImplementedError("Only version 2.0 is supported for now")
+            raise NotImplementedError("QASM: Only OpenQASM 2.0 \
+                                      is currently supported.")
 
         self.output('include "qelib1.inc";', 1)
 
