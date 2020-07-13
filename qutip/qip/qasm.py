@@ -12,6 +12,8 @@ from qutip.qip.circuit import QubitCircuit
 from qutip.qip.operations.gates import controlled_gate, qasmu_gate, rz, snot
 
 
+__all__= ["read_qasm"]
+
 class QasmGate:
     '''
     Class which stores the gate definitions as specified in the QASM file.
@@ -196,7 +198,7 @@ class QasmProcessor:
     def _process_includes(self):
         '''
         QASM allows for code to be specified in additional files with the
-        ".inc" extension, espcially to specify gate definitions in terms of
+        ".inc" extension, especially to specify gate definitions in terms of
         the built-in gates. Process into tokens all the
         additional files and insert it into previously processed list.
         '''
@@ -300,7 +302,10 @@ class QasmProcessor:
                     self.num_cbits += num_regs
                 else:
                     raise SyntaxError("QASM: incorrect bracket formatting")
-            elif command[0] in ["barrier", "include", "reset"]:
+            elif command[0] == "reset":
+                raise NotImplementedError(("QASM: reset functionality "
+                                           "is not supported."))
+            elif command[0] in ["barrier", "include"]:
                 continue
             else:
                 unprocessed.append(num)
@@ -472,11 +477,11 @@ class QasmProcessor:
             the circuit to which the gate is added.
         name : str
             name of gate to be added.
-        regs : list of ints
+        regs : list of int
             list of qubit register indices to add gates to.
         args : float, optional
             value of args supplied to the gate.
-        classical_controls : list of ints, optional
+        classical_controls : list of int, optional
             indices of classical bits to control gate on.
         control_value : int, optional
             value of classical bits to control on, the classical controls are
@@ -559,7 +564,7 @@ class QasmProcessor:
             the circuit to which the gate is added.
         name : str
             name of gate to be added.
-        regs : list of ints
+        regs : list of int
             list of qubit register indices to add gates to.
         args : float, optional
             value of args supplied to the gate.
@@ -616,7 +621,10 @@ class QasmProcessor:
         args, regs = _gate_processor(command)
         reg_set = self._regs_processor(regs, "gate")
 
-        gate_name = "{}({})".format(command[0], ",".join(args))
+        if args:
+            gate_name = "{}({})".format(command[0], ",".join(args))
+        else:
+            gate_name = "{}".format(command[0])
 
         # creates custom-gate (if required) using gate defn and provided args
         if (command[0] not in self.predefined_gates
@@ -684,7 +692,7 @@ class QasmProcessor:
                 raise SyntaxError(err)
 
 
-def read_qasm(file, mode="qiskit", version="2.0"):
+def read_qasm(qasm_input, mode="qiskit", version="2.0", strmode=False):
     '''
     Read OpenQASM intermediate representation
     (https://github.com/Qiskit/openqasm) and return
@@ -693,8 +701,9 @@ def read_qasm(file, mode="qiskit", version="2.0"):
 
     Parameters
     ----------
-    file : str
-        File location for QASM file to be imported.
+    qasm_input : str
+        File location or String Input for QASM file to be imported. In case of
+        string input, the parameter strmode must be True.
     mode : str
         QASM mode to be read in. When mode is "qiskit",
         the "qelib1.inc" include is automatically included,
@@ -702,6 +711,9 @@ def read_qasm(file, mode="qiskit", version="2.0"):
         processed.
     version : str
         QASM version of the QASM file. Only version 2.0 is currently supported.
+    strmode : bool
+        if specified as True, indicates that qasm_input is in string format
+        rather than from file.
 
     Returns
     -------
@@ -709,11 +721,17 @@ def read_qasm(file, mode="qiskit", version="2.0"):
         Returns QubitCircuit specified in the QASM file.
     '''
 
-    f = open(file, "r")
+    if strmode:
+        qasm_lines = qasm_input.splitlines()
+    else:
+        f = open(qasm_input, "r")
+        qasm_lines = f.read().splitlines()
+        f.close()
+
     # split input into lines and ignore comments
-    qasm_lines = [line.strip() for line in f.read().splitlines()]
+    qasm_lines = [line.strip() for line in qasm_lines]
     qasm_lines = list(filter(lambda x: x[:2] != "//" and x != "", qasm_lines))
-    f.close()
+
 
     if version != "2.0":
         raise NotImplementedError("QASM: Only OpenQASM 2.0 \
