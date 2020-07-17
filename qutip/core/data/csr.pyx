@@ -7,6 +7,7 @@ from libcpp.vector cimport vector
 
 cimport cython
 
+import numbers
 import warnings
 
 import numpy as np
@@ -15,6 +16,12 @@ from scipy.sparse import csr_matrix as scipy_csr_matrix
 from scipy.sparse.data import _data_matrix as scipy_data_matrix
 
 from . cimport base
+from .add cimport add_csr
+from .adjoint cimport adjoint_csr, transpose_csr, conj_csr
+from .mul cimport mul_csr, neg_csr
+from .matmul cimport matmul_csr
+from .sub cimport sub_csr
+from .trace cimport trace_csr
 
 cnp.import_array()
 
@@ -179,6 +186,41 @@ cdef class CSR(base.Data):
         self._deallocate = False
         self._scipy = _csr_matrix(data, indices, indptr, self.shape)
         return self._scipy
+
+    def __add__(self, other):
+        if not isinstance(other, CSR):
+            return NotImplemented
+        return add_csr(self, other)
+
+    def __matmul__(self, other):
+        if not isinstance(other, CSR):
+            return NotImplemented
+        return matmul_csr(self, other)
+
+    def __mul__(self, other):
+        if not isinstance(other, numbers.Number):
+            return NotImplemented
+        return mul_csr(self, complex(other))
+
+    def __neg__(self):
+        return neg_csr(self)
+
+    def __sub__(self, other):
+        if not isinstance(other, CSR):
+            return NotImplemented
+        return sub_csr(self, other)
+
+    cpdef double complex trace(self):
+        return trace_csr(self)
+
+    cpdef CSR adjoint(self):
+        return adjoint_csr(self)
+
+    cpdef CSR conj(self):
+        return conj_csr(self)
+
+    cpdef CSR transpose(self):
+        return transpose_csr(self)
 
     def __repr__(self):
         return "".join([
