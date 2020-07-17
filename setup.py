@@ -177,6 +177,7 @@ cy_exts = {
         'properties',
         'reshape',
         'sub',
+        'tidyup',
         'trace',
     ],
     '.core.cy': [

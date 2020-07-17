@@ -12,4 +12,5 @@ from .project import *
 from .properties import *
 from .reshape import *
 from .sub import *
+from .tidyup import *
 from .trace import *
