@@ -177,6 +177,7 @@ cy_exts = {
         'permute',
         'project',
         'properties',
+        'pow',
         'reshape',
         'sub',
         'tidyup',

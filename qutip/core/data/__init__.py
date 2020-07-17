@@ -15,6 +15,7 @@ from .mul import *
 from .permute import *
 from .project import *
 from .properties import *
+from .pow import *
 from .reshape import *
 from .sub import *
 from .tidyup import *
