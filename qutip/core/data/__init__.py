@@ -10,6 +10,7 @@ from .inner import *
 from .kron import *
 from .matmul import *
 from .mul import *
+from .permute import *
 from .project import *
 from .properties import *
 from .reshape import *
