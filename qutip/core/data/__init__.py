@@ -19,3 +19,6 @@ from .reshape import *
 from .sub import *
 from .tidyup import *
 from .trace import *
+
+# There are lots of norms, so we access this through dot-access.
+from . import norm

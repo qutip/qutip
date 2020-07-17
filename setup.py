@@ -173,6 +173,7 @@ cy_exts = {
         'kron',
         'matmul',
         'mul',
+        'norm',
         'permute',
         'project',
         'properties',
