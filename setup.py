@@ -152,7 +152,7 @@ write_version_py()
 # Cython extensions to be compiled.  The key is the relative package name, the
 # value is a list of the Cython modules in that package.
 cy_exts = {
-    '.cy': [
+    'cy': [
         'br_tensor',
         'brtools',
         'brtools_checks',
@@ -162,7 +162,7 @@ cy_exts = {
         'piqs',
         'stochastic',
     ],
-    '.core.data': [
+    'core.data': [
         'add',
         'adjoint',
         'base',
@@ -182,7 +182,7 @@ cy_exts = {
         'tidyup',
         'trace',
     ],
-    '.core.cy': [
+    'core.cy': [
         'cqobjevo',
         'cqobjevo_factor',
         'graph_utils',
@@ -198,20 +198,20 @@ cy_exts = {
         'spmatfuncs',
         'spmath',
     ],
-    '.control': [
+    'control': [
         'cy_grape',
     ],
 }
 
 # Cython extensions for OpenMP
 cy_exts_omp = {
-    '.core.cy.openmp': [
+    'core.cy.openmp': [
         'parfuncs',
         'benchmark',
         'omp_sparse_utils',
         'cqobjevo_omp',
     ],
-    '.cy.openmp': [
+    'cy.openmp': [
         'br_omp',
     ],
 }
@@ -241,8 +241,8 @@ _include = [
 # Add Cython files from qutip/cy
 for package, files in cy_exts.items():
     for file in files:
-        _module = 'qutip' + package + '.' + file
-        _file = 'qutip' + package.replace(".", "/") + '/' + file + '.pyx'
+        _module = 'qutip' + ('.' + package if package else '') + '.' + file
+        _file = os.path.join('qutip', *package.split("."), file + '.pyx')
         _sources = [_file, 'qutip/core/cy/src/zspmv.cpp']
         EXT_MODULES.append(Extension(_module,
                                      sources=_sources,
@@ -266,8 +266,8 @@ if "--with-openmp" in sys.argv:
     _lflags = _link_flags + omp_args
     for package, files in cy_exts_omp.items():
         for file in files:
-            _module = 'qutip' + package + '.' + file
-            _file = 'qutip' + package.replace(".", "/") + '/' + file + '.pyx'
+            _module = 'qutip' + ('.' + package if package else '') + '.' + file
+            _file = os.path.join('qutip', *package.split("."),  file + '.pyx')
             _sources = [_file, 'qutip/core/cy/openmp/src/zspmv_openmp.cpp']
             EXT_MODULES.append(Extension(_module,
                                          sources=_sources,
