@@ -5,6 +5,7 @@ from .base import Data
 from .add import *
 from .adjoint import *
 from .eigen import *
+from .expm import *
 from .inner import *
 from .kron import *
 from .matmul import *
