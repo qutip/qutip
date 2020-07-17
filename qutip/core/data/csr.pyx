@@ -171,10 +171,10 @@ cdef class CSR(base.Data):
         # be collected while we're alive.
         if self._scipy is not None:
             return self._scipy
-        data = cnp.PyArray_SimpleNewFromData(1, [self.data.size],
+        data = cnp.PyArray_SimpleNewFromData(1, [nnz(self)],
                                              cnp.NPY_COMPLEX128,
                                              &self.data[0])
-        indices = cnp.PyArray_SimpleNewFromData(1, [self.col_index.size],
+        indices = cnp.PyArray_SimpleNewFromData(1, [nnz(self)],
                                                 base.idxint_DTYPE,
                                                 &self.col_index[0])
         indptr = cnp.PyArray_SimpleNewFromData(1, [self.row_index.size],
