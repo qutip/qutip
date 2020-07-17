@@ -1,3 +1,5 @@
+from . import dense, csr
+
 from .dense import Dense
 from .csr import CSR
 from .base import Data
