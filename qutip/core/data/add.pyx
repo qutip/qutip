@@ -160,6 +160,8 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
         return out
     # Main path.
     out = csr.empty(left.shape[0], left.shape[1], worst_nnz)
+    left.sort_indices()
+    right.sort_indices()
     if scale == 1:
         _add_csr(left, right, out)
     else:
