@@ -12,7 +12,7 @@ cdef class CSR(base.Data):
     cdef object _scipy
     cdef bint _deallocate
     cpdef CSR copy(CSR self)
-    cpdef object as_scipy(CSR self)
+    cpdef object as_scipy(CSR self, bint full=*)
 
 cpdef CSR copy_structure(CSR matrix)
 cpdef void sort_indices(CSR matrix) nogil

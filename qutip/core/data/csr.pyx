@@ -156,14 +156,19 @@ cdef class CSR(base.Data):
                 buffer[row, self.col_index[ptr]] = self.data[ptr]
         return out
 
-    cpdef object as_scipy(self):
+    cpdef object as_scipy(self, bint full=False):
         """
         Get a view onto this object as a `scipy.sparse.csr_matrix`.  The
         underlying data structures are exposed, such that modifications to the
         `data`, `indices` and `indptr` buffers in the resulting object will
         modify this object too.
 
-        The arrays may be uninitialised.
+        If `full` is False (the default), the output array is squeezed so that
+        the SciPy array sees only the filled elements.  If `full` is True,
+        SciPy will see the full underlying buffers, which may include
+        uninitialised elements.  Setting `full=True` is intended for
+        Python-space factory methods.  In all other use cases, `full=False` is
+        much less error prone.
         """
         # We store a reference to the scipy matrix not only for caching this
         # relatively expensive method, but also because we transferred
@@ -171,10 +176,19 @@ cdef class CSR(base.Data):
         # be collected while we're alive.
         if self._scipy is not None:
             return self._scipy
-        data = cnp.PyArray_SimpleNewFromData(1, [nnz(self)],
+        cdef size_t dshape, cshape, length
+        if full:
+            # `data` and `col_index` should always be the same size anyway, but
+            # make sure we take the minimum length one if they're not.
+            dshape = self.data.shape[0]
+            cshape = self.col_index.shape[0]
+            length = dshape if dshape < cshape else cshape
+        else:
+            length = nnz(self)
+        data = cnp.PyArray_SimpleNewFromData(1, [length],
                                              cnp.NPY_COMPLEX128,
                                              &self.data[0])
-        indices = cnp.PyArray_SimpleNewFromData(1, [nnz(self)],
+        indices = cnp.PyArray_SimpleNewFromData(1, [length],
                                                 base.idxint_DTYPE,
                                                 &self.col_index[0])
         indptr = cnp.PyArray_SimpleNewFromData(1, [self.row_index.size],
@@ -201,6 +215,29 @@ cdef class CSR(base.Data):
         if not isinstance(other, numbers.Number):
             return NotImplemented
         return mul_csr(self, complex(other))
+
+    def __imul__(self, other):
+        if not isinstance(other, numbers.Number):
+            return NotImplemented
+        cdef size_t ptr
+        cdef double complex mul = complex(other)
+        for ptr in range(nnz(self)):
+            self.data[ptr] *= mul
+        return self
+
+    def __truediv__(self, other):
+        if not isinstance(other, numbers.Number):
+            return NotImplemented
+        return mul_csr(self, 1 / complex(other))
+
+    def __itruediv__(self, other):
+        if not isinstance(other, numbers.Number):
+            return NotImplemented
+        cdef size_t ptr
+        cdef double complex mul = complex(other)
+        for ptr in range(nnz(self)):
+            self.data[ptr] /= mul
+        return self
 
     def __neg__(self):
         return neg_csr(self)
