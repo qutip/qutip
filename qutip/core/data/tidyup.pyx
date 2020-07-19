@@ -33,6 +33,7 @@ cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
                 value.imag = 0
             if not (re & im):
                 out.data[nnz_new] = value
+                out.col_index[nnz_new] = matrix.col_index[ptr]
                 nnz_new += 1
         out.row_index[row + 1] = nnz_new
     if nnz_new == nnz_orig:
