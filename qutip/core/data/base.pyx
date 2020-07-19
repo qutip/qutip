@@ -19,3 +19,6 @@ cdef class Data:
         raise NotImplementedError
     cpdef Data transpose(self):
         raise NotImplementedError
+
+class EfficiencyWarning(Warning):
+    pass
