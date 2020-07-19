@@ -56,6 +56,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=qutip.settings.atol):
     cdef idxint *out_row_index = <idxint *>PyMem_Calloc(nrows + 1, sizeof(idxint))
     if out_row_index == NULL:
         raise MemoryError
+    matrix.sort_indices()
     try:
         for row in range(nrows):
             for ptr in range(matrix.row_index[row], matrix.row_index[row + 1]):
