@@ -16,8 +16,7 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 cpdef CSR transpose_csr(CSR matrix):
     """Transpose the CSR matrix, and return a new object."""
-    cdef idxint nnz_ = csr.nnz(matrix)
-    cdef CSR out = csr.empty(matrix.shape[1], matrix.shape[0], nnz_)
+    cdef CSR out = csr.empty(matrix.shape[1], matrix.shape[0], csr.nnz(matrix))
     cdef idxint row, col, ptr, ptr_out
     cdef idxint rows_in=matrix.shape[0], rows_out=matrix.shape[1]
     with nogil:
