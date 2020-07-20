@@ -229,20 +229,21 @@ cdef class CSR(base.Data):
     # does not affect in place operations like `__imul__`, since we can always
     # guarantee the one on the left is `self`.
 
-    def __add__(self, other):
-        if not isinstance(other, CSR):
+    def __add__(left, right):
+        if not isinstance(left, CSR) or not isinstance(right, CSR):
             return NotImplemented
-        return add_csr(self, other)
+        return add_csr(left, right)
 
-    def __matmul__(self, other):
-        if not isinstance(other, CSR):
+    def __matmul__(left, right):
+        if not isinstance(left, CSR) or not isinstance(right, CSR):
             return NotImplemented
-        return matmul_csr(self, other)
+        return matmul_csr(left, right)
 
-    def __mul__(self, other):
-        if not isinstance(other, numbers.Number):
+    def __mul__(left, right):
+        csr, number = (left, right) if isinstance(left, CSR) else (right, left)
+        if not isinstance(number, numbers.Number):
             return NotImplemented
-        return mul_csr(self, complex(other))
+        return mul_csr(csr, complex(number))
 
     def __imul__(self, other):
         if not isinstance(other, numbers.Number):
@@ -253,27 +254,31 @@ cdef class CSR(base.Data):
             self.data[ptr] *= mul
         return self
 
-    def __truediv__(self, other):
-        if not isinstance(other, numbers.Number):
+    def __truediv__(left, right):
+        csr, number = (left, right) if isinstance(left, CSR) else (right, left)
+        if not isinstance(number, numbers.Number):
             return NotImplemented
-        return mul_csr(self, 1 / complex(other))
+        # Technically `(1 / x) * y` doesn't necessarily equal `y / x` in
+        # floating point, but multiplication is faster than division, and we
+        # don't really care _that_ much anyway.
+        return mul_csr(csr, 1 / complex(number))
 
     def __itruediv__(self, other):
         if not isinstance(other, numbers.Number):
             return NotImplemented
         cdef size_t ptr
-        cdef double complex mul = complex(other)
+        cdef double complex mul = 1 / complex(other)
         for ptr in range(nnz(self)):
-            self.data[ptr] /= mul
+            self.data[ptr] *= mul
         return self
 
     def __neg__(self):
         return neg_csr(self)
 
-    def __sub__(self, other):
-        if not isinstance(other, CSR):
+    def __sub__(left, right):
+        if not isinstance(left, CSR) or not isinstance(right, CSR):
             return NotImplemented
-        return sub_csr(self, other)
+        return sub_csr(left, right)
 
     cpdef double complex trace(self):
         return trace_csr(self)
