@@ -142,7 +142,7 @@ cdef class CSR(base.Data):
         low-level C code).
         """
         cdef base.idxint nnz_ = nnz(self)
-        cdef CSR out = empty(self.shape[0], self.shape[1], nnz_)
+        cdef CSR out = empty_like(self)
         memcpy(&out.data[0], &self.data[0], nnz_*sizeof(out.data[0]))
         memcpy(&out.col_index[0], &self.col_index[0], nnz_*sizeof(out.col_index[0]))
         memcpy(&out.row_index[0], &self.row_index[0],
@@ -330,9 +330,9 @@ cpdef CSR copy_structure(CSR matrix):
     structure, but modify each non-zero data element without change their
     location.
     """
-    cdef base.idxint nnz_ = nnz(matrix)
-    cdef CSR out = empty(matrix.shape[0], matrix.shape[1], nnz_)
-    memcpy(&out.col_index[0], &matrix.col_index[0], nnz_*sizeof(out.col_index[0]))
+    cdef CSR out = empty_like(matrix)
+    memcpy(&out.col_index[0], &matrix.col_index[0],
+           nnz(matrix) * sizeof(out.col_index[0]))
     memcpy(&out.row_index[0], &matrix.row_index[0],
            (matrix.shape[0] + 1)*sizeof(out.row_index[0]))
     return out
@@ -572,6 +572,10 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
     # Set the number of non-zero elements to 0.
     out.row_index[rows] = 0
     return out
+
+
+cpdef CSR empty_like(CSR other):
+    return empty(other.shape[0], other.shape[1], nnz(other))
 
 
 cpdef CSR zeros(base.idxint rows, base.idxint cols):

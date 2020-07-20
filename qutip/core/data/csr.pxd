@@ -36,5 +36,6 @@ cpdef CSR copy_structure(CSR matrix)
 cpdef CSR sorted(CSR matrix)
 cpdef base.idxint nnz(CSR matrix) nogil
 cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size)
+cpdef CSR empty_like(CSR other)
 cpdef CSR zeros(base.idxint rows, base.idxint cols)
 cpdef CSR identity(base.idxint dimension, double complex scale=*)
