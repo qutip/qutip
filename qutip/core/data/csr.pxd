@@ -32,6 +32,7 @@ cdef class Sorter:
                    double complex *src_data, base.idxint *src_cols,
                    size_t size) nogil
 
+cpdef CSR fast_from_scipy(object sci)
 cpdef CSR copy_structure(CSR matrix)
 cpdef CSR sorted(CSR matrix)
 cpdef base.idxint nnz(CSR matrix) nogil

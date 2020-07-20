@@ -129,6 +129,9 @@ cdef class CSR(base.Data):
         # deallocated before us.
         self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
 
+    def __reduce__(self):
+        return (fast_from_scipy, (self.as_scipy(),))
+
     cpdef CSR copy(self):
         """
         Return a complete (deep) copy of this object.
@@ -323,6 +326,22 @@ cdef class CSR(base.Data):
             PyDataMem_FREE(&self.row_index[0])
         except AttributeError:
             pass
+
+
+cpdef CSR fast_from_scipy(object sci):
+    """
+    Fast path construction from scipy.sparse.csr_matrix.  This does _no_ type
+    checking on any of the inputs, and should consequently be considered very
+    unsafe.  This is primarily for use in the unpickling operation.
+    """
+    cdef CSR out = CSR.__new__(CSR)
+    out.shape = sci.shape
+    out._deallocate = False
+    out._scipy = sci
+    out.data = sci.data
+    out.col_index = sci.indices
+    out.row_index = sci.indptr
+    return out
 
 
 cpdef CSR copy_structure(CSR matrix):
