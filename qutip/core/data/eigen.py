@@ -40,8 +40,8 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
                 evals = evals[:num_small]
             elif num_large > 0:
                 evals = evals[(N - num_large):]
-
-    return np.array(evals), np.array(evecs)
+    evecs = [vec[:, None] for vec in evecs] if evecs is not None else None
+    return np.array(evals), evecs
 
 
 def _sp_eigs(data, isherm, vecs, N, eigvals, num_large, num_small, tol,
@@ -128,7 +128,7 @@ def _sp_eigs(data, isherm, vecs, N, eigvals, num_large, num_small, tol,
         if vecs:
             evecs = np.delete(evecs, -1)
 
-    return np.array(evals), np.array(evecs)
+    return np.array(evals), (np.array(evecs) if evecs is not None else None)
 
 
 def eigs_csr(data, isherm, vecs=True, sparse=False, sort='low',
