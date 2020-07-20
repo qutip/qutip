@@ -1,7 +1,10 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
+from libc.stdlib cimport malloc, calloc, realloc, free
 from libc.string cimport memset, memcpy
+
+from libcpp cimport bool
 from libcpp.algorithm cimport sort
 from libcpp.vector cimport vector
 
@@ -30,6 +33,11 @@ cdef extern from *:
     void *PyDataMem_NEW(size_t size)
     void PyDataMem_FREE(void *ptr)
 
+# `Sorter` is not exported to Python space, since it's only meant to be used
+# internally within C.
+__all__ = [
+    'CSR', 'nnz', 'copy_structure', 'sorted', 'empty', 'identity', 'zeros',
+]
 
 cdef object _csr_matrix(data, indices, indptr, shape):
     """
@@ -201,6 +209,26 @@ cdef class CSR(base.Data):
         self._scipy = _csr_matrix(data, indices, indptr, self.shape)
         return self._scipy
 
+    cpdef CSR sort_indices(self):
+        cdef Sorter sort
+        cdef base.idxint ptr
+        cdef size_t row, diff, size=0
+        for row in range(self.shape[0]):
+            diff = self.row_index[row + 1] - self.row_index[row]
+            size = diff if diff > size else size
+        sort = Sorter(size)
+        for row in range(self.shape[0]):
+            ptr = self.row_index[row]
+            diff = self.row_index[row + 1] - ptr
+            sort.inplace(self, ptr, diff)
+        return self
+
+    # Beware: before Cython 3, mathematical operator overrides follow the C
+    # API, _not_ the Python one.  This means the first argument is _not_
+    # guaranteed to be `self`, and methods like `__rmul__` don't exist.  This
+    # does not affect in place operations like `__imul__`, since we can always
+    # guarantee the one on the left is `self`.
+
     def __add__(self, other):
         if not isinstance(other, CSR):
             return NotImplemented
@@ -315,30 +343,208 @@ cpdef inline base.idxint nnz(CSR matrix) nogil:
     return matrix.row_index[matrix.shape[0]]
 
 
-# Internal structure for sorting pairs of elements.
-cdef struct _data_col:
-    double complex data
-    base.idxint col
+cdef bool _sorter_cmp_ptr(base.idxint *i, base.idxint *j) nogil:
+    return i[0] < j[0]
 
-cdef int _sort_indices_compare(_data_col x, _data_col y) nogil:
+cdef bool _sorter_cmp_struct(_data_col x, _data_col y) nogil:
     return x.col < y.col
 
-cpdef void sort_indices(CSR matrix) nogil:
-    """Sort the column indices and data of the matrix inplace."""
-    cdef base.idxint row, ptr, ptr_start, ptr_end, length
-    cdef vector[_data_col] pairs
+ctypedef fused _swap_data:
+    double complex
+    base.idxint
+
+cdef inline void _sorter_swap(_swap_data *a, _swap_data *b) nogil:
+    a[0], b[0] = b[0], a[0]
+
+cdef class Sorter:
+    # Look on my works, ye mighty, and despair!
+    #
+    # This class has hard-coded sorts for up to three elements, for both
+    # copying and in-place varieties.  Everything above that we delegate to a
+    # proper sorting algorithm.
+    def __init__(self, size_t size):
+        self.size = size
+
+    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) nogil:
+        cdef size_t n
+        cdef base.idxint col0, col1, col2
+        # Fast paths for tridiagonal matrices.  These fast paths minimise the
+        # number of comparisons and swaps made.
+        if size < 2:
+            return
+        if size == 2:
+            if matrix.col_index[ptr] > matrix.col_index[ptr + 1]:
+                _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+1])
+                _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+1])
+            return
+        if size == 3:
+            # Faster to store rather than re-dereference, and if someone
+            # changes the data underneath us, we've got larger problems anyway.
+            col0 = matrix.col_index[ptr]
+            col1 = matrix.col_index[ptr + 1]
+            col2 = matrix.col_index[ptr + 2]
+            if col0 < col1:
+                if col1 > col2:
+                    _sorter_swap(&matrix.col_index[ptr+1], &matrix.col_index[ptr+2])
+                    _sorter_swap(&matrix.data[ptr+1], &matrix.data[ptr+2])
+                    if col0 > col2:
+                        _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+1])
+                        _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+1])
+            elif col1 < col2:
+                _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+1])
+                _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+1])
+                if col0 > col2:
+                    _sorter_swap(&matrix.col_index[ptr+1], &matrix.col_index[ptr+2])
+                    _sorter_swap(&matrix.data[ptr+1], &matrix.data[ptr+2])
+            else:
+                _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+2])
+                _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+2])
+            return
+        # Now we actually have to do the sort properly.  It's easiest just to
+        # copy the data into a temporary structure.
+        if size > self.size or self.sort == NULL:
+            # realloc(NULL, size) is equivalent to malloc(size), so there's no
+            # problem if cols and argsort weren't allocated before.
+            self.size = size if size > self.size else self.size
+            self.sort = <_data_col *> realloc(self.sort, self.size * sizeof(_data_col))
+        for n in range(size):
+            self.sort[n].data = matrix.data[ptr + n]
+            self.sort[n].col = matrix.col_index[ptr + n]
+        sort(self.sort, self.sort + size, &_sorter_cmp_struct)
+        for n in range(size):
+            matrix.data[ptr + n] = self.sort[n].data
+            matrix.col_index[ptr + n] = self.sort[n].col
+
+    cdef void copy(self,
+                   double complex *dest_data, base.idxint *dest_cols,
+                   double complex *src_data, base.idxint *src_cols,
+                   size_t size) nogil:
+        cdef size_t n, ptr
+        # Fast paths for small sizes.  Not pretty, but it speeds things up a
+        # lot for up to triadiaongal systems (which are pretty common).
+        if size == 0:
+            return
+        if size == 1:
+            dest_cols[0] = src_cols[0]
+            dest_data[0] = src_data[0]
+            return
+        if size == 2:
+            if src_cols[0] < src_cols[1]:
+                dest_cols[0] = src_cols[0]
+                dest_data[0] = src_data[0]
+                dest_cols[1] = src_cols[1]
+                dest_data[1] = src_data[1]
+            else:
+                dest_cols[1] = src_cols[0]
+                dest_data[1] = src_data[0]
+                dest_cols[0] = src_cols[1]
+                dest_data[0] = src_data[1]
+            return
+        if size == 3:
+            if src_cols[0] < src_cols[1]:
+                if src_cols[0] < src_cols[2]:
+                    dest_cols[0] = src_cols[0]
+                    dest_data[0] = src_data[0]
+                    if src_cols[1] < src_cols[2]:
+                        dest_cols[1] = src_cols[1]
+                        dest_data[1] = src_data[1]
+                        dest_cols[2] = src_cols[2]
+                        dest_data[2] = src_data[2]
+                    else:
+                        dest_cols[2] = src_cols[1]
+                        dest_data[2] = src_data[1]
+                        dest_cols[1] = src_cols[2]
+                        dest_data[1] = src_data[2]
+                else:
+                    dest_cols[1] = src_cols[0]
+                    dest_data[1] = src_data[0]
+                    dest_cols[2] = src_cols[1]
+                    dest_data[2] = src_data[1]
+                    dest_cols[0] = src_cols[2]
+                    dest_data[0] = src_data[2]
+            elif src_cols[0] < src_cols[2]:
+                dest_cols[1] = src_cols[0]
+                dest_data[1] = src_data[0]
+                dest_cols[0] = src_cols[1]
+                dest_data[0] = src_data[1]
+                dest_cols[2] = src_cols[2]
+                dest_data[2] = src_data[2]
+            else:
+                dest_cols[2] = src_cols[0]
+                dest_data[2] = src_data[0]
+                if src_cols[1] < src_cols[2]:
+                    dest_cols[0] = src_cols[1]
+                    dest_data[0] = src_data[1]
+                    dest_cols[1] = src_cols[2]
+                    dest_data[1] = src_data[2]
+                else:
+                    dest_cols[1] = src_cols[1]
+                    dest_data[1] = src_data[1]
+                    dest_cols[0] = src_cols[2]
+                    dest_data[0] = src_data[2]
+            return
+        # Now we're left with the full case, and we have to sort properly.
+        if size > self.size or self.argsort == NULL:
+            # realloc(NULL, size) is equivalent to malloc(size), so there's no
+            # problem if cols and argsort weren't allocated before.
+            self.size = size if size > self.size else self.size
+            self.argsort = (
+                <base.idxint **>
+                realloc(self.argsort, self.size * sizeof(base.idxint *))
+            )
+        # We do the argsort with two levels of indirection to minimise memory
+        # allocation and copying requirements when this function is being used
+        # to assemble a CSR matrix under an operation which may change the
+        # order of the columns (e.g. permute).  First the user makes the
+        # columns accessible in some contiguous memory (or if they're not
+        # changing them, they can just use the CSR buffers).  We put pointers
+        # to each of those columns in the array which actually gets sorted
+        # using a comparison function which dereferences the pointers and
+        # compares the result.  After the sort, `argsort` will be the pointers
+        # sorted according to the new column, and we know that the "lowest"
+        # pointer in there has the value `src_cols`, so we can do pointer
+        # arithmetic to know which element we should take.
+        #
+        # This is about 30-40% faster than allocating space for structs of
+        # (double complex, idxint), copying in the data and column, sorting and
+        # copying into the new arrays.  Allocating the structs actually
+        # allocates more space than the pointer method (double complex is
+        # very likely to be 2x the size of a pointer, _and_ the struct may need
+        # extra padding to be aligned), so it's probably actually worse for
+        # cache locality.  Despite the sort relying on pointer dereference in
+        # this case, it's actually got very good cache locality.
+        for n in range(size):
+            self.argsort[n] = src_cols + n
+        sort(self.argsort, self.argsort + size, _sorter_cmp_ptr)
+        for n in range(size):
+            ptr = self.argsort[n] - src_cols
+            dest_cols[n] = src_cols[ptr]
+            dest_data[n] = src_data[ptr]
+
+    def __dealloc__(self):
+        if self.argsort != NULL:
+            free(self.argsort)
+        if self.sort != NULL:
+            free(self.sort)
+
+cpdef CSR sorted(CSR matrix):
+    cdef CSR out = empty_like(matrix)
+    cdef Sorter sort
+    cdef base.idxint ptr
+    cdef size_t row, diff, size=0
+    memcpy(&out.row_index[0], &matrix.row_index[0],
+           (matrix.shape[0] + 1) * sizeof(base.idxint))
     for row in range(matrix.shape[0]):
-        ptr_start = matrix.row_index[row]
-        ptr_end = matrix.row_index[row + 1]
-        length = ptr_end - ptr_start
-        pairs.resize(length)
-        for ptr in range(length):
-            pairs[ptr].data = matrix.data[ptr_start + ptr]
-            pairs[ptr].col = matrix.col_index[ptr_start + ptr]
-        sort(pairs.begin(), pairs.end(), &_sort_indices_compare)
-        for ptr in range(length):
-            matrix.data[ptr_start + ptr] = pairs[ptr].data
-            matrix.col_index[ptr_start + ptr] = pairs[ptr].col
+        diff = matrix.row_index[row + 1] - matrix.row_index[row]
+        size = diff if diff > size else size
+    sort = Sorter(size)
+    for row in range(matrix.shape[0]):
+        ptr = matrix.row_index[row]
+        diff = matrix.row_index[row + 1] - ptr
+        sort.copy(&out.data[ptr], &out.col_index[ptr],
+                  &matrix.data[ptr], &matrix.col_index[ptr],
+                  diff)
+    return out
 
 
 cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
