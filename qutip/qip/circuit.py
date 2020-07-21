@@ -49,7 +49,7 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         csign, berkeley, swapalpha, swap, iswap,
                                         sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
-                                        expand_operator)
+                                        expand_operator, gate_sequence_product1)
 from qutip import tensor, basis, identity, fidelity
 from qutip.qobj import Qobj
 from qutip.measurement import measurement_statistics
@@ -181,6 +181,14 @@ class Gate:
 
         self.arg_value = arg_value
         self.arg_label = arg_label
+
+    def get_inds(self, N=None):
+        if self.controls:
+            return self.controls + self.targets
+        if self.targets:
+            return self.targets
+        else:
+            return list(range(N))
 
     def __str__(self):
         str_name = (("Gate(%s, targets=%s, controls=%s,"
@@ -368,6 +376,151 @@ class Measurement:
 
         qasm_out.output("measure q[{}] -> c[{}]".format(self.targets[0],
                                                         self.classical_store))
+
+
+class Result:
+
+    def __init__(self, states, probabilities):
+        if isinstance(states, Qobj):
+            self.states = [states]
+            self.probabilities = [probabilities]
+        else:
+            self.states = states
+            self.probabilities = probabilities
+
+    def get_states(self):
+        if isinstance(self.states, list):
+            return self.states
+        else:
+            return self.states[0]
+
+    def get_results(self, index=None):
+        if index:
+            return self.states[index], self.probabilities[index]
+        return self.states, self.probabilities
+
+class Simulator:
+    def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
+                 mode="state_vector_simulator"):
+        self.qc = qc
+        self.state = state
+        self.mode = mode
+
+        if U_list:
+            self.U_list = U_list
+        else:
+            self.U_list = qc.propagators(expand=False)
+
+        self.ops = []
+        self.inds_list = []
+
+        prev_index = 0
+        U_list_index = 0
+
+        for gate in qc.gates:
+            if isinstance(gate, Measurement):
+                continue
+            else:
+                self.inds_list.append(gate.get_inds(self.qc.N))
+
+        for operation in qc.gates:
+            if isinstance(operation, Measurement):
+                if U_list_index > prev_index:
+                    self.ops.append(self.process_U_list(self.U_list[prev_index:U_list_index], self.inds_list[prev_index:U_list_index]))
+                    prev_index = U_list_index
+                self.ops.append(operation)
+
+            elif isinstance(operation, Gate):
+                if operation.classical_controls:
+                    if U_list_index > prev_index:
+                        self.ops.append(self.process_U_list(self.U_list[prev_index:U_list_index], self.inds_list[prev_index:U_list_index]))
+                        prev_index = U_list_index + 1
+                        U_list_index = prev_index
+                    self.ops.append((operation, self.U_list[U_list_index-1]))
+                else:
+                    U_list_index += 1
+
+        if U_list_index > prev_index:
+            self.ops.append(self.process_U_list(self.U_list[prev_index:U_list_index], self.inds_list[prev_index:U_list_index]))
+            prev_index = U_list_index + 1
+            U_list_index = prev_index
+
+        self.reset(state, cbits, measure_results)
+
+    def reset(self, state, cbits, measure_results):
+
+        if cbits and len(cbits) == self.qc.num_cbits:
+            self.cbits = cbits
+        else:
+            self.cbits = [0] * self.qc.num_cbits
+
+        if state.shape[0] != 2 ** self.qc.N:
+            return ValueError("dimension of state is incorrect")
+        self.probability = 1
+        self.apply_ops = list(reversed(self.ops))
+        if measure_results:
+            self.measure_results = measure_results
+        self.measure_ind = 0
+
+
+    def process_U_list(self, U_list, inds_list):
+        U_overall, overall_inds = gate_sequence_product1(U_list, inds_list)
+        if len(overall_inds) != self.qc.N:
+            U_overall = expand_operator(U_overall, N=self.qc.N, targets=overall_inds)
+        return U_overall
+
+    def run(self, state, cbits=None, measure_results=None):
+        self.reset(state, cbits, measure_results=None)
+        while self.apply_ops:
+            self.step()
+        return Result(self.state, self.probability)
+
+
+    def step(self):
+        op = self.apply_ops.pop()
+
+        if isinstance(op, Measurement):
+            self._apply_measurement(op)
+        elif isinstance(op, tuple):
+            operation, U = op
+            apply_gate = all([self.cbits[i] for i
+                              in operation.classical_controls])
+            if apply_gate:
+                U = expand_operator(U, self.qc.N, operation.get_inds(self.qc.N))
+                self._evolve_state(U)
+        else:
+            self._evolve_state(op)
+
+        return self.state
+
+    def _evolve_state(self, U):
+        if self.mode == "state_vector_simulator":
+            self._evolve_ket(U)
+        elif self.mode == "density_matrix_simulator":
+            self._evolve_dm(U)
+        else:
+            raise NotImplementedError("mode {} is not available.".format(self.mode))
+
+    def _evolve_ket(self, U):
+        self.state = U * self.state
+
+    def _evolve_dm(self, U):
+        self.state = U * self.state * U.dag()
+
+
+    def _apply_measurement(self, operation):
+        states, probabilities = operation.measurement_comp_basis(self.state)
+        if self.measure_results:
+            i = int(self.measure_results[self.measure_ind])
+            self.measure_ind += 1
+        else:
+            i = np.random.choice([0, 1],
+                                 p=[probabilities[0], 1 - probabilities[0]])
+            self.probability *= probabilities[i]
+            self.state = states[i]
+            if operation.classical_store is not None:
+                self.cbits[operation.classical_store] = i
+
 
 
 class QubitCircuit:
@@ -1095,12 +1248,66 @@ class QubitCircuit:
             else:
                 qc_temp.gates.append(gate)
 
+    def run_alt(self, state, cbits=None, U_list=None, measure_results=()):
+
+        if cbits and len(cbits) == self.num_cbits:
+            self.cbits = cbits
+        else:
+            self.cbits = [0] * self.num_cbits
+
+        if state.shape[0] != 2 ** self.N:
+            return ValueError("dimension of state is incorrect")
+
+        if U_list:
+            self.U_list = U_list
+        else:
+            self.U_list = self.propagators()
+
+        ulistindex = 0
+        probability = 1
+        measure_ind = 0
+
+        tmp_U_list = []
+        ind_list = []
+
+        for operation in self.gates:
+            if isinstance(operation, Measurement):
+                states, probabilities = operation.measurement_comp_basis(state)
+                if measure_results:
+                    i = int(measure_results[measure_ind])
+                    measure_ind += 1
+                else:
+                    i = np.random.choice(
+                                    [0, 1],
+                                    p=[probabilities[0], 1 - probabilities[0]])
+                probability *= probabilities[i]
+                state = states[i]
+                if operation.classical_store is not None:
+                    self.cbits[operation.classical_store] = i
+                tmp_U_list = []
+                ind_list = []
+            else:
+                if (operation.classical_controls):
+                    apply_gate = all([self.cbits[i] for i
+                                      in operation.classical_controls])
+                    if apply_gate:
+                        tmp_U_list.append(self.U_list[ulistindex])
+                        ind_list.append(operation.controls+operation.targets)
+                        ulistindex += 1
+                    else:
+                        ulistindex += 1
+                        continue
+                else:
+                    tmp_U_list.append(self.U_list[ulistindex])
+                    ulistindex += 1
+
+        return state, probability
+
     def run(self, state, cbits=None, U_list=None, measure_results=()):
         '''
         This is the primary circuit run function for 1 run, must be called
         after adding all the gates and measurements on the circuit and returns
         the resultant state after evolution.
-
         Parameters
         ----------
         state : ket
@@ -1114,7 +1321,6 @@ class QubitCircuit:
                 post-selection. If specified, the measurement results are
                 set to the tuple of bits (sequentially) instead of being
                 chosen at random.
-
         Returns
         -------
         state : returns the ket of the output state after running the circuit.
@@ -1425,17 +1631,19 @@ class QubitCircuit:
 
         return temp
 
-    def propagators(self):
+    def propagators(self, expand=True):
         """
         Propagator matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right.
-
         Returns
         -------
         U_list : list
             Return list of unitary matrices for the qubit circuit.
-
         """
+
+        if not expand:
+            return self.propagators_no_expand()
+
         self.U_list = []
 
         gates = filter(lambda x: isinstance(x, Gate), self.gates)
@@ -1548,6 +1756,103 @@ class QubitCircuit:
                     raise ValueError("gate is neither function nor operator")
                 self.U_list.append(expand_operator(
                     oper, N=self.N, targets=gate.targets, dims=self.dims))
+            else:
+                raise NotImplementedError(
+                    "{} gate is an unknown gate.".format(gate.name))
+
+        return self.U_list
+
+    def propagators_no_expand(self):
+        """
+        Propagator matrix calculator for N qubits returning the individual
+        steps as unitary matrices operating from left to right.
+
+        Returns
+        -------
+        U_list : list
+            Return list of unitary matrices for the qubit circuit.
+
+        """
+        self.U_list = []
+
+        gates = filter(lambda x: isinstance(x, Gate), self.gates)
+
+        for gate in gates:
+            if gate.name == "RX":
+                self.U_list.append(rx(gate.arg_value))
+            elif gate.name == "RY":
+                self.U_list.append(ry(gate.arg_value))
+            elif gate.name == "RZ":
+                self.U_list.append(rz(gate.arg_value))
+            elif gate.name == "X":
+                self.U_list.append(x_gate())
+            elif gate.name == "Y":
+                self.U_list.append(y_gate())
+            elif gate.name == "CY":
+                self.U_list.append(cy_gate())
+            elif gate.name == "Z":
+                self.U_list.append(z_gate())
+            elif gate.name == "CZ":
+                self.U_list.append(cz_gate())
+            elif gate.name == "T":
+                self.U_list.append(t_gate())
+            elif gate.name == "CT":
+                self.U_list.append(ct_gate())
+            elif gate.name == "S":
+                self.U_list.append(s_gate())
+            elif gate.name == "CS":
+                self.U_list.append(cs_gate())
+            elif gate.name == "SQRTNOT":
+                self.U_list.append(sqrtnot())
+            elif gate.name == "SNOT":
+                self.U_list.append(snot())
+            elif gate.name == "PHASEGATE":
+                self.U_list.append(phasegate(gate.arg_value))
+            elif gate.name == "CRX":
+                self.U_list.append(controlled_gate(rx(gate.arg_value)))
+            elif gate.name == "CRY":
+                self.U_list.append(controlled_gate(ry(gate.arg_value)))
+            elif gate.name == "CRZ":
+                self.U_list.append(controlled_gate(rz(gate.arg_value)))
+            elif gate.name == "CPHASE":
+                self.U_list.append(cphase(gate.arg_value))
+            elif gate.name == "CNOT":
+                self.U_list.append(cnot())
+            elif gate.name == "CSIGN":
+                self.U_list.append(csign())
+            elif gate.name == "BERKELEY":
+                self.U_list.append(berkeley())
+            elif gate.name == "SWAPalpha":
+                self.U_list.append(swapalpha(gate.arg_value))
+            elif gate.name == "SWAP":
+                self.U_list.append(swap())
+            elif gate.name == "ISWAP":
+                self.U_list.append(iswap())
+            elif gate.name == "SQRTSWAP":
+                self.U_list.append(sqrtswap())
+            elif gate.name == "SQRTISWAP":
+                self.U_list.append(sqrtiswap())
+            elif gate.name == "FREDKIN":
+                self.U_list.append(fredkin())
+            elif gate.name == "TOFFOLI":
+                self.U_list.append(toffoli())
+            elif gate.name == "GLOBALPHASE":
+                self.U_list.append(globalphase(gate.arg_value, n))
+            elif gate.name in self.user_gates:
+                if gate.controls is not None:
+                    raise ValueError(
+                        "A user defined gate {} takes only  "
+                        "`targets` variable.".format(gate.name))
+                func = self.user_gates[gate.name]
+                para_num = len(inspect.getfullargspec(func)[0])
+                if para_num == 0:
+                    oper = func()
+                elif para_num == 1:
+                    oper = func(gate.arg_value)
+                else:
+                    raise ValueError(
+                        "gate function takes at most one parameters.")
+                self.U_list.append(expand_operator(oper))
             else:
                 raise NotImplementedError(
                     "{} gate is an unknown gate.".format(gate.name))

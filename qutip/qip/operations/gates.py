@@ -32,7 +32,7 @@
 ###############################################################################
 import numbers
 from collections.abc import Iterable
-from itertools import product
+from itertools import product, chain
 from functools import partial, reduce
 from operator import mul
 
@@ -929,6 +929,59 @@ def hadamard_transform(N=1):
                                      for j in range(2 ** N)])
 
     return Qobj(data, dims=[[2] * N, [2] * N])
+
+def gate_sequence_product1(U_list, ind_list=None, left_to_right=True):
+    """
+    Calculate the overall unitary matrix for a given list of unitary operations
+
+    Parameters
+    ----------
+    U_list : list
+        List of gates implementing the quantum circuit.
+
+    left_to_right : Boolean
+        Check if multiplication is to be done from left to right.
+
+    Returns
+    -------
+    U_overall : qobj
+        Overall unitary matrix of a given quantum circuit.
+
+    """
+
+    U_overall = 1
+    overall_inds = []
+    for i, (U, inds) in enumerate(zip(U_list, ind_list)):
+        expand_N = len(set(chain(*ind_list)))
+        if len(overall_inds) == expand_N:
+            U_left, rem_inds = gate_sequence_product1(U_list[i:], ind_list[i:])
+            U_left = expand_operator(U_left, expand_N, rem_inds)
+            return U_left * U_overall, overall_inds
+        if U_overall == 1:
+            U_overall = U_overall * U
+            overall_inds = ind_list[0]
+            continue
+        if len(set(overall_inds).intersection(set(inds))) > 0:
+            new_inds = list(set(overall_inds).union(set(inds)))
+            min_ind = min(overall_inds)
+            N = len(new_inds)
+            # expand stuff and multiply
+            s = sorted(range(N), key=lambda key: new_inds[key])
+            s1 = {ind:ind_ind for ind, ind_ind in zip(new_inds, s)}
+            U_overall = expand_operator(U_overall, N,
+                                        [s1[ind] for ind in overall_inds])
+            U = expand_operator(U, N, [s1[ind] for ind in inds])
+            U_overall = U * U_overall
+            overall_inds = new_inds
+        else:
+            # only need to expand stuff !
+
+            overall_inds = overall_inds + inds
+            expand_inds = sorted(range(len(overall_inds)), key=lambda x: overall_inds[x]) # [ind - min_ind for ind in overall_inds]
+            U_overall = expand_operator(tensor(U_overall, U),
+                                        len(overall_inds),
+                                        expand_inds)
+    return U_overall, overall_inds
 
 
 def gate_sequence_product(U_list, left_to_right=True):
