@@ -24,3 +24,24 @@ from .trace import *
 
 # For operations with mulitple versions, we just import the module.
 from . import norm, permute
+
+
+# This is completely temporary - it will actually get replaced by a proper
+# dispatcher in its own module, but for now I'm just trying to get CSR working
+# within Qobj, and this is the fastest way to stub out this creation.
+
+def create(arg, shape=None):
+    import numpy as np
+    import scipy.sparse
+
+    if isinstance(arg, CSR):
+        return arg.copy()
+    if scipy.sparse.issparse(arg):
+        return CSR(arg.tocsr(), shape=shape)
+    # Promote 1D lists and arguments to kets, not bras by default.
+    arr = np.array(arg)
+    if arr.ndim == 1:
+        arr = arr[:, np.newaxis]
+    if arr.ndim != 2:
+        raise TypeError("input has incorrect dimensions: " + str(arr.shape))
+    return CSR(scipy.sparse.csr_matrix(arr), shape=shape)
