@@ -12,9 +12,10 @@ from .inner import *
 from .kron import *
 from .matmul import *
 from .mul import *
+from .pow import *
 from .project import *
 from .properties import *
-from .pow import *
+from .ptrace import *
 from .reshape import *
 from .sub import *
 from .tidyup import *
