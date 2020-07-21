@@ -70,6 +70,7 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
+    'qutip/tests/qasm_files': ['*.qasm'],
     'qutip/cy': ['*.pxi', '*.pxd', '*.pyx'],
     'qutip/cy/src': ['*.cpp', '*.hpp'],
     'qutip/control': ['*.pyx'],
