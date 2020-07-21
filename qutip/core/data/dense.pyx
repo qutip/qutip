@@ -50,9 +50,13 @@ cdef class Dense(base.Data):
                 str(base.size)
             ]))
         self._np = base.reshape(shape, order='A')
+        self._deallocate = False
         self.data = <double complex *> cnp.PyArray_GETPTR2(self._np, 0, 0)
         self.fortran = cnp.PyArray_IS_F_CONTIGUOUS(self._np)
         self.shape = (base.shape[0], base.shape[1])
+
+    def __reduce__(self):
+        return (fast_from_numpy, (self.as_ndarray(),))
 
     def __repr__(self):
         return "".join([
@@ -162,6 +166,32 @@ cdef class Dense(base.Data):
     def __dealloc__(self):
         if self._deallocate and self.data != NULL:
             PyDataMem_FREE(self.data)
+
+
+cpdef Dense fast_from_numpy(object array):
+    """
+    Fast path construction from numpy ndarray.  This does _no_ type checking on
+    the input, and should consequently be considered very unsafe.  This is
+    primarily for use in the unpickling operation.
+    """
+    cdef Dense out = Dense.__new__(Dense)
+    if array.ndim == 1:
+        out.shape = (array.shape[0], 1)
+    else:
+        out.shape = (array.shape[0], array.shape[2])
+    out._deallocate = False
+    out._np = array
+    out.data = <double complex *> cnp.PyArray_GETPTR2(array, 0, 0)
+    out.fortran = cnp.PyArray_IS_F_CONTIGUOUS(array)
+    return out
+
+cdef Dense wrap(double complex *data, base.idxint rows, base.idxint cols, bint fortran=False):
+    cdef Dense out = Dense.__new__(Dense)
+    out.data = data
+    out._deallocate = False
+    out.fortran = fortran
+    out.shape = (rows, cols)
+    return out
 
 
 cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
