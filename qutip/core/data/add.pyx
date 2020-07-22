@@ -5,6 +5,8 @@ cimport cython
 import numpy as np
 cimport numpy as cnp
 
+from scipy.linalg.cython_blas cimport zaxpy
+
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
@@ -17,6 +19,7 @@ cdef extern from *:
     void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_FREE(void *ptr)
 
+cdef int _ONE=1
 
 cdef void _check_shape(Data left, Data right) nogil except *:
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
@@ -169,17 +172,23 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     return out
 
 
+cdef Dense _add_dense_eq_order(Dense left, Dense right, double complex scale):
+    cdef Dense out = left.copy()
+    cdef int size = left.shape[0] * left.shape[1]
+    with nogil:
+        zaxpy(&size, &scale, right.data, &_ONE, out.data, &_ONE)
+    return out
+
 cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
     _check_shape(left, right)
-    cdef Dense out = dense.empty(left.shape[0], left.shape[1])
-    cdef size_t row, col
+    if not (left.fortran ^ right.fortran):
+        return _add_dense_eq_order(left, right, scale)
+    cdef Dense out = left.copy()
+    cdef size_t nrows=left.shape[0], ncols=left.shape[1], idx
+    # We always iterate through `left` and `out` in memory-layout order.
+    cdef int dim1, dim2
+    dim1, dim2 = (nrows, ncols) if left.fortran else (ncols, nrows)
     with nogil:
-        if scale == 1:
-            for row in range(left.shape[0]):
-                for col in range(left.shape[1]):
-                    out.data[row, col] = left.data[row, col] + right.data[row, col]
-        else:
-            for row in range(left.shape[0]):
-                for col in range(left.shape[1]):
-                    out.data[row, col] = left.data[row, col] + scale * right.data[row, col]
+        for idx in range(dim2):
+            zaxpy(&dim1, &scale, right.data + idx, &dim2, out.data + idx*dim1, &_ONE)
     return out
