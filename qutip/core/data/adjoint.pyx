@@ -78,30 +78,25 @@ cpdef CSR conj_csr(CSR matrix):
 
 
 cpdef Dense adjoint_dense(Dense matrix):
-    cdef Dense out = dense.empty(matrix.shape[1], matrix.shape[0])
-    cdef size_t row, col
+    cdef Dense out = dense.empty_like(matrix, fortran=not matrix.fortran)
+    out.shape = (out.shape[1], out.shape[0])
     with nogil:
-        for row in range(matrix.shape[0]):
-            for col in range(matrix.shape[1]):
-                out.data[col, row] = conj(matrix.data[row, col])
+        for ptr in range(matrix.shape[0] * matrix.shape[1]):
+            out.data[ptr] = conj(matrix.data[ptr])
     return out
 
 
 cpdef Dense transpose_dense(Dense matrix):
-    cdef Dense out = dense.empty(matrix.shape[1], matrix.shape[0])
-    cdef size_t row, col
-    with nogil:
-        for row in range(matrix.shape[0]):
-            for col in range(matrix.shape[1]):
-                out.data[col, row] = matrix.data[row, col]
+    cdef Dense out = matrix.copy()
+    out.shape = (out.shape[1], out.shape[0])
+    out.fortran = not out.fortran
     return out
 
 
 cpdef Dense conj_dense(Dense matrix):
-    cdef Dense out = dense.empty(matrix.shape[0], matrix.shape[1])
-    cdef size_t row, col
+    cdef Dense out = dense.empty_like(matrix)
+    cdef size_t ptr
     with nogil:
-        for row in range(matrix.shape[0]):
-            for col in range(matrix.shape[1]):
-                out.data[row, col] = conj(matrix.data[row, col])
+        for ptr in range(matrix.shape[0] * matrix.shape[1]):
+            out.data[ptr] = conj(matrix.data[ptr])
     return out
