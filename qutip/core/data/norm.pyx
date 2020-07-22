@@ -6,10 +6,9 @@ from libc cimport math
 
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport csr
-from qutip.core.data.csr cimport CSR
+from qutip.core.data cimport csr, dense, CSR, Dense
 
-from qutip.core.data.adjoint cimport adjoint_csr
+from qutip.core.data.adjoint cimport adjoint_csr, adjoint_dense
 from qutip.core.data.matmul cimport matmul_csr
 
 from qutip.core.data import eigs_csr
@@ -48,7 +47,10 @@ cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
                                       sparse=sparse, tol=tol, maxiter=maxiter)
     cdef double total = 0
     for i in range(matrix.shape[0]):
-        total += math.sqrt(eigs[i])
+        # The abs is technically not part of the definition, but since all
+        # eigenvalues _should_ be > 0 (as X @ X.adjoint() is Hermitian), any
+        # which are lower will just be ~1e-15 due to numerical approximations.
+        total += math.sqrt(abs(eigs[i]))
     return total
 
 cpdef double max_csr(CSR matrix) nogil:
@@ -73,3 +75,14 @@ cpdef double l2_csr(CSR matrix) nogil except -1:
     if matrix.shape[0] != 1 and matrix.shape[1] != 1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_csr(matrix)
+
+cpdef double frobenius_dense(Dense matrix) nogil:
+    cdef int n = matrix.shape[0] * matrix.shape[1]
+    cdef int inc = 1
+    return blas.dznrm2(&n, matrix.data, &inc)
+
+
+cpdef double l2_dense(Dense matrix) nogil except -1:
+    if matrix.shape[0] != 1 and matrix.shape[1] != 1:
+        raise ValueError("L2 norm is only defined on vectors")
+    return frobenius_dense(matrix)
