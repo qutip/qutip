@@ -227,10 +227,6 @@ from .rcsolve import *
 from .nonmarkov import *
 from .scattering import *
 
-# lattice models
-from .lattice import *
-from .topology import *
-
 ########################################################################
 # This section exists only for the deprecation warning of qip importation.
 # It can be deleted for a major release.
