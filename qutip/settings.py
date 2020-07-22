@@ -180,7 +180,7 @@ def reset():
     _set_mkl()
 
 
-def list():
+def print_settings():
     out = "qutip settings:\n"
     longest = max(len(key) for key in _all_out)
     for key in _all_out:
@@ -188,7 +188,7 @@ def list():
     return out
 
 
-def QtOptionClass(name):
+def optionclass(name):
     """Make the class an Options object of Qutip and register the object
     default as qutip.settings."name".
 
@@ -276,13 +276,12 @@ class _QtOptionMaker:
         attributes_set = ["    self.{0} = {0} if {0} is not None "
                           "else self._defaultInstance.{0}".format(var)
                           for var in _all_set]
-        code = ["def __init__(self, file='', *,"] + \
-            attributes_kw + \
-            ["            ):"] + \
-            attributes_set + \
-            ["    if file:"] + \
-            ["        self.load(file)"]
-        code = "\n".join(code)
+        code = f"""
+def __init__(self, file='', *, {", ".join(attributes_kw)}):
+    {"\n    ".join(attributes_set)}
+    if file:
+        self.load(file)
+"""
         ns = {}
         exec(code, globals(), ns)
         cls.__init__ = ns["__init__"]

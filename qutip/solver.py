@@ -141,7 +141,7 @@ class ExpectOps:
         return bool(self.e_num)
 
 
-@qset.QtOptionClass("options")
+@qset.optionclass("options")
 class Options:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and

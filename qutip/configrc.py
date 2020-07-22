@@ -34,10 +34,7 @@ import os
 import qutip
 import qutip.settings as qset
 import warnings
-try:
-    import ConfigParser as configparser #py27
-except:
-    import configparser #py3x
+import configparser
 from functools import partial
 
 
