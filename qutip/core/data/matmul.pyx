@@ -4,6 +4,8 @@
 from libc.stdlib cimport malloc, calloc, free
 from libc.string cimport memset, memcpy
 
+import warnings
+
 cimport cython
 import numpy as np
 cimport numpy as cnp
@@ -11,7 +13,7 @@ cimport numpy as cnp
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr
+from qutip.core.data cimport csr, dense
 
 cnp.import_array()
 
@@ -146,3 +148,65 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None, double complex scale=1.0
     return out
 
 
+cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
+                                   double complex scale=1.0):
+    """
+    Perform the operation
+        ``out := scale * (left @ right) + out``
+    where `left`, `right` and `out` are matrices, and `right` and `out` are
+    C-ordered 2D matrices.  `scale` is a complex scalar, defaulting to 1.
+
+    If `out` is not given, it will be allocated as if it were a zero matrix.
+    """
+    _check_shape(left, right, out)
+    cdef Dense tmp = None
+    if out is None:
+        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+    if bool(right.fortran) != bool(out.fortran):
+        msg = (
+            "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
+            + " but input is {}-ordered".format('Fortran' if right.fortran else 'C')
+        )
+        warnings.warn(msg, dense.OrderEfficiencyWarning)
+        # Rather than making loads of copies of the same code, we just moan at
+        # the user and then transpose one of the arrays.  We prefer to have
+        # `right` in Fortran-order for cache efficiency.
+        if right.fortran:
+            tmp = out
+            out = out.reorder()
+        else:
+            right = right.reorder()
+    cdef size_t row, ptr, idx_r, idx_out, nrows=left.shape[0], ncols=right.shape[1]
+    cdef double complex val
+    cdef double complex *data_ptr
+    cdef int *col_ptr
+    cdef int *row_ptr
+    if right.fortran:
+        # TODO: the cast <int *> is NOT SAFE as base.idxint is _not_ guaranteed
+        # to match the size of `int`.  Must be changed.
+        data_ptr = &left.data[0]
+        col_ptr = <int *> &left.col_index[0]
+        row_ptr = <int *> &left.row_index[0]
+        idx_r = idx_out = 0
+        for _ in range(ncols):
+            zspmvpy(data_ptr, col_ptr, row_ptr,
+                    right.data + idx_r,
+                    scale,
+                    out.data + idx_out,
+                    nrows)
+            idx_out += nrows
+            idx_r += right.shape[0]
+    else:
+        for row in range(nrows):
+            for ptr in range(left.row_index[row], left.row_index[row + 1]):
+                val = scale * left.data[ptr]
+                idx_out = row * ncols
+                idx_r = left.col_index[ptr] * ncols
+                for _ in range(ncols):
+                    out.data[idx_out] += val * right.data[idx_r]
+                    idx_out += 1
+                    idx_r += 1
+    if tmp is None:
+        return out
+    memcpy(tmp.data, out.data, ncols * nrows * sizeof(double complex))
+    return tmp
