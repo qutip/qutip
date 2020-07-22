@@ -31,24 +31,25 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['expect', 'variance']
+__all__ = ['expect', 'variance', 'expect_rho_vec', 'expect_psi']
 
 import numpy as np
-import scipy.sparse as sp
 
-from .qobj import Qobj, isoper
-from .eseries import eseries
+from .qobj import Qobj
+from . import data as _data
 
-from .cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, cy_spmm_tr,
-                            expect_csr_ket)
-
-
-expect_rho_vec = cy_expect_rho_vec
-expect_psi = cy_expect_psi
+# Expose some Cython functions in a more convenient location.
+from .cy.spmatfuncs import (
+    cy_expect_rho_vec as expect_rho_vec,
+    cy_expect_psi as expect_psi,
+)
 
 
 def expect(oper, state):
-    '''Calculates the expectation value for operator(s) and state(s).
+    """
+    Calculate the expectation value for operator(s) and state(s).  The
+    expectation of state `k` on operator `A` is defined as `k.dag() @ A @ k`,
+    and for density matrix `R` on operator `A` it is `trace(A @ R)`.
 
     Parameters
     ----------
@@ -70,88 +71,41 @@ def expect(oper, state):
     >>> expect(num(4), basis(4, 3))
     3
 
-    '''
+    """
     if isinstance(state, Qobj) and isinstance(oper, Qobj):
         return _single_qobj_expect(oper, state)
 
-    elif isinstance(oper, Qobj) and isinstance(state, eseries):
-        return _single_eseries_expect(oper, state)
-
     elif isinstance(oper, (list, np.ndarray)):
         if isinstance(state, Qobj):
-            if (all([op.isherm for op in oper]) and
-                    (state.isket or state.isherm)):
-                return np.array([_single_qobj_expect(o, state) for o in oper])
-            else:
-                return np.array([_single_qobj_expect(o, state) for o in oper],
-                                dtype=complex)
-        else:
-            return [expect(o, state) for o in oper]
-
+            dtype = np.complex128
+            if all(op.isherm for op in oper) and (state.isket or state.isherm):
+                dtype = np.float64
+            return np.array([_single_qobj_expect(op, state) for op in oper],
+                            dtype=dtype)
+        return [expect(op, state) for op in oper]
     elif isinstance(state, (list, np.ndarray)):
-        if oper.isherm and all([(op.isherm or op.type == 'ket')
-                                for op in state]):
-            return np.array([_single_qobj_expect(oper, x) for x in state])
-        else:
-            return np.array([_single_qobj_expect(oper, x) for x in state],
-                            dtype=complex)
-    else:
-        raise TypeError('Arguments must be quantum objects or eseries')
+        dtype = np.complex128
+        if oper.isherm and all(op.isherm or op.isket for op in state):
+            dtype = np.float64
+        return np.array([_single_qobj_expect(oper, x) for x in state],
+                        dtype=dtype)
+    raise TypeError('Arguments must be quantum objects')
 
 
 def _single_qobj_expect(oper, state):
     """
     Private function used by expect to calculate expectation values of Qobjs.
     """
-    if isoper(oper):
-        if oper.dims[1] != state.dims[0]:
-            raise Exception('Operator and state do not have same tensor ' +
-                            'structure: %s and %s' %
-                            (oper.dims[1], state.dims[0]))
-
-        if state.type == 'oper':
-            # calculates expectation value via TR(op*rho)
-            return cy_spmm_tr(oper.data, state.data,
-                              oper.isherm and state.isherm)
-
-        elif state.type == 'ket':
-            # calculates expectation value via <psi|op|psi>
-            return expect_csr_ket(oper.data, state.data,
-                                 oper.isherm)
-    else:
-        raise TypeError('Invalid operand types')
-
-
-def _single_eseries_expect(oper, state):
-    """
-    Private function used by expect to calculate expectation values for
-    eseries.
-    """
-
-    out = eseries()
-
-    if isoper(state.ampl[0]):
-        out.rates = state.rates
-        out.ampl = np.array([expect(oper, a) for a in state.ampl])
-
-    else:
-        out.rates = np.array([])
-        out.ampl = np.array([])
-
-        for m in range(len(state.rates)):
-            op_m = state.ampl[m].data.conj().T * oper.data
-
-            for n in range(len(state.rates)):
-                a = op_m * state.ampl[n].data
-
-                if isinstance(a, sp.spmatrix):
-                    a = a.todense()
-
-                out.rates = np.append(out.rates, state.rates[n] -
-                                      state.rates[m])
-                out.ampl = np.append(out.ampl, a)
-
-    return out
+    if not oper.isoper or not (state.isket or state.isoper):
+        raise TypeError('invalid operand types')
+    if oper.dims[1] != state.dims[0]:
+        msg = (
+            "incompatible dimensions "
+            + str(oper.dims[1]) + " and " + str(state.dims[0])
+        )
+        raise ValueError(msg)
+    out = _data.expect_csr(oper.data, state.data)
+    return out.real if oper.isherm and (state.isket or state.isherm) else out
 
 
 def variance(oper, state):
@@ -172,4 +126,4 @@ def variance(oper, state):
         Variance of operator 'oper' for given state.
 
     """
-    return expect(oper ** 2, state) - expect(oper, state) ** 2
+    return expect(oper**2, state) - expect(oper, state)**2
