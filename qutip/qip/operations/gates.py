@@ -46,7 +46,7 @@ from qutip.states import fock_dm
 
 __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'qrot',
            'x_gate', 'y_gate', 'z_gate', 'cy_gate', 'cz_gate', 's_gate',
-           't_gate', 'cs_gate', 'ct_gate', 'cphase', 'cnot',
+           't_gate', 'qasmu_gate', 'cs_gate', 'ct_gate', 'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
            'sqrtiswap', 'fredkin', 'molmer_sorensen',
            'toffoli', 'rotation', 'controlled_gate',
@@ -362,6 +362,38 @@ def qrot(theta, phi, N=None, target=0):
             [np.cos(theta/2.), -1.j*np.exp(-1.j*phi)*np.sin(theta/2.)],
             [-1.j*np.exp(1.j*phi)*np.sin(theta/2.), np.cos(theta/2.)]
         ])
+
+
+def qasmu_gate(args, N=None, target=0):
+    """
+    QASM U-gate as defined in the OpenQASM standard.
+
+    Parameters
+    ----------
+
+    theta : float
+        The argument supplied to the last RZ rotation.
+    phi : float
+        The argument supplied to the middle RY rotation.
+    gamma : float
+        The argument supplied to the first RZ rotation.
+    N : int
+        Number of qubits in the system.
+    target : int
+        The index of the target qubit.
+
+    Returns
+    -------
+    qasmu_gate : :class:`qutip.Qobj`
+        Quantum object representation of the QASM U-gate as defined in the
+        OpenQASM standard.
+    """
+
+    theta, phi, gamma = args
+    if N is not None:
+        return expand_operator(qasmu_gate([theta, phi, gamma]), N=N,
+                               targets=target)
+    return Qobj(rz(phi) * ry(theta) * rz(gamma))
 
 
 #

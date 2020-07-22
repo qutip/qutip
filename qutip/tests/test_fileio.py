@@ -33,9 +33,20 @@
 
 import pytest
 import numpy as np
+import uuid
 import qutip
 
+# qsave _always_ appends a suffix to the file name at the time of writing, but
+# in case this changes in the future, to ensure that we never leak a temporary
+# file into the user's folders, we simply apply these tests in a temporary
+# directory.  Windows also does not allow temporary files to be opened multiple
+# times, so using a temporary directory is best.
+pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
+
 _dimension = 10
+
+def _random_file_name():
+    return "_" + str(uuid.uuid4())
 
 
 class Test_file_data_store_file_data_read:
@@ -49,33 +60,28 @@ class Test_file_data_store_file_data_read:
         out = qutip.file_data_read(filename)
         np.testing.assert_allclose(data, out, atol=1e-8)
 
-    def test_defaults(self, tmpfile):
-        return self.case(tmpfile.name, {})
+    def test_defaults(self):
+        return self.case(_random_file_name(), {})
 
     @pytest.mark.parametrize("type_", ["real", "complex"])
     @pytest.mark.parametrize("format_", ["decimal", "exp"])
-    def test_type_format(self, tmpfile, type_, format_):
+    def test_type_format(self, type_, format_):
+
         kwargs = {'numtype': type_, 'numformat': format_}
-        return self.case(tmpfile.name, kwargs)
+        return self.case(_random_file_name(), kwargs)
 
     @pytest.mark.parametrize("separator", [",", ";", "\t", " ", " \t "],
                              ids=lambda x: "'" + x + "'")
-    def test_separator_detection(self, tmpfile, separator):
+    def test_separator_detection(self, separator):
         kwargs = {'numtype': 'complex', 'numformat': 'exp', 'sep': separator}
-        return self.case(tmpfile.name, kwargs)
+        return self.case(_random_file_name(), kwargs)
 
 
-@pytest.mark.usefixtures("in_temporary_directory")
 def test_qsave_qload():
-    # qsave _always_ appends a suffix to the file name at the time of writing,
-    # but in case this changes in the future, to ensure that we never leak a
-    # temporary file into the user's folders, we simply apply this test in a
-    # temporary directory rather than manually creating a temporary file and
-    # modifying the name.
     ops_in = [qutip.sigmax(),
               qutip.num(_dimension),
               qutip.coherent_dm(_dimension, 1j)]
-    filename = "qsave_qload_test"
+    filename = _random_file_name()
     qutip.qsave(ops_in, filename)
     ops_out = qutip.qload(filename)
     assert ops_in == ops_out
