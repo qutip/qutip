@@ -270,15 +270,16 @@ class _QtOptionMaker:
         # __init__ is dynamically build to get a meaningful signature
         _all_set = [key for key in cls.__dict__
                     if self._valid(cls, key, _set=True)]
-        attributes_kw = ["             {}=None,".format(var)
-                         for var in _all_set]
-        attributes_kw[-1] = attributes_kw[-1][:-1]
-        attributes_set = ["    self.{0} = {0} if {0} is not None "
+        attributes_kw = ",\n             ".join(["{}=None".format(var)
+                         for var in _all_set])
+        #attributes_kw[-1] = attributes_kw[-1][:-1]
+        attributes_set = "".join(["\n    self.{0} = {0} if {0} is not None "
                           "else self._defaultInstance.{0}".format(var)
-                          for var in _all_set]
+                          for var in _all_set])
         code = f"""
-def __init__(self, file='', *, {", ".join(attributes_kw)}):
-    {"\n    ".join(attributes_set)}
+def __init__(self, file='', *,
+             {attributes_kw}):
+    {attributes_set}
     if file:
         self.load(file)
 """
