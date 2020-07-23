@@ -64,7 +64,7 @@ def _tokenize_line(command):
     Parameters
     ----------
     command : str
-        one line of QASM code to be broken into "tokens".
+        One line of QASM code to be broken into "tokens".
 
     Returns
     -------
