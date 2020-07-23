@@ -59,7 +59,7 @@ def _get_qiskit_gates():
 
 def _tokenize_line(command):
     '''
-    Tokenize a single line of QASM code.
+    Tokenize (break into several parts a string of) a single line of QASM code.
 
     Parameters
     ----------
@@ -69,7 +69,7 @@ def _tokenize_line(command):
     Returns
     -------
     tokens : list of str
-        the tokens corresponding to the qasm line taken as input.
+        The tokens (parts) corresponding to the qasm line taken as input.
     '''
 
     # for gates without arguments
@@ -110,12 +110,12 @@ def _tokenize_line(command):
 
 def _tokenize(token_cmds):
     '''
-    Tokenize QASM code for processing.
+    Tokenize QASM code for processing, i.e. break it into several parts.
 
     Parameters
     ----------
     token_cmds : list of str
-        lines of QASM code.
+        Lines of QASM code.
 
     Returns
     -------
@@ -146,7 +146,7 @@ def _gate_processor(command):
     '''
     Process tokens for a gate call statement separating them into args and regs.
     Processes tokens from a "gate call" (e.g. rx(pi) q[0]) and returns the
-    tokens for the arguments and registers separtely.
+    tokens for the arguments and registers separately.
     '''
 
     gate_args = []
@@ -365,13 +365,13 @@ class QasmProcessor:
 
     def _regs_processor(self, regs, reg_type):
         '''
-        Process register tokens: map them to the QubitCircuit indices
+        Process register tokens: map them to the :class:`.QubitCircuit` indices
         of the respective registers.
 
         Parameters
         ----------
         regs : list of str
-            token list corresponding to qubit/cbit register invocations.
+            Token list corresponding to qubit/cbit register invocations.
         reg_type : str
             reg_type can be "measure" or "gate" to specify type of required
             processing.
@@ -698,7 +698,7 @@ def read_qasm(qasm_input, mode="qiskit", version="2.0", strmode=False):
     '''
     Read OpenQASM intermediate representation
     (https://github.com/Qiskit/openqasm) and return
-    a QubitCircuit and state inputs as specified in the
+    a :class:`.QubitCircuit` and state inputs as specified in the
     QASM file.
 
     Parameters
@@ -720,7 +720,7 @@ def read_qasm(qasm_input, mode="qiskit", version="2.0", strmode=False):
     Returns
     -------
     qc : QubitCircuit
-        Returns QubitCircuit specified in the QASM file.
+        Returns a :class:`.QubitCircuit` object specified in the QASM file.
     '''
 
     if strmode:
@@ -816,7 +816,7 @@ class QasmOutput():
 
         Parameters
         ----------
-        qc: QubitCircuit
+        qc: :class:`.QubitCircuit`
             circuit object to produce QASM output for.
         '''
 
@@ -843,7 +843,7 @@ def print_qasm(qc):
 
     Parameters
     ----------
-    qc: QubitCircuit
+    qc: :class:`.QubitCircuit`
         circuit object to produce QASM output for.
     '''
 
@@ -859,7 +859,7 @@ def str_qasm(qc):
 
     Parameters
     ----------
-    qc: QubitCircuit
+    qc: :class:`.QubitCircuit`
         circuit object to produce QASM output for.
 
     Returns
@@ -882,7 +882,7 @@ def save_qasm(qc, file_loc):
 
     Parameters
     ----------
-    qc: QubitCircuit
+    qc: :class:`.QubitCircuit`
         circuit object to produce QASM output for.
     '''
 
