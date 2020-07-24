@@ -39,118 +39,78 @@ This module implements transformations between superoperator representations,
 including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 """
 
-__all__ = ['super_to_choi', 'choi_to_super', 'choi_to_kraus', 'kraus_to_choi',
-           'kraus_to_super', 'choi_to_chi', 'chi_to_choi', 'to_choi',
-           'to_chi', 'to_super', 'to_kraus', 'to_stinespring'
-           ]
+__all__ = [
+    'kraus_to_choi', 'kraus_to_super',
+    'to_choi', 'to_chi', 'to_super', 'to_kraus', 'to_stinespring',
+]
 
-# Python Standard Library
-from itertools import starmap, product
+import itertools
+import numbers
 
-# NumPy/SciPy
-from numpy.core.multiarray import array, zeros
-from numpy.core.shape_base import hstack
-from numpy.matrixlib.defmatrix import matrix
-from numpy import sqrt, floor, log2
-from numpy import dot
-from scipy.linalg import eig, svd
-# Needed to avoid conflict with itertools.product.
 import numpy as np
+import scipy.linalg
 
-# Other QuTiP functions and classes
-from .superoperator import vec2mat, operator_to_vector, sprepost
-from .tensor import tensor, flatten
+from . import data as _data
+from .superoperator import stack_columns, unstack_columns, sprepost
+from .tensor import tensor
+from .dimensions import flatten
 from .qobj import Qobj
 from .operators import identity, sigmax, sigmay, sigmaz
 from .states import basis
 
 
-# SPECIFIC SUPEROPERATORS -----------------------------------------------------
-
-def _dep_super(pe):
-    """
-    Returns the superoperator corresponding to qubit depolarization for a
-    given parameter pe.
-
-    TODO: if this is going into production (hopefully it isn't) then check
-    CPTP, expand to arbitrary dimensional systems, etc.
-    """
-    return Qobj(dims=[[[2], [2]], [[2], [2]]],
-                inpt=array([[1. - pe / 2., 0., 0., pe / 2.],
-                            [0., 1. - pe, 0., 0.],
-                            [0., 0., 1. - pe, 0.],
-                            [pe / 2., 0., 0., 1. - pe / 2.]]))
-
-
-def _dep_choi(pe):
-    """
-    Returns the choi matrix corresponding to qubit depolarization for a
-    given parameter pe.
-
-    TODO: if this is going into production (hopefully it isn't) then check
-    CPTP, expand to arbitrary dimensional systems, etc.
-    """
-    return Qobj(dims=[[[2], [2]], [[2], [2]]],
-                inpt=array([[1. - pe / 2., 0., 0., 1. - pe],
-                            [0., pe / 2., 0., 0.],
-                            [0., 0., pe / 2., 0.],
-                            [1. - pe, 0., 0., 1. - pe / 2.]]),
-                superrep='choi')
-
-
-# CHANGE OF BASIS FUNCTIONS ---------------------------------------------------
-# These functions find change of basis matrices, and are useful in converting
-# between (for instance) Choi and chi matrices. At some point, these should
-# probably be moved out to another module.
-
 _SINGLE_QUBIT_PAULI_BASIS = (identity(2), sigmax(), sigmay(), sigmaz())
 
 
-def _pauli_basis(nq=1):
-    # NOTE: This is slow as can be.
-    # TODO: Make this sparse. CSR format was causing problems for the [idx, :]
-    #       slicing below.
-    B = zeros((4 ** nq, 4 ** nq), dtype=complex)
+def _superpauli_basis(nq=1):
     dims = [[[2] * nq] * 2] * 2
+    nnz = 8**nq
+    data = _data.csr.empty(4**nq, 4**nq, nnz)
+    sci = data.as_scipy(full=True)
+    ptr, ptr_inc = 0, 2**nq
+    # Construct the Pauli basis by vertically stacking rows in sparse format.
+    # The CSR format is much more efficient at handling row-stacking, so we
+    # actually have to do a little dance through adjoint/transpose to get it
+    # into the right format.
+    for i, paulis in enumerate(itertools.product(_SINGLE_QUBIT_PAULI_BASIS,
+                                                 repeat=nq)):
+        basis = paulis[0].data
+        for pauli in paulis[1:]:
+            basis = _data.kron_csr(basis, pauli.data)
+        basis_ket_sci = stack_columns(basis).transpose().as_scipy()
+        sci.data[ptr : ptr+ptr_inc] = basis_ket_sci.data
+        sci.indices[ptr : ptr+ptr_inc] = basis_ket_sci.indices
+        sci.indptr[i] = ptr
+        ptr += ptr_inc
+    sci.indptr[-1] = nnz
+    return Qobj(data.adjoint(),
+                dims=dims,
+                type='super',
+                superrep='super',
+                isherm=False,
+                isunitary=False,
+                copy=False)
 
-    for idx, op in enumerate(starmap(tensor,
-                                     product(_SINGLE_QUBIT_PAULI_BASIS,
-                                             repeat=nq))):
-        B[:, idx] = operator_to_vector(op).dag().data.todense()
 
-    return Qobj(B, dims=dims)
+def _int_log_two(x):
+    return int(x).bit_length() - 1
 
 
-# PRIVATE CONVERSION FUNCTIONS ------------------------------------------------
-# These functions handle the main work of converting between representations,
-# and are exposed below by other functions that add postconditions about types.
-#
-# TODO: handle type='kraus' as a three-index Qobj, rather than as a list?
+def _is_power_of_two(x):
+    return isinstance(x, numbers.Integral) and x == 2**_int_log_two(x)
 
-def _super_tofrom_choi(q_oper):
+
+def _nq(dims):
+    dim = np.prod(dims[0][0])
+    nq = _int_log_two(dim)
+    if 2 ** nq != dim:
+        raise ValueError("{} is not an integer power of 2.".format(dim))
+    return nq
+
+
+def isqubitdims(dims):
     """
-    We exploit that the basis transformation between Choi and supermatrix
-    representations squares to the identity, so that if we munge Qobj.type,
-    we can use the same function.
-
-    Since this function doesn't respect :attr:`Qobj.type`, we mark it as
-    private; only those functions which wrap this in a way so as to preserve
-    type should be called externally.
-    """
-    data = q_oper.data.toarray()
-    dims = q_oper.dims
-    new_dims = [[dims[1][1], dims[0][1]], [dims[1][0], dims[0][0]]]
-    d0 = np.prod(np.ravel(new_dims[0]))
-    d1 = np.prod(np.ravel(new_dims[1]))
-    s0 = np.prod(dims[0][0])
-    s1 = np.prod(dims[1][1])
-    return Qobj(dims=new_dims,
-                inpt=data.reshape([s0, s1, s0, s1]).
-                transpose(3, 1, 2, 0).reshape((d0, d1)))
-
-
-def _isqubitdims(dims):
-    """Checks whether all entries in a dims list are integer powers of 2.
+    Checks whether all entries in a dims list are integer powers of 2.
 
     Parameters
     ----------
@@ -163,16 +123,12 @@ def _isqubitdims(dims):
         True if and only if every member of the flattened dims
         list is an integer power of 2.
     """
-    return all([
-        2**floor(log2(dim)) == dim
-        for dim in flatten(dims)
-    ])
+    return all(_is_power_of_two(dim) for dim in flatten(dims))
 
 
-def _super_to_superpauli(q_oper):
+def _to_superpauli(q_oper):
     """
-    Converts a superoperator in the column-stacking basis to
-    the Pauli basis (assuming qubit dimensions).
+    Convert a superoperator to the Pauli basis (assuming qubit dimensions).
 
     This is an internal function, as QuTiP does not currently have
     a way to mark that superoperators are represented in the Pauli
@@ -181,87 +137,86 @@ def _super_to_superpauli(q_oper):
     """
     # Ensure we start with a column-stacking-basis superoperator.
     sqobj = to_super(q_oper)
-    if not _isqubitdims(sqobj.dims):
+    if not isqubitdims(sqobj.dims):
         raise ValueError("Pauli basis is only defined for qubits.")
-    nq = int(log2(sqobj.shape[0]) / 2)
-    B = _pauli_basis(nq) / sqrt(2**nq)
+    nq = _int_log_two(sqobj.shape[0]) // 2
+    B = _superpauli_basis(nq) * 2**(-0.5 * nq)
     # To do this, we have to hack a bit and force the dims to match,
-    # since the _pauli_basis function makes different assumptions
+    # since the superpauli_basis function makes different assumptions
     # about indices than we need here.
     B.dims = sqobj.dims
-    return (B.dag() * sqobj * B)
+    return B.dag() @ sqobj @ B
 
 
-def super_to_choi(q_oper):
-    # TODO: deprecate and make private in favor of to_choi,
-    # which looks at Qobj.type to determine the right conversion function.
-    """
-    Takes a superoperator to a Choi matrix
-    TODO: Sanitize input, incorporate as method on Qobj if type=='super'
-    """
-    q_oper = _super_tofrom_choi(q_oper)
-    q_oper.superrep = 'choi'
-    return q_oper
-
-
-def choi_to_super(q_oper):
-    # TODO: deprecate and make private in favor of to_super,
-    # which looks at Qobj.type to determine the right conversion function.
-    """
-    Takes a Choi matrix to a superoperator
-    TODO: Sanitize input, Abstract-ify application of channels to states
-    """
-    q_oper = super_to_choi(q_oper)
-    q_oper.superrep = 'super'
-    return q_oper
-
-
-def choi_to_kraus(q_oper, tol=1e-9):
+def _choi_to_kraus(q_oper, tol=1e-9):
     """
     Takes a Choi matrix and returns a list of Kraus operators.
     TODO: Create a new class structure for quantum channels, perhaps as a
     strict sub-class of Qobj.
     """
-    vals, vecs = eig(q_oper.data.todense())
-    vecs = [array(_) for _ in zip(*vecs)]
-    shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
-    return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
-            dims=q_oper.dims[0][::-1])
+    vals, vecs = q_oper.eigenstates()
+    dims = [q_oper.dims[0][1], q_oper.dims[0][0]]
+    shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
+    return [Qobj(np.sqrt(val) * unstack_columns(vec.data, shape=shape),
+                 dims=dims, type='oper', copy='False')
             for val, vec in zip(vals, vecs) if abs(val) >= tol]
 
 
+# Individual conversions from Kraus operators are public because the output
+# list of Kraus operators is not itself a quantum object.
+
 def kraus_to_choi(kraus_list):
     """
-    Takes a list of Kraus operators and returns the Choi matrix for the channel
+    Take a list of Kraus operators and returns the Choi matrix for the channel
     represented by the Kraus operators in `kraus_list`
     """
-    kraus_mat_list = list(map(lambda x: matrix(x.data.todense()), kraus_list))
+    kraus_mat_list = [k.full() for k in kraus_list]
     op_rng = range(kraus_mat_list[0].shape[1])
-    choi_blocks = array([[sum([op[:, c_ix] * array([op.H[r_ix, :]])
-                               for op in kraus_mat_list])
-                          for r_ix in op_rng]
-                         for c_ix in op_rng])
-    return Qobj(inpt=hstack(hstack(choi_blocks)),
-                dims=[kraus_list[0].dims[::-1], kraus_list[0].dims[::-1]],
-                type='super', superrep='choi')
+    choi_blocks = np.array(
+        [[sum(op[:, c_ix] * np.array([op.H[r_ix, :]]) for op in kraus_mat_list)
+          for r_ix in op_rng]
+         for c_ix in op_rng]
+    )
+    return Qobj(np.hstack(np.hstack(choi_blocks)),
+                dims=[kraus_list[0].dims[::-1]]*2,
+                type='super',
+                superrep='choi',
+                copy=False)
 
 
 def kraus_to_super(kraus_list):
     """
-    Converts a list of Kraus operators and returns a super operator.
+    Convert a list of Kraus operators to a superoperator.
     """
-    return choi_to_super(kraus_to_choi(kraus_list))
+    return to_super(kraus_to_choi(kraus_list))
 
 
-def _nq(dims):
-    dim = np.product(dims[0][0])
-    nq = int(log2(dim))
-    if 2 ** nq != dim:
-        raise ValueError("{} is not an integer power of 2.".format(dim))
-    return nq
+def _super_tofrom_choi(q_oper):
+    """
+    We exploit that the basis transformation between Choi and supermatrix
+    representations squares to the identity, so that if we munge Qobj.type,
+    we can use the same function.
+    """
+    if not q_oper.issuper:
+        raise ValueError("needs to be a superoperator")
+    if q_oper.superrep not in ('super', 'choi'):
+        raise ValueError("operator is not in super or choi format")
+    data = q_oper.data.to_array()
+    dims = q_oper.dims
+    new_dims = [[dims[1][1], dims[0][1]], [dims[1][0], dims[0][0]]]
+    d0 = np.prod(flatten(new_dims[0]))
+    d1 = np.prod(flatten(new_dims[1]))
+    s0 = np.prod(dims[0][0])
+    s1 = np.prod(dims[1][1])
+    data = data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape(d0, d1)
+    return Qobj(data,
+                dims=new_dims,
+                type='super',
+                superrep='super' if q_oper.superrep == 'choi' else 'choi',
+                copy=False)
 
 
-def choi_to_chi(q_oper):
+def _choi_to_chi(q_oper):
     """
     Converts a Choi matrix to a Chi matrix in the Pauli basis.
 
@@ -269,16 +224,15 @@ def choi_to_chi(q_oper):
     Heisenberg-Weyl for other subsystem dimensions.
     """
     nq = _nq(q_oper.dims)
-    B = _pauli_basis(nq)
-    # Force the basis change to match the dimensions of
-    # the input.
-    B.dims = q_oper.dims
-    B.superrep = 'choi'
+    B = _superpauli_basis(nq).data
+    return Qobj(B.adjoint() @ q_oper.data @ B,
+                dims=q_oper.dims,
+                type='super',
+                superrep='chi',
+                copy=False)
 
-    return Qobj(B.dag() * q_oper * B, superrep='chi')
 
-
-def chi_to_choi(q_oper):
+def _chi_to_choi(q_oper):
     """
     Converts a Choi matrix to a Chi matrix in the Pauli basis.
 
@@ -286,25 +240,20 @@ def chi_to_choi(q_oper):
     Heisenberg-Weyl for other subsystem dimensions.
     """
     nq = _nq(q_oper.dims)
-    B = _pauli_basis(nq)
-    # Force the basis change to match the dimensions of
-    # the input.
-    B.dims = q_oper.dims
-
-    # We normally should not multiply objects of different
-    # superreps, so Qobj warns about that. Here, however, we're actively
-    # converting between, so the superrep of B is irrelevant.
-    # To suppress warnings, we pretend that B is also a chi.
-    B.superrep = 'chi'
-
+    B = _superpauli_basis(nq).data
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
-    return Qobj((B * q_oper * B.dag()) / q_oper.shape[0], superrep='choi')
+    return Qobj((B @ q_oper.data @ B.adjoint()) / q_oper.shape[0],
+                dims=q_oper.dims,
+                type='super',
+                superrep='choi',
+                copy=False)
+
 
 def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
-    Given a partial isometry U and a vector of square-roots of singular values S
-    obtained from an SVD, produces the Kraus operators represented by U.
+    Given a partial isometry U and a vector of square-roots of singular values
+    S obtained from a SVD, produces the Kraus operators represented by U.
 
     Returns
     -------
@@ -313,41 +262,48 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    Ks = list(map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))))
-    for K in Ks:
-        K.dims = [outdims, indims]
-    return Ks
+    data = np.array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))
+    return [
+        Qobj(x,
+             dims=[outdims, indims],
+             type='oper',
+             copy=False)
+        for x in data
+    ]
 
 
-def _generalized_kraus(q_oper, thresh=1e-10):
+def _generalized_kraus(q_oper, threshold=1e-10):
     # TODO: document!
     # TODO: use this to generalize to_kraus to the case where U != V.
     #       This is critical for non-CP maps, as appear in (for example)
     #       diamond norm differences between two CP maps.
-    if q_oper.type != "super" or q_oper.superrep != "choi":
-        raise ValueError("Expected a Choi matrix, got a {} (superrep {}).".format(q_oper.type, q_oper.superrep))
-    
+    if not q_oper.issuper or q_oper.superrep != "choi":
+        raise ValueError("".join([
+            "Expected a Choi matrix, got a ", repr(q_oper.type),
+            " (superrep ", repr(q_oper.superrep), ")."
+        ]))
+
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
-    dL, dR = map(int, map(sqrt, q_oper.shape))
+    dL, dR = int(np.sqrt(q_oper.shape[0])), int(np.sqrt(q_oper.shape[1]))
     # Also remember the dims breakout.
     out_dims, in_dims = q_oper.dims
     out_left, out_right = out_dims
     in_left, in_right = in_dims
 
     # Find the SVD.
-    U, S, V = svd(q_oper.data.todense())
+    U, S, V = scipy.linalg.svd(q_oper.full())
 
     # Truncate away the zero singular values, up to a threshold.
-    nonzero_idxs = S > thresh
+    nonzero_idxs = S > threshold
     dK = nonzero_idxs.sum()
-    U = array(U)[:, nonzero_idxs]
+    U = np.array(U)[:, nonzero_idxs]
     # We also want S to be a single index array, which np.matrix
     # doesn't allow for. This is stripped by calling array() on it.
-    S = sqrt(array(S)[nonzero_idxs])
+    S = np.sqrt(np.array(S)[nonzero_idxs])
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
-    V = array(V.conj().T)[:, nonzero_idxs]
+    V = np.array(V.conj().T)[:, nonzero_idxs]
 
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
@@ -359,11 +315,11 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     return kU, kV
 
 
-def choi_to_stinespring(q_oper, thresh=1e-10):
+def _choi_to_stinespring(q_oper, threshold=1e-10):
     # TODO: document!
-    kU, kV = _generalized_kraus(q_oper, thresh=thresh)
+    kU, kV = _generalized_kraus(q_oper, threshold=threshold)
 
-    assert(len(kU) == len(kV))
+    assert len(kU) == len(kV)
     dK = len(kU)
     dL = kU[0].shape[0]
     dR = kV[0].shape[1]
@@ -372,23 +328,29 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     out_left, out_right = out_dims
     in_left, in_right = in_dims
 
-    A = Qobj(zeros((dK * dL, dL)), dims=[out_left + [dK], out_right + [1]])
-    B = Qobj(zeros((dK * dR, dR)), dims=[in_left + [dK], in_right + [1]])
+    A = Qobj(_data.csr.zeros(dK * dL, dL),
+             dims=[out_left + [dK], out_right + [1]],
+             type='oper',
+             isherm=True,
+             isunitary=False,
+             copy=False)
+    B = Qobj(_data.csr.zeros(dK * dR, dR),
+             dims=[in_left + [dK], in_right + [1]],
+             type='oper',
+             isherm=True,
+             isunitary=False,
+             copy=False)
 
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
-        
+
     # There is no input (right) Kraus index, so strip that off.
     del A.dims[1][-1]
     del B.dims[1][-1]
 
     return A, B
 
-# PUBLIC CONVERSION FUNCTIONS -------------------------------------------------
-# These functions handle superoperator conversions in a way that preserves the
-# correctness of Qobj.type, and in a way that automatically branches based on
-# the input Qobj.type.
 
 def to_choi(q_oper):
     """
@@ -418,13 +380,13 @@ def to_choi(q_oper):
         if q_oper.superrep == 'choi':
             return q_oper
         if q_oper.superrep == 'super':
-            return super_to_choi(q_oper)
+            return _super_tofrom_choi(q_oper)
         if q_oper.superrep == 'chi':
-            return chi_to_choi(q_oper)
+            return _chi_to_choi(q_oper)
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
-        return super_to_choi(sprepost(q_oper, q_oper.dag()))
+        return _super_tofrom_choi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
@@ -457,13 +419,10 @@ def to_chi(q_oper):
         to Chi representation.
     """
     if q_oper.type == 'super':
-        # Case 1: Already done.
         if q_oper.superrep == 'chi':
             return q_oper
-        # Case 2: Can directly convert.
         elif q_oper.superrep == 'choi':
-            return choi_to_chi(q_oper)
-        # Case 3: Need to go through Choi.
+            return _choi_to_chi(q_oper)
         elif q_oper.superrep == 'super':
             return to_chi(to_choi(q_oper))
         else:
@@ -502,16 +461,12 @@ def to_super(q_oper):
         to supermatrix representation.
     """
     if q_oper.type == 'super':
-        # Case 1: Already done.
         if q_oper.superrep == "super":
             return q_oper
-        # Case 2: Can directly convert.
         elif q_oper.superrep == 'choi':
-            return choi_to_super(q_oper)
-        # Case 3: Need to go through Choi.
+            return _super_tofrom_choi(q_oper)
         elif q_oper.superrep == 'chi':
             return to_super(to_choi(q_oper))
-        # Case 4: Something went wrong.
         else:
             raise ValueError(
                 "Unrecognized superrep '{}'.".format(q_oper.superrep))
@@ -552,27 +507,29 @@ def to_kraus(q_oper, tol=1e-9):
     TypeError: if the given quantum object is not a map, or cannot be
         decomposed into Kraus operators.
     """
-    if q_oper.type == 'super':
+    if q_oper.issuper:
         if q_oper.superrep in ("super", "chi"):
             return to_kraus(to_choi(q_oper), tol)
         elif q_oper.superrep == 'choi':
-            return choi_to_kraus(q_oper, tol)
-    elif q_oper.type == 'oper':  # Assume unitary
+            return _choi_to_kraus(q_oper, tol)
+    elif q_oper.isoper:  # Assume unitary
         return [q_oper]
-    else:
-        raise TypeError(
-            "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.superrep} to Kraus decomposition not "
-            "supported.".format(q_oper)
-        )
+    raise TypeError(
+        "Conversion of Qobj with type = {0.type} "
+        "and superrep = {0.superrep} to Kraus decomposition not "
+        "supported.".format(q_oper)
+    )
 
-def to_stinespring(q_oper):
+
+def to_stinespring(q_oper, threshold=1e-10):
     r"""
-    Converts a Qobj representing a quantum map $\Lambda$ to a pair of partial isometries
-    $A$ and $B$ such that $\Lambda(X) = \Tr_2(A X B^\dagger)$ for all inputs $X$, where
-    the partial trace is taken over a a new index on the output dimensions of $A$ and $B$.
+    Converts a Qobj representing a quantum map $\Lambda$ to a pair of partial
+    isometries $A$ and $B$ such that $\Lambda(X) = \Tr_2(A X B^\dagger)$ for
+    all inputs $X$, where the partial trace is taken over a a new index on the
+    output dimensions of $A$ and $B$.
 
-    For completely positive inputs, $A$ will always equal $B$ up to precision errors.
+    For completely positive inputs, $A$ will always equal $B$ up to precision
+    errors.
 
     Parameters
     ----------
@@ -582,6 +539,7 @@ def to_stinespring(q_oper):
     Returns
     -------
     A, B : Qobj
-        Quantum objects representing each of the Stinespring matrices for the input Qobj.
+        Quantum objects representing each of the Stinespring matrices for the
+        input Qobj.
     """
-    return choi_to_stinespring(to_choi(q_oper))
+    return _choi_to_stinespring(to_choi(q_oper), threshold)
