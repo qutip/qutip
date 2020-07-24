@@ -40,8 +40,7 @@ __all__ = [
 
 import numpy as np
 from .qobj import Qobj
-from .permute import reshuffle
-from .superoperator import operator_to_vector
+from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
     dims_idxs_to_tensor_idxs
