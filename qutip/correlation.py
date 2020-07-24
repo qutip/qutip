@@ -46,7 +46,7 @@ import scipy.fftpack
 
 from . import (
     esval, esspec, expect, qeye, Qobj, isket, issuper, QobjEvo, ket2dm,
-    liouvillian, spre, mat2vec, tensor,
+    liouvillian, spre, stack_columns, tensor,
 )
 from .essolve import ode2es
 from .mesolve import mesolve
@@ -1315,10 +1315,10 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     b = spre(b_op).full()
     a = spre(a_op).full()
 
-    tr_vec = np.transpose(mat2vec(tr_mat.full()))
+    tr_vec = np.transpose(stack_columns(tr_mat.full()))
 
     rho_ss = steadystate(L)
-    rho = np.transpose(mat2vec(rho_ss.full()))
+    rho = np.transpose(stack_columns(rho_ss.full()))
 
     I = np.identity(N * N)
     P = np.kron(np.transpose(rho), tr_vec)

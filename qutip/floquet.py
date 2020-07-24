@@ -46,7 +46,7 @@ import scipy
 from numpy import angle, pi, exp, sqrt
 from types import FunctionType
 from . import (
-    Qobj, isket, vec2mat_index, mat2vec, vec2mat, ket2dm, projection, expect,
+    Qobj, isket, unstacked_index, stack_columns, unstack_columns, ket2dm, projection, expect,
 )
 from .core.cy.spmatfuncs import cy_ode_rhs
 #from .mesolve import mesolve
@@ -706,9 +706,9 @@ def floquet_master_equation_tensor(Alist, f_energies):
 
     Rdata_lil = scipy.sparse.lil_matrix((N * N, N * N), dtype=complex)
     for I in range(N * N):
-        a, b = vec2mat_index(N, I)
+        a, b = unstacked_index(N, I)
         for J in range(N * N):
-            c, d = vec2mat_index(N, J)
+            c, d = unstacked_index(N, J)
 
             R = -1.0j * (f_energies[a] - f_energies[b])*(a == c)*(b == d)
             Rdata_lil[I, J] = R
@@ -815,7 +815,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full())
+    initial_vector = stack_columns(rho0.full())
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -832,7 +832,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
         if not r.successful():
             break
 
-        rho = Qobj(vec2mat(r.y), rho0.dims, rho0.shape)
+        rho = Qobj(unstack_columns(r.y), rho0.dims, rho0.shape)
 
         if expt_callback:
             # use callback method

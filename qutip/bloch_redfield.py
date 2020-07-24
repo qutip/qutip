@@ -42,7 +42,7 @@ from functools import partial
 import scipy.integrate
 import scipy.sparse as sp
 from .core import (
-    Qobj, isket, ket2dm, qdiags, spre, spost, vec2mat, mat2vec, vec2mat_index,
+    Qobj, isket, ket2dm, qdiags, spre, spost, unstack_columns, stack_columns, unstacked_index,
     expect, liouvillian, Cubic_Spline,
 )
 from .core.expect import expect_rho_vec
@@ -328,7 +328,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho_eb.full())
+    initial_vector = stack_columns(rho_eb.full())
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=options.method, order=options.order,
@@ -347,7 +347,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
         if not r.successful():
             break
 
-        rho_eb.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho0.shape[0], rho0.shape[1])
+        rho_eb.data = dense2D_to_fastcsr_fmode(unstack_columns(r.y), rho0.shape[0], rho0.shape[1])
 
         # calculate all the expectation values, or output rho_eb if no
         # expectation value operators are given
@@ -516,7 +516,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
         config.tdfunc = cy_td_ode_rhs
         if verbose:
             print('BR compile time:', time.time()-_st)
-    initial_vector = mat2vec(rho0.full()).ravel()
+    initial_vector = stack_columns(rho0.full()).ravel()
     
     _ode = scipy.integrate.ode(config.tdfunc)
     code = compile('_ode.set_f_params(' + parameter_string + ')',
@@ -588,7 +588,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                             "the nsteps parameter in the Options class.")
 
         if options.store_states or expt_callback:
-            rho.data = dense2D_to_fastcsr_fmode(vec2mat(_ode.y), rho.shape[0], rho.shape[1])
+            rho.data = dense2D_to_fastcsr_fmode(unstack_columns(_ode.y), rho.shape[0], rho.shape[1])
 
             if options.store_states:
                 output.states.append(Qobj(rho, isherm=True))
@@ -617,7 +617,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
         _cython_build_cleanup(config.tdname)
     
     if options.store_final_state:
-        rho.data = dense2D_to_fastcsr_fmode(vec2mat(_ode.y), rho.shape[0], rho.shape[1])
+        rho.data = dense2D_to_fastcsr_fmode(unstack_columns(_ode.y), rho.shape[0], rho.shape[1])
         output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
 
     return output

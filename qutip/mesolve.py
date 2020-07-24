@@ -41,8 +41,8 @@ import numpy as np
 import scipy.integrate
 import warnings
 from . import (
-    Qobj, QobjEvo, isket, isoper, issuper, spre, spost, liouvillian, mat2vec,
-    vec2mat, lindblad_dissipator, ket2dm,
+    Qobj, QobjEvo, isket, isoper, issuper, spre, spost, liouvillian, stack_columns,
+    unstack_columns, lindblad_dissipator, ket2dm,
 )
 from .solver import Options, Result, config, solver_safe, SolverSystem
 from .core.expect import expect_rho_vec
@@ -411,7 +411,7 @@ def _ode_rho_func_td(t, y, L_func, args):
 
 def _ode_super_func_td(t, y, L_func, args):
     L = L_func(t, y, args)
-    ym = vec2mat(y)
+    ym = unstack_columns(y)
     return (L*ym).ravel('F')
 
 # -----------------------------------------------------------------------------
@@ -475,7 +475,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         output.states = []
 
     def get_curr_state_data(r):
-        return vec2mat(r.y)
+        return unstack_columns(r.y)
 
     #
     # start evolution

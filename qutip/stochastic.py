@@ -35,8 +35,8 @@
 import numpy as np
 import scipy.sparse as sp
 from . import (
-    Qobj, QobjEvo, isket, isoper, issuper, ket2dm, spre, spost, mat2vec,
-    vec2mat, liouvillian, lindblad_dissipator,
+    Qobj, QobjEvo, isket, isoper, issuper, ket2dm, spre, spost, stack_columns,
+    unstack_columns, liouvillian, lindblad_dissipator,
 )
 from .cy.stochastic import (
     SSESolver, SMESolver, PcSSESolver, PcSMESolver, PmSMESolver,
@@ -362,7 +362,7 @@ class StochasticSolverOptions:
             self.c_ops = c_ops
 
         self.state0 = state0
-        self.rho0 = mat2vec(state0.full()).ravel()
+        self.rho0 = stack_columns(state0.full()).ravel()
 
         # Observation
         self.e_ops = e_ops
@@ -1107,7 +1107,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
     sso.d1 = d1
     sso.d2 = d2
     if _safe_mode:
-        # This state0_vec is computed as mat2vec(state0.full()).ravel()
+        # This state0_vec is computed as stack_columns(state0.full()).ravel()
         # in the sso init.
         state0_vec = sso.rho0
         l_vec = state0_vec.shape[0]

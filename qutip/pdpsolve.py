@@ -43,7 +43,7 @@ except:
 from numpy.random import RandomState
 
 from . import (
-    Qobj, isket, ket2dm, expect, spre, spost, mat2vec, vec2mat,
+    Qobj, isket, ket2dm, expect, spre, spost, stack_columns, unstack_columns,
     liouvillian, lindblad_dissipator,
 )
 from .core.expect import expect_rho_vec
@@ -538,7 +538,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
     for n in range(sso.ntraj):
         progress_bar.update(n)
-        rho_t = mat2vec(sso.rho0.full()).ravel()
+        rho_t = stack_columns(sso.rho0.full()).ravel()
 
         states_list, jump_times, jump_op_idx = \
             _smepdpsolve_single_trajectory(data, L, dt, sso.times,
@@ -589,7 +589,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_
             for e_idx, e in enumerate(e_ops):
                 data.expect[e_idx, t_idx] += expect_rho_vec(e, rho_t)
         else:
-            states_list.append(Qobj(vec2mat(rho_t), dims=dims))
+            states_list.append(Qobj(unstack_columns(rho_t), dims=dims))
 
         for j in range(N_substeps):
 

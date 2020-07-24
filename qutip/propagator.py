@@ -235,7 +235,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
-                    u[:, n, k] = mat2vec(output[n].states[k].full()).T
+                    u[:, n, k] = stack_columns(output[n].states[k].full()).T
         else:
             progress_bar.start(N * N)
             for n in range(N * N):
@@ -246,7 +246,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                                  _safe_mode=False)
                 for k, t in enumerate(tlist):
-                    u[:, n, k] = mat2vec(output.states[k].full()).T
+                    u[:, n, k] = stack_columns(output.states[k].full()).T
             progress_bar.finished()
 
     if len(tlist) == 2:
@@ -296,7 +296,7 @@ def propagator_steadystate(U):
     ev_idx = np.argmin(shifted_vals)
     ev_min = shifted_vals[ev_idx]
     evecs = evecs.T
-    rho = Qobj(vec2mat(evecs[ev_idx]), dims=U.dims[0])
+    rho = Qobj(unstack_columns(evecs[ev_idx]), dims=U.dims[0])
     rho = rho * (1.0 / rho.tr())
     rho = 0.5 * (rho + rho.dag())  # make sure rho is herm
     rho.isherm = True

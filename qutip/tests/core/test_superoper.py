@@ -39,15 +39,27 @@ import scipy
 
 from qutip import (
     rand_dm, rand_unitary, spre, spost, vector_to_operator, operator_to_vector,
-    mat2vec, vec2mat, vec2mat_index, mat2vec_index, tensor, sprepost, to_super,
-    identity, destroy, create, qeye, QobjEvo, Qobj, liouvillian,
-    liouvillian_ref, lindblad_dissipator,
+    stack_columns, unstack_columns, unstacked_index, stacked_index, tensor,
+    sprepost, to_super, identity, destroy, create, qeye, QobjEvo, Qobj,
+    liouvillian, lindblad_dissipator,
 )
 from qutip.core.permute import reshuffle
+from qutip.core import data as _data
 
 
 def f(t, args):
     return t*(1-0.5j)
+
+
+def liouvillian_ref(H, c_ops=[]):
+    L = -1.0j * (spre(H) - spost(H)) if H else 0
+    for c in c_ops:
+        if c.issuper:
+            L += c
+        else:
+            cdc = c.dag() * c
+            L += spre(c)*spost(c.dag()) - 0.5*spre(cdc) - 0.5*spost(cdc)
+    return L
 
 
 class TestMatVec:
@@ -133,19 +145,19 @@ class TestMatVec:
         """
         Superoperator: Conversion matrix to vector to matrix
         """
-        M = rand(10, 10)
-        V = mat2vec(M)
-        M2 = vec2mat(V)
-        assert_(la.norm(M - M2) == 0.0)
+        M = _data.csr.CSR(scipy.sparse.csr_matrix(rand(10, 10)))
+        V = stack_columns(M)
+        M2 = unstack_columns(V)
+        assert_(_data.csr.nnz(M - M2) == 0)
 
     def testVecMatVec(self):
         """
         Superoperator: Conversion vector to matrix to vector
         """
-        V = rand(100)     # a row vector
-        M = vec2mat(V)
-        V2 = mat2vec(M).T  # mat2vec returns a column vector
-        assert_(la.norm(V - V2) == 0.0)
+        V = _data.csr.CSR(scipy.sparse.csr_matrix(rand(100)[:, None]))
+        M = unstack_columns(V)
+        V2 = stack_columns(M)
+        assert_(_data.csr.nnz(V - V2) == 0)
 
     def testVecMatIndexConversion(self):
         """
@@ -153,9 +165,9 @@ class TestMatVec:
         """
         N = 10
         for I in range(N * N):
-            i, j = vec2mat_index(N, I)
-            I2 = mat2vec_index(N, i, j)
-            assert_(I == I2)
+            i, j = unstacked_index(N, I)
+            I2 = stacked_index(N, i, j)
+            assert I == I2
 
     def testVecMatIndexCompability(self):
         """
@@ -163,11 +175,11 @@ class TestMatVec:
         corresponding index conversions.
         """
         N = 10
-        M = rand(N, N)
-        V = mat2vec(M)
+        M = _data.create(rand(N, N))
+        V = stack_columns(M)
         for I in range(N * N):
-            i, j = vec2mat_index(N, I)
-            assert_(V[I][0] == M[i, j])
+            i, j = unstacked_index(N, I)
+            assert V.to_array()[I, 0] == M.to_array()[i, j]
 
     def test_reshuffle(self):
         U1 = rand_unitary(2)

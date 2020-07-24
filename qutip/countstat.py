@@ -40,7 +40,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from .core import (
-    mat2vec, sprepost, spre, operator_to_vector, identity, tensor, Qobj,
+    stack_columns, sprepost, spre, operator_to_vector, identity, tensor, Qobj,
     issuper, isoper,
 )
 from .core.expect import expect_rho_vec
@@ -93,7 +93,7 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
             raise ValueError("c_ops must be given if rhoss is not")
         rhoss = steadystate(L, c_ops)
 
-    rhoss_vec = mat2vec(rhoss.full()).ravel()
+    rhoss_vec = stack_columns(rhoss.full()).ravel()
 
     N = len(J_ops)
     I = np.zeros(N)
@@ -181,7 +181,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
         S = np.zeros((N, N,len(wlist)))
         
     if sparse == False: 
-        rhoss_vec = mat2vec(rhoss.full()).ravel()
+        rhoss_vec = stack_columns(rhoss.full()).ravel()
         for k,w in enumerate(wlist):
             R = pseudo_inverse(L, rhoss=rhoss, w= w, sparse = sparse, method=method)
             for i, Ji in enumerate(J_ops):
@@ -220,7 +220,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     A = L_temp.data.tocsr()
                     A.sort_indices()                      
                       
-                rhoss_vec = mat2vec(rhoss.full()).ravel()               
+                rhoss_vec = stack_columns(rhoss.full()).ravel()               
                 
                 for j, Jj in enumerate(J_ops):
                     Qj = Q.dot( Jj.data.dot( rhoss_vec))
@@ -253,7 +253,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                                         X_rho_vec_j, 1))
 
         else:
-            rhoss_vec = mat2vec(rhoss.full()).ravel()
+            rhoss_vec = stack_columns(rhoss.full()).ravel()
             for k,w in enumerate(wlist):
 
                 R = pseudo_inverse(L,rhoss=rhoss, w= w, sparse = sparse, 

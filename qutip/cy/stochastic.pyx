@@ -39,7 +39,7 @@ from libc.math cimport fabs
 from ..core.cy.cqobjevo cimport CQobjEvo
 from ..core.cy.complex_math cimport conj, real
 from .brtools cimport ZHEEVR
-from .. import Qobj, vec2mat
+from .. import Qobj, unstack_columns
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg.cython_blas cimport zaxpy, zdotu, zdotc, zcopy, zdscal, zscal
@@ -532,7 +532,7 @@ cdef class StochasticSolver:
                     expect[e_idx, t_idx] = s
             if sso.store_states or not sso.ce_ops:
                 if sso.me:
-                    states_list.append(Qobj(vec2mat(np.asarray(rho_t)),
+                    states_list.append(Qobj(unstack_columns(np.asarray(rho_t)),
                         dims=dims))
                 else:
                     states_list.append(Qobj(np.asarray(rho_t), dims=dims))

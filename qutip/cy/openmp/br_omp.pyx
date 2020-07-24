@@ -45,7 +45,7 @@ from qutip.core.cy.sparse_routines cimport (
 from qutip.core.cy.spconvert cimport fdense2D_to_CSR
 from qutip.core.cy.spmatfuncs cimport spmvpy
 from qutip.core.cy.openmp.parfuncs cimport spmvpy_openmp
-from ..brtools cimport (spec_func, vec2mat_index, dense_to_eigbasis)
+from ..brtools cimport (spec_func, unstacked_index, dense_to_eigbasis)
 from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 from libcpp.vector cimport vector
@@ -208,9 +208,9 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
     cdef complex[:,::1] non_sec_mat
 
     for I in range(nrows**2):
-        vec2mat_index(nrows, I, ab)
+        unstacked_index(nrows, I, ab)
         for J in range(nrows**2):
-            vec2mat_index(nrows, J, cd)
+            unstacked_index(nrows, J, cd)
 
             if (not use_secular) or (fabs(skew[ab[0],ab[1]]-skew[cd[0],cd[1]]) < (dw_min * sec_cutoff)):
                 elem = (A_eig[ab[0],cd[0]]*A_eig[cd[1],ab[1]]) * 0.5

@@ -41,7 +41,7 @@ import warnings
 from functools import partial
 import scipy.sparse as sp
 from qutip import (
-    Qobj, isket, ket2dm, qdiags, spre, spost, vec2mat, mat2vec, vec2mat_index,
+    Qobj, isket, ket2dm, qdiags, spre, spost, unstack_columns, stack_columns, unstacked_index,
     liouvillian,
 )
 import qutip.settings as qset
@@ -144,7 +144,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=[], use_secular=True,
     for I, Iab in enumerate(Iabs):
         # important: use [:] to change array values, instead of creating new variable Iab
         Iab[0]  = I
-        Iab[1:] = vec2mat_index(N, I)
+        Iab[1:] = unstacked_index(N, I)
 
     # unitary part + dissipation from c_ops (if given):
     Heb = qdiags(evals,0,dims=H.dims)

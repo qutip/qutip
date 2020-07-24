@@ -35,7 +35,7 @@ from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite
 
 from qutip import (
-    Qobj, tensor, mat2vec, vec2mat, kraus_to_super, subsystem_apply, rand_dm,
+    Qobj, tensor, stack_columns, unstack_columns, kraus_to_super, subsystem_apply, rand_dm,
     rand_unitary,
 )
 from qutip.random_objects import rand_kraus_map
@@ -81,8 +81,8 @@ class TestSubsysApply(object):
         tol = 1e-12
         rho_3 = rand_dm(3)
         superop = kraus_to_super(rand_kraus_map(3))
-        analytic_result = vec2mat(superop.data.todense() *
-                                  mat2vec(rho_3.data.todense()))
+        analytic_result = unstack_columns(superop.data.todense() *
+                                  stack_columns(rho_3.data.todense()))
 
         naive_result = subsystem_apply(rho_3, superop, [True],
                                        reference=True)
@@ -145,10 +145,10 @@ class TestSubsysApply(object):
         superop = kraus_to_super(rand_kraus_map(3))
         
         analytic_result = rho_list
-        analytic_result[1] = Qobj(vec2mat(superop.data.todense() *
-                                  mat2vec(analytic_result[1].data.todense())))
-        analytic_result[3] = Qobj(vec2mat(superop.data.todense() *
-                                  mat2vec(analytic_result[3].data.todense())))
+        analytic_result[1] = Qobj(unstack_columns(superop.data.todense() *
+                                  stack_columns(analytic_result[1].data.todense())))
+        analytic_result[3] = Qobj(unstack_columns(superop.data.todense() *
+                                  stack_columns(analytic_result[3].data.todense())))
         analytic_result = tensor(analytic_result)
 
         naive_result = subsystem_apply(rho_input, superop,

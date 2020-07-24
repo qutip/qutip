@@ -41,22 +41,20 @@ __all__ = ['steadystate', 'steady', 'build_preconditioner',
 
 import warnings
 import time
-import scipy
-import numpy as np
-from numpy.linalg import svd
-from scipy import prod
-import scipy.sparse as sp
-import scipy.linalg as la
-from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
-                                 LinearOperator, gmres, lgmres, bicgstab)
 
-from . import (
-    Qobj, issuper, isoper, liouvillian, vec2mat, mat2vec, spre, sp_permute,
-    sp_bandwidth, sp_profile, weighted_bipartite_matching, tensor, identity,
-    operator_to_vector, settings
+import numpy as np
+import scipy.sparse.csgraph
+import scipy.linalg
+from scipy.sparse.linalg import (
+    use_solver, splu, spilu, eigs, LinearOperator, gmres, lgmres, bicgstab,
 )
 
-from .core.cy.spmath import zcsr_kron
+from . import (
+    Qobj, liouvillian, unstack_columns, stack_columns, spre, tensor, identity,
+    operator_to_vector, settings, _steadystate,
+)
+from .core import data as _data
+
 from .core.cy.spconvert import dense2D_to_fastcsr_fmode
 from .utilities import _version2int
 
@@ -451,7 +449,7 @@ def _steadystate_direct_sparse(L, ss_args):
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
-    data = dense2D_to_fastcsr_fmode(vec2mat(v), n, n)
+    data = dense2D_to_fastcsr_fmode(unstack_columns(v), n, n)
     data = 0.5 * (data + data.H)
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
@@ -472,15 +470,15 @@ def _steadystate_direct_dense(L, ss_args):
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
 
-    L = L.data.todense()
+    L = L.data.to_array()
     L[0, :] = np.diag(ss_args['weight']*np.ones(n)).reshape((1, n ** 2))
     _dense_start = time.time()
     v = np.linalg.solve(L, b)
     _dense_end = time.time()
     ss_args['info']['solution_time'] = _dense_end-_dense_start
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
-    data = vec2mat(v)
+        ss_args['info']['residual_norm'] = scipy.linalg.norm(b - L*v, np.inf)
+    data = unstack_columns(v)
     data = 0.5 * (data + data.conj().T)
 
     return Qobj(data, dims=dims, isherm=True)
@@ -522,7 +520,7 @@ def _steadystate_eigen(L, ss_args):
         ss_args['info']['residual_norm'] = la.norm(L*eigvec, np.inf)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
-    _temp = vec2mat(eigvec)
+    _temp = unstack_columns(eigvec)
     data = dense2D_to_fastcsr_fmode(_temp, _temp.shape[0], _temp.shape[1])
     data = 0.5 * (data + data.H)
     out = Qobj(data, dims=dims, isherm=True)
@@ -694,7 +692,7 @@ def _steadystate_iterative(L, ss_args):
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
-    data = vec2mat(v)
+    data = unstack_columns(v)
     data = 0.5 * (data + data.conj().T)
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
@@ -722,7 +720,7 @@ def _steadystate_svd_dense(L, ss_args):
     if ss_args['all_states']:
         rhoss_list = []
         for n in range(ns.shape[1]):
-            rhoss = Qobj(vec2mat(ns[:, n]), dims=L.dims[0])
+            rhoss = Qobj(unstack_columns(ns[:, n]), dims=L.dims[0])
             rhoss_list.append(rhoss / rhoss.tr())
         if ss_args['return_info']:
             return rhoss_list, ss_args['info']
@@ -732,7 +730,7 @@ def _steadystate_svd_dense(L, ss_args):
             else:
                 return rhoss_list
     else:
-        rhoss = Qobj(vec2mat(ns[:, 0]), dims=L.dims[0])
+        rhoss = Qobj(unstack_columns(ns[:, 0]), dims=L.dims[0])
         return rhoss / rhoss.tr()
 
 
@@ -1074,10 +1072,10 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
     Internal function for computing the pseudo inverse of an Liouvillian using
     dense matrix methods. See pseudo_inverse for details.
     """
-    rho_vec = np.transpose(mat2vec(rhoss.full()))
+    rho_vec = np.transpose(stack_columns(rhoss.full()))
 
     tr_mat = tensor([identity(n) for n in L.dims[0][0]])
-    tr_vec = np.transpose(mat2vec(tr_mat.full()))
+    tr_vec = np.transpose(stack_columns(tr_mat.full()))
     N = np.prod(L.dims[0][0])
     I = np.identity(N * N)
     P = np.kron(np.transpose(rho_vec), tr_vec)

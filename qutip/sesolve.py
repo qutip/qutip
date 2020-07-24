@@ -41,7 +41,7 @@ import types
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm as la_norm
-from . import Qobj, QobjEvo, vec2mat
+from . import Qobj, QobjEvo, unstack_columns
 from . import settings as qset
 from .core.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from .core.cy.spmatfuncs import (
@@ -88,7 +88,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     e_ops : None / list of :class:`qutip.qobj` / callback function
         single operator or list of operators for which to evaluate
         expectation values.
-        For list operator evolution, the overlapse is computed:
+        For list operator evolution, the overlap is computed:
             tr(e_ops[i].dag()*op(t))
 
     args : None / *dictionary*
@@ -248,12 +248,12 @@ def _Hfunc_set(HS, psi, args, e_ops, opt):
 #
 def _ode_oper_func_td(t, y, H_func, args):
     H = H_func(t, args).data * -1j
-    ym = vec2mat(y)
+    ym = unstack_columns(y)
     return (H * ym).ravel("F")
 
 def _ode_oper_func_td_with_state(t, y, H_func, args):
     H = H_func(t, y, args).data * -1j
-    ym = vec2mat(y)
+    ym = unstack_columns(y)
     return (H * ym).ravel("F")
 
 
@@ -330,7 +330,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
     if oper_evo:
         def get_curr_state_data(r):
-            return vec2mat(r.y)
+            return unstack_columns(r.y)
     else:
         def get_curr_state_data(r):
             return r.y

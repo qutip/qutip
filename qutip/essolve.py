@@ -39,7 +39,7 @@ import scipy.sparse as sp
 
 from . import (
     Qobj, issuper, isket, isoper, eseries, estidy, esval, expect, liouvillian,
-    mat2vec, vec2mat, qzero
+    stack_columns, unstack_columns, qzero
 )
 from .solver import Result
 
@@ -155,13 +155,13 @@ def ode2es(L, rho0):
         # v[:,i] = eigenvector i
 
         rlen = np.prod(rho0.shape)
-        r0 = mat2vec(rho0.full())
+        r0 = stack_columns(rho0.full())
         v0 = la.solve(v, r0)
         vv = v * sp.spdiags(v0.T, 0, rlen, rlen)
 
         out = None
         for i in range(rlen):
-            qo = Qobj(vec2mat(vv[:, i]), dims=rho0.dims, shape=rho0.shape)
+            qo = Qobj(unstack_columns(vv[:, i]), dims=rho0.dims, shape=rho0.shape)
             if out:
                 out += eseries(qo, w[i])
             else:
