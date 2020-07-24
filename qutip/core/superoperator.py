@@ -31,17 +31,33 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
-           'operator_to_vector', 'vector_to_operator', 'mat2vec', 'vec2mat',
-           'vec2mat_index', 'mat2vec_index', 'spost', 'spre', 'sprepost']
+__all__ = [
+    'liouvillian', 'lindblad_dissipator', 'operator_to_vector',
+    'vector_to_operator', 'stack_columns', 'unstack_columns', 'stacked_index',
+    'unstacked_index', 'spost', 'spre', 'sprepost',
+]
 
-import scipy.sparse as sp
+import functools
+
 import numpy as np
+
 from .qobj import Qobj
-from .fastsparse import fast_csr_matrix, fast_identity
-from .sparse import sp_reshape
-from .cy.spmath import zcsr_kron
-from functools import partial
+from . import data as _data
+
+
+def _map_over_compound_operators(f):
+    """
+    Convert a function which takes Qobj into one that can also take compound
+    operators like QobjEvo, and applies itself over all the components.
+    """
+    @functools.wraps(f)
+    def out(qobj):
+        if isinstance(qobj, QobjEvo):
+            return qobj.apply(f)
+        if not isinstance(qobj, Qobj):
+            raise TypeError("expected a quantum object")
+        return f(qobj)
+    return out
 
 
 def liouvillian(H, c_ops=[], data_only=False, chi=None):
@@ -104,7 +120,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
 
-    spI = fast_identity(op_shape[0])
+    spI = _data.csr.identity(op_shape[0])
 
     td = False
     L = None
@@ -121,13 +137,12 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         data = L.cte.data
     elif isinstance(H, Qobj):
         if H.isoper:
-            Ht = H.data.T
-            data = -1j * zcsr_kron(spI, H.data)
-            data += 1j * zcsr_kron(Ht, spI)
+            data = -1j * _data.kron_csr(spI, H.data)
+            data = data + 1j*_data.kron_csr(H.data.transpose(), spI)
         else:
             data = H.data
     else:
-        data = fast_csr_matrix(shape=(sop_shape[0], sop_shape[1]))
+        data = _data.csr.zeros(*sop_shape)
 
     td_c_ops = []
     for idx, c_op in enumerate(c_ops):
@@ -147,69 +162,38 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         if c_.issuper:
             data = data + c_.data
         else:
-            cd = c_.data.H
+            cd = c_.data.adjoint()
             c = c_.data
             if chi:
-                data = data + np.exp(1j * chi[idx]) * \
-                                zcsr_kron(c.conj(), c)
+                data += np.exp(1j*chi[idx]) * _data.kron_csr(c.conj(), c)
             else:
-                data = data + zcsr_kron(c.conj(), c)
-            cdc = cd * c
-            cdct = cdc.T
-            data = data - 0.5 * zcsr_kron(spI, cdc)
-            data = data - 0.5 * zcsr_kron(cdct, spI)
+                data += _data.kron_csr(c.conj(), c)
+            cdc = cd @ c
+            data -= _data.kron_csr(0.5*spI, cdc)
+            data -= _data.kron_csr(cdc.transpose(), 0.5*spI)
 
+    if data_only and not td:
+        return data
     if not td:
         if data_only:
             return data
         else:
-            L = Qobj()
-            L.dims = sop_dims
-            L.data = data
-            L.superrep = 'super'
-            return L
+            return Qobj(data,
+                        dims=sop_dims,
+                        type='super',
+                        superrep='super',
+                        copy=False)
     else:
         if not L:
-            l = Qobj()
-            l.dims = sop_dims
-            l.data = data
-            l.superrep = 'super'
-            L = QobjEvo(l)
-        else:
-            L.cte.data = data
+            return QobjEvo(Qobj(data,
+                                dims=sop_dims,
+                                type='super',
+                                superrep='super',
+                                copy=False))
+        L.cte.data = data
         for c_op in td_c_ops:
             L += c_op
         return L
-
-
-def liouvillian_ref(H, c_ops=[]):
-    """Assembles the Liouvillian superoperator from a Hamiltonian
-    and a ``list`` of collapse operators.
-
-    Parameters
-    ----------
-    H : qobj
-        System Hamiltonian.
-
-    c_ops : array_like
-        A ``list`` or ``array`` of collapse operators.
-
-    Returns
-    -------
-    L : qobj
-        Liouvillian superoperator.
-    """
-
-    L = -1.0j * (spre(H) - spost(H)) if H else 0
-
-    for c in c_ops:
-        if c.issuper:
-            L += c
-        else:
-            cdc = c.dag() * c
-            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-
-    return L
 
 
 def lindblad_dissipator(a, b=None, data_only=False, chi=None):
@@ -239,84 +223,101 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
         b = a
     ad_b = a.dag() * b
     if chi:
-        D = spre(a) * spost(b.dag()) * np.exp(1j * chi) \
-            - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
+        D = (
+            spre(a) * spost(b.dag()) * np.exp(1j * chi)
+            - 0.5 * spre(ad_b)
+            - 0.5 * spost(ad_b)
+        )
     else:
         D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
 
     if isinstance(a, QobjEvo) or isinstance(b, QobjEvo):
         return D
-    else:
-        return D.data if data_only else D
+    return D.data if data_only else D
 
 
+@_map_over_compound_operators
 def operator_to_vector(op):
     """
-    Create a vector representation of a quantum operator given
-    the matrix representation.
+    Create a vector representation of a quantum operator given the matrix
+    representation.  Note that QuTiP uses the _column-stacking_ convention,
+    which may be different to what you expect.
     """
-    if isinstance(op, QobjEvo):
-        return op.apply(operator_to_vector)
-
-    q = Qobj()
-    q.dims = [op.dims, [1]]
-    q.data = sp_reshape(op.data.T, (np.prod(op.shape), 1))
-    return q
+    return Qobj(stack_columns(op.data),
+                dims=[op.dims, [1]],
+                type='operator-ket',
+                copy=False)
 
 
+@_map_over_compound_operators
 def vector_to_operator(op):
     """
-    Create a matrix representation given a quantum operator in
-    vector form.
+    Create a matrix representation given a quantum operator in vector form.
+    This is the inverse operation to `operator_to_vector`.
     """
-    if isinstance(op, QobjEvo):
-        return op.apply(vector_to_operator)
-
-    q = Qobj()
-    # e.g. op.dims = [ [[rows], [cols]], [1]]
-    q.dims = op.dims[0]
-    shape = (np.prod(q.dims[0]), np.prod(q.dims[1]))
-    q.data = sp_reshape(op.data.T, shape[::-1]).T
-    return q
+    if not op.isoperket:
+        raise TypeError("only defined for operator-kets")
+    dims = op.dims[0]
+    return Qobj(unstack_columns(op.data, (np.prod(dims[0]), np.prod(dims[1]))),
+                dims=dims,
+                copy=False)
 
 
-def mat2vec(mat):
+def stack_columns(matrix):
     """
-    Private function reshaping matrix to vector.
+    Stack the columns in a data-layer type, useful for converting an operator
+    into a superoperator representation.
     """
-    return mat.T.reshape(np.prod(np.shape(mat)), 1)
+    if not isinstance(matrix, _data.Data):
+        raise TypeError(
+            "input " + repr(type(matrix)) + " is not data-layer type"
+        )
+    return _data.reshape_csr(matrix.transpose(),
+                             matrix.shape[0] * matrix.shape[1], 1)
 
 
-def vec2mat(vec, shape=None):
+def unstack_columns(vector, shape=None):
     """
-    Private function reshaping vector to matrix.
+    Unstack the columns in a data-layer type back into a 2D shape, useful for
+    converting an operator in vector form back into a regular operator.  If
+    `shape` is not passed, the output operator will be assumed to be square.
     """
+    if not isinstance(vector, _data.Data):
+        raise TypeError(
+            "input " + repr(type(vector)) + " is not data-layer type"
+        )
+    if vector.shape[1] != 1:
+        raise TypeError("input is not a single column")
     if shape is None:
-        n = int(np.sqrt(len(vec)))
+        n = int(np.sqrt(vector.shape[0]))
+        if n * n != vector.shape[0]:
+            raise ValueError(
+                "input cannot be made square, but no specific shape given"
+            )
         shape = (n, n)
-    return vec.reshape(shape[::-1]).T
+    return _data.reshape_csr(vector, shape[1], shape[0]).transpose()
 
 
-def vec2mat_index(N, I):
+def unstacked_index(size, index):
     """
-    Convert a vector index to a matrix index pair that is compatible with the
-    vector to matrix rearrangement done by the vec2mat function.
+    Convert an index into a column-stacked square operator with `size` rows and
+    columns, into a pair of indices into the unstacked operator.
     """
-    j = int(I / N)
-    i = I - N * j
-    return i, j
+    return index % size, index // size
 
 
-def mat2vec_index(N, i, j):
+def stacked_index(size, row, col):
     """
-    Convert a matrix index pair to a vector index that is compatible with the
-    matrix to vector rearrangement done by the mat2vec function.
+    Convert a pair of indices into a square operator of `size` into a single
+    index into the column-stacked version of the operator.
     """
-    return i + N * j
+    return row + size*col
 
 
+@_map_over_compound_operators
 def spost(A):
-    """Superoperator formed from post-multiplication by operator A
+    """
+    Superoperator formed from post-multiplication by operator A
 
     Parameters
     ----------
@@ -328,22 +329,19 @@ def spost(A):
     super : Qobj or QobjEvo
         Superoperator formed from input qauntum object.
     """
-    if isinstance(A, QobjEvo):
-        return A.apply(spost)
-
-    if not isinstance(A, Qobj):
-        raise TypeError('Input is not a quantum object')
-
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
+    data = _data.kron_csr(A.data.transpose(),
+                          _data.csr.identity(A.shape[0]))
+    return Qobj(data,
+                dims=[A.dims, A.dims],
+                type='super',
+                superrep='super',
+                isherm=A._isherm,
+                copy=False)
 
-    S = Qobj(isherm=A.isherm, superrep='super')
-    S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = zcsr_kron(A.data.T,
-                       fast_identity(np.prod(A.shape[0])))
-    return S
 
-
+@_map_over_compound_operators
 def spre(A):
     """Superoperator formed from pre-multiplication by operator A.
 
@@ -357,19 +355,16 @@ def spre(A):
     super :Qobj or QobjEvo
         Superoperator formed from input quantum object.
     """
-    if isinstance(A, QobjEvo):
-        return A.apply(spre)
-
-    if not isinstance(A, Qobj):
-        raise TypeError('Input is not a quantum object')
-
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-
-    S = Qobj(isherm=A.isherm, superrep='super')
-    S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = zcsr_kron(fast_identity(np.prod(A.shape[1])), A.data)
-    return S
+    data = _data.kron_csr(_data.csr.identity(A.shape[0]),
+                          A.data)
+    return Qobj(data,
+                dims=[A.dims, A.dims],
+                type='super',
+                superrep='super',
+                isherm=A._isherm,
+                copy=False)
 
 
 def _drop_projected_dims(dims):
@@ -381,8 +376,9 @@ def _drop_projected_dims(dims):
 
 
 def sprepost(A, B):
-    """Superoperator formed from pre-multiplication by operator A and post-
-    multiplication of operator B.
+    """
+    Superoperator formed from pre-multiplication by A and post-multiplication
+    by B.
 
     Parameters
     ----------
@@ -399,13 +395,16 @@ def sprepost(A, B):
     """
     if isinstance(A, QobjEvo) or isinstance(B, QobjEvo):
         return spre(A) * spost(B)
-    else:
-        dims = [[_drop_projected_dims(A.dims[0]),
-                 _drop_projected_dims(B.dims[1])],
-                [_drop_projected_dims(A.dims[1]),
-                 _drop_projected_dims(B.dims[0])]]
-        data = zcsr_kron(B.data.T, A.data)
-        return Qobj(data, dims=dims, superrep='super')
+    dims = [[_drop_projected_dims(A.dims[0]),
+             _drop_projected_dims(B.dims[1])],
+            [_drop_projected_dims(A.dims[1]),
+             _drop_projected_dims(B.dims[0])]]
+    return Qobj(_data.kron_csr(B.data.transpose(), A.data),
+                dims=dims,
+                type='super',
+                superrep='super',
+                isherm=A._isherm and B._isherm,
+                copy=False)
 
 
 def reshuffle(q_oper):
