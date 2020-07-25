@@ -39,8 +39,8 @@ import scipy.linalg as la
 import functools
 import scipy.sparse as sp
 from . import (
-    Qobj, tensor, qeye, vec2mat, mat2vec, vector_to_operator,
-    operator_to_vector, sp_reshape, basis,
+    Qobj, tensor, qeye, unstack_columns, stack_columns, vector_to_operator,
+    operator_to_vector, basis,
 )
 from .core.cy.sparse_utils import unit_row_norm
 from .rhs_generate import (rhs_generate, rhs_clear, _td_format_check)
@@ -182,7 +182,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                                  args=args, options=options,
                                  _safe_mode=False)
                 for k, t in enumerate(tlist):
-                    u[k] = sp_reshape(output.states[k].data, (N, N))
+                    u[k] = output.states[k].data.reshape(N, N)
                     unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
                     u[k] = u[k].T.tocsr()
 
@@ -208,7 +208,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
-                    u[:, n, k] = mat2vec(output[n].states[k].full()).T
+                    u[:, n, k] = stack_columns(output[n].states[k].full()).T
         else:
             rho0 = qeye(N,N)
             rho0.dims = [[sqrt_N, sqrt_N], [sqrt_N, sqrt_N]]

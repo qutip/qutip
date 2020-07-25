@@ -47,7 +47,7 @@ from numpy import matrix
 from numpy import linalg
 from . import (
     spre, spost, sprepost, thermal_dm, mesolve, Options, tensor, identity,
-    destroy, sigmax, sigmaz, basis, qeye, dims,
+    destroy, sigmax, sigmaz, basis, qeye,
 )
 
 
@@ -102,7 +102,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
 
     # Reaction coordinate hamiltonian/operators
 
-    dimensions = dims(Q)
+    dimensions = Q.dims
     a = tensor(destroy(N), qeye(dimensions[1]))
     unit = tensor(qeye(N), qeye(dimensions[1]))
     Nmax = N * dimensions[1][0]

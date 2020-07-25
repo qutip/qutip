@@ -35,7 +35,7 @@ import numpy as np
 from numpy.testing import (
     assert_, assert_almost_equal, assert_array_equal, assert_raises_regex
 )
-from qutip import basis, isequal, ket2dm, sigmax, sigmay, sigmaz
+import qutip
 from qutip.measurement import measure, measurement_statistics
 
 
@@ -53,22 +53,22 @@ class EigenPairs:
 
 def pairs2dm(pairs):
     """ Convert eigenpair entries into eigenvalue and density matrix pairs. """
-    return [(v, ket2dm(e)) for v, e in pairs]
+    return [(v, e.proj()) for v, e in pairs]
 
 
 SIGMAZ = EigenPairs([
-    (-1.0, -basis(2, 1)),
-    (1.0, -basis(2, 0)),
+    (-1.0, -qutip.basis(2, 1)),
+    (1.0, -qutip.basis(2, 0)),
 ])
 
 SIGMAX = EigenPairs([
-    (-1.0, (-basis(2, 0) + basis(2, 1)).unit()),
-    (1.0, (basis(2, 0) + basis(2, 1)).unit()),
+    (-1.0, (-qutip.basis(2, 0) + qutip.basis(2, 1)).unit()),
+    (1.0, (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()),
 ])
 
 SIGMAY = EigenPairs([
-    (-1.0, (-basis(2, 0) + 1j * basis(2, 1)).unit()),
-    (1.0, (-basis(2, 0) - 1j * basis(2, 1)).unit()),
+    (-1.0, (-qutip.basis(2, 0) + 1j * qutip.basis(2, 1)).unit()),
+    (1.0, (-qutip.basis(2, 0) - 1j * qutip.basis(2, 1)).unit()),
 ])
 
 
@@ -80,42 +80,42 @@ def check_measurement_statistics(
         ess = ess_or_projs
         assert_(len(ess), len(pairs.eigenstates))
         for a, b in zip(ess, pairs.eigenstates):
-            assert_(isequal(a, b))
+            assert_(a == b)
     else:
         projs = ess_or_projs
         assert_(len(projs), len(pairs.projectors))
         for a, b in zip(projs, pairs.projectors):
-            assert_(isequal(a, b))
+            assert_(a == b)
     assert_almost_equal(probs, probabilities)
 
 
 def test_measurement_statistics_sigmaz():
     """ measurement statistics: sigmaz applied to basis states. """
     check_measurement_statistics(
-        sigmaz(), basis(2, 0), SIGMAZ, [0, 1],
+        qutip.sigmaz(), qutip.basis(2, 0), SIGMAZ, [0, 1],
     )
     check_measurement_statistics(
-        sigmaz(), ket2dm(basis(2, 0)), SIGMAZ, [0, 1],
+        qutip.sigmaz(), qutip.basis(2, 0).proj(), SIGMAZ, [0, 1],
     )
 
 
 def test_measurement_statistics_sigmax():
     """ measurement statistics: sigmax applied to basis states. """
     check_measurement_statistics(
-        sigmax(), basis(2, 0), SIGMAX, [0.5, 0.5],
+        qutip.sigmax(), qutip.basis(2, 0), SIGMAX, [0.5, 0.5],
     )
     check_measurement_statistics(
-        sigmax(), ket2dm(basis(2, 0)), SIGMAX, [0.5, 0.5],
+        qutip.sigmax(), qutip.basis(2, 0).proj(), SIGMAX, [0.5, 0.5],
     )
 
 
 def test_measurement_statistics_sigmay():
     """ measurement statistics: sigmay applied to basis states. """
     check_measurement_statistics(
-        sigmay(), basis(2, 0), SIGMAY, [0.5, 0.5],
+        qutip.sigmay(), qutip.basis(2, 0), SIGMAY, [0.5, 0.5],
     )
     check_measurement_statistics(
-        sigmay(), ket2dm(basis(2, 0)), SIGMAY, [0.5, 0.5],
+        qutip.sigmay(), qutip.basis(2, 0).proj(), SIGMAY, [0.5, 0.5],
     )
 
 
@@ -123,24 +123,24 @@ def test_measurement_statistics_input_errors():
     """ measurement_statistics: check input errors """
     assert_raises_regex(
         TypeError, "op must be a Qobj",
-        measurement_statistics, "notqobj", basis(2, 0))
+        measurement_statistics, "notqobj", qutip.basis(2, 0))
     assert_raises_regex(
         ValueError, "op must be an operator",
-        measurement_statistics, basis(2, 1), basis(2, 0))
+        measurement_statistics, qutip.basis(2, 1), qutip.basis(2, 0))
     assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measurement_statistics, sigmaz(), "notqobj")
+        measurement_statistics, qutip.sigmaz(), "notqobj")
     assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measurement_statistics, sigmaz(), basis(2, 0).dag())
+        measurement_statistics, qutip.sigmaz(), qutip.basis(2, 0).dag())
     assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measurement_statistics, sigmaz(), basis(3, 0))
+        measurement_statistics, qutip.sigmaz(), qutip.basis(3, 0))
     assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measurement_statistics, sigmaz(), ket2dm(basis(3, 0)))
+        measurement_statistics, qutip.sigmaz(), qutip.basis(3, 0).proj())
 
 
 def check_measure(op, state, expected_measurements, seed=0):
@@ -154,29 +154,31 @@ def check_measure(op, state, expected_measurements, seed=0):
 
 def test_measure_sigmaz():
     """ measure: basis states using sigmaz """
-    check_measure(sigmaz(), basis(2, 0), [SIGMAZ[1]] * 5)
-    check_measure(sigmaz(), basis(2, 1), [SIGMAZ[0]] * 5)
-    check_measure(sigmaz(), ket2dm(basis(2, 0)), pairs2dm([SIGMAZ[1]] * 5))
-    check_measure(sigmaz(), ket2dm(basis(2, 1)), pairs2dm([SIGMAZ[0]] * 5))
+    check_measure(qutip.sigmaz(), qutip.basis(2, 0), [SIGMAZ[1]] * 5)
+    check_measure(qutip.sigmaz(), qutip.basis(2, 1), [SIGMAZ[0]] * 5)
+    check_measure(qutip.sigmaz(), qutip.basis(2, 0).proj(),
+                  pairs2dm([SIGMAZ[1]] * 5))
+    check_measure(qutip.sigmaz(), qutip.basis(2, 1).proj(),
+                  pairs2dm([SIGMAZ[0]] * 5))
 
 
 def test_measure_sigmax():
     """ measure: basis states using sigmax """
     check_measure(
-        sigmax(), basis(2, 0),
+        qutip.sigmax(), qutip.basis(2, 0),
         [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
     )
     check_measure(
-        sigmax(), basis(2, 1),
+        qutip.sigmax(), qutip.basis(2, 1),
         [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
     )
     check_measure(
-        sigmax(), basis(2, 0),
+        qutip.sigmax(), qutip.basis(2, 0),
         [SIGMAX[0], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]],
         seed=42,
     )
     check_measure(
-        sigmax(), ket2dm(basis(2, 0)),
+        qutip.sigmax(), qutip.basis(2, 0).proj(),
         pairs2dm([SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]]),
     )
 
@@ -184,20 +186,20 @@ def test_measure_sigmax():
 def test_measure_sigmay():
     """ measure: basis states using sigmay """
     check_measure(
-        sigmay(), basis(2, 0),
+        qutip.sigmay(), qutip.basis(2, 0),
         [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
     )
     check_measure(
-        sigmay(), basis(2, 1),
+        qutip.sigmay(), qutip.basis(2, 1),
         [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
     )
     check_measure(
-        sigmay(), basis(2, 1),
+        qutip.sigmay(), qutip.basis(2, 1),
         [SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]],
         seed=42,
     )
     check_measure(
-        sigmay(), ket2dm(basis(2, 1)),
+        qutip.sigmay(), qutip.basis(2, 1).proj(),
         pairs2dm([SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]]),
         seed=42,
     )
@@ -207,21 +209,21 @@ def test_measure_input_errors():
     """ measure: check input errors """
     assert_raises_regex(
         TypeError, "op must be a Qobj",
-        measure, "notqobj", basis(2, 0))
+        measure, "notqobj", qutip.basis(2, 0))
     assert_raises_regex(
         ValueError, "op must be an operator",
-        measure, basis(2, 1), basis(2, 0))
+        measure, qutip.basis(2, 1), qutip.basis(2, 0))
     assert_raises_regex(
         TypeError, "state must be a Qobj",
-        measure, sigmaz(), "notqobj")
+        measure, qutip.sigmaz(), "notqobj")
     assert_raises_regex(
         ValueError, "state must be a ket or a density matrix",
-        measure, sigmaz(), basis(2, 0).dag())
+        measure, qutip.sigmaz(), qutip.basis(2, 0).dag())
     assert_raises_regex(
         ValueError,
         "op and state dims should be compatible when state is a ket",
-        measure, sigmaz(), basis(3, 0))
+        measure, qutip.sigmaz(), qutip.basis(3, 0))
     assert_raises_regex(
         ValueError,
         "op and state dims should match when state is a density matrix",
-        measure, sigmaz(), ket2dm(basis(3, 0)))
+        measure, qutip.sigmaz(), qutip.basis(3, 0).proj())

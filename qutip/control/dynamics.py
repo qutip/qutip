@@ -63,7 +63,7 @@ import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
 from qutip import Qobj
-from qutip.core.sparse import sp_eigs, _dense_eigs
+from qutip.core.data import eigs_csr
 import qutip.settings as settings
 # QuTiP logging
 import qutip.logging_utils as logging
@@ -1594,8 +1594,8 @@ class DynamicsUnitary(Dynamics):
             H = self._dyn_gen[k]
             # Returns eigenvalues as array (row)
             # and eigenvectors as rows of an array
-            eig_val, eig_vec = sp_eigs(H.data, H.isherm,
-                                       sparse=self.sparse_eigen_decomp)
+            eig_val, eig_vec = eigs_csr(H.data, H.isherm,
+                                        sparse=self.sparse_eigen_decomp)
             eig_vec = eig_vec.T
 
         elif self.oper_dtype == np.ndarray:

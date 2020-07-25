@@ -36,7 +36,7 @@ from numpy.testing import assert_, assert_equal, run_module_suite
 from qutip import (
     rand_unitary, qeye, rand_herm, rand_dm, rand_ket, rand_stochastic,
 )
-from qutip.core.sparse import sp_eigs
+from qutip.core.data import eigs_csr
 
 
 class TestRand:
@@ -83,14 +83,14 @@ class TestRand:
 
         H = [rand_herm(5,pos_def=1) for k in range(5)]
         for h in H:
-            assert_(not any(sp_eigs(h.data, h.isherm, vecs=False)) < 0)
+            assert_(not any(eigs_csr(h.data, h.isherm, vecs=False)) < 0)
     
     def testRandhermEigs(self):
         "Random: Hermitian - Eigs given"
 
         H = [rand_herm([1,2,3,4,5],0.5) for k in range(5)]
         for h in H:
-            eigs = sp_eigs(h.data, h.isherm, vecs=False)
+            eigs = eigs_csr(h.data, h.isherm, vecs=False)
             assert_(np.abs(np.sum(eigs)-15.0) < 1e-12)
 
     def testRanddm(self):
@@ -100,7 +100,7 @@ class TestRand:
         for r in R:
             assert_(r.tr() - 1.0 < 1e-15)
             # verify all eigvals are >=0
-            assert_(not any(sp_eigs(r.data, r.isherm, vecs=False)) < 0)
+            assert_(not any(eigs_csr(r.data, r.isherm, vecs=False)) < 0)
             # verify hermitian
             assert_(r.isherm)
 
@@ -124,7 +124,7 @@ class TestRand:
         for r in R:
             assert_(r.tr() - 1.0 < 1e-15)
             # verify all eigvals are >=0
-            assert_(not any(sp_eigs(r.data, r.isherm, vecs=False)) < 0)
+            assert_(not any(eigs_csr(r.data, r.isherm, vecs=False)) < 0)
             # verify hermitian
             assert_(r.isherm)
 
