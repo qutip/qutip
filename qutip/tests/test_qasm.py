@@ -35,7 +35,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 
-from qutip.qip.qasm import read_qasm, str_qasm
+from qutip.qip.qasm import read_qasm, circuit_to_qasm_str
 from qutip.qip.circuit import Measurement, QubitCircuit
 from qutip import tensor, rand_ket, basis, rand_dm, identity
 from qutip.qip.operations.gates import cnot, ry
@@ -125,7 +125,7 @@ def test_qasm_str():
     simple_qc = QubitCircuit(2, num_cbits=1)
     simple_qc.add_gate("X", targets=[0])
     simple_qc.add_measurement("M", targets=[1], classical_store=0)
-    assert str_qasm(simple_qc) == expected_qasm_str
+    assert circuit_to_qasm_str(simple_qc) == expected_qasm_str
 
 
 def test_export_import():
@@ -151,7 +151,7 @@ def test_export_import():
     qc.add_gate("T", targets=[0])
     # qc.add_gate("CSIGN", targets=[0], controls=[1])
 
-    read_qc = read_qasm(str_qasm(qc), strmode=True)
+    read_qc = read_qasm(circuit_to_qasm_str(qc), strmode=True)
 
     props = qc.propagators()
     read_props = read_qc.propagators()

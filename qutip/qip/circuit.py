@@ -196,125 +196,6 @@ class Gate:
     def _repr_latex_(self):
         return str(self)
 
-    def _qasm_defn_from_resolved(self, gates_lst, qasm_out):
-        '''
-        Pipe output of QASM definition of current gate.
-
-        Parameters
-        ----------
-        gates_lst: list of Gate
-            list of gate that constitute QASM definition of self.
-        qasm_out: QasmOutput
-            object to store QASM output.
-        '''
-
-        forbidden_gates = ["GLOBALPHASE", "PHASEGATE"]
-        reg_map = ['a', 'b', 'c']
-
-        q_controls = None
-        if self.controls:
-            q_controls = [reg_map[i] for i in self.controls]
-        q_targets = [reg_map[i] for i in self.targets]
-        arg_name = None
-        if self.arg_value:
-            arg_name = "theta"
-
-        qasm_out.output("gate {} {{".format(self._qasm_str(self.name.lower(),
-                                                           q_controls,
-                                                           q_targets,
-                                                           arg_name)[:-1]))
-
-        for gate in gates_lst:
-            if gate.name in qasm_out.gate_name_map:
-                gate.targets = [reg_map[i] for i in gate.targets]
-                if gate.controls:
-                    gate.controls = [reg_map[i] for i in gate.controls]
-                qasm_out.output(self._qasm_str(
-                                qasm_out.gate_name_map[gate.name],
-                                gate.controls,
-                                gate.targets,
-                                gate.arg_value))
-            elif gate.name in forbidden_gates:
-                continue
-            else:
-                raise ValueError(("The given resolved gate {} cannot be defined"
-                                  " in QASM format").format(self.name))
-        qasm_out.output("}")
-
-    def _qasm_defn_resolve(self, qasm_out):
-        '''
-        Resolve QASM definition of QuTiP gate if possible.
-
-        Parameters
-        ----------
-        qasm_out: QasmOutput
-            object to store QASM output.
-        '''
-
-        qc = QubitCircuit(3)
-        gates_lst = []
-        if self.name == "CSIGN":
-            qc._gate_CSIGN(self, gates_lst)
-        elif self.name == "ISWAP":
-            qc._gate_ISWAP(self, gates_lst)
-        elif self.name == "FREDKIN":
-            qc._gate_FREDKIN(self, gates_lst)
-        else:
-            err_msg = "No definition specified for {} gate".format(self.name)
-            raise NotImplementedError(err_msg)
-        self._qasm_defn_from_resolved(gates_lst, qasm_out)
-
-    def _qasm_defns(self, qasm_out):
-        '''
-        Define QASM gates for QuTiP gates that do not have QASM counterparts.
-
-        Parameters
-        ----------
-        qasm_out: QasmOutput
-            object to store QASM output.
-        '''
-
-        if self.name == "CRY":
-            gate_def = "gate cry(theta) a,b { cu3(theta,0,0) a,b; }"
-        elif self.name == "CRX":
-            gate_def = "gate crx(theta) a,b { cu3(theta,-pi/2,pi/2) a,b; }"
-        elif self.name == "SQRTNOT":
-            gate_def = "gate sqrtnot a {h a; u1(-pi/2) a; h a; }"
-        elif self.name == "CS":
-            gate_def = "gate cs a,b { cu1(pi/2) a,b; }"
-        elif self.name == "CT":
-            gate_def = "gate ct a,b { cu1(pi/4) a,b; }"
-        elif self.name == "SWAP":
-            gate_def = "gate swap a,b { cx a,b; cx b,a; cx a,b; }"
-        else:
-            self._qasm_defn_resolve(qasm_out)
-            return
-
-        qasm_out.output("// QuTiP definition for gate {}".format(self.name))
-        qasm_out.output(gate_def)
-
-    def _qasm_str(self, q_name, q_controls, q_targets, q_args):
-        '''
-        Returns QASM string for gate definition or gate application given
-        name, registers, arguments.
-        '''
-
-        if not q_controls:
-            q_controls = []
-        q_regs = q_controls + q_targets
-
-        if isinstance(q_targets[0], int):
-            q_regs = ",".join(['q[{}]'.format(reg) for reg in q_regs])
-        else:
-            q_regs = ",".join(q_regs)
-
-        if q_args:
-            if isinstance(q_args, list):
-                q_args = ",".join([str(arg) for arg in q_args])
-            return "{}({}) {};".format(q_name, q_args, q_regs)
-        else:
-            return "{} {};".format(q_name, q_regs)
-
     def _qasm_output(self, qasm_out):
         """
         Pipe output of gate signature and application to QasmOutput object.
@@ -325,17 +206,20 @@ class Gate:
             object to store QASM output.
         """
 
-        if self.name in qasm_out.gate_name_map:
-            qasm_gate = qasm_out.gate_name_map[self.name]
-            if self.classical_controls:
-                err_msg = "Exporting controlled gates is not implemented yet."
-                raise NotImplementedError(err_msg)
-            else:
-                qasm_out.output(self._qasm_str(qasm_gate, self.controls,
-                                               self.targets, self.arg_value))
-        else:
+        qasm_gate = qasm_out.qasm_name(self.name)
+
+        if not qasm_gate:
             error_str = "{} gate's qasm defn is not specified".format(self.name)
             raise NotImplementedError(error_str)
+
+        if self.classical_controls:
+            err_msg = "Exporting controlled gates is not implemented yet."
+            raise NotImplementedError(err_msg)
+        else:
+            qasm_out.output(qasm_out._qasm_str(qasm_gate,
+                                               self.controls,
+                                               self.targets,
+                                               self.arg_value))
 
 
 _GATE_NAME_TO_LABEL = {
@@ -618,8 +502,8 @@ class QubitCircuit:
 
         Parameters
         ----------
-        gate: string or `Gate`
-            Gate name. If gate is an instance of `Gate`, parameters are
+        gate: string or :class:`.Gate`
+            Gate name. If gate is an instance of :class:`.Gate`, parameters are
             unpacked and added.
         targets: list
             Gate targets.
@@ -722,7 +606,7 @@ class QubitCircuit:
 
         Parameters
         ----------
-        qc : QubitCircuit
+        qc : :class:`.QubitCircuit`
             The circuit block to be added to the main circuit.
         start : int
             The qubit on which the first gate is applied.
@@ -826,8 +710,8 @@ class QubitCircuit:
 
         Returns
         -------
-        qubit_circuit : QubitCircuit
-            Return QubitCircuit of resolved gates for the qubit circuit in the
+        qubit_circuit : :class:`.QubitCircuit`
+            Return :class:`.QubitCircuit` of resolved gates for the qubit circuit in the
             reverse order.
 
         """
@@ -1349,8 +1233,8 @@ class QubitCircuit:
 
         Returns
         -------
-        qc : QubitCircuit
-            Return QubitCircuit of resolved gates for the qubit circuit in the
+        qc : :class:`.QubitCircuit`
+            Return :class:`.QubitCircuit` of resolved gates for the qubit circuit in the
             desired basis.
         """
         qc_temp = QubitCircuit(self.N, reverse_states=self.reverse_states,
@@ -1454,8 +1338,8 @@ class QubitCircuit:
 
         Returns
         -------
-        qubit_circuit : QubitCircuit
-            Return QubitCircuit of the gates for the qubit circuit with the
+        qubit_circuit: :class:`.QubitCircuit`
+            Return :class:`.QubitCircuit` of the gates for the qubit circuit with the
             resolved non-adjacent gates.
 
         """
@@ -1821,9 +1705,8 @@ class QubitCircuit:
 
         for op in self.gates:
             if ((not isinstance(op, Measurement))
-                    and op.name not in qasm_out.gate_name_map):
-                op._qasm_defns(qasm_out)
-                qasm_out.gate_name_map[op.name] = op.name.lower()
+                    and not qasm_out.is_defined(op.name)):
+                qasm_out._qasm_defns(op)
 
         for op in self.gates:
             op._qasm_output(qasm_out)
