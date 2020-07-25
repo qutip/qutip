@@ -978,7 +978,7 @@ class QasmOutput():
 
         self.output('include "qelib1.inc";', 1)
 
-        qc._qasm_output(self)
+        qc._to_qasm(self)
 
         return self.lines
 

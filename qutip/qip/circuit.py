@@ -196,7 +196,7 @@ class Gate:
     def _repr_latex_(self):
         return str(self)
 
-    def _qasm_output(self, qasm_out):
+    def _to_qasm(self, qasm_out):
         """
         Pipe output of gate signature and application to QasmOutput object.
 
@@ -356,7 +356,7 @@ class Measurement:
     def _repr_latex_(self):
         return str(self)
 
-    def _qasm_output(self, qasm_out):
+    def _to_qasm(self, qasm_out):
         """
         Pipe output of measurement to QasmOutput object.
 
@@ -1688,7 +1688,7 @@ class QubitCircuit:
     def svg(self):
         return DisplaySVG(self._raw_svg())
 
-    def _qasm_output(self, qasm_out):
+    def _to_qasm(self, qasm_out):
         """
         Pipe output of circuit object to QasmOutput object.
 
@@ -1709,4 +1709,4 @@ class QubitCircuit:
                 qasm_out._qasm_defns(op)
 
         for op in self.gates:
-            op._qasm_output(qasm_out)
+            op._to_qasm(qasm_out)
