@@ -61,7 +61,7 @@ from . import (
     Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings
 )
 from .core.dimensions import flatten
-from .core.superop_reps import _super_to_superpauli, _isqubitdims, _pauli_basis
+from .core.superop_reps import _to_superpauli, isqubitdims
 from .wigner import wigner
 from .matplotlib_utilities import complex_phase_cmap
 
@@ -256,12 +256,12 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
         elif rho.isoperbra:
             W = vector_to_operator(rho.dag()).full()
         elif rho.issuper:
-            if not _isqubitdims(rho.dims):
+            if not isqubitdims(rho.dims):
                 raise ValueError("Hinton plots of superoperators are "
                                  "currently only supported for qubits.")
             # Convert to a superoperator in the Pauli basis,
             # so that all the elements are real.
-            sqobj = _super_to_superpauli(rho)
+            sqobj = _to_superpauli(rho)
             nq = int(log2(sqobj.shape[0]) / 2)
             W = sqobj.full().T
             # Create default labels, too.
