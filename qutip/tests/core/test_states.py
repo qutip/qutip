@@ -80,7 +80,7 @@ class TestStates:
         c1 = coherent(N, alpha) # displacement method
         c2 = coherent(7, alpha, offset=3) # analytic method
         assert_(abs(expect(destroy(N), c1) - alpha) < 1e-10)
-        assert_((c1[3:]-c2).norm() < 1e-7)
+        assert_((qutip.Qobj(c1[3:]) - c2).norm() < 1e-7)
 
 
     def testCoherentDensityMatrix(self):
@@ -114,7 +114,7 @@ class TestStates:
             rho = fock_dm(N, i)
             # make sure rho has trace close to 1.0
             assert_(abs(rho.tr() - 1.0) < 1e-12)
-            assert_(rho.data[i, i] == 1.0)
+            assert_(rho[i, i] == 1.0)
 
     def testTripletStateNorm(self):
         """

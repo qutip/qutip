@@ -154,7 +154,7 @@ def test_equivalent_to_matrix_element(hermitian):
     op = qutip.rand_herm(dimension, 0.2)
     if not hermitian:
         op = op + 1j*qutip.rand_herm(dimension, 0.1)
-    expected = (state.dag() * op * state).data[0, 0]
+    expected = state.dag() * op * state
     assert abs(qutip.expect(op, state) - expected) < 1e-14
 
 

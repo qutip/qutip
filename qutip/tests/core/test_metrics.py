@@ -201,7 +201,7 @@ def test_fidelity_overlap():
 
         assert_almost_equal(
             fidelity(psi, phi),
-            np.abs((psi.dag() * phi)[0, 0])
+            np.abs(psi.dag() * phi)
         )
 
 def test_tracedist1():
