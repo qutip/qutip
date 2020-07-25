@@ -120,7 +120,7 @@ def _tokenize(token_cmds):
     Returns
     -------
     tokens : list of (list of str)
-        list of tokens corresponding to each qasm line taken as input.
+        List of tokens corresponding to each QASM line taken as input.
     '''
 
     processed_commands = []
