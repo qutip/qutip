@@ -711,8 +711,8 @@ class QubitCircuit:
         Returns
         -------
         qubit_circuit : :class:`.QubitCircuit`
-            Return :class:`.QubitCircuit` of resolved gates for the qubit circuit in the
-            reverse order.
+            Return :class:`.QubitCircuit` of resolved gates for the
+            qubit circuit in the reverse order.
 
         """
         temp = QubitCircuit(self.N, reverse_states=self.reverse_states,
@@ -1234,8 +1234,8 @@ class QubitCircuit:
         Returns
         -------
         qc : :class:`.QubitCircuit`
-            Return :class:`.QubitCircuit` of resolved gates for the qubit circuit in the
-            desired basis.
+            Return :class:`.QubitCircuit` of resolved gates
+            for the qubit circuit in the desired basis.
         """
         qc_temp = QubitCircuit(self.N, reverse_states=self.reverse_states,
                                num_cbits=self.num_cbits)
@@ -1339,8 +1339,8 @@ class QubitCircuit:
         Returns
         -------
         qubit_circuit: :class:`.QubitCircuit`
-            Return :class:`.QubitCircuit` of the gates for the qubit circuit with the
-            resolved non-adjacent gates.
+            Return :class:`.QubitCircuit` of the gates
+            for the qubit circuit with the resolved non-adjacent gates.
 
         """
         temp = QubitCircuit(self.N, reverse_states=self.reverse_states,
