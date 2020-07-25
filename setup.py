@@ -204,6 +204,9 @@ cy_exts = {
     'control': [
         'cy_grape',
     ],
+    '': [
+        '_steadystate',
+    ],
 }
 
 # Cython extensions for OpenMP
