@@ -121,8 +121,8 @@ def cases_csr(shape):
         return lambda: data.csr.zeros(shape[0], shape[1])
     return [
         pytest.param(factory(0.001, True), id="sparse"),
-        pytest.param(factory(0.8, True), id="dense,sorted"),
-        pytest.param(factory(0.8, False), id="dense,unsorted"),
+        pytest.param(factory(0.8, True), id="filled,sorted"),
+        pytest.param(factory(0.8, False), id="filled,unsorted"),
         pytest.param(zero_factory(), id="zero"),
     ]
 
@@ -132,7 +132,12 @@ def cases_dense(shape):
     Return a list of generators of the different special cases for Dense
     matrices of a given shape.
     """
-    return [pytest.param(lambda: conftest.random_dense(shape))]
+    def factory(fortran):
+        return lambda: conftest.random_dense(shape, fortran)
+    return [
+        pytest.param(factory(False), id="C"),
+        pytest.param(factory(True), id="Fortran"),
+    ]
 
 
 # Factory methods for generating the cases, mapping type to the function.
@@ -144,7 +149,7 @@ _ALL_CASES = {
 }
 _RANDOM = {
     CSR: lambda shape: [lambda: conftest.random_csr(shape, 0.5, True)],
-    Dense: lambda shape: [lambda: conftest.random_dense(shape)],
+    Dense: lambda shape: [lambda: conftest.random_dense(shape, False)],
 }
 
 
