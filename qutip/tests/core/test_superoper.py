@@ -230,15 +230,13 @@ class TestSuper_td:
     """
     A test class for the QuTiP superoperator functions.
     """
-
-    def __init__(self):
-        N = 3
-        self.t1 = QobjEvo([qeye(N)*(1.+0.1j),[create(N)*(1.-0.1j),f]])
-        self.t2 = QobjEvo([destroy(N)*(1.-0.2j)])
-        self.t3 = QobjEvo([[destroy(N)*create(N)*(1.+0.2j),f]])
-        self.q1 = qeye(N)*(1.+0.3j)
-        self.q2 = destroy(N)*(1.-0.3j)
-        self.q3 = destroy(N)*create(N)*(1.+0.4j)
+    N = 3
+    t1 = QobjEvo([qeye(N)*(1.+0.1j),[create(N)*(1.-0.1j),f]])
+    t2 = QobjEvo([destroy(N)*(1.-0.2j)])
+    t3 = QobjEvo([[destroy(N)*create(N)*(1.+0.2j),f]])
+    q1 = qeye(N)*(1.+0.3j)
+    q2 = destroy(N)*(1.-0.3j)
+    q3 = destroy(N)*create(N)*(1.+0.4j)
 
     def test_spre_td(self):
         "Superoperator: spre, time-dependent"
