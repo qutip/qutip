@@ -683,6 +683,7 @@ class TestMatmul(BinaryOpMixin):
     bad_shapes = shapes_binary_bad_matmul()
     specialisations = [
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
+        pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
     ]
 
 
