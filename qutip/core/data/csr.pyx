@@ -539,7 +539,7 @@ cdef class Sorter:
         # this case, it's actually got very good cache locality.
         for n in range(size):
             self.argsort[n] = src_cols + n
-        sort(self.argsort, self.argsort + size, _sorter_cmp_ptr)
+        sort(self.argsort, self.argsort + size, &_sorter_cmp_ptr)
         for n in range(size):
             ptr = self.argsort[n] - src_cols
             dest_cols[n] = src_cols[ptr]
