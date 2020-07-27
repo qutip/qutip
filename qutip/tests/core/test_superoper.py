@@ -43,7 +43,7 @@ from qutip import (
     sprepost, to_super, identity, destroy, create, qeye, QobjEvo, Qobj,
     liouvillian, lindblad_dissipator,
 )
-from qutip.core.permute import reshuffle
+from qutip.core.tensor import reshuffle
 from qutip.core import data as _data
 
 
