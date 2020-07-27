@@ -200,7 +200,7 @@ def _qobjevo_set(HS, psi, args, e_ops, opt):
     H_td = HS.H
     H_td.solver_set_args(args, psi, e_ops)
     if psi.isunitary:
-        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
+        func = H_td.compiled_qobjevo.mul_mat
     elif psi.isket:
         func = H_td.compiled_qobjevo.mul_vec
     else:

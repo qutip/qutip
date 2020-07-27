@@ -46,6 +46,8 @@ from ..core.cy.spmatfuncs cimport cy_expect_psi
 from ..core.cy.complex_math cimport *
 # from qutip.cy.dopri5 import ode_td_dopri
 
+from ..core import data as _data
+
 
 cdef int ONE = 1
 
@@ -253,7 +255,8 @@ cdef class CyMcOde:
         cdef CQobjEvo cobj
         for ii in range(self.num_ops):
             cobj = <CQobjEvo> self.n_ops[ii].compiled_qobjevo
-            e = real(cobj._expect(t, &y[0]))
+            # TODO: remove poor data layer shim
+            e = real(cobj.expect(t, _data.create(y.base)))
             self.n_dp[ii] = e
             sum_ += e
         rand *= sum_
@@ -269,11 +272,10 @@ cdef class CyMcOde:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef np.ndarray[complex, ndim=1] _collapse(self, double t, int j, complex[::1] y):
-                                               # np.ndarray[complex, ndim=1] y):
         cdef CQobjEvo cobj
         cdef np.ndarray[complex, ndim=1] state
         cobj = <CQobjEvo> self.c_ops[j].compiled_qobjevo
-        state = cobj.mul_vec(t, y)
+        state = cobj.matmul(t, _data.create(y.base)).to_array()
         state = normalize(state)
         return state
 

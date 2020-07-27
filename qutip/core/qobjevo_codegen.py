@@ -189,7 +189,7 @@ cdef double pi = 3.14159265358979323
             compile_list.append(op.coeff)
 
         elif op.type == "array":
-            spline, dt_cte = _prep_cubic_spline(op[2], tlist)
+            spline, dt_cte = _prep_cubic_spline(op.coeff, tlist)
             t_str = "_tlist"
             y_str = "_array_" + str(N_np)
             s_str = "_spline_" + str(N_np)
@@ -267,11 +267,11 @@ cdef double pi = 3.14159265358979323
                 isinstance(value[0], (complex, np.complex128)):
             code += "    cdef complex[::1] " + name + "\n"
         elif isinstance(value, (complex, np.complex128)):
-            code += "    cdef complex " + name + "\n"
+            code += "    cdef public complex " + name + "\n"
         elif np.isscalar(value):
-            code += "    cdef double " + name + "\n"
+            code += "    cdef public double " + name + "\n"
         else:
-            code += "    cdef object " + name + "\n"
+            code += "    cdef public object " + name + "\n"
 
     code += "\n"
     if normal_args:

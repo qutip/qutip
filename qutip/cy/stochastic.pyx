@@ -45,6 +45,8 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.linalg.cython_blas cimport zaxpy, zdotu, zdotc, zcopy, zdscal, zscal
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
 
+from qutip.core.data cimport dense
+
 cdef int ZERO=0
 cdef double DZERO=0
 cdef complex ZZERO=0j
@@ -1280,7 +1282,7 @@ cdef class SSESolver(StochasticSolver):
         _zero(temp)
         for i in range(self.num_ops):
             c_op = self.cpcd_ops[i]
-            e = c_op._expect(t, &vec[0])
+            e = c_op.expect(t, dense.wrap(&vec[0], vec.shape[0], 1))
             _zero(temp)
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &temp[0])
@@ -1298,7 +1300,7 @@ cdef class SSESolver(StochasticSolver):
             c_op = self.c_ops[i]
             c_op._mul_vec(t, &vec[0], &out[i,0])
             c_op = self.cpcd_ops[i]
-            expect = c_op._expect(t, &vec[0])
+            expect = c_op.expect(t, dense.wrap(&vec[0], vec.shape[0], 1))
             _axpy(-0.5*expect,vec,out[i,:])
 
     @cython.boundscheck(False)
@@ -2276,7 +2278,7 @@ cdef class PmSMESolver(StochasticSolver):
         self.preLH._mul_vec(t, &vec[0], &temp[0])
         for i in range(self.num_ops):
             c_op = self.sops[i]
-            dy[i] = c_op._expect_super(t, &vec[0]) + noise[i]
+            dy[i] = c_op.expect(t, dense.wrap(&vec[0], c_op.shape[1], c_op.shape[0])) + noise[i]
             c_op = self.preops[i]
             _zero(temp2)
             c_op._mul_vec(t, &vec[0], &temp2[0])

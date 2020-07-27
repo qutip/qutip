@@ -311,7 +311,7 @@ def _qobjevo_set(HS, rho0, args, e_ops, opt):
     H_td = HS.H
     H_td.solver_set_args(args, rho0, e_ops)
     if issuper(rho0):
-        func = H_td.compiled_qobjevo.ode_mul_mat_f_vec
+        func = H_td.compiled_qobjevo.mul_mat
     elif rho0.isket or rho0.isoper:
         func = H_td.compiled_qobjevo.mul_vec
     else:
