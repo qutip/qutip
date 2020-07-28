@@ -67,12 +67,17 @@ def _ptrace(rho, sel):
     indrest = _list2ind(ilistrest, drho)
     irest = (indrest - 1) * N + indrest - 2
     # Possibly use parfor here if M > some value ?
-    perm.rows = np.array(
-        [(irest + (indsel[int(np.floor(m / M))] - 1) * N +
-         indsel[int(np.mod(m, M))]).T[0]
-         for m in range(M ** 2)])
-    # perm.data = np.ones_like(perm.rows,dtype=int)
-    perm.data = np.ones_like(perm.rows)
+    # We have to initialise like this to get a numpy array of lists rather than
+    # a standard numpy 2d array.  Scipy >= 1.5 requires that we do this, rather
+    # than just pass a 2d array, and scipy < 1.5 will accept it (because it's
+    # actually the correct format).
+    perm.rows = np.empty((M * M,), dtype=object)
+    perm.data = np.empty((M * M,), dtype=object)
+    for m in range(M * M):
+        perm.rows[m] = list((irest
+                             + (indsel[int(np.floor(m / M))] - 1)*N
+                             + indsel[int(np.mod(m, M))]).T[0])
+        perm.data[m] = [1.0] * len(perm.rows[m])
     perm = perm.tocsr()
     rhdata = perm * sp_reshape(rho.data, (np.prod(rho.shape), 1))
     rho1_data = sp_reshape(rhdata, (M, M))
