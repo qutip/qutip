@@ -930,7 +930,66 @@ def hadamard_transform(N=1):
 
     return Qobj(data, dims=[[2] * N, [2] * N])
 
-def gate_sequence_product1(U_list, ind_list=None, left_to_right=True):
+def _flatten(l):
+    return [item for sublist in l for item in sublist]
+
+
+def mult_sublists(tensor_list, overall_inds, inds, U):
+    """
+    Calculate the revised indices and tensor list by multiplying a new unitary
+    U applied to inds.
+
+    Parameters
+    ----------
+    tensor_list : list of Qobj
+        List of gates implementing the quantum circuit.
+    overall_inds : list of list of int
+        Check if multiplication is to be done from left to right.
+
+
+
+    Returns
+    -------
+    U_overall : qobj
+        Overall unitary matrix of a given quantum circuit.
+
+    """
+    tensor_sublist = []
+    inds_sublist = []
+
+    tensor_list_revised = []
+    overall_inds_revised = []
+
+    for sub_inds, sub_U in zip(overall_inds, tensor_list):
+        if len(set(sub_inds).intersection(inds)) > 0:
+            tensor_sublist.append(sub_U)
+            inds_sublist.append(sub_inds)
+        else:
+            overall_inds_revised.append(sub_inds)
+            tensor_list_revised.append(sub_U)
+
+    inds_sublist = _flatten(inds_sublist)
+    U_sublist = tensor(tensor_sublist)
+
+    revised_inds = list(set(inds_sublist).union(set(inds)))
+    N = len(revised_inds)
+
+    sorted_positions = sorted(range(N), key=lambda key: revised_inds[key])
+    ind_map = {ind: pos for ind, pos in zip(revised_inds, sorted_positions)}
+
+    U_sublist = expand_operator(U_sublist, N,
+                                [ind_map[ind] for ind in inds_sublist])
+    U = expand_operator(U, N, [ind_map[ind] for ind in inds])
+
+    U_sublist = U * U_sublist
+    inds_sublist = revised_inds
+
+    overall_inds_revised.append(inds_sublist)
+    tensor_list_revised.append(U_sublist)
+
+    return overall_inds_revised, tensor_list_revised
+
+def _gate_sequence_product(U_list, ind_list=None, expand_N=None, left_to_right=True):
     """
     Calculate the overall unitary matrix for a given list of unitary operations
 
@@ -949,42 +1008,37 @@ def gate_sequence_product1(U_list, ind_list=None, left_to_right=True):
 
     """
 
+    if not expand_N:
+        expand_N = len(set(chain(*ind_list)))
+
     U_overall = 1
     overall_inds = []
+
     for i, (U, inds) in enumerate(zip(U_list, ind_list)):
-        expand_N = len(set(chain(*ind_list)))
-        if len(overall_inds) == expand_N:
-            U_left, rem_inds = gate_sequence_product1(U_list[i:], ind_list[i:])
+        #if len(_flatten(overall_inds)) == expand_N:
+        if len(overall_inds) == 1 and len(overall_inds[0]) == expand_N:
+            #if len(tensor_list) > 1:
+            U_overall = tensor(tensor_list)
+            overall_inds = _flatten(overall_inds)
+            U_left, rem_inds = _gate_sequence_product(U_list[i:], ind_list[i:], expand_N)
             U_left = expand_operator(U_left, expand_N, rem_inds)
             return U_left * U_overall, overall_inds
         if U_overall == 1:
             U_overall = U_overall * U
-            overall_inds = ind_list[0]
+            overall_inds = [ind_list[0]]
+            tensor_list = [U_overall]
             continue
-        if len(set(overall_inds).intersection(set(inds))) > 0:
-            new_inds = list(set(overall_inds).union(set(inds)))
-            min_ind = min(overall_inds)
-            N = len(new_inds)
-            # expand stuff and multiply
-            s = sorted(range(N), key=lambda key: new_inds[key])
-            s1 = {ind:ind_ind for ind, ind_ind in zip(new_inds, s)}
-            U_overall = expand_operator(U_overall, N,
-                                        [s1[ind] for ind in overall_inds])
-            U = expand_operator(U, N, [s1[ind] for ind in inds])
-            U_overall = U * U_overall
-            overall_inds = new_inds
+        elif len(set(_flatten(overall_inds)).intersection(set(inds))) > 0:
+            overall_inds, tensor_list = mult_sublists(tensor_list, overall_inds, inds, U)
         else:
             # only need to expand stuff !
+            overall_inds.append(inds)
+            tensor_list.append(U)
 
-            overall_inds = overall_inds + inds
-            expand_inds = sorted(range(len(overall_inds)), key=lambda x: overall_inds[x]) # [ind - min_ind for ind in overall_inds]
-            U_overall = expand_operator(tensor(U_overall, U),
-                                        len(overall_inds),
-                                        expand_inds)
-    return U_overall, overall_inds
+    return U_overall, _flatten(overall_inds)
 
 
-def gate_sequence_product(U_list, left_to_right=True):
+def _gate_sequence_product_expanded(U_list, left_to_right=True):
     """
     Calculate the overall unitary matrix for a given list of unitary operations
 
@@ -1010,6 +1064,38 @@ def gate_sequence_product(U_list, left_to_right=True):
             U_overall = U_overall * U
 
     return U_overall
+
+
+def gate_sequence_product(U_list, left_to_right=True,
+                          inds_list=None, expand=False):
+    """
+    Calculate the overall unitary matrix for a given list of unitary operations
+
+    Parameters
+    ----------
+    U_list: list
+        List of gates implementing the quantum circuit.
+
+    left_to_right: Boolean, optional
+        Check if multiplication is to be done from left to right.
+
+    inds_list: list of list of int, optional
+        If expand=True, list of indices to which each unitary is applied.
+
+    expand: Boolean, optional
+        Check if list of unitaries needs to be expanded to full dimension.
+
+    Returns
+    -------
+    U_overall : qobj
+        Overall unitary matrix of a given quantum circuit.
+
+    """
+
+    if expand:
+        return _gate_sequence_product(U_list, inds_list)
+    else:
+        return _gate_sequence_product_expanded(U_list, left_to_right)
 
 
 def _powers(op, N):

@@ -49,7 +49,7 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         csign, berkeley, swapalpha, swap, iswap,
                                         sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
-                                        expand_operator, gate_sequence_product1)
+                                        expand_operator, gate_sequence_product)
 from qutip import tensor, basis, identity, fidelity
 from qutip.qobj import Qobj
 from qutip.measurement import measurement_statistics
@@ -376,151 +376,6 @@ class Measurement:
 
         qasm_out.output("measure q[{}] -> c[{}]".format(self.targets[0],
                                                         self.classical_store))
-
-
-class Result:
-
-    def __init__(self, states, probabilities):
-        if isinstance(states, Qobj):
-            self.states = [states]
-            self.probabilities = [probabilities]
-        else:
-            self.states = states
-            self.probabilities = probabilities
-
-    def get_states(self):
-        if isinstance(self.states, list):
-            return self.states
-        else:
-            return self.states[0]
-
-    def get_results(self, index=None):
-        if index:
-            return self.states[index], self.probabilities[index]
-        return self.states, self.probabilities
-
-class Simulator:
-    def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
-                 mode="state_vector_simulator"):
-        self.qc = qc
-        self.state = state
-        self.mode = mode
-
-        if U_list:
-            self.U_list = U_list
-        else:
-            self.U_list = qc.propagators(expand=False)
-
-        self.ops = []
-        self.inds_list = []
-
-        prev_index = 0
-        U_list_index = 0
-
-        for gate in qc.gates:
-            if isinstance(gate, Measurement):
-                continue
-            else:
-                self.inds_list.append(gate.get_inds(self.qc.N))
-
-        for operation in qc.gates:
-            if isinstance(operation, Measurement):
-                if U_list_index > prev_index:
-                    self.ops.append(self.process_U_list(self.U_list[prev_index:U_list_index], self.inds_list[prev_index:U_list_index]))
-                    prev_index = U_list_index
-                self.ops.append(operation)
-
-            elif isinstance(operation, Gate):
-                if operation.classical_controls:
-                    if U_list_index > prev_index:
-                        self.ops.append(self.process_U_list(self.U_list[prev_index:U_list_index], self.inds_list[prev_index:U_list_index]))
-                        prev_index = U_list_index + 1
-                        U_list_index = prev_index
-                    self.ops.append((operation, self.U_list[U_list_index-1]))
-                else:
-                    U_list_index += 1
-
-        if U_list_index > prev_index:
-            self.ops.append(self.process_U_list(self.U_list[prev_index:U_list_index], self.inds_list[prev_index:U_list_index]))
-            prev_index = U_list_index + 1
-            U_list_index = prev_index
-
-        self.reset(state, cbits, measure_results)
-
-    def reset(self, state, cbits, measure_results):
-
-        if cbits and len(cbits) == self.qc.num_cbits:
-            self.cbits = cbits
-        else:
-            self.cbits = [0] * self.qc.num_cbits
-
-        if state.shape[0] != 2 ** self.qc.N:
-            return ValueError("dimension of state is incorrect")
-        self.probability = 1
-        self.apply_ops = list(reversed(self.ops))
-        if measure_results:
-            self.measure_results = measure_results
-        self.measure_ind = 0
-
-
-    def process_U_list(self, U_list, inds_list):
-        U_overall, overall_inds = gate_sequence_product1(U_list, inds_list)
-        if len(overall_inds) != self.qc.N:
-            U_overall = expand_operator(U_overall, N=self.qc.N, targets=overall_inds)
-        return U_overall
-
-    def run(self, state, cbits=None, measure_results=None):
-        self.reset(state, cbits, measure_results=None)
-        while self.apply_ops:
-            self.step()
-        return Result(self.state, self.probability)
-
-
-    def step(self):
-        op = self.apply_ops.pop()
-
-        if isinstance(op, Measurement):
-            self._apply_measurement(op)
-        elif isinstance(op, tuple):
-            operation, U = op
-            apply_gate = all([self.cbits[i] for i
-                              in operation.classical_controls])
-            if apply_gate:
-                U = expand_operator(U, self.qc.N, operation.get_inds(self.qc.N))
-                self._evolve_state(U)
-        else:
-            self._evolve_state(op)
-
-        return self.state
-
-    def _evolve_state(self, U):
-        if self.mode == "state_vector_simulator":
-            self._evolve_ket(U)
-        elif self.mode == "density_matrix_simulator":
-            self._evolve_dm(U)
-        else:
-            raise NotImplementedError("mode {} is not available.".format(self.mode))
-
-    def _evolve_ket(self, U):
-        self.state = U * self.state
-
-    def _evolve_dm(self, U):
-        self.state = U * self.state * U.dag()
-
-
-    def _apply_measurement(self, operation):
-        states, probabilities = operation.measurement_comp_basis(self.state)
-        if self.measure_results:
-            i = int(self.measure_results[self.measure_ind])
-            self.measure_ind += 1
-        else:
-            i = np.random.choice([0, 1],
-                                 p=[probabilities[0], 1 - probabilities[0]])
-            self.probability *= probabilities[i]
-            self.state = states[i]
-            if operation.classical_store is not None:
-                self.cbits[operation.classical_store] = i
-
 
 
 class QubitCircuit:
@@ -1248,60 +1103,10 @@ class QubitCircuit:
             else:
                 qc_temp.gates.append(gate)
 
-    def run_alt(self, state, cbits=None, U_list=None, measure_results=()):
+    def run_alt(self, state, cbits=None, U_list=None, measure_results=None, precompute_unitary=False):
 
-        if cbits and len(cbits) == self.num_cbits:
-            self.cbits = cbits
-        else:
-            self.cbits = [0] * self.num_cbits
-
-        if state.shape[0] != 2 ** self.N:
-            return ValueError("dimension of state is incorrect")
-
-        if U_list:
-            self.U_list = U_list
-        else:
-            self.U_list = self.propagators()
-
-        ulistindex = 0
-        probability = 1
-        measure_ind = 0
-
-        tmp_U_list = []
-        ind_list = []
-
-        for operation in self.gates:
-            if isinstance(operation, Measurement):
-                states, probabilities = operation.measurement_comp_basis(state)
-                if measure_results:
-                    i = int(measure_results[measure_ind])
-                    measure_ind += 1
-                else:
-                    i = np.random.choice(
-                                    [0, 1],
-                                    p=[probabilities[0], 1 - probabilities[0]])
-                probability *= probabilities[i]
-                state = states[i]
-                if operation.classical_store is not None:
-                    self.cbits[operation.classical_store] = i
-                tmp_U_list = []
-                ind_list = []
-            else:
-                if (operation.classical_controls):
-                    apply_gate = all([self.cbits[i] for i
-                                      in operation.classical_controls])
-                    if apply_gate:
-                        tmp_U_list.append(self.U_list[ulistindex])
-                        ind_list.append(operation.controls+operation.targets)
-                        ulistindex += 1
-                    else:
-                        ulistindex += 1
-                        continue
-                else:
-                    tmp_U_list.append(self.U_list[ulistindex])
-                    ulistindex += 1
-
-        return state, probability
+        sim = Simulator(self, state, cbits, U_list, measure_results, precompute_unitary=precompute_unitary)
+        return sim.run(state, cbits)
 
     def run(self, state, cbits=None, U_list=None, measure_results=()):
         '''
@@ -2015,3 +1820,184 @@ class QubitCircuit:
 
         for op in self.gates:
             op._to_qasm(qasm_out)
+
+
+class Result:
+
+    def __init__(self, states, probabilities):
+        if isinstance(states, Qobj):
+            self.states = [states]
+            self.probabilities = [probabilities]
+        else:
+            self.states = states
+            self.probabilities = probabilities
+
+    def get_states(self):
+        if isinstance(self.states, list):
+            return self.states
+        else:
+            return self.states[0]
+
+    def get_results(self, index=None):
+        if index:
+            return self.states[index], self.probabilities[index]
+        return self.states, self.probabilities
+
+
+class Simulator:
+
+    def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
+                 mode="state_vector_simulator", precompute_unitary=False):
+
+        self.qc = qc
+        self.mode = mode
+        self.precompute_unitary = precompute_unitary
+
+        if U_list:
+            self.U_list = U_list
+        elif precompute_unitary:
+            self.U_list = qc.propagators(expand=False)
+        else:
+            self.U_list = qc.propagators()
+
+        self.ops = []
+        self.inds_list = []
+
+        if precompute_unitary:
+            self.process_ops()
+        else:
+            self.add_ops()
+        self.reset(state, cbits, measure_results)
+
+    def add_ops(self):
+        U_list_index = 0
+
+        for operation in self.qc.gates:
+            if isinstance(operation, Measurement):
+                self.ops.append(operation)
+            elif isinstance(operation, Gate):
+                if operation.classical_controls:
+                    self.ops.append((operation, self.U_list[U_list_index]))
+                else:
+                    self.ops.append(self.U_list[U_list_index])
+                U_list_index += 1
+
+    def process_ops(self):
+
+        prev_index = 0
+        U_list_index = 0
+
+        for gate in self.qc.gates:
+            if isinstance(gate, Measurement):
+                continue
+            else:
+                self.inds_list.append(gate.get_inds(self.qc.N))
+
+        for operation in self.qc.gates:
+            if isinstance(operation, Measurement):
+                if U_list_index > prev_index:
+                    self.ops.append(self.compute_unitary(
+                                    self.U_list[prev_index:U_list_index],
+                                    self.inds_list[prev_index:U_list_index]))
+                    prev_index = U_list_index
+                self.ops.append(operation)
+
+            elif isinstance(operation, Gate):
+                if operation.classical_controls:
+                    if U_list_index > prev_index:
+                        self.ops.append(
+                            self.compute_unitary(
+                                    self.U_list[prev_index:U_list_index],
+                                    self.inds_list[prev_index:U_list_index]))
+                        prev_index = U_list_index
+                    self.ops.append((operation, self.U_list[prev_index]))
+                    prev_index += 1
+                    U_list_index += 1
+                else:
+                    U_list_index += 1
+
+        if U_list_index > prev_index:
+            self.ops.append(self.compute_unitary(
+                            self.U_list[prev_index:U_list_index],
+                            self.inds_list[prev_index:U_list_index]))
+            prev_index = U_list_index + 1
+            U_list_index = prev_index
+
+    def reset(self, state, cbits, measure_results):
+
+        if cbits and len(cbits) == self.qc.num_cbits:
+            self.cbits = cbits
+        else:
+            self.cbits = [0] * self.qc.num_cbits
+
+        if state.shape[0] != 2 ** self.qc.N:
+            raise ValueError("dimension of state is incorrect")
+
+        self.state = state
+        self.probability = 1
+        self.op_index = 0
+        self.measure_results = measure_results
+        self.measure_ind = 0
+
+    def compute_unitary(self, U_list, inds_list):
+        U_overall, overall_inds = gate_sequence_product(U_list,
+                                                        inds_list=inds_list,
+                                                        expand=True)
+        # TODO: fix when this is the case!
+        if len(overall_inds) != self.qc.N:
+            U_overall = expand_operator(U_overall,
+                                        N=self.qc.N,
+                                        targets=overall_inds)
+        return U_overall
+
+    def run(self, state, cbits=None, measure_results=None):
+        self.reset(state, cbits, measure_results=None)
+        for _ in range(len(self.ops)):
+            self.step()
+        return Result(self.state, self.probability)
+
+    def step(self):
+
+        op = self.ops[self.op_index]
+        if isinstance(op, Measurement):
+            self._apply_measurement(op)
+        elif isinstance(op, tuple):
+            operation, U = op
+            apply_gate = all([self.cbits[i] for i
+                              in operation.classical_controls])
+            if apply_gate:
+                if self.precompute_unitary:
+                    U = expand_operator(U, self.qc.N, operation.get_inds(self.qc.N))
+                self._evolve_state(U)
+        else:
+            self._evolve_state(op)
+
+        self.op_index += 1
+        return self.state
+
+    def _evolve_state(self, U):
+        if self.mode == "state_vector_simulator":
+            self._evolve_ket(U)
+        elif self.mode == "density_matrix_simulator":
+            self._evolve_dm(U)
+        else:
+            raise NotImplementedError("mode {} is not available.".format(self.mode))
+
+    def _evolve_ket(self, U):
+        self.state = U * self.state
+
+    def _evolve_dm(self, U):
+        self.state = U * self.state * U.dag()
+
+    def _apply_measurement(self, operation):
+        states, probabilities = operation.measurement_comp_basis(self.state)
+        if self.measure_results:
+            i = int(self.measure_results[self.measure_ind])
+            self.measure_ind += 1
+        else:
+            i = np.random.choice([0, 1],
+                                 p=[probabilities[0], 1 - probabilities[0]])
+            self.probability *= probabilities[i]
+            self.state = states[i]
+            if operation.classical_store is not None:
+                self.cbits[operation.classical_store] = i
