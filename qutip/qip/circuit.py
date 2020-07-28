@@ -1103,11 +1103,11 @@ class QubitCircuit:
             else:
                 qc_temp.gates.append(gate)
 
-    def run_alt(self, state, cbits=None, U_list=None, measure_results=None, precompute_unitary=False):
-
+    def run(self, state, cbits=None, U_list=None, measure_results=None, precompute_unitary=False):
         sim = Simulator(self, state, cbits, U_list, measure_results, precompute_unitary=precompute_unitary)
         return sim.run(state, cbits)
 
+<<<<<<< HEAD
     def run(self, state, cbits=None, U_list=None, measure_results=()):
         '''
         This is the primary circuit run function for 1 run, must be called
@@ -1187,6 +1187,8 @@ class QubitCircuit:
 
         return state, probability
 
+=======
+>>>>>>> fixed QubitCircuit.run()
     def run_statistics(self, state, cbits=None):
         '''
         This is the circuit run function for num_runs run, must be called after
