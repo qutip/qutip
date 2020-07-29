@@ -464,7 +464,7 @@ class TestQubitCircuit:
         initial_measurement = Measurement("start", targets=[0])
         _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-        state_final, probability = teleportation.run(state)
+        state_final, probability = teleportation.run(state).get_results(0)
 
         final_measurement = Measurement("start", targets=[2])
         _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
@@ -483,7 +483,7 @@ class TestQubitCircuit:
         state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
         _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-        states, probabilites = teleportation.run_statistics(state)
+        states, probabilites = teleportation.run_statistics(state).get_results()
 
         for i, state in enumerate(states):
             state_final = state

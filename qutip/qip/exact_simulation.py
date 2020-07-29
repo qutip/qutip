@@ -32,6 +32,7 @@
 ###############################################################################
 
 from qutip.qip.operations.gates import gate_sequence_product
+from qutip.qip.circuit import Measurement
 
 
 __all__ = ['Result', 'ExactSimulator']

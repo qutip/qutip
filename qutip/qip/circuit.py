@@ -50,7 +50,7 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
                                         expand_operator, gate_sequence_product)
-from qutip import tensor, basis, identity, fidelity
+from qutip import tensor, basis, identity, fidelity, ket2dm
 from qutip.qobj import Qobj
 from qutip.measurement import measurement_statistics
 
@@ -66,7 +66,7 @@ except ImportError:
     def DisplaySVG(data, *args, **kwargs):
         return data
 
-__all__ = ['Gate', 'QubitCircuit', 'Measurement']
+__all__ = ['Gate', 'QubitCircuit', 'Measurement', 'Result', 'ExactSimulator']
 
 _single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
                        "X", "Y", "Z", "S", "T", "QASMU"]
@@ -1103,11 +1103,21 @@ class QubitCircuit:
             else:
                 qc_temp.gates.append(gate)
 
-    def run(self, state, cbits=None, U_list=None, measure_results=None, precompute_unitary=False):
-        sim = Simulator(self, state, cbits, U_list, measure_results, precompute_unitary=precompute_unitary)
+    def run(self, state, cbits=None, U_list=None,
+            measure_results=None, precompute_unitary=False):
+        if state.isket:
+            sim = ExactSimulator(self, state, cbits, U_list, measure_results,
+                                 "state_vector_simulator",
+                                 precompute_unitary)
+        elif state.isoper:
+            sim = ExactSimulator(self, state, cbits, U_list, measure_results,
+                                 "density_matrix_simulator",
+                                 precompute_unitary)
+        else:
+            raise TypeError("State is not ket or dm.")
         return sim.run(state, cbits)
 
-    def run_statistics(self, state, cbits=None):
+    def run_statistics(self, state, U_list=None, cbits=None, precompute_unitary=False):
         '''
         This is the circuit run function for num_runs run, must be called after
         adding all the gates and measurements on the circuit and returns the
@@ -1128,24 +1138,17 @@ class QubitCircuit:
                 returns probabilities of getting above output states.
         '''
 
-        state_probs = []
-        states = []
-
-        U_list = self.propagators()
-
-        num_measurements = len(list(filter(
-                                lambda x: isinstance(x, Measurement),
-                                self.gates)))
-
-        for measure_results in product("01", repeat=num_measurements):
-            found = 0
-            final_state, probability = self.run(
-                                            state, cbits=cbits, U_list=U_list,
-                                            measure_results=measure_results)
-            states.append(final_state)
-            state_probs.append(probability)
-
-        return states, state_probs
+        if state.isket:
+            sim = ExactSimulator(self, state, cbits, U_list,
+                                 mode="state_vector_simulator",
+                                 precompute_unitary=precompute_unitary)
+        elif state.isoper:
+            sim = ExactSimulator(self, state, cbits, U_list,
+                                 mode="density_matrix_simulator",
+                                 precompute_unitary=precompute_unitary)
+        else:
+            raise TypeError("State is not ket or dm.")
+        return sim.run_statistics(state, cbits)
 
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
@@ -1745,6 +1748,21 @@ class QubitCircuit:
 class Result:
 
     def __init__(self, states, probabilities):
+<<<<<<< HEAD
+=======
+        """
+        Store result of ExactSimulator.
+
+        Parameters
+        ----------
+        states: list of Qobj.
+            List of output kets or density matrices.
+
+        probabilities: list of float.
+            List of probabilities of obtaining each output state.
+        """
+
+>>>>>>> added run_statistics to Simulator
         if isinstance(states, Qobj):
             self.states = [states]
             self.probabilities = [probabilities]
@@ -1753,21 +1771,96 @@ class Result:
             self.probabilities = probabilities
 
     def get_states(self):
+<<<<<<< HEAD
+=======
+        """
+        Return list of output states.
+
+        Returns
+        ----------
+        states: list of Qobj.
+            List of output kets or density matrices.
+        """
+
+>>>>>>> added run_statistics to Simulator
         if isinstance(self.states, list):
             return self.states
         else:
             return self.states[0]
 
     def get_results(self, index=None):
+<<<<<<< HEAD
         if index:
+=======
+        """
+        Return list of output states and corresponding probabilities
+
+        Parameters
+        ----------
+        index: int
+            Indicates i-th output, probability pair to be returned.
+
+        Returns
+        -------
+        states: Qobj or list of Qobj
+            Possible output states.
+
+        probabilities: float or list of float
+            Probabilities associated with each output state.
+
+        """
+
+        if index is not None:
+>>>>>>> added run_statistics to Simulator
             return self.states[index], self.probabilities[index]
         return self.states, self.probabilities
 
 
+<<<<<<< HEAD
 class Simulator:
 
     def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
                  mode="state_vector_simulator", precompute_unitary=False):
+=======
+class ExactSimulator:
+
+    def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
+                 mode="state_vector_simulator", precompute_unitary=False):
+        """
+        Store result of ExactSimulator.
+
+        Parameters
+        ----------
+        qc: :class:`.QubitCircuit`
+            Quantum Circuit to be simulated.
+
+        state: ket or oper
+            ket or density matrix
+
+        cbits: list of int, optional
+            initial value of classical bits
+
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+
+        mode: Boolean, optional
+            Specify if input state (and therefore computation) is in
+            state-vector mode or in density matrix mode. If in density matrix
+            mode and given a state vector input, the output must be assumed to
+            be a density matrix.
+
+        precompute_unitary: Boolean, optional
+            Specify if computation is done by pre-computing and aggregating
+            gate unitaries. Possibly a faster method in the case of large number
+            of repeat runs with different state inputs.
+        """
+>>>>>>> added run_statistics to Simulator
 
         self.qc = qc
         self.mode = mode
@@ -1784,12 +1877,27 @@ class Simulator:
         self.inds_list = []
 
         if precompute_unitary:
+<<<<<<< HEAD
             self.process_ops()
         else:
             self.add_ops()
         self.reset(state, cbits, measure_results)
 
     def add_ops(self):
+=======
+            self._process_ops_precompute()
+        else:
+            self._process_ops()
+
+        self.initialize_run(state, cbits, measure_results)
+
+    def _process_ops(self):
+        '''
+        Process list of gates (including measurements), and stores
+        them in self.ops (as unitaries) for further computation.
+        '''
+
+>>>>>>> added run_statistics to Simulator
         U_list_index = 0
 
         for operation in self.qc.gates:
@@ -1802,7 +1910,16 @@ class Simulator:
                     self.ops.append(self.U_list[U_list_index])
                 U_list_index += 1
 
+<<<<<<< HEAD
     def process_ops(self):
+=======
+    def _process_ops_precompute(self):
+        '''
+        Process list of gates (including measurements), aggregate
+        gate unitaries (by multiplying) and store them in self.ops
+        for further computation.
+        '''
+>>>>>>> added run_statistics to Simulator
 
         prev_index = 0
         U_list_index = 0
@@ -1816,7 +1933,11 @@ class Simulator:
         for operation in self.qc.gates:
             if isinstance(operation, Measurement):
                 if U_list_index > prev_index:
+<<<<<<< HEAD
                     self.ops.append(self.compute_unitary(
+=======
+                    self.ops.append(self._compute_unitary(
+>>>>>>> added run_statistics to Simulator
                                     self.U_list[prev_index:U_list_index],
                                     self.inds_list[prev_index:U_list_index]))
                     prev_index = U_list_index
@@ -1826,7 +1947,11 @@ class Simulator:
                 if operation.classical_controls:
                     if U_list_index > prev_index:
                         self.ops.append(
+<<<<<<< HEAD
                             self.compute_unitary(
+=======
+                            self._compute_unitary(
+>>>>>>> added run_statistics to Simulator
                                     self.U_list[prev_index:U_list_index],
                                     self.inds_list[prev_index:U_list_index]))
                         prev_index = U_list_index
@@ -1837,13 +1962,41 @@ class Simulator:
                     U_list_index += 1
 
         if U_list_index > prev_index:
+<<<<<<< HEAD
             self.ops.append(self.compute_unitary(
+=======
+            self.ops.append(self._compute_unitary(
+>>>>>>> added run_statistics to Simulator
                             self.U_list[prev_index:U_list_index],
                             self.inds_list[prev_index:U_list_index]))
             prev_index = U_list_index + 1
             U_list_index = prev_index
 
+<<<<<<< HEAD
     def reset(self, state, cbits, measure_results):
+=======
+    def initialize_run(self, state, cbits=None, measure_results=None):
+        '''
+        Reset Simulator state variables to start a new run.
+
+        Parameters
+        ----------
+        state: ket or oper
+            ket or density matrix
+
+        cbits: list of int, optional
+            initial value of classical bits
+
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+        '''
+>>>>>>> added run_statistics to Simulator
 
         if cbits and len(cbits) == self.qc.num_cbits:
             self.cbits = cbits
@@ -1853,13 +2006,43 @@ class Simulator:
         if state.shape[0] != 2 ** self.qc.N:
             raise ValueError("dimension of state is incorrect")
 
+<<<<<<< HEAD
         self.state = state
+=======
+        if self.mode == "density_matrix_simulator" and state.isket:
+            self.state = ket2dm(state)
+        else:
+            self.state = state
+
+>>>>>>> added run_statistics to Simulator
         self.probability = 1
         self.op_index = 0
         self.measure_results = measure_results
         self.measure_ind = 0
 
+<<<<<<< HEAD
     def compute_unitary(self, U_list, inds_list):
+=======
+    def _compute_unitary(self, U_list, inds_list):
+        '''
+        Compute unitary corresponding to a product of unitaries in U_list
+        and expand it to size of circuit.
+
+        Parameters
+        ----------
+        U_list: list of Qobj
+            list of predefined unitaries.
+
+        inds_list: list of list of int
+            list of qubit indices corresponding to each unitary in U_list
+
+        Returns
+        -------
+        U: Qobj
+            resultant unitary
+        '''
+
+>>>>>>> added run_statistics to Simulator
         U_overall, overall_inds = gate_sequence_product(U_list,
                                                         inds_list=inds_list,
                                                         expand=True)
@@ -1871,12 +2054,86 @@ class Simulator:
         return U_overall
 
     def run(self, state, cbits=None, measure_results=None):
+<<<<<<< HEAD
         self.reset(state, cbits, measure_results=None)
+=======
+        '''
+        Calculate the result of one instance of circuit run.
+
+        Parameters
+        ----------
+        state : ket or oper
+                state vector or density matrix input.
+        cbits : List of ints, optional
+                initialization of the classical bits.
+        measure_results : tuple of ints, optional
+                optional specification of each measurement result to enable
+                post-selection. If specified, the measurement results are
+                set to the tuple of bits (sequentially) instead of being
+                chosen at random.
+
+        Returns
+        -------
+        result : Result
+            returns the Result object containing output information.
+        '''
+
+        self.initialize_run(state, cbits, measure_results)
+>>>>>>> added run_statistics to Simulator
         for _ in range(len(self.ops)):
             self.step()
         return Result(self.state, self.probability)
 
+<<<<<<< HEAD
     def step(self):
+=======
+    def run_statistics(self, state, cbits=None):
+        '''
+        This is the circuit run function for num_runs run, must be called after
+        adding all the gates and measurements on the circuit and returns the
+        probability with which each output state is observed.
+
+        Parameters
+        ----------
+        state : ket
+                state to be observed on specified by density matrix.
+        cbits : List of ints, optional
+                initialization of the classical bits.
+
+        Returns
+        -------
+        states : List of kets
+                returns a list of possible circuit states output by run.
+        state_probs : List of floats
+                returns probabilities of getting above output states.
+        '''
+
+        probabilities = []
+        states = []
+
+        num_measurements = len(list(filter(
+                                lambda x: isinstance(x, Measurement),
+                                self.qc.gates)))
+
+        for results in product("01", repeat=num_measurements):
+            final_state, probability = self.run(state, cbits=cbits,
+                                                measure_results=results).get_results(0)
+            states.append(final_state)
+            probabilities.append(probability)
+
+        return Result(states, probabilities)
+
+    def step(self):
+        '''
+        Return state after one step of circuit evolution
+        (gate or measurement).
+
+        Returns
+        -------
+        state : ket or oper
+            state after one evolution step.
+        '''
+>>>>>>> added run_statistics to Simulator
 
         op = self.ops[self.op_index]
         if isinstance(op, Measurement):
@@ -1887,7 +2144,12 @@ class Simulator:
                               in operation.classical_controls])
             if apply_gate:
                 if self.precompute_unitary:
+<<<<<<< HEAD
                     U = expand_operator(U, self.qc.N, operation.get_inds(self.qc.N))
+=======
+                    U = expand_operator(U, self.qc.N,
+                                        operation.get_inds(self.qc.N))
+>>>>>>> added run_statistics to Simulator
                 self._evolve_state(U)
         else:
             self._evolve_state(op)
@@ -1896,11 +2158,24 @@ class Simulator:
         return self.state
 
     def _evolve_state(self, U):
+<<<<<<< HEAD
+=======
+        '''
+        Applies unitary to state.
+
+        Parameters
+        ----------
+        U: Qobj
+            unitary to be applied.
+        '''
+
+>>>>>>> added run_statistics to Simulator
         if self.mode == "state_vector_simulator":
             self._evolve_ket(U)
         elif self.mode == "density_matrix_simulator":
             self._evolve_dm(U)
         else:
+<<<<<<< HEAD
             raise NotImplementedError("mode {} is not available.".format(self.mode))
 
     def _evolve_ket(self, U):
@@ -1917,7 +2192,65 @@ class Simulator:
         else:
             i = np.random.choice([0, 1],
                                  p=[probabilities[0], 1 - probabilities[0]])
+=======
+            raise NotImplementedError(
+                "mode {} is not available.".format(self.mode))
+
+    def _evolve_ket(self, U):
+        '''
+        Applies unitary to ket state.
+
+        Parameters
+        ----------
+        U: Qobj
+            unitary to be applied.
+        '''
+
+        self.state = U * self.state
+
+    def _evolve_dm(self, U):
+        '''
+        Applies unitary to density matrix state.
+
+        Parameters
+        ----------
+        U: Qobj
+            unitary to be applied.
+        '''
+        print(U)
+        print(self.state)
+        self.state = U * self.state * U.dag()
+
+    def _apply_measurement(self, operation):
+        '''
+        Applies measurement gate specified by operation to current state.
+
+        Parameters
+        ----------
+        operation: :class:`.Measurement`
+            Measurement gate in a circuit object.
+        '''
+
+        states, probabilities = operation.measurement_comp_basis(self.state)
+
+        if self.mode == "state_vector_simulator":
+            if self.measure_results:
+                i = int(self.measure_results[self.measure_ind])
+                self.measure_ind += 1
+            else:
+                i = np.random.choice([0, 1],
+                                     p=[probabilities[0], 1 - probabilities[0]])
+>>>>>>> added run_statistics to Simulator
             self.probability *= probabilities[i]
             self.state = states[i]
             if operation.classical_store is not None:
                 self.cbits[operation.classical_store] = i
+<<<<<<< HEAD
+=======
+
+        elif self.mode == "density_matrix_simulator":
+            self.state = sum(p * s for s, p in zip(states, probabilities))
+        else:
+            raise NotImplementedError(
+                "mode {} is not available.".format(self.mode))
+>>>>>>> added run_statistics to Simulator
