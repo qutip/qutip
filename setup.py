@@ -53,11 +53,11 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
-MAJOR = 4
-MINOR = 6
+MAJOR = 5
+MINOR = 0
 MICRO = 0
 ISRELEASED = False
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+VERSION = '%d.%d.%db1' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
 EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
@@ -188,7 +188,6 @@ cy_exts = {
     'core.cy': [
         'coefficient',
         'cqobjevo',
-        'cqobjevo_factor',
         'graph_utils',
         'inter',
         'interpolate',

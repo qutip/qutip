@@ -34,7 +34,7 @@ import pytest
 import pickle
 import qutip as qt
 import numpy as np
-import qutip.coefficient as qtcoeff
+import qutip.core.coefficient as qtcoeff
 
 
 def f(t, args):

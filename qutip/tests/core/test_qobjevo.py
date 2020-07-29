@@ -200,43 +200,43 @@ def test_QobjEvo_step_coeff():
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
                       tlist=tlist, args={"_step_func_coeff": True})
-    assert qobjevo.ops[0].get_coeff(2.0) == coeff1[0]
-    assert qobjevo.ops[0].get_coeff(7.0) == coeff1[5]
-    assert qobjevo.ops[0].get_coeff(5.0001) == coeff1[3]
-    assert qobjevo.ops[0].get_coeff(3.9999) == coeff1[1]
+    assert qobjevo.ops[0].coeff(2.0) == coeff1[0]
+    assert qobjevo.ops[0].coeff(7.0) == coeff1[5]
+    assert qobjevo.ops[0].coeff(5.0001) == coeff1[3]
+    assert qobjevo.ops[0].coeff(3.9999) == coeff1[1]
 
-    assert qobjevo.ops[1].get_coeff(2.0) == coeff2[0]
-    assert qobjevo.ops[1].get_coeff(7.0) == coeff2[5]
-    assert qobjevo.ops[1].get_coeff(5.0001) == coeff2[3]
-    assert qobjevo.ops[1].get_coeff(3.9999) == coeff2[1]
+    assert qobjevo.ops[1].coeff(2.0) == coeff2[0]
+    assert qobjevo.ops[1].coeff(7.0) == coeff2[5]
+    assert qobjevo.ops[1].coeff(5.0001) == coeff2[3]
+    assert qobjevo.ops[1].coeff(3.9999) == coeff2[1]
 
     qobjevo.compile()
-    assert (qobjevo.coeff_get(2.0) == [coeff1[0], coeff2[0]]).all()
-    assert (qobjevo.coeff_get(7.0) == [coeff1[5], coeff2[5]]).all()
-    assert (qobjevo.coeff_get(4.0001) == [coeff1[2], coeff2[2]]).all()
-    assert (qobjevo.coeff_get(3.9999) == [coeff1[1], coeff2[1]]).all()
+    assert_allclose (qobjevo.coeff_get(2.0), [coeff1[0], coeff2[0]])
+    assert_allclose (qobjevo.coeff_get(7.0), [coeff1[5], coeff2[5]])
+    assert_allclose (qobjevo.coeff_get(4.0001), [coeff1[2], coeff2[2]])
+    assert_allclose (qobjevo.coeff_get(3.9999), [coeff1[1], coeff2[1]])
 
     # non-uniform t
     tlist = np.array([1, 2, 4, 5, 6, 8], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
         tlist=tlist, args={"_step_func_coeff":True})
-    assert qobjevo.ops[0].get_coeff(1.0) == coeff1[0]
-    assert qobjevo.ops[0].get_coeff(8.0) == coeff1[5]
-    assert qobjevo.ops[0].get_coeff(3.9999) == coeff1[1]
-    assert qobjevo.ops[0].get_coeff(4.23) == coeff1[2]
-    assert qobjevo.ops[0].get_coeff(1.23) == coeff1[0]
+    assert qobjevo.ops[0].coeff(1.0) == coeff1[0]
+    assert qobjevo.ops[0].coeff(8.0) == coeff1[5]
+    assert qobjevo.ops[0].coeff(3.9999) == coeff1[1]
+    assert qobjevo.ops[0].coeff(4.23) == coeff1[2]
+    assert qobjevo.ops[0].coeff(1.23) == coeff1[0]
 
-    assert qobjevo.ops[1].get_coeff(1.0) == coeff2[0]
-    assert qobjevo.ops[1].get_coeff(8.0) == coeff2[5]
-    assert qobjevo.ops[1].get_coeff(6.7) == coeff2[4]
-    assert qobjevo.ops[1].get_coeff(7.9999) == coeff2[4]
-    assert qobjevo.ops[1].get_coeff(3.9999) == coeff2[1]
+    assert qobjevo.ops[1].coeff(1.0) == coeff2[0]
+    assert qobjevo.ops[1].coeff(8.0) == coeff2[5]
+    assert qobjevo.ops[1].coeff(6.7) == coeff2[4]
+    assert qobjevo.ops[1].coeff(7.9999) == coeff2[4]
+    assert qobjevo.ops[1].coeff(3.9999) == coeff2[1]
 
     qobjevo.compile()
-    assert (qobjevo.coeff_get(1.0) == [coeff1[0], coeff2[0]]).all()
-    assert (qobjevo.coeff_get(3.999) == [coeff1[1], coeff2[1]]).all()
-    assert (qobjevo.coeff_get(6.3) == [coeff1[4], coeff2[4]]).all()
-    assert (qobjevo.coeff_get(1.0001) == [coeff1[0], coeff2[0]]).all()
+    assert_allclose (qobjevo.coeff_get(1.0), [coeff1[0], coeff2[0]])
+    assert_allclose (qobjevo.coeff_get(3.999), [coeff1[1], coeff2[1]])
+    assert_allclose (qobjevo.coeff_get(6.3), [coeff1[4], coeff2[4]])
+    assert_allclose (qobjevo.coeff_get(1.0001), [coeff1[0], coeff2[0]])
 
 
 def test_QobjEvo_copy():
@@ -257,6 +257,7 @@ def test_QobjEvo_copy():
     assert_equal(td_obj_1(t) == td_obj_copy(t), True)
 
 
+@pytest.mark.skipif(True, reason="Now returning Coefficient, to adapt/remove")
 def test_QobjEvo_to_list():
     "QobjEvo to_list"
     td_as_list_1 = _random_QobjEvo((5,5), [0,2,3], tlist=np.linspace(0,1,100))
@@ -424,43 +425,6 @@ def test_QobjEvo_apply():
     assert_equal(td_obj.apply(multiply,2)(t) == td_obj(t)*6, True)
     # check that data is still valid
     assert_equal(td_obj.apply(multiply,2,factor=2)(t) == td_obj(t)*4, True)
-
-
-def test_QobjEvo_apply_decorator():
-    "QobjEvo apply_decorator"
-    def rescale_time_and_scale(f_original, time_scale, factor=1.):
-        def f(t, *args, **kwargs):
-            return f_original(time_scale*t, *args, **kwargs)*factor
-        return f
-
-    tlist = np.linspace(0, 1, 501)
-    td_obj = QobjEvo(_random_QobjEvo((5,5), [1,2,3], tlist=tlist, cte=False),
-                     args={"w1":1, "w2":2}, tlist=tlist)
-    t = 0.10 + np.random.random() * 0.80
-    # cubicspline interpolation can be less precise
-    # at the limit of the time range.
-    td_obj_scaled = td_obj.apply_decorator(rescale_time_and_scale,2)
-    # check that the decorated took effect mixed
-    assert_equal(td_obj_scaled(t) == td_obj(2*t), True)
-    for op in td_obj_scaled.ops:
-        assert_equal(op.type, "func")
-
-    def square_f(f_original):
-        def f(t, *args, **kwargs):
-            return f_original(t, *args, **kwargs)**2
-        return f
-    td_list = _random_QobjEvo((5,5), [2, 0, 0], tlist=tlist, cte=False)
-    td_obj_str = QobjEvo(td_list, args={"w1": 1, "w2": 2}, tlist=tlist)
-    td_obj_str_2 = td_obj_str.apply_decorator(square_f, str_mod=["(", ")**2"])
-    _assert_qobj_almost_eq(td_obj_str_2(t), td_list[0][0] * np.sin(t)**2)
-    assert_equal(td_obj_str_2.ops[0].type, "string")
-
-    td_list = _random_QobjEvo((5,5), [3, 0, 0], tlist=tlist, cte=False)
-    td_obj_array = QobjEvo(td_list, tlist=tlist)
-    td_obj_array_2 = td_obj_array.apply_decorator(square_f, inplace_np=True)
-    _assert_qobj_almost_eq(td_obj_array_2(t),
-                           td_list[0][0] * np.sin(t)**2, tol=3e-7)
-    assert_equal(td_obj_array_2.ops[0].type, "array")
 
 
 def test_QobjEvo_mul_vec():

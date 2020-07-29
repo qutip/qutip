@@ -5,11 +5,12 @@ cdef extern from "<complex>" namespace "std" nogil:
     double         norm(double complex x)
     double complex exp(double complex x)
 
-from qutip.cy.inter import _prep_cubic_spline
-from qutip.cy.inter cimport (_spline_complex_cte_second,
+from .inter import _prep_cubic_spline
+from .inter cimport (_spline_complex_cte_second,
                              _spline_complex_t_second,
                              _step_complex_t, _step_complex_cte)
-from qutip.cy.interpolate cimport (interp, zinterp)
+from .interpolate cimport (interp, zinterp)
+import pickle
 import numpy as np
 cimport numpy as cnp
 cimport cython
@@ -40,6 +41,18 @@ cdef class Coefficient:
         if not isinstance(other, Coefficient):
             return NotImplemented
         return MulCoefficient(self, other)
+
+    def copy(self):
+        return pickle.loads(pickle.dumps(self))
+
+    def conj(self):
+        return ConjCoefficient(self)
+
+    def _cdc(self):
+        return NormCoefficient(self)
+
+    def _shift(self):
+        return ShiftCoefficient(self, 0)
 
 
 @cython.auto_pickle(True)

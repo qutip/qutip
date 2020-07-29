@@ -7,13 +7,13 @@ import dis
 import hashlib
 import glob
 import importlib
-import qutip.settings as qset
-from qutip import Cubic_Spline
-from qutip.cy.coefficient import (InterpolateCoefficient, InterCoefficient,
-                                  StepCoefficient, FunctionCoefficient,
-                                  SumCoefficient, MulCoefficient,
-                                  ConjCoefficient, NormCoefficient,
-                                  ShiftCoefficient)
+from .. import settings as qset
+from .interpolate import Cubic_Spline
+from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
+                             StepCoefficient, FunctionCoefficient,
+                             SumCoefficient, MulCoefficient,
+                             ConjCoefficient, NormCoefficient,
+                             ShiftCoefficient)
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 
@@ -326,10 +326,10 @@ def make_cy_code(code, variables, constants, raw):
 import numpy as np
 import scipy.special as spe
 cimport cython
-from qutip.cy.coefficient cimport Coefficient
-from qutip.cy.math cimport erf, zerf
+from qutip.core.cy.coefficient cimport Coefficient
+from qutip.core.cy.math cimport erf, zerf
+from qutip.core.cy.complex_math cimport *
 cdef double pi = 3.14159265358979323
-include {}
 
 
 parsed_code = "{}"
@@ -356,7 +356,7 @@ cdef class StrCoefficient(Coefficient):
 
     def optstr(self):
         return self.codeString
-""".format(_include_string, code, cdef_cte, cdef_var,
+""".format(code, cdef_cte, cdef_var,
            init_cte, init_var, args_var, call_var, code#,
            #get_cte, get_var, set_cte, set_var
           )

@@ -49,6 +49,8 @@ from qutip.core.data.add cimport add_csr
 from qutip.core.data.expect cimport expect_csr, expect_super_csr
 from qutip.core.data.matmul cimport matmul_csr_dense_dense
 from qutip.core.data.reshape cimport column_stack_csr
+from qutip.core.cy.coefficient cimport Coefficient
+
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -83,11 +85,7 @@ cdef class CQobjEvo:
     set_factor(self, func=None, obj=None)
       Set the coefficient function from QobjEvo
     """
-    def __init__(self):
-        self.n_ops = 0
-        self.ops = []
-
-    def set_data(self, constant, ops=None):
+    def __init__(self, constant, ops=None):
         cdef size_t i
         if not isinstance(constant, Qobj):
             raise TypeError("inputs must be Qobj")
@@ -100,6 +98,7 @@ cdef class CQobjEvo:
         self.ops = [None] * self.n_ops
         self.coefficients = cnp.PyArray_EMPTY(1, [self.n_ops],
                                               cnp.NPY_COMPLEX128, False)
+        self.coeff = [None] * self.n_ops
         for i in range(self.n_ops):
             vary = ops[i]
             qobj = vary.qobj
@@ -110,11 +109,8 @@ cdef class CQobjEvo:
             ):
                 raise ValueError("not all inputs have the same structure")
             self.ops[i] = qobj.data
-
-    def set_factor(self, func=None, obj=None):
-        self.factor_func = func
-        self.factor_cobj = obj
-        self.factor_use_cobj = func is None and obj is not None
+            self.coeff[i] = vary.coeff
+        # TODO move that code in a new object in solver
 
     def call(self, double t, object coefficients=None, bint data=False):
         cdef CSR out = self.constant.copy()
@@ -127,7 +123,6 @@ cdef class CQobjEvo:
                 "got " + str(len(coefficients)) + " coefficients,"
                 + " but expected " + str(self.n_ops)
             )
-        self._factor(t)
         for i in range(len(self.ops)):
             out = add_csr(out, self.ops[i], scale=coefficients[i])
         if data:
@@ -137,30 +132,11 @@ cdef class CQobjEvo:
 
     cdef void _factor(self, double t) except *:
         cdef size_t i
-        cdef double complex *coeff_ptr
-        if not self.n_ops:
-            return
-        if self.factor_use_cobj:
-            coeff_ptr = <double complex *> cnp.PyArray_GETPTR1(self.coefficients, 0)
-            self.factor_cobj._call_core(t, coeff_ptr)
-        else:
-            coeff = self.factor_func(t)
-            PyErr_CheckSignals()
-            for i in range(self.n_ops):
-                self.coefficients[i] = coeff[i]
+        cdef Coefficient coeff
+        for i in range(self.n_ops):
+            coeff = <Coefficient> self.coeff[i]
+            self.coefficients[i] = coeff._call(t)
         return
-
-    cdef void _factor_dynamic(self, double t, Data state) except *:
-        # TODO: why are `dynamic` arguments here when they're purely the
-        # concern of the solvers?
-        self._factor(t)
-        if not self.dynamic_arguments:
-            return
-        if self.factor_use_cobj:
-            self.factor_cobj._dyn_args(t, state)
-        else:
-            # TODO: remove useless `shape` parameter
-            self.factor_func.dyn_args(t, state.to_array(), (self.shape[1], 1))
 
     # TODO: get rid of this (only used in stochastic.pyx)
     cdef void _mul_vec(self, double t, double complex *vec, double complex *out):
@@ -170,7 +146,7 @@ cdef class CQobjEvo:
 
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=None):
         cdef size_t i
-        self._factor_dynamic(t, matrix)
+        self._factor(t)
         if out is None:
             out = matmul_csr_dense_dense(self.constant, matrix)
         else:
@@ -201,12 +177,12 @@ cdef class CQobjEvo:
             # into a vector and do the weird super expectation.
             # TODO: work out what's going on here and neaten it up.
             matrix_ = column_stack_csr(matrix_)
-            self._factor_dynamic(t, matrix_)
+            self._factor(t)
             out = expect_super_csr(self.constant, matrix_)
             for i in range(self.n_ops):
                 out += self.coefficients[i] * expect_super_csr(self.ops[i], matrix_)
         else:
-            self._factor_dynamic(t, matrix_)
+            self._factor(t)
             out = expect_csr(self.constant, matrix_)
             for i in range(self.n_ops):
                 out += self.coefficients[i] * expect_csr(self.ops[i], matrix_)
