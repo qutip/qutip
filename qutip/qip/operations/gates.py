@@ -934,7 +934,7 @@ def _flatten(l):
     return [item for sublist in l for item in sublist]
 
 
-def mult_sublists(tensor_list, overall_inds, inds, U):
+def mult_sublists(tensor_list, overall_inds, U, inds):
     """
     Calculate the revised indices and tensor list by multiplying a new unitary
     U applied to inds.
@@ -942,17 +942,24 @@ def mult_sublists(tensor_list, overall_inds, inds, U):
     Parameters
     ----------
     tensor_list : list of Qobj
-        List of gates implementing the quantum circuit.
+        List of gates (unitaries) acting on disjoint qubits.
+
     overall_inds : list of list of int
-        Check if multiplication is to be done from left to right.
+        List of qubit indices corresponding to each gate in tensor_list.
 
+    U: Qobj
+        Unitary to be multiplied with the the unitary specified by tensor_list.
 
+    inds: list of int
+        List of qubit indices corresponding to U.
 
     Returns
     -------
-    U_overall : qobj
-        Overall unitary matrix of a given quantum circuit.
+    tensor_list_revised: list of Qobj
+        List of gates (unitaries) acting on disjoint qubits incorporating U.
 
+    overall_inds_revised: list of list of int
+        List of qubit indices corresponding to each gate in tensor_list_revised.
     """
     tensor_sublist = []
     inds_sublist = []
@@ -987,25 +994,32 @@ def mult_sublists(tensor_list, overall_inds, inds, U):
     overall_inds_revised.append(inds_sublist)
     tensor_list_revised.append(U_sublist)
 
-    return overall_inds_revised, tensor_list_revised
+    return tensor_list_revised, overall_inds_revised
 
-def _gate_sequence_product(U_list, ind_list=None, expand_N=None, left_to_right=True):
+
+def _gate_sequence_product(U_list, ind_list, expand_N=None):
     """
     Calculate the overall unitary matrix for a given list of unitary operations
+    that are still of original dimension.
 
     Parameters
     ----------
-    U_list : list
-        List of gates implementing the quantum circuit.
+    U_list : list of Qobj
+        List of gates(unitaries) implementing the quantum circuit.
 
-    left_to_right : Boolean
-        Check if multiplication is to be done from left to right.
+    ind_list : list of list of int
+        List of qubit indices corresponding to each gate in tensor_list.
+
+    expand_N : int, optional
+        Total number of qubits.
 
     Returns
     -------
     U_overall : qobj
-        Overall unitary matrix of a given quantum circuit.
+        Unitary matrix corresponding to U_list.
 
+    overall_inds : list of int
+        List of qubit indices on which U_overall applies.
     """
 
     if not expand_N:
@@ -1020,7 +1034,9 @@ def _gate_sequence_product(U_list, ind_list=None, expand_N=None, left_to_right=T
             #if len(tensor_list) > 1:
             U_overall = tensor(tensor_list)
             overall_inds = _flatten(overall_inds)
-            U_left, rem_inds = _gate_sequence_product(U_list[i:], ind_list[i:], expand_N)
+            U_left, rem_inds = _gate_sequence_product(U_list[i:],
+                                                      ind_list[i:],
+                                                      expand_N)
             U_left = expand_operator(U_left, expand_N, rem_inds)
             return U_left * U_overall, overall_inds
         if U_overall == 1:
@@ -1029,7 +1045,9 @@ def _gate_sequence_product(U_list, ind_list=None, expand_N=None, left_to_right=T
             tensor_list = [U_overall]
             continue
         elif len(set(_flatten(overall_inds)).intersection(set(inds))) > 0:
-            overall_inds, tensor_list = mult_sublists(tensor_list, overall_inds, inds, U)
+            tensor_list, overall_inds = mult_sublists(tensor_list,
+                                                      overall_inds,
+                                                      U, inds)
         else:
             # only need to expand stuff !
             overall_inds.append(inds)
@@ -1040,12 +1058,12 @@ def _gate_sequence_product(U_list, ind_list=None, expand_N=None, left_to_right=T
 
 def _gate_sequence_product_expanded(U_list, left_to_right=True):
     """
-    Calculate the overall unitary matrix for a given list of unitary operations
+    Calculate the overall unitary matrix for a given list of unitary operations.
 
     Parameters
     ----------
     U_list : list
-        List of gates implementing the quantum circuit.
+        List of gates(unitaries) implementing the quantum circuit.
 
     left_to_right : Boolean
         Check if multiplication is to be done from left to right.
@@ -1053,9 +1071,9 @@ def _gate_sequence_product_expanded(U_list, left_to_right=True):
     Returns
     -------
     U_overall : qobj
-        Overall unitary matrix of a given quantum circuit.
-
+        Unitary matrix corresponding to U_list.
     """
+
     U_overall = 1
     for U in U_list:
         if left_to_right:
@@ -1069,7 +1087,7 @@ def _gate_sequence_product_expanded(U_list, left_to_right=True):
 def gate_sequence_product(U_list, left_to_right=True,
                           inds_list=None, expand=False):
     """
-    Calculate the overall unitary matrix for a given list of unitary operations
+    Calculate the overall unitary matrix for a given list of unitary operations.
 
     Parameters
     ----------
@@ -1080,16 +1098,19 @@ def gate_sequence_product(U_list, left_to_right=True,
         Check if multiplication is to be done from left to right.
 
     inds_list: list of list of int, optional
-        If expand=True, list of indices to which each unitary is applied.
+        If expand=True, list of qubit indices corresponding to U_list
+        to which each unitary is applied.
 
     expand: Boolean, optional
-        Check if list of unitaries needs to be expanded to full dimension.
+        Check if list of unitaries to be expanded to full dimension.
 
     Returns
     -------
     U_overall : qobj
-        Overall unitary matrix of a given quantum circuit.
+        Unitary matrix corresponding to U_list.
 
+    overall_inds : list of int, optional
+        List of qubit indices on which U_overall applies.
     """
 
     if expand:
