@@ -173,8 +173,8 @@ class Bloch():
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
-        # Dictionary of vectors-indices whose color is specified
-        self.vector_color_specified = {}
+        # List that stores the display colors for each vector
+        self.vector_display_color = []
         #: Width of Bloch vectors, default = 5
         self.vector_width = 3
         #: Style of Bloch vectors, default = '-|>' (or 'simple')
@@ -185,12 +185,12 @@ class Bloch():
         # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['b', 'r', 'g', '#CC6600']
+        # List that stores the display colors for each set of points
+        self.points_display_color = []
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
         self.point_marker = ['o', 's', 'd', '^']
-        # Dictionary of points-indices whose colors are specified
-        self.points_color_specified = {}
 
         # ---data lists---
         # Data for point markers
@@ -322,8 +322,8 @@ class Bloch():
         self.vectors = []
         self.point_style = []
         self.annotations = []
-        self.points_color_specified = {}
-        self.vector_color_specified = {}
+        self.vector_display_color = []
+        self.points_display_color = []
 
     def add_points(self, points, meth='s', colors=None):
         """Add a list of data points to bloch sphere.
@@ -344,9 +344,6 @@ class Bloch():
         if not isinstance(points[0], (list, ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
         points = array(points)
-        if colors is not None:
-            points_index = len(self.points)
-            self.points_color_specified[points_index] = colors
         if meth == 's':
             if len(points[0]) == 1:
                 pnts = array([[points[0][0]], [points[1][0]], [points[2][0]]])
@@ -355,14 +352,30 @@ class Bloch():
                 pnts = points
             self.points.append(pnts)
             self.point_style.append('s')
+            if colors is not None:
+                colors = [colors]
+            else:
+                k = mod(len(self.points), len(self.point_color))
+                colors = [self.point_color[k]]
         elif meth == 'l':
             self.points.append(points)
             self.point_style.append('l')
+            if colors is not None:
+                colors = [colors]
+            else:
+                k = mod(len(self.points), len(self.point_color))
+                colors = [self.point_color[k]]
         else:
             self.points.append(points)
             self.point_style.append('m')
+            if colors is None:
+                colors = []
+                for k, point in enumerate(points[0]):
+                    color = self.point_color[mod(k, len(self.point_color))]
+                    colors.append(color)
+        self.points_display_color.append(colors)
 
-    def add_states(self, state, kind='vector'):
+    def add_states(self, state, kind='vector', colors=None):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
@@ -372,20 +385,30 @@ class Bloch():
 
         kind : str {'vector','point'}
             Type of object to plot.
+        colors : array_like
+            Optional array with colors for the states.
 
         """
         if isinstance(state, Qobj):
             state = [state]
+        if not isinstance(colors, (list, ndarray)) and colors is not None:
+            colors = [colors]
 
-        for st in state:
+        for k, st in enumerate(state):
             vec = [expect(sigmax(), st),
                    expect(sigmay(), st),
                    expect(sigmaz(), st)]
 
             if kind == 'vector':
-                self.add_vectors(vec)
+                if colors is not None:
+                    self.add_vectors(vec, colors=colors[k])
+                else:
+                    self.add_vectors(vec)
             elif kind == 'point':
-                self.add_points(vec)
+                if colors is not None:
+                    self.add_points(vec, colors=colors[k])
+                else:
+                    self.add_points(vec)
 
     def add_vectors(self, vectors, colors=None):
         """Add a list of vectors to Bloch sphere.
@@ -399,16 +422,24 @@ class Bloch():
 
         """
         if isinstance(vectors[0], (list, ndarray)):
-            for k, vector in enumerate(vectors):
-                if colors is not None:
-                    vector_index = len(self.vectors)
-                    self.vector_color_specified[vector_index] = colors[k]
-                self.vectors.append(vector)
-        else:
             if colors is not None:
-                vector_index = len(self.vectors)
-                self.vector_color_specified[vector_index] = colors
+                for k, vec in enumerate(vectors):
+                    self.vectors.append(vec)
+                    self.vector_display_color.append(colors[k])
+            else:
+                for vec in vectors:
+                    self.vectors.append(vec)
+                    k = mod(len(self.vectors), len(self.vector_color))
+                    color = self.vector_color[k]
+                    self.vector_display_color.append(color)
+        else:
             self.vectors.append(vectors)
+            if colors is not None:
+                self.vector_display_color.append(colors)
+            else:
+                k = mod(len(self.vectors), len(self.vector_color))
+                color = self.vector_color[k]
+                self.vector_display_color.append(color)
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
@@ -580,9 +611,6 @@ class Bloch():
             ys3d = -self.vectors[k][0] * array([0, 1])
             zs3d = self.vectors[k][2] * array([0, 1])
 
-            default_color = self.vector_color[mod(k, len(self.vector_color))]
-            color = self.vector_color_specified.get(k, default_color)
-
             if self.vector_style == '':
                 # simple line style
                 self.axes.plot(xs3d, ys3d, zs3d,
@@ -594,7 +622,7 @@ class Bloch():
                             mutation_scale=self.vector_mutation,
                             lw=self.vector_width,
                             arrowstyle=self.vector_style,
-                            color=color)
+                            color=self.vector_display_color[k])
 
                 self.axes.add_artist(a)
 
@@ -615,9 +643,6 @@ class Bloch():
                 indperm = arange(num)
             if self.point_style[k] == 's':
 
-                default_color = self.point_color[mod(k, len(self.point_color))]
-                color = self.points_color_specified.get(k, default_color)
-
                 self.axes.scatter(
                     real(self.points[k][1][indperm]),
                     - real(self.points[k][0][indperm]),
@@ -626,16 +651,12 @@ class Bloch():
                     alpha=1,
                     edgecolor=None,
                     zdir='z',
-                    color=color,
+                    color=self.points_display_color[k][0],
                     marker=self.point_marker[mod(k, len(self.point_marker))])
 
             elif self.point_style[k] == 'm':
                 pnt_colors = array(self.point_color *
                                    int(ceil(num / float(len(self.point_color)))))
-
-                default_colors = pnt_colors[0:num]
-                default_colors = list(pnt_colors[indperm])
-                pnt_colors = self.points_color_specified.get(k, default_colors)
 
                 marker = self.point_marker[mod(k, len(self.point_marker))]
                 s = self.point_size[mod(k, len(self.point_size))]
@@ -643,18 +664,15 @@ class Bloch():
                                   -real(self.points[k][0][indperm]),
                                   real(self.points[k][2][indperm]),
                                   s=s, alpha=1, edgecolor=None,
-                                  zdir='z', color=pnt_colors,
+                                  zdir='z', color=self.points_display_color[k],
                                   marker=marker)
 
             elif self.point_style[k] == 'l':
-                default_color = self.point_color[mod(k, len(self.point_color))]
-                color = self.points_color_specified.get(k, default_color)
-
                 self.axes.plot(real(self.points[k][1]),
                                -real(self.points[k][0]),
                                real(self.points[k][2]),
                                alpha=0.75, zdir='z',
-                               color=color)
+                               color=self.points_display_color[k][0])
 
     def plot_annotations(self):
         # -X and Y data are switched for plotting purposes
