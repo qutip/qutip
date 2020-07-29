@@ -362,7 +362,7 @@ def measure_povm(state, ops, targets=None):
     """
 
     collapsed_states, probabilities = measurement_statistics_povm(state,
-                                                                ops, targets)
+                                                                  ops, targets)
     index = np.random.choice(range(len(collapsed_states)), p=probabilities)
     state = collapsed_states[index]
     return index, state
