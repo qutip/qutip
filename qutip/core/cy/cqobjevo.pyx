@@ -110,7 +110,6 @@ cdef class CQobjEvo:
                 raise ValueError("not all inputs have the same structure")
             self.ops[i] = qobj.data
             self.coeff[i] = vary.coeff
-        # TODO move that code in a new object in solver
 
     def call(self, double t, object coefficients=None, bint data=False):
         cdef CSR out = self.constant.copy()
