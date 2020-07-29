@@ -337,7 +337,8 @@ class Bloch():
             Type of points to plot, use 'm' for multicolored, 'l' for points
             connected with a line.
         colors : array_like
-            Optional array with colors for the points. A single color for meth 's', and list of colors for meth 'm'
+            Optional array with colors for the points.
+            A single color for meth 's', and list of colors for meth 'm'
 
         """
         if not isinstance(points[0], (list, ndarray)):
@@ -632,9 +633,9 @@ class Bloch():
                 pnt_colors = array(self.point_color *
                                    int(ceil(num / float(len(self.point_color)))))
 
-                default_pnt_colors = pnt_colors[0:num]
-                default_pnt_colors = list(pnt_colors[indperm])
-                pnt_colors = self.points_color_specified.get(k, default_pnt_colors)
+                default_colors = pnt_colors[0:num]
+                default_colors = list(pnt_colors[indperm])
+                pnt_colors = self.points_color_specified.get(k, default_colors)
 
                 marker = self.point_marker[mod(k, len(self.point_marker))]
                 s = self.point_size[mod(k, len(self.point_size))]
