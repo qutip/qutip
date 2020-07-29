@@ -33,6 +33,7 @@
 ###############################################################################
 
 import numpy as np
+<<<<<<< HEAD:qutip/core/cy/cqobjevo_factor.pyx
 cimport numpy as cnp
 cnp.import_array()
 
@@ -284,6 +285,32 @@ cdef class StrCoeff(CoeffFunc):
                     self._mat_shape[0] = self._args[name].shape[0]
                     self._mat_shape[1] = self._args[name].shape[0]
         self._expect_vec = np.array(expect_def, dtype=complex)
+=======
+cimport numpy as np
+import cython
+cimport cython
+cimport libc.math
+from qutip.cy.inter import _prep_cubic_spline
+from qutip.cy.inter cimport (_spline_complex_cte_second,
+                             _spline_complex_t_second,
+                             _step_complex_t, _step_complex_cte)
+from qutip.cy.interpolate cimport (interp, zinterp)
+from qutip.cy.cqobjevo cimport CQobjEvo
+
+
+cdef class CoeffFunc:
+    def __init__(self, coeff, args, dyn_args=[]):
+        self.num_ops = len(coeff)
+        self.coeffs = coeff
+        self.args = args
+        self.dyn_args_list = [obj for obj, dyn_args]
+
+        self._set_dyn_args(dyn_args)
+
+    def _set_dyn_args(self, dyn_args):
+        # With datalayer, dyn_args could be a lot better
+
+>>>>>>> Coefficient:qutip/cy/cqobjevo_factor.pyx
 
     cdef void _dyn_args(self, double t, Data state):
         cdef int ii
@@ -292,6 +319,13 @@ cdef class StrCoeff(CoeffFunc):
         self._mat_shape[1] = state.shape[1]
         for ii in range(self._num_expect):
             self._expect_vec[ii] = self._expect_op[ii].expect(t, state)
+
+    cdef void _call_core(t, complex* coeff_ptr):
+        cdef int i
+        cdef Coefficient coeff
+        for i in range(self.num_ops):
+            coeff = <Coefficient> self.coeffs[i]
+            coeff_ptr[i] = coeff._call(t)
 
     def __call__(self, double t, args={}, vec=None):
         cdef object coeff = cnp.PyArray_ZEROS(1, [self._num_ops],

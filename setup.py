@@ -186,6 +186,7 @@ cy_exts = {
         'trace',
     ],
     'core.cy': [
+        'coefficient',
         'cqobjevo',
         'cqobjevo_factor',
         'graph_utils',
