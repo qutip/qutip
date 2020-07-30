@@ -101,18 +101,21 @@ cdef class CSR(base.Data):
         # row_index are assigned.  These assignments cannot raise an exception
         # in user code due to the above three lines, but further code may.
         self._deallocate = False
-        self.data = data
-        self.col_index = col_index
-        self.row_index = row_index
+        self.data = <double complex *> cnp.PyArray_GETPTR1(data, 0)
+        self.col_index = <base.idxint *> cnp.PyArray_GETPTR1(col_index, 0)
+        self.row_index = <base.idxint *> cnp.PyArray_GETPTR1(row_index, 0)
+        self.size = (cnp.PyArray_SIZE(data)
+                     if cnp.PyArray_SIZE(data) < cnp.PyArray_SIZE(col_index)
+                     else cnp.PyArray_SIZE(col_index))
         if shape is None:
             warnings.warn("instantiating CSR matrix of unknown shape")
             # row_index contains an extra element which is nnz.  We assume the
             # smallest matrix which can hold all these values by iterating
             # through the columns.  This is slow and probably inaccurate, since
             # there could be columns containing zero (hence the warning).
-            self.shape[0] = self.row_index.shape[0] - 1
+            self.shape[0] = cnp.PyArray_DIMS(row_index)[0] - 1
             col = 1
-            for ptr in range(self.col_index.shape[0]):
+            for ptr in range(self.size):
                 col = self.col_index[ptr] if self.col_index[ptr] > col else col
             self.shape[1] = col
         else:
@@ -146,10 +149,10 @@ cdef class CSR(base.Data):
         """
         cdef base.idxint nnz_ = nnz(self)
         cdef CSR out = empty_like(self)
-        memcpy(&out.data[0], &self.data[0], nnz_*sizeof(out.data[0]))
-        memcpy(&out.col_index[0], &self.col_index[0], nnz_*sizeof(out.col_index[0]))
-        memcpy(&out.row_index[0], &self.row_index[0],
-               (self.shape[0] + 1)*sizeof(out.row_index[0]))
+        memcpy(out.data, self.data, nnz_*sizeof(double complex))
+        memcpy(out.col_index, self.col_index, nnz_*sizeof(base.idxint))
+        memcpy(out.row_index, self.row_index,
+               (self.shape[0] + 1)*sizeof(base.idxint))
         return out
 
     cpdef object to_array(self):
@@ -187,24 +190,16 @@ cdef class CSR(base.Data):
         # be collected while we're alive.
         if self._scipy is not None:
             return self._scipy
-        cdef size_t dshape, cshape, length
-        if full:
-            # `data` and `col_index` should always be the same size anyway, but
-            # make sure we take the minimum length one if they're not.
-            dshape = self.data.shape[0]
-            cshape = self.col_index.shape[0]
-            length = dshape if dshape < cshape else cshape
-        else:
-            length = nnz(self)
+        cdef cnp.npy_intp length = self.size if full else nnz(self)
         data = cnp.PyArray_SimpleNewFromData(1, [length],
                                              cnp.NPY_COMPLEX128,
-                                             &self.data[0])
+                                             self.data)
         indices = cnp.PyArray_SimpleNewFromData(1, [length],
                                                 base.idxint_DTYPE,
-                                                &self.col_index[0])
-        indptr = cnp.PyArray_SimpleNewFromData(1, [self.row_index.size],
+                                                self.col_index)
+        indptr = cnp.PyArray_SimpleNewFromData(1, [self.shape[0] + 1],
                                                base.idxint_DTYPE,
-                                               &self.row_index[0])
+                                               self.row_index)
         PyArray_ENABLEFLAGS(data, cnp.NPY_ARRAY_OWNDATA)
         PyArray_ENABLEFLAGS(indices, cnp.NPY_ARRAY_OWNDATA)
         PyArray_ENABLEFLAGS(indptr, cnp.NPY_ARRAY_OWNDATA)
@@ -303,29 +298,18 @@ cdef class CSR(base.Data):
     def __str__(self):
         return self.__repr__()
 
-    @cython.initializedcheck(True)
     def __dealloc__(self):
         # If we have a reference to a scipy type, then we've passed ownership
         # of the data to numpy, so we let it handle refcounting and we don't
         # need to deallocate anything ourselves.
         if not self._deallocate:
             return
-        # The only way a Cython memoryview can hold a NULL pointer is if the
-        # memoryview is uninitialised.  Since we have initializedcheck on,
-        # Cython will insert a throw if it is not initialized, and therefore
-        # accessing &self.data[0] is safe and non-NULL if no error occurs.
-        try:
-            PyDataMem_FREE(&self.data[0])
-        except AttributeError:
-            pass
-        try:
-            PyDataMem_FREE(&self.col_index[0])
-        except AttributeError:
-            pass
-        try:
-            PyDataMem_FREE(&self.row_index[0])
-        except AttributeError:
-            pass
+        if self.data != NULL:
+            PyDataMem_FREE(self.data)
+        if self.col_index != NULL:
+            PyDataMem_FREE(self.col_index)
+        if self.row_index != NULL:
+            PyDataMem_FREE(self.row_index)
 
 
 cpdef CSR fast_from_scipy(object sci):
@@ -338,9 +322,10 @@ cpdef CSR fast_from_scipy(object sci):
     out.shape = sci.shape
     out._deallocate = False
     out._scipy = sci
-    out.data = sci.data
-    out.col_index = sci.indices
-    out.row_index = sci.indptr
+    out.data = <double complex *> cnp.PyArray_GETPTR1(sci.data, 0)
+    out.col_index = <base.idxint *> cnp.PyArray_GETPTR1(sci.indices, 0)
+    out.row_index = <base.idxint *> cnp.PyArray_GETPTR1(sci.indptr, 0)
+    out.size = cnp.PyArray_SIZE(sci.data)
     return out
 
 
@@ -355,10 +340,8 @@ cpdef CSR copy_structure(CSR matrix):
     location.
     """
     cdef CSR out = empty_like(matrix)
-    memcpy(&out.col_index[0], &matrix.col_index[0],
-           nnz(matrix) * sizeof(out.col_index[0]))
-    memcpy(&out.row_index[0], &matrix.row_index[0],
-           (matrix.shape[0] + 1)*sizeof(out.row_index[0]))
+    memcpy(out.col_index, matrix.col_index, nnz(matrix) * sizeof(base.idxint))
+    memcpy(out.row_index, matrix.row_index, (matrix.shape[0] + 1)*sizeof(base.idxint))
     return out
 
 
@@ -398,8 +381,8 @@ cdef class Sorter:
             return
         if size == 2:
             if matrix.col_index[ptr] > matrix.col_index[ptr + 1]:
-                _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+1])
-                _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+1])
+                _sorter_swap(matrix.col_index + ptr, matrix.col_index + ptr+1)
+                _sorter_swap(matrix.data + ptr, matrix.data + ptr+1)
             return
         if size == 3:
             # Faster to store rather than re-dereference, and if someone
@@ -409,20 +392,20 @@ cdef class Sorter:
             col2 = matrix.col_index[ptr + 2]
             if col0 < col1:
                 if col1 > col2:
-                    _sorter_swap(&matrix.col_index[ptr+1], &matrix.col_index[ptr+2])
-                    _sorter_swap(&matrix.data[ptr+1], &matrix.data[ptr+2])
+                    _sorter_swap(matrix.col_index + ptr+1, matrix.col_index + ptr+2)
+                    _sorter_swap(matrix.data + ptr+1, matrix.data + ptr+2)
                     if col0 > col2:
-                        _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+1])
-                        _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+1])
+                        _sorter_swap(matrix.col_index + ptr, matrix.col_index + ptr+1)
+                        _sorter_swap(matrix.data + ptr, matrix.data + ptr+1)
             elif col1 < col2:
-                _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+1])
-                _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+1])
+                _sorter_swap(matrix.col_index + ptr, matrix.col_index + ptr+1)
+                _sorter_swap(matrix.data + ptr, matrix.data + ptr+1)
                 if col0 > col2:
-                    _sorter_swap(&matrix.col_index[ptr+1], &matrix.col_index[ptr+2])
-                    _sorter_swap(&matrix.data[ptr+1], &matrix.data[ptr+2])
+                    _sorter_swap(matrix.col_index + ptr+1, matrix.col_index + ptr+2)
+                    _sorter_swap(matrix.data + ptr+1, matrix.data + ptr+2)
             else:
-                _sorter_swap(&matrix.col_index[ptr], &matrix.col_index[ptr+2])
-                _sorter_swap(&matrix.data[ptr], &matrix.data[ptr+2])
+                _sorter_swap(matrix.col_index + ptr, matrix.col_index + ptr+2)
+                _sorter_swap(matrix.data + ptr, matrix.data + ptr+2)
             return
         # Now we actually have to do the sort properly.  It's easiest just to
         # copy the data into a temporary structure.
@@ -556,8 +539,7 @@ cpdef CSR sorted(CSR matrix):
     cdef Sorter sort
     cdef base.idxint ptr
     cdef size_t row, diff, size=0
-    memcpy(&out.row_index[0], &matrix.row_index[0],
-           (matrix.shape[0] + 1) * sizeof(base.idxint))
+    memcpy(out.row_index, matrix.row_index, (matrix.shape[0] + 1) * sizeof(base.idxint))
     for row in range(matrix.shape[0]):
         diff = matrix.row_index[row + 1] - matrix.row_index[row]
         size = diff if diff > size else size
@@ -565,8 +547,8 @@ cpdef CSR sorted(CSR matrix):
     for row in range(matrix.shape[0]):
         ptr = matrix.row_index[row]
         diff = matrix.row_index[row + 1] - ptr
-        sort.copy(&out.data[ptr], &out.col_index[ptr],
-                  &matrix.data[ptr], &matrix.col_index[ptr],
+        sort.copy(out.data + ptr, out.col_index + ptr,
+                  matrix.data + ptr, matrix.col_index + ptr,
                   diff)
     return out
 
@@ -587,12 +569,13 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
     cdef CSR out = CSR.__new__(CSR)
     cdef base.idxint row_size = rows + 1
     out.shape = (rows, cols)
+    out.size = size
     out.data =\
-        <double complex [:size]> PyDataMem_NEW(size * sizeof(double complex))
+        <double complex *> PyDataMem_NEW(size * sizeof(double complex))
     out.col_index =\
-        <base.idxint [:size]> PyDataMem_NEW(size * sizeof(base.idxint))
+        <base.idxint *> PyDataMem_NEW(size * sizeof(base.idxint))
     out.row_index =\
-        <base.idxint [:row_size]> PyDataMem_NEW(row_size * sizeof(base.idxint))
+        <base.idxint *> PyDataMem_NEW(row_size * sizeof(base.idxint))
     # Set the number of non-zero elements to 0.
     out.row_index[rows] = 0
     return out
@@ -611,7 +594,7 @@ cpdef CSR zeros(base.idxint rows, base.idxint cols):
     # actually _are_ asking for memory (Python doesn't like allocating nothing)
     cdef CSR out = empty(rows, cols, 1)
     out.data[0] = out.col_index[0] = 0
-    memset(&out.row_index[0], 0, (rows + 1) * sizeof(base.idxint))
+    memset(out.row_index, 0, (rows + 1) * sizeof(base.idxint))
     return out
 
 

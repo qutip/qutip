@@ -6,9 +6,10 @@ cimport numpy as cnp
 from . cimport base
 
 cdef class CSR(base.Data):
-    cdef double complex [::1] data
-    cdef base.idxint [::1] col_index
-    cdef base.idxint [::1] row_index
+    cdef double complex *data
+    cdef base.idxint *col_index
+    cdef base.idxint *row_index
+    cdef size_t size
     cdef object _scipy
     cdef bint _deallocate
     cpdef CSR copy(CSR self)
