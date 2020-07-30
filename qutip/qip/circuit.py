@@ -2142,7 +2142,8 @@ class ExactSimulator:
             operation, U = op
             apply_gate = all([self.cbits[i] for i
                               in operation.classical_controls])
-            if apply_gate:
+            if apply_gate or self.mode == "density_matrix_simulator":
+                print("here")
                 if self.precompute_unitary:
 <<<<<<< HEAD
                     U = expand_operator(U, self.qc.N, operation.get_inds(self.qc.N))
@@ -2217,8 +2218,7 @@ class ExactSimulator:
         U: Qobj
             unitary to be applied.
         '''
-        print(U)
-        print(self.state)
+
         self.state = U * self.state * U.dag()
 
     def _apply_measurement(self, operation):
@@ -2246,9 +2246,13 @@ class ExactSimulator:
             if operation.classical_store is not None:
                 self.cbits[operation.classical_store] = i
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
+=======
+>>>>>>> added density matrix test
         elif self.mode == "density_matrix_simulator":
+            print("measuring")
             self.state = sum(p * s for s, p in zip(states, probabilities))
         else:
             raise NotImplementedError(

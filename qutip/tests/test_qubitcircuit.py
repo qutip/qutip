@@ -60,6 +60,20 @@ def _teleportation_circuit():
     return teleportation
 
 
+def _teleportation_circuit():
+    teleportation = QubitCircuit(3, num_cbits=2,
+                                input_states=["q0", "0", "0", "c0", "c1"])
+
+    teleportation.add_gate("SNOT", targets=[1])
+    teleportation.add_gate("CNOT", targets=[2], controls=[1])
+    teleportation.add_gate("CNOT", targets=[1], controls=[0])
+    teleportation.add_gate("SNOT", targets=[0])
+    teleportation.add_gate("CNOT", targets=[2], controls=[1])
+    teleportation.add_gate("CZ", targets=[2], controls=[0])
+
+    return teleportation
+
+
 class TestQubitCircuit:
     """
     A test class for the QuTiP functions for Circuit resolution.
@@ -483,15 +497,24 @@ class TestQubitCircuit:
         state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
         _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-        states, probabilites = teleportation.run_statistics(state).get_results()
+        states, probabilities = teleportation.run_statistics(state).get_results()
 
         for i, state in enumerate(states):
             state_final = state
             prob = probabilites[i]
             _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
             np.testing.assert_allclose(initial_probabilities,
-                                        final_probabilities)
+                                       final_probabilities)
             assert prob == pytest.approx(0.25, abs=1e-7)
+
+        mixed_state = sum(p * ket2dm(s) for p, s in zip(probabilities, states))
+        dm_state = ket2dm(original_state)
+
+        final_state, _ = teleportation2.run(dm_state).get_results(0)
+        _, probs1 = final_measurement.measurement_comp_basis(final_state)
+        _, probs2 = final_measurement.measurement_comp_basis(mixed_state)
+
+        np.testing.assert_allclose(probs1, probs2)
 
 
 if __name__ == "__main__":
