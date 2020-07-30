@@ -474,10 +474,10 @@ class Qobj:
             raise TypeError(
                 "incompatible matmul types "
                 + repr(self.type) + " and " + repr(other.type)
-            )
+            ) from None
         return Qobj(_data.matmul_csr(self.data, other.data),
                     dims=[self.dims[0], other.dims[1]],
-                    type=_MATMUL_TYPE_LOOKUP[(self.type, other.type)],
+                    type=type,
                     isunitary=self._isunitary and other._isunitary,
                     superrep=self.superrep,
                     copy=False)
