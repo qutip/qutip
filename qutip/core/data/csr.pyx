@@ -6,7 +6,6 @@ from libc.string cimport memset, memcpy
 
 from libcpp cimport bool
 from libcpp.algorithm cimport sort
-from libcpp.vector cimport vector
 
 cimport cython
 
@@ -18,13 +17,13 @@ cimport numpy as cnp
 from scipy.sparse import csr_matrix as scipy_csr_matrix
 from scipy.sparse.data import _data_matrix as scipy_data_matrix
 
-from . cimport base
-from .add cimport add_csr
-from .adjoint cimport adjoint_csr, transpose_csr, conj_csr
-from .mul cimport mul_csr, neg_csr
-from .matmul cimport matmul_csr
-from .sub cimport sub_csr
-from .trace cimport trace_csr
+from qutip.core.data cimport base
+from qutip.core.data.add cimport add_csr
+from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
+from qutip.core.data.mul cimport mul_csr, neg_csr
+from qutip.core.data.matmul cimport matmul_csr
+from qutip.core.data.sub cimport sub_csr
+from qutip.core.data.trace cimport trace_csr
 
 cnp.import_array()
 

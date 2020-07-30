@@ -3,7 +3,7 @@
 import numpy as np
 cimport numpy as cnp
 
-from . cimport base
+from qutip.core.data cimport base
 
 cdef class CSR(base.Data):
     cdef double complex *data
