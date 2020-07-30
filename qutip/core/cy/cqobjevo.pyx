@@ -163,7 +163,7 @@ cdef class CQobjEvo:
             self.factor_func.dyn_args(t, state.to_array(), (self.shape[1], 1))
 
     # TODO: get rid of this (only used in stochastic.pyx)
-    cdef void _mul_vec(self, double t, double complex *vec, double complex *out):
+    cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *:
         cdef Dense vec_ = dense.wrap(vec, self.shape[1], 1)
         cdef Dense out_ = dense.wrap(out, self.shape[1], 1)
         self.matmul(t, vec_, out_)
@@ -180,7 +180,7 @@ cdef class CQobjEvo:
                                    scale=self.coefficients[i])
         return out
 
-    cpdef double complex expect(self, double t, Data matrix):
+    cpdef double complex expect(self, double t, Data matrix) except *:
         """
         Expectation is defined as `matrix.adjoint() @ self @ matrix` if
         `matrix` is a vector, or `matrix` is an operator and `self` is a
