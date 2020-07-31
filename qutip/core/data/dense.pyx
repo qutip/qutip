@@ -8,11 +8,20 @@ import numbers
 
 import numpy as np
 cimport numpy as cnp
+from scipy.linalg cimport cython_blas as blas
 
 from .base import EfficiencyWarning
-from . cimport base
+from qutip.core.data cimport base
+from qutip.core.data.add cimport add_dense
+from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
+from qutip.core.data.mul cimport mul_dense, neg_dense
+from qutip.core.data.matmul cimport matmul_dense
+from qutip.core.data.sub cimport sub_dense
+from qutip.core.data.trace cimport trace_dense
 
 cnp.import_array()
+
+cdef int _ONE = 1
 
 cdef extern from *:
     void PyArray_ENABLEFLAGS(cnp.ndarray arr, int flags)
@@ -163,6 +172,67 @@ cdef class Dense(base.Data):
         self._fix_flags(self._np)
         self._deallocate = False
         return self._np
+
+    cpdef double complex trace(self):
+        return trace_dense(self)
+
+    cpdef Dense adjoint(self):
+        return adjoint_dense(self)
+
+    cpdef Dense conj(self):
+        return conj_dense(self)
+
+    cpdef Dense transpose(self):
+        return transpose_dense(self)
+
+    def __add__(left, right):
+        if not isinstance(left, Dense) or not isinstance(right, Dense):
+            return NotImplemented
+        return add_dense(left, right)
+
+    def __matmul__(left, right):
+        if not isinstance(left, Dense) or not isinstance(right, Dense):
+            return NotImplemented
+        return matmul_dense(left, right)
+
+    def __mul__(left, right):
+        dense, number = (left, right) if isinstance(left, Dense) else (right, left)
+        if not isinstance(number, numbers.Number):
+            return NotImplemented
+        return mul_dense(dense, complex(number))
+
+    def __imul__(self, other):
+        if not isinstance(other, numbers.Number):
+            return NotImplemented
+        cdef int size = self.shape[0]*self.shape[1]
+        cdef double complex mul = complex(other)
+        blas.zscal(&size, &mul, self.data, &_ONE)
+        return self
+
+    def __truediv__(left, right):
+        dense, number = (left, right) if isinstance(left, Dense) else (right, left)
+        if not isinstance(number, numbers.Number):
+            return NotImplemented
+        # Technically `(1 / x) * y` doesn't necessarily equal `y / x` in
+        # floating point, but multiplication is faster than division, and we
+        # don't really care _that_ much anyway.
+        return mul_dense(dense, 1 / complex(number))
+
+    def __itruediv__(self, other):
+        if not isinstance(other, numbers.Number):
+            return NotImplemented
+        cdef int size = self.shape[0]*self.shape[1]
+        cdef double complex mul = 1 / complex(other)
+        blas.zscal(&size, &mul, self.data, &_ONE)
+        return self
+
+    def __neg__(self):
+        return neg_dense(self)
+
+    def __sub__(left, right):
+        if not isinstance(left, Dense) or not isinstance(right, Dense):
+            return NotImplemented
+        return sub_dense(left, right)
 
     def __dealloc__(self):
         if self._deallocate and self.data != NULL:
