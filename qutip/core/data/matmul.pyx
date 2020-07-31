@@ -9,6 +9,7 @@ import warnings
 cimport cython
 import numpy as np
 cimport numpy as cnp
+from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
@@ -153,8 +154,8 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
     """
     Perform the operation
         ``out := scale * (left @ right) + out``
-    where `left`, `right` and `out` are matrices, and `right` and `out` are
-    C-ordered 2D matrices.  `scale` is a complex scalar, defaulting to 1.
+    where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
+    defaulting to 1.
 
     If `out` is not given, it will be allocated as if it were a zero matrix.
     """
@@ -210,3 +211,61 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
         return out
     memcpy(tmp.data, out.data, ncols * nrows * sizeof(double complex))
     return tmp
+
+
+cpdef Dense matmul_dense(Dense left, Dense right, Dense out=None, double complex scale=1):
+    """
+    Perform the operation
+        ``out := scale * (left @ right) + out``
+    where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
+    defaulting to 1.
+
+    If `out` is not given, it will be allocated as if it were a zero matrix.
+    """
+    _check_shape(left, right, out)
+    cdef double complex out_scale
+    # If not supplied, it's more efficient from a memory allocation perspective
+    # to do the calculation as `a*A.B + 0*C` with arbitrary C.
+    if out is None:
+        out = dense.empty(left.shape[0], right.shape[1], right.fortran)
+        out_scale = 0
+    else:
+        out_scale = 1
+    cdef double complex *a
+    cdef double complex *b
+    cdef char transa, transb
+    cdef int m, n, k=left.shape[1], lda, ldb
+    # We use the BLAS routine zgemm for every single call and pretend that
+    # we're always supplying it with Fortran-ordered matrices, but to achieve
+    # what we want, we use the property of matrix multiplication that
+    #   A.B = (B'.A')'
+    # where ' is the matrix transpose, and that interpreting a Fortran-ordered
+    # matrix as a C-ordered one is equivalent to taking the transpose.  If
+    # `right` is supplied in C-order, then from Fortran's perspective we
+    # actually have `B'`, so to retrieve `B` should we want to use it, we set
+    # `transb = b't'`.  What we set `transa` and `transb` to depends on if we
+    # need to switch the input order, _not_ whether we actually need B'.
+    #
+    # In order to make the output correct, we ensure that we put A.B in if the
+    # output is Fortran ordered, or B'.A' (note no final transpose) if not.
+    # This is actually more flexible than `np.dot` which requires that the
+    # output is C-ordered.
+    if out.fortran:
+        # Need to make A.B
+        a, b = left.data, right.data
+        m, n = left.shape[0], right.shape[1]
+        lda = left.shape[0] if left.fortran else left.shape[1]
+        transa = b'n' if left.fortran else b't'
+        ldb = right.shape[0] if right.fortran else right.shape[1]
+        transb = b'n' if right.fortran else b't'
+    else:
+        # Need to make B'.A'
+        a, b = right.data, left.data
+        m, n = right.shape[1], left.shape[0]
+        lda = right.shape[0] if right.fortran else right.shape[1]
+        transa = b't' if right.fortran else b'n'
+        ldb = left.shape[0] if left.fortran else left.shape[1]
+        transb = b't' if left.fortran else b'n'
+    blas.zgemm(&transa, &transb, &m, &n, &k, &scale, a, &lda, b, &ldb,
+               &out_scale, out.data, &m)
+    return out
