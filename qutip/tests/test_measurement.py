@@ -54,6 +54,14 @@ class EigenPairs:
     def __getitem__(self, i):
         return self.pairs[i]
 
+    def __contains__(self, other):
+        for i, val in enumerate(self.eigenvalues):
+            if abs(val - other[0]) < 1e-8:
+                break
+        else:
+            return False
+        return _equivalent(other[1], self.eigenstates[i])
+
 
 def pairs2dm(pairs):
     """ Convert eigenpair entries into eigenvalue and density matrix pairs. """
@@ -86,6 +94,10 @@ PX = [ket2dm(stateplus), ket2dm(stateminus)]
 PY = [ket2dm(stateR), ket2dm(stateL)]
 PZ_ket = [state0, state1]
 
+def _equivalent(left, right, tol=1e-8):
+    """ Equal up to a phase """
+    return 1 - abs( (left.dag() * right).tr()) < tol
+
 
 @pytest.mark.parametrize(["op", "state", "pairs", "probabilities"], [
                     pytest.param(sigmaz(), basis(2, 0),
@@ -104,17 +116,18 @@ def test_measurement_statistics_observable(op, state, pairs, probabilities):
     """ measurement_statistics_observable: observables on basis states. """
 
     evs, ess_or_projs, probs = measurement_statistics_observable(state, op)
-    np.testing.assert_array_equal(evs, pairs.eigenvalues)
+    np.testing.assert_almost_equal(evs, pairs.eigenvalues)
     if state.isket:
         ess = ess_or_projs
         assert len(ess) == len(pairs.eigenstates)
         for a, b in zip(ess, pairs.eigenstates):
-            assert isequal(a, b)
+            assert (_equivalent(a, b))
+
     else:
         projs = ess_or_projs
         assert len(projs) == len(pairs.projectors)
         for a, b in zip(projs, pairs.projectors):
-            assert isequal(a, b)
+            assert (_equivalent(a, b))
     np.testing.assert_almost_equal(probs, probabilities)
 
 
@@ -132,7 +145,7 @@ def test_measurement_statistics_observable_ind(op, state):
                                                 state, tensor(op, identity(2)))
     evs2, ess_or_projs2, probs2 = measurement_statistics_observable(
                                                 state, op, targets=[0])
-    np.testing.assert_array_equal(evs1, evs2)
+    np.testing.assert_almost_equal(evs1, evs2)
     for a, b in zip(ess_or_projs1, ess_or_projs2):
         assert isequal(a, b)
     np.testing.assert_almost_equal(probs1, probs2)
@@ -246,52 +259,30 @@ def test_measurement_statistics_observable_input_errors():
         measurement_statistics_observable, ket2dm(basis(3, 0)), sigmaz())
 
 
-@pytest.mark.parametrize(["op", "state", "expected_measurements", "seed"], [
-                    pytest.param(sigmaz(), basis(2, 0),
-                            [SIGMAZ[1]] * 5, 0, id="sigmaz_ket1"),
-                    pytest.param(sigmaz(), basis(2, 1),
-                            [SIGMAZ[0]] * 5, 0, id="sigmaz_ket2"),
+@pytest.mark.parametrize(["op", "state"], [
+                    pytest.param(sigmaz(), basis(2, 0), id="sigmaz_ket1"),
+                    pytest.param(sigmaz(), basis(2, 1), id="sigmaz_ket2"),
                     pytest.param(sigmaz(), ket2dm(basis(2, 0)),
-                            pairs2dm([SIGMAZ[1]] * 5), 0, id="sigmaz_dm1"),
+                                 id="sigmaz_dm1"),
                     pytest.param(sigmaz(), ket2dm(basis(2, 1)),
-                            pairs2dm([SIGMAZ[0]] * 5), 0, id="sigmaz_dm2"),
+                                 id="sigmaz_dm2"),
 
-                    pytest.param(sigmax(), basis(2, 0),
-                    [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]], 0,
-                    id="sigmax_ket1"),
-                    pytest.param(sigmax(), basis(2, 1),
-                    [SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]], 0,
-                    id="sigmax_ket2"),
-                    pytest.param(sigmax(), basis(2, 0),
-                    [SIGMAX[0], SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[0]], 42,
-                    id="sigmax_ket3"),
+                    pytest.param(sigmax(), basis(2, 0), id="sigmax_ket1"),
+                    pytest.param(sigmax(), basis(2, 1), id="sigmax_ket2"),
                     pytest.param(sigmax(), ket2dm(basis(2, 0)),
-                    pairs2dm([SIGMAX[1], SIGMAX[1], SIGMAX[1], SIGMAX[1],
-                            SIGMAX[0]]), 0,
-                    id="sigmax_dm"),
+                                 id="sigmax_dm"),
 
-                    pytest.param(sigmay(), basis(2, 0),
-                    [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]], 0,
-                    id="sigmay_ket1"),
-                    pytest.param(sigmay(), basis(2, 1),
-                    [SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]], 0,
-                    id="sigmax_ket2"),
-                    pytest.param(sigmay(), basis(2, 1),
-                    [SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1], SIGMAY[0]], 42,
-                    id="sigmay_ket3"),
+                    pytest.param(sigmay(), basis(2, 0), id="sigmay_ket1"),
+                    pytest.param(sigmay(), basis(2, 1), id="sigmax_ket2"),
                     pytest.param(sigmay(), ket2dm(basis(2, 1)),
-                    pairs2dm([SIGMAY[0], SIGMAY[1], SIGMAY[1], SIGMAY[1],
-                            SIGMAY[0]]), 42,
-                            id="sigmay_dm")])
-def test_measure_observable(op, state, expected_measurements, seed):
+                                 id="sigmay_dm")])
+def test_measure_observable(op, state):
     """ measure_observable: basis states using different observables """
+    evs, ess_or_projs, prob = measurement_statistics_observable(state, op)
 
-    np.random.seed(seed)
-    measurements = []
-    for _ in expected_measurements:
-        value, new_state = measure_observable(state, op)
-        measurements.append((value, new_state))
-    assert measurements == expected_measurements
+    expected_measurements = EigenPairs(list(zip(evs, ess_or_projs)))
+    for _ in range(10):
+        assert (measure_observable(state, op) in expected_measurements)
 
 
 @pytest.mark.parametrize(["ops", "state"], [

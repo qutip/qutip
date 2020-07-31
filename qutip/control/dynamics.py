@@ -63,7 +63,7 @@ import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
 from qutip.qobj import Qobj
-from qutip.sparse import sp_eigs, _dense_eigs
+from qutip.sparse import sp_eigs, _dense_eigs, eigh
 import qutip.settings as settings
 # QuTiP logging
 import qutip.logging_utils as logging
@@ -1601,14 +1601,14 @@ class DynamicsUnitary(Dynamics):
         elif self.oper_dtype == np.ndarray:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = np.linalg.eigh(H)
+            eig_val, eig_vec = eigh(H)
         else:
             if sparse:
                 H = self._dyn_gen[k].toarray()
             else:
                 H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = la.eigh(H)
+            eig_val, eig_vec = eigh(H)
 
         # assuming H is an nxn matrix, find n
         n = self.get_drift_dim()
