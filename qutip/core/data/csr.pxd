@@ -15,6 +15,10 @@ cdef class CSR(base.Data):
     cpdef CSR copy(CSR self)
     cpdef object as_scipy(CSR self, bint full=*)
     cpdef CSR sort_indices(CSR self)
+    cpdef double complex trace(CSR self)
+    cpdef CSR adjoint(CSR self)
+    cpdef CSR conj(CSR self)
+    cpdef CSR transpose(CSR self)
 
 # Internal structure for sorting pairs of elements.  Not actually meant to be
 # used in external code.

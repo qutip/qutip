@@ -14,6 +14,10 @@ cdef class Dense(base.Data):
     cpdef Dense copy(Dense self)
     cpdef object as_ndarray(Dense self)
     cpdef object to_array(Dense self)
+    cpdef double complex trace(Dense self)
+    cpdef Dense adjoint(Dense self)
+    cpdef Dense conj(Dense self)
+    cpdef Dense transpose(Dense self)
 
 cpdef Dense fast_from_numpy(object array)
 cdef Dense wrap(double complex *ptr, base.idxint rows, base.idxint cols, bint fortran=*)
