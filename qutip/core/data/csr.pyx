@@ -16,6 +16,7 @@ import numpy as np
 cimport numpy as cnp
 from scipy.sparse import csr_matrix as scipy_csr_matrix
 from scipy.sparse.data import _data_matrix as scipy_data_matrix
+from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base
 from qutip.core.data.add cimport add_csr
@@ -37,6 +38,8 @@ cdef extern from *:
 __all__ = [
     'CSR', 'nnz', 'copy_structure', 'sorted', 'empty', 'identity', 'zeros',
 ]
+
+cdef int _ONE = 1
 
 cdef object _csr_matrix(data, indices, indptr, shape):
     """
@@ -245,10 +248,9 @@ cdef class CSR(base.Data):
     def __imul__(self, other):
         if not isinstance(other, numbers.Number):
             return NotImplemented
-        cdef size_t ptr
-        cdef double complex mul = complex(other)
-        for ptr in range(nnz(self)):
-            self.data[ptr] *= mul
+        cdef int nnz_ = nnz(self)
+        cdef double complex mul = other
+        blas.zscal(&nnz_, &mul, self.data, &_ONE)
         return self
 
     def __truediv__(left, right):
@@ -263,10 +265,9 @@ cdef class CSR(base.Data):
     def __itruediv__(self, other):
         if not isinstance(other, numbers.Number):
             return NotImplemented
-        cdef size_t ptr
-        cdef double complex mul = 1 / complex(other)
-        for ptr in range(nnz(self)):
-            self.data[ptr] *= mul
+        cdef int nnz_ = nnz(self)
+        cdef double complex mul = 1 / other
+        blas.zscal(&nnz_, &mul, self.data, &_ONE)
         return self
 
     def __neg__(self):
