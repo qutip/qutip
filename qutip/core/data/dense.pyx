@@ -33,7 +33,7 @@ cdef class Dense(base.Data):
             shape = base.shape
             # Promote to a ket by default if passed 1D data.
             if len(shape) == 1:
-                shape = (shape, 1)
+                shape = (shape[0], 1)
         if not (
             len(shape) == 2
             and isinstance(shape[0], numbers.Integral)
@@ -41,7 +41,7 @@ cdef class Dense(base.Data):
             and shape[0] > 0
             and shape[1] > 0
         ):
-            raise ValueError("shape must be a 2-tuple of positive ints")
+            raise ValueError("shape must be a 2-tuple of positive ints, but is " + repr(shape))
         if shape[0] * shape[1] != base.size:
             raise ValueError("".join([
                 "invalid shape ",
@@ -53,7 +53,7 @@ cdef class Dense(base.Data):
         self._deallocate = False
         self.data = <double complex *> cnp.PyArray_GETPTR2(self._np, 0, 0)
         self.fortran = cnp.PyArray_IS_F_CONTIGUOUS(self._np)
-        self.shape = (base.shape[0], base.shape[1])
+        self.shape = (shape[0], shape[1])
 
     def __reduce__(self):
         return (fast_from_numpy, (self.as_ndarray(),))
@@ -178,7 +178,7 @@ cpdef Dense fast_from_numpy(object array):
     if array.ndim == 1:
         out.shape = (array.shape[0], 1)
     else:
-        out.shape = (array.shape[0], array.shape[2])
+        out.shape = (array.shape[0], array.shape[1])
     out._deallocate = False
     out._np = array
     out.data = <double complex *> cnp.PyArray_GETPTR2(array, 0, 0)
