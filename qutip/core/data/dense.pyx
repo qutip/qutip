@@ -75,10 +75,11 @@ cdef class Dense(base.Data):
         if bool(fortran_) == bool(self.fortran):
             return self.copy()
         cdef Dense out = empty_like(self, fortran_)
-        cdef size_t idx_self=0, idx_out, stride, splits
+        cdef size_t idx_self=0, idx_out, idx_out_start, stride, splits
         stride = self.shape[1] if self.fortran else self.shape[0]
         splits = self.shape[0] if self.fortran else self.shape[1]
-        for idx_out in range(stride):
+        for idx_out_start in range(stride):
+            idx_out = idx_out_start
             for _ in range(splits):
                 out.data[idx_out] = self.data[idx_self]
                 idx_self += 1
