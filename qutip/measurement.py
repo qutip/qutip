@@ -188,6 +188,7 @@ def measurement_statistics_povm(state, ops, targets=None):
         _verify_input(op, state)
 
     E = [op.dag() * op for op in ops]
+
     is_ID = sum(E)
     if not is_ID == identity(is_ID.dims[0]):
         raise ValueError("measurement operators must sum to identity")
