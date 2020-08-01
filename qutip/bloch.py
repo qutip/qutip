@@ -90,7 +90,7 @@ class Bloch():
         Color of sphere wireframe.
     frame_width : int {1}
         Width of wireframe.
-    point_color : list {["b","r","g","#CC6600"]}
+    point_default_color : list {["b","r","g","#CC6600"]}
         List of colors for Bloch sphere point markers to cycle through.
         i.e. By default, points 0 and 4 will both be blue ('b').
     point_marker : list {["o","s","d","^"]}
@@ -105,7 +105,7 @@ class Bloch():
     figsize : list {[7,7]}
         Figure size of Bloch sphere plot.  Best to have both numbers the same;
         otherwise you will have a Bloch sphere that looks like a football.
-    vector_color : list {["g","#CC6600","b","r"]}
+    vector_default_color : list {["g","#CC6600","b","r"]}
         List of vector colors to cycle through.
     vector_width : int {5}
         Width of displayed vectors.
@@ -172,9 +172,9 @@ class Bloch():
 
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
-        self.vector_color = ['g', '#CC6600', 'b', 'r']
+        self.vector_default_color = ['g', '#CC6600', 'b', 'r']
         # List that stores the display colors for each vector
-        self.vector_display_color = []
+        self.vector_color = []
         #: Width of Bloch vectors, default = 5
         self.vector_width = 3
         #: Style of Bloch vectors, default = '-|>' (or 'simple')
@@ -184,9 +184,9 @@ class Bloch():
 
         # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
-        self.point_color = ['b', 'r', 'g', '#CC6600']
+        self.point_default_color = ['b', 'r', 'g', '#CC6600']
         # List that stores the display colors for each set of points
-        self.points_display_color = []
+        self.point_color = []
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
@@ -282,13 +282,13 @@ class Bloch():
         s += "frame_alpha:     " + str(self.frame_alpha) + "\n"
         s += "frame_color:     " + str(self.frame_color) + "\n"
         s += "frame_width:     " + str(self.frame_width) + "\n"
-        s += "point_color:     " + str(self.point_color) + "\n"
+        s += "point_default_color:" + str(self.point_default_color) + "\n"
         s += "point_marker:    " + str(self.point_marker) + "\n"
         s += "point_size:      " + str(self.point_size) + "\n"
         s += "sphere_alpha:    " + str(self.sphere_alpha) + "\n"
         s += "sphere_color:    " + str(self.sphere_color) + "\n"
         s += "figsize:         " + str(self.figsize) + "\n"
-        s += "vector_color:    " + str(self.vector_color) + "\n"
+        s += "vector_default_color:" + str(self.vector_default_color) + "\n"
         s += "vector_width:    " + str(self.vector_width) + "\n"
         s += "vector_style:    " + str(self.vector_style) + "\n"
         s += "vector_mutation: " + str(self.vector_mutation) + "\n"
@@ -322,8 +322,8 @@ class Bloch():
         self.vectors = []
         self.point_style = []
         self.annotations = []
-        self.vector_display_color = []
-        self.points_display_color = []
+        self.vector_color = []
+        self.point_color = []
 
     def add_points(self, points, meth='s', colors=None):
         """Add a list of data points to bloch sphere.
@@ -355,25 +355,26 @@ class Bloch():
             if colors is not None:
                 colors = [colors]
             else:
-                k = mod(len(self.points), len(self.point_color))
-                colors = [self.point_color[k]]
+                k = mod(len(self.points), len(self.point_default_color))
+                colors = [self.point_default_color[k]]
         elif meth == 'l':
             self.points.append(points)
             self.point_style.append('l')
             if colors is not None:
                 colors = [colors]
             else:
-                k = mod(len(self.points), len(self.point_color))
-                colors = [self.point_color[k]]
+                k = mod(len(self.points), len(self.point_default_color))
+                colors = [self.point_default_color[k]]
         else:
             self.points.append(points)
             self.point_style.append('m')
             if colors is None:
                 colors = []
                 for k, point in enumerate(points[0]):
-                    color = self.point_color[mod(k, len(self.point_color))]
+                    x = mod(k, len(self.point_default_color))
+                    color = self.point_default_color[x]
                     colors.append(color)
-        self.points_display_color.append(colors)
+        self.point_color.append(colors)
 
     def add_states(self, state, kind='vector', colors=None):
         """Add a state vector Qobj to Bloch sphere.
@@ -425,21 +426,21 @@ class Bloch():
             if colors is not None:
                 for k, vec in enumerate(vectors):
                     self.vectors.append(vec)
-                    self.vector_display_color.append(colors[k])
+                    self.vector_color.append(colors[k])
             else:
                 for vec in vectors:
                     self.vectors.append(vec)
-                    k = mod(len(self.vectors), len(self.vector_color))
-                    color = self.vector_color[k]
-                    self.vector_display_color.append(color)
+                    k = mod(len(self.vectors), len(self.vector_default_color))
+                    color = self.vector_default_color[k]
+                    self.vector_color.append(color)
         else:
             self.vectors.append(vectors)
             if colors is not None:
-                self.vector_display_color.append(colors)
+                self.vector_color.append(colors)
             else:
-                k = mod(len(self.vectors), len(self.vector_color))
-                color = self.vector_color[k]
-                self.vector_display_color.append(color)
+                k = mod(len(self.vectors), len(self.vector_default_color))
+                color = self.vector_default_color[k]
+                self.vector_color.append(color)
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
@@ -622,7 +623,7 @@ class Bloch():
                             mutation_scale=self.vector_mutation,
                             lw=self.vector_width,
                             arrowstyle=self.vector_style,
-                            color=self.vector_display_color[k])
+                            color=self.vector_color[k])
 
                 self.axes.add_artist(a)
 
@@ -651,12 +652,14 @@ class Bloch():
                     alpha=1,
                     edgecolor=None,
                     zdir='z',
-                    color=self.points_display_color[k][0],
+                    color=self.point_color[k][0],
                     marker=self.point_marker[mod(k, len(self.point_marker))])
 
             elif self.point_style[k] == 'm':
-                pnt_colors = array(self.point_color *
-                                   int(ceil(num / float(len(self.point_color)))))
+                pnt_colors = self.point_default_color * int(
+                    ceil(num / float(len(self.point_default_color)))
+                )
+                pnt_colors = array(pnt_colors)
 
                 marker = self.point_marker[mod(k, len(self.point_marker))]
                 s = self.point_size[mod(k, len(self.point_size))]
@@ -664,7 +667,7 @@ class Bloch():
                                   -real(self.points[k][0][indperm]),
                                   real(self.points[k][2][indperm]),
                                   s=s, alpha=1, edgecolor=None,
-                                  zdir='z', color=self.points_display_color[k],
+                                  zdir='z', color=self.point_color[k],
                                   marker=marker)
 
             elif self.point_style[k] == 'l':
@@ -672,7 +675,7 @@ class Bloch():
                                -real(self.points[k][0]),
                                real(self.points[k][2]),
                                alpha=0.75, zdir='z',
-                               color=self.points_display_color[k][0])
+                               color=self.point_color[k][0])
 
     def plot_annotations(self):
         # -X and Y data are switched for plotting purposes
