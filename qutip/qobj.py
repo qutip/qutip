@@ -2129,7 +2129,7 @@ class Qobj(object):
 #
 def qobj_list_evaluate(qobj_list, t, args):
     """
-    Depracated: See Qobj.evaluate
+    Deprecated: See Qobj.evaluate
     """
     warnings.warn("Deprecated: Use Qobj.evaluate", DeprecationWarning)
     return Qobj.evaluate(qobj_list, t, args)
