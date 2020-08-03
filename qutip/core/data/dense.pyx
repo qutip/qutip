@@ -116,10 +116,15 @@ cdef class Dense(base.Data):
         out.fortran = self.fortran
         return out
 
-    cdef void _fix_flags(self, object array):
-        cdef int enable = cnp.NPY_ARRAY_OWNDATA
+    cdef void _fix_flags(self, object array, bint make_owner=False):
+        cdef int enable = cnp.NPY_ARRAY_OWNDATA if make_owner else 0
         cdef int disable = 0
+        cdef cnp.Py_intptr_t *dims = cnp.PyArray_DIMS(array)
         cdef cnp.Py_intptr_t *strides = cnp.PyArray_STRIDES(array)
+        # Not necessary when creating a new array because this will already
+        # have been done, but needed for as_ndarray() if we have been mutated.
+        dims[0] = self.shape[0]
+        dims[1] = self.shape[1]
         if self.shape[0] == 1 or self.shape[1] == 1:
             enable |= cnp.NPY_ARRAY_F_CONTIGUOUS | cnp.NPY_ARRAY_C_CONTIGUOUS
             strides[0] = self.shape[1] * sizeof(double complex)
@@ -150,7 +155,7 @@ cdef class Dense(base.Data):
         cdef object out =\
             cnp.PyArray_SimpleNewFromData(2, [self.shape[0], self.shape[1]],
                                           cnp.NPY_COMPLEX128, ptr)
-        self._fix_flags(out)
+        self._fix_flags(out, make_owner=True)
         return out
 
     cpdef object as_ndarray(self):
@@ -164,12 +169,15 @@ cdef class Dense(base.Data):
         may be C- or Fortran-ordered.
         """
         if self._np is not None:
+            # We have to do this every time in case someone has changed our
+            # ordering or shape inplace.
+            self._fix_flags(self._np, make_owner=False)
             return self._np
         self._np =\
             cnp.PyArray_SimpleNewFromData(
                 2, [self.shape[0], self.shape[1]], cnp.NPY_COMPLEX128, self.data
             )
-        self._fix_flags(self._np)
+        self._fix_flags(self._np, make_owner=True)
         self._deallocate = False
         return self._np
 
@@ -248,6 +256,7 @@ cpdef Dense fast_from_numpy(object array):
     cdef Dense out = Dense.__new__(Dense)
     if array.ndim == 1:
         out.shape = (array.shape[0], 1)
+        array = array[:, None]
     else:
         out.shape = (array.shape[0], array.shape[1])
     out._deallocate = False
