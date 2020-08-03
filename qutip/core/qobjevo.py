@@ -50,6 +50,7 @@ from .qobj import Qobj
 from .qobjevo_codegen import (
     _compile_str_single, _compiled_coeffs, _compiled_coeffs_python,
 )
+from .superoperator import stack_columns, unstack_columns
 from .cy.spmatfuncs import (
     cy_expect_rho_vec, cy_expect_psi, spmv,
 )
@@ -586,7 +587,7 @@ class QobjEvo:
         return op_type
 
     def _args_checks(self):
-        statedims = [self.cte.dims[1],[1]]
+        statedims = [self.cte.dims[1], [1]]
         for key in self.args:
             if key == "state" or key == "state_qobj":
                 self.dynamics_args += [(key, "Qobj", None)]
@@ -672,71 +673,9 @@ class QobjEvo:
 
         return op_t
 
-    def _dynamics_args_update(self, t, state):
-        # TODO: sort this out.
-        if isinstance(state, _data.Data):
-            state = state.to_array()
-
-        if isinstance(state, Qobj):
-            for name, what, op in self.dynamics_args:
-                if what == "vec":
-                    self.args[name] = state.full().ravel("F")
-                elif what == "mat":
-                    self.args[name] = state.full()
-                elif what == "Qobj":
-                    self.args[name] = state
-                elif what == "expect":
-                    self.args[name] = op.expect(t, state)
-
-        elif isinstance(state, np.ndarray) and state.ndim == 1:
-            s1 = self.cte.shape[1]
-            for name, what, op in self.dynamics_args:
-                if what == "vec":
-                    self.args[name] = state
-                elif what == "expect":
-                    self.args[name] = op.expect(t, state)
-                elif state.shape[0] == s1 and self.cte.issuper:
-                    new_l = int(np.sqrt(s1))
-                    mat = state.reshape((new_l, new_l), order="F")
-                    if what == "mat":
-                        self.args[name] = mat
-                    elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=self.cte.dims[1])
-                elif state.shape[0] == s1:
-                    mat = state.reshape((-1, 1))
-                    if what == "mat":
-                        self.args[name] = mat
-                    elif what == "Qobj":
-                        self.args[name] = Qobj(mat,
-                                               dims=[self.cte.dims[1], [1]])
-                elif state.shape[0] == s1*s1:
-                    new_l = int(np.sqrt(s1))
-                    mat = state.reshape((new_l, new_l), order="F")
-                    if what == "mat":
-                        self.args[name] = mat
-                    elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=[self.cte.dims[1],
-                                                          self.cte.dims[1]])
-
-        elif isinstance(state, np.ndarray) and state.ndim == 2:
-            s1 = self.cte.shape[1]
-            new_l = int(np.sqrt(s1))
-            for name, what, op in self.dynamics_args:
-                if what == "vec":
-                    self.args[name] = state.ravel("F")
-                elif what == "mat":
-                    self.args[name] = state
-                elif what == "expect":
-                    self.args[name] = op.expect(t, state)
-                elif state.shape[1] == 1:
-                    self.args[name] = Qobj(state, dims=[self.cte.dims[1],[1]])
-                elif state.shape[1] == s1:
-                    self.args[name] = Qobj(state, dims=self.cte.dims)
-                else:
-                    self.args[name] = Qobj(state)
-
-        else:
-            raise TypeError("state must be a Qobj or np.ndarray")
+    def _dynamics_args_update(self, t, state: _data.Data):
+        for name, what, e_op in self.dynamics_args:
+            self.args[name] = _dynamic_argument(t, self.cte, state, what, e_op)
 
     def copy(self):
         new = QobjEvo(self.cte.copy())
@@ -802,7 +741,9 @@ class QobjEvo:
             elif isinstance(self.coeff_get, _UnitedFuncCaller):
                 self.coeff_get.set_args(self.args, self.dynamics_args)
 
-    def solver_set_args(self, new_args, state, e_ops):
+    def solver_set_args(self, new_args, state: _data.Data, e_ops):
+        if not isinstance(state, _data.Data):
+            raise TypeError("state should be a data-layer object")
         self.dynamics_args = []
         self.args.update(new_args)
         self._args_checks()
@@ -1332,48 +1273,31 @@ class QobjEvo:
         return self
 
     def expect(self, t, state, herm=0):
-        if not isinstance(t, (int, float)):
-            raise TypeError("The time need to be a real scalar")
+        if not isinstance(t, numbers.Real):
+            raise TypeError("time needs to be a real scalar")
         if isinstance(state, Qobj):
-            if self.cte.dims[1] == state.dims[0]:
-                vec = state.data
-            elif self.cte.dims[1] == state.dims:
-                vec = state.data
-            else:
-                raise Exception("Dimensions do not fit")
+            state = _data.Dense(state.full())
         elif isinstance(state, np.ndarray):
-            vec = _data.create(state)
+            state = _data.dense.fast_from_numpy(state)
+        # TODO: remove shim once dispatch available.
+        elif isinstance(state, _data.CSR):
+            state = _data.Dense(state.to_array())
+        elif isinstance(state, _data.Dense):
+            pass
         else:
             raise TypeError("The vector must be an array or Qobj")
 
-        if vec.shape[0]*vec.shape[1] == self.cte.shape[1]:
-            if self.compiled:
-                exp = self.compiled_qobjevo.expect(t, vec)
-            elif self.cte.issuper:
-                self._dynamics_args_update(t, state)
-                exp = cy_expect_rho_vec(
-                    self.__call__(t, data=True).as_scipy(),
-                    vec.to_array().reshape(-1), 0)
-            else:
-                self._dynamics_args_update(t, state)
-                exp = cy_expect_psi(self.__call__(t, data=True).as_scipy(),
-                                    vec.to_array()[:, 0], 0)
-        elif vec.shape[0]*vec.shape[1] == self.cte.shape[1]**2:
-            if self.compiled:
-                print("here2")
-                exp = self.compiled_qobjevo.expect(t, vec)
-            else:
-                self._dynamics_args_update(t, state)
-                exp = (self.__call__(t, data=True) *
-                       vec.to_array().reshape((self.cte.shape[1],
-                                               self.cte.shape[1])).T).trace()
+        if self.compiled:
+            exp = self.compiled_qobjevo.expect(t, state)
+        elif self.cte.issuper:
+            state = _data.column_stack_dense(state)
+            self._dynamics_args_update(t, state)
+            exp = _data.expect_super_csr_dense(self.__call__(t, data=True),
+                                               state)
         else:
-            raise Exception("The shapes do not match")
-
-        if herm:
-            return exp.real
-        else:
-            return exp
+            self._dynamics_args_update(t, state)
+            exp = _data.expect_csr_dense(self.__call__(t, data=True), state)
+        return exp.real if herm else exp
 
     def mul_vec(self, t, vec):
         was_Qobj = False
@@ -1399,8 +1323,8 @@ class QobjEvo:
             out = self.compiled_qobjevo.matmul(t, vec).as_ndarray()[:, 0]
         else:
             self._dynamics_args_update(t, vec)
-            out = spmv(self.__call__(t, data=True).as_scipy(),
-                       np.ascontiguousarray(vec.to_array()[:, 0]))
+            out = _data.matmul_csr_dense_dense(self.__call__(t, data=True),
+                                               vec).as_ndarray()[:, 0]
 
         if was_Qobj:
             return Qobj(out, dims=dims)
@@ -1597,10 +1521,7 @@ class QobjEvo:
                 return Code
 
     def _get_coeff(self, t):
-        out = []
-        for part in self.ops:
-            out.append(part.get_coeff(t, self.args))
-        return out
+        return [part.get_coeff(t, self.args) for part in self.ops]
 
     def __getstate__(self):
         _dict_ = self.__dict__.copy()
@@ -1630,6 +1551,80 @@ class QobjEvo:
                 self.compiled_qobjevo.__setstate__(state[1])
 
 
+def _dynamic_argument_raise(op, state):
+    raise TypeError(
+        "unknown shape for evolution, evolver type "
+        + repr(op.type)
+        + " shape "
+        + repr(op.shape)
+        + ", state shape "
+        + repr(state.shape)
+    )
+
+
+def _dynamic_argument(t, op, state, what, e_op):
+    # Input `state` is either ndarray or data type (_not_ Qobj).  First unify
+    # to a data-layer type, then build the object we're asked for.  In the
+    # future, "vec" and "matrix" should be data-layer types themselves, not
+    # ndarray, but for now we leave them as-is.
+    if isinstance(state, np.ndarray):
+        state = _data.dense.fast_from_numpy(state)
+    if what == "vec":
+        out = stack_columns(state)
+        return (out.as_ndarray()[:, 0] if isinstance(out, _data.Dense)
+                else out.to_array()[:, 0])
+    # Otherwise we have to create a proper infer what type of `state` we've
+    # been passed, based on the operator doing the evolution.
+    if op.issuper:
+        if state.shape[0] == op.shape[1]*op.shape[1]:
+            # We're evolving a superoperator which has been column-stacked.
+            state = unstack_columns(state, (op.shape[1],)*2)
+            type = 'super'
+        elif state.shape[0] == op.shape[1]:
+            state_rows = int(np.sqrt(state.shape[0]))
+            if state.shape[1] != 1 or state_rows**2 != state.shape[0]:
+                _dynamic_argument_raise(op, state)
+            # We're evolving an operator which has been column-stacked.
+            state = unstack_columns(state, (state_rows,)*2)
+            type = 'oper'
+        elif state.shape[0]*state.shape[1] == op.shape[1]:
+            # We're evolving an operator which is in the normal format.
+            type = 'oper'
+        else:
+            _dynamic_argument_raise(op, state)
+    else:
+        if state.shape[0] == state.shape[1] == op.shape[0] == op.shape[1]:
+            # Evolving density matrix in 2D format.
+            type = 'oper'
+        elif state.shape[0] == op.shape[1]*op.shape[1] and state.shape[1] == 1:
+            # Evolving column-stacked density matrix with unitary.
+            state = unstack_columns(state, (op.shape[1],)*2)
+            type = 'oper'
+        elif state.shape[0] == op.shape[1] and state.shape[1] == 1:
+            # We're evolving a ket with an operator.
+            type = 'ket'
+        else:
+            _dynamic_argument_raise(op, state)
+
+    if what == "mat":
+        return (state.as_ndarray() if isinstance(state, _data.Dense)
+                else state.to_array())
+    if what == "expect":
+        return e_op.expect(t, state)
+    if what == "Qobj":
+        if type == 'super':
+            dims = op.dims
+        elif type == 'oper':
+            dims = op.dims[1] if op.issuper else op.dims
+        elif type == 'ket':
+            dims = [op.dims[1], [1]*len(op.dims[1])]
+        else:
+            raise RuntimeError("internal logic error, type=" + repr(type))
+        # TODO: allow arbitrary data-layer types.
+        return Qobj(state.to_array(), dims=dims, type=type, copy=False)
+    raise RuntimeError("unexpected what=" + repr(what))
+
+
 # Function defined inside another function cannot be pickled,
 # Using class instead
 class _UnitedFuncCaller:
@@ -1637,6 +1632,7 @@ class _UnitedFuncCaller:
         self.funclist = funclist
         self.args = args
         self.dynamics_args = dynamics_args
+        self.issuper = cte.issuper
         self.dims = cte.dims
         self.shape = cte.shape
 
@@ -1645,36 +1641,14 @@ class _UnitedFuncCaller:
         self.dynamics_args = dynamics_args
 
     def dyn_args(self, t, state, shape):
-        # 1d array are to F ordered
-        mat = state.reshape(shape, order="F")
-        for name, what, op in self.dynamics_args:
-            if what == "vec":
-                self.args[name] = state
-            elif what == "mat":
-                self.args[name] = mat
-            elif what == "Qobj":
-                if self.shape[1] == shape[1]:  # oper
-                    self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1:  # ket
-                    self.args[name] = Qobj(mat, dims=[self.dims[1], [1]])
-                else:  # rho
-                    self.args[name] = Qobj(mat, dims=self.dims[1])
-            elif what == "expect":
-                if shape[1] == op.cte.shape[1]:  # same shape as object
-                    self.args[name] = op.mul_mat(t, mat).trace()
-                else:
-                    self.args[name] = op.expect(t, state)
+        for name, what, e_op in self.dynamics_args:
+            self.args[name] = _dynamic_argument(t, self, state, what, e_op)
 
-    def __call__(self, t, args={}):
-        if args:
-            now_args = self.args.copy()
+    def __call__(self, t, args=None):
+        now_args = self.args.copy()
+        if args is not None:
             now_args.update(args)
-        else:
-            now_args = self.args
-        out = []
-        for func in self.funclist:
-            out.append(func(t, now_args))
-        return out
+        return [func(t, now_args) for func in self.funclist]
 
     def get_args(self):
         return self.args

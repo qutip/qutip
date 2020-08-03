@@ -336,7 +336,7 @@ code_python_pre = """
 import numpy as np
 import scipy.special as spe
 import scipy
-from qutip.core.qobjevo import _UnitedFuncCaller
+from qutip.core.qobjevo import _UnitedFuncCaller, _dynamic_argument
 
 def proj(x):
     if np.isfinite(x):
@@ -384,25 +384,8 @@ class _UnitedStrCaller(_UnitedFuncCaller):
         self.dynamics_args = dynamics_args
 
     def dyn_args(self, t, state, shape):
-        # 1d array are to F ordered
-        mat = state.reshape(shape, order="F")
-        for name, what, op in self.dynamics_args:
-            if what == "vec":
-                self.args[name] = state
-            elif what == "mat":
-                self.args[name] = mat
-            elif what == "Qobj":
-                if self.shape[1] == shape[1]:  # oper
-                    self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1:
-                    self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
-                else:  # rho
-                    self.args[name] = Qobj(mat, dims=self.dims[1])
-            elif what == "expect":  # ket
-                if shape[1] == op.cte.shape[1]: # same shape as object
-                    self.args[name] = op.mul_mat(t, mat).trace()
-                else:
-                    self.args[name] = op.expect(t, state)
+        for name, what, e_op in self.dynamics_args:
+            self.args[name] = _dynamic_argument(t, self, state, what, e_op)
 
     def __call__(self, t, args={}):
         if args:
