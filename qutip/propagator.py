@@ -33,17 +33,20 @@
 
 __all__ = ['propagator', 'propagator_steadystate']
 
+import functools
+import numbers
 import types
+
 import numpy as np
 import scipy.linalg as la
-import functools
 import scipy.sparse as sp
+
 from . import (
     Qobj, tensor, qeye, unstack_columns, stack_columns, vector_to_operator,
-    operator_to_vector, basis,
+    operator_to_vector, basis, projection
 )
-from .core.cy.sparse_utils import unit_row_norm
-from .rhs_generate import (rhs_generate, rhs_clear, _td_format_check)
+from .core import data as _data
+from .rhs_generate import rhs_clear, _td_format_check
 from .mesolve import mesolve
 from .sesolve import sesolve
 from .solver import Options, _solver_safety_check, config
@@ -101,11 +104,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Instance representing the propagator :math:`U(t)`.
 
     """
-    kw = _default_kwargs()
-    if 'num_cpus' in kwargs:
-        num_cpus = kwargs['num_cpus']
-    else:
-        num_cpus = kw['num_cpus']
+    num_cpus = kwargs.get('num_cpus', _default_kwargs()['num_cpus'])
 
     if progress_bar is None:
         progress_bar = BaseProgressBar()
@@ -113,11 +112,10 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         progress_bar = TextProgressBar()
 
     if options is None:
-        options = Options()
-        options.rhs_reuse = True
+        options = Options(rhs_reuse=True)
         rhs_clear()
 
-    if isinstance(t, (int, float, np.integer, np.floating)):
+    if isinstance(t, numbers.Real):
         tlist = [0, t]
     else:
         tlist = t
@@ -130,7 +128,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
         H0 = H(0.0, args)
-        if unitary_mode =='batch':
+        if unitary_mode == 'batch':
             # batch don't work with function Hamiltonian
             unitary_mode = 'single'
     elif isinstance(H, list):
@@ -162,30 +160,29 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 else:
                     return output.states
 
-            elif unitary_mode =='batch':
+            elif unitary_mode == 'batch':
                 u = np.zeros(len(tlist), dtype=object)
-                _rows = np.array([(N+1)*m for m in range(N)])
-                _cols = np.zeros_like(_rows)
-                _data = np.ones_like(_rows, dtype=complex)
-                psi0 = Qobj(sp.coo_matrix((_data, (_rows, _cols))).tocsr())
+                rows_ = np.array([(N+1)*m for m in range(N)])
+                cols_ = np.zeros_like(rows_)
+                data_ = np.ones_like(rows_, dtype=complex)
+                psi0 = Qobj(sp.coo_matrix((data_, (rows_, cols_))).tocsr())
                 if td_type[1] > 0 or td_type[2] > 0:
                     H2 = []
-                    for k in range(len(H)):
-                        if isinstance(H[k], list):
-                            H2.append([tensor(qeye(N), H[k][0]), H[k][1]])
+                    for Hk in H:
+                        if isinstance(Hk, list):
+                            H2.append([tensor(qeye(N), Hk[0]), Hk[1]])
                         else:
-                            H2.append(tensor(qeye(N), H[k]))
+                            H2.append(tensor(qeye(N), Hk))
                 else:
                     H2 = tensor(qeye(N), H)
                 options.normalize_output = False
                 output = sesolve(H2, psi0, tlist, [],
                                  args=args, options=options,
                                  _safe_mode=False)
-                for k, t in enumerate(tlist):
-                    u[k] = output.states[k].data.reshape(N, N)
-                    unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
-                    u[k] = u[k].T.tocsr()
-
+                for k, state in enumerate(output.states):
+                    out = unstack_columns(state.data, (N, N)).to_array()
+                    out /= np.linalg.norm(out, axis=1)
+                    u[k] = _data.create(out.T)
             else:
                 raise Exception('Invalid unitary mode.')
 
@@ -201,23 +198,19 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
         if parallel:
-            output = parallel_map(_parallel_mesolve,range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args,
                                       options),
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
-                for k, t in enumerate(tlist):
-                    u[:, n, k] = stack_columns(output[n].states[k].full()).T
+                for k, state in enumerate(output[n].states):
+                    u[:, n, k] = stack_columns(state.data).to_array()[:, 0]
         else:
-            rho0 = qeye(N,N)
-            rho0.dims = [[sqrt_N, sqrt_N], [sqrt_N, sqrt_N]]
+            rho0 = qeye([sqrt_N, sqrt_N])
             output = mesolve(H, psi0, tlist, [], args, options,
                              _safe_mode=False)
-            if len(tlist) == 2:
-                return output.states[-1]
-            else:
-                return output.states
+            return output.states[-1] if len(tlist) == 2 else output.states
 
     else:
         # calculate the propagator for the vector representation of the
@@ -234,19 +227,18 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                                       N, H, tlist, c_op_list, args, options),
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
-                for k, t in enumerate(tlist):
-                    u[:, n, k] = stack_columns(output[n].states[k].full()).T
+                for k, state in enumerate(output[n].states):
+                    u[:, n, k] = stack_columns(state.data).to_array()[:, 0]
         else:
             progress_bar.start(N * N)
             for n in range(N * N):
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
-                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                                          shape=(N,N), dtype=complex))
+                rho0 = projection(N, row_idx, col_idx)
                 output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                                  _safe_mode=False)
                 for k, t in enumerate(tlist):
-                    u[:, n, k] = stack_columns(output.states[k].full()).T
+                    u[:, n, k] = stack_columns(output.states[k].data).to_array()[:, 0]
             progress_bar.finished()
 
     if len(tlist) == 2:
@@ -289,18 +281,16 @@ def propagator_steadystate(U):
         Instance representing the steady-state density matrix.
 
     """
-
-    evals, evecs = la.eig(U.full())
-
+    evals, estates = U.eigenstates()
     shifted_vals = np.abs(evals - 1.0)
     ev_idx = np.argmin(shifted_vals)
-    ev_min = shifted_vals[ev_idx]
-    evecs = evecs.T
-    rho = Qobj(unstack_columns(evecs[ev_idx]), dims=U.dims[0])
-    rho = rho * (1.0 / rho.tr())
-    rho = 0.5 * (rho + rho.dag())  # make sure rho is herm
-    rho.isherm = True
-    return rho
+    rho_data = unstack_columns(estates[ev_idx].data)
+    rho_data *= 0.5 / _data.trace_csr(rho_data)
+    return Qobj(rho_data + rho_data.adjoint(),
+                dims=U.dims[0],
+                type='oper',
+                isherm=True,
+                copy=False)
 
 
 def _parallel_sesolve(n, N, H, tlist, args, options):
@@ -310,8 +300,7 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
 
 def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
     col_idx, row_idx = np.unravel_index(n, (N, N))
-    rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                              shape=(N,N), dtype=complex))
+    rho0 = projection(N, row_idx, col_idx)
     output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                      _safe_mode=False)
     return output
