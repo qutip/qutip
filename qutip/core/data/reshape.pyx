@@ -50,6 +50,12 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
     return out
 
 
+# We have to use a signed integer type because the standard library doesn't
+# provide overloads for unsigned types.
+cdef inline idxint _reshape_dense_reindex(idxint idx, idxint size):
+    cdef div_t res = div(idx, size)
+    return res.quot + res.rem
+
 cpdef Dense reshape_dense(Dense matrix, idxint n_rows_out, idxint n_cols_out):
     _reshape_check_input(matrix, n_rows_out, n_cols_out)
     cdef Dense out
@@ -57,14 +63,14 @@ cpdef Dense reshape_dense(Dense matrix, idxint n_rows_out, idxint n_cols_out):
         out = matrix.copy()
         out.shape = (n_rows_out, n_cols_out)
         return out
-    out = dense.zeros(matrix.shape[0], matrix.shape[1])
-    cdef size_t idx_self=0, idx_out, idx_out_start, stride=n_cols_out
-    for idx_out_start in range(stride):
-        idx_out = idx_out_start
-        for _ in range(n_rows_out):
-            out.data[idx_out] = matrix.data[idx_self]
-            idx_self += 1
-            idx_out += stride
+    out = dense.zeros(n_rows_out, n_cols_out)
+    cdef size_t idx_in=0, idx_out=0
+    cdef size_t size = n_rows_out * n_cols_out
+    # TODO: improve the algorithm here.
+    cdef size_t stride = _reshape_dense_reindex(matrix.shape[1]*n_rows_out, size)
+    for idx_in in range(size):
+        out.data[idx_out] = matrix.data[idx_in]
+        idx_out = _reshape_dense_reindex(idx_out + stride, size)
     return out
 
 
