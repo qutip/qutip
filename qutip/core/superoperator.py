@@ -34,7 +34,7 @@
 __all__ = [
     'liouvillian', 'lindblad_dissipator', 'operator_to_vector',
     'vector_to_operator', 'stack_columns', 'unstack_columns', 'stacked_index',
-    'unstacked_index', 'spost', 'spre', 'sprepost',
+    'unstacked_index', 'spost', 'spre', 'sprepost', 'reshuffle',
 ]
 
 import functools
