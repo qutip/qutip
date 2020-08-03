@@ -240,7 +240,7 @@ cdef double pi = 3.14159265358979323
 
         elif op.type == "spline":
             y_str = "_array_" + str(N_np)
-            if op[1].is_complex:
+            if op.get_coeff.is_complex:
                 string = "zinterp(t, _CSstart, _CSend, " + y_str + ")"
             else:
                 string = "interp(t, _CSstart, _CSend, " + y_str + ")"
@@ -375,6 +375,7 @@ class _UnitedStrCaller(_UnitedFuncCaller):
         self.funclist = funclist
         self.args = args
         self.dynamics_args = dynamics_args
+        self.issuper = cte.issuper
         self.dims = cte.dims
         self.shape = cte.shape
 
