@@ -408,7 +408,7 @@ class TestQubitCircuit:
         def customer_gate1(arg_values):
             mat = np.zeros((4, 4), dtype=np.complex)
             mat[0, 0] = mat[1, 1] = 1.
-            mat[2:4, 2:4] = rx(arg_values)
+            mat[2:4, 2:4] = rx(arg_values).full()
             return Qobj(mat, dims=[[2, 2], [2, 2]])
 
         def customer_gate2():
@@ -423,9 +423,9 @@ class TestQubitCircuit:
         qc.add_gate("T1", targets=[1])
         props = qc.propagators()
         result1 = tensor(identity(2), customer_gate1(np.pi/2))
-        assert_allclose(props[0], result1)
+        assert_allclose(props[0].full(), result1.full())
         result2 = tensor(identity(2), customer_gate2(), identity(2))
-        assert_allclose(props[1], result2)
+        assert_allclose(props[1].full(), result2.full())
 
     def test_N_level_system(self):
         """
@@ -446,7 +446,7 @@ class TestQubitCircuit:
         qc.user_gates = {"CTRLMAT3": controlled_mat3}
         qc.add_gate("CTRLMAT3", targets=[1, 0], arg_value=1)
         props = qc.propagators()
-        assert_allclose(mat3, ptrace(props[0], 0) - 1)
+        assert_allclose(mat3.full(), (props[0].ptrace(0) - 1).full())
 
 
 if __name__ == "__main__":
