@@ -171,9 +171,10 @@ def kraus_to_choi(kraus_list):
     represented by the Kraus operators in `kraus_list`
     """
     kraus_mat_list = [k.full() for k in kraus_list]
-    op_rng = range(kraus_mat_list[0].shape[1])
+    op_rng = list(range(kraus_mat_list[0].shape[1]))
     choi_blocks = np.array(
-        [[sum(op[:, c_ix] * np.array([op.H[r_ix, :]]) for op in kraus_mat_list)
+        [[sum(op[:, c_ix, None] @ np.conj(op[None, :, r_ix])
+              for op in kraus_mat_list)
           for r_ix in op_rng]
          for c_ix in op_rng]
     )
