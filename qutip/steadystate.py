@@ -36,8 +36,7 @@ open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
 
-__all__ = ['steadystate', 'steady', 'build_preconditioner',
-           'pseudo_inverse']
+__all__ = ['steadystate', 'build_preconditioner', 'pseudo_inverse']
 
 import warnings
 import time
@@ -55,9 +54,6 @@ from . import (
 )
 from .core import data as _data
 
-from .core.cy.spconvert import dense2D_to_fastcsr_fmode
-from .utilities import _version2int
-
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
 logger.setLevel('DEBUG')
@@ -66,8 +62,29 @@ logger.setLevel('DEBUG')
 if settings.has_mkl:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
-# test if scipy is recent enought to get L & U factors from superLU
-_scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
+
+def _permute(matrix, rows, cols):
+    """
+    Permute the rows and columns of the scipy CSR or CSC matrix such that row
+    `i` becomes row `rows[i]` and so on.  Returns the same type of CSR or CSC
+    matrix.
+    """
+    # If the three data buffers of a CSC matrix are read as a CSR matrix (which
+    # the corresponding shape change), it appears to be the transpose of the
+    # input.  To handle CSC matrices here, we always use the data-layer type
+    # CSR, but switch the rows and cols in the permutation if we actually want
+    # a CSC, and take care to output the transpose of the transpose at the end.
+    shape = matrix.shape
+    if matrix.type == 'csc':
+        rows, cols = cols, rows
+        shape = (shape[1], shape[0])
+    temp = _data.CSR((matrix.data, matrix.indices, matrix.indptr),
+                     shape=shape)
+    temp = _data.permute.indices_csr(temp, rows, cols).as_scipy()
+    if matrix.type == 'csr':
+        return temp
+    return scipy.sparse.csc_matrix((temp.data, temp.indices, temp.indptr),
+                                   shape=matrix.shape)
 
 
 def _profile(graph):
@@ -139,9 +156,9 @@ def _weighted_bipartite_matching(A, perm_type='row'):
     nrows = A.shape[0]
     if A.shape[0] != A.shape[1]:
         raise ValueError('weighted_bfs_matching requires a square matrix.')
-    if sp.isspmatrix_csr(A) or sp.isspmatrix_coo(A):
+    if scipy.sparse.isspmatrix_csr(A) or scipy.sparse.isspmatrix_coo(A):
         A = A.tocsc()
-    elif not sp.isspmatrix_csc(A):
+    elif not scipy.sparse.isspmatrix_csc(A):
         raise TypeError("matrix must be in CSC, CSR, or COO format.")
 
     if perm_type == 'column':
@@ -179,9 +196,10 @@ def _default_steadystate_args():
 
 
 def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
-    """Calculates the steady state for quantum evolution subject to the
-    supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
-    list of collapse operators.
+    """
+    Calculates the steady state for quantum evolution subject to the supplied
+    Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a list of
+    collapse operators.
 
     If the user passes a Hamiltonian then it, along with the list of collapse
     operators, will be converted into a Liouvillian operator in Lindblad form.
@@ -307,7 +325,6 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     Notes
     -----
     The SVD method works only for dense operators (i.e. small systems).
-
     """
     if solver is None:
         solver = 'scipy'
@@ -328,23 +345,23 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     ss_args['info']['solver'] = ss_args['solver']
     ss_args['info']['method'] = ss_args['method']
 
-    for key in kwargs.keys():
-        if key in ss_args.keys():
-            ss_args[key] = kwargs[key]
+    for key, value in kwargs.items():
+        if key in ss_args:
+            ss_args[key] = value
         else:
-            raise Exception(
+            raise ValueError(
                 "Invalid keyword argument '"+key+"' passed to steadystate.")
 
     # Set column perm to NATURAL if using RCM and not specified by user
-    if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
+    if ss_args['use_rcm'] and ('permc_spec' not in kwargs):
         ss_args['permc_spec'] = 'NATURAL'
 
     # Create & check Liouvillian
     A = _steadystate_setup(A, c_op_list)
 
-    # Set weight parameter to avg abs val in L if not set explicitly
+    # Set weight parameter to max abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
-        ss_args['weight'] = np.mean(np.abs(A.data.data.max()))
+        ss_args['weight'] = np.abs(_data.norm.max_csr(A.data))
         ss_args['info']['weight'] = ss_args['weight']
 
     if ss_args['method'] == 'direct':
@@ -373,20 +390,17 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
 
 
 def _steadystate_setup(A, c_op_list):
-    """Build Liouvillian (if necessary) and check input.
-    """
-    if A.type == 'oper':
+    """Build Liouvillian (if necessary) and check input."""
+    if A.isoper:
         if len(c_op_list) > 0:
             return liouvillian(A, c_op_list)
-
         raise TypeError('Cannot calculate the steady state for a ' +
                         'non-dissipative system ' +
                         '(no collapse operators given)')
-    elif A.type == 'super':
+    if A.issuper:
         return A
-    else:
-        raise TypeError('Solving for steady states requires ' +
-                        'Liouvillian (super) operators')
+    raise TypeError('Solving for steady states requires ' +
+                    'Liouvillian (super) operators')
 
 
 def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
@@ -398,30 +412,28 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
     n = int(np.sqrt(L.shape[0]))
     L = L.data.as_scipy()
     if has_mkl:
-        form = 'csr'
         constructor = scipy.sparse.csr_matrix
     else:
-        form = 'csc'
         L = L.tocsc()
         constructor = scipy.sparse.csc_matrix
-    L = L + constructor((ss_args['weight']*np.ones(n),
+    L = L + constructor((ss_args['weight'] * np.ones(n),
                          (np.zeros(n), [nn * (n+1) for nn in range(n)])),
                         shape=(n*n, n*n))
 
     if settings.debug:
         old_band = _bandwidth(L)
         old_pro = _profile(L)
-        logger.debug('Orig. NNZ: %i' % L.nnz)
+        logger.debug('Orig. NNZ: %i', L.nnz)
         if ss_args['use_rcm']:
-            logger.debug('Original bandwidth: %i' % old_band)
+            logger.debug('Original bandwidth: %i', old_band)
 
     if ss_args['use_wbm']:
         if settings.debug:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
-        perm = weighted_bipartite_matching(L)
+        perm = _weighted_bipartite_matching(L)
         _wbm_end = time.time()
-        L = sp_permute(L, perm, [], form)
+        L = _permute(L, perm, None)
         ss_args['info']['perm'].append('wbm')
         ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
         if settings.debug:
@@ -432,10 +444,10 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
         if settings.debug:
             logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         _rcm_start = time.time()
-        perm2 = sp.csgraph.reverse_cuthill_mckee(L)
+        perm2 = scipy.sparse.csgraph.reverse_cuthill_mckee(L)
         _rcm_end = time.time()
         rev_perm = np.argsort(perm2)
-        L = sp_permute(L, perm2, perm2, form)
+        L = _permute(L, perm2, perm2)
         ss_args['info']['perm'].append('rcm')
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         if settings.debug:
@@ -448,17 +460,6 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
                          (old_pro/rcm_pro))
     L.sort_indices()
     return L, perm, perm2, rev_perm, ss_args
-
-
-def steady(L, maxiter=10, tol=1e-12, itertol=1e-15, method='solve',
-           use_precond=False):
-    """
-    Deprecated. See steadystate instead.
-    """
-    message = "steady has been deprecated, use steadystate instead"
-    warnings.warn(message, DeprecationWarning)
-    return steadystate(L, [], maxiter=maxiter, tol=tol,
-                       use_precond=use_precond)
 
 
 def _steadystate_direct_sparse(L, ss_args):
@@ -526,7 +527,7 @@ def _steadystate_direct_sparse(L, ss_args):
         ss_args['info']['solution_time'] = _direct_end-_direct_start
 
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['residual_norm'] = scipy.linalg.norm(b - L*v, np.inf)
         ss_args['info']['max_iter_refine'] = ss_args['max_iter_refine']
         ss_args['info']['scaling_vectors'] = ss_args['scaling_vectors']
         ss_args['info']['weighted_matching'] = ss_args['weighted_matching']
@@ -534,8 +535,8 @@ def _steadystate_direct_sparse(L, ss_args):
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
-    data = dense2D_to_fastcsr_fmode(unstack_columns(v), n, n)
-    data = 0.5 * (data + data.H)
+    data = unstack_columns(_data.create(v), (n, n))
+    data = 0.5 * (data + data.adjoint())
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
     else:
@@ -580,35 +581,36 @@ def _steadystate_eigen(L, ss_args):
         logger.debug('Starting Eigen solver.')
 
     dims = L.dims[0]
-    L = L.data
+    L = L.data.as_scipy()
 
     if ss_args['use_rcm']:
         ss_args['info']['perm'].append('rcm')
         if settings.debug:
             old_band = _bandwidth(L)
-            logger.debug('Original bandwidth: %i' % old_band)
+            logger.debug('Original bandwidth: %i', old_band)
         perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L)
         rev_perm = np.argsort(perm)
-        L = sp_permute(L, perm, perm, 'csc')
+        L = _permute(L, perm, perm)
         if settings.debug:
             rcm_band = _bandwidth(L)
-            logger.debug('RCM bandwidth: %i' % rcm_band)
-            logger.debug('Bandwidth reduction factor: %f' %
-                         (old_band/rcm_band))
+            logger.debug('RCM bandwidth: %i', rcm_band)
+            logger.debug('Bandwidth reduction factor: %f', old_band/rcm_band)
 
     _eigen_start = time.time()
-    eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
-                          which='LM', maxiter=ss_args['maxiter'])
-    _eigen_end = time.time()
-    ss_args['info']['solution_time'] = _eigen_end - _eigen_start
+    _, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
+                     which='LM', maxiter=ss_args['maxiter'])
+    ss_args['info']['solution_time'] = time.time() - _eigen_start
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(L*eigvec, np.inf)
+        ss_args['info']['residual_norm'] = scipy.linalg.norm(L*eigvec, np.inf)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
-    _temp = unstack_columns(eigvec)
-    data = dense2D_to_fastcsr_fmode(_temp, _temp.shape[0], _temp.shape[1])
-    data = 0.5 * (data + data.H)
-    out = Qobj(data, dims=dims, isherm=True)
+    print(_data.dense.fast_from_numpy(eigvec))
+    _temp = unstack_columns(_data.dense.fast_from_numpy(eigvec))
+    # TODO: fix dispatch.
+    data = _data.create(_temp.as_ndarray())
+    data *= 0.5
+    data += data.adjoint()
+    out = Qobj(data, dims=dims, type='oper', isherm=True, copy=False)
     if ss_args['return_info']:
         return out/out.tr(), ss_args['info']
     else:
@@ -758,11 +760,11 @@ def _steadystate_iterative(L, ss_args):
         ss_args['info']['solution_time'] = ss_args['info']['iter_time']
     ss_args['info']['iterations'] = ss_iters['iter']
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['residual_norm'] = scipy.linalg.norm(b - L*v, np.inf)
 
     if settings.debug:
-        logger.debug('Number of Iterations: %i' % ss_iters['iter'])
-        logger.debug('Iteration. time: %f' % (_iter_end - _iter_start))
+        logger.debug('Number of Iterations: %i', ss_iters['iter'])
+        logger.debug('Iteration. time: %f', (_iter_end - _iter_start))
 
     if check > 0:
         raise Exception("Steadystate error: Did not reach tolerance after " +
@@ -777,8 +779,10 @@ def _steadystate_iterative(L, ss_args):
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
-    data = unstack_columns(v)
-    data = 0.5 * (data + data.conj().T)
+    data = unstack_columns(_data.dense.fast_from_numpy(v))
+    data = 0.5 * (data + data.adjoint())
+    # TODO: fix dispatch
+    data = _data.create(data.to_array())
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
     else:
@@ -841,7 +845,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         if settings.debug:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
-        perm2 = weighted_bipartite_matching(L.as_scipy())
+        perm2 = _weighted_bipartite_matching(L.as_scipy())
         _wbm_end = time.time()
         L = _data.permute_csr(L, perm, np.arange(n, dtype=np.int32))
         ss_args['info']['perm'].append('wbm')
@@ -857,7 +861,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
             logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         ss_args['info']['perm'].append('rcm')
         _rcm_start = time.time()
-        perm2 = sp.csgraph.reverse_cuthill_mckee(L.as_scipy())
+        perm2 = scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy())
         _rcm_end = time.time()
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         rev_perm = np.argsort(perm2)
@@ -957,13 +961,13 @@ def _steadystate_power(L, ss_args):
                              M=ss_args['M'], x0=ss_args['x0'],
                              restart=ss_args['restart'],
                              maxiter=ss_args['maxiter'],
-                             callback=_iter_count)
+                             callback=_iter_count,
+                             callback_type='legacy')
         elif ss_args['method'] == 'power-lgmres':
             v, check = lgmres(L, v, tol=mtol, atol=ss_args['matol'],
                               M=ss_args['M'], x0=ss_args['x0'],
                               maxiter=ss_args['maxiter'],
                               callback=_iter_count)
-
         elif ss_args['method'] == 'power-bicgstab':
             v, check = bicgstab(L, v, tol=mtol, atol=ss_args['matol'],
                                 M=ss_args['M'], x0=ss_args['x0'],
@@ -1007,7 +1011,7 @@ def _steadystate_power(L, ss_args):
     else:
         data = data / scipy.linalg.norm(v)
 
-    data = _data.create(unstack_columns(data))
+    data = unstack_columns(_data.create(data))
     rhoss = Qobj(0.5 * (data + data.adjoint()),
                  dims=rhoss_dims,
                  isherm=True,
@@ -1091,30 +1095,30 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
     """
     ss_args = _default_steadystate_args()
     ss_args['method'] = 'iterative'
-    for key in kwargs.keys():
-        if key in ss_args.keys():
-            ss_args[key] = kwargs[key]
+    for key, value in kwargs.items():
+        if key in ss_args:
+            ss_args[key] = value
         else:
-            raise Exception("Invalid keyword argument '" + key +
-                            "' passed to steadystate.")
+            raise ValueError("Invalid keyword argument '" + key +
+                             "' passed to steadystate.")
 
     # Set column perm to NATURAL if using RCM and not specified by user
-    if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
+    if ss_args['use_rcm'] and ('permc_spec' not in kwargs):
         ss_args['permc_spec'] = 'NATURAL'
 
     L = _steadystate_setup(A, c_op_list)
-    # Set weight parameter to avg abs val in L if not set explicitly
+    # Set weight parameter to max abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
-        ss_args['weight'] = np.mean(np.abs(L.data.as_scipy().data.max()))
+        ss_args['weight'] = np.abs(_data.norm.max_csr(L.data))
         ss_args['info']['weight'] = ss_args['weight']
 
     n = int(np.sqrt(L.shape[0]))
     if ss_args['method'] == 'iterative':
         ss_list = _steadystate_LU_liouvillian(L, ss_args)
-        L, perm, perm2, rev_perm, ss_args = ss_list
+        L, _, _, _, ss_args = ss_list
     elif ss_args['method'] == 'power':
         ss_list = _steadystate_power_liouvillian(L, ss_args)
-        L, perm, perm2, rev_perm, ss_args = ss_list
+        L, _, _, _, ss_args = ss_list
     else:
         raise Exception("Invalid preconditioning method.")
 
@@ -1171,7 +1175,7 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
 
     else:
         raise ValueError("Unsupported method '%s'. Use 'direct' or 'numpy'" %
-                         method)
+                         pseudo_args['method'])
 
 
 def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
@@ -1201,10 +1205,10 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
 
     if pseudo_args['use_rcm']:
         perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L.data.as_scipy())
-        A = _data.permute_csr(L.data, perm, perm)
-        Q = _data.permute_csr(Q, perm, perm)
+        A = _data.permute.indices_csr(L.data, perm, perm)
+        Q = _data.permute.indices_csr(Q, perm, perm)
     else:
-        if ss_args['solver'] == 'scipy':
+        if pseudo_args['solver'] == 'scipy':
             A = L.data.as_scipy().tocsc()
             A.sort_indices()
 
@@ -1231,18 +1235,19 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         LIQ = lu.solve(Q.to_array())
 
     else:
-        raise ValueError("unsupported method '%s'" % method)
+        raise ValueError("unsupported method '%s'" % pseudo_args['method'])
 
-    R = _data.create(Q * LIQ)
+    # TODO: fix dispatch.
+    R = Q @ _data.create(LIQ)
 
     if pseudo_args['use_rcm']:
         rev_perm = np.argsort(perm)
-        R = permute_csr(R, rev_perm, rev_perm)
+        R = _data.permute.indices_csr(R, rev_perm, rev_perm)
 
     return Qobj(R, dims=L.dims)
 
 
-def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
+def pseudo_inverse(L, rhoss=None, w=None, sparse=True, **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
     given its steady state density matrix (which will be computed if not
@@ -1296,17 +1301,17 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
 
     """
     pseudo_args = _default_steadystate_args()
-    for key in kwargs.keys():
-        if key in pseudo_args.keys():
-            pseudo_args[key] = kwargs[key]
+    for key, value in kwargs.items():
+        if key in pseudo_args:
+            pseudo_args[key] = value
         else:
             raise Exception(
                 "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
-    if 'method' not in kwargs.keys():
+    if 'method' not in kwargs:
         pseudo_args['method'] = 'splu'
 
     # Set column perm to NATURAL if using RCM and not specified by user
-    if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
+    if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs):
         pseudo_args['permc_spec'] = 'NATURAL'
 
     if rhoss is None:
