@@ -32,9 +32,9 @@
 ###############################################################################
 
 import numpy as np
-from numpy.testing import run_module_suite, assert_equal
-from qutip import (sigmax, sigmay, sigmaz, sigmam, mesolve, mcsolve, essolve,
-                   basis)
+from qutip import (
+    sigmax, sigmay, sigmaz, sigmam, mesolve, mcsolve, essolve, basis,
+)
 
 
 def _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, solver):
@@ -83,9 +83,9 @@ def test_MESolverCase1():
     sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
     sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-    assert_equal(max(abs(sx - sx_analytic)) < 0.05, True)
-    assert_equal(max(abs(sy - sy_analytic)) < 0.05, True)
-    assert_equal(max(abs(sz - sz_analytic)) < 0.05, True)
+    assert max(abs(sx - sx_analytic)) < 0.05
+    assert max(abs(sy - sy_analytic)) < 0.05
+    assert max(abs(sz - sz_analytic)) < 0.05
 
 
 def test_MESolverCase2():
@@ -106,9 +106,9 @@ def test_MESolverCase2():
     sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
     sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-    assert_equal(max(abs(sx - sx_analytic)) < 0.05, True)
-    assert_equal(max(abs(sy - sy_analytic)) < 0.05, True)
-    assert_equal(max(abs(sz - sz_analytic)) < 0.05, True)
+    assert max(abs(sx - sx_analytic)) < 0.05
+    assert max(abs(sy - sy_analytic)) < 0.05
+    assert max(abs(sz - sz_analytic)) < 0.05
 
 
 def test_ESSolverCase1():
@@ -128,9 +128,9 @@ def test_ESSolverCase1():
     sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
     sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-    assert_equal(max(abs(sx - sx_analytic)) < 0.05, True)
-    assert_equal(max(abs(sy - sy_analytic)) < 0.05, True)
-    assert_equal(max(abs(sz - sz_analytic)) < 0.05, True)
+    assert max(abs(sx - sx_analytic)) < 0.05
+    assert max(abs(sy - sy_analytic)) < 0.05
+    assert max(abs(sz - sz_analytic)) < 0.05
 
 
 def test_MCSolverCase1():
@@ -151,9 +151,9 @@ def test_MCSolverCase1():
     sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
     sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-    assert_equal(max(abs(sx - sx_analytic)) < 0.25, True)
-    assert_equal(max(abs(sy - sy_analytic)) < 0.25, True)
-    assert_equal(max(abs(sz - sz_analytic)) < 0.25, True)
+    assert max(abs(sx - sx_analytic)) < 0.25
+    assert max(abs(sy - sy_analytic)) < 0.25
+    assert max(abs(sz - sz_analytic)) < 0.25
 
 
 def test_MCSolverCase2():
@@ -174,10 +174,6 @@ def test_MCSolverCase2():
     sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
     sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-    assert_equal(max(abs(sx - sx_analytic)) < 0.25, True)
-    assert_equal(max(abs(sy - sy_analytic)) < 0.25, True)
-    assert_equal(max(abs(sz - sz_analytic)) < 0.25, True)
-
-
-if __name__ == "__main__":
-    run_module_suite()
+    assert max(abs(sx - sx_analytic)) < 0.25
+    assert max(abs(sy - sy_analytic)) < 0.25
+    assert max(abs(sz - sz_analytic)) < 0.25
