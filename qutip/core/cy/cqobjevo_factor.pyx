@@ -37,6 +37,7 @@ cimport numpy as cnp
 cnp.import_array()
 
 from ..qobj import Qobj
+from ..superoperator import unstack_columns
 from .. import data as _data
 from .inter import _prep_cubic_spline
 from qutip.core.cy.inter cimport (
@@ -71,7 +72,7 @@ cdef class CoeffFunc:
     cdef void _call_core(self, double t, complex* coeff):
         pass
 
-    cdef void _dyn_args(self, double t, Data state):
+    cdef void _dyn_args(self, double t, Data state) except *:
         pass
 
     def __getstate__(self):
@@ -285,13 +286,19 @@ cdef class StrCoeff(CoeffFunc):
                     self._mat_shape[1] = self._args[name].shape[0]
         self._expect_vec = np.array(expect_def, dtype=complex)
 
-    cdef void _dyn_args(self, double t, Data state):
+    cdef void _dyn_args(self, double t, Data state) except *:
         cdef int ii
+        cdef CQobjEvo e_op
         self._vec = state.to_array().reshape((-1,))
         self._mat_shape[0] = state.shape[0]
         self._mat_shape[1] = state.shape[1]
         for ii in range(self._num_expect):
-            self._expect_vec[ii] = self._expect_op[ii].expect(t, state)
+            e_op = <CQobjEvo?> self._expect_op[ii]
+            if not e_op.issuper and state.shape[0] != e_op.shape[1]:
+                matrix = unstack_columns(state, e_op.shape)
+            else:
+                matrix = state
+            self._expect_vec[ii] = self._expect_op[ii].expect(t, matrix)
 
     def __call__(self, double t, args={}, vec=None):
         cdef object coeff = cnp.PyArray_ZEROS(1, [self._num_ops],

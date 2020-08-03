@@ -6,7 +6,7 @@ cdef class CoeffFunc:
     cdef dict _args
     cdef int _num_ops
     cdef void _call_core(self, double t, double complex *coeff)
-    cdef void _dyn_args(self, double t, Data state)
+    cdef void _dyn_args(self, double t, Data state) except *
 
 cdef class StrCoeff(CoeffFunc):
     cdef list _dyn_args_list

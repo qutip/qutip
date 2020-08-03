@@ -56,13 +56,10 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 cdef class CQobjEvo:
     """
-    mul_vec(double t, double complex [::1] vec)
-      Return self @ vec.
-
-    mul_mat(double t, np.ndarray[complex, ndim=2] mat)
-      Return `self @ mat`.  `mat` _should_ ideally be Fortran-contiguous, but
-      C-contiguous will also be handled with a fast path.  Non-contiguous
-      arrays will be made contiguous.
+    Dense matmul(double t, Dense matrix, Dense out=None)
+      Get the matrix multiplication of self with matrix and put the result in
+      `out`, if supplied.  Always returns the object it stored the output in
+      (even if it was passed).
 
     expect(double t, CSR matrix)
       Get the expectation value at a time `t`.
@@ -73,9 +70,6 @@ cdef class CQobjEvo:
       coefficients are given, they are used instead and the underlying
       coefficient-getting functions are not called.  If `data` is True, then
       the data-layer object is returned instead of a full Qobj.
-
-    call_with_coeff(complex[::1] coeff, int data=0)
-      Return this with the given coefficients
 
     set_data(cte, [ops])
       Build the object from data from QobjEvo
