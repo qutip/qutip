@@ -716,35 +716,30 @@ def test_QobjEvo_with_state():
 
     td_data = QobjEvo([q1, [q2, "state_vec[0] * cos(w*expect_op_0*t)"]],
                       args=args, e_ops=[2*qeye(N)])
-    data_at_t = q1 + q2 * vec[0] * np.cos(10 * t * expect(qeye(N), Qobj(vec.T)))
+    data_at_t = q1 + q2*vec[0]*np.cos(10 * t * expect(qeye(N), Qobj(vec.T)))
     # Check that the with_state call for str format
     assert_allclose(td_data.mul_vec(t, vec), (data_at_t * vec).full()[:, 0])
     td_data.compile()
     # Check that the with_state call for str format and compiled
     assert_allclose(td_data.mul_vec(t, vec), (data_at_t * vec).full()[:, 0])
 
-    args={"state_mat":None, "state_vec":None, "state_qobj":None}
-    mat = np.arange(N*N).reshape((N,N))
+    args = {"state_mat": None, "state_vec": None, "state_qobj": None}
+    mat = np.arange(N*N).reshape((N, N))
+
     def check_dyn_args(t, args):
-        if not isinstance(args["state_qobj"], Qobj):
-            raise TypeError("args['state_qobj'], Qobj")
-        if not isinstance(args["state_vec"], np.ndarray):
-            raise TypeError("args['state_vec'], np.ndarray")
-        if not isinstance(args["state_mat"], np.ndarray):
-            raise TypeError("args['state_mat'], np.ndarray")
+        assert isinstance(args["state_qobj"], Qobj)
+        assert isinstance(args["state_vec"], np.ndarray)
+        assert isinstance(args["state_mat"], np.ndarray)
 
-        if len(args["state_vec"].shape) != 1:
-            raise TypeError
-        if len(args["state_mat"].shape) != 2:
-            raise TypeError
+        assert len(args["state_vec"].shape) == 1
+        assert len(args["state_mat"].shape) == 2
 
-        if not np.all(args["state_vec"] == args["state_qobj"].full().ravel("F")):
-            raise Exception
-        if not np.all(args["state_vec"] == args["state_mat"].ravel("F")):
-            raise Exception
-        if not np.all(args["state_mat"] == mat):
-            raise Exception
+        assert (np.all(args["state_vec"]
+                == args["state_qobj"].full().ravel("F")))
+        assert np.all(args["state_vec"] == args["state_mat"].ravel("F"))
+        assert np.all(args["state_mat"] == mat)
         return 1
+
     td_data = QobjEvo([q1, check_dyn_args], args=args)
     td_data.mul_mat(0, mat)
 
