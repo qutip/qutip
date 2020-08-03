@@ -1016,11 +1016,20 @@ class Qobj:
             remaining.
         """
         # TODO: reorganise ptrace functions into proper data layer bits.
-        data, dims = _data.ptrace_csr(self, sorted(sel))
+        try:
+            sel = sorted(sel)
+        except TypeError:
+            if not isinstance(sel, numbers.Integral):
+                raise TypeError(
+                    "selection must be an integer or list of integers"
+                ) from None
+            sel = [sel]
+        data, dims = _data.ptrace_csr(self, sel)
+        # TODO: how is the partial trace of a superoperator defined?  Why is it
+        # of type 'oper' not 'super'?
         return Qobj(data,
                     dims=dims,
-                    type='super' if self.issuper else 'oper',
-                    superrep=self.superrep,
+                    type='oper',
                     copy=False)
 
     def permute(self, order):
@@ -1531,16 +1540,16 @@ class Qobj:
         if any([len(index) > 1
                 for super_index in qobj.dims
                 for index in super_index]):
-            qobj = Qobj(qobj,
+            qobj = Qobj(qobj.data,
                         dims=collapse_dims_super(qobj.dims),
                         type=qobj.type,
                         superrep=qobj.superrep,
-                        copy=True)
-
+                        copy=False)
         # We use the condition from John Watrous' lecture notes,
         # Tr_1(J(Phi)) = identity_2.
         tr_oper = qobj.ptrace([0])
-        return np.allclose(tr_oper.full(), np.eye(2), atol=settings.atol)
+        return np.allclose(tr_oper.full(), np.eye(tr_oper.shape[0]),
+                           atol=settings.atol)
 
     @property
     def iscptp(self):
