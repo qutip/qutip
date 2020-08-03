@@ -75,8 +75,8 @@ class TestScattering:
         P0 = scattering_probability(Htls, psi0, 0, [sm], tlist)
         P1 = scattering_probability(Htls, psi0, 1, [sm], tlist)
         P2 = scattering_probability(Htls, psi0, 2, [sm], tlist)
-        assert_(P0 < 1e-3)
-        assert_(np.abs(P0 + P1 + P2 - 1) < 1e-3)
+        assert P0 < 1e-3
+        assert np.abs(P0 + P1 + P2 - 1) < 1e-3
 
     def testScatteringAmplitude(self):
         """
@@ -101,8 +101,7 @@ class TestScattering:
         # Run the test
         state = temporal_scattered_state(Htls, psi0, 1, [sm], tlist)
         basisVec = temporal_basis_vector([[40]], T)
-        amplitude = np.abs((basisVec.dag() * state).full().item())
-        assert_(amplitude < 1e-3)
+        assert np.abs(basisVec.dag() @ state) < 1e-3
 
     def testWaveguideSplit(self):
         """
@@ -123,10 +122,4 @@ class TestScattering:
         c_ops_split = [sm / np.sqrt(2), sm / np.sqrt(2)]
         P1 = scattering_probability(Htls, psi0, 1, c_ops, tlist)
         P1_split = scattering_probability(Htls, psi0, 1, c_ops_split, tlist)
-        tolerance = 1e-7
-        assert_(1 - tolerance < P1 / P1_split < 1 + tolerance)
-
-
-if __name__ == "__main__":
-    run_module_suite()
-
+        assert np.abs(P1/P1_split - 1) < 1e-7
