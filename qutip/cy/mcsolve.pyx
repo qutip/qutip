@@ -36,24 +36,30 @@
 
 import numpy as np
 cimport numpy as np
+from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
+
+from libc cimport math
+
 cimport cython
 from cpython.exc cimport PyErr_CheckSignals
-import scipy.sparse as sp
-from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
-from .. import Qobj
-from ..core.cy.cqobjevo cimport CQobjEvo
-from ..core.cy.spmatfuncs cimport cy_expect_psi
-from ..core.cy.complex_math cimport *
-# from qutip.cy.dopri5 import ode_td_dopri
 
+from .. import Qobj
 from ..core import data as _data
 
+from qutip.core.cy.cqobjevo cimport CQobjEvo
+from qutip.core.data cimport Dense
+from qutip.core.data.norm cimport l2_dense
 
-cdef int ONE = 1
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex conj(double complex x)
+    double complex exp(double complex x)
+
+
+cdef int _ONE = 1
 
 cdef double dznrm2(complex[::1] psi):
     cdef int l = psi.shape[0]
-    return raw_dznrm2(&l, <complex*>&psi[0], &ONE)
+    return raw_dznrm2(&l, <complex*>&psi[0], &_ONE)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -116,7 +122,7 @@ cdef class CyMcOde:
         l_vec = state.shape[0]
         for ii in range(l_vec):
           for jj in range(l_vec):
-            self.ss_out[ii,jj] += state[ii]*conj(state[jj])
+            self.ss_out[ii,jj] += state[ii] * conj(state[jj])
 
 
     @cython.boundscheck(False)
@@ -213,10 +219,12 @@ cdef class CyMcOde:
                 y_prev = ODE.y
                 break
 
-            t_guess = (t_prev +
-                (log(norm2_prev / target_norm)).real  /
-                (log(norm2_prev / norm2_psi)).real    *
-                (t_final - t_prev))
+            t_guess = (
+                t_prev
+                + ((t_final - t_prev)
+                   * math.log(norm2_prev/target_norm)
+                   / math.log(norm2_prev/norm2_psi))
+            )
             if (t_guess - t_prev) < self.norm_t_tol:
                 t_guess = t_prev + self.norm_t_tol
 
@@ -255,8 +263,7 @@ cdef class CyMcOde:
         cdef CQobjEvo cobj
         for ii in range(self.num_ops):
             cobj = <CQobjEvo> self.n_ops[ii].compiled_qobjevo
-            # TODO: remove poor data layer shim
-            e = real(cobj.expect(t, _data.create(y.base)))
+            e = cobj.expect(t, _data.dense.fast_from_numpy(y.base)).real
             self.n_dp[ii] = e
             sum_ += e
         rand *= sum_
@@ -273,11 +280,11 @@ cdef class CyMcOde:
     @cython.wraparound(False)
     cdef np.ndarray[complex, ndim=1] _collapse(self, double t, int j, complex[::1] y):
         cdef CQobjEvo cobj
-        cdef np.ndarray[complex, ndim=1] state
+        cdef Dense state
         cobj = <CQobjEvo> self.c_ops[j].compiled_qobjevo
-        state = cobj.matmul(t, _data.create(y.base)).to_array()
-        state = normalize(state)
-        return state
+        state = cobj.matmul(t, _data.dense.fast_from_numpy(y.base))
+        state /= l2_dense(state)
+        return state.as_ndarray()[:, 0]
 
 
 cdef class CyMcOdeDiag(CyMcOde):
@@ -359,7 +366,7 @@ cdef class CyMcOdeDiag(CyMcOde):
         cdef np.ndarray[double, ndim=1] rand_vals
         cdef np.ndarray[double, ndim=1] tlist = np.array(tlist_)
         cdef np.ndarray[complex, ndim=1] out_psi = initial_vector.copy()
-        cdef int ii, which, k, use_quick, num_times = tlist.shape[0]
+        cdef int ii, k, use_quick, num_times=tlist.shape[0]
         cdef double norm2_prev
         dt = tlist_[1]-tlist_[0]
         if np.allclose(np.diff(tlist_), dt):
@@ -425,10 +432,12 @@ cdef class CyMcOdeDiag(CyMcOde):
                     self.psi[jj] = y_new[jj]
                 break
 
-            t_guess = (self.t +
-                (log(norm2_prev / target_norm)).real  /
-                (log(norm2_prev / norm2_psi)).real    *
-                (t_final - self.t))
+            t_guess = (
+                self.t
+                + ((t_final - self.t)
+                   * math.log(norm2_prev/target_norm)
+                   / math.log(norm2_prev/norm2_psi))
+            )
             if (t_guess - self.t) < self.norm_t_tol:
                 t_guess = self.t + self.norm_t_tol
 

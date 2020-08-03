@@ -44,6 +44,7 @@ from types import FunctionType, BuiltinFunctionType
 
 from . import __version__, Qobj, QobjEvo
 from . import settings as qset
+from .core import data as _data
 
 solver_safe = {}
 
@@ -108,6 +109,7 @@ class ExpectOps:
         if self.isfunc:
             self.raw_out.append(self.e_ops(t, state))
         else:
+            state = _data.dense.fast_from_numpy(state)
             t = self.tlist[iter_]
             for ii in range(self.e_num):
                 self.raw_out[ii, iter_] = \

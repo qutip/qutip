@@ -33,38 +33,27 @@
 
 __all__ = ['mcsolve']
 
-import os
+import warnings
+
 import numpy as np
 from numpy.random import RandomState, randint
-import scipy.sparse as sp
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 
-from types import FunctionType, BuiltinFunctionType
-from functools import partial
 from .core import Qobj, QobjEvo
-from .parallel import parfor, parallel_map, serial_map
-from .core.fastsparse import csr2fast
+from .core import data as _data
+from .parallel import parallel_map, serial_map
 from .core.cy.spconvert import dense1D_to_fastcsr_ket
 from .cy.mcsolve import CyMcOde, CyMcOdeDiag
 from .sesolve import sesolve
-from .solver import (Options, Result, ExpectOps,
-                          solver_safe, SolverSystem)
-from . import settings
+from .solver import Options, Result, ExpectOps, solver_safe, SolverSystem
 from .settings import debug
 from .ui.progressbar import TextProgressBar, BaseProgressBar
 
-if debug:
-    import inspect
 
 #
 # Internal, global variables for storing references to dynamically loaded
 # cython functions
-
-# Todo: use real warning
-def warn(text):
-    print(text)
-
 class qutip_zvode(zvode):
     def step(self, *args):
         itask = self.call_args[2]
@@ -74,9 +63,10 @@ class qutip_zvode(zvode):
         self.call_args[2] = itask
         return r
 
-def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
-            args={}, options=None, progress_bar=True,
-            map_func=parallel_map, map_kwargs={}, _safe_mode=True):
+
+def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=0,
+            args=None, options=None, progress_bar=None,
+            map_func=parallel_map, map_kwargs=None, _safe_mode=True):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -169,42 +159,32 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
         of the mcsolver by passing the output Result object seeds via the
         Options class, i.e. Options(seeds=prev_result.seeds).
     """
-    if isinstance(c_ops, (Qobj, QobjEvo)):
-        c_ops = [c_ops]
-
-    if options is None:
-        options = Options()
-
+    args = args or {}
+    map_kwargs = map_kwargs or {}
+    c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else (c_ops or [])
+    e_ops = [e_ops] if isinstance(e_ops, (Qobj, QobjEvo)) else (e_ops or [])
+    options = options if options is not None else Options()
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
-        if "mcsolve" in solver_safe:
-            # print(" ")
-            H = solver_safe["mcsolve"]
-        else:
-            pass
-            # raise Exception("Could not find the Hamiltonian to reuse.")
-
-    if not ntraj:
-        ntraj = options.ntraj
-
-    if len(c_ops) == 0 and not options.rhs_reuse:
-        warn("No c_ops, using sesolve")
-        return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
-                       options=options, progress_bar=progress_bar,
-                       _safe_mode=_safe_mode)
-
+        H = solver_safe.get("mcsolve", H)
+    ntraj = ntraj or options.ntraj
     try:
         num_traj = int(ntraj)
-    except:
+    except TypeError:
         num_traj = max(ntraj)
 
     # set the physics
     if not psi0.isket:
-        raise Exception("Initial state must be a state vector.")
+        raise ValueError("Initial state must be a state vector.")
+
+    if len(c_ops) == 0 and not options.rhs_reuse:
+        warnings.warn("No c_ops, using sesolve")
+        return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
+                       options=options, progress_bar=progress_bar,
+                       _safe_mode=_safe_mode)
 
     # load monte carlo class
     mc = _MC(options)
-
 
     if isinstance(H, SolverSystem):
         mc.ss = H
@@ -307,27 +287,16 @@ class _MC():
             ss.td_c_ops.append(cevo)
             ss.td_n_ops.append(cdc)
 
-        try:
-            H_td = QobjEvo(H, args, tlist=tlist)
-            H_td *= -1j
-            for c in ss.td_n_ops:
-                H_td += -0.5 * c
-            if options.rhs_with_state:
-                H_td._check_old_with_state()
-            H_td.compile()
-            ss.H_td = H_td
-            ss.makefunc = _qobjevo_set
-            ss.set_args = _qobjevo_args
-            ss.type = "QobjEvo"
-
-        except:
-            ss.h_func = H
-            ss.Hc_td = -0.5 * sum(ss.td_n_ops)
-            ss.Hc_td.compile()
-            ss.with_state = options.rhs_with_state
-            ss.makefunc = _func_set
-            ss.set_args = _func_args
-            ss.type = "callback"
+        H_td = QobjEvo(H, args, tlist=tlist)
+        H_td *= -1j
+        for c in ss.td_n_ops:
+            H_td += -0.5 * c
+        if options.rhs_with_state:
+            H_td._check_old_with_state()
+        H_td.compile()
+        ss.H_td = H_td
+        ss.makefunc = _qobjevo_set
+        ss.type = "QobjEvo"
 
         solver_safe["mcsolve"] = ss
         self.ss = ss
@@ -388,10 +357,6 @@ class _MC():
                                progress_bar, map_func, map_kwargs)
             return
 
-        if args and args != self.ss.args:
-            self.ss.set_args(self.ss, args)
-            self.reset()
-
         if e_ops and e_ops != self.e_ops:
             self.set_e_ops(e_ops)
             self.reset()
@@ -422,14 +387,14 @@ class _MC():
         if len(self.seeds) != num_traj:
             self.seed(num_traj, self.seeds)
 
-        if not progress_bar:
+        if progress_bar is None:
             progress_bar = BaseProgressBar()
         elif progress_bar is True:
             progress_bar = TextProgressBar()
 
         # set arguments for input to monte carlo
         map_kwargs_ = {'progress_bar': progress_bar,
-                      'num_cpus': options.num_cpus}
+                       'num_cpus': options.num_cpus}
         map_kwargs_.update(map_kwargs)
         map_kwargs = map_kwargs_
 
@@ -484,7 +449,8 @@ class _MC():
                 for i in range(self.num_traj):
                     vec = self._psi_out[i,j,:] # .reshape((-1,1))
                     dm_t += np.outer(vec, vec.conj())
-                states[j] = Qobj(dm_t/self.num_traj, dims=[dims, dims])
+                states[j] = Qobj(dm_t/self.num_traj, dims=[dims, dims],
+                                 type='oper')
             return states
 
     @property
@@ -495,15 +461,14 @@ class _MC():
         for i in range(self.num_traj):
             vec = self._psi_out[i,-1,:]
             dm_t += np.outer(vec, vec.conj())
-        return Qobj(dm_t/self.num_traj, dims=[dims, dims])
+        return Qobj(dm_t/self.num_traj, dims=[dims, dims], type='oper')
 
     @property
     def runs_final_states(self):
         dims = self.psi0.dims[0]
         psis = np.empty((self.num_traj), dtype=object)
         for i in range(self.num_traj):
-            psis[i] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i,-1,:]),
-                           dims=dims, fast='mc')
+            psis[i] = Qobj(self._psi_out[i, -1, :], dims=dims)
         return psis
 
     @property
@@ -551,8 +516,8 @@ class _MC():
         psis = np.empty((self.num_traj, len(self.tlist)), dtype=object)
         for i in range(self.num_traj):
             for j in range(len(self.tlist)):
-                psis[i,j] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i,j,:]),
-                                 dims=dims, fast='mc')
+                psis[i, j] = Qobj(self._psi_out[i, j, :],
+                                  dims=dims, type='ket')
         return psis
 
     @property
@@ -565,9 +530,8 @@ class _MC():
         for col_ in self._collapse:
             col = list(zip(*col_))
             col = ([] if len(col) == 0 else col[0])
-            out.append( np.array(col) )
+            out.append(np.array(col))
         return out
-        return [np.array(list(zip(*col_))[0]) for col_ in self._collapse]
 
     @property
     def collapse_which(self):
@@ -575,11 +539,10 @@ class _MC():
         for col_ in self._collapse:
             col = list(zip(*col_))
             col = ([] if len(col) == 0 else col[1])
-            out.append( np.array(col) )
+            out.append(np.array(col))
         return out
-        return [np.array(list(zip(*col_))[1]) for col_ in self._collapse]
 
-    def get_result(self, ntraj=[]):
+    def get_result(self, ntraj=None):
         # Store results in the Result object
         if not ntraj:
             ntraj = [self.num_traj]
@@ -740,57 +703,22 @@ class _MC():
             ss_out /= float(len(tlist))
         return (states_out, ss_out, e_ops, collapses)
 
+
 # -----------------------------------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
 # -----------------------------------------------------------------------------
+def _wrap_matmul(t, state, extras):
+    # Unlike mesolve and sesolve, the arguments here are generally passed in
+    # through a parallel mapping function, which does not unwrap additional
+    # tuple arguments.  We have to do that here.
+    cqobj, = extras
+    return cqobj.matmul(t, _data.dense.fast_from_numpy(state)).as_ndarray()
+
+
 def _qobjevo_set(ss, psi0=None, args={}, opt=None):
     if args:
         self.set_args(args)
-    rhs = ss.H_td.compiled_qobjevo.mul_vec
-    return rhs, ()
-
-def _qobjevo_args(ss, args):
-    var = _collapse_args(args)
-    ss.col_args = var
-    ss.args = args
-    ss.H_td.solver_set_args(args, psi0, e_ops)
-    for c in ss.td_c_ops:
-        c.solver_set_args(args, psi0, e_ops)
-    for c in ss.td_n_ops:
-        c.solver_set_args(args, psi0, e_ops)
-
-def _func_set(HS, psi0=None, args={}, opt=None):
-    if args:
-        self.set_args(args)
-    else:
-        args = ss.args
-    if ss.with_state:
-        rhs = _funcrhs
-    else:
-        rhs = _funcrhs_with_state
-    return rhs, (ss.h_func, ss.Hc_td, args)
-
-def _func_args(ss, args):
-    var = _collapse_args(args)
-    ss.col_args = var
-    ss.args = args
-    for c in ss.td_c_ops:
-        c.solver_set_args(args, psi0, e_ops)
-    for c in ss.td_n_ops:
-        c.solver_set_args(args, psi0, e_ops)
-    return rhs, (ss.h_func, ss.Hc_td, args)
-
-
-# RHS of ODE for python function Hamiltonian
-def _funcrhs(t, psi, h_func, Hc_td, args):
-    h_func_data = -1.0j * h_func(t, args).data
-    h_func_term = h_func_data * psi
-    return h_func_term + Hc_td.mul_vec(t, psi)
-
-def _funcrhs_with_state(t, psi, h_func, Hc_td, args):
-    h_func_data = - 1.0j * h_func(t, psi, args).data
-    h_func_term = h_func_data * psi
-    return h_func_term + Hc_td.mul_vec(t, psi)
+    return _wrap_matmul, (ss.H_td.compiled_qobjevo,)
 
 def _mc_dm_avg(psi_list):
     """
