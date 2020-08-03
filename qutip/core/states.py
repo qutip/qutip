@@ -966,7 +966,7 @@ def enr_thermal_dm(dims, excitations, n):
     dm : Qobj
         Thermal state density matrix.
     """
-    nstates, state2idx, _ = enr_state_dictionaries(dims, excitations)
+    nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
     if not isinstance(n, (list, np.ndarray)):
         n = np.ones(len(dims)) * n
     else:
