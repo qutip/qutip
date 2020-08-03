@@ -46,9 +46,13 @@ from .. import data as _data
 
 from qutip.core.data cimport CSR, Dense, dense
 from qutip.core.data.add cimport add_csr
-from qutip.core.data.expect cimport expect_csr, expect_super_csr
+# TODO: handle dispatch properly.  We import rather than cimport because we
+# have to call with Python semantics.
+from qutip.core.data.expect import (
+    expect_csr, expect_super_csr, expect_csr_dense, expect_super_csr_dense,
+)
 from qutip.core.data.matmul cimport matmul_csr_dense_dense
-from qutip.core.data.reshape cimport column_stack_csr
+from qutip.core.data.reshape cimport column_stack_csr, column_stack_dense
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -182,28 +186,19 @@ cdef class CQobjEvo:
         then expectation is `trace(self @ matrix)`.
         """
         # TODO: remove shim once we have dispatching
-        cdef CSR matrix_
-        if isinstance(matrix, CSR):
-            matrix_ = matrix
+        if self.issuper:
+            matrix = (column_stack_csr(matrix) if isinstance(matrix, CSR)
+                      else column_stack_dense(matrix, inplace=True))
+            _expect = expect_super_csr if isinstance(matrix, CSR) else expect_super_csr_dense
         else:
-            matrix_ = _data.create(matrix.to_array())
+            _expect = expect_csr if isinstance(matrix, CSR) else expect_csr_dense
+        self._factor_dynamic(t, matrix)
         # end shim
         cdef size_t i
         cdef double complex out
-        if self.issuper:
-            # If we are a superoperator, then column-stack the input operator
-            # into a vector and do the weird super expectation.
-            # TODO: work out what's going on here and neaten it up.
-            matrix_ = column_stack_csr(matrix_)
-            self._factor_dynamic(t, matrix_)
-            out = expect_super_csr(self.constant, matrix_)
-            for i in range(self.n_ops):
-                out += self.coefficients[i] * expect_super_csr(self.ops[i], matrix_)
-        else:
-            self._factor_dynamic(t, matrix_)
-            out = expect_csr(self.constant, matrix_)
-            for i in range(self.n_ops):
-                out += self.coefficients[i] * expect_csr(self.ops[i], matrix_)
+        out = _expect(self.constant, matrix)
+        for i in range(self.n_ops):
+            out += self.coefficients[i] * _expect(self.ops[i], matrix)
         return out
 
     def has_dyn_args(self, int dyn_args):
