@@ -1,12 +1,14 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.stdlib cimport malloc, calloc, free
 from libc.string cimport memset, memcpy
 
 import warnings
 
 cimport cython
+
+from cpython cimport mem
+
 import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
@@ -17,6 +19,9 @@ from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr, dense
 
 cnp.import_array()
+
+cdef extern from *:
+    void *PyMem_Calloc(size_t n, size_t elsize)
 
 cdef extern from "../cy/src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec,
@@ -44,7 +49,7 @@ cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
         )
 
 
-cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) nogil:
+cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     """
     Produce a sensible upper-bound for the number of non-zero elements that
     will be present in a matrix multiplication between the two matrices.
@@ -53,18 +58,19 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) nogil:
     cdef idxint ii, jj, kk
     cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     # Setup mask array
-    cdef idxint *mask = <idxint *> malloc(ncols * sizeof(idxint))
-    for ii in range(ncols):
-        mask[ii] = -1
-    for ii in range(nrows):
-        for jj in range(left.row_index[ii], left.row_index[ii+1]):
-            j = left.col_index[jj]
-            for kk in range(right.row_index[j], right.row_index[j+1]):
-                k = right.col_index[kk]
-                if mask[k] != ii:
-                    mask[k] = ii
-                    nnz += 1
-    free(mask)
+    cdef idxint *mask = <idxint *> mem.PyMem_Malloc(ncols * sizeof(idxint))
+    with nogil:
+        for ii in range(ncols):
+            mask[ii] = -1
+        for ii in range(nrows):
+            for jj in range(left.row_index[ii], left.row_index[ii+1]):
+                j = left.col_index[jj]
+                for kk in range(right.row_index[j], right.row_index[j+1]):
+                    k = right.col_index[kk]
+                    if mask[k] != ii:
+                        mask[k] = ii
+                        nnz += 1
+    mem.PyMem_Free(mask)
     return nnz
 
 
@@ -113,9 +119,9 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None, double complex scale=1.0
     cdef double complex val
     cdef double complex *sums
     cdef idxint *nxt
+    sums = <double complex *> PyMem_Calloc(ncols, sizeof(double complex))
+    nxt = <idxint *> mem.PyMem_Malloc(ncols * sizeof(idxint))
     with nogil:
-        sums = <double complex *> calloc(ncols, sizeof(double complex))
-        nxt = <idxint *> malloc(ncols * sizeof(idxint))
         for col_r in range(ncols):
             nxt[col_r] = -1
 
@@ -144,8 +150,8 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None, double complex scale=1.0
                 nxt[tmp] = -1
                 sums[tmp] = 0
             out.row_index[row_l + 1] = nnz
-        free(sums)
-        free(nxt)
+    mem.PyMem_Free(sums)
+    mem.PyMem_Free(nxt)
     return out
 
 

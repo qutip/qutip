@@ -1,13 +1,14 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.stdlib cimport malloc, calloc, realloc, free
 from libc.string cimport memset, memcpy
 
 from libcpp cimport bool
 from libcpp.algorithm cimport sort
 
 cimport cython
+
+from cpython cimport mem
 
 import numbers
 import warnings
@@ -413,7 +414,9 @@ cdef class Sorter:
             # realloc(NULL, size) is equivalent to malloc(size), so there's no
             # problem if cols and argsort weren't allocated before.
             self.size = size if size > self.size else self.size
-            self.sort = <_data_col *> realloc(self.sort, self.size * sizeof(_data_col))
+            with gil:
+                self.sort = <_data_col *> mem.PyMem_Realloc(self.sort,
+                                                            self.size * sizeof(_data_col))
         for n in range(size):
             self.sort[n].data = matrix.data[ptr + n]
             self.sort[n].col = matrix.col_index[ptr + n]
@@ -495,10 +498,11 @@ cdef class Sorter:
             # realloc(NULL, size) is equivalent to malloc(size), so there's no
             # problem if cols and argsort weren't allocated before.
             self.size = size if size > self.size else self.size
-            self.argsort = (
-                <base.idxint **>
-                realloc(self.argsort, self.size * sizeof(base.idxint *))
-            )
+            with gil:
+                self.argsort = (
+                    <base.idxint **>
+                    mem.PyMem_Realloc(self.argsort, self.size * sizeof(base.idxint *))
+                )
         # We do the argsort with two levels of indirection to minimise memory
         # allocation and copying requirements when this function is being used
         # to assemble a CSR matrix under an operation which may change the
@@ -530,9 +534,9 @@ cdef class Sorter:
 
     def __dealloc__(self):
         if self.argsort != NULL:
-            free(self.argsort)
+            mem.PyMem_Free(self.argsort)
         if self.sort != NULL:
-            free(self.sort)
+            mem.PyMem_Free(self.sort)
 
 cpdef CSR sorted(CSR matrix):
     cdef CSR out = empty_like(matrix)
