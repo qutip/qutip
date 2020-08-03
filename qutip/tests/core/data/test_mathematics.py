@@ -645,7 +645,8 @@ class TestInnerOp(TernaryOpMixin):
             args = (op, types, [(self._scalar,) * 3], out_type)
             cases.extend(cases_type_shape_product(_RANDOM, *args))
         metafunc.parametrize(parameters, cases)
-        metafunc.parametrize('scalar_is_ket', [True, False], ids=["ket", "bra"])
+        metafunc.parametrize('scalar_is_ket',
+                             [True, False], ids=["ket", "bra"])
 
     def test_scalar_is_ket(self, op, data_l, data_m, data_r, out_type,
                            scalar_is_ket):
@@ -684,6 +685,7 @@ class TestMatmul(BinaryOpMixin):
     specialisations = [
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
         pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
+        pytest.param(data.matmul_dense, Dense, Dense, Dense),
     ]
 
 
@@ -693,6 +695,7 @@ class TestMul(UnaryScalarOpMixin):
 
     specialisations = [
         pytest.param(data.mul_csr, CSR, CSR),
+        pytest.param(data.mul_dense, Dense, Dense),
     ]
 
 
@@ -702,6 +705,7 @@ class TestNeg(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.neg_csr, CSR, CSR),
+        pytest.param(data.neg_dense, Dense, Dense),
     ]
 
 
@@ -729,6 +733,7 @@ class TestSub(BinaryOpMixin):
     bad_shapes = shapes_binary_bad_identical()
     specialisations = [
         pytest.param(data.sub_csr, CSR, CSR, CSR),
+        pytest.param(data.sub_dense, Dense, Dense, Dense),
     ]
 
 
