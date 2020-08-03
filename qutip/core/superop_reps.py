@@ -425,7 +425,7 @@ def to_chi(q_oper):
         elif q_oper.superrep == 'choi':
             return _choi_to_chi(q_oper)
         elif q_oper.superrep == 'super':
-            return to_chi(to_choi(q_oper))
+            return _choi_to_chi(to_choi(q_oper))
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
@@ -509,15 +509,14 @@ def to_kraus(q_oper, tol=1e-9):
         decomposed into Kraus operators.
     """
     if q_oper.issuper:
-        if q_oper.superrep in ("super", "chi"):
-            return to_kraus(to_choi(q_oper), tol)
-        elif q_oper.superrep == 'choi':
-            return _choi_to_kraus(q_oper, tol)
+        if q_oper.superrep != 'choi':
+            q_oper = to_choi(q_oper)
+        return _choi_to_kraus(q_oper, tol)
     elif q_oper.isoper:  # Assume unitary
         return [q_oper]
     raise TypeError(
-        "Conversion of Qobj with type = {0.type} "
-        "and superrep = {0.superrep} to Kraus decomposition not "
+        "Conversion of Qobj with type={0.type} "
+        "and superrep={0.superrep} to Kraus decomposition not "
         "supported.".format(q_oper)
     )
 
