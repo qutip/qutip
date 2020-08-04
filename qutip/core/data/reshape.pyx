@@ -33,8 +33,8 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
     matrix.sort_indices()
     with nogil:
         # Since the indices are now sorted, the data arrays will be identical.
-        memcpy(&out.data[0], &matrix.data[0], nnz*sizeof(double complex))
-        memset(&out.row_index[0], 0, (n_rows_out + 1) * sizeof(idxint))
+        memcpy(out.data, matrix.data, nnz*sizeof(double complex))
+        memset(out.row_index, 0, (n_rows_out + 1) * sizeof(idxint))
         for row_in in range(n_rows_in):
             for ptr in range(matrix.row_index[row_in], matrix.row_index[row_in+1]):
                 loc = cur + matrix.col_index[ptr]
