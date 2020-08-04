@@ -45,7 +45,7 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
                 out.row_index[res.quot + 1] += 1
                 out.col_index[ptr] = res.rem
             cur += n_cols_in
-        for row_out in range(n_rows_out + 1):
+        for row_out in range(n_rows_out):
             out.row_index[row_out + 1] += out.row_index[row_out]
     return out
 
