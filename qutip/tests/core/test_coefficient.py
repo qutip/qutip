@@ -53,6 +53,33 @@ tlistlog = np.logspace(-2,0,501)
 f_asarraylog = f(tlistlog, args)
 
 
+def coeff_generator(style, func):
+    """Make a Coefficient"""
+    if func = "f":
+        base = f
+    else:
+        base = g
+
+    if style == "func":
+        return qtcoeff.coefficient(base, args=args)
+    if style == "array":
+        return qtcoeff.coefficient(base(tlist, args), tlist=tlist)
+    if style == "arraylog":
+        return qtcoeff.coefficient(base(tlistlog, args), tlist=tlistlog)
+    if style == "spline":
+        return qtcoeff.coefficient(qt.Cubic_Spline(0, 1, base(tlist, args)))
+    if style == "string" and func == "f":
+        return qtcoeff.coefficient( "exp(w * t * pi)", args=args)
+    if style == "string" and func == "g":
+        return qtcoeff.coefficient( "cos(w * t * pi)", args=args)
+    if style == "steparray":
+        qtcoeff.coefficient(base(tlist, args), tlist=tlist,
+                            _stepInterpolation=True)
+    if style == "steparraylog":
+        qtcoeff.coefficient(base(tlistlog, args), tlist=tlistlog,
+                            _stepInterpolation=True)
+
+
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
     pytest.param(f, {'args':args},
                  1e-10, id="func"),
@@ -90,17 +117,17 @@ def test_CoeffCallArgs(base, kwargs, tol):
     assert np.allclose(coeff(t, {"w":w}), val, rtol=tol)
 
 
-@pytest.mark.parametrize(['coeff'], [
-    pytest.param(qtcoeff.coefficient(f, args=args), id="func"),
-    pytest.param(qtcoeff.coefficient(f_asarray, tlist=tlist), id="array"),
-    pytest.param(qtcoeff.coefficient(f_asarraylog, tlist=tlistlog),
-                 id="logarray"),
-    pytest.param(qtcoeff.coefficient(qt.Cubic_Spline(0, 1, f_asarray)),
-                 id="Cubic_Spline"),
-    pytest.param(qtcoeff.coefficient("exp(w * t * pi)", args=args),
-                 id="string")
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("spline", id="Cubic_Spline"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog")
 ])
-def test_CoeffUnitaryTransform(coeff):
+def test_CoeffUnitaryTransform(style):
+    coeff = coeff_generator(style, "f")
     t = np.random.rand() * 0.7 + 0.05
     dt = np.random.rand() * 0.2
     val = np.exp(1j * t * np.pi)
@@ -110,23 +137,27 @@ def test_CoeffUnitaryTransform(coeff):
     assert np.allclose(qtcoeff.shift(coeff, dt)(t), val_dt)
 
 
-@pytest.mark.parametrize(['coeff_left'], [
-    pytest.param(qtcoeff.coefficient(f, args=args), id="func"),
-    pytest.param(qtcoeff.coefficient(f_asarray, tlist=tlist), id="array"),
-    pytest.param(qtcoeff.coefficient(qt.Cubic_Spline(0,1,f_asarray)),
-                 id="Cubic_Spline"),
-    pytest.param(qtcoeff.coefficient("exp(w * t * pi)", args=args),
-                 id="string")
+@pytest.mark.parametrize(['style_left'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("spline", id="Cubic_Spline"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog")
 ])
-@pytest.mark.parametrize(['coeff_right'], [
-    pytest.param(qtcoeff.coefficient(g, args=args), id="func"),
-    pytest.param(qtcoeff.coefficient(g_asarray, tlist=tlist), id="array"),
-    pytest.param(qtcoeff.coefficient(qt.Cubic_Spline(0,1,g_asarray)),
-                 id="Cubic_Spline"),
-    pytest.param(qtcoeff.coefficient("cos(w * t * pi)", args=args),
-                 id="string")
+@pytest.mark.parametrize(['style_right'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("spline", id="Cubic_Spline"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog")
 ])
-def test_CoeffOperation(coeff_left, coeff_right):
+def test_CoeffOperation(style_left, style_right):
+    coeff_left = coeff_generator(style, "f")
+    coeff_right = coeff_generator(style, "g")
     t = np.random.rand() * 0.9 + 0.05
     val_l = np.exp(1j * t * np.pi)
     val_r = np.cos(1j * t * np.pi)
@@ -166,11 +197,11 @@ def test_CoeffOptions():
                  "- abs(exp(w1*w2*pi*0.25j)) ", {"w1":2,"w2":2},
                  lambda t: 0, id="long"),
     pytest.param("t*0.5 * (2) + 5j * -0.2j", {},
-                 lambda t: t + 1, id="lotsofctes"),
+                 lambda t: t + 1, id="lots_of_ctes"),
     pytest.param("cos(t*vec[1])", {'vec':np.ones(2)},
-                 lambda t: np.cos(t), id="realarray"),
+                 lambda t: np.cos(t), id="real_array_subscript"),
     pytest.param("cos(t*vec[0])", {'vec':np.zeros(2)*1j},
-                 lambda t: 1, id="complexarray"),
+                 lambda t: 1, id="cplx_array_subscript"),
     pytest.param("cos(t*dictionary['key'])", {'dictionary':{'key':1}},
                  lambda t: np.cos(t), id="dictargs"),
     pytest.param("cos(t*a); print(a)", {'a':1},
@@ -182,6 +213,31 @@ def test_CoeffParsingStressTest(codestring, args, reference):
     t = np.random.rand() * 0.9 + 0.05
     coeff = qtcoeff.coefficient(codestring, args=args)
     assert np.allclose(coeff(t), reference(t))
+
+
+@pytest.mark.requires_cython
+@pytest.mark.filterwarnings("error")
+def test_manual_typing():
+    coeff = qtcoeff.coefficient("my_list[0] + my_dict['a']",
+                                args={"my_list":[1], "my_dict":{'a':2}},
+                                args_ctypes={"my_list":"list",
+                                             "my_dict":"dict"})
+    assert coeff(0) == 3
+
+
+@pytest.mark.requires_cython
+def test_advance_use():
+    opt = qtcoeff.CompilationOptions(extra_import="""
+from qutip import basis
+from qutip.core.data cimport CSR
+from qutip.core.data.expect cimport expect_csr
+""")
+    csr = qt.num(3).data
+    coeff = qtcoeff.coefficient("expect_csr(op, op)",
+                                args={"op":csr},
+                                args_ctypes={"op":"CSR"},
+                                compile_opt=opt)
+    assert coeff(0) == 14
 
 
 @pytest.mark.requires_cython
@@ -209,23 +265,14 @@ def _shift(coeff):
     return qtcoeff.shift(coeff, 0.05)
 
 
-@pytest.mark.parametrize(['coeff'], [
-    pytest.param(qtcoeff.coefficient(f, args=args),
-                 id="func"),
-    pytest.param(qtcoeff.coefficient(f_asarray, tlist=tlist),
-                 id="array"),
-    pytest.param(qtcoeff.coefficient(f_asarraylog, tlist=tlistlog),
-                 id="arraylog"),
-    pytest.param(qtcoeff.coefficient(f_asarray, tlist=tlist,
-                                     _stepInterpolation=True),
-                 id="steparray"),
-    pytest.param(qtcoeff.coefficient(f_asarraylog, tlist=tlistlog,
-                                     _stepInterpolation=True),
-                 id="steparraylog"),
-    pytest.param(qtcoeff.coefficient("exp(w * t * pi)", args=args),
-                 id="string"),
-    pytest.param(qtcoeff.coefficient(qt.Cubic_Spline(0,1,g_asarray)),
-                 id="Cubic_Spline")
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("spline", id="Cubic_Spline"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog")
 ])
 @pytest.mark.parametrize(['transform'], [
     pytest.param(_pass, id="single"),
@@ -235,7 +282,8 @@ def _shift(coeff):
     pytest.param(qtcoeff.conj, id="conj"),
     pytest.param(_shift, id="shift"),
 ])
-def test_Coeffpickle(coeff, transform):
+def test_Coeffpickle(style, transform):
+    coeff = coeff_generator(style, "f")
     t = np.random.rand() * 0.85 + 0.05
     coeff = transform(coeff)
     coeff_pick = pickle.loads(pickle.dumps(coeff, -1))

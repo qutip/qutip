@@ -34,7 +34,7 @@
 __all__ = [
     'liouvillian', 'lindblad_dissipator', 'operator_to_vector',
     'vector_to_operator', 'stack_columns', 'unstack_columns', 'stacked_index',
-    'unstacked_index', 'spost', 'spre', 'sprepost',
+    'unstacked_index', 'spost', 'spre', 'sprepost', 'reshuffle',
 ]
 
 import functools
@@ -272,8 +272,10 @@ def stack_columns(matrix):
         raise TypeError(
             "input " + repr(type(matrix)) + " is not data-layer type"
         )
-    return _data.reshape_csr(matrix.transpose(),
-                             matrix.shape[0] * matrix.shape[1], 1)
+    # TODO: proper dispatch.
+    if isinstance(matrix, _data.CSR):
+        return _data.column_stack_csr(matrix)
+    return _data.column_stack_dense(matrix)
 
 
 def unstack_columns(vector, shape=None):
@@ -295,7 +297,10 @@ def unstack_columns(vector, shape=None):
                 "input cannot be made square, but no specific shape given"
             )
         shape = (n, n)
-    return _data.reshape_csr(vector, shape[1], shape[0]).transpose()
+    # TODO: proper dispatch.
+    if isinstance(vector, _data.CSR):
+        return _data.column_unstack_csr(vector, shape[0])
+    return _data.column_unstack_dense(vector, shape[0])
 
 
 def unstacked_index(size, index):

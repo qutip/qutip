@@ -402,16 +402,15 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
         if np.abs(np.sum(N)-1.0) > 1e-15:
             raise ValueError('Eigenvalues of a density matrix '
                              'must sum to one.')
-        H = sp.diags(N, 0, dtype=complex, format='csr')
+        H = _data.create(sp.diags(N, 0, dtype=complex, format='csr'))
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
         nvals = N**2*density
         H = rand_jacobi_rotation(H, seed=seed)
-        while H.nnz < 0.95*nvals:
+        while _data.csr.nnz(H) < 0.95*nvals:
             H = rand_jacobi_rotation(H)
         H.sort_indices()
-        H = _data.create(H)
     elif isinstance(N, numbers.Integral):
         N = int(N)
         if dims:
@@ -533,7 +532,7 @@ def rand_kraus_map(N, dims=None, seed=None):
     return [Qobj(x, dims=dims, type='oper', copy=False) for x in oper_list]
 
 
-def rand_super(N=5, dims=None, seed=None):
+def rand_super(N, dims=None, seed=None):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.

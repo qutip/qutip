@@ -38,13 +38,14 @@ from qutip.core.data.base cimport idxint
 from qutip.core.data cimport CSR, Dense, Data
 
 cdef class CQobjEvo:
-    cdef (idxint, idxint) shape
+    cdef readonly (idxint, idxint) _shape
     cdef object dims
     cdef str type
     cdef str superrep
-    cdef bint issuper
+    cdef bint _issuper
     cdef size_t n_ops
     cdef size_t dynamic_arguments
+
 
     cdef CSR constant
     cdef list ops
@@ -53,6 +54,12 @@ cdef class CQobjEvo:
 
     cdef void _factor(self, double t) except *
 
-    cdef void _mul_vec(self, double t, double complex *vec, double complex *out)
+    cdef bint has_dynamic_args
+    cdef list dynamic_arguments
+    cdef dict args
+    cdef object op
+    cpdef dyn_args(self, double t, Data matrix)
+
+    cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=*)
-    cpdef double complex expect(self, double t, Data matrix)
+    cpdef double complex expect(self, double t, Data matrix) except *

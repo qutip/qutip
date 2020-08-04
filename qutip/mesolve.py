@@ -39,17 +39,13 @@ __all__ = ['mesolve']
 
 import numpy as np
 import scipy.integrate
-import warnings
 from . import (
-    Qobj, QobjEvo, isket, isoper, issuper, spre, spost, liouvillian, stack_columns,
-    unstack_columns, lindblad_dissipator, ket2dm,
+    Qobj, QobjEvo, isket, issuper, spre, spost, liouvillian,
+    lindblad_dissipator, ket2dm,
 )
-from .solver import Options, Result, config, solver_safe, SolverSystem
-from .core.expect import expect_rho_vec
-from .core.cy.spmatfuncs import spmv
-from .core.cy.spconvert import dense2D_to_fastcsr_cmode, dense2D_to_fastcsr_fmode
-from .core.cy.openmp.utilities import check_use_openmp, openmp_components
-from .settings import debug
+from .core import data as _data
+from .solver import Options, Result, solver_safe, SolverSystem
+from .core.cy.openmp.utilities import check_use_openmp
 from .sesolve import sesolve
 from .ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -211,7 +207,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     # check if rho0 is a superoperator, in which case e_ops argument should
     # be empty, i.e., e_ops = []
     # TODO: e_ops for superoperator
-    if issuper(rho0) and not e_ops == []:
+    if rho0.issuper and not e_ops == []:
         raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
                 " a superoperator.")
 
@@ -231,21 +227,24 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     check_use_openmp(options)
 
-    use_mesolve = ((c_ops and len(c_ops) > 0)
-                   or (not isket(rho0))
-                   or (isinstance(H, Qobj) and issuper(H))
-                   or (isinstance(H, QobjEvo) and issuper(H.cte))
-                   or (isinstance(H, list) and isinstance(H[0], Qobj) and
-                            issuper(H[0]))
-                   or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
-                            not options.rhs_with_state and issuper(H(0., args)))
-                   or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
-                            options.rhs_with_state))
+    use_mesolve = (
+        (c_ops and len(c_ops) > 0)
+        or (not rho0.isket)
+        or (isinstance(H, Qobj) and H.issuper)
+        or (isinstance(H, QobjEvo) and H.cte.issuper)
+        or (isinstance(H, list) and isinstance(H[0], Qobj) and H[0].issuper)
+        or (not isinstance(H, (Qobj, QobjEvo))
+            and callable(H)
+            and not options.rhs_with_state
+            and H(0., args).issuper)
+        or (not isinstance(H, (Qobj, QobjEvo))
+            and callable(H)
+            and options.rhs_with_state)
+    )
 
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
-                    progress_bar=progress_bar, _safe_mode=_safe_mode)
-
+                       progress_bar=progress_bar, _safe_mode=_safe_mode)
 
     if isinstance(H, SolverSystem):
         ss = H
@@ -256,13 +255,13 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     else:
         raise Exception("Invalid H type")
 
-    func, ode_args = ss.makefunc(ss, rho0, args, e_ops, options)
     if isket(rho0):
         rho0 = ket2dm(rho0)
+    func, ode_args = ss.makefunc(ss, rho0, args, e_ops, options)
 
     if _safe_mode:
         v = rho0.full().ravel('F')
-        func(0., v, *ode_args) + v
+        func(0., v, *ode_args)[:, 0] + v
 
     res = _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, options,
                              progress_bar, dims=rho0.dims)
@@ -276,7 +275,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
 # -----------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
-#_mesolve_QobjEvo(H, c_ops, tlist, args, options)
+# _mesolve_QobjEvo(H, c_ops, tlist, args, options)
 def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     """
     Prepare the system for the solver, H can be an QobjEvo.
@@ -304,21 +303,29 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     solver_safe["mesolve"] = ss
     return ss
 
+
+def _wrap_matmul(t, state, cqobj, unstack):
+    data = _data.dense.fast_from_numpy(state)
+    if unstack:
+        data = _data.column_unstack_dense(data, cqobj.shape[1], inplace=True)
+    out = cqobj.matmul(t, data)
+    if unstack:
+        out = _data.column_stack_dense(out, inplace=True)
+    return out.as_ndarray()
+
+
 def _qobjevo_set(HS, rho0, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.solver_set_args(args, rho0, e_ops)
-    if issuper(rho0):
-        func = H_td.compiled_qobjevo.mul_mat
-    elif rho0.isket or rho0.isoper:
-        func = H_td.compiled_qobjevo.mul_vec
-    else:
+    H_td.solver_set_args(args, rho0.data, e_ops)
+    if not (rho0.issuper or rho0.isoper or rho0.isket):
         raise TypeError("The unitary solver requires rho0 to be"
                         " a ket or dm as initial state"
                         " or a super operator as initial state.")
-    return func, ()
+    return _wrap_matmul, (H_td.compiled_qobjevo, rho0.issuper)
+
 
 # -----------------------------------------------------------------------------
 # Master equation solver for python-function time-dependence.
@@ -405,14 +412,20 @@ def _Lfunc_set(HS, rho0, args, e_ops, opt):
 
     return func, (L_func, args)
 
+
 def _ode_rho_func_td(t, y, L_func, args):
     L = L_func(t, y, args)
-    return spmv(L, y)
+    data = _data.dense.fast_from_numpy(y)
+    return _data.matmul_csr_dense_dense(L, data).as_ndarray()
+
 
 def _ode_super_func_td(t, y, L_func, args):
     L = L_func(t, y, args)
-    ym = unstack_columns(y)
-    return (L*ym).ravel('F')
+    data = _data.column_unstack_dense(_data.dense.fast_from_numpy(y),
+                                      L.shape[1],
+                                      inplace=True)
+    matmul = _data.matmul_csr_dense_dense(L, data)
+    return _data.column_stack_dense(matmul, inplace=True).as_ndarray()
 
 # -----------------------------------------------------------------------------
 # Generic ODE solver: shared code among the various ODE solver
@@ -464,10 +477,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         else:
             for op in e_ops:
                 e_ops_data.append(spre(op).data)
-                if op.isherm and rho0.isherm:
-                    output.expect.append(np.zeros(n_tsteps))
-                else:
-                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                dtype = (np.float64 if op.isherm and rho0.isherm
+                         else np.complex128)
+                output.expect.append(np.zeros(n_tsteps, dtype=dtype))
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
@@ -475,7 +487,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         output.states = []
 
     def get_curr_state_data(r):
-        return unstack_columns(r.y)
+        return _data.dense.fast_from_numpy(r.y)
+        return _data.column_unstack_dense(_data.dense.fast_from_numpy(r.y),
+                                          size, inplace=True)
 
     #
     # start evolution
@@ -491,24 +505,28 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
 
-        if opt.store_states or expt_callback:
+        if opt.store_states or expt_callback or n_expt_op:
             cdata = get_curr_state_data(r)
 
         if opt.store_states:
-            if issuper(rho0):
-                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
-                output.states.append(Qobj(fdata, dims=dims))
-            else:
-                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
-                output.states.append(Qobj(fdata, dims=dims, fast="mc-dm"))
+            # TODO: fix dispatch creation.
+            matrix = _data.column_unstack_dense(cdata, size, inplace=True)
+            output.states.append(Qobj(matrix.as_ndarray(),
+                                      dims=dims, type=rho0.type, copy=False))
 
         if expt_callback:
             # use callback method
-            output.expect.append(e_ops(t, Qobj(cdata, dims=dims)))
+            matrix = _data.column_unstack_dense(cdata, size, inplace=True)
+            output.expect.append(e_ops(t, Qobj(matrix.as_ndarray(),
+                                               dims=dims, type=rho0.type,
+                                               copy=False)))
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
-                                                     e_ops[m].isherm)
+            # TODO: sort out dispatch.
+            val = _data.expect_super_csr_dense(e_ops_data[m], cdata)
+            if e_ops[m].isherm:
+                val = val.real
+            output.expect[m][t_idx] = val
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
@@ -516,7 +534,11 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
     progress_bar.finished()
 
     if opt.store_final_state:
+        # TODO: fix.
         cdata = get_curr_state_data(r)
-        output.final_state = Qobj(cdata, dims=dims, isherm=True)
+        matrix = _data.column_unstack_dense(cdata, size, inplace=True)
+        output.final_state = Qobj(matrix.as_ndarray(),
+                                  dims=dims, type=rho0.type, isherm=True,
+                                  copy=False)
 
     return output

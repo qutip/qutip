@@ -5,7 +5,7 @@ cimport cython
 import numpy as np
 cimport numpy as cnp
 
-from scipy.linalg.cython_blas cimport zaxpy
+from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
@@ -30,7 +30,6 @@ cdef void _check_shape(Data left, Data right) nogil except *:
             + str(right.shape)
         )
 
-
 cdef idxint _add_csr(CSR a, CSR b, CSR c) nogil:
     """
     Perform the operation
@@ -50,11 +49,11 @@ cdef idxint _add_csr(CSR a, CSR b, CSR c) nogil:
     for row in range(nrows):
         ptr_a = a.row_index[row]
         ptr_b = b.row_index[row]
-        max_ptr_a = a.row_index[row+1] - 1
-        max_ptr_b = b.row_index[row+1] - 1
-        while (ptr_a <= max_ptr_a) or (ptr_b <= max_ptr_b):
-            col_a = a.col_index[ptr_a] if ptr_a <= max_ptr_a else ncols + 1
-            col_b = b.col_index[ptr_b] if ptr_b <= max_ptr_b else ncols + 1
+        max_ptr_a = a.row_index[row+1]
+        max_ptr_b = b.row_index[row+1]
+        while ptr_a < max_ptr_a or ptr_b < max_ptr_b:
+            col_a = a.col_index[ptr_a] if ptr_a < max_ptr_a else ncols + 1
+            col_b = b.col_index[ptr_b] if ptr_b < max_ptr_b else ncols + 1
             if col_a < col_b:
                 c.data[ptr_c] = a.data[ptr_a]
                 c.col_index[ptr_c] = col_a
@@ -76,7 +75,6 @@ cdef idxint _add_csr(CSR a, CSR b, CSR c) nogil:
         c.row_index[row+1] = ptr_c
     return ptr_c
 
-
 cdef idxint _add_csr_scale(CSR a, CSR b, CSR c, double complex scale) nogil:
     """
     Perform the operation
@@ -96,11 +94,11 @@ cdef idxint _add_csr_scale(CSR a, CSR b, CSR c, double complex scale) nogil:
     for row in range(nrows):
         ptr_a = a.row_index[row]
         ptr_b = b.row_index[row]
-        max_ptr_a = a.row_index[row+1] - 1
-        max_ptr_b = b.row_index[row+1] - 1
-        while (ptr_a <= max_ptr_a) or (ptr_b <= max_ptr_b):
-            col_a = a.col_index[ptr_a] if ptr_a <= max_ptr_a else ncols + 1
-            col_b = b.col_index[ptr_b] if ptr_b <= max_ptr_b else ncols + 1
+        max_ptr_a = a.row_index[row+1]
+        max_ptr_b = b.row_index[row+1]
+        while ptr_a < max_ptr_a or ptr_b < max_ptr_b:
+            col_a = a.col_index[ptr_a] if ptr_a < max_ptr_a else ncols + 1
+            col_b = b.col_index[ptr_b] if ptr_b < max_ptr_b else ncols + 1
             if col_a < col_b:
                 c.data[ptr_c] = a.data[ptr_a]
                 c.col_index[ptr_c] = col_a
@@ -152,7 +150,7 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     cdef idxint i
     cdef CSR out
     # Fast paths for zero matrices.
-    if right_nnz == 0:
+    if right_nnz == 0 or scale == 0:
         return left.copy()
     if left_nnz == 0:
         out = right.copy()
@@ -176,7 +174,7 @@ cdef Dense _add_dense_eq_order(Dense left, Dense right, double complex scale):
     cdef Dense out = left.copy()
     cdef int size = left.shape[0] * left.shape[1]
     with nogil:
-        zaxpy(&size, &scale, right.data, &_ONE, out.data, &_ONE)
+        blas.zaxpy(&size, &scale, right.data, &_ONE, out.data, &_ONE)
     return out
 
 cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
@@ -190,5 +188,5 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
     dim1, dim2 = (nrows, ncols) if left.fortran else (ncols, nrows)
     with nogil:
         for idx in range(dim2):
-            zaxpy(&dim1, &scale, right.data + idx, &dim2, out.data + idx*dim1, &_ONE)
+            blas.zaxpy(&dim1, &scale, right.data + idx, &dim2, out.data + idx*dim1, &_ONE)
     return out

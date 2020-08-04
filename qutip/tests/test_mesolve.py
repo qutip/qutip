@@ -167,9 +167,9 @@ class TestJCModelEvolution:
         sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
         sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-        assert_(max(abs(sx - sx_analytic)) < 0.05)
-        assert_(max(abs(sy - sy_analytic)) < 0.05)
-        assert_(max(abs(sz - sz_analytic)) < 0.05)
+        assert np.max(np.abs(sx - sx_analytic)) < 0.05
+        assert np.max(np.abs(sy - sy_analytic)) < 0.05
+        assert np.max(np.abs(sz - sz_analytic)) < 0.05
 
     def testQubitDynamics2(self):
         "mesolve: qubit without dissipation"
@@ -187,9 +187,9 @@ class TestJCModelEvolution:
         sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
         sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-        assert_(max(abs(sx - sx_analytic)) < 0.05)
-        assert_(max(abs(sy - sy_analytic)) < 0.05)
-        assert_(max(abs(sz - sz_analytic)) < 0.05)
+        assert np.max(np.abs(sx - sx_analytic)) < 0.05
+        assert np.max(np.abs(sy - sy_analytic)) < 0.05
+        assert np.max(np.abs(sz - sz_analytic)) < 0.05
 
     def testCase1(self):
         "mesolve: cavity-qubit interaction, no dissipation"
@@ -214,8 +214,8 @@ class TestJCModelEvolution:
         nc_ex = (n + 0.5 * (1 - np.cos(2 * g * np.sqrt(n + 1) * tlist)))
         na_ex = 0.5 * (1 + np.cos(2 * g * np.sqrt(n + 1) * tlist))
 
-        assert_(max(abs(nc - nc_ex)) < 0.005, True)
-        assert_(max(abs(na - na_ex)) < 0.005, True)
+        assert np.max(np.abs(nc - nc_ex)) < 0.005
+        assert np.max(np.abs(na - na_ex)) < 0.005
 
     def testCase2(self):
         "mesolve: cavity-qubit without interaction, decay"
@@ -242,8 +242,8 @@ class TestJCModelEvolution:
         na_ex = 0.5 * (1 + np.cos(2 * g * np.sqrt(n + 1) * tlist)) * \
             np.exp(-gamma * tlist)
 
-        assert_(max(abs(nc - nc_ex)) < 0.005, True)
-        assert_(max(abs(na - na_ex)) < 0.005, True)
+        assert np.max(np.abs(nc - nc_ex)) < 0.005
+        assert np.max(np.abs(na - na_ex)) < 0.005
 
     def testCase3(self):
         "mesolve: cavity-qubit with interaction, decay"
@@ -456,8 +456,8 @@ class TestMESolveTDDecay:
         out1 = mesolve(Liouvillian_func, rho0, tlist, [], [], args=args)
         expt = expect(a.dag()*a, out1.states)
         actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
-        avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
-        assert_(avg_diff < me_error)
+        avg_diff = np.mean(np.abs(actual_answer - expt) / actual_answer)
+        assert avg_diff < me_error
 
 
 # average error for failure
@@ -533,15 +533,15 @@ class TestMESolveSuperInit:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = tensor(basis(N, n), basis(2, 1))
-        rho0vec = operator_to_vector(psi0*psi0.dag())
+        psi0 = basis([N, 2], [n, 1])
+        rho0vec = operator_to_vector(psi0.proj())
         tlist = np.linspace(0, 100, 50)
 
         out1, out2 = self.jc_integrate(
             N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist)
 
         fid = self.fidelitycheck(out1, out2, rho0vec)
-        assert_(max(abs(1.0-fid)) < me_error, True)
+        assert np.max(np.abs(1.0 - fid)) < me_error
 
     def testMETDDecayAsFuncList(self):
         "mesolve: time-dependence as function list with super as init cond"
@@ -853,9 +853,10 @@ class TestMESolveStepFuncCoeff:
             return np.sqrt(args["state_vec"][3])
 
         H = [qeye(2), [destroy(2)+create(2), f]]
-        res = mesolve(H, basis(2,1), tlist=np.linspace(0,10,11),
+        res = mesolve(H, basis(2, 1), tlist=np.linspace(0, 10, 11),
                       c_ops=[qeye(2)],
-                      e_ops=[num(2)], args={"state_vec":basis(2,1)})
+                      e_ops=[num(2)],
+                      args={"state_vec": basis(2, 1)})
         assert_(max(abs(res.expect[0][5:])) < tol,
             msg="evolution with feedback not proceding as expected")
 
@@ -863,7 +864,7 @@ class TestMESolveStepFuncCoeff:
             return np.sqrt(args["expect_op_0"])
 
         H = [qeye(2), [destroy(2)+create(2), f]]
-        res = mesolve(H, basis(2,1), tlist=np.linspace(0,10,11),
+        res = mesolve(H, basis(2, 1), tlist=np.linspace(0, 10, 11),
                       c_ops=[qeye(2)],
                       e_ops=[num(2)], args={"expect_op_0":num(2)})
         assert_(max(abs(res.expect[0][5:])) < tol,

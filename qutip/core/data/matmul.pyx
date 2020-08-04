@@ -1,14 +1,17 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.stdlib cimport malloc, calloc, free
 from libc.string cimport memset, memcpy
 
 import warnings
 
 cimport cython
+
+from cpython cimport mem
+
 import numpy as np
 cimport numpy as cnp
+from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
@@ -16,6 +19,9 @@ from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr, dense
 
 cnp.import_array()
+
+cdef extern from *:
+    void *PyMem_Calloc(size_t n, size_t elsize)
 
 cdef extern from "../cy/src/zspmv.hpp" nogil:
     void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec,
@@ -43,7 +49,7 @@ cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
         )
 
 
-cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) nogil:
+cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     """
     Produce a sensible upper-bound for the number of non-zero elements that
     will be present in a matrix multiplication between the two matrices.
@@ -52,18 +58,19 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) nogil:
     cdef idxint ii, jj, kk
     cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     # Setup mask array
-    cdef idxint *mask = <idxint *> malloc(ncols * sizeof(idxint))
-    for ii in range(ncols):
-        mask[ii] = -1
-    for ii in range(nrows):
-        for jj in range(left.row_index[ii], left.row_index[ii+1]):
-            j = left.col_index[jj]
-            for kk in range(right.row_index[j], right.row_index[j+1]):
-                k = right.col_index[kk]
-                if mask[k] != ii:
-                    mask[k] = ii
-                    nnz += 1
-    free(mask)
+    cdef idxint *mask = <idxint *> mem.PyMem_Malloc(ncols * sizeof(idxint))
+    with nogil:
+        for ii in range(ncols):
+            mask[ii] = -1
+        for ii in range(nrows):
+            for jj in range(left.row_index[ii], left.row_index[ii+1]):
+                j = left.col_index[jj]
+                for kk in range(right.row_index[j], right.row_index[j+1]):
+                    k = right.col_index[kk]
+                    if mask[k] != ii:
+                        mask[k] = ii
+                        nnz += 1
+    mem.PyMem_Free(mask)
     return nnz
 
 
@@ -112,9 +119,9 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None, double complex scale=1.0
     cdef double complex val
     cdef double complex *sums
     cdef idxint *nxt
+    sums = <double complex *> PyMem_Calloc(ncols, sizeof(double complex))
+    nxt = <idxint *> mem.PyMem_Malloc(ncols * sizeof(idxint))
     with nogil:
-        sums = <double complex *> calloc(ncols, sizeof(double complex))
-        nxt = <idxint *> malloc(ncols * sizeof(idxint))
         for col_r in range(ncols):
             nxt[col_r] = -1
 
@@ -143,8 +150,8 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None, double complex scale=1.0
                 nxt[tmp] = -1
                 sums[tmp] = 0
             out.row_index[row_l + 1] = nnz
-        free(sums)
-        free(nxt)
+    mem.PyMem_Free(sums)
+    mem.PyMem_Free(nxt)
     return out
 
 
@@ -153,8 +160,8 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
     """
     Perform the operation
         ``out := scale * (left @ right) + out``
-    where `left`, `right` and `out` are matrices, and `right` and `out` are
-    C-ordered 2D matrices.  `scale` is a complex scalar, defaulting to 1.
+    where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
+    defaulting to 1.
 
     If `out` is not given, it will be allocated as if it were a zero matrix.
     """
@@ -210,3 +217,61 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
         return out
     memcpy(tmp.data, out.data, ncols * nrows * sizeof(double complex))
     return tmp
+
+
+cpdef Dense matmul_dense(Dense left, Dense right, Dense out=None, double complex scale=1):
+    """
+    Perform the operation
+        ``out := scale * (left @ right) + out``
+    where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
+    defaulting to 1.
+
+    If `out` is not given, it will be allocated as if it were a zero matrix.
+    """
+    _check_shape(left, right, out)
+    cdef double complex out_scale
+    # If not supplied, it's more efficient from a memory allocation perspective
+    # to do the calculation as `a*A.B + 0*C` with arbitrary C.
+    if out is None:
+        out = dense.empty(left.shape[0], right.shape[1], right.fortran)
+        out_scale = 0
+    else:
+        out_scale = 1
+    cdef double complex *a
+    cdef double complex *b
+    cdef char transa, transb
+    cdef int m, n, k=left.shape[1], lda, ldb
+    # We use the BLAS routine zgemm for every single call and pretend that
+    # we're always supplying it with Fortran-ordered matrices, but to achieve
+    # what we want, we use the property of matrix multiplication that
+    #   A.B = (B'.A')'
+    # where ' is the matrix transpose, and that interpreting a Fortran-ordered
+    # matrix as a C-ordered one is equivalent to taking the transpose.  If
+    # `right` is supplied in C-order, then from Fortran's perspective we
+    # actually have `B'`, so to retrieve `B` should we want to use it, we set
+    # `transb = b't'`.  What we set `transa` and `transb` to depends on if we
+    # need to switch the input order, _not_ whether we actually need B'.
+    #
+    # In order to make the output correct, we ensure that we put A.B in if the
+    # output is Fortran ordered, or B'.A' (note no final transpose) if not.
+    # This is actually more flexible than `np.dot` which requires that the
+    # output is C-ordered.
+    if out.fortran:
+        # Need to make A.B
+        a, b = left.data, right.data
+        m, n = left.shape[0], right.shape[1]
+        lda = left.shape[0] if left.fortran else left.shape[1]
+        transa = b'n' if left.fortran else b't'
+        ldb = right.shape[0] if right.fortran else right.shape[1]
+        transb = b'n' if right.fortran else b't'
+    else:
+        # Need to make B'.A'
+        a, b = right.data, left.data
+        m, n = right.shape[1], left.shape[0]
+        lda = right.shape[0] if right.fortran else right.shape[1]
+        transa = b't' if right.fortran else b'n'
+        ldb = left.shape[0] if left.fortran else left.shape[1]
+        transb = b't' if left.fortran else b'n'
+    blas.zgemm(&transa, &transb, &m, &n, &k, &scale, a, &lda, b, &ldb,
+               &out_scale, out.data, &m)
+    return out

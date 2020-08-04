@@ -61,7 +61,7 @@ class TestSESolve:
 
         if U0 is None:
             output = sesolve(H, psi0, tlist, [sigmax(), sigmay(), sigmaz()],
-                            args=td_args)
+                             args=td_args)
             sx, sy, sz = output.expect[0], output.expect[1], output.expect[2]
         else:
             output = sesolve(H, U0, tlist, args=td_args)
@@ -75,12 +75,9 @@ class TestSESolve:
         sz_analytic = np.array([np.cos(delta*analytic_func(t, td_args))
                                 for t in tlist])
 
-        assert_(max(abs(sx - sx_analytic)) < tol,
-                msg="expect X not matching analytic")
-        assert_(max(abs(sy - sy_analytic)) < tol,
-                msg="expect Y not matching analytic")
-        assert_(max(abs(sz - sz_analytic)) < tol,
-                msg="expect Z not matching analytic")
+        np.testing.assert_allclose(sx, sx_analytic, atol=tol)
+        np.testing.assert_allclose(sy, sy_analytic, atol=tol)
+        np.testing.assert_allclose(sz, sz_analytic, atol=tol)
 
     def test_01_1_state_with_const_H(self):
         "sesolve: state with const H"

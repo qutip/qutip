@@ -3,17 +3,22 @@
 import numpy as np
 cimport numpy as cnp
 
-from . cimport base
+from qutip.core.data cimport base
 
 cdef class CSR(base.Data):
-    cdef double complex [::1] data
-    cdef base.idxint [::1] col_index
-    cdef base.idxint [::1] row_index
+    cdef double complex *data
+    cdef base.idxint *col_index
+    cdef base.idxint *row_index
+    cdef size_t size
     cdef object _scipy
     cdef bint _deallocate
     cpdef CSR copy(CSR self)
     cpdef object as_scipy(CSR self, bint full=*)
     cpdef CSR sort_indices(CSR self)
+    cpdef double complex trace(CSR self)
+    cpdef CSR adjoint(CSR self)
+    cpdef CSR conj(CSR self)
+    cpdef CSR transpose(CSR self)
 
 # Internal structure for sorting pairs of elements.  Not actually meant to be
 # used in external code.

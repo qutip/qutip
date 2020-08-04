@@ -17,8 +17,8 @@ _dtype_uint = ['uint32']
 # Set up some fixtures for automatic parametrisation.
 
 @pytest.fixture(params=[
-    pytest.param((1, 5), id='ket'),
-    pytest.param((5, 1), id='bra'),
+    pytest.param((1, 5), id='bra'),
+    pytest.param((5, 1), id='ket'),
     pytest.param((5, 5), id='square'),
     pytest.param((2, 4), id='wide'),
     pytest.param((4, 2), id='tall'),

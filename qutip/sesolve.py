@@ -36,21 +36,15 @@ This module provides solvers for the unitary Schrodinger equation.
 
 __all__ = ['sesolve']
 
-import os
-import types
 import numpy as np
 import scipy.integrate
 from scipy.linalg import norm as la_norm
-from . import Qobj, QobjEvo, unstack_columns
-from . import settings as qset
-from .core.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
-from .core.cy.spmatfuncs import (
-    cy_expect_psi, cy_ode_psi_func_td, cy_ode_psi_func_td_with_state,
-)
-from .core.cy.openmp.utilities import check_use_openmp, openmp_components
-from .cy.stochastic import normalize_inplace
-from .solver import Result, Options, config, solver_safe, SolverSystem
-from .ui.progressbar import (BaseProgressBar, TextProgressBar)
+from . import Qobj, QobjEvo
+from .core import data as _data
+from .core.cy.openmp.utilities import check_use_openmp
+from .solver import Result, Options, solver_safe, SolverSystem
+from .ui.progressbar import BaseProgressBar, TextProgressBar
+
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
@@ -163,7 +157,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
 
     if _safe_mode:
         v = psi0.full().ravel('F')
-        func(0., v, *ode_args) + v
+        func(0., v, *ode_args)[:, 0] + v
 
     res = _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, options,
                              progress_bar, dims=psi0.dims)
@@ -193,21 +187,28 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     solver_safe["sesolve"] = ss
     return ss
 
+
+def _wrap_matmul(t, state, cqobj, oper):
+    state = _data.dense.fast_from_numpy(state)
+    if oper:
+        state = _data.column_unstack_dense(state, cqobj.shape[1], inplace=True)
+    out = cqobj.matmul(t, state)
+    if oper:
+        out = _data.column_stack_dense(out, inplace=True)
+    return out.as_ndarray()
+
+
 def _qobjevo_set(HS, psi, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.solver_set_args(args, psi, e_ops)
-    if psi.isunitary:
-        func = H_td.compiled_qobjevo.mul_mat
-    elif psi.isket:
-        func = H_td.compiled_qobjevo.mul_vec
-    else:
-        raise TypeError("The unitary solver requires psi0 to be"
-                        " a ket as initial state"
-                        " or a unitary as initial operator.")
-    return func, ()
+    H_td.solver_set_args(args, psi.data, e_ops)
+    if psi.isket or psi.isunitary:
+        return _wrap_matmul, (H_td.compiled_qobjevo, psi.isunitary)
+    raise TypeError("The unitary solver requires psi0 to be"
+                    " a ket as initial state"
+                    " or a unitary as initial operator.")
 
 
 # -----------------------------------------------------------------------------
@@ -224,37 +225,27 @@ def _sesolve_func_td(H_func, args, opt):
     solver_safe["sesolve"] = ss
     return ss
 
+
 def _Hfunc_set(HS, psi, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
-    H_func = HS.H
-    if psi.isunitary:
-        if not opt.rhs_with_state:
-            func = _ode_oper_func_td
-        else:
-            func = _ode_oper_func_td_with_state
-    else:
-        if not opt.rhs_with_state:
-            func = cy_ode_psi_func_td
-        else:
-            func = cy_ode_psi_func_td_with_state
-
-    return func, (H_func, args)
+    return _sesolve_rhs_func, (HS.H, args, psi.isunitary, opt.rhs_with_state)
 
 
 # -----------------------------------------------------------------------------
 # evaluate dU(t)/dt according to the schrodinger equation
 #
-def _ode_oper_func_td(t, y, H_func, args):
-    H = H_func(t, args).data * -1j
-    ym = unstack_columns(y)
-    return (H * ym).ravel("F")
-
-def _ode_oper_func_td_with_state(t, y, H_func, args):
-    H = H_func(t, y, args).data * -1j
-    ym = unstack_columns(y)
-    return (H * ym).ravel("F")
+def _sesolve_rhs_func(t, y, H_func, args, oper, with_state):
+    H = H_func(t, y, args) if with_state else H_func(t, args)
+    if isinstance(H, Qobj):
+        H = H.data
+    y = _data.dense.fast_from_numpy(y)
+    if oper:
+        ym = _data.column_unstack_dense(y, H.shape[1], inplace=True)
+        out = _data.matmul_csr_dense_dense(H, ym, scale=-1j)
+        return _data.column_stack_dense(out, inplace=True).as_ndarray()
+    return _data.matmul_csr_dense_dense(H, y, scale=-1j).as_ndarray()
 
 
 # -----------------------------------------------------------------------------
@@ -280,13 +271,9 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     if psi0.isunitary:
         initial_vector = psi0.full().ravel('F')
         oper_evo = True
-        size = psi0.shape[0]
-        # oper_n = dims[0][0]
-        # norm_dim_factor = np.sqrt(oper_n)
     elif psi0.isket:
         initial_vector = psi0.full().ravel()
         oper_evo = False
-        # norm_dim_factor = 1.0
 
     r = scipy.integrate.ode(func)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -330,10 +317,11 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
     if oper_evo:
         def get_curr_state_data(r):
-            return unstack_columns(r.y)
+            return _data.column_unstack_dense(_data.dense.fast_from_numpy(r.y),
+                                              psi0.shape[0], inplace=True)
     else:
         def get_curr_state_data(r):
-            return r.y
+            return _data.dense.fast_from_numpy(r.y)
 
     #
     # start evolution
@@ -348,43 +336,48 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
         # get the current state / oper data if needed
-        if opt.store_states or opt.normalize_output or n_expt_op > 0 or expt_callback:
+        if (
+            opt.store_states
+            or opt.normalize_output
+            or n_expt_op > 0
+            or expt_callback
+        ):
             cdata = get_curr_state_data(r)
 
         if opt.normalize_output:
             # normalize per column
             if oper_evo:
-                cdata /= la_norm(cdata, axis=0)
-                #cdata *= norm_dim_factor / la_norm(cdata)
-                r.set_initial_value(cdata.ravel('F'), r.t)
+                cdata_nd = cdata.as_ndarray()
+                cdata_nd /= la_norm(cdata_nd, axis=0)
+                # Don't do this in place, because we use it later.
+                initial = _data.column_stack_dense(cdata, inplace=False)
+                r.set_initial_value(initial.as_ndarray(), r.t)
             else:
-                #cdata /= la_norm(cdata)
-                norm = normalize_inplace(cdata)
-                if norm > 1e-12:
+                norm = _data.norm.l2_dense(cdata)
+                if abs(norm - 1) > 1e-12:
                     # only reset the solver if state changed
-                    r.set_initial_value(cdata, r.t)
+                    cdata /= norm
+                    r.set_initial_value(cdata.as_ndarray(), r.t)
                 else:
-                    r._y = cdata
+                    r._y = cdata.as_ndarray()
 
         if opt.store_states:
-            if oper_evo:
-                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
-                output.states.append(Qobj(fdata, dims=dims))
-            else:
-                fdata = dense1D_to_fastcsr_ket(cdata)
-                output.states.append(Qobj(fdata, dims=dims, fast='mc'))
+            # TODO: fix Qobj creation
+            output.states.append(Qobj(cdata.as_ndarray(),
+                                      dims=dims, type=psi0.type))
 
         if expt_callback:
             # use callback method
-            output.expect.append(e_ops(t, Qobj(cdata, dims=dims)))
+            # TODO: fix Qobj creation
+            output.expect.append(e_ops(t, Qobj(cdata.as_ndarray(),
+                                               dims=dims, type=psi0.type)))
 
-        if oper_evo:
-            for m in range(n_expt_op):
-                output.expect[m][t_idx] = (e_ops_data[m] * cdata).trace()
-        else:
-            for m in range(n_expt_op):
-                output.expect[m][t_idx] = cy_expect_psi(e_ops_data[m], cdata,
-                                                        e_ops[m].isherm)
+        # TODO: fix dispatch
+        for m in range(n_expt_op):
+            val = _data.expect_csr_dense(e_ops_data[m], cdata)
+            if e_ops[m].isherm:
+                val = val.real
+            output.expect[m][t_idx] = val
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
@@ -394,8 +387,8 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     if opt.store_final_state:
         cdata = get_curr_state_data(r)
         if opt.normalize_output:
-            cdata /= la_norm(cdata, axis=0)
-            # cdata *= norm_dim_factor / la_norm(cdata)
-        output.final_state = Qobj(cdata, dims=dims)
+            cdata_nd = cdata.as_ndarray()
+            cdata_nd /= la_norm(cdata_nd, axis=0)
+        output.final_state = Qobj(cdata.as_ndarray(), dims=dims)
 
     return output

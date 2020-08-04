@@ -3,7 +3,7 @@
 
 from qutip.core.data cimport CSR, Dense
 
-cpdef double one_csr(CSR matrix) nogil except -1
+cpdef double one_csr(CSR matrix) except -1
 cpdef double trace_csr(CSR matrix) except -1
 cpdef double max_csr(CSR matrix) nogil
 cpdef double frobenius_csr(CSR matrix) nogil

@@ -1,8 +1,9 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.stdlib cimport calloc, free
 from libc cimport math
+
+from cpython cimport mem
 
 from scipy.linalg cimport cython_blas as blas
 
@@ -12,6 +13,10 @@ from qutip.core.data.adjoint cimport adjoint_csr, adjoint_dense
 from qutip.core.data.matmul cimport matmul_csr
 
 from qutip.core.data import eigs_csr
+
+cdef extern from *:
+    # Not included in Cython for some reason?
+    void *PyMem_Calloc(size_t n, size_t elsize)
 
 cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
@@ -26,17 +31,17 @@ cdef double abssq(double complex x) nogil:
 # This module is meant to be accessed by dot-access (e.g. norm.one_csr).
 __all__ = []
 
-cpdef double one_csr(CSR matrix) nogil except -1:
+cpdef double one_csr(CSR matrix) except -1:
     cdef int n=matrix.shape[1], inc=1
     cdef size_t ptr
-    cdef double *col = <double *>calloc(matrix.shape[1], sizeof(double))
+    cdef double *col = <double *> PyMem_Calloc(matrix.shape[1], sizeof(double))
     try:
         for ptr in range(csr.nnz(matrix)):
             col[matrix.col_index[ptr]] += abs(matrix.data[ptr])
         # BLAS is a Fortran library, so it's one-indexed of course...
         return col[blas.idamax(&n, col, &inc) - 1]
     finally:
-        free(col)
+        mem.PyMem_Free(col)
 
 cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
     # We use the general eigenvalue solver which involves a Python call, so

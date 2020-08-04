@@ -171,9 +171,10 @@ def kraus_to_choi(kraus_list):
     represented by the Kraus operators in `kraus_list`
     """
     kraus_mat_list = [k.full() for k in kraus_list]
-    op_rng = range(kraus_mat_list[0].shape[1])
+    op_rng = list(range(kraus_mat_list[0].shape[1]))
     choi_blocks = np.array(
-        [[sum(op[:, c_ix] * np.array([op.H[r_ix, :]]) for op in kraus_mat_list)
+        [[sum(op[:, c_ix, None] @ np.conj(op[None, :, r_ix])
+              for op in kraus_mat_list)
           for r_ix in op_rng]
          for c_ix in op_rng]
     )
@@ -424,7 +425,7 @@ def to_chi(q_oper):
         elif q_oper.superrep == 'choi':
             return _choi_to_chi(q_oper)
         elif q_oper.superrep == 'super':
-            return to_chi(to_choi(q_oper))
+            return _choi_to_chi(to_choi(q_oper))
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
@@ -508,15 +509,14 @@ def to_kraus(q_oper, tol=1e-9):
         decomposed into Kraus operators.
     """
     if q_oper.issuper:
-        if q_oper.superrep in ("super", "chi"):
-            return to_kraus(to_choi(q_oper), tol)
-        elif q_oper.superrep == 'choi':
-            return _choi_to_kraus(q_oper, tol)
+        if q_oper.superrep != 'choi':
+            q_oper = to_choi(q_oper)
+        return _choi_to_kraus(q_oper, tol)
     elif q_oper.isoper:  # Assume unitary
         return [q_oper]
     raise TypeError(
-        "Conversion of Qobj with type = {0.type} "
-        "and superrep = {0.superrep} to Kraus decomposition not "
+        "Conversion of Qobj with type={0.type} "
+        "and superrep={0.superrep} to Kraus decomposition not "
         "supported.".format(q_oper)
     )
 

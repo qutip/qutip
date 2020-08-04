@@ -8,6 +8,7 @@ import hashlib
 import glob
 import importlib
 from .. import settings as qset
+from .data import Data
 from .interpolate import Cubic_Spline
 from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              StepCoefficient, FunctionCoefficient,
@@ -16,9 +17,14 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              ShiftCoefficient)
 from setuptools import setup, Extension
 from Cython.Build import cythonize
+from warnings import warn, Warning
 
 
-def coefficient(base, *, tlist=None, args={},
+class StringParsingWarning(Warning):
+    pass
+
+
+def coefficient(base, *, tlist=None, args={}, args_ctypes={},
                 _stepInterpolation=False, compile_opt=None):
     """Coefficient for Qutip time dependent systems.
     The coefficients are either a function, a string or a numpy array.
@@ -74,7 +80,7 @@ def coefficient(base, *, tlist=None, args={},
     elif isinstance(base, str):
         if compile_opt is None:
             compile_opt = CompilationOptions()
-        return coeff_from_str(base, args, compile_opt)
+        return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
         # TODO add tests?
@@ -129,6 +135,21 @@ class CompilationOptions:
         Whether float are kept as float or upgraded to complex.
     no_types : bool
         Give up on detecting and using c types.
+    recompile : bool
+        Do not use previously made files but build a new one.
+    compiler_flags : str
+        Flags to pass to the compiler, ex: "-Wall -O3"...
+        Flags not matching your comiler and OS may cause compilation to fail.
+        Use "recompile=True", when trying to if the string pattern was
+        previously used.
+    link_flags : str
+        Libraries to link to pass to the compiler. They can not be used to add
+        function to the string coefficient.
+    extra_import : str
+        Cython code to add at the head of the file. Can be used to add extra
+        import or import c code etc. ex:
+        "from scipy.linalg import det"
+        "from qutip.core.data import CSR"
     """
     # TODO: use the Options decorator when merged and put in Core options (v5)
 
@@ -147,13 +168,29 @@ class CompilationOptions:
     # Result is faster, but can cause errors if subscription
     # (a[1], b["a"]) if used.
     no_types = False
-    # TODO: add compilation flags?
+    # Skip saved previously compiled files and force compilation
+    recompile = False
+    # Compilation flags and link flags to pass to the compiler
+    link_flags = ""
+    compiler_flags = ""
+    if (sys.platform == 'win32' and os.environ.get('MSYSTEM') is None):
+        compiler_flags = '/w /Ox'
+    elif sys.platform == 'darwin':
+        compiler_flags = '-w -O3 -funroll-loops -mmacosx-version-min=10.9'
+        link_flags += '-mmacosx-version-min=10.9'
+    else:
+        compiler_flags = '-w -O3 -funroll-loops'
+    # Extra_header
+    extra_import = ""
 
     def __init__(self,
                  use_cython=None,
                  accept_int=None,
                  accept_float=None,
-                 no_types=None):
+                 no_types=None,
+                 recompile=None,
+                 compiler_flags=None,
+                 extra_import=None):
         if use_cython is not None:
             self.use_cython = use_cython
         if accept_int is not None:
@@ -162,19 +199,14 @@ class CompilationOptions:
             self.accept_float = accept_float
         if no_types is not None:
             self.no_types = no_types
-
-_link_flags = []
-if (sys.platform == 'win32'
-    and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
-    and os.environ.get('MSYSTEM') is None):
-    _compiler_flags = ['/w', '/Ox']
-# Everything else
-else:
-    _compiler_flags = ['-w', '-O3', '-funroll-loops']
-    if sys.platform == 'darwin':
-        # These are needed for compiling on OSX 10.14+
-        _compiler_flags.append('-mmacosx-version-min=10.9')
-        _link_flags.append('-mmacosx-version-min=10.9')
+        if recompile is not None:
+            self.recompile = recompile
+        if compiler_flags is not None:
+            self.compiler_flags = compiler_flags
+        if link_flags is not None:
+            self.link_flags = link_flags
+        if extra_import is not None:
+            self.extra_import = extra_import
 
 
 def proj(x):
@@ -215,7 +247,7 @@ str_env = {
     "spe": scipy.special}
 
 
-def coeff_from_str(base, args, compile_opt, _debug=False):
+def coeff_from_str(base, args, args_ctypes, compile_opt, _debug=False):
     """
     Entry point for string based coefficients
     - Test if the string is valid
@@ -234,7 +266,8 @@ def coeff_from_str(base, args, compile_opt, _debug=False):
     if not qset.use_cython or not compile_opt.use_cython:
         return str_as_func(base, args)
     # Parsing tries to make the code in common pattern
-    parsed, variables, constants, raw = try_parse(base, args, compile_opt)
+    parsed, variables, constants, raw = try_parse(base, args,
+                                                  args_ctypes, compile_opt)
     if _debug:
         print(parsed, variables, constants)
     # Once parsed, the code should be unique enough to get a filename
@@ -244,11 +277,11 @@ def coeff_from_str(base, args, compile_opt, _debug=False):
         print(file_name)
     # See if it already exist, if not write and cythonize it
     coeff = try_import(file_name, parsed)
-    if coeff is None:
-        code = make_cy_code(parsed, variables, constants, raw)
+    if coeff is None or compile_opt.recompile:
+        code = make_cy_code(parsed, variables, constants, raw, compile_opt)
         if _debug:
             print(code)
-        coeff = compile_code(code, file_name, parsed)
+        coeff = compile_code(code, file_name, parsed, compile_opt)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
     return coeff(base, keys, const, args)
@@ -282,30 +315,19 @@ def try_import(file_name, parsed_in):
     return coeff
 
 
-def make_cy_code(code, variables, constants, raw):
+def make_cy_code(code, variables, constants, raw, compile_opt):
     """
-
+    Generate the code for the string coefficients.
     """
-    #_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
-    _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
-                    "\\", "/")
-    _include_string = "'" + _cython_path + "/cy/complex_math.pxi'"
-
     cdef_cte = ""
     init_cte = ""
-    #get_cte = ""
-    #set_cte = ""
     for i, (name, val, ctype) in enumerate(constants):
         cdef_cte += "        {} {}\n".format(ctype, name[5:])
         init_cte += "        {} = cte[{}]\n".format(name, i)
-        #get_cte += "             {},\n".format(name)
-        #set_cte += "        {} = state[{}]\n".format(name, i)
     cdef_var = ""
     init_var = ""
     args_var = ""
     call_var = ""
-    #get_var = ""
-    #set_var = ""
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
@@ -313,12 +335,6 @@ def make_cy_code(code, variables, constants, raw):
         args_var += "        {} = args[self.key{}]\n".format(name, i)
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
-        #get_var += "             self.key{},\n".format(i)
-        #get_var += "             {},\n".format(name)
-        #set_var += "        self.key{} = state[{}]\n".format(i, 2*i +
-        #                                                     len(constants))
-        #set_var += "        {} = state[{}]\n".format(name, 2*i + 1 +
-        #                                             len(constants))
 
     code = """#cython: language_level=3
 # This file is generated automatically by QuTiP.
@@ -329,8 +345,9 @@ cimport cython
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.cy.math cimport erf, zerf
 from qutip.core.cy.complex_math cimport *
+from qutip.core.data cimport Data
 cdef double pi = 3.14159265358979323
-
+{}
 
 parsed_code = "{}"
 
@@ -356,21 +373,13 @@ cdef class StrCoefficient(Coefficient):
 
     def optstr(self):
         return self.codeString
-""".format(code, cdef_cte, cdef_var,
-           init_cte, init_var, args_var, call_var, code#,
-           #get_cte, get_var, set_cte, set_var
+""".format(compile_opt.extra_import, code, cdef_cte, cdef_var,
+           init_cte, init_var, args_var, call_var, code
           )
     return code
-"""    def __getstate__(self):
-        return (
-{}{}               )
-
-    def __setstate__(self, state):
-{}{}        pass
-"""
 
 
-def compile_code(code, file_name, parsed):
+def compile_code(code, file_name, parsed, compile_opt):
     root = qset.tmproot
     full_file_name = os.path.join(root, file_name)
     file_ = open(full_file_name + ".pyx", "w")
@@ -381,8 +390,8 @@ def compile_code(code, file_name, parsed):
         sys.argv = ["setup.py", "build_ext", "--inplace"]
         coeff_file = Extension(file_name,
                                sources=[full_file_name + ".pyx"],
-                               extra_compile_args=_compiler_flags,
-                               extra_link_args=_link_flags,
+                               extra_compile_args=compile_opt.compiler_flags,
+                               extra_link_args=compile_opt.link_flags,
                                language='c++')
         setup(ext_modules = cythonize(coeff_file))
         libfile = glob.glob(file_name + "*")[0]
@@ -405,7 +414,7 @@ def compile_code(code, file_name, parsed):
 #   complex: "1+1j" is seens as cte(double) + cte(complex)
 #   negative: "-1" is not seens as a constant but "- constant"
 #
-# int and double can be seens as complex with flags in qutip.settings
+# int and double can be seens as complex with flags in CompilationOptions
 
 def fromstr(base):
     """Read a varibles in a string"""
@@ -415,8 +424,7 @@ def fromstr(base):
 
 
 typeCodes = [
-    ("double[::1]", "_adbl"),
-    ("complex[::1]", "_acpl"),
+    ("Data", "_datal"),
     ("complex", "_cpl"),
     ("double", "_dbl"),
     ("int", "_int"),
@@ -428,22 +436,18 @@ typeCodes = [
 def compileType(value):
     """Obtain the index of typeCodes that correspond to the value
     4.5 -> 'double'..."""
-    if (isinstance(value, np.ndarray) and
-        isinstance(value[0], (float, np.float32, np.float64))):
+    if isinstance(value, Data):
         ctype = 0
-    elif (isinstance(value, np.ndarray) and
-          isinstance(value[0], (complex, np.complex128))):
-        ctype = 1
     elif isinstance(value, (complex, np.complex128)):
-        ctype = 2
+        ctype = 1
     elif isinstance(value, (float, np.float32, np.float64)):
-        ctype = 3
+        ctype = 2
     elif np.isscalar(value):
-        ctype = 4
+        ctype = 3
     elif isinstance(value, (str)):
-        ctype = 5
+        ctype = 4
     else:
-        ctype = 6
+        ctype = 5
     return ctype
 
 
@@ -461,10 +465,10 @@ def fix_type(ctype, accept_int, accept_float):
     """int and double could be complex to limit the number of compiled object.
     change the types is we choose not to support all.
     """
-    if ctype == 4 and not accept_int:
-        ctype = 3
-    if ctype == 3 and not accept_float:
+    if ctype == 3 and not accept_int:
         ctype = 2
+    if ctype == 2 and not accept_float:
+        ctype = 1
     return ctype
 
 
@@ -559,7 +563,13 @@ def parse(code, args, compile_opt):
     return code, variables, ordered_constants
 
 
-def try_parse(code, args, compile_opt):
+def use_hinted_type(var_tuple, ncode, args_ctypes):
+    name, key, type_ = *var_tuple
+    if key in args_ctypes:
+        code = code.replace(cte, cte[0] + name, 1)
+
+
+def try_parse(code, args, args_ctypes, compile_opt):
     """
     Try to parse and verify that the result is still usable.
     """
@@ -568,9 +578,19 @@ def try_parse(code, args, compile_opt):
         # Fallback to all object
         variables = [(f, s, "object") for f, s, _ in variables]
         constants = [(f, s, "object") for f, s, _ in constants]
+    variables_manually_typed = []
+    for name, key, type_ in variables:
+        if key in args_ctypes:
+            new_name = "self._" + args_ctypes[key]
+            ncode = ncode.replace(name, new_name, 1)
+            variables_manually_typed.append(new_name, key, args_ctypes[key])
+        else:
+            variables_manually_typed.append(name, key, type_)
+    variables = variables_manually_typed
     if test_parsed(ncode, variables, constants, args):
         return ncode, variables, constants, False
     else:
+        warn("Could not find c types", StringParsingWarning)
         remaped_variable = []
         for _, name, ctype in variables:
             remaped_variable.append(("self." + name, name, ctype))

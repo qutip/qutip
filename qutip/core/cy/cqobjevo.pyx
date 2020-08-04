@@ -58,13 +58,10 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 cdef class CQobjEvo:
     """
-    mul_vec(double t, double complex [::1] vec)
-      Return self @ vec.
-
-    mul_mat(double t, np.ndarray[complex, ndim=2] mat)
-      Return `self @ mat`.  `mat` _should_ ideally be Fortran-contiguous, but
-      C-contiguous will also be handled with a fast path.  Non-contiguous
-      arrays will be made contiguous.
+    Dense matmul(double t, Dense matrix, Dense out=None)
+      Get the matrix multiplication of self with matrix and put the result in
+      `out`, if supplied.  Always returns the object it stored the output in
+      (even if it was passed).
 
     expect(double t, CSR matrix)
       Get the expectation value at a time `t`.
@@ -75,15 +72,6 @@ cdef class CQobjEvo:
       coefficients are given, they are used instead and the underlying
       coefficient-getting functions are not called.  If `data` is True, then
       the data-layer object is returned instead of a full Qobj.
-
-    call_with_coeff(complex[::1] coeff, int data=0)
-      Return this with the given coefficients
-
-    set_data(cte, [ops])
-      Build the object from data from QobjEvo
-
-    set_factor(self, func=None, obj=None)
-      Set the coefficient function from QobjEvo
     """
     def __init__(self, constant, ops=None):
         cdef size_t i
@@ -138,13 +126,14 @@ cdef class CQobjEvo:
         return
 
     # TODO: get rid of this (only used in stochastic.pyx)
-    cdef void _mul_vec(self, double t, double complex *vec, double complex *out):
+    cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *:
         cdef Dense vec_ = dense.wrap(vec, self.shape[1], 1)
         cdef Dense out_ = dense.wrap(out, self.shape[1], 1)
         self.matmul(t, vec_, out_)
 
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=None):
         cdef size_t i
+        self.dyn_args(t, matrix) # TODO: move Out
         self._factor(t)
         if out is None:
             out = matmul_csr_dense_dense(self.constant, matrix)
@@ -155,7 +144,7 @@ cdef class CQobjEvo:
                                    scale=self.coefficients[i])
         return out
 
-    cpdef double complex expect(self, double t, Data matrix):
+    cpdef double complex expect(self, double t, Data matrix) except *:
         """
         Expectation is defined as `matrix.adjoint() @ self @ matrix` if
         `matrix` is a vector, or `matrix` is an operator and `self` is a
@@ -171,21 +160,37 @@ cdef class CQobjEvo:
         # end shim
         cdef size_t i
         cdef double complex out
+        self.dyn_args(t, matrix) # TODO: move Out
+        self._factor(t)
         if self.issuper:
             # If we are a superoperator, then column-stack the input operator
             # into a vector and do the weird super expectation.
             # TODO: work out what's going on here and neaten it up.
             matrix_ = column_stack_csr(matrix_)
-            self._factor(t)
             out = expect_super_csr(self.constant, matrix_)
             for i in range(self.n_ops):
                 out += self.coefficients[i] * expect_super_csr(self.ops[i], matrix_)
         else:
-            self._factor(t)
             out = expect_csr(self.constant, matrix_)
             for i in range(self.n_ops):
                 out += self.coefficients[i] * expect_csr(self.ops[i], matrix_)
         return out
 
-    def has_dyn_args(self, int dyn_args):
+    def set_dyn_args(self, object dyn_args, dict args, object op):
+        # Move elsewhere and op should be a dimensions object when available
+        self.args = args
+        self.op = op
         self.dynamic_arguments = dyn_args
+        self.has_dynamic_args = bool(self.dynamic_arguments)
+
+    cpdef dyn_args(self, double t, Data matrix):
+        cdef Coefficient coeff
+        if not self.has_dynamic_args:
+            return
+        else:
+            for name, what, e_op in self.dynamics_args:
+                self.args[name] = _dynamic_argument(t, self.op, state,
+                                                    what, e_op)
+            for i in range(self.n_ops):
+                coeff = <Coefficient> self.coeff[i]
+                coeff.arguments(self.args)

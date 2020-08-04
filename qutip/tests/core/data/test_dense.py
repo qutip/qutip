@@ -56,10 +56,6 @@ class TestClassMethods:
         assert np.all(test.as_ndarray() == numpy_dense)
 
     @pytest.mark.parametrize(['arg', 'kwargs', 'error'], [
-        pytest.param((), {}, ValueError, id="arg 0 tuple"),
-        pytest.param((None,), {}, ValueError, id="arg 1 tuple"),
-        pytest.param((None,)*2, {}, ValueError, id="arg None tuple"),
-        pytest.param((None,)*3, {}, ValueError, id="arg 3 tuple"),
         pytest.param(_valid_numpy(), {'shape': ()}, ValueError,
                      id="numpy-shape 0 tuple"),
         pytest.param(_valid_numpy(), {'shape': (1,)}, ValueError,
