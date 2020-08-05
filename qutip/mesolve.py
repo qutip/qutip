@@ -49,6 +49,7 @@ from .core.cy.openmp.utilities import check_use_openmp
 from .sesolve import sesolve
 from .ui.progressbar import BaseProgressBar, TextProgressBar
 
+
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -208,8 +209,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     # be empty, i.e., e_ops = []
     # TODO: e_ops for superoperator
     if rho0.issuper and not e_ops == []:
-        raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
-                " a superoperator.")
+        raise TypeError("Must have e_ops = [] when initial condition rho0 is"
+                        " a superoperator.")
 
     if options is None:
         options = Options()
