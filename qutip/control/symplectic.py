@@ -44,16 +44,17 @@ Utility functions for symplectic matrices
 
 import numpy as np
 
+
 def calc_omega(n):
     """
     Calculate the 2n x 2n Omega matrix
     Used as dynamics generator phase to calculate symplectic propagators
-    
+
     Parameters
     ----------
     n : scalar(int)
         number of modes in oscillator system
-    
+
     Returns
     -------
     array(float)

@@ -58,28 +58,26 @@ The other fidelity measures are extensions, and the sources are given
 in the class descriptions.
 """
 
-import os
+import timeit
 import warnings
 import numpy as np
-import scipy.sparse as sp
-# import scipy.linalg as la
-import timeit
 # QuTiP
 from qutip import Qobj
+# QuTiP control modules
+import qutip.control.errors as errors
 # QuTiP logging
 import qutip.logging_utils as logging
 logger = logging.get_logger()
-# QuTiP control modules
-import qutip.control.errors as errors
 
-warnings.simplefilter('always', DeprecationWarning) #turn off filter
+
 def _attrib_deprecation(message, stacklevel=3):
     """
     Issue deprecation warning
     Using stacklevel=3 will ensure message refers the function
     calling with the deprecated parameter,
     """
-    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    warnings.warn(message, FutureWarning, stacklevel=stacklevel)
+
 
 def _func_deprecation(message, stacklevel=3):
     """
@@ -87,18 +85,16 @@ def _func_deprecation(message, stacklevel=3):
     Using stacklevel=3 will ensure message refers the function
     calling with the deprecated parameter,
     """
-    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
-    
+    warnings.warn(message, FutureWarning, stacklevel=stacklevel)
+
+
 def _trace(A):
     """wrapper for calculating the trace"""
     # input is an operator (Qobj, array, sparse etc), so
     if isinstance(A, Qobj):
         return A.tr()
-    elif isinstance(A, np.ndarray):
-        return np.trace(A)
     else:
-        #Assume A some sparse matrix
-        return np.sum(A.diagonal())
+        return np.trace(A)
 
 
 class FidelityComputer(object):
@@ -213,8 +209,8 @@ class FidelityComputer(object):
 
     @property
     def log_level(self):
-        return logger.level        
-        
+        return logger.level
+
     @log_level.setter
     def log_level(self, lvl):
         """
@@ -281,6 +277,7 @@ class FidelityComputer(object):
                 "'uses_evo_t2targ' has been replaced by 'uses_onto_evo'")
         self.uses_onto_evo = value
 
+
 class FidCompUnitary(FidelityComputer):
     """
     Computes fidelity error and gradient assuming unitary dynamics, e.g.
@@ -303,7 +300,6 @@ class FidCompUnitary(FidelityComputer):
         flag to specify whether fidelity_prenorm are based on the
         current amplitude values. Set False when amplitudes change
     """
-
     def reset(self):
         FidelityComputer.reset(self)
         self.id_text = 'UNIT'
@@ -324,19 +320,19 @@ class FidCompUnitary(FidelityComputer):
         PSU - global phase is not important
         """
         _func_deprecation("'set_phase_option' is deprecated. "
-                            "Use phase_option property")
+                          "Use phase_option property")
         self._init_phase_option(phase_option)
-        
+
     @property
     def phase_option(self):
         return self._phase_option
-        
+
     @phase_option.setter
     def phase_option(self, value):
         """
-        # Phase options are
-        #  SU - global phase important
-        #  PSU - global phase is not important
+        Phase options are
+         SU - global phase important
+         PSU - global phase is not important
         """
         self._init_phase_option(value)
 
@@ -354,7 +350,7 @@ class FidCompUnitary(FidelityComputer):
         else:
             raise errors.UsageError(
                     "No option for phase_option '{}'".format(value))
-                                                            
+
     def init_comp(self):
         """
         Check configuration and initialise the normalisation
@@ -371,7 +367,6 @@ class FidCompUnitary(FidelityComputer):
         FidelityComputer.flag_system_changed(self)
         # Flag the fidelity (prenormalisation) value as needing calculation
         self.fidelity_prenorm_current = False
-
 
     def init_normalization(self):
         """
@@ -391,16 +386,13 @@ class FidCompUnitary(FidelityComputer):
             self.fid_norm_func(dyn.target.dag()*dyn.target)
 
     def normalize_SU(self, A):
-        """
-
-        """
         try:
             if A.shape[0] == A.shape[1]:
-               # input is an operator (Qobj, array, sparse etc), so
+                # input is an operator (Qobj, array), so
                 norm = _trace(A)
             else:
                 raise TypeError("Cannot compute trace (not square)")
-        except:
+        except AttributeError:
             # assume input is already scalar and hence assumed
             # to be the prenormalised scalar value, e.g. fidelity
             norm = A
@@ -411,21 +403,16 @@ class FidCompUnitary(FidelityComputer):
         Normalise the gradient matrix passed as grad
         This SU version respects global phase
         """
-        grad_normalized = np.real(grad) / self.dimensional_norm
-
-        return grad_normalized
+        return np.real(grad) / self.dimensional_norm
 
     def normalize_PSU(self, A):
-        """
-
-        """
         try:
             if A.shape[0] == A.shape[1]:
-               # input is an operator (Qobj, array, sparse etc), so
+                # input is an operator (Qobj, array, sparse etc), so
                 norm = _trace(A)
             else:
                 raise TypeError("Cannot compute trace (not square)")
-        except:
+        except AttributeError:
             # assume input is already scalar and hence assumed
             # to be the prenormalised scalar value, e.g. fidelity
             norm = A
@@ -437,9 +424,8 @@ class FidCompUnitary(FidelityComputer):
         This PSU version is independent of global phase
         """
         fid_pn = self.get_fidelity_prenorm()
-        grad_normalized = np.real(grad * np.exp(-1j * np.angle(fid_pn)) /
-                                  self.dimensional_norm)
-        return grad_normalized
+        return np.real(grad * np.exp(-1j * np.angle(fid_pn))
+                       / self.dimensional_norm)
 
     def get_fid_err(self):
         """
@@ -459,7 +445,6 @@ class FidCompUnitary(FidelityComputer):
             self.fidelity_current = True
             if self.log_level <= logging.DEBUG:
                 logger.debug("Fidelity (normalised): {}".format(self.fidelity))
-
         return self.fidelity
 
     def get_fidelity_prenorm(self):
@@ -479,7 +464,7 @@ class FidCompUnitary(FidelityComputer):
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
-                    dyn.stats.num_fidelity_computes += 1
+                dyn.stats.num_fidelity_computes += 1
             if self.log_level <= logging.DEBUG:
                 logger.debug("Fidelity (pre normalisation): {}".format(
                     self.fidelity_prenorm))
@@ -542,7 +527,7 @@ class FidCompUnitary(FidelityComputer):
         time_st = timeit.default_timer()
         for j in range(n_ctrls):
             for k in range(n_ts):
-                fwd_evo = dyn._fwd_evo[k]   
+                fwd_evo = dyn._fwd_evo[k]
                 onto_evo = dyn._onto_evo[k+1]
                 if dyn.oper_dtype == Qobj:
                     g = (onto_evo*dyn._get_prop_grad(k, j)*fwd_evo).tr()
@@ -630,7 +615,7 @@ class FidCompTraceDiff(FidelityComputer):
                 self.fid_err = np.Inf
 
             if dyn.stats is not None:
-                    dyn.stats.num_fidelity_computes += 1
+                dyn.stats.num_fidelity_computes += 1
 
             self.fidelity_current = True
             if self.log_level <= logging.DEBUG:
@@ -684,7 +669,6 @@ class FidCompTraceDiff(FidelityComputer):
         # loop through all ctrl timeslots calculating gradients
         time_st = timeit.default_timer()
 
-
         evo_final = dyn._fwd_evo[n_ts]
         evo_f_diff = dyn._target - evo_final
         for j in range(n_ctrls):
@@ -724,7 +708,6 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
     epsilon : float
         control amplitude offset to use when approximating the gradient wrt
         a timeslot control amplitude
-    
     """
     def reset(self):
         FidelityComputer.reset(self)

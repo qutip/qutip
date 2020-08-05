@@ -56,7 +56,6 @@ Note the methods in these classes were inspired by:
 DYNAMO - Dynamic Framework for Quantum Optimal Control
 See Machnes et.al., arXiv.1011.4874
 """
-import os
 import warnings
 import numpy as np
 import scipy.linalg as la
@@ -65,9 +64,6 @@ import scipy.sparse as sp
 from qutip import Qobj
 from qutip.core.data import eigs_csr
 import qutip.settings as settings
-# QuTiP logging
-import qutip.logging_utils as logging
-logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.errors as errors
 import qutip.control.tslotcomp as tslotcomp
@@ -75,24 +71,13 @@ import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
 import qutip.control.dump as qtrldump
+# QuTiP logging
+import qutip.logging_utils as logging
+logger = logging.get_logger()
 
 DEF_NUM_TSLOTS = 10
 DEF_EVO_TIME = 1.0
 
-def _is_string(var):
-    try:
-        if isinstance(var, basestring):
-            return True
-    except NameError:
-        try:
-            if isinstance(var, str):
-                return True
-        except:
-            return False
-    except:
-        return False
-
-    return False
 
 def _check_ctrls_container(ctrls):
     """
@@ -106,7 +91,7 @@ def _check_ctrls_container(ctrls):
         try:
             if isinstance(ctrls[0], (list, tuple)):
                 ctrls = np.array(ctrls, dtype=object)
-        except:
+        except IndexError:
             pass
 
     if isinstance(ctrls, np.ndarray):
@@ -125,24 +110,25 @@ def _check_ctrls_container(ctrls):
 
     return ctrls
 
-def _check_drift_dyn_gen(drift):
-    if not isinstance(drift, Qobj):
-        if not isinstance(drift, (list, tuple)):
-            raise TypeError("drift should be a Qobj or a list of Qobj")
-        else:
-            for d in drift:
-                if not isinstance(d, Qobj):
-                    raise TypeError(
-                        "drift should be a Qobj or a list of Qobj")
 
-warnings.simplefilter('always', DeprecationWarning) #turn off filter
+def _check_drift_dyn_gen(drift):
+    if isinstance(drift, Qobj):
+        return
+    if not isinstance(drift, (list, tuple)):
+        raise TypeError("drift should be a Qobj or a list of Qobj")
+    for d in drift:
+        if not isinstance(d, Qobj):
+            raise TypeError("drift should be a Qobj or a list of Qobj")
+
+
 def _attrib_deprecation(message, stacklevel=3):
     """
     Issue deprecation warning
     Using stacklevel=3 will ensure message refers the function
     calling with the deprecated parameter,
     """
-    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    warnings.warn(message, FutureWarning, stacklevel=stacklevel)
+
 
 def _func_deprecation(message, stacklevel=3):
     """
@@ -150,7 +136,8 @@ def _func_deprecation(message, stacklevel=3):
     Using stacklevel=3 will ensure message refers the function
     calling with the deprecated parameter,
     """
-    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    warnings.warn(message, FutureWarning, stacklevel=stacklevel)
+
 
 class Dynamics(object):
     """
@@ -532,7 +519,7 @@ class Dynamics(object):
         if value is None:
             self.dump = None
         else:
-            if not _is_string(value):
+            if not isinstance(value, str):
                 raise TypeError("Value must be string value")
             lvl = value.upper()
             if lvl == 'NONE':
@@ -713,9 +700,9 @@ class Dynamics(object):
             else:
                 ctrls = self.ctrl_dyn_gen
             for c in ctrls:
-               dg = dg + c
+                dg = dg + c
 
-            N = dg.data.shape[0]
+            N = dg.shape[0]
             n = dg.data.nnz
 
             if N ** 2 < 100 * n:
@@ -776,27 +763,13 @@ class Dynamics(object):
                                     self.ctrl_dyn_gen[k, j].full()
             else:
                 self._ctrl_dyn_gen = [ctrl.full()
-                                        for ctrl in self.ctrl_dyn_gen]
-        elif self.oper_dtype == sp.csr_matrix:
-            self._initial = self.initial.data
-            self._target = self.target.data
-            if self.time_depend_drift:
-                self._drift_dyn_gen = [d.data for d in self.drift_dyn_gen]
-            else:
-                self._drift_dyn_gen = self.drift_dyn_gen.data
-
-            if self.time_depend_ctrl_dyn_gen:
-                self._ctrl_dyn_gen = np.empty([n_ts, n_ctrls], dtype=object)
-                for k in range(n_ts):
-                    for j in range(n_ctrls):
-                        self._ctrl_dyn_gen[k, j] = \
-                                    self.ctrl_dyn_gen[k, j].data
-            else:
-                self._ctrl_dyn_gen = [ctrl.data for ctrl in self.ctrl_dyn_gen]
+                                      for ctrl in self.ctrl_dyn_gen]
         else:
-            logger.warn("Unknown option '{}' for oper_dtype. "
+            logger.warn(
+                "Unknown option '{}' for oper_dtype. "
                 "Assuming that internal drift, ctrls, initial and target "
-                "have been set correctly".format(self.oper_dtype))
+                "have been set correctly".format(self.oper_dtype)
+            )
 
         if self.cache_phased_dyn_gen:
             if self.time_depend_ctrl_dyn_gen:
@@ -808,7 +781,7 @@ class Dynamics(object):
                                     self._ctrl_dyn_gen[k, j])
             else:
                 self._phased_ctrl_dyn_gen = [self._apply_phase(ctrl)
-                                                for ctrl in self._ctrl_dyn_gen]
+                                             for ctrl in self._ctrl_dyn_gen]
 
         self._dyn_gen = [object for x in range(self.num_tslots)]
         if self.cache_phased_dyn_gen:
@@ -816,7 +789,7 @@ class Dynamics(object):
         self._prop = [object for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact and self.cache_prop_grad:
             self._prop_grad = np.empty([self.num_tslots, self.num_ctrls],
-                                      dtype=object)
+                                       dtype=object)
         # Time evolution operator (forward propagation)
         self._fwd_evo = [object for x in range(self.num_tslots+1)]
         self._fwd_evo[0] = self._initial
@@ -831,9 +804,11 @@ class Dynamics(object):
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
 
-        if (self.log_level <= logging.DEBUG
-            and isinstance(self, DynamicsUnitary)):
-                self.unitarity_check_level = 1
+        if (
+            self.log_level <= logging.DEBUG
+            and isinstance(self, DynamicsUnitary)
+        ):
+            self.unitarity_check_level = 1
 
         if self.dump_to_file:
             if self.dump is None:
@@ -893,7 +868,7 @@ class Dynamics(object):
 
         try:
             ph_app = ph_app.lower()
-        except:
+        except AttributeError:
             raise ValueError(err_msg)
 
         if ph_app == 'preop':
@@ -1036,7 +1011,7 @@ class Dynamics(object):
         if times is None:
             times = self.get_amp_times()
         else:
-            if _is_string(times):
+            if isinstance(times, str):
                 if times.lower() == 'exclude':
                     inctimes = False
                 else:
@@ -1070,9 +1045,12 @@ class Dynamics(object):
         """
 
         if self.log_level <= logging.DEBUG_INTENSE:
-            logger.log(logging.DEBUG_INTENSE, "Updating amplitudes...\n"
-                       "Current control amplitudes:\n" + str(self.ctrl_amps) +
-                       "\n(potenially) new amplitudes:\n" + str(new_amps))
+            logger.log(logging.DEBUG_INTENSE,
+                       "Updating amplitudes...\n"
+                       "Current control amplitudes:\n"
+                       + str(self.ctrl_amps)
+                       + "\n(potenially) new amplitudes:\n"
+                       + str(new_amps))
 
         self.tslot_computer.compare_amps(new_amps)
 
@@ -1103,8 +1081,10 @@ class Dynamics(object):
             self.time_depend_drift = False
 
         if not isinstance(d0, Qobj):
-            raise TypeError("Unable to determine drift attributes, "
-                    "because drift_dyn_gen is not Qobj (nor list of)")
+            raise TypeError(
+                "Unable to determine drift attributes, "
+                "because drift_dyn_gen is not Qobj (nor list of)"
+            )
 
         self.dyn_shape = d0.shape
         self.dyn_dims = d0.dims
@@ -1116,7 +1096,7 @@ class Dynamics(object):
         subsequently
         """
         _func_deprecation("'get_num_ctrls' has been replaced by "
-                         "'num_ctrls' property")
+                          "'num_ctrls' property")
         return self.num_ctrls
 
     def _get_num_ctrls(self):
@@ -1159,7 +1139,7 @@ class Dynamics(object):
 
     def get_owd_evo_target(self):
         _func_deprecation("'get_owd_evo_target' has been replaced by "
-                         "'onto_evo_target' property")
+                          "'onto_evo_target' property")
         return self.onto_evo_target
 
     def _get_onto_evo_target(self):
@@ -1173,14 +1153,12 @@ class Dynamics(object):
         For state-to-state, the bra corresponding to the is required ket
         """
         if self.target.shape[0] == self.target.shape[1]:
-            #Target is operator
+            # Target is operator
             targ = la.inv(self.target.full())
             if self.oper_dtype == Qobj:
                 self._onto_evo_target = Qobj(targ)
             elif self.oper_dtype == np.ndarray:
                 self._onto_evo_target = targ
-            elif self.oper_dtype == sp.csr_matrix:
-                self._onto_evo_target = sp.csr_matrix(targ)
             else:
                 targ_cls = self._target.__class__
                 self._onto_evo_target = targ_cls(targ)
@@ -1189,8 +1167,6 @@ class Dynamics(object):
                 self._onto_evo_target = self.target.dag()
             elif self.oper_dtype == np.ndarray:
                 self._onto_evo_target = self.target.dag().full()
-            elif self.oper_dtype == sp.csr_matrix:
-                self._onto_evo_target = self.target.dag().data
             else:
                 targ_cls = self._target.__class__
                 self._onto_evo_target = targ_cls(self.target.dag().full())
@@ -1203,7 +1179,7 @@ class Dynamics(object):
         The is the combined Hamiltion for unitary systems
         """
         _func_deprecation("'combine_dyn_gen' has been replaced by "
-                        "'_combine_dyn_gen'")
+                          "'_combine_dyn_gen'")
         self._combine_dyn_gen(k)
         return self._dyn_gen(k)
 
@@ -1233,7 +1209,7 @@ class Dynamics(object):
         Not implemented in the base class. Choose a subclass
         """
         _func_deprecation("'get_dyn_gen' has been replaced by "
-                        "'_get_phased_dyn_gen'")
+                          "'_get_phased_dyn_gen'")
         return self._get_phased_dyn_gen(k)
 
     def _get_phased_dyn_gen(self, k):
@@ -1251,7 +1227,7 @@ class Dynamics(object):
         Not implemented in the base class. Choose a subclass
         """
         _func_deprecation("'get_ctrl_dyn_gen' has been replaced by "
-                        "'_get_phased_ctrl_dyn_gen'")
+                          "'_get_phased_ctrl_dyn_gen'")
         return self._get_phased_ctrl_dyn_gen(0, j)
 
     def _get_phased_ctrl_dyn_gen(self, k, j):
@@ -1283,7 +1259,7 @@ class Dynamics(object):
                     self._dyn_gen_qobj = self._dyn_gen
                 else:
                     self._dyn_gen_qobj = [Qobj(dg, dims=self.dyn_dims)
-                                            for dg in self._dyn_gen]
+                                          for dg in self._dyn_gen]
         return self._dyn_gen_qobj
 
     @property
@@ -1297,7 +1273,7 @@ class Dynamics(object):
                     self._prop_qobj = self._prop
                 else:
                     self._prop_qobj = [Qobj(dg, dims=self.dyn_dims)
-                                            for dg in self._prop]
+                                       for dg in self._prop]
         return self._prop_qobj
 
     @property
@@ -1324,8 +1300,8 @@ class Dynamics(object):
         if self.cache_prop_grad:
             prop_grad = self._prop_grad[k, j]
         else:
-            prop_grad = self.prop_computer._compute_prop_grad(k, j,
-                                                       compute_prop = False)
+            prop_grad =\
+                self.prop_computer._compute_prop_grad(k, j, compute_prop=False)
         return prop_grad
 
     @property
@@ -1377,7 +1353,7 @@ class Dynamics(object):
                     self._onwd_evo_qobj = self._fwd_evo
                 else:
                     self._onwd_evo_qobj = [Qobj(dg, dims=self.sys_dims)
-                                            for dg in self._onwd_evo]
+                                           for dg in self._onwd_evo]
         return self._onwd_evo_qobj
 
     @property
@@ -1400,7 +1376,7 @@ class Dynamics(object):
                     self._onto_evo_qobj = []
                     for k in range(0, self.num_tslots):
                         self._onto_evo_qobj.append(Qobj(self._onto_evo[k],
-                                                       dims=self.sys_dims))
+                                                        dims=self.sys_dims))
                     self._onto_evo_qobj.append(self.onto_evo_target)
 
         return self._onto_evo_qobj
@@ -1421,8 +1397,7 @@ class Dynamics(object):
             self.tslot_computer.recompute_evolution()
             self.evo_current = True
             return True
-        else:
-            return False
+        return False
 
     def _ensure_decomp_curr(self, k):
         """
@@ -1454,17 +1429,17 @@ class Dynamics(object):
         A can be either Qobj or ndarray
         """
         if isinstance(A, Qobj):
-            unitary = np.allclose(np.eye(A.shape[0]), A*A.dag().full(),
-                        atol=self.unitarity_tol)
+            unitary = np.allclose(np.eye(A.shape[0]), (A*A.dag()).full(),
+                                  atol=self.unitarity_tol)
         else:
             unitary = np.allclose(np.eye(len(A)), A.dot(A.T.conj()),
-                        atol=self.unitarity_tol)
+                                  atol=self.unitarity_tol)
 
         return unitary
 
     def _calc_unitary_err(self, A):
         if isinstance(A, Qobj):
-            err = np.sum(abs(np.eye(A.shape[0]) - A*A.dag().full()))
+            err = np.sum(abs(np.eye(A.shape[0]) - (A*A.dag()).full()))
         else:
             err = np.sum(abs(np.eye(len(A)) - A.dot(A.T.conj())))
 
@@ -1490,6 +1465,7 @@ class DynamicsGenMat(Dynamics):
         Dynamics.reset(self)
         self.id_text = 'GEN_MAT'
         self.apply_params()
+
 
 class DynamicsUnitary(Dynamics):
     """
@@ -1536,7 +1512,6 @@ class DynamicsUnitary(Dynamics):
             self.tslot_computer = tslotcomp.TSlotCompDynUpdate(self)
         else:
             self.tslot_computer = tslotcomp.TSlotCompUpdateAll(self)
-
         # set the default fidelity computer
         self.fid_computer = fidcomp.FidCompUnitary(self)
         # set the default propagator computer
@@ -1545,22 +1520,18 @@ class DynamicsUnitary(Dynamics):
     def initialize_controls(self, amplitudes, init_tslots=True):
         # Either the _dyn_gen or _ham names can be used
         # This assumes that one or other has been set in the configuration
-
         self._map_dyn_gen_to_ham()
         Dynamics.initialize_controls(self, amplitudes, init_tslots=init_tslots)
-        #self.H = self._dyn_gen
 
     def _map_dyn_gen_to_ham(self):
         if self.drift_dyn_gen is None:
             self.drift_dyn_gen = self.drift_ham
         else:
             self.drift_ham = self.drift_dyn_gen
-
         if self.ctrl_dyn_gen is None:
             self.ctrl_dyn_gen = self.ctrl_ham
         else:
             self.ctrl_ham = self.ctrl_dyn_gen
-
         self._dyn_gen_mapped = True
 
     @property
@@ -1598,17 +1569,10 @@ class DynamicsUnitary(Dynamics):
                                         sparse=self.sparse_eigen_decomp)
             eig_vec = eig_vec.T
 
-        elif self.oper_dtype == np.ndarray:
+        else:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
             eig_val, eig_vec = np.linalg.eigh(H)
-        else:
-            if sparse:
-                H = self._dyn_gen[k].toarray()
-            else:
-                H = self._dyn_gen[k]
-            # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = la.eigh(H)
 
         # assuming H is an nxn matrix, find n
         n = self.get_drift_dim()
@@ -1649,9 +1613,9 @@ class DynamicsUnitary(Dynamics):
 
         if self.oper_dtype == Qobj:
             self._prop_eigen[k] = Qobj(np.diagflat(prop_eig),
-                                                    dims=self.dyn_dims)
+                                       dims=self.dyn_dims)
             self._dyn_gen_eigenvectors[k] = Qobj(eig_vec,
-                                                dims=self.dyn_dims)
+                                                 dims=self.dyn_dims)
             # The _dyn_gen_eigenvectors_adj list is not used in
             # memory optimised modes
             if self._dyn_gen_eigenvectors_adj is not None:
@@ -1671,11 +1635,9 @@ class DynamicsUnitary(Dynamics):
         # memory optimised modes
         if self._dyn_gen_eigenvectors_adj is not None:
             return self._dyn_gen_eigenvectors_adj[k]
-        else:
-            if self.oper_dtype == Qobj:
-                return self._dyn_gen_eigenvectors[k].dag()
-            else:
-                return self._dyn_gen_eigenvectors[k].conj().T
+        if self.oper_dtype == Qobj:
+            return self._dyn_gen_eigenvectors[k].dag()
+        return self._dyn_gen_eigenvectors[k].conj().T
 
     def check_unitarity(self):
         """
@@ -1695,7 +1657,7 @@ class DynamicsUnitary(Dynamics):
                     herm = H.isherm
                 else:
                     diff = np.abs(H.T.conj() - H)
-                    herm = False if np.any(diff > settings.atol) else True
+                    herm = np.all(diff < settings.atol)
                 eigval_unit = self._is_unitary(self._prop_eigen[k])
                 eigvec_unit = self._is_unitary(self._dyn_gen_eigenvectors[k])
                 if self._dyn_gen_eigenvectors_adj is not None:
@@ -1704,11 +1666,12 @@ class DynamicsUnitary(Dynamics):
                 else:
                     eigvecadj_unit = None
                 msg = ("prop unit: {}; H herm: {}; "
-                        "eigval unit: {}; eigvec unit: {}; "
-                        "eigvecadj_unit: {}".format(
-                        prop_unit, herm, eigval_unit, eigvec_unit,
-                            eigvecadj_unit))
+                       "eigval unit: {}; eigvec unit: {}; "
+                       "eigvecadj_unit: {}".format(
+                           prop_unit, herm, eigval_unit, eigvec_unit,
+                           eigvecadj_unit))
                 logger.info(msg)
+
 
 class DynamicsSymplectic(Dynamics):
     """
@@ -1763,8 +1726,6 @@ class DynamicsSymplectic(Dynamics):
             if self.oper_dtype == Qobj:
                 self._omega = Qobj(omg, dims=self.dyn_dims)
                 self._omega_qobj = self._omega
-            elif self.oper_dtype == sp.csr_matrix:
-                self._omega = sp.csr_matrix(omg)
             else:
                  self._omega = omg
         return self._omega

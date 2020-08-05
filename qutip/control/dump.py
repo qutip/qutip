@@ -41,33 +41,19 @@ data dumping.
 """
 
 import os
-import numpy as np
 import copy
+import numpy as np
+from numpy.compat import asbytes
+# QuTiP control modules
+import qutip.control.io as qtrlio
 # QuTiP logging
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
-# QuTiP control modules
-import qutip.control.io as qtrlio
-from numpy.compat import asbytes
 
 DUMP_DIR = "~/.qtrl_dump"
 
-def _is_string(var):
-    try:
-        if isinstance(var, basestring):
-            return True
-    except NameError:
-        try:
-            if isinstance(var, str):
-                return True
-        except:
-            return False
-    except:
-        return False
 
-    return False
-
-class Dump(object):
+class Dump:
     """
     A container for dump items.
     The lists for dump items is depends on the type
@@ -123,10 +109,11 @@ class Dump(object):
 
     """
     def __init__(self):
+        self.parent = None
         self.reset()
 
     def reset(self):
-        if self.parent:
+        if self.parent is not None:
             self.log_level = self.parent.log_level
             self.write_to_file = self.parent.dump_to_file
         else:
@@ -177,13 +164,15 @@ class Dump(object):
 
     @property
     def dump_any(self):
-        raise NotImplemented("This is an abstract class, "
-                    "use subclass such as DynamicsDump or OptimDump")
+        raise NotImplementedError(
+            "This is an abstract class, "
+            "use subclass such as DynamicsDump or OptimDump")
 
     @property
     def dump_all(self):
-        raise NotImplemented("This is an abstract class, "
-                    "use subclass such as DynamicsDump or OptimDump")
+        raise NotImplementedError(
+            "This is an abstract class, "
+            "use subclass such as DynamicsDump or OptimDump")
 
     @property
     def dump_dir(self):
@@ -220,7 +209,7 @@ class Dump(object):
 
     @fname_base.setter
     def fname_base(self, value):
-        if not _is_string(value):
+        if not isinstance(value, str):
             raise ValueError("File name base must be a string")
         self._fname_base = value
         self._summary_file_path = None
@@ -228,13 +217,14 @@ class Dump(object):
     @property
     def summary_file(self):
         if self._summary_file_path is None:
-            fname = "{}-summary.{}".format(self._fname_base, self.dump_file_ext)
+            fname = "{}-summary.{}".format(self._fname_base,
+                                           self.dump_file_ext)
             self._summary_file_path = os.path.join(self.dump_dir, fname)
         return self._summary_file_path
 
     @summary_file.setter
     def summary_file(self, value):
-        if not _is_string(value):
+        if not isinstance(value, str):
             raise ValueError("File path must be a string")
         self._summary_file_specified = True
         if os.path.abspath(value):
@@ -243,6 +233,7 @@ class Dump(object):
             self._summary_file_path = os.path.expanduser(value)
         else:
             self._summary_file_path = os.path.join(self.dump_dir, value)
+
 
 class OptimDump(Dump):
     """
@@ -298,31 +289,24 @@ class OptimDump(Dump):
 
     def clear(self):
         del self.iter_summary[:]
-        self.fid_err_log[:]
-        self.grad_norm_log[:]
-        self.grad_log[:]
+        del self.fid_err_log[:]
+        del self.grad_norm_log[:]
+        del self.grad_log[:]
 
     @property
     def dump_any(self):
         """True if anything other than the summary is to be dumped"""
-        if (self.dump_fid_err or self.dump_grad_norm or self.dump_grad):
-            return True
-        else:
-            return False
+        return self.dump_fid_err or self.dump_grad_norm or self.dump_grad
 
     @property
     def dump_all(self):
         """True if everything (ignoring the summary) is to be dumped"""
-        if (self.dump_fid_err and self.dump_grad_norm and self.dump_grad):
-            return True
-        else:
-            return False
+        return self.dump_fid_err and self.dump_grad_norm and self.dump_grad
 
     def _apply_level(self, level=None):
         if level is None:
             level = self._level
-
-        if not _is_string(level):
+        if not isinstance(level, str):
             raise ValueError("Dump level must be a string")
         level = level.upper()
         if level == 'CUSTOM':
@@ -372,7 +356,7 @@ class OptimDump(Dump):
     def fid_err_file(self):
         if self._fid_err_file is None:
             fname = "{}-fid_err_log.{}".format(self.fname_base,
-                                                    self.dump_file_ext)
+                                               self.dump_file_ext)
             self._fid_err_file = os.path.join(self.dump_dir, fname)
         return self._fid_err_file
 
@@ -392,7 +376,7 @@ class OptimDump(Dump):
     def grad_norm_file(self):
         if self._grad_norm_file is None:
             fname = "{}-grad_norm_log.{}".format(self.fname_base,
-                                                    self.dump_file_ext)
+                                                 self.dump_file_ext)
             self._grad_norm_file = os.path.join(self.dump_dir, fname)
         return self._grad_norm_file
 
@@ -413,8 +397,8 @@ class OptimDump(Dump):
         self.grad_log.append(grad)
         if self.write_to_file:
             fname = "{}-fid_err_gradients{}.{}".format(self.fname_base,
-                                                        len(self.grad_log),
-                                                        self.dump_file_ext)
+                                                       len(self.grad_log),
+                                                       self.dump_file_ext)
             fpath = os.path.join(self.dump_dir, fname)
             np.savetxt(fpath, grad, delimiter=self.data_sep)
 
@@ -433,7 +417,7 @@ class OptimDump(Dump):
         fall = None
         # If specific file given then write everything to it
         if hasattr(f, 'write'):
-            if not 'b' in f.mode:
+            if 'b' not in f.mode:
                 raise RuntimeError("File stream must be in binary mode")
             # write all to this stream
             fall = f
@@ -490,9 +474,10 @@ class OptimDump(Dump):
                     fall.write(asbytes("gradients (call {}):\n".format(g_num)))
                     np.savetxt(fall, grad)
                 else:
-                    fname = "{}-fid_err_gradients{}.{}".format(self.fname_base,
-                                                            g_num,
-                                                            self.dump_file_ext)
+                    fname =\
+                        "{}-fid_err_gradients{}.{}".format(self.fname_base,
+                                                           g_num,
+                                                           self.dump_file_ext)
                     fpath = os.path.join(self.dump_dir, fname)
                     np.savetxt(fpath, grad, delimiter=self.data_sep)
 
@@ -504,6 +489,7 @@ class OptimDump(Dump):
                 logger.info("Optim dump saved to specified stream")
             else:
                 logger.info("Optim dump saved to {}".format(self.dump_dir))
+
 
 class DynamicsDump(Dump):
     """
@@ -568,40 +554,36 @@ class DynamicsDump(Dump):
     @property
     def dump_any(self):
         """True if any of the calculation objects are to be dumped"""
-        if (self.dump_amps or
-                self.dump_dyn_gen or
-                self.dump_prop or
-                self.dump_prop_grad or
-                self.dump_fwd_evo or
-                self.dump_onwd_evo or
-                self.dump_onto_evo):
-            return True
-        else:
-            return False
+        return any([
+            self.dump_amps,
+            self.dump_dyn_gen,
+            self.dump_prop,
+            self.dump_prop_grad,
+            self.dump_fwd_evo,
+            self.dump_onwd_evo,
+            self.dump_onto_evo,
+        ])
 
     @property
     def dump_all(self):
         """True if all of the calculation objects are to be dumped"""
         dyn = self.parent
-        if (self.dump_amps and
-                    self.dump_dyn_gen and
-                    self.dump_prop and
-                    self.dump_prop_grad and
-                    self.dump_fwd_evo and
-                    (self.dump_onwd_evo) or
-                    (self.dump_onwd_evo == dyn.fid_computer.uses_onwd_evo) and
-                    (self.dump_onto_evo or
-                    (self.dump_onto_evo == dyn.fid_computer.uses_onto_evo))):
-            return True
-        else:
-            return False
+        return all([
+            self.dump_amps,
+            self.dump_dyn_gen,
+            self.dump_prop,
+            self.dump_prop_grad,
+            self.dump_fwd_evo,
+            self.dump_onwd_evo == dyn.fid_computer.uses_onwd_evo,
+            self.dump_onto_evo == dyn.fid_computer.uses_onto_evo,
+        ])
 
     def _apply_level(self, level=None):
         dyn = self.parent
         if level is None:
             level = self._level
 
-        if not _is_string(level):
+        if not isinstance(level, str):
             raise ValueError("Dump level must be a string")
         level = level.upper()
         if level == 'CUSTOM':
@@ -699,7 +681,7 @@ class DynamicsDump(Dump):
         fall = None
         # If specific file given then write everything to it
         if hasattr(f, 'write'):
-            if not 'b' in f.mode:
+            if 'b' not in f.mode:
                 raise RuntimeError("File stream must be in binary mode")
             # write all to this stream
             fall = f
@@ -746,12 +728,14 @@ class DynamicsDump(Dump):
             else:
                 logger.info("Dynamics dump saved to {}".format(self.dump_dir))
 
-class DumpItem(object):
+
+class DumpItem:
     """
     An item in a dump list
     """
     def __init__(self):
         pass
+
 
 class EvoCompDumpItem(DumpItem):
     """
@@ -768,8 +752,6 @@ class EvoCompDumpItem(DumpItem):
 
     def reset(self):
         self.idx = None
-#        self.num_ctrls = None
-#        self.num_tslots = None
         self.ctrl_amps = None
         self.dyn_gen = None
         self.prop = None
@@ -796,7 +778,7 @@ class EvoCompDumpItem(DumpItem):
         closef = False
         # If specific file given then write everything to it
         if hasattr(f, 'write'):
-            if not 'b' in f.mode:
+            if 'b' not in f.mode:
                 raise RuntimeError("File stream must be in binary mode")
             # write all to this stream
             fall = f
@@ -809,29 +791,30 @@ class EvoCompDumpItem(DumpItem):
             fnbase = "{}-evo{}".format(dump._fname_base, self.idx)
             closefall = False
 
-        #ctrl amps
-        if not self.ctrl_amps is None:
+        # ctrl amps
+        if self.ctrl_amps is not None:
             if fall:
                 f = fall
                 f.write(asbytes("Ctrl amps\n"))
             else:
                 fname = "{}-ctrl_amps.{}".format(fnbase,
-                                                dump.dump_file_ext)
+                                                 dump.dump_file_ext)
                 f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             np.savetxt(f, self.ctrl_amps, fmt='%14.6g',
                        delimiter=dump.data_sep)
-            if closef: f.close()
+            if closef:
+                f.close()
 
         # dynamics generators
-        if not self.dyn_gen is None:
+        if self.dyn_gen is not None:
             k = 0
             if fall:
                 f = fall
                 f.write(asbytes("Dynamics Generators\n"))
             else:
                 fname = "{}-dyn_gen.{}".format(fnbase,
-                                                dump.dump_file_ext)
+                                               dump.dump_file_ext)
                 f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
@@ -839,34 +822,36 @@ class EvoCompDumpItem(DumpItem):
                         "dynamics generator for timeslot {}\n".format(k)))
                 np.savetxt(f, self.dyn_gen[k], delimiter=dump.data_sep)
                 k += 1
-            if closef: f.close()
+            if closef:
+                f.close()
 
         # Propagators
-        if not self.prop is None:
+        if self.prop is not None:
             k = 0
             if fall:
                 f = fall
                 f.write(asbytes("Propagators\n"))
             else:
                 fname = "{}-prop.{}".format(fnbase,
-                                                dump.dump_file_ext)
+                                            dump.dump_file_ext)
                 f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
                 f.write(asbytes("Propagator for timeslot {}\n".format(k)))
                 np.savetxt(f, self.prop[k], delimiter=dump.data_sep)
                 k += 1
-            if closef: f.close()
+            if closef:
+                f.close()
 
         # Propagator gradient
-        if not self.prop_grad is None:
+        if self.prop_grad is not None:
             k = 0
             if fall:
                 f = fall
                 f.write(asbytes("Propagator gradients\n"))
             else:
                 fname = "{}-prop_grad.{}".format(fnbase,
-                                                dump.dump_file_ext)
+                                                 dump.dump_file_ext)
                 f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for k in range(self.prop_grad.shape[0]):
@@ -875,27 +860,29 @@ class EvoCompDumpItem(DumpItem):
                             "control {}\n".format(k, j)))
                     np.savetxt(f, self.prop_grad[k, j],
                                delimiter=dump.data_sep)
-            if closef: f.close()
+            if closef:
+                f.close()
 
         # forward evolution
-        if not self.fwd_evo is None:
+        if self.fwd_evo is not None:
             k = 0
             if fall:
                 f = fall
                 f.write(asbytes("Forward evolution\n"))
             else:
                 fname = "{}-fwd_evo.{}".format(fnbase,
-                                                dump.dump_file_ext)
+                                               dump.dump_file_ext)
                 f = open(os.path.join(dump.dump_dir, fname), 'wb')
                 closef = True
             for dg in self.dyn_gen:
                 f.write(asbytes("Evolution from 0 to {}\n".format(k)))
                 np.savetxt(f, self.fwd_evo[k], delimiter=dump.data_sep)
                 k += 1
-            if closef: f.close()
+            if closef:
+                f.close()
 
         # onward evolution
-        if not self.onwd_evo is None:
+        if self.onwd_evo is not None:
             k = 0
             if fall:
                 f = fall
@@ -909,10 +896,11 @@ class EvoCompDumpItem(DumpItem):
                 f.write(asbytes("Evolution from {} to end\n".format(k)))
                 np.savetxt(f, self.fwd_evo[k], delimiter=dump.data_sep)
                 k += 1
-            if closef: f.close()
+            if closef:
+                f.close()
 
         # onto evolution
-        if not self.onto_evo is None:
+        if self.onto_evo is not None:
             k = 0
             if fall:
                 f = fall
@@ -926,12 +914,14 @@ class EvoCompDumpItem(DumpItem):
                 f.write(asbytes("Evolution from {} onto target\n".format(k)))
                 np.savetxt(f, self.fwd_evo[k], delimiter=dump.data_sep)
                 k += 1
-            if closef: f.close()
+            if closef:
+                f.close()
 
         if closefall:
             fall.close()
 
-class DumpSummaryItem(object):
+
+class DumpSummaryItem:
     """A summary of the most recent iteration
     Abstract class only
 
@@ -941,9 +931,7 @@ class DumpSummaryItem(object):
     """
     min_col_width = 11
     summary_property_names = ()
-
     summary_property_fmt_type = ()
-
     summary_property_fmt_prec = ()
 
     @classmethod
