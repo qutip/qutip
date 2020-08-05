@@ -97,6 +97,8 @@ cpdef Dense column_stack_dense(Dense matrix, bint inplace=False):
 cdef void _column_unstack_check_shape(Data matrix, idxint rows) except *:
     if matrix.shape[1] != 1:
         raise ValueError("input is not a single column")
+    if rows < 1:
+        raise ValueError("rows must be a positive integer")
     if matrix.shape[0] % rows:
         raise ValueError("number of rows does not divide into the shape")
 
