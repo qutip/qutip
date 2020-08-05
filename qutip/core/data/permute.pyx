@@ -266,7 +266,7 @@ cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
     cdef _Indexer index = _Indexer(np.asarray(dimensions, dtype=idxint_dtype),
                                    np.asarray(order, dtype=idxint_dtype))
     cdef idxint[:] permutation
-    if matrix.shape[0] == 1 and matrix.shape[1] == 1:
+    if matrix.shape[0] == 1 and matrix.shape[1] == 1 or csr.nnz(matrix) == 0:
         return matrix.copy()
     if matrix.shape[0] == 1:
         return _dimensions_csr_columns(matrix, index)
@@ -274,7 +274,7 @@ cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
         return _indices_csr_rowonly(matrix, index.all())
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("dimensional permute requires square operators")
-    if csr.nnz(matrix) != 0 and (matrix.shape[0] * matrix.shape[1]) // csr.nnz(matrix) > 0:
+    if (matrix.shape[0] * matrix.shape[1]) // csr.nnz(matrix) > 0:
         permutation = index.all()
         return _indices_csr_full(matrix, permutation, permutation)
     return _dimensions_csr_sparse(matrix, index)
