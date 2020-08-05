@@ -334,3 +334,5 @@ sphinx_gallery_conf = {
      'gallery_dirs': 'gallery/qutip_examples',  # save generated examples
      'abort_on_example_error': True  # abort if exception occurs
 }
+
+ipython_strict_fail = False
