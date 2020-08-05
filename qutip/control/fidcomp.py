@@ -412,7 +412,7 @@ class FidCompUnitary(FidelityComputer):
                 norm = _trace(A)
             else:
                 raise TypeError("Cannot compute trace (not square)")
-        except AttributeError:
+        except (AttributeError, IndexError):
             # assume input is already scalar and hence assumed
             # to be the prenormalised scalar value, e.g. fidelity
             norm = A
@@ -458,7 +458,9 @@ class FidCompUnitary(FidelityComputer):
             k = dyn.tslot_computer._get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
             if dyn.oper_dtype == Qobj:
-                f = (dyn._onto_evo[k]*dyn._fwd_evo[k]).tr()
+                f = dyn._onto_evo[k]*dyn._fwd_evo[k]
+                if isinstance(f, Qobj):
+                    f = f.tr()
             else:
                 f = _trace(dyn._onto_evo[k].dot(dyn._fwd_evo[k]))
             self.fidelity_prenorm = f
@@ -530,7 +532,9 @@ class FidCompUnitary(FidelityComputer):
                 fwd_evo = dyn._fwd_evo[k]
                 onto_evo = dyn._onto_evo[k+1]
                 if dyn.oper_dtype == Qobj:
-                    g = (onto_evo*dyn._get_prop_grad(k, j)*fwd_evo).tr()
+                    g = onto_evo*dyn._get_prop_grad(k, j)*fwd_evo
+                    if isinstance(g, Qobj):
+                        g = g.tr()
                 else:
                     g = _trace(onto_evo.dot(
                                 dyn._get_prop_grad(k, j)).dot(fwd_evo))

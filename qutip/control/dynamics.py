@@ -62,7 +62,7 @@ import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
 from qutip import Qobj
-from qutip.core.data import eigs_csr
+from qutip.core import data as _data
 import qutip.settings as settings
 # QuTiP control modules
 import qutip.control.errors as errors
@@ -703,7 +703,7 @@ class Dynamics(object):
                 dg = dg + c
 
             N = dg.shape[0]
-            n = dg.data.nnz
+            n = _data.csr.nnz(dg.data)
 
             if N ** 2 < 100 * n:
                 # large number of nonzero elements, revert to dense solver
@@ -1564,10 +1564,10 @@ class DynamicsUnitary(Dynamics):
         if self.oper_dtype == Qobj:
             H = self._dyn_gen[k]
             # Returns eigenvalues as array (row)
-            # and eigenvectors as rows of an array
-            eig_val, eig_vec = eigs_csr(H.data, H.isherm,
-                                        sparse=self.sparse_eigen_decomp)
-            eig_vec = eig_vec.T
+            # and eigenvectors as a list of separate 2D kets
+            eig_val, eig_vec = _data.eigs_csr(H.data, H.isherm,
+                                              sparse=self.sparse_eigen_decomp)
+            eig_vec = np.hstack(eig_vec)
 
         else:
             H = self._dyn_gen[k]
@@ -1752,7 +1752,7 @@ class DynamicsSymplectic(Dynamics):
 
     @property
     def dyn_gen_phase(self):
-        """
+        r"""
         The phasing operator for the symplectic group generators
         usually refered to as \Omega
         By default this is applied as 'postop' dyn_gen*-\Omega
