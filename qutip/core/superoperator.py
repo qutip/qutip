@@ -138,7 +138,8 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     elif isinstance(H, Qobj):
         if H.isoper:
             data = -1j * _data.kron_csr(spI, H.data)
-            data = data + 1j*_data.kron_csr(H.data.transpose(), spI)
+            data = _data.add_csr(data, _data.kron_csr(H.data.transpose(), spI),
+                                 scale=1j)
         else:
             data = H.data
     else:
