@@ -61,12 +61,16 @@ class TestCircuitProcessor:
         assert_(tensor([sigmaz(), identity(2)]), proc.ctrls[0])
         proc.add_control(sigmax(), cyclic_permutation=True)
         assert_allclose(len(proc.ctrls), 3)
-        assert_allclose(tensor([sigmax(), identity(2)]), proc.ctrls[1])
-        assert_allclose(tensor([identity(2), sigmax()]), proc.ctrls[2])
+        assert_allclose(tensor([sigmax(), identity(2)]).full(),
+                        proc.ctrls[1].full())
+        assert_allclose(tensor([identity(2), sigmax()]).full(),
+                        proc.ctrls[2].full())
         proc.add_control(sigmay(), targets=1)
-        assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[3])
+        assert_allclose(tensor([identity(2), sigmay()]).full(),
+                        proc.ctrls[3].full())
         proc.remove_pulse([0, 1, 2])
-        assert_allclose(tensor([identity(2), sigmay()]), proc.ctrls[0])
+        assert_allclose(tensor([identity(2), sigmay()]).full(),
+                        proc.ctrls[0].full())
         proc.remove_pulse(0)
         assert_allclose(len(proc.ctrls), 0)
 
@@ -111,8 +115,9 @@ class TestCircuitProcessor:
         proc.add_pulse(Pulse(identity(2), 0, tlist, False))
         result = proc.run_state(
             init_state, options=Options(store_final_state=True))
-        global_phase = init_state.data[0, 0]/result.final_state.data[0, 0]
-        assert_allclose(global_phase*result.final_state, init_state)
+        global_phase = init_state[0, 0]/result.final_state[0, 0]
+        assert_allclose(global_phase*result.final_state.full(),
+                        init_state.full())
 
     def test_id_with_T1_T2(self):
         """
