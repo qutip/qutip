@@ -41,19 +41,21 @@ hierarchy equations of motion (HEOM).
 
 import timeit
 import numpy as np
-#from scipy.special import factorial
 import scipy.sparse as sp
 import scipy.integrate
 from copy import copy
 from qutip import (
-    Qobj, qeye, enr_state_dictionaries, liouvillian, spre, spost,
+    Qobj, qeye, enr_state_dictionaries, liouvillian, spre, spost, sprepost,
 )
-from qutip.core.fastsparse import fast_csr_matrix, fast_identity
+from qutip.core import data as _data
 from qutip.solver import Options, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
-from qutip.core.cy.spmatfuncs import cy_ode_rhs
-from qutip.core.cy.spmath import zcsr_kron
-from qutip.cy.heom import cy_pad_csr
+from qutip.cy.heom import pad_csr
+
+
+def _ode_rhs(t, state, operator):
+    state = _data.dense.fast_from_numpy(state)
+    return _data.matmul_csr_dense_dense(operator, state).as_ndarray()[:, 0]
 
 
 class HEOMSolver(object):
@@ -125,8 +127,9 @@ class HEOMSolver(object):
         Frequencies for the exponential series terms
     """
     def __init__(self):
-        raise NotImplementedError("This is a abstract class only. "
-                "Use a subclass, for example HSolverDL")
+        raise NotImplementedError(
+            "This is a abstract class only. "
+            "Use a subclass, for example HSolverDL")
 
     def reset(self):
         """
@@ -152,10 +155,10 @@ class HEOMSolver(object):
         self.ode = None
         self.configured = False
 
-    def configure(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, planck=None, boltzmann=None,
-                     renorm=None, bnd_cut_approx=None,
-                     options=None, progress_bar=None, stats=None):
+    def configure(self, H_sys, coup_op, coup_strength, temperature, N_cut,
+                  N_exp, planck=None, boltzmann=None, renorm=None,
+                  bnd_cut_approx=None, options=None, progress_bar=None,
+                  stats=None):
         """
         Configure the solver using the passed parameters
         The parameters are described in the class attributes, unless there
@@ -186,21 +189,20 @@ class HEOMSolver(object):
         self.temperature = temperature
         self.N_cut = N_cut
         self.N_exp = N_exp
-        if planck: self.planck = planck
-        if boltzmann: self.boltzmann = boltzmann
-        if isinstance(options, Options): self.options = options
+        if planck:
+            self.planck = planck
+        if boltzmann:
+            self.boltzmann = boltzmann
+        if isinstance(options, Options):
+            self.options = options
         if isinstance(progress_bar, BaseProgressBar):
             self.progress_bar = progress_bar
-        elif progress_bar == True:
-            self.progress_bar = TextProgressBar()
-        elif progress_bar == False:
-            self.progress_bar = None
+        else:
+            self.progress_bar = TextProgressBar() if progress_bar else None
         if isinstance(stats, Stats):
             self.stats = stats
-        elif stats == True:
-            self.stats = self.create_new_stats()
-        elif stats == False:
-            self.stats = None
+        else:
+            self.stats = self.create_new_stats() if stats else None
 
     def create_new_stats(self):
         """
@@ -212,6 +214,7 @@ class HEOMSolver(object):
         stats = Stats(['config', 'run'])
         stats.header = "Hierarchy Solver Stats"
         return stats
+
 
 class HSolverDL(HEOMSolver):
     """
@@ -237,28 +240,26 @@ class HSolverDL(HEOMSolver):
         Can be
     """
 
-    def __init__(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=1.0, boltzmann=1.0,
-                     renorm=True, bnd_cut_approx=True,
-                     options=None, progress_bar=None, stats=None):
+    def __init__(self, H_sys, coup_op, coup_strength, temperature, N_cut,
+                 N_exp, cut_freq, planck=1.0, boltzmann=1.0, renorm=True,
+                 bnd_cut_approx=True, options=None, progress_bar=None,
+                 stats=None):
 
         self.reset()
 
-        if options is None:
-            self.options = Options()
-        else:
-            self.options = options
+        self.options = Options() if options is None else options
 
         self.progress_bar = False
         if progress_bar is None:
             self.progress_bar = BaseProgressBar()
-        elif progress_bar == True:
+        elif progress_bar is True:
             self.progress_bar = TextProgressBar()
 
         # the other attributes will be set in the configure method
-        self.configure(H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=planck, boltzmann=boltzmann,
-                     renorm=renorm, bnd_cut_approx=bnd_cut_approx, stats=stats)
+        self.configure(H_sys, coup_op, coup_strength, temperature, N_cut,
+                       N_exp, cut_freq, planck=planck, boltzmann=boltzmann,
+                       renorm=renorm, bnd_cut_approx=bnd_cut_approx,
+                       stats=stats)
 
     def reset(self):
         """
@@ -269,23 +270,25 @@ class HSolverDL(HEOMSolver):
         self.renorm = False
         self.bnd_cut_approx = False
 
-    def configure(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, planck=None, boltzmann=None,
-                     renorm=None, bnd_cut_approx=None,
-                     options=None, progress_bar=None, stats=None):
+    def configure(self, H_sys, coup_op, coup_strength, temperature, N_cut,
+                  N_exp, cut_freq, planck=None, boltzmann=None, renorm=None,
+                  bnd_cut_approx=None, options=None, progress_bar=None,
+                  stats=None):
         """
         Calls configure from :class:`HEOMSolver` and sets any attributes
         that are specific to this subclass
         """
         start_config = timeit.default_timer()
 
-        HEOMSolver.configure(self, H_sys, coup_op, coup_strength,
-                    temperature, N_cut, N_exp,
-                    planck=planck, boltzmann=boltzmann,
-                    options=options, progress_bar=progress_bar, stats=stats)
+        HEOMSolver.configure(
+            self, H_sys, coup_op, coup_strength, temperature, N_cut, N_exp,
+            planck=planck, boltzmann=boltzmann, options=options,
+            progress_bar=progress_bar, stats=stats)
         self.cut_freq = cut_freq
-        if renorm is not None: self.renorm = renorm
-        if bnd_cut_approx is not None: self.bnd_cut_approx = bnd_cut_approx
+        if renorm is not None:
+            self.renorm = renorm
+        if bnd_cut_approx is not None:
+            self.bnd_cut_approx = bnd_cut_approx
 
         # Load local values for optional parameters
         # Constants and Hamiltonian.
@@ -293,7 +296,6 @@ class HSolverDL(HEOMSolver):
         options = self.options
         progress_bar = self.progress_bar
         stats = self.stats
-
 
         if stats:
             ss_conf = stats.sections.get('config')
@@ -313,37 +315,37 @@ class HSolverDL(HEOMSolver):
         sup_dim = N_temp**2
         unit_sys = qeye(N_temp)
 
-
         # Use shorthands (mainly as in referenced PRL)
         lam0 = self.coup_strength
         gam = self.cut_freq
         N_c = self.N_cut
         N_m = self.N_exp
-        Q = coup_op # Q as shorthand for coupling operator
+        Q = coup_op  # Q as shorthand for coupling operator
         beta = 1.0/(self.boltzmann*self.temperature)
 
         # Ntot is the total number of ancillary elements in the hierarchy
         # Ntot = factorial(N_c + N_m) / (factorial(N_c)*factorial(N_m))
         # Turns out to be the same as nstates from state_number_enumerate
-        N_he, he2idx, idx2he = enr_state_dictionaries([N_c + 1]*N_m , N_c)
+        N_he, he2idx, idx2he = enr_state_dictionaries([N_c + 1]*N_m, N_c)
 
-        unit_helems = fast_identity(N_he)
+        unit_helems = _data.csr.identity(N_he)
         if self.bnd_cut_approx:
             # the Tanimura boundary cut off operator
             if stats:
                 stats.add_message('options', 'boundary cutoff approx', ss_conf)
-            op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+            op = -2*sprepost(Q, Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
 
             approx_factr = ((2*lam0 / (beta*gam*hbar)) - 1j*lam0) / hbar
             for k in range(N_m):
                 approx_factr -= (c[k] / nu[k])
             L_bnd = -approx_factr*op.data
-            L_helems = zcsr_kron(unit_helems, L_bnd)
+            L_helems = _data.kron_csr(unit_helems, L_bnd)
         else:
-            L_helems = fast_csr_matrix(shape=(N_he*sup_dim, N_he*sup_dim))
+            L_helems = _data.csr.zeros(N_he*sup_dim, N_he*sup_dim)
 
         # Build the hierarchy element interaction matrix
-        if stats: start_helem_constr = timeit.default_timer()
+        if stats:
+            start_helem_constr = timeit.default_timer()
 
         unit_sup = spre(unit_sys).data
         spreQ = spre(Q).data
@@ -361,8 +363,7 @@ class HSolverDL(HEOMSolver):
             for k in range(N_m):
                 sum_n_m_freq += he_state[k]*nu[k]
 
-            op = -sum_n_m_freq*unit_sup
-            L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx)
+            L_he = pad_csr(-sum_n_m_freq*unit_sup, N_he, N_he, he_idx, he_idx)
             L_helems += L_he
 
             # Add the neighour interations
@@ -378,11 +379,11 @@ class HSolverDL(HEOMSolver):
 
                     op = c[k]*spreQ - np.conj(c[k])*spostQ
                     if renorm:
-                        op = -1j*norm_minus[n_k, k]*op
+                        op *= -1j*norm_minus[n_k, k]
                     else:
-                        op = -1j*n_k*op
+                        op *= -1j*n_k
 
-                    L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
+                    L_he = pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems += L_he
                     N_he_interact += 1
 
@@ -394,13 +395,12 @@ class HSolverDL(HEOMSolver):
                     he_state_neigh[k] = n_k + 1
                     he_idx_neigh = he2idx[tuple(he_state_neigh)]
 
-                    op = commQ
                     if renorm:
-                        op = -1j*norm_plus[n_k, k]*op
+                        op = -1j*norm_plus[n_k, k] * commQ
                     else:
-                        op = -1j*op
+                        op = -1j * commQ
 
-                    L_he = cy_pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
+                    L_he = pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems += L_he
                     N_he_interact += 1
 
@@ -409,7 +409,7 @@ class HSolverDL(HEOMSolver):
         if stats:
             stats.add_timing('hierarchy contruct',
                              timeit.default_timer() - start_helem_constr,
-                            ss_conf)
+                             ss_conf)
             stats.add_count('Num hierarchy elements', N_he, ss_conf)
             stats.add_count('Num he interactions', N_he_interact, ss_conf)
 
@@ -417,20 +417,18 @@ class HSolverDL(HEOMSolver):
         if stats:
             start_louvillian = timeit.default_timer()
 
-        H_he = zcsr_kron(unit_helems, liouvillian(H_sys).data)
-
+        H_he = _data.kron_csr(unit_helems, liouvillian(H_sys).data)
         L_helems += H_he
 
         if stats:
             stats.add_timing('Liouvillian contruct',
                              timeit.default_timer() - start_louvillian,
-                            ss_conf)
+                             ss_conf)
+            start_integ_conf = timeit.default_timer()
 
-        if stats: start_integ_conf = timeit.default_timer()
+        r = scipy.integrate.ode(_ode_rhs)
 
-        r = scipy.integrate.ode(cy_ode_rhs)
-
-        r.set_f_params(L_helems.data, L_helems.indices, L_helems.indptr)
+        r.set_f_params(L_helems)
         r.set_integrator('zvode', method=options.method, order=options.order,
                          atol=options.atol, rtol=options.rtol,
                          nsteps=options.nsteps, first_step=options.first_step,
@@ -440,7 +438,7 @@ class HSolverDL(HEOMSolver):
             time_now = timeit.default_timer()
             stats.add_timing('Liouvillian contruct',
                              time_now - start_integ_conf,
-                            ss_conf)
+                             ss_conf)
             if ss_conf.total_time is None:
                 ss_conf.total_time = time_now - start_config
             else:
@@ -492,9 +490,10 @@ class HSolverDL(HEOMSolver):
         output.times = tlist
         output.states = []
 
-        if stats: start_init = timeit.default_timer()
+        if stats:
+            start_init = timeit.default_timer()
         output.states.append(Qobj(rho0))
-        rho0_flat = rho0.full().ravel('F') # Using 'F' effectively transposes
+        rho0_flat = rho0.full().ravel('F')  # Using 'F' effectively transposes
         rho0_he = np.zeros([sup_dim*self._N_he], dtype=complex)
         rho0_he[:sup_dim] = rho0_flat
         r.set_initial_value(rho0_he, tlist[0])
@@ -576,51 +575,3 @@ class HSolverDL(HEOMSolver):
                 norm_minus[n, k] = np.sqrt(float(n)/abs(c[k]))
 
         return norm_plus, norm_minus
-
-
-def _pad_csr(A, row_scale, col_scale, insertrow=0, insertcol=0):
-    """
-    Expand the input csr_matrix to a greater space as given by the scale.
-    Effectively inserting A into a larger matrix
-         zeros([A.shape[0]*row_scale, A.shape[1]*col_scale]
-    at the position [A.shape[0]*insertrow, A.shape[1]*insertcol]
-    The same could be achieved through using a kron with a matrix with
-    one element set to 1. However, this is more efficient
-    """
-
-    # ajgpitch 2016-03-08:
-    # Clearly this is a very simple operation in dense matrices
-    # It seems strange that there is nothing equivalent in sparse however,
-    # after much searching most threads suggest directly addressing
-    # the underlying arrays, as done here.
-    # This certainly proved more efficient than other methods such as stacking
-    #TODO: Perhaps cythonize and move to spmatfuncs
-
-    if not isinstance(A, sp.csr_matrix):
-        raise TypeError("First parameter must be a csr matrix")
-    nrowin = A.shape[0]
-    ncolin = A.shape[1]
-    nrowout = nrowin*row_scale
-    ncolout = ncolin*col_scale
-
-    A._shape = (nrowout, ncolout)
-    if insertcol == 0:
-        pass
-    elif insertcol > 0 and insertcol < col_scale:
-        A.indices = A.indices + insertcol*ncolin
-    else:
-        raise ValueError("insertcol must be >= 0 and < col_scale")
-
-    if insertrow == 0:
-        A.indptr = np.concatenate((A.indptr,
-                        np.array([A.indptr[-1]]*(row_scale-1)*nrowin)))
-    elif insertrow == row_scale-1:
-        A.indptr = np.concatenate((np.array([0]*(row_scale - 1)*nrowin),
-                                   A.indptr))
-    elif insertrow > 0 and insertrow < row_scale - 1:
-         A.indptr = np.concatenate((np.array([0]*insertrow*nrowin), A.indptr,
-                np.array([A.indptr[-1]]*(row_scale - insertrow - 1)*nrowin)))
-    else:
-        raise ValueError("insertrow must be >= 0 and < row_scale")
-
-    return A
