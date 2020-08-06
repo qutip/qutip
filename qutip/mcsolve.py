@@ -43,11 +43,9 @@ from scipy.integrate._ode import zvode
 from .core import Qobj, QobjEvo
 from .core import data as _data
 from .parallel import parallel_map, serial_map
-from .core.cy.spconvert import dense1D_to_fastcsr_ket
 from .cy.mcsolve import CyMcOde, CyMcOdeDiag
 from .sesolve import sesolve
 from .solver import Options, Result, ExpectOps, solver_safe, SolverSystem
-from .settings import debug
 from .ui.progressbar import TextProgressBar, BaseProgressBar
 
 
