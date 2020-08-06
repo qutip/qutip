@@ -79,7 +79,8 @@ class TestOptPulseProcessor:
         assert_(
             len(test.pulses) == 1,
             msg="Method of remove_pulse could be wrong.")
-        assert_allclose(test.drift.drift_hamiltonians[0].qobj, H_d)
+        assert_allclose(test.drift.drift_hamiltonians[0].qobj.full(),
+                        H_d.full())
         assert_(
             sigmay() in test.ctrls,
             msg="Method of remove_pulse could be wrong.")
