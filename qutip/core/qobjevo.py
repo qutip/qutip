@@ -38,7 +38,6 @@ import functools
 import numbers
 import os
 import re
-import sys
 from types import FunctionType, BuiltinFunctionType
 
 import numpy as np
@@ -51,9 +50,6 @@ from .qobjevo_codegen import (
     _compile_str_single, _compiled_coeffs, _compiled_coeffs_python,
 )
 from .superoperator import stack_columns, unstack_columns
-from .cy.spmatfuncs import (
-    cy_expect_rho_vec, cy_expect_psi, spmv,
-)
 from .cy.cqobjevo import CQobjEvo
 from .cy.cqobjevo_factor import (
     InterCoeffT, InterCoeffCte, InterpolateCoeff, StrCoeff, StepCoeffCte,
