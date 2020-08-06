@@ -31,18 +31,12 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['expect', 'variance', 'expect_rho_vec', 'expect_psi']
+__all__ = ['expect', 'variance']
 
 import numpy as np
 
 from .qobj import Qobj
 from . import data as _data
-
-# Expose some Cython functions in a more convenient location.
-from .cy.spmatfuncs import (
-    cy_expect_rho_vec as expect_rho_vec,
-    cy_expect_psi as expect_psi,
-)
 
 
 def expect(oper, state):
