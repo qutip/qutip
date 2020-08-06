@@ -177,7 +177,7 @@ cdef class Dense(base.Data):
             cnp.PyArray_SimpleNewFromData(
                 2, [self.shape[0], self.shape[1]], cnp.NPY_COMPLEX128, self.data
             )
-        self._fix_flags(self._np, make_owner=True)
+        self._fix_flags(self._np, make_owner=self._deallocate)
         self._deallocate = False
         return self._np
 
