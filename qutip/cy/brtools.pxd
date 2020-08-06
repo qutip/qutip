@@ -34,6 +34,8 @@
 ###############################################################################
 cimport numpy as cnp
 
+from qutip.core.data cimport CSR
+
 #Spectral function with signature (w,t)
 ctypedef complex (*spec_func)(double, double)
 
@@ -65,6 +67,9 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,  double compl
                     double complex * out,
                     unsigned int nrows,
                     double atol)
+cpdef CSR cop_super_term(complex [::1, :] cop, complex [::1, :] evecs,
+                         double complex alpha, unsigned int nrows, double atol)
+cpdef CSR liou_from_diag_ham(double[::1] diags)
 
 cdef void vec2mat_index(int nrows, int index, int[2] out) nogil
 

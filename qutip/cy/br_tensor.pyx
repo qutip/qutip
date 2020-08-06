@@ -35,18 +35,22 @@ import warnings
 import numpy as np
 import qutip.settings as qset
 from ..core import Qobj
-cimport numpy as np
-cimport cython
+
+import sys
+
 from libc.math cimport fabs
 from libcpp cimport bool
 from libcpp.vector cimport vector
-from ..core.cy.sparse_structs cimport CSR_Matrix, COO_Matrix
-from ..core.cy.sparse_routines cimport COO_to_CSR
-from ..core.cy.sparse_pyobjects cimport CSR_to_scipy
-from .brtools cimport (
-    vec2mat_index, dense_to_eigbasis, ZHEEVR, skew_and_dwmin
+
+cimport numpy as np
+cimport cython
+
+from qutip.core.data cimport CSR, idxint, csr
+from qutip.core.data.add cimport add_csr
+from qutip.cy.brtools cimport (
+    vec2mat_index, dense_to_eigbasis, ZHEEVR, skew_and_dwmin,
+    liou_from_diag_ham, cop_super_term
 )
-from .brtools import liou_from_diag_ham, cop_super_term
 
 np.import_array()
 
@@ -59,21 +63,18 @@ cdef extern from "numpy/arrayobject.h" nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _br_term(complex[::1,:] A, complex[::1,:] evecs,
-                double[:,::1] skew, double dw_min, object spectral,
-                unsigned int nrows, int use_secular, double sec_cutoff,
-                double atol):
+cpdef CSR _br_term(complex[::1,:] A, complex[::1,:] evecs, double[:,::1] skew,
+                   double dw_min, object spectral, unsigned int nrows, int
+                   use_secular, double sec_cutoff, double atol):
 
     cdef size_t kk
     cdef size_t I, J # vector index variables
     cdef int[2] ab, cd #matrix indexing variables
     cdef complex[::1,:] A_eig = dense_to_eigbasis(A, evecs, nrows, atol)
     cdef complex elem, ac_elem, bd_elem
-    cdef vector[int] coo_rows, coo_cols
-    cdef vector[complex] coo_data
+    cdef vector[idxint] coo_rows, coo_cols
+    cdef vector[double complex] coo_data
     cdef unsigned int nnz
-    cdef COO_Matrix coo
-    cdef CSR_Matrix csr
 
     for I in range(nrows**2):
         vec2mat_index(nrows, I, ab)
@@ -103,18 +104,9 @@ def _br_term(complex[::1,:] A, complex[::1,:] evecs,
 
     PyDataMem_FREE(&A_eig[0,0])
 
-    #Number of elements in BR tensor
-    nnz = coo_rows.size()
-    coo.nnz = nnz
-    coo.rows = coo_rows.data()
-    coo.cols = coo_cols.data()
-    coo.data = coo_data.data()
-    coo.nrows = nrows**2
-    coo.ncols = nrows**2
-    coo.is_set = 1
-    coo.max_length = nnz
-    COO_to_CSR(&csr, &coo)
-    return CSR_to_scipy(&csr)
+    return csr.from_coo_pointers(
+        coo_rows.data(), coo_cols.data(), coo_data.data(),
+        nrows*nrows, nrows*nrows, coo_rows.size())
 
 
 @cython.boundscheck(False)
@@ -123,102 +115,97 @@ def bloch_redfield_tensor(object H, list a_ops, spectra_cb=None,
                  list c_ops=[], bool use_secular=True,
                  double sec_cutoff=0.1,
                  double atol = qset.atol):
-     """
-     Calculates the time-independent Bloch-Redfield tensor for a system given
-     a set of operators and corresponding spectral functions that describes the
-     system's couplingto its environment.
+    """
+    Calculates the time-independent Bloch-Redfield tensor for a system given
+    a set of operators and corresponding spectral functions that describes the
+    system's couplingto its environment.
 
-     Parameters
-     ----------
+    Parameters
+    ----------
 
-     H : :class:`qutip.qobj`
-         System Hamiltonian.
+    H : :class:`qutip.qobj`
+        System Hamiltonian.
 
-     a_ops : list
-         Nested list of system operators that couple to the environment,
-         and the corresponding bath spectra represented as Python
-         functions.
+    a_ops : list
+        Nested list of system operators that couple to the environment,
+        and the corresponding bath spectra represented as Python
+        functions.
 
-     spectra_cb : list
-         Depreciated.
+    spectra_cb : list
+        Depreciated.
 
-     c_ops : list
-         List of system collapse operators.
+    c_ops : list
+        List of system collapse operators.
 
-     use_secular : bool {True, False}
-         Flag that indicates if the secular approximation should
-         be used.
+    use_secular : bool {True, False}
+        Flag that indicates if the secular approximation should
+        be used.
 
-     sec_cutoff : float {0.1}
-         Threshold for secular approximation.
+    sec_cutoff : float {0.1}
+        Threshold for secular approximation.
 
-    atol : float {qutip.settings.atol}
-        Threshold for removing small parameters.
+    tol : float {qutip.settings.atol}
+       Threshold for removing small parameters.
 
-     Returns
-     -------
+    Returns
+    -------
 
-     R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
+    R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
 
-         R is the Bloch-Redfield tensor and kets is a list eigenstates of the
-         Hamiltonian.
+        R is the Bloch-Redfield tensor and kets is a list eigenstates of the
+        Hamiltonian.
 
-     """
-     cdef list _a_ops
-     cdef object a, cop, L
-     cdef int K, kk
-     cdef int nrows = H.shape[0]
-     cdef list op_dims = H.dims
-     cdef list sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
-     cdef list ekets, ket_dims
+    """
+    cdef list _a_ops
+    cdef object a, cop
+    cdef CSR L
+    cdef int K, kk
+    cdef int nrows = H.shape[0]
+    cdef list op_dims = H.dims
+    cdef list sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
+    cdef list ekets, ket_dims
 
-     ket_dims = [op_dims[0], [1] * len(op_dims[0])]
+    ket_dims = [op_dims[0], [1] * len(op_dims[0])]
 
-     if not (spectra_cb is None):
-         warnings.warn("The use of spectra_cb is depreciated.", DeprecationWarning)
-         _a_ops = []
-         for kk, a in enumerate(a_ops):
-             _a_ops.append([a,spectra_cb[kk]])
-         a_ops = _a_ops
+    if not (spectra_cb is None):
+        warnings.warn("The use of spectra_cb is depreciated.", DeprecationWarning)
+        _a_ops = []
+        for kk, a in enumerate(a_ops):
+            _a_ops.append([a, spectra_cb[kk]])
+        a_ops = _a_ops
 
-     K = len(a_ops)
+    K = len(a_ops)
 
-     # Sanity checks for input parameters
-     if not isinstance(H, Qobj):
-         raise TypeError("H must be an instance of Qobj")
+    # Sanity checks for input parameters
+    if not isinstance(H, Qobj):
+        raise TypeError("H must be an instance of Qobj")
 
-     for a in a_ops:
-         if not isinstance(a[0], Qobj) or not a[0].isherm:
-             raise TypeError("Operators in a_ops must be Hermitian Qobj.")
+    for a in a_ops:
+        if not isinstance(a[0], Qobj) or not a[0].isherm:
+            raise TypeError("Operators in a_ops must be Hermitian Qobj.")
 
-     cdef complex[::1,:] H0 = H.full('F')
-     cdef complex[::1,:] evecs = np.zeros((nrows,nrows), dtype=complex, order='F')
-     cdef double[::1] evals = np.zeros(nrows, dtype=float)
+    cdef complex[::1,:] H0 = H.full('F')
+    cdef complex[::1,:] evecs = np.zeros((nrows,nrows), dtype=complex, order='F')
+    cdef double[::1] evals = np.zeros(nrows, dtype=float)
 
-     ZHEEVR(H0, &evals[0], evecs, nrows)
-     L = liou_from_diag_ham(evals)
+    ZHEEVR(H0, &evals[0], evecs, nrows)
+    L = liou_from_diag_ham(evals)
 
-     for cop in c_ops:
-         L = L + cop_super_term(cop.full('F'), evecs, 1,
-                               nrows, atol)
+    for cop in c_ops:
+        L = add_csr(L, cop_super_term(cop.full('F'), evecs, 1, nrows, atol))
 
-     #only lindblad collapse terms
-     if K == 0:
-         ekets = [Qobj(np.asarray(evecs[:,k]),
-               dims=ket_dims) for k in range(nrows)]
+    #only lindblad collapse terms
+    if K == 0:
+        ekets = [Qobj(np.asarray(evecs[:,k]), dims=ket_dims)
+                 for k in range(nrows)]
+        return Qobj(L, dims=sop_dims, type='super', copy=False), ekets
 
-         return Qobj(L, dims=sop_dims, copy=False), ekets
+    #has some br operators and spectra
+    cdef double[:,::1] skew = np.zeros((nrows,nrows), dtype=float)
+    cdef double dw_min = skew_and_dwmin(&evals[0], skew, nrows)
 
-     #has some br operators and spectra
-     cdef double[:,::1] skew = np.zeros((nrows,nrows), dtype=float)
-     cdef double dw_min = skew_and_dwmin(&evals[0], skew, nrows)
-
-     for a in a_ops:
-         L = L + _br_term(a[0].full('F'), evecs, skew, dw_min, a[1],
-                        nrows, use_secular, sec_cutoff, atol)
-
-     ekets = [Qobj(np.asarray(evecs[:,k]),
-                   dims=ket_dims) for k in range(nrows)]
-
-
-     return Qobj(L, dims=sop_dims, copy=False), ekets
+    for a in a_ops:
+        L = add_csr(L, _br_term(a[0].full('F'), evecs, skew, dw_min, a[1],
+                                nrows, use_secular, sec_cutoff, atol))
+    ekets = [Qobj(np.asarray(evecs[:,k]), dims=ket_dims) for k in range(nrows)]
+    return Qobj(L, dims=sop_dims, type='super', copy=False), ekets
