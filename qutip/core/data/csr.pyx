@@ -19,7 +19,7 @@ from scipy.sparse import csr_matrix as scipy_csr_matrix
 from scipy.sparse.data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport base
+from qutip.core.data cimport base, Dense
 from qutip.core.data.add cimport add_csr
 from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.mul cimport mul_csr, neg_csr
@@ -615,4 +615,50 @@ cpdef CSR identity(base.idxint dimension, double complex scale=1):
         out.col_index[i] = i
         out.row_index[i] = i
     out.row_index[dimension] = dimension
+    return out
+
+cpdef CSR from_dense(Dense matrix):
+    # Assume worst-case scenario for non-zero.
+    cdef CSR out = empty(matrix.shape[0], matrix.shape[1],
+                         matrix.shape[0]*matrix.shape[1])
+    cdef size_t row, col, ptr_in, ptr_out=0, row_stride, col_stride
+    row_stride = 1 if matrix.fortran else matrix.shape[1]
+    col_stride = matrix.shape[0] if matrix.fortran else 1
+    out.row_index[0] = 0
+    for row in range(matrix.shape[0]):
+        ptr_in = row_stride * row
+        for col in range(matrix.shape[1]):
+            if matrix.data[ptr_in] != 0:
+                out.data[ptr_out] = matrix.data[ptr_in]
+                out.col_index[ptr_out] = col
+                ptr_out += 1
+            ptr_in += col_stride
+        out.row_index[row + 1] = ptr_out
+    return out
+
+cdef CSR from_coo_pointers(base.idxint *rows, base.idxint *cols, double complex *data,
+                           base.idxint n_rows, base.idxint n_cols, base.idxint nnz):
+    cdef CSR out = empty(n_rows, n_cols, nnz)
+    cdef base.idxint row
+    cdef size_t ptr_in, ptr_out
+    memset(out.row_index, 0, (n_rows + 1) * sizeof(base.idxint))
+    for ptr_in in range(nnz):
+        out.row_index[rows[ptr_in] + 1] += 1
+    for ptr_out in range(n_rows):
+        out.row_index[ptr_out + 1] += out.row_index[ptr_out]
+    # out.row_index is currently in the normal output form, but we're
+    # temporarily going to modify it to keep track of how many values we've
+    # placed in each row as we iterate through.  At every state,
+    # out.row_index[row] will contain a pointer to the next location that an
+    # element should be placed in this row.
+    for ptr_in in range(nnz):
+        row = rows[ptr_in]
+        ptr_out = out.row_index[row]
+        out.col_index[ptr_out] = cols[ptr_in]
+        out.data[ptr_out] = data[ptr_in]
+        out.row_index[row] += 1
+    # and now revert the row_index back to what it should be
+    for row in range(n_rows, 0, -1):
+        out.row_index[row] = out.row_index[row - 1]
+    out.row_index[0] = 0
     return out
