@@ -33,7 +33,7 @@
 
 import numpy as np
 from qutip import (
-    sigmax, sigmay, sigmaz, sigmam, mesolve, mcsolve, essolve, basis,
+    sigmax, sigmay, sigmaz, sigmam, mesolve, mcsolve, basis,
 )
 
 
@@ -55,8 +55,6 @@ def _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, solver):
 
     if solver == "me":
         output = mesolve(H, psi0, tlist, c_op_list, e_ops)
-    elif solver == "es":
-        output = essolve(H, psi0, tlist, c_op_list, e_ops)
     elif solver == "mc":
         output = mcsolve(H, psi0, tlist, c_op_list, e_ops, ntraj=750)
     else:
@@ -101,28 +99,6 @@ def test_MESolverCase2():
     tlist = np.linspace(0, 5, 200)
 
     sx, sy, sz = _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "me")
-
-    sx_analytic = np.zeros(np.shape(tlist))
-    sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
-    sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
-
-    assert max(abs(sx - sx_analytic)) < 0.05
-    assert max(abs(sy - sy_analytic)) < 0.05
-    assert max(abs(sz - sz_analytic)) < 0.05
-
-
-def test_ESSolverCase1():
-    """
-    Test essolve qubit, with dissipation
-    """
-    epsilon = 0.0 * 2 * np.pi      # cavity frequency
-    delta = 1.0 * 2 * np.pi        # atom frequency
-    g2 = 0.1
-    g1 = 0.0
-    psi0 = basis(2, 0)          # initial state
-    tlist = np.linspace(0, 5, 200)
-
-    sx, sy, sz = _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "es")
 
     sx_analytic = np.zeros(np.shape(tlist))
     sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)

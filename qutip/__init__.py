@@ -215,7 +215,6 @@ from .mesolve import *
 from .sesolve import *
 from .mcsolve import *
 from .stochastic import *
-from .essolve import *
 from .propagator import *
 from .floquet import *
 from .bloch_redfield import *
