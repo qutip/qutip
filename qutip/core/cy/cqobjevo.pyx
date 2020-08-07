@@ -185,7 +185,7 @@ cdef class CQobjEvo:
         if not self.has_dynamic_args:
             return
         else:
-            for name, what, e_op in self.dynamics_args:
+            for name, what, e_op in self.dynamic_arguments:
                 self.args[name] = dynamic_argument(t, self.op, matrix,
                                                    what, e_op)
             for i in range(self.n_ops):

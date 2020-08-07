@@ -46,7 +46,7 @@ from scipy.interpolate import CubicSpline, interp1d
 
 from .qobj import Qobj
 from .cy.cqobjevo import CQobjEvo
-from .coefficient import coefficient
+from .coefficient import coefficient, CompilationOptions
 from .superoperator import stack_columns, unstack_columns
 from .. import settings as qset
 
@@ -301,7 +301,8 @@ class QobjEvo:
                                         op[1],
                                         tlist=tlist,
                                         args=args,
-                                        _stepInterpolation=use_step_func
+                                        _stepInterpolation=use_step_func,
+                                        compile_opt=CompilationOptions(extra_import=" ")
                         )))
 
             if self.cte is None:
@@ -355,6 +356,7 @@ class QobjEvo:
             if key.startswith("expect_op_"):
                 e_op_num = int(key[10:])
                 self.dynamics_args += [(key, "expect", e_op_num)]
+                self.args[key] = 0
 
     def _check_old_with_state(self):
         # Todo: remove, add deprecationwarning in 4.6.0
@@ -736,7 +738,7 @@ class QobjEvo:
         res.cte = cte_res
         for op in res.ops:
             op.qobj = function(op.qobj, *args, **kw_args)
-        self.compile()
+        res.compile()
         return res
 
     def expect(self, t, state, herm=0):
@@ -754,16 +756,18 @@ class QobjEvo:
         else:
             raise TypeError("The vector must be an array or Qobj")
 
-        if True:
-            exp = self.compiled_qobjevo.expect(t, state)
-        elif self.cte.issuper:
+        #if True:
+        #    exp = self.compiled_qobjevo.expect(t, state)
+        if self.cte.issuper:
             state = _data.column_stack_dense(state)
-            self._dynamics_args_update(t, state)
-            exp = _data.expect_super_csr_dense(self.__call__(t, data=True),
-                                               state)
+            #self._dynamics_args_update(t, state)
+            #exp = _data.expect_super_csr_dense(self.__call__(t, data=True),
+            #                                   state)
         else:
-            self._dynamics_args_update(t, state)
-            exp = _data.expect_csr_dense(self.__call__(t, data=True), state)
+            pass
+            # self._dynamics_args_update(t, state)
+            # exp = _data.expect_csr_dense(self.__call__(t, data=True), state)
+        exp = self.compiled_qobjevo.expect(t, state)
         return exp.real if herm else exp
 
     def mul_vec(self, t, vec):
