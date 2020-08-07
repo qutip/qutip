@@ -386,16 +386,8 @@ class QobjEvo:
                 op_t = self.cte.data.copy()
             else:
                 op_t = self.cte.copy()
-        elif True:
-            op_t = self.compiled_qobjevo.call(t, data=data)
-        elif data:
-            op_t = self.cte.data.copy()
-            for part in self.ops:
-                op_t += part.qobj.data * part.coeff(t)
         else:
-            op_t = self.cte.copy()
-            for part in self.ops:
-                op_t += part.qobj * part.coeff(t)
+            op_t = self.compiled_qobjevo.call(t, data=data)
 
         return op_t
 
@@ -756,17 +748,8 @@ class QobjEvo:
         else:
             raise TypeError("The vector must be an array or Qobj")
 
-        #if True:
-        #    exp = self.compiled_qobjevo.expect(t, state)
         if self.cte.issuper:
             state = _data.column_stack_dense(state)
-            #self._dynamics_args_update(t, state)
-            #exp = _data.expect_super_csr_dense(self.__call__(t, data=True),
-            #                                   state)
-        else:
-            pass
-            # self._dynamics_args_update(t, state)
-            # exp = _data.expect_csr_dense(self.__call__(t, data=True), state)
         exp = self.compiled_qobjevo.expect(t, state)
         return exp.real if herm else exp
 
@@ -790,12 +773,7 @@ class QobjEvo:
         if vec.shape[0] != self.cte.shape[1]:
             raise Exception("The length do not match")
 
-        if True:
-            out = self.compiled_qobjevo.matmul(t, vec).as_ndarray()[:, 0]
-        else:
-            self._dynamics_args_update(t, vec)
-            out = _data.matmul_csr_dense_dense(self.__call__(t, data=True),
-                                               vec).as_ndarray()[:, 0]
+        out = self.compiled_qobjevo.matmul(t, vec).as_ndarray()[:, 0]
 
         if was_Qobj:
             return Qobj(out, dims=dims)
@@ -821,11 +799,7 @@ class QobjEvo:
         if mat.shape[0] != self.cte.shape[1]:
             raise Exception("The length do not match")
 
-        if True:
-            out = self.compiled_qobjevo.matmul(t, mat).as_ndarray()
-        else:
-            self._dynamics_args_update(t, mat)
-            out = self.__call__(t, data=True).to_array() @ mat.as_ndarray()
+        out = self.compiled_qobjevo.matmul(t, mat).as_ndarray()
 
         if was_Qobj:
             return Qobj(out, dims=dims)

@@ -43,7 +43,7 @@ cdef class Coefficient:
         return MulCoefficient(self, other)
 
     def copy(self):
-        return pickle.loads(pickle.dumps(self))
+        pickle.loads(pickle.dumps(self))
 
     def conj(self):
         return ConjCoefficient(self)
@@ -65,6 +65,9 @@ cdef class FunctionCoefficient(Coefficient):
 
     cdef complex _call(self, double t) except *:
         return self.func(t, self.args)
+
+    def copy(self):
+        return FunctionCoefficient(self.func, self.args.copy())
 
 
 cdef class InterpolateCoefficient(Coefficient):
