@@ -7,6 +7,7 @@ import dis
 import hashlib
 import glob
 import importlib
+import shutil
 from .. import settings as qset
 from .data import Data
 from .interpolate import Cubic_Spline
@@ -396,10 +397,13 @@ def compile_code(code, file_name, parsed, compile_opt):
                                include_dirs=[np.get_include()],
                                language='c++')
         setup(ext_modules = cythonize(coeff_file, force=compile_opt.recompile))
-        libfile = glob.glob(file_name + "*")[0]
-        os.rename(libfile, os.path.join(root, libfile))
     except Exception as e:
         raise Exception("Could not compile") from e
+    try:
+        libfile = glob.glob(file_name + "*")[0]
+        shutil.move(libfile, os.path.join(root, libfile))
+    except Exception:
+        warn("File")
     sys.argv = oldargs
     return try_import(file_name, parsed)
 
