@@ -604,10 +604,9 @@ def _steadystate_eigen(L, ss_args):
         ss_args['info']['residual_norm'] = scipy.linalg.norm(L*eigvec, np.inf)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
-    print(_data.dense.fast_from_numpy(eigvec))
     _temp = unstack_columns(_data.dense.fast_from_numpy(eigvec))
     # TODO: fix dispatch.
-    data = _data.create(_temp.as_ndarray())
+    data = _data.csr.from_dense(_temp)
     data *= 0.5
     data += data.adjoint()
     out = Qobj(data, dims=dims, type='oper', isherm=True, copy=False)
