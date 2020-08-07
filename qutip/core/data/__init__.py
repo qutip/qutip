@@ -39,9 +39,9 @@ def create(arg, shape=None):
     if scipy.sparse.issparse(arg):
         return CSR(arg.tocsr(), shape=shape)
     # Promote 1D lists and arguments to kets, not bras by default.
-    arr = np.array(arg)
+    arr = np.array(arg, dtype=np.complex128)
     if arr.ndim == 1:
         arr = arr[:, np.newaxis]
     if arr.ndim != 2:
         raise TypeError("input has incorrect dimensions: " + str(arr.shape))
-    return CSR(scipy.sparse.csr_matrix(arr), shape=shape)
+    return csr.from_dense(dense.fast_from_numpy(arr))
