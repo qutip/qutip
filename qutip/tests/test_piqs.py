@@ -454,10 +454,8 @@ class TestDicke:
         Ldata[2] = [0, 0, -0.9, 0]
         Ldata[3] = [0.6, 0, 0, -0.6]
 
-        lindbladian_correct = Qobj(
-            Ldata, dims=[[[2], [2]], [[2], [2]]], shape=(4, 4)
-        )
-        assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
+        lindbladian_correct = Qobj(Ldata, dims=[[[2], [2]], [[2], [2]]])
+        assert_array_almost_equal(lindbladian.full(), Ldata)
         N = 2
         gCE = 0.5
         gCD = 0.5
@@ -498,10 +496,8 @@ class TestDicke:
             0.1,
             -0.25,
         )
-        lindbladian_correct = Qobj(
-            Ldata, dims=[[[4], [4]], [[4], [4]]], shape=(16, 16)
-        )
-        assert_array_almost_equal(lindbladian.data.toarray(), Ldata)
+        lindbladian_correct = Qobj(Ldata, dims=[[[4], [4]], [[4], [4]]])
+        assert_array_almost_equal(lindbladian.full(), Ldata)
 
     def test_gamma(self):
         """
@@ -574,8 +570,8 @@ class TestDicke:
             test_jpjm = jp * jm - jm * jp
             true_jpjm = 2 * jz
 
-            assert_array_almost_equal(test_jxjy, true_jxjy)
-            assert_array_almost_equal(test_jpjm, true_jpjm)
+            assert_array_almost_equal(test_jxjy.full(), true_jxjy.full())
+            assert_array_almost_equal(test_jpjm.full(), true_jpjm.full())
 
             # tests 2
             [jx, jy, jz] = jspin(nn)
@@ -585,14 +581,14 @@ class TestDicke:
             test_jpjm = jp * jm - jm * jp
             true_jpjm = 2 * jz
 
-            assert_array_almost_equal(test_jxjy, true_jxjy)
-            assert_array_almost_equal(test_jpjm, true_jpjm)
+            assert_array_almost_equal(test_jxjy.full(), true_jxjy.full())
+            assert_array_almost_equal(test_jpjm.full(), true_jpjm.full())
 
-            assert_array_almost_equal(jspin(nn, "x"), jx)
-            assert_array_almost_equal(jspin(nn, "y"), jy)
-            assert_array_almost_equal(jspin(nn, "z"), jz)
-            assert_array_almost_equal(jspin(nn, "+"), jp)
-            assert_array_almost_equal(jspin(nn, "-"), jm)
+            assert_array_almost_equal(jspin(nn, "x").full(), jx.full())
+            assert_array_almost_equal(jspin(nn, "y").full(), jy.full())
+            assert_array_almost_equal(jspin(nn, "z").full(), jz.full())
+            assert_array_almost_equal(jspin(nn, "+").full(), jp.full())
+            assert_array_almost_equal(jspin(nn, "-").full(), jm.full())
             assert_raises(TypeError, jspin, nn, "q")
 
     def test_j_min_(self):

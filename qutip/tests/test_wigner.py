@@ -109,10 +109,7 @@ def test_wigner_bell4_fullparity():
         for p in range(steps):
             wigner_analyt[t, p] = -0.30901699
 
-    print("wigner anal: ", wigner_analyt)
     wigner_theo = wigner_transform(psi, 0.5, True, steps, slicearray)
-
-    print("wigner theo: ", wigner_theo)
     assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-4)
 
 

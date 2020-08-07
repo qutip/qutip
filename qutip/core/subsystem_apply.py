@@ -182,7 +182,7 @@ def _top_apply_S(block, channel):
     chan_mat = channel.full()
     temp_col = np.zeros(np.shape(column)).astype(complex)
     for i, row in enumerate(chan_mat):
-        temp_col[i] = sum(s[0, 0]*mat for s, mat in zip(row.T, column))
+        temp_col[i] = sum(s*mat for s, mat in zip(row.T, column))
     return _block_stack(temp_col, n_v, n_h)
 
 

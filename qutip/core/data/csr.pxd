@@ -4,6 +4,7 @@ import numpy as np
 cimport numpy as cnp
 
 from qutip.core.data cimport base
+from qutip.core.data.dense cimport Dense
 
 cdef class CSR(base.Data):
     cdef double complex *data
@@ -45,3 +46,7 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size)
 cpdef CSR empty_like(CSR other)
 cpdef CSR zeros(base.idxint rows, base.idxint cols)
 cpdef CSR identity(base.idxint dimension, double complex scale=*)
+
+cpdef CSR from_dense(Dense matrix)
+cdef CSR from_coo_pointers(base.idxint *rows, base.idxint *cols, double complex *data,
+                           base.idxint n_rows, base.idxint n_cols, base.idxint nnz)

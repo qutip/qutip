@@ -171,7 +171,7 @@ class TestExplicitForm:
         pytest.param(gates.qrot, 2, id="Rabi rotation"),
     ])
     def test_zero_rotations_are_identity(self, gate, n_angles):
-        np.testing.assert_allclose(np.eye(2), gate(*([0]*n_angles)),
+        np.testing.assert_allclose(np.eye(2), gate(*([0]*n_angles)).full(),
                                    atol=1e-15)
 
 

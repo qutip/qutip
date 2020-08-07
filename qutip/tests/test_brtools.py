@@ -91,8 +91,8 @@ def test_vec_to_eigbasis():
         H = qutip.rand_herm(dimension, 0.5)
         basis = H.eigenstates()[1]
         R = qutip.rand_dm(dimension, 0.5)
-        target = qutip.stack_columns(R.transform(basis).full()).ravel()
-        flat_vector = qutip.stack_columns(R.full()).ravel()
+        target = qutip.stack_columns(R.transform(basis).data).to_array()[:, 0]
+        flat_vector = qutip.stack_columns(R.data).to_array()[:, 0]
         calculated = _test_vec_to_eigbasis(H.full('F'), flat_vector)
         np.testing.assert_allclose(target, calculated, atol=1e-12)
 
@@ -104,10 +104,11 @@ def test_eigvec_to_fockbasis():
         H = qutip.rand_herm(dimension, 0.5)
         basis = H.eigenstates()[1]
         R = qutip.rand_dm(dimension, 0.5)
-        target = qutip.stack_columns(R.full()).ravel()
+        target = qutip.stack_columns(R.data).to_array()[:, 0]
         _eigenvalues = np.empty((dimension,), dtype=np.float64)
         evecs_zheevr = _test_zheevr(H.full('F'), _eigenvalues)
-        flat_eigenvectors = qutip.stack_columns(R.transform(basis).full()).ravel()
+        flat_eigenvectors =\
+            qutip.stack_columns(R.transform(basis).data).to_array()[:, 0]
         calculated = _test_eigvec_to_fockbasis(flat_eigenvectors, evecs_zheevr,
                                                dimension)
         np.testing.assert_allclose(target, calculated, atol=1e-12)
@@ -118,7 +119,8 @@ def test_vector_roundtrip():
     dimension = 10
     for _ in range(50):
         H = qutip.rand_herm(dimension, 0.5).full('F')
-        vector = qutip.stack_columns(qutip.rand_dm(dimension, 0.5).full()).ravel()
+        vec_base = qutip.rand_dm(dimension, 0.5)
+        vector = qutip.stack_columns(vec_base.data).to_array()[:, 0]
         np.testing.assert_allclose(vector, _test_vector_roundtrip(H, vector),
                                    atol=1e-12)
 
@@ -131,7 +133,7 @@ def test_diag_liou_mult():
         L = qutip.liouvillian(H.transform(evecs))
         coefficients = np.ones((dimension*dimension,), dtype=np.complex128)
         calculated = np.zeros_like(coefficients)
-        target = L.data.dot(coefficients)
+        target = L.data.as_scipy().dot(coefficients)
         _test_diag_liou_mult(evals, coefficients, calculated, dimension)
         np.testing.assert_allclose(target, calculated, atol=1e-12)
 
@@ -145,7 +147,7 @@ def test_cop_super_mult():
         a = qutip.destroy(dimension)
         L = qutip.liouvillian(None, [a.transform(basis)])
         vec = np.ones((dimension*dimension,), dtype=np.complex128)
-        target = L.data.dot(vec)
+        target = L.data.as_scipy().dot(vec)
         calculated = np.zeros_like(target)
         _eigenvalues = np.empty((dimension,), dtype=np.float64)
         _cop_super_mult(a.full('F'), _test_zheevr(H.full('F'), _eigenvalues),
@@ -171,7 +173,7 @@ def test_br_term_mult(secular):
         vec = np.ones((dimension*dimension,), dtype=np.complex128)
         br_tensor, _ = qutip.bloch_redfield_tensor(H, a_ops,
                                                    use_secular=secular)
-        target = (br_tensor - L_diagonal).data.dot(vec)
+        target = (br_tensor - L_diagonal).data.as_scipy().dot(vec)
         calculated = np.zeros_like(target)
         _test_br_term_mult(time, operator.full('F'), evecs, evals, vec,
                            calculated, secular, 0.1, atol)

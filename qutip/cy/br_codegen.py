@@ -69,21 +69,12 @@ class BR_Codegen(object):
     Class for generating Bloch-Redfield time-dependent code
     at runtime.
     """
-    def __init__(self, h_terms=None, h_td_terms=None, h_obj=None,
-                c_terms=None, c_td_terms=None, c_obj=None,
-                a_terms=None, a_td_terms=None,
-                spline_count=[0,0],
-                coupled_ops=[],
-                coupled_lengths=[],
-                coupled_spectra=[],
-                config=None, sparse=False,
-                use_secular=None,
-                sec_cutoff=0.1,
-                args=None,
-                use_openmp=False,
-                omp_thresh=None,
-                omp_threads=None,
-                atol=None):
+    def __init__(self, h_terms=None, h_td_terms=None, h_obj=None, c_terms=None,
+                 c_td_terms=None, c_obj=None, a_terms=None, a_td_terms=None,
+                 spline_count=[0,0], coupled_ops=[], coupled_lengths=[],
+                 coupled_spectra=[], config=None, sparse=False,
+                 use_secular=None, sec_cutoff=0.1, args=None, use_openmp=False,
+                 omp_thresh=None, omp_threads=None, atol=None):
         try:
             import cython
         except (ImportError, ModuleNotFoundError):

@@ -36,7 +36,7 @@ Module for measuring quantum objects.
 
 import numpy as np
 
-from . import Qobj
+from . import Qobj, expect
 
 
 def measurement_statistics(op, state):
@@ -86,11 +86,11 @@ def measurement_statistics(op, state):
 def _measurement_statistics(op, state):
     eigenvalues, eigenstates = op.eigenstates()
     if state.isket:
-        probabilities = [(e.dag() * state).norm() ** 2 for e in eigenstates]
+        probabilities = [abs(e.overlap(state))**2 for e in eigenstates]
         return eigenvalues, eigenstates, probabilities
     else:
-        projectors = [v * v.dag() for v in eigenstates]
-        probabilities = [(p * state).tr() for p in projectors]
+        projectors = [e.proj() for e in eigenstates]
+        probabilities = [expect(v, state) for v in projectors]
         return eigenvalues, projectors, probabilities
 
 

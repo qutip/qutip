@@ -1265,7 +1265,7 @@ def _uncoupled_css(N, a, b):
     # |+><+| = Prod_(i=1)^N |CSS>_i<CSS|_i
     for i in range(1, N):
         rho[i] = rho[0].permute(b[i])
-    identity_i = Qobj(np.eye(2 ** N), dims=rho[0].dims, shape=rho[0].shape)
+    identity_i = Qobj(np.eye(2 ** N), dims=rho[0].dims)
     rho_tot = identity_i
     for i in range(0, N):
         rho_tot = rho_tot * rho[i]

@@ -216,13 +216,8 @@ def qpt(U, op_basis_list):
         E_op_list = [op_basis_list[k][inds[k]] for k in range(len(
             op_basis_list))]
         E_ops.append(tensor(E_op_list))
-
     EE_ops = [spre(E1) * spost(E2.dag()) for E1 in E_ops for E2 in E_ops]
-
-    M = hstack([stack_columns(EE.full()) for EE in EE_ops])
-
-    Uvec = stack_columns(U.full())
-
+    M = hstack([EE.full().ravel('F')[:, None] for EE in EE_ops])
+    Uvec = U.full().ravel('F')
     chi_vec = la.solve(M, Uvec)
-
-    return unstack_columns(chi_vec)
+    return chi_vec.reshape(U.shape).T
