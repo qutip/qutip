@@ -44,15 +44,12 @@ _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@pytest.mark.parametrize(["solver", "start", "legacy"], [
-    pytest.param("es", _equivalence_coherent, False, id="es"),
-    pytest.param("es", _equivalence_coherent, True, id="es-legacy"),
-    pytest.param("es", None, False, id="es-steady state"),
-    pytest.param("es", None, True, id="es-steady state-legacy"),
-    pytest.param("mc", _equivalence_fock, False, id="mc",
-                 marks=pytest.mark.slow),
+@pytest.mark.parametrize(["solver", "start"], [
+    pytest.param("es", _equivalence_coherent, id="es"),
+    pytest.param("es", None, id="es-steady state"),
+    pytest.param("mc", _equivalence_fock, id="mc", marks=pytest.mark.slow),
 ])
-def test_correlation_solver_equivalence(solver, start, legacy):
+def test_correlation_solver_equivalence(solver, start):
     """
     Test that all of the correlation solvers give the same results for a given
     system.
@@ -67,38 +64,38 @@ def test_correlation_solver_equivalence(solver, start, legacy):
     # Massively relax the tolerance for the Monte-Carlo approach to avoid a
     # long simulation time.
     tol = 0.25 if solver == "mc" else 1e-4
-    correlation = (qutip.correlation if legacy
-                   else qutip.correlation_2op_2t)
     # We use the master equation version as a base, but it doesn't actually
     # matter - if all the tests fail, it implies that the "me" solver might be
     # broken, whereas if only one fails, then it implies that only that one is
     # broken.  We test that all solvers are equivalent by transitive equality
     # to the "me" solver.
-    base = correlation(H, start, None, times, c_ops, a.dag(), a, solver="me")
-    cmp = correlation(H, start, None, times, c_ops, a.dag(), a, solver=solver)
+    base = qutip.correlation_2op_2t(H, start, None, times, c_ops,
+                                    a.dag(), a, solver="me")
+    cmp = qutip.correlation_2op_2t(H, start, None, times, c_ops,
+                                   a.dag(), a, solver=solver)
     np.testing.assert_allclose(base, cmp, atol=tol)
 
 
-def _spectrum_wrapper(spectrum):
+def _spectrum_wrapper(solver):
     frequencies = 2*np.pi * np.linspace(0.5, 1.5, 101)
-    @functools.wraps(spectrum)
+    @functools.wraps(qutip.spectrum)
     def out(H, c_ops, a, b):
-        return spectrum(H, frequencies, c_ops, a, b), frequencies
+        return (qutip.spectrum(H, frequencies, c_ops, a, b, solver=solver),
+                frequencies)
     return out
 
 
 def _spectrum_fft(H, c_ops, a, b):
     times = np.linspace(0, 100, 2500)
-    correlation = qutip.correlation_ss(H, times, c_ops, a, b)
+    correlation = qutip.correlation_2op_1t(H, None, times, c_ops, a, b)
     frequencies, spectrum = qutip.spectrum_correlation_fft(times, correlation)
     return spectrum, frequencies
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("spectrum", [
     pytest.param(_spectrum_fft, id="fft"),
-    pytest.param(_spectrum_wrapper(qutip.spectrum_ss), id="es-legacy"),
-    pytest.param(_spectrum_wrapper(qutip.spectrum_pi), id="pi-legacy"),
+    pytest.param(_spectrum_wrapper("es"), id="es"),
+    pytest.param(_spectrum_wrapper("pi"), id="pi"),
 ])
 def test_spectrum_solver_equivalence_to_es(spectrum):
     """Test equivalence of the spectrum solvers to the base "es" method."""
