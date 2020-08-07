@@ -34,9 +34,10 @@ import pytest
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 
-from qutip import (smesolve, mesolve, photocurrent_mesolve, liouvillian,
-                   QobjEvo, spre, spost, destroy, coherent, parallel_map,
-                   qeye, fock_dm, general_stochastic, ket2dm, num)
+from qutip import (
+    smesolve, mesolve, photocurrent_mesolve, liouvillian, QobjEvo, spre, spost,
+    destroy, coherent, parallel_map, qeye, fock_dm, general_stochastic, num,
+)
 
 def f(t, args):
     return args["a"] * t
@@ -277,9 +278,9 @@ def test_general_stochastic():
                         'platen',
                         'explicit15']
     for solver in list_methods_tol:
-        res = general_stochastic(ket2dm(psi0),times,d1,d2,len_d2=2, e_ops=e_opsM,
-                                 normalize=False, ntraj=ntraj, nsubsteps=nsubsteps,
-                                 solver=solver)
+        res = general_stochastic(psi0.proj(), times, d1, d2, len_d2=2,
+                                 e_ops=e_opsM, normalize=False, ntraj=ntraj,
+                                 nsubsteps=nsubsteps, solver=solver)
     assert_(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                  for idx in range(len(e_ops))]))
     assert_(len(res.measurement) == ntraj)
@@ -289,6 +290,7 @@ def f_dargs(a, args):
     return args["expect_op_3"] - 1
 
 
+@pytest.mark.xfail(reason="not working yet")
 def test_ssesolve_feedback():
     "Stochastic: ssesolve: time-dependent H with feedback"
     tol = 0.01
@@ -309,8 +311,4 @@ def test_ssesolve_feedback():
                    ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
                    map_func=parallel_map, args={"expect_op_3":qeye(N)})
 
-    print(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
-                 for idx in range(len(e_ops))]))
-
-if __name__ == "__main__":
-    run_module_suite()
+    np.testing.assert_allclose(res.expect, res_ref.expect, atol=tol)
