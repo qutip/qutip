@@ -43,7 +43,7 @@ cdef class Coefficient:
         return MulCoefficient(self, other)
 
     def copy(self):
-        pickle.loads(pickle.dumps(self))
+        return pickle.loads(pickle.dumps(self))
 
     def conj(self):
         return ConjCoefficient(self)

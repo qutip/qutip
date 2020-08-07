@@ -269,11 +269,13 @@ def stack_columns(matrix):
     Stack the columns in a data-layer type, useful for converting an operator
     into a superoperator representation.
     """
-    if not isinstance(matrix, _data.Data):
+    if not isinstance(matrix, (_data.Data, np.ndarray)):
         raise TypeError(
             "input " + repr(type(matrix)) + " is not data-layer type"
         )
     # TODO: proper dispatch.
+    if isinstance(matrix, np.ndarray):
+        return matrix.ravel('F')[:, None]
     if isinstance(matrix, _data.CSR):
         return _data.column_stack_csr(matrix)
     return _data.column_stack_dense(matrix)
@@ -285,11 +287,16 @@ def unstack_columns(vector, shape=None):
     converting an operator in vector form back into a regular operator.  If
     `shape` is not passed, the output operator will be assumed to be square.
     """
-    if not isinstance(vector, _data.Data):
+    if not isinstance(vector, (_data.Data, np.ndarray)):
         raise TypeError(
             "input " + repr(type(vector)) + " is not data-layer type"
         )
-    if vector.shape[1] != 1:
+    if (
+        (isinstance(vector, _data.Data) and vector.shape[1] != 1)
+        or (isinstance(vector, np.ndarray)
+            and ((vector.ndim == 2 and vector.shape[1] != 1)
+                 or vector.ndim > 2))
+    ):
         raise TypeError("input is not a single column")
     if shape is None:
         n = int(np.sqrt(vector.shape[0]))
@@ -299,6 +306,8 @@ def unstack_columns(vector, shape=None):
             )
         shape = (n, n)
     # TODO: proper dispatch.
+    if isinstance(vector, np.ndarray):
+        return vector.reshape(shape, order='F')
     if isinstance(vector, _data.CSR):
         return _data.column_unstack_csr(vector, shape[0])
     return _data.column_unstack_dense(vector, shape[0])

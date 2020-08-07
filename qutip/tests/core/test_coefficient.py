@@ -295,3 +295,29 @@ def test_Coeffpickle(style, transform):
     coeff_pick = pickle.loads(pickle.dumps(coeff, -1))
     # Check for const case
     assert coeff(t) == coeff_pick(t)
+
+
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("spline", id="Cubic_Spline"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog")
+])
+@pytest.mark.parametrize(['transform'], [
+    pytest.param(_pass, id="single"),
+    pytest.param(_add, id="sum"),
+    pytest.param(_mul, id="prod"),
+    pytest.param(qtcoeff.norm, id="norm"),
+    pytest.param(qtcoeff.conj, id="conj"),
+    pytest.param(_shift, id="shift"),
+])
+def test_Coeffcopy(style, transform):
+    coeff = coeff_generator(style, "f")
+    t = np.random.rand() * 0.85 + 0.05
+    coeff = transform(coeff)
+    coeff_cp = coeff.copy()
+    # Check for const case
+    assert coeff(t) == coeff_cp(t)

@@ -514,8 +514,7 @@ class _MC():
         psis = np.empty((self.num_traj, len(self.tlist)), dtype=object)
         for i in range(self.num_traj):
             for j in range(len(self.tlist)):
-                psis[i, j] = Qobj(self._psi_out[i, j, :],
-                                  dims=dims, type='ket')
+                psis[i, j] = Qobj(self._psi_out[i, j], dims=dims, type='ket')
         return psis
 
     @property
