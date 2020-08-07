@@ -58,6 +58,5 @@ cdef class CQobjEvo:
     cdef void _factor(self, double t) except *
     cdef void _factor_dynamic(self, double t, Data state) except *
 
-    cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=*)
     cpdef double complex expect(self, double t, Data matrix) except *

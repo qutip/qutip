@@ -160,12 +160,6 @@ cdef class CQobjEvo:
             # TODO: remove useless `shape` parameter
             self.factor_func.dyn_args(t, state.to_array(), (self.shape[1], 1))
 
-    # TODO: get rid of this (only used in stochastic.pyx)
-    cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *:
-        cdef Dense vec_ = dense.wrap(vec, self.shape[1], 1)
-        cdef Dense out_ = dense.wrap(out, self.shape[1], 1)
-        self.matmul(t, vec_, out_)
-
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=None):
         cdef size_t i
         self._factor_dynamic(t, matrix)
